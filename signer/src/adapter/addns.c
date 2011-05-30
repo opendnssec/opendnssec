@@ -112,7 +112,7 @@ addns_read_line:
                     goto addns_read_line; /* perhaps next line is rr */
                     break;
                 } else {
-                    ods_log_error("[%s] error parsing RR at line %i (%s): %s",
+                    ods_log_error("[%s] error parsing rr at line %i (%s): %s",
                         adapter_str, l&&*l?*l:0,
                         ldns_get_errorstr_by_id(*status), line);
                     while (len >= 0) {
@@ -179,39 +179,38 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
         new_serial =
             ldns_rdf2native_int32(ldns_rr_rdf(soa, SE_SOA_RDATA_SERIAL));
     } else {
-        ods_log_error("[%s] error reading SOA RR from IXFR", adapter_str);
+        ods_log_error("[%s] error reading soa rr from xfr", adapter_str);
         return ODS_STATUS_ERR;
     }
 
     if (ldns_dname_compare(ldns_rr_owner(soa), dname) != 0) {
-        ods_log_error("[%s] dname SOA RR not equal to zone dname",
+        ods_log_error("[%s] dname soa rr not equal to zone dname",
             adapter_str);
         ldns_rr_free(soa);
         return ODS_STATUS_ERR;
     }
     if (adapi_get_class(zone) != ldns_rr_get_class(soa)) {
-        ods_log_error("[%s] class SOA RR not equal to zone class",
+        ods_log_error("[%s] class soa rr not equal to zone class",
             adapter_str);
         ldns_rr_free(soa);
         return ODS_STATUS_ERR;
     }
 
     /* SOA SERIAL */
-    if (old_serial >= new_serial) {
-        ods_log_error("[%s] IXFR serial %u is not incrementing current "
+    if (!DNS_SERIAL_GT(new_serial, old_serial)) {
+        ods_log_error("[%s] xfr serial %u is not incrementing current "
             "inbound serial %u", adapter_str, new_serial, old_serial);
         ldns_rr_free(soa);
         return ODS_STATUS_UNCHANGED;
     }
-
-    ods_log_info("[%s] IXFR from serial %u to serial %u",
+    ods_log_info("[%s] zone xfr from serial %u to serial %u",
         adapter_str, old_serial, new_serial);
 
     /* $ORIGIN <zone name> */
     orig = ldns_rdf_clone(dname);
     if (!orig) {
-        ods_log_error("[%s] error setting default value for $ORIGIN",
-            adapter_str);
+        ods_log_error("[%s] unable to read xfr: error setting default value "
+            "for $ORIGIN", adapter_str);
         return ODS_STATUS_ERR;
     }
 
@@ -223,8 +222,9 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
         &status, &l)) != NULL) {
 
         if (status != LDNS_STATUS_OK) {
-            ods_log_error("[%s] error reading RR at line %i (%s): %s",
-                adapter_str, l, ldns_get_errorstr_by_id(status), line);
+            ods_log_error("[%s] unable to read xfr: error reading rr at "
+                "line %i (%s): %s", adapter_str, l,
+                ldns_get_errorstr_by_id(status), line);
             result = ODS_STATUS_ERR;
             break;
         }
@@ -233,12 +233,14 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
         if (rr_count == 0) {
             if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_SOA) {
                 is_axfr = 1;
+/*
             } else {
                 tmp_serial =
                     ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
                 if (tmp_serial == new_serial) {
                     is_axfr = 1;
                 }
+*/
             }
         }
         rr_count++;
@@ -267,14 +269,14 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
             tmp_serial =
                 ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
             if (rr_count == 1 && tmp_serial != old_serial) {
-                ods_log_error("[%s] RR #%u: SOA serial mismatch", adapter_str,
-                    rr_count);
+                ods_log_error("[%s] unable to read ixfr: rr #%u: "
+                    "soa serial mismatch", adapter_str, rr_count);
                 result = ODS_STATUS_ERR;
                 break;
             }
             if (rr_count > 1 && tmp_serial < old_serial) {
-                ods_log_error("[%s] RR #%u: SOA serial mismatch", adapter_str,
-                    rr_count);
+                ods_log_error("[%s] unable to read ixfr: rr #%u: "
+                    "soa serial mismatch", adapter_str, rr_count);
                 result = ODS_STATUS_ERR;
                 break;
             }
@@ -296,18 +298,24 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
             result = adapi_add_rr(zone, rr);
         }
         if (result != ODS_STATUS_OK) {
-            ods_log_error("[%s] error %s RR at line %i: %s",
+            ods_log_error("[%s] error %s rr at line %i: %s",
                 adapter_str, del_rr?"deleting":"adding", l, line);
             break;
         }
     }
 
-    /* add the final SOA RR for IXFR */
+    /* add the final SOA RR... */
     if (!is_axfr) {
-        result = adapi_add_rr(zone, soa);
-        if (result != ODS_STATUS_OK) {
-            ods_log_error("[%s] error adding final SOA RR",
+        if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_SOA) {
+            ods_log_error("[%s] unable to read ixfr: missing final soa rr",
                 adapter_str);
+            result = ODS_STATUS_ERR;
+        } else {
+            result = adapi_add_rr(zone, soa);
+            if (result != ODS_STATUS_OK) {
+                ods_log_error("[%s] unable to read ixfr: error adding final "
+                    "soa rr", adapter_str);
+            }
         }
     }
 
@@ -322,7 +330,7 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
     }
 
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
-        ods_log_error("[%s] error reading RR at line %i (%s): %s",
+        ods_log_error("[%s] error reading rr at line %i (%s): %s",
             adapter_str, l, ldns_get_errorstr_by_id(status), line);
         result = ODS_STATUS_ERR;
     }
@@ -337,7 +345,7 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
         result = adapi_trans_diff(zone);
     }
     if (result != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read file: start transaction failed",
+        ods_log_error("[%s] unable to read xfr: start transaction failed",
             adapter_str);
         return result;
     }
@@ -346,7 +354,7 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
     /* [start] validate updates */
     result = zone_examine(zone);
     if (result != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read ixfr: zone contains errors",
+        ods_log_error("[%s] unable to read xfr: zone contains errors",
             adapter_str);
         return result;
     }
@@ -370,13 +378,13 @@ addns_read(struct zone_struct* zone, const char* str)
 
     /* [start] sanity parameter checking */
     if (!adzone) {
-        ods_log_error("[%s] unable to read file: no zone (or no name given)",
+        ods_log_error("[%s] unable to read xfr: no zone (or no name given)",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone);
     if (!str) {
-        ods_log_error("[%s] unable to read file: no configstr given",
+        ods_log_error("[%s] unable to read xfr: no configstr given",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
@@ -386,14 +394,14 @@ addns_read(struct zone_struct* zone, const char* str)
     /* [start] read zone */
     fd = ods_fopen(str, NULL, "r");
     if (!fd) {
-        ods_log_error("[%s] unable to read ixfr: fopen failed", adapter_str);
+        ods_log_error("[%s] unable to read xfr: fopen failed", adapter_str);
         return ODS_STATUS_FOPEN_ERR;
     }
     status = addns_read_ixfr(fd, zone);
     ods_fclose(fd);
     fd = NULL;
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read ixfr: %s", adapter_str,
+        ods_log_error("[%s] unable to read xfr: %s", adapter_str,
             ods_status2str(status));
         return status;
     }
@@ -416,13 +424,13 @@ addns_write(struct zone_struct* zone, const char* str)
 
     /* [start] sanity parameter checking */
     if (!adzone) {
-        ods_log_error("[%s] unable to write file: no zone (or no "
+        ods_log_error("[%s] unable to write xfr: no zone (or no "
             "name given)", adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone);
     if (!str) {
-        ods_log_error("[%s] unable to write file: no filename given",
+        ods_log_error("[%s] unable to write xfr: no filename given",
             adapter_str);
         return ODS_STATUS_ERR;
     }
