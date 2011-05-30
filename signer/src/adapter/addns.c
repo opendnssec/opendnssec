@@ -57,6 +57,8 @@ ods_status
 addns_init(const char* str)
 {
     ods_log_assert(str);
+    ods_log_info("[%s] I am going to initialize the DNS adapter, using %s",
+        adapter_str, str);
     return ODS_STATUS_OK;
 }
 
