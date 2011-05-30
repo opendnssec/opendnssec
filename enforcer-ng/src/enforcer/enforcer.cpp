@@ -450,7 +450,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 			bool ksk_ok, zsk_ok;
 			ksk_ok = !(k->role() & KSK) || k->keyStateDS().state() == HID ||
 				(k != &key && reliableDnskey(key_list, *k));
-			zsk_ok = !(k->role() & ZSK) || k->keyStateRRSIG().state() == HID ||
+			zsk_ok = k->keyStateDNSKEY().state() == HID ||
 				reliableRrsig(key_list, *k);
 			if (ksk_ok && zsk_ok) continue;
 			/* This key breaks the chain, see if there is a
@@ -458,7 +458,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 			/* exists */
 			for ( int j = 0; j < num_keys; j++ ) {
 				l = &key_list.key(j);
-				if ( 	k == l ||
+				if ( 	&key == l ||
 						k->algorithm() != l->algorithm() ||
 						!reliableDnskey( key_list, *l ) )
 					continue;
