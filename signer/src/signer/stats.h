@@ -54,14 +54,14 @@
  */
 typedef struct stats_struct stats_type;
 struct stats_struct {
-    uint32_t    sort_count;
+    int         sort_count;
     time_t      sort_time;
     int         sort_done;
-    uint32_t    nsec_count;
+    int         nsec_count;
     time_t      nsec_time;
-    uint32_t    sig_count;
-    uint32_t    sig_soa_count;
-    uint32_t    sig_reuse;
+    int         sig_count;
+    int         sig_soa_count;
+    int         sig_reuse;
     time_t      sig_time;
     time_t      audit_time;
     time_t      start_time;
