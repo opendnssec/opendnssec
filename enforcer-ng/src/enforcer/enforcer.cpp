@@ -447,21 +447,20 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 		/* forall */
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
-			//~ if (&key == k) continue;
 			bool ksk_ok, zsk_ok;
 			ksk_ok = !(k->role() & KSK) || k->keyStateDS().state() == HID ||
 				(k != &key && reliableDnskey(key_list, *k));
 			zsk_ok = !(k->role() & ZSK) || k->keyStateRRSIG().state() == HID ||
-				(k != &key && reliableRrsig(key_list, *k));
+				reliableRrsig(key_list, *k);
 			if (ksk_ok && zsk_ok) continue;
 			/* This key breaks the chain, see if there is a
 			 * candidate that fixes this. */
 			/* exists */
 			for ( int j = 0; j < num_keys; j++ ) {
 				l = &key_list.key(j);
-				if ( 		k == l ||
-						k->algorithm() == l->algorithm() ||
-	                                        reliableDnskey( key_list, *l ) )
+				if ( 	k == l ||
+						k->algorithm() != l->algorithm() ||
+						!reliableDnskey( key_list, *l ) )
 					continue;
 				ksk_ok |= reliableDs( key_list, *l );
 				zsk_ok |= reliableRrsig( key_list, *l );
