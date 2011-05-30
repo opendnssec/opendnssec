@@ -150,6 +150,7 @@ parse_conf_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr, char* type)
     xmlXPathObjectPtr xpathObj = NULL;
     adapter_type* adapter = NULL;
     xmlNode* curNode = NULL;
+    const char* str = NULL;
 
     if (!xpathCtx || !expr || !type) {
         return NULL;
@@ -163,27 +164,18 @@ parse_conf_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr, char* type)
         return NULL;
     }
 
-    if (xpathObj->nodesetval) {
-        curNode = xpathObj->nodesetval->nodeTab[0]->xmlChildrenNode;
+    str = (const char*) xmlXPathCastToString(xpathObj);
 
-        if (ods_strcmp(type, "DNS") == 0) {
-            adapter = adapter_create((char*)curNode->content, ADAPTER_DNS, 1);
-            xmlXPathFreeObject(xpathObj);
-            return adapter;
-        } else if (ods_strcmp(type, "File") == 0) {
-            adapter = adapter_create((char*)curNode->content, ADAPTER_FILE, 1);
-        } else {
-            ods_log_error("[%s] unable to parse %s adapter: unknown type",
-                parser_str, type);
-        }
-        xmlXPathFreeObject(xpathObj);
-        return adapter;
+    if (ods_strcmp(type, "DNS") == 0) {
+        adapter = adapter_create(str, ADAPTER_DNS, 1);
+    } else if (ods_strcmp(type, "File") == 0) {
+        adapter = adapter_create(str, ADAPTER_FILE, 1);
+    } else {
+        ods_log_error("[%s] unable to parse %s adapter: unknown type",
+            parser_str, type);
     }
-
-    ods_log_error("[%s] unable to parse %s adapter: expected nodesetval",
-        parser_str, type);
     xmlXPathFreeObject(xpathObj);
-    return NULL;
+    return adapter;
 }
 
 
@@ -203,7 +195,7 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
     adapter_type** adapters = NULL;
     int ret = 0;
     int error = 0;
-    int i = 0;
+    size_t i = 0;
     size_t adcount = 0;
 
     xmlTextReaderPtr reader = NULL;
@@ -301,7 +293,7 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
     }
     if (ret != 0 || error == 1) {
         ods_log_error("[%s] error parsing file %s", parser_str, cfgfile);
-        for (i=0; i < (size_t) adcount; i++) {
+        for (i = 0; i < adcount; i++) {
             adapter_cleanup(adapters[i]);
         }
         allocator_deallocate(allocator, (void*) adapters);
