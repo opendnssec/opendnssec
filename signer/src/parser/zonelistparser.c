@@ -105,6 +105,7 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
 {
     xmlXPathObjectPtr xpathObj = NULL;
     xmlNode* curNode = NULL;
+    xmlChar* type = NULL;
     adapter_type* adapter = NULL;
     int i = 0;
 
@@ -127,8 +128,16 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
                     adapter = zlp_adapter(curNode, ADAPTER_FILE, inbound);
                 } else if (xmlStrEqual(curNode->name,
                     (const xmlChar*)"Adapter")) {
-                    /* currently assume DNS (we should read out the type attribute here) */
-                    adapter = zlp_adapter(curNode, ADAPTER_DNS, inbound);
+
+                    type = xmlGetProp(curNode, (const xmlChar*)"type");
+                    if (xmlStrEqual(type, (const xmlChar*)"File")) {
+                        adapter = zlp_adapter(curNode, ADAPTER_FILE, inbound);
+                    } else if (xmlStrEqual(type, (const xmlChar*)"DNS")) {
+                        adapter = zlp_adapter(curNode, ADAPTER_DNS, inbound);
+                    } else {
+                        ods_log_error("[%s] unable to parse %s adapter: "
+                            "unknown type", parser_str, (const char*) type);
+                    }
                 }
                 if (adapter) {
                     break;
@@ -173,6 +182,7 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
     char* zone_name = NULL;
     zone_type* new_zone = NULL;
     int ret = 0;
+    int error = 0;
 
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
@@ -247,22 +257,35 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
             new_zone->signconf_filename = parse_zonelist_element(xpathCtx,
                 signconf_expr);
             parse_zonelist_adapters(xpathCtx, new_zone);
-
-            /* ...and add it to the list */
-            if (zonelist_add_zone((zonelist_type*) zlist, new_zone) == NULL) {
+            if (!new_zone->policy_name || !new_zone->signconf_filename ||
+                !new_zone->adinbound || !new_zone->adoutbound) {
+                zone_cleanup(new_zone);
+                new_zone = NULL;
+                ods_log_error("[%s] unable to create zone %s", parser_str,
+                    zone_name);
+                error = 1;
+            } else if (zonelist_add_zone((zonelist_type*) zlist, new_zone)
+                == NULL) {
                 ods_log_error("[%s] unable to add zone %s", parser_str,
                     zone_name);
+                zone_cleanup(new_zone);
                 new_zone = NULL;
+                error = 1;
             }
-            ods_log_debug("[%s] zone %s added", parser_str, zone_name);
-            free((void*) zone_name);
             xmlXPathFreeContext(xpathCtx);
+            free((void*) zone_name);
+            if (!error) {
+                ods_log_debug("[%s] zone %s added", parser_str, new_zone->name);
+            } else {
+                free((void*) tag_name);
+                ret = 1;
+                break;
+            }
         }
         free((void*) tag_name);
         ret = xmlTextReaderRead(reader);
     }
-    /* no more zones */
-    ods_log_debug("[%s] no more zones", parser_str);
+
     xmlFreeTextReader(reader);
     if (doc) {
         xmlFreeDoc(doc);

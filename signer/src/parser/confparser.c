@@ -149,7 +149,6 @@ parse_conf_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr, char* type)
 {
     xmlXPathObjectPtr xpathObj = NULL;
     adapter_type* adapter = NULL;
-    xmlNode* curNode = NULL;
     const char* str = NULL;
 
     if (!xpathCtx || !expr || !type) {
