@@ -47,6 +47,8 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
                    "DS:          "
                    "DNSKEY:      "
                    "RRSIG:       "
+                   "Pub: "
+                   "Act: "
                    "Id:"
                    "\n"
                    ,datastore
@@ -64,12 +66,14 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
             std::string rrsig_rrstate = rrstate_Name(key.rrsig().state());
             std::string dnskey_rrstate = rrstate_Name(key.dnskey().state());
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "%-31s %-13s %-12s %-12s %-12s %s\n",
+                       "%-31s %-13s %-12s %-12s %-12s %d %4d    %s\n",
                        zone.name().c_str(),
                        keyrole.c_str(),
                        ds_rrstate.c_str(),
                        dnskey_rrstate.c_str(),
                        rrsig_rrstate.c_str(),
+                       key.publish(),
+                       key.active(),
                        key.locator().c_str()
                        );
             ods_writen(sockfd, buf, strlen(buf));
