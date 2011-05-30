@@ -640,14 +640,14 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     if (type == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_ttl) {
         rrset_ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
         ods_log_verbose("[%s] zone %s set DNSKEY TTL to %u",
-            zone_str, zone->name?zone->name:"(null)", tmp);
+            zone_str, zone->name?zone->name:"(null)", rrset_ttl);
         ldns_rr_set_ttl(rr, rrset_ttl);
     }
     if (type == LDNS_RR_TYPE_SOA) {
         if (zone->signconf->soa_ttl) {
             rrset_ttl = (uint32_t) duration2time(zone->signconf->soa_ttl);
             ods_log_verbose("[%s] zone %s set SOA TTL to %u",
-                zone_str, zone->name?zone->name:"(null)", tmp);
+                zone_str, zone->name?zone->name:"(null)", rrset_ttl);
             ldns_rr_set_ttl(rr, rrset_ttl);
         }
         if (zone->signconf->soa_min) {

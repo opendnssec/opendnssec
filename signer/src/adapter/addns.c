@@ -143,6 +143,7 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
 {
     ldns_rr* soa = NULL;
     ldns_rr* rr = NULL;
+    ldns_rr_type last_type = LDNS_RR_TYPE_FIRST;
     uint32_t tmp_serial = 0;
     uint32_t old_serial = 0;
     uint32_t new_serial = 0;
@@ -243,14 +244,13 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
 */
             }
         }
-        rr_count++;
 
         if (l > line_update) {
             ods_log_debug("[%s] ...at line %i: %s", adapter_str, l, line);
             line_update += line_update_interval;
         }
 
-        /* filter out DNSSEC RRs (except DNSKEY) from the Input File Adapter */
+        /* filter out DNSSEC RRs (except DNSKEY) from the Input Adapter */
         if (util_is_dnssec_rr(rr)) {
             ldns_rr_free(rr);
             rr = NULL;
@@ -263,6 +263,8 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
             rr = NULL;
             continue;
         }
+        rr_count++;
+        last_type = ldns_rr_get_type(rr);
 
         /* if SOA, switch */
         if (!is_axfr && ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
@@ -280,14 +282,11 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
                 result = ODS_STATUS_ERR;
                 break;
             }
-
             del_rr = !del_rr;
             soa_count++;
 
-            if (rr_count > 1) {
-                ldns_rr_free(rr);
-                rr = NULL;
-            }
+            ldns_rr_free(rr);
+            rr = NULL;
             continue;
         }
 
@@ -305,18 +304,10 @@ addns_read_ixfr(FILE* fd, zone_type* zone)
     }
 
     /* add the final SOA RR... */
-    if (!is_axfr) {
-        if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_SOA) {
-            ods_log_error("[%s] unable to read ixfr: missing final soa rr",
-                adapter_str);
-            result = ODS_STATUS_ERR;
-        } else {
-            result = adapi_add_rr(zone, soa);
-            if (result != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to read ixfr: error adding final "
-                    "soa rr", adapter_str);
-            }
-        }
+    if (last_type != LDNS_RR_TYPE_SOA) {
+        ods_log_error("[%s] unable to read xfr: missing final soa rr",
+            adapter_str);
+        result = ODS_STATUS_ERR;
     }
 
     /* and done */
