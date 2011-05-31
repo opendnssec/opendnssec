@@ -36,11 +36,6 @@ signer_pid_file="@OPENDNSSEC_PID_DIR@/signerd.pid"
 
 case "$1" in
 
-'ksm')
-	shift
-	"$bindir/ods-ksmutil" $@
-	;;
-
 'hsm')
 	shift
 	"$bindir/ods-hsmutil" $@
@@ -79,60 +74,27 @@ case "$1" in
 	case "$2" in
 
 	'start')
-		if [ -r "$enforcer_pid_file" ]; then
-			echo "Enforcer is already running"
-			RETVAL=-1
-		else
-			echo "Starting enforcer..."
-			"$sbindir/ods-enforcerd"
-			RETVAL=$?
-			if [ $RETVAL = 0 ]; then
-                i=0
-				while [ ! -r "$enforcer_pid_file" ]; do
-					sleep 1
-                    i=`expr $i + 1`
-                    if [ $i -ge 5 ]; then
-                        RETVAL=1
-                        echo "Could not start enforcer"
-                        break
-                    fi
-				done
+		echo "Starting enforcer..."
+		"$sbindir/ods-enforcer" start
+		i=0
+		while [ ! -r "$enforcer_pid_file" ]; do
+			sleep 1
+			i=`expr $i + 1`
+			if [ $i -ge 5 ]; then
+				RETVAL=1
+				echo "Could not start enforcer"
+				exit $RETVAL
 			fi
-		fi
-		exit $RETVAL
-		;;
+		done
 
-	'stop')
-		echo "Stopping enforcer..."
-		if [ -r "$enforcer_pid_file" ]; then
-			kill -TERM `cat "$enforcer_pid_file"`
-			RETVAL=$?
-			if [ $RETVAL = 0 ]; then
-				while [ -r "$enforcer_pid_file" ]; do
-					sleep 1
-				done
-			fi
-		else
-			echo "Cannot find PID file"
-			RETVAL=1
-		fi
-		exit $RETVAL
-		;;
+		"$sbindir/ods-enforcer" running
+		RETVAL=$?
 
-	'notify')
-		echo "Notifying enforcer of new database..."
-		if [ -r "$enforcer_pid_file" ]; then
-			kill -HUP `cat "$enforcer_pid_file"`
-			RETVAL=$?
-		else
-			echo "Cannot find PID file"
-			RETVAL=1
-		fi
 		exit $RETVAL
 		;;
 
 	*)
-		echo "usage: $progname enforcer start|stop|notify"
+		"$sbindir/ods-enforcer" $2
 		;;
 
 	esac
@@ -141,20 +103,19 @@ case "$1" in
 'start')
 	"$0" enforcer start
 
-	echo "Starting signer engine..."
 	"$0" signer start
-
 	;;
 
 'stop')
+	echo "Stopping enforcer.."
 	"$0" enforcer stop
 
 	echo "Stopping signer engine.."
-	"$sbindir/ods-signer" stop
+	"$0" signer stop
 	;;
 
 *)
-	echo "usage: $progname ksm|hsm|signer|enforcer|start|stop ..."
+	echo "usage: $progname hsm|signer|enforcer|start|stop ..."
 	;;
 
 esac
