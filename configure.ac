@@ -154,28 +154,20 @@ CC="$PTHREAD_CC"
 ACX_DLOPEN
 AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 
-# enforcer
-AC_PATH_PROG(PERL, perl)
-if test -z "$PERL"; then
-   AC_MSG_ERROR([perl not found])
-fi
-ACX_DBPARAMS
-ACX_DATABASE_BACKEND
-ACX_CUNIT
-AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
-AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_signer}" = "yes"])
-
-# cunit
-AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])
-
 # enforcer-ng
 AC_ARG_ENABLE(enforcerng,
 	AC_HELP_STRING([--disable-enforcerng],
 		[Disable enforcerng build (default enabled)]),
 		[enable_enforcerng="${enableval}"],
 		[enable_enforcerng="yes"])
+if test "x${enable_enforcerng}" = "xyes"; then
+	ACX_DBPARAMS
+	ACX_DATABASE_BACKEND
+	ACX_CUNIT
+	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
+	ACX_PROTOBUF(2,2,0)
+fi
 AM_CONDITIONAL([ENABLE_ENFORCERNG], [test "${enable_enforcerng}" = "yes"])
-ACX_PROTOBUF(2,2,0)
 
 # signer
 AC_ARG_ENABLE(signer,
@@ -186,8 +178,8 @@ AC_ARG_ENABLE(signer,
 AH_BOTTOM([
 	/* define before includes as it specifies what standard to use. */
 	#if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
-	        || !defined (HAVE_CTIME_R_PROTO) \
-	        || defined (STRPTIME_NEEDS_DEFINES)
+		|| !defined (HAVE_CTIME_R_PROTO) \
+		|| defined (STRPTIME_NEEDS_DEFINES)
 	#  ifndef _XOPEN_SOURCE
 	#    define _XOPEN_SOURCE 600
 	#  endif
@@ -258,23 +250,11 @@ AC_CONFIG_FILES([
 	conf/signconf.xml
 	conf/zonelist.xml
 	conf/zonefetch.xml
-	enforcer/Makefile
-	enforcer/ksm/Makefile
-	enforcer/ksm/include/Makefile
-	enforcer/ksm/include/ksm/Makefile
-	enforcer/common/Makefile
-	enforcer/enforcerd/Makefile
-	enforcer/enforcerd/ods-enforcerd.8
-	enforcer/utils/Makefile
-	enforcer/utils/ods-ksmutil.1
-	enforcer/test/Makefile
-	enforcer/test/cucumber/Makefile
-	enforcer/test/cucumber/c_conf.xml
-	enforcer/test/cucumber/c_kasp.xml
-	enforcer/test/cucumber/c_zonelist.base.xml
-	enforcer/test/cunit/Makefile
-	enforcer/test/cunit/database_setup_mysql.sh
-	enforcer/test/cunit/database_setup_sqlite3.sh
+	enforcer-ng/Makefile
+	enforcer-ng/src/Makefile
+	enforcer-ng/man/Makefile
+	enforcer-ng/man/ods-enforcer.8
+	enforcer-ng/man/ods-enforcerd.8
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/ods-hsmspeed.1
@@ -292,11 +272,6 @@ AC_CONFIG_FILES([
 	signer/man/Makefile
 	signer/man/ods-signer.8
 	signer/man/ods-signerd.8
-	enforcer-ng/Makefile
-	enforcer-ng/src/Makefile
-	enforcer-ng/man/Makefile
-	enforcer-ng/man/ods-enforcer.8
-	enforcer-ng/man/ods-enforcerd.8
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile

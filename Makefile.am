@@ -11,7 +11,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = common libhsm enforcer conf tools contrib
+SUBDIRS = common libhsm conf tools contrib
 
 if ENABLE_SIGNER
 SUBDIRS += signer
@@ -45,9 +45,12 @@ install-data-hook:
 
 docs:
 	(cd libhsm; $(MAKE) doxygen)
-	(cd enforcer; $(MAKE) doxygen)
+if ENABLE_ENFORCERNG
 	(cd enforcer-ng; $(MAKE) doxygen)
+endif
+if ENABLE_SIGNER
 	(cd signer; $(MAKE) doxygen)
+endif
 if ENABLE_AUDITOR
 	(cd auditor; $(MAKE) rdoc)
 endif
