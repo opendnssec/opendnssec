@@ -6246,9 +6246,9 @@ int PurgeKeys(int zone_id, int policy_id)
                 hsm_key_free(key);
 
                 if (!status) {
-                    printf("Key remove successful.\n");
+                    printf("Key remove successful: %s\n", temp_loc);
                 } else {
-                    printf("Key remove failed.\n");
+                    printf("Key remove failed: %s\n", temp_loc);
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
                     return -1;

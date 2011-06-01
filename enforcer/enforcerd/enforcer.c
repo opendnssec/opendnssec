@@ -1540,9 +1540,9 @@ int do_purge(int interval, int policy_id)
                 hsm_key_free(key);
 
                 if (!status) {
-                    log_msg(NULL, LOG_INFO, "Key remove successful.\n");
+                    log_msg(NULL, LOG_INFO, "Key remove successful: %s\n", temp_loc);
                 } else {
-                    log_msg(NULL, LOG_ERR, "Key remove failed.\n");
+                    log_msg(NULL, LOG_ERR, "Key remove failed: %s\n", temp_loc);
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
                     StrFree(rightnow);
