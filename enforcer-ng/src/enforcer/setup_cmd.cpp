@@ -10,9 +10,8 @@ extern "C" {
 #include "enforcer/setup_cmd.h"
 
 #include "policy/update_kasp_task.h"
-#include "keystate/update_keyzones_task.h"
-#include "hsmkey/update_hsmkeys_task.h"
 #include "policy/policy_resalt_task.h"
+#include "keystate/update_keyzones_task.h"
 
 #include "shared/duration.h"
 #include "shared/file.h"
@@ -33,7 +32,6 @@ void help_setup_cmd(int sockfd)
         "                  update kasp\n"
         "                  policy resalt\n"
         "                  update zonelist\n"
-        "                  update hsmkeys\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -91,7 +89,6 @@ int handled_setup_cmd(int sockfd, engine_type* engine,
     perform_update_kasp(sockfd, engine->config);
     perform_policy_resalt(sockfd, engine->config);
     perform_update_keyzones(sockfd, engine->config);
-    perform_update_hsmkeys(sockfd, engine->config);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                    scmd,time(NULL)-tstart);
