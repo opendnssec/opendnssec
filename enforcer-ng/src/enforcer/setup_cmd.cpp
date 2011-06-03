@@ -66,9 +66,27 @@ int handled_setup_cmd(int sockfd, engine_type* engine,
     std::string policy_pb = std::string(datastore) + ".policy.pb";
     std::string keystate_pb = std::string(datastore) + ".keystate.pb";
     std::string hsmkey_pb = std::string(datastore) + ".hsmkey.pb";
-    unlink(policy_pb.c_str());
-    unlink(keystate_pb.c_str());
-    unlink(hsmkey_pb.c_str());
+    if (unlink(policy_pb.c_str())==-1) {
+        ods_log_error("[%s] unlink of \"%s\" failed: %s",
+                      module_str,policy_pb.c_str(),strerror(errno));
+        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s\n",
+                       policy_pb.c_str(),strerror(errno));
+        ods_writen(sockfd, buf, strlen(buf));
+    }
+    if (unlink(keystate_pb.c_str())==-1) {
+        ods_log_error("[%s] unlink of \"%s\" failed: %s",
+                      module_str,keystate_pb.c_str(),strerror(errno));
+        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s\n",
+                       keystate_pb.c_str(),strerror(errno));
+        ods_writen(sockfd, buf, strlen(buf));
+    }
+    if (unlink(hsmkey_pb.c_str())==-1) {
+        ods_log_error("[%s] unlink of \"%s\" failed: %s",
+                      module_str,hsmkey_pb.c_str(),strerror(errno));
+        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s\n",
+                       hsmkey_pb.c_str(),strerror(errno));
+        ods_writen(sockfd, buf, strlen(buf));
+    }
     
     perform_update_kasp(sockfd, engine->config);
     perform_policy_resalt(sockfd, engine->config);
