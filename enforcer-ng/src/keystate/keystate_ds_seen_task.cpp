@@ -59,18 +59,25 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
         
         for (int k=0; k<enfzone.keys_size(); ++k) {
             const ::ods::keystate::KeyData &key = enfzone.keys(k);
+
+            // ZSKs are not referenced by DS records so skip them.
+            if (key.role() == ::ods::keystate::ZSK)
+                continue;
+            // Skip KSKs with a zero length id, they are placeholder keys.
+            if (key.locator().size()==0)
+                continue;
+            
             std::string keyrole = keyrole_Name(key.role());
             
-            if (id && key.locator()==id || 
-                zone && enfzone.name()==zone && key.role()&::ods::keystate::KSK)
+            if (id && key.locator()==id || zone && enfzone.name()==zone)
             {
-                ::ods::keystate::KeyData *mkey =                 
+                ::ods::keystate::KeyData *mkey =
                     keystateDoc->mutable_zones(z)->mutable_keys(k);
                 mkey->set_ds_seen(true);
                 mkey->set_submit_to_parent(false);
                 id_match = true;
             }
-            
+
             const char *status = key.ds_seen() ? "yes" : "no";
             (void)snprintf(buf, ODS_SE_MAXLINE,
                            "%-31s %-13s %-40s %-8s\n",
