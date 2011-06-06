@@ -95,6 +95,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
     int ret = 0;
     int cmd_written = 0;
     int cmd_response = 0;
+    int written = 0;
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
 
@@ -143,39 +144,64 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (n < 0) {
                     /* error occurred */
                     fprintf(stderr, "error: %s\n", strerror(errno));
-                    if (cmd) {
-                        se_free((void*)cmd);
-                    }
                     exit(1);
-                } else if (stdineof == 1) {
-                    /* normal termination */
-                    return;
                 } else {
-                    /* weird termination */
-                    fprintf(stderr, "signer engine terminated "
-                        "prematurely\n");
+                    /* n==0 */
+                    if (stdineof == 1) {
+                        /* normal termination */
+                        return;
+                    } else {
+                        /* weird termination */
+                        fprintf(stderr, "signer engine terminated "
+                                "prematurely\n");
+                        exit(1);
+                    }
+                }
+            }
+
+            if (cmd) {
+                if (n < SE_CLI_CMDLEN) {
+                    /* not enough data received */
+                    fprintf(stderr, "not enough response data received "
+                            "from daemon.\n");
                     exit(1);
                 }
-            }
-
-            if (cmd && strncmp(buf+n-SE_CLI_CMDLEN, "\ncmd> ", SE_CLI_CMDLEN) == 0) {
-                /* we have the full response */
-                if (n > SE_CLI_CMDLEN) {
-                    ret = (int) write(fileno(stdout), buf, n-SE_CLI_CMDLEN);
+                
+                /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer 
+                    manipulations below. */
+                if (strncmp(buf+n-SE_CLI_CMDLEN,"\ncmd> ",SE_CLI_CMDLEN) == 0) {
+                
+                    /* we have the full response */
+                    n -= SE_CLI_CMDLEN;
+                    buf[n] = '\0';
+                    cmd_response = 1;
                 }
-                buf[(n-SE_CLI_CMDLEN)] = '\0';
-                cmd_response = 1;
-                ret = 1;
-            } else {
-                /* we can expect more */
-                ret = (int) write(fileno(stdout), buf, n);
             }
 
-            /* error and shutdown handling */
-            if (ret == 0) {
-                fprintf(stderr, "no write\n");
-            } else if (ret < 0) {
-                fprintf(stderr, "write error: %s\n", strerror(errno));
+            /* n > 0 : when we get to this line... */
+            for (written=0; written < n; written += ret) {
+                /* write what we got to stdout */
+                ret = (int) write(fileno(stdout), &buf[written], n-written);
+                /* error and shutdown handling */
+                if (ret == 0) {
+                    fprintf(stderr, "no write\n");
+                    break;
+                }
+                if (ret < 0) {
+                    if (errno == EINTR || errno == EWOULDBLOCK) {
+                        ret = 0;
+                        continue; /* try again... */
+                    }
+                    fprintf(stderr, "\n\nwrite error: %s\n", strerror(errno));
+                    break;
+                }
+                /* ret > 0 : when we get here... */
+                if (written+ret > n) {
+                    fprintf(stderr, "\n\nwrite error: more bytes (%d) written than required (%d)\n",
+                        written+ret, n);
+                    break;
+                }
+                /* written+ret < n : means partial write, requires us to loop... */
             }
             if (se_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
                 fprintf(stderr, "\n");
@@ -193,9 +219,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (ret != 0) {
                     fprintf(stderr, "shutdown failed: %s\n",
                         strerror(errno));
-                    if (cmd) {
-                        se_free((void*)cmd);
-                    }
                     exit(1);
                 }
                 FD_CLR(fileno(fp), &rset);
@@ -247,9 +270,6 @@ interface_start(char* cmd)
     if (sockfd <= 0) {
         fprintf(stderr, "Unable to connect to engine. "
             "socket() failed: %s\n", strerror(errno));
-        if (cmd) {
-            se_free((void*)cmd);
-        }
         exit(1);
     }
 
@@ -276,9 +296,6 @@ interface_start(char* cmd)
         }
 
         close(sockfd);
-        if (cmd) {
-            se_free((void*)cmd);
-        }
         exit(1);
     }
 
