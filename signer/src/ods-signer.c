@@ -154,7 +154,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                         return;
                     } else {
                         /* weird termination */
-                        fprintf(stderr, "enforcer engine terminated "
+                        fprintf(stderr, "signer engine terminated "
                                 "prematurely\n");
                         exit(1);
                     }
