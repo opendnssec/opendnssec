@@ -7,12 +7,13 @@ OpenDNSSEC 1.3 branch
 Bugfixes:
 * Fix test for java executable and others.
 * Auditor: Fix delegation checks.
-* Bugfix #242: Lock axfr file when reading/writing.
+* Bugfix #242: Race condition when receiving multiple NOTIFIES for a zone.
 * ods-kaspcheck: Do not expect resalt in NSEC policy.
 * Signer Engine: Ifdef a header file.
 * Signer Engine: The default working directory was not specified.
 * Signer Engine: Handle stdout console output throttling that would
   truncate daemon output intermittently.
+
 
 OpenDNSSEC 1.3.0.rc2 - 2011-05-18
 
@@ -21,7 +22,6 @@ OpenDNSSEC 1.3.0.rc2 - 2011-05-18
 
 Bugfixes:
 * Bugfix #231: Fix MySQL version check.
-* Bugfix #242: Race condition when receiving multiple NOTIFIES for a zone.
 * ods-ksmutil: Update now sends a HUP to the enforcerd.
 * Signer Engine: Fix assertion failure if zone was just added.
 * Signer Engine: Don't hsm_close() on setup error.
