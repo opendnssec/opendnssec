@@ -9,7 +9,7 @@ extern "C" {
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 
-#include "xmlext-pb/xmlext.h"
+#include "xmlext-pb/xmlext-rd.h"
 #include "xmlext-pb/xmlext-wr.h"
 #include "signconf/signconf.pb.h"
 #include "policy/kasp.pb.h"

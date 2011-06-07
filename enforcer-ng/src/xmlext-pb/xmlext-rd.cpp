@@ -5,7 +5,7 @@
 #include <libxml/parser.h>
 #include <string>
 #include <cerrno>
-#include "xmlext.h"
+#include "xmlext-rd.h"
 
 extern "C" {
 #include "shared/duration.h"

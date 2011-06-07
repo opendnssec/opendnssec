@@ -9,7 +9,7 @@ extern "C" {
 
 #include "zone/zonelist.pb.h"
 #include "keystate/keystate.pb.h"
-#include "xmlext-pb/xmlext.h"
+#include "xmlext-pb/xmlext-rd.h"
 
 #include <fcntl.h>
 

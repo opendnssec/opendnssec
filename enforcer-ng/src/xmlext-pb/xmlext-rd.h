@@ -1,5 +1,5 @@
-#ifndef _XMLEXT_PB_XMLEXT_H_
-#define _XMLEXT_PB_XMLEXT_H_
+#ifndef _XMLEXT_PB_XMLEXT_RD_H_
+#define _XMLEXT_PB_XMLEXT_RD_H_
 
 /**
  * Protocol Buffer Extension to read a Message from an XML file.
@@ -20,4 +20,4 @@ bool read_pb_message_from_xml_memory(google::protobuf::Message *document, const 
 /* helper function to recursively dump the descriptor passed in */
 void recurse_dump_descriptor(const ::google::protobuf::Descriptor *descriptor);
 
-#endif /* _XMLEXT_PB_XMLEXT_ */
+#endif /* _XMLEXT_PB_XMLEXT_RD_H_ */

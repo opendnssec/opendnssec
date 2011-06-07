@@ -11,7 +11,7 @@ extern "C" {
 
 #include "keystate/keystate.pb.h"
 
-#include "xmlext-pb/xmlext.h"
+#include "xmlext-pb/xmlext-rd.h"
 
 #include <fcntl.h>
 

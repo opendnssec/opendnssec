@@ -8,7 +8,7 @@ extern "C" {
 #include <google/protobuf/message.h>
 
 #include "keystate/keystate.pb.h"
-#include "xmlext-pb/xmlext.h"
+#include "xmlext-pb/xmlext-rd.h"
 #include "xmlext-pb/xmlext-wr.h"
 
 

@@ -28,7 +28,7 @@
 		A75E74B7133B6E9700F09B43 /* zonelist.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A75E74B5133B6E9700F09B43 /* zonelist.pb.cc */; };
 		A772F49313323E5E004179E8 /* xmlext.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49113323E5E004179E8 /* xmlext.pb.cc */; };
 		A772F49913323E7A004179E8 /* kasp.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49513323E7A004179E8 /* kasp.pb.cc */; };
-		A772F49E13324716004179E8 /* xmlext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A772F49D13324716004179E8 /* xmlext.cpp */; };
+		A772F49E13324716004179E8 /* xmlext-rd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A772F49D13324716004179E8 /* xmlext-rd.cpp */; };
 		A77C57FF136D674C000A4E51 /* keystate_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */; };
 		A77C5803136D9C23000A4E51 /* keystate_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C5800136D6BC7000A4E51 /* keystate_list_cmd.cpp */; };
 		A77C5833136EAD77000A4E51 /* policy_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A77C582D136EAD62000A4E51 /* policy_list_task.cpp */; };
@@ -137,8 +137,8 @@
 		A772F49513323E7A004179E8 /* kasp.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kasp.pb.cc; sourceTree = "<group>"; };
 		A772F49613323E7A004179E8 /* kasp.pb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kasp.pb.h; sourceTree = "<group>"; };
 		A772F49713323E7A004179E8 /* kasp.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = kasp.proto; sourceTree = "<group>"; };
-		A772F49C13324716004179E8 /* xmlext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xmlext.h; sourceTree = "<group>"; };
-		A772F49D13324716004179E8 /* xmlext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = xmlext.cpp; sourceTree = "<group>"; };
+		A772F49C13324716004179E8 /* xmlext-rd.h */ = {isa = PBXFileReference; fileEncoding = 4; path = "xmlext-rd.h"; sourceTree = "<group>"; };
+		A772F49D13324716004179E8 /* xmlext-rd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "xmlext-rd.cpp"; sourceTree = "<group>"; };
 		A7790E59135CE27C00EED13E /* hsmkey.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = hsmkey.proto; sourceTree = "<group>"; };
 		A7790E5B135CF27100EED13E /* hsmkey.pb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkey.pb.h; sourceTree = "<group>"; };
 		A7790E5C135CF27100EED13E /* hsmkey.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkey.pb.cc; sourceTree = "<group>"; };
@@ -417,8 +417,8 @@
 				A772F49213323E5E004179E8 /* xmlext.proto */,
 				A70EA75D13549A0400D929CC /* xmlext-wr.h */,
 				A70EA75E13549A1D00D929CC /* xmlext-wr.cpp */,
-				A772F49C13324716004179E8 /* xmlext.h */,
-				A772F49D13324716004179E8 /* xmlext.cpp */,
+				A772F49C13324716004179E8 /* xmlext-rd.h */,
+				A772F49D13324716004179E8 /* xmlext-rd.cpp */,
 				A772F49013323E5E004179E8 /* xmlext.pb.h */,
 				A772F49113323E5E004179E8 /* xmlext.pb.cc */,
 			);
@@ -621,7 +621,7 @@
 				A7943638131B443600108EFB /* keys.c in Sources */,
 				A772F49313323E5E004179E8 /* xmlext.pb.cc in Sources */,
 				A772F49913323E7A004179E8 /* kasp.pb.cc in Sources */,
-				A772F49E13324716004179E8 /* xmlext.cpp in Sources */,
+				A772F49E13324716004179E8 /* xmlext-rd.cpp in Sources */,
 				A74D1B4D1338AB1000C8B4AD /* ods-enforcerd.c in Sources */,
 				A75E74B7133B6E9700F09B43 /* zonelist.pb.cc in Sources */,
 				A7E70DE7134D259900B13EA0 /* enforce_cmd.cpp in Sources */,

@@ -64,7 +64,7 @@ ods_enforcerd_SOURCES = \
 	shared/str.c shared/str.h \
 	shared/backup.c shared/backup.h \
 	shared/keys.c shared/keys.h \
-	xmlext-pb/xmlext.cpp xmlext-pb/xmlext.h \
+	xmlext-pb/xmlext-rd.cpp xmlext-pb/xmlext-rd.h \
 	xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \
 	policy/update_kasp_cmd.cpp policy/update_kasp_cmd.h \
 	policy/update_kasp_task.cpp policy/update_kasp_task.h \

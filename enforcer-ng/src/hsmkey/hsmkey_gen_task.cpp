@@ -10,7 +10,7 @@ extern "C" {
 
 #include "hsmkey/hsmkey.pb.h"
 #include "policy/kasp.pb.h"
-#include "xmlext-pb/xmlext.h"
+#include "xmlext-pb/xmlext-rd.h"
 
 
 #include <fcntl.h>

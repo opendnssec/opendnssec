@@ -11,7 +11,7 @@ extern "C" {
 
 #include "kasp.pb.h"
 
-#include "xmlext-pb/xmlext.h"
+#include "xmlext-pb/xmlext-rd.h"
 
 #include <fcntl.h>
 #include <time.h>
