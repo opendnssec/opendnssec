@@ -488,3 +488,13 @@ bool write_pb_message_to_xml_file(google::protobuf::Message *document,
     ods_fclose(fw);
     return true;
 }
+
+bool write_pb_message_to_xml_fd(google::protobuf::Message *document, 
+                                  int fd)
+{
+    FILE *fw = fdopen(fd,"w");
+    if (!fw) return false;
+    write_msg(fw,document);
+    ods_fclose(fw);
+    return true;
+}
