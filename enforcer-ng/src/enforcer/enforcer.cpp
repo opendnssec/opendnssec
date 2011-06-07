@@ -26,7 +26,7 @@ static const char *module_str = "enforcer";
 #define COM ods::keystate::committed
 #define OMN ods::keystate::omnipresent
 #define UNR ods::keystate::unretentive
-#define PCM ods::keystate::postcomitted
+#define PCM ods::keystate::postcommitted
 #define REV ods::keystate::revoked
 
 /* When no key available wait this many seconds before asking again. */

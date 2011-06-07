@@ -38,7 +38,7 @@ message KeyData {
     optional bool active = 13 [default = false, (xml).path="Active"];
     optional bool publish = 14 [default = false, (xml).path="Publish"];
 
-    optional KeyState rrsigndnskey = 15 [(xml).path="RRSIGDNSKEY/State"];
+    optional KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY/State"];
 }
 
 message KeyState {
@@ -59,6 +59,6 @@ enum rrstate {
     committed = 2;
     omnipresent = 3;
     unretentive = 4;
-    postcomitted = 5;
+    postcommitted = 5;
     revoked = 6;
 }
