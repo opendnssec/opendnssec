@@ -37,6 +37,8 @@ message KeyData {
     optional bool standby = 12 [default = false, (xml).path="Standby"];
     optional bool active = 13 [default = false, (xml).path="Active"];
     optional bool publish = 14 [default = false, (xml).path="Publish"];
+
+    optional KeyState rrsigndnskey = 15 [(xml).path="RRSIGDNSKEY/State"];
 }
 
 message KeyState {
