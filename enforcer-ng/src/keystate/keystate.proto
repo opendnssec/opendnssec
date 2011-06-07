@@ -9,36 +9,40 @@ message KeyStateDocument {
     repeated EnforcerZone zones = 1;
 }
 
+message KeyStateExport {
+    optional EnforcerZone zone = 1 [(xml).path="Zone"];
+}
+
 message EnforcerZone {
-    required string name = 1;
-    required string policy = 2;
-    repeated KeyData keys = 3;
+    required string name = 1 [(xml).path="@name"];
+    required string policy = 2 [(xml).path="@policy"];
+    repeated KeyData keys = 3 [(xml).path="Key"];
     required bool signconf_needs_writing = 4;
-    required string signconf_path = 5;
-    optional uint32 next_change = 6;
+    required string signconf_path = 5 [(xml).path="SignConfPath"];
+    optional uint32 next_change = 6; // don't write determine when importing
 } 
 
 message KeyData {
-    required string locator = 1;
-    required uint32 algorithm = 2;
-    required uint32 inception = 3;
-    required KeyState ds = 4;
-    required KeyState rrsig = 5;
-    required KeyState dnskey = 6;
-    required keyrole role = 7;
-    optional bool ds_seen = 8 [default = false]; // parent says DS has been seen
-    optional bool submit_to_parent = 9 [default = false]; // submit DS to parent
-    optional bool introducing = 10 [default=true];
-    optional bool revoke = 11 [default = false];
-    optional bool standby = 12 [default = false];
-    optional bool active = 13 [default = false];
-    optional bool publish = 14 [default = false];
+    required string locator = 1 [(xml).path="Locator"];
+    required uint32 algorithm = 2 [(xml).path="Algorithm"];
+    required uint32 inception = 3 [(xml).path="Inception"]; // Should be UTC Zulu time ?
+    required KeyState ds = 4 [(xml).path="DS/State"];
+    required KeyState rrsig = 5 [(xml).path="RRSIG/State"];
+    required KeyState dnskey = 6 [(xml).path="DNSKEY/State"];
+    required keyrole role = 7 [(xml).path="Role"];
+    optional bool ds_seen = 8 [default = false, (xml).path="DSSeen"]; // parent says DS has been seen
+    optional bool submit_to_parent = 9 [default = false, (xml).path="DSSubmit"]; // submit DS to parent
+    optional bool introducing = 10 [default=true, (xml).path="Introducing"];
+    optional bool revoke = 11 [default = false, (xml).path="Revoke"];
+    optional bool standby = 12 [default = false, (xml).path="Standby"];
+    optional bool active = 13 [default = false, (xml).path="Active"];
+    optional bool publish = 14 [default = false, (xml).path="Publish"];
 }
 
 message KeyState {
-    optional rrstate state = 1 [default = hidden];
-    optional uint32 last_change = 2;
-    optional bool minimize = 3 [default = false];
+    optional rrstate state = 1 [default = hidden, (xml).path="RRState"];
+    optional uint32 last_change = 2 [(xml).path="LastChange"]; // Encode as UTC Zulu time ?
+    optional bool minimize = 3 [default = false, (xml).path="Minimize"];
 }
 
 enum keyrole {

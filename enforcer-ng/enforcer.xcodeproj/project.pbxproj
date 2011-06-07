@@ -77,6 +77,8 @@
 		A7E70DE7134D259900B13EA0 /* enforce_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DC8134C408E00B13EA0 /* enforce_cmd.cpp */; };
 		A7E70DEC134DC63000B13EA0 /* update_kasp_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DE9134DC62F00B13EA0 /* update_kasp_task.cpp */; };
 		A7E70DED134DC63000B13EA0 /* update_kasp_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7E70DEA134DC62F00B13EA0 /* update_kasp_cmd.cpp */; };
+		A7F83455139D1B2D0084FFD1 /* keystate_export_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7F8344E139D1B1A0084FFD1 /* keystate_export_cmd.cpp */; };
+		A7F83456139D1B2D0084FFD1 /* keystate_export_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7F83450139D1B1A0084FFD1 /* keystate_export_task.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -224,6 +226,10 @@
 		A7E70DEA134DC62F00B13EA0 /* update_kasp_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_kasp_cmd.cpp; sourceTree = "<group>"; };
 		A7E70DEB134DC62F00B13EA0 /* update_kasp_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_kasp_task.h; sourceTree = "<group>"; };
 		A7F2A3A01338B5DE003A936B /* enforcer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforcer.h; sourceTree = "<group>"; };
+		A7F8344E139D1B1A0084FFD1 /* keystate_export_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_export_cmd.cpp; path = keystate/keystate_export_cmd.cpp; sourceTree = "<group>"; };
+		A7F8344F139D1B1A0084FFD1 /* keystate_export_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_export_cmd.h; path = keystate/keystate_export_cmd.h; sourceTree = "<group>"; };
+		A7F83450139D1B1A0084FFD1 /* keystate_export_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_export_task.cpp; path = keystate/keystate_export_task.cpp; sourceTree = "<group>"; };
+		A7F83451139D1B1A0084FFD1 /* keystate_export_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_export_task.h; path = keystate/keystate_export_task.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -382,6 +388,10 @@
 				A77C59051372C53F000A4E51 /* keystate_ds_seen_cmd.cpp */,
 				A77C59041372C53E000A4E51 /* keystate_ds_seen_task.h */,
 				A77C59031372C53E000A4E51 /* keystate_ds_seen_task.cpp */,
+				A7F8344F139D1B1A0084FFD1 /* keystate_export_cmd.h */,
+				A7F8344E139D1B1A0084FFD1 /* keystate_export_cmd.cpp */,
+				A7F83451139D1B1A0084FFD1 /* keystate_export_task.h */,
+				A7F83450139D1B1A0084FFD1 /* keystate_export_task.cpp */,
 				A77C58831370530D000A4E51 /* update_keyzones_cmd.h */,
 				A77C58821370530C000A4E51 /* update_keyzones_cmd.cpp */,
 				A77C587F137047AD000A4E51 /* update_keyzones_task.h */,
@@ -651,6 +661,8 @@
 				A77C59081372C53F000A4E51 /* keystate_ds_seen_cmd.cpp in Sources */,
 				A75BBBDB137AAC1E007A4B11 /* keystate_show_cmd.cpp in Sources */,
 				A75BBBDC137AAC22007A4B11 /* keystate_show_task.cpp in Sources */,
+				A7F83455139D1B2D0084FFD1 /* keystate_export_cmd.cpp in Sources */,
+				A7F83456139D1B2D0084FFD1 /* keystate_export_task.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
