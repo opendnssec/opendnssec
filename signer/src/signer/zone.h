@@ -42,6 +42,7 @@
 #include "shared/status.h"
 #include "signer/denial.h"
 #include "signer/domain.h"
+#include "signer/journal.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
@@ -87,6 +88,7 @@ struct zone_struct {
     /** zone data */
     ldns_rbtree_t* domains;
     ldns_rbtree_t* denials;
+    entry_type* journal_entry;
 
     /** serial management */
     uint32_t inbound_serial;

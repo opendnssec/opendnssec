@@ -345,6 +345,7 @@ tools_output(zone_type* zone)
         zone->outbound_serial = outbound_serial;
         return status;
     }
+    entry_clear(zone->journal_entry);
 
     /* initialize zonedata */
     zone->initialized = 1;

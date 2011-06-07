@@ -46,6 +46,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				shared/util.c shared/util.h \
 				signer/denial.c signer/denial.h \
 				signer/domain.c signer/domain.h \
+				signer/journal.c signer/journal.h \
 				signer/keys.c signer/keys.h \
 				signer/nsec3params.c signer/nsec3params.h \
 				signer/rdatas.c signer/rdatas.h \
