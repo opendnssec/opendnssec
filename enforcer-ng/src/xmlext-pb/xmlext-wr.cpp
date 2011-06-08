@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <set>
 
 #include "config.h"
@@ -9,7 +10,7 @@ extern "C" {
 #include "shared/file.h"
 }
 
-static const char *xmlext_wr_str = "xmlext_wr";
+static const char *module_str = "xmlext_wr";
 
 void
 ods_strcat_printf(std::string &str, const char *format, ...)
@@ -20,11 +21,11 @@ ods_strcat_printf(std::string &str, const char *format, ...)
     va_start(args, format);
     nbuf = vsnprintf(buf,ODS_SE_MAXLINE,format,args);
     if (nbuf<0)
-        ods_log_error("[%s] ods_strcat_printf: encoding error" ,xmlext_wr_str);
+        ods_log_error("[%s] ods_strcat_printf: encoding error" ,module_str);
     else
         if (nbuf>=ODS_SE_MAXLINE)
             ods_log_error("[%s] ods_strcat_printf: printed string too long",
-                          xmlext_wr_str);
+                          module_str);
     str += buf;
     va_end(args);
 }
@@ -139,7 +140,7 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                                   xmlopt.path().substr(1).c_str(),
                                   "ERROR: Message doesn't fit in xml attribute");
                     ods_log_error("[%s] Message doesn't fit in xml attribute",
-                                  xmlext_wr_str);
+                                  module_str);
                     break;
                     
                 case ::google::protobuf::FieldDescriptor::TYPE_BYTES:
@@ -148,7 +149,7 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                                       xmlopt.path().substr(1).c_str(),
                                       "ERROR: Bytes don't fit in xml attribute");
                     ods_log_error("[%s] Bytes don't fit in xml attribute",
-                                  xmlext_wr_str);
+                                  module_str);
                     break;
                     
                 case ::google::protobuf::FieldDescriptor::TYPE_ENUM:
@@ -163,7 +164,7 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                                       xmlopt.path().substr(1).c_str(),
                                       "ERROR: UNKNOWN FIELD TYPE");
                     ods_log_error("[%s] Unknow field type",
-                                  xmlext_wr_str);
+                                  module_str);
             }
         }
     }
@@ -492,7 +493,18 @@ bool write_pb_message_to_xml_file(google::protobuf::Message *document,
 bool write_pb_message_to_xml_fd(google::protobuf::Message *document, 
                                   int fd)
 {
-    FILE *fw = fdopen(fd,"w");
+    if (fd<0) {
+        ods_log_error("[%s] write_pb_message_to_xml_fd: invalid fd: %d",
+                      module_str,fd);
+        return false;
+    }
+    int dfd = dup(fd);
+    if (dfd<0) {
+        ods_log_error("[%s] write_pb_message_to_xml_fd: can't dup fd: %s",
+                      module_str,strerror(errno));
+        return false;
+    }
+    FILE *fw = fdopen(dfd,"w");
     if (!fw) return false;
     write_msg(fw,document);
     ods_fclose(fw);

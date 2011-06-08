@@ -75,9 +75,5 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd
     /* perform task directly */
     time_t tstart = time(NULL);
     perform_keystate_export(sockfd,engine->config,zone);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
-    
     return 1;
 }

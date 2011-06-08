@@ -26,9 +26,9 @@ message KeyData {
     required string locator = 1 [(xml).path="Locator"];
     required uint32 algorithm = 2 [(xml).path="Algorithm"];
     required uint32 inception = 3 [(xml).path="Inception"]; // Should be UTC Zulu time ?
-    required KeyState ds = 4 [(xml).path="DS/State"];
-    required KeyState rrsig = 5 [(xml).path="RRSIG/State"];
-    required KeyState dnskey = 6 [(xml).path="DNSKEY/State"];
+    required KeyState ds = 4 [(xml).path="DS"];
+    required KeyState rrsig = 5 [(xml).path="RRSIG"];
+    required KeyState dnskey = 6 [(xml).path="DNSKEY"];
     required keyrole role = 7 [(xml).path="Role"];
     optional bool ds_seen = 8 [default = false, (xml).path="DSSeen"]; // parent says DS has been seen
     optional bool submit_to_parent = 9 [default = false, (xml).path="DSSubmit"]; // submit DS to parent
@@ -38,11 +38,11 @@ message KeyData {
     optional bool active = 13 [default = false, (xml).path="Active"];
     optional bool publish = 14 [default = false, (xml).path="Publish"];
 
-    optional KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY/State"];
+    optional KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
 }
 
 message KeyState {
-    optional rrstate state = 1 [default = hidden, (xml).path="RRState"];
+    optional rrstate state = 1 [default = hidden, (xml).path="State"];
     optional uint32 last_change = 2 [(xml).path="LastChange"]; // Encode as UTC Zulu time ?
     optional bool minimize = 3 [default = false, (xml).path="Minimize"];
 }
