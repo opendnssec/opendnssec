@@ -986,7 +986,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     rr_list = rrset2rrlist(rrset);
     if (!rr_list) {
         ods_log_error("[%s] unable to sign RRset[%i]: to RRlist failed",
-            rrset->rr_type);
+            rrset_str, rrset->rr_type);
         return ODS_STATUS_ERR;
     }
     if (ldns_rr_list_rr_count(rr_list) <= 0) {

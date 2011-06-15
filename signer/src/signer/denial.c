@@ -412,20 +412,20 @@ denial_nsecify3(denial_type* denial, denial_type* nxt, uint32_t ttl,
         /* delete old NSEC RR(s) */
         status = rrset_wipe_out(denial->rrset);
         if (status != ODS_STATUS_OK) {
-            ods_log_alert("[%s] unable to nsecify: failed to "
-                "wipe out NSEC RRset", denial_str);
+            ods_log_alert("[%s] unable to nsecify3: failed to "
+                "wipe out NSEC3 RRset", denial_str);
             return status;
         }
        /* add the new one */
         if (!rrset_add_rr(denial->rrset, nsec_rr)) {
-            ods_log_alert("[%s] unable to nsecify: failed to "
-                "add NSEC to RRset", denial_str);
+            ods_log_alert("[%s] unable to nsecify3: failed to "
+                "add NSEC3 to RRset", denial_str);
             return ODS_STATUS_ERR;
         }
         /* commit */
         status = rrset_commit(denial->rrset);
         if (status != ODS_STATUS_OK) {
-            ods_log_alert("[%s] unable to nsecify: failed to "
+            ods_log_alert("[%s] unable to nsecify3: failed to "
                 "commit the NSEC RRset", denial_str);
             return status;
         }
