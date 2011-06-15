@@ -2,8 +2,7 @@ $Id$
 
 OpenDNSSEC 1.2.2
 
-* Bugfix #242: Race condition when receiving multiple NOTIFIES for a zone
-  (Need an end-user acceptance test before closing the ticket)
+* Bugfix #242: Race condition when receiving multiple NOTIFIES for a zone.
 * Signer Engine: Handle stdout console output throttling that would truncate 
   daemon output intermittently.
 
