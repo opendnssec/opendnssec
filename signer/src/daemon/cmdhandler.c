@@ -206,7 +206,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         /* [LOCK] zonelist */
         zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
-        if (zone->just_added) {
+        if (zone && zone->just_added) {
             zone = NULL;
         }
         /* [UNLOCK] zonelist */
@@ -302,7 +302,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         /* [LOCK] zonelist */
         zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
-        if (zone->just_added) {
+        if (zone && zone->just_added) {
             zone = NULL;
         }
         /* [UNLOCK] zonelist */
