@@ -144,6 +144,7 @@ worker_perform_task(worker_type* worker)
     time_t start = 0;
     time_t end = 0;
 
+    /* sanity checking */
     if (!worker || !worker->task || !worker->task->zone || !worker->engine) {
         return;
     }
@@ -158,6 +159,7 @@ worker_perform_task(worker_type* worker)
        worker2str(worker->type), worker->thread_num, task_what2str(task->what),
        task_who2str(task->who), (uint32_t) worker->clock_in);
 
+    /* do what you have been told to do */
     switch (task->what) {
         case TASK_SIGNCONF:
             worker->working_with = TASK_SIGNCONF;

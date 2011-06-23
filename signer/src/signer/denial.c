@@ -426,7 +426,7 @@ denial_nsecify3(denial_type* denial, denial_type* nxt, uint32_t ttl,
         status = rrset_commit(denial->rrset);
         if (status != ODS_STATUS_OK) {
             ods_log_alert("[%s] unable to nsecify3: failed to "
-                "commit the NSEC RRset", denial_str);
+                "commit the NSEC3 RRset", denial_str);
             return status;
         }
         /* ok */
