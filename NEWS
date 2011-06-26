@@ -1,7 +1,13 @@
 $Id$
 
+OpenDNSSEC 1.3.0 branch
+
+* Include simple-dnskey-mailer-plugin in dist.
+
+Bugfixes:
 * Signer Engine: Fix log message typos.
 * Signer Engine: Fix crash where ods-signer update
+
 
 OpenDNSSEC 1.3.0rc3 - 2011-06-12
 
