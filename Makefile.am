@@ -26,7 +26,8 @@ SUBDIRS += plugins/eppclient
 endif
 
 EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \
-		$(srcdir)/MIGRATION
+		$(srcdir)/MIGRATION \
+		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 
 install-data-hook:
