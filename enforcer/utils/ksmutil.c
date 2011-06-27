@@ -1346,6 +1346,9 @@ cmd_exportkeys ()
     int zone_id = -1;
     int state_id = -1;
     int keytype_id = KSM_TYPE_KSK;
+	int red_seen = -1; /* Warn if no active or ready keys seen */
+	int act_seen = -1; /* Also warn if it looks like a rollover is happening */
+	int prev_zone_id = -1;
 
     char *case_keytype = NULL;
     char *case_keystate = NULL;
@@ -1480,6 +1483,24 @@ cmd_exportkeys ()
         status = KsmKey(result, &data);
         while (status == 0) {
 
+			if (ds_flag == 1 && data.zone_id != prev_zone_id) {
+				prev_zone_id = data.zone_id;
+				if (red_seen == 0 && act_seen == 0) {
+					printf("\nWARNING: No active or ready keys seen for this zone. Do not load any DS records to the parent unless you understand the possible consequences.\n");
+				} else if (red_seen == 1 && act_seen == 1) {
+					printf("\nWARNING: BOTH ready and active keys seen for this zone. Probably a key rollover is happening and you may only want the ready key to be submitted.\n");
+				} else {
+					red_seen = 0;
+					act_seen = 0;
+				}
+			}
+
+			if (data.state == KSM_STATE_READY) {
+				red_seen = 1;
+			} else if (data.state == KSM_STATE_ACTIVE) {
+				act_seen = 1;
+			}
+
             /* Code to output the DNSKEY record  (stolen from hsmutil) */
             key = hsm_find_key_by_id(NULL, data.location);
 
@@ -1539,6 +1560,11 @@ cmd_exportkeys ()
 
         KsmKeyEnd(result);
     }
+	if (ds_flag == 1 && red_seen == 0 && act_seen == 0) {
+		printf("\nWARNING: No active or ready keys seen for this zone. Do not load any DS records to the parent unless you understand the possible consequences.\n");
+	} else if (ds_flag == 1 && red_seen == 1 && act_seen == 1) {
+		printf("\nWARNING: BOTH ready and active keys seen for this zone. Probably a key rollover is happening and you may only want the ready key to be submitted.\n");
+				}
 
     /* TODO when the above is working then replicate it twice for the case where keytype == -1 */
 
@@ -4288,12 +4314,14 @@ int update_policies(char* kasp_filename)
                         if(status != 0) {
                             printf("Error: unable to insert policy %s; skipping\n", policy_name);
                             /* Don't return? try to parse the rest of the file? */
+                            curNode = curNode->next;
                             continue;
                         }
                         status = KsmPolicySetIdFromName(policy);
 
                         if (status != 0) {
                             printf("Error: unable to get policy id for %s; skipping\n", policy_name);
+                            curNode = curNode->next;
                             continue;
                         }
                     }
