@@ -280,6 +280,7 @@ int KsmPolicyNullSaltStamp(int policy_id);
 int KsmPolicyPopulateSMFromIds(KSM_POLICY* policy);
 int KsmPolicySetIdFromName(KSM_POLICY *policy);
 int KsmPolicyIdFromZoneId(int zone_id, int* policy_id);
+int KsmPolicyUpdateDesc(int policy_id, const char* policy_description);
 
 KSM_POLICY *KsmPolicyAlloc();
 void KsmPolicyFree(KSM_POLICY *policy);

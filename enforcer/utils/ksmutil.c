@@ -4290,42 +4290,52 @@ int update_policies(char* kasp_filename)
             audit_found = 0;
 
             printf("Policy %s found\n", policy_name);
-            while (curNode) {
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"Description")) {
-                    policy_description = (char *) xmlNodeGetContent(curNode);
-                    
-                    /* Insert or update this policy with the description found,
-                       we will need the policy_id too */
-                    SetPolicyDefaults(policy, policy_name);
-                    status = KsmPolicyExists(policy_name);
-                    if (status == 0) {
-                        /* Policy exists; we will be updating it */
-                        status = KsmPolicyRead(policy);
-                        if(status != 0) {
-                            printf("Error: unable to read policy %s; skipping\n", policy_name);
-                            curNode = curNode->next;
-                            break;
-                        }
-                        /* TODO Set description here ? */
-                    }
-                    else {
-                        /* New policy, insert it and get the new policy_id */
-                        status = KsmImportPolicy(policy_name, policy_description);
-                        if(status != 0) {
-                            printf("Error: unable to insert policy %s; skipping\n", policy_name);
-                            /* Don't return? try to parse the rest of the file? */
-                            curNode = curNode->next;
-                            continue;
-                        }
-                        status = KsmPolicySetIdFromName(policy);
+			while (curNode) {
+				if (xmlStrEqual(curNode->name, (const xmlChar *)"Description")) {
+					policy_description = (char *) xmlNodeGetContent(curNode);
 
-                        if (status != 0) {
-                            printf("Error: unable to get policy id for %s; skipping\n", policy_name);
-                            curNode = curNode->next;
-                            continue;
-                        }
-                    }
-                }
+					/* Insert or update this policy with the description found,
+					   we will need the policy_id too */
+					SetPolicyDefaults(policy, policy_name);
+					status = KsmPolicyExists(policy_name);
+					if (status == 0) {
+						/* Policy exists; we will be updating it */
+						status = KsmPolicyRead(policy);
+						if(status != 0) {
+							printf("Error: unable to read policy %s; skipping\n", policy_name);
+							curNode = curNode->next;
+							break;
+						}
+
+						/* Set description if it has changed */
+						if (strncmp(policy_description, policy->description, KSM_POLICY_DESC_LENGTH) != 0) {
+							status = KsmPolicyUpdateDesc(policy->id, policy_description);
+							if(status != 0) {
+								printf("Error: unable to update policy description for %s; skipping\n", policy_name);
+								/* Don't return? try to parse the rest of the file? */
+								curNode = curNode->next;
+								continue;
+							}
+						}
+					}
+					else {
+						/* New policy, insert it and get the new policy_id */
+						status = KsmImportPolicy(policy_name, policy_description);
+						if(status != 0) {
+							printf("Error: unable to insert policy %s; skipping\n", policy_name);
+							/* Don't return? try to parse the rest of the file? */
+							curNode = curNode->next;
+							continue;
+						}
+						status = KsmPolicySetIdFromName(policy);
+
+						if (status != 0) {
+							printf("Error: unable to get policy id for %s; skipping\n", policy_name);
+							curNode = curNode->next;
+							continue;
+						}
+					}
+				}
             /* SIGNATURES */
                 else if (xmlStrEqual(curNode->name, (const xmlChar *)"Signatures")) {
                     childNode = curNode->children;

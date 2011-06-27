@@ -11,6 +11,7 @@ Bugfixes:
 * Signer Engine: Handle stdout console output throttling that would truncate
   daemon output intermittently.
 * Signer Engine: Also replace DNSKEYs if <DNSKEY><TTL> has changed in policy.
+* ods-ksmutil: "update kasp" now reflects changes in policy descriptions.
 
 
 OpenDNSSEC 1.3.0rc1 - 2011-04-21
