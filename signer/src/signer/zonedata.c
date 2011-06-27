@@ -820,9 +820,10 @@ zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         if (zonedata_domain_entize(zd, domain, apex) != 0) {
-            se_log_error("error adding enmpty non-terminals to domain");
+            se_log_error("error adding empty non-terminals to domain");
             return 1;
         }
+
         /* domain has parent now, check for glue */
         prev_status = domain->domain_status;
         domain_update_status(domain);
@@ -830,6 +831,7 @@ zonedata_entize(zonedata_type* zd, ldns_rdf* apex)
             prev_status != DOMAIN_STATUS_OCCLUDED) {
             zonedata_domain_entize_revised(domain, DOMAIN_STATUS_ENT_GLUE);
         }
+
         node = ldns_rbtree_next(node);
     }
     return 0;
@@ -1409,6 +1411,8 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
                 domain = zonedata_del_domain(zd, domain);
                 if (domain) {
                     se_log_error("failed to delete obsoleted domain");
+                } else {
+                    parent->subdomain_count -= 1;
                 }
             }
             while (parent && domain_count_rrset(parent) <= 0) {
@@ -1418,10 +1422,13 @@ zonedata_update(zonedata_type* zd, signconf_type* sc)
                     domain = zonedata_del_domain(zd, domain);
                     if (domain) {
                         se_log_error("failed to delete obsoleted domain");
+                    } else {
+                        parent->subdomain_count -= 1;
                     }
                 }
             }
         }
+
     }
     return 0;
 }
