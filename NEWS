@@ -7,6 +7,7 @@ OpenDNSSEC 1.3.0 branch
 Bugfixes:
 * Signer Engine: Fix log message typos.
 * Signer Engine: Fix crash where ods-signer update
+* Signer Engine: Also replace DNSKEYs if <DNSKEY><TTL> has changed in policy.
 
 
 OpenDNSSEC 1.3.0rc3 - 2011-06-12

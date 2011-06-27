@@ -485,7 +485,9 @@ signconf_compare_keys(signconf_type* a, signconf_type* b, ldns_rr_list* del)
         if (!kb) {
             remove = 1; /* [DEL] key removed from signconf */
         } else {
-            if (walk->flags != kb->flags) {
+            if (duration_compare(a->dnskey_ttl, b->dnskey_ttl) != 0) {
+                remove = 1; /* [DEL] consider to be different key */
+            } else if (walk->flags != kb->flags) {
                 remove = 1; /* [DEL] consider to be different key */
             } else if (walk->algorithm != kb->algorithm) {
                 remove = 1; /* [DEL] consider to be different key */
