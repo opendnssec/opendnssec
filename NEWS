@@ -5,6 +5,8 @@ OpenDNSSEC 1.2.2
 * Bugfix #242: Race condition when receiving multiple NOTIFIES for a zone.
 * Signer Engine: Handle stdout console output throttling that would truncate 
   daemon output intermittently.
+* Signer Engine: When removing records, also remove NSEC3 records that belong
+  to the empty-non terminal.
 
 OpenDNSSEC 1.2.1 - 2011-03-18
 
