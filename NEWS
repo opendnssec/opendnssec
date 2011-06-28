@@ -5,6 +5,7 @@ OpenDNSSEC trunk
 * Enforcer: Key label logging upon deletion (#192 Sebastian Castro)
 * ods-ksmutil: Add warnings on "key export --ds" if no active or ready keys 
   were seen, or if both were seen (so a key rollover is happening).
+* Enforcer: Change message about KSK retirement to make it less confusing.
 
 Bugfixes:
 * signconf.rnc now allows NSEC3 Iterations of 0
