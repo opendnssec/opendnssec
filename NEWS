@@ -7,6 +7,7 @@ OpenDNSSEC 1.2.2
   daemon output intermittently.
 * Signer Engine: When removing records, also remove NSEC3 records that belong
   to the empty-non terminal.
+* Enforcer: Change message about KSK retirement to make it less confusing.
 
 OpenDNSSEC 1.2.1 - 2011-03-18
 
