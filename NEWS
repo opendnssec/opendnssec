@@ -9,6 +9,8 @@ OpenDNSSEC 1.2.2
   to the empty-non terminal.
 * Enforcer: Change message about KSK retirement to make it less confusing.
 * ods-ksmutil: manual keyroll on zones which have moved policies fixed.
+* signconf.rnc now allows NSEC3 Iterations of 0
+
 
 OpenDNSSEC 1.2.1 - 2011-03-18
 
