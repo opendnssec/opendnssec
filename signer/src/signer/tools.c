@@ -81,7 +81,7 @@ tools_input(zone_type* zone)
 
     if (zone->adinbound->type == ADAPTER_FILE) {
         if (zone->fetch) {
-            ods_log_verbose("fetch zone %s",
+            ods_log_verbose("[%s] fetch zone %s", tools_str,
                 zone->name?zone->name:"(null)");
             tmpname = ods_build_path(
                 zone->adinbound->configstr, ".axfr", 0);
@@ -90,15 +90,15 @@ tools_input(zone_type* zone)
 
 lock_fetch:
             if (access(lockname, F_OK) == 0) {
-                ods_log_deeebug("axfr file %s is locked, waiting"
-                    "waiting...", tmpname);
+                ods_log_deeebug("[%s] axfr file %s is locked, "
+                    "waiting...", tools_str, tmpname);
                 sleep(1);
                 goto lock_fetch;
             } else {
                 fd = fopen(lockname, "w");
                 if (!fd) {
-                    ods_log_error("zone fetcher cannot lock AXFR file %s",
-                        lockname);
+                    ods_log_error("[%s] cannot lock AXFR file %s",
+                        tools_str, lockname);
                     free((void*)tmpname);
                     free((void*)lockname);
                     return ODS_STATUS_ERR;

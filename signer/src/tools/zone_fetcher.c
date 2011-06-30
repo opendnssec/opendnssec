@@ -1031,6 +1031,9 @@ lock_axfr:
             snprintf(dest_file, sizeof(dest_file), "%s.axfr",
                 zone->input_file?zone->input_file:"(null)");
             if(rename(axfr_file, dest_file) == 0) {
+                fclose(fd);
+                (void) unlink(lock_file); /* unlocked */
+
                 if (kick_signer) {
                     snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
                         "%s sign %s > /dev/null 2>&1",
@@ -1042,12 +1045,12 @@ lock_axfr:
                     }
                 }
             } else {
+                fclose(fd);
+                (void) unlink(lock_file); /* unlocked */
+
                 ods_log_error("zone fetcher could not move AXFR to %s",
                     dest_file);
             }
-            fclose(fd);
-            (void) unlink(lock_file); /* unlocked */
-
             ldns_resolver_deep_free(xfrd);
             return 0;
         }
