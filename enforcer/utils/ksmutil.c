@@ -1763,7 +1763,7 @@ cmd_rollzone ()
         }
     }
 
-    status = keyRoll(zone_id, policy_id, key_type);
+    status = keyRoll(zone_id, -1, key_type);
     if (status != 0) {
         db_disconnect(lock_fd);
         return(status);
