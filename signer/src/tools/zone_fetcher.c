@@ -38,6 +38,8 @@
 #include <signal.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -325,10 +327,10 @@ read_axfr_config(const char* filename, config_type* cfg)
                        if (ipv4 || ipv6 || port) {
                            if (!ipv4 && !ipv6) {
                                if (notifylist == NULL) {
-                                   notifylist = new_server("", NULL, port);
+                                   notifylist = new_server(NULL, "", port);
                                    cfg->notifylist = notifylist;
 
-                                   notifylist->next = new_server(NULL, "", port);
+                                   notifylist->next = new_server("", NULL, port);
                                    notifylist = notifylist->next;
                                }
                                else {
@@ -632,6 +634,8 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         port = walk->port ? walk->port : DNS_PORT_STRING;
         if (node != NULL)
             hints[i].ai_flags |= AI_NUMERICHOST;
+        else
+            hints[i].ai_family = walk->family;
         /* UDP */
         hints[i].ai_socktype = SOCK_DGRAM;
         /* getaddrinfo */
@@ -666,7 +670,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             }
         }
 
-        if (sockets->udp[i].addr->ai_family != AF_INET6) {
+        if (sockets->udp[i].addr->ai_family == AF_INET) {
             if (fcntl(sockets->udp[i].s, F_SETFL,
                 O_NONBLOCK) == -1) {
                 ods_log_error("zone fetcher cannot fcntl udp/4 socket for "
@@ -687,6 +691,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         else if (ip6_support) {
 #ifdef IPV6_V6ONLY
 #if defined(IPPROTO_IPV6)
+            ods_log_verbose("zone fetcher setsockopt ipv6_v6only...");
             if (setsockopt(sockets->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
                 sizeof(on)) < 0)
             {
@@ -758,7 +763,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             }
         }
         /* setsockopt */
-        if (sockets->tcp[i].addr->ai_family != AF_INET6) {
+        if (sockets->tcp[i].addr->ai_family == AF_INET) {
             if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
                 sizeof(on)) < 0) {
                 ods_log_error("zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
@@ -1522,7 +1527,6 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
 
     if (info) {
         list_settings(stdout, config, config_file);
-        exit(0);
     }
 
     if (config->serverlist == NULL) {
