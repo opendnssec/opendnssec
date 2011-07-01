@@ -108,8 +108,15 @@ case "$1" in
 			kill -TERM `cat "$enforcer_pid_file"`
 			RETVAL=$?
 			if [ $RETVAL = 0 ]; then
+				i=0
 				while [ -r "$enforcer_pid_file" ]; do
 					sleep 1
+					i=`expr $i + 1`
+					if [ $i -ge 5 ]; then
+						RETVAL=1
+						echo "Could not start enforcer"
+						break
+					fi
 				done
 			fi
 		else
