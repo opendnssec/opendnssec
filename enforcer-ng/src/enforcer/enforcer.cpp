@@ -41,7 +41,7 @@ inline void minTime(const time_t t, time_t &min) {
 		min = t;
 }
 
-/** 
+/**
  * Translate the record state to something human readable.
  **/
 const char* stateName(const int state) {
@@ -75,8 +75,8 @@ bool getLastReusableKey(EnforcerZone &zone,
 void setState(KeyState &record_state, const int new_state,
 		const time_t now ) {
 	const char *scmd = "setState";
-	
-	ods_log_verbose("[%s] %s to %s", module_str, scmd, 
+
+	ods_log_verbose("[%s] %s to %s", module_str, scmd,
 			stateName(new_state));
 	record_state.setState(new_state);
 	record_state.setLastChange(now);
@@ -138,7 +138,7 @@ bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	const char *scmd = "updateDs";
 
 	KeyState &record_state = key.keyStateDS();
-	ods_log_verbose("[%s] %s state %s", module_str, scmd, 
+	ods_log_verbose("[%s] %s state %s", module_str, scmd,
 			stateName(record_state.state()));
 	switch ( record_state.state() ) {
 
@@ -352,7 +352,7 @@ bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
 	const char *scmd = "updateDnskey";
 
 	KeyState &record_state = key.keyStateDNSKEY();
-	ods_log_verbose("[%s] %s state %s", module_str, scmd, 
+	ods_log_verbose("[%s] %s state %s", module_str, scmd,
 			stateName(record_state.state()));
 	switch ( record_state.state() ) {
 
@@ -544,7 +544,7 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	bool safeToWithdraw;
 
 	KeyState &record_state = key.keyStateRRSIG();
-	ods_log_verbose("[%s] %s state %s", module_str, scmd, 
+	ods_log_verbose("[%s] %s state %s", module_str, scmd,
 			stateName(record_state.state()));
 	switch ( record_state.state() ) {
 
@@ -554,7 +554,8 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 		break;
 	}
 	exists = false;
-	if (!record_state.minimize()) {
+	//~ if (!record_state.minimize()) {
+	if (false) { // DEBUG
 		for (int i = 0; i < num_keys; i++) {
 			k = &key_list.key(i);
 			if ( key.algorithm() == k->algorithm() &&
@@ -564,14 +565,18 @@ bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 			}
 		}
 	}
-	if ( !exists || !record_state.minimize() ) {
-		/* submit stuff */
+	//~ if ( !exists || !record_state.minimize() ) {
+	//~ if ( !exists && !record_state.minimize() ) {
+	if ( !exists || false ) { //DEBUG
+		/* There exists no other propagated ZSK, so no use for a
+		 * gradual rollover. */
 		ods_log_info("[%s] %s, not exists", module_str, scmd);
 		setState(record_state, RUM, now);
 		record_changed = true;
 		break;
 	}
-	if ( key.keyStateRRSIG().minimize() &&
+	//~ if ( record_state.minimize() &&
+	if ( true && //DEBUG
 			key.keyStateDNSKEY().state() == OMN) {
 		/* submit stuff */
 		ods_log_info("[%s] %s, minimize", module_str, scmd);
@@ -704,7 +709,7 @@ bool updateKey(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
 	const char *scmd = "updateKey";
 
 	ods_log_info("[%s] %s %s", module_str, scmd, key.locator().c_str());
-	
+
 	if (key.role() & KSK) { /* KSK and CSK */
 		key_changed |= updateDs(zone, key_list, key, now, next_update_for_record);
 		minTime(next_update_for_record, next_update_for_key);
@@ -730,7 +735,7 @@ time_t updateZone(EnforcerZone &zone, const time_t now) {
 	KeyDataList &key_list = zone.keyDataList();
 	const char *scmd = "updateZone";
 	int dbg_cnt = 0;
-	
+
 	ods_log_verbose("[%s] %s", module_str, scmd);
 
 	/* Keep looping till there are no state changes.
@@ -754,7 +759,7 @@ time_t updateZone(EnforcerZone &zone, const time_t now) {
 /* Abstraction to generalize different kind of keys. */
 int numberOfKeys(const ::ods::kasp::Keys *policyKeys, const KeyRole role) {
 	const char *scmd = "numberOfKeys";
-	
+
 	switch (role) {
 		case KSK:
 			return policyKeys->ksk_size();
@@ -797,13 +802,13 @@ void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
             repository.assign(policyKeys->csk(index).repository());
 			return;
 		default:
-			ods_fatal_exit("[%s] %s Unknow Role: (%d)", 
+			ods_fatal_exit("[%s] %s Unknow Role: (%d)",
 					module_str, scmd, role); /* report a bug! */
 	}
 }
 
 /**
- * Finds the last inserted key in the list. It's role must be a 
+ * Finds the last inserted key in the list. It's role must be a
  * subset or equal to role.
  * \param[in] keys list of keys to search in
  * \param[in] role minimum role target must have
@@ -855,7 +860,7 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 				minTime( next_insert, return_at );
 				continue;
 			}
-			
+
 			/* time for a new key */
 			ods_log_verbose("[%s] %s New key needed for role %d", module_str, scmd, role);
 			string locator;
@@ -881,7 +886,6 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 				ods_log_info("[%s] %s No keys available on hsm, retry in %d seconds", module_str, scmd, NOKEY_TIMEOUT);
 				continue;
 			}
-
 
 			ods_log_verbose("[%s] %s got new key from HSM", module_str, scmd);
 
