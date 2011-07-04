@@ -262,6 +262,8 @@ main(int argc, char* argv[])
         engine_type *engine;
         if ((engine = engine_start(cfgfile, cmdline_verbosity, daemonize, info))) {
             engine_setup(engine,enforcer_commands,enforcer_help);
+            /* if setup fails we need a non-zero exit code */
+            if (engine->need_to_exit && !daemonize) exit(3);
             engine_runloop(engine,single_run);
             engine_stop(engine);
         }
