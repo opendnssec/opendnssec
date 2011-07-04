@@ -6,12 +6,12 @@ OpenDNSSEC 1.3.0 branch
 * Enforcer: Change message about KSK retirement to make it less confusing.
 
 Bugfixes:
-* If the Enforcer did not close down, you entered an infinite loop.
+* ods-control: If the Enforcer did not close down, you entered an infinite loop.
 * Signer Engine: Fix log message typos.
 * Signer Engine: Fix crash where ods-signer update
 * Signer Engine: Also replace DNSKEYs if <DNSKEY><TTL> has changed in policy.
 * Zonefetcher: Sometimes invalid 'Address already in use' occurred. 
-* Bugfix #247: fixes bug introduced by bugfix #242.
+* Bugfix #247: Fixes bug introduced by bugfix #242.
 
 
 OpenDNSSEC 1.3.0rc3 - 2011-06-12
