@@ -11,6 +11,7 @@ extern "C" {
 #include "xmlext-pb/xmlext-rd.h"
 #include "xmlext-pb/xmlext-wr.h"
 
+#include <memory>
 
 #include <fcntl.h>
 
