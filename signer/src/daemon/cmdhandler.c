@@ -95,6 +95,7 @@ cmdhandler_handle_cmd_help(int sockfd)
         "update <zone>   update this zone signer configurations.\n"
         "update [--all]  update zone list and all signer configurations.\n"
         "start           start the engine.\n"
+        "running         check if the engine is running.\n"
         "reload          reload the engine.\n"
         "stop            stop the engine.\n"
         "verbosity <nr>  set verbosity.\n"
