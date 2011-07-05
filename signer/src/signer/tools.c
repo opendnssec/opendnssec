@@ -49,7 +49,6 @@ ods_status
 tools_input(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
-    int error = 0;
     char* tmpname = NULL;
     char* lockname = NULL;
     time_t start = 0;
@@ -106,17 +105,18 @@ lock_fetch:
             }
             ods_log_assert(fd); /* locked */
 
-            error = ods_file_copy(tmpname, zone->adinbound->configstr);
+            status = ods_file_copy(tmpname, zone->adinbound->configstr);
 
             fclose(fd);
             (void) unlink(lockname); /* unlocked */
 
-            if (error) {
-                ods_log_error("[%s] unable to copy axfr file %s to %s",
-                    tools_str, tmpname, zone->adinbound->configstr);
+            if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s] unable to copy axfr file %s to %s: %s"
+                    "%s", tools_str, tmpname, zone->adinbound->configstr,
+                    ods_status2str(status));
                 free((void*)tmpname);
                 free((void*)lockname);
-                return ODS_STATUS_ERR;
+                return status;
             }
             free((void*)tmpname);
             free((void*)lockname);
