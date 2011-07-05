@@ -850,13 +850,13 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     int ret = 0;
 
     if (!allocator) {
-        ods_log_error("[%s] unable to create: no allocator");
+        ods_log_error("[%s] unable to create: no allocator", cmdh_str);
         return NULL;
     }
     ods_log_assert(allocator);
 
     if (!filename) {
-        ods_log_error("[%s] unable to create: no socket filename");
+        ods_log_error("[%s] unable to create: no socket filename", cmdh_str);
         return NULL;
     }
     ods_log_assert(filename);
