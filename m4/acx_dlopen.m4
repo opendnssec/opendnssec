@@ -1,17 +1,45 @@
 # $Id$
 
 AC_DEFUN([ACX_DLOPEN],[
-  AC_CHECK_FUNC(dlopen, [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])],
-  [
-    AC_CHECK_LIB([dl],[dlopen], 
-      [AC_DEFINE(HAVE_DLOPEN,1,[Define if you have dlopen])
-      LIBS="$LIBS -ldl"],
-      [AC_CHECK_FUNC(LoadLibrary, 
-        [if test $ac_cv_func_LoadLibrary = yes; then
-          AC_DEFINE(HAVE_LOADLIBRARY, 1, [Whether LoadLibrary is available])
-        fi
-        ], [AC_MSG_ERROR(No dynamic library loading support)]
-      )]
-    )
-  ])
+	tmp_SUCCESS="no"
+
+	# Unix
+	AC_CHECK_FUNC(
+		[dlopen],
+		[
+			AC_DEFINE(HAVE_DLOPEN, 1, [Define if you have dlopen])
+			tmp_SUCCESS="yes"
+		],
+		[
+			AC_CHECK_LIB(
+				[dl],
+				[dlopen],
+				[
+					AC_DEFINE(HAVE_DLOPEN, 1, [Define if you have dlopen])
+					LIBS="$LIBS -ldl"
+					tmp_SUCCESS="yes"
+				]
+			)
+		]
+	)
+
+	# Windows
+	if test "$tmp_SUCCESS" = "no"
+	then
+		AC_MSG_CHECKING([for LoadLibrary])
+		AC_TRY_LINK(
+			[#include <windows.h>],
+			[LoadLibrary(NULL);],
+			[
+				AC_DEFINE(HAVE_LOADLIBRARY, 1, [Define if you have LoadLibrary])
+				tmp_SUCCESS="yes"
+			]
+		)
+		AC_MSG_RESULT([$tmp_SUCCESS])
+	fi
+
+	if test "$tmp_SUCCESS" = "no"
+	then
+		AC_MSG_ERROR([No dynamic library loading support])
+	fi
 ])
