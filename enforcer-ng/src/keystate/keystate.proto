@@ -56,9 +56,7 @@ enum keyrole {
 enum rrstate {
     hidden = 0;
     rumoured = 1;
-    committed = 2;
-    omnipresent = 3;
-    unretentive = 4;
-    postcommitted = 5;
-    revoked = 6;
+    omnipresent = 2;
+    unretentive = 3;
+    NA = 4;
 }

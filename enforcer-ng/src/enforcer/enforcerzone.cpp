@@ -59,7 +59,8 @@ KeyDataPB::KeyDataPB( ::ods::keystate::KeyData *keydata )
 :   _keydata(keydata),
     _keyStateDS( _keydata->mutable_ds() ),
     _keyStateRRSIG( _keydata->mutable_rrsig() ),
-    _keyStateDNSKEY( _keydata->mutable_dnskey() )
+    _keyStateDNSKEY( _keydata->mutable_dnskey() ),
+    _keyStateRRSIGDNSKEY( _keydata->mutable_rrsigdnskey() )
 {
 }
 
@@ -111,6 +112,11 @@ KeyState &KeyDataPB::keyStateRRSIG()
 KeyState &KeyDataPB::keyStateDNSKEY()
 {
     return _keyStateDNSKEY;
+}
+
+KeyState &KeyDataPB::keyStateRRSIGDNSKEY()
+{
+    return _keyStateRRSIGDNSKEY;
 }
 
 KeyRole KeyDataPB::role()

@@ -153,6 +153,7 @@ public:
     virtual KeyState &keyStateDS() = 0;
     virtual KeyState &keyStateRRSIG() = 0;
     virtual KeyState &keyStateDNSKEY() = 0;
+    virtual KeyState &keyStateRRSIGDNSKEY() = 0;
 
     virtual bool isDSSeen() = 0;
     virtual void setDSSeen(bool value) = 0;

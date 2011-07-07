@@ -15,37 +15,355 @@ extern "C" {
 }
 
 using namespace std;
+using ::ods::kasp::Policy;
 
 static const char *module_str = "enforcer";
 
-/* Link these to keystate to prevent later ambiguities.
- * Alias rather than use directly, we don't want to be too dependent
- * on spelling. */
-#define HID ods::keystate::hidden
-#define RUM ods::keystate::rumoured
-#define COM ods::keystate::committed
-#define OMN ods::keystate::omnipresent
-#define UNR ods::keystate::unretentive
-#define PCM ods::keystate::postcommitted
-#define REV ods::keystate::revoked
+/* be careful changing this, might mess up database*/
+enum STATE {HID, RUM, OMN, UNR, NOCARE}; 
+static const char* STATENAMES[] = {"HID", "RUM", "OMN", "UNR"};
+enum RECORD {REC_MIN, DS = REC_MIN, DK, RD, RS, REC_MAX};
+/* trick to loop over our enum */
+RECORD& operator++(RECORD& r){return r = (r >= REC_MAX)?REC_MAX:RECORD(r+1);}
+static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
+/* \careful */
+
 
 /* When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
+/* TODO: Temporary placeholder, must figure this out from policy. */
+#define ALLOW_UNSIGNED false
 
 /**
  * Stores smallest of two times in *min.
  * Avoiding negative values, which mean no update necessary
+ * Any other time in the past: ASAP.
  * */
-inline void minTime(const time_t t, time_t &min) {
-	if ( (t < min || min < 0) && t >= 0 )
-		min = t;
+inline void 
+minTime(const time_t t, time_t &min)
+{
+	if ( (t < min || min < 0) && t >= 0 ) min = t;
+}
+
+KeyState&
+getRecord(KeyData &key, const RECORD record)
+{
+	const char *scmd = "getRecord";
+	switch(record) {
+		case DS: return key.keyStateDS();
+		case DK: return key.keyStateDNSKEY();
+		case RD: return key.keyStateRRSIGDNSKEY();
+		case RS: return key.keyStateRRSIG();
+		default: 
+			ods_fatal_exit("[%s] %s Unknown record type (%d), "
+				"fault of programmer. Abort.", 
+				module_str, scmd, (int)record);
+	}
+}
+
+void
+setState(KeyData &key, const RECORD record, const STATE state, 
+	const time_t now)
+{
+	KeyState &ks = getRecord(key, record);
+	ks.setState(state);
+	ks.setLastChange(now);
+
+}
+
+STATE
+getState(KeyData &key, const RECORD record)
+{
+	return (STATE)getRecord(key, record).state();
 }
 
 /**
- * Translate the record state to something human readable.
- **/
-const char* stateName(const int state) {
-	return ods::keystate::rrstate_Name((ods::keystate::rrstate)state).c_str();
+ * Given goal and state, what will be the next state?
+ * */
+STATE
+getDesiredState(const bool introducing, const STATE state)
+{
+	const char *scmd = "getDesiredState";
+	if (state > NOCARE || state < HID) 
+		ods_fatal_exit("[%s] %s Key in unknown state (%d), "
+			"Corrupt database? Abort.",  module_str, scmd, (int)state);
+	const STATE jmp[2][5] = {{HID, UNR, UNR, HID, NOCARE}, {RUM, OMN, OMN, RUM, NOCARE}};
+	return jmp[introducing][(int)state];
+}
+
+/**
+ * The policy approval function makes sure records are introduced in
+ * correct order.
+ * */
+bool
+policy_approval(KeyData &key, const RECORD record, const STATE next_state)
+{
+	const char *scmd = "getDesiredState";
+	if (next_state != RUM) return true; /* already introducing */
+	switch(record) {
+		case DS:
+			return !key.keyStateDS().minimize() || 
+				getState(key, DK) == OMN;
+		case DK:
+			return !key.keyStateDNSKEY().minimize() || 
+				(getState(key, DS) == OMN && getState(key, RS) == OMN);
+		case RD:
+			return getState(key, DK) != HID;
+		case RS:
+			return !key.keyStateRRSIG().minimize() || 
+				getState(key, DK) == OMN;
+		default: 
+			ods_fatal_exit("[%s] %s Unknown record type (%d), "
+				"fault of programmer. Abort.",
+				module_str, scmd, (int)record);
+	}
+}
+
+bool
+exists(KeyDataList &key_list, KeyData &key, 
+	const RECORD record,const STATE next_state, 
+	const bool require_same_algorithm, const bool pretend_update, 
+	const STATE mask[4])
+{
+		for (int i = 0; i < key_list.numKeys(); i++) {
+			KeyData &k = key_list.key(i);
+			if (require_same_algorithm && k.algorithm() != key.algorithm())
+				continue;
+			bool sub_key = pretend_update && !key.locator().compare(k.locator());
+			//~ ods_log_verbose("[%s] %d %d %s %s", module_str, sub_key, pretend_update, key.locator().c_str(), k.locator().c_str());
+			bool match = true;
+			for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
+				bool sub_rec = sub_key && record == r;
+				if (mask[r] == NOCARE) continue;
+				/* if key and record match and pretend_update
+				 * pretend the record has state next_state */
+				STATE state = sub_rec?next_state:getState(k, r);
+				if (mask[r] != state) {
+					match = false;
+					break;
+				}
+			}
+			if (match) return true;
+		}
+	return false;
+}
+
+bool
+unsigned_ok(KeyDataList &key_list, KeyData &key, const RECORD record, 
+	const STATE next_state, const bool pretend_update, 
+	const STATE mask[4], const RECORD mustHID)
+{
+	//check all keys
+	for (int i = 0; i < key_list.numKeys(); i++) {
+		KeyData &k = key_list.key(i);
+		if (k.algorithm() != key.algorithm()) continue;
+		STATE k_state[4];
+		for (RECORD r = REC_MIN; r < REC_MAX; ++r)
+			k_state[r] = (pretend_update && record==r && !key.locator().compare(k.locator()))?next_state:getState(k, r);
+		if (k_state[mustHID] == HID || k_state[mustHID] == NOCARE) continue;
+		STATE amask[4];
+		for (RECORD r = REC_MIN; r < REC_MAX; ++r)
+			amask[r] = (mustHID==r)?k_state[r]:mask[r];
+		if (!exists(key_list, key, record, next_state, true, pretend_update, amask))
+			return false; //we can't satisfy this condition
+	}
+	return true;
+}
+
+bool
+rule1(KeyDataList &key_list, KeyData &key, const RECORD record, 
+	const STATE next_state, const bool pretend_update)
+{
+	const STATE mask1[] =  {RUM, NOCARE, NOCARE, NOCARE};
+	const STATE mask2[] =  {OMN, NOCARE, NOCARE, NOCARE};
+	return  exists(key_list, key, record, next_state, false, pretend_update, mask1) ||
+			exists(key_list, key, record, next_state, false, pretend_update, mask2);
+}
+
+bool
+rule2(KeyDataList &key_list, KeyData &key, const RECORD record, 
+	const STATE next_state, const bool pretend_update)
+{
+	const STATE mask1[] =  {RUM, OMN, OMN, NOCARE};
+	const STATE mask2[] =  {UNR, OMN, OMN, NOCARE};
+	const STATE mask3[] =  {OMN, OMN, OMN, NOCARE};
+	const STATE mask4[] =  {OMN, RUM, RUM, NOCARE};
+	const STATE mask5[] =  {OMN, OMN, RUM, NOCARE};
+	const STATE mask6[] =  {OMN, UNR, UNR, NOCARE};
+	const STATE mask7[] =  {OMN, UNR, OMN, NOCARE};
+	const STATE mask_unsg[] =  {HID, OMN, OMN, NOCARE};
+
+	//~ return
+	//~ unsigned_ok(key_list, key, record, next_state, pretend_update, mask_unsg, DS);
+	return
+	unsigned_ok(key_list, key, record, next_state, pretend_update, mask_unsg, DS) ||
+	
+	exists(key_list, key, record, next_state, true, pretend_update, mask1) &&
+	exists(key_list, key, record, next_state, true, pretend_update, mask2) ||
+	
+	exists(key_list, key, record, next_state, true, pretend_update, mask3) ||
+	
+	(exists(key_list, key, record, next_state, true, pretend_update, mask4) ||
+	 exists(key_list, key, record, next_state, true, pretend_update, mask5) )&&
+	(exists(key_list, key, record, next_state, true, pretend_update, mask6) ||
+	 exists(key_list, key, record, next_state, true, pretend_update, mask7) );
+}
+
+bool
+rule3(KeyDataList &key_list, KeyData &key, const RECORD record, 
+	const STATE next_state, const bool pretend_update)
+{
+	const STATE mask_triv[] =  {NOCARE, OMN, NOCARE, OMN};
+	const STATE mask_keyi[] =  {NOCARE, RUM, NOCARE, OMN};
+	const STATE mask_keyo[] =  {NOCARE, UNR, NOCARE, OMN};
+	const STATE mask_sigi[] =  {NOCARE, OMN, NOCARE, RUM};
+	const STATE mask_sigo[] =  {NOCARE, OMN, NOCARE, UNR};
+	const STATE mask_unsg[] =  {NOCARE, HID, NOCARE, OMN};
+
+	return
+	unsigned_ok(key_list, key, record, next_state, pretend_update, mask_unsg, DK) ||
+	
+	exists(key_list, key, record, next_state, true, pretend_update, mask_triv) ||
+	
+	exists(key_list, key, record, next_state, true, pretend_update, mask_keyi) &&
+	exists(key_list, key, record, next_state, true, pretend_update, mask_keyo) ||
+	
+	exists(key_list, key, record, next_state, true, pretend_update, mask_sigi) &&
+	exists(key_list, key, record, next_state, true, pretend_update, mask_sigo);
+}
+
+bool
+dnssec_approval(KeyDataList &key_list, KeyData &key, const RECORD record, 
+	const STATE next_state)
+{
+	bool a = rule1(key_list, key, record, next_state, false);
+	bool b = rule2(key_list, key, record, next_state, false);
+	bool c = rule3(key_list, key, record, next_state, false);
+	bool d = rule1(key_list, key, record, next_state, true);
+	bool e = rule2(key_list, key, record, next_state, true);
+	bool f = rule3(key_list, key, record, next_state, true);
+	
+	ods_log_verbose("[%s] %d%d%d %d%d%d", module_str, a,b,c,d,e,f);
+
+	
+	return 
+		(!rule1(key_list, key, record, next_state, false) ||
+		  rule1(key_list, key, record, next_state, true ) ) &&
+		(!rule2(key_list, key, record, next_state, false) ||
+		  rule2(key_list, key, record, next_state, true ) ) &&
+		(!rule3(key_list, key, record, next_state, false) ||
+		  rule3(key_list, key, record, next_state, true ) );
+}
+
+time_t
+addtime(const time_t &t, const int seconds)
+{
+	struct tm *tp = localtime(&t);
+	tp->tm_sec += seconds;
+	return mktime(tp);
+}
+
+time_t
+min_transition_time(const Policy *policy, const RECORD record, const STATE state, 
+	const STATE next_state, const time_t lastchange)
+{
+	const char *scmd = "min_transition_time";
+
+	/* if previous state was a certain state record may
+	 * transition directly. TODO improve comment */
+	if (next_state == RUM || next_state == UNR) return lastchange;
+	
+	//~ ods_log_verbose("[%s] %d %d %d %d %d %d %d %d %d %d", module_str, 
+	//~ policy->parent().ttlds(),
+	//~ policy->parent().registrationdelay(),
+	//~ policy->parent().propagationdelay(),
+	//~ policy->keys().ttl(),
+	//~ policy->zone().propagationdelay(),
+	//~ policy->keys().publishsafety(),
+	//~ policy->keys().retiresafety(),
+	//~ policy->signatures().ttl(),
+	//~ policy->zone().propagationdelay(),
+	//~ lastchange
+	//~ );
+	
+	switch(record) {
+		case DS:
+			return addtime(lastchange,
+				  policy->parent().ttlds()
+				+ policy->parent().registrationdelay()
+				+ policy->parent().propagationdelay());
+		/* TODO: 5011 will create special case here */
+		case DK: /* intentional fall-through */
+		case RD:
+			return addtime(lastchange,
+				  policy->keys().ttl()
+				+ policy->zone().propagationdelay()
+				+ (next_state == OMN)
+					? policy->keys().publishsafety()
+					: policy->keys().retiresafety());
+		case RS:
+			return addtime(lastchange,
+				  policy->signatures().ttl()
+				+ policy->zone().propagationdelay());
+		default: 
+			ods_fatal_exit("[%s] %s Unknown record type (%d), "
+				"fault of programmer. Abort.",
+				module_str, scmd, (int)record);
+	}
+}
+
+/**
+ * Try to push each key for this zone to a next state. If one changes
+ * visit the rest again. Loop stops when no changes can be made without
+ * advance of time. Return time of first possible event. 
+ * */
+time_t
+updateZone(EnforcerZone &zone, const time_t now)
+{
+	time_t returntime_zone = -1;
+	time_t returntime_key;
+	bool change;
+	KeyDataList &key_list = zone.keyDataList();
+	const ::ods::kasp::Policy *policy = zone.policy();
+	const char *scmd = "updateZone";
+	ods_log_verbose("[%s] %s", module_str, scmd);
+
+	/* Keep looping till there are no state changes.
+	 * Find the soonest update time */
+	do {
+		change = false;
+		/* Loop over all keys */
+		for (int i = 0; i < key_list.numKeys(); i++) {
+			KeyData &key = key_list.key(i);
+			ods_log_verbose("[%s] %s processing key %s", module_str, scmd, key.locator().c_str());
+			/* Loop over records */
+			for (RECORD record = REC_MIN; record < REC_MAX; ++record) {
+				STATE state = getState(key, record);
+				STATE next_state = getDesiredState(key.introducing(), state);
+				if (state == next_state) continue;
+				ods_log_verbose("[%s] %s May %s transition to %s?", module_str, scmd, RECORDAMES[(int)record], STATENAMES[(int)next_state]);
+				
+				if (!policy_approval(key, record, next_state)) continue;
+				ods_log_verbose("[%s] %s Policy says we can (1/3)", module_str, scmd);
+				
+				if (!dnssec_approval(key_list, key, record, next_state)) continue;
+				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", module_str, scmd);
+				/* do time stuff */
+				time_t returntime_key = min_transition_time(policy, record, 
+					state, next_state, getRecord(key, record).lastChange());
+				//~ ods_log_verbose("[%s] %s retkey %d", module_str, scmd, returntime_key);
+
+				if (returntime_key > now) {
+					minTime(returntime_key, returntime_zone);
+					continue;
+				}
+				ods_log_verbose("[%s] %s Timing says we can (3/3) now: %d key: %d", module_str, scmd, now, returntime_key);
+				setState(key, record, next_state, now); //now == next change?
+				change = true;
+			}
+		}
+	} while (change);
+	return returntime_zone;
 }
 
 /**
@@ -54,10 +372,13 @@ const char* stateName(const int state) {
  * also, check if it isn't in zone already. Also length, algorithm
  * must match and it must be a first generation key.
  * */
-bool getLastReusableKey(EnforcerZone &zone,
-		const ::ods::kasp::Policy *policy, const KeyRole role,
-        int bits, const string &repository, int algorithm, const time_t now, HsmKey **ppKey,
-		HsmKeyFactory &keyfactory, int lifetime) {
+bool 
+getLastReusableKey(EnforcerZone &zone,
+	const Policy *policy, const KeyRole role,
+	int bits, const string &repository, int algorithm, 
+	const time_t now, HsmKey **ppKey,
+	HsmKeyFactory &keyfactory, int lifetime)
+{
 	if (!keyfactory.UseSharedKey(bits, repository, policy->name(), algorithm,
 									 role, zone.name(), ppKey))
 		return false;
@@ -70,737 +391,51 @@ bool getLastReusableKey(EnforcerZone &zone,
 	return false;
 }
 
-/* Applies new state to record and keeps additional administration.
- * */
-void setState(KeyState &record_state, const int new_state,
-		const time_t now ) {
-	const char *scmd = "setState";
-
-	ods_log_verbose("[%s] %s to %s", module_str, scmd,
-			stateName(new_state));
-	record_state.setState(new_state);
-	record_state.setLastChange(now);
-}
-
-/* A DS|DNSKEY|RRSIG RR is considered reliable (useable in a validation
- * chain) if it is known to all caches or it is being introduced and
- * another DS|DNSKEY|RRSIG is decommissioned at the same time.
- * */
-bool reliableDs(KeyDataList &key_list, KeyData &key) {
-	if (key.keyStateDS().state() == OMN) return true;
-	if (key.keyStateDS().state() != COM) return false;
-	int alg = key.algorithm();
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &k = key_list.key(i);
-		if  (k.keyStateDS().state() == PCM &&
-				k.algorithm() == alg)
-			return true;
-	}
-	return false;
-}
-bool reliableDnskey(KeyDataList &key_list, KeyData &key) {
-	if (key.keyStateDNSKEY().state() == OMN) return true;
-	if (key.keyStateDNSKEY().state() != COM) return false;
-	int alg = key.algorithm();
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &k = key_list.key(i);
-		if  (k.keyStateDNSKEY().state() == PCM &&
-				k.algorithm() == alg)
-			return true;
-	}
-	return false;
-}
-bool reliableRrsig(KeyDataList &key_list, KeyData &key) {
-	if (key.keyStateRRSIG().state() == OMN) return true;
-	if (key.keyStateRRSIG().state() != COM) return false;
-	int alg = key.algorithm();
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &k = key_list.key(i);
-		if  (k.keyStateRRSIG().state() == PCM &&
-				k.algorithm() == alg)
-			return true;
-	}
-	return false;
-}
-
-bool updateDs(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
-		const time_t now, time_t &next_update_for_record) {
-	bool record_changed = false;
-	int num_keys = key_list.numKeys();
-	const ::ods::kasp::Policy *policy = zone.policy();
-	KeyData *k;
-	time_t Tprop;
-
-	bool exists_ds_postcomitted;
-	bool forall;
-	bool ds_omni_or_com;
-
-	const char *scmd = "updateDs";
-
-	KeyState &record_state = key.keyStateDS();
-	ods_log_verbose("[%s] %s state %s", module_str, scmd,
-			stateName(record_state.state()));
-	switch ( record_state.state() ) {
-
-	case HID:
-	if (!key.introducing() || key.standby()) break;
-	if (!record_state.minimize()) {
-		int similar_ksks = 0;
-		if (key.keyStateDNSKEY().state() == OMN) {
-			setState(record_state, RUM, now);
-			record_changed = true;
-			/* The DS record must be submit to the parent */
-			key.setSubmitToParent(true);
-			key.setDSSeen(false);
-			/* The signer configuration does not change */
-			break;
-		}
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			if (k->algorithm() == key.algorithm() &&
-					reliableDs(key_list, *k) &&
-					reliableDnskey(key_list, *k)) {
-				setState(record_state, RUM, now);
-				record_changed = true;
-				/* The DS record must be submit to the parent */
-				key.setSubmitToParent(true);
-				key.setDSSeen(false);
-				/* The signer configuration does not change */
-				break;
-			}
-		}
-	}
-	if (key.keyStateDNSKEY().state() == OMN) {
-		setState(record_state, COM, now);
-		record_changed = true;
-		/* The DS record must be submit to the parent */
-		key.setSubmitToParent(true);
-		key.setDSSeen(false);
-		/* The signer configuration does not change */
-	}
-	break;
-
-	case RUM:
-	if (!key.introducing()) {
-		setState(record_state, UNR, now);
-		record_changed = true;
-		/* The DS record withdrawal must be submit to the parent */
-		key.setSubmitToParent(true);
-		key.setDSSeen(false);
-		/* The signer configuration does not change */
-	} else if (key.isDSSeen()) {
-		Tprop = record_state.lastChange() + policy->parent().ttlds()
-				+ policy->parent().registrationdelay()
-				+ policy->parent().propagationdelay();
-		if (now >= Tprop) {
-			setState(record_state, OMN, now);
-			record_changed = true;
-			/* There is no next update scheduled for this record
-			 * since it is now omnipresent and introducing */
-		} else {
-			/* All requirements are met but not the propagation time
-			 * ask to come back at a later date. */
-			next_update_for_record = Tprop;
-		}
-	}
-	break;
-
-	case COM:
-	if (!key.isDSSeen()) break;
-	Tprop = record_state.lastChange() + policy->parent().ttlds()
-			+ policy->parent().registrationdelay()
-			+ policy->parent().propagationdelay();
-	if (now >= Tprop) {
-		setState(record_state, OMN, now);
-		record_changed = true;
-		/* There is no next update scheduled for this record
-		 * since it is now omnipresent and introducing */
-	} else {
-		/* All requirements are met but not the propagation time
-		 * ask to come back at a later date. */
-		next_update_for_record = Tprop;
-	}
-	break;
-
-	case OMN:
-	if (key.introducing()) break; /* already there */
-	if (key.keyStateDNSKEY().state() != OMN) {
-		bool exists_ds_comitted = false;
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			if (k->keyStateDS().state() == COM) {
-				exists_ds_comitted = true;
-				break;
-			}
-		}
-		if (exists_ds_comitted) {
-			setState(record_state, PCM, now);
-			record_changed = true;
-			/* The DS record withdrawal must be submit to the parent */
-			key.setSubmitToParent(true);
-			key.setDSSeen(false);
-			/* The signer configuration does not change */
-			break; /* from switch */
-		}
-	}
-
-	if (key.keyStateDNSKEY().state() == PCM) break;
-
-	exists_ds_postcomitted = false;
-	for (int i = 0; i < num_keys; i++) {
-		k = &key_list.key(i);
-		if (k->keyStateDS().state() == PCM) {
-			exists_ds_postcomitted = true;
-			break;
-		}
-	}
-	forall = true;
-	ds_omni_or_com = false;
-	for (int i = 0; i < num_keys; i++) {
-		k = &key_list.key(i);
-		ds_omni_or_com |= k != &key && (k->keyStateDS().state() == OMN ||
-				(k->keyStateDS().state() == COM && exists_ds_postcomitted));
-		if (k->algorithm() != key.algorithm() ) continue;
-		if (k->keyStateDS().state() == HID) continue;
-		if (reliableDnskey(key_list, *k)) continue;
-
-		/* Leave innerloop as last check,
-		 * for performance. */
-		bool hasReplacement = false;
-		KeyData *l;
-		for (int j = 0; j < num_keys; j++) {
-			l = &key_list.key(j);
-			if (l->algorithm() == k->algorithm() && l != &key
-					&& reliableDs(key_list, *l) && reliableDnskey(key_list, *l)) {
-				hasReplacement = true;
-				break;
-			}
-		}
-		if (!hasReplacement) {
-			forall = false;
-			break;
-		}
-	}
-
-	if (ds_omni_or_com && forall) {
-		setState(record_state, UNR, now);
-		record_changed = true;
-		/* The DS record withdrawal must be submit to the parent */
-		key.setSubmitToParent(true);
-		key.setDSSeen(false);
-		/* The signer configuration does not change */
-	}
-	break;
-
-	case UNR:
-	/* We might *not* allow this, for simplicity */
-	if (key.introducing()) {
-		setState(record_state, RUM, now);
-		record_changed = true;
-		/* The DS record withdrawal must be submit to the parent */
-		key.setSubmitToParent(true);
-		key.setDSSeen(false);
-		/* The signer configuration does not change */
-		break;
-	}
-	Tprop = record_state.lastChange() + policy->parent().ttlds()
-			+ policy->parent().registrationdelay()
-			+ policy->parent().propagationdelay();
-	if (now >= Tprop) {
-		setState(record_state, HID, now);
-		record_changed = true;
-	} else {
-		next_update_for_record = Tprop;
-	}
-	break;
-
-	case PCM:
-	Tprop = record_state.lastChange() + policy->parent().ttlds()
-			+ policy->parent().registrationdelay()
-			+ policy->parent().propagationdelay();
-	if (now >= Tprop) {
-		setState(record_state, HID, now);
-		record_changed = true;
-		/* no need to notify signer. Nothing changes in
-		 * its perspective. */
-	} else {
-		next_update_for_record = Tprop;
-	}
-	break;
-
-	case REV:
-		/* NOT IMPL */
-	break;
-
-	default:
-		assert(0); /* Nonexistent state. */
-	}
-
-	return record_changed;
-}
-
-bool updateDnskey(EnforcerZone &zone, KeyDataList &key_list,
-		KeyData &key, const time_t now, time_t &next_update_for_record) {
-	bool record_changed = false;
-	bool signer_needs_update = false;
-	next_update_for_record = -1;
-	const ::ods::kasp::Policy *policy = zone.policy();
-	int num_keys = key_list.numKeys();
-	KeyData *k, *l;
-	time_t Tprop;
-
-	const char *scmd = "updateDnskey";
-
-	KeyState &record_state = key.keyStateDNSKEY();
-	ods_log_verbose("[%s] %s state %s", module_str, scmd,
-			stateName(record_state.state()));
-	switch ( record_state.state() ) {
-
-	case HID:
-	if (!key.introducing()) break;
-	if (record_state.minimize() && (key.keyStateDS().state() == OMN ||
-		!(key.role() & KSK)) &&
-		(key.keyStateRRSIG().state() == OMN ||
-		!(key.role() & ZSK)) ) {
-		setState(record_state, COM, now);
-		record_changed = true;
-		/* The DNSKEY now needs to be published. */
-		signer_needs_update = true;
-		break;
-	}
-	if (record_state.minimize() && !key.standby()) {
-		bool noneExist = true;
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			if (!(key.algorithm() == k->algorithm() &&
-					reliableDnskey(key_list, *k) &&
-					key.role() & KSK)){
-				noneExist = false;
-				break;
-			}
-		}
-		if (!noneExist) break;
-	}
-	if (!reliableRrsig(key_list, key)) {
-		bool oneExist = false;
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			if (key.algorithm() == k->algorithm() &&
-					reliableDnskey(key_list, *k) &&
-					reliableRrsig(key_list, *k)){
-				oneExist = true;
-				break;
-			}
-		}
-		if (!oneExist) break;
-	}
-	setState(record_state, RUM, now);
-	record_changed = true;
-	/* The DNSKEY now needs to be published. */
-	signer_needs_update = true;
-	break;
-
-	case RUM:
-	if (!key.introducing()) {
-		setState(record_state, UNR, now);
-		record_changed = true;
-		signer_needs_update = true;
-		break;
-	}
-	Tprop = record_state.lastChange() + policy->keys().ttl()
-			+ policy->keys().publishsafety()
-			+ policy->zone().propagationdelay();
-	if (now >= Tprop) {
-		setState(record_state, OMN, now);
-		record_changed = true;
-		break;
-	}
-	next_update_for_record = Tprop;
-	break;
-
-	case COM:
-	Tprop = record_state.lastChange() + policy->keys().ttl()
-			+ policy->keys().publishsafety()
-			+ policy->zone().propagationdelay();
-	if (now >= Tprop) {
-		setState(record_state, OMN, now);
-		record_changed = true;
-		break;
-	}
-	next_update_for_record = Tprop;
-	break;
-
-	case OMN:
-	if (key.introducing() || key.keyStateDS().state() == PCM ||
-		key.keyStateRRSIG().state() == PCM ) break;
-	if ( key.keyStateDS().state() == OMN &&
-		key.keyStateRRSIG().state() == OMN &&
-		!key.revoke()) {
-		bool hasReplacement = false;
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			if ( k->keyStateDNSKEY().state() == COM &&
-					key.algorithm() == k->algorithm() &&
-					key.role() == k->role() ) {
-				hasReplacement = true;
-				break;
-			}
-		}
-		if ( hasReplacement ) {
-		/* withdraw stuff */
-		setState(record_state, PCM, now);
-		record_changed = true;
-		break;
-		}
-	}
-	if ( key.keyStateDS().state() != PCM &&
-			key.keyStateRRSIG().state() != PCM ) {
-		/* We must check if any other key depend on 'key'
-		 * if so, we can not take an action */
-		bool all = true;
-		/* forall */
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			bool ksk_ok, zsk_ok;
-			ksk_ok = !(k->role() & KSK) || k->keyStateDS().state() == HID ||
-				(k != &key && reliableDnskey(key_list, *k));
-			zsk_ok = k->keyStateDNSKEY().state() == HID ||
-				reliableRrsig(key_list, *k);
-			if (ksk_ok && zsk_ok) continue;
-			/* This key breaks the chain, see if there is a
-			 * candidate that fixes this. */
-			/* exists */
-			for ( int j = 0; j < num_keys; j++ ) {
-				l = &key_list.key(j);
-				if ( 	&key == l ||
-						k->algorithm() != l->algorithm() ||
-						!reliableDnskey( key_list, *l ) )
-					continue;
-				ksk_ok |= reliableDs( key_list, *l );
-				zsk_ok |= reliableRrsig( key_list, *l );
-				if (ksk_ok && zsk_ok) break; /* inner loop */
-			}
-			if ( !ksk_ok || !zsk_ok ) {
-				all = false;
-				break; /* outer loop */
-			}
-		}
-		if ( all ) {
-			setState(record_state, key.revoke() ? REV : UNR, now);
-			record_changed = true;
-			/* submit or revoke stuff */
-		}
-	}
-	break;
-
-	case REV:
-	Tprop = 0 /* TODO */;
-	if (now >= Tprop) {
-		setState(record_state, UNR, now);
-		record_changed = true;
-	} else {
-		next_update_for_record = Tprop;
-	}
-	break;
-
-	case UNR:
-	Tprop = record_state.lastChange() + policy->keys().ttl()
-			+ policy->keys().retiresafety()
-			+ policy->zone().propagationdelay();
-	if (key.introducing()) {
-		/* submit,
-		 * key->dnskey_state = Key::ST_UNRETENTIVE;
-		 * record_changed = true;
-		 * */
-	} else if (now >= Tprop) {
-		setState(record_state, HID, now);
-		record_changed = true;
-	} else {
-		next_update_for_record = Tprop;
-	}
-	break;
-
-	case PCM:
-	break;
-
-	}
-
-	if (signer_needs_update) zone.setSignerConfNeedsWriting(true);
-	return record_changed;
-}
-
-bool updateRrsig(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
-		const time_t now, time_t &next_update_for_record) {
-	bool record_changed = false;
-	bool signer_needs_update = false;
-	next_update_for_record = -1;
-	const ::ods::kasp::Policy *policy = zone.policy();
-	int num_keys = key_list.numKeys();
-	KeyData *k;
-	time_t Tprop;
-	const char *scmd = "updateRrsig";
-
-	bool exists;
-	bool safeToWithdraw;
-
-	KeyState &record_state = key.keyStateRRSIG();
-	ods_log_verbose("[%s] %s state %s", module_str, scmd,
-			stateName(record_state.state()));
-	switch ( record_state.state() ) {
-
-	case HID:
-	if ( !key.introducing() || key.standby() ) {
-		ods_log_info("[%s] %s, not introducing or standby ", module_str, scmd);
-		break;
-	}
-	exists = false;
-	//~ if (!record_state.minimize()) {
-	if (false) { // DEBUG
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			if ( key.algorithm() == k->algorithm() &&
-					reliableRrsig(key_list, *k) ) {
-				exists = true;
-				break;
-			}
-		}
-	}
-	//~ if ( !exists || !record_state.minimize() ) {
-	//~ if ( !exists && !record_state.minimize() ) {
-	if ( !exists || false ) { //DEBUG
-		/* There exists no other propagated ZSK, so no use for a
-		 * gradual rollover. */
-		ods_log_info("[%s] %s, not exists", module_str, scmd);
-		setState(record_state, RUM, now);
-		record_changed = true;
-		break;
-	}
-	//~ if ( record_state.minimize() &&
-	if ( true && //DEBUG
-			key.keyStateDNSKEY().state() == OMN) {
-		/* submit stuff */
-		ods_log_info("[%s] %s, minimize", module_str, scmd);
-		setState(record_state, COM, now);
-		record_changed = true;
-		break;
-	}
-	ods_log_info("[%s] %s, no match", module_str, scmd);
-	break;
-
-	case RUM:
-	//ods_log_info("[%s] %s, info sigttl %d", module_str, scmd, policy->signatures().ttl());
-	//ods_log_info("[%s] %s, info prpdly %d", module_str, scmd, policy->zone().propagationdelay());
-	Tprop = record_state.lastChange() + policy->signatures().ttl()
-			+ policy->zone().propagationdelay();
-	if ( !key.introducing() ) {
-		/* withdraw stuff */
-		setState(record_state, UNR, now);
-		record_changed = true;
-		break;
-	} else if ( now >= Tprop ) {
-		/* do stuff */
-		setState(record_state, OMN, now);
-		record_changed = true;
-		break;
-	} else {
-		next_update_for_record = Tprop;
-	}
-	break;
-
-	case COM:
-	Tprop = record_state.lastChange() + policy->signatures().ttl()
-			+ policy->zone().propagationdelay();
-	if ( now >= Tprop ) {
-		/* do stuff */
-		setState(record_state, OMN, now);
-		record_changed = true;
-		break;
-	}
-	break;
-
-	case OMN:
-	if ( key.introducing() ) break;
-	if ( key.keyStateDNSKEY().state() == OMN ) {
-		bool exist3 = false;
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			if ( k->keyStateRRSIG().state() == COM &&
-					key.algorithm() == k->algorithm() ) {
-				exist3 = true;
-				break;
-			}
-		}
-		if ( exist3 ) {
-			setState(record_state, HID, now);
-			record_changed = true;
-			break;
-		}
-	}
-	if ( key.keyStateDNSKEY().state() == PCM ) break;
-
-	safeToWithdraw = ( key.keyStateDNSKEY().state() == HID );
-	if ( !safeToWithdraw ) {
-		for (int i = 0; i < num_keys; i++) {
-			k = &key_list.key(i);
-			if ( &key != k && key.algorithm() == k->algorithm() &&
-					reliableDnskey(key_list, *k) &&
-					reliableRrsig(key_list, *k)) {
-				safeToWithdraw = true;
-				break;
-			}
-		}
-	}
-	if ( safeToWithdraw ) {
-		/* submit stuff */
-		setState(record_state, UNR, now);
-		record_changed = true;
-		break;
-	}
-	break;
-
-	case REV:
-	break;
-
-	case UNR:
-	Tprop = record_state.lastChange() + policy->signatures().ttl()
-			+ policy->zone().propagationdelay();
-	if ( key.introducing()) {
-	    /* submit
-	     * state -> rumoured
-	     break;*/
-	} if ( now >= Tprop ) {
-		setState(record_state, HID, now);
-		record_changed = true;
-	    break;
-	} else {
-		next_update_for_record = Tprop;
-	}
-	break;
-
-	case PCM:
-	Tprop = record_state.lastChange() + policy->signatures().ttl()
-			+ policy->zone().propagationdelay();
-	if ( now >= Tprop ) {
-		setState(record_state, HID, now);
-		record_changed = true;
-	    break;
-	} else {
-		next_update_for_record = Tprop;
-	}
-
-	break;
-
-    }
-
-    if (signer_needs_update)
-		zone.setSignerConfNeedsWriting(true);
-    return record_changed;
-}
-
-/* updateKey
- * Updates all relevant (with respect to role) records of a key.
- *
- * @return: true on any changes within this key */
-bool updateKey(EnforcerZone &zone, KeyDataList &key_list, KeyData &key,
-		const time_t now, time_t &next_update_for_key) {
-	time_t next_update_for_record = -1;
-	next_update_for_key = -1;
-	bool key_changed = false;
-	const char *scmd = "updateKey";
-
-	ods_log_info("[%s] %s %s", module_str, scmd, key.locator().c_str());
-
-	if (key.role() & KSK) { /* KSK and CSK */
-		key_changed |= updateDs(zone, key_list, key, now, next_update_for_record);
-		minTime(next_update_for_record, next_update_for_key);
-	}
-
-	key_changed |= updateDnskey(zone, key_list, key, now, next_update_for_record);
-	minTime(next_update_for_record, next_update_for_key);
-
-	if (key.role() & ZSK) { /* ZSK and CSK */
-		key_changed |= updateRrsig(zone, key_list, key, now, next_update_for_record);
-		minTime(next_update_for_record, next_update_for_key);
-	}
-	return key_changed;
-}
-
-/**
- * Try to push each key for this zone to a next state. If one changes
- * visit the rest again. Loop stops when no changes can be made without
- * advance of time. Return time of first possible event. */
-time_t updateZone(EnforcerZone &zone, const time_t now) {
-	time_t return_at = -1;
-	time_t next_update_for_key;
-	KeyDataList &key_list = zone.keyDataList();
-	const char *scmd = "updateZone";
-	int dbg_cnt = 0;
-
-	ods_log_verbose("[%s] %s", module_str, scmd);
-
-	/* Keep looping till there are no state changes.
-	 * Find the soonest update time */
-	bool a_key_changed = true;
-	while (a_key_changed) {
-		a_key_changed = false;
-		/* Loop over all keys */
-		for (int i = 0; i < key_list.numKeys(); i++) {
-			if (updateKey(zone, key_list, key_list.key(i), now, next_update_for_key)) {
-				a_key_changed = true;
-				dbg_cnt++;
-			}
-			minTime(next_update_for_key, return_at);
-		}
-	}
-	ods_log_verbose("[%s] %s %d changes in keylist", module_str, scmd, dbg_cnt);
-	return return_at;
-}
-
-/* Abstraction to generalize different kind of keys. */
-int numberOfKeys(const ::ods::kasp::Keys *policyKeys, const KeyRole role) {
+/* Abstraction to generalize different kind of keys. 
+ * return number of keys _in_a_policy_ */
+int 
+numberOfKeys(const ::ods::kasp::Keys *policyKeys, const KeyRole role)
+{
 	const char *scmd = "numberOfKeys";
-
 	switch (role) {
-		case KSK:
-			return policyKeys->ksk_size();
-		case ZSK:
-			return policyKeys->zsk_size();
-		case CSK:
-			return policyKeys->csk_size();
+		case KSK: return policyKeys->ksk_size();
+		case ZSK: return policyKeys->zsk_size();
+		case CSK: return policyKeys->csk_size();
 		default:
 			ods_fatal_exit("[%s] %s Unknow Role: (%d)", 
 					module_str, scmd, role); /* report a bug! */
 	}
 }
 
-/* Abstraction to generalize different kind of keys. */
-void keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
+/* Abstraction to generalize different kind of keys. 
+ * Note: a better solution would be inheritance. */
+void 
+keyProperties(const ::ods::kasp::Keys *policyKeys, const KeyRole role,
 		const int index, int *bits, int *algorithm, int *lifetime,
-        string &repository) {
+        string &repository)
+{
 	const char *scmd = "keyProperties";
-
+	assert(index < numberOfKeys(policyKeys, role)); /* programming error */
+	
 	switch (role) {
 		case KSK:
-			assert(index < policyKeys->ksk_size());
 			*bits	   = policyKeys->ksk(index).bits();
 			*algorithm = policyKeys->ksk(index).algorithm();
 			*lifetime  = policyKeys->ksk(index).lifetime();
             repository.assign(policyKeys->ksk(index).repository());
-			return;
+			break;
 		case ZSK:
-			assert(index < policyKeys->zsk_size());
 			*bits	   = policyKeys->zsk(index).bits();
 			*algorithm = policyKeys->zsk(index).algorithm();
 			*lifetime  = policyKeys->zsk(index).lifetime();
             repository.assign(policyKeys->zsk(index).repository());
-			return;
+			break;
 		case CSK:
-			assert(index < policyKeys->csk_size());
 			*bits	   = policyKeys->csk(index).bits();
 			*algorithm = policyKeys->csk(index).algorithm();
 			*lifetime  = policyKeys->csk(index).lifetime();
             repository.assign(policyKeys->csk(index).repository());
-			return;
+			break;
 		default:
 			ods_fatal_exit("[%s] %s Unknow Role: (%d)",
 					module_str, scmd, role); /* report a bug! */
@@ -883,7 +518,7 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 			if ( !got_key ) {
 				/* The factory was not ready, return in 60s */
 				minTime( now + NOKEY_TIMEOUT, return_at);
-				ods_log_info("[%s] %s No keys available on hsm, retry in %d seconds", module_str, scmd, NOKEY_TIMEOUT);
+				ods_log_warning("[%s] %s No keys available on hsm, retry in %d seconds", module_str, scmd, NOKEY_TIMEOUT);
 				continue;
 			}
 
@@ -895,9 +530,14 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 			/* fill next_key */
 			new_key.setDSSeen( false );
 			new_key.setSubmitToParent( false );
-			new_key.keyStateDS().setState(HID);
+			new_key.keyStateDS().setState((role&KSK)?HID:NOCARE);
 			new_key.keyStateDNSKEY().setState(HID);
-			new_key.keyStateRRSIG().setState(HID);
+			new_key.keyStateRRSIGDNSKEY().setState((role&KSK)?HID:NOCARE);
+			new_key.keyStateRRSIG().setState((role&ZSK)?HID:NOCARE);
+			new_key.keyStateDS().setLastChange(now);
+			new_key.keyStateDNSKEY().setLastChange(now);
+			new_key.keyStateRRSIGDNSKEY().setLastChange(now);
+			new_key.keyStateRRSIG().setLastChange(now);
 			new_key.setIntroducing(true);
 
 			/* New key inserted, come back after its lifetime */
@@ -925,11 +565,13 @@ inline void removeDeadKeys(KeyDataList &key_list) {
 
 	for (int i = key_list.numKeys()-1; i >= 0; i--) {
 		KeyData &key = key_list.key(i);
-		if (	key.keyStateDS().state() == HID &&
-				key.keyStateDNSKEY().state() == HID &&
-				key.keyStateRRSIG().state() == HID &&
+		/* TODO make loop for this */
+		if (	(getState(key, DS) == HID || getState(key, DS) == NOCARE) &&
+				(getState(key, DK) == HID || getState(key, DK) == NOCARE) &&
+				(getState(key, RD) == HID || getState(key, RD) == NOCARE) &&
+				(getState(key, RS) == HID || getState(key, RS) == NOCARE) &&
 				!key.introducing()) {
-			ods_log_verbose("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
+			ods_log_info("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
 			key_list.delKey(i);
 		}
 	}
@@ -941,9 +583,9 @@ time_t update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory) {
 	KeyDataList &key_list = zone.keyDataList();
 	const char *scmd = "update";
 
-	ods_log_verbose("[%s] %s -----------------------", module_str, scmd, zone.name().c_str());
-	ods_log_info("[%s] %s zoneName: %s", module_str, scmd, zone.name().c_str());
-	ods_log_verbose("[%s] %s time: %d", module_str, scmd, now);
+	//~ ods_log_verbose("[%s] %s -----------------------", module_str, scmd, zone.name().c_str());
+	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
+	//~ ods_log_verbose("[%s] %s time: %d", module_str, scmd, now);
 
 	policy_return_time = updatePolicy(zone, now, keyfactory, key_list);
 	zone_return_time = updateZone(zone, now);
@@ -955,17 +597,10 @@ time_t update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory) {
 	 * signerconf might not be available, we have no way of telling. :(
 	 * */
 	/* if (zone.signerConfNeedsWriting()) { ... }*/
-	KeyData *key;
 	for (int i = 0; i < key_list.numKeys(); i++) {
-		key = &key_list.key(i);
-		key->setPublish(
-			key->keyStateDNSKEY().state() == OMN ||
-			key->keyStateDNSKEY().state() == RUM ||
-			key->keyStateDNSKEY().state() == COM);
-		key->setActive(
-			key->keyStateRRSIG().state() == OMN ||
-			key->keyStateRRSIG().state() == RUM ||
-			key->keyStateRRSIG().state() == COM);
+		KeyData &key = key_list.key(i);
+		key.setPublish(getState(key, DK) == OMN || getState(key, DK) == RUM);
+		key.setActive(getState(key, RS) == OMN || getState(key, RS) == RUM);
 	}
 
 	minTime(policy_return_time, zone_return_time);

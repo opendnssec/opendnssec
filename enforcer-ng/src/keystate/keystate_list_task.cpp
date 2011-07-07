@@ -46,6 +46,7 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
                    "Key role:     "
                    "DS:          "
                    "DNSKEY:      "
+                   "RRSIGDNSKEY: "
                    "RRSIG:       "
                    "Pub: "
                    "Act: "
@@ -63,14 +64,16 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
             const ::ods::keystate::KeyData &key = zone.keys(k);
             std::string keyrole = keyrole_Name(key.role());
             std::string ds_rrstate = rrstate_Name(key.ds().state());
-            std::string rrsig_rrstate = rrstate_Name(key.rrsig().state());
             std::string dnskey_rrstate = rrstate_Name(key.dnskey().state());
+            std::string rrsigdnskey_rrstate = rrstate_Name(key.rrsigdnskey().state());
+            std::string rrsig_rrstate = rrstate_Name(key.rrsig().state());
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "%-31s %-13s %-12s %-12s %-12s %d %4d    %s\n",
+                       "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
                        zone.name().c_str(),
                        keyrole.c_str(),
                        ds_rrstate.c_str(),
                        dnskey_rrstate.c_str(),
+                       rrsigdnskey_rrstate.c_str(),
                        rrsig_rrstate.c_str(),
                        key.publish(),
                        key.active(),

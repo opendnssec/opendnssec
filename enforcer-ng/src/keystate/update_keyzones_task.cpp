@@ -107,22 +107,6 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
                         
             // enforcer needs to trigger signer configuration writing.
             ks_zone->set_signconf_needs_writing( false );
-            
-            // Add NULL key state
-            ::ods::keystate::KeyData *ks_key = ks_zone->add_keys();
-            ks_key->set_locator( "" );
-            ks_key->set_algorithm( 0 );
-            ks_key->set_inception( 0 );
-            ks_key->mutable_ds()->set_minimize( false );
-            ks_key->mutable_ds()->set_state( ::ods::keystate::omnipresent );
-            ks_key->mutable_dnskey()->set_minimize( false );
-            ks_key->mutable_dnskey()->set_state( ::ods::keystate::omnipresent );
-            ks_key->mutable_rrsig()->set_minimize( false);
-            ks_key->mutable_rrsig()->set_state( ::ods::keystate::omnipresent );
-            ks_key->set_role( ::ods::keystate::CSK );
-            ks_key->set_introducing(false);
-            ks_key->set_revoke(false);
-            ks_key->set_standby( false );
         }
     }
     

@@ -34,6 +34,7 @@ private:
     KeyStatePB _keyStateDS;
     KeyStatePB _keyStateRRSIG;
     KeyStatePB _keyStateDNSKEY;
+    KeyStatePB _keyStateRRSIGDNSKEY;
 public:
     KeyDataPB( ::ods::keystate::KeyData *keydata );
     bool matches( const ::ods::keystate::KeyData *keydata );
@@ -50,6 +51,7 @@ public:
     virtual KeyState &keyStateDS();
     virtual KeyState &keyStateRRSIG();
     virtual KeyState &keyStateDNSKEY();
+    virtual KeyState &keyStateRRSIGDNSKEY();
     
     virtual KeyRole role();
     void setRole(KeyRole value);

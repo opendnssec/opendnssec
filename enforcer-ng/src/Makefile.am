@@ -117,5 +117,5 @@ ods_enforcer_SOURCES=		ods-enforcer.c \
 ods_enforcer_LDADD=		$(LIBHSM)
 ods_enforcer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
 
-%.pb.cc %.pb.h:  %.proto
+%.pb.cc %.pb.h: %.proto
 	$(PROTOC) $(AM_CPPFLAGS) --cpp_out=`dirname $@` -I=`dirname $@` `dirname $@`/`basename $@ .pb.cc`.proto
