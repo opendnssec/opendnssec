@@ -111,8 +111,8 @@ lock_fetch:
             (void) unlink(lockname); /* unlocked */
 
             if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to copy axfr file %s to %s: %s"
-                    "%s", tools_str, tmpname, zone->adinbound->configstr,
+                ods_log_error("[%s] unable to copy axfr file %s to %s: %s",
+                    tools_str, tmpname, zone->adinbound->configstr,
                     ods_status2str(status));
                 free((void*)tmpname);
                 free((void*)lockname);
@@ -135,8 +135,8 @@ lock_fetch:
         free((void*)tmpname);
         tmpname = NULL;
         if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to copy zone input file %s: "
-                "%s", tools_str, zone->name?zone->name:"(null)",
+            ods_log_error("[%s] unable to copy zone input file %s: %s",
+                tools_str, zone->name?zone->name:"(null)",
                 ods_status2str(status));
         }
     }

@@ -376,6 +376,8 @@ ods_file_copy(const char* file1, const char* file2)
             case 0:
                 return ODS_STATUS_OK;
             default:
+                ods_log_error("[%s] %s failed: return value %i",
+                    file_str, CP_COMMAND, retval);
                 return ODS_STATUS_ERR;
         }
     }
