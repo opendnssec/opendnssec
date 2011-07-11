@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.3.0 - 2011-07-11
+OpenDNSSEC 1.3.0 - 2011-07-12
 
 * Include simple-dnskey-mailer-plugin in dist.
 * Enforcer: Change message about KSK retirement to make it less confusing.
