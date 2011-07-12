@@ -2,14 +2,17 @@ $Id$
 
 OpenDNSSEC 1.2.2
 
+Bugfixes:
+* signconf.rnc now allows NSEC3 Iterations of 0
+* Auditor: Fix delegation checks.
 * Bugfix #242: Race condition when receiving multiple NOTIFIES for a zone.
+* Enforcer: Change message about KSK retirement to make it less confusing.
+* ods-ksmutil: manual keyroll on zones which have moved policies fixed.
 * Signer Engine: Handle stdout console output throttling that would truncate 
   daemon output intermittently.
 * Signer Engine: When removing records, also remove NSEC3 records that belong
   to the empty-non terminal.
-* Enforcer: Change message about KSK retirement to make it less confusing.
-* ods-ksmutil: manual keyroll on zones which have moved policies fixed.
-* signconf.rnc now allows NSEC3 Iterations of 0
+* Signer Engine: Ifdef a header file.
 
 
 OpenDNSSEC 1.2.1 - 2011-03-18
