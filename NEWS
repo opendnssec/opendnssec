@@ -12,7 +12,8 @@ Bugfixes:
   daemon output intermittently.
 * Signer Engine: When removing records, also remove NSEC3 records that belong
   to the empty-non terminal.
-* Signer Engine: Ifdef a header file.
+* Signer Engine: Ifdef the zone fetcher header file.
+* Zonefetcher: Sometimes invalid 'Address already in use' occurred. 
 
 
 OpenDNSSEC 1.2.1 - 2011-03-18
