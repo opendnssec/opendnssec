@@ -39,8 +39,8 @@
 #include "util/se_malloc.h"
 
 #include <errno.h>
-#include <stdio.h> /* fprintf() */
-#include <string.h> /* strerror() */
+#include <stdio.h>
+#include <string.h>
 
 
 /**
@@ -108,6 +108,14 @@ engine_check_config(engineconfig_type* config)
         se_log_error("engine config does not exist");
         return 1;
     }
+    if (!config->zonelist_filename) {
+        se_log_error("config-check failed: no zonelist filename");
+        return 1;
+    }
+    if (!config->clisock_filename) {
+        se_log_error("config-check failed: no socket filename");
+        return 1;
+    }
 
     /* room for more checks here */
 
@@ -122,11 +130,11 @@ engine_check_config(engineconfig_type* config)
 void
 engine_config_print(FILE* out, engineconfig_type* config)
 {
-    se_log_assert(out);
-    se_log_debug("print config");
+    if (!out) {
+        return;
+    }
 
     fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-
     if (config) {
         fprintf(out, "<Configuration>\n");
 
@@ -192,13 +200,12 @@ engine_config_print(FILE* out, engineconfig_type* config)
            - clisock_filename
          */
     }
-
     return;
 }
 
 
 /**
- * Clean up engine configuration.
+ * Clean up config.
  *
  */
 void
@@ -254,6 +261,6 @@ engine_config_cleanup(engineconfig_type* config)
     } else {
         se_log_warning("cleanup empty config");
     }
-
     return;
 }
+

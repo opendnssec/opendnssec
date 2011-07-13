@@ -48,18 +48,18 @@
 #include "util/se_malloc.h"
 
 #include <errno.h>
-#include <libhsm.h> /* hsm_open(), hsm_close() */
-#include <libxml/parser.h> /* xmlInitParser(), xmlCleanupParser(), xmlCleanupThreads() */
-#include <signal.h> /* sigfillset(), sigaction(), kill() */
-#include <stdio.h> /* snprintf() */
-#include <stdlib.h> /* exit(), fwrite() */
-#include <string.h> /* strlen(), strncpy(), strerror() */
-#include <strings.h> /* bzero() */
-#include <sys/socket.h> /* socket(), connect(), close()  */
-#include <sys/types.h> /* getpid(), kill() */
-#include <sys/un.h> /* unix socket */
-#include <time.h> /* tzset() */
-#include <unistd.h> /* fork(), setsid(), getpid(), chdir() */
+#include <libhsm.h>
+#include <libxml/parser.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <time.h>
+#include <unistd.h>
 
 
 /**
@@ -92,7 +92,7 @@ engine_create(void)
 
 
 /**
- * Start command handler thread.
+ * Start command handler.
  *
  */
 static void*
@@ -104,25 +104,16 @@ cmdhandler_thread_start(void* arg)
     cmdhandler_start(cmd);
     return NULL;
 }
-
-
-/**
- * Start command handler.
- *
- */
 static int
 engine_start_cmdhandler(engine_type* engine)
 {
     se_log_assert(engine);
     se_log_debug("start command handler");
-
     engine->cmdhandler->engine = engine;
     se_thread_create(&engine->cmdhandler->thread_id,
         cmdhandler_thread_start, engine->cmdhandler);
     return 0;
 }
-
-
 /**
  * Self pipe trick (see Unix Network Programming).
  *
@@ -163,8 +154,6 @@ self_pipe_trick(engine_type* engine)
     }
     return 0;
 }
-
-
 /**
  * Stop command handler.
  *

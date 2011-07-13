@@ -50,8 +50,7 @@ struct engine_struct;
  * \param[in] engine corresponding engine
  *
  */
-void
-signal_set_engine(struct engine_struct* engine);
+void signal_set_engine(struct engine_struct* engine);
 
 /**
  * Handle signals.

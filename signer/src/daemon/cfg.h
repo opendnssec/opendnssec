@@ -88,7 +88,7 @@ int engine_check_config(engineconfig_type* config);
 void engine_config_print(FILE* out, engineconfig_type* config);
 
 /**
- * Clean up engine configuration.
+ * Clean up config.
  * \param[in] config engine configuration
  *
  */

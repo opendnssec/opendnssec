@@ -57,7 +57,7 @@ struct cmdhandler_struct {
 /**
  * Create command handler.
  * \param[in] filename socket file name
- * \return cmdhandler_type* the created command handler
+ * \return cmdhandler_type* created command handler
  *
  */
 cmdhandler_type* cmdhandler_create(const char* filename);
@@ -70,8 +70,8 @@ cmdhandler_type* cmdhandler_create(const char* filename);
 void cmdhandler_start(cmdhandler_type* cmdhandler);
 
 /**
- * Clean up command handler.
- * \param[in] cmdhandler_type* clean up this command handler
+ * Cleanup command handler.
+ * \param[in] cmdhandler_type* command handler
  *
  */
 void cmdhandler_cleanup(cmdhandler_type* cmdhandler);

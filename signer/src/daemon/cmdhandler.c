@@ -39,19 +39,18 @@
 #include "util/se_malloc.h"
 
 #include <errno.h>
-#include <fcntl.h> /* fcntl() */
-#include <ldns/ldns.h> /* ldns_rbtree_*() */
-#include <stdio.h> /* snprintf() */
-#include <stdlib.h> /* atoi() */
-#include <string.h> /* strncpy(), strerror(), strlen(), strncmp() */
-#include <strings.h> /* bzero() */
-#include <sys/select.h> /* select(), FD_ZERO(), FD_SET(), FD_ISSET() */
-#include <sys/socket.h> /* socket(), listen(), bind(), accept() */
+#include <fcntl.h>
+#include <ldns/ldns.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/select.h>
+#include <sys/socket.h>
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
-#include <unistd.h> /* fcntl(), close(), unlink(), read() */
-
+#include <unistd.h>
 /* According to earlier standards: select() sys/time.h sys/types.h unistd.h */
 #include <sys/time.h>
 #include <sys/types.h>
@@ -90,6 +89,7 @@ cmdhandler_handle_cmd_help(int sockfd)
         "update <zone>   update this zone signer configurations.\n"
         "update [--all]  update zone list and all signer configurations.\n"
         "start           start the engine.\n"
+        "running         check if the engine is running.\n"
         "reload          reload the engine.\n"
         "stop            stop the engine.\n"
         "verbosity <nr>  set verbosity.\n"
