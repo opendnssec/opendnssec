@@ -130,6 +130,10 @@ se_build_path(const char* file, const char* suffix, int dir)
 
         if (len_total > 0) {
             openf = (char*) se_malloc(sizeof(char)*(len_total + 1));
+            if (!openf) {
+                se_log_crit("build path failed: malloc failed");
+                return NULL;
+            }
 
             strncpy(openf, file, len_file);
             openf[len_file] = '\0';
@@ -174,6 +178,9 @@ se_fopen(const char* file, const char* dir, const char* mode)
     len_total = len_dir + len_file;
     if (len_total > 0) {
         openf = (char*) se_malloc(sizeof(char)*(len_total + 1));
+        if (!openf) {
+            return NULL;
+        }
         if (dir) {
            strncpy(openf, dir, len_dir);
            openf[len_dir] = '\0';
@@ -344,6 +351,7 @@ se_file_copy(const char* file1, const char* file2)
 {
     char str[SYSTEM_MAXLEN];
     FILE* fd = NULL;
+    int retval = 0;
 
     se_log_assert(file1);
     se_log_assert(file2);
@@ -353,7 +361,12 @@ se_file_copy(const char* file1, const char* file2)
         snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
             CP_COMMAND, file1, file2);
         se_log_debug("system call: %s", str);
-        return system(str);
+        retval = system(str);
+        if (retval != 0) {
+            se_log_error("%s failed: return value %i",
+                    CP_COMMAND, retval);
+        }
+        return retval;
     }
     /* no such file */
     return 1;

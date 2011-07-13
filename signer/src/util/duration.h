@@ -57,7 +57,7 @@ struct duration_struct
 
 /**
  * Create a new 'instant' duration.
- * \return duration_t* the created duration
+ * \return duration_type* created duration
  *
  */
 duration_type* duration_create(void);
@@ -74,7 +74,7 @@ int duration_compare(duration_type* d1, duration_type* d2);
 /**
  * Create a duration from string.
  * \param[in] str string-format duration
- * \return duration_t* the created duration
+ * \return duration_type* created duration
  *
  */
 duration_type* duration_create_from_string(const char* str);

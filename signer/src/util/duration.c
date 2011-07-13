@@ -35,10 +35,10 @@
 #include "util/log.h"
 #include "util/se_malloc.h"
 
-#include <stdio.h> /* snprintf() */
-#include <stdlib.h> /* atoi(), strtoul(), [arc4]random[_uniform](), getenv() */
-#include <string.h> /* strncat(), strchr() */
-#include <time.h> /* time(), localtime(), strftime() */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 
 /**
@@ -50,6 +50,10 @@ duration_create(void)
 {
     duration_type* duration = (duration_type*)
         se_malloc(sizeof(duration_type));
+    if (!duration) {
+        se_log_error("cannot create duration: malloc failed");
+        return NULL;
+    }
     duration->years = 0;
     duration->months = 0;
     duration->weeks = 0;
@@ -99,6 +103,7 @@ duration_compare(duration_type* d1, duration_type* d2)
 
     return 0;
 }
+
 
 /**
  * Create a duration from string.
