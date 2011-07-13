@@ -157,7 +157,6 @@ main(int argc, char* argv[])
     }
 #endif /* ENFORCER_TIMESHIFT */
 
-
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC signer engine version %s\n", PACKAGE_VERSION);
     engine_start(cfgfile, cmdline_verbosity, daemonize, info, single_run);

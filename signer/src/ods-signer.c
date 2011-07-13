@@ -242,6 +242,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 FD_CLR(fileno(fp), &rset);
                 continue;
             }
+
+            buf[ODS_SE_MAXLINE-1] = '\0';
             if (strncmp(buf, "exit", 4) == 0 ||
                 strncmp(buf, "quit", 4) == 0) {
                 return;
@@ -370,6 +372,10 @@ main(int argc, char* argv[])
     }
     if (argc > 1) {
         cmd = (char*) se_calloc(options_size+2,sizeof(char));
+        if (!cmd) {
+            fprintf(stderr, "memory allocation failed\n");
+            exit(1);
+        }
         (void)strncpy(cmd, "", 1);
         for (c = 1; c < argc; c++) {
             (void)strncat(cmd, options[c], strlen(options[c]));
