@@ -43,7 +43,6 @@
 #ifndef TOOLS_ZONEFETCHER_H
 #define TOOLS_ZONEFETCHER_H
 
-
 #define DNS_PORT_STRING "53"
 #define INBUF_SIZE      4096 /* max size for incoming queries */
 #define MAX_INTERFACES  128
@@ -134,8 +133,7 @@ struct handle_tcp_userdata {
  */
 int
 tools_zone_fetcher(const char* config_file, const char* zonelist_file,
-    const char* group, const char* user, const char* chroot, const char* log_file,
-    int use_syslog, int verbosity);
+    const char* group, const char* user, const char* chroot,
+    const char* log_file, int use_syslog, int verbosity);
 
 #endif /* TOOLS_ZONEFETCHER_H */
-
