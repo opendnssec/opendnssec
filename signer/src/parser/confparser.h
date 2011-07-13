@@ -48,9 +48,9 @@ int parse_file_check(const char* cfgfile, const char* rngfile);
 
 /**
  * Parse elements from the configuration file.
- * \param[in] cfgfile the configuration file name
+ * \param[in] cfgfile configuration file
  * \param[in] expr xml expression
- * \param[in] required required element
+ * \param[in] required if the element is required
  * \return const char* string value
  *
  */
