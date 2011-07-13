@@ -327,7 +327,6 @@ adfile_read_line:
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 }
-
                 goto adfile_read_rr; /* this can be an owner name */
                 break;
             /* comments, empty lines */

@@ -43,7 +43,7 @@
 struct zone_struct;
 
 /**
- * Read zone file.
+ * Read zone from input file adapter.
  * \param[in] zone zone structure
  * \param[in] filename read from this specific file
  * \param[in] recover true if we are recovering from backup
@@ -53,7 +53,7 @@ struct zone_struct;
 int adfile_read(struct zone_struct* zone, const char* filename, int recover);
 
 /**
- * Write zone file.
+ * Write zone to output file adapter.
  * \param[in] zone zone structure
  * \param[in] filename write to this specific file
  * \return 0 on success, 1 on error
