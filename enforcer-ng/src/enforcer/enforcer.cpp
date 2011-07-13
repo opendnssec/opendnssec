@@ -273,23 +273,27 @@ unsigned_ok(KeyDataList &key_list, KeyData &key, const RECORD record,
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		if (k.algorithm() != key.algorithm()) continue;
+		bool substitute = pretend_update && 
+			!key.locator().compare(k.locator());
 		
-		/* TODO: This can be more efficient, we dont need k_state */
-		
-		/** get states of k, substitute record state where necessary. */
-		STATE k_state[4];
-		for (RECORD r = REC_MIN; r < REC_MAX; ++r)
-			k_state[r] = (pretend_update && record==r && !key.locator().compare(k.locator()))?next_state:getState(k, r);
-		
+		STATE cmp_msk[4];
+		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
+			/** all records should satisfy mask */
+			if (r != mustHID) 
+				cmp_msk[r] = mask[r];
+			/** except mustHid, which should be hidden.
+			 * MustHid=record=r: pretend update */
+			else if (substitute && record==r)
+				cmp_msk[r] = next_state;
+			else
+				cmp_msk[r] = getState(k, r);
+		}
 		/** If state is hidden this key is okay. */
-		if (k_state[mustHID] == HID || k_state[mustHID] == NOCARE) continue;
-		
-		/** otherwise there must be an other key with record mustHID
-		 * in the same state and the rest according to mask. */
-		STATE amask[4];
-		for (RECORD r = REC_MIN; r < REC_MAX; ++r)
-			amask[r] = (mustHID==r)?k_state[r]:mask[r];
-		if (!exists(key_list, key, record, next_state, true, pretend_update, amask))
+		if (cmp_msk[mustHID] == HID || cmp_msk[mustHID] == NOCARE) 
+			continue;
+		/** Otherwise, we must test mask */
+		if (!exists(key_list, key, record, next_state, true, 
+			pretend_update, cmp_msk))
 			return false;
 	}
 	return true;
