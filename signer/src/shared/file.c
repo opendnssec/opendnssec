@@ -355,14 +355,15 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
  * File copy.
  *
  */
-int
+ods_status
 ods_file_copy(const char* file1, const char* file2)
 {
     char str[SYSTEM_MAXLEN];
     FILE* fd = NULL;
+    int retval = 0;
 
     if (!file1 || !file2) {
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
 
     if ((fd = ods_fopen(file1, NULL, "r")) != NULL) {
@@ -370,10 +371,17 @@ ods_file_copy(const char* file1, const char* file2)
         snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
             CP_COMMAND, file1, file2);
         ods_log_debug("system call: %s", str);
-        return system(str);
+        retval = system(str);
+        switch (retval) {
+            case 0:
+                return ODS_STATUS_OK;
+            default:
+                ods_log_error("[%s] %s failed: return value %i",
+                    file_str, CP_COMMAND, retval);
+                return ODS_STATUS_ERR;
+        }
     }
-    /* no such file */
-    return 1;
+    return ODS_STATUS_FOPEN_ERR;
 }
 
 /**

@@ -35,6 +35,7 @@
 #define SHARED_FILE_H
 
 #include "config.h"
+#include "shared/status.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -151,10 +152,10 @@ char* ods_dir_name(const char* file);
  * Copy file.
  * \param[in] file1 from file name
  * \param[in] file2 to file name
- * \return 0 on success, 1 on error
+ * \return ods_status
  *
  */
-int ods_file_copy(const char* file1, const char* file2);
+ods_status ods_file_copy(const char* file1, const char* file2);
 
 /**
  * (Create) and change ownership of directories.

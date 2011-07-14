@@ -49,7 +49,6 @@ ods_status
 tools_input(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
-    int error = 0;
     char* tmpname = NULL;
     time_t start = 0;
     time_t end = 0;
@@ -79,16 +78,16 @@ tools_input(zone_type* zone)
 
     if (zone->adinbound->type == ADAPTER_FILE) {
         if (zone->fetch) {
-            ods_log_verbose("fetch zone %s",
+            ods_log_verbose("[%s] fetch zone %s", tools_str,
                 zone->name?zone->name:"(null)");
             tmpname = ods_build_path(
                 zone->adinbound->configstr, ".axfr", 0);
-            error = ods_file_copy(tmpname, zone->adinbound->configstr);
-            if (error) {
-                ods_log_error("[%s] unable to copy axfr file %s to %s",
-                    tools_str, tmpname, zone->adinbound->configstr);
-                free((void*)tmpname);
-                return ODS_STATUS_ERR;
+            status = ods_file_copy(tmpname, zone->adinbound->configstr);
+            if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s] unable to copy axfr file %s to %s: %s",
+                    tools_str, tmpname, zone->adinbound->configstr,
+                    ods_status2str(status));
+                return status;
             }
             free((void*)tmpname);
         }
@@ -106,8 +105,8 @@ tools_input(zone_type* zone)
         free((void*)tmpname);
         tmpname = NULL;
         if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to copy zone input file %s: "
-                "%s", tools_str, zone->name?zone->name:"(null)",
+            ods_log_error("[%s] unable to copy zone input file %s: %s",
+                tools_str, zone->name?zone->name:"(null)",
                 ods_status2str(status));
         }
     }
