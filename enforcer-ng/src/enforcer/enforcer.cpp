@@ -686,7 +686,6 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 	/** 2: loop over all configs for this role */
 	for (int i = 0; i < numberOfKeys(policyKeys, key.role()); i++)
 	{
-		KeyRole p_role;
 		int p_bits, p_alg, p_life;
 		string p_rep;
 		keyProperties(policyKeys, i, key.role(), &p_bits, &p_alg, 
@@ -698,6 +697,31 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 	}
 	ods_log_verbose("[%s] %s not found such config", module_str, scmd);
 	return false;
+}
+
+bool
+youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys, 
+	const KeyRole role, const int index, 
+	KeyDataList &key_list, KeyData *key)
+{
+	int p_bits, p_alg, p_life;
+	string p_rep;
+	
+	/** fetch characteristics of config */
+	keyProperties(policyKeys, index, role, &p_bits, &p_alg, &p_life, p_rep); 
+	
+	key = NULL;
+	for (int j = 0; j < key_list.numKeys(); j++) {
+		KeyData &k = key_list.key(j);
+		HsmKey *hsmkey;
+		/** if we have a match, remember youngest */
+		if (keyfactory.GetHsmKeyByLocator(k.locator(), &hsmkey) &&
+			p_bits == hsmkey->bits() && p_alg == k.algorithm() &&
+			//~ p_life == key.lifetime() && //TODO key.lifetime() does not exist yet
+			!p_rep.compare(hsmkey->repository())  &&
+			(!key || k.inception() > key->inception())) key = &k;
+	}
+	return key!=NULL;
 }
 
 /**
