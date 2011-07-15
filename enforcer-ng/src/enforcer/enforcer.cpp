@@ -32,7 +32,6 @@ extern "C" {
 using namespace std;
 using ::ods::kasp::Policy;
 using ::ods::kasp::Keys;
-using ::ods::hsmkey::HsmKeyDocument;
 
 static const char *module_str = "enforcer";
 
@@ -119,7 +118,6 @@ setState(KeyData &key, const RECORD record, const STATE state,
 	KeyState &ks = getRecord(key, record);
 	ks.setState(state);
 	ks.setLastChange(now);
-
 }
 
 /**
@@ -704,14 +702,18 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 
 /**
  * See what needs to be done for the policy 
+ * 
+ * @param zone
+ * @param now
+ * @param keyfactory
+ * @param key_list
+ * @param[out] allow_unsigned, true when no keys are configured.
+ * @return time_t
  * */
 time_t 
 updatePolicy(EnforcerZone &zone, const time_t now, 
 	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool *allow_unsigned)
 {
-	int bits, algorithm, lifetime;
-	time_t last_insert, next_insert;
-
 	time_t return_at = -1;
 	const Policy *policy = zone.policy();
 	Keys policyKeys = policy->keys();
@@ -728,26 +730,25 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			key.setIntroducing(false);
 	}
 
-	/** if no keys are configures an unsigned zone is okay. */
-	*allow_unsigned = true;
-	for ( int role = 1; role < 4; role++ ) {
-		*allow_unsigned &= (0 == numberOfKeys(policyKeys, (KeyRole)role));
-	}
-
+	/** If no keys are configured an unsigned zone is okay. */
+	*allow_unsigned = (0 == ( numberOfKeys(policyKeys, ZSK) + 
+		numberOfKeys(policyKeys, KSK) + numberOfKeys(policyKeys, CSK)));
+	
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
-		last_insert = mostRecentInception(zone.keyDataList(),
+		time_t last_insert = mostRecentInception(zone.keyDataList(),
 			(KeyRole)role);
 		
 		/** NOTE: we are not looping over keys, but configurations */
 		for ( int i = 0; i < numberOfKeys( policyKeys, (KeyRole)role ); i++ ) {
 			string repository;
+			int bits, algorithm, lifetime;
 
 			/** select key properties of key i in KeyRole role */
 			keyProperties(policyKeys, i, (KeyRole)role, &bits, 
 				&algorithm, &lifetime, repository);
-			next_insert = last_insert + lifetime;
+			time_t next_insert = last_insert + lifetime;
 			if ( now < next_insert && last_insert != -1 ) {
 				/** No need to change key, come back at next_insert*/
 				minTime( next_insert, return_at );
@@ -806,6 +807,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			/** Tell similar keys to outroduce, skip new key */
 			/* TODO: Do we want this? is there a usecase where we
 			 * would want for example 2 zsks? */
+			/* TODO  only remove keys with a bits|alg|role|rep match */
 			for (int j = 0; j < key_list.numKeys(); j++) {
 				KeyData &key = key_list.key(j);
 				if (!key.introducing() || !(key.role() & role)||
