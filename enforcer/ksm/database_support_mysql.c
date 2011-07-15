@@ -468,3 +468,42 @@ int DbLastRowId(DB_HANDLE handle, DB_ID* id)
 
 	return (*id != 0) ? 0 : DBS_NOSUCHROW;
 }
+
+/*+
+ * DbQuoteString - Return quoted version of the input string
+ *
+ * Description:
+ * 		Return quoted version of the input string
+ *
+ * Arguments:
+ * 		DB_HANDLE handle
+ * 			Handle to the database connection. (MySQL checks character set of
+ *												current connection).
+ *
+ * 		const char* in
+ * 			String to quote
+ *
+ * 		char* buffer
+ * 			Quoted string
+ *
+ * Returns:
+ * 		int
+ * 			Status return
+ *
+ * 				0		Success
+ * 				Other	Error code.  An error message will have been output.
+-*/
+
+int DbQuoteString(DB_HANDLE handle, const char* in, char* buffer, size_t buflen)
+{
+
+	unsigned long	length = 0;
+
+    if (in == NULL) {
+        return MsgLog(DBS_INVARG, "NULL input string to DbQuoteString");
+    }
+
+	length = mysql_real_escape_string((MYSQL*) handle, buffer, in, (unsigned long) strlen(in));
+
+	return ( length <= buflen ) ? 0 : 1;
+}

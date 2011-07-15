@@ -113,9 +113,9 @@ static void TestDdsConditionString(void)
 	char*	sql = NULL;
 	int		clause = 0;
 	static const char* TEST = 
-		"DELETE FROM TEST WHERE ALPHA < \"PETER\" AND BETA <= \"PIPER\" "
-		"AND GAMMA = \"PICKED\" AND DELTA != \"A\" AND EPSILON >= \"PECK\" "
-		"AND ZETA > \"OF\"";
+		"DELETE FROM TEST WHERE ALPHA < 'PETER' AND BETA <= 'PIPER' "
+		"AND GAMMA = 'PICKED' AND DELTA != 'A' AND EPSILON >= 'PECK' "
+		"AND ZETA > 'OF'";
 
 	sql = DdsInit("TEST");
 	DdsConditionString(&sql, "ALPHA", DQS_COMPARE_LT, "PETER", clause++);

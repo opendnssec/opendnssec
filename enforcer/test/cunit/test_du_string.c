@@ -108,7 +108,7 @@ static void TestDusSetString(void)
 	DusSetString(&sql, "ALPHA", "XYZZY", set++);
 	DusEnd(&sql);
 
-	CU_ASSERT_STRING_EQUAL(sql, "UPDATE TEST SET ALPHA = \"XYZZY\"");
+	CU_ASSERT_STRING_EQUAL(sql, "UPDATE TEST SET ALPHA = 'XYZZY'");
 	DusFree(sql);
 
 	/* Check a single string update of a NULL value */
@@ -130,7 +130,7 @@ static void TestDusSetString(void)
 	DusEnd(&sql);
 
 	CU_ASSERT_STRING_EQUAL(sql,
-		"UPDATE TEST SET ALPHA = \"XYZZY\", BETA = NULL");
+		"UPDATE TEST SET ALPHA = 'XYZZY', BETA = NULL");
 	DusFree(sql);
 
 	return;
@@ -184,9 +184,9 @@ static void TestDusConditionString(void)
 	int		where = 0;
 	static const char* TEST = 
 		"UPDATE TEST SET ALPHA = 0 "
-		"WHERE ALPHA < \"PETER\" AND BETA <= \"PIPER\" "
-		"AND GAMMA = \"PICKED\" AND DELTA != \"A\" AND EPSILON >= \"PECK\" "
-		"AND ZETA > \"OF\"";
+		"WHERE ALPHA < 'PETER' AND BETA <= 'PIPER' "
+		"AND GAMMA = 'PICKED' AND DELTA != 'A' AND EPSILON >= 'PECK' "
+		"AND ZETA > 'OF'";
 
 	sql = DusInit("TEST");
 	DusSetInt(&sql, "ALPHA", 0, set++);
@@ -219,14 +219,14 @@ static void TestDusConditionKeyword(void)
 	int		set = 0;
 	int		where = 0;
 	static const char* TEST = 
-		"UPDATE TEST SET ALPHA = 0, BETA = \"GIMMEL\" WHERE ALPHA IN (1, 2, 3) "
-		"AND BETA IN (\"ALEPH\", \"BETH\")";
+		"UPDATE TEST SET ALPHA = 0, BETA = 'GIMMEL' WHERE ALPHA IN (1, 2, 3) "
+		"AND BETA IN ('ALEPH', 'BETH')";
 
 	sql = DusInit("TEST");
 	DusSetInt(&sql, "ALPHA", 0, set++);
 	DusSetString(&sql, "BETA", "GIMMEL", set++);
 	DusConditionKeyword(&sql, "ALPHA", DQS_COMPARE_IN, "(1, 2, 3)", where++);
-	DusConditionKeyword(&sql, "BETA", DQS_COMPARE_IN, "(\"ALEPH\", \"BETH\")",
+	DusConditionKeyword(&sql, "BETA", DQS_COMPARE_IN, "('ALEPH', 'BETH')",
 		where++);
 	DusEnd(&sql);
 

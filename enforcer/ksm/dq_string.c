@@ -243,9 +243,9 @@ void DqsConditionString(char** query, const char* field, DQS_COMPARISON compare,
     StrAppend(query, (index == 0) ? " WHERE " : " AND ");
     StrAppend(query, field);
     DqsAppendComparison(query, compare);
-    StrAppend(query, "\"");
+    StrAppend(query, "'");
     StrAppend(query, value);
-    StrAppend(query, "\"");
+    StrAppend(query, "'");
 
     return;
 }

@@ -474,3 +474,42 @@ int DbLastRowId(DB_HANDLE handle, DB_ID* id)
 
 	return (*id != 0) ? 0 : DBS_NOSUCHROW;
 }
+
+/*+
+ * DbQuoteString - Return quoted version of the input string
+ *
+ * Description:
+ * 		Return quoted version of the input string
+ *
+ * Arguments:
+ * 		DB_HANDLE handle
+ * 			Handle to the database connection. (not used, but needed for MySQL
+ *			version).
+ *
+ * 		const char* in
+ * 			String to quote
+ *
+ * 		char* buffer
+ * 			Quoted string
+ *
+ * Returns:
+ * 		int
+ * 			Status return
+ *
+ * 				0		Success
+ * 				Other	Error code.  An error message will have been output.
+-*/
+
+int DbQuoteString(DB_HANDLE handle, const char* in, char* buffer, size_t buflen)
+{
+
+	char*	data = NULL;	/* Data from sqlite quote fn. */
+
+    if (in == NULL) {
+        return MsgLog(DBS_INVARG, "NULL input string to DbQuoteString");
+    }
+
+	sqlite3_snprintf(buflen, buffer, "%q", in);
+
+	return ( strlen(buffer) == 0 ) ? 1 : 0;
+}

@@ -151,15 +151,24 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
 
+	char        quoted_desc[KSM_POLICY_DESC_LENGTH];   /* with bad chars quoted */
+
     /* check the main argument (description may be NULL) */
     if (policy_name == NULL) {
         return MsgLog(KSM_INVARG, "NULL policy name");
     }
 
+	/* Quote description */
+    status = DbQuoteString(DbHandle(), policy_description, quoted_desc, KSM_POLICY_DESC_LENGTH);
+
+	if (status != 0) {
+		return status;
+	}
+
     /* Insert policy */
     sql = DisSpecifyInit("policies", "name, description");
     DisAppendString(&sql, policy_name);
-    DisAppendString(&sql, policy_description);
+    DisAppendString(&sql, quoted_desc);
     DisEnd(&sql);
 
     status = DbExecuteSqlNoResult(DbHandle(), sql);

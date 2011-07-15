@@ -145,6 +145,9 @@ int DbBeginTransaction(void);
 int DbCommit(void);
 int DbRollback(void);
 
+/* Utility "quote" function */
+int DbQuoteString(DB_HANDLE handle, const char* in, char* buffer, size_t buflen);
+
 /* What sort of DB are we running */
 
 int DbFlavour(void);

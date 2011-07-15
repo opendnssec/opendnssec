@@ -122,9 +122,9 @@ void DusSetString(char** sql, const char* field, const char* data, int clause)
     StrAppend(sql, " = ");
 
     if (data) {
-        StrAppend(sql, "\"");
+        StrAppend(sql, "'");
         StrAppend(sql, data);
-        StrAppend(sql, "\"");
+        StrAppend(sql, "'");
     }
     else {
         StrAppend(sql, "NULL");

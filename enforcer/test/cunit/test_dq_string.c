@@ -119,9 +119,9 @@ static void TestDqsConditionString(void)
 	char*	sql = NULL;
 	int		clause = 0;
 	static const char* TEST = 
-		"SELECT * FROM TEST WHERE ALPHA < \"PETER\" AND BETA <= \"PIPER\" "
-		"AND GAMMA = \"PICKED\" AND DELTA != \"A\" AND EPSILON >= \"PECK\" "
-		"AND ZETA > \"OF\"";
+		"SELECT * FROM TEST WHERE ALPHA < 'PETER' AND BETA <= 'PIPER' "
+		"AND GAMMA = 'PICKED' AND DELTA != 'A' AND EPSILON >= 'PECK' "
+		"AND ZETA > 'OF'";
 
 	sql = DqsInit("TEST");
 	DqsConditionString(&sql, "ALPHA", DQS_COMPARE_LT, "PETER", clause++);

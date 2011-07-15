@@ -617,7 +617,7 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
             /* write these back to the database */
 #ifdef USE_MYSQL
             nchar = snprintf(buffer, sizeof(buffer),
-                    "UPDATE policies SET salt = '%s', salt_stamp = \"%s\" WHERE ID = %lu",
+                    "UPDATE policies SET salt = '%s', salt_stamp = '%s' WHERE ID = %lu",
                     policy->denial->salt, policy->denial->salt_stamp, (unsigned long) policy->id);
 #else
             nchar = snprintf(buffer, sizeof(buffer),
@@ -921,14 +921,22 @@ int KsmPolicyUpdateDesc(int policy_id, const char* policy_description)
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
 
+	char        quoted_desc[KSM_POLICY_DESC_LENGTH];   /* with bad chars quoted */
     /* check the main argument (description may be NULL) */
     if (policy_id <= 0) {
         return MsgLog(KSM_INVARG, "NULL policy id");
     }
 
-    /* Insert policy */
+	/* Quote description */
+    status = DbQuoteString(DbHandle(), policy_description, quoted_desc, KSM_POLICY_DESC_LENGTH);
+
+	if (status != 0) {
+		return status;
+	}
+
+    /* Update policy */
     sql = DusInit("policies");
-	DusSetString(&sql, "description", policy_description, 0);
+	DusSetString(&sql, "description", quoted_desc, 0);
 	DusConditionInt(&sql, "id", DQS_COMPARE_EQ, policy_id, 0);
     DusEnd(&sql);
 
