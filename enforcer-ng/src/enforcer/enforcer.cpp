@@ -634,31 +634,6 @@ keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
 }
 
 /**
- * Finds the last inserted key in the list. It's role must be a
- * subset or equal to role.
- * 
- * @param keys list of keys to search in
- * @param role minimum role target must have
- * @return time_t inception time of youngest matching key. 
- * 		-1 iff none found
- * */
-time_t 
-mostRecentInception(KeyDataList &keys, KeyRole role)
-{
-	/** default answer when no keys available */
-	time_t most_recent = -1; 
-
-	for (int i=0; i<keys.numKeys(); ++i) {
-		KeyData &k = keys.key(i);
-		if (!k.revoke() && (k.role()&role) == role && k.inception()) {
-			if (k.inception() > most_recent)
-				most_recent = k.inception();
-		}
-	}
-	return most_recent;
-}
-
-/**
  * Test for the existence of key-configuration in the policy for
  * which key could be generated.
  * 
@@ -702,7 +677,7 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 bool
 youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys, 
 	const KeyRole role, const int index, 
-	KeyDataList &key_list, KeyData *key)
+	KeyDataList &key_list, KeyData **key)
 {
 	int p_bits, p_alg, p_life;
 	string p_rep;
@@ -710,7 +685,7 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 	/** fetch characteristics of config */
 	keyProperties(policyKeys, index, role, &p_bits, &p_alg, &p_life, p_rep); 
 	
-	key = NULL;
+	*key = NULL;
 	for (int j = 0; j < key_list.numKeys(); j++) {
 		KeyData &k = key_list.key(j);
 		HsmKey *hsmkey;
@@ -719,9 +694,9 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 			p_bits == hsmkey->bits() && p_alg == k.algorithm() &&
 			//~ p_life == key.lifetime() && //TODO key.lifetime() does not exist yet
 			!p_rep.compare(hsmkey->repository())  &&
-			(!key || k.inception() > key->inception())) key = &k;
+			(!(*key) || k.inception() > (*key)->inception())) *key = &k;
 	}
-	return key!=NULL;
+	return (*key) != NULL;
 }
 
 /**
@@ -761,9 +736,6 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
-		time_t last_insert = mostRecentInception(zone.keyDataList(),
-			(KeyRole)role);
-		
 		/** NOTE: we are not looping over keys, but configurations */
 		for ( int i = 0; i < numberOfKeys( policyKeys, (KeyRole)role ); i++ ) {
 			string repository;
@@ -772,10 +744,14 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			/** select key properties of key i in KeyRole role */
 			keyProperties(policyKeys, i, (KeyRole)role, &bits, 
 				&algorithm, &lifetime, repository);
-			time_t next_insert = last_insert + lifetime;
-			if ( now < next_insert && last_insert != -1 ) {
-				/** No need to change key, come back at next_insert*/
-				minTime( next_insert, return_at );
+
+			/** See if there is a similar key which is still usable. */
+			KeyData *key;
+			if (	youngestKeyForConfig(keyfactory, policyKeys, 
+					(KeyRole)role, i, key_list, &key) 	&& 
+					key->inception() + lifetime > now	) //TODO this lifetime must be from key rather than policy
+			{
+				minTime( key->inception() + lifetime, return_at ); //TODO this lifetime must be from key rather than policy
 				continue;
 			}
 
@@ -787,12 +763,9 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			bool got_key;
 
 			if ( policyKeys.zones_share_keys() )
-				got_key = getLastReusableKey(
-					zone, policy, (KeyRole)role, bits, repository, algorithm, now,
-					&hsm_key, keyfactory, lifetime)
-				?
-					true
-				:
+				got_key = getLastReusableKey( zone, policy, 
+					(KeyRole)role, bits, repository, algorithm, now, 
+					&hsm_key, keyfactory, lifetime) ||
 					keyfactory.CreateSharedKey(bits, repository, policyName,
 					algorithm, (KeyRole)role, zone.name(),&hsm_key );
 			else
@@ -829,14 +802,16 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			minTime( now + lifetime, return_at );
 
 			/** Tell similar keys to outroduce, skip new key */
-			/* TODO: Do we want this? is there a usecase where we
-			 * would want for example 2 zsks? */
-			/* TODO  only remove keys with a bits|alg|role|rep match */
 			for (int j = 0; j < key_list.numKeys(); j++) {
 				KeyData &key = key_list.key(j);
-				if (!key.introducing() || !(key.role() & role)||
-					key.locator().compare(new_key.locator()) == 0)
-					continue;
+				HsmKey *hsmkey;
+				if (key.locator().compare(new_key.locator()) == 0 ||
+					!key.introducing() || key.role() != (KeyRole)role ||
+					!keyfactory.GetHsmKeyByLocator(key.locator(), &hsmkey) ||
+					hsmkey->bits() != bits || key.algorithm() != algorithm ||
+					/* TODO match lifetime and key.lifetime() as well */
+					repository.compare(hsmkey->repository())
+					) continue;
 				key.setIntroducing(false);
 				ods_log_verbose("[%s] %s decommissioning old key: %s", 
 					module_str, scmd, key.locator().c_str());
