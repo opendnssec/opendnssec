@@ -20,6 +20,7 @@
 #include "enforcer/enforcer.h"
 #include "enforcer/enforcerdata.h"
 #include "policy/kasp.pb.h"
+#include "hsmkey/hsmkey.pb.h"
 
 /* Interface of this cpp file is used by C code, we need to declare
  * extern "C" to prevent linking errors. */
@@ -31,6 +32,7 @@ extern "C" {
 using namespace std;
 using ::ods::kasp::Policy;
 using ::ods::kasp::Keys;
+using ::ods::hsmkey::HsmKeyDocument;
 
 static const char *module_str = "enforcer";
 
@@ -45,8 +47,6 @@ static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 
 /* When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
-/* TODO: Temporary placeholder, must figure this out from policy. */
-#define ALLOW_UNSIGNED false
 
 /**
  * Stores the minimum of parm1 and parm2 in parm2.
@@ -415,10 +415,11 @@ rule3(KeyDataList &key_list, KeyData &key, const RECORD record,
  * */
 bool
 dnssecApproval(KeyDataList &key_list, KeyData &key, const RECORD record, 
-	const STATE next_state)
+	const STATE next_state, bool allow_unsigned)
 {
 	return 
-		(!rule1(key_list, key, record, next_state, false) ||
+		(allow_unsigned ||
+		 !rule1(key_list, key, record, next_state, false) ||
 		  rule1(key_list, key, record, next_state, true ) ) &&
 		(!rule2(key_list, key, record, next_state, false) ||
 		  rule2(key_list, key, record, next_state, true ) ) &&
@@ -483,7 +484,7 @@ minTransitionTime(const Policy *policy, const RECORD record,
  * @return first absolute time some record *could* be advanced.
  * */
 time_t
-updateZone(EnforcerZone &zone, const time_t now)
+updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 {
 	time_t returntime_zone = -1;
 	time_t returntime_key;
@@ -518,7 +519,7 @@ updateZone(EnforcerZone &zone, const time_t now)
 					module_str, scmd);
 				
 				/** Would be invalid DNSSEC state */
-				if (!dnssecApproval(key_list, key, record, next_state))
+				if (!dnssecApproval(key_list, key, record, next_state, allow_unsigned))
 					continue;
 				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
 					module_str, scmd);
@@ -581,13 +582,13 @@ getLastReusableKey(EnforcerZone &zone,
  * return number of keys _in_a_policy_ 
  * */
 int 
-numberOfKeys(const Keys *policyKeys, const KeyRole role)
+numberOfKeys(const Keys &policyKeys, const KeyRole role)
 {
 	const char *scmd = "numberOfKeys";
 	switch (role) {
-		case KSK: return policyKeys->ksk_size();
-		case ZSK: return policyKeys->zsk_size();
-		case CSK: return policyKeys->csk_size();
+		case KSK: return policyKeys.ksk_size();
+		case ZSK: return policyKeys.zsk_size();
+		case CSK: return policyKeys.csk_size();
 		default:
 			ods_fatal_exit("[%s] %s Unknow Role: (%d)", 
 					module_str, scmd, role); /* report a bug! */
@@ -599,7 +600,7 @@ numberOfKeys(const Keys *policyKeys, const KeyRole role)
  * Note: a better solution would be inheritance. 
  * */
 void 
-keyProperties(const Keys *policyKeys, const KeyRole role, const int index, 
+keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
 	int *bits, int *algorithm, int *lifetime, string &repository)
 {
 	const char *scmd = "keyProperties";
@@ -610,22 +611,22 @@ keyProperties(const Keys *policyKeys, const KeyRole role, const int index,
 		
 	switch (role) {
 		case KSK:
-			*bits	   = policyKeys->ksk(index).bits();
-			*algorithm = policyKeys->ksk(index).algorithm();
-			*lifetime  = policyKeys->ksk(index).lifetime();
-            repository.assign(policyKeys->ksk(index).repository());
+			*bits	   = policyKeys.ksk(index).bits();
+			*algorithm = policyKeys.ksk(index).algorithm();
+			*lifetime  = policyKeys.ksk(index).lifetime();
+            repository.assign(policyKeys.ksk(index).repository());
 			break;
 		case ZSK:
-			*bits	   = policyKeys->zsk(index).bits();
-			*algorithm = policyKeys->zsk(index).algorithm();
-			*lifetime  = policyKeys->zsk(index).lifetime();
-            repository.assign(policyKeys->zsk(index).repository());
+			*bits	   = policyKeys.zsk(index).bits();
+			*algorithm = policyKeys.zsk(index).algorithm();
+			*lifetime  = policyKeys.zsk(index).lifetime();
+            repository.assign(policyKeys.zsk(index).repository());
 			break;
 		case CSK:
-			*bits	   = policyKeys->csk(index).bits();
-			*algorithm = policyKeys->csk(index).algorithm();
-			*lifetime  = policyKeys->csk(index).lifetime();
-            repository.assign(policyKeys->csk(index).repository());
+			*bits	   = policyKeys.csk(index).bits();
+			*algorithm = policyKeys.csk(index).algorithm();
+			*lifetime  = policyKeys.csk(index).lifetime();
+            repository.assign(policyKeys.csk(index).repository());
 			break;
 		default:
 			/** Programming error, report a bug! */
@@ -660,11 +661,53 @@ mostRecentInception(KeyDataList &keys, KeyRole role)
 }
 
 /**
+ * Test for the existence of key-configuration in the policy for
+ * which key could be generated.
+ * 
+ * @param keyfactory
+ * @param policyKeys
+ * @param key
+ * @return bool True if a matching policy exists
+ * */
+bool
+existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys, 
+	KeyData &key)
+{
+	const char *scmd = "existsPolicyForKey";
+	/** 1: fetch hsmkey */
+	HsmKey *hsmkey;
+	if (!keyfactory.GetHsmKeyByLocator(key.locator(), &hsmkey)) {
+		/** This key is not associated with actual key material! 
+		 * This is a bug or database corruption.
+		 * Crashing here is an option but just trow the key away
+		 * in a graceful manner.*/
+		ods_log_verbose("[%s] %s no hsmkey!", module_str, scmd);
+		return false;
+	}
+	
+	/** 2: loop over all configs for this role */
+	for (int i = 0; i < numberOfKeys(policyKeys, key.role()); i++)
+	{
+		KeyRole p_role;
+		int p_bits, p_alg, p_life;
+		string p_rep;
+		keyProperties(policyKeys, i, key.role(), &p_bits, &p_alg, 
+			&p_life, p_rep); 
+		if (p_bits == hsmkey->bits() && p_alg == key.algorithm() &&
+			//~ p_life == key.lifetime() && //TODO key.lifetime() does not exist yet
+			!p_rep.compare(hsmkey->repository()) )
+			return true;
+	}
+	ods_log_verbose("[%s] %s not found such config", module_str, scmd);
+	return false;
+}
+
+/**
  * See what needs to be done for the policy 
  * */
 time_t 
 updatePolicy(EnforcerZone &zone, const time_t now, 
-	HsmKeyFactory &keyfactory, KeyDataList &key_list)
+	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool *allow_unsigned)
 {
 	int bits, algorithm, lifetime;
 	time_t last_insert, next_insert;
@@ -677,7 +720,20 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 
 	ods_log_verbose("[%s] %s policyName: %s", module_str, scmd, 
 		policyName.c_str());
-	
+
+	/** Decommision all keys without any matching config */
+	for (int j = 0; j < key_list.numKeys(); j++) {
+		KeyData &key = key_list.key(j);
+		if (!existsPolicyForKey(keyfactory, policyKeys, key))
+			key.setIntroducing(false);
+	}
+
+	/** if no keys are configures an unsigned zone is okay. */
+	*allow_unsigned = true;
+	for ( int role = 1; role < 4; role++ ) {
+		*allow_unsigned &= (0 == numberOfKeys(policyKeys, (KeyRole)role));
+	}
+
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
@@ -685,11 +741,11 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			(KeyRole)role);
 		
 		/** NOTE: we are not looping over keys, but configurations */
-		for ( int i = 0; i < numberOfKeys( &policyKeys, (KeyRole)role ); i++ ) {
+		for ( int i = 0; i < numberOfKeys( policyKeys, (KeyRole)role ); i++ ) {
 			string repository;
 
 			/** select key properties of key i in KeyRole role */
-			keyProperties(&policyKeys, (KeyRole)role, i, &bits, 
+			keyProperties(policyKeys, i, (KeyRole)role, &bits, 
 				&algorithm, &lifetime, repository);
 			next_insert = last_insert + lifetime;
 			if ( now < next_insert && last_insert != -1 ) {
@@ -774,8 +830,6 @@ removeDeadKeys(KeyDataList &key_list)
 {
 	const char *scmd = "removeDeadKeys";
 	
-	/* TODO: only remove keys with goal hidden to prevent keys
-	 * in weird new rollover/standby scenarios to disappear.*/
 	for (int i = key_list.numKeys()-1; i >= 0; i--) {
 		KeyData &key = key_list.key(i);
 		if (	(getState(key, DS) == HID || getState(key, DS) == NOCARE) &&
@@ -794,13 +848,14 @@ time_t
 update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 {
 	time_t policy_return_time, zone_return_time;
+	bool allow_unsigned;
 	KeyDataList &key_list = zone.keyDataList();
 	const char *scmd = "update";
 
 	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
 
-	policy_return_time = updatePolicy(zone, now, keyfactory, key_list);
-	zone_return_time = updateZone(zone, now);
+	policy_return_time = updatePolicy(zone, now, keyfactory, key_list, &allow_unsigned);
+	zone_return_time = updateZone(zone, now, allow_unsigned);
 	removeDeadKeys(key_list);
 
 	/** Always set these flags. Normally this needs to be done _only_

@@ -10,7 +10,6 @@
 #include "enforcer/enforcerdata.h"
 #include "hsmkey/hsmkey.pb.h"
 
-
 class HsmKeyPB : public HsmKey {
 private:
     ::ods::hsmkey::HsmKey *_key;
@@ -43,6 +42,7 @@ public:
     virtual bool revoke();
     virtual void setRevoke(bool value);
     
+    virtual const std::string &repository();    
 };
 
 class HsmKeyFactoryPB : public HsmKeyFactory {
@@ -66,6 +66,8 @@ public:
                               const std::string &policy, int algorithm,
                               KeyRole role, const std::string &zone,
                               HsmKey **ppKey);
+                              
+    virtual bool GetHsmKeyByLocator(const std::string loc, HsmKey **ppKey);
 };
 
 #endif

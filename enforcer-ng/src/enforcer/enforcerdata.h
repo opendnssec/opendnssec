@@ -44,7 +44,8 @@ public:
     
     virtual bool revoke() = 0;
     virtual void setRevoke(bool value) = 0;
-
+    
+    virtual const std::string &repository() = 0;
 };
 
 
@@ -115,6 +116,16 @@ public:
                               const std::string &policy, int algorithm,
                               KeyRole role, const std::string &zone,
                               HsmKey **ppKey) = 0;
+
+    /* Find existing HsmKey based on locator.
+     * 
+     * \param[in] loc locator to search for
+     * \param[out] ppKey key that matches the search criteria
+     * \return bool returns true when a match was found or false when no
+     *              match was found.
+     */
+    virtual bool GetHsmKeyByLocator(const std::string loc, 
+                                    HsmKey **ppKey) = 0;
 };
 
 class KeyState {

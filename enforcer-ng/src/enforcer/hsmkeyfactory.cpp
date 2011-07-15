@@ -129,6 +129,11 @@ void HsmKeyPB::setRevoke(bool value)
     _key->set_revoke(value);
 }
 
+const std::string &HsmKeyPB::repository()
+{
+    return _key->repository();
+}
+
 //////////////////////////////
 // HsmKeyFactoryPB
 //////////////////////////////
@@ -215,6 +220,20 @@ bool HsmKeyFactoryPB::CreateSharedKey(int bits, const std::string &repository,
         (*ppKey)->usedByZone(zone);
         
         return true;
+    }
+    return false;
+}
+
+bool HsmKeyFactoryPB::GetHsmKeyByLocator(const std::string loc, HsmKey **ppKey)
+{
+    for (int k=0; k<_doc->keys_size(); ++k) {
+        ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
+        if (!pbkey->locator().compare(loc))
+        {
+            _keys.push_back(HsmKeyPB(pbkey)); // FIXME: YBS: I have no 
+            *ppKey = &_keys.back();           // idea what this does
+            return true;
+        }
     }
     return false;
 }
