@@ -170,7 +170,7 @@ getDesiredState(const bool introducing, const STATE state)
  * @return True IFF policy allows transition of record to state.
  * */
 bool
-policy_approval(KeyData &key, const RECORD record, const STATE next_state)
+policyApproval(KeyData &key, const RECORD record, const STATE next_state)
 {
 	const char *scmd = "getDesiredState";
 	
@@ -266,7 +266,7 @@ exists(KeyDataList &key_list, KeyData &key,
  * @return True IFF all keys are securely insecure.
  * */
 bool
-unsigned_ok(KeyDataList &key_list, KeyData &key, const RECORD record, 
+unsignedOk(KeyDataList &key_list, KeyData &key, const RECORD record, 
 	const STATE next_state, const bool pretend_update, 
 	const STATE mask[4], const RECORD mustHID)
 {
@@ -360,7 +360,7 @@ rule2(KeyDataList &key_list, KeyData &key, const RECORD record,
 		(exists(key_list, key, record, next_state, true, pretend_update, mask_k_o1) ||
 		 exists(key_list, key, record, next_state, true, pretend_update, mask_k_o2) ) ||
 
-		unsigned_ok(key_list, key, record, next_state, pretend_update, mask_unsg, DS);
+		unsignedOk(key_list, key, record, next_state, pretend_update, mask_unsg, DS);
 }
 
 /** 
@@ -397,7 +397,7 @@ rule3(KeyDataList &key_list, KeyData &key, const RECORD record,
 		exists(key_list, key, record, next_state, true, pretend_update, mask_sigi) &&
 		exists(key_list, key, record, next_state, true, pretend_update, mask_sigo) ||
 
-		unsigned_ok(key_list, key, record, next_state, pretend_update, mask_unsg, DK);
+		unsignedOk(key_list, key, record, next_state, pretend_update, mask_unsg, DK);
 }
 
 /**
@@ -414,7 +414,7 @@ rule3(KeyDataList &key_list, KeyData &key, const RECORD record,
  * @return True if transition is okay DNSSEC-wise.
  * */
 bool
-dnssec_approval(KeyDataList &key_list, KeyData &key, const RECORD record, 
+dnssecApproval(KeyDataList &key_list, KeyData &key, const RECORD record, 
 	const STATE next_state)
 {
 	return 
@@ -439,10 +439,10 @@ dnssec_approval(KeyDataList &key_list, KeyData &key, const RECORD record,
  * @return absolute time
  * */
 time_t
-min_transition_time(const Policy *policy, const RECORD record, 
+minTransitionTime(const Policy *policy, const RECORD record, 
 	const STATE next_state, const time_t lastchange)
 {
-	const char *scmd = "min_transition_time";
+	const char *scmd = "minTransitionTime";
 
 	/** We may freely move a record to a uncertain state. */
 	if (next_state == RUM || next_state == UNR) return lastchange;
@@ -513,17 +513,17 @@ updateZone(EnforcerZone &zone, const time_t now)
 					STATENAMES[(int)next_state]);
 				
 				/** Policy prevents transition */
-				if (!policy_approval(key, record, next_state)) continue;
+				if (!policyApproval(key, record, next_state)) continue;
 				ods_log_verbose("[%s] %s Policy says we can (1/3)", 
 					module_str, scmd);
 				
 				/** Would be invalid DNSSEC state */
-				if (!dnssec_approval(key_list, key, record, next_state))
+				if (!dnssecApproval(key_list, key, record, next_state))
 					continue;
 				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
 					module_str, scmd);
 					
-				time_t returntime_key = min_transition_time(policy, record, 
+				time_t returntime_key = minTransitionTime(policy, record, 
 					next_state, getRecord(key, record).lastChange());
 
 				/** It is to soon to make this change. Schedule it. */
@@ -644,7 +644,7 @@ keyProperties(const Keys *policyKeys, const KeyRole role, const int index,
  * 		-1 iff none found
  * */
 time_t 
-most_recent_inception(KeyDataList &keys, KeyRole role)
+mostRecentInception(KeyDataList &keys, KeyRole role)
 {
 	/** default answer when no keys available */
 	time_t most_recent = -1; 
@@ -662,8 +662,9 @@ most_recent_inception(KeyDataList &keys, KeyRole role)
 /**
  * See what needs to be done for the policy 
  * */
-time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory,
-		KeyDataList &key_list)
+time_t 
+updatePolicy(EnforcerZone &zone, const time_t now, 
+	HsmKeyFactory &keyfactory, KeyDataList &key_list)
 {
 	int bits, algorithm, lifetime;
 	time_t last_insert, next_insert;
@@ -680,7 +681,7 @@ time_t updatePolicy(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfact
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
-		last_insert = most_recent_inception(zone.keyDataList(),
+		last_insert = mostRecentInception(zone.keyDataList(),
 			(KeyRole)role);
 		
 		/** NOTE: we are not looping over keys, but configurations */
@@ -772,7 +773,9 @@ void
 removeDeadKeys(KeyDataList &key_list)
 {
 	const char *scmd = "removeDeadKeys";
-
+	
+	/* TODO: only remove keys with goal hidden to prevent keys
+	 * in weird new rollover/standby scenarios to disappear.*/
 	for (int i = key_list.numKeys()-1; i >= 0; i--) {
 		KeyData &key = key_list.key(i);
 		if (	(getState(key, DS) == HID || getState(key, DS) == NOCARE) &&
