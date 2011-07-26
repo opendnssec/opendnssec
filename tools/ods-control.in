@@ -69,7 +69,8 @@ case "$1" in
 		exit $RETVAL
 		;;
 	*)
-		"$sbindir/ods-signer" $2
+		shift
+		"$sbindir/ods-signer" "$@"
 		;;
 
 	esac
