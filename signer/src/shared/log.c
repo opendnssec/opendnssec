@@ -91,13 +91,12 @@ ods_log_init(const char *filename, int use_syslog, int verbosity)
         verbosity, verbosity+2);
     if (logfile && logfile != stderr) {
             ods_fclose(logfile);
-	}
+    }
     log_level = verbosity + 2;
 
 #ifdef HAVE_SYSLOG_H
     if(logging_to_syslog) {
-        closelog();
-        logging_to_syslog = 0;
+        return;
     }
     if(use_syslog) {
        facility = ods_log_get_facility(filename);
