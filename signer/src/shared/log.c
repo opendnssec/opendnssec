@@ -96,7 +96,8 @@ ods_log_init(const char *filename, int use_syslog, int verbosity)
 
 #ifdef HAVE_SYSLOG_H
     if(logging_to_syslog) {
-        return;
+        closelog();
+        logging_to_syslog = 0;
     }
     if(use_syslog) {
        facility = ods_log_get_facility(filename);
