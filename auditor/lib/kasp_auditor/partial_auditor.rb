@@ -91,7 +91,7 @@ module KASPAuditor
         @enforcer_interval=enforcer_interval
         @keys_used = []
         @domain_list = []
-        log(LOG_INFO, "Auditing #{@config.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
+        log(LOG_INFO, "Auditing #{@config.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED, partial audit")
 
         # Load the stored key history from previous runs
         @key_tracker = KeyTracker.new(@working, @config.name, self, @config, @enforcer_interval)

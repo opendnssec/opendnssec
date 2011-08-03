@@ -117,7 +117,7 @@ module KASPAuditor
           log(LOG_ERR, "SOA name not absolute #{@soa.name} - aborting")
           return 1
         end
-        log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
+        log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED, full audit")
         @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
         @key_cache = @key_tracker.load_tracker_cache
 
