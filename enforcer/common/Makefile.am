@@ -7,8 +7,6 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/common \
 	-I$(srcdir)/../ksm/include \
 	-I$(builddir)/../ksm/include \
-	-I$(srcdir)/../../libhsm/src \
-	-I$(builddir)/../../libhsm/src \
 	@XML2_INCLUDES@ \
 	@DB_INCLUDES@
 

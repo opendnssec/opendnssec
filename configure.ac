@@ -267,8 +267,10 @@ AC_CONFIG_FILES([
 	enforcer/test/cunit/database_setup_sqlite3.sh
 	libhsm/Makefile
 	libhsm/src/Makefile
-	libhsm/src/ods-hsmspeed.1
-	libhsm/src/ods-hsmutil.1
+	libhsm/src/bin/Makefile
+	libhsm/src/bin/ods-hsmspeed.1
+	libhsm/src/bin/ods-hsmutil.1
+	libhsm/src/lib/Makefile
 	libhsm/checks/Makefile
 	libhsm/checks/conf-softhsm.xml
 	libhsm/checks/conf-sca6000.xml

@@ -2,13 +2,12 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-LIBHSM = ${top_builddir}/libhsm/src/libhsm.a
+LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
-	-I$(srcdir)/../../libhsm/src \
-	-I$(builddir)/../../libhsm/src \
+	-I$(top_srcdir)/libhsm/src/lib \
 	@XML2_INCLUDES@ \
 	@LDNS_INCLUDES@
 
