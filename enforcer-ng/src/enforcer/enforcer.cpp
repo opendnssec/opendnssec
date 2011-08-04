@@ -226,7 +226,7 @@ exists(KeyDataList &key_list, KeyData &key,
 			KeyData &k = key_list.key(i);
 			if (require_same_algorithm && k.algorithm() != key.algorithm())
 				continue;
-			/** Do be need to substitute a state of this key with 
+			/** Do we need to substitute a state of this key with 
 			 * next_state? */
 			bool sub_key = pretend_update && !key.locator().compare(k.locator());
 			bool match = true;
@@ -580,9 +580,9 @@ getLastReusableKey(EnforcerZone &zone,
  * return number of keys _in_a_policy_ 
  * */
 int 
-numberOfKeys(const Keys &policyKeys, const KeyRole role)
+numberOfKeyConfigs(const Keys &policyKeys, const KeyRole role)
 {
-	const char *scmd = "numberOfKeys";
+	const char *scmd = "numberOfKeyConfigs";
 	switch (role) {
 		case KSK: return policyKeys.ksk_size();
 		case ZSK: return policyKeys.zsk_size();
@@ -604,7 +604,7 @@ keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
 	const char *scmd = "keyProperties";
 	
 	/** Programming error, report a bug! */
-	if (index >= numberOfKeys(policyKeys, role)) 
+	if (index >= numberOfKeyConfigs(policyKeys, role)) 
 		ods_fatal_exit("[%s] %s Index out of bounds", module_str, scmd); 
 		
 	switch (role) {
@@ -659,14 +659,13 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 	}
 	
 	/** 2: loop over all configs for this role */
-	for (int i = 0; i < numberOfKeys(policyKeys, key.role()); i++)
+	for (int i = 0; i < numberOfKeyConfigs(policyKeys, key.role()); i++)
 	{
 		int p_bits, p_alg, p_life;
 		string p_rep;
 		keyProperties(policyKeys, i, key.role(), &p_bits, &p_alg, 
 			&p_life, p_rep); 
 		if (p_bits == hsmkey->bits() && p_alg == key.algorithm() &&
-			//~ p_life == key.lifetime() && //TODO key.lifetime() does not exist yet
 			!p_rep.compare(hsmkey->repository()) )
 			return true;
 	}
@@ -692,7 +691,6 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 		/** if we have a match, remember youngest */
 		if (keyfactory.GetHsmKeyByLocator(k.locator(), &hsmkey) &&
 			p_bits == hsmkey->bits() && p_alg == k.algorithm() &&
-			//~ p_life == key.lifetime() && //TODO key.lifetime() does not exist yet
 			!p_rep.compare(hsmkey->repository())  &&
 			(!(*key) || k.inception() > (*key)->inception()) )
 			*key = &k;
@@ -731,15 +729,15 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 	}
 
 	/** If no keys are configured an unsigned zone is okay. */
-	allow_unsigned = (0 == (numberOfKeys(policyKeys, ZSK) + 
-							numberOfKeys(policyKeys, KSK) + 
-							numberOfKeys(policyKeys, CSK) ));
+	allow_unsigned = (0 == (numberOfKeyConfigs(policyKeys, ZSK) + 
+							numberOfKeyConfigs(policyKeys, KSK) + 
+							numberOfKeyConfigs(policyKeys, CSK) ));
 	
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
 		/** NOTE: we are not looping over keys, but configurations */
-		for ( int i = 0; i < numberOfKeys( policyKeys, (KeyRole)role ); i++ ) {
+		for ( int i = 0; i < numberOfKeyConfigs( policyKeys, (KeyRole)role ); i++ ) {
 			string repository;
 			int bits, algorithm, lifetime;
 
@@ -751,12 +749,15 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			KeyData *key;
 			if (	youngestKeyForConfig(keyfactory, policyKeys, 
 					(KeyRole)role, i, key_list, &key) 	&& 
-					key->inception() + lifetime > now	) //TODO this lifetime must be from key rather than policy
+					key->inception() + lifetime > now	)
 			{
-				minTime( key->inception() + lifetime, return_at ); //TODO this lifetime must be from key rather than policy
+				minTime( key->inception() + lifetime, return_at );
 				continue;
 			}
-
+			
+			//TODO: skip insertion of new key if manual rollover.
+			//how will this work? we dont have a manual key gen function.
+			
 			/** time for a new key */
 			ods_log_verbose("[%s] %s New key needed for role %d", 
 				module_str, scmd, role);
@@ -814,7 +815,6 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				 * outroducing. */
 				if (!key.introducing() || key.role() != new_key.role() ||
 					key.algorithm() != new_key.algorithm() )
-					/* TODO match lifetime and key.lifetime() as well */
 					continue;
 				/* compare key material */
 				if (!keyfactory.GetHsmKeyByLocator(key.locator(), &key_hsmkey) ||
