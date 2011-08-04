@@ -184,6 +184,35 @@ void KeyDataPB::setActive(bool value)
     _keydata->set_active(value);
 }
 
+int KeyDataPB::ttl_ds()
+{
+    return _keydata->ttl_ds();
+}
+
+void KeyDataPB::setTtl_ds(int value)
+{
+    _keydata->set_ttl_ds(value);
+}
+
+int KeyDataPB::ttl_dnskey()
+{
+    return _keydata->ttl_dnskey();
+}
+
+void KeyDataPB::setTtl_dnskey(int value)
+{
+    _keydata->set_ttl_dnskey(value);
+}
+
+int KeyDataPB::ttl_signature()
+{
+    return _keydata->ttl_signature();
+}
+
+void KeyDataPB::setTtl_signature(int value)
+{
+    _keydata->set_ttl_signature(value);
+}
 
 // KeyDataListPB
 
@@ -199,7 +228,8 @@ KeyDataListPB::KeyDataListPB(::ods::keystate::EnforcerZone *zone)
 
 KeyData &KeyDataListPB::addNewKey(int algorithm, time_t inception, KeyRole role,
                        bool minimizeDS, bool minimizeRRSIG, 
-                       bool minimizeDNSKEY)
+                       bool minimizeDNSKEY,
+                       int ttl_ds, int ttl_dnskey, int ttl_signature)
 {
     KeyDataPB key( _zone->add_keys() );
     key.setAlgorithm( algorithm );
@@ -208,6 +238,9 @@ KeyData &KeyDataListPB::addNewKey(int algorithm, time_t inception, KeyRole role,
     ((KeyStatePB&)key.keyStateDS()).setMinimize( minimizeDS );
     ((KeyStatePB&)key.keyStateRRSIG()).setMinimize( minimizeRRSIG );
     ((KeyStatePB&)key.keyStateDNSKEY()).setMinimize( minimizeDNSKEY );
+    key.setTtl_ds( ttl_ds );
+    key.setTtl_dnskey( ttl_dnskey );
+    key.setTtl_signature( ttl_signature );
     _keys.push_back(key);
     return _keys.back();
 }

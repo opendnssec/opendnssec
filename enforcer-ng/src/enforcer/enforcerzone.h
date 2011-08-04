@@ -73,6 +73,13 @@ public:
 
     virtual void setPublish(bool value);
     virtual void setActive(bool value);
+    
+    virtual int ttl_ds();
+    virtual void setTtl_ds(int value);
+    virtual int ttl_dnskey();
+    virtual void setTtl_dnskey(int value);
+    virtual int ttl_signature();
+    virtual void setTtl_signature(int value);
 };
 
 class KeyDataListPB : public KeyDataList {
@@ -84,7 +91,8 @@ public:
 
     virtual KeyData &addNewKey(int algorithm, time_t inception, KeyRole role,
                                bool minimizeDS, bool minimizeRRSIG, 
-                               bool minimizeDNSKEY);
+                               bool minimizeDNSKEY,
+                               int ttl_ds, int ttl_dnskey, int ttl_signature);
     virtual int numKeys();
     virtual KeyData &key(int index);
     virtual void delKey(int index);
