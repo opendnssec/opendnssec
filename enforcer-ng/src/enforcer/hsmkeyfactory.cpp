@@ -164,8 +164,10 @@ bool HsmKeyFactoryPB::CreateNewKey(int bits, const std::string &repository,
             )
         {
             pbkey->set_inception(time_now());
-            _keys.push_back(HsmKeyPB(pbkey));
-            *ppKey = &_keys.back();
+            std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
+            ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
+                                            pbkey->locator(),HsmKeyPB(pbkey)));
+            *ppKey = &ret.first->second;
 
             // Fixate unset attributes that returned their default value.
             // Otherwise when we list the keys those values will show 
@@ -193,8 +195,10 @@ bool HsmKeyFactoryPB::CreateNewKey(int bits, const std::string &repository,
             ) 
         {
             pbkey->set_inception(time_now());
-            _keys.push_back(HsmKeyPB(pbkey));
-            *ppKey = &_keys.back();
+            std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
+            ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
+                                            pbkey->locator(),HsmKeyPB(pbkey)));
+            *ppKey = &ret.first->second;
             if (!pbkey->has_policy())
                 (*ppKey)->setPolicy(policy);
             if (!pbkey->has_algorithm())
@@ -227,13 +231,10 @@ bool HsmKeyFactoryPB::CreateSharedKey(int bits, const std::string &repository,
 bool HsmKeyFactoryPB::GetHsmKeyByLocator(const std::string loc, HsmKey **ppKey)
 {
     // First try to match one of the existing HsmKeyPB objects
-    std::vector<HsmKeyPB>::iterator k;
-    for (k = _keys.begin(); k != _keys.end(); ++k) {
-        if (k->locator() == loc)
-        {
-            *ppKey = &(*k);
-            return true;
-        }
+    std::map<std::string,HsmKeyPB>::iterator lk = _keys.find(loc);
+    if (lk != _keys.end()) {
+        *ppKey = &lk->second;
+        return true;
     }
     
     // Now enumerate keys in the document try to find a key that matches the
@@ -241,8 +242,10 @@ bool HsmKeyFactoryPB::GetHsmKeyByLocator(const std::string loc, HsmKey **ppKey)
     for (int k=0; k<_doc->keys_size(); ++k) {
         ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
         if (pbkey->locator() == loc) {
-            _keys.push_back(HsmKeyPB(pbkey));
-            *ppKey = &_keys.back();
+            std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
+            ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
+                                            pbkey->locator(),HsmKeyPB(pbkey)));
+            *ppKey = &ret.first->second;
             return true;
         }
     }
@@ -255,16 +258,16 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits, const std::string &repository,
                                    HsmKey **ppKey)
 {
     // First try to match one of the existing HsmKeyPB objects
-    std::vector<HsmKeyPB>::iterator k;
+    std::map<std::string,HsmKeyPB>::iterator k;
     for (k = _keys.begin(); k != _keys.end(); ++k) {
-        if (k->bits() == bits 
-            && k->policy() == policy 
-            && k->algorithm() == algorithm
-            && k->keyRole() == role
-            && !k->usedByZone(zone)
+        if (k->second.bits() == bits 
+            && k->second.policy() == policy 
+            && k->second.algorithm() == algorithm
+            && k->second.keyRole() == role
+            && !k->second.usedByZone(zone)
             )
         {
-            *ppKey = &(*k);
+            *ppKey = &k->second;
             (*ppKey)->usedByZone(zone);
             return true;
         }
@@ -283,8 +286,10 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits, const std::string &repository,
             )
         {
             pbkey->set_inception(time_now());
-            _keys.push_back(HsmKeyPB(pbkey));
-            *ppKey = &_keys.back();
+            std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
+            ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
+                                            pbkey->locator(),HsmKeyPB(pbkey)));
+            *ppKey = &ret.first->second;
             
             // Fixate unset attributes that returned their default value.
             // Otherwise when we list the keys those values will show 

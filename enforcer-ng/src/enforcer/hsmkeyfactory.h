@@ -6,7 +6,7 @@
  * and to establish whether the interface is actually complete.
  */
 
-#include <set>
+#include <map>
 #include "enforcer/enforcerdata.h"
 #include "hsmkey/hsmkey.pb.h"
 
@@ -48,7 +48,7 @@ public:
 class HsmKeyFactoryPB : public HsmKeyFactory {
 private:
     ::ods::hsmkey::HsmKeyDocument *_doc;
-    std::vector<HsmKeyPB> _keys;
+    std::map<std::string,HsmKeyPB> _keys;
 public:
     HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc);
     
