@@ -38,7 +38,7 @@ message KeyData {
     optional bool active = 13 [default = false, (xml).path="Active"];
     optional bool publish = 14 [default = false, (xml).path="Publish"];
 
-    optional KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
+    required KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
 }
 
 message KeyState {
