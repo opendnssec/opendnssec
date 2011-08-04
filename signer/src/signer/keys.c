@@ -86,6 +86,7 @@ key_create(allocator_type* allocator, const char* locator, uint8_t algorithm,
     key->ksk = ksk;
     key->zsk = zsk;
     key->next = NULL;
+    lock_basic_init(&key->key_lock);
     return key;
 }
 
@@ -186,6 +187,7 @@ key_recover(FILE* fd, allocator_type* allocator)
        free((void*)locator);
        locator = NULL;
     }
+    lock_basic_init(&key->key_lock);
     return key;
 }
 
@@ -463,10 +465,14 @@ key_delfunc(key_type* key)
         hsm_key_free(key->hsmkey);
         key->hsmkey = NULL;
     }
+    lock_basic_lock(&key->key_lock);
     if (key->params) {
         hsm_sign_params_free(key->params);
         key->params = NULL;
     }
+    lock_basic_unlock(&key->key_lock);
+    lock_basic_destroy(&key->key_lock);
+
     allocator = key->allocator;
     allocator_deallocate(allocator, (void*) key->locator);
     allocator_deallocate(allocator, (void*) key);
