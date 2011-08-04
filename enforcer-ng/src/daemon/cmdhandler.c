@@ -122,6 +122,33 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     return 1;
 }
 
+/**
+ * Handle the 'time leap' command.
+ *
+ */
+int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, 
+                      ssize_t n)
+{
+    char buf[ODS_SE_MAXLINE];
+    if (n != 9 || strncmp(cmd, "time leap", n) != 0) return 0;
+    ods_log_debug("[%s] time leap command", cmdh_str);
+    ods_log_assert(engine);
+    ods_log_assert(engine->taskq);
+    
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    /* [LOCK] schedule */
+    schedule_flush(engine->taskq, TASK_NONE);
+    /* [UNLOCK] schedule */
+    lock_basic_unlock(&engine->taskq->schedule_lock);
+    
+    engine_wakeup_workers(engine);
+    
+    (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
+    ods_writen(sockfd, buf, strlen(buf));
+    ods_log_verbose("[%s] all tasks scheduled immediately", cmdh_str);
+    return 1;
+}
+
 
 /**
  * Handle the 'flush' command.
@@ -332,6 +359,7 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,
     handled_xxxx_cmd_type *handled_cmd = NULL;
     handled_xxxx_cmd_type internal_handled_cmds[] = {
         handled_queue_cmd,
+        handled_time_leap_cmd,
         handled_flush_cmd,
         handled_running_cmd,
         handled_start_cmd,
