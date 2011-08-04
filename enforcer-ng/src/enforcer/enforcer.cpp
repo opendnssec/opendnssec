@@ -652,8 +652,8 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 	if (!keyfactory.GetHsmKeyByLocator(key.locator(), &hsmkey)) {
 		/** This key is not associated with actual key material! 
 		 * This is a bug or database corruption.
-		 * Crashing here is an option but just trow the key away
-		 * in a graceful manner.*/
+		 * Crashing here is an option but we just return false so the 
+		 * key will be thrown away in a graceful manner.*/
 		ods_log_verbose("[%s] %s no hsmkey!", module_str, scmd);
 		return false;
 	}
@@ -694,7 +694,8 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 			p_bits == hsmkey->bits() && p_alg == k.algorithm() &&
 			//~ p_life == key.lifetime() && //TODO key.lifetime() does not exist yet
 			!p_rep.compare(hsmkey->repository())  &&
-			(!(*key) || k.inception() > (*key)->inception())) *key = &k;
+			(!(*key) || k.inception() > (*key)->inception()) )
+			*key = &k;
 	}
 	return (*key) != NULL;
 }
@@ -711,7 +712,7 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
  * */
 time_t 
 updatePolicy(EnforcerZone &zone, const time_t now, 
-	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool *allow_unsigned)
+	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool &allow_unsigned)
 {
 	time_t return_at = -1;
 	const Policy *policy = zone.policy();
@@ -730,8 +731,9 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 	}
 
 	/** If no keys are configured an unsigned zone is okay. */
-	*allow_unsigned = (0 == ( numberOfKeys(policyKeys, ZSK) + 
-		numberOfKeys(policyKeys, KSK) + numberOfKeys(policyKeys, CSK)));
+	allow_unsigned = (0 == (numberOfKeys(policyKeys, ZSK) + 
+							numberOfKeys(policyKeys, KSK) + 
+							numberOfKeys(policyKeys, CSK) ));
 	
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
@@ -758,19 +760,18 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			/** time for a new key */
 			ods_log_verbose("[%s] %s New key needed for role %d", 
 				module_str, scmd, role);
-			string locator;
-			HsmKey *hsm_key;
+			HsmKey *newkey_hsmkey;
 			bool got_key;
 
 			if ( policyKeys.zones_share_keys() )
 				got_key = getLastReusableKey( zone, policy, 
 					(KeyRole)role, bits, repository, algorithm, now, 
-					&hsm_key, keyfactory, lifetime) ||
+					&newkey_hsmkey, keyfactory, lifetime) ||
 					keyfactory.CreateSharedKey(bits, repository, policyName,
-					algorithm, (KeyRole)role, zone.name(),&hsm_key );
+					algorithm, (KeyRole)role, zone.name(),&newkey_hsmkey );
 			else
 				got_key = keyfactory.CreateNewKey(bits,repository,
-					policyName, algorithm, (KeyRole)role, &hsm_key );
+					policyName, algorithm, (KeyRole)role, &newkey_hsmkey );
 			
 			if ( !got_key ) {
 				/** The factory was not ready, return later */
@@ -785,7 +786,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			/** Make new key from HSM_key and set defaults */
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
 				now, (KeyRole)role, false, false, false);
-			new_key.setLocator( hsm_key->locator() );
+			new_key.setLocator( newkey_hsmkey->locator() );
 			new_key.setDSSeen( false );
 			new_key.setSubmitToParent( false );
 			new_key.keyStateDS().setState((role&KSK)?HID:NOCARE);
@@ -804,19 +805,29 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			/** Tell similar keys to outroduce, skip new key */
 			for (int j = 0; j < key_list.numKeys(); j++) {
 				KeyData &key = key_list.key(j);
-				HsmKey *hsmkey;
-				if (key.locator().compare(new_key.locator()) == 0 ||
-					!key.introducing() || key.role() != (KeyRole)role ||
-					!keyfactory.GetHsmKeyByLocator(key.locator(), &hsmkey) ||
-					hsmkey->bits() != bits || key.algorithm() != algorithm ||
+				HsmKey *key_hsmkey;
+				/* These keys must be the same, as we cant have two keys
+				 * within a zone to share key material. skip.*/
+				if (key.locator().compare(new_key.locator()) == 0)
+					continue;
+				/* now check role and algorithm, also skip if already 
+				 * outroducing. */
+				if (!key.introducing() || key.role() != new_key.role() ||
+					key.algorithm() != new_key.algorithm() )
 					/* TODO match lifetime and key.lifetime() as well */
-					repository.compare(hsmkey->repository())
-					) continue;
+					continue;
+				/* compare key material */
+				if (!keyfactory.GetHsmKeyByLocator(key.locator(), &key_hsmkey) ||
+					key_hsmkey->bits() != newkey_hsmkey->bits() || 
+					newkey_hsmkey->repository().compare(key_hsmkey->repository()))
+						continue;
+				/* key and new_key have the same properties, so they are
+				 * generated from the same configuration. */
 				key.setIntroducing(false);
 				ods_log_verbose("[%s] %s decommissioning old key: %s", 
 					module_str, scmd, key.locator().c_str());
 			}
-		}
+		} /** loop over keyconfigs */
 	} /** loop over KeyRole */
 	return return_at;
 }
@@ -855,7 +866,11 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 
 	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
 
-	policy_return_time = updatePolicy(zone, now, keyfactory, key_list, &allow_unsigned);
+	policy_return_time = updatePolicy(zone, now, keyfactory, key_list, allow_unsigned);
+	if (allow_unsigned)
+		ods_log_info(
+			"[%s] %s No keys configured, zone will become unsigned eventually",
+			module_str, scmd);
 	zone_return_time = updateZone(zone, now, allow_unsigned);
 	removeDeadKeys(key_list);
 
