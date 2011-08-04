@@ -5,7 +5,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 AM_CPPFLAGS = \
 		-I$(top_srcdir)/common \
 		-I$(top_builddir)/common \
-		-I$(srcdir)/lib \
+		-I$(srcdir)/../lib \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@
 
 AM_CFLAGS =	-std=c99
