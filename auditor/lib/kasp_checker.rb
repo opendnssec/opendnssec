@@ -128,7 +128,7 @@ module KASPChecker
         # Now rewrite captured output from xmllint to log method
         ret_strings.each {|line|
           line.chomp!
-          if line.index(" validates")
+          if line.index(" has valid XML")
             #            log(LOG_INFO, line + " OK")
           else
             log(LOG_ERR, line)
