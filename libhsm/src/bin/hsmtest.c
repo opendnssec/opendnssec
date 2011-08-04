@@ -112,7 +112,8 @@ int
 hsm_test (const char *repository)
 {
     int result;
-    const unsigned int keysizes[] = { 512, 768, 1024, 1536, 2048, 4096 };
+    const unsigned int rsa_keysizes[] = { 512, 768, 1024, 1536, 2048, 4096 };
+    const unsigned int dsa_keysizes[] = { 512, 768, 1024 };
     unsigned int keysize;
 
     hsm_ctx_t *ctx = NULL;
@@ -130,8 +131,8 @@ hsm_test (const char *repository)
     /*
      * Test key generation, signing and deletion for a number of key size
      */
-    for (i=0; i<(sizeof(keysizes)/sizeof(unsigned int)); i++) {
-        keysize = keysizes[i];
+    for (i=0; i<(sizeof(rsa_keysizes)/sizeof(unsigned int)); i++) {
+        keysize = rsa_keysizes[i];
 
         printf("Generating %d-bit RSA key... ", keysize);
         key = hsm_generate_rsa_key(ctx, repository, keysize);
@@ -187,6 +188,114 @@ hsm_test (const char *repository)
             } else {
                 printf("OK\n");
             }
+        }
+
+        printf("Deleting key... ");
+        result = hsm_remove_key(ctx, key);
+        if (result) {
+            errors++;
+            printf("Failed: error: %d\n", result);
+            hsm_print_error(ctx);
+        } else {
+            printf("OK\n");
+        }
+
+        free(key);
+
+        printf("\n");
+    }
+
+    /*
+     * Test key generation, signing and deletion for a number of key size
+     */
+    for (i=0; i<(sizeof(dsa_keysizes)/sizeof(unsigned int)); i++) {
+        keysize = dsa_keysizes[i];
+
+        printf("Generating %d-bit DSA key... ", keysize);
+        key = hsm_generate_dsa_key(ctx, repository, keysize);
+        if (!key) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+            continue;
+        } else {
+            printf("OK\n");
+        }
+
+        printf("Extracting key identifier... ");
+        id = hsm_get_key_id(ctx, key);
+        if (!id) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+        } else {
+            printf("OK, %s\n", id);
+        }
+        free(id);
+
+        printf("Signing (DSA/SHA1) with key... ");
+        result = hsm_test_sign(ctx, key, LDNS_DSA);
+        if (result) {
+            errors++;
+            printf("Failed, error: %d\n", result);
+            hsm_print_error(ctx);
+        } else {
+            printf("OK\n");
+        }
+
+        printf("Deleting key... ");
+        result = hsm_remove_key(ctx, key);
+        if (result) {
+            errors++;
+            printf("Failed: error: %d\n", result);
+            hsm_print_error(ctx);
+        } else {
+            printf("OK\n");
+        }
+
+        free(key);
+
+        printf("\n");
+    }
+
+    /*
+     * Test key generation, signing and deletion for a number of key size
+     */
+    for (i=0; i<1; i++) {
+        printf("Generating 512-bit GOST key... ");
+        key = hsm_generate_gost_key(ctx, repository);
+        if (!key) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+            continue;
+        } else {
+            printf("OK\n");
+        }
+
+        printf("Extracting key identifier... ");
+        id = hsm_get_key_id(ctx, key);
+        if (!id) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+        } else {
+            printf("OK, %s\n", id);
+        }
+        free(id);
+
+        printf("Signing (GOST) with key... ");
+        result = hsm_test_sign(ctx, key, LDNS_ECC_GOST);
+        if (result) {
+            errors++;
+            printf("Failed, error: %d\n", result);
+            hsm_print_error(ctx);
+        } else {
+            printf("OK\n");
         }
 
         printf("Deleting key... ");

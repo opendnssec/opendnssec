@@ -98,6 +98,8 @@ ldns_pkcs11_rv_str(CK_RV rv)
             return "CKR_FUNCTION_CANCELED";
         case CKR_FUNCTION_NOT_PARALLEL:
             return "CKR_FUNCTION_NOT_PARALLEL";
+        case CKR_FUNCTION_NOT_SUPPORTED:
+            return "CKR_FUNCTION_NOT_SUPPORTED";
         case CKR_KEY_HANDLE_INVALID:
             return "CKR_KEY_HANDLE_INVALID";
         case CKR_KEY_SIZE_RANGE:
@@ -879,15 +881,50 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
     return modulus_bits;
 }
 
-/* Wrapper for specific key size functions, currently only supports
- * CKK_RSA (the value 0) as algorithm identifier */
+/* returns a CK_ULONG with the key size of the given DSA key. The
+ * key is not checked for type. For DSA, the number of bits in the
+ * prime is the key size (CKA_PRIME)
+ */
+static CK_ULONG
+hsm_get_key_size_dsa(hsm_ctx_t *ctx, const hsm_session_t *session,
+                     const hsm_key_t *key)
+{
+    CK_RV rv;
+
+    /* Template */
+    CK_ATTRIBUTE template2[] = {
+        {CKA_PRIME, NULL, 0}
+    };
+
+    // Get buffer size
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->private_key,
+                                      template2,
+                                      1);
+    if (hsm_pkcs11_check_error(ctx, rv, "Could not get the size of the prime of the private key")) {
+        return 0;
+    }
+
+    return template2[0].ulValueLen * 8;
+}
+
+/* Wrapper for specific key size functions */
 static CK_ULONG
 hsm_get_key_size(hsm_ctx_t *ctx, const hsm_session_t *session,
                  const hsm_key_t *key, const unsigned long algorithm)
 {
+    /* TODO: Add ECDSA */
     switch (algorithm) {
         case CKK_RSA:
             return hsm_get_key_size_rsa(ctx, session, key);
+            break;
+        case CKK_DSA:
+            return hsm_get_key_size_dsa(ctx, session, key);
+            break;
+        case CKK_GOSTR3410:
+            /* GOST public keys always have a size of 512 bits */
+            return 512;
             break;
         default:
             return 0;
@@ -1262,7 +1299,7 @@ hsm_find_repository_session(hsm_ctx_t *ctx, const char *repository)
 }
 
 static ldns_rdf *
-hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
+hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
                   const hsm_key_t *key)
 {
     CK_RV rv;
@@ -1303,14 +1340,14 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
 
     public_exponent = template[0].pValue = malloc(public_exponent_len);
     if (!public_exponent) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
             "Error allocating memory for public exponent");
         return NULL;
     }
 
     modulus = template[1].pValue = malloc(modulus_len);
     if (!modulus) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
             "Error allocating memory for modulus");
         free(public_exponent);
         return NULL;
@@ -1331,7 +1368,7 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
     if (public_exponent_len <= 256) {
         data = malloc(data_size);
         if (!data) {
-            hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+            hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
                 "Error allocating memory for pub key rr data");
             free(public_exponent);
             free(modulus);
@@ -1344,7 +1381,7 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
         data_size += 2;
         data = malloc(data_size);
         if (!data) {
-            hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+            hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
                 "Error allocating memory for pub key rr data");
             free(public_exponent);
             free(modulus);
@@ -1355,7 +1392,7 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
         memcpy(&data[3], public_exponent, public_exponent_len);
         memcpy(&data[3 + public_exponent_len], modulus, modulus_len);
     } else {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata()",
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
             "Public exponent too big");
         free(public_exponent);
         free(modulus);
@@ -1368,9 +1405,194 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
     return rdf;
 }
 
+static ldns_rdf *
+hsm_get_key_rdata_dsa(hsm_ctx_t *ctx, hsm_session_t *session,
+                  const hsm_key_t *key)
+{
+    CK_RV rv;
+    CK_BYTE_PTR prime = NULL;
+    CK_ULONG prime_len = 0;
+    CK_BYTE_PTR subprime = NULL;
+    CK_ULONG subprime_len = 0;
+    CK_BYTE_PTR base = NULL;
+    CK_ULONG base_len = 0;
+    CK_BYTE_PTR value = NULL;
+    CK_ULONG value_len = 0;
+    unsigned char *data = NULL;
+    size_t data_size = 0;
+
+    CK_ATTRIBUTE template[] = {
+        {CKA_PRIME, NULL, 0},
+        {CKA_SUBPRIME, NULL, 0},
+        {CKA_BASE, NULL, 0},
+        {CKA_VALUE, NULL, 0},
+    };
+    ldns_rdf *rdf;
+
+    if (!session || !session->module) {
+        return NULL;
+    }
+
+    /* DSA needs the public key compared with RSA */
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      4);
+    if (hsm_pkcs11_check_error(ctx, rv, "C_GetAttributeValue")) {
+        return NULL;
+    }
+    prime_len = template[0].ulValueLen;
+    subprime_len = template[1].ulValueLen;
+    base_len = template[2].ulValueLen;
+    value_len = template[3].ulValueLen;
+
+    prime = template[0].pValue = malloc(prime_len);
+    if (!prime) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
+            "Error allocating memory for prime");
+        return NULL;
+    }
+
+    subprime = template[1].pValue = malloc(subprime_len);
+    if (!subprime) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
+            "Error allocating memory for subprime");
+        free(prime);
+        return NULL;
+    }
+
+    base = template[2].pValue = malloc(base_len);
+    if (!base) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
+            "Error allocating memory for base");
+        free(prime);
+        free(subprime);
+        return NULL;
+    }
+
+    value = template[3].pValue = malloc(value_len);
+    if (!value) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
+            "Error allocating memory for value");
+        free(prime);
+        free(subprime);
+        free(base);
+        return NULL;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      4);
+    if (hsm_pkcs11_check_error(ctx, rv, "get attribute value")) {
+        free(prime);
+        free(subprime);
+        free(base);
+        free(value);
+        return NULL;
+    }
+
+    data_size = prime_len + subprime_len + base_len + value_len + 1;
+    data = malloc(data_size);
+    if (!data) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
+            "Error allocating memory for pub key rr data");
+        free(prime);
+        free(subprime);
+        free(base);
+        free(value);
+        return NULL;
+    }
+    data[0] = (prime_len - 64) / 8;
+    memcpy(&data[1], subprime, subprime_len);
+    memcpy(&data[1 + subprime_len], prime, prime_len);
+    memcpy(&data[1 + subprime_len + prime_len], base, base_len);
+    memcpy(&data[1 + subprime_len + prime_len + base_len], value, value_len);
+
+    rdf = ldns_rdf_new(LDNS_RDF_TYPE_B64, data_size, data);
+    free(prime);
+    free(subprime);
+    free(base);
+    free(value);
+
+    return rdf;
+}
+
+static ldns_rdf *
+hsm_get_key_rdata_gost(hsm_ctx_t *ctx, hsm_session_t *session,
+                  const hsm_key_t *key)
+{
+    CK_RV rv;
+    CK_BYTE_PTR value = NULL;
+    CK_ULONG value_len = 0;
+
+    CK_ATTRIBUTE template[] = {
+        {CKA_VALUE, NULL, 0},
+    };
+    ldns_rdf *rdf;
+
+    if (!session || !session->module) {
+        return NULL;
+    }
+
+    /* GOST needs the public key compared with RSA */
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      1);
+    if (hsm_pkcs11_check_error(ctx, rv, "C_GetAttributeValue")) {
+        return NULL;
+    }
+    value_len = template[0].ulValueLen;
+
+    value = template[0].pValue = malloc(value_len);
+    if (!value) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
+            "Error allocating memory for value");
+        return NULL;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      1);
+    if (hsm_pkcs11_check_error(ctx, rv, "get attribute value")) {
+        free(value);
+        return NULL;
+    }
+
+    rdf = ldns_rdf_new(LDNS_RDF_TYPE_B64, value_len, value);
+    return rdf;
+}
+
+static ldns_rdf *
+hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
+                  const hsm_key_t *key)
+{
+    /* TODO: Add ECDSA */
+    switch (hsm_get_key_algorithm(ctx, session, key)) {
+        case CKK_RSA:
+            return hsm_get_key_rdata_rsa(ctx, session, key);
+            break;
+        case CKK_DSA:
+            return hsm_get_key_rdata_dsa(ctx, session, key);
+            break;
+        case CKK_GOSTR3410:
+            return hsm_get_key_rdata_gost(ctx, session, key);
+            break;
+        default:
+            return 0;
+    }
+}
+
 /* this function allocates memory for the mechanism ID and enough room
  * to leave the upcoming digest data. It fills in the mechanism id
- * use with care. The returned data must be free'd by the caller */
+ * use with care. The returned data must be free'd by the caller.
+ * Only used by RSA PKCS. */
 static CK_BYTE *
 hsm_create_prefix(CK_ULONG digest_len,
                   ldns_algorithm algorithm,
@@ -1403,6 +1625,16 @@ hsm_create_prefix(CK_ULONG digest_len,
             *data_size = sizeof(RSA_SHA512_ID) + digest_len;
             data = malloc(*data_size);
             memcpy(data, RSA_SHA512_ID, sizeof(RSA_SHA512_ID));
+            break;
+        case LDNS_SIGN_DSA:
+        case LDNS_SIGN_DSA_NSEC3:
+        case LDNS_SIGN_ECC_GOST:
+#if LDNS_BUILD_CONFIG_USE_ECDSA
+        case LDNS_SIGN_ECDSAP256SHA256:
+        case LDNS_SIGN_ECDSAP384SHA384:
+#endif
+            *data_size = digest_len;
+            data = malloc(*data_size);
             break;
         default:
             return NULL;
@@ -1484,9 +1716,10 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                             CKM_MD5, digest_len,
                                             sign_buf);
             break;
-
         case LDNS_SIGN_RSASHA1:
         case LDNS_SIGN_RSASHA1_NSEC3:
+        case LDNS_SIGN_DSA:
+        case LDNS_SIGN_DSA_NSEC3:
             digest_len = LDNS_SHA1_DIGEST_LENGTH;
             digest = malloc(digest_len);
             digest = ldns_sha1(ldns_buffer_begin(sign_buf),
@@ -1495,13 +1728,24 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
             break;
 
         case LDNS_SIGN_RSASHA256:
+#if LDNS_BUILD_CONFIG_USE_ECDSA
+        case LDNS_SIGN_ECDSAP256SHA256:
+#endif
             digest_len = LDNS_SHA256_DIGEST_LENGTH;
             digest = malloc(digest_len);
             digest = ldns_sha256(ldns_buffer_begin(sign_buf),
                                  ldns_buffer_position(sign_buf),
                                  digest);
             break;
-
+#if LDNS_BUILD_CONFIG_USE_ECDSA
+        case LDNS_SIGN_ECDSAP384SHA384:
+            digest_len = LDNS_SHA384_DIGEST_LENGTH;
+            digest = malloc(digest_len);
+            digest = ldns_sha384(ldns_buffer_begin(sign_buf),
+                                 ldns_buffer_position(sign_buf),
+                                 digest);
+            break;
+#endif
         case LDNS_SIGN_RSASHA512:
             digest_len = LDNS_SHA512_DIGEST_LENGTH;
             digest = malloc(digest_len);
@@ -1509,7 +1753,12 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                  ldns_buffer_position(sign_buf),
                                  digest);
             break;
-
+        case LDNS_SIGN_ECC_GOST:
+            digest_len = 16;
+            digest = hsm_digest_through_hsm(ctx, session,
+                                            CKM_GOSTR3411, digest_len,
+                                            sign_buf);
+            break;
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
@@ -1523,7 +1772,8 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
     }
 
     /* CKM_RSA_PKCS does the padding, but cannot know the identifier
-     * prefix, so we need to add that ourselves */
+     * prefix, so we need to add that ourselves.
+     * The other algorithms will just get the digest buffer returned. */
     data = hsm_create_prefix(digest_len, algorithm, &data_len);
     memcpy(data + data_len - digest_len, digest, digest_len);
 
@@ -1537,6 +1787,18 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         case LDNS_SIGN_RSASHA512:
             sign_mechanism.mechanism = CKM_RSA_PKCS;
             break;
+        case LDNS_SIGN_DSA:
+        case LDNS_SIGN_DSA_NSEC3:
+            sign_mechanism.mechanism = CKM_DSA;
+            break;
+        case LDNS_SIGN_ECC_GOST:
+            sign_mechanism.mechanism = CKM_GOSTR3410;
+            break;
+#if LDNS_BUILD_CONFIG_USE_ECDSA
+        /* TODO: Add ECDSA */
+        case LDNS_SIGN_ECDSAP256SHA256:
+        case LDNS_SIGN_ECDSAP384SHA384:
+#endif
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
@@ -1870,7 +2132,7 @@ hsm_sign_params_new()
 {
     hsm_sign_params_t *params;
     params = malloc(sizeof(hsm_sign_params_t));
-    params->algorithm = LDNS_SIGN_RSASHA1;
+    params->algorithm = LDNS_SIGN_RSASHA256;
     params->flags = LDNS_KEY_ZONE_KEY;
     params->inception = 0;
     params->expiration = 0;
@@ -2067,6 +2329,200 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     return new_key;
 }
 
+hsm_key_t *
+hsm_generate_dsa_key(hsm_ctx_t *ctx,
+                     const char *repository,
+                     unsigned long keysize)
+{
+    CK_RV rv;
+    hsm_key_t *new_key;
+    hsm_session_t *session;
+    CK_OBJECT_HANDLE domainPar, publicKey, privateKey;
+    CK_BBOOL ctrue = CK_TRUE;
+    CK_BBOOL cfalse = CK_FALSE;
+
+    /* ids we create are 16 bytes of data */
+    unsigned char id[16];
+    /* that's 33 bytes in string (16*2 + 1 for \0) */
+    char id_str[33];
+
+    CK_KEY_TYPE keyType = CKK_DSA;
+    CK_MECHANISM mechanism1 = {
+        CKM_DSA_PARAMETER_GEN, NULL_PTR, 0
+    };
+    CK_MECHANISM mechanism2 = {
+        CKM_DSA_KEY_PAIR_GEN, NULL_PTR, 0
+    };
+
+    /* The maximum size for DSA in DNSSEC */
+    CK_BYTE dsa_p[128];
+    CK_BYTE dsa_q[20];
+    CK_BYTE dsa_g[128];
+
+    CK_ATTRIBUTE domainTemplate[] = {
+        { CKA_PRIME_BITS,          &keysize, sizeof(keysize) }
+    };
+
+    CK_ATTRIBUTE publicKeyTemplate[] = {
+        { CKA_PRIME,               dsa_p,    sizeof(dsa_p)   },
+        { CKA_SUBPRIME,            dsa_q,    sizeof(dsa_q)   },
+        { CKA_BASE,                dsa_g,    sizeof(dsa_g)   },
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)  },
+        { CKA_ID,                  id,       16              },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
+        { CKA_VERIFY,              &ctrue,   sizeof(ctrue)   },
+        { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)  },
+        { CKA_WRAP,                &cfalse,  sizeof(cfalse)  },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   }
+    };
+
+    CK_ATTRIBUTE privateKeyTemplate[] = {
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen (id_str) },
+        { CKA_ID,                  id,       16              },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
+        { CKA_SIGN,                &ctrue,   sizeof(ctrue)   },
+        { CKA_DECRYPT,             &cfalse,  sizeof(cfalse)  },
+        { CKA_UNWRAP,              &cfalse,  sizeof(cfalse)  },
+        { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
+        { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
+        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+    };
+
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+
+    /* check whether this key doesn't happen to exist already */
+
+    do {
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
+
+    /* Generate the domain parameters */
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKey(session->session,
+                                                 &mechanism1,
+                                                 domainTemplate, 1,
+                                                 &domainPar);
+    if (hsm_pkcs11_check_error(ctx, rv, "generate domain parameters")) {
+        return NULL;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(session->session,
+                                                 domainPar, publicKeyTemplate, 3);
+    if (hsm_pkcs11_check_error(ctx, rv, "get domain parameters")) {
+        return NULL;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session, domainPar);
+    if (hsm_pkcs11_check_error(ctx, rv, "destroy domain parameters")) {
+        return NULL;
+    }
+
+    /* Generate key pair */
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
+                                                 &mechanism2,
+                                                 publicKeyTemplate, 10,
+                                                 privateKeyTemplate, 10,
+                                                 &publicKey,
+                                                 &privateKey);
+    if (hsm_pkcs11_check_error(ctx, rv, "generate key pair")) {
+        return NULL;
+    }
+
+    new_key = hsm_key_new();
+    new_key->module = session->module;
+    new_key->public_key = publicKey;        
+    new_key->private_key = privateKey;
+
+    return new_key;
+}
+
+hsm_key_t *
+hsm_generate_gost_key(hsm_ctx_t *ctx,
+                     const char *repository)
+{
+    CK_RV rv;
+    hsm_key_t *new_key;
+    hsm_session_t *session;
+    CK_OBJECT_HANDLE publicKey, privateKey;
+    CK_BBOOL ctrue = CK_TRUE;
+    CK_BBOOL cfalse = CK_FALSE;
+
+    /* ids we create are 16 bytes of data */
+    unsigned char id[16];
+    /* that's 33 bytes in string (16*2 + 1 for \0) */
+    char id_str[33];
+
+    CK_KEY_TYPE keyType = CKK_GOSTR3410;
+    CK_MECHANISM mechanism = {
+        CKM_GOSTR3410_KEY_PAIR_GEN, NULL_PTR, 0
+    };
+
+    CK_BYTE oid[] = { 0x06, 0x07, 0x2A, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01 };
+
+    CK_ATTRIBUTE publicKeyTemplate[] = {
+        { CKA_GOSTR3410PARAMS,     oid,      sizeof(oid)     },
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)  },
+        { CKA_ID,                  id,       16              },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
+        { CKA_VERIFY,              &ctrue,   sizeof(ctrue)   },
+        { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)  },
+        { CKA_WRAP,                &cfalse,  sizeof(cfalse)  },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   }
+    };
+
+    CK_ATTRIBUTE privateKeyTemplate[] = {
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen (id_str) },
+        { CKA_ID,                  id,       16              },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
+        { CKA_SIGN,                &ctrue,   sizeof(ctrue)   },
+        { CKA_DECRYPT,             &cfalse,  sizeof(cfalse)  },
+        { CKA_UNWRAP,              &cfalse,  sizeof(cfalse)  },
+        { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
+        { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
+        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+    };
+
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+
+    /* check whether this key doesn't happen to exist already */
+
+    do {
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
+
+    /* Generate key pair */
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
+                                                 &mechanism,
+                                                 publicKeyTemplate, 10,
+                                                 privateKeyTemplate, 10,
+                                                 &publicKey,
+                                                 &privateKey);
+    if (hsm_pkcs11_check_error(ctx, rv, "generate key pair")) {
+        return NULL;
+    }
+
+    new_key = hsm_key_new();
+    new_key->module = session->module;
+    new_key->public_key = publicKey;        
+    new_key->private_key = privateKey;
+
+    return new_key;
+}
+
 int
 hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
 {
@@ -2169,11 +2625,18 @@ hsm_get_key_info(hsm_ctx_t *ctx,
                                                          key,
                                                          key_info->algorithm);
 
+    /* TODO: Add ECDSA */
     switch(key_info->algorithm) {
         case CKK_RSA:
             key_info->algorithm_name = strdup("RSA");
             break;
-         default:
+        case CKK_DSA:
+            key_info->algorithm_name = strdup("DSA");
+            break;
+        case CKK_GOSTR3410:
+            key_info->algorithm_name = strdup("GOST");
+            break;
+        default:
             key_info->algorithm_name = malloc(HSM_MAX_ALGONAME);
             snprintf(key_info->algorithm_name, HSM_MAX_ALGONAME,
                 "%lu", key_info->algorithm);
@@ -2598,8 +3061,15 @@ hsm_supported_algorithm(ldns_algorithm algorithm)
         case LDNS_SIGN_RSASHA1_NSEC3:
         case LDNS_SIGN_RSASHA256:
         case LDNS_SIGN_RSASHA512:
+        case LDNS_SIGN_DSA:
+        case LDNS_SIGN_DSA_NSEC3:
+        case LDNS_SIGN_ECC_GOST:
             return 0;
             break;
+#if LDNS_BUILD_CONFIG_USE_ECDSA
+        case LDNS_SIGN_ECDSAP256SHA256:
+        case LDNS_SIGN_ECDSAP384SHA384:
+#endif
         default:
             return -1;
     }
