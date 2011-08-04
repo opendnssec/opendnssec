@@ -226,12 +226,23 @@ bool HsmKeyFactoryPB::CreateSharedKey(int bits, const std::string &repository,
 
 bool HsmKeyFactoryPB::GetHsmKeyByLocator(const std::string loc, HsmKey **ppKey)
 {
+    // First try to match one of the existing HsmKeyPB objects
+    std::vector<HsmKeyPB>::iterator k;
+    for (k = _keys.begin(); k != _keys.end(); ++k) {
+        if (k->locator() == loc)
+        {
+            *ppKey = &(*k);
+            return true;
+        }
+    }
+    
+    // Now enumerate keys in the document try to find a key that matches the
+    // parameters exactly and is not yet present in the _keys vector field.
     for (int k=0; k<_doc->keys_size(); ++k) {
         ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
-        if (!pbkey->locator().compare(loc))
-        {
-            _keys.push_back(HsmKeyPB(pbkey)); // FIXME: YBS: I have no 
-            *ppKey = &_keys.back();           // idea what this does
+        if (pbkey->locator() == loc) {
+            _keys.push_back(HsmKeyPB(pbkey));
+            *ppKey = &_keys.back();
             return true;
         }
     }
