@@ -221,7 +221,7 @@ bool HsmKeyFactoryPB::CreateSharedKey(int bits, const std::string &repository,
     if (CreateNewKey(bits, repository, policy, algorithm, role, ppKey)) {
         
         (*ppKey)->setCandidateForSharing(true);
-        (*ppKey)->usedByZone(zone);
+        (*ppKey)->setUsedByZone(zone,true);
         
         return true;
     }
@@ -268,7 +268,7 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits, const std::string &repository,
             )
         {
             *ppKey = &k->second;
-            (*ppKey)->usedByZone(zone);
+            (*ppKey)->setUsedByZone(zone,true);
             return true;
         }
     }
@@ -290,6 +290,7 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits, const std::string &repository,
             ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
                                             pbkey->locator(),HsmKeyPB(pbkey)));
             *ppKey = &ret.first->second;
+            (*ppKey)->setUsedByZone(zone,true);
             
             // Fixate unset attributes that returned their default value.
             // Otherwise when we list the keys those values will show 
