@@ -119,7 +119,7 @@ module KASPAuditor
     # If the key caches can't be found, then create new ones.
     #
     # These files, once started for a zone, will never be deleted.
-    def initialize(working_directory, zone_name, parent, config, enforcer_interval)
+    def initialize(working_directory, zone_name, parent, config, enforcer_interval, validity)
       @working = working_directory
       @zone = zone_name
       @parent  = parent
@@ -127,6 +127,7 @@ module KASPAuditor
       @enforcer_interval = enforcer_interval
       @last_soa_serial = nil
       @initial_timestamp = Time.now.to_i
+      @validity = validity
       @cache = load_tracker_cache()
     end
 
@@ -315,7 +316,7 @@ module KASPAuditor
           zsks.each {|z|
             zsk_lifetime = z.lifetime if (z.lifetime > zsk_lifetime)
           }
-          lifetime = zsk_lifetime + @enforcer_interval 
+          lifetime = zsk_lifetime + @enforcer_interval + @validity
           if timestamp < (Time.now.to_i - lifetime)
             msg = "ZSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
             @parent.log(LOG_WARNING, msg)
@@ -331,7 +332,7 @@ module KASPAuditor
           ksks.each {|k|
             ksk_lifetime = k.lifetime if (k.lifetime > ksk_lifetime)
           }
-          lifetime = ksk_lifetime + @enforcer_interval 
+          lifetime = ksk_lifetime + @enforcer_interval + @validity
           if timestamp < (Time.now.to_i - lifetime)
 #            msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
             msg = "KSK #{key.key_tag} reaching end of lifetime - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds, not including time taken for DS to be seen"
