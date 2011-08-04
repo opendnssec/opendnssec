@@ -646,6 +646,7 @@ module KASPAuditor
     # Work out the Name that next_hashed points to (adds the zone name)
     # Name returned from String input
     def get_next_nsec3_name(rr)
+      return nil if (!rr)
       return Name.create(Dnsruby::RR::NSEC3.encode_next_hashed(rr.next_hashed) + "." + @zone_name)
     end
 
