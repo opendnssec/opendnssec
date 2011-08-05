@@ -1683,10 +1683,8 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                 ldns_algorithm algorithm)
 {
     CK_RV rv;
-    /* TODO: depends on type and key, or just leave it at current
-     * maximum? */
-    CK_ULONG signatureLen = 512;
-    CK_BYTE *signature = NULL;
+    CK_ULONG signatureLen = HSM_MAX_SIGNATURE_LENGTH;
+    CK_BYTE signature[HSM_MAX_SIGNATURE_LENGTH];
     CK_MECHANISM sign_mechanism;
 
     ldns_rdf *sig_rdf;
@@ -1700,11 +1698,6 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
 
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
-
-    signature = malloc(signatureLen);
-    if (signature == NULL) {
-        return NULL;
-    }
 
     /* some HSMs don't really handle CKM_SHA1_RSA_PKCS well, so
      * we'll do the hashing manually */
@@ -1762,12 +1755,10 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
-	    free(signature);
             return NULL;
     }
 
     if (!digest) {
-        free(signature);
         return NULL;
     }
 
@@ -1804,7 +1795,6 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
              * unsupported algorithms? */
             free(data);
             free(digest);
-	    free(signature);
             return NULL;
     }
 
@@ -1815,7 +1805,6 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
     if (hsm_pkcs11_check_error(ctx, rv, "sign init")) {
         free(data);
         free(digest);
-        free(signature);
         return NULL;
     }
 
@@ -1825,7 +1814,6 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
     if (hsm_pkcs11_check_error(ctx, rv, "sign final")) {
         free(data);
         free(digest);
-        free(signature);
         return NULL;
     }
 
@@ -1835,7 +1823,6 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
 
     free(data);
     free(digest);
-    free(signature);
 
     return sig_rdf;
 

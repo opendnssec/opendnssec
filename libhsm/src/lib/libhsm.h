@@ -42,6 +42,10 @@
 
 #define HSM_ERROR_MSGSIZE 512
 
+/* TODO: depends on type and key, or just leave it at current
+ * maximum? */
+#define HSM_MAX_SIGNATURE_LENGTH 512
+
 /*! Return codes for some of the functions */
 /*! These should be different than the list of CKR_ values defined
  * by pkcs11 (for easier debugging purposes of calling applications)
