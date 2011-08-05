@@ -150,7 +150,7 @@ cmd_list (int argc, char *argv[])
         invalid_keys = key_count - key_count_valid;
         printf("\n");
         fprintf(stderr, "Warning: %u %s not usable by OpenDNSSEC was found.\n",
-            invalid_keys, invalid_keys > 1 ? "keys" : "key");
+            (unsigned int) invalid_keys, invalid_keys > 1 ? "keys" : "key");
     }
 
     return 0;
