@@ -835,19 +835,30 @@ updatePolicy(EnforcerZone &zone, const time_t now,
  * Removes all keys from list that are no longer used.
  * 
  * @param key_list list to filter.
+ * @param now
+ * @param purgetime period after which dead keys may be removed
  * */
 void
-removeDeadKeys(KeyDataList &key_list)
+removeDeadKeys(KeyDataList &key_list, const time_t now, const int purgetime)
 {
 	const char *scmd = "removeDeadKeys";
 	
 	for (int i = key_list.numKeys()-1; i >= 0; i--) {
 		KeyData &key = key_list.key(i);
-		if (	(getState(key, DS) == HID || getState(key, DS) == NOCARE) &&
-				(getState(key, DK) == HID || getState(key, DK) == NOCARE) &&
-				(getState(key, RD) == HID || getState(key, RD) == NOCARE) &&
-				(getState(key, RS) == HID || getState(key, RS) == NOCARE) &&
-				!key.introducing()) {
+		if (!key.introducing() &&
+			(getState(key, DS) == HID && 
+			now >= addtime(key.keyStateDS().lastChange(), purgetime) || 
+				getState(key, DS) == NOCARE) &&
+			(getState(key, DK) == HID && 
+			now >= addtime(key.keyStateDNSKEY().lastChange(), purgetime) || 
+				getState(key, DK) == NOCARE) &&
+			(getState(key, RD) == HID && 
+			now >= addtime(key.keyStateRRSIGDNSKEY().lastChange(), purgetime) ||
+				getState(key, RD) == NOCARE) &&
+			(getState(key, RS) == HID &&
+			now >= addtime(key.keyStateRRSIG().lastChange(), purgetime) ||
+				getState(key, RS) == NOCARE) )
+		{
 			ods_log_info("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
 			key_list.delKey(i);
 		}
@@ -861,6 +872,7 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 	time_t policy_return_time, zone_return_time;
 	bool allow_unsigned;
 	KeyDataList &key_list = zone.keyDataList();
+	const Policy *policy = zone.policy();
 	const char *scmd = "update";
 
 	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
@@ -871,7 +883,10 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 			"[%s] %s No keys configured, zone will become unsigned eventually",
 			module_str, scmd);
 	zone_return_time = updateZone(zone, now, allow_unsigned);
-	removeDeadKeys(key_list);
+
+	/* Only purge old keys of the configuration says so. */
+	if (policy->keys().has_purge())
+		removeDeadKeys(key_list, now, policy->keys().purge());
 
 	/** Always set these flags. Normally this needs to be done _only_
 	 * when signerConfNeedsWriting() is set. However a previous
