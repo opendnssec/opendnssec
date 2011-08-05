@@ -228,7 +228,7 @@ exists(KeyDataList &key_list, KeyData &key,
 				continue;
 			/** Do we need to substitute a state of this key with 
 			 * next_state? */
-			bool sub_key = pretend_update && !key.locator().compare(k.locator());
+			bool sub_key = pretend_update && &key == &k;
 			bool match = true;
 			for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
 				/** Do we need to substitute the state of THIS record? */
@@ -271,8 +271,7 @@ unsignedOk(KeyDataList &key_list, KeyData &key, const RECORD record,
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		if (k.algorithm() != key.algorithm()) continue;
-		bool substitute = pretend_update && 
-			!key.locator().compare(k.locator());
+		bool substitute = pretend_update && &key == &k;
 		
 		STATE cmp_msk[4];
 		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
@@ -810,10 +809,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			for (int j = 0; j < key_list.numKeys(); j++) {
 				KeyData &key = key_list.key(j);
 				HsmKey *key_hsmkey;
-				/* These keys must be the same, as we cant have two keys
-				 * within a zone to share key material. skip.*/
-				if (key.locator().compare(new_key.locator()) == 0)
-					continue;
+				if (&key == &new_key) continue;
 				/* now check role and algorithm, also skip if already 
 				 * outroducing. */
 				if (!key.introducing() || key.role() != new_key.role() ||
