@@ -785,10 +785,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			
 			/** Make new key from HSM_key and set defaults */
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
-				now, (KeyRole)role, false, false, false,
-				policy->parent().ttlds(),
-				policy->keys().ttl(),
-				policy->signatures().ttl());
+				now, (KeyRole)role, false, false, false);
 			new_key.setLocator( newkey_hsmkey->locator() );
 			new_key.setDSSeen( false );
 			new_key.setSubmitToParent( false );

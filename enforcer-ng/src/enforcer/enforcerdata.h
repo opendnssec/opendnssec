@@ -181,18 +181,13 @@ public:
     
     virtual void setPublish(bool value) = 0;
     virtual void setActive(bool value) = 0;
-    
-    virtual int ttl_ds() = 0;
-    virtual int ttl_dnskey() = 0;
-    virtual int ttl_signature() = 0;
 };
 
 class KeyDataList {
 public:
     virtual KeyData &addNewKey(int algorithm, time_t inception, KeyRole role,
                                bool minimizeDS, bool minimizeRRSIG, 
-                               bool minimizeDNSKEY,
-                               int ttl_ds, int ttl_dnskey, int ttl_signature) = 0;
+                               bool minimizeDNSKEY) = 0;
     virtual int numKeys() = 0;
     virtual KeyData &key(int index) = 0;
     virtual void delKey(int index) = 0;

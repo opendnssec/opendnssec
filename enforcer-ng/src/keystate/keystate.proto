@@ -39,10 +39,6 @@ message KeyData {
     optional bool publish = 14 [default = false, (xml).path="Publish"];
 
     required KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
-    required int32 ttl_ds = 16 [(xml).path="TTLds", (xml).type=duration];
-    required int32 ttl_dnskey = 17 [(xml).path="TTLdnskey", (xml).type=duration];
-    required int32 ttl_signature = 18 [(xml).path="TTLsignature", (xml).type=duration];
-
 }
 
 message KeyState {
