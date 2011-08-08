@@ -1108,6 +1108,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     char* owner_name = NULL;
     uint8_t *outbuf = NULL;
     size_t answer_size = 0;
+    char dest_file[MAXPATHLEN];
     FILE* fd;
 
     /* packet parsing */
@@ -1158,7 +1159,9 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
             se_log_info("zone fetcher received NOTIFY for zone %s",
                 zonelist->name?zonelist->name:"(null)");
             /* get latest serial */
-            fd = fopen(zonelist->input_file, "r");
+            snprintf(dest_file, sizeof(dest_file), "%s.axfr",
+                zonelist->input_file?zonelist->input_file:"(null)");
+            fd = fopen(dest_file, "r");
             if (!fd) {
                 serial = 0;
             } else {
