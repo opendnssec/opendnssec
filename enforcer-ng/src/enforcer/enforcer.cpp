@@ -103,25 +103,6 @@ getRecord(KeyData &key, const RECORD record)
 }
 
 /**
- * Update the state of a record. Save the time of this change for
- * later use.
- * 
- * @param key
- * @param record
- * @param state
- * @param now, the current time.
- * */
-void
-setState(KeyData &key, const RECORD record, const STATE state, 
-	const time_t now, const int ttl)
-{
-	KeyState &ks = getRecord(key, record);
-	ks.setState(state);
-	ks.setLastChange(now);
-	ks.setTtl(ttl);
-}
-
-/**
  * Return state of a record.
  * 
  * @param key
@@ -508,6 +489,25 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 }
 
 /**
+ * Update the state of a record. Save the time of this change for
+ * later use.
+ * 
+ * @param key
+ * @param record
+ * @param state
+ * @param now, the current time.
+ * */
+void
+setState(EnforcerZone &zone, KeyData &key, const RECORD record, const STATE state, 
+	const time_t now)
+{
+	KeyState &ks = getRecord(key, record);
+	ks.setState(state);
+	ks.setLastChange(now);
+	ks.setTtl(getZoneTTL(zone, record, now));
+}
+
+/**
  * Try to push each key for this zone to a next state. If one changes
  * visit the rest again. Loop stops when no changes can be made without
  * advance of time. Return time of first possible event.
@@ -583,8 +583,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 					module_str, scmd, now, returntime_key);
 				
 				/** We've passed all tests! Make the transition */
-				int ttl = getZoneTTL(zone, record, now);
-				setState(key, record, next_state, now, ttl);
+				setState(zone, key, record, next_state, now);
 				change = true;
 			}
 		}
@@ -839,19 +838,11 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			new_key.setLocator( newkey_hsmkey->locator() );
 			new_key.setDSSeen( false );
 			new_key.setSubmitToParent( false );
-			new_key.keyStateDS().setState((role&KSK)?HID:NOCARE);
-			new_key.keyStateDNSKEY().setState(HID);
-			new_key.keyStateRRSIGDNSKEY().setState((role&KSK)?HID:NOCARE);
-			new_key.keyStateRRSIG().setState((role&ZSK)?HID:NOCARE);
-			new_key.keyStateDS().setLastChange(now);
-			new_key.keyStateDNSKEY().setLastChange(now);
-			new_key.keyStateRRSIGDNSKEY().setLastChange(now);
-			new_key.keyStateRRSIG().setLastChange(now);
 			
-			new_key.keyStateDS().setTtl(getZoneTTL(zone, DS, now));
-			new_key.keyStateDNSKEY().setTtl(getZoneTTL(zone, DK, now));
-			new_key.keyStateRRSIGDNSKEY().setTtl(getZoneTTL(zone, RD, now));
-			new_key.keyStateRRSIG().setTtl(getZoneTTL(zone, RS, now));
+			setState(zone, new_key, DS, (role&KSK)?HID:NOCARE, now);
+			setState(zone, new_key, DK, HID, now);
+			setState(zone, new_key, RD, (role&KSK)?HID:NOCARE, now);
+			setState(zone, new_key, RS, (role&ZSK)?HID:NOCARE, now);
 			
 			new_key.setIntroducing(true);
 
