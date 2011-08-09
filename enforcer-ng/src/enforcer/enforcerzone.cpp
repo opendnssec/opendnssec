@@ -41,6 +41,16 @@ void KeyStatePB::setLastChange(int value)
     _keystate->set_last_change( value );
 }
 
+int KeyStatePB::ttl()
+{
+    return _keystate->ttl();
+}
+
+void KeyStatePB::setTtl(int value)
+{
+    _keystate->set_ttl( value );
+}
+
 bool KeyStatePB::minimize()
 {
     return _keystate->minimize();
@@ -282,4 +292,34 @@ void EnforcerZonePB::setSignerConfNeedsWriting(bool value)
 void EnforcerZonePB::setNextChange(time_t value)
 {
     _zone->set_next_change(value);
+}
+
+
+time_t EnforcerZonePB::ttlEnddateDs()
+{
+    return _zone->has_ttl_end_ds() ? _zone->ttl_end_ds() : 0;
+}
+
+void EnforcerZonePB::setTtlEnddateDs(time_t value)
+{
+    _zone->set_ttl_end_ds(value);
+}
+time_t EnforcerZonePB::ttlEnddateDk()
+{
+    return _zone->has_ttl_end_dk() ? _zone->ttl_end_dk() : 0;
+}
+
+void EnforcerZonePB::setTtlEnddateDk(time_t value)
+{
+    _zone->set_ttl_end_dk(value);
+}
+
+time_t EnforcerZonePB::ttlEnddateRs()
+{
+    return _zone->has_ttl_end_rs() ? _zone->ttl_end_rs() : 0;
+}
+
+void EnforcerZonePB::setTtlEnddateRs(time_t value)
+{
+    _zone->set_ttl_end_rs(value);
 }

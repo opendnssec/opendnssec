@@ -113,11 +113,12 @@ getRecord(KeyData &key, const RECORD record)
  * */
 void
 setState(KeyData &key, const RECORD record, const STATE state, 
-	const time_t now)
+	const time_t now, const int ttl)
 {
 	KeyState &ks = getRecord(key, record);
 	ks.setState(state);
 	ks.setLastChange(now);
+	ks.setTtl(ttl);
 }
 
 /**
@@ -430,45 +431,80 @@ dnssecApproval(KeyDataList &key_list, KeyData &key, const RECORD record,
  * Given a record, its next state, and its last change time when may 
  * apply the transition? This is largely policy related.
  * 
- * @param policy of this zone
+ * @param zone
  * @param record we are testing
  * @param next_state of record 
  * @param lastchange of record
+ * @param ttl of record, *may* be different from policy.
  * @return absolute time
  * */
 time_t
-minTransitionTime(const Policy *policy, const RECORD record, 
-	const STATE next_state, const time_t lastchange)
+minTransitionTime(EnforcerZone &zone, const RECORD record, 
+	const STATE next_state, const time_t lastchange, const int ttl)
 {
 	const char *scmd = "minTransitionTime";
+	const Policy *policy = zone.policy();
 
 	/** We may freely move a record to a uncertain state. */
 	if (next_state == RUM || next_state == UNR) return lastchange;
 	
 	switch(record) {
 		case DS:
-			return addtime(lastchange,
-				  policy->parent().ttlds()
-				+ policy->parent().registrationdelay()
-				+ policy->parent().propagationdelay());
+			return addtime(lastchange, ttl
+					+ policy->parent().registrationdelay()
+					+ policy->parent().propagationdelay());
 		/* TODO: 5011 will create special case here */
 		case DK: /** intentional fall-through */
 		case RD:
-			return addtime(lastchange,
-				  policy->keys().ttl()
+			return addtime(lastchange, ttl
 				+ policy->zone().propagationdelay()
 				+ (next_state == OMN)
 					? policy->keys().publishsafety()
 					: policy->keys().retiresafety());
 		case RS:
-			return addtime(lastchange,
-				  policy->signatures().ttl()
+			return addtime(lastchange, ttl
 				+ policy->zone().propagationdelay());
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
 				"fault of programmer. Abort.",
 				module_str, scmd, (int)record);
 	}
+}
+
+/** given the zone, what TTL should be used for record?
+ * 
+ * Normally we use the TTL from the policy. However a larger TTL might
+ * have been published in the near past causing this record to take 
+ * extra time to propagate */
+int
+getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
+{
+	const char *scmd = "getTTL";
+	const Policy *policy = zone.policy();
+	
+	time_t endDate;
+	int recordTTL;
+	
+	switch(record) {
+		case DS:
+			endDate = zone.ttlEnddateDs();
+			recordTTL = policy->parent().ttlds();
+			break;
+		case DK: /** intentional fall-through */
+		case RD:
+			endDate = zone.ttlEnddateDk();
+			recordTTL = policy->keys().ttl();
+			break;
+		case RS:
+			endDate = zone.ttlEnddateRs();
+			recordTTL = policy->signatures().ttl();
+			break;				  
+		default: 
+			ods_fatal_exit("[%s] %s Unknown record type (%d), "
+				"fault of programmer. Abort.",
+				module_str, scmd, (int)record);
+	}
+	return max((int)difftime(endDate, now), recordTTL);
 }
 
 /**
@@ -490,6 +526,18 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	const Policy *policy = zone.policy();
 	const char *scmd = "updateZone";
 	ods_log_verbose("[%s] %s", module_str, scmd);
+
+	/** This code keeps track of TTL changes. If in the past a large
+	 * TTL is used, our keys *may* need to transition extra 
+	 * careful to make sure each resolver picks up the RRset.
+	 * When this date passes we may start using the policies TTL. */
+	if (zone.ttlEnddateDs() <= now)
+		zone.setTtlEnddateDs(now + policy->parent().ttlds());
+	if (zone.ttlEnddateDk() <= now)
+		zone.setTtlEnddateDk(now + policy->keys().ttl());
+	if (zone.ttlEnddateRs() <= now)
+		/* TODO: this property is never set? (p->s->ttl) */
+		zone.setTtlEnddateRs(now + policy->signatures().ttl()); 
 
 	/** Keep looping till there are no state changes.
 	 * Find the earliest update time */
@@ -520,21 +568,23 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 					continue;
 				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
 					module_str, scmd);
-					
-				time_t returntime_key = minTransitionTime(policy, record, 
-					next_state, getRecord(key, record).lastChange());
+
+				time_t returntime_key = minTransitionTime(zone, record, 
+					next_state, getRecord(key, record).lastChange(), 
+					getRecord(key, record).ttl());
 
 				/** It is to soon to make this change. Schedule it. */
 				if (returntime_key > now) {
 					minTime(returntime_key, returntime_zone);
 					continue;
 				}
+
 				ods_log_verbose("[%s] %s Timing says we can (3/3) now: %d key: %d", 
 					module_str, scmd, now, returntime_key);
 				
 				/** We've passed all tests! Make the transition */
-				/* TODO: save next change instead of now */
-				setState(key, record, next_state, now);
+				int ttl = getZoneTTL(zone, record, now);
+				setState(key, record, next_state, now, ttl);
 				change = true;
 			}
 		}
@@ -797,6 +847,12 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			new_key.keyStateDNSKEY().setLastChange(now);
 			new_key.keyStateRRSIGDNSKEY().setLastChange(now);
 			new_key.keyStateRRSIG().setLastChange(now);
+			
+			new_key.keyStateDS().setTtl(getZoneTTL(zone, DS, now));
+			new_key.keyStateDNSKEY().setTtl(getZoneTTL(zone, DK, now));
+			new_key.keyStateRRSIGDNSKEY().setTtl(getZoneTTL(zone, RD, now));
+			new_key.keyStateRRSIG().setTtl(getZoneTTL(zone, RS, now));
+			
 			new_key.setIntroducing(true);
 
 			/** New key inserted, come back after its lifetime */

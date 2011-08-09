@@ -23,6 +23,9 @@ public:
     virtual int lastChange();
     virtual void setLastChange(int value);
 
+    virtual int ttl();
+    virtual void setTtl(int value);
+
     virtual bool minimize();
     void setMinimize(bool value);
 };
@@ -116,6 +119,14 @@ public:
     
     /* When the key states in this zone are expected to change state. */
     void setNextChange(time_t value);
+
+    /* Moment at which current TTL becomes effective */
+    virtual time_t ttlEnddateDs();
+    virtual void setTtlEnddateDs(time_t value);
+    virtual time_t ttlEnddateDk();
+    virtual void setTtlEnddateDk(time_t value);
+    virtual time_t ttlEnddateRs();
+    virtual void setTtlEnddateRs(time_t value);
 };
 
 #endif

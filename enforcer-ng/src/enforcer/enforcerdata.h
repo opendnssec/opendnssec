@@ -132,9 +132,12 @@ class KeyState {
 public:
     virtual int state() = 0;
     virtual void setState(int value) = 0;
-    
+
     virtual int lastChange() = 0;
     virtual void setLastChange(int value) = 0;
+
+    virtual int ttl() = 0;
+    virtual void setTtl(int value) = 0;
     
     virtual bool minimize() = 0;
 };
@@ -208,6 +211,14 @@ public:
     
     /* set to true when the signer configuration for the signer needs to  be updated. */
     virtual void setSignerConfNeedsWriting(bool value) = 0;
+    
+    /* Moment at which current TTL becomes effective */
+    virtual time_t ttlEnddateDs() = 0;
+    virtual void setTtlEnddateDs(time_t value) = 0;
+    virtual time_t ttlEnddateDk() = 0;
+    virtual void setTtlEnddateDk(time_t value) = 0;
+    virtual time_t ttlEnddateRs() = 0;
+    virtual void setTtlEnddateRs(time_t value) = 0;
 };
 
 typedef time_t (*update_func_type)(EnforcerZone *zone, time_t now, HsmKeyFactory *keyfactory);

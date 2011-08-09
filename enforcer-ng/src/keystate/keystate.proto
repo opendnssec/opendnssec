@@ -20,6 +20,9 @@ message EnforcerZone {
     required bool signconf_needs_writing = 4;
     required string signconf_path = 5 [(xml).path="SignConfPath"];
     optional uint32 next_change = 6; // don't write determine when importing
+    optional uint32 ttl_end_ds = 7 [(xml).path="ttlEndDs"]; // after this date no old ttl is rumoured
+    optional uint32 ttl_end_dk = 8 [(xml).path="ttlEndDk"]; // after this date no old ttl is rumoured
+    optional uint32 ttl_end_rs = 9 [(xml).path="ttlEndRs"]; // after this date no old ttl is rumoured
 } 
 
 message KeyData {
@@ -45,6 +48,7 @@ message KeyState {
     optional rrstate state = 1 [default = hidden, (xml).path="State"];
     optional uint32 last_change = 2 [(xml).path="LastChange"]; // Encode as UTC Zulu time ?
     optional bool minimize = 3 [default = false, (xml).path="Minimize"];
+    optional uint32 ttl = 4 [(xml).path="ttl"];
 }
 
 enum keyrole {
