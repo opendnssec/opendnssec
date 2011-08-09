@@ -660,6 +660,11 @@ engine_setup(engine_type* engine)
     /* set up hsm */ /* LEAK */
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
     if (result != HSM_OK) {
+        char *error =  hsm_get_error(NULL);
+        if (error != NULL) {
+            ods_log_error("[%s] %s", engine_str, error);
+            free(error);
+        }
         ods_log_error("[%s] error initializing libhsm (errno %i)",
             engine_str, result);
         return ODS_STATUS_HSM_ERR;
