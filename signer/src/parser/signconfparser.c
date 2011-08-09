@@ -366,61 +366,6 @@ parse_sc_nsec3_iterations(const char* cfgfile)
 }
 
 
-/**
- * Parse elements from the configuration file.
- *
- */
-int
-parse_sc_dnskey_ttl_use(const char* cfgfile)
-{
-    int ret = 0;
-    const char* str = parse_conf_string(cfgfile,
-        "//SignerConfiguration/Zone/Keys/TTL",
-        0);
-    if (str) {
-        if (strlen(str) > 0) {
-            ret = 1;
-        }
-        free((void*)str);
-    }
-    return ret;
-}
-
-
-int
-parse_sc_soa_ttl_use(const char* cfgfile)
-{
-    int ret = 0;
-    const char* str = parse_conf_string(cfgfile,
-        "//SignerConfiguration/Zone/SOA/TTL",
-        0);
-    if (str) {
-        if (strlen(str) > 0) {
-            ret = 1;
-        }
-        free((void*)str);
-    }
-    return ret;
-}
-
-
-int
-parse_sc_soa_min_use(const char* cfgfile)
-{
-    int ret = 0;
-    const char* str = parse_conf_string(cfgfile,
-        "//SignerConfiguration/Zone/SOA/Minimum",
-        0);
-    if (str) {
-        if (strlen(str) > 0) {
-            ret = 1;
-        }
-        free((void*)str);
-    }
-    return ret;
-}
-
-
 int
 parse_sc_nsec3_optout(const char* cfgfile)
 {
