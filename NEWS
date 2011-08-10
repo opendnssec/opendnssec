@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.2.2
+OpenDNSSEC 1.2.2 - 2011-08-XX
 
 Bugfixes:
 * signconf.rnc now allows NSEC3 Iterations of 0
