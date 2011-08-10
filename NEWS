@@ -5,6 +5,8 @@ OpenDNSSEC 1.3.1 -
 Bugfixes:
 * Bugfix #255: RHEL6 patch to contrib/opendnssec.spec. (Rick van Rein)
 * Bugfix #256: Make sure argument in "ods-control signer" is not stripped off.
+* Signer Engine: A threading issue occasionally puts the default validity
+  on NSEC(3) RRs and the denial validity on other RRs.
 
 
 OpenDNSSEC 1.3.0 - 2011-07-12
