@@ -14,6 +14,8 @@ Bugfixes:
   to the empty-non terminal.
 * Signer Engine: Ifdef the zone fetcher header file.
 * Zonefetcher: Sometimes invalid 'Address already in use' occurred. 
+* Zonefetcher: Check inbound serial in transferred file, to prevent
+  redundant zone transfers.
 
 
 OpenDNSSEC 1.2.1 - 2011-03-18
@@ -43,6 +45,7 @@ Bugfixes:
   initialized.
 * Signer Engine: NSEC chain could become broken if the predecessor domain of
   a deleted domain was a glue domain.
+
 
 OpenDNSSEC 1.2.0 - 2011-01-13
 
