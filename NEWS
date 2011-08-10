@@ -7,6 +7,7 @@ OpenDNSSEC trunk
   were seen, or if both were seen (so a key rollover is happening).
 
 Bugfixes:
+* Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
 * ods-ksmutil: "update kasp" now reflects changes in policy descriptions.
 * ods-ksmutil: Policy descriptions now have special characters quoted.
 
