@@ -433,7 +433,6 @@ start_zonefetcher(engine_type* engine)
         return 1;
     }
 
-    hsm_close();
     se_log_verbose("zone fetcher running as pid %lu",
         (unsigned long) getpid());
 
