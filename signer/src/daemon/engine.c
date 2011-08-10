@@ -433,7 +433,6 @@ start_zonefetcher(engine_type* engine)
         return 1;
     }
 
-    hsm_close();
     ods_log_verbose("zone fetcher running as pid %lu",
         (unsigned long) getpid());
 
@@ -1064,8 +1063,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
             /* command handler had not yet been started */
             engine->cmdhandler_done = 1;
-            /* hsm has been opened */
-            hsm_close();
         }
     } else {
         /* setup ok, mark hsm open */
