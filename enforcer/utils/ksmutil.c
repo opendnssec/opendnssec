@@ -563,8 +563,9 @@ cmd_setup ()
         /* MySQL setup */
         /* will look like: <SQL_BIN> -u <USER> -h <HOST> -P <PORT> -p<PASSWORD> <DBSCHEMA> < <SQL_SETUP> */
         StrAppend(&setup_command, SQL_BIN);
-        StrAppend(&setup_command, " -u ");
+        StrAppend(&setup_command, " -u '");
         StrAppend(&setup_command, user);
+        StrAppend(&setup_command, "'");
         if (host != NULL) {
             StrAppend(&setup_command, " -h ");
             StrAppend(&setup_command, host);
@@ -574,8 +575,9 @@ cmd_setup ()
             }
         }
         if (password != NULL) {
-            StrAppend(&setup_command, " -p");
+            StrAppend(&setup_command, " -p'");
             StrAppend(&setup_command, password);
+			StrAppend(&setup_command, "'");
         }
         StrAppend(&setup_command, " ");
         StrAppend(&setup_command, dbschema);

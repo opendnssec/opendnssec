@@ -5,6 +5,8 @@ OpenDNSSEC trunk
 * Enforcer: Key label logging upon deletion (#192 Sebastian Castro)
 * ods-ksmutil: Add warnings on "key export --ds" if no active or ready keys 
   were seen, or if both were seen (so a key rollover is happening).
+* ods-ksmutil: Prevent MySQL username or password being interpreted by the 
+  shell when running "ods-ksmutil setup"
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
