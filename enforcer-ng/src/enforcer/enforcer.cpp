@@ -44,8 +44,21 @@ RECORD& operator++(RECORD& r){return r = (r >= REC_MAX)?REC_MAX:RECORD(r+1);}
 static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 /* \careful */
 
-/* When no key available wait this many seconds before asking again. */
+/** When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
+/** Default behave like previous enforcer, 5 days */
+#define DEFAULT_MAX_ZONE_TTL (3600*24*5) 
+
+/**
+ * Previous Enforcer had this hardcoded. We don't want to upset 
+ * upgrading users. If not configured, use default.
+ * */
+inline int
+maxZoneTTL(const Policy *policy)
+{
+	return policy->zone().has_max_zone_ttl() ? 
+		policy->zone().max_zone_ttl() : DEFAULT_MAX_ZONE_TTL;
+}
 
 /**
  * Stores the minimum of parm1 and parm2 in parm2.
@@ -478,7 +491,7 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 			break;
 		case RS:
 			endDate = zone.ttlEnddateRs();
-			recordTTL = policy->signatures().ttl();
+			recordTTL = maxZoneTTL(policy);
 			break;				  
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
@@ -532,12 +545,11 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	 * careful to make sure each resolver picks up the RRset.
 	 * When this date passes we may start using the policies TTL. */
 	if (zone.ttlEnddateDs() <= now)
-		zone.setTtlEnddateDs(now + policy->parent().ttlds());
+		zone.setTtlEnddateDs(addtime(now, policy->parent().ttlds()));
 	if (zone.ttlEnddateDk() <= now)
-		zone.setTtlEnddateDk(now + policy->keys().ttl());
+		zone.setTtlEnddateDk(addtime(now, policy->keys().ttl()));
 	if (zone.ttlEnddateRs() <= now)
-		/* TODO: this property is never set? (p->s->ttl) */
-		zone.setTtlEnddateRs(now + policy->signatures().ttl()); 
+		zone.setTtlEnddateRs(addtime(now, maxZoneTTL(policy))); 
 
 	/** Keep looping till there are no state changes.
 	 * Find the earliest update time */
