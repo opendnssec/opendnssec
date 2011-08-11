@@ -110,13 +110,13 @@ module KASPChecker
         rng_location = (rng_location.to_s + "").untaint
         file = (file.to_s + "").untaint
 
+        print "About to check XML validity in #{file}\n"
         r, w = IO.pipe
         pid = fork {
           r.close
           $stdout.reopen w
 
           ret = system("#{(@xmllint.to_s + "").untaint} --noout --relaxng #{rng_location} #{file}")
-          w.close
           exit!(ret)
         }
         w.close
@@ -128,7 +128,7 @@ module KASPChecker
         # Now rewrite captured output from xmllint to log method
         ret_strings.each {|line|
           line.chomp!
-          if line.index(" has valid XML")
+          if line.index(" validates")
             #            log(LOG_INFO, line + " OK")
           else
             log(LOG_ERR, line)
