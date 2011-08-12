@@ -278,8 +278,9 @@ worker_perform_task(worker_type* worker)
                 /* queue menial, hard signing work */
                 status = zonedata_queue(zone->zonedata, engine->signq, worker);
                 ods_log_debug("[%s[%i]] wait until drudgers are finished "
-                    " signing zone %s, %u signatures queued", worker2str(worker->type),
-                    worker->thread_num, task_who2str(task->who), worker->jobs_appointed);
+                    " signing zone %s, %u signatures queued",
+                    worker2str(worker->type), worker->thread_num,
+                    task_who2str(task->who), worker->jobs_appointed);
 
                 /* sleep until work is done */
                 worker_sleep_unless(worker, 0);
@@ -294,7 +295,8 @@ worker_perform_task(worker_type* worker)
                         "signatures succeeded", worker2str(worker->type),
                         worker->thread_num, task_who2str(task->who),
                         worker->jobs_completed, worker->jobs_appointed);
-                    ods_log_assert(worker->jobs_appointed == worker->jobs_completed);
+                    ods_log_assert(worker->jobs_appointed ==
+                        worker->jobs_completed);
                 }
                 worker->jobs_appointed = 0;
                 worker->jobs_completed = 0;
@@ -625,9 +627,9 @@ worker_drudge(worker_type* worker)
                 lock_basic_unlock(&chief->worker_lock);
 
                 if (worker_fulfilled(chief) && chief->sleeping) {
-                    ods_log_assert(chief->jobs_appointed == chief->jobs_completed);
                     ods_log_debug("[%s[%i]] wake up chief[%u], work is done",
-                        worker2str(worker->type), worker->thread_num, chief->thread_num);
+                        worker2str(worker->type), worker->thread_num,
+                        chief->thread_num);
                     worker_wakeup(chief);
                 }
             }
@@ -709,7 +711,8 @@ worker_sleep_unless(worker_type* worker, time_t timeout)
 
         ods_log_debug("[%s[%i]] somebody poked me, check completed jobs %u "
            "appointed, %u completed, %u failed", worker2str(worker->type),
-           worker->thread_num, worker->jobs_appointed, worker->jobs_completed, worker->jobs_failed);
+           worker->thread_num, worker->jobs_appointed, worker->jobs_completed,
+           worker->jobs_failed);
     }
     /* [UNLOCK] worker */
     lock_basic_unlock(&worker->worker_lock);
