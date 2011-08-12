@@ -35,7 +35,6 @@
 #define SIGNER_KEYS_H
 
 #include "shared/allocator.h"
-#include "shared/locks.h"
 #include "shared/status.h"
 
 #ifdef HAVE_SYS_TYPES_H
@@ -65,7 +64,6 @@ struct key_struct {
     int publish;
     int ksk;
     int zsk;
-    lock_basic_type key_lock;
     key_type* next;
 };
 
