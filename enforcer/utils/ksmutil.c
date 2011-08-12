@@ -478,6 +478,9 @@ cmd_setup ()
     char *user = NULL;
     char *password = NULL;
 
+	char quoted_user[KSM_NAME_LENGTH];
+	char quoted_password[KSM_NAME_LENGTH];
+
     char* setup_command = NULL;
     char* lock_filename = NULL;
 
@@ -562,9 +565,35 @@ cmd_setup ()
     else {
         /* MySQL setup */
         /* will look like: <SQL_BIN> -u <USER> -h <HOST> -P <PORT> -p<PASSWORD> <DBSCHEMA> < <SQL_SETUP> */
+		/* Get a quoted version of the username */
+		status = ShellQuoteString(user, quoted_user, KSM_NAME_LENGTH);
+		if (status != 0) {
+			printf("Failed to connect to database, username too long.\n");
+			db_disconnect(lock_fd);
+			StrFree(host);
+			StrFree(port);
+			StrFree(dbschema);
+			StrFree(user);
+			StrFree(password);
+			return(1);
+		}
+
+		/* Get a quoted version of the password */
+		status = ShellQuoteString(password, quoted_password, KSM_NAME_LENGTH);
+		if (status != 0) {
+			printf("Failed to connect to database, password too long.\n");
+			db_disconnect(lock_fd);
+			StrFree(host);
+			StrFree(port);
+			StrFree(dbschema);
+			StrFree(user);
+			StrFree(password);
+			return(1);
+		}
+		
         StrAppend(&setup_command, SQL_BIN);
         StrAppend(&setup_command, " -u '");
-        StrAppend(&setup_command, user);
+        StrAppend(&setup_command, quoted_user);
         StrAppend(&setup_command, "'");
         if (host != NULL) {
             StrAppend(&setup_command, " -h ");
@@ -576,7 +605,7 @@ cmd_setup ()
         }
         if (password != NULL) {
             StrAppend(&setup_command, " -p'");
-            StrAppend(&setup_command, password);
+            StrAppend(&setup_command, quoted_password);
 			StrAppend(&setup_command, "'");
         }
         StrAppend(&setup_command, " ");
@@ -8284,3 +8313,25 @@ int append_zone(xmlDocPtr doc, KSM_ZONE *zone)
 
     return(0);
 }
+
+int ShellQuoteString(const char* string, char* buffer, size_t buflen)
+{
+    size_t i;           /* Loop counter */
+    size_t j = 0;       /* Counter for new string */
+	
+	size_t len = strlen(string);
+
+    if (string) {
+        for (i = 0; i < len; ++i) {
+            if (string[i] == '\'') {
+                buffer[j++] = '\'';
+                buffer[j++] = '\\';
+                buffer[j++] = '\'';
+            }
+			buffer[j++] = string[i];
+        }
+    }
+	buffer[j] = '\0';
+    return ( (j <= buflen) ? 0 : 1);
+}
+
