@@ -103,6 +103,9 @@ start = element KASP {
 			# Expected propagation delay in child publication
 			propagationdelay,
 
+			# Maximum TTL that may be used in a zone.
+			maxzonettl?,
+
 			# Expected zone SOA parameters
 			element SOA {
 				anysoa,
@@ -194,6 +197,8 @@ anykey = element Algorithm {
 
 
 ttl = element TTL { xsd:duration }
+
+maxzonettl = element MaxZoneTTL { xsd:duration }
 
 propagationdelay = element PropagationDelay { xsd:duration }
 

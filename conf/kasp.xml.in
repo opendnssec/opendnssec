@@ -66,6 +66,7 @@
 
 		<Zone>
 			<PropagationDelay>PT43200S</PropagationDelay>
+			<!-- <MaxZoneTTL>P2D</MaxZoneTTL> -->
 			<SOA>
 				<TTL>PT3600S</TTL>
 				<Minimum>PT3600S</Minimum>
