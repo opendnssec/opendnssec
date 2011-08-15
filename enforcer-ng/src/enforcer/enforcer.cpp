@@ -40,7 +40,7 @@ enum STATE {HID, RUM, OMN, UNR, NOCARE};
 static const char* STATENAMES[] = {"HID", "RUM", "OMN", "UNR"};
 enum RECORD {REC_MIN, DS = REC_MIN, DK, RD, RS, REC_MAX};
 /* trick to loop over our RECORD enum */
-RECORD& operator++(RECORD& r){return r = (r >= REC_MAX)?REC_MAX:RECORD(r+1);}
+RECORD& operator++(RECORD& r){return r = (r >= REC_MAX?REC_MAX:RECORD(r+1));}
 static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 /* \careful */
 
@@ -56,8 +56,8 @@ static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 inline int
 maxZoneTTL(const Policy *policy)
 {
-	return policy->zone().has_max_zone_ttl() ? 
-		policy->zone().max_zone_ttl() : DEFAULT_MAX_ZONE_TTL;
+	return (policy->zone().has_max_zone_ttl() ? 
+		policy->zone().max_zone_ttl() : DEFAULT_MAX_ZONE_TTL);
 }
 
 /**
@@ -85,7 +85,7 @@ minTime(const time_t t, time_t &min)
  * @return sum
  * */
 time_t
-addtime(const time_t &t, const int seconds)
+addtime(const time_t t, const int seconds)
 {
 	struct tm *tp = localtime(&t);
 	tp->tm_sec += seconds;
@@ -230,7 +230,7 @@ exists(KeyDataList &key_list, KeyData &key,
 				bool sub_rec = sub_key && record == r;
 				if (mask[r] == NOCARE) continue;
 				/** Use actual state or next state */
-				STATE state = sub_rec?next_state:getState(k, r);
+				STATE state = (sub_rec?next_state:getState(k, r));
 				/** no match in this record, try next key */
 				if (mask[r] != state) {
 					match = false;
@@ -452,9 +452,9 @@ minTransitionTime(EnforcerZone &zone, const RECORD record,
 		case RD:
 			return addtime(lastchange, ttl
 				+ policy->zone().propagationdelay()
-				+ (next_state == OMN)
+				+ (next_state == OMN
 					? policy->keys().publishsafety()
-					: policy->keys().retiresafety());
+					: policy->keys().retiresafety()));
 		case RS:
 			return addtime(lastchange, ttl
 				+ policy->zone().propagationdelay());
@@ -851,10 +851,10 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			new_key.setDSSeen( false );
 			new_key.setSubmitToParent( false );
 			
-			setState(zone, new_key, DS, (role&KSK)?HID:NOCARE, now);
+			setState(zone, new_key, DS, (role&KSK?HID:NOCARE), now);
 			setState(zone, new_key, DK, HID, now);
-			setState(zone, new_key, RD, (role&KSK)?HID:NOCARE, now);
-			setState(zone, new_key, RS, (role&ZSK)?HID:NOCARE, now);
+			setState(zone, new_key, RD, (role&KSK?HID:NOCARE), now);
+			setState(zone, new_key, RS, (role&ZSK?HID:NOCARE), now);
 			
 			new_key.setIntroducing(true);
 
