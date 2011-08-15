@@ -811,7 +811,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 					(KeyRole)role, i, key_list, &key) 	&& 
 					key->inception() + lifetime > now	)
 			{
-				minTime( key->inception() + lifetime, return_at );
+				minTime( addtime(key->inception(), lifetime), return_at );
 				continue;
 			}
 			
@@ -940,7 +940,7 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 			module_str, scmd);
 	zone_return_time = updateZone(zone, now, allow_unsigned);
 
-	/* Only purge old keys of the configuration says so. */
+	/** Only purge old keys if the configuration says so. */
 	if (policy->keys().has_purge())
 		removeDeadKeys(key_list, now, policy->keys().purge());
 
