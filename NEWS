@@ -12,6 +12,7 @@ Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
 * ods-ksmutil: "update kasp" now reflects changes in policy descriptions.
 * ods-ksmutil: Policy descriptions now have special characters quoted.
+* Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
 
 
 OpenDNSSEC 1.3.0 - 2011-07-12

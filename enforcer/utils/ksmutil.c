@@ -1321,16 +1321,20 @@ cmd_listzone ()
     /* Read the file and list the zones as we go */
     list_zone_node(zonelist_filename, zone_ids);
 
-    /* Now see if there are any zones in the DB which are not in the file */
-    StrAppend(&sql, "select name from zones where id not in (");
-    for (j = 0; j < file_zone_count; ++j) {
-        if (j != 0) {
-            StrAppend(&sql, ",");
-        }
-        snprintf(buffer, sizeof(buffer), "%d", zone_ids[j]);
-        StrAppend(&sql, buffer);
-    }
-    StrAppend(&sql, ")");
+	/* Now see if there are any zones in the DB which are not in the file */
+	if (file_zone_count != 0) {
+		StrAppend(&sql, "select name from zones where id not in (");
+		for (j = 0; j < file_zone_count; ++j) {
+			if (j != 0) {
+				StrAppend(&sql, ",");
+			}
+			snprintf(buffer, sizeof(buffer), "%d", zone_ids[j]);
+			StrAppend(&sql, buffer);
+		}
+		StrAppend(&sql, ")");
+	} else {
+		StrAppend(&sql, "select name from zones");
+	}
 
     status = DbExecuteSql(DbHandle(), sql, &result);
     if (status == 0) {
@@ -1341,6 +1345,7 @@ cmd_listzone ()
 
             printf("Found zone %s in DB but not zonelist.\n", temp_name);
             status = DbFetchRow(result, &row);
+			file_zone_count++;
         }
 
         /* Convert EOF status to success */
@@ -1354,6 +1359,10 @@ cmd_listzone ()
 
     db_disconnect(lock_fd);
     DbDisconnect(dbhandle);
+
+	if (file_zone_count == 0) {
+		printf("No zones in DB or zonelist.\n");
+	}
 
     MemFree(zone_ids);
     StrFree(sql);
