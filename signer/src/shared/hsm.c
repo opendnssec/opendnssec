@@ -154,7 +154,7 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     params->flags = key_id->flags;
     params->inception = inception;
     params->expiration = expiration;
-    params->keytag = ldns_calc_keytag(key_id->dnskey)
+    params->keytag = ldns_calc_keytag(key_id->dnskey);
     ods_log_debug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
         ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
         key_id->locator?key_id->locator:"(null)", key_id->params->keytag);
