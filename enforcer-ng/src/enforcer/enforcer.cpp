@@ -518,6 +518,7 @@ setState(EnforcerZone &zone, KeyData &key, const RECORD record, const STATE stat
 	ks.setState(state);
 	ks.setLastChange(now);
 	ks.setTtl(getZoneTTL(zone, record, now));
+	zone.setSignerConfNeedsWriting(true);
 }
 
 /**
