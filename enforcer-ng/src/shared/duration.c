@@ -462,6 +462,19 @@ timeshift2time(const char *time)
         return timeshift;
 }
 
+static time_t time_now_set = 0;
+
+/**
+ * Set the time_now to a new value.
+ * As long as this value is later than the reakl time now 
+ * the overriden value is returned.
+ *
+ */
+void
+set_time_now(time_t now)
+{
+    time_now_set = now;
+}
 
 /**
  * Return the time since Epoch, measured in seconds.
@@ -477,7 +490,8 @@ time_now(void)
     } else
 #endif /* ENFORCER_TIMESHIFT */
 
-    return time(NULL);
+    time_t now = time(NULL);
+    return now > time_now_set ? now : time_now_set;
 }
 
 

@@ -68,7 +68,7 @@
 #define NUM_CMDQUEUE 32
 
 static int count = 0;
-static char* cmdh_str = "cmdhandler";
+static char* module_str = "cmdhandler";
 
 
 /**
@@ -86,7 +86,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     task_type* task = NULL;
 
     if (n != 5 || strncmp(cmd, "queue", n) != 0) return 0;
-    ods_log_debug("[%s] list tasks command", cmdh_str);
+    ods_log_debug("[%s] list tasks command", module_str);
 
     ods_log_assert(engine);
     if (!engine->taskq || !engine->taskq->tasks) {
@@ -129,23 +129,64 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
 int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, 
                       ssize_t n)
 {
+    char* strtime = NULL;
+    char ctimebuf[32]; // at least 26 according to docs
     char buf[ODS_SE_MAXLINE];
-    if (n != 9 || strncmp(cmd, "time leap", n) != 0) return 0;
-    ods_log_debug("[%s] time leap command", cmdh_str);
+    size_t i = 0;
+    time_t now = time_now();
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    task_type* task = NULL;
+    char* strtask = NULL;
+    const char *scmd = "time leap";
+    ssize_t ncmd = strlen(scmd);
+	
+    if (n != ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
+    ods_log_debug("[%s] %s command", module_str, scmd);
+    
     ods_log_assert(engine);
-    ods_log_assert(engine->taskq);
+    if (!engine->taskq || !engine->taskq->tasks) {
+        (void)snprintf(buf, ODS_SE_MAXLINE, "I have no tasks scheduled.\n");
+        ods_writen(sockfd, buf, strlen(buf));
+        return 1;
+    }
     
     lock_basic_lock(&engine->taskq->schedule_lock);
     /* [LOCK] schedule */
-    schedule_flush(engine->taskq, TASK_NONE);
+    
+    /* how many tasks */
+    now = time_now();
+    strtime = ctime_r(&now,ctimebuf);
+    (void)snprintf(buf, ODS_SE_MAXLINE, 
+                   "I have %i tasks scheduled.\nIt is now %s",
+                   (int) engine->taskq->tasks->count,
+                   strtime?strtime:"(null)\n");
+    ods_writen(sockfd, buf, strlen(buf));
+    
+    /* Get first task in schedule, this one also features the earliest wake-up 
+       time of all tasks in the schedule. */
+    task = schedule_get_first_task(engine->taskq);
+    
+    if (!task->flush) {
+        set_time_now(task->when);
+    
+        for (i=0; i < ODS_SE_MAXLINE; i++) {
+            buf[i] = 0;
+        }
+        strtime = ctime_r(&task->when,ctimebuf);
+        if (strtime) {
+            strtime[strlen(strtime)-1] = '\0'; /* strip \n from time string */
+        }
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Leaping to time %s I will [%s] %s\n",
+                       strtime?strtime:"(null)",
+                       task_what2str(task->what),
+                       task_who2str(task->who));
+        ods_writen(sockfd, buf, strlen(buf));
+		
+		engine_wakeup_workers(engine);
+    }
+
     /* [UNLOCK] schedule */
     lock_basic_unlock(&engine->taskq->schedule_lock);
-    
-    engine_wakeup_workers(engine);
-    
-    (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
-    ods_writen(sockfd, buf, strlen(buf));
-    ods_log_verbose("[%s] all tasks scheduled immediately", cmdh_str);
     return 1;
 }
 
@@ -159,7 +200,7 @@ int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd,
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 5 || strncmp(cmd, "flush", n) != 0) return 0;
-    ods_log_debug("[%s] flush tasks command", cmdh_str);
+    ods_log_debug("[%s] flush tasks command", module_str);
     ods_log_assert(engine);
     ods_log_assert(engine->taskq);
     
@@ -173,7 +214,7 @@ int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd,
     
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
     ods_writen(sockfd, buf, strlen(buf));
-    ods_log_verbose("[%s] all tasks scheduled immediately", cmdh_str);
+    ods_log_verbose("[%s] all tasks scheduled immediately", module_str);
     return 1;
 }
 
@@ -186,7 +227,7 @@ int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd,
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 7 || strncmp(cmd, "running", n) != 0) return 0;
-    ods_log_debug("[%s] running command", cmdh_str);
+    ods_log_debug("[%s] running command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
@@ -204,7 +245,7 @@ int handled_start_cmd(int sockfd, engine_type* engine, const char *cmd,
     task_type *task;
     ods_status status;
     if (n != 5 || strncmp(cmd, "start", n) != 0) return 0;
-    ods_log_debug("[%s] start command", cmdh_str);
+    ods_log_debug("[%s] start command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Scheduling autostart tasks.\n");
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
@@ -220,7 +261,7 @@ int handled_reload_cmd(int sockfd, engine_type* engine, const char *cmd,
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 6 || strncmp(cmd, "reload", n) != 0) return 0;
-    ods_log_debug("[%s] reload command", cmdh_str);
+    ods_log_debug("[%s] reload command", module_str);
     
     ods_log_assert(engine);
     
@@ -247,7 +288,7 @@ int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd,
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 4 || strncmp(cmd, "stop", n) != 0) return 0;
-    ods_log_debug("[%s] shutdown command", cmdh_str);
+    ods_log_debug("[%s] shutdown command", module_str);
     
     ods_log_assert(engine);
     
@@ -273,7 +314,7 @@ int handled_verbosity_cmd(int sockfd, engine_type* engine, const char *cmd,
                           ssize_t n)
 {
     if (n < 9 || strncmp(cmd, "verbosity", 9) != 0) return 0;
-    ods_log_debug("[%s] verbosity command", cmdh_str);
+    ods_log_debug("[%s] verbosity command", module_str);
     if (cmd[9] == '\0') {
         char buf[ODS_SE_MAXLINE];
         (void)snprintf(buf, ODS_SE_MAXLINE, "Error: verbosity command missing "
@@ -308,7 +349,7 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd,
     /* help command ? */
     if (n != 4 || strncmp(cmd, "help", n) != 0) return 0;
     
-    ods_log_debug("[%s] help command", cmdh_str);
+    ods_log_debug("[%s] help command", module_str);
 
     
     /* Anouncement */
@@ -344,7 +385,7 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd,
                         ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
-    ods_log_debug("[%s] unknown command", cmdh_str);
+    ods_log_debug("[%s] unknown command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
                    cmd?cmd:"(null)");
     ods_writen(sockfd, buf, strlen(buf));
@@ -397,7 +438,7 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,
         }
     }
     
-    ods_log_debug("[%s] done handling command %s[%i]", cmdh_str, cmd, n);
+    ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
 }
 
 /* Process the commands that were placed in the command processor 
@@ -458,10 +499,10 @@ again:
     if (n < 0 && (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN) ) {
         goto again;
     } else if (n < 0 && errno == ECONNRESET) {
-        ods_log_debug("[%s] done handling client: %s", cmdh_str,
+        ods_log_debug("[%s] done handling client: %s", module_str,
             strerror(errno));
     } else if (n < 0 ) {
-        ods_log_error("[%s] read error: %s", cmdh_str, strerror(errno));
+        ods_log_error("[%s] read error: %s", module_str, strerror(errno));
     }
     return;
 }
@@ -479,7 +520,7 @@ cmdhandler_accept_client(void* arg)
     ods_thread_blocksigs();
     ods_thread_detach(cmdc->thread_id);
 
-    ods_log_debug("[%s] accept client %i", cmdh_str, cmdc->client_fd);
+    ods_log_debug("[%s] accept client %i", module_str, cmdc->client_fd);
     cmdhandler_handle_client_conversation(cmdc);
     if (cmdc->client_fd) {
         close(cmdc->client_fd);
@@ -514,12 +555,12 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
         return NULL;
     }
     ods_log_assert(filename);
-    ods_log_debug("[%s] create socket %s", cmdh_str, filename);
+    ods_log_debug("[%s] create socket %s", module_str, filename);
 
     /* new socket */
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (listenfd <= 0) {
-        ods_log_error("[%s] unable to create, socket() failed: %s", cmdh_str,
+        ods_log_error("[%s] unable to create, socket() failed: %s", module_str,
             strerror(errno));
         return NULL;
     }
@@ -527,14 +568,14 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     flags = fcntl(listenfd, F_GETFL, 0);
     if (flags < 0) {
         ods_log_error("[%s] unable to create, fcntl(F_GETFL) failed: %s",
-            cmdh_str, strerror(errno));
+            module_str, strerror(errno));
         close(listenfd);
         return NULL;
     }
     flags |= O_NONBLOCK;
     if (fcntl(listenfd, F_SETFL, flags) < 0) {
         ods_log_error("[%s] unable to create, fcntl(F_SETFL) failed: %s",
-            cmdh_str, strerror(errno));
+            module_str, strerror(errno));
         close(listenfd);
         return NULL;
     }
@@ -551,14 +592,14 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     ret = bind(listenfd, (const struct sockaddr*) &servaddr,
         SUN_LEN(&servaddr));
     if (ret != 0) {
-        ods_log_error("[%s] unable to create, bind() failed: %s", cmdh_str,
+        ods_log_error("[%s] unable to create, bind() failed: %s", module_str,
             strerror(errno));
         close(listenfd);
         return NULL;
     }
     ret = listen(listenfd, ODS_SE_MAX_HANDLERS);
     if (ret != 0) {
-        ods_log_error("[%s] unable to create, listen() failed: %s", cmdh_str,
+        ods_log_error("[%s] unable to create, listen() failed: %s", module_str,
             strerror(errno));
         close(listenfd);
         return NULL;
@@ -600,7 +641,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 
     ods_log_assert(cmdhandler);
     ods_log_assert(cmdhandler->engine);
-    ods_log_debug("[%s] start", cmdh_str);
+    ods_log_debug("[%s] start", module_str);
 
     engine = cmdhandler->engine;
     ods_thread_detach(cmdhandler->thread_id);
@@ -611,7 +652,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
         ret = select(ODS_SE_MAX_HANDLERS+1, &rset, NULL, NULL, NULL);
         if (ret < 0) {
             if (errno != EINTR && errno != EWOULDBLOCK) {
-                ods_log_warning("[%s] select() error: %s", cmdh_str,
+                ods_log_warning("[%s] select() error: %s", module_str,
                    strerror(errno));
             }
             continue;
@@ -621,7 +662,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
                 (struct sockaddr *) &cliaddr, &clilen);
             if (connfd < 0) {
                 if (errno != EINTR && errno != EWOULDBLOCK) {
-                    ods_log_warning("[%s] accept error: %s", cmdh_str,
+                    ods_log_warning("[%s] accept error: %s", module_str,
                         strerror(errno));
                 }
                 continue;
@@ -630,7 +671,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdc = (cmdhandler_type*) malloc(sizeof(cmdhandler_type));
             if (!cmdc) {
                 ods_log_crit("[%s] unable to create thread for client: "
-                    "malloc failed", cmdh_str);
+                    "malloc failed", module_str);
                 cmdhandler->need_to_exit = 1;
             }
             cmdc->listen_fd = cmdhandler->listen_fd;
@@ -641,11 +682,11 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             ods_thread_create(&cmdc->thread_id, &cmdhandler_accept_client,
                 (void*) cmdc);
             count++;
-            ods_log_debug("[%s] %i clients in progress...", cmdh_str, count);
+            ods_log_debug("[%s] %i clients in progress...", module_str, count);
         }
     }
 
-    ods_log_debug("[%s] done", cmdh_str);
+    ods_log_debug("[%s] done", module_str);
     engine = cmdhandler->engine;
     engine->cmdhandler_done = 1;
     return;
@@ -684,13 +725,13 @@ cmdhandler_command_push_back(cmdhandler_type* cmdhandler, const char *cmd)
         task_type * task = cmdhandler_queue_processor_task((void*)cmdhandler);
         if (!task) {
             ods_log_crit("[%s] failed to create command processor task",
-                         cmdh_str);
+                         module_str);
         } else {
             ods_status status = schedule_task_from_thread(
                                         cmdhandler->engine->taskq, task, 0);
             if (status != ODS_STATUS_OK) {
                 ods_log_crit("[%s] failed to schedule command processor task",
-                             cmdh_str);
+                             module_str);
                 task_cleanup(task);
             }
         }

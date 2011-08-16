@@ -160,11 +160,14 @@ worker_work(worker_type* worker)
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]]: report for duty", worker2str(worker->type),
             worker->thread_num);
+
         lock_basic_lock(&worker->engine->taskq->schedule_lock);
         /* [LOCK] schedule */
+
         worker->task = schedule_pop_task(worker->engine->taskq);
-        /* [UNLOCK] schedule */
         if (worker->task) {
+
+            /* [UNLOCK] schedule */
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
             ods_log_debug("[%s[%i]] start working",
@@ -180,15 +183,16 @@ worker_work(worker_type* worker)
                           worker2str(worker->type), worker->thread_num);
             
             if (task_that_was_worked_on)
-                (void) schedule_task_from_thread(worker->engine->taskq, task_that_was_worked_on, 1);
+                (void) schedule_task_from_thread(worker->engine->taskq,
+                                                 task_that_was_worked_on, 1);
             
             timeout = 1;
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
 
-            /* [LOCK] schedule */
             worker->task = schedule_get_first_task(worker->engine->taskq);
+
             /* [UNLOCK] schedule */
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
