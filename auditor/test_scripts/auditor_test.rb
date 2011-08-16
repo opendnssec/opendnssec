@@ -529,13 +529,13 @@ class AuditorTest < Test::Unit::TestCase
     changed_config.kasp_timestamp = 0
     config.changed_config = changed_config
 
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0, 0)
     key_cache = checker.load_tracker_cache
     assert(checker.cache.inuse.length == 0)
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 0)
 
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0, 0)
     key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key1, keynot5011, key3],
       [ksk_key1.key_tag, keynot5011.key_tag], 100, 1)
@@ -543,7 +543,7 @@ class AuditorTest < Test::Unit::TestCase
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 2)
 
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0, 0)
     key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key1, keynot5011, key5011],
       [key1.key_tag, ksk_key1.key_tag, key5011.key_tag], 101, 1)
@@ -555,7 +555,7 @@ class AuditorTest < Test::Unit::TestCase
     # are emitted
     sleep(2.1)
     key5011.revoked = true
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0, 0)
     key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key2, key5011, key1],
       [ksk_key1.key_tag, key2.key_tag, key1.key_tag], 100, 1)
@@ -570,7 +570,7 @@ class AuditorTest < Test::Unit::TestCase
       File.delete("test/tmp/tracker/example.com.")
     rescue Exception
     end
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil, 1)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil, 1, 0)
     checker.last_soa_serial = 0
     cache = checker.cache
     time = Time.now.to_i
@@ -587,7 +587,7 @@ class AuditorTest < Test::Unit::TestCase
     assert(checker.cache.retired.length == 1)
     checker.save_tracker_cache
 
-    new_checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1)
+    new_checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1, 0)
     assert(new_checker.cache.retired.length == 1)
     assert(new_checker.cache.include_retired_key?(k1))
     assert(new_checker.cache.inuse.length == 2)
@@ -605,7 +605,7 @@ class AuditorTest < Test::Unit::TestCase
     new_checker.cache.delete_inuse_key(k3)
     new_checker.save_tracker_cache
 
-    n_c = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1)
+    n_c = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1, 0)
     assert(n_c.cache.prepublished.length == 0)
     assert(n_c.cache.inuse.length == 0)
     assert(n_c.cache.retired.length == 0)

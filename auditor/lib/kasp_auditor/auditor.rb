@@ -118,7 +118,7 @@ module KASPAuditor
           return 1
         end
         log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
-        @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
+        @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval, @config.signatures.validity.default)
         @key_cache = @key_tracker.load_tracker_cache
 
         signed_file = (signed_file.to_s + "").untaint
