@@ -727,7 +727,7 @@ worker_sleep_unless(worker_type* worker, time_t timeout)
     ods_log_assert(worker);
     lock_basic_lock(&worker->worker_lock);
     /* [LOCK] worker */
-    while (!worker_fulfilled(worker)) {
+    while (!worker->need_to_exit && !worker_fulfilled(worker)) {
         worker->sleeping = 1;
         lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
             timeout);
