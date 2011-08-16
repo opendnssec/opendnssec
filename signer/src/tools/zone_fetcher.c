@@ -704,15 +704,6 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             }
 #endif
 #endif /* IPV6_V6ONLY */
-/*
-            if (setsockopt(sockets->udp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
-                sizeof(on)) < 0) {
-                ods_log_error("zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
-                    "failed for "
-                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
-                    strerror(errno));
-            }
-*/
             if (fcntl(sockets->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
                 ods_log_error("zone fetcher cannot fcntl udp/6 socket for "
                     "%s:%s (%s)", node?node:"(null)", port?port:"(null)",

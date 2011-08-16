@@ -227,9 +227,12 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
             if (doc == NULL || xpathCtx == NULL) {
                 ods_log_error("[%s] unable to read zone %s; skipping",
                    parser_str, zone_name);
-                free((void*) zone_name);
                 ret = xmlTextReaderRead(reader);
+                free((void*) zone_name);
                 free((void*) tag_name);
+                if (xpathCtx) {
+                    xmlXPathFreeContext(xpathCtx);
+                }
                 continue;
             }
 
