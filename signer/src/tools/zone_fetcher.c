@@ -38,6 +38,8 @@
 #include <signal.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -325,10 +327,10 @@ read_axfr_config(const char* filename, config_type* cfg)
                        if (ipv4 || ipv6 || port) {
                            if (!ipv4 && !ipv6) {
                                if (notifylist == NULL) {
-                                   notifylist = new_server("", NULL, port);
+                                   notifylist = new_server(NULL, "", port);
                                    cfg->notifylist = notifylist;
 
-                                   notifylist->next = new_server(NULL, "", port);
+                                   notifylist->next = new_server("", NULL, port);
                                    notifylist = notifylist->next;
                                }
                                else {
@@ -632,13 +634,15 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         port = walk->port ? walk->port : DNS_PORT_STRING;
         if (node != NULL)
             hints[i].ai_flags |= AI_NUMERICHOST;
+        else
+            hints[i].ai_family = walk->family;
         /* UDP */
         hints[i].ai_socktype = SOCK_DGRAM;
         /* getaddrinfo */
         if ((r = getaddrinfo(node, port, &hints[i],
             &(sockets->udp[i].addr))) != 0) {
             if (hints[i].ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
-                ods_log_error("zone fetcher fallback to UDP4, no IPv6: "
+                ods_log_error("zone fetcher udp fallback to ipv4, no ipv6: "
                     " not supported");
                 ip6_support = 0;
                 continue;
@@ -653,29 +657,32 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         if ((sockets->udp[i].s = socket(sockets->udp[i].addr->ai_family,
             SOCK_DGRAM, 0)) == -1) {
             if (sockets->udp[i].addr->ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
-                ods_log_error("zone fetcher fallback to UDP4, no IPv6: "
+                ods_log_error("zone fetcher udp fallback to ipv4, no ipv6: "
                     " not supported");
                 ip6_support = 0;
             }
             else {
-                ods_log_error("zone fetcher can't create UDP socket: %s",
+                ods_log_error("zone fetcher can't create udp/4 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
                 ret = -1;
                 break;
             }
         }
 
-        if (sockets->udp[i].addr->ai_family != AF_INET6) {
+        if (sockets->udp[i].addr->ai_family == AF_INET) {
             if (fcntl(sockets->udp[i].s, F_SETFL,
                 O_NONBLOCK) == -1) {
-                ods_log_error("zone fetcher cannot fcntl "
-                "UDP: %s", strerror(errno));
+                ods_log_error("zone fetcher cannot fcntl udp/4 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
+                    strerror(errno));
             }
             if (bind(sockets->udp[i].s,
                 (struct sockaddr *) sockets->udp[i].addr->ai_addr,
                 sockets->udp[i].addr->ai_addrlen) != 0)
             {
-                ods_log_error("zone fetcher can't bind udp/ipv4 socket: %s",
+                ods_log_error("zone fetcher can't bind udp/4 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
                 ret = -1;
                 break;
@@ -684,24 +691,29 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         else if (ip6_support) {
 #ifdef IPV6_V6ONLY
 #if defined(IPPROTO_IPV6)
+            ods_log_verbose("zone fetcher setsockopt ipv6_v6only...");
             if (setsockopt(sockets->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on,
                 sizeof(on)) < 0)
             {
                 ods_log_error("zone fetcher setsockopt(..., IPV6_V6ONLY, "
-                "...) failed: %s", strerror(errno));
+                "...) failed for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
+                    strerror(errno));
                 ret = -1;
                 break;
             }
 #endif
 #endif /* IPV6_V6ONLY */
             if (fcntl(sockets->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-                ods_log_error("zone fetcher cannot fcntl UDP: %s",
+                ods_log_error("zone fetcher cannot fcntl udp/6 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
             }
             if (bind(sockets->udp[i].s,
                 (struct sockaddr *) sockets->udp[i].addr->ai_addr,
                 sockets->udp[i].addr->ai_addrlen) != 0) {
-                ods_log_error("zone fetcher can't bind UDP socket: %s",
+                ods_log_error("zone fetcher can't bind udp/6 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
                 ret = -1;
                 break;
@@ -714,7 +726,7 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
         if ((r = getaddrinfo(node, port, &hints[i],
             &(sockets->tcp[i].addr))) != 0) {
             if (hints[i].ai_family == AF_INET6 && errno == EAFNOSUPPORT) {
-                ods_log_error("zone fetcher fallback to UDP4, no IPv6: "
+                ods_log_error("zone fetcher tcp fallback to ipv4, no ipv6: "
                     " not supported");
                 ip6_support = 0;
                 continue;
@@ -729,42 +741,48 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             SOCK_STREAM, 0)) == -1) {
             if (sockets->tcp[i].addr->ai_family == AF_INET6 &&
                 errno == EAFNOSUPPORT) {
-                ods_log_error("zone fetcher fallback to TCP4, no IPv6: "
+                ods_log_error("zone fetcher tcp fallback to ipv4, no ipv6: "
                     " not supported");
                 ip6_support = 0;
             }
             else {
-                ods_log_error("zone fetcher can't create TCP socket: %s",
+                ods_log_error("zone fetcher can't create tcp socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
                 ret = -1;
                 break;
             }
         }
         /* setsockopt */
-        if (sockets->tcp[i].addr->ai_family != AF_INET6) {
+        if (sockets->tcp[i].addr->ai_family == AF_INET) {
             if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
                 sizeof(on)) < 0) {
                 ods_log_error("zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
-                    "failed: %s", strerror(errno));
+                    "failed for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
+                    strerror(errno));
             }
             /* fcntl */
             if (fcntl(sockets->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-                ods_log_error("zone fetcher cannot fcntl TCP: %s",
+                ods_log_error("zone fetcher cannot fcntl tcp/4 for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
             }
             /* bind */
             if (bind(sockets->tcp[i].s,
                 (struct sockaddr *) sockets->tcp[i].addr->ai_addr,
                 sockets->tcp[i].addr->ai_addrlen) != 0) {
-                ods_log_error("zone fetcher can't bind TCP socket: %s",
+                ods_log_error("zone fetcher can't bind tcp/4 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
                 ret = -1;
                 break;
             }
             /* listen */
             if (listen(sockets->tcp[i].s, 5) == -1) {
-                ods_log_error("zone fetcher can't listen to TCP socket: "
-                    "%s", strerror(errno));
+                ods_log_error("zone fetcher can't listen to tcp/4 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
+                    strerror(errno));
                 ret = -1;
                 break;
             }
@@ -777,7 +795,9 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
                     sizeof(on)) < 0)
                 {
                     ods_log_error("zone fetcher setsockopt(..., IPV6_V6ONLY, "
-                        "...) failed: %s", strerror(errno));
+                        "...) failed for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
+                    strerror(errno));
                     ret = -1;
                     break;
                 }
@@ -787,26 +807,31 @@ init_sockets(sockets_type* sockets, serverlist_type* list)
             if (setsockopt(sockets->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on,
                 sizeof(on)) < 0) {
                 ods_log_error("zone fetcher setsockopt(..., SO_REUSEADDR, ...) "
-                    "failed: %s", strerror(errno));
+                    "failed for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
+                    strerror(errno));
             }
             /* fcntl */
             if (fcntl(sockets->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-                ods_log_error("zone fetcher cannot fcntl TCP: %s",
+                ods_log_error("zone fetcher cannot fcntl tcp/6 for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
             }
             /* bind */
             if (bind(sockets->tcp[i].s,
                 (struct sockaddr *) sockets->tcp[i].addr->ai_addr,
                 sockets->tcp[i].addr->ai_addrlen) != 0) {
-                ods_log_error("zone fetcher can't bind TCP socket: %s",
+                ods_log_error("zone fetcher can't bind tcp/6 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
                     strerror(errno));
                 ret = -1;
                 break;
             }
             /* listen */
             if (listen(sockets->tcp[i].s, 5) == -1) {
-                ods_log_error("zone fetcher can't listen to TCP socket: "
-                    "%s", strerror(errno));
+                ods_log_error("zone fetcher can't listen to tcp/6 socket for "
+                    "%s:%s (%s)", node?node:"(null)", port?port:"(null)",
+                    strerror(errno));
                 ret = -1;
                 break;
             }
@@ -851,6 +876,7 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
     char lock_ext[32];
     char axfr_file[MAXPATHLEN];
     char dest_file[MAXPATHLEN];
+    char lock_file[MAXPATHLEN];
     char engine_sign_cmd[MAXPATHLEN + 1024];
     int soa_seen = 0;
     ldns_resolver* xfrd = NULL;
@@ -927,7 +953,6 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
                 return -1;
             }
         }
-
         assert(fd);
 
         axfr_rr = ldns_axfr_next(xfrd);
@@ -974,9 +999,32 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
             fclose(fd);
 
             /* moving and kicking */
+            snprintf(lock_file, sizeof(lock_file), "%s.lock",
+                zone->input_file?zone->input_file:"(null)");
+
+lock_axfr:
+            if (access(lock_file, F_OK) == 0) {
+                ods_log_deeebug("zone fetcher axfr file %s is locked, "
+                    "waiting...", dest_file);
+                sleep(1);
+                goto lock_axfr;
+            } else {
+                fd = fopen(lock_file, "w");
+                if (!fd) {
+                    ods_log_error("zone fetcher cannot lock AXFR file %s",
+                        lock_file);
+                    ldns_resolver_deep_free(xfrd);
+                    return -1;
+                }
+            }
+            assert(fd); /* locked */
+
             snprintf(dest_file, sizeof(dest_file), "%s.axfr",
                 zone->input_file?zone->input_file:"(null)");
             if(rename(axfr_file, dest_file) == 0) {
+                fclose(fd);
+                (void) unlink(lock_file); /* unlocked */
+
                 if (kick_signer) {
                     snprintf(engine_sign_cmd, sizeof(engine_sign_cmd),
                         "%s sign %s > /dev/null 2>&1",
@@ -988,10 +1036,12 @@ odd_xfer(zfzonelist_type* zone, uint32_t serial, config_type* config, int kick_s
                     }
                 }
             } else {
+                fclose(fd);
+                (void) unlink(lock_file); /* unlocked */
+
                 ods_log_error("zone fetcher could not move AXFR to %s",
                     dest_file);
             }
-
             ldns_resolver_deep_free(xfrd);
             return 0;
         }
@@ -1058,6 +1108,7 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
     char* owner_name = NULL;
     uint8_t *outbuf = NULL;
     size_t answer_size = 0;
+    char dest_file[MAXPATHLEN];
     FILE* fd;
 
     /* packet parsing */
@@ -1108,7 +1159,9 @@ handle_query(uint8_t* inbuf, ssize_t inlen,
             ods_log_info("zone fetcher received NOTIFY for zone %s",
                 zonelist->name?zonelist->name:"(null)");
             /* get latest serial */
-            fd = fopen(zonelist->input_file, "r");
+            snprintf(dest_file, sizeof(dest_file), "%s.axfr",
+                zonelist->input_file?zonelist->input_file:"(null)");
+            fd = fopen(dest_file, "r");
             if (!fd) {
                 serial = 0;
             } else {
@@ -1427,9 +1480,13 @@ list_settings(FILE* out, config_type* config, const char* filename)
         fprintf(out, "interfaces: %s\n", config->notifylist?"":"none");
         servers = config->notifylist;
         while (servers) {
-            fprintf(out, "\t%s\n", servers->ipaddr?servers->ipaddr:"(null)");
+            fprintf(out, "\t%s %s:%s\n",
+                servers->family==AF_INET6?"ipv6":"ipv4",
+                servers->ipaddr?servers->ipaddr:"(null)",
+                servers->port?servers->port:"(null)");
             servers = servers->next;
         }
+        fprintf(out, "list zone fetcher settings done.\n");
     }
     else fprintf(out, "no config\n");
 }
@@ -1467,7 +1524,6 @@ tools_zone_fetcher(const char* config_file, const char* zonelist_file,
 
     if (info) {
         list_settings(stdout, config, config_file);
-        exit(0);
     }
 
     if (config->serverlist == NULL) {

@@ -244,6 +244,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 FD_CLR(fileno(fp), &rset);
                 continue;
             }
+
+            buf[ODS_SE_MAXLINE-1] = '\0';
             if (strncmp(buf, "exit", 4) == 0 ||
                 strncmp(buf, "quit", 4) == 0) {
                 return;

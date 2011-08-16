@@ -792,7 +792,11 @@ set_notify_ns(zone_type* zone, const char* cmd)
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound);
 
-    str = ods_replace(cmd, "%zonefile", zone->adoutbound->configstr);
+    if (zone->adoutbound->type == ADAPTER_FILE) {
+        str = ods_replace(cmd, "%zonefile", zone->adoutbound->configstr);
+    } else {
+        str = cmd;
+    }
 
     str2 = ods_replace(str, "%zone", zone->name);
     free((void*)str);
@@ -966,6 +970,7 @@ engine_recover(engine_type* engine)
         status = zone_recover(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
+            ods_log_assert(zone->zonedata);
             ods_log_assert(zone->signconf);
             /* notify nameserver */
             if (engine->config->notify_command && !zone->notify_ns) {

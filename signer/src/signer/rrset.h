@@ -42,7 +42,6 @@
 #include "shared/locks.h"
 #include "shared/status.h"
 #include "signer/keys.h"
-#include "signer/rdatas.h"
 #include "signer/rrsigs.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
@@ -55,34 +54,38 @@
 
 typedef struct rrset_struct rrset_type;
 struct rrset_struct {
-    void* zone;
-    ldns_rdf* owner;
-    uint32_t ttl;
+    allocator_type* allocator;
     ldns_rr_type rr_type;
-    uint32_t rrs_count;
-    ods_dnssec_rrs* rrs;
-    /** Management */
+    uint32_t rr_count;
     uint32_t add_count;
-    ods_dnssec_rrs* add;
     uint32_t del_count;
-    ods_dnssec_rrs* del;
-    /** Signatures */
     uint32_t rrsig_count;
-    rrsigs_type* rrsigs;
     int needs_signing;
+    ldns_dnssec_rrs* rrs;
+    ldns_dnssec_rrs* add;
+    ldns_dnssec_rrs* del;
+    rrsigs_type* rrsigs;
 };
 
 /**
  * Create new RRset.
- * \param[in] owner RRset owner
- * \param[in] ttl RRset TTL
  * \param[in] rrtype RRtype
- * \param[in] zone pointer to zone structure
  * \return rrset_type* new RRset
  *
  */
-rrset_type* rrset_create(ldns_rdf* owner, uint32_t ttl, ldns_rr_type rrtype,
-    void* zone);
+rrset_type* rrset_create(ldns_rr_type rrtype);
+
+/**
+ * Recover RRSIG from backup.
+ * \param[in] rrset RRset
+ * \param[in] rrsig RRSIG
+ * \param[in] locator key locator
+ * \param[in] flags key flags
+ * \return ods_status status
+ *
+ */
+ods_status rrset_recover(rrset_type* rrset, ldns_rr* rrsig,
+    const char* locator, uint32_t flags);
 
 /**
  * Count the number of RRs in this RRset.
@@ -94,8 +97,7 @@ rrset_type* rrset_create(ldns_rdf* owner, uint32_t ttl, ldns_rr_type rrtype,
 size_t rrset_count_rr(rrset_type* rrset, int which);
 
 /**
- * Return the number of RRs there would be in the RRset after the pending
- * update.
+ * Return the number of RRs in RRset after an update.
  * \param[in] rrset RRset
  * \return size_t number of RRs after an update
  *
@@ -106,20 +108,20 @@ size_t rrset_count_RR(rrset_type* rrset);
  * Add RR to RRset.
  * \param[in] rrset RRset
  * \param[in] rr RR
- * \return ods_status status
+ * \return ldns_rr* added RR
  *
  */
-ods_status rrset_add_rr(rrset_type* rrset, ldns_rr* rr);
+ldns_rr* rrset_add_rr(rrset_type* rrset, ldns_rr* rr);
 
 /**
  * Delete RR from RRset.
  * \param[in] rrset RRset
  * \param[in] rr RR
  * \param[in] dupallowed if true, allow duplicate deletions
- * \return ods_status status
+ * \return ldns_rr* RR if failed
  *
  */
-ods_status rrset_del_rr(rrset_type* rrset, ldns_rr* rr, int dupallowed);
+ldns_rr* rrset_del_rr(rrset_type* rrset, ldns_rr* rr, int dupallowed);
 
 /**
  * Wipe out current RRs in RRset.
@@ -159,7 +161,7 @@ void rrset_rollback(rrset_type* rrset);
  * \param[in] rrset RRset
  * \param[in] owner owner of the zone
  * \param[in] sc signer configuration
- * \param[in] signtime time when the zone is being signd
+ * \param[in] signtime time when the zone is being signed
  * \param[out] stats update statistics
  * \return ods_status status
  *
@@ -210,5 +212,13 @@ void log_rr(ldns_rr* rr, const char* pre, int level);
  *
  */
 void rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs);
+
+/**
+ * Backup RRset.
+ * \param[in] fd file descriptor
+ * \param[in] rrset RRset
+ *
+ */
+void rrset_backup(FILE* fd, rrset_type* rrset);
 
 #endif /* SIGNER_RRSET_H */

@@ -34,10 +34,10 @@
 #include "config.h"
 #include "scheduler/task.h"
 #include "shared/allocator.h"
-#include "shared/backup.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "signer/backup.h"
 
 static const char* task_str = "task";
 

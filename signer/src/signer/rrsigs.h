@@ -37,37 +37,35 @@
 #include "config.h"
 #include "shared/allocator.h"
 #include "signer/keys.h"
-#include "signer/rdatas.h"
 
 #include <ldns/ldns.h>
 
 typedef struct rrsigs_struct rrsigs_type;
 struct rrsigs_struct {
-    void* rrset;
+    allocator_type* allocator;
+    ldns_rr* rr;
     const char* key_locator;
     uint32_t key_flags;
-    ods_rr* rr;
     rrsigs_type* next;
 };
 
 /**
  * Create new signature set.
- * \param[in] rrset the RRset that is being signed.
  * \return rrsigs_type* new RRSIGS set
  *
  */
-rrsigs_type* rrsigs_create(void* rrset);
+rrsigs_type* rrsigs_create(void);
 
 /**
  * Add RRSIG to signature set.
  * \param[in] rrsigs signature set
- * \param[in] ldnsrr RRSIG record
+ * \param[in] rr RRSIG record
  * \param[in] l key locator
  * \param[in] f key flags
  * \return ods_status status
  *
  */
-ods_status rrsigs_add_sig(rrsigs_type* rrsigs, ods_rr* rr, const char* l,
+ods_status rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* l,
     uint32_t f);
 
 /*

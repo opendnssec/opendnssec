@@ -49,8 +49,8 @@ struct domain_struct;
  */
 typedef struct denial_struct denial_type;
 struct denial_struct {
+    allocator_type* allocator;
     ldns_rdf* owner;
-    void* zone;
     rrset_type* rrset;
     struct domain_struct* domain;
     uint8_t bitmap_changed;
@@ -59,14 +59,11 @@ struct denial_struct {
 
 /**
  * Create new Denial of Existence data point.
- * \param[in] allocator zone memory allocator
  * \param[in] owner owner name of the NSEC or NSEC3 RRset
- * \param[in] zone pointer to zone structure
  * \return denial_type* denial of existence data
  *
  */
-denial_type* denial_create(allocator_type* allocator, ldns_rdf* owner,
-    void* zone);
+denial_type* denial_create(ldns_rdf* owner);
 
 /**
  * Add NSEC to the Denial of Existence data point.

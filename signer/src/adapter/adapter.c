@@ -59,9 +59,6 @@ adapter_init(adapter_type* adapter)
         case ADAPTER_FILE:
             return adfile_init();
             break;
-        case ADAPTER_DNS:
-            return addns_init(adapter->configstr);
-            break;
         default:
             ods_log_error("[%s] unable to initialize adapter: "
                 "unknown adapter", adapter_str);
@@ -120,8 +117,7 @@ adapter_read(struct zone_struct* zone)
     ods_status status = ODS_STATUS_OK;
 
     if (!adzone || !adzone->adinbound) {
-        ods_log_error("[%s] unable to read zone: no input adapter",
-            adapter_str);
+        ods_log_error("[%s] unable to read zone: no input adapter", adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone);
@@ -133,12 +129,6 @@ adapter_read(struct zone_struct* zone)
             ods_log_verbose("[%s] read zone %s from file input adapter %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
             status = adfile_read(zone, adzone->adinbound->configstr);
-            return status;
-            break;
-        case ADAPTER_DNS:
-            ods_log_verbose("[%s] read zone %s from dns input adapter %s",
-                adapter_str, adzone->name, adzone->adinbound->configstr);
-            status = addns_read(zone, adzone->adinbound->configstr);
             return status;
             break;
         default:
@@ -164,28 +154,25 @@ adapter_write(struct zone_struct* zone)
     ods_status status = ODS_STATUS_OK;
 
     if (!adzone || !adzone->adoutbound) {
-        ods_log_error("[%s] unable to write zone: no output adapter",
-            adapter_str);
+        ods_log_error("[%s] unable to write zone: no output adapter", adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone);
     ods_log_assert(adzone->adoutbound);
     ods_log_assert(adzone->adoutbound->configstr);
+    if (!adzone->zonedata) {
+        ods_log_error("[%s] unable to write zone: no zone data", adapter_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(adzone->zonedata);
 
     switch(adzone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "
                 "adapter %s", adapter_str, adzone->name,
-                adzone->outbound_serial, adzone->adinbound->configstr);
-            status = adfile_write(zone, adzone->adoutbound->configstr);
-            return status;
-            break;
-        case ADAPTER_DNS:
-            ods_log_verbose("[%s] write zone %s serial %u to output dns "
-                "adapter %s", adapter_str, adzone->name,
-                adzone->outbound_serial,
+                adzone->zonedata->outbound_serial,
                 adzone->adinbound->configstr);
-            status = addns_write(zone, adzone->adoutbound->configstr);
+            status = adfile_write(zone, adzone->adoutbound->configstr);
             return status;
             break;
         default:

@@ -67,7 +67,7 @@ zone_compare(const void* a, const void* b)
         }
         return 1;
     }
-    return ldns_dname_compare(x->origin, y->origin);
+    return ldns_dname_compare(x->dname, y->dname);
 }
 
 
@@ -80,14 +80,14 @@ zonelist_create(allocator_type* allocator)
 {
     zonelist_type* zlist;
     if (!allocator) {
-        ods_log_error("[%s] unable to create: no allocator available", zl_str);
+        ods_log_error("[%s] cannot create: no allocator available", zl_str);
         return NULL;
     }
     ods_log_assert(allocator);
 
     zlist = (zonelist_type*) allocator_alloc(allocator, sizeof(zonelist_type));
     if (!zlist) {
-        ods_log_error("[%s] unable to create: allocator failed", zl_str);
+        ods_log_error("[%s] cannot create: allocator failed", zl_str);
         return NULL;
     }
     ods_log_assert(zlist);
@@ -120,6 +120,7 @@ zonelist_read(zonelist_type* zl, const char* zlfile)
             zlfile, ods_status2str(status));
         return status;
     }
+
     /* ok, parse it */
     return parse_zonelist_zones((struct zonelist_struct*) zl, zlfile);
 }
@@ -255,7 +256,7 @@ zonelist_del_zone(zonelist_type* zlist, zone_type* zone)
     ldns_rbnode_t* old_node = LDNS_RBTREE_NULL;
 
     if (!zone) {
-        ods_log_warning("[%s] unable to delete zone %s: zone is null", zl_str);
+        ods_log_warning("[%s] unable to delete zone: zone is null", zl_str);
         return NULL;
     }
     ods_log_assert(zone);
@@ -375,15 +376,15 @@ zonelist_update(zonelist_type* zl, const char* zlfile)
     char* datestamp = NULL;
     uint32_t ustamp = 0;
 
-    ods_log_verbose("[%s] update zone list", zl_str);
+    ods_log_debug("[%s] update zone list", zl_str);
     if (!zl|| !zl->zones) {
-        ods_log_error("[%s] unable to update: no zonelist storaga", zl_str);
+        ods_log_error("[%s] cannot update: no zonelist storaga", zl_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zl);
     ods_log_assert(zl->zones);
     if (!zlfile) {
-        ods_log_error("[%s] unable to update: no filename", zl_str);
+        ods_log_error("[%s] cannot update: no filename", zl_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zlfile);
@@ -393,7 +394,7 @@ zonelist_update(zonelist_type* zl, const char* zlfile)
     if (st_mtime <= zl->last_modified) {
         ustamp = time_datestamp(zl->last_modified,
             "%Y-%m-%d %T", &datestamp);
-        ods_log_verbose("[%s] zonelist file %s is unchanged since %s",
+        ods_log_debug("[%s] zonelist file %s is unchanged since %s",
             zl_str, zlfile, datestamp?datestamp:"Unknown");
         free((void*)datestamp);
         return ODS_STATUS_UNCHANGED;
@@ -402,14 +403,13 @@ zonelist_update(zonelist_type* zl, const char* zlfile)
     /* create new zonelist */
     tmp_alloc = allocator_create(malloc, free);
     if (!tmp_alloc) {
-        ods_log_error("[%s] unable to update: error creating allocator for "
-            "zone list", zl_str);
+        ods_log_error("[%s] error creating allocator for zone list",
+            zl_str);
         return ODS_STATUS_ERR;
     }
     new_zlist = zonelist_create(tmp_alloc);
     if (!new_zlist) {
-        ods_log_error("[%s] unable to update: error creating new zone list",
-            zl_str);
+        ods_log_error("[%s] error creating new zone list", zl_str);
         allocator_cleanup(tmp_alloc);
         return ODS_STATUS_ERR;
     }

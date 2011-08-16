@@ -36,10 +36,8 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/util.h"
-#include "signer/keys.h"
-#include "signer/rrset.h"
 #include "signer/rrsigs.h"
-#include "signer/zone.h"
+#include "signer/keys.h"
 
 #include <ldns/ldns.h>
 
@@ -51,30 +49,29 @@ static const char* rrsigs_str = "rrsig";
  *
  */
 rrsigs_type*
-rrsigs_create(void *rrset)
+rrsigs_create(void)
 {
+    allocator_type* allocator = NULL;
     rrsigs_type* rrsigs = NULL;
-    rrset_type* set = NULL;
-    zone_type* zone = NULL;
 
-    if (!rrset) {
-        ods_log_error("[%s] unable to create RRSIGs: no RRset", rrsigs_str);
+    allocator = allocator_create(malloc, free);
+    if (!allocator) {
+        ods_log_error("[%s] unable to create RRSIGs: create allocator "
+            "failed", rrsigs_str);
         return NULL;
     }
-    ods_log_assert(rrset);
+    ods_log_assert(allocator);
 
-    set = (rrset_type*) rrset;
-    zone = (zone_type*) set->zone;
-    rrsigs = (rrsigs_type*) allocator_alloc(zone->allocator,
-        sizeof(rrsigs_type));
+    rrsigs = (rrsigs_type*) allocator_alloc(allocator, sizeof(rrsigs_type));
     if (!rrsigs) {
         ods_log_error("[%s] unable to create RRSIGs: allocator failed",
             rrsigs_str);
+        allocator_cleanup(allocator);
         return NULL;
     }
     ods_log_assert(rrsigs);
 
-    rrsigs->rrset = rrset;
+    rrsigs->allocator = allocator;
     rrsigs->rr = NULL;
     rrsigs->key_locator = NULL;
     rrsigs->key_flags = 0;
@@ -88,38 +85,34 @@ rrsigs_create(void *rrset)
  *
  */
 ods_status
-rrsigs_add_sig(rrsigs_type* rrsigs, ods_rr* rr, const char* l, uint32_t f)
+rrsigs_add_sig(rrsigs_type* rrsigs, ldns_rr* rr, const char* l, uint32_t f)
 {
     int cmp;
     rrsigs_type* new_rrsigs = NULL;
     ldns_status status = LDNS_STATUS_OK;
-    rrset_type* set = NULL;
-    zone_type* zone = NULL;
 
     if (!rrsigs) {
         ods_log_error("[%s] unable to add RRSIG: no storage", rrsigs_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(rrsigs);
+
     if (!rr) {
         ods_log_error("[%s] unable to add RRSIG: no RRSIG RR", rrsigs_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(rr);
 
-    set = (rrset_type*) rrsigs->rrset;
-    zone = (zone_type*) set->zone;
-
     if (!rrsigs->rr) {
         rrsigs->rr = rr;
         if (l) {
-            rrsigs->key_locator = allocator_strdup(zone->allocator, l);
+            rrsigs->key_locator = allocator_strdup(rrsigs->allocator, l);
         }
         rrsigs->key_flags = f;
         return ODS_STATUS_OK;
     }
 
-    status = ods_dnssec_rrs_compare(rrsigs->rr, rr, LDNS_RR_TYPE_RRSIG, &cmp);
+    status = util_dnssec_rrs_compare(rrsigs->rr, rr, &cmp);
     if (status != LDNS_STATUS_OK) {
         return ODS_STATUS_ERR;
     }
@@ -127,11 +120,11 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ods_rr* rr, const char* l, uint32_t f)
         if (rrsigs->next) {
             return rrsigs_add_sig(rrsigs->next, rr, l, f);
         } else {
-            new_rrsigs = rrsigs_create(rrsigs->rrset);
+            new_rrsigs = rrsigs_create();
             new_rrsigs->rr = rr;
             if (l) {
                 new_rrsigs->key_locator = allocator_strdup(
-                    zone->allocator, l);
+                    rrsigs->allocator, l);
             }
             new_rrsigs->key_flags = f;
             rrsigs->next = new_rrsigs;
@@ -140,7 +133,7 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ods_rr* rr, const char* l, uint32_t f)
     } else if (cmp > 0) {
         /* put the current old rr in the new next, put the new
            rr in the current container */
-        new_rrsigs = rrsigs_create(rrsigs->rrset);
+        new_rrsigs = rrsigs_create();
         new_rrsigs->rr = rrsigs->rr;
         new_rrsigs->key_locator = rrsigs->key_locator;
         new_rrsigs->key_flags = rrsigs->key_flags;
@@ -149,7 +142,7 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ods_rr* rr, const char* l, uint32_t f)
         rrsigs->rr = rr;
         rrsigs->next = new_rrsigs;
         if (l) {
-            rrsigs->key_locator = allocator_strdup(zone->allocator, l);
+            rrsigs->key_locator = allocator_strdup(rrsigs->allocator, l);
         }
         rrsigs->key_flags = f;
         return ODS_STATUS_OK;
@@ -170,9 +163,7 @@ rrsigs_add_sig(rrsigs_type* rrsigs, ods_rr* rr, const char* l, uint32_t f)
 void
 rrsigs_cleanup(rrsigs_type* rrsigs)
 {
-    rrset_type* set = NULL;
-    zone_type* zone = NULL;
-
+    allocator_type* allocator;
     if (!rrsigs) {
         return;
     }
@@ -181,14 +172,13 @@ rrsigs_cleanup(rrsigs_type* rrsigs)
         rrsigs->next = NULL;
     }
     if (rrsigs->rr) {
-        ods_rr_free(rrsigs->rr);
+        ldns_rr_free(rrsigs->rr);
         rrsigs->rr = NULL;
     }
-    set = (rrset_type*) rrsigs->rrset;
-    zone = (zone_type*) set->zone;
-
-    allocator_deallocate(zone->allocator, (void*) rrsigs->key_locator);
-    allocator_deallocate(zone->allocator, (void*) rrsigs);
+    allocator = rrsigs->allocator;
+    allocator_deallocate(allocator, (void*) rrsigs->key_locator);
+    allocator_deallocate(allocator, (void*) rrsigs);
+    allocator_cleanup(allocator);
     return;
 }
 
@@ -201,20 +191,12 @@ void
 rrsigs_print(FILE* fd, rrsigs_type* rrsigs, int print_key)
 {
     rrsigs_type* print = NULL;
-    rrset_type* set = NULL;
-    zone_type* zone = NULL;
 
     if (!fd) {
         ods_log_error("[%s] unable to print: no fd", rrsigs_str);
         return;
     }
     ods_log_assert(fd);
-    if (!rrsigs) {
-        return;
-    }
-
-    set = (rrset_type*) rrsigs->rrset;
-    zone = (zone_type*) set->zone;
 
     print = rrsigs;
     while (print) {
@@ -224,8 +206,7 @@ rrsigs_print(FILE* fd, rrsigs_type* rrsigs, int print_key)
                 rrsigs->key_flags);
         }
         if (print->rr) {
-            ods_rr_print(fd, set->owner, set->ttl, zone->klass,
-                LDNS_RR_TYPE_RRSIG, print->rr);
+            ldns_rr_print(fd, print->rr);
         }
         print = print->next;
     }

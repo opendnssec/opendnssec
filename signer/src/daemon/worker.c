@@ -43,6 +43,7 @@
 #include "shared/util.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
+#include "signer/zonedata.h"
 
 #include <time.h> /* time() */
 
@@ -166,7 +167,7 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]] load signconf for zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-            status = zone_load_signconf(zone);
+            status = zone_load_signconf(zone, &what);
             if (status == ODS_STATUS_UNCHANGED) {
                 if (!zone->signconf->last_modified) {
                     ods_log_debug("[%s[%i]] no signconf.xml for zone %s yet",
@@ -177,7 +178,6 @@ worker_perform_task(worker_type* worker)
             }
 
             /* what to do next */
-            what = TASK_READ;
             when = time_now();
             if (status == ODS_STATUS_UNCHANGED) {
                 if (task->halted != TASK_NONE) {
@@ -192,6 +192,9 @@ worker_perform_task(worker_type* worker)
             }
             if (status == ODS_STATUS_OK) {
                 status = zone_prepare_nsec3(zone, 0);
+            }
+            if (status == ODS_STATUS_OK) {
+                status = zonedata_commit(zone->zonedata);
             }
 
             if (status == ODS_STATUS_OK) {
@@ -250,7 +253,7 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]] sign zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-            tmpserial = zone->internal_serial;
+            tmpserial = zone->zonedata->internal_serial;
             status = zone_update_serial(zone);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s[%i]] unable to sign zone %s: "
@@ -273,7 +276,7 @@ worker_perform_task(worker_type* worker)
                 }
 
                 /* queue menial, hard signing work */
-                status = zonedata_queue(zone, engine->signq, worker);
+                status = zonedata_queue(zone->zonedata, engine->signq, worker);
                 ods_log_debug("[%s[%i]] wait until drudgers are finished "
                     " signing zone %s, %u signatures queued",
                     worker2str(worker->type), worker->thread_num,
@@ -311,7 +314,7 @@ worker_perform_task(worker_type* worker)
             /* what to do next */
             if (status != ODS_STATUS_OK) {
                 /* rollback serial */
-                zone->internal_serial = tmpserial;
+                zone->zonedata->internal_serial = tmpserial;
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
@@ -602,12 +605,12 @@ worker_drudge(worker_type* worker)
             if (zone && ctx) {
                 ods_log_assert(rrset);
                 ods_log_assert(zone);
-                ods_log_assert(zone->origin);
+                ods_log_assert(zone->dname);
                 ods_log_assert(zone->signconf);
                 ods_log_assert(ctx);
 
                 worker->clock_in = time(NULL);
-                status = rrset_sign(ctx, rrset, zone->origin, zone->signconf,
+                status = rrset_sign(ctx, rrset, zone->dname, zone->signconf,
                     chief->clock_in, zone->stats);
             } else {
                 status = ODS_STATUS_ASSERT_ERR;

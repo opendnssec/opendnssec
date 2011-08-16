@@ -95,6 +95,7 @@ cmdhandler_handle_cmd_help(int sockfd)
         "update <zone>   update this zone signer configurations.\n"
         "update [--all]  update zone list and all signer configurations.\n"
         "start           start the engine.\n"
+        "running         check if the engine is running.\n"
         "reload          reload the engine.\n"
         "stop            stop the engine.\n"
         "verbosity <nr>  set verbosity.\n"
@@ -392,6 +393,9 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
     task_type* task = NULL;
+    uint32_t inbound_serial = 0;
+    uint32_t internal_serial = 0;
+    uint32_t outbound_serial = 0;
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(tbd);
@@ -410,12 +414,16 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     if (zone) {
         /* [LOCK] zone */
         lock_basic_lock(&zone->zone_lock);
-
-        /* TODO: IXFR consequences */
-        zone_cleanup_domains(zone);
-        zone_cleanup_denials(zone);
-        zone_init_domains(zone);
-        zone_init_denials(zone);
+        inbound_serial = zone->zonedata->inbound_serial;
+        internal_serial = zone->zonedata->internal_serial;
+        outbound_serial = zone->zonedata->outbound_serial;
+        zonedata_cleanup(zone->zonedata);
+        zone->zonedata = NULL;
+        zone->zonedata = zonedata_create(zone->allocator);
+        zone->zonedata->initialized = 1;
+        zone->zonedata->inbound_serial = inbound_serial;
+        zone->zonedata->internal_serial = internal_serial;
+        zone->zonedata->outbound_serial = outbound_serial;
 
         status = zone_publish_dnskeys(zone, 1);
         if (status == ODS_STATUS_OK) {
@@ -425,7 +433,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
                 " reloading signconf", cmdh_str, zone->name);
         }
         if (status == ODS_STATUS_OK) {
-            status = zonedata_commit(zone);
+            status = zonedata_commit(zone->zonedata);
         } else {
             ods_log_warning("[%s] unable to restore NSEC3PARAM RRset for "
                 " zone %s d1reloading signconf", cmdh_str, zone->name);
@@ -719,7 +727,7 @@ again:
         if (n <= 0) {
             return;
         }
-        ods_log_info("[%s] received command %s[%i]", cmdh_str, buf, n);
+        ods_log_verbose("[%s] received command %s[%i]", cmdh_str, buf, n);
 
         if (n == 4 && strncmp(buf, "help", n) == 0) {
             ods_log_debug("[%s] help command", cmdh_str);
@@ -845,13 +853,13 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     int ret = 0;
 
     if (!allocator) {
-        ods_log_error("[%s] unable to create: no allocator");
+        ods_log_error("[%s] unable to create: no allocator", cmdh_str);
         return NULL;
     }
     ods_log_assert(allocator);
 
     if (!filename) {
-        ods_log_error("[%s] unable to create: no socket filename");
+        ods_log_error("[%s] unable to create: no socket filename", cmdh_str);
         return NULL;
     }
     ods_log_assert(filename);

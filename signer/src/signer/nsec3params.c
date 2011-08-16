@@ -32,9 +32,9 @@
  */
 
 #include "shared/allocator.h"
-#include "shared/backup.h"
 #include "shared/log.h"
 #include "shared/status.h"
+#include "signer/backup.h"
 #include "signer/nsec3params.h"
 
 #include <ctype.h>

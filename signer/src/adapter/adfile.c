@@ -272,13 +272,8 @@ adfile_read_file(FILE* fd, zone_type* zone)
         if (result != ODS_STATUS_OK) {
             ods_log_error("[%s] error adding RR at line %i: %s",
                 adapter_str, l, line);
-            ldns_rr_free(rr);
-            rr = NULL;
             break;
         }
-
-        ldns_rr_free(rr);
-        rr = NULL;
     }
 
     /* and done */

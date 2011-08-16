@@ -72,7 +72,7 @@ struct domain_struct {
     /* General domain info */
     ldns_rdf* dname;
     domain_status dstatus;
-    void* zone;
+    allocator_type* allocator;
 
     /* Family */
     domain_type* parent;
@@ -86,14 +86,48 @@ struct domain_struct {
 
 /**
  * Create empty domain.
- * \param[in] allocator zone memory allocator
  * \param[in] dname owner name
- * \param[in] zone pointer to zone structure
  * \return domain_type* empty domain
  *
  */
-domain_type* domain_create(allocator_type* allocator, ldns_rdf* dname,
-    void* zone);
+domain_type* domain_create(ldns_rdf* dname);
+
+/**
+ * Recover domain from backup.
+ * \param[in] domain domain
+ * \param[in] fd backup file descriptor
+ * \param[in] dstatus domain status
+ * \return ods_status status
+ *
+ */
+ods_status domain_recover(domain_type* domain, FILE* fd,
+    domain_status dstatus);
+
+/**
+ * Recover RR from backup.
+ * \param[in] domain domain
+ * \param[in] rr RR
+ * \return int 0 on success, 1 on error
+ *
+ */
+/*
+int domain_recover_rr_from_backup(domain_type* domain, ldns_rr* rr);
+*/
+
+/**
+ * Recover RRSIG from backup.
+ * \param[in] domain domain
+ * \param[in] rrsig RRSIG
+ * \param[in] type_covered RRtype that is covered by rrsig
+ * \param[in] locator key locator
+ * \param[in] flags key flags
+ * \return int 0 on success, 1 on error
+ *
+ */
+/*
+int domain_recover_rrsig_from_backup(domain_type* domain, ldns_rr* rrsig,
+    ldns_rr_type type_covered, const char* locator, uint32_t flags);
+*/
 
 /**
  * Count the number of RRsets at this domain.
@@ -232,5 +266,13 @@ void domain_cleanup(domain_type* domain);
  *
  */
 void domain_print(FILE* fd, domain_type* domain);
+
+/**
+ * Backup domain.
+ * \param[in] fd file descriptor
+ * \param[in] domain domain
+ *
+ */
+void domain_backup(FILE* fd, domain_type* domain);
 
 #endif /* SIGNER_DOMAIN_H */

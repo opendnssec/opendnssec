@@ -139,45 +139,6 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     return ODS_STATUS_OK;
 }
 
-
-/**
- * Parse adapter.
- *
- */
-static adapter_type*
-parse_conf_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr, char* type)
-{
-    xmlXPathObjectPtr xpathObj = NULL;
-    adapter_type* adapter = NULL;
-    const char* str = NULL;
-
-    if (!xpathCtx || !expr || !type) {
-        return NULL;
-    }
-
-    xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
-    if (xpathObj == NULL) {
-        ods_log_error("[%s] unable to parse %s adapter: evaluate xpath "
-            "expression %s failed",
-            parser_str, type, expr);
-        return NULL;
-    }
-
-    str = (const char*) xmlXPathCastToString(xpathObj);
-
-    if (ods_strcmp(type, "DNS") == 0) {
-        adapter = adapter_create(str, ADAPTER_DNS, 1);
-    } else if (ods_strcmp(type, "File") == 0) {
-        adapter = adapter_create(str, ADAPTER_FILE, 1);
-    } else {
-        ods_log_error("[%s] unable to parse %s adapter: unknown type",
-            parser_str, type);
-    }
-    xmlXPathFreeObject(xpathObj);
-    return adapter;
-}
-
-
 /* TODO: look how the enforcer reads this now */
 
 
@@ -190,19 +151,15 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
     int* count)
 {
     char* tag_name = NULL;
-    char* ad_type = NULL;
     adapter_type** adapters = NULL;
     int ret = 0;
-    int error = 0;
-    size_t i = 0;
     size_t adcount = 0;
 
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
 
-    xmlChar* type_expr = (unsigned char*) "type";
-    xmlChar* expr = (unsigned char*) "//Adapter";
+    xmlChar* expr = (xmlChar*) "//Adapter";
 
     ods_log_assert(allocator);
     ods_log_assert(cfgfile);
@@ -224,6 +181,7 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
         }
 
         tag_name = (char*) xmlTextReaderLocalName(reader);
+
         /* This assumes that there is no other <Adapters> element in
          * conf.xml
          */
@@ -231,18 +189,6 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
             ods_strcmp(tag_name, "Adapters") != 0 &&
             xmlTextReaderNodeType(reader) == XML_READER_TYPE_ELEMENT) {
             /* Found an adapter */
-            ad_type = (char*) xmlTextReaderGetAttribute(reader, type_expr);
-            if (!ad_type || strlen(ad_type) <= 0) {
-                ods_log_error("[%s] unable to extract adapter type from "
-                    "configuration, aborting", parser_str);
-                if (ad_type) {
-                    free((void*) ad_type);
-                }
-                free((void*) tag_name);
-                ret = xmlTextReaderRead(reader);
-                error = 1;
-                break;
-            }
 
             /* Expand this node to get the rest of the info */
             xmlTextReaderExpand(reader);
@@ -251,33 +197,16 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
                 xpathCtx = xmlXPathNewContext(doc);
             }
             if (doc == NULL || xpathCtx == NULL) {
-                ods_log_error("[%s] unable to read adapter: aborting",
+                ods_log_error("[%s] unable to read adapter; skipping",
                     parser_str);
                 ret = xmlTextReaderRead(reader);
-                free((void*) ad_type);
                 free((void*) tag_name);
-                if (xpathCtx) {
-                    xmlXPathFreeContext(xpathCtx);
-                }
-                error = 1;
-                break;
+                continue;
             }
-            /* That worked, now read out the contents... */
-            adapters[adcount] = parse_conf_adapter(xpathCtx, expr, ad_type);
-            if (!adapters[adcount]) {
-                ods_log_error("[%s] unable to parse adapter: aborting",
-                    parser_str);
-                ret = xmlTextReaderRead(reader);
-                free((void*) ad_type);
-                free((void*) tag_name);
-                xmlXPathFreeContext(xpathCtx);
-                error = 1;
-                break;
-            }
-
+            /* That worked, reuse the parse_zonelist_adapter() function */
+            adapters[adcount] = parse_zonelist_adapter(xpathCtx, expr, 1);
             adcount++;
             ods_log_debug("[%s] adapter added", parser_str);
-            free((void*) ad_type);
             xmlXPathFreeContext(xpathCtx);
         }
         free((void*) tag_name);
@@ -290,12 +219,8 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
     if (doc) {
         xmlFreeDoc(doc);
     }
-    if (ret != 0 || error == 1) {
+    if (ret != 0) {
         ods_log_error("[%s] error parsing file %s", parser_str, cfgfile);
-        for (i = 0; i < adcount; i++) {
-            adapter_cleanup(adapters[i]);
-        }
-        allocator_deallocate(allocator, (void*) adapters);
         return NULL;
     }
     *count = (int) adcount;

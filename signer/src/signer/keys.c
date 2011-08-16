@@ -32,10 +32,10 @@
  */
 
 #include "shared/allocator.h"
-#include "shared/backup.h"
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
+#include "signer/backup.h"
 #include "signer/keys.h"
 
 static const char* key_str = "keys";
@@ -455,7 +455,10 @@ key_delfunc(key_type* key)
     if (!key) {
         return;
     }
-    key->dnskey = NULL;
+    if (key->dnskey) {
+        ldns_rr_free(key->dnskey);
+        key->dnskey = NULL;
+    }
     if (key->hsmkey) {
         hsm_key_free(key->hsmkey);
         key->hsmkey = NULL;

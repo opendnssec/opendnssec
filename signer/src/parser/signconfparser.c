@@ -315,7 +315,6 @@ parse_sc_nsec_type(const char* cfgfile)
         free((void*)str);
         return LDNS_RR_TYPE_NSEC3;
     }
-
     str = parse_conf_string(cfgfile,
         "//SignerConfiguration/Zone/Denial/NSEC",
         0);
@@ -323,7 +322,6 @@ parse_sc_nsec_type(const char* cfgfile)
         free((void*)str);
         return LDNS_RR_TYPE_NSEC;
     }
-
     return LDNS_RR_TYPE_FIRST;
 }
 
