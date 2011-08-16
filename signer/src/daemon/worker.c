@@ -198,6 +198,7 @@ worker_perform_task(worker_type* worker)
             }
 
             if (status == ODS_STATUS_OK) {
+                zone->prepared = 1;
                 task->interrupt = TASK_NONE;
                 task->halted = TASK_NONE;
             } else {
@@ -214,7 +215,14 @@ worker_perform_task(worker_type* worker)
             ods_log_verbose("[%s[%i]] read zone %s",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task->who));
-            status = tools_input(zone);
+            if (!zone->prepared) {
+                ods_log_debug("[%s[%i]] no valid signconf.xml for zone %s yet",
+                    worker2str(worker->type), worker->thread_num,
+                    task_who2str(task->who));
+                status = ODS_STATUS_ERR;
+            } else {
+                status = tools_input(zone);
+            }
 
             /* what to do next */
             what = TASK_NSECIFY;
