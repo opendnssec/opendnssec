@@ -232,6 +232,7 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
                 free((void*) tag_name);
                 if (xpathCtx) {
                     xmlXPathFreeContext(xpathCtx);
+                    xpathCtx = NULL;
                 }
                 continue;
             }
