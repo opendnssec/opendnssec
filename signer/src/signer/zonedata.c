@@ -1277,7 +1277,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         soa = zd->inbound_serial;
         if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
             ods_log_error("[%s] cannot keep SOA SERIAL from input zone "
-                " (%u): output SOA SERIAL is %u", zd_str, soa, prev);
+                " (%u): previous output SOA SERIAL is %u", zd_str, soa, prev);
             return ODS_STATUS_CONFLICT_ERR;
         }
     } else {
