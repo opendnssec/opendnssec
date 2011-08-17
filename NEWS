@@ -13,7 +13,6 @@ Bugfixes:
   on NSEC(3) RRs and the denial validity on other RRs.
 * Signer Engine: An update command could interrupt the signing process and the
   zone would get missing signatures.
-* Signer Engine: Entered a deadlock if it was stopped while signing.
 * Zonefetcher: Check inbound serial in transferred file, to prevent
   redundant zone transfers.
 
