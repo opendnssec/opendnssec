@@ -291,12 +291,20 @@ worker_perform_task(worker_type* worker)
                     task_who2str(task->who), worker->jobs_appointed);
 
                 /* sleep until work is done */
-                worker_sleep_unless(worker, 0);
-                if (worker->jobs_failed > 0) {
+                if (!worker->need_to_exit) {
+                    worker_sleep_unless(worker, 0);
+                }
+                if (worker->jobs_failed) {
                     ods_log_error("[%s[%i]] sign zone %s failed: %u of %u "
                         "signatures failed", worker2str(worker->type),
                         worker->thread_num, task_who2str(task->who),
                         worker->jobs_failed, worker->jobs_appointed);
+                    status = ODS_STATUS_ERR;
+                } else if (!worker_fulfilled(worker)) {
+                    ods_log_error("[%s[%i]] sign zone %s failed: %u of %u "
+                        "signatures completed", worker2str(worker->type),
+                        worker->thread_num, task_who2str(task->who),
+                        worker->jobs_completed, worker->jobs_appointed);
                     status = ODS_STATUS_ERR;
                 } else {
                     ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u "
@@ -592,6 +600,9 @@ worker_drudge(worker_type* worker)
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
+        chief = NULL;
+        zone = NULL;
+        task = NULL;
 
         lock_basic_lock(&worker->engine->signq->q_lock);
         /* [LOCK] schedule */
@@ -639,18 +650,22 @@ worker_drudge(worker_type* worker)
                         worker2str(worker->type), worker->thread_num,
                         chief->thread_num);
                     worker_wakeup(chief);
+                    chief = NULL;
                 }
             }
             rrset = NULL;
-            zone = NULL;
-            task = NULL;
-            chief = NULL;
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
             worker_wait(&worker->engine->signq->q_lock,
                 &worker->engine->signq->q_threshold);
         }
+    }
+    /* wake up chief */
+    if (chief && chief->sleeping) {
+        ods_log_debug("[%s[%i]] wake up chief[%u], i am exiting",
+            worker2str(worker->type), worker->thread_num, chief->thread_num);
+         worker_wakeup(chief);
     }
 
     /* cleanup open HSM sessions */
@@ -712,7 +727,7 @@ worker_sleep_unless(worker_type* worker, time_t timeout)
     ods_log_assert(worker);
     lock_basic_lock(&worker->worker_lock);
     /* [LOCK] worker */
-    while (!worker_fulfilled(worker)) {
+    while (!worker->need_to_exit && !worker_fulfilled(worker)) {
         worker->sleeping = 1;
         lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
             timeout);
