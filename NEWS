@@ -3,15 +3,19 @@ $Id$
 OpenDNSSEC 1.3.1 -
 
 Bugfixes:
+* Auditor: Fix 'ZSK in use too long' message to handle new signer behaviour.
 * Bugfix #255: RHEL6 patch to contrib/opendnssec.spec. (Rick van Rein)
 * Bugfix #256: Make sure argument in "ods-control signer" is not stripped off.
+* Bugfix #259: ods-ksmutil: Prevent MySQL username or password being interpreted
+  by the shell when running "ods-ksmutil setup".
+* Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
 * Signer Engine: A threading issue occasionally puts the default validity
   on NSEC(3) RRs and the denial validity on other RRs.
+* Signer Engine: An update command could interrupt the signing process and the
+  zone would get missing signatures.
+* Signer Engine: Entered a deadlock if it was stopped while signing.
 * Zonefetcher: Check inbound serial in transferred file, to prevent
   redundant zone transfers.
-* Bugfix #259: ods-ksmutil: Prevent MySQL username or password being interpreted
-  by the shell when running "ods-ksmutil setup"
-* Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
 
 
 OpenDNSSEC 1.3.0 - 2011-07-12
