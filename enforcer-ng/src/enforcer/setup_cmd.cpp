@@ -15,6 +15,7 @@ extern "C" {
 
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/str.h"
 #include "daemon/engine.h"
 }
 
@@ -45,18 +46,12 @@ int handled_setup_cmd(int sockfd, engine_type* engine,
 {
     char buf[ODS_SE_MAXLINE];
     const char *scmd = "setup";
-    ssize_t ncmd = strlen(scmd);
 
-    if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
+    cmd = ods_check_command(cmd,n,scmd);
+    if (!cmd)
+        return 0; // not handled
+    
     ods_log_debug("[%s] %s command", module_str, scmd);
-
-    if (cmd[ncmd] == '\0') {
-        cmd = "";
-    } else if (cmd[ncmd] != ' ') {
-        return 0;
-    } else {
-        cmd = &cmd[ncmd+1];
-    }
 
     time_t tstart = time(NULL);
 

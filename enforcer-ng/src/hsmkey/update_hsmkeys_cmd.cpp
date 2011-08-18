@@ -11,6 +11,7 @@ extern "C" {
 #include "hsmkey/update_hsmkeys_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/str.h"
 #include "daemon/engine.h"
 }
 
@@ -26,6 +27,7 @@ void help_update_hsmkeys_cmd(int sockfd)
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "update hsmkeys  import the keys found in all configured HSMs\n"
         "                into the database.\n"
+        "  --task        schedule command to run once as a separate task.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -39,16 +41,11 @@ int handled_update_hsmkeys_cmd(int sockfd, engine_type* engine, const char *cmd,
     const char *scmd = "update hsmkeys";
     ssize_t ncmd = strlen(scmd);
     
-    if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
-    ods_log_debug("[%s] %s command", module_str, scmd);
+    cmd = ods_check_command(cmd,n,scmd);
+    if (!cmd)
+        return 0; // not handled
     
-    if (cmd[ncmd] == '\0') {
-        cmd = "";
-    } else if (cmd[ncmd] != ' ') {
-        return 0;
-    } else {
-        cmd = &cmd[ncmd+1];
-    }
+    ods_log_debug("[%s] %s command", module_str, scmd);
     
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
@@ -70,6 +67,7 @@ int handled_update_hsmkeys_cmd(int sockfd, engine_type* engine, const char *cmd,
             }
         }
     } else {
+        /* perform task immediately */
         time_t tstart = time(NULL);
         perform_update_hsmkeys(sockfd,engine->config);
         (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",

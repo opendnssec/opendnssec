@@ -93,21 +93,3 @@ perform_zone_list(int sockfd, engineconfig_type *config)
     delete keystateDoc;
     ods_log_debug("[%s] zone list completed", module_str);
 }
-
-static task_type * 
-zone_list_task_perform(task_type *task)
-{
-    perform_zone_list(-1,(engineconfig_type *)task->context);
-    
-    task_cleanup(task);
-    return NULL;
-}
-
-task_type *
-zone_list_task(engineconfig_type *config)
-{
-    task_id what = task_register("zone list",
-                                 "zone_list_task_perform", 
-                                 zone_list_task_perform);
-	return task_create(what, time_now(), "all",(void*)config);
-}

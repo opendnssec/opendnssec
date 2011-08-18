@@ -9,6 +9,7 @@ extern "C" {
 #include "keystate/update_keyzones_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/str.h"
 #include "daemon/engine.h"
 }
 
@@ -23,6 +24,7 @@ void help_update_keyzones_cmd(int sockfd)
     char buf[ODS_SE_MAXLINE];
     snprintf(buf, ODS_SE_MAXLINE,
              "update zonelist update zonelist by importing zonelist.xml\n"
+             "  --task        schedule command to run once as a separate task.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -34,19 +36,13 @@ int handled_update_keyzones_cmd(int sockfd, engine_type* engine, const char *cmd
     task_type *task;
     ods_status status;
     const char *scmd = "update zonelist";
-    ssize_t ncmd = strlen(scmd);
+
+    cmd = ods_check_command(cmd,n,scmd);
+    if (!cmd)
+        return 0; // not handled
     
-    if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
-    ods_log_debug("[%s] %s command", module_str,scmd);
-    
-    if (cmd[ncmd] == '\0') {
-        cmd = "";
-    } else if (cmd[ncmd] != ' ') {
-        return 0;
-    } else {
-        cmd = &cmd[ncmd+1];
-    }
-    
+    ods_log_debug("[%s] %s command", module_str, scmd);
+
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
         task = update_keyzones_task(engine->config,scmd);
@@ -68,6 +64,7 @@ int handled_update_keyzones_cmd(int sockfd, engine_type* engine, const char *cmd
             }
         }
     } else {
+        /* perform task immediately */
         time_t tstart = time(NULL);
         perform_update_keyzones(sockfd,engine->config);
         (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",

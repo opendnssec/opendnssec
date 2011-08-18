@@ -76,21 +76,3 @@ perform_policy_list(int sockfd, engineconfig_type *config)
     
     ods_log_debug("[%s] policy list completed", module_str);
 }
-
-static task_type * 
-policy_list_task_perform(task_type *task)
-{
-    perform_policy_list(-1,(engineconfig_type *)task->context);
-    
-    task_cleanup(task);
-    return NULL;
-}
-
-task_type *
-policy_list_task(engineconfig_type *config, const char *shortname)
-{
-    task_id what = task_register(shortname,
-                                 "policy_list_task_perform", 
-                                 policy_list_task_perform);
-	return task_create(what, time_now(), "all",(void*)config);
-}

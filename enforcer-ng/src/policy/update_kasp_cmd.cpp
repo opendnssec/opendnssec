@@ -11,16 +11,18 @@ extern "C" {
 #include "policy/update_kasp_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/str.h"
 #include "daemon/engine.h"
 }
 
-static const char *update_kasp_cmd_str = "update_kasp_cmd";
+static const char *module_str = "update_kasp_cmd";
 
 void help_update_kasp_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "update kasp     import policies from kasp.xml into the enforcer.\n"
+        "  --task        schedule command to run once as a separate task.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -32,29 +34,24 @@ int handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
     task_type *task;
     ods_status status;
     const char *scmd = "update kasp";
-    ssize_t ncmd = strlen(scmd);
+
+    cmd = ods_check_command(cmd,n,scmd);
+    if (!cmd)
+        return 0; // not handled
     
-    if (n < ncmd || strncmp(cmd,scmd, ncmd) != 0) return 0;
-    ods_log_debug("[%s] %s command", update_kasp_cmd_str, scmd);
-    if (cmd[ncmd] == '\0') {
-        cmd = "";
-    } else if (cmd[ncmd] != ' ') {
-        return 0;
-    } else {
-        cmd = &cmd[ncmd+1];
-    }
-    
+    ods_log_debug("[%s] %s command", module_str, scmd);
+
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
         task = update_kasp_task(engine->config);
         if (!task) {
             ods_log_crit("[%s] failed to create %s task",
-                         update_kasp_cmd_str,scmd);
+                         module_str,scmd);
         } else {
             status = schedule_task_from_thread(engine->taskq, task, 0);
             if (status != ODS_STATUS_OK) {
                 ods_log_crit("[%s] failed to create %s task",
-                             update_kasp_cmd_str,scmd);
+                             module_str,scmd);
                 
                 (void)snprintf(buf, ODS_SE_MAXLINE, 
                                "Unable to schedule %s task.\n",scmd);
@@ -66,13 +63,12 @@ int handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
             }
         }
     } else {
-        /* perform the task directly, giving it the chance to 
-         * report back any results directly via sockfd.
-         */
+        /* perform task immediately */
+        time_t tstart = time(NULL);
         perform_update_kasp(sockfd, engine->config);
-        (void)snprintf(buf, ODS_SE_MAXLINE, "%s complete.\n",scmd);
+        (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
+                       scmd,time(NULL)-tstart);
         ods_writen(sockfd, buf, strlen(buf));
-        
     }
     return 1;
 }

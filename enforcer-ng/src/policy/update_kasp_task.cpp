@@ -14,7 +14,7 @@ extern "C" {
 
 #include <fcntl.h>
 
-static const char *update_kasp_task_str = "update_kasp_task";
+static const char *module_str = "update_kasp_task";
 
 void 
 perform_update_kasp(int sockfd, engineconfig_type *config)
@@ -38,7 +38,7 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
                     int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
                     if (doc->SerializeToFileDescriptor(fd)) {
                         ods_log_debug("[%s] policies have been imported", 
-                                      update_kasp_task_str);
+                                      module_str);
                     } else {
                         (void)snprintf(buf, ODS_SE_MAXLINE, "error: policies"
                                        " file could not be written.\n");

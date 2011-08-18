@@ -19,8 +19,8 @@ void help_keystate_export_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key export        export all the keys used by a zone\n"
-        "  --zone <zone>   (aka -z) export for the specified zone.\n"
+        "key export      export all the keys used by a zone\n"
+        "  --zone <zone> (aka -z) export for the specified zone.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -72,8 +72,7 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd
         return 1; // errors, but handled
     }
     
-    /* perform task directly */
-    time_t tstart = time(NULL);
+    /* perform task immediately */
     perform_keystate_export(sockfd,engine->config,zone);
     return 1;
 }

@@ -6,6 +6,4 @@
 
 void perform_policy_list(int sockfd, engineconfig_type *config);
 
-task_type *policy_list_task(engineconfig_type *config, const char *shortname);
-
 #endif

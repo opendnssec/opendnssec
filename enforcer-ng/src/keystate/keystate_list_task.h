@@ -6,8 +6,4 @@
 
 void perform_keystate_list(int sockfd, engineconfig_type *config,int bverbose);
 
-#if 0
-task_type *keystate_list_task(engineconfig_type *config, const char *shortname);
-#endif
-
 #endif

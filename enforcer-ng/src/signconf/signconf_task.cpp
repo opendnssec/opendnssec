@@ -17,7 +17,7 @@ extern "C" {
 
 
 
-static const char *signconf_task_str = "signconf_task";
+static const char *module_str = "signconf_task";
 
 void WriteSignConf(const std::string &path, ::ods::signconf::SignerConfigurationDocument *doc)
 {
@@ -53,10 +53,10 @@ perform_signconf(int sockfd, engineconfig_type *config)
         int fd = open(policypb.c_str(),O_RDONLY);
         if (kaspDoc->ParseFromFileDescriptor(fd)) {
             ods_log_debug("[%s] policies have been loaded", 
-                          signconf_task_str);
+                          module_str);
         } else {
             ods_log_error("[%s] policies could not be loaded from \"%s\"", 
-                          signconf_task_str,policypb.c_str());
+                          module_str,policypb.c_str());
             bFailedToLoad = true;
         }
         close(fd);
@@ -70,10 +70,10 @@ perform_signconf(int sockfd, engineconfig_type *config)
         int fd = open(keystatepb.c_str(),O_RDONLY);
         if (keystateDoc->ParseFromFileDescriptor(fd)) {
             ods_log_debug("[%s] keystates have been loaded", 
-                          signconf_task_str);
+                          module_str);
         } else {
             ods_log_error("[%s] keystates could not be loaded from \"%s\"", 
-                          signconf_task_str,keystatepb.c_str());
+                          module_str,keystatepb.c_str());
             bFailedToLoad = true;
         }
         close(fd);
@@ -83,7 +83,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
         delete kaspDoc;
         delete keystateDoc;
         ods_log_error("[%s] unable to continue", 
-                      signconf_task_str);
+                      module_str);
         return ;
     }
         
@@ -108,7 +108,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
             if (kasp.policies(p).name() == ks_zone.policy()) {
                 policy = &kasp.policies(p);
                 ods_log_debug("[%s] policy %s found for zone %s", 
-                              signconf_task_str,policy->name().c_str(),
+                              module_str,policy->name().c_str(),
                               ks_zone.name().c_str());
                 break;
             }
@@ -116,10 +116,10 @@ perform_signconf(int sockfd, engineconfig_type *config)
         
         if (policy == NULL) {
             ods_log_error("[%s] policy %s could not be found for zone %s", 
-                          signconf_task_str,ks_zone.policy().c_str(),
+                          module_str,ks_zone.policy().c_str(),
                           ks_zone.name().c_str());
             ods_log_error("[%s] unable to enforce zone %s", 
-                          signconf_task_str,ks_zone.name().c_str());
+                          module_str,ks_zone.name().c_str());
             continue;
         }
 
@@ -144,14 +144,14 @@ perform_signconf(int sockfd, engineconfig_type *config)
         
         if (kp_denial.has_nsec() && kp_denial.has_nsec3()) {
             ods_log_error("[%s] policy %s contains both NSEC and NSEC3 in Denial for zone %s", 
-                          signconf_task_str,ks_zone.policy().c_str(),
+                          module_str,ks_zone.policy().c_str(),
                           ks_zone.name().c_str());
             // skip to the next zone.
             continue;
         } else {
             if (!kp_denial.has_nsec() && !kp_denial.has_nsec3()) {
                 ods_log_error("[%s] policy %s does not contains NSEC or NSEC3 in Denial for zone %s", 
-                              signconf_task_str,ks_zone.policy().c_str(),
+                              module_str,ks_zone.policy().c_str(),
                               ks_zone.name().c_str());
                 // skip to the next zone.
                 continue;

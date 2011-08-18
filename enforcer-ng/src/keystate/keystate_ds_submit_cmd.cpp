@@ -26,8 +26,9 @@ void help_keystate_ds_submit_cmd(int sockfd)
         "key ds-submit   show ds-submit flag for all keys.\n"
         "  --zone <zone> (aka -z) perform submit for KSK key of zone <zone>.\n"
         "  --id <id>     (aka -k) perform submit for key with id <id>.\n"
-        "  --auto        (aka -a) preform submit for all keys that actually "
+        "  --auto        (aka -a) perform submit for all keys that actually "
                         "need it.\n"
+        "  --task        (aka -t) schedule command to run once as a separate task.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -110,7 +111,7 @@ int handled_keystate_ds_submit_cmd(int sockfd, engine_type* engine,
             }
         }
     } else {
-        /* perform task directly */
+        /* perform task immediately */
         time_t tstart = time(NULL);
         perform_keystate_ds_submit(sockfd,engine->config,zone,id,bAutomatic?1:0);
         if (!zone && !id) {

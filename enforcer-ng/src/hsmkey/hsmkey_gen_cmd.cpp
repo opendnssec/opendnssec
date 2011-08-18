@@ -9,6 +9,7 @@ extern "C" {
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/str.h"
 #include "daemon/engine.h"
 }
 
@@ -24,6 +25,7 @@ void help_hsmkey_gen_cmd(int sockfd)
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "hsm key gen     pre-generate a collection of cryptographic keys\n"
         "                before they are actually needed by the enforcer\n"
+        "  --task        schedule command to run once as a separate task.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -35,18 +37,12 @@ int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
     task_type *task;
     ods_status status;
     const char *scmd = "hsm key gen";
-    ssize_t ncmd = strlen(scmd);
     
-    if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
+    cmd = ods_check_command(cmd,n,scmd);
+    if (!cmd)
+        return 0; // not handled
+
     ods_log_debug("[%s] %s command", module_str, scmd);
-    
-    if (cmd[ncmd] == '\0') {
-        cmd = "";
-    } else if (cmd[ncmd] != ' ') {
-        return 0;
-    } else {
-        cmd = &cmd[ncmd+1];
-    }
     
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
@@ -68,6 +64,7 @@ int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
             }
         }
     } else {
+        /* perform task immediately */
         time_t tstart = time(NULL);
         perform_hsmkey_gen(sockfd,engine->config);
         (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",

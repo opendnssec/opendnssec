@@ -129,21 +129,3 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
         ods_writen(sockfd, buf, strlen(buf));
     }
 }
-
-static task_type * 
-keystate_ds_seen_task_perform(task_type *task)
-{
-    perform_keystate_ds_seen(-1,(engineconfig_type *)task->context,NULL,NULL);
-    
-    task_cleanup(task);
-    return NULL;
-}
-
-task_type *
-keystate_ds_seen_task(engineconfig_type *config,const char *shortname)
-{
-    task_id what = task_register(shortname,
-                                 "keystate_ds_seen_task_perform",
-                                 keystate_ds_seen_task_perform);
-	return task_create(what, time_now(), "all", (void*)config);
-}

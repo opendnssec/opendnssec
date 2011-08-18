@@ -84,22 +84,3 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
     }
 }
 
-#if 0
-static task_type * 
-keystate_list_task_perform(task_type *task)
-{
-    perform_keystate_list(-1,(engineconfig_type *)task->context, 0);
-    
-    task_cleanup(task);
-    return NULL;
-}
-
-task_type *
-keystate_list_task(engineconfig_type *config,const char *shortname)
-{
-    task_id what = task_register(shortname,
-                                 "keystate_list_task_perform",
-                                 keystate_list_task_perform);
-	return task_create(what, time_now(), "all", (void*)config);
-}
-#endif

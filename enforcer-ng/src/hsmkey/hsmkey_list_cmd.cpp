@@ -64,7 +64,7 @@ int handled_hsmkey_list_cmd(int sockfd, engine_type* engine, const char *cmd,
         return 1; // errors, but handled
     }
     
-    /* perform task directly */
+    /* perform task immediately */
     time_t tstart = time(NULL);
     perform_hsmkey_list(sockfd,engine->config,bVerbose?1:0);
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",

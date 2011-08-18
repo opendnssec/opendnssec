@@ -71,7 +71,12 @@ int handled_keystate_show_cmd(int sockfd, engine_type* engine, const char *cmd,
         return 1; // errors, but handled
     }
     
-    /* perform task directly */
+    /* perform task immediately */
+    time_t tstart = time(NULL);
     perform_keystate_show(sockfd,engine->config,id);
+    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
+                   scmd,time(NULL)-tstart);
+    ods_writen(sockfd, buf, strlen(buf));
+
     return 1;
 }

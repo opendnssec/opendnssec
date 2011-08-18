@@ -71,7 +71,7 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
         return 1; // errors, but handled
     }
             
-    /* perform task directly */
+    /* perform task immediately */
     time_t tstart = time(NULL);
     perform_keystate_ds_seen(sockfd,engine->config,zone,id);
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",

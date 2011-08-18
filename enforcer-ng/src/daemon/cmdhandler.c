@@ -62,7 +62,7 @@
 #define SE_CMDH_CMDLEN 7
 
 #ifndef SUN_LEN
-#define SUN_LEN(su)  (sizeof(*(su)) - sizeof((su)->sun_path) + strlen((su)->sun_path))
+#define SUN_LEN(su) (sizeof(*(su))-sizeof((su)->sun_path)+strlen((su)->sun_path))
 #endif
 
 #define NUM_CMDQUEUE 32
@@ -75,7 +75,8 @@ static char* module_str = "cmdhandler";
  * Handle the 'queue' command.
  *
  */
-int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd,
+                      ssize_t n)
 {
     char* strtime = NULL;
     char ctimebuf[32]; // at least 26 according to docs
@@ -129,6 +130,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
 int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, 
                       ssize_t n)
 {
+    int bShouldLeap = 0;
     char* strtime = NULL;
     char ctimebuf[32]; // at least 26 according to docs
     char buf[ODS_SE_MAXLINE];
@@ -139,7 +141,7 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd,
     char* strtask = NULL;
     const char *scmd = "time leap";
     ssize_t ncmd = strlen(scmd);
-	
+    
     if (n != ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
     ods_log_debug("[%s] %s command", module_str, scmd);
     
@@ -165,28 +167,41 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd,
     /* Get first task in schedule, this one also features the earliest wake-up 
        time of all tasks in the schedule. */
     task = schedule_get_first_task(engine->taskq);
-    
-    if (!task->flush) {
-        set_time_now(task->when);
-    
-        for (i=0; i < ODS_SE_MAXLINE; i++) {
-            buf[i] = 0;
+
+    if (task) {
+        if (!task->flush) {
+            set_time_now(task->when);
+        
+            strtime = ctime_r(&task->when,ctimebuf);
+            if (strtime)
+                strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
+
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Leaping to time %s\n",
+                           strtime?strtime:"(null)");
+            ods_writen(sockfd, buf, strlen(buf));
+            
+            bShouldLeap = 1;
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "Already flushing tasks, unable to time leap\n");
+            ods_writen(sockfd, buf, strlen(buf));
         }
-        strtime = ctime_r(&task->when,ctimebuf);
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0'; /* strip \n from time string */
-        }
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Leaping to time %s I will [%s] %s\n",
-                       strtime?strtime:"(null)",
-                       task_what2str(task->what),
-                       task_who2str(task->who));
+    } else {
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+                       "Task queue is empty, unable to time leap\n");
         ods_writen(sockfd, buf, strlen(buf));
-		
-		engine_wakeup_workers(engine);
     }
 
     /* [UNLOCK] schedule */
     lock_basic_unlock(&engine->taskq->schedule_lock);
+
+    if (bShouldLeap) {
+        /* Wake up all workers and let them reevaluate wether their
+         tasks need to be executed */
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Waking up workers\n");
+        ods_writen(sockfd, buf, strlen(buf));
+        engine_wakeup_workers(engine);
+    }
     return 1;
 }
 
@@ -364,6 +379,8 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd,
     /* Generic commands */
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "queue           show the current task queue.\n"
+        "time leap       simulate progression of time by leaping to the time\n"
+        "                of the earliest scheduled task.\n"
         "flush           execute all scheduled tasks immediately.\n"
         "running         returns acknowledgment that the engine is running.\n"
         "start           start the engine.\n"
