@@ -71,6 +71,7 @@ int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
                 (void)snprintf(buf, ODS_SE_MAXLINE,
                                "Scheduled %s generator task.\n",scmd);
                 ods_writen(sockfd, buf, strlen(buf));
+		engine_wakeup_workers(engine);
             }
         }
     } else {

@@ -143,12 +143,6 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
 
         if (t_next == -1)
             continue;
-        
-        if (t_next < time_now()) {
-            ods_log_error("[%s] enforcer asked to be scheduled in the past for "
-                          "zone %s", module_str, ks_zone.name().c_str());
-            continue;
-        }
 
         // If this enforcer wants a reschedule earlier than currently
         // set, then use that.
@@ -219,7 +213,7 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
     delete keystateDoc;
     delete hsmkeyDoc;
 
-    return t_when;
+    return std::max(t_when, time_now());
 }
 
 static task_type *
