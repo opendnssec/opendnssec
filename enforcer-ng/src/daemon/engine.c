@@ -262,7 +262,9 @@ engine_create_workers(engine_type* engine)
 static void
 engine_create_drudgers(engine_type* engine)
 {
+#if HAVE_DRUDGERS
     size_t i = 0;
+#endif
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_assert(engine->allocator);
@@ -303,7 +305,9 @@ engine_start_workers(engine_type* engine)
 static void
 engine_start_drudgers(engine_type* engine)
 {
+#if HAVE_DRUDGERS
     size_t i = 0;
+#endif
 
     ods_log_assert(engine);
     ods_log_assert(engine->config);
@@ -342,7 +346,9 @@ engine_stop_workers(engine_type* engine)
 static void
 engine_stop_drudgers(engine_type* engine)
 {
+#if HAVE_DRUDGERS
     size_t i = 0;
+#endif
 
     ods_log_assert(engine);
     ods_log_assert(engine->config);
@@ -498,9 +504,11 @@ void
 engine_setup(engine_type* engine, handled_xxxx_cmd_type *commands, 
              help_xxxx_cmd_type *help)
 {
+    ods_status status;
+
     engine->commands = commands;
     engine->help = help;
-    ods_status status = engine_setup_and_return_status(engine);
+    status = engine_setup_and_return_status(engine);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
                       ods_status2str(status));
@@ -585,7 +593,6 @@ engine_run(engine_type* engine, int single_run)
 void 
 engine_runloop(engine_type* engine, int single_run)
 {
-    ods_status zl_changed = ODS_STATUS_UNCHANGED;
     /* run */
     while (engine->need_to_exit == 0) {
         
@@ -622,7 +629,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 {
     engine_type* engine = NULL;
     int use_syslog = 0;
-    task_type* task = NULL;
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(cfgfile);

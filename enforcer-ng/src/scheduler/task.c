@@ -86,7 +86,7 @@ task_id task_register(const char *short_name, const char *long_name, how_type ho
 {
     int i;
     
-    // update existing registration
+    /* update existing registration */
     for (i=0; i<ntaskreg; ++i) {
         if (strcmp(long_name, taskreg[i].long_name)==0) {
             taskreg[i].how = how;
@@ -96,7 +96,7 @@ task_id task_register(const char *short_name, const char *long_name, how_type ho
     
 	if (ntaskreg >= NUM_HOW_REG) {
 		ods_log_error("Unable to register additional name,how pairs for tasks.");
-		return;
+		return TASK_NONE;
 	}
     taskreg[ntaskreg].short_name = short_name;
 	taskreg[ntaskreg].long_name = long_name;
@@ -113,7 +113,6 @@ task_create(task_id what, time_t when, const char* who, void* context)
 {
     allocator_type* allocator = NULL;
     task_type* task = NULL;
-    int task_how_index;
 
     if (!who || !context) {
         ods_log_error("[%s] cannot create: missing context info", task_str);
@@ -165,8 +164,7 @@ task_recover_from_backup(const char* filename, void* context)
     time_t when = 0;
     int flush = 0;
     time_t backoff = 0;
-	const char *long_name = NULL;
-	how_type how = NULL;
+    const char *long_name = NULL;
 
     ods_log_assert(context);
     fd = ods_fopen(filename, NULL, "r");
@@ -362,7 +360,7 @@ task_who2str(const char* who)
 char*
 task2str(task_type* task, char* buftask)
 {
-    char ctimebuf[32]; // at least 26 according to docs
+    char ctimebuf[32]; /* at least 26 according to docs */
     time_t now = time_now();
     char* strtime = NULL;
     char* strtask = NULL;
@@ -400,7 +398,7 @@ task2str(task_type* task, char* buftask)
 void
 task_print(FILE* out, task_type* task)
 {
-    char ctimebuf[32]; // at least 26 according to docs
+    char ctimebuf[32]; /* at least 26 according to docs */
     time_t now = time_now();
     char* strtime = NULL;
 
@@ -427,7 +425,7 @@ task_print(FILE* out, task_type* task)
 void
 task_log(task_type* task)
 {
-    char ctimebuf[32]; // at least 26 according to docs
+    char ctimebuf[32]; /* at least 26 according to docs */
     time_t now = time_now();
     char* strtime = NULL;
 

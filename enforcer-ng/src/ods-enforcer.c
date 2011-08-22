@@ -100,6 +100,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
     int cmd_response = 0;
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
+    int written;
 
     stdineof = 0;
     FD_ZERO(&rset);
@@ -181,7 +182,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             }
 
             /* n > 0 : when we get to this line... */
-            int written;
             for (written=0; written < n; written += ret) {
                 /* write what we got to stdout */
                 ret = (int) write(fileno(stdout), &buf[written], n-written);
@@ -193,7 +193,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (ret < 0) {
                     if (errno == EINTR || errno == EWOULDBLOCK) {
                         ret = 0;
-                        continue; // try again...
+                        continue; /* try again... */
                     }
                     fprintf(stderr, "\n\nwrite error: %s\n", strerror(errno));
                     break;
@@ -353,8 +353,6 @@ interface_start(char* cmd)
 int
 main(int argc, char* argv[])
 {
-    int c;
-    int options_size = 0;
     char* cmd = NULL;
     allocator_type* clialloc = allocator_create(malloc, free);
     if (!clialloc) {

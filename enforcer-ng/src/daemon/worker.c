@@ -150,8 +150,6 @@ static void
 worker_work(worker_type* worker)
 {
     time_t now, timeout = 1;
-    void* context = NULL;
-    ods_status status = ODS_STATUS_OK;
     task_type *task_that_was_worked_on;
 
     ods_log_assert(worker);
@@ -231,7 +229,7 @@ worker_drudge(worker_type* worker)
 
     while (worker->need_to_exit == 0) {
         
-        // FIXME: Figure out whether we want to do something like e.g. generate keys..
+        /* FIXME: Figure out whether we want to do something like e.g. generate keys.. */
         int NOTHING_TO_DO = 1;
         
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
@@ -280,10 +278,10 @@ worker_drudge(worker_type* worker)
 
             worker->clock_in = time(NULL);
             
-            // FIXME: perform some hsm related work, like key generation.
-            // We need to hookup a task here
+            /* FIXME: perform some hsm related work, like key generation. */
+            /* We need to hookup a task here */
             
-            status = ODS_STATUS_OK; // rrset_sign(ctx, rrset, context->dname, context->signconf, chief->clock_in, context->stats);
+            status = ODS_STATUS_OK; /* rrset_sign(ctx, rrset, context->dname, context->signconf, chief->clock_in, context->stats); */
         } else {
             status = ODS_STATUS_ASSERT_ERR;
         }

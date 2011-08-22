@@ -79,7 +79,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd,
                       ssize_t n)
 {
     char* strtime = NULL;
-    char ctimebuf[32]; // at least 26 according to docs
+    char ctimebuf[32]; /* at least 26 according to docs */
     char buf[ODS_SE_MAXLINE];
     size_t i = 0;
     time_t now = 0;
@@ -132,13 +132,10 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd,
 {
     int bShouldLeap = 0;
     char* strtime = NULL;
-    char ctimebuf[32]; // at least 26 according to docs
+    char ctimebuf[32]; /* at least 26 according to docs */
     char buf[ODS_SE_MAXLINE];
-    size_t i = 0;
     time_t now = time_now();
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     task_type* task = NULL;
-    char* strtask = NULL;
     const char *scmd = "time leap";
     ssize_t ncmd = strlen(scmd);
     
@@ -257,8 +254,6 @@ int handled_start_cmd(int sockfd, engine_type* engine, const char *cmd,
                       ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
-    task_type *task;
-    ods_status status;
     if (n != 5 || strncmp(cmd, "start", n) != 0) return 0;
     ods_log_debug("[%s] start command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Scheduling autostart tasks.\n");
@@ -427,7 +422,7 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,
         handled_help_cmd,
         handled_unknown_cmd /* unknown command allways matches, so last entry */
     };
-    int cmdidx;
+    unsigned int cmdidx;
 
     ods_log_verbose("received command %s[%i]", cmd, n);
     
@@ -764,7 +759,6 @@ cmdhandler_command_push_back(cmdhandler_type* cmdhandler, const char *cmd)
 const char *
 cmdhandler_command_peek_front(cmdhandler_type *cmdhandler)
 {
-    int i;
     const char *cmd;
     if (!cmdhandler)
         return NULL;

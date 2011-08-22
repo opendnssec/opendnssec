@@ -66,7 +66,6 @@ allocator_create(void *(*allocator)(size_t size), void (*deallocator)(void *))
 void*
 allocator_alloc(allocator_type* allocator, size_t size)
 {
-    size_t aligned_size;
     void* result;
 
     ods_log_assert(allocator);
