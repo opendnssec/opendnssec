@@ -384,6 +384,7 @@ ods_file_copy(const char* file1, const char* file2)
     return ODS_STATUS_FOPEN_ERR;
 }
 
+
 /**
  * Get directory part of filename.
  *

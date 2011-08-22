@@ -906,7 +906,7 @@ engine_update_zones(engine_type* engine)
                 task->when = now;
                 status = schedule_task(engine->taskq, task, 0);
             } else {
-                /* task now queued, being worked on? */
+                /* task not queued, being worked on? */
                 ods_log_debug("[%s] worker busy with zone %s, will update "
                     "signconf as soon as possible", engine_str, zone->name);
                 task = (task_type*) zone->task;
@@ -931,7 +931,6 @@ engine_update_zones(engine_type* engine)
     }
     /* [UNLOCK] zonelist */
     lock_basic_unlock(&engine->zonelist->zl_lock);
-
     if (wake_up) {
         engine_wakeup_workers(engine);
     }

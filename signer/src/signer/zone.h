@@ -107,7 +107,10 @@ zone_type* zone_create(char* name, ldns_rr_class klass);
  * \param[in] zone zone
  * \param[in] rr rr
  * \param[in] do_stats true if we need to maintain statistics
- * \return ods_status status
+ * \return ods_status status:
+ *         ODS_STATUS_OK: rr to be added to zone
+ *         ODS_STATUS_UNCHANGED: rr not added to zone, rr already exists
+ *         other: rr not added to zone, error occurred
  *
  */
 ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
@@ -118,6 +121,9 @@ ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
  * \param[in] rr rr
  * \param[in] do_stats true if we need to maintain statistics
  * \return ods_status status
+ *         ODS_STATUS_OK: rr to be removed from zone
+ *         ODS_STATUS_UNCHANGED: rr not removed from zone, rr does not exist
+ *         other: rr not removed from zone, error occurred
  *
  */
 ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
@@ -127,6 +133,9 @@ ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
  * \param[in] zone zone
  * \param[out] tbs task to be scheduled
  * \return ods_status status
+ *         ODS_STATUS_OK: new signer configuration loaded
+ *         ODS_STATUS_UNCHANGED: signer configuration has not changed
+ *         other: signer configuration not loaded, error occurred
  *
  */
 ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
@@ -165,7 +174,11 @@ ods_status zone_backup(zone_type* zone);
 ods_status zone_recover(zone_type* zone);
 
 /**
- * Merge zones.
+ * Merge zones. Values that are merged:
+ * - policy name
+ * - signconf filename
+ * - input and output adater
+ *
  * \param[in] z1 zone
  * \param[in] z2 zone with new values
  *

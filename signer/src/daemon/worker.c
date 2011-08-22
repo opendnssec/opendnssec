@@ -473,7 +473,7 @@ task_perform_fail:
     } else {
         task->backoff = 60;
     }
-    ods_log_error("[%s[%i]] backoff task %s for zone %s with %u seconds",
+    ods_log_info("[%s[%i]] backoff task %s for zone %s with %u seconds",
         worker2str(worker->type), worker->thread_num,
         task_what2str(task->what), task_who2str(task->who), task->backoff);
 
