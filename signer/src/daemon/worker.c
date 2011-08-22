@@ -473,7 +473,7 @@ task_perform_fail:
     } else {
         task->backoff = 60;
     }
-    ods_log_error("[%s[%i]] backoff task %s for zone %s with %u seconds",
+    ods_log_info("[%s[%i]] backoff task %s for zone %s with %u seconds",
         worker2str(worker->type), worker->thread_num,
         task_what2str(task->what), task_who2str(task->who), task->backoff);
 
@@ -624,12 +624,12 @@ worker_drudge(worker_type* worker)
             if (zone && ctx) {
                 ods_log_assert(rrset);
                 ods_log_assert(zone);
-                ods_log_assert(zone->dname);
+                ods_log_assert(zone->apex);
                 ods_log_assert(zone->signconf);
                 ods_log_assert(ctx);
 
                 worker->clock_in = time(NULL);
-                status = rrset_sign(ctx, rrset, zone->dname, zone->signconf,
+                status = rrset_sign(ctx, rrset, zone->apex, zone->signconf,
                     chief->clock_in, zone->stats);
             } else {
                 status = ODS_STATUS_ASSERT_ERR;

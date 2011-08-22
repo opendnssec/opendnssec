@@ -662,8 +662,8 @@ rrset_commit(rrset_type* rrset)
     while (rrs) {
         status = rrset_commit_del(rrset, rrs->rr);
         if (status != ODS_STATUS_OK) {
-            ods_log_alert("[%s] commit RRset (%i) failed", rrset_str,
-                rrset->rr_type);
+            ods_log_alert("[%s] commit RRset (%i) failed: %s", rrset_str,
+                rrset->rr_type, ods_status2str(status));
             return status;
         }
         rrs = rrs->next;
@@ -677,8 +677,8 @@ rrset_commit(rrset_type* rrset)
     while (rrs) {
         status = rrset_commit_add(rrset, rrs->rr);
         if (status != ODS_STATUS_OK) {
-            ods_log_alert("[%s] commit RRset (%i) failed", rrset_str,
-                rrset->rr_type);
+            ods_log_alert("[%s] commit RRset (%i) failed: %s", rrset_str,
+                rrset->rr_type, ods_status2str(status));
             return status;
         }
         rrs = rrs->next;

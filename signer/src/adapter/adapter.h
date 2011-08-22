@@ -89,25 +89,25 @@ adapter_type* adapter_create(const char* str, adapter_mode type, int inbound);
 
 /**
  * Compare adapters.
- * /param[in] a1 adapter 1
- * /param[in] a2 adapter 2
- * /return int 0 on equal, -1 if a1 < a2, 1 if a1 > a2
+ * \param[in] a1 adapter 1
+ * \param[in] a2 adapter 2
+ * \return int 0 on equal, -1 if a1 < a2, 1 if a1 > a2
  *
  */
 int adapter_compare(adapter_type* a1, adapter_type* a2);
 
 /**
  * Read zone from input adapter.
- * /param[in] zone zone
- * /return ods_status stats
+ * \param[in] zone zone
+ * \return ods_status stats
  *
  */
 ods_status adapter_read(struct zone_struct* zone);
 
 /**
  * Write zone to output adapter.
- * /param[in] zone zone
- * /return ods_status stats
+ * \param[in] zone zone
+ * \return ods_status stats
  *
  */
 ods_status adapter_write(struct zone_struct* zone);

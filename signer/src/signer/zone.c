@@ -93,25 +93,24 @@ zone_create(char* name, ldns_rr_class klass)
     }
     /* [end] PS 9218653 */
     zone->name = allocator_strdup(allocator, name);
+    /* check zone->name? */
     zone->klass = klass;
-
-    zone->dname = ldns_dname_new_frm_str(name);
-    ldns_dname2canonical(zone->dname);
+    zone->default_ttl = 3600; /* TODO: configure --default-ttl option? */
+    zone->apex = ldns_dname_new_frm_str(name);
+    /* check zone->apex? */
+    ldns_dname2canonical(zone->apex);
     zone->notify_ns = NULL;
     zone->policy_name = NULL;
     zone->signconf_filename = NULL;
-
     zone->adinbound = NULL;
     zone->adoutbound = NULL;
     zone->nsec3params = NULL;
-
     zone->just_added = 0;
     zone->just_updated = 0;
     zone->tobe_removed = 0;
     zone->processed = 0;
     zone->prepared = 0;
     zone->fetch = 0;
-
     zone->zonedata = zonedata_create(zone->allocator);
     if (!zone->zonedata) {
         ods_log_error("[%s] unable to create zone %s: create zonedata "
@@ -119,7 +118,6 @@ zone_create(char* name, ldns_rr_class klass)
         zone_cleanup(zone);
         return NULL;
     }
-
     zone->signconf = signconf_create();
     if (!zone->signconf) {
         ods_log_error("[%s] unable to create zone %s: create signconf "
@@ -127,7 +125,6 @@ zone_create(char* name, ldns_rr_class klass)
         zone_cleanup(zone);
         return NULL;
     }
-
     zone->stats = stats_create();
     zone->task = NULL;
     lock_basic_init(&zone->zone_lock);
@@ -168,8 +165,8 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     ods_log_assert(zone->signconf);
 
     /* in-zone? */
-    if (ldns_dname_compare(zone->dname, ldns_rr_owner(rr)) != 0 &&
-        !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->dname)) {
+    if (ldns_dname_compare(zone->apex, ldns_rr_owner(rr)) != 0 &&
+        !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->apex)) {
         ods_log_warning("[%s] zone %s contains out-of-zone data, skipping",
             zone_str, zone->name?zone->name:"(null)");
         /* ok, just filter */
@@ -224,7 +221,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
                 zone_str);
             return ODS_STATUS_ERR;
         }
-        if (ldns_dname_compare(domain->dname, zone->dname) == 0) {
+        if (ldns_dname_compare(domain->dname, zone->apex) == 0) {
             domain->dstatus = DOMAIN_STATUS_APEX;
         }
     }
@@ -437,7 +434,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
             zone->name);
         zone->signconf = signconf;
         signconf_log(zone->signconf, zone->name);
-        zone->zonedata->default_ttl =
+        zone->default_ttl =
             (uint32_t) duration2time(zone->signconf->soa_min);
     } else if (status == ODS_STATUS_UNCHANGED) {
         *tbs = TASK_READ;
@@ -500,7 +497,7 @@ zone_publish_dnskeys(zone_type* zone, int recover)
     }
     ods_log_assert(zone->zonedata);
 
-    ttl = zone->zonedata->default_ttl;
+    ttl = zone->default_ttl;
     if (zone->signconf->dnskey_ttl) {
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
     }
@@ -520,7 +517,7 @@ zone_publish_dnskeys(zone_type* zone, int recover)
                 do_publish = 1;
             }
 
-            status = lhsm_get_key(ctx, zone->dname, key);
+            status = lhsm_get_key(ctx, zone->apex, key);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to publish dnskeys zone %s: "
                     "error creating DNSKEY for key %s", zone_str,
@@ -622,8 +619,8 @@ zone_prepare_nsec3(zone_type* zone, int recover)
         ods_log_assert(nsec3params_rr);
 
         ldns_rr_set_class(nsec3params_rr, zone->klass);
-        ldns_rr_set_ttl(nsec3params_rr, zone->zonedata->default_ttl);
-        ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->dname));
+        ldns_rr_set_ttl(nsec3params_rr, zone->default_ttl);
+        ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->apex));
         ldns_nsec3_add_param_rdfs(nsec3params_rr,
             zone->nsec3params->algorithm, 0,
             zone->nsec3params->iterations,
@@ -648,7 +645,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
         ldns_rr_free(nsec3params_rr);
     } else if (!recover) {
         /* add ok, wipe out previous nsec3params */
-        apex = zonedata_lookup_domain(zone->zonedata, zone->dname);
+        apex = zonedata_lookup_domain(zone->zonedata, zone->apex);
         if (!apex) {
             ods_log_crit("[%s] unable to delete previous NSEC3PARAM RR "
             "from zone %s: apex undefined", zone_str, zone->name);
@@ -701,7 +698,7 @@ zone_backup(zone_type* zone)
             "%u outbound %u\n",
             zone->name?zone->name:"(null)",
             (int) zone->klass,
-            (unsigned) zone->zonedata->default_ttl,
+            (unsigned) zone->default_ttl,
             (unsigned) zone->zonedata->inbound_serial,
             (unsigned) zone->zonedata->internal_serial,
             (unsigned) zone->zonedata->outbound_serial);
@@ -894,7 +891,7 @@ zone_recover(zone_type* zone)
         }
 
         zone->klass = (ldns_rr_class) klass;
-        zone->zonedata->default_ttl = ttl;
+        zone->default_ttl = ttl;
         zone->zonedata->inbound_serial = inbound;
         zone->zonedata->internal_serial = internal;
         zone->zonedata->outbound_serial = outbound;
@@ -938,7 +935,7 @@ zone_recover(zone_type* zone)
             zone->nsec3params = NULL;
             goto recover_error;
         }
-        status = zonedata_entize(zone->zonedata, zone->dname);
+        status = zonedata_entize(zone->zonedata, zone->apex);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
             zone->nsec3params = NULL;
@@ -986,7 +983,7 @@ zone_recover(zone_type* zone)
                 goto recover_error;
             }
             zone->klass = (ldns_rr_class) klass;
-            zone->zonedata->default_ttl = ttl;
+            zone->default_ttl = ttl;
             zone->zonedata->inbound_serial = inbound;
             zone->zonedata->internal_serial = internal;
             zone->zonedata->outbound_serial = outbound;
@@ -1152,7 +1149,7 @@ zone_update_serial(zone_type* zone)
     }
 
     /* lookup domain */
-    domain = zonedata_lookup_domain(zone->zonedata, zone->dname);
+    domain = zonedata_lookup_domain(zone->zonedata, zone->apex);
     if (!domain) {
         ods_log_error("[%s] unable to update serial: apex not found",
             zone_str);
@@ -1212,7 +1209,7 @@ ods_status
 zone_examine(zone_type* zone)
 {
     if (zone && zone->zonedata && zone->adinbound) {
-        return zonedata_examine(zone->zonedata, zone->dname,
+        return zonedata_examine(zone->zonedata, zone->apex,
             zone->adinbound->type);
     }
     return ODS_STATUS_ASSERT_ERR;
@@ -1236,7 +1233,7 @@ zone_cleanup(zone_type* zone)
     allocator = zone->allocator;
     zone_lock = zone->zone_lock;
 
-    ldns_rdf_deep_free(zone->dname);
+    ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
     zonedata_cleanup(zone->zonedata);

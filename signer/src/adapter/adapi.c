@@ -94,7 +94,7 @@ adapi_get_origin(zone_type* zone)
         return NULL;
     }
     ods_log_assert(zone);
-    return zone->dname;
+    return zone->apex;
 }
 
 
@@ -122,14 +122,13 @@ adapi_get_class(zone_type* zone)
 uint32_t
 adapi_get_ttl(zone_type* zone)
 {
-    if (!zone || !zone->zonedata) {
+    if (!zone) {
         ods_log_error("[%s] unable to get ttl: "
             "no zone data", adapi_str);
         return 0;
     }
     ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-    return zone->zonedata->default_ttl;
+    return zone->default_ttl;
 }
 
 

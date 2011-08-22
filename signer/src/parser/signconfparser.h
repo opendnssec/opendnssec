@@ -89,9 +89,6 @@ uint32_t parse_sc_nsec3_iterations(const char* cfgfile);
  * \return int integer
  *
  */
-int parse_sc_dnskey_ttl_use(const char* cfgfile);
-int parse_sc_soa_ttl_use(const char* cfgfile);
-int parse_sc_soa_min_use(const char* cfgfile);
 int parse_sc_nsec3_optout(const char* cfgfile);
 int parse_sc_audit(const char* cfgfile);
 

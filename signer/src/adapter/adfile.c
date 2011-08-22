@@ -55,9 +55,12 @@ static ods_status adfile_read_file(FILE* fd, zone_type* zone);
  *
  */
 ods_status
-adfile_init(void)
+adfile_init(const char* configstr)
 {
-    /* nothing to initialize */
+    if (configstr) {
+        ods_log_warning("[%s] File Adapter init not implemented %s",
+            adapter_str);
+    }
     return ODS_STATUS_OK;
 }
 

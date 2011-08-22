@@ -51,22 +51,16 @@ static const char* adapter_str = "adapter";
 ods_status
 adapter_init(adapter_type* adapter)
 {
-    ods_log_assert(adapter);
-    ods_log_assert(adapter->type);
-    ods_log_assert(adapter->configstr);
-
-    switch(adapter->type) {
-        case ADAPTER_FILE:
-            return adfile_init();
-            break;
-        default:
-            ods_log_error("[%s] unable to initialize adapter: "
-                "unknown adapter", adapter_str);
-            return ODS_STATUS_ERR;
-            break;
+    if (adapter) {
+        switch(adapter->type) {
+            case ADAPTER_FILE:
+                return adfile_init(adapter->configstr);
+            default:
+                ods_log_error("[%s] unable to initialize adapter: "
+                    "unknown adapter", adapter_str);
+                return ODS_STATUS_ERR;
+        }
     }
-
-    /* not reached */
     return ODS_STATUS_ERR;
 }
 
@@ -117,7 +111,8 @@ adapter_read(struct zone_struct* zone)
     ods_status status = ODS_STATUS_OK;
 
     if (!adzone || !adzone->adinbound) {
-        ods_log_error("[%s] unable to read zone: no input adapter", adapter_str);
+        ods_log_error("[%s] unable to read zone: no input adapter",
+            adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone);
@@ -154,14 +149,16 @@ adapter_write(struct zone_struct* zone)
     ods_status status = ODS_STATUS_OK;
 
     if (!adzone || !adzone->adoutbound) {
-        ods_log_error("[%s] unable to write zone: no output adapter", adapter_str);
+        ods_log_error("[%s] unable to write zone: no output adapter",
+            adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone);
     ods_log_assert(adzone->adoutbound);
     ods_log_assert(adzone->adoutbound->configstr);
     if (!adzone->zonedata) {
-        ods_log_error("[%s] unable to write zone: no zone data", adapter_str);
+        ods_log_error("[%s] unable to write zone %s: no zone data",
+            adapter_str, adzone->name);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone->zonedata);
