@@ -99,6 +99,23 @@ adapi_get_origin(zone_type* zone)
 
 
 /**
+ * Get class.
+ *
+ */
+ldns_rr_class
+adapi_get_class(zone_type* zone)
+{
+    if (!zone) {
+        ods_log_error("[%s] unable to get class: "
+            "no zone", adapi_str);
+        return LDNS_RR_CLASS_FIRST;
+    }
+    ods_log_assert(zone);
+    return zone->klass;
+}
+
+
+/**
  * Get ttl.
  *
  */
