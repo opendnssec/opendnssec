@@ -219,8 +219,25 @@ AC_ARG_ENABLE(eppclient,
 		[enable_eppclient="${enableval}"],
 		[enable_eppclient="no"])
 if test "x${enable_eppclient}" = "xyes"; then
+	AC_SEARCH_LIBS(nanosleep, rt posix4, AC_DEFINE(HAVE_NANOSLEEP, 1,
+		[Define if you have nanosleep]))
+
+	# ACX_LIBXML2
+	# ACX_LDNS(1,6,6)
+	ACX_LIBSQLITE3
 	LIBCURL_CHECK_CONFIG([yes], [7.18.2], [], [AC_MSG_ERROR(["libcurl not found"])])
-	AC_CONFIG_SUBDIRS([ plugins/eppclient ])
+
+	EPPCLIENTD_CONF=$OPENDNSSEC_SYSCONF_DIR/eppclientd.conf
+	EPPCLIENTD_DB=$OPENDNSSEC_LOCALSTATE_DIR/eppclientd.sqlite
+	EPPCLIENTD_PID=$OPENDNSSEC_PID_DIR/eppclientd.pid
+	EPPCLIENTD_PIPE=$OPENDNSSEC_PID_DIR/eppclientd.pipe
+
+	AC_SUBST([EPPCLIENTD_CONF])
+	AC_SUBST([EPPCLIENTD_DB])
+	AC_SUBST([EPPCLIENTD_PID])
+	AC_SUBST([EPPCLIENTD_PIPE])
+
+	AC_DEFINE_UNQUOTED(EPPCLIENTD_CONF, "$EPPCLIENTD_CONF", [Path to the eppclientd.conf])
 fi
 AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
 
@@ -248,15 +265,14 @@ AC_CONFIG_FILES([
 	conf/signconf.xml
 	conf/zonelist.xml
 	conf/zonefetch.xml
+	contrib/Makefile
 	enforcer/Makefile
-	enforcer/ksm/Makefile
-	enforcer/ksm/include/Makefile
-	enforcer/ksm/include/ksm/Makefile
 	enforcer/common/Makefile
 	enforcer/enforcerd/Makefile
 	enforcer/enforcerd/ods-enforcerd.8
-	enforcer/utils/Makefile
-	enforcer/utils/ods-ksmutil.1
+	enforcer/ksm/Makefile
+	enforcer/ksm/include/Makefile
+	enforcer/ksm/include/ksm/Makefile
 	enforcer/test/Makefile
 	enforcer/test/cucumber/Makefile
 	enforcer/test/cucumber/c_conf.xml
@@ -265,6 +281,8 @@ AC_CONFIG_FILES([
 	enforcer/test/cunit/Makefile
 	enforcer/test/cunit/database_setup_mysql.sh
 	enforcer/test/cunit/database_setup_sqlite3.sh
+	enforcer/utils/Makefile
+	enforcer/utils/ods-ksmutil.1
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/bin/Makefile
@@ -279,11 +297,18 @@ AC_CONFIG_FILES([
 	libhsm/checks/conf-opensc.xml
 	libhsm/checks/conf-ncipher.xml
 	libhsm/checks/conf-aepkeyper.xml
+	plugins/eppclient/Makefile
+	plugins/eppclient/src/Makefile
+	plugins/eppclient/src/eppclient.8
+	plugins/eppclient/src/eppclientd.8
+	plugins/eppclient/src/eppclientd.conf
+	plugins/eppclient/src/eppclientd.conf.5
 	signer/Makefile
-	signer/src/Makefile
 	signer/man/Makefile
 	signer/man/ods-signer.8
 	signer/man/ods-signerd.8
+	signer/src/Makefile
+	test/conf/softhsm.conf
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile
@@ -293,8 +318,6 @@ AC_CONFIG_FILES([
 	tools/opendnssec.7
 	tools/ods-control.8
 	tools/ods-kasp2html
-	contrib/Makefile
-	test/conf/softhsm.conf
 ])
 
 AC_OUTPUT
