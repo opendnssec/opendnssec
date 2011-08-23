@@ -48,7 +48,7 @@ int handled_signconf_cmd(int sockfd, engine_type* engine, const char *cmd,
     
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
-        task = signconf_task(engine->config);
+        task = signconf_task(engine->config,"write","signer configurations");
         if (!task) {
             ods_log_crit("[%s] failed to create %s task",
                          module_str,scmd);

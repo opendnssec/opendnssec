@@ -45,7 +45,7 @@ int handled_policy_resalt_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
-        task = policy_resalt_task(engine->config);
+        task = policy_resalt_task(engine->config,"resalt","all policies");
         if (!task) {
             ods_log_crit("[%s] failed to create %s task",
                          module_str,scmd);

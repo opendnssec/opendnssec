@@ -460,13 +460,18 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,
 static task_type *
 cmdhandler_queue_processor_task_perform(task_type *task)
 {
+    const char *cmd;
     cmdhandler_type *cmdh = (cmdhandler_type *)task->context;
-    
-    /*FIXME: actually process the command.... */
-    
-	task->backoff = 0;
-    task->when = time_now() + 60;
-    return task;
+    /* Process all the commands in the command queue last one first */
+    for (cmd=cmdhandler_command_pop_front(cmdh);
+         cmd;
+         cmd=cmdhandler_command_pop_front(cmdh)) 
+    {
+        cmdhandler_perform_command(-1,cmdh->engine,cmd,strlen(cmd));
+        cmdhandler_command_release(cmdh,cmd);
+    }
+    task_cleanup(task);
+    return NULL;
 }
 
 static task_type *

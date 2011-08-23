@@ -6,6 +6,7 @@
 
 time_t perform_policy_resalt(int sockfd, engineconfig_type *config);
 
-task_type *policy_resalt_task(engineconfig_type *config);
+task_type *policy_resalt_task(engineconfig_type *config, const char *what,
+                              const char *who);
 
 #endif

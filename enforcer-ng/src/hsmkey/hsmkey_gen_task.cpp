@@ -307,10 +307,10 @@ hsmkey_gen_task_perform(task_type *task)
 }
 
 task_type *
-hsmkey_gen_task(engineconfig_type *config,const char *shortname)
+hsmkey_gen_task(engineconfig_type *config,const char *what, const char *who)
 {
-    task_id what = task_register(shortname,
+    task_id what_id = task_register(what,
                                  "hsmkey_gen_task_perform",
                                  hsmkey_gen_task_perform);
-	return task_create(what, time_now(), "all", (void*)config);
+	return task_create(what_id, time_now(), who, (void*)config);
 }

@@ -96,6 +96,7 @@ ods_enforcerd_SOURCES = \
 	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 	signconf/signconf_task.cpp signconf/signconf_task.h \
 	enforcer/enforcerdata.h \
+	enforcer/autostart_cmd.cpp enforcer/autostart_cmd.h \
 	enforcer/setup_cmd.cpp enforcer/setup_cmd.h \
 	enforcer/enforce_cmd.cpp enforcer/enforce_cmd.h \
 	enforcer/enforce_task.cpp enforcer/enforce_task.h \

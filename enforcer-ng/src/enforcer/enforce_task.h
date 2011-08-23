@@ -6,6 +6,7 @@
 
 time_t perform_enforce(int sockfd, engineconfig_type *config);
 
-task_type *enforce_task(engineconfig_type *config,const char *shortname);
+task_type *enforce_task(engineconfig_type *config, const char *what,
+                        const char *who);
 
 #endif

@@ -67,6 +67,7 @@
 		A7943626131B420E00108EFB /* str.c in Sources */ = {isa = PBXBuildFile; fileRef = A794360E131B420E00108EFB /* str.c */; };
 		A7943627131B420E00108EFB /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = A7943610131B420E00108EFB /* util.c */; };
 		A7943638131B443600108EFB /* keys.c in Sources */ = {isa = PBXBuildFile; fileRef = A7943636131B443600108EFB /* keys.c */; };
+		A7A138181403B277002E972A /* autostart_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7A138161403B277002E972A /* autostart_cmd.cpp */; };
 		A7ACCD0D1352E0730003E535 /* enforcerzone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0B1352E0730003E535 /* enforcerzone.cpp */; };
 		A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0C1352E0730003E535 /* hsmkeyfactory.cpp */; };
 		A7CFAD61135D7ED500E85BE4 /* hsmkey.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7790E5C135CF27100EED13E /* hsmkey.pb.cc */; };
@@ -137,7 +138,7 @@
 		A772F49513323E7A004179E8 /* kasp.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kasp.pb.cc; sourceTree = "<group>"; };
 		A772F49613323E7A004179E8 /* kasp.pb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kasp.pb.h; sourceTree = "<group>"; };
 		A772F49713323E7A004179E8 /* kasp.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = kasp.proto; sourceTree = "<group>"; };
-		A772F49C13324716004179E8 /* xmlext-rd.h */ = {isa = PBXFileReference; fileEncoding = 4; path = "xmlext-rd.h"; sourceTree = "<group>"; };
+		A772F49C13324716004179E8 /* xmlext-rd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "xmlext-rd.h"; sourceTree = "<group>"; };
 		A772F49D13324716004179E8 /* xmlext-rd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "xmlext-rd.cpp"; sourceTree = "<group>"; };
 		A7790E59135CE27C00EED13E /* hsmkey.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = hsmkey.proto; sourceTree = "<group>"; };
 		A7790E5B135CF27100EED13E /* hsmkey.pb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkey.pb.h; sourceTree = "<group>"; };
@@ -208,6 +209,8 @@
 		A7943611131B420E00108EFB /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		A7943636131B443600108EFB /* keys.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = keys.c; sourceTree = "<group>"; };
 		A7943637131B443600108EFB /* keys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = keys.h; sourceTree = "<group>"; };
+		A7A138161403B277002E972A /* autostart_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = autostart_cmd.cpp; sourceTree = "<group>"; };
+		A7A138171403B277002E972A /* autostart_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = autostart_cmd.h; sourceTree = "<group>"; };
 		A7ACCD091352E0720003E535 /* enforcerzone.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforcerzone.h; sourceTree = "<group>"; };
 		A7ACCD0A1352E0730003E535 /* hsmkeyfactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkeyfactory.h; sourceTree = "<group>"; };
 		A7ACCD0B1352E0730003E535 /* enforcerzone.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforcerzone.cpp; sourceTree = "<group>"; };
@@ -515,6 +518,8 @@
 		A7F2A3731338B145003A936B /* enforcer */ = {
 			isa = PBXGroup;
 			children = (
+				A7A138171403B277002E972A /* autostart_cmd.h */,
+				A7A138161403B277002E972A /* autostart_cmd.cpp */,
 				A77C58D11371E01F000A4E51 /* setup_cmd.h */,
 				A77C58D01371E01C000A4E51 /* setup_cmd.cpp */,
 				A72FF6A9134335D400B85C40 /* enforcerdata.h */,
@@ -663,6 +668,7 @@
 				A75BBBDC137AAC22007A4B11 /* keystate_show_task.cpp in Sources */,
 				A7F83455139D1B2D0084FFD1 /* keystate_export_cmd.cpp in Sources */,
 				A7F83456139D1B2D0084FFD1 /* keystate_export_task.cpp in Sources */,
+				A7A138181403B277002E972A /* autostart_cmd.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

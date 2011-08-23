@@ -95,7 +95,7 @@ int cmdhandler_command_push_back(cmdhandler_type* cmdhandler, const char *cmd);
  *      queue is empty.
  *
  */
-const char *cmdhandler_command_pop_front(cmdhandler_type *cmdhandler);
+const char *cmdhandler_command_peek_front(cmdhandler_type *cmdhandler);
 
 /**
  * Pop the command at the start of the queue.

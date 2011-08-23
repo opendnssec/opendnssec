@@ -240,10 +240,10 @@ signconf_task_perform(task_type *task)
 }
 
 task_type *
-signconf_task(engineconfig_type *config)
+signconf_task(engineconfig_type *config, const char *what, const char * who)
 {
-    task_id what = task_register("signconf",
+    task_id what_id = task_register(what,
                                  "signconf_task_perform",
                                  signconf_task_perform);
-	return task_create(what, time_now(), "all", (void*)config);
+	return task_create(what_id, time_now(), who, (void*)config);
 }

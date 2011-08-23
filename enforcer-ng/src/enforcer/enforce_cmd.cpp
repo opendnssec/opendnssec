@@ -56,7 +56,7 @@ int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
 
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
-        task = enforce_task(engine->config,scmd);
+        task = enforce_task(engine->config,"enforce","next zone");
         if (!task) {
             ods_log_crit("[%s] failed to create %s task",
                          module_str,scmd);
@@ -69,9 +69,9 @@ int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
                 ods_writen(sockfd, buf, strlen(buf));
             } else {
                 (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "Scheduled %s generator task.\n",scmd);
+                               "Scheduled %s task.\n",scmd);
                 ods_writen(sockfd, buf, strlen(buf));
-		engine_wakeup_workers(engine);
+                engine_wakeup_workers(engine);
             }
         }
     } else {

@@ -541,6 +541,9 @@ engine_run(engine_type* engine, int single_run)
     /* [UNLOCK] signal */
     lock_basic_unlock(&engine->signal_lock);
 
+    /* push the autostart command into the queue */
+    cmdhandler_command_push_back(engine->cmdhandler,"autostart");
+    
     while (!engine->need_to_exit && !engine->need_to_reload) {
         lock_basic_lock(&engine->signal_lock);
         /* [LOCK] signal */

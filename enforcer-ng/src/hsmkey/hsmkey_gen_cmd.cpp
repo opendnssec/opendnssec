@@ -46,7 +46,7 @@ int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
     
     if (strncmp(cmd, "--task", 7) == 0) {
         /* schedule task */
-        task = hsmkey_gen_task(engine->config,scmd);
+        task = hsmkey_gen_task(engine->config,"pre-generate","hsm keys");
         if (!task) {
             ods_log_crit("[%s] failed to create %s task",
                          module_str,scmd);

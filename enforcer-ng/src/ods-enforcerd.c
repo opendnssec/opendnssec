@@ -36,6 +36,7 @@
 
 
 /* Pull in the commands that have been implemented for the enforcer */
+#include "enforcer/autostart_cmd.h"
 #include "enforcer/setup_cmd.h"
 #include "policy/update_kasp_cmd.h"
 #include "policy/policy_resalt_cmd.h"
@@ -116,6 +117,7 @@ version(FILE* out)
  */
 
 static help_xxxx_cmd_type enforcer_help[] = {
+    help_autostart_cmd,
     help_setup_cmd,
     help_update_kasp_cmd,
     help_policy_resalt_cmd,
@@ -149,6 +151,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
  */
 static handled_xxxx_cmd_type 
 enforcer_commands[] = {
+    handled_autostart_cmd,
     handled_setup_cmd,
     handled_update_kasp_cmd,
     handled_policy_resalt_cmd,
