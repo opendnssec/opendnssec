@@ -86,10 +86,8 @@ adfile_read_line:
     if (ttl) {
         new_ttl = *ttl;
     }
-
     len = adutil_readline_frm_file(fd, line, l);
     adutil_rtrim_line(line, &len);
-
     if (len >= 0) {
         switch (line[0]) {
             /* directive */
@@ -172,7 +170,6 @@ adfile_read_rr:
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 }
-
                 *status = ldns_rr_new_frm_str(&rr, line, new_ttl, *orig, prev);
                 if (*status == LDNS_STATUS_OK) {
                     ldns_rr2canonical(rr); /* TODO: canonicalize or not? */
@@ -201,7 +198,6 @@ adfile_read_rr:
                 break;
         }
     }
-
     /* -1, EOF */
     *status = LDNS_STATUS_OK;
     return NULL;
@@ -243,33 +239,29 @@ adfile_read_file(FILE* fd, zone_type* zone)
             adapter_str);
         return ODS_STATUS_ERR;
     }
-
     /* $TTL <default ttl> */
     ttl = adapi_get_ttl(zone);
-
     /* read RRs */
     while ((rr = adfile_read_rr(fd, zone, line, &orig, &prev, &ttl,
         &status, &l)) != NULL) {
-
+        /* check status */
         if (status != LDNS_STATUS_OK) {
             ods_log_error("[%s] error reading RR at line %i (%s): %s",
                 adapter_str, l, ldns_get_errorstr_by_id(status), line);
             result = ODS_STATUS_ERR;
             break;
         }
-
+        /* debug update */
         if (l > line_update) {
             ods_log_debug("[%s] ...at line %i: %s", adapter_str, l, line);
             line_update += line_update_interval;
         }
-
         /* filter out DNSSEC RRs (except DNSKEY) from the Input File Adapter */
         if (util_is_dnssec_rr(rr)) {
             ldns_rr_free(rr);
             rr = NULL;
             continue;
         }
-
         /* add to the zonedata */
         result = adapi_add_rr(zone, rr);
         if (result != ODS_STATUS_OK) {
@@ -278,7 +270,6 @@ adfile_read_file(FILE* fd, zone_type* zone)
             break;
         }
     }
-
     /* and done */
     if (orig) {
         ldns_rdf_deep_free(orig);
@@ -288,7 +279,6 @@ adfile_read_file(FILE* fd, zone_type* zone)
         ldns_rdf_deep_free(prev);
         prev = NULL;
     }
-
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RR at line %i (%s): %s",
             adapter_str, l, ldns_get_errorstr_by_id(status), line);
@@ -317,13 +307,11 @@ adfile_read(struct zone_struct* zone, const char* filename)
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(adzone);
     if (!filename) {
         ods_log_error("[%s] unable to read file: no filename given",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(filename);
     /* [end] sanity parameter checking */
 
     /* [start] read zone */
@@ -389,13 +377,11 @@ adbackup_read(struct zone_struct* zone, const char* filename)
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(adzone);
     if (!filename) {
         ods_log_error("[%s] unable to read file: no filename given",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(filename);
     /* [end] sanity parameter checking */
 
     /* [start] read zone */
@@ -442,13 +428,11 @@ adfile_write(struct zone_struct* zone, const char* filename)
             "name given)", adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(adzone);
     if (!filename) {
         ods_log_error("[%s] unable to write file: no filename given",
             adapter_str);
         return ODS_STATUS_ERR;
     }
-    ods_log_assert(filename);
     /* [end] sanity parameter checking */
 
     /* [start] write zone */
@@ -460,6 +444,5 @@ adfile_write(struct zone_struct* zone, const char* filename)
         status = ODS_STATUS_FOPEN_ERR;
     }
     /* [end] write zone */
-
     return status;
 }

@@ -64,11 +64,8 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         ods_log_error("[%s] no cfgfile or rngfile", parser_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(cfgfile);
-    ods_log_assert(rngfile);
     ods_log_debug("[%s] check cfgfile %s with rngfile %s", parser_str,
         cfgfile, rngfile);
-
     /* Load XML document */
     doc = xmlParseFile(cfgfile);
     if (doc == NULL) {
@@ -154,11 +151,9 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
     adapter_type** adapters = NULL;
     int ret = 0;
     size_t adcount = 0;
-
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
-
     xmlChar* expr = (xmlChar*) "//Adapter";
 
     ods_log_assert(allocator);
@@ -169,7 +164,6 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
         ods_log_error("[%s] unable to open file %s", parser_str, cfgfile);
         return NULL;
     }
-
     ret = xmlTextReaderRead(reader);
     adapters = (adapter_type**) allocator_alloc(allocator,
         ADMAX * sizeof(adapter_type*));
@@ -179,9 +173,7 @@ parse_conf_adapters(allocator_type* allocator, const char* cfgfile,
                 "skipping additional adapters", parser_str, cfgfile);
             break;
         }
-
         tag_name = (char*) xmlTextReaderLocalName(reader);
-
         /* This assumes that there is no other <Adapters> element in
          * conf.xml
          */

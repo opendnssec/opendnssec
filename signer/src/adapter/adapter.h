@@ -62,10 +62,10 @@ typedef union adapter_data_union adapter_data;
  */
 typedef struct adapter_struct adapter_type;
 struct adapter_struct {
+    allocator_type* allocator;
     const char* configstr;
     adapter_mode type;
     int inbound;
-    allocator_type* allocator;
     adapter_data* data;
 };
 

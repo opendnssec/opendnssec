@@ -56,8 +56,6 @@ adapi_get_serial(zone_type* zone)
             "no zone data", adapi_str);
         return 0;
     }
-    ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
     return zone->zonedata->inbound_serial;
 }
 
@@ -74,8 +72,6 @@ adapi_set_serial(zone_type* zone, uint32_t serial)
             "no zone data", adapi_str);
         return;
     }
-    ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
     zone->zonedata->inbound_serial = serial;
     return;
 }
@@ -93,7 +89,6 @@ adapi_get_origin(zone_type* zone)
             "no zone", adapi_str);
         return NULL;
     }
-    ods_log_assert(zone);
     return zone->apex;
 }
 
@@ -110,7 +105,6 @@ adapi_get_class(zone_type* zone)
             "no zone", adapi_str);
         return LDNS_RR_CLASS_FIRST;
     }
-    ods_log_assert(zone);
     return zone->klass;
 }
 
@@ -127,7 +121,6 @@ adapi_get_ttl(zone_type* zone)
             "no zone data", adapi_str);
         return 0;
     }
-    ods_log_assert(zone);
     return zone->default_ttl;
 }
 
@@ -144,8 +137,6 @@ adapi_trans_full(zone_type* zone)
             "no zone data", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
     if (!zone->signconf) {
         ods_log_error("[%s] unable to start full zone transaction: "
             "no signer configuration", adapi_str);
@@ -169,9 +160,6 @@ adapi_trans_diff(zone_type* zone)
             "no zone data", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(zone);
-    ods_log_assert(zone->zonedata);
-
     return ODS_STATUS_OK;
 }
 

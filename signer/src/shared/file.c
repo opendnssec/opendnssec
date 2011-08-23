@@ -361,11 +361,9 @@ ods_file_copy(const char* file1, const char* file2)
     char str[SYSTEM_MAXLEN];
     FILE* fd = NULL;
     int retval = 0;
-
     if (!file1 || !file2) {
         return ODS_STATUS_ASSERT_ERR;
     }
-
     if ((fd = ods_fopen(file1, NULL, "r")) != NULL) {
         ods_fclose(fd);
         snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",

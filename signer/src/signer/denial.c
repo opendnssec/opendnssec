@@ -106,6 +106,7 @@ denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
 
+    ods_log_assert(denial);
     ods_log_assert(denial->domain);
 
     domain = (domain_type*) denial->domain;

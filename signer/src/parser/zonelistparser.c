@@ -35,9 +35,9 @@
 #include "parser/zonelistparser.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "shared/status.h"
 #include "signer/zonelist.h"
 #include "signer/zone.h"
-#include "shared/status.h"
 
 #include <libxml/xpath.h>
 #include <libxml/xmlreader.h>
@@ -88,7 +88,6 @@ zlp_adapter(xmlNode* curNode, adapter_mode type, int inbound)
             inbound?"input":"output");
         return NULL;
     }
-
     adapter = adapter_create(file, type, inbound);
     free((void*)file);
     return adapter;
@@ -111,14 +110,12 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
     if (!xpathCtx || !expr) {
         return NULL;
     }
-
     xpathObj = xmlXPathEvalExpression(expr, xpathCtx);
     if (xpathObj == NULL) {
         ods_log_error("[%s] unable to evaluate xpath expression %s",
             parser_str, expr);
         return NULL;
     }
-
     if (xpathObj->nodesetval) {
         for (i=0; i < xpathObj->nodesetval->nodeNr; i++) {
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
@@ -151,7 +148,6 @@ parse_zonelist_adapters(xmlXPathContextPtr xpathCtx, zone_type* zone)
     if (!xpathCtx || !zone) {
         return;
     }
-
     zone->adinbound  = parse_zonelist_adapter(xpathCtx, i_expr, 1);
     zone->adoutbound = parse_zonelist_adapter(xpathCtx, o_expr, 0);
     return;
@@ -169,11 +165,9 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
     char* zone_name = NULL;
     zone_type* new_zone = NULL;
     int ret = 0;
-
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
-
     xmlChar* name_expr = (unsigned char*) "name";
     xmlChar* policy_expr = (unsigned char*) "//Zone/Policy";
     xmlChar* signconf_expr = (unsigned char*) "//Zone/SignerConfiguration";
@@ -217,7 +211,6 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
                 ret = xmlTextReaderRead(reader);
                 continue;
             }
-
             /* Expand this node to get the rest of the info */
             xmlTextReaderExpand(reader);
             doc = xmlTextReaderCurrentDoc(reader);
@@ -236,7 +229,6 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
                 }
                 continue;
             }
-
             /* That worked, now read out the contents... */
             new_zone = zone_create(zone_name, LDNS_RR_CLASS_IN);
             new_zone->policy_name = parse_zonelist_element(xpathCtx,

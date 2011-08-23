@@ -51,9 +51,6 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
             hsm_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(owner);
-    ods_log_assert(key_id);
-
     /* set parameters */
     if (!key_id->params) {
         key_id->params = hsm_sign_params_new();
@@ -73,7 +70,6 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
             return ODS_STATUS_ERR;
         }
     }
-
     /* lookup key */
     if (!key_id->hsmkey) {
         key_id->hsmkey = hsm_find_key_by_id(ctx, key_id->locator);
@@ -89,7 +85,6 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
             key_id->locator?key_id->locator:"(null)");
         return ODS_STATUS_ERR;
     }
-
     /* get dnskey */
     if (!key_id->dnskey) {
         key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey, key_id->params);
@@ -126,12 +121,7 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
             hsm_str);
         return NULL;
     }
-    ods_log_assert(owner);
-    ods_log_assert(key_id);
-    ods_log_assert(rrset);
-    ods_log_assert(inception);
-    ods_log_assert(expiration);
-
+    /* get dnskey */
     if (!key_id->dnskey) {
         status = lhsm_get_key(ctx, owner, key_id);
         if (status != ODS_STATUS_OK) {
@@ -147,7 +137,7 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ods_log_assert(key_id->dnskey);
     ods_log_assert(key_id->hsmkey);
     ods_log_assert(key_id->params);
-
+    /* adjust parameters */
     params = hsm_sign_params_new();
     params->owner = ldns_rdf_clone(key_id->params->owner);
     params->algorithm = key_id->algorithm;
@@ -160,7 +150,6 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
         key_id->locator?key_id->locator:"(null)", params->keytag);
     result = hsm_sign_rrset(ctx, rrset, key_id->hsmkey, params);
     hsm_sign_params_free(params);
-
     if (!result) {
         error = hsm_get_error(ctx);
         if (error) {

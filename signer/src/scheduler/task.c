@@ -202,7 +202,6 @@ task_compare(const void* a, const void* b)
         /* if dname is the same, consider the same task */
         return 0;
     }
-
     /* order task on time, what to do, dname */
     if (x->when != y->when) {
         return (int) x->when - y->when;

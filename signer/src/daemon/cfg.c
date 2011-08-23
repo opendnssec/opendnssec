@@ -63,12 +63,10 @@ engine_config(allocator_type* allocator, const char* cfgfile,
             conf_str);
         return NULL;
     }
-    ods_log_assert(allocator);
     if (!cfgfile) {
         ods_log_error("[%s] failed to read: no filename given", conf_str);
         return NULL;
     }
-    ods_log_assert(cfgfile);
     ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
 
     ecfg = (engineconfig_type*) allocator_alloc(allocator,
@@ -141,9 +139,7 @@ engine_config_check(engineconfig_type* config)
         ods_log_error("[%s] check failed: no socket filename", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
-
     /*  [TODO] room for more checks here */
-
     return ODS_STATUS_OK;
 }
 
@@ -158,7 +154,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
     if (!out) {
         return;
     }
-
     fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     if (config) {
         fprintf(out, "<Configuration>\n");

@@ -50,11 +50,9 @@ int
 util_is_dnssec_rr(ldns_rr* rr)
 {
     ldns_rr_type type = 0;
-
     if (!rr) {
         return 0;
     }
-
     type = ldns_rr_get_type(rr);
     return (type == LDNS_RR_TYPE_RRSIG ||
             type == LDNS_RR_TYPE_NSEC ||
@@ -72,7 +70,6 @@ util_soa_compare_rdata(ldns_rr* rr1, ldns_rr* rr2)
 {
     size_t i = 0;
     size_t rdata_count = SE_SOA_RDATA_MINIMUM;
-
     for (i = 0; i <= rdata_count; i++) {
         if (i != SE_SOA_RDATA_SERIAL &&
             ldns_rdf_compare(ldns_rr_rdf(rr1, i), ldns_rr_rdf(rr2, i)) != 0) {
@@ -93,11 +90,9 @@ util_soa_compare(ldns_rr* rr1, ldns_rr* rr2)
     size_t rr1_len = 0;
     size_t rr2_len = 0;
     size_t offset = 0;
-
     if (!rr1 || !rr2) {
         return 1;
     }
-
     rr1_len = ldns_rr_uncompressed_size(rr1);
     rr2_len = ldns_rr_uncompressed_size(rr2);
     if (ldns_dname_compare(ldns_rr_owner(rr1), ldns_rr_owner(rr2)) != 0) {
@@ -118,7 +113,6 @@ util_soa_compare(ldns_rr* rr1, ldns_rr* rr2)
         }
         return 1;
     }
-
     return util_soa_compare_rdata(rr1, rr2);
 }
 
@@ -140,12 +134,10 @@ util_dnssec_rrs_compare(ldns_rr* rr1, ldns_rr* rr2, int* cmp)
     if (!rr1 || !rr2) {
         return LDNS_STATUS_ERR;
     }
-
     rr1_len = ldns_rr_uncompressed_size(rr1);
     rr2_len = ldns_rr_uncompressed_size(rr2);
     rr1_buf = ldns_buffer_new(rr1_len);
     rr2_buf = ldns_buffer_new(rr2_len);
-
     /* name, class and type should already be equal */
     status = ldns_rr2buffer_wire_canonical(rr1_buf, rr1, LDNS_SECTION_ANY);
     if (status != LDNS_STATUS_OK) {

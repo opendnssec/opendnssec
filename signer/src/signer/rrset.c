@@ -1125,7 +1125,7 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
     }
     ods_log_assert(q);
 
-    while (status == ODS_STATUS_UNCHANGED) {
+    while (status == ODS_STATUS_UNCHANGED && !worker->need_to_exit) {
         lock_basic_lock(&q->q_lock);
         status = fifoq_push(q, (void*) rrset, worker);
         lock_basic_unlock(&q->q_lock);

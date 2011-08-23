@@ -143,7 +143,6 @@ parse_sc_keys(allocator_type* allocator, const char* cfgfile)
             free((void*)flags);
         }
     }
-
     xmlXPathFreeObject(xpathObj);
     xmlXPathFreeContext(xpathCtx);
     if (doc) {

@@ -70,7 +70,7 @@ struct engineconfig_struct {
 
 /**
  * Configure engine.
- * \param[in] allocator memory allocation
+ * \param[in] allocator memory allocator
  * \param[in] cfgfile config file
  * \param[in] cmdline_verbosity log level
  * \return engineconfig_type* engine configuration
@@ -83,6 +83,8 @@ engineconfig_type* engine_config(allocator_type* allocator,
  * Check configuration.
  * \param[in] config engine configuration
  * \return ods_status status
+ *         ODS_STATUS_OK: configuration settings ok
+ *         else: error in configuration settings
  *
  */
 ods_status engine_config_check(engineconfig_type* config);
