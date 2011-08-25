@@ -341,8 +341,8 @@ adfile_read(struct zone_struct* zone, const char* filename)
         status = ODS_STATUS_FOPEN_ERR;
     }
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read file: %s", adapter_str,
-            ods_status2str(status));
+        ods_log_error("[%s] unable to read file %s: %s", adapter_str,
+            filename, ods_status2str(status));
         return status;
     }
     /* [end] read zone */
