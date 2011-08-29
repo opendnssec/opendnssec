@@ -751,6 +751,7 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 		HsmKey *hsmkey;
 		/** if we have a match, remember youngest */
 		if (keyfactory.GetHsmKeyByLocator(k.locator(), &hsmkey) &&
+			k.role() == role &&
 			p_bits == hsmkey->bits() && p_alg == k.algorithm() &&
 			!p_rep.compare(hsmkey->repository())  &&
 			(!(*key) || k.inception() > (*key)->inception()) )
