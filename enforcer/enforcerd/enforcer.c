@@ -394,7 +394,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
 
     /* Check capacity of HSM will not be exceeded */
-    if (policy->ksk->sm_capacity != 0) {
+    if (policy->ksk->sm_capacity != 0 && new_keys >= 0) {
         current_count = hsm_count_keys_repository(ctx, policy->ksk->sm_name);
         if (current_count >= policy->ksk->sm_capacity) {
             log_msg(config, LOG_ERR, "Repository %s is full, cannot create more KSKs for policy %s\n", policy->ksk->sm_name, policy->name);
@@ -477,7 +477,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     /* fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
 
     /* Check capacity of HSM will not be exceeded */
-    if (policy->zsk->sm_capacity != 0) {
+    if (policy->zsk->sm_capacity != 0 && new_keys >= 0) {
         current_count = hsm_count_keys_repository(ctx, policy->zsk->sm_name);
         if (current_count >= policy->zsk->sm_capacity) {
             log_msg(config, LOG_ERR, "Repository %s is full, cannot create more ZSKs for policy %s\n", policy->zsk->sm_name, policy->name);

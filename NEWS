@@ -9,6 +9,7 @@ Bugfixes:
 * Bugfix #259: ods-ksmutil: Prevent MySQL username or password being interpreted
   by the shell when running "ods-ksmutil setup".
 * Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
+* Enforcer: Unsigned comparison resulting in wrong error message.
 * Signer Engine: A threading issue occasionally puts the default validity
   on NSEC(3) RRs and the denial validity on other RRs.
 * Signer Engine: An update command could interrupt the signing process and the
