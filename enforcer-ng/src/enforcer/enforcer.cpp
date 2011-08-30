@@ -165,7 +165,7 @@ getDesiredState(const bool introducing, const STATE state)
 bool
 policyApproval(KeyData &key, const RECORD record, const STATE next_state)
 {
-	const char *scmd = "getDesiredState";
+	const char *scmd = "policyApproval";
 	
 	/** once the record is introduced the policy has no influence. */
 	if (next_state != RUM) return true;
@@ -594,7 +594,35 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 
 				ods_log_verbose("[%s] %s Timing says we can (3/3) now: %d key: %d", 
 					module_str, scmd, now, returntime_key);
-				
+
+				/** If we are handling a DS we depend on the user or 
+				 * some other external process. We must communicate
+				 * through the DSSeen and -submit flags */
+				if (record == DS) {
+					switch (next_state) {
+						case RUM:
+							/** Ask the user to submit the DS to
+							 * the parent */
+							key.setDSSeen( false );
+							key.setSubmitToParent( true );
+							break;
+						case OMN:
+							/** User had not indicated DS is seen */
+							if (!key.isDSSeen()) continue;
+							break;
+						case UNR:
+							/** Ask the user to remove the DS from
+							 * the parent */
+							//~ key.setDSGone( false );	//TODO implement interface
+							//~ key.setRemoveFromParent( true );	//TODO implement interface
+							break;
+						case HID:
+							/** User had not indicated DS is removed */
+							//~ if (!key.DSGone()) continue;	//TODO implement interface
+							break;
+					}
+				}
+
 				/** We've passed all tests! Make the transition */
 				setState(zone, key, record, next_state, now);
 				change = true;
