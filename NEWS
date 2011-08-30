@@ -15,6 +15,8 @@ Bugfixes:
 * ods-ksmutil: "update kasp" now reflects changes in policy descriptions.
 * ods-ksmutil: Policy descriptions now have special characters quoted.
 * Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
+* ods-ksmutil: fixed issue where first ds-seen command run on a zone would work,
+  but return an error code and not send a HUP to the enforcerd. 
 
 
 OpenDNSSEC 1.3.0 - 2011-07-12

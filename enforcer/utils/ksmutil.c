@@ -2805,7 +2805,6 @@ cmd_dsseen()
             /* If there are not at least 2 active keys then quit */
             if (key_count < 2) {
                 /* Count retired keys to work out if this is a new zone */
-                /* TODO MAKE SURE THIS IS RIGHT !!! */
                 status = CountKeysInState(KSM_TYPE_KSK, KSM_STATE_RETIRE, &retired_count, zone_id);
                 if (status != 0) {
                     printf("Error: failed to count retired keys\n");
@@ -2814,12 +2813,21 @@ cmd_dsseen()
                     return status;
                 }
 
+				db_disconnect(lock_fd);
+				StrFree(datetime);
+				/* Cleanup and print an error message... */
                 if (retired_count != 0) {
-                    printf("Error: retiring a key would leave no active keys on zone, skipping...\n");
-                }
-                db_disconnect(lock_fd);
-                StrFree(datetime);
-                return -1;
+					printf("Error: retiring a key would leave no active keys on zone, skipping...\n");
+					return -1;
+				} else {
+					/* ...Unless this looks like a new zone, in which case poke
+					   the enforcerd*/
+					if (restart_enforcerd() != 0)
+					{
+						fprintf(stderr, "Could not HUP ods-enforcerd\n");
+					}
+					return 0;
+				}
             }
 
             status = RetireOldKey(zone_id, policy_id, datetime);
