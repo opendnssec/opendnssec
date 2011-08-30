@@ -7,6 +7,8 @@ OpenDNSSEC trunk
   were seen, or if both were seen (so a key rollover is happening).
 * ods-ksmutil: Prevent MySQL username or password being interpreted by the 
   shell when running "ods-ksmutil setup"
+* Enforcer/ods-ksmutil: Use TTls from kasp when generating DNSKEY and DS
+  records for output.
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
