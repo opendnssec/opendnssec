@@ -688,7 +688,8 @@ numberOfKeyConfigs(const Keys &policyKeys, const KeyRole role)
  * */
 void 
 keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
-	int *bits, int *algorithm, int *lifetime, string &repository)
+	int *bits, int *algorithm, int *lifetime, string &repository,
+	bool *manual)
 {
 	const char *scmd = "keyProperties";
 	
@@ -701,19 +702,22 @@ keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
 			*bits	   = policyKeys.ksk(index).bits();
 			*algorithm = policyKeys.ksk(index).algorithm();
 			*lifetime  = policyKeys.ksk(index).lifetime();
-            repository.assign(policyKeys.ksk(index).repository());
+			*manual    = policyKeys.ksk(index).manual_rollover();
+			repository.assign(policyKeys.ksk(index).repository());
 			break;
 		case ZSK:
 			*bits	   = policyKeys.zsk(index).bits();
 			*algorithm = policyKeys.zsk(index).algorithm();
 			*lifetime  = policyKeys.zsk(index).lifetime();
-            repository.assign(policyKeys.zsk(index).repository());
+			*manual    = policyKeys.zsk(index).manual_rollover();
+			repository.assign(policyKeys.zsk(index).repository());
 			break;
 		case CSK:
 			*bits	   = policyKeys.csk(index).bits();
 			*algorithm = policyKeys.csk(index).algorithm();
 			*lifetime  = policyKeys.csk(index).lifetime();
-            repository.assign(policyKeys.csk(index).repository());
+			*manual    = policyKeys.csk(index).manual_rollover();
+			repository.assign(policyKeys.csk(index).repository());
 			break;
 		default:
 			/** Programming error, report a bug! */
@@ -752,8 +756,9 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 	{
 		int p_bits, p_alg, p_life;
 		string p_rep;
+		bool p_man;
 		keyProperties(policyKeys, i, key.role(), &p_bits, &p_alg, 
-			&p_life, p_rep); 
+			&p_life, p_rep, &p_man); 
 		if (p_bits == hsmkey->bits() && p_alg == key.algorithm() &&
 			!p_rep.compare(hsmkey->repository()) )
 			return true;
@@ -769,9 +774,11 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 {
 	int p_bits, p_alg, p_life;
 	string p_rep;
+	bool p_man;
 	
 	/** fetch characteristics of config */
-	keyProperties(policyKeys, index, role, &p_bits, &p_alg, &p_life, p_rep); 
+	keyProperties(policyKeys, index, role, &p_bits, &p_alg, &p_life,
+		p_rep, &p_man); 
 	
 	*key = NULL;
 	for (int j = 0; j < key_list.numKeys(); j++) {
@@ -800,7 +807,8 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
  * */
 time_t 
 updatePolicy(EnforcerZone &zone, const time_t now, 
-	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool &allow_unsigned)
+	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool &allow_unsigned,
+	bool force_rollover, KeyRole force_role)
 {
 	time_t return_at = -1;
 	const Policy *policy = zone.policy();
@@ -830,24 +838,30 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 		for ( int i = 0; i < numberOfKeyConfigs( policyKeys, (KeyRole)role ); i++ ) {
 			string repository;
 			int bits, algorithm, lifetime;
+			bool manual_rollover;
 
 			/** select key properties of key i in KeyRole role */
 			keyProperties(policyKeys, i, (KeyRole)role, &bits, 
-				&algorithm, &lifetime, repository);
+				&algorithm, &lifetime, repository, &manual_rollover);
 
-			/** See if there is a similar key which is still usable. */
-			KeyData *key;
-			if (	youngestKeyForConfig(keyfactory, policyKeys, 
-					(KeyRole)role, i, key_list, &key) 	&& 
-					key->inception() + lifetime > now	)
-			{
-				minTime( addtime(key->inception(), lifetime), return_at );
-				continue;
+			/** If a rollover is initiated by the user (forced) for this
+			 * role insert new key regardless of lifetime of existing 
+			 * keys. */
+			if (!force_rollover || force_role != (KeyRole)role) {
+				/** Policy forbids automatic rolling */
+				if (manual_rollover) continue;
+				/** See if there is a similar key which is still usable.
+				 *  Come back whenever it expires. */
+				KeyData *key;
+				if (youngestKeyForConfig(keyfactory, policyKeys, 
+					(KeyRole)role, i, key_list, &key) && 
+					key->inception() + lifetime > now)
+				{
+					minTime( addtime(key->inception(), lifetime), return_at );
+					continue;
+				}
 			}
-			
-			//TODO: skip insertion of new key if manual rollover.
-			//how will this work? we dont have a manual key gen function.
-			
+
 			/** time for a new key */
 			ods_log_verbose("[%s] %s New key needed for role %d", 
 				module_str, scmd, role);
@@ -954,6 +968,7 @@ removeDeadKeys(KeyDataList &key_list, const time_t now, const int purgetime)
 /* see header file */
 time_t 
 update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
+//~ bool force_rollover, KeyRole role)
 {
 	time_t policy_return_time, zone_return_time;
 	bool allow_unsigned;
@@ -963,7 +978,7 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 
 	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
 
-	policy_return_time = updatePolicy(zone, now, keyfactory, key_list, allow_unsigned);
+	policy_return_time = updatePolicy(zone, now, keyfactory, key_list, allow_unsigned, false, KSK);
 	if (allow_unsigned)
 		ods_log_info(
 			"[%s] %s No keys configured, zone will become unsigned eventually",
