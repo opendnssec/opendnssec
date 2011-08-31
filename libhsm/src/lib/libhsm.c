@@ -2105,6 +2105,56 @@ hsm_create_context()
     return hsm_ctx_clone(_hsm_ctx);
 }
 
+int
+hsm_check_context(hsm_ctx_t *ctx)
+{
+    unsigned int i;
+    hsm_session_t *session;
+    CK_SESSION_INFO info;
+    CK_RV rv;
+    CK_SESSION_HANDLE session_handle;
+
+    if (ctx == NULL) {
+        ctx = _hsm_ctx;
+    }
+
+    for (i = 0; i < ctx->session_count; i++) {
+        session = ctx->session[i];
+        if (session == NULL) continue;
+
+        /* Get session info */
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetSessionInfo(
+                                        session->session,
+                                        &info);
+        if (hsm_pkcs11_check_error(ctx, rv, "get session info")) {
+            return HSM_ERROR;
+        }
+
+        /* Check session info */
+        if (info.state != CKS_RW_USER_FUNCTIONS) {
+            hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_check_context()",
+                              "Session not logged in");
+            return HSM_ERROR;
+        }
+
+        /* Try open and close a session with the token */
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_OpenSession(info.slotID,
+                                        CKF_SERIAL_SESSION | CKF_RW_SESSION,
+                                        NULL,
+                                        NULL,
+                                        &session_handle);
+        if (hsm_pkcs11_check_error(ctx, rv, "test open session")) {
+            return HSM_ERROR;
+        }
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_CloseSession(session_handle);
+        if (hsm_pkcs11_check_error(ctx, rv, "test close session")) {
+            return HSM_ERROR;
+        }
+    }
+
+    return HSM_OK;
+}
+
 void
 hsm_destroy_context(hsm_ctx_t *ctx)
 {

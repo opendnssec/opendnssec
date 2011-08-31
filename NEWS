@@ -9,6 +9,8 @@ OpenDNSSEC trunk
   shell when running "ods-ksmutil setup"
 * Enforcer/ods-ksmutil: Use TTls from kasp when generating DNSKEY and DS
   records for output.
+* libhsm: Added hsm_check_context() to check if the associated sessions are
+  still alive.
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
