@@ -922,7 +922,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
 
     /* Check that we found the right database type */
     if (db_found != DbFlavour()) {
-        log_msg(config, LOG_ERR, "Error: database in config file %s does not match libksm", filename);
+        log_msg(config, LOG_ERR, "Error: Config file %s specifies database type %s but system is compiled to use %s", filename, (db_found==1) ? "MySQL" : "sqlite3", (db_found==2) ? "MySQL" : "sqlite3");
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);

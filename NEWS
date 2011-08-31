@@ -11,6 +11,8 @@ OpenDNSSEC trunk
   records for output.
 * libhsm: Added hsm_check_context() to check if the associated sessions are
   still alive.
+* Enforcer/ods-ksmutil: Give a more descriptive error message if the <Datastore>
+  tag in conf.xml does not match the database-backend set at compile time.
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.

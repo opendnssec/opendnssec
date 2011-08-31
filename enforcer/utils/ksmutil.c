@@ -5549,7 +5549,7 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
 
     /* Check that we found the right database type */
     if (db_found != DbFlavour()) {
-        printf("Error: database in config file does not match libksm\n");
+        printf("Error: Config file %s specifies database type %s but system is compiled to use %s\n", config, (db_found==1) ? "MySQL" : "sqlite3", (db_found==2) ? "MySQL" : "sqlite3");
         return(-1);
     }
 
