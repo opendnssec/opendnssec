@@ -51,5 +51,6 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 int read_zonelist_filename(const char* filename, char** zone_list_filename);
 int do_purge(int interval, int policy_id);
 int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd);
+void check_hsm_connection(hsm_ctx_t **ctx, DAEMONCONFIG *config);
 
 #endif /* ENFORCER_H */
