@@ -18,6 +18,7 @@ extern "C" {
 #include "enforcer/enforce_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/allocator.h"
 }
 
 #include "enforcer/enforcerzone.h"
@@ -25,13 +26,38 @@ extern "C" {
 
 static const char *module_str = "enforce_task";
 
-time_t perform_enforce(int sockfd, engineconfig_type *config)
+
+const ::ods::kasp::Policy *
+find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
+                          const ::ods::keystate::EnforcerZone &ks_zone)
+{
+    // Find the policy associated with the zone.
+    for (int p=0; p<kasp.policies_size(); ++p) {
+        if (kasp.policies(p).name() == ks_zone.policy()) {
+            ods_log_debug("[%s] policy %s found for zone %s",
+                          module_str,ks_zone.policy().c_str(),
+                          ks_zone.name().c_str());
+            return &kasp.policies(p);
+        }
+    }
+    ods_log_error("[%s] policy %s could not be found for zone %s",
+                  module_str,ks_zone.policy().c_str(),
+                  ks_zone.name().c_str());
+    ods_log_error("[%s] unable to enforce zone %s",
+                  module_str,ks_zone.name().c_str());
+
+    return NULL;
+}
+
+
+time_t perform_enforce(int sockfd, engineconfig_type *config, int bForceUpdate,
+                       task_type* task)
 {
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
     int fd;
 
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     // Read the zonelist and policies in from the same directory as
     // the database, use serialized protocolbuffer for now, but switch
@@ -87,7 +113,6 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         close(fd);
     }
     
-    
     if (bFailedToLoad) {
         delete kaspDoc;
         delete keystateDoc;
@@ -97,63 +122,74 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
         return -1;
     }
 
-    time_t t_when = time_now() + 1 * 365 * 24 * 60 * 60; // now + 1 year
-
+    time_t t_now = time_now();
+    // when to reschedule next zone for enforcement
+    time_t t_when = t_now + 1 * 365 * 24 * 60 * 60; // now + 1 year
+    // which zone to reschedule next for enforcement
+    std::string z_when;
+    
     // Hook the key factory into the hsmkeyDoc list of pre-generated 
     // cryptographic keys.
     HsmKeyFactoryPB keyfactory(hsmkeyDoc);
-    
-    // Go through all the zones and run the enforcer for every one of them.
+
+    // Go through all the zones and call enforcer update for the zone when 
+    // its schedule time is earlier or identical to time_now.
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
-
-        const ::ods::keystate::EnforcerZone &ks_zone = keystateDoc->zones(z);
-
-        const ::ods::kasp::KASP &kasp = kaspDoc->kasp();
-
-        //printf("%s\n",zone.name().c_str());
-
-        const ::ods::kasp::Policy *policy = NULL;
-
-        for (int p=0; p<kasp.policies_size(); ++p) {
-            // lookup the policy associated with this zone
-            // printf("%s\n",kasp.policies(p).name().c_str());
-            if (kasp.policies(p).name() == ks_zone.policy()) {
-                policy = &kasp.policies(p);
-                ods_log_debug("[%s] policy %s found for zone %s",
-                              module_str,policy->name().c_str(),
-                              ks_zone.name().c_str());
-                break;
+        // Update zone when scheduled time is earlier or identical to time_now.
+        time_t t_next = keystateDoc->zones(z).next_change();
+        if (t_next == -1 && bForceUpdate == 0)
+            continue; // invalid schedule time, skip zone.
+        if (t_next <= t_now || bForceUpdate) {
+            // TODO: introduce a query where we select all zones that are
+            // scheduled with a time t_scheduled <= time_now().
+            const ::ods::keystate::EnforcerZone &ks_zone =
+                keystateDoc->zones(z);
+            const ::ods::kasp::Policy *policy = 
+                find_kasp_policy_for_zone(kaspDoc->kasp(),ks_zone);
+            EnforcerZonePB enfZone(keystateDoc->mutable_zones(z), policy);
+            if (policy) {
+                t_next = update(enfZone, time_now(), keyfactory);
+            
+                if (t_next == -1) {
+                    // Enforcer update could not find a date to 
+                    // schedule next.
+                    (void)snprintf(buf, ODS_SE_MAXLINE, 
+                                   "Next update for zone %s NOT scheduled "
+                                   "by enforcer !\n",
+                                   ks_zone.name().c_str());
+                    ods_writen(sockfd, buf, strlen(buf));
+                }
+            } else {
+                // Unable to find a policy for this zone don't schedule
+                // it again !
+                t_next = -1; 
+                
+                (void)snprintf(buf, ODS_SE_MAXLINE, 
+                               "Next update for zone %s NOT scheduled "
+                               "because policy %s is missing !\n",
+                               ks_zone.name().c_str(),ks_zone.policy().c_str());
+                ods_writen(sockfd, buf, strlen(buf));
             }
+            enfZone.setNextChange(t_next);
+            if (t_next == -1)
+                continue; 
+                
+            // Invalid schedule time then skip the zone.
+            char tbuf[32] = "date/time invalid\n"; // at least 26 bytes
+            ctime_r(&t_next,tbuf); // note that ctime_r inserts a \n
+            (void)snprintf(buf, ODS_SE_MAXLINE, 
+                           "Next update for zone %s scheduled at %s",
+                           ks_zone.name().c_str(),
+                           tbuf);
+            ods_writen(sockfd, buf, strlen(buf));
         }
-
-        if (policy == NULL) {
-            ods_log_error("[%s] policy %s could not be found for zone %s",
-                          module_str,ks_zone.policy().c_str(),
-                          ks_zone.name().c_str());
-            ods_log_error("[%s] unable to enforce zone %s",
-                          module_str,ks_zone.name().c_str());
-            continue;
-        }
-
-        EnforcerZonePB enfZone(keystateDoc->mutable_zones(z), policy);
-
-        time_t t_next = update(enfZone, time_now(), keyfactory);
         
-        enfZone.setNextChange(t_next);
-
-        if (t_next == -1)
-            continue;
-
-        // If this enforcer wants a reschedule earlier than currently
+        // Determine whether this zone is going to be scheduled next.
+        // If the enforcer wants a reschedule earlier than currently
         // set, then use that.
         if (t_next < t_when) {
             t_when = t_next;
-             
-            char tbuf[32] = "date/time invalid\n"; // at least 26 bytes
-            ctime_r(&t_when,tbuf); // note that ctime_r inserts a \n
-            (void)snprintf(buf, ODS_SE_MAXLINE, 
-                           "Next update scheduled at %s",tbuf);
-            ods_writen(sockfd, buf, strlen(buf));
+            z_when = keystateDoc->zones(z).name().c_str();
         }
     }
 
@@ -213,22 +249,28 @@ time_t perform_enforce(int sockfd, engineconfig_type *config)
     delete keystateDoc;
     delete hsmkeyDoc;
 
-    return std::max(t_when, time_now());
+    if (!task)
+        return -1;
+    
+    ods_log_assert(task->allocator);
+    ods_log_assert(task->who);
+    allocator_deallocate(task->allocator,(void*)task->who);
+    task->who = allocator_strdup(task->allocator, z_when.c_str());
+
+    
+    task->when = std::max(t_when, time_now());
+    task->backoff = 0;
+    return task->when;
 }
 
 static task_type *
 enforce_task_perform(task_type *task)
 {
-    time_t t_when = perform_enforce(-1, (engineconfig_type *)task->context);
+    if (perform_enforce(-1, (engineconfig_type *)task->context, 0, task) != -1)
+        return task;
 
-    if (t_when == -1) {
-        task_cleanup(task);
-        return NULL;
-    }
-
-	task->backoff = 0;
-    task->when = t_when;
-    return task;
+    task_cleanup(task);
+    return NULL;
 }
 
 task_type *
@@ -237,5 +279,5 @@ enforce_task(engineconfig_type *config, const char *what, const char *who)
     task_id what_id = task_register(what, 
                                  "enforce_task_perform",
                                  enforce_task_perform);
-	return task_create(what_id, time_now(), who, (void*)config);
+    return task_create(what_id, time_now(), who, (void*)config);
 }

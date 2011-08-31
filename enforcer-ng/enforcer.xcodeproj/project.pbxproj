@@ -90,7 +90,6 @@
 		A71D0994136C44E300D8F205 /* hsmkey_list_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hsmkey_list_task.h; sourceTree = "<group>"; };
 		A72FF6A9134335D400B85C40 /* enforcerdata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforcerdata.h; sourceTree = "<group>"; };
 		A73184AC13144EE1007DB701 /* AUTHORS */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AUTHORS; sourceTree = "<group>"; };
-		A73184BD13144EE1007DB701 /* Changelog */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Changelog; sourceTree = "<group>"; };
 		A73184C213144EE1007DB701 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A73184C613144EE1007DB701 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A73184C913144EE1007DB701 /* ods-enforcer.8.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "ods-enforcer.8.in"; sourceTree = "<group>"; };
@@ -277,7 +276,6 @@
 		A73184BC13144EE1007DB701 /* doc */ = {
 			isa = PBXGroup;
 			children = (
-				A73184BD13144EE1007DB701 /* Changelog */,
 			);
 			path = doc;
 			sourceTree = "<group>";

@@ -29,10 +29,7 @@ void help_enforce_zones_cmd(int sockfd)
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
     "enforce         enumerate all zones and run the enforcer once for every zone.\n"
-    "  --task        schedule command as a separate task that automatically reschedules.\n"
     );
-// "enforce <zone>  read zone and schedule for immediate enforcement.\n"
-// "enforce --all   read all zones and schedule all for enforcement.\n"
     ods_writen(sockfd, buf, strlen(buf));
 }
 
@@ -54,38 +51,14 @@ int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-    if (strncmp(cmd, "--task", 7) == 0) {
-        /* schedule task */
-        task = enforce_task(engine->config,"enforce","next zone");
-        if (!task) {
-            ods_log_crit("[%s] failed to create %s task",
-                         module_str,scmd);
-        } else {
-            status = schedule_task_from_thread(engine->taskq, task, 0);
-            if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] failed to create %s task", module_str, scmd);
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "Unable to schedule %s task.\n",scmd);
-                ods_writen(sockfd, buf, strlen(buf));
-            } else {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "Scheduled %s task.\n",scmd);
-                ods_writen(sockfd, buf, strlen(buf));
-                engine_wakeup_workers(engine);
-            }
-        }
-    } else {
-        /* perform tasks immediately */
-        time_t tstart = time(NULL);
+	/* perform tasks immediately */
+	time_t tstart = time(NULL);
 
-        perform_enforce(sockfd, engine->config);
-        
-        perform_signconf(sockfd, engine->config);
-
-        (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                       scmd,time(NULL)-tstart);
-        ods_writen(sockfd, buf, strlen(buf));
-    }
+	perform_enforce(sockfd, engine->config, 1, NULL);
+	
+	(void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
+				   scmd,time(NULL)-tstart);
+	ods_writen(sockfd, buf, strlen(buf));
 
     return 1;
 }

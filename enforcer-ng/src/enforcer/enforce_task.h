@@ -4,7 +4,8 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-time_t perform_enforce(int sockfd, engineconfig_type *config);
+time_t perform_enforce(int sockfd, engineconfig_type *config, int bForce,
+                       task_type *task);
 
 task_type *enforce_task(engineconfig_type *config, const char *what,
                         const char *who);
