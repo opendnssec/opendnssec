@@ -19,7 +19,8 @@ extern "C" {
 
 static const char *module_str = "signconf_task";
 
-void WriteSignConf(const std::string &path, ::ods::signconf::SignerConfigurationDocument *doc)
+void WriteSignConf(const std::string &path,
+                   ::ods::signconf::SignerConfigurationDocument *doc)
 {
     write_pb_message_to_xml_file(doc,path.c_str());
 }
@@ -27,8 +28,10 @@ void WriteSignConf(const std::string &path, ::ods::signconf::SignerConfiguration
 /*
  * ForEvery zone Z in zonelist do
  *   if flag signerConfNeedsWriting is set then
- *      Assign the data from the zone and associated policy to the signer configuration object
- *      Write signer configuration XML file at the correct location taken from zonedata signerconfiguration field in the zone 
+ *      Assign the data from the zone and associated policy to the signer
+ *          configuration object
+ *      Write signer configuration XML file at the correct location taken
+ *          from zonedata signerconfiguration field in the zone 
  */
 void 
 perform_signconf(int sockfd, engineconfig_type *config)
@@ -87,12 +90,12 @@ perform_signconf(int sockfd, engineconfig_type *config)
         return ;
     }
         
-    // Go through all the zones and run the enforcer for every one of them.
+    // Go through all the zones and write signer configuration when required.
     for (int i=0; i<keystateDoc->zones_size(); ++i) {
-    
-        const ::ods::keystate::EnforcerZone &ks_zone = keystateDoc->zones(i);
+
+        ::ods::keystate::EnforcerZone *ks_zone = keystateDoc->mutable_zones(i);
         
-        if (!ks_zone.signconf_needs_writing())
+        if (!ks_zone->signconf_needs_writing())
             continue;
 
         const ::ods::kasp::KASP &
@@ -105,27 +108,27 @@ perform_signconf(int sockfd, engineconfig_type *config)
         for (int p=0; p<kasp.policies_size(); ++p) {
             // lookup the policy associated with this zone 
             // printf("%s\n",kasp.policies(p).name().c_str());
-            if (kasp.policies(p).name() == ks_zone.policy()) {
+            if (kasp.policies(p).name() == ks_zone->policy()) {
                 policy = &kasp.policies(p);
                 ods_log_debug("[%s] policy %s found for zone %s", 
                               module_str,policy->name().c_str(),
-                              ks_zone.name().c_str());
+                              ks_zone->name().c_str());
                 break;
             }
         }
         
         if (policy == NULL) {
             ods_log_error("[%s] policy %s could not be found for zone %s", 
-                          module_str,ks_zone.policy().c_str(),
-                          ks_zone.name().c_str());
+                          module_str,ks_zone->policy().c_str(),
+                          ks_zone->name().c_str());
             ods_log_error("[%s] unable to enforce zone %s", 
-                          module_str,ks_zone.name().c_str());
+                          module_str,ks_zone->name().c_str());
             continue;
         }
 
         ::ods::signconf::SignerConfigurationDocument *doc  = new ::ods::signconf::SignerConfigurationDocument;
         ::ods::signconf::Zone *sc_zone = doc->mutable_signerconfiguration()->mutable_zone();
-        sc_zone->set_name(ks_zone.name());
+        sc_zone->set_name(ks_zone->name());
         
         // Get the Signatures parameters straight from the policy.
         ::ods::signconf::Signatures *sc_sigs = sc_zone->mutable_signatures();
@@ -144,15 +147,15 @@ perform_signconf(int sockfd, engineconfig_type *config)
         
         if (kp_denial.has_nsec() && kp_denial.has_nsec3()) {
             ods_log_error("[%s] policy %s contains both NSEC and NSEC3 in Denial for zone %s", 
-                          module_str,ks_zone.policy().c_str(),
-                          ks_zone.name().c_str());
+                          module_str,ks_zone->policy().c_str(),
+                          ks_zone->name().c_str());
             // skip to the next zone.
             continue;
         } else {
             if (!kp_denial.has_nsec() && !kp_denial.has_nsec3()) {
                 ods_log_error("[%s] policy %s does not contains NSEC or NSEC3 in Denial for zone %s", 
-                              module_str,ks_zone.policy().c_str(),
-                              ks_zone.name().c_str());
+                              module_str,ks_zone->policy().c_str(),
+                              ks_zone->name().c_str());
                 // skip to the next zone.
                 continue;
             } else {
@@ -184,8 +187,8 @@ perform_signconf(int sockfd, engineconfig_type *config)
         ::ods::signconf::Keys *sc_keys = sc_zone->mutable_keys();
         sc_keys->set_ttl( policy->keys().ttl() );
 
-        for (int k=0; k<ks_zone.keys_size(); ++k) {
-            const ::ods::keystate::KeyData &ks_key = ks_zone.keys(k);
+        for (int k=0; k<ks_zone->keys_size(); ++k) {
+            const ::ods::keystate::KeyData &ks_key = ks_zone->keys(k);
             ::ods::signconf::Key* sc_key = sc_keys->add_keys();
 
             // TODO: is this correct ?
@@ -220,11 +223,39 @@ perform_signconf(int sockfd, engineconfig_type *config)
         else
             sc_zone->clear_audit();
 
-        WriteSignConf(ks_zone.signconf_path(), doc);
+        WriteSignConf(ks_zone->signconf_path(), doc);
+        
+        ks_zone->set_signconf_needs_writing(false);
         
         delete doc;
     }
     
+    // Persist the keystate zones back to disk as they may have
+    // been changed while writing the signer configurations
+    if (keystateDoc->IsInitialized()) {
+        std::string datapath(datastore);
+        datapath += ".keystate.pb";
+        int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
+        if (keystateDoc->SerializeToFileDescriptor(fd)) {
+            ods_log_debug("[%s] key states have been updated",
+                          module_str);
+            
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "update of key states completed.\n");
+            ods_writen(sockfd, buf, strlen(buf));
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "error: key states file could not be written.\n");
+            ods_writen(sockfd, buf, strlen(buf));
+        }
+        close(fd);
+    } else {
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+                       "error: a message in the key states is missing "
+                       "mandatory information.\n");
+        ods_writen(sockfd, buf, strlen(buf));
+    }
+
     delete kaspDoc;
     delete keystateDoc;
 }
