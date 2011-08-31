@@ -54,7 +54,7 @@ int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
 	/* perform tasks immediately */
 	time_t tstart = time(NULL);
 
-	perform_enforce(sockfd, engine->config, 1, NULL);
+	perform_enforce(sockfd, engine, 1, NULL);
 	
 	(void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
 				   scmd,time(NULL)-tstart);

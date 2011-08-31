@@ -15,7 +15,9 @@
 // Interface of this cpp file is used by C code, we need to declare
 // extern "C" to prevent linking errors.
 extern "C" {
+#include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
+#include "signconf/signconf_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/allocator.h"
@@ -50,11 +52,11 @@ find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
 }
 
 
-time_t perform_enforce(int sockfd, engineconfig_type *config, int bForceUpdate,
+time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
                        task_type* task)
 {
     char buf[ODS_SE_MAXLINE];
-    const char *datastore = config->datastore;
+    const char *datastore = engine->config->datastore;
     int fd;
 
     GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -134,6 +136,7 @@ time_t perform_enforce(int sockfd, engineconfig_type *config, int bForceUpdate,
 
     // Go through all the zones and call enforcer update for the zone when 
     // its schedule time is earlier or identical to time_now.
+    bool bSignerConfNeedsWriting = false;
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
         // Update zone when scheduled time is earlier or identical to time_now.
         time_t t_next = keystateDoc->zones(z).next_change();
@@ -149,7 +152,10 @@ time_t perform_enforce(int sockfd, engineconfig_type *config, int bForceUpdate,
             EnforcerZonePB enfZone(keystateDoc->mutable_zones(z), policy);
             if (policy) {
                 t_next = update(enfZone, time_now(), keyfactory);
-            
+                
+                if (enfZone.signerConfNeedsWriting())
+                    bSignerConfNeedsWriting = true;
+                
                 if (t_next == -1) {
                     // Enforcer update could not find a date to 
                     // schedule next.
@@ -249,6 +255,35 @@ time_t perform_enforce(int sockfd, engineconfig_type *config, int bForceUpdate,
     delete keystateDoc;
     delete hsmkeyDoc;
 
+    
+    // Launch signer configuration writer task when one of the 
+    // zones indicated that it needs to be written.
+    if (bSignerConfNeedsWriting) {
+        task_type *signconf = signconf_task(engine->config, "signconf",
+                                            "signer configurations");
+        if (!signconf) {
+            ods_log_crit("[%s] failed to create %s task", module_str,
+                         "signconf");
+        } else {
+            char buf[ODS_SE_MAXLINE];
+            ods_status status = schedule_task_from_thread(engine->taskq, 
+                                                          signconf, 0);
+            if (status != ODS_STATUS_OK) {
+                ods_log_crit("[%s] failed to create %s task", module_str,
+                             "signconf");
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "Unable to schedule %s task.\n",
+                               "signconf");
+                ods_writen(sockfd, buf, strlen(buf));
+            } else {
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "Scheduled %s task.\n","signconf");
+                ods_writen(sockfd, buf, strlen(buf));
+                engine_wakeup_workers(engine);
+            }
+        }
+    }
+    
     if (!task)
         return -1;
     
@@ -266,7 +301,7 @@ time_t perform_enforce(int sockfd, engineconfig_type *config, int bForceUpdate,
 static task_type *
 enforce_task_perform(task_type *task)
 {
-    if (perform_enforce(-1, (engineconfig_type *)task->context, 0, task) != -1)
+    if (perform_enforce(-1, (engine_type *)task->context, 0, task) != -1)
         return task;
 
     task_cleanup(task);
@@ -274,10 +309,10 @@ enforce_task_perform(task_type *task)
 }
 
 task_type *
-enforce_task(engineconfig_type *config, const char *what, const char *who)
+enforce_task(engine_type *engine, const char *what, const char *who)
 {
     task_id what_id = task_register(what, 
                                  "enforce_task_perform",
                                  enforce_task_perform);
-    return task_create(what_id, time_now(), who, (void*)config);
+    return task_create(what_id, time_now(), who, (void*)engine);
 }

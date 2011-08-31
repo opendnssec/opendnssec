@@ -233,10 +233,8 @@ static task_type *
 signconf_task_perform(task_type *task)
 {
     perform_signconf(-1,(engineconfig_type *)task->context);
-    
-	task->backoff = 0;
-    task->when = time_now() + 60;
-    return task;
+    task_cleanup(task);
+    return NULL;
 }
 
 task_type *

@@ -82,7 +82,7 @@ int handled_autostart_cmd(int sockfd, engine_type* engine,
                   "resalt");
 
     schedule_task(sockfd,engine,
-                  enforce_task(engine->config,"enforce","next zone"),
+                  enforce_task(engine,"enforce","next zone"),
                   "enforce");
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
