@@ -2756,12 +2756,21 @@ cmd_dsseen()
                     return status;
                 }
 
-                if (retired_count != 0) {
-                    printf("Error: retiring a key would leave no active keys on zone, skipping...\n");
-                }
+				/* Cleanup and print an error message... */
                 db_disconnect(lock_fd);
                 StrFree(datetime);
-                return -1;
+                if (retired_count != 0) {
+                    printf("Error: retiring a key would leave no active keys on zone, skipping...\n");
+					return -1;
+                } else {
+					/* ...Unless this looks like a new zone, in which case poke
+					   the enforcerd */
+					if (restart_enforcerd() != 0)
+					{
+						fprintf(stderr, "Could not HUP ods-enforcerd\n");
+					}
+					return 0;
+				}
             }
 
             status = RetireOldKey(zone_id, policy_id, datetime);
