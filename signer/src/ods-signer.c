@@ -168,11 +168,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                             "from daemon.\n");
                     exit(1);
                 }
-                
                 /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer 
                     manipulations below. */
                 if (strncmp(buf+n-SE_CLI_CMDLEN,"\ncmd> ",SE_CLI_CMDLEN) == 0) {
-                
                     /* we have the full response */
                     n -= SE_CLI_CMDLEN;
                     buf[n] = '\0';
@@ -250,8 +248,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 strncmp(buf, "quit", 4) == 0) {
                 return;
             }
-            ods_str_trim(buf);
-            n = strlen(buf);
             ods_writen(sockfd, buf, n);
         }
     }

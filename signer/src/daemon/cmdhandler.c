@@ -239,14 +239,13 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         lock_basic_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
-            ods_log_crit("[%s] cannot schedule task for zone %s: %s",
+            ods_log_crit("[%s] unable to schedule task for zone %s: %s",
                 cmdh_str, zone->name, ods_status2str(status));
             task_cleanup(task);
             zone->task = NULL;
         } else {
             engine_wakeup_workers(cmdc->engine);
         }
-
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
             tbd);
         ods_writen(sockfd, buf, strlen(buf));
@@ -423,7 +422,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         task->what = TASK_READ;
         if (status != ODS_STATUS_OK) {
             ods_log_warning("[%s] unable to restore DNSKEY/NSEC3PARAM RRset "
-                " for zone %s d1reloading signconf", cmdh_str, zone->name);
+                " for zone %s, reloading signconf", cmdh_str, zone->name);
             task->what = TASK_SIGNCONF;
         }
         /* [UNLOCK] zone */
@@ -671,12 +670,12 @@ cmdhandler_handle_cmd(cmdhandler_type* cmdc)
 
 again:
     while ((n = read(sockfd, buf, ODS_SE_MAXLINE)) > 0) {
+        /* what if this number is smaller than the number of bytes requested? */
         buf[n-1] = '\0';
         n--;
-        if (n <= 0) {
-            return;
-        }
         ods_log_verbose("[%s] received command %s[%i]", cmdh_str, buf, n);
+        ods_str_trim(buf);
+        n = strlen(buf);
 
         if (n == 4 && strncmp(buf, "help", n) == 0) {
             ods_log_debug("[%s] help command", cmdh_str);
@@ -743,11 +742,10 @@ again:
             } else {
                 cmdhandler_handle_cmd_verbosity(sockfd, cmdc, atoi(&buf[10]));
             }
-        } else {
+        } else if (n > 0) {
             ods_log_debug("[%s] unknown command", cmdh_str);
             cmdhandler_handle_cmd_unknown(sockfd, buf);
         }
-
         ods_log_debug("[%s] done handling command %s[%i]", cmdh_str, buf, n);
         (void)snprintf(buf, SE_CMDH_CMDLEN, "\ncmd> ");
         ods_writen(sockfd, buf, strlen(buf));
@@ -801,35 +799,29 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     int flags = 0;
     int ret = 0;
 
-    if (!allocator) {
-        ods_log_error("[%s] unable to create: no allocator", cmdh_str);
+    if (!allocator || !filename) {
         return NULL;
     }
-    if (!filename) {
-        ods_log_error("[%s] unable to create: no socket filename", cmdh_str);
-        return NULL;
-    }
-    ods_log_debug("[%s] create socket %s", cmdh_str, filename);
-
     /* new socket */
+    ods_log_debug("[%s] create socket %s", cmdh_str, filename);
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (listenfd <= 0) {
-        ods_log_error("[%s] unable to create, socket() failed: %s", cmdh_str,
-            strerror(errno));
+        ods_log_error("[%s] unable to create cmdhandler: "
+            "socket() failed (%s)", cmdh_str, strerror(errno));
         return NULL;
     }
     /* set it to non-blocking */
     flags = fcntl(listenfd, F_GETFL, 0);
     if (flags < 0) {
-        ods_log_error("[%s] unable to create, fcntl(F_GETFL) failed: %s",
-            cmdh_str, strerror(errno));
+        ods_log_error("[%s] unable to create cmdhandler: "
+            "fcntl(F_GETFL) failed (%s)", cmdh_str, strerror(errno));
         close(listenfd);
         return NULL;
     }
     flags |= O_NONBLOCK;
     if (fcntl(listenfd, F_SETFL, flags) < 0) {
-        ods_log_error("[%s] unable to create, fcntl(F_SETFL) failed: %s",
-            cmdh_str, strerror(errno));
+        ods_log_error("[%s] unable to create cmdhandler: "
+            "fcntl(F_SETFL) failed (%s)", cmdh_str, strerror(errno));
         close(listenfd);
         return NULL;
     }
@@ -844,23 +836,24 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     ret = bind(listenfd, (const struct sockaddr*) &servaddr,
         SUN_LEN(&servaddr));
     if (ret != 0) {
-        ods_log_error("[%s] unable to create, bind() failed: %s", cmdh_str,
-            strerror(errno));
+        ods_log_error("[%s] unable to create cmdhandler: "
+            "bind() failed (%s)", cmdh_str, strerror(errno));
         close(listenfd);
         return NULL;
     }
     ret = listen(listenfd, ODS_SE_MAX_HANDLERS);
     if (ret != 0) {
-        ods_log_error("[%s] unable to create, listen() failed: %s", cmdh_str,
-            strerror(errno));
+        ods_log_error("[%s] unable to create cmdhandler: "
+            "listen() failed (%s)", cmdh_str, strerror(errno));
         close(listenfd);
         return NULL;
     }
-
     /* all ok */
     cmdh = (cmdhandler_type*) allocator_alloc(allocator,
         sizeof(cmdhandler_type));
     if (!cmdh) {
+        ods_log_error("[%s] unable to create cmdhandler: "
+            "allocator_alloc() failed", cmdh_str);
         close(listenfd);
         return NULL;
     }
