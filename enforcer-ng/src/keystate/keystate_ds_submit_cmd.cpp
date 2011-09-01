@@ -15,25 +15,23 @@ extern "C" {
 
 static const char *module_str = "keystate_ds_submit_cmd";
 
-/**
- * Print help for the 'key list' command
- *
- */
-void help_keystate_ds_submit_cmd(int sockfd)
+void
+help_keystate_ds_submit_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "key ds-submit   show ds-submit flag for all keys.\n"
-        "  --zone <zone> (aka -z) perform submit for KSK key of zone <zone>.\n"
-        "  --id <id>     (aka -k) perform submit for key with id <id>.\n"
-        "  --auto        (aka -a) perform submit for all keys that actually "
-                        "need it.\n"
+        "  --zone <zone> (aka -z) force submit of KSK key for zone <zone>.\n"
+        "  --id <id>     (aka -k) force submit of KSK key with id <id>.\n"
+        "  --auto        (aka -a) perform submit for all keys that have "
+                        "the ds-submit flag set.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
 
-int handled_keystate_ds_submit_cmd(int sockfd, engine_type* engine,
-                                   const char *cmd, ssize_t n)
+int
+handled_keystate_ds_submit_cmd(int sockfd, engine_type* engine,
+                               const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     const char *argv[8];

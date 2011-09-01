@@ -44,8 +44,7 @@ static bool submit_dnskey_by_id(int sockfd,
     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
     sign_params->algorithm = (ldns_algorithm)algorithm;
     sign_params->flags = LDNS_KEY_ZONE_KEY;
-    if (role == ::ods::keystate::KSK)
-        sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
+    sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
     
     ldns_rr *dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
 #if 0
@@ -163,8 +162,14 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
             const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
             for (int k=0; k<enfzone.keys_size(); ++k) {
                 const ::ods::keystate::KeyData &key = enfzone.keys(k);
+
+                // Don't ever submit ZSKs to the parent.
+                if (key.role()==::ods::keystate::ZSK)
+                    continue;
                     
                 if (id) {
+                    // --id <id>
+                    //     Force submit key to the parent for specific key id.
                     if (key.locator()==id) {
                         // submit key with this id to the parent
                         if (submit_dnskey_by_id(sockfd,ds_submit_command,
@@ -180,10 +185,10 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                     }
                 } else {
                     if (zone) {
-                        if (enfzone.name()==zone
-                            && key.role()==::ods::keystate::KSK) 
-                        {
-                            // submit the KSK key for this zone to the parent
+                        // --zone <zone>
+                        //     Force submit key to the parent for specific zone.
+                        if (enfzone.name()==zone) {
+                            // submit key for this zone to the parent
                             if (submit_dnskey_by_id(sockfd,ds_submit_command,
                                                 key.locator().c_str(),
                                                 key.role(),
@@ -196,9 +201,11 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                             }
                         }
                     } else {
+                        // --auto
+                        //     Submit keys to the parent that have
+                        //     the "submit to parent" flag set.
                         if (key.submit_to_parent()) {
-                            // only submit the key to the parent
-                            // when flag is set.
+                            // only submit the key to the parent when flag is set.
                             if (submit_dnskey_by_id(sockfd,ds_submit_command,
                                                 key.locator().c_str(),
                                                 key.role(),
@@ -262,6 +269,9 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
         const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
         for (int k=0; k<enfzone.keys_size(); ++k) {
             const ::ods::keystate::KeyData &key = enfzone.keys(k);
+            // Don't suggest ZSKs can be submitted, leave them out of the list.
+            if (key.role() == ::ods::keystate::ZSK)
+                continue;
             std::string keyrole = keyrole_Name(key.role());
             const char *action = key.submit_to_parent() ? "yes" : "no";
             (void)snprintf(buf, ODS_SE_MAXLINE,
@@ -281,7 +291,6 @@ keystate_ds_submit_task_perform(task_type *task)
 {
     perform_keystate_ds_submit(-1,(engineconfig_type *)task->context,NULL,NULL,
                                1);
-    
     task_cleanup(task);
     return NULL;
 }
