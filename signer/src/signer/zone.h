@@ -102,32 +102,6 @@ struct zone_struct {
 zone_type* zone_create(char* name, ldns_rr_class klass);
 
 /**
- * Add RR.
- * \param[in] zone zone
- * \param[in] rr rr
- * \param[in] do_stats true if we need to maintain statistics
- * \return ods_status status
- *         ODS_STATUS_OK: rr to be added to zone
- *         ODS_STATUS_UNCHANGED: rr not added to zone, rr already exists
- *         other: rr not added to zone, error occurred
- *
- */
-ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
-
-/**
- * Delete RR.
- * \param[in] zone zone
- * \param[in] rr rr
- * \param[in] do_stats true if we need to maintain statistics
- * \return ods_status status
- *         ODS_STATUS_OK: rr to be removed from zone
- *         ODS_STATUS_UNCHANGED: rr not removed from zone, rr does not exist
- *         other: rr not removed from zone, error occurred
- *
- */
-ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
-
-/**
  * Load signer configuration for zone.
  * \param[in] zone zone
  * \param[out] tbs task to be scheduled
@@ -158,6 +132,40 @@ ods_status zone_publish_dnskeys(zone_type* zone, int recover);
 ods_status zone_prepare_nsec3(zone_type* zone, int recover);
 
 /**
+ * Update serial.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_update_serial(zone_type* zone);
+
+/**
+ * Add RR.
+ * \param[in] zone zone
+ * \param[in] rr rr
+ * \param[in] do_stats true if we need to maintain statistics
+ * \return ods_status status
+ *         ODS_STATUS_OK: rr to be added to zone
+ *         ODS_STATUS_UNCHANGED: rr not added to zone, rr already exists
+ *         other: rr not added to zone, error occurred
+ *
+ */
+ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+
+/**
+ * Delete RR.
+ * \param[in] zone zone
+ * \param[in] rr rr
+ * \param[in] do_stats true if we need to maintain statistics
+ * \return ods_status status
+ *         ODS_STATUS_OK: rr to be removed from zone
+ *         ODS_STATUS_UNCHANGED: rr not removed from zone, rr does not exist
+ *         other: rr not removed from zone, error occurred
+ *
+ */
+ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+
+/**
  * Backup zone.
  * \param[in] zone corresponding zone
  * \return ods_status status
@@ -183,14 +191,6 @@ ods_status zone_recover(zone_type* zone);
  *
  */
 void zone_merge(zone_type* z1, zone_type* z2);
-
-/**
- * Update serial.
- * \param[in] zone zone
- * \return ods_status status
- *
- */
-ods_status zone_update_serial(zone_type* zone);
 
 /**
  * Print zone.
