@@ -525,7 +525,7 @@ engine_setup(engine_type* engine, handled_xxxx_cmd_type *commands,
  *
  */
 static void
-engine_run(engine_type* engine, int single_run)
+engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
     if (!engine) {
         return;
@@ -541,8 +541,8 @@ engine_run(engine_type* engine, int single_run)
     /* [UNLOCK] signal */
     lock_basic_unlock(&engine->signal_lock);
 
-    /* push the autostart command into the queue */
-    cmdhandler_command_push_back(engine->cmdhandler,"autostart");
+    /* call the external start callback function */
+    start(engine);
     
     while (!engine->need_to_exit && !engine->need_to_reload) {
         lock_basic_lock(&engine->signal_lock);
@@ -594,7 +594,7 @@ engine_run(engine_type* engine, int single_run)
  */
 
 void 
-engine_runloop(engine_type* engine, int single_run)
+engine_runloop(engine_type* engine, start_cb_t start, int single_run)
 {
     /* run */
     while (engine->need_to_exit == 0) {
@@ -610,7 +610,7 @@ engine_runloop(engine_type* engine, int single_run)
              */
         }
         
-        engine_run(engine, single_run);
+        engine_run(engine, start, single_run);
     }
     
     /* shutdown */

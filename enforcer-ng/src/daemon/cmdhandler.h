@@ -54,10 +54,6 @@ struct cmdhandler_struct {
     int listen_fd;
     int client_fd;
     int need_to_exit;
-    
-    lock_basic_type cmdqueue_lock;
-    const char **cmdqueue; /* LIFO ! */
-    int ncmdqueue;
 };
 
 /**
@@ -76,42 +72,6 @@ cmdhandler_type* cmdhandler_create(allocator_type* allocator,
  *
  */
 void cmdhandler_start(cmdhandler_type* cmdhandler);
-
-/**
- * Queue a new command for the command handler as if it was received from the
- * enforcer client utility.
- * \param[in] cmdhandler command handler
- * \param[in] cmd command to queue.
- * \return int 0 to indicate the queue is full and 1 to indicate the command
- *      was queued succesfully.
- *
- */
-int cmdhandler_command_push_back(cmdhandler_type* cmdhandler, const char *cmd);
-
-/**
- * Peek at the command at the start of the queue.
- * \param[in] cmdhandler command handler
- * \return const char * command at the front of the queue or NULL when the
- *      queue is empty.
- *
- */
-const char *cmdhandler_command_peek_front(cmdhandler_type *cmdhandler);
-
-/**
- * Pop the command at the start of the queue.
- * \param[in] cmdhandler command handler
- * \return const char * command at the front of the queue or NULL when the
- *      queue is empty. After use, the popped command needs to be deallocated
- *      via cmdhandler_command_release.
- *
- */
-const char *cmdhandler_command_pop_front(cmdhandler_type *cmdhandler);
-
-/** 
- * Free the command that was previously popped of the front of the queue
- *
- */
-void cmdhandler_command_release(cmdhandler_type* cmdhandler, const char *cmd);
 
 /**
  * Cleanup command handler.

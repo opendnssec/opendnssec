@@ -3,9 +3,6 @@
 
 #include "daemon/engine.h"
 
-void help_autostart_cmd(int sockfd);
-
-int handled_autostart_cmd(int sockfd, engine_type* engine,
-                      const char *cmd, ssize_t n);
+void autostart(engine_type* engine);
 
 #endif

@@ -109,6 +109,8 @@ engine_type *engine_start(const char* cfgfile, int cmdline_verbosity,
 void engine_setup(engine_type *engine, handled_xxxx_cmd_type *commands,
                   help_xxxx_cmd_type *help);
 
+typedef void (*start_cb_t)(engine_type* engine);
+
 /**
  * Run the engine after setting it up using engine_setup.
  * When this function returns the runloop has finished and
@@ -117,7 +119,7 @@ void engine_setup(engine_type *engine, handled_xxxx_cmd_type *commands,
  * \param[in] single_run run once
  *
  */
-void engine_runloop(engine_type* engine, int single_run);
+void engine_runloop(engine_type* engine, start_cb_t start, int single_run);
 
 /**
  * Stop the engine after engine_runloop returns.

@@ -18,75 +18,35 @@ extern "C" {
 
 static const char *module_str = "autostart_cmd";
 
-/**
- * Print help for the 'autostart' command
- *
- */
-void help_autostart_cmd(int sockfd)
-{
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
-        "autostart       start enforcer tasks that always need to be running.\n"
-        );
-    ods_writen(sockfd, buf, strlen(buf));
-}
-
 static void 
-schedule_task(int sockfd, engine_type* engine, 
-                        task_type *task, const char * what)
-
+schedule_task(engine_type* engine, task_type *task, const char * what)
 {
     /* schedule task */
     if (!task) {
-        ods_log_crit("[%s] failed to create %s task",
-                     module_str,what);
+        ods_log_crit("[%s] failed to create %s task", module_str, what);
     } else {
         char buf[ODS_SE_MAXLINE];
         ods_status status = schedule_task_from_thread(engine->taskq, task, 0);
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] failed to create %s task", module_str, what);
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "Unable to schedule %s task.\n",what);
-            ods_writen(sockfd, buf, strlen(buf));
         } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "Scheduled %s task.\n",what);
-            ods_writen(sockfd, buf, strlen(buf));
+            ods_log_debug("[%s] scheduled %s task", module_str, what);
             engine_wakeup_workers(engine);
         }
     }
     
 }
-
-
-/**
- * Handle the 'autostart' command.
- *
- */
-int handled_autostart_cmd(int sockfd, engine_type* engine,
-                      const char *cmd, ssize_t n)
+ 
+void
+autostart(engine_type* engine)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *scmd = "autostart";
+    ods_log_debug("[%s] autostart", module_str);
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
-    
-    ods_log_debug("[%s] %s command", module_str, scmd);
-
-    time_t tstart = time(NULL);
-    
-    schedule_task(sockfd,engine,
+    schedule_task(engine,
                   policy_resalt_task(engine->config,"resalt","policies"),
                   "resalt");
 
-    schedule_task(sockfd,engine,
+    schedule_task(engine,
                   enforce_task(engine,"enforce","next zone"),
                   "enforce");
-
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
-    return 1;
 }

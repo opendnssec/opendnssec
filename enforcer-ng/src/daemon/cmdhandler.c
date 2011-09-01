@@ -65,8 +65,6 @@
 #define SUN_LEN(su) (sizeof(*(su))-sizeof((su)->sun_path)+strlen((su)->sun_path))
 #endif
 
-#define NUM_CMDQUEUE 32
-
 static int count = 0;
 static char* module_str = "cmdhandler";
 
@@ -122,6 +120,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd,
     lock_basic_unlock(&engine->taskq->schedule_lock);
     return 1;
 }
+
 
 /**
  * Handle the 'time leap' command.
@@ -230,6 +229,7 @@ int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd,
     return 1;
 }
 
+
 /**
  * Handle the 'running' command.
  *
@@ -241,22 +241,6 @@ int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd,
     if (n != 7 || strncmp(cmd, "running", n) != 0) return 0;
     ods_log_debug("[%s] running command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
-    ods_writen(sockfd, buf, strlen(buf));
-    return 1;
-}
-
-
-/**
- * Handle the 'start' command.
- *
- */
-int handled_start_cmd(int sockfd, engine_type* engine, const char *cmd, 
-                      ssize_t n)
-{
-    char buf[ODS_SE_MAXLINE];
-    if (n != 5 || strncmp(cmd, "start", n) != 0) return 0;
-    ods_log_debug("[%s] start command", module_str);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Scheduling autostart tasks.\n");
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }
@@ -298,7 +282,7 @@ int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd,
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 4 || strncmp(cmd, "stop", n) != 0) return 0;
-    ods_log_debug("[%s] shutdown command", module_str);
+    ods_log_debug("[%s] stop command", module_str);
     
     ods_log_assert(engine);
     
@@ -378,9 +362,8 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd,
         "                of the earliest scheduled task.\n"
         "flush           execute all scheduled tasks immediately.\n"
         "running         returns acknowledgment that the engine is running.\n"
-        "start           start the engine.\n"
         "reload          reload the engine.\n"
-        "stop            stop the engine.\n"
+        "stop            stop the engine and terminate the process.\n"
         "verbosity <nr>  set verbosity.\n"
         "help            show overview of available commands.\n"
         );
@@ -415,7 +398,6 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,
         handled_time_leap_cmd,
         handled_flush_cmd,
         handled_running_cmd,
-        handled_start_cmd,
         handled_reload_cmd,
         handled_stop_cmd,
         handled_verbosity_cmd,
@@ -451,36 +433,6 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,
     }
     
     ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
-}
-
-/* Process the commands that were placed in the command processor 
- * queue in sequence.
- *
- */
-static task_type *
-cmdhandler_queue_processor_task_perform(task_type *task)
-{
-    const char *cmd;
-    cmdhandler_type *cmdh = (cmdhandler_type *)task->context;
-    /* Process all the commands in the command queue last one first */
-    for (cmd=cmdhandler_command_pop_front(cmdh);
-         cmd;
-         cmd=cmdhandler_command_pop_front(cmdh)) 
-    {
-        cmdhandler_perform_command(-1,cmdh->engine,cmd,strlen(cmd));
-        cmdhandler_command_release(cmdh,cmd);
-    }
-    task_cleanup(task);
-    return NULL;
-}
-
-static task_type *
-cmdhandler_queue_processor_task(void *context)
-{
-    task_id what = task_register("cmdhandler",
-                                 "cmdhandler_queue_processor_task_perform", 
-                                 cmdhandler_queue_processor_task_perform);
-	return task_create(what, time_now(), "all", context);
 }
 
 /**
@@ -633,10 +585,6 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     cmdh->listen_fd = listenfd;
     cmdh->listen_addr = servaddr;
     cmdh->need_to_exit = 0;
-    lock_basic_init(&cmdh->cmdqueue_lock);
-    cmdh->cmdqueue = (const char **)
-        allocator_alloc(allocator, NUM_CMDQUEUE * sizeof(const char *));
-    cmdh->ncmdqueue = 0;
     return cmdh;
 }
 
@@ -709,115 +657,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     return;
 }
 
-int
-cmdhandler_command_push_back(cmdhandler_type* cmdhandler, const char *cmd)
-{
-    allocator_type* allocator;
-    if (!cmdhandler)
-        return 0;
-
-    allocator = cmdhandler->allocator;
-    
-    lock_basic_lock(&cmdhandler->cmdqueue_lock);
-    /* [LOCK] cmdqueue */
-
-    if (cmdhandler->ncmdqueue >= NUM_CMDQUEUE) {
-        /* [UNLOCK] cmdqueue */
-        lock_basic_unlock(&cmdhandler->cmdqueue_lock);
-        return 0;
-    }
-
-    cmdhandler->cmdqueue[cmdhandler->ncmdqueue] = allocator_strdup(allocator,
-                                                                   cmd);
-    if (!cmdhandler->cmdqueue[cmdhandler->ncmdqueue]) {
-        /* [UNLOCK] cmdqueue */
-        lock_basic_unlock(&cmdhandler->cmdqueue_lock);
-       return 0;
-    }
-    
-    /* if this is the first inserted command then start a task to 
-     * service the queue
-     */
-    if (!cmdhandler->ncmdqueue) {
-        task_type * task = cmdhandler_queue_processor_task((void*)cmdhandler);
-        if (!task) {
-            ods_log_crit("[%s] failed to create command processor task",
-                         module_str);
-        } else {
-            ods_status status = schedule_task_from_thread(
-                                        cmdhandler->engine->taskq, task, 0);
-            if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] failed to schedule command processor task",
-                             module_str);
-                task_cleanup(task);
-            }
-        }
-    }
-    
-    ++cmdhandler->ncmdqueue;
-    /* [UNLOCK] cmdqueue */
-    lock_basic_unlock(&cmdhandler->cmdqueue_lock);
-
-    return 1;
-}
-
-const char *
-cmdhandler_command_peek_front(cmdhandler_type *cmdhandler)
-{
-    const char *cmd;
-    if (!cmdhandler)
-        return NULL;
-    
-    lock_basic_lock(&cmdhandler->cmdqueue_lock);
-    /* [LOCK] cmdqueue */
-    
-    if (!cmdhandler->ncmdqueue) {
-        /* [UNLOCK] cmdqueue */
-        lock_basic_unlock(&cmdhandler->cmdqueue_lock);
-        return NULL;
-    }
-    
-    cmd = cmdhandler->cmdqueue[0];
-    
-    /* [UNLOCK] cmdqueue */
-    lock_basic_unlock(&cmdhandler->cmdqueue_lock);
-    return cmd;
-}
-
-const char *
-cmdhandler_command_pop_front(cmdhandler_type *cmdhandler)
-{
-    int i;
-    const char *cmd;
-    if (!cmdhandler)
-        return NULL;
-
-    lock_basic_lock(&cmdhandler->cmdqueue_lock);
-    /* [LOCK] cmdqueue */
-    
-    if (!cmdhandler->ncmdqueue) {
-        /* [UNLOCK] cmdqueue */
-        lock_basic_unlock(&cmdhandler->cmdqueue_lock);
-        return NULL;
-    }
-
-    cmd = cmdhandler->cmdqueue[0];
-    for (i=1; i<cmdhandler->ncmdqueue; ++i)
-        cmdhandler->cmdqueue[i-1] = cmdhandler->cmdqueue[i];
-    --cmdhandler->ncmdqueue;
-
-    /* [UNLOCK] cmdqueue */
-    lock_basic_unlock(&cmdhandler->cmdqueue_lock);
-    return cmd;
-}
-
-void
-cmdhandler_command_release(cmdhandler_type* cmdhandler, const char *cmd)
-{
-    if (cmdhandler)
-        allocator_deallocate(cmdhandler->allocator, (void *) cmd);
-}
-
 /**
  * Cleanup command handler.
  *
@@ -825,18 +664,7 @@ cmdhandler_command_release(cmdhandler_type* cmdhandler, const char *cmd)
 void
 cmdhandler_cleanup(cmdhandler_type* cmdhandler)
 {
-    int i;
-    allocator_type* allocator;
-    if (!cmdhandler) {
-        return;
-    }
-    lock_basic_destroy(&cmdhandler->cmdqueue_lock);
-    allocator = cmdhandler->allocator;
-    for (i=0; i<cmdhandler->ncmdqueue; ++i) {
-        allocator_deallocate(allocator, (void*) cmdhandler->cmdqueue[i]);   
-    }
-    allocator_deallocate(allocator, (void*) cmdhandler->cmdqueue);
-    allocator_deallocate(allocator, (void*) cmdhandler);
+    if (cmdhandler)
+        allocator_deallocate(cmdhandler->allocator, (void*) cmdhandler);
     return;
 }
-

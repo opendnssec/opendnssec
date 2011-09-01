@@ -117,7 +117,6 @@ version(FILE* out)
  */
 
 static help_xxxx_cmd_type enforcer_help[] = {
-    help_autostart_cmd,
     help_setup_cmd,
     help_update_kasp_cmd,
     help_policy_resalt_cmd,
@@ -151,7 +150,6 @@ static help_xxxx_cmd_type enforcer_help[] = {
  */
 static handled_xxxx_cmd_type 
 enforcer_commands[] = {
-    handled_autostart_cmd,
     handled_setup_cmd,
     handled_update_kasp_cmd,
     handled_policy_resalt_cmd,
@@ -267,7 +265,7 @@ main(int argc, char* argv[])
             engine_setup(engine,enforcer_commands,enforcer_help);
             /* if setup fails we need a non-zero exit code */
             if (engine->need_to_exit && !daemonize) exit(3);
-            engine_runloop(engine,single_run);
+            engine_runloop(engine,autostart,single_run);
             engine_stop(engine);
         }
     }
