@@ -138,8 +138,9 @@ const std::string &HsmKeyPB::repository()
 // HsmKeyFactoryPB
 //////////////////////////////
 
-HsmKeyFactoryPB::HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc)
-: _doc(doc)
+HsmKeyFactoryPB::HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc,
+                                 HsmKeyFactoryDelegatePB *delegate)
+: _doc(doc), _delegate(delegate)
 {
 }
 
@@ -210,6 +211,8 @@ bool HsmKeyFactoryPB::CreateNewKey(int bits, const std::string &repository,
     }
     
     // We were not able to find any suitable key, give up.
+    if (_delegate)
+        _delegate->OnKeyShortage(bits,repository,policy,algorithm,role);
     return false;
 }
 

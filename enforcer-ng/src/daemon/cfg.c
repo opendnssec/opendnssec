@@ -109,6 +109,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->datastore = parse_conf_datastore(allocator, cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
+        ecfg->manual_keygen = parse_conf_manual_keygen(cfgfile);
         ecfg->verbosity = cmdline_verbosity;
 
         /* done */
@@ -223,6 +224,9 @@ engine_config_print(FILE* out, engineconfig_type* config)
             config->working_dir);
         fprintf(out, "\t\t<WorkerThreads>%i</WorkerThreads>\n",
             config->num_worker_threads);
+        if (config->manual_keygen) {
+            fprintf(out, "\t\t<ManualKeyGeneration/>\n");
+        }
         if (config->delegation_signer_submit_command) {
             fprintf(out, "\t\t<DelegationSignerSubmitCommand>%s</DelegationSignerSubmitCommand>\n",
                 config->delegation_signer_submit_command);

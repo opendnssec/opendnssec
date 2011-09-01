@@ -106,5 +106,6 @@ int parse_conf_use_syslog(const char* cfgfile);
 
 /** Enforcer specific */
 int parse_conf_worker_threads(const char* cfgfile);
+int parse_conf_manual_keygen(const char* cfgfile);
 
 #endif /* PARSE_CONFPARSER_H */

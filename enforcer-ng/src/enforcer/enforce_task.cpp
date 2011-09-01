@@ -17,6 +17,7 @@
 extern "C" {
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
+#include "hsmkey/hsmkey_gen_task.h"
 #include "signconf/signconf_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
@@ -50,6 +51,69 @@ find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
 
     return NULL;
 }
+
+class HsmKeyFactoryCallbacks : public HsmKeyFactoryDelegatePB {
+private:
+    int _sockfd;
+    engine_type *_engine;
+    bool _bShouldLaunchKeyGen;
+public:
+    
+    HsmKeyFactoryCallbacks(int sockfd, engine_type *engine)
+    : _sockfd(sockfd),_engine(engine), _bShouldLaunchKeyGen(false)
+    {
+        
+    }
+    
+    ~HsmKeyFactoryCallbacks()
+    {
+        if (_bShouldLaunchKeyGen) 
+            LaunchKeyGen();
+    }
+
+    void LaunchKeyGen() const
+    {
+        /* schedule task */
+        task_type *task = hsmkey_gen_task(_engine->config, "pre-generate",
+                                          "hsm keys");
+        if (!task) {
+            ods_log_crit("[%s] failed to create %s task", module_str,
+                         "pre-generate");
+        } else {
+            char buf[ODS_SE_MAXLINE];
+            ods_enum_status status = schedule_task_from_thread(_engine->taskq,
+                                                               task, 0);
+            if (status != ODS_STATUS_OK) {
+                ods_log_crit("[%s] failed to create %s task", module_str,
+                             "pre-generate");
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "Unable to schedule %s task.\n",
+                               "pre-generate");
+                ods_writen(_sockfd, buf, strlen(buf));
+            } else {
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "Scheduled %s generator task.\n",
+                               "pre-generate");
+                ods_writen(_sockfd, buf, strlen(buf));
+                engine_wakeup_workers(_engine);
+            }
+        }
+    }
+    
+    virtual void OnKeyCreated(int bits, const std::string &repository,
+                              const std::string &policy, int algorithm,
+                              KeyRole role)
+    {
+        _bShouldLaunchKeyGen = true;
+    }
+    
+    virtual void OnKeyShortage(int bits, const std::string &repository,
+                               const std::string &policy, int algorithm,
+                               KeyRole role)
+    {
+        _bShouldLaunchKeyGen = true;
+    }
+};
 
 
 time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
@@ -130,9 +194,11 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     // which zone to reschedule next for enforcement
     std::string z_when;
     
+    HsmKeyFactoryCallbacks *hsmKeyFactoryCallbacks = 
+        new HsmKeyFactoryCallbacks(sockfd,engine);
     // Hook the key factory into the hsmkeyDoc list of pre-generated 
     // cryptographic keys.
-    HsmKeyFactoryPB keyfactory(hsmkeyDoc);
+    HsmKeyFactoryPB keyfactory(hsmkeyDoc,hsmKeyFactoryCallbacks);
 
     // Go through all the zones and call enforcer update for the zone when 
     // its schedule time is earlier or identical to time_now.
@@ -254,7 +320,10 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     delete kaspDoc;
     delete keystateDoc;
     delete hsmkeyDoc;
-
+    
+    // Delete the call backs and launch key pre-generation when we ran out 
+    // of keys during the enforcement
+    delete hsmKeyFactoryCallbacks;
     
     // Launch signer configuration writer task when one of the 
     // zones indicated that it needs to be written.

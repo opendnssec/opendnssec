@@ -121,17 +121,25 @@ bool generate_keypairs(int sockfd, ::ods::hsmkey::HsmKeyDocument *hsmkeyDoc,
 }
 
 void 
-perform_hsmkey_gen(int sockfd, engineconfig_type *config)
+perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
 {
     const int KSK_PREGEN = 2;
     const int ZSK_PREGEN = 4;
     const int CSK_PREGEN = 4;
-        
+    
+    // If only manual key generation is allowed and we are not being called 
+    // manually, then return.
+    if (config->manual_keygen != 0 && bManual == 0) {
+        ods_log_debug("[%s] not generating keys, because only manual key "
+                      "generation allowed",
+                      module_str);
+        return;
+    }
+    
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
     
     GOOGLE_PROTOBUF_VERIFY_VERSION;
-    
 
     // Use auto_ptr so we don't forget to delete the KaspDocument
     std::auto_ptr< ::ods::kasp::KaspDocument >
@@ -169,8 +177,8 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config)
     }
 
     bool bkeysgenerated = false;
-    
-    // We implement policy drive key pre-generation.
+
+    // We implement policy driven key pre-generation.
     int npolicies = kaspDoc->kasp().policies_size();
     for (int i=0; i<npolicies; ++i) {
         const ::ods::kasp::Policy &policy = kaspDoc->kasp().policies(i);
@@ -209,7 +217,7 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config)
                 }
             }
         }
-        
+
         // handle ZSK keys
         for (int izsk=0; izsk<policy.keys().zsk_size(); ++izsk) {
             const ::ods::kasp::Zsk& zsk = policy.keys().zsk(izsk);
@@ -280,7 +288,7 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config)
             }
         }
     }
-   
+
     // Write the list of pre-generated keys back to a pb file.
     if (bkeysgenerated) {
         std::string datapath(datastore);
@@ -300,8 +308,7 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config)
 static task_type * 
 hsmkey_gen_task_perform(task_type *task)
 {
-    perform_hsmkey_gen(-1,(engineconfig_type *)task->context);
-    
+    perform_hsmkey_gen(-1,(engineconfig_type *)task->context,0);
     task_cleanup(task);
     return NULL;
 }

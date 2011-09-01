@@ -443,3 +443,16 @@ parse_conf_worker_threads(const char* cfgfile)
     return numwt;
 }
 
+int
+parse_conf_manual_keygen(const char* cfgfile)
+{
+    const char* str = parse_conf_string(cfgfile,
+        "//Configuration/Enforcer/ManualKeyGeneration",
+        0);
+    if (str) {
+        free((void*)str);
+        return 1;
+    }
+    return 0;
+}
+

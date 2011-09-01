@@ -63,6 +63,7 @@ struct engineconfig_struct {
     const char* datastore;
     int use_syslog;
     int num_worker_threads;
+    int manual_keygen;
     int verbosity;
 };
 

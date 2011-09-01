@@ -45,12 +45,37 @@ public:
     virtual const std::string &repository();    
 };
 
+class HsmKeyFactoryDelegatePB {
+public:
+
+    /**
+     * Called when a key was created.
+     * The implementer of the delegate can then decide whether it should
+     * create additional keys to replace the one that was consumed.
+     */
+    virtual void OnKeyCreated(int bits, const std::string &repository,
+                              const std::string &policy, int algorithm,
+                              KeyRole role) = 0;
+
+    /**
+     * Called when a key could not be created because there are
+     * not enough available. The implementer of the delegate should
+     * start the key generation process to create keys for the enforcer.
+     */
+    virtual void OnKeyShortage(int bits, const std::string &repository,
+                               const std::string &policy, int algorithm,
+                               KeyRole role) = 0;
+};
+
 class HsmKeyFactoryPB : public HsmKeyFactory {
 private:
     ::ods::hsmkey::HsmKeyDocument *_doc;
     std::map<std::string,HsmKeyPB> _keys;
+    HsmKeyFactoryDelegatePB *_delegate;
+    
 public:
-    HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc);
+    HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc,
+                    HsmKeyFactoryDelegatePB *delegate);
     
     virtual bool CreateNewKey(int bits, const std::string &repository,
                               const std::string &policy, int algorithm,
