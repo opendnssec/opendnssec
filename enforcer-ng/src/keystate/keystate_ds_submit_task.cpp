@@ -287,10 +287,10 @@ keystate_ds_submit_task_perform(task_type *task)
 }
 
 task_type *
-keystate_ds_submit_task(engineconfig_type *config,const char *shortname)
+keystate_ds_submit_task(engineconfig_type *config, const char *what,
+                        const char *who)
 {
-    task_id what = task_register(shortname,
-                                 "keystate_ds_submit_task_perform",
-                                 keystate_ds_submit_task_perform);
-	return task_create(what, time_now(), "all", (void*)config);
+    task_id what_id = task_register(what, "keystate_ds_submit_task_perform",
+                                    keystate_ds_submit_task_perform);
+	return task_create(what_id, time_now(), who, (void*)config);
 }

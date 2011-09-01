@@ -4,10 +4,12 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
-                                const char *zone, const char *id, int bauto);
+void
+perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
+                           const char *zone, const char *id, int bauto);
 
-task_type *keystate_ds_submit_task(engineconfig_type *config,
-                                   const char *shortname);
+task_type *
+keystate_ds_submit_task(engineconfig_type *config, const char *what,
+                        const char *who);
 
 #endif
