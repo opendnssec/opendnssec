@@ -49,6 +49,14 @@
 
 struct schedule_struct;
 
+enum zone_zl_status_enum {
+    ZONE_ZL_OK = 0,
+    ZONE_ZL_ADDED,
+    ZONE_ZL_UPDATED,
+    ZONE_ZL_REMOVED
+};
+typedef enum zone_zl_status_enum zone_zl_status;
+
 /**
  * Zone.
  *
@@ -59,38 +67,28 @@ struct zone_struct {
     ldns_rdf* apex; /* wire format zone name */
     ldns_rr_class klass; /* class */
     uint32_t default_ttl; /* ttl */
-
     /* from conf.xml */
     const char* notify_ns; /* master name server reload command */
     int fetch; /* zone fetcher enabled */
-
     /* from zonelist.xml */
     const char* name; /* string format zone name */
     const char* policy_name; /* policy identifier */
     const char* signconf_filename; /* signconf filename */
-    int just_added;
-    int just_updated;
-    int tobe_removed;
+    zone_zl_status zl_status; /* zonelist status */
     int processed;
     int prepared;
-
     /* adapters */
     adapter_type* adinbound; /* inbound adapter */
     adapter_type* adoutbound; /* outbound adapter */
-
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
     nsec3params_type* nsec3params; /* NSEC3 parameters */
-
     /* zone data */
     zonedata_type* zonedata;
-
     /* worker variables */
     void* task; /* next assigned task */
-
     /* statistics */
     stats_type* stats;
-
     lock_basic_type zone_lock;
 };
 

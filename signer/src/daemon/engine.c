@@ -793,11 +793,8 @@ engine_update_zones(engine_type* engine)
     time_t now;
 
     if (!engine || !engine->zonelist || !engine->zonelist->zones) {
-        ods_log_error("[%s] cannot update zones: no engine or zonelist",
-            engine_str);
         return;
     }
-
     now = time_now();
     reload_zonefetcher(engine);
 
@@ -807,7 +804,7 @@ engine_update_zones(engine_type* engine)
         zone = (zone_type*) node->data;
         task = NULL; /* reset task */
 
-        if (zone->tobe_removed) {
+        if (zone->zl_status == ZONE_ZL_REMOVED) {
             node = ldns_rbtree_next(node);
             lock_basic_lock(&zone->zone_lock);
             delzone = zonelist_del_zone(engine->zonelist, zone);
@@ -823,12 +820,11 @@ engine_update_zones(engine_type* engine)
             zone_cleanup(zone);
             zone = NULL;
             continue;
-        } else if (zone->just_added) {
-
+        } else if (zone->zl_status == ZONE_ZL_ADDED) {
             lock_basic_lock(&zone->zone_lock);
             ods_log_assert(!zone->task);
-            zone->just_added = 0;
-            /* notify nameserver */
+            zone->zl_status = ZONE_ZL_OK;
+            /* set notify nameserver command */
             if (engine->config->notify_command && !zone->notify_ns) {
                 set_notify_ns(zone, engine->config->notify_command);
             }
@@ -846,10 +842,10 @@ engine_update_zones(engine_type* engine)
            /* zone fetcher enabled? */
            zone->fetch = (engine->config->zonefetch_filename != NULL);
             lock_basic_unlock(&zone->zone_lock);
-        } else if (zone->just_updated) {
+        } else if (zone->zl_status == ZONE_ZL_UPDATED) {
             lock_basic_lock(&zone->zone_lock);
             ods_log_assert(zone->task);
-            zone->just_updated = 0;
+            zone->zl_status = ZONE_ZL_OK;
             /* reschedule task */
             lock_basic_lock(&engine->taskq->schedule_lock);
             task = unschedule_task(engine->taskq, (task_type*) zone->task);
@@ -919,7 +915,7 @@ engine_recover(engine_type* engine)
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
 
-        ods_log_assert(zone->just_added);
+        ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
         status = zone_recover(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
@@ -948,7 +944,7 @@ engine_recover(engine_type* engine)
                 ods_log_verbose("[%s] recovered zone %s", engine_str,
                     zone->name);
                 /* recovery done */
-                zone->just_added = 0;
+                zone->zl_status = ZONE_ZL_OK;
             }
         } else {
             if (status != ODS_STATUS_UNCHANGED) {

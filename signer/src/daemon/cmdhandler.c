@@ -196,7 +196,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
         /* If this zone is just added, don't update (it might not have a task yet) */
-        if (zone && zone->just_added) {
+        if (zone && zone->zl_status == ZONE_ZL_ADDED) {
             zone = NULL;
         }
         lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
@@ -287,7 +287,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
         /* If this zone is just added, don't update (it might not have a task yet) */
-        if (zone && zone->just_added) {
+        if (zone && zone->zl_status == ZONE_ZL_ADDED) {
             zone = NULL;
         }
         lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);

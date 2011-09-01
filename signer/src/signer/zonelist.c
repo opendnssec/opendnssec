@@ -211,7 +211,7 @@ zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
         zone_cleanup(zone);
         return NULL;
     }
-    zone->just_added = 1;
+    zone->zl_status = ZONE_ZL_ADDED;
     zlist->just_added++;
     return zone;
 }
@@ -289,7 +289,7 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
             ret = zone_compare(z1, z2);
             if (ret < 0) {
                 /* remove zone z1, it is not present in the new list zl2 */
-                z1->tobe_removed = 1;
+                z1->zl_status = ZONE_ZL_REMOVED;
                 zl1->just_removed++;
                 n1 = ldns_rbtree_next(n1);
             } else if (ret > 0) {
@@ -306,17 +306,17 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
                 n2 = ldns_rbtree_next(n2);
                 zone_merge(z1, z2);
                 zone_cleanup(z2);
-                if (z1->just_updated) {
+                if (z1->zl_status == ZONE_ZL_UPDATED) {
                     zl1->just_updated++;
                 }
-                z1->just_updated = 1;
+                z1->zl_status = ZONE_ZL_UPDATED;
             }
         }
     }
     /* remove remaining zones from z1 */
     while (n1 && n1 != LDNS_RBTREE_NULL) {
         z1 = (zone_type*) n1->data;
-        z1->tobe_removed = 1;
+        z1->zl_status = ZONE_ZL_REMOVED;
         zl1->just_removed++;
         n1 = ldns_rbtree_next(n1);
     }
