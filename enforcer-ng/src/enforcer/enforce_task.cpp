@@ -19,6 +19,7 @@ extern "C" {
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "signconf/signconf_task.h"
+#include "keystate/keystate_ds_submit_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/allocator.h"
@@ -29,6 +30,28 @@ extern "C" {
 
 static const char *module_str = "enforce_task";
 
+static void 
+schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
+{
+    /* schedule task */
+    if (!task) {
+        ods_log_crit("[%s] failed to create %s task", module_str, what);
+    } else {
+        char buf[ODS_SE_MAXLINE];
+        ods_status status = schedule_task_from_thread(engine->taskq, task, 0);
+        if (status != ODS_STATUS_OK) {
+            ods_log_crit("[%s] failed to create %s task", module_str, what);
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "Unable to schedule %s task.\n", what);
+            ods_writen(sockfd, buf, strlen(buf));
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE,
+                           "Scheduled %s task.\n", what);
+            ods_writen(sockfd, buf, strlen(buf));
+            engine_wakeup_workers(engine);
+        }
+    }
+}
 
 const ::ods::kasp::Policy *
 find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
@@ -74,30 +97,9 @@ public:
     void LaunchKeyGen() const
     {
         /* schedule task */
-        task_type *task = hsmkey_gen_task(_engine->config, "pre-generate",
-                                          "hsm keys");
-        if (!task) {
-            ods_log_crit("[%s] failed to create %s task", module_str,
-                         "pre-generate");
-        } else {
-            char buf[ODS_SE_MAXLINE];
-            ods_enum_status status = schedule_task_from_thread(_engine->taskq,
-                                                               task, 0);
-            if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] failed to create %s task", module_str,
-                             "pre-generate");
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "Unable to schedule %s task.\n",
-                               "pre-generate");
-                ods_writen(_sockfd, buf, strlen(buf));
-            } else {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "Scheduled %s generator task.\n",
-                               "pre-generate");
-                ods_writen(_sockfd, buf, strlen(buf));
-                engine_wakeup_workers(_engine);
-            }
-        }
+        task_type *task = hsmkey_gen_task(_engine->config,
+                                          "pre-generate", "hsm keys");
+        schedule_task(_sockfd,_engine,task,"pre-generate");
     }
     
     virtual void OnKeyCreated(int bits, const std::string &repository,
@@ -203,6 +205,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     // Go through all the zones and call enforcer update for the zone when 
     // its schedule time is earlier or identical to time_now.
     bool bSignerConfNeedsWriting = false;
+    bool bSubmitToParent = false;
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
         // Update zone when scheduled time is earlier or identical to time_now.
         time_t t_next = keystateDoc->zones(z).next_change();
@@ -221,7 +224,13 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
                 
                 if (enfZone.signerConfNeedsWriting())
                     bSignerConfNeedsWriting = true;
-                
+
+                KeyDataList &kdl = enfZone.keyDataList();
+                for (int k=0; k<kdl.numKeys(); ++k) {
+                    if (kdl.key(k).submitToParent())
+                        bSubmitToParent = true;
+                }
+
                 if (t_next == -1) {
                     // Enforcer update could not find a date to 
                     // schedule next.
@@ -328,31 +337,20 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     // Launch signer configuration writer task when one of the 
     // zones indicated that it needs to be written.
     if (bSignerConfNeedsWriting) {
-        task_type *signconf = signconf_task(engine->config, "signconf",
-                                            "signer configurations");
-        if (!signconf) {
-            ods_log_crit("[%s] failed to create %s task", module_str,
-                         "signconf");
-        } else {
-            char buf[ODS_SE_MAXLINE];
-            ods_status status = schedule_task_from_thread(engine->taskq, 
-                                                          signconf, 0);
-            if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] failed to create %s task", module_str,
-                             "signconf");
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "Unable to schedule %s task.\n",
-                               "signconf");
-                ods_writen(sockfd, buf, strlen(buf));
-            } else {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "Scheduled %s task.\n","signconf");
-                ods_writen(sockfd, buf, strlen(buf));
-                engine_wakeup_workers(engine);
-            }
-        }
+        task_type *signconf =
+            signconf_task(engine->config, "signconf", "signer configurations");
+        schedule_task(sockfd,engine,signconf,"signconf");
     }
     
+    // Launch ds-submit task when one of the updated key states has the
+    // submitToParent flag set.
+    if (bSubmitToParent) {
+        task_type *submit =
+            keystate_ds_submit_task(engine->config,
+                                    "ds-submit","keys with ds-submit flag set");
+        schedule_task(sockfd,engine,submit,"ds-submit");
+    }
+
     if (!task)
         return -1;
     

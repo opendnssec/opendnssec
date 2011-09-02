@@ -34,7 +34,6 @@ schedule_task(engine_type* engine, task_type *task, const char * what)
             engine_wakeup_workers(engine);
         }
     }
-    
 }
  
 void
