@@ -199,8 +199,15 @@ perform_signconf(int sockfd, engineconfig_type *config)
                 
             sc_key->set_algorithm( ks_key.algorithm() );
             sc_key->set_locator( ks_key.locator() );
-            sc_key->set_ksk( ks_key.role() ==  ::ods::keystate::KSK || ks_key.role() ==  ::ods::keystate::CSK );
-            sc_key->set_zsk( ks_key.role() ==  ::ods::keystate::ZSK || ks_key.role() ==  ::ods::keystate::CSK );
+            
+            // The active flag determines whether the KSK or ZSK
+            // flag is written to the signer configuration.
+            sc_key->set_ksk( ks_key.active() &&
+                            (ks_key.role() == ::ods::keystate::KSK
+                             || ks_key.role() == ::ods::keystate::CSK) );
+            sc_key->set_zsk( ks_key.active() &&
+                            (ks_key.role() == ::ods::keystate::ZSK
+                             || ks_key.role() == ::ods::keystate::CSK) );
             sc_key->set_publish( ks_key.publish() );
             
             // The deactivate flag was intended to allow smooth key rollover.
@@ -210,7 +217,8 @@ perform_signconf(int sockfd, engineconfig_type *config)
             // performed where signatures that had not yet passed there refresh
             // timestamp could be recycled and gradually replaced with 
             // new signatures.
-            // sc_key->set_deactivate( !ks_key.active() );
+            // Currently this flag is not supported by the signer engine.
+            // sc_key->set_deactivate(  );
         }
         
         const ::ods::kasp::Zone &kp_zone = policy->zone();
