@@ -161,26 +161,21 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
     task_id keys_what;
     task_id what;
 
-    if (!zone) {
-        ods_log_error("[%s] unable to load signconf: no zone", zone_str);
+    if (!zone || !zone->name || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(zone);
     if (!zone->signconf_filename) {
         ods_log_warning("[%s] zone %s has no signconf filename, treat as "
             "insecure?", zone_str, zone->name);
         return ODS_STATUS_INSECURE;
     }
-    ods_log_assert(zone->signconf_filename);
-
     status = signconf_update(&signconf, zone->signconf_filename,
         zone->signconf->last_modified);
     if (status == ODS_STATUS_OK) {
         if (!signconf) {
             /* this is unexpected */
-            ods_log_error("[%s] unable to load signconf: zone %s signconf "
-                "%s: storage empty", zone_str, zone->name,
-                zone->signconf_filename);
+            ods_log_alert("[%s] unable to load signconf for zone %s: signconf "
+                "status ok but no signconf stored", zone_str, zone->name);
             return ODS_STATUS_ASSERT_ERR;
         }
         ustamp = time_datestamp(signconf->last_modified, "%Y-%m-%d %T",
@@ -255,7 +250,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
             datestamp?datestamp:"Unknown");
         free((void*)datestamp);
     } else {
-        ods_log_error("[%s] unable to load signconf: zone %s signconf %s: "
+        ods_log_error("[%s] unable to load signconf for zone %s: signconf %s "
             "%s", zone_str, zone->name, zone->signconf_filename,
             ods_status2str(status));
     }
@@ -482,7 +477,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
 
 
 /**
- * Update serial.
+ * Update SOA SERIAL.
  *
  */
 ods_status
@@ -1091,7 +1086,7 @@ recover_error:
 
     ldns_rr_free(nsec3params_rr);
     nsec3params_rr = NULL;
-
+    nsec3params->rr = NULL;
     nsec3params_cleanup(nsec3params);
     nsec3params = NULL;
 
