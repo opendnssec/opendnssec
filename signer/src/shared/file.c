@@ -36,11 +36,15 @@
 #include "shared/log.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
+
+#define BUFFER_SIZE (16 * 1024) /* use 16K buffers */
 
 static const char* file_str = "file";
 
@@ -358,28 +362,39 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
 ods_status
 ods_file_copy(const char* file1, const char* file2)
 {
-    char str[SYSTEM_MAXLEN];
-    FILE* fd = NULL;
-    int retval = 0;
+    char buf[BUFFER_SIZE];
+    int fin = 0;
+    int fout = 0;
+    int read_size = 0;
     if (!file1 || !file2) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    if ((fd = ods_fopen(file1, NULL, "r")) != NULL) {
-        ods_fclose(fd);
-        snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
-            CP_COMMAND, file1, file2);
-        ods_log_debug("system call: %s", str);
-        retval = system(str);
-        switch (retval) {
-            case 0:
-                return ODS_STATUS_OK;
-            default:
-                ods_log_error("[%s] %s failed: return value %i",
-                    file_str, CP_COMMAND, retval);
-                return ODS_STATUS_ERR;
+    if ((fin = open(file1, O_RDONLY|O_NONBLOCK)) < 0) {
+        return ODS_STATUS_FOPEN_ERR;
+    }
+    if ((fout = open(file2, O_WRONLY|O_TRUNC|O_CREAT, 0666)) < 0) {
+        close(fin);
+        return ODS_STATUS_FOPEN_ERR;
+    }
+    while (1) {
+        read_size = read(fin, buf, sizeof(buf));
+        if (read_size == 0) {
+            break;
+        }
+        if (read_size < 0) {
+            close(fin);
+            close(fout);
+            return ODS_STATUS_FREAD_ERR;
+        }
+        if (write(fout, buf, (unsigned int) read_size) < 0) {
+            close(fin);
+            close(fout);
+            return ODS_STATUS_FWRITE_ERR;
         }
     }
-    return ODS_STATUS_FOPEN_ERR;
+    close(fin);
+    close(fout);
+    return ODS_STATUS_OK;
 }
 
 

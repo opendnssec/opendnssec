@@ -47,6 +47,8 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_ERR, "General error"},
     { ODS_STATUS_FOPEN_ERR, "Unable to open file"},
     { ODS_STATUS_FORK_ERR, "fork() failed"},
+    { ODS_STATUS_FREAD_ERR, "Unable to read file"},
+    { ODS_STATUS_FWRITE_ERR, "Unable to write file"},
     { ODS_STATUS_HSM_ERR, "HSM error"},
     { ODS_STATUS_INSECURE, "Insecure"},
     { ODS_STATUS_MALLOC_ERR, "Memory allocation error"},
