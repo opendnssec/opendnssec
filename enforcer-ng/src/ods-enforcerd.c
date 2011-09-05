@@ -45,12 +45,12 @@
 
 #include "policy/policy_list_cmd.h"
 #include "keystate/zone_list_cmd.h"
+#include "keystate/zone_export_cmd.h"
 
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/keystate_show_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
 #include "keystate/keystate_ds_seen_cmd.h"
-#include "keystate/keystate_export_cmd.h"
 
 #include "enforcer/enforce_cmd.h"
 #include "signconf/signconf_cmd.h"
@@ -125,12 +125,12 @@ static help_xxxx_cmd_type enforcer_help[] = {
     
     help_policy_list_cmd,
     help_zone_list_cmd,
+    help_zone_export_cmd,
 
     help_keystate_list_cmd,
     help_keystate_show_cmd,
     help_keystate_ds_submit_cmd,
     help_keystate_ds_seen_cmd,
-    help_keystate_export_cmd,
     
     help_enforce_zones_cmd,
     help_signconf_cmd,
@@ -158,12 +158,12 @@ enforcer_commands[] = {
     
     handled_policy_list_cmd,
     handled_zone_list_cmd,
+    handled_zone_export_cmd,
 
     handled_keystate_list_cmd,
     handled_keystate_show_cmd,
     handled_keystate_ds_submit_cmd,
     handled_keystate_ds_seen_cmd,
-    handled_keystate_export_cmd,
     
     handled_enforce_zones_cmd,
     handled_signconf_cmd,

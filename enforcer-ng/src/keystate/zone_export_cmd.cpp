@@ -5,34 +5,34 @@
 // Interface of this cpp file is used by C code, we need to declare 
 // extern "C" to prevent linking errors.
 extern "C" {
-#include "keystate/keystate_export_cmd.h"
-#include "keystate/keystate_export_task.h"
+#include "keystate/zone_export_cmd.h"
+#include "keystate/zone_export_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
 }
 
-static const char *module_str = "keystate_export_cmd";
+static const char *module_str = "zone_export_cmd";
 
-void help_keystate_export_cmd(int sockfd)
+void help_zone_export_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key export      export all the keys used by a zone\n"
+        "zone export      export all the keys used by a zone\n"
         "  --zone <zone> (aka -z) export for the specified zone.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
 
-int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd,
+int handled_zone_export_cmd(int sockfd, engine_type* engine, const char *cmd,
                               ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     const char *argv[8];
     const int NARGV = sizeof(argv)/sizeof(char*);
     int argc;
-    const char *scmd = "key export";
+    const char *scmd = "zone export";
 
     cmd = ods_check_command(cmd,n,scmd);
     if (!cmd)
@@ -73,6 +73,6 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd
     }
     
     /* perform task immediately */
-    perform_keystate_export(sockfd,engine->config,zone);
+    perform_zone_export(sockfd,engine->config,zone);
     return 1;
 }

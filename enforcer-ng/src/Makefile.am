@@ -81,6 +81,8 @@ ods_enforcerd_SOURCES = \
 	hsmkey/update_hsmkeys_task.cpp hsmkey/update_hsmkeys_task.h \
 	keystate/zone_list_cmd.cpp keystate/zone_list_cmd.h \
 	keystate/zone_list_task.cpp keystate/zone_list_task.h \
+	keystate/zone_export_cmd.cpp keystate/zone_export_cmd.h \
+	keystate/zone_export_task.cpp keystate/zone_export_task.h \
 	keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
 	keystate/keystate_list_task.cpp keystate/keystate_list_task.h \
 	keystate/keystate_show_cmd.cpp keystate/keystate_show_cmd.h \
@@ -89,8 +91,6 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_ds_submit_task.cpp keystate/keystate_ds_submit_task.h \
 	keystate/keystate_ds_seen_cmd.cpp keystate/keystate_ds_seen_cmd.h \
 	keystate/keystate_ds_seen_task.cpp keystate/keystate_ds_seen_task.h \
-	keystate/keystate_export_cmd.cpp keystate/keystate_export_cmd.h \
-	keystate/keystate_export_task.cpp keystate/keystate_export_task.h \
 	keystate/update_keyzones_cmd.cpp keystate/update_keyzones_cmd.h \
 	keystate/update_keyzones_task.cpp keystate/update_keyzones_task.h \
 	keystate/keystate_rollover_cmd.cpp keystate/keystate_rollover_cmd.h \

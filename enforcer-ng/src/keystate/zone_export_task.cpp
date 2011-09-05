@@ -1,5 +1,5 @@
 extern "C" {
-#include "keystate/keystate_export_task.h"
+#include "keystate/zone_export_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 }
@@ -15,10 +15,10 @@ extern "C" {
 
 #include <fcntl.h>
 
-static const char *module_str = "keystate_export_task";
+static const char *module_str = "zone_export_task";
 
 void 
-perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone)
+perform_zone_export(int sockfd, engineconfig_type *config, const char *zone)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
