@@ -60,6 +60,7 @@ struct task_struct {
     task_id interrupt;
     task_id halted;
     time_t when;
+    time_t halted_when;
     time_t backoff;
     int flush;
     void* zone;

@@ -33,12 +33,8 @@
 
 #include "config.h"
 #include "daemon/cfg.h"
-#include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "daemon/worker.h"
-#include "scheduler/schedule.h"
-#include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/locks.h"
@@ -46,7 +42,6 @@
 #include "shared/privdrop.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "signer/zone.h"
 #include "signer/zonelist.h"
 #include "tools/zone_fetcher.h"
 
@@ -77,10 +72,14 @@ engine_create(void)
     engine_type* engine;
     allocator_type* allocator = allocator_create(malloc, free);
     if (!allocator) {
+        ods_log_error("[%s] unable to create engine: allocator_create() "
+            "failed", engine_str);
         return NULL;
     }
     engine = (engine_type*) allocator_alloc(allocator, sizeof(engine_type));
     if (!engine) {
+        ods_log_error("[%s] unable to create engine: allocator_alloc() "
+            "failed", engine_str);
         allocator_cleanup(allocator);
         return NULL;
     }
@@ -294,7 +293,7 @@ engine_start_workers(engine_type* engine)
     ods_log_debug("[%s] start workers", engine_str);
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
-        engine->workers[i]->engine = (struct engine_struct*) engine;
+        engine->workers[i]->engine = (void*) engine;
         ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
             engine->workers[i]);
     }
@@ -309,7 +308,7 @@ engine_start_drudgers(engine_type* engine)
     ods_log_debug("[%s] start drudgers", engine_str);
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 0;
-        engine->drudgers[i]->engine = (struct engine_struct*) engine;
+        engine->drudgers[i]->engine = (void*) engine;
         ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
             engine->drudgers[i]);
     }
@@ -553,7 +552,7 @@ engine_setup(engine_type* engine)
     struct sigaction action;
     int result = 0;
 
-    ods_log_debug("[%s] signer setup", engine_str);
+    ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
         return ODS_STATUS_ASSERT_ERR;
     }
@@ -561,8 +560,6 @@ engine_setup(engine_type* engine)
     engine->cmdhandler = cmdhandler_create(engine->allocator,
         engine->config->clisock_filename);
     if (!engine->cmdhandler) {
-        ods_log_error("[%s] create command handler to %s failed",
-            engine_str, engine->config->clisock_filename);
         return ODS_STATUS_CMDHANDLER_ERR;
     }
     /* fork of fetcher */
@@ -585,19 +582,18 @@ engine_setup(engine_type* engine)
     }
     if (engine->config->working_dir &&
         chdir(engine->config->working_dir) != 0) {
-        ods_log_error("[%s] chdir to %s failed: %s", engine_str,
+        ods_log_error("[%s] setup: unable to chdir to %s (%s)", engine_str,
             engine->config->working_dir, strerror(errno));
         return ODS_STATUS_CHDIR_ERR;
     }
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to drop privileges", engine_str);
         return ODS_STATUS_PRIVDROP_ERR;
     }
     /* daemonize */
     if (engine->daemonize) {
         switch ((engine->pid = fork())) {
             case -1: /* error */
-                ods_log_error("[%s] unable to fork daemon: %s",
+                ods_log_error("[%s] setup: unable to fork daemon (%s)",
                     engine_str, strerror(errno));
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
@@ -611,7 +607,7 @@ engine_setup(engine_type* engine)
                 exit(0);
         }
         if (setsid() == -1) {
-            ods_log_error("[%s] unable to setsid daemon (%s)",
+            ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
             return ODS_STATUS_SETSID_ERR;
         }
@@ -630,12 +626,9 @@ engine_setup(engine_type* engine)
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
     if (result != HSM_OK) {
         char *error =  hsm_get_error(NULL);
-        if (error != NULL) {
-            ods_log_error("[%s] %s", engine_str, error);
-            free(error);
-        }
-        ods_log_error("[%s] error initializing libhsm (errno %i)",
-            engine_str, result);
+        ods_log_error("[%s] setup: error initializing libhsm errno=%i (%s)",
+            engine_str, result, error?error:"NULL");
+        free((void*)error);
         return ODS_STATUS_HSM_ERR;
     }
     /* create workers */
@@ -646,10 +639,9 @@ engine_setup(engine_type* engine)
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         hsm_close();
-        ods_log_error("[%s] unable to write pid file", engine_str);
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
-
+    /* setup done */
     return ODS_STATUS_OK;
 }
 
@@ -711,7 +703,7 @@ engine_run(engine_type* engine, int single_run)
                 engine->need_to_exit = 1;
                 break;
             default:
-                ods_log_warning("[%s] invalid signal captured: %d, "
+                ods_log_warning("[%s] invalid signal %d captured, "
                     "keep running", engine_str, signal);
                 engine->signal = SIGNAL_RUN;
                 break;
@@ -721,7 +713,6 @@ engine_run(engine_type* engine, int single_run)
         if (single_run) {
            engine->need_to_exit = engine_all_zones_processed(engine);
         }
-
         lock_basic_lock(&engine->signal_lock);
         if (engine->signal == SIGNAL_RUN && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
@@ -745,18 +736,15 @@ set_notify_ns(zone_type* zone, const char* cmd)
 {
     const char* str = NULL;
     const char* str2 = NULL;
-
     ods_log_assert(cmd);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound);
-
     if (zone->adoutbound->type == ADAPTER_FILE) {
         str = ods_replace(cmd, "%zonefile", zone->adoutbound->configstr);
     } else {
         str = cmd;
     }
-
     str2 = ods_replace(str, "%zone", zone->name);
     free((void*)str);
     zone->notify_ns = (const char*) str2;
@@ -837,11 +825,12 @@ engine_update_zones(engine_type* engine)
             /* reschedule task */
             lock_basic_lock(&engine->taskq->schedule_lock);
             task = unschedule_task(engine->taskq, (task_type*) zone->task);
-            if (task != NULL) {
+            if (task) {
                 ods_log_debug("[%s] reschedule task for zone %s", engine_str,
                     zone->name);
                 if (task->what != TASK_SIGNCONF) {
                     task->halted = task->what;
+                    task->halted_when = task->when;
                     task->interrupt = TASK_SIGNCONF;
                 }
                 task->what = TASK_SIGNCONF;
@@ -853,7 +842,7 @@ engine_update_zones(engine_type* engine)
                     "signconf as soon as possible", engine_str, zone->name);
                 task = (task_type*) zone->task;
                 task->interrupt = TASK_SIGNCONF;
-                /* task->halted set by worker */
+                /* task->halted(_when) set by worker */
             }
             lock_basic_unlock(&engine->taskq->schedule_lock);
             lock_basic_unlock(&zone->zone_lock);

@@ -156,7 +156,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
     ods_status status = ODS_STATUS_OK;
     zone_type* zone = NULL;
     task_type* task = NULL;
-    int zl_changed = 0;
+    ods_status zl_changed = ODS_STATUS_OK;
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
@@ -220,6 +220,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
                 zone->name);
             if (task->what != TASK_SIGNCONF) {
                 task->halted = task->what;
+                task->halted_when = task->when;
                 task->interrupt = TASK_SIGNCONF;
             }
             task->what = TASK_SIGNCONF;
@@ -231,7 +232,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
                 "signconf as soon as possible", cmdh_str, zone->name);
             task = (task_type*) zone->task;
             task->interrupt = TASK_SIGNCONF;
-            /* task->halted set by worker */
+            /* task->halted(_when) set by worker */
         }
         lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
 
@@ -309,6 +310,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
                 zone->name);
             if (task->what != TASK_READ) {
                 task->halted = task->what;
+                task->halted_when = task->when;
                 task->interrupt = TASK_READ;
             }
             task->what = TASK_READ;
@@ -320,7 +322,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
                 "zone input as soon as possible", cmdh_str, zone->name);
             task = (task_type*) zone->task;
             task->interrupt = TASK_READ;
-            /* task->halted set by worker */
+            /* task->halted(_when) set by worker */
         }
         lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
 
@@ -372,9 +374,9 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
     task_type* task = NULL;
-    uint32_t inbound_serial = 0;
-    uint32_t internal_serial = 0;
-    uint32_t outbound_serial = 0;
+    uint32_t inbserial = 0;
+    uint32_t intserial = 0;
+    uint32_t outserial = 0;
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(tbd);
@@ -393,16 +395,16 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     if (zone) {
         /* [LOCK] zone */
         lock_basic_lock(&zone->zone_lock);
-        inbound_serial = zone->zonedata->inbound_serial;
-        internal_serial = zone->zonedata->internal_serial;
-        outbound_serial = zone->zonedata->outbound_serial;
+        inbserial = zone->zonedata->inbound_serial;
+        intserial = zone->zonedata->internal_serial;
+        outserial = zone->zonedata->outbound_serial;
         zonedata_cleanup(zone->zonedata);
         zone->zonedata = NULL;
         zone->zonedata = zonedata_create(zone->allocator);
         zone->zonedata->initialized = 1;
-        zone->zonedata->inbound_serial = inbound_serial;
-        zone->zonedata->internal_serial = internal_serial;
-        zone->zonedata->outbound_serial = outbound_serial;
+        zone->zonedata->inbound_serial = inbserial;
+        zone->zonedata->internal_serial = intserial;
+        zone->zonedata->outbound_serial = outserial;
 
         status = zone_publish_dnskeys(zone);
         if (status == ODS_STATUS_OK) {

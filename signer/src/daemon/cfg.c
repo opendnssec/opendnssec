@@ -58,36 +58,28 @@ engine_config(allocator_type* allocator, const char* cfgfile,
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
-    if (!allocator) {
-        ods_log_error("[%s] failed to read: no allocator available",
-            conf_str);
+    if (!allocator || !cfgfile) {
         return NULL;
     }
-    if (!cfgfile) {
-        ods_log_error("[%s] failed to read: no filename given", conf_str);
-        return NULL;
-    }
-    ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
-
-    ecfg = (engineconfig_type*) allocator_alloc(allocator,
-        sizeof(engineconfig_type));
-    if (!ecfg) {
-        ods_log_error("[%s] failed to read: allocator failed", conf_str);
-        return NULL;
-    }
-
-    ecfg->allocator = allocator;
-
     /* check syntax (slows down parsing configuration file) */
     if (parse_file_check(cfgfile, rngfile) != ODS_STATUS_OK) {
-        ods_log_error("[%s] failed to read: unable to parse file %s",
+        ods_log_error("[%s] unable to create config: parse error in %s",
             conf_str, cfgfile);
         return NULL;
     }
-
     /* open cfgfile */
     cfgfd = ods_fopen(cfgfile, NULL, "r");
     if (cfgfd) {
+        ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
+        /* create config */
+        ecfg = (engineconfig_type*) allocator_alloc(allocator,
+            sizeof(engineconfig_type));
+        if (!ecfg) {
+            ods_log_error("[%s] unable to create config: allocator_alloc() "
+                "failed", conf_str);
+            return NULL;
+        }
+        ecfg->allocator = allocator;
         /* get values */
         ecfg->cfg_filename = allocator_strdup(allocator, cfgfile);
         ecfg->zonelist_filename = parse_conf_zonelist_filename(allocator,
@@ -108,14 +100,12 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
         ecfg->verbosity = cmdline_verbosity;
         ecfg->num_adapters = 0;
-
         /* done */
         ods_fclose(cfgfd);
         return ecfg;
     }
-
-    ods_log_error("[%s] failed to read: unable to open file %s", conf_str,
-        cfgfile);
+    ods_log_error("[%s] unable to create config: failed to open file %s",
+        conf_str, cfgfile);
     return NULL;
 }
 
@@ -128,15 +118,19 @@ ods_status
 engine_config_check(engineconfig_type* config)
 {
     if (!config) {
-        ods_log_error("[%s] check failed: config does not exist", conf_str);
+        ods_log_error("[%s] config-check failed: no config", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+    if (!config->cfg_filename) {
+        ods_log_error("[%s] config-check failed: no config filename", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
     if (!config->zonelist_filename) {
-        ods_log_error("[%s] check failed: no zonelist filename", conf_str);
+        ods_log_error("[%s] config-check failed: no zonelist filename", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
     if (!config->clisock_filename) {
-        ods_log_error("[%s] check failed: no socket filename", conf_str);
+        ods_log_error("[%s] config-check failed: no socket filename", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
     /*  [TODO] room for more checks here */

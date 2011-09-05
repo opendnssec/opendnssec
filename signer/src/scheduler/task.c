@@ -74,6 +74,7 @@ task_create(task_id what, time_t when, void* zone)
     task->interrupt = TASK_NONE;
     task->halted = TASK_NONE;
     task->when = when;
+    task->halted_when = 0;
     task->backoff = 0;
     task->flush = 0;
     task->zone = zone;

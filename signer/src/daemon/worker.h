@@ -54,7 +54,7 @@ struct worker_struct {
     allocator_type* allocator;
     int thread_num;
     ods_thread_type thread_id;
-    struct engine_struct* engine;
+    void* engine;
     task_type* task;
     task_id working_with;
     worker_id type;

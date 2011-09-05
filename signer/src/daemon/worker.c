@@ -36,14 +36,12 @@
 #include "daemon/worker.h"
 #include "shared/allocator.h"
 #include "scheduler/schedule.h"
-#include "scheduler/task.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
-#include "signer/zonedata.h"
 
 #include <time.h> /* time() */
 
@@ -55,6 +53,21 @@ ods_lookup_table worker_str[] = {
 
 
 /**
+ * Convert worker type to string.
+ *
+ */
+static const char*
+worker2str(worker_id type)
+{
+    ods_lookup_table *lt = ods_lookup_by_id(worker_str, type);
+    if (lt) {
+        return lt->name;
+    }
+    return NULL;
+}
+
+
+/**
  * Create worker.
  *
  */
@@ -62,18 +75,14 @@ worker_type*
 worker_create(allocator_type* allocator, int num, worker_id type)
 {
     worker_type* worker;
-
     if (!allocator) {
         return NULL;
     }
-    ods_log_assert(allocator);
-
     worker = (worker_type*) allocator_alloc(allocator, sizeof(worker_type));
     if (!worker) {
         return NULL;
     }
-
-    ods_log_debug("create worker[%i]", num +1);
+    ods_log_debug("[%s[%i]] create", worker2str(type), num+1);
     lock_basic_init(&worker->worker_lock);
     lock_basic_set(&worker->worker_alarm);
     lock_basic_lock(&worker->worker_lock);
@@ -96,17 +105,19 @@ worker_create(allocator_type* allocator, int num, worker_id type)
 
 
 /**
- * Convert worker type to string.
+ * Worker working with...
  *
  */
-static const char*
-worker2str(worker_id type)
+static void
+worker_working_with(worker_type* worker, task_id with, task_id next,
+    const char* str, const char* name, task_id* what, time_t* when)
 {
-    ods_lookup_table *lt = ods_lookup_by_id(worker_str, type);
-    if (lt) {
-        return lt->name;
-    }
-    return NULL;
+    worker->working_with = with;
+    ods_log_verbose("[%s[%i]] %s zone %s", worker2str(worker->type),
+       worker->thread_num, str, name);
+    *what = next;
+    *when = time_now();
+    return;
 }
 
 
@@ -144,29 +155,21 @@ worker_perform_task(worker_type* worker)
     time_t start = 0;
     time_t end = 0;
 
-    /* sanity checking */
     if (!worker || !worker->task || !worker->task->zone || !worker->engine) {
         return;
     }
-    ods_log_assert(worker);
-    ods_log_assert(worker->task);
-    ods_log_assert(worker->task->zone);
-
     engine = (engine_type*) worker->engine;
     task = (task_type*) worker->task;
     zone = (zone_type*) worker->task->zone;
     ods_log_debug("[%s[%i]] perform task %s for zone %s at %u",
        worker2str(worker->type), worker->thread_num, task_what2str(task->what),
        task_who2str(task), (uint32_t) worker->clock_in);
-
     /* do what you have been told to do */
     switch (task->what) {
         case TASK_SIGNCONF:
-            worker->working_with = TASK_SIGNCONF;
             /* perform 'load signconf' task */
-            ods_log_verbose("[%s[%i]] load signconf for zone %s",
-                worker2str(worker->type), worker->thread_num,
-                task_who2str(task));
+            worker_working_with(worker, TASK_SIGNCONF, TASK_READ,
+                "configure", task_who2str(task), &what, &when);
             status = tools_signconf(zone);
             if (status == ODS_STATUS_UNCHANGED) {
                 if (!zone->signconf->last_modified) {
@@ -176,15 +179,11 @@ worker_perform_task(worker_type* worker)
                     status = ODS_STATUS_ERR;
                 }
             }
-            /* what to do next */
-            what = TASK_READ;
-            when = time_now();
             if (status == ODS_STATUS_UNCHANGED) {
                 if (task->halted != TASK_NONE) {
                     goto task_perform_continue;
-                } else {
-                    status = ODS_STATUS_OK;
                 }
+                status = ODS_STATUS_OK;
             }
 
             if (status == ODS_STATUS_OK) {
@@ -210,11 +209,9 @@ worker_perform_task(worker_type* worker)
             fallthrough = 0;
             break;
         case TASK_READ:
-            worker->working_with = TASK_READ;
             /* perform 'read input adapter' task */
-            ods_log_verbose("[%s[%i]] read zone %s",
-                worker2str(worker->type), worker->thread_num,
-                task_who2str(task));
+            worker_working_with(worker, TASK_READ, TASK_SIGN,
+                "read", task_who2str(task), &what, &when);
             if (!zone->prepared) {
                 ods_log_debug("[%s[%i]] no valid signconf.xml for zone %s yet",
                     worker2str(worker->type), worker->thread_num,
@@ -257,10 +254,10 @@ worker_perform_task(worker_type* worker)
             }
             fallthrough = 1;
         case TASK_SIGN:
-            worker->working_with = TASK_SIGN;
-            ods_log_verbose("[%s[%i]] sign zone %s",
-                worker2str(worker->type), worker->thread_num,
-                task_who2str(task));
+            /* perform 'sign' task */
+            worker_working_with(worker, TASK_SIGN, TASK_AUDIT,
+                "sign", task_who2str(task), &what, &when);
+
             tmpserial = zone->zonedata->internal_serial;
             status = zone_update_serial(zone);
             if (status != ODS_STATUS_OK) {
@@ -372,10 +369,9 @@ worker_perform_task(worker_type* worker)
             when = time_now();
             fallthrough = 1;
         case TASK_WRITE:
-            worker->working_with = TASK_WRITE;
-            ods_log_verbose("[%s[%i]] write zone %s",
-                worker2str(worker->type), worker->thread_num,
-                task_who2str(task));
+            /* perform 'write to output adapter' task */
+            worker_working_with(worker, TASK_WRITE, TASK_SIGN,
+                "write", task_who2str(task), &what, &when);
 
             status = tools_output(zone);
             zone->processed = 1;
@@ -446,7 +442,6 @@ worker_perform_task(worker_type* worker)
             task->halted = TASK_NONE;
         }
     }
-
     /* backup the last successful run */
     if (backup) {
         status = zone_backup(zone);
@@ -505,22 +500,24 @@ static void
 worker_work(worker_type* worker)
 {
     time_t now, timeout = 1;
+    engine_type* engine = NULL;
     zone_type* zone = NULL;
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_WORKER);
 
+    engine = (engine_type*) worker->engine;
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
-        lock_basic_lock(&worker->engine->taskq->schedule_lock);
+        lock_basic_lock(&engine->taskq->schedule_lock);
         /* [LOCK] schedule */
-        worker->task = schedule_pop_task(worker->engine->taskq);
+        worker->task = schedule_pop_task(engine->taskq);
         /* [UNLOCK] schedule */
         if (worker->task) {
             worker->working_with = worker->task->what;
-            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
+            lock_basic_unlock(&engine->taskq->schedule_lock);
 
             zone = worker->task->zone;
             lock_basic_lock(&zone->zone_lock);
@@ -537,13 +534,13 @@ worker_work(worker_type* worker)
                 worker2str(worker->type), worker->thread_num, zone->name);
             /* [UNLOCK] zone */
 
-            lock_basic_lock(&worker->engine->taskq->schedule_lock);
+            lock_basic_lock(&engine->taskq->schedule_lock);
             /* [LOCK] zone, schedule */
             worker->task = NULL;
             worker->working_with = TASK_NONE;
-            status = schedule_task(worker->engine->taskq, zone->task, 1);
+            status = schedule_task(engine->taskq, zone->task, 1);
             /* [UNLOCK] zone, schedule */
-            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
+            lock_basic_unlock(&engine->taskq->schedule_lock);
             lock_basic_unlock(&zone->zone_lock);
 
             timeout = 1;
@@ -552,12 +549,12 @@ worker_work(worker_type* worker)
                 worker->thread_num);
 
             /* [LOCK] schedule */
-            worker->task = schedule_get_first_task(worker->engine->taskq);
+            worker->task = schedule_get_first_task(engine->taskq);
             /* [UNLOCK] schedule */
-            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
+            lock_basic_unlock(&engine->taskq->schedule_lock);
 
             now = time_now();
-            if (worker->task && !worker->engine->taskq->loading) {
+            if (worker->task && !engine->taskq->loading) {
                 timeout = (worker->task->when - now);
             } else {
                 timeout *= 2;
@@ -580,6 +577,7 @@ worker_work(worker_type* worker)
 static void
 worker_drudge(worker_type* worker)
 {
+    engine_type* engine = NULL;
     zone_type* zone = NULL;
     task_type* task = NULL;
     rrset_type* rrset = NULL;
@@ -596,7 +594,7 @@ worker_drudge(worker_type* worker)
             "creating libhsm context", worker2str(worker->type),
             worker->thread_num);
     }
-
+    engine = (engine_type*) worker->engine;
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
@@ -604,11 +602,11 @@ worker_drudge(worker_type* worker)
         zone = NULL;
         task = NULL;
 
-        lock_basic_lock(&worker->engine->signq->q_lock);
+        lock_basic_lock(&engine->signq->q_lock);
         /* [LOCK] schedule */
-        rrset = (rrset_type*) fifoq_pop(worker->engine->signq, &chief);
+        rrset = (rrset_type*) fifoq_pop(engine->signq, &chief);
         /* [UNLOCK] schedule */
-        lock_basic_unlock(&worker->engine->signq->q_lock);
+        lock_basic_unlock(&engine->signq->q_lock);
         if (rrset) {
             /* set up the work */
             if (chief) {
@@ -657,8 +655,8 @@ worker_drudge(worker_type* worker)
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
-            worker_wait(&worker->engine->signq->q_lock,
-                &worker->engine->signq->q_threshold);
+            worker_wait(&engine->signq->q_lock,
+                &engine->signq->q_threshold);
         }
     }
     /* wake up chief */

@@ -70,7 +70,7 @@ adapter_init(adapter_type* adapter)
  *
  */
 adapter_type*
-adapter_create(const char* str, adapter_mode type, int inbound)
+adapter_create(const char* str, adapter_mode type, unsigned inbound)
 {
     allocator_type* allocator;
     adapter_type* adapter;

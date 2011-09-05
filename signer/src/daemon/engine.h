@@ -40,7 +40,6 @@
 #include "daemon/worker.h"
 #include "scheduler/fifoq.h"
 #include "scheduler/schedule.h"
-#include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/locks.h"
 #include "signer/zonelist.h"
