@@ -47,6 +47,47 @@ static const char* dname_str = "domain";
 
 
 /**
+ * Log domain name.
+ *
+ */
+void
+log_dname(ldns_rdf *rdf, const char* pre, int level)
+{
+    char* str = NULL;
+    if (ods_log_get_level() < level) {
+        return;
+    }
+    str = ldns_rdf2str(rdf);
+    if (!str) {
+        return;
+    }
+    if (level == LOG_EMERG) {
+        ods_fatal_exit("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else if (level == LOG_ALERT) {
+        ods_log_alert("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else if (level == LOG_CRIT) {
+        ods_log_crit("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else if (level == LOG_ERR) {
+        ods_log_error("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else if (level == LOG_WARNING) {
+        ods_log_warning("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else if (level == LOG_NOTICE) {
+        ods_log_info("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else if (level == LOG_INFO) {
+        ods_log_verbose("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else if (level == LOG_DEBUG) {
+        ods_log_debug("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else if (level == LOG_DEEEBUG) {
+        ods_log_deeebug("[%s] %s: %s", dname_str, pre?pre:"", str);
+    } else {
+        ods_log_deeebug("[%s] %s: %s", dname_str, pre?pre:"", str);
+    }
+    free((void*)str);
+    return;
+}
+
+
+/**
  * Compare RRsets.
  *
  */

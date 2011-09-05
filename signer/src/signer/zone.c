@@ -928,7 +928,7 @@ zone_recover(zone_type* zone)
             zone->signconf->allocator, salt);
         free((void*) salt);
         salt = NULL;
-        task = task_create((task_id) what, when, zone->name, (void*) zone);
+        task = task_create((task_id) what, when, (void*) zone);
         if (!task) {
             goto recover_error;
         }

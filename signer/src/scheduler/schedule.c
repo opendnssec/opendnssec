@@ -156,11 +156,11 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
     ods_log_assert(schedule->tasks);
 
     ods_log_debug("[%s] schedule task %s for zone %s", schedule_str,
-        task_what2str(task->what), task_who2str(task->who));
+        task_what2str(task->what), task_who2str(task));
     if (schedule_lookup_task(schedule, task) != NULL) {
         ods_log_error("[%s] unable to schedule task %s for zone %s: "
             " already present", schedule_str, task_what2str(task->what),
-            task_who2str(task->who));
+            task_who2str(task));
         return ODS_STATUS_ERR;
     }
     new_node = task2node(task);
@@ -168,7 +168,7 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
     if (!ins_node) {
         ods_log_error("[%s] unable to schedule task %s for zone %s: "
             " insert failed", schedule_str, task_what2str(task->what),
-            task_who2str(task->who));
+            task_who2str(task));
         free((void*)new_node);
         return ODS_STATUS_ERR;
     }
@@ -204,7 +204,7 @@ unschedule_task(schedule_type* schedule, task_type* task)
     ods_log_assert(schedule->tasks);
 
     ods_log_debug("[%s] unschedule task %s for zone %s",
-        schedule_str, task_what2str(task->what), task_who2str(task->who));
+        schedule_str, task_what2str(task->what), task_who2str(task));
     del_node = ldns_rbtree_delete(schedule->tasks, (const void*) task);
     if (del_node) {
         del_task = (task_type*) del_node->data;
@@ -212,7 +212,7 @@ unschedule_task(schedule_type* schedule, task_type* task)
     } else {
         ods_log_warning("[%s] unable to unschedule task %s for zone %s: not "
             "scheduled", schedule_str, task_what2str(task->what),
-            task_who2str(task->who));
+            task_who2str(task));
         return NULL;
     }
     if (del_task->flush) {
@@ -310,10 +310,10 @@ schedule_pop_task(schedule_type* schedule)
     if (pop && (pop->flush || pop->when <= now)) {
         if (pop->flush) {
             ods_log_debug("[%s] flush task for zone %s", schedule_str,
-                pop->who?pop->who:"(null)");
+                task_who2str(pop));
         } else {
             ods_log_debug("[%s] pop task for zone %s", schedule_str,
-                pop->who?pop->who:"(null)");
+                task_who2str(pop));
         }
         return unschedule_task(schedule, pop);
     }

@@ -39,6 +39,21 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#ifdef HAVE_SYSLOG_H
+#include <strings.h> /* strncasecmp() */
+#include <syslog.h> /* openlog(), closelog(), syslog() */
+#else /* !HAVE_SYSLOG_H */
+#define LOG_EMERG   0 /* ods_fatal_exit */
+#define LOG_ALERT   1 /* ods_log_alert */
+#define LOG_CRIT    2 /* ods_log_crit */
+#define LOG_ERR     3 /* ods_log_error */
+#define LOG_WARNING 4 /* ods_log_warning */
+#define LOG_NOTICE  5 /* ods_log_info */
+#define LOG_INFO    6 /* ods_log_verbose */
+#define LOG_DEBUG   7 /* ods_log_debug */
+#endif /* HAVE_SYSLOG_H */
+#define LOG_DEEEBUG 8 /* ods_log_deeebug */
+
 /**
  * Initialize logging.
  * \param[in] filename logfile, stderr if NULL.

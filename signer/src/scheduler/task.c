@@ -38,6 +38,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "signer/backup.h"
+#include "signer/zone.h"
 
 static const char* task_str = "task";
 
@@ -47,28 +48,24 @@ static const char* task_str = "task";
  *
  */
 task_type*
-task_create(task_id what, time_t when, const char* who, void* zone)
+task_create(task_id what, time_t when, void* zone)
 {
     allocator_type* allocator = NULL;
     task_type* task = NULL;
 
-    if (!who || !zone) {
-        ods_log_error("[%s] cannot create: missing zone info", task_str);
+    if (!zone) {
         return NULL;
     }
-    ods_log_assert(who);
-    ods_log_assert(zone);
-
     allocator = allocator_create(malloc, free);
     if (!allocator) {
-        ods_log_error("[%s] cannot create: create allocator failed", task_str);
+        ods_log_error("[%s] unable to create task: allocator_create() failed",
+            task_str);
         return NULL;
     }
-    ods_log_assert(allocator);
-
     task = (task_type*) allocator_alloc(allocator, sizeof(task_type));
     if (!task) {
-        ods_log_error("[%s] cannot create: allocator failed", task_str);
+        ods_log_error("[%s] unable to create task: allocator_alloc() failed",
+            task_str);
         allocator_cleanup(allocator);
         return NULL;
     }
@@ -78,8 +75,6 @@ task_create(task_id what, time_t when, const char* who, void* zone)
     task->halted = TASK_NONE;
     task->when = when;
     task->backoff = 0;
-    task->who = allocator_strdup(allocator, who);
-    task->dname = ldns_dname_new_frm_str(who);
     task->flush = 0;
     task->zone = zone;
     return task;
@@ -121,7 +116,7 @@ task_recover_from_backup(const char* filename, void* zone)
                 task_str, filename?filename:"(null)");
             task = NULL;
         } else {
-            task = task_create((task_id) what, when, who, (void*) zone);
+            task = task_create((task_id) what, when, (void*) zone);
             task->flush = flush;
             task->backoff = backoff;
         }
@@ -162,30 +157,6 @@ task_backup(FILE* fd, task_type* task)
 
 
 /**
- * Clean up task.
- *
- */
-void
-task_cleanup(task_type* task)
-{
-    allocator_type* allocator;
-
-    if (!task) {
-        return;
-    }
-    allocator = task->allocator;
-    if (task->dname) {
-        ldns_rdf_deep_free(task->dname);
-        task->dname = NULL;
-    }
-    allocator_deallocate(allocator, (void*) task->who);
-    allocator_deallocate(allocator, (void*) task);
-    allocator_cleanup(allocator);
-    return;
-}
-
-
-/**
  * Compare tasks.
  *
  */
@@ -194,11 +165,15 @@ task_compare(const void* a, const void* b)
 {
     task_type* x = (task_type*)a;
     task_type* y = (task_type*)b;
+    zone_type* zx = NULL;
+    zone_type* zy = NULL;
 
     ods_log_assert(x);
     ods_log_assert(y);
-
-    if (!ldns_dname_compare((const void*) x->dname, (const void*) y->dname)) {
+    zx = (zone_type*) x->zone;
+    zy = (zone_type*) y->zone;
+    if (!ldns_dname_compare((const void*) zx->apex,
+        (const void*) zy->apex)) {
         /* if dname is the same, consider the same task */
         return 0;
     }
@@ -209,7 +184,9 @@ task_compare(const void* a, const void* b)
     if (x->what != y->what) {
         return (int) x->what - y->what;
     }
-    return ldns_dname_compare((const void*) x->dname, (const void*) y->dname);
+    /* this is unfair, it prioritizes zones that are first in canonical line */
+    return ldns_dname_compare((const void*) zx->apex,
+        (const void*) zy->apex);
 }
 
 
@@ -218,14 +195,14 @@ task_compare(const void* a, const void* b)
  *
  */
 const char*
-task_what2str(int what)
+task_what2str(task_id what)
 {
     switch (what) {
         case TASK_NONE:
-            return "[do nothing with]";
+            return "[ignore]";
             break;
         case TASK_SIGNCONF:
-            return "[load signconf for]";
+            return "[configure]";
             break;
         case TASK_READ:
             return "[read]";
@@ -255,10 +232,14 @@ task_what2str(int what)
  *
  */
 const char*
-task_who2str(const char* who)
+task_who2str(task_type* task)
 {
-    if (who) {
-        return who;
+    zone_type* zone = NULL;
+    if (task) {
+        zone = (zone_type*) task->zone;
+    }
+    if (zone && zone->name) {
+        return zone->name;
     }
     return "(null)";
 }
@@ -282,13 +263,13 @@ task2str(task_type* task, char* buftask)
         if (buftask) {
             (void)snprintf(buftask, ODS_SE_MAXLINE, "%s %s I will %s zone %s"
                 "\n", task->flush?"Flush":"On", strtime?strtime:"(null)",
-                task_what2str(task->what), task_who2str(task->who));
+                task_what2str(task->what), task_who2str(task));
             return buftask;
         } else {
             strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
             snprintf(strtask, ODS_SE_MAXLINE, "%s %s I will %s zone %s\n",
                 task->flush?"Flush":"On", strtime?strtime:"(null)",
-                task_what2str(task->what), task_who2str(task->who));
+                task_what2str(task->what), task_who2str(task));
             return strtask;
         }
     }
@@ -312,7 +293,7 @@ task_print(FILE* out, task_type* task)
         }
         fprintf(out, "%s %s I will %s zone %s\n",
             task->flush?"Flush":"On", strtime?strtime:"(null)",
-            task_what2str(task->what), task_who2str(task->who));
+            task_what2str(task->what), task_who2str(task));
     }
     return;
 }
@@ -334,7 +315,25 @@ task_log(task_type* task)
         }
         ods_log_debug("[%s] %s %s I will %s zone %s", task_str,
             task->flush?"Flush":"On", strtime?strtime:"(null)",
-            task_what2str(task->what), task_who2str(task->who));
+            task_what2str(task->what), task_who2str(task));
     }
+    return;
+}
+
+
+/**
+ * Clean up task.
+ *
+ */
+void
+task_cleanup(task_type* task)
+{
+    allocator_type* allocator;
+    if (!task) {
+        return;
+    }
+    allocator = task->allocator;
+    allocator_deallocate(allocator, (void*) task);
+    allocator_cleanup(allocator);
     return;
 }

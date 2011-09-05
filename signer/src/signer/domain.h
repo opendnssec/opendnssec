@@ -85,6 +85,15 @@ struct domain_struct {
 };
 
 /**
+ * Log domain name.
+ * \param[in] rdf domain name
+ * \param[in] pre log message
+ * \param[in] level log level
+ *
+ */
+void log_dname(ldns_rdf* rdf, const char* pre, int level);
+
+/**
  * Create empty domain.
  * \param[in] dname owner name
  * \return domain_type* empty domain

@@ -478,7 +478,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
             (void)snprintf(buf, ODS_SE_MAXLINE, "Working with task %s on "
                 "zone %s\n",
                 task_what2str(cmdc->engine->workers[i]->working_with),
-                task_who2str(task->who));
+                task_who2str(task));
             ods_writen(sockfd, buf, strlen(buf));
         }
     }

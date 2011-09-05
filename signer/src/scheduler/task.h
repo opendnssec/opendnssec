@@ -62,8 +62,6 @@ struct task_struct {
     time_t when;
     time_t backoff;
     int flush;
-    const char* who;
-    ldns_rdf* dname;
     void* zone;
 };
 
@@ -71,17 +69,16 @@ struct task_struct {
  * Create a new task.
  * \param[in] what task identifier
  * \param[in] when scheduled time
- * \param[in] who zone name
- * \param[in] zone pointer to zone
+ * \param[in] zone zone reference
  * \return task_type* created task
  *
  */
-task_type* task_create(task_id what, time_t when, const char* who, void* zone);
+task_type* task_create(task_id what, time_t when, void* zone);
 
 /**
  * Recover a task from backup.
  * \param[in] filename where the task backup is stored
- * \param[in] zone pointer to zone structure
+ * \param[in] zone zone reference
  * \return task_type* created task
  *
  */
@@ -94,13 +91,6 @@ task_type* task_recover_from_backup(const char* filename, void* zone);
  *
  */
 void task_backup(FILE* fd, task_type* task);
-
-/**
- * Clean up task.
- * \param[in] task task
- *
- */
-void task_cleanup(task_type* task);
 
 /**
  * Compare tasks.
@@ -126,14 +116,14 @@ char* task2str(task_type* task, char* buftask);
  * \return const char* string-format of what
  *
  */
-const char* task_what2str(int taskid);
+const char* task_what2str(task_id what);
 
 /**
  * String-format of who.
- * \param[in] what task owner
+ * \param[in] task task
  * \return const char* string-format of who
  */
-const char* task_who2str(const char* who);
+const char* task_who2str(task_type* task);
 
 /**
  * Print task.
@@ -149,5 +139,12 @@ void task_print(FILE* out, task_type* task);
  *
  */
 void task_log(task_type* task);
+
+/**
+ * Clean up task.
+ * \param[in] task task
+ *
+ */
+void task_cleanup(task_type* task);
 
 #endif /* SCHEDULER_TASK_H */

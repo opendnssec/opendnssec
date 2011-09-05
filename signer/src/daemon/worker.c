@@ -157,7 +157,7 @@ worker_perform_task(worker_type* worker)
     zone = (zone_type*) worker->task->zone;
     ods_log_debug("[%s[%i]] perform task %s for zone %s at %u",
        worker2str(worker->type), worker->thread_num, task_what2str(task->what),
-       task_who2str(task->who), (uint32_t) worker->clock_in);
+       task_who2str(task), (uint32_t) worker->clock_in);
 
     /* do what you have been told to do */
     switch (task->what) {
@@ -166,7 +166,7 @@ worker_perform_task(worker_type* worker)
             /* perform 'load signconf' task */
             ods_log_verbose("[%s[%i]] load signconf for zone %s",
                 worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
+                task_who2str(task));
             status = tools_signconf(zone);
             if (status == ODS_STATUS_UNCHANGED) {
                 if (!zone->signconf->last_modified) {
@@ -214,11 +214,11 @@ worker_perform_task(worker_type* worker)
             /* perform 'read input adapter' task */
             ods_log_verbose("[%s[%i]] read zone %s",
                 worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
+                task_who2str(task));
             if (!zone->prepared) {
                 ods_log_debug("[%s[%i]] no valid signconf.xml for zone %s yet",
                     worker2str(worker->type), worker->thread_num,
-                    task_who2str(task->who));
+                    task_who2str(task));
                 status = ODS_STATUS_ERR;
             } else {
                 status = tools_input(zone);
@@ -238,7 +238,7 @@ worker_perform_task(worker_type* worker)
             worker->working_with = TASK_NSECIFY;
             ods_log_verbose("[%s[%i]] nsecify zone %s",
                 worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
+                task_who2str(task));
             status = tools_nsecify(zone);
 
             /* what to do next */
@@ -260,14 +260,14 @@ worker_perform_task(worker_type* worker)
             worker->working_with = TASK_SIGN;
             ods_log_verbose("[%s[%i]] sign zone %s",
                 worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
+                task_who2str(task));
             tmpserial = zone->zonedata->internal_serial;
             status = zone_update_serial(zone);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s[%i]] unable to sign zone %s: "
                     "failed to increment serial",
                     worker2str(worker->type), worker->thread_num,
-                    task_who2str(task->who));
+                    task_who2str(task));
             } else {
                 /* start timer */
                 start = time(NULL);
@@ -288,7 +288,7 @@ worker_perform_task(worker_type* worker)
                 ods_log_debug("[%s[%i]] wait until drudgers are finished "
                     " signing zone %s, %u signatures queued",
                     worker2str(worker->type), worker->thread_num,
-                    task_who2str(task->who), worker->jobs_appointed);
+                    task_who2str(task), worker->jobs_appointed);
 
                 /* sleep until work is done */
                 if (!worker->need_to_exit) {
@@ -297,19 +297,19 @@ worker_perform_task(worker_type* worker)
                 if (worker->jobs_failed) {
                     ods_log_error("[%s[%i]] sign zone %s failed: %u of %u "
                         "signatures failed", worker2str(worker->type),
-                        worker->thread_num, task_who2str(task->who),
+                        worker->thread_num, task_who2str(task),
                         worker->jobs_failed, worker->jobs_appointed);
                     status = ODS_STATUS_ERR;
                 } else if (!worker_fulfilled(worker)) {
                     ods_log_error("[%s[%i]] sign zone %s failed: %u of %u "
                         "signatures completed", worker2str(worker->type),
-                        worker->thread_num, task_who2str(task->who),
+                        worker->thread_num, task_who2str(task),
                         worker->jobs_completed, worker->jobs_appointed);
                     status = ODS_STATUS_ERR;
                 } else {
                     ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u "
                        "signatures succeeded", worker2str(worker->type),
-                        worker->thread_num, task_who2str(task->who),
+                        worker->thread_num, task_who2str(task),
                         worker->jobs_completed, worker->jobs_appointed);
                     ods_log_assert(worker->jobs_appointed ==
                         worker->jobs_completed);
@@ -349,7 +349,7 @@ worker_perform_task(worker_type* worker)
             if (zone->signconf->audit) {
                 ods_log_verbose("[%s[%i]] audit zone %s",
                     worker2str(worker->type), worker->thread_num,
-                    task_who2str(task->who));
+                    task_who2str(task));
                 working_dir = strdup(engine->config->working_dir);
                 cfg_filename = strdup(engine->config->cfg_filename);
                 status = tools_audit(zone, working_dir, cfg_filename);
@@ -375,7 +375,7 @@ worker_perform_task(worker_type* worker)
             worker->working_with = TASK_WRITE;
             ods_log_verbose("[%s[%i]] write zone %s",
                 worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
+                task_who2str(task));
 
             status = tools_output(zone);
             zone->processed = 1;
@@ -407,14 +407,14 @@ worker_perform_task(worker_type* worker)
             worker->working_with = TASK_NONE;
             ods_log_warning("[%s[%i]] none task for zone %s",
                 worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
+                task_who2str(task));
             when = time_now() + never;
             fallthrough = 0;
             break;
         default:
             ods_log_warning("[%s[%i]] unknown task, trying full sign zone %s",
                 worker2str(worker->type), worker->thread_num,
-                task_who2str(task->who));
+                task_who2str(task));
             what = TASK_SIGNCONF;
             when = time_now();
             fallthrough = 0;
@@ -429,7 +429,7 @@ worker_perform_task(worker_type* worker)
         task->interrupt != what) {
         ods_log_debug("[%s[%i]] interrupt task %s for zone %s",
             worker2str(worker->type), worker->thread_num,
-            task_what2str(what), task_who2str(task->who));
+            task_what2str(what), task_who2str(task));
 
         task->what = task->interrupt;
         task->when = time_now();
@@ -437,7 +437,7 @@ worker_perform_task(worker_type* worker)
     } else {
         ods_log_debug("[%s[%i]] next task %s for zone %s",
             worker2str(worker->type), worker->thread_num,
-            task_what2str(what), task_who2str(task->who));
+            task_what2str(what), task_who2str(task));
 
         task->what = what;
         task->when = when;
@@ -453,7 +453,7 @@ worker_perform_task(worker_type* worker)
         if (status != ODS_STATUS_OK) {
             ods_log_warning("[%s[%i]] unable to backup zone %s: %s",
             worker2str(worker->type), worker->thread_num,
-            task_who2str(task->who), ods_status2str(status));
+            task_who2str(task), ods_status2str(status));
             /* just a warning */
             status = ODS_STATUS_OK;
         }
@@ -475,7 +475,7 @@ task_perform_fail:
     }
     ods_log_info("[%s[%i]] backoff task %s for zone %s with %u seconds",
         worker2str(worker->type), worker->thread_num,
-        task_what2str(task->what), task_who2str(task->who), task->backoff);
+        task_what2str(task->what), task_who2str(task), task->backoff);
 
     task->when = time_now() + task->backoff;
     return;
@@ -483,7 +483,7 @@ task_perform_fail:
 task_perform_continue:
     ods_log_info("[%s[%i]] continue task %s for zone %s",
         worker2str(worker->type), worker->thread_num,
-        task_what2str(task->halted), task_who2str(task->who));
+        task_what2str(task->halted), task_who2str(task));
 
     what = task->halted;
     task->what = what;

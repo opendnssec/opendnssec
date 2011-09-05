@@ -817,7 +817,7 @@ engine_update_zones(engine_type* engine)
                 set_notify_ns(zone, engine->config->notify_command);
             }
             /* schedule task */
-            task = task_create(TASK_SIGNCONF, now, zone->name, zone);
+            task = task_create(TASK_SIGNCONF, now, zone);
             if (!task) {
                 ods_log_crit("[%s] failed to create task for zone %s",
                     engine_str, zone->name);

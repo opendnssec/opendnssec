@@ -59,36 +59,119 @@ log_rr(ldns_rr* rr, const char* pre, int level)
     char* str = NULL;
     size_t i = 0;
 
-    if (ods_log_get_level() < level + 2) return;
-
-    str = ldns_rr2str(rr);
-    if (str) {
-        str[(strlen(str))-1] = '\0';
-        /* replace tabs with white space */
-        for (i=0; i < strlen(str); i++) {
-            if (str[i] == '\t') {
-                str[i] = ' ';
-            }
-        }
-
-        if (level == 1) { /* LOG_ERR */
-            ods_log_error("%s %s", pre?pre:"", str);
-        } else if (level == 2) { /* LOG_WARNING */
-            ods_log_warning("%s %s", pre?pre:"", str);
-        } else if (level == 3) { /* LOG_NOTICE */
-            ods_log_info("%s %s", pre?pre:"", str);
-        } else if (level == 4) { /* LOG_INFO */
-            ods_log_verbose("%s %s", pre?pre:"", str);
-        } else if (level == 5) { /* LOG_DEBUG */
-            ods_log_debug("%s %s", pre?pre:"", str);
-        } else if (level == 6) { /* more debugging */
-            ods_log_deeebug("%s %s", pre?pre:"", str);
-        } else { /* hardcore debugging */
-            ods_log_deeebug("%s %s", pre?pre:"", str);
-        }
-        free((void*)str);
+    if (ods_log_get_level() < level) {
+        return;
     }
+    str = ldns_rr2str(rr);
+    if (!str) {
+        return;
+    }
+    str[(strlen(str))-1] = '\0';
+    /* replace tabs with white space */
+    for (i=0; i < strlen(str); i++) {
+        if (str[i] == '\t') {
+            str[i] = ' ';
+        }
+    }
+    if (level == LOG_EMERG) {
+        ods_fatal_exit("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else if (level == LOG_ALERT) {
+        ods_log_alert("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else if (level == LOG_CRIT) {
+        ods_log_crit("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else if (level == LOG_ERR) {
+        ods_log_error("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else if (level == LOG_WARNING) {
+        ods_log_warning("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else if (level == LOG_NOTICE) {
+        ods_log_info("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else if (level == LOG_INFO) {
+        ods_log_verbose("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else if (level == LOG_DEBUG) {
+        ods_log_debug("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else if (level == LOG_DEEEBUG) {
+        ods_log_deeebug("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    } else {
+        ods_log_deeebug("[%s] %s: %s", rrset_str, pre?pre:"", str);
+    }
+    free((void*)str);
     return;
+}
+
+
+/**
+ * Log RRset.
+ *
+ */
+void
+log_rrset(ldns_rdf* dname, ldns_rr_type type, const char* pre, int level)
+{
+    char* str = NULL;
+    size_t i = 0;
+
+    if (ods_log_get_level() < level) {
+        return;
+    }
+    str = ldns_rdf2str(dname);
+    if (!str) {
+        return;
+    }
+    str[(strlen(str))-1] = '\0';
+    /* replace tabs with white space */
+    for (i=0; i < strlen(str); i++) {
+        if (str[i] == '\t') {
+            str[i] = ' ';
+        }
+    }
+    if (level == LOG_EMERG) {
+        ods_fatal_exit("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else if (level == LOG_ALERT) {
+        ods_log_alert("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else if (level == LOG_CRIT) {
+        ods_log_crit("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else if (level == LOG_ERR) {
+        ods_log_error("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else if (level == LOG_WARNING) {
+        ods_log_warning("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else if (level == LOG_NOTICE) {
+        ods_log_info("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else if (level == LOG_INFO) {
+        ods_log_verbose("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else if (level == LOG_DEBUG) {
+        ods_log_debug("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else if (level == LOG_DEEEBUG) {
+        ods_log_deeebug("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    } else {
+        ods_log_deeebug("[%s] %s: <%s,%s>", rrset_str, pre?pre:"", str,
+            rrset_type2str(type));
+    }
+    free((void*)str);
+    return;
+}
+
+
+/**
+ * Get the string-format of RRtype.
+ *
+ */
+const char*
+rrset_type2str(ldns_rr_type type)
+{
+    const ldns_rr_descriptor* descriptor;
+    descriptor = ldns_rr_descript(type);
+    if (descriptor && descriptor->_name) {
+        return descriptor->_name;
+    }
+    return "TYPE???";
 }
 
 
@@ -955,7 +1038,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     ldns_rr_list* rr_list = NULL;
     rrsigs_type* new_rrsigs = NULL;
     rrsigs_type* walk_rrsigs = NULL;
-    key_type* key = NULL;
     time_t inception = 0;
     time_t expiration = 0;
     size_t i = 0;
