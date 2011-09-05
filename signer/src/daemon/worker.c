@@ -149,8 +149,6 @@ worker_perform_task(worker_type* worker)
     ods_status status = ODS_STATUS_OK;
     int fallthrough = 0;
     int backup = 0;
-    char* working_dir = NULL;
-    char* cfg_filename = NULL;
     uint32_t tmpserial = 0;
     time_t start = 0;
     time_t end = 0;
@@ -255,7 +253,7 @@ worker_perform_task(worker_type* worker)
             fallthrough = 1;
         case TASK_SIGN:
             /* perform 'sign' task */
-            worker_working_with(worker, TASK_SIGN, TASK_AUDIT,
+            worker_working_with(worker, TASK_SIGN, TASK_WRITE,
                 "sign", task_who2str(task), &what, &when);
 
             tmpserial = zone->zonedata->internal_serial;
@@ -326,54 +324,18 @@ worker_perform_task(worker_type* worker)
 
             /* what to do next */
             if (status != ODS_STATUS_OK) {
-                /* rollback serial */
-                zone->zonedata->internal_serial = tmpserial;
-                if (task->halted == TASK_NONE) {
-                    goto task_perform_fail;
-                }
-                goto task_perform_continue;
-            } else {
-                if (task->interrupt > TASK_SIGNCONF) {
-                    task->interrupt = TASK_NONE;
-                    task->halted = TASK_NONE;
-                }
-            }
-            what = TASK_AUDIT;
-            when = time_now();
-            fallthrough = 1;
-        case TASK_AUDIT:
-            worker->working_with = TASK_AUDIT;
-            if (zone->signconf->audit) {
-                ods_log_verbose("[%s[%i]] audit zone %s",
-                    worker2str(worker->type), worker->thread_num,
-                    task_who2str(task));
-                working_dir = strdup(engine->config->working_dir);
-                cfg_filename = strdup(engine->config->cfg_filename);
-                status = tools_audit(zone, working_dir, cfg_filename);
-                if (working_dir)  { free((void*)working_dir); }
-                if (cfg_filename) { free((void*)cfg_filename); }
-                working_dir = NULL;
-                cfg_filename = NULL;
-            } else {
-                status = ODS_STATUS_OK;
-            }
-
-            /* what to do next */
-            if (status != ODS_STATUS_OK) {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
                 goto task_perform_continue;
             }
-            what = TASK_WRITE;
-            when = time_now();
-            fallthrough = 1;
+            /* break; */
         case TASK_WRITE:
             /* perform 'write to output adapter' task */
             worker_working_with(worker, TASK_WRITE, TASK_SIGN,
                 "write", task_who2str(task), &what, &when);
-
-            status = tools_output(zone);
+            status = tools_output(zone, engine->config->working_dir,
+                engine->config->cfg_filename);
             zone->processed = 1;
 
             /* what to do next */

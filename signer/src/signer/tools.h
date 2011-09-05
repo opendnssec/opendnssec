@@ -71,21 +71,13 @@ ods_status tools_commit(zone_type* zone);
 ods_status tools_nsecify(zone_type* zone);
 
 /**
- * Audit zone.
- * \param[in] zone zone
- * \param[in] working_dir working directory
- * \param[in] cfg_filename conf.xml filename
- * \return ods_status status
- *
- */
-ods_status tools_audit(zone_type* zone, char* working_dir, char* cfg_filename);
-
-/**
  * Write zone to output adapter.
  * \param[in] zone zone
+ * \param[in] dir working directory
+ * \param[in] cfgfile configuration file conx.xml
  * \return ods_status status
  *
  */
-ods_status tools_output(zone_type* zone);
+ods_status tools_output(zone_type* zone, const char* dir, const char* cfgfile);
 
 #endif /* SIGNER_TOOLS_H */
