@@ -139,20 +139,3 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
     delete keystateDoc;
     delete zonelistDoc;
 }
-
-static task_type * 
-update_keyzones_task_perform(task_type *task)
-{
-    perform_update_keyzones(-1,(engineconfig_type *)task->context);
-    task_cleanup(task);
-    return NULL;
-}
-
-task_type *
-update_keyzones_task(engineconfig_type *config,const char *shortname)
-{
-    task_id what = task_register(shortname,
-                                 "update_keyzones_task_perform",
-                                 update_keyzones_task_perform);
-	return task_create(what, time_now(), "all", (void*)config);
-}
