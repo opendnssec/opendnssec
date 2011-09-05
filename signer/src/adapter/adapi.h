@@ -83,18 +83,16 @@ uint32_t adapi_get_ttl(zone_type* zone);
 /*
  * Do full zone transaction.
  * \param[in] zone zone
- * \return ods_status status
  *
  */
-ods_status adapi_trans_full(zone_type* zone);
+void adapi_trans_full(zone_type* zone);
 
 /*
  * Do incremental zone transaction.
  * \param[in] zone zone
- * \return ods_status status
  *
  */
-ods_status adapi_trans_diff(zone_type* zone);
+void adapi_trans_diff(zone_type* zone);
 
 /**
  * Add RR.

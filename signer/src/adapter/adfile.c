@@ -220,6 +220,7 @@ adfile_read_file(FILE* fd, zone_type* zone)
     ldns_rdf* orig = NULL;
     ldns_rdf* dname = NULL;
     uint32_t ttl = 0;
+    uint32_t new_serial = 0;
     ldns_status status = LDNS_STATUS_OK;
     char line[SE_ADFILE_MAXLINE];
     unsigned int line_update_interval = 100000;
@@ -259,17 +260,25 @@ adfile_read_file(FILE* fd, zone_type* zone)
             ods_log_debug("[%s] ...at line %i: %s", adapter_str, l, line);
             line_update += line_update_interval;
         }
-        /* filter out DNSSEC RRs (except DNSKEY) from the Input File Adapter */
-        if (util_is_dnssec_rr(rr)) {
+        /* SOA? */
+        if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+            new_serial =
+              ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
+        }
+        /* add to the database */
+        result = adapi_add_rr(zone, rr);
+        if (result == ODS_STATUS_UNCHANGED) {
+            ods_log_debug("[%s] skipping RR at line %i (duplicate): %s",
+                adapter_str, l, line);
             ldns_rr_free(rr);
             rr = NULL;
+            result = ODS_STATUS_OK;
             continue;
-        }
-        /* add to the zonedata */
-        result = adapi_add_rr(zone, rr);
-        if (result != ODS_STATUS_OK) {
+        } else if (result != ODS_STATUS_OK) {
             ods_log_error("[%s] error adding RR at line %i: %s",
                 adapter_str, l, line);
+            ldns_rr_free(rr);
+            rr = NULL;
             break;
         }
     }
@@ -287,6 +296,17 @@ adfile_read_file(FILE* fd, zone_type* zone)
             adapter_str, l, ldns_get_errorstr_by_id(status), line);
         result = ODS_STATUS_ERR;
     }
+    /* input zone ok, set inbound serial and apply differences */
+    if (result == ODS_STATUS_OK) {
+        result = zone_examine(zone);
+        if (result != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to read file: zonefile contains errors",
+                adapter_str);
+            return result;
+        }
+        adapi_set_serial(zone, new_serial);
+        adapi_trans_full(zone);
+    }
     return result;
 }
 
@@ -301,65 +321,16 @@ adfile_read(void* zone, const char* filename)
     FILE* fd = NULL;
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
-    uint32_t new_serial = 0;
-    ldns_rr* rr = NULL;
-
-    /* [start] sanity parameter checking */
-    if (!adzone) {
-        ods_log_error("[%s] unable to read file: no zone (or no name given)",
-            adapter_str);
+    if (!adzone || !filename) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    if (!filename) {
-        ods_log_error("[%s] unable to read file: no filename given",
-            adapter_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    /* [end] sanity parameter checking */
-
-    /* [start] read zone */
     fd = ods_fopen(filename, NULL, "r");
-    if (fd) {
-        /* serial */
-        rr = adutil_lookup_soa_rr(fd);
-        if (rr) {
-            new_serial =
-                ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-        }
-        ldns_rr_free(rr);
-        rewind(fd);
-
-        status = adfile_read_file(fd, adzone);
-        ods_fclose(fd);
-    } else {
-        status = ODS_STATUS_FOPEN_ERR;
+    if (!fd) {
+        return ODS_STATUS_FOPEN_ERR;
     }
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read file %s: %s", adapter_str,
-            filename, ods_status2str(status));
-        return status;
-    }
-    /* [end] read zone */
-
-    /* [start] full transaction */
-    status = adapi_trans_full(adzone);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read file: start transaction failed",
-            adapter_str);
-        return status;
-    }
-    /* [end] full transaction */
-
-    /* [start] validate updates */
-    status = zone_examine(adzone);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read file: zonefile contains errors",
-            adapter_str);
-        return status;
-    }
-    /* [end] validate updates */
-    adapi_set_serial(adzone, new_serial);
-    return ODS_STATUS_OK;
+    status = adfile_read_file(fd, adzone);
+    ods_fclose(fd);
+    return status;
 }
 
 
@@ -374,43 +345,20 @@ adbackup_read(void* zone, const char* filename)
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
 
-    /* [start] sanity parameter checking */
-    if (!adzone) {
-        ods_log_error("[%s] unable to read file: no zone (or no name given)",
-            adapter_str);
+    if (!adzone || !filename) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    if (!filename) {
-        ods_log_error("[%s] unable to read file: no filename given",
-            adapter_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    /* [end] sanity parameter checking */
-
-    /* [start] read zone */
     fd = ods_fopen(filename, NULL, "r");
-    if (fd) {
-        status = adfile_read_file(fd, adzone);
-        ods_fclose(fd);
-    } else {
-        status = ODS_STATUS_FOPEN_ERR;
+    if (!fd) {
+        return ODS_STATUS_FOPEN_ERR;
     }
+    status = adfile_read_file(fd, adzone);
+    ods_fclose(fd);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to recover file: %s", adapter_str,
             ods_status2str(status));
-        return status;
     }
-    /* [end] read zone */
-
-    /* [start] full transaction */
-    status = adapi_trans_full(adzone);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to recover file: start transaction failed",
-            adapter_str);
-        return status;
-    }
-    /* [end] full transaction */
-    return ODS_STATUS_OK;
+    return status;
 }
 
 
