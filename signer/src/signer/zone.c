@@ -739,6 +739,119 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
 
 
 /**
+ * Merge zones.
+ *
+ */
+void
+zone_merge(zone_type* z1, zone_type* z2)
+{
+    const char* str;
+    adapter_type* adtmp = NULL;
+
+    if (!z1 || !z2) {
+        return;
+    }
+    /* policy name */
+    if (ods_strcmp(z2->policy_name, z1->policy_name) != 0) {
+        if (z2->policy_name) {
+            str = strdup(z2->policy_name);
+            if (!str) {
+                ods_log_error("[%s] failed to merge policy %s name to zone "
+                    "%s", zone_str, z2->policy_name, z1->name);
+            } else {
+                free((void*)z1->policy_name);
+                z1->policy_name = str;
+                z1->zl_status = ZONE_ZL_UPDATED;
+            }
+        } else {
+            free((void*)z1->policy_name);
+            z1->policy_name = NULL;
+            z1->zl_status = ZONE_ZL_UPDATED;
+        }
+    }
+    /* signconf filename */
+    if (ods_strcmp(z2->signconf_filename, z1->signconf_filename) != 0) {
+        if (z2->signconf_filename) {
+            str = strdup(z2->signconf_filename);
+            if (!str) {
+                ods_log_error("[%s] failed to merge signconf filename %s to "
+                    "zone %s", zone_str, z2->policy_name, z1->name);
+            } else {
+                free((void*)z1->signconf_filename);
+                z1->signconf_filename = str;
+                z1->zl_status = ZONE_ZL_UPDATED;
+            }
+        } else {
+            free((void*)z1->signconf_filename);
+            z1->signconf_filename = NULL;
+            z1->zl_status = ZONE_ZL_UPDATED;
+        }
+    }
+    /* adapters */
+    if (adapter_compare(z2->adinbound, z1->adinbound) != 0) {
+        adtmp = z2->adinbound;
+        z2->adinbound = z1->adinbound;
+        z1->adinbound = adtmp;
+        adtmp = NULL;
+    }
+    if (adapter_compare(z2->adoutbound, z1->adoutbound) != 0) {
+        adtmp = z2->adoutbound;
+        z2->adoutbound = z1->adoutbound;
+        z1->adoutbound = adtmp;
+        adtmp = NULL;
+    }
+    return;
+}
+
+
+/**
+ * Examine zone.
+ *
+ */
+ods_status
+zone_examine(zone_type* zone)
+{
+    if (zone && zone->zonedata && zone->adinbound) {
+        return zonedata_examine(zone->zonedata, zone->apex,
+            zone->adinbound->type);
+    }
+    return ODS_STATUS_ASSERT_ERR;
+}
+
+
+/**
+ * Clean up zone.
+ *
+ */
+void
+zone_cleanup(zone_type* zone)
+{
+    allocator_type* allocator;
+    lock_basic_type zone_lock;
+    if (!zone) {
+        return;
+    }
+    allocator = zone->allocator;
+    zone_lock = zone->zone_lock;
+    ldns_rdf_deep_free(zone->apex);
+    adapter_cleanup(zone->adinbound);
+    adapter_cleanup(zone->adoutbound);
+    zonedata_cleanup(zone->zonedata);
+    signconf_cleanup(zone->signconf);
+    nsec3params_cleanup(zone->nsec3params);
+    stats_cleanup(zone->stats);
+    allocator_deallocate(allocator, (void*) zone->notify_ns);
+    allocator_deallocate(allocator, (void*) zone->policy_name);
+    allocator_deallocate(allocator, (void*) zone->signconf_filename);
+    allocator_deallocate(allocator, (void*) zone->name);
+    allocator_deallocate(allocator, (void*) zone);
+    allocator_cleanup(allocator);
+    lock_basic_destroy(&zone_lock);
+    return;
+}
+
+
+/**
  * Backup zone.
  *
  */
@@ -1101,137 +1214,4 @@ recover_error:
        lock_basic_unlock(&zone->stats->stats_lock);
     }
     return ODS_STATUS_ERR;
-}
-
-
-/**
- * Merge zones.
- *
- */
-void
-zone_merge(zone_type* z1, zone_type* z2)
-{
-    const char* str;
-    adapter_type* adtmp = NULL;
-
-    if (!z1 || !z2) {
-        return;
-    }
-
-    /* policy name */
-    if (ods_strcmp(z2->policy_name, z1->policy_name) != 0) {
-        if (z2->policy_name) {
-            str = strdup(z2->policy_name);
-            if (!str) {
-                ods_log_error("[%s] failed to merge policy %s name to zone "
-                    "%s", zone_str, z2->policy_name, z1->name);
-            } else {
-                free((void*)z1->policy_name);
-                z1->policy_name = str;
-                z1->zl_status = ZONE_ZL_UPDATED;
-            }
-        } else {
-            free((void*)z1->policy_name);
-            z1->policy_name = NULL;
-            z1->zl_status = ZONE_ZL_UPDATED;
-        }
-    }
-
-    /* signconf filename */
-    if (ods_strcmp(z2->signconf_filename, z1->signconf_filename) != 0) {
-        if (z2->signconf_filename) {
-            str = strdup(z2->signconf_filename);
-            if (!str) {
-                ods_log_error("[%s] failed to merge signconf filename %s to "
-                    "zone %s", zone_str, z2->policy_name, z1->name);
-            } else {
-                free((void*)z1->signconf_filename);
-                z1->signconf_filename = str;
-                z1->zl_status = ZONE_ZL_UPDATED;
-            }
-        } else {
-            free((void*)z1->signconf_filename);
-            z1->signconf_filename = NULL;
-            z1->zl_status = ZONE_ZL_UPDATED;
-        }
-    }
-
-    /* adapters */
-    if (adapter_compare(z2->adinbound, z1->adinbound) != 0) {
-        adtmp = z2->adinbound;
-        z2->adinbound = z1->adinbound;
-        z1->adinbound = adtmp;
-        adtmp = NULL;
-    }
-    if (adapter_compare(z2->adoutbound, z1->adoutbound) != 0) {
-        adtmp = z2->adoutbound;
-        z2->adoutbound = z1->adoutbound;
-        z1->adoutbound = adtmp;
-        adtmp = NULL;
-    }
-    return;
-}
-
-
-/**
- * Print zone.
- *
- */
-ods_status
-zone_print(FILE* fd, zone_type* zone)
-{
-    if (fd && zone && zone->zonedata) {
-        return zonedata_print(fd, zone->zonedata);
-    }
-    return ODS_STATUS_ASSERT_ERR;
-}
-
-
-/**
- * Examine zone.
- *
- */
-ods_status
-zone_examine(zone_type* zone)
-{
-    if (zone && zone->zonedata && zone->adinbound) {
-        return zonedata_examine(zone->zonedata, zone->apex,
-            zone->adinbound->type);
-    }
-    return ODS_STATUS_ASSERT_ERR;
-}
-
-
-/**
- * Clean up zone.
- *
- */
-void
-zone_cleanup(zone_type* zone)
-{
-    allocator_type* allocator;
-    lock_basic_type zone_lock;
-
-    if (!zone) {
-        return;
-    }
-
-    allocator = zone->allocator;
-    zone_lock = zone->zone_lock;
-
-    ldns_rdf_deep_free(zone->apex);
-    adapter_cleanup(zone->adinbound);
-    adapter_cleanup(zone->adoutbound);
-    zonedata_cleanup(zone->zonedata);
-    signconf_cleanup(zone->signconf);
-    nsec3params_cleanup(zone->nsec3params);
-    stats_cleanup(zone->stats);
-    allocator_deallocate(allocator, (void*) zone->notify_ns);
-    allocator_deallocate(allocator, (void*) zone->policy_name);
-    allocator_deallocate(allocator, (void*) zone->signconf_filename);
-    allocator_deallocate(allocator, (void*) zone->name);
-    allocator_deallocate(allocator, (void*) zone);
-    allocator_cleanup(allocator);
-    lock_basic_destroy(&zone_lock);
-    return;
 }

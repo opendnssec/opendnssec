@@ -48,20 +48,20 @@ static const char* adapter_str = "adapter";
  * Initialize adapter.
  *
  */
-ods_status
+void
 adapter_init(adapter_type* adapter)
 {
-    if (adapter) {
-        switch(adapter->type) {
-            case ADAPTER_FILE:
-                return adfile_init(adapter->configstr);
-            default:
-                ods_log_error("[%s] unable to initialize adapter: "
-                    "unknown adapter", adapter_str);
-                return ODS_STATUS_ERR;
-        }
+    ods_log_assert(adapter);
+    switch(adapter->type) {
+        case ADAPTER_FILE:
+            adfile_init(adapter);
+            break;
+        default:
+            ods_log_error("[%s] unable to initialize adapter: "
+                "unknown adapter", adapter_str);
+            break;
     }
-    return ODS_STATUS_ERR;
+    return;
 }
 
 
@@ -90,7 +90,6 @@ adapter_create(const char* str, adapter_mode type, int inbound)
         allocator_cleanup(allocator);
         return NULL;
     }
-
     adapter->allocator = allocator;
     adapter->configstr = allocator_strdup(allocator, str);
     adapter->type = type;
@@ -105,10 +104,9 @@ adapter_create(const char* str, adapter_mode type, int inbound)
  *
  */
 ods_status
-adapter_read(struct zone_struct* zone)
+adapter_read(void* zone)
 {
     zone_type* adzone = (zone_type*) zone;
-    ods_status status = ODS_STATUS_OK;
     if (!adzone || !adzone->adinbound) {
         ods_log_error("[%s] unable to read zone: no input adapter",
             adapter_str);
@@ -119,8 +117,7 @@ adapter_read(struct zone_struct* zone)
         case ADAPTER_FILE:
             ods_log_verbose("[%s] read zone %s from file input adapter %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
-            status = adfile_read(zone, adzone->adinbound->configstr);
-            return status;
+            return adfile_read(zone, adzone->adinbound->configstr);
             break;
         default:
             ods_log_error("[%s] unable to read zone %s from adapter: unknown "
@@ -138,10 +135,9 @@ adapter_read(struct zone_struct* zone)
  *
  */
 ods_status
-adapter_write(struct zone_struct* zone)
+adapter_write(void* zone)
 {
     zone_type* adzone = (zone_type*) zone;
-    ods_status status = ODS_STATUS_OK;
     if (!adzone || !adzone->adoutbound) {
         ods_log_error("[%s] unable to write zone: no output adapter",
             adapter_str);
@@ -159,8 +155,7 @@ adapter_write(struct zone_struct* zone)
                 "adapter %s", adapter_str, adzone->name,
                 adzone->zonedata->outbound_serial,
                 adzone->adinbound->configstr);
-            status = adfile_write(zone, adzone->adoutbound->configstr);
-            return status;
+            return adfile_write(zone, adzone->adoutbound->configstr);
             break;
         default:
             ods_log_error("[%s] unable to write zone %s to adapter: unknown "

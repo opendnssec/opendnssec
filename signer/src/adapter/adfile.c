@@ -33,6 +33,7 @@
 
 #include "config.h"
 #include "adapter/adapi.h"
+#include "adapter/adapter.h"
 #include "adapter/adfile.h"
 #include "adapter/adutil.h"
 #include "shared/duration.h"
@@ -54,14 +55,16 @@ static ods_status adfile_read_file(FILE* fd, zone_type* zone);
  * Initialize file adapters.
  *
  */
-ods_status
-adfile_init(const char* configstr)
+void
+adfile_init(void* adapter)
 {
-    if (configstr) {
-        ods_log_warning("[%s] File Adapter init not implemented %s",
-            adapter_str);
-    }
-    return ODS_STATUS_OK;
+    adapter_type* ad = (adapter_type*) adapter;
+    ods_log_assert(ad);
+    ods_log_assert(ad->type == ADAPTER_FILE);
+    ods_log_assert(ad->configstr);
+    ods_log_info("[%s] initialize file adapter %s", adapter_str,
+        ad->configstr);
+    return;
 }
 
 
@@ -293,7 +296,7 @@ adfile_read_file(FILE* fd, zone_type* zone)
  *
  */
 ods_status
-adfile_read(struct zone_struct* zone, const char* filename)
+adfile_read(void* zone, const char* filename)
 {
     FILE* fd = NULL;
     zone_type* adzone = (zone_type*) zone;
@@ -365,7 +368,7 @@ adfile_read(struct zone_struct* zone, const char* filename)
  *
  */
 ods_status
-adbackup_read(struct zone_struct* zone, const char* filename)
+adbackup_read(void* zone, const char* filename)
 {
     FILE* fd = NULL;
     zone_type* adzone = (zone_type*) zone;
@@ -416,7 +419,7 @@ adbackup_read(struct zone_struct* zone, const char* filename)
  *
  */
 ods_status
-adfile_write(struct zone_struct* zone, const char* filename)
+adfile_write(void* zone, const char* filename)
 {
     FILE* fd = NULL;
     zone_type* adzone = (zone_type*) zone;
@@ -438,8 +441,9 @@ adfile_write(struct zone_struct* zone, const char* filename)
     /* [start] write zone */
     fd = ods_fopen(filename, NULL, "w");
     if (fd) {
-        status = zone_print(fd, adzone);
+        adapi_printzone(fd, adzone);
         ods_fclose(fd);
+        status = ODS_STATUS_OK;
     } else {
         status = ODS_STATUS_FOPEN_ERR;
     }

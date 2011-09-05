@@ -184,3 +184,18 @@ adapi_del_rr(zone_type* zone, ldns_rr* rr)
 {
     return zone_del_rr(zone, rr, 1);
 }
+
+
+/**
+ * Print zone.
+ *
+ */
+void
+adapi_printzone(FILE* fd, zone_type* zone)
+{
+    if (!fd || !zone || !zone->zonedata) {
+        return;
+    }
+    zonedata_print(fd, zone->zonedata);
+    return;
+}
