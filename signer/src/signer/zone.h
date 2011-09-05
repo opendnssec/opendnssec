@@ -114,7 +114,7 @@ zone_type* zone_create(char* name, ldns_rr_class klass);
 ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
 
 /**
- * Publish DNSKEYs.
+ * Publish the keys as indicated by the signer configuration.
  * \param[in] zone zone
  * \param[in] recover true if in recovery mode
  * \return ods_status status
@@ -123,13 +123,13 @@ ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
 ods_status zone_publish_dnskeys(zone_type* zone, int recover);
 
 /**
- * Prepare for NSEC3.
+ * Publish the NSEC3 parameters as indicated by the signer configuration.
  * \param[in] zone zone
  * \param[in] recover true if in recovery mode
  * \return ods_status status
  *
  */
-ods_status zone_prepare_nsec3(zone_type* zone, int recover);
+ods_status zone_publish_nsec3param(zone_type* zone, int recover);
 
 /**
  * Update serial.
@@ -166,21 +166,6 @@ ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
 ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
 
 /**
- * Backup zone.
- * \param[in] zone corresponding zone
- * \return ods_status status
- *
- */
-ods_status zone_backup(zone_type* zone);
-
-/**
- * Recover zone from backup.
- * \param[in] zone corresponding zone
- *
- */
-ods_status zone_recover(zone_type* zone);
-
-/**
  * Merge zones. Values that are merged:
  * - policy name
  * - signconf filename
@@ -214,5 +199,20 @@ ods_status zone_examine(zone_type* zone);
  *
  */
 void zone_cleanup(zone_type* zone);
+
+/**
+ * Backup zone.
+ * \param[in] zone corresponding zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_backup(zone_type* zone);
+
+/**
+ * Recover zone from backup.
+ * \param[in] zone corresponding zone
+ *
+ */
+ods_status zone_recover(zone_type* zone);
 
 #endif /* SIGNER_ZONE_H */

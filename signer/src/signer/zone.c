@@ -259,7 +259,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
 
 
 /**
- * Publish DNSKEYs.
+ * Publish the keys as indicated by the signer configuration.
  *
  */
 ods_status
@@ -364,11 +364,11 @@ zone_publish_dnskeys(zone_type* zone, int recover)
 
 
 /**
- * Prepare for NSEC3.
+ * Publish the NSEC3 parameters as indicated by the signer configuration.
  *
  */
 ods_status
-zone_prepare_nsec3(zone_type* zone, int recover)
+zone_publish_nsec3param(zone_type* zone, int recover)
 {
     ldns_rr* nsec3params_rr = NULL;
     domain_type* apex = NULL;
@@ -477,7 +477,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
 
 
 /**
- * Update SOA SERIAL.
+ * Update serial.
  *
  */
 ods_status
@@ -988,7 +988,7 @@ zone_recover(zone_type* zone)
             zone->nsec3params = NULL;
             goto recover_error;
         }
-        status = zone_prepare_nsec3(zone, 1);
+        status = zone_publish_nsec3param(zone, 1);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
             zone->nsec3params = NULL;
