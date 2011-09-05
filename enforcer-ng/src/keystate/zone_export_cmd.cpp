@@ -19,7 +19,7 @@ void help_zone_export_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "zone export      export all the keys used by a zone\n"
+        "zone export     export all the keys used by a zone\n"
         "  --zone <zone> (aka -z) export for the specified zone.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
