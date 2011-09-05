@@ -164,7 +164,7 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                 const ::ods::keystate::KeyData &key = enfzone.keys(k);
 
                 // Don't ever submit ZSKs to the parent.
-                if (key.role()==::ods::keystate::ZSK)
+                if (key.role()==::ods::keystate::ZSK || key.ds_seen())
                     continue;
                     
                 if (id) {
@@ -270,7 +270,7 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
         for (int k=0; k<enfzone.keys_size(); ++k) {
             const ::ods::keystate::KeyData &key = enfzone.keys(k);
             // Don't suggest ZSKs can be submitted, leave them out of the list.
-            if (key.role() == ::ods::keystate::ZSK)
+            if (key.role() == ::ods::keystate::ZSK || key.ds_seen())
                 continue;
             std::string keyrole = keyrole_Name(key.role());
             const char *action = key.submit_to_parent() ? "yes" : "no";
