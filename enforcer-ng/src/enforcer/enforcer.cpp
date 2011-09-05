@@ -807,8 +807,7 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
  * */
 time_t 
 updatePolicy(EnforcerZone &zone, const time_t now, 
-	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool &allow_unsigned,
-	bool force_rollover, KeyRole force_role)
+	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool &allow_unsigned)
 {
 	time_t return_at = -1;
 	const Policy *policy = zone.policy();
@@ -844,10 +843,23 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			keyProperties(policyKeys, i, (KeyRole)role, &bits, 
 				&algorithm, &lifetime, repository, &manual_rollover);
 
+			bool rollNow = false;
+			if (manual_rollover) {
+				switch((KeyRole)role) {
+					case KSK: rollNow = zone.rollKskNow(); break;
+					case ZSK: rollNow = zone.rollZskNow(); break;
+					case CSK: rollNow = zone.rollCskNow(); break;
+					default:
+						/** Programming error, report a bug! */
+						ods_fatal_exit("[%s] %s Unknow Role: (%d)",
+						module_str, scmd, role);
+				}
+			}
+
 			/** If a rollover is initiated by the user (forced) for this
 			 * role insert new key regardless of lifetime of existing 
 			 * keys. */
-			if (!force_rollover || force_role != (KeyRole)role) {
+			if (!rollNow) {
 				/** Policy forbids automatic rolling */
 				if (manual_rollover) continue;
 				/** See if there is a similar key which is still usable.
@@ -926,6 +938,20 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				ods_log_verbose("[%s] %s decommissioning old key: %s", 
 					module_str, scmd, key.locator().c_str());
 			}
+			
+			/* The user explicitly requested a rollover, request 
+			 * succeeded. We can now stop try to roll manually.  */
+			if (manual_rollover) {
+				switch((KeyRole)role) {
+					case KSK: zone.setRollKskNow(false); break;
+					case ZSK: zone.setRollZskNow(false); break;
+					case CSK: zone.setRollCskNow(false); break;
+					default:
+						/** Programming error, report a bug! */
+						ods_fatal_exit("[%s] %s Unknow Role: (%d)",
+						module_str, scmd, role);
+				}
+			}
 		} /** loop over keyconfigs */
 	} /** loop over KeyRole */
 	return return_at;
@@ -977,7 +1003,7 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 
 	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
 
-	policy_return_time = updatePolicy(zone, now, keyfactory, key_list, allow_unsigned, false, KSK);
+	policy_return_time = updatePolicy(zone, now, keyfactory, key_list, allow_unsigned);
 	if (allow_unsigned)
 		ods_log_info(
 			"[%s] %s No keys configured, zone will become unsigned eventually",
