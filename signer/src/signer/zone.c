@@ -43,10 +43,7 @@
 #include "shared/status.h"
 #include "shared/util.h"
 #include "signer/backup.h"
-#include "signer/nsec3params.h"
-#include "signer/signconf.h"
 #include "signer/zone.h"
-#include "signer/zonedata.h"
 
 #include <ldns/ldns.h>
 
@@ -97,7 +94,6 @@ zone_create(char* name, ldns_rr_class klass)
     zone->signconf_filename = NULL;
     zone->adinbound = NULL;
     zone->adoutbound = NULL;
-    zone->nsec3params = NULL;
     zone->zl_status = ZONE_ZL_OK;
     zone->processed = 0;
     zone->prepared = 0;
@@ -124,28 +120,6 @@ zone_create(char* name, ldns_rr_class klass)
 
 
 /**
- * Withdraw DNSKEYs.
- *
- */
-static ods_status
-dnskey_withdraw(zone_type* zone, ldns_rr_list* del)
-{
-    ldns_rr* clone = NULL;
-    ods_status status = ODS_STATUS_OK;
-    size_t i = 0;
-
-    for (i=0; i < ldns_rr_list_rr_count(del); i++) {
-        clone = ldns_rr_clone(ldns_rr_list_rr(del, i));
-        status = zone_del_rr(zone, clone, 0);
-        if (status != ODS_STATUS_OK) {
-            return status;
-        }
-    }
-    return status;
-}
-
-
-/**
  * Load signer configuration for zone.
  *
  */
@@ -154,11 +128,8 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
 {
     ods_status status = ODS_STATUS_OK;
     signconf_type* signconf = NULL;
-    ldns_rr_list* del = NULL;
     char* datestamp = NULL;
     uint32_t ustamp = 0;
-    task_id denial_what;
-    task_id keys_what;
     task_id what;
 
     if (!zone || !zone->name || !zone->signconf) {
@@ -185,47 +156,19 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
             datestamp?datestamp:"Unknown");
         free((void*)datestamp);
 
-        /* do stuff */
-        del = ldns_rr_list_new();
-        if (!del) {
-            ods_log_error("[%s] unable to load signconf: zone %s "
-                "signconf %s: ldns_rr_list_new() failed",
-                zone_str, zone->name, zone->signconf_filename);
-            return ODS_STATUS_MALLOC_ERR;
-        }
-        denial_what = signconf_compare_denial(zone->signconf, signconf);
-        keys_what = signconf_compare_keys(zone->signconf, signconf, del);
-
         /* Key Rollover? */
-        if (keys_what == TASK_READ) {
-            status = dnskey_withdraw(zone, del);
-        }
-        ldns_rr_list_free(del);
-        if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to load signconf: zone %s "
-                "signconf %s: failed to delete DNSKEY from RRset",
-                zone_str, zone->name, zone->signconf_filename);
-            zonedata_rollback(zone->zonedata);
-            return status;
-        }
 
         /* Denial of Existence Rollover? */
-        if (denial_what == TASK_NSECIFY) {
+        what = signconf_compare_denial(zone->signconf, signconf);
+        if (what == TASK_NSECIFY) {
             /* or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3PARAM changed */
-            nsec3params_cleanup(zone->nsec3params);
-            zone->nsec3params = NULL;
-            /* all NSEC(3)s become invalid */
             zonedata_wipe_denial(zone->zonedata);
             zonedata_cleanup_chain(zone->zonedata);
             zonedata_init_denial(zone->zonedata);
         }
 
         /* all ok, switch to new signconf */
-        if (keys_what != TASK_NONE) {
-            what = keys_what;
-        } else {
-            what = denial_what;
-        }
+        what = what;
         if (what == TASK_NONE) { /* no major changes, continue signing */
             what = TASK_SIGN;
         }
@@ -263,102 +206,61 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
  *
  */
 ods_status
-zone_publish_dnskeys(zone_type* zone, int recover)
+zone_publish_dnskeys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
-    key_type* key = NULL;
     uint32_t ttl = 0;
-    size_t count = 0;
+    uint16_t i = 0;
     ods_status status = ODS_STATUS_OK;
-    ldns_rr* dnskey = NULL;
-    int do_publish = 0;
 
-    if (!zone) {
-        ods_log_error("[%s] unable to publish dnskeys: no zone", zone_str);
+    if (!zone || !zone->zonedata || !zone->signconf || !zone->signconf->keys) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(zone);
+    ods_log_assert(zone->name);
 
-    if (!zone->signconf) {
-        ods_log_error("[%s] unable to publish dnskeys zone %s: no signconf",
-            zone_str, zone->name);
-        return ODS_STATUS_ASSERT_ERR;
+    /* hsm access */
+    ctx = hsm_create_context();
+    if (ctx == NULL) {
+        ods_log_error("[%s] unable to publish keys for zone %s: "
+            "error creating libhsm context", zone_str, zone->name);
+        return ODS_STATUS_HSM_ERR;
     }
-    ods_log_assert(zone->signconf);
-
-    if (!zone->signconf->keys) {
-        ods_log_error("[%s] unable to publish dnskeys zone %s: no keys",
-            zone_str, zone->name);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(zone->signconf->keys);
-
-    if (!zone->zonedata) {
-        ods_log_error("[%s] unable to publish dnskeys zone %s: no zonedata",
-            zone_str, zone->name);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(zone->zonedata);
-
+    /* dnskey ttl */
     ttl = zone->default_ttl;
     if (zone->signconf->dnskey_ttl) {
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
     }
-
-    ctx = hsm_create_context();
-    if (ctx == NULL) {
-        ods_log_error("[%s] unable to publish dnskeys for zone %s: error "
-            "creating libhsm context", zone_str, zone->name);
-        return ODS_STATUS_HSM_ERR;
-    }
-
-    key = zone->signconf->keys->first_key;
-    for (count=0; count < zone->signconf->keys->count; count++) {
-        if (key->publish) {
-            do_publish = 0;
-            if (!key->dnskey) {
-                do_publish = 1;
-            }
-
-            status = lhsm_get_key(ctx, zone->apex, key);
+    /* publish keys */
+    for (i=0; i < zone->signconf->keys->count; i++) {
+        if (!zone->signconf->keys->keys[i].publish) {
+            continue;
+        }
+        if (!zone->signconf->keys->keys[i].dnskey) {
+            /* get dnskey */
+            status = lhsm_get_key(ctx, zone->apex,
+                &zone->signconf->keys->keys[i]);
             if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to publish dnskeys zone %s: "
-                    "error creating DNSKEY for key %s", zone_str,
-                    zone->name, key->locator?key->locator:"(null)");
-                break;
-            }
-            ods_log_assert(key->dnskey);
-
-            if (recover) {
-                dnskey = ldns_rr_clone(key->dnskey);
-                status = zone_add_rr(zone, dnskey, 0);
-            } else if (do_publish) {
-                ldns_rr_set_ttl(key->dnskey, ttl);
-                ldns_rr_set_class(key->dnskey, zone->klass);
-                ldns_rr2canonical(key->dnskey);
-                dnskey = ldns_rr_clone(key->dnskey);
-                status = zone_add_rr(zone, dnskey, 0);
-            } else {
-                status = ODS_STATUS_OK;
-            }
-
-            if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to publish dnskeys zone %s: "
-                    "error adding DNSKEY[%u] for key %s", zone_str,
-                    zone->name, ldns_calc_keytag(dnskey),
-                    key->locator?key->locator:"(null)");
+                ods_log_error("[%s] unable to publish dnskeys for zone %s: "
+                    "error creating dnskey", zone_str, zone->name);
                 break;
             }
         }
-        key = key->next;
+        ods_log_assert(zone->signconf->keys->keys[i].dnskey);
+        ldns_rr_set_ttl(zone->signconf->keys->keys[i].dnskey, ttl);
+        ldns_rr_set_class(zone->signconf->keys->keys[i].dnskey, zone->klass);
+        ldns_rr2canonical(zone->signconf->keys->keys[i].dnskey);
+        status = zone_add_rr(zone, zone->signconf->keys->keys[i].dnskey, 0);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to publish dnskeys for zone %s: "
+                "error adding dnskey", zone_str, zone->name);
+            break;
+        }
     }
-
     if (status != ODS_STATUS_OK) {
         zonedata_rollback(zone->zonedata);
     }
-
+    /* done */
     hsm_destroy_context(ctx);
-    ctx = NULL;
     return status;
 }
 
@@ -375,41 +277,32 @@ zone_publish_nsec3param(zone_type* zone, int recover)
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
 
-    if (!zone) {
-        ods_log_error("[%s] unable to prepare NSEC3: no zone", zone_str);
+    if (!zone || !zone->name || !zone->zonedata || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(zone);
-
-    if (!zone->signconf) {
-        ods_log_error("[%s] unable to prepare NSEC3: no signconf", zone_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(zone->signconf);
 
     if (zone->signconf->nsec_type != LDNS_RR_TYPE_NSEC3) {
         /* no preparations needed */
         return ODS_STATUS_OK;
     }
 
-    if (!zone->nsec3params) {
+    if (!zone->signconf->nsec3params) {
         ods_log_debug("[%s] prepare NSEC3 for zone %s", zone_str, zone->name);
 
-        zone->nsec3params = nsec3params_create(
+        zone->signconf->nsec3params = nsec3params_create((void*)zone->signconf,
             (uint8_t) zone->signconf->nsec3_algo,
             (uint8_t) zone->signconf->nsec3_optout,
             (uint16_t) zone->signconf->nsec3_iterations,
             zone->signconf->nsec3_salt);
     }
-    if (!zone->nsec3params) {
+    if (!zone->signconf->nsec3params) {
         ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
             "to create NSEC3 parameters", zone_str, zone->name);
         return ODS_STATUS_MALLOC_ERR;
     }
-    ods_log_assert(zone->nsec3params);
 
     if (recover) {
-        nsec3params_rr = ldns_rr_clone(zone->nsec3params->rr);
+        nsec3params_rr = ldns_rr_clone(zone->signconf->nsec3params->rr);
         status = zone_add_rr(zone, nsec3params_rr, 0);
     } else {
         nsec3params_rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
@@ -419,8 +312,6 @@ zone_publish_nsec3param(zone_type* zone, int recover)
             nsec3params_cleanup(zone->nsec3params);
             return ODS_STATUS_MALLOC_ERR;
         }
-        ods_log_assert(nsec3params_rr);
-
         ldns_rr_set_class(nsec3params_rr, zone->klass);
         ldns_rr_set_ttl(nsec3params_rr, zone->default_ttl);
         ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->apex));
@@ -436,24 +327,19 @@ zone_publish_nsec3param(zone_type* zone, int recover)
         ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(nsec3params_rr, 1)), 7, 0);
 
         ldns_rr2canonical(nsec3params_rr);
-        zone->nsec3params->rr = ldns_rr_clone(nsec3params_rr);
+        zone->signconf->nsec3params->rr = ldns_rr_clone(nsec3params_rr);
         status = zone_add_rr(zone, nsec3params_rr, 0);
     }
 
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add NSEC3PARAM RR to zone %s",
             zone_str, zone->name);
-        nsec3params_cleanup(zone->nsec3params);
-        zone->nsec3params = NULL;
-        ldns_rr_free(nsec3params_rr);
     } else if (!recover) {
         /* add ok, wipe out previous nsec3params */
         apex = zonedata_lookup_domain(zone->zonedata, zone->apex);
         if (!apex) {
             ods_log_crit("[%s] unable to delete previous NSEC3PARAM RR "
             "from zone %s: apex undefined", zone_str, zone->name);
-            nsec3params_cleanup(zone->nsec3params);
-            zone->nsec3params = NULL;
             zonedata_rollback(zone->zonedata);
             return ODS_STATUS_ASSERT_ERR;
         }
@@ -465,8 +351,6 @@ zone_publish_nsec3param(zone_type* zone, int recover)
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to wipe out previous "
                     "NSEC3PARAM RR from zone %s", zone_str, zone->name);
-                nsec3params_cleanup(zone->nsec3params);
-                zone->nsec3params = NULL;
                 rrset_rollback(rrset);
                 return status;
             }
@@ -838,7 +722,6 @@ zone_cleanup(zone_type* zone)
     adapter_cleanup(zone->adoutbound);
     zonedata_cleanup(zone->zonedata);
     signconf_cleanup(zone->signconf);
-    nsec3params_cleanup(zone->nsec3params);
     stats_cleanup(zone->stats);
     allocator_deallocate(allocator, (void*) zone->notify_ns);
     allocator_deallocate(allocator, (void*) zone->policy_name);
@@ -1039,12 +922,11 @@ zone_recover(zone_type* zone)
             }
         }
         /* keys part */
-        zone->signconf->keys = keylist_create(zone->signconf->allocator);
+        zone->signconf->keys = keylist_create((void*) zone->signconf);
         while (backup_read_str(fd, &token)) {
             if (ods_strcmp(token, ";;Key:") == 0) {
-                key = key_recover(fd, zone->signconf->allocator);
-                if (!key || keylist_push(zone->signconf->keys, key) !=
-                    ODS_STATUS_OK) {
+                key = key_recover(fd, zone->signconf->keys);
+                if (!key) {
                     goto recover_error;
                 }
                 key = NULL;
@@ -1082,7 +964,8 @@ zone_recover(zone_type* zone)
             goto recover_error;
         }
         if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            nsec3params = nsec3params_create(zone->signconf->nsec3_algo,
+            nsec3params = nsec3params_create((void*) zone->signconf,
+                zone->signconf->nsec3_algo,
                 zone->signconf->nsec3_optout,
                 zone->signconf->nsec3_iterations,
                 zone->signconf->nsec3_salt);
@@ -1090,27 +973,24 @@ zone_recover(zone_type* zone)
                 goto recover_error;
             }
             nsec3params->rr = nsec3params_rr;
-            zone->nsec3params = nsec3params;
+            zone->signconf->nsec3params = nsec3params;
         }
         zone->task = (void*) task;
         zone->signconf->last_modified = lastmod;
 
-        status = zone_publish_dnskeys(zone, 1);
+        status = zone_publish_dnskeys(zone);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
-            zone->nsec3params = NULL;
             goto recover_error;
         }
         status = zone_publish_nsec3param(zone, 1);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
-            zone->nsec3params = NULL;
             goto recover_error;
         }
         status = zonedata_commit(zone->zonedata);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
-            zone->nsec3params = NULL;
             goto recover_error;
         }
         status = zonedata_entize(zone->zonedata, zone->apex);
@@ -1199,7 +1079,6 @@ recover_error:
 
     ldns_rr_free(nsec3params_rr);
     nsec3params_rr = NULL;
-    nsec3params->rr = NULL;
     nsec3params_cleanup(nsec3params);
     nsec3params = NULL;
 

@@ -27,16 +27,15 @@
  */
 
 /**
- *
  * Parsing signer configuration files.
+ *
  */
 
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
-#include "shared/allocator.h"
 #include "shared/duration.h"
 #include "shared/log.h"
-#include "signer/keys.h"
+#include "signer/signconf.h"
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -52,7 +51,7 @@ static const char* parser_str = "parser";
  *
  */
 keylist_type*
-parse_sc_keys(allocator_type* allocator, const char* cfgfile)
+parse_sc_keys(void* sc, const char* cfgfile)
 {
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
@@ -66,26 +65,22 @@ parse_sc_keys(allocator_type* allocator, const char* cfgfile)
     char* algorithm = NULL;
     int ksk, zsk, publish, i;
 
-    if (!cfgfile) {
-        ods_log_error("[%s] could not parse <Keys>, no cfgfile given",
-            parser_str);
+    if (!cfgfile || !sc) {
         return NULL;
     }
-    ods_log_assert(cfgfile);
-
     /* Load XML document */
     doc = xmlParseFile(cfgfile);
     if (doc == NULL) {
-        ods_log_error("[%s] could not parse <Keys>, xmlParseFile failed",
-            parser_str);
+        ods_log_error("[%s] could not parse <Keys>: "
+            "xmlParseFile() failed", parser_str);
         return NULL;
     }
     /* Create xpath evaluation context */
     xpathCtx = xmlXPathNewContext(doc);
     if(xpathCtx == NULL) {
         xmlFreeDoc(doc);
-        ods_log_error("[%s] could not parse <Keys>, xmlXPathNewContext failed",
-            parser_str);
+        ods_log_error("[%s] could not parse <Keys>: "
+            "xmlXPathNewContext() failed", parser_str);
         return NULL;
     }
     /* Evaluate xpath expression */
@@ -94,12 +89,13 @@ parse_sc_keys(allocator_type* allocator, const char* cfgfile)
     if(xpathObj == NULL) {
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
-        ods_log_error("[%s] could not parse <Keys>, xmlXPathEvalExpression "
-            "failed", parser_str);
+        ods_log_error("[%s] could not parse <Keys>: "
+            "xmlXPathEvalExpression() failed", parser_str);
         return NULL;
     }
-
-    kl = keylist_create(allocator);
+    /* Parse keys */
+    kl = keylist_create(sc);
+    ods_log_assert(kl);
     if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
             locator = NULL;
@@ -127,10 +123,10 @@ parse_sc_keys(allocator_type* allocator, const char* cfgfile)
                 curNode = curNode->next;
             }
             if (locator && algorithm && flags) {
-                new_key = key_create(allocator, locator,
+                new_key = keylist_push(kl, locator,
                     (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
                     publish, ksk, zsk);
-                if (keylist_push(kl, new_key) != ODS_STATUS_OK) {
+                if (!new_key) {
                     ods_log_error("[%s] failed to push key %s to key list",
                         parser_str, locator);
                 }
@@ -138,7 +134,7 @@ parse_sc_keys(allocator_type* allocator, const char* cfgfile)
                 ods_log_error("[%s] Key missing required elements, skipping",
                     parser_str);
             }
-            free((void*)locator);
+            /* free((void*)locator); */
             free((void*)algorithm);
             free((void*)flags);
         }

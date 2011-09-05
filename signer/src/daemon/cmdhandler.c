@@ -404,7 +404,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->zonedata->internal_serial = internal_serial;
         zone->zonedata->outbound_serial = outbound_serial;
 
-        status = zone_publish_dnskeys(zone, 1);
+        status = zone_publish_dnskeys(zone);
         if (status == ODS_STATUS_OK) {
             status = zone_publish_nsec3param(zone, 1);
         } else {

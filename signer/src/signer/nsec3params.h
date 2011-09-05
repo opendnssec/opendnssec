@@ -35,7 +35,6 @@
 #define SIGNER_NSEC3PARAMS_H
 
 #include "config.h"
-#include "shared/allocator.h"
 #include "shared/status.h"
 
 #include <ctype.h>
@@ -54,7 +53,7 @@
  */
 typedef struct nsec3params_struct nsec3params_type;
 struct nsec3params_struct {
-    allocator_type* allocator;
+    void* sc;
     uint8_t     algorithm;
     uint8_t     flags;
     uint16_t    iterations;
@@ -76,6 +75,7 @@ ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
 
 /**
  * Create new NSEC3 parameters.
+ * \param[in] sc signer configuration reference
  * \param[in] algo algorithm
  * \param[in] flags flags, Opt-Out or Opt-In
  * \param[in] iter number of iterations
@@ -83,7 +83,7 @@ ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
  * \return nsec3params_type* the created nsec3params
  *
  */
-nsec3params_type* nsec3params_create(uint8_t algo, uint8_t flags,
+nsec3params_type* nsec3params_create(void* sc, uint8_t algo, uint8_t flags,
     uint16_t iter, const char* salt);
 
 /**

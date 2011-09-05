@@ -788,7 +788,7 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
                 rrset->rr_type, inception, (uint32_t) signtime);
         } else {
             /* 3c. Corresponding key is dead (key is locator+flags) */
-            key = keylist_lookup(sc->keys, rrsigs->key_locator);
+            key = keylist_lookup_by_locator(sc->keys, rrsigs->key_locator);
             if (!key) {
                 drop_sig = 1;
                 ods_log_deeebug("[%s] refresh signature for RRset[%i]: "
@@ -832,11 +832,11 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
 
 
 /**
- * See if there exists a signature with this algorithm.
+ * Is the RRset signed with this algorithm?
  *
  */
 static int
-rrset_signed_with_algorithm(rrset_type* rrset, uint8_t algorithm)
+rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
 {
     rrsigs_type* rrsigs = NULL;
 
@@ -899,11 +899,9 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
     time_t offset = 0;
     time_t validity = 0;
     time_t random_jitter = 0;
-
     if (!sc || !rrtype || !signtime) {
         return;
     }
-
     jitter = duration2time(sc->sig_jitter);
     if (jitter) {
         random_jitter = ods_rand(jitter*2);
@@ -960,6 +958,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     key_type* key = NULL;
     time_t inception = 0;
     time_t expiration = 0;
+    size_t i = 0;
 
     if (!rrset) {
         ods_log_error("[%s] unable to sign RRset: no RRset", rrset_str);
@@ -979,10 +978,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     }
     ods_log_assert(sc);
 
-    /* recycle signatures */
+    /* Recycle signatures */
     reusedsigs = rrset_recycle(rrset, sc, signtime);
-
-    /* transmogrify the RRset */
+    /* Transmogrify rrset */
     rr_list = rrset2rrlist(rrset);
     if (!rr_list) {
         ods_log_error("[%s] unable to sign RRset[%i]: to RRlist failed",
@@ -990,7 +988,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         return ODS_STATUS_ERR;
     }
     if (ldns_rr_list_rr_count(rr_list) <= 0) {
-        /* empty RRset, no signatures needed */
+        /* Empty RRset, no signatures needed */
         ldns_rr_list_free(rr_list);
         return ODS_STATUS_OK;
     }
@@ -1002,28 +1000,20 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     }
     rrset_sigvalid_period(sc, rrset->rr_type, signtime,
          &inception, &expiration);
-
-    key = sc->keys->first_key;
-    while (key) {
-        /* ksk or zsk ? */
-        if (!key->zsk && rrset->rr_type != LDNS_RR_TYPE_DNSKEY) {
-            ods_log_deeebug("[%s] skipping key %s for signing RRset[%i]: no "
-                "active ZSK", rrset_str, key->locator, rrset->rr_type);
-            key = key->next;
+    /* Walk keys */
+    for (i=0; i < sc->keys->count; i++) {
+        /* ZSKs don't sign DNSKEY RRset */
+        if (!sc->keys->keys[i].zsk &&
+            rrset->rr_type != LDNS_RR_TYPE_DNSKEY) {
             continue;
         }
-        if (!key->ksk && rrset->rr_type == LDNS_RR_TYPE_DNSKEY) {
-            ods_log_deeebug("[%s] skipping key %s for signing RRset[%i]: no "
-                "active KSK", rrset_str, key->locator, rrset->rr_type);
-            key = key->next;
+        /* KSKs only sign DNSKEY RRset */
+        if (!sc->keys->keys[i].ksk &&
+            rrset->rr_type == LDNS_RR_TYPE_DNSKEY) {
             continue;
         }
-
-        /* is there a signature with this algorithm already? */
-        if (rrset_signed_with_algorithm(rrset, key->algorithm)) {
-            ods_log_deeebug("skipping key %s for signing: RRset[%i] "
-                "already has signature with same algorithm", key->locator);
-            key = key->next;
+        /* Additional rules for signatures */
+        if (rrset_sigalgo(rrset, sc->keys->keys[i].algorithm)) {
             continue;
         }
 
@@ -1032,10 +1022,11 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
          * over this RRset equals the number of active keys.
          */
 
-        /* sign the RRset with current key */
+        /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
-            rrset->rr_type, key->locator);
-        rrsig = lhsm_sign(ctx, rr_list, key, owner, inception, expiration);
+            rrset->rr_type, sc->keys->keys[i].locator);
+        rrsig = lhsm_sign(ctx, rr_list, &sc->keys->keys[i],
+            owner, inception, expiration);
         if (!rrsig) {
             ods_log_error("[%s] unable to sign RRset[%i]: error creating "
                 "RRSIG RR", rrset_str, rrset->rr_type);
@@ -1047,7 +1038,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
         ods_log_deeebug("[%s] new signature created for RRset[%i]", rrset_str,
             rrset->rr_type);
         log_rr(rrsig, "+rrsig", 7);
-        status = rrsigs_add_sig(new_rrsigs, rrsig, key->locator, key->flags);
+        status = rrsigs_add_sig(new_rrsigs, rrsig,
+            sc->keys->keys[i].locator, sc->keys->keys[i].flags);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to sign RRset[%i]: error adding RRSIG",
                 rrset_str, rrset->rr_type);
@@ -1057,7 +1049,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             return status;
         }
         /* next key */
-        key = key->next;
     }
 
     /* signing completed, add the signatures to the right RRset */

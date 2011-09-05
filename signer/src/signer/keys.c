@@ -31,62 +31,269 @@
  *
  */
 
-#include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/log.h"
-#include "shared/status.h"
 #include "signer/backup.h"
 #include "signer/keys.h"
+#include "signer/signconf.h"
 
 static const char* key_str = "keys";
 
 
 /**
- * Create a new key.
+ * Create a new key list.
+ *
+ */
+keylist_type*
+keylist_create(void* sc)
+{
+    signconf_type* signconf = (signconf_type*) sc;
+    keylist_type* kl = NULL;
+
+    if (!signconf || !signconf->allocator) {
+        return NULL;
+    }
+    kl = (keylist_type*) allocator_alloc(signconf->allocator,
+        sizeof(keylist_type));
+    if (!kl) {
+        ods_log_error("[%s] create list failed: allocator_alloc() failed",
+            key_str);
+        return NULL;
+    }
+    kl->sc = sc;
+    kl->count = 0;
+    kl->keys = NULL;
+    return kl;
+}
+
+
+/**
+ * Lookup a key in the key list by locator.
  *
  */
 key_type*
-key_create(allocator_type* allocator, const char* locator, uint8_t algorithm,
-    uint32_t flags, int publish, int ksk, int zsk)
+keylist_lookup_by_locator(keylist_type* kl, const char* locator)
 {
-    key_type* key;
-
-    if (!allocator) {
-        ods_log_error("[%s] create key failed: no allocator available",
-            key_str);
+    uint16_t i = 0;
+    if (!kl || !locator || kl->count <= 0) {
         return NULL;
     }
-    ods_log_assert(allocator);
+    for (i=0; i < kl->count; i++) {
+        if (&kl->keys[i] && kl->keys[i].locator) {
+            if (ods_strcmp(kl->keys[i].locator, locator) == 0) {
+                return &kl->keys[i];
+            }
+        }
+    }
+    return NULL;
+}
 
-    if (!locator || !algorithm || !flags) {
-        ods_log_error("[%s] create failed: missing required elements",
-            key_str);
+
+/**
+ * Lookup a key in the key list by dnskey.
+ *
+ */
+key_type*
+keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey)
+{
+    uint16_t i = 0;
+    if (!kl || !dnskey || kl->count <= 0) {
         return NULL;
     }
+    for (i=0; i < kl->count; i++) {
+        if (&kl->keys[i] && kl->keys[i].dnskey) {
+            if (ldns_rr_compare(kl->keys[i].dnskey, dnskey) == 0) {
+                return &kl->keys[i];
+            }
+        }
+    }
+    return NULL;
+}
+
+
+/**
+ * Push a key to the key list.
+ *
+ */
+key_type*
+keylist_push(keylist_type* kl, const char* locator,
+    uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk)
+{
+    key_type* keys_old = NULL;
+    signconf_type* sc = NULL;
+
+    ods_log_assert(kl);
     ods_log_assert(locator);
-    ods_log_assert(algorithm);
-    ods_log_assert(flags);
+    ods_log_debug("[%s] add locator %s", key_str, locator);
 
-    key = (key_type*) allocator_alloc(allocator, sizeof(key_type));
-    if (!key) {
-        ods_log_error("[%s] create key failed: allocator failed",
+    sc = (signconf_type*) kl->sc;
+    keys_old = kl->keys;
+    kl->keys = (key_type*) allocator_alloc(sc->allocator,
+        (kl->count + 1) * sizeof(key_type));
+    if (!kl->keys) {
+        ods_log_error("[%s] unable to add key: allocator_alloc() failed",
             key_str);
-        return NULL;
+        exit(1);
     }
-    ods_log_assert(key);
+    if (keys_old) {
+        memcpy(kl->keys, keys_old, (kl->count) * sizeof(key_type));
+    }
+    allocator_deallocate(sc->allocator, (void*) keys_old);
+    kl->count++;
+    kl->keys[kl->count -1].locator = locator;
+    kl->keys[kl->count -1].algorithm = algorithm;
+    kl->keys[kl->count -1].flags = flags;
+    kl->keys[kl->count -1].publish = publish;
+    kl->keys[kl->count -1].ksk = ksk;
+    kl->keys[kl->count -1].zsk = zsk;
+    kl->keys[kl->count -1].dnskey = NULL;
+    kl->keys[kl->count -1].hsmkey = NULL;
+    kl->keys[kl->count -1].params = NULL;
+    return &kl->keys[kl->count -1];
+}
 
-    key->allocator = allocator;
-    key->locator = allocator_strdup(allocator, locator);
-    key->dnskey = NULL;
-    key->hsmkey = NULL;
-    key->params = NULL;
-    key->algorithm = algorithm;
-    key->flags = flags;
-    key->publish = publish;
-    key->ksk = ksk;
-    key->zsk = zsk;
-    key->next = NULL;
-    return key;
+
+/**
+ * Print key.
+ *
+ */
+static void
+key_print(FILE* fd, key_type* key)
+{
+    if (!fd || !key) {
+        return;
+    }
+    fprintf(fd, "\t\t\t<Key>\n");
+    fprintf(fd, "\t\t\t\t<Flags>%u</Flags>\n", key->flags);
+    fprintf(fd, "\t\t\t\t<Algorithm>%u</Algorithm>\n", key->algorithm);
+    if (key->locator) {
+        fprintf(fd, "\t\t\t\t<Locator>%s</Locator>\n", key->locator);
+    }
+    if (key->ksk) {
+        fprintf(fd, "\t\t\t\t<KSK />\n");
+    }
+    if (key->zsk) {
+        fprintf(fd, "\t\t\t\t<ZSK />\n");
+    }
+    if (key->publish) {
+        fprintf(fd, "\t\t\t\t<Publish />\n");
+    }
+    fprintf(fd, "\t\t\t</Key>\n");
+    fprintf(fd, "\n");
+    return;
+}
+
+
+/**
+ * Log key.
+ *
+ */
+static void
+key_log(key_type* key, const char* name)
+{
+    if (!key) {
+        return;
+    }
+    ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
+        "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
+        key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
+    return;
+}
+
+
+/**
+ * Print key list.
+ *
+ */
+void
+keylist_print(FILE* fd, keylist_type* kl)
+{
+    uint16_t i = 0;
+    if (!fd || !kl || kl->count <= 0) {
+        return;
+    }
+    for (i=0; i < kl->count; i++) {
+        key_print(fd, &kl->keys[i]);
+    }
+    return;
+}
+
+
+/**
+ * Log key list.
+ *
+ */
+void
+keylist_log(keylist_type* kl, const char* name)
+{
+    uint16_t i = 0;
+    if (!kl || kl->count <= 0) {
+        return;
+    }
+    for (i=0; i < kl->count; i++) {
+        key_log(&kl->keys[i], name);
+    }
+    return;
+}
+
+
+/**
+ * Clean up key.
+ *
+ */
+static void
+key_delfunc(key_type* key)
+{
+    if (!key) {
+        return;
+    }
+    /* ldns_rr_free(key->dnskey); */
+    hsm_key_free(key->hsmkey);
+    hsm_sign_params_free(key->params);
+    free((void*) key->locator);
+    return;
+}
+
+
+/**
+ * Clean up key list.
+ *
+ */
+void
+keylist_cleanup(keylist_type* kl)
+{
+    uint16_t i = 0;
+    signconf_type* sc = NULL;
+    if (!kl) {
+        return;
+    }
+    for (i=0; i < kl->count; i++) {
+        key_delfunc(&kl->keys[i]);
+    }
+    sc = (signconf_type*) kl->sc;
+    allocator_deallocate(sc->allocator, (void*) kl->keys);
+    allocator_deallocate(sc->allocator, (void*) kl);
+}
+
+
+/**
+ * Backup key.
+ *
+ */
+static void
+key_backup(FILE* fd, key_type* key)
+{
+    if (!fd || !key) {
+        return;
+    }
+    fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i "
+        "zsk %i\n", key->locator, (unsigned) key->algorithm,
+        (unsigned) key->flags, key->publish, key->ksk, key->zsk);
+    if (key->dnskey) {
+        ldns_rr_print(fd, key->dnskey);
+    }
+    fprintf(fd, ";;Keydone\n");
+    return;
 }
 
 
@@ -95,7 +302,7 @@ key_create(allocator_type* allocator, const char* locator, uint8_t algorithm,
  *
  */
 key_type*
-key_recover(FILE* fd, allocator_type* allocator)
+key_recover(FILE* fd, keylist_type* kl)
 {
     key_type* key = NULL;
     const char* locator = NULL;
@@ -152,251 +359,10 @@ key_recover(FILE* fd, allocator_type* allocator)
         }
         return NULL;
     }
-
     /* key ok */
-    key = (key_type*) allocator_alloc(allocator, sizeof(key_type));
-    if (!key) {
-        ods_log_error("[%s] unable to recover key: allocator failed",
-            key_str);
-        if (locator) {
-           free((void*)locator);
-           locator = NULL;
-        }
-        if (rr) {
-            ldns_rr_free(rr);
-            rr = NULL;
-        }
-        return NULL;
-    }
-    ods_log_assert(key);
-
-    key->allocator = allocator;
-    key->locator = allocator_strdup(allocator, locator);
-    key->dnskey = rr;
-    key->hsmkey = NULL;
-    key->params = NULL;
-    key->algorithm = algorithm;
-    key->flags = flags;
-    key->publish = publish;
-    key->ksk = ksk;
-    key->zsk = zsk;
-    key->next = NULL;
-
-    if (locator) {
-       free((void*)locator);
-       locator = NULL;
-    }
+    key = keylist_push(kl, locator, algorithm, flags, publish, ksk, zsk);
+    locator = NULL;
     return key;
-}
-
-
-/**
- * Print key.
- *
- */
-static void
-key_print(FILE* fd, key_type* key)
-{
-    if (!fd || !key) {
-        return;
-    }
-    fprintf(fd, "\t\t\t<Key>\n");
-    fprintf(fd, "\t\t\t\t<Flags>%u</Flags>\n", key->flags);
-    fprintf(fd, "\t\t\t\t<Algorithm>%u</Algorithm>\n", key->algorithm);
-    if (key->locator) {
-        fprintf(fd, "\t\t\t\t<Locator>%s</Locator>\n", key->locator);
-    }
-    if (key->ksk) {
-        fprintf(fd, "\t\t\t\t<KSK />\n");
-    }
-    if (key->zsk) {
-        fprintf(fd, "\t\t\t\t<ZSK />\n");
-    }
-    if (key->publish) {
-        fprintf(fd, "\t\t\t\t<Publish />\n");
-    }
-    fprintf(fd, "\t\t\t</Key>\n");
-    fprintf(fd, "\n");
-    return;
-}
-
-
-/**
- * Backup key.
- *
- */
-static void
-key_backup(FILE* fd, key_type* key)
-{
-    if (!fd || !key) {
-        return;
-    }
-
-    fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i "
-        "zsk %i\n", key->locator, (unsigned) key->algorithm,
-        (unsigned) key->flags, key->publish, key->ksk, key->zsk);
-    if (key->dnskey) {
-        ldns_rr_print(fd, key->dnskey);
-    }
-    fprintf(fd, ";;Keydone\n");
-    return;
-}
-
-
-/**
- * Log key.
- *
- */
-static void
-key_log(key_type* key, const char* name)
-{
-    if (!key) {
-        return;
-    }
-    ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
-        "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
-        key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
-    return;
-}
-
-
-/**
- * Create a new key list.
- *
- */
-keylist_type*
-keylist_create(allocator_type* allocator)
-{
-    keylist_type* kl;
-
-    if (!allocator) {
-        ods_log_error("[%s] create list failed: no allocator available",
-            key_str);
-        return NULL;
-    }
-    ods_log_assert(allocator);
-
-    kl = (keylist_type*) allocator_alloc(allocator, sizeof(keylist_type));
-    if (!kl) {
-        ods_log_error("[%s] create list failed: allocator failed",
-            key_str);
-        return NULL;
-    }
-    ods_log_assert(kl);
-
-    kl->allocator = allocator;
-    kl->count = 0;
-    kl->first_key = NULL;
-    return kl;
-}
-
-
-/**
- * Push a key to the key list.
- *
- */
-ods_status
-keylist_push(keylist_type* kl, key_type* key)
-{
-    key_type* walk = NULL;
-
-    if (!kl || !key || !key->locator) {
-        ods_log_error("[%s] push failed: no list or no key", key_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(kl);
-    ods_log_assert(key);
-    ods_log_debug("[%s] add locator %s", key_str, key->locator);
-
-    if (kl->count == 0) {
-        kl->first_key = key;
-    } else {
-        walk = kl->first_key;
-        while (walk->next) {
-            walk = walk->next;
-        }
-        walk->next = key;
-    }
-    kl->count += 1;
-    return ODS_STATUS_OK;
-}
-
-
-/**
- * Lookup a key in the key list by locator.
- *
- */
-key_type*
-keylist_lookup(keylist_type* list, const char* locator)
-{
-    key_type* search = NULL;
-    size_t i = 0;
-
-    if (!list || !locator) {
-        return NULL;
-    }
-
-    search = list->first_key;
-    for (i=0; i < list->count; i++) {
-        if (search && search->locator) {
-            if (ods_strcmp(search->locator, locator) == 0) {
-                return search;
-            }
-            search = search->next;
-        } else {
-            break;
-        }
-    }
-    return NULL;
-}
-
-
-/**
- * Lookup a key in the key list by dnskey.
- *
- */
-key_type*
-keylist_lookup_by_dnskey(keylist_type* list, ldns_rr* dnskey)
-{
-    key_type* search = NULL;
-    size_t i = 0;
-
-    if (!list || !dnskey) {
-        return NULL;
-    }
-
-    search = list->first_key;
-    for (i=0; i < list->count; i++) {
-        if (search && search->dnskey) {
-            if (ldns_rr_compare(search->dnskey, dnskey) == 0) {
-                return search;
-            }
-            search = search->next;
-        } else {
-            break;
-        }
-    }
-    return NULL;
-}
-
-
-/**
- * Print key list.
- *
- */
-void
-keylist_print(FILE* fd, keylist_type* kl)
-{
-    key_type* walk = NULL;
-
-    if (fd && kl) {
-        walk = kl->first_key;
-        while (walk) {
-            key_print(fd, walk);
-            walk = walk->next;
-        }
-    }
-    return;
 }
 
 
@@ -407,94 +373,13 @@ keylist_print(FILE* fd, keylist_type* kl)
 void
 keylist_backup(FILE* fd, keylist_type* kl)
 {
-    key_type* walk = NULL;
-
-    if (fd) {
-        if (kl) {
-            walk = kl->first_key;
-            while (walk) {
-                key_backup(fd, walk);
-                walk = walk->next;
-            }
-        }
-        fprintf(fd, ";;\n");
-    }
-    return;
-}
-
-
-/**
- * Log key list.
- *
- */
-void
-keylist_log(keylist_type* kl, const char* name)
-{
-    key_type* walk = NULL;
-
-    if (kl) {
-        walk = kl->first_key;
-        while (walk) {
-            key_log(walk, name);
-            walk = walk->next;
-        }
-    }
-    return;
-}
-
-
-/**
- * Clean up key.
- *
- */
-static void
-key_delfunc(key_type* key)
-{
-    allocator_type* allocator;
-
-    if (!key) {
+    uint16_t i = 0;
+    if (!fd || !kl || kl->count <= 0) {
         return;
     }
-    if (key->dnskey) {
-        ldns_rr_free(key->dnskey);
-        key->dnskey = NULL;
+    for (i=0; i < kl->count; i++) {
+        key_backup(fd, &kl->keys[i]);
     }
-    if (key->hsmkey) {
-        hsm_key_free(key->hsmkey);
-        key->hsmkey = NULL;
-    }
-    if (key->params) {
-        hsm_sign_params_free(key->params);
-        key->params = NULL;
-    }
-    allocator = key->allocator;
-    allocator_deallocate(allocator, (void*) key->locator);
-    allocator_deallocate(allocator, (void*) key);
-    return;
-}
-
-
-/**
- * Clean up key list.
- *
- */
-void
-keylist_cleanup(keylist_type* kl)
-{
-    key_type* walk = NULL;
-    key_type* next = NULL;
-    allocator_type* allocator;
-
-    if (!kl) {
-        return;
-    }
-    walk = kl->first_key;
-    while (walk) {
-        next = walk->next;
-        key_delfunc(walk);
-        walk = next;
-    }
-    allocator = kl->allocator;
-    allocator_deallocate(allocator, (void*) kl);
+    fprintf(fd, ";;\n");
     return;
 }
