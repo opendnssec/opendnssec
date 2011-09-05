@@ -56,10 +56,9 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
     bool id_match = false;
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
 
-        const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
-        
-        for (int k=0; k<enfzone.keys_size(); ++k) {
-            const ::ods::keystate::KeyData &key = enfzone.keys(k);
+        ::ods::keystate::EnforcerZone *enfzone = keystateDoc->mutable_zones(z);
+        for (int k=0; k<enfzone->keys_size(); ++k) {
+            const ::ods::keystate::KeyData &key = enfzone->keys(k);
 
             // ZSKs are not referenced by DS records so skip them.
             if (key.role() == ::ods::keystate::ZSK)
@@ -70,7 +69,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
             
             std::string keyrole = keyrole_Name(key.role());
             
-            if (id && key.locator()==id || zone && enfzone.name()==zone)
+            if (id && key.locator()==id || zone && enfzone->name()==zone)
             {
                 bKeyStateModified = true;
                 ::ods::keystate::KeyData *mkey =
@@ -78,12 +77,13 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                 mkey->set_ds_seen(true);
                 mkey->set_submit_to_parent(false);
                 id_match = true;
+                enfzone->set_next_change(0); // reschedule immediately
             }
 
             const char *status = key.ds_seen() ? "yes" : "no";
             (void)snprintf(buf, ODS_SE_MAXLINE,
                            "%-31s %-13s %-40s %-8s\n",
-                           enfzone.name().c_str(),
+                           enfzone->name().c_str(),
                            keyrole.c_str(),
                            key.locator().c_str(),
                            status
