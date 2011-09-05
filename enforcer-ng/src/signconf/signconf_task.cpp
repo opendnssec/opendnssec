@@ -34,7 +34,7 @@ void WriteSignConf(const std::string &path,
  *          from zonedata signerconfiguration field in the zone 
  */
 void 
-perform_signconf(int sockfd, engineconfig_type *config)
+perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 {
     char buf[ODS_SE_MAXLINE];
 	const char *policyfile = config->policy_filename;
@@ -95,7 +95,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
 
         ::ods::keystate::EnforcerZone *ks_zone = keystateDoc->mutable_zones(i);
         
-        if (!ks_zone->signconf_needs_writing())
+        if (!ks_zone->signconf_needs_writing() && bforce==0)
             continue;
 
         const ::ods::kasp::KASP &
@@ -189,9 +189,15 @@ perform_signconf(int sockfd, engineconfig_type *config)
 
         for (int k=0; k<ks_zone->keys_size(); ++k) {
             const ::ods::keystate::KeyData &ks_key = ks_zone->keys(k);
-            ::ods::signconf::Key* sc_key = sc_keys->add_keys();
 
-            // TODO: is this correct ?
+            // first check whether we actually shoul write this key into the
+            // signer configuration.
+            if (!ks_key.publish() && !ks_key.active_ksk() && !ks_key.active_zsk())
+                continue;
+
+            // yes we need to write the key to the configuration.
+            ::ods::signconf::Key* sc_key = sc_keys->add_keys();
+            
             if (ks_key.role() == ::ods::keystate::ZSK)
                 sc_key->set_flags( 256 ); // ZSK
             else
@@ -200,12 +206,13 @@ perform_signconf(int sockfd, engineconfig_type *config)
             sc_key->set_algorithm( ks_key.algorithm() );
             sc_key->set_locator( ks_key.locator() );
             
+            
             // The active flag determines whether the KSK or ZSK
             // flag is written to the signer configuration.
-            sc_key->set_ksk( ks_key.active() &&
+            sc_key->set_ksk( ks_key.active_ksk() &&
                             (ks_key.role() == ::ods::keystate::KSK
                              || ks_key.role() == ::ods::keystate::CSK) );
-            sc_key->set_zsk( ks_key.active() &&
+            sc_key->set_zsk( ks_key.active_zsk() &&
                             (ks_key.role() == ::ods::keystate::ZSK
                              || ks_key.role() == ::ods::keystate::CSK) );
             sc_key->set_publish( ks_key.publish() );
@@ -271,7 +278,7 @@ perform_signconf(int sockfd, engineconfig_type *config)
 static task_type * 
 signconf_task_perform(task_type *task)
 {
-    perform_signconf(-1,(engineconfig_type *)task->context);
+    perform_signconf(-1,(engineconfig_type *)task->context,0);
     task_cleanup(task);
     return NULL;
 }
@@ -279,8 +286,7 @@ signconf_task_perform(task_type *task)
 task_type *
 signconf_task(engineconfig_type *config, const char *what, const char * who)
 {
-    task_id what_id = task_register(what,
-                                 "signconf_task_perform",
-                                 signconf_task_perform);
+    task_id what_id = task_register(what, "signconf_task_perform",
+                                    signconf_task_perform);
 	return task_create(what_id, time_now(), who, (void*)config);
 }

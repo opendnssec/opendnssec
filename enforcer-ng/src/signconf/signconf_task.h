@@ -4,7 +4,7 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void perform_signconf(int sockfd, engineconfig_type *config);
+void perform_signconf(int sockfd, engineconfig_type *config,int bforce);
 
 task_type *signconf_task(engineconfig_type *config, const char *what,
                          const char * who);

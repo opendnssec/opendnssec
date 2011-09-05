@@ -76,7 +76,7 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
                        rrsigdnskey_rrstate.c_str(),
                        rrsig_rrstate.c_str(),
                        key.publish(),
-                       key.active(),
+                       key.active_ksk()||key.active_zsk(),
                        key.locator().c_str()
                        );
             ods_writen(sockfd, buf, strlen(buf));

@@ -38,11 +38,12 @@ message KeyData {
     optional bool introducing = 10 [default=true, (xml).path="Introducing"];
     optional bool revoke = 11 [default = false, (xml).path="Revoke"];
     optional bool standby = 12 [default = false, (xml).path="Standby"];
-    optional bool active = 13 [default = false, (xml).path="Active"];
+    optional bool active_zsk = 13 [default = false, (xml).path="ActiveZSK"];
     optional bool publish = 14 [default = false, (xml).path="Publish"];
 
     required KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
     optional bool manual_rollover = 16 [default = false, (xml).path="ManualRollover"];
+    optional bool active_ksk = 17 [default = false, (xml).path="ActiveKSK"];
 }
 
 message KeyState {

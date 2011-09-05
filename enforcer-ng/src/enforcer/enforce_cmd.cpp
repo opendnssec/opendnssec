@@ -28,7 +28,7 @@ void help_enforce_zones_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-    "enforce         enumerate all zones and run the enforcer once for every zone.\n"
+    "enforce         force the enforcer to run once for every zone.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
 }

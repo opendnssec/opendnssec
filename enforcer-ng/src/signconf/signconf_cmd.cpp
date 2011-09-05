@@ -22,8 +22,8 @@ help_signconf_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "signconf        write signer configuration files for zones that have "
-                        "been updated.\n"
+        "signconf        force the writing of signer configuration files "
+                        "for all zones.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -45,7 +45,7 @@ handled_signconf_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_signconf(sockfd, engine->config);
+    perform_signconf(sockfd, engine->config,1);
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                    scmd,time(NULL)-tstart);
     ods_writen(sockfd, buf, strlen(buf));

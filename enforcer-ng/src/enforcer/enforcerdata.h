@@ -183,7 +183,8 @@ public:
     virtual bool standby() = 0;
     
     virtual void setPublish(bool value) = 0;
-    virtual void setActive(bool value) = 0;
+    virtual void setActiveZSK(bool value) = 0;
+    virtual void setActiveKSK(bool value) = 0;
 };
 
 class KeyDataList {

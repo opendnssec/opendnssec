@@ -189,9 +189,14 @@ void KeyDataPB::setPublish(bool value)
     _keydata->set_publish(value);
 }
 
-void KeyDataPB::setActive(bool value)
+void KeyDataPB::setActiveZSK(bool value)
 {
-    _keydata->set_active(value);
+    _keydata->set_active_zsk(value);
+}
+
+void KeyDataPB::setActiveKSK(bool value)
+{
+    _keydata->set_active_ksk(value);
 }
 
 

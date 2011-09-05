@@ -75,7 +75,8 @@ public:
     virtual bool standby();
 
     virtual void setPublish(bool value);
-    virtual void setActive(bool value);
+    virtual void setActiveZSK(bool value);
+    virtual void setActiveKSK(bool value);
 };
 
 class KeyDataListPB : public KeyDataList {
