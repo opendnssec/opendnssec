@@ -39,6 +39,14 @@
 #include "signer/zone.h"
 
 /**
+ * Load zone signconf.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status tools_signconf(zone_type* zone);
+
+/**
  * Read zone from input adapter.
  * \param[in] zone zone
  * \return ods_status status

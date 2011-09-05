@@ -124,13 +124,12 @@ zone_create(char* name, ldns_rr_class klass)
  *
  */
 ods_status
-zone_load_signconf(zone_type* zone, task_id* tbs)
+zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
 {
     ods_status status = ODS_STATUS_OK;
     signconf_type* signconf = NULL;
     char* datestamp = NULL;
     uint32_t ustamp = 0;
-    task_id what;
 
     if (!zone || !zone->name || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
@@ -155,37 +154,8 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
             zone_str, zone->name, zone->signconf_filename,
             datestamp?datestamp:"Unknown");
         free((void*)datestamp);
-
-        /* Key Rollover? */
-
-        /* Denial of Existence Rollover? */
-        what = signconf_compare_denial(zone->signconf, signconf);
-        if (what == TASK_NSECIFY) {
-            /* or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3PARAM changed */
-            zonedata_wipe_denial(zone->zonedata);
-            zonedata_cleanup_chain(zone->zonedata);
-            zonedata_init_denial(zone->zonedata);
-        }
-
-        /* all ok, switch to new signconf */
-        what = what;
-        if (what == TASK_NONE) { /* no major changes, continue signing */
-            what = TASK_SIGN;
-        }
-        *tbs = what;
-        ods_log_debug("[%s] tbs for zone %s set to: %s", zone_str,
-            zone->name, task_what2str(*tbs));
-        signconf_cleanup(zone->signconf);
-        ods_log_debug("[%s] zone %s switch to new signconf", zone_str,
-            zone->name);
-        zone->signconf = signconf;
-        signconf_log(zone->signconf, zone->name);
-        zone->default_ttl =
-            (uint32_t) duration2time(zone->signconf->soa_min);
+        *new_signconf = signconf;
     } else if (status == ODS_STATUS_UNCHANGED) {
-        *tbs = TASK_READ;
-        ods_log_debug("[%s] tbs for zone %s set to: %s", zone_str,
-            zone->name, task_what2str(*tbs));
         ustamp = time_datestamp(zone->signconf->last_modified,
             "%Y-%m-%d %T", &datestamp);
         ods_log_verbose("[%s] zone %s signconf file %s is unchanged since "
@@ -309,17 +279,16 @@ zone_publish_nsec3param(zone_type* zone, int recover)
         if (!nsec3params_rr) {
             ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
                 "to create NSEC3PARAM RR", zone_str, zone->name);
-            nsec3params_cleanup(zone->nsec3params);
             return ODS_STATUS_MALLOC_ERR;
         }
         ldns_rr_set_class(nsec3params_rr, zone->klass);
         ldns_rr_set_ttl(nsec3params_rr, zone->default_ttl);
         ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->apex));
         ldns_nsec3_add_param_rdfs(nsec3params_rr,
-            zone->nsec3params->algorithm, 0,
-            zone->nsec3params->iterations,
-            zone->nsec3params->salt_len,
-            zone->nsec3params->salt_data);
+            zone->signconf->nsec3params->algorithm, 0,
+            zone->signconf->nsec3params->iterations,
+            zone->signconf->nsec3params->salt_len,
+            zone->signconf->nsec3params->salt_data);
         /**
          * Always set bit 7 of the flags to zero,
          * according to rfc5155 section 11
@@ -771,13 +740,13 @@ zone_backup(zone_type* zone)
         signconf_backup(fd, zone->signconf);
         fprintf(fd, ";;\n");
         /** Backup NSEC3 parameters */
-        if (zone->nsec3params) {
+        if (zone->signconf->nsec3params) {
             nsec3params_backup(fd,
                 zone->signconf->nsec3_algo,
                 zone->signconf->nsec3_optout,
                 zone->signconf->nsec3_iterations,
                 zone->signconf->nsec3_salt,
-                zone->nsec3params->rr);
+                zone->signconf->nsec3params->rr);
         }
         /** Backup keylist */
         keylist_backup(fd, zone->signconf->keys);
@@ -996,13 +965,13 @@ zone_recover(zone_type* zone)
         status = zonedata_entize(zone->zonedata, zone->apex);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
-            zone->nsec3params = NULL;
+            zone->signconf->nsec3params = NULL;
             goto recover_error;
         }
         status = zonedata_recover(zone->zonedata, fd);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
-            zone->nsec3params = NULL;
+            zone->signconf->nsec3params = NULL;
             goto recover_error;
         }
         ods_fclose(fd);

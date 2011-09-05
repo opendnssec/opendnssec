@@ -40,7 +40,6 @@
 #include "shared/allocator.h"
 #include "shared/locks.h"
 #include "shared/status.h"
-#include "signer/nsec3params.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
 #include "signer/zonedata.h"
@@ -82,7 +81,6 @@ struct zone_struct {
     adapter_type* adoutbound; /* outbound adapter */
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
-    nsec3params_type* nsec3params; /* NSEC3 parameters */
     /* zone data */
     zonedata_type* zonedata;
     /* worker variables */
@@ -104,14 +102,14 @@ zone_type* zone_create(char* name, ldns_rr_class klass);
 /**
  * Load signer configuration for zone.
  * \param[in] zone zone
- * \param[out] tbs task to be scheduled
+ * \param[out] new_signconf new signer configuration
  * \return ods_status status
  *         ODS_STATUS_OK: new signer configuration loaded
  *         ODS_STATUS_UNCHANGED: signer configuration has not changed
  *         other: signer configuration not loaded, error occurred
  *
  */
-ods_status zone_load_signconf(zone_type* zone, task_id* tbs);
+ods_status zone_load_signconf(zone_type* zone, signconf_type** new_signconf);
 
 /**
  * Publish the keys as indicated by the signer configuration.

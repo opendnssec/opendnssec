@@ -42,6 +42,48 @@ static const char* tools_str = "tools";
 
 
 /**
+ * Load zone signconf.
+ *
+ */
+ods_status
+tools_signconf(zone_type* zone)
+{
+    ods_status status = ODS_STATUS_OK;
+    signconf_type* new_signconf = NULL;
+    task_id denial_what = TASK_NONE;
+
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
+    status = zone_load_signconf(zone, &new_signconf);
+    if (status == ODS_STATUS_OK) {
+        ods_log_assert(new_signconf);
+
+        /* Key Rollover? */
+
+        /* Denial of Existence Rollover? */
+        denial_what = signconf_compare_denial(zone->signconf, new_signconf);
+        if (denial_what == TASK_NSECIFY) {
+            /* or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3PARAM changed */
+            zonedata_wipe_denial(zone->zonedata);
+            zonedata_cleanup_chain(zone->zonedata);
+            zonedata_init_denial(zone->zonedata);
+        }
+        /* all ok, switch signer configuration */
+        signconf_cleanup(zone->signconf);
+        ods_log_debug("[%s] zone %s switch to new signconf", tools_str,
+            zone->name);
+        zone->signconf = new_signconf;
+        signconf_log(zone->signconf, zone->name);
+        zone->default_ttl = (uint32_t) duration2time(zone->signconf->soa_min);
+    } else {
+        ods_log_error("[%s] unable to load signconf for zone %s: %s",
+            tools_str, zone->name, ods_status2str(status));
+    }
+    return status;
+}
+
+
+/**
  * Read zone from input adapter.
  *
  */
@@ -225,9 +267,9 @@ tools_nsecify(zone_type* zone)
             ods_log_debug("[%s] OptOut is being used for zone %s",
                 tools_str, zone->name);
         }
-        ods_log_assert(zone->nsec3params);
+        ods_log_assert(zone->signconf->nsec3params);
         status = zonedata_nsecify3(zone->zonedata, zone->klass, ttl,
-            zone->nsec3params, &num_added);
+            zone->signconf->nsec3params, &num_added);
     } else {
         ods_log_error("[%s] unable to nsecify zone %s: unknown RRtype %u for ",
             "denial of existence", tools_str, zone->name,
