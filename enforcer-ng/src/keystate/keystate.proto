@@ -23,6 +23,9 @@ message EnforcerZone {
     optional uint32 ttl_end_ds = 7 [(xml).path="ttlEndDs"]; // after this date no old ttl is rumoured
     optional uint32 ttl_end_dk = 8 [(xml).path="ttlEndDk"]; // after this date no old ttl is rumoured
     optional uint32 ttl_end_rs = 9 [(xml).path="ttlEndRs"]; // after this date no old ttl is rumoured
+    optional bool roll_ksk_now = 10 [default = false, (xml).path="rollKskNow"]; // ignored if ManualRollover not in Policy
+    optional bool roll_zsk_now = 11 [default = false, (xml).path="rollZskNow"]; // ignored if ManualRollover not in Policy
+    optional bool roll_csk_now = 12 [default = false, (xml).path="rollCskNow"]; // ignored if ManualRollover not in Policy
 } 
 
 message KeyData {
@@ -42,8 +45,7 @@ message KeyData {
     optional bool publish = 14 [default = false, (xml).path="Publish"];
 
     required KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
-    optional bool manual_rollover = 16 [default = false, (xml).path="ManualRollover"];
-    optional bool active_ksk = 17 [default = false, (xml).path="ActiveKSK"];
+    optional bool active_ksk = 16 [default = false, (xml).path="ActiveKSK"];
 }
 
 message KeyState {

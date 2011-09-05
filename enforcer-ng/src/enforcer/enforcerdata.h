@@ -220,6 +220,15 @@ public:
     virtual void setTtlEnddateDk(time_t value) = 0;
     virtual time_t ttlEnddateRs() = 0;
     virtual void setTtlEnddateRs(time_t value) = 0;
+    
+    /* True if user indicated role must be rolled, only applicable
+     * if policy states we must do manual rollover for that role. */
+    virtual bool rollKskNow() = 0;
+    virtual void setRollKskNow(bool value) = 0;
+    virtual bool rollZskNow() = 0;
+    virtual void setRollZskNow(bool value) = 0;
+    virtual bool rollCskNow() = 0;
+    virtual void setRollCskNow(bool value) = 0;
 };
 
 typedef time_t (*update_func_type)(EnforcerZone *zone, time_t now, HsmKeyFactory *keyfactory);

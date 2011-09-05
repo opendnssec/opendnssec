@@ -968,7 +968,6 @@ removeDeadKeys(KeyDataList &key_list, const time_t now, const int purgetime)
 /* see header file */
 time_t 
 update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
-//~ bool force_rollover, KeyRole role)
 {
 	time_t policy_return_time, zone_return_time;
 	bool allow_unsigned;
@@ -996,8 +995,6 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
 		k.setPublish(getState(k, DK) == OMN || getState(k, DK) == RUM);
-		//TODO implement and toggle
-		//~k.setActive(getState(k, RS) == OMN || getState(k, RS) == RUM);
 		k.setActiveKSK(getState(k, RD) == OMN || getState(k, RD) == RUM);
 		k.setActiveZSK(getState(k, RS) == OMN || getState(k, RS) == RUM);
 	}

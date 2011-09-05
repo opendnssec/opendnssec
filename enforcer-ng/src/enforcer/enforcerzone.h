@@ -128,6 +128,13 @@ public:
     virtual void setTtlEnddateDk(time_t value);
     virtual time_t ttlEnddateRs();
     virtual void setTtlEnddateRs(time_t value);
+    
+    virtual bool rollKskNow();
+    virtual void setRollKskNow(bool value);
+    virtual bool rollZskNow();
+    virtual void setRollZskNow(bool value);
+    virtual bool rollCskNow();
+    virtual void setRollCskNow(bool value);
 };
 
 #endif

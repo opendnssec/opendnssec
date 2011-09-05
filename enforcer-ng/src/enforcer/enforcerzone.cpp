@@ -199,7 +199,6 @@ void KeyDataPB::setActiveKSK(bool value)
     _keydata->set_active_ksk(value);
 }
 
-
 // KeyDataListPB
 
 KeyDataListPB::KeyDataListPB(::ods::keystate::EnforcerZone *zone)
@@ -327,4 +326,34 @@ time_t EnforcerZonePB::ttlEnddateRs()
 void EnforcerZonePB::setTtlEnddateRs(time_t value)
 {
     _zone->set_ttl_end_rs(value);
+}
+
+bool EnforcerZonePB::rollKskNow()
+{
+    return _zone->roll_ksk_now();
+}
+
+void EnforcerZonePB::setRollKskNow(bool value)
+{
+    _zone->set_roll_ksk_now(value);
+}
+
+bool EnforcerZonePB::rollZskNow()
+{
+    return _zone->roll_zsk_now();
+}
+
+void EnforcerZonePB::setRollZskNow(bool value)
+{
+    _zone->set_roll_zsk_now(value);
+}
+
+bool EnforcerZonePB::rollCskNow()
+{
+    return _zone->roll_csk_now();
+}
+
+void EnforcerZonePB::setRollCskNow(bool value)
+{
+    _zone->set_roll_csk_now(value);
 }
