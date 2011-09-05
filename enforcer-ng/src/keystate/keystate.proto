@@ -42,6 +42,7 @@ message KeyData {
     optional bool publish = 14 [default = false, (xml).path="Publish"];
 
     required KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
+    optional bool manual_rollover = 16 [default = false, (xml).path="ManualRollover"];
 }
 
 message KeyState {
