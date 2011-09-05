@@ -52,6 +52,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                    );
     ods_writen(sockfd, buf, strlen(buf));
 
+    bool bKeyStateModified = false;
     bool id_match = false;
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
 
@@ -71,6 +72,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
             
             if (id && key.locator()==id || zone && enfzone.name()==zone)
             {
+                bKeyStateModified = true;
                 ::ods::keystate::KeyData *mkey =
                     keystateDoc->mutable_zones(z)->mutable_keys(k);
                 mkey->set_ds_seen(true);
@@ -105,27 +107,29 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
 
     // Persist the keystate zones back to disk as they may have
     // been changed by the enforcer update
-    if (keystateDoc->IsInitialized()) {
-        std::string datapath(datastore);
-        datapath += ".keystate.pb";
-        int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
-        if (keystateDoc->SerializeToFileDescriptor(fd)) {
-            ods_log_debug("[%s] key states have been updated",
-                          module_str);
-            
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "update of key states completed.\n");
-            ods_writen(sockfd, buf, strlen(buf));
+    if (bKeyStateModified) {
+        if (keystateDoc->IsInitialized()) {
+            std::string datapath(datastore);
+            datapath += ".keystate.pb";
+            int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
+            if (keystateDoc->SerializeToFileDescriptor(fd)) {
+                ods_log_debug("[%s] key states have been updated",
+                              module_str);
+                
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "update of key states completed.\n");
+                ods_writen(sockfd, buf, strlen(buf));
+            } else {
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "error: key states file could not be written.\n");
+                ods_writen(sockfd, buf, strlen(buf));
+            }
+            close(fd);
         } else {
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "error: key states file could not be written.\n");
+                           "error: a message in the key states is missing "
+                           "mandatory information.\n");
             ods_writen(sockfd, buf, strlen(buf));
         }
-        close(fd);
-    } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "error: a message in the key states is missing "
-                       "mandatory information.\n");
-        ods_writen(sockfd, buf, strlen(buf));
     }
 }
