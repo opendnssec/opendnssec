@@ -17,10 +17,13 @@ extern "C" {
 
 static const char *module_str = "keystate_export_task";
 
-static bool dnskey_from_id(std::string &dnskey, const char *id,
-                           ::ods::keystate::keyrole role,
-                           const char *zone,
-                           int algorithm)
+static bool 
+dnskey_from_id(std::string &dnskey,
+               const char *id,
+               ::ods::keystate::keyrole role,
+               const char *zone,
+               int algorithm,
+               int bDS)
 {
     hsm_key_t *key;
     hsm_sign_params_t *sign_params;
@@ -44,41 +47,58 @@ static bool dnskey_from_id(std::string &dnskey, const char *id,
     sign_params->flags = LDNS_KEY_ZONE_KEY;
     if (role == ::ods::keystate::KSK)
         sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
+
+    char *rrstr;
+    /* DNSKEY record */
+    dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+    /*TODO: find out what's the point of calculating the keytag here ?
+     is this keytag used somehow in the ldns_key_rr2ds calls that may 
+     be performed on the dnskey_rr ?
+     */
+    sign_params->keytag = ldns_calc_keytag(dnskey_rr);
     
-    {
-        char *rrstr;
-        
-        /* DNSKEY record */
-        dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
-        /*TODO: find out what's the point of calculating the keytag here ?
-         is this keytag used somehow in the ldns_key_rr2ds calls that may 
-         be performed on the dnskey_rr ?
-         */
-        sign_params->keytag = ldns_calc_keytag(dnskey_rr);
+    if (!bDS) {
 #if 0
         ldns_rr_print(stdout, dnskey_rr);
-#endif        
+#endif
         rrstr = ldns_rr2str(dnskey_rr);
         dnskey = rrstr;
         LDNS_FREE(rrstr);
-    }
+    } else {
     
+        switch (algo) {
+            case LDNS_RSASHA1: // 5
+            {
+                /* DS record (SHA1) */
+                ldns_rr *ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
 #if 0
-    {
-        /* DS record (SHA1) */
-        ldns_rr *ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
-        ldns_rr_print(stdout, ds_sha1_rr);
-        ldns_rr_free(ds_sha1_rr);
-    }
-    
-    {
-        /* DS record (SHA256) */
-        ldns_rr *ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
-        ldns_rr_print(stdout, ds_sha256_rr);
-        ldns_rr_free(ds_sha256_rr);
-    }
+                ldns_rr_print(stdout, ds_sha1_rr);
 #endif
-    
+                rrstr = ldns_rr2str(ds_sha1_rr);
+                dnskey = rrstr;
+                LDNS_FREE(rrstr);
+
+                ldns_rr_free(ds_sha1_rr);
+                break;
+            }
+            case LDNS_RSASHA256: // 8 - RFC 5702
+            {
+        
+                /* DS record (SHA256) */
+                ldns_rr *ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
+#if 0
+                ldns_rr_print(stdout, ds_sha256_rr);
+#endif
+                rrstr = ldns_rr2str(ds_sha256_rr);
+                dnskey = rrstr;
+                LDNS_FREE(rrstr);
+
+                ldns_rr_free(ds_sha256_rr);
+            }
+            default:
+                return false;
+        }
+    }
     hsm_sign_params_free(sign_params);
     ldns_rr_free(dnskey_rr);
     hsm_key_free(key);
@@ -87,7 +107,8 @@ static bool dnskey_from_id(std::string &dnskey, const char *id,
 }
 
 void 
-perform_keystate_export(int sockfd, engineconfig_type *config, const char *id)
+perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
+                        int bds)
 {
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
@@ -110,16 +131,23 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *id)
         close(fd);
     }
     
+    std::string zname(zone);
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
+
         const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
+        if (enfzone.name() != zname) 
+            continue;
+        
         for (int k=0; k<enfzone.keys_size(); ++k) {
             const ::ods::keystate::KeyData &key = enfzone.keys(k);
-            if (id && key.locator()==id) {
+            if (key.role()== ::ods::keystate::KSK
+                || key.role()== ::ods::keystate::CSK)
+            {
                 std::string dnskey;
                 dnskey_from_id(dnskey,key.locator().c_str(),
                                key.role(),
                                enfzone.name().c_str(),
-                               key.algorithm());
+                               key.algorithm(),bds);
                 ods_writen(sockfd, dnskey.c_str(), dnskey.size());
             }
         }

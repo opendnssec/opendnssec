@@ -19,9 +19,10 @@ void help_keystate_export_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key export      export the dnskey resource record for a key\n"
-        "  --id <id>     (aka -k) export key with id <id>.\n"
-        );
+        "key export      export trust anchors of a given zone\n"
+        "  --zone <zone> (aka -z) export for the given zone.\n"
+        "  [--dnskey]    export DNSKEY in BIND format (default).\n"
+        "  [--ds]        export DS in BIND format.\n");
     ods_writen(sockfd, buf, strlen(buf));
 }
 
@@ -54,8 +55,10 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd
         return 1; // errors, but handled
     }
     
-    const char *id = NULL;
-    (void)ods_find_arg_and_param(&argc,argv,"id","k",&id);
+    const char *zone = NULL;
+    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+    bool bds = ods_find_arg(&argc,argv,"ds","ds") != -1;
+    (void)ods_find_arg(&argc,argv,"dnskey","dns");
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
@@ -63,16 +66,16 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd
         ods_writen(sockfd, buf, strlen(buf));
         return 1; // errors, but handled
     }
-    if (!id) {
-        ods_log_warning("[%s] expected option --id <id> for %s command",
+    if (!zone) {
+        ods_log_warning("[%s] expected option --zone <zone> for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"expected --id <id> option\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE,"expected --zone <zone> option\n");
         ods_writen(sockfd, buf, strlen(buf));
         return 1; // errors, but handled
     }
     
     /* perform task immediately */
-    perform_keystate_export(sockfd,engine->config,id);
+    perform_keystate_export(sockfd,engine->config,zone,bds?1:0);
 
     return 1;
 }
