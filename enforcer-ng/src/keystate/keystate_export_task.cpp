@@ -1,5 +1,5 @@
 extern "C" {
-#include "keystate/keystate_show_task.h"
+#include "keystate/keystate_export_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 #include "libhsm.h"
@@ -15,7 +15,7 @@ extern "C" {
 
 #include <fcntl.h>
 
-static const char *module_str = "keystate_show_task";
+static const char *module_str = "keystate_export_task";
 
 static bool dnskey_from_id(std::string &dnskey, const char *id,
                            ::ods::keystate::keyrole role,
@@ -87,7 +87,7 @@ static bool dnskey_from_id(std::string &dnskey, const char *id,
 }
 
 void 
-perform_keystate_show(int sockfd, engineconfig_type *config, const char *id)
+perform_keystate_export(int sockfd, engineconfig_type *config, const char *id)
 {
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;

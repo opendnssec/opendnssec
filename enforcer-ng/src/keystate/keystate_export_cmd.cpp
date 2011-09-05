@@ -5,34 +5,34 @@
 // Interface of this cpp file is used by C code, we need to declare 
 // extern "C" to prevent linking errors.
 extern "C" {
-#include "keystate/keystate_show_cmd.h"
-#include "keystate/keystate_show_task.h"
+#include "keystate/keystate_export_cmd.h"
+#include "keystate/keystate_export_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
 }
 
-static const char *module_str = "keystate_show_cmd";
+static const char *module_str = "keystate_export_cmd";
 
-void help_keystate_show_cmd(int sockfd)
+void help_keystate_export_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key show        show the dnskey resource record for a key\n"
-        "  --id <id>     (aka -k) show key with id <id>.\n"
+        "key export      export the dnskey resource record for a key\n"
+        "  --id <id>     (aka -k) export key with id <id>.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
 
-int handled_keystate_show_cmd(int sockfd, engine_type* engine, const char *cmd,
+int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd,
                               ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     const char *argv[8];
     const int NARGV = sizeof(argv)/sizeof(char*);
     int argc;
-    const char *scmd = "key show";
+    const char *scmd = "key export";
 
     cmd = ods_check_command(cmd,n,scmd);
     if (!cmd)
@@ -72,11 +72,7 @@ int handled_keystate_show_cmd(int sockfd, engine_type* engine, const char *cmd,
     }
     
     /* perform task immediately */
-    time_t tstart = time(NULL);
-    perform_keystate_show(sockfd,engine->config,id);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
+    perform_keystate_export(sockfd,engine->config,id);
 
     return 1;
 }
