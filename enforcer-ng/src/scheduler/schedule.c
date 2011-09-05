@@ -191,11 +191,11 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
 
 
 /**
- * Schedule task from a thread.
+ * Lock the schedule lock and then schedule a task.
  *
  */
 ods_status 
-schedule_task_from_thread(schedule_type* schedule, task_type* task,
+lock_and_schedule_task(schedule_type* schedule, task_type* task,
                                      int log)
 {
     ods_status status;

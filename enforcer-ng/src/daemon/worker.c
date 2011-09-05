@@ -181,7 +181,7 @@ worker_work(worker_type* worker)
                           worker2str(worker->type), worker->thread_num);
             
             if (task_that_was_worked_on)
-                (void) schedule_task_from_thread(worker->engine->taskq,
+                (void) lock_and_schedule_task(worker->engine->taskq,
                                                  task_that_was_worked_on, 1);
             
             timeout = 1;

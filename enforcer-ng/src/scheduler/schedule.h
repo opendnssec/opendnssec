@@ -109,8 +109,8 @@ ods_status schedule_task(schedule_type* schedule, task_type* task, int log);
  * \return ods_status status
  *
  */
-ods_status schedule_task_from_thread(schedule_type* schedule, task_type* task,
-                                     int log);
+ods_status lock_and_schedule_task(schedule_type* schedule, task_type* task,
+                                  int log);
 
 
 /**

@@ -38,7 +38,7 @@ schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what
         ods_log_crit("[%s] failed to create %s task", module_str, what);
     } else {
         char buf[ODS_SE_MAXLINE];
-        ods_status status = schedule_task_from_thread(engine->taskq, task, 0);
+        ods_status status = lock_and_schedule_task(engine->taskq, task, 0);
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] failed to create %s task", module_str, what);
             (void)snprintf(buf, ODS_SE_MAXLINE,
