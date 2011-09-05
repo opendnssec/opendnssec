@@ -1,4 +1,13 @@
-//#include "config.h"
+#include "config.h"
+
+/* On MacOSX arc4random is only available when we 
+   undef _ANSI_SOURCE and define _DARWIN_C_SOURCE. */
+#ifdef __APPLE__
+#undef _ANSI_SOURCE
+#define _DARWIN_C_SOURCE 1
+#include <stdlib.h>
+#endif
+
 #include "resalt.h"
 
 
