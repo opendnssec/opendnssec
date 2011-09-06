@@ -59,7 +59,6 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     xmlRelaxNGParserCtxtPtr rngpctx = NULL;
     xmlRelaxNGValidCtxtPtr rngctx = NULL;
     xmlRelaxNGPtr schema = NULL;
-    int status = 0;
 
     if (!cfgfile || !rngfile) {
         return ODS_STATUS_ASSERT_ERR;

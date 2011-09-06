@@ -55,22 +55,6 @@ ods_status tools_signconf(zone_type* zone);
 ods_status tools_input(zone_type* zone);
 
 /**
- * Examine and commit updates.
- * \param[in] zone zone
- * \return ods_status status
- *
- */
-ods_status tools_commit(zone_type* zone);
-
-/**
- * Nsecify zone.
- * \param[in] zone zone
- * \return ods_status status
- *
- */
-ods_status tools_nsecify(zone_type* zone);
-
-/**
  * Write zone to output adapter.
  * \param[in] zone zone
  * \param[in] dir working directory

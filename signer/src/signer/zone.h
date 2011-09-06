@@ -40,9 +40,9 @@
 #include "shared/allocator.h"
 #include "shared/locks.h"
 #include "shared/status.h"
+#include "signer/namedb.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
-#include "signer/zonedata.h"
 
 #include <ldns/ldns.h>
 
@@ -74,15 +74,13 @@ struct zone_struct {
     const char* policy_name; /* policy identifier */
     const char* signconf_filename; /* signconf filename */
     zone_zl_status zl_status; /* zonelist status */
-    int processed;
-    int prepared;
     /* adapters */
     adapter_type* adinbound; /* inbound adapter */
     adapter_type* adoutbound; /* outbound adapter */
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
     /* zone data */
-    zonedata_type* zonedata;
+    namedb_type* db;
     /* worker variables */
     void* task; /* next assigned task */
     /* statistics */
@@ -120,13 +118,26 @@ ods_status zone_load_signconf(zone_type* zone, signconf_type** new_signconf);
 ods_status zone_publish_dnskeys(zone_type* zone);
 
 /**
+ * Unlink DNSKEY RRs.
+ * \param[in] zone zone
+ *
+ */
+void zone_rollback_dnskeys(zone_type* zone);
+
+/**
  * Publish the NSEC3 parameters as indicated by the signer configuration.
  * \param[in] zone zone
- * \param[in] recover true if in recovery mode
  * \return ods_status status
  *
  */
-ods_status zone_publish_nsec3param(zone_type* zone, int recover);
+ods_status zone_publish_nsec3param(zone_type* zone);
+
+/**
+ * Unlink NSEC3PARAM RR.
+ * \param[in] zone zone
+ *
+ */
+void zone_rollback_nsec3param(zone_type* zone);
 
 /**
  * Update serial.
@@ -135,6 +146,17 @@ ods_status zone_publish_nsec3param(zone_type* zone, int recover);
  *
  */
 ods_status zone_update_serial(zone_type* zone);
+
+/**
+ * Lookup RRset.
+ * \param[in] zone zone
+ * \param[in] owner RRset owner
+ * \param[in] type RRtype
+ * \return rrset_type* RRset, if found
+ *
+ */
+rrset_type* zone_lookup_rrset(zone_type* zone, ldns_rdf* owner,
+    ldns_rr_type type);
 
 /**
  * Add RR.
@@ -173,14 +195,6 @@ ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
  *
  */
 void zone_merge(zone_type* z1, zone_type* z2);
-
-/**
- * Examine zone.
- * \param[in] zone zone
- * \return ods_status status
- *
- */
-ods_status zone_examine(zone_type* zone);
 
 /**
  * Clean up zone.

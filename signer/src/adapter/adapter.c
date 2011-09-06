@@ -38,7 +38,6 @@
 #include "shared/status.h"
 #include "signer/zone.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 static const char* adapter_str = "adapter";
@@ -144,7 +143,7 @@ adapter_write(void* zone)
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone->adoutbound->configstr);
-    if (!adzone->zonedata) {
+    if (!adzone->db) {
         ods_log_error("[%s] unable to write zone %s: no zone data",
             adapter_str, adzone->name);
         return ODS_STATUS_ASSERT_ERR;
@@ -153,8 +152,7 @@ adapter_write(void* zone)
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "
                 "adapter %s", adapter_str, adzone->name,
-                adzone->zonedata->outbound_serial,
-                adzone->adinbound->configstr);
+                adzone->db->outserial, adzone->adinbound->configstr);
             return adfile_write(zone, adzone->adoutbound->configstr);
             break;
         default:

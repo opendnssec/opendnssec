@@ -663,8 +663,10 @@ engine_all_zones_processed(engine_type* engine)
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->key;
-        if (!zone->processed) {
-		return 0;
+        ods_log_assert(zone);
+        ods_log_assert(zone->db);
+        if (!zone->db->is_processed) {
+            return 0;
         }
         node = ldns_rbtree_next(node);
     }
@@ -896,7 +898,7 @@ engine_recover(engine_type* engine)
         status = zone_recover(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
-            ods_log_assert(zone->zonedata);
+            ods_log_assert(zone->db);
             ods_log_assert(zone->signconf);
             /* notify nameserver */
             if (engine->config->notify_command && !zone->notify_ns) {

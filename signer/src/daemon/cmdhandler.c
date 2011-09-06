@@ -33,8 +33,6 @@
 
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "scheduler/schedule.h"
-#include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/locks.h"
@@ -387,47 +385,36 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     unlink_backup_file(tbd, ".backup");
 
     lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
-    /* [LOCK] zonelist */
     zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
         LDNS_RR_CLASS_IN);
-    /* [UNLOCK] zonelist */
     lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
     if (zone) {
-        /* [LOCK] zone */
         lock_basic_lock(&zone->zone_lock);
-        inbserial = zone->zonedata->inbound_serial;
-        intserial = zone->zonedata->internal_serial;
-        outserial = zone->zonedata->outbound_serial;
-        zonedata_cleanup(zone->zonedata);
-        zone->zonedata = NULL;
-        zone->zonedata = zonedata_create(zone->allocator);
-        zone->zonedata->initialized = 1;
-        zone->zonedata->inbound_serial = inbserial;
-        zone->zonedata->internal_serial = intserial;
-        zone->zonedata->outbound_serial = outserial;
+        inbserial = zone->db->inbserial;
+        intserial = zone->db->intserial;
+        outserial = zone->db->outserial;
+        namedb_cleanup(zone->db);
+        zone->db = NULL;
+        zone->db = namedb_create(zone->allocator);
+        zone->db->is_initialized = 1;
+        zone->db->inbserial = inbserial;
+        zone->db->intserial = intserial;
+        zone->db->outserial = outserial;
 
         status = zone_publish_dnskeys(zone);
         if (status == ODS_STATUS_OK) {
-            status = zone_publish_nsec3param(zone, 1);
-        } else {
-            ods_log_warning("[%s] unable to restore DNSKEY RRset for zone %s,"
-                " reloading signconf", cmdh_str, zone->name);
+            status = zone_publish_nsec3param(zone);
         }
-        if (status == ODS_STATUS_OK) {
-            status = zonedata_commit(zone->zonedata);
-        } else {
-            ods_log_warning("[%s] unable to restore NSEC3PARAM RRset for "
-                " zone %s d1reloading signconf", cmdh_str, zone->name);
-        }
-
-        task = (task_type*) zone->task;
-        task->what = TASK_READ;
         if (status != ODS_STATUS_OK) {
             ods_log_warning("[%s] unable to restore DNSKEY/NSEC3PARAM RRset "
                 " for zone %s, reloading signconf", cmdh_str, zone->name);
+            task = (task_type*) zone->task;
             task->what = TASK_SIGNCONF;
+        } else {
+            namedb_diff(zone->db);
+            task = (task_type*) zone->task;
+            task->what = TASK_READ;
         }
-        /* [UNLOCK] zone */
         lock_basic_unlock(&zone->zone_lock);
 
         (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
