@@ -32,9 +32,7 @@
  */
 
 #include "config.h"
-#include "daemon/worker.h"
 #include "scheduler/fifoq.h"
-#include "shared/allocator.h"
 #include "shared/log.h"
 
 #include <ldns/ldns.h>
@@ -51,13 +49,12 @@ fifoq_create(allocator_type* allocator)
 {
     fifoq_type* fifoq;
     if (!allocator) {
-        ods_log_error("[%s] unable to create: no allocator available",
-            fifoq_str);
         return NULL;
     }
     fifoq = (fifoq_type*) allocator_alloc(allocator, sizeof(fifoq_type));
     if (!fifoq) {
-        ods_log_error("[%s] unable to create: allocator failed", fifoq_str);
+        ods_log_error("[%s] unable to create fifoq: allocator_alloc() failed",
+            fifoq_str);
         return NULL;
     }
     fifoq->allocator = allocator;
@@ -94,10 +91,7 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
 {
     void* pop = NULL;
     size_t i = 0;
-    if (!q) {
-        return NULL;
-    }
-    if (q->count <= 0) {
+    if (!q || q->count <= 0) {
         return NULL;
     }
     pop = q->blob[0];
@@ -120,12 +114,7 @@ ods_status
 fifoq_push(fifoq_type* q, void* item, worker_type* worker)
 {
     size_t count = 0;
-    if (!item) {
-        ods_log_error("[%s] unable to push item: no item", fifoq_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    if (!q) {
-        ods_log_error("[%s] unable to push item: no queue", fifoq_str);
+    if (!q || !item || !worker) {
         return ODS_STATUS_ASSERT_ERR;
     }
     if (q->count >= FIFOQ_MAX_COUNT) {

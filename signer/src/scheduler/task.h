@@ -41,11 +41,10 @@
 
 enum task_id_enum {
     TASK_NONE = 0,
-    TASK_SIGNCONF,
-    TASK_READ,
+    TASK_SIGNCONF, /* ods-signer update */
+    TASK_READ, /* ods-signer sign */
     TASK_NSECIFY,
-    TASK_SIGN,
-    TASK_AUDIT,
+    TASK_SIGN, /* ods-signer flush */
     TASK_WRITE
 };
 typedef enum task_id_enum task_id;

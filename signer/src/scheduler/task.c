@@ -208,14 +208,8 @@ task_what2str(task_id what)
         case TASK_READ:
             return "[read]";
             break;
-        case TASK_NSECIFY:
-            return "[nsecify]";
-            break;
         case TASK_SIGN:
             return "[sign]";
-            break;
-        case TASK_AUDIT:
-            return "[audit]";
             break;
         case TASK_WRITE:
             return "[write]";
