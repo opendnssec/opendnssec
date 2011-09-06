@@ -23,6 +23,7 @@ Bugfixes:
 * Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
 * ods-ksmutil: fixed issue where first ds-seen command run on a zone would work,
   but return an error code and not send a HUP to the enforcerd. 
+* Signer Engine: Fix an issue where some systems could not copy the zone file.
 
 
 OpenDNSSEC 1.3.0 - 2011-07-12
