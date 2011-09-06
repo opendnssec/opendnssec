@@ -10,14 +10,16 @@ Bugfixes:
   by the shell when running "ods-ksmutil setup".
 * Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
 * Enforcer: Unsigned comparison resulting in wrong error message.
+* ods-ksmutil: fixed issue where first ds-seen command run on a zone would work,
+  but return an error code and not send a HUP to the enforcerd.
 * Signer Engine: A threading issue occasionally puts the default validity
   on NSEC(3) RRs and the denial validity on other RRs.
 * Signer Engine: An update command could interrupt the signing process and the
   zone would get missing signatures.
+* Signer Engine: Fix an issue where some systems could not copy the zone file.
 * Zonefetcher: Check inbound serial in transferred file, to prevent
   redundant zone transfers.
-* ods-ksmutil: fixed issue where first ds-seen command run on a zone would work,
-  but return an error code and not send a HUP to the enforcerd.
+
 
 OpenDNSSEC 1.3.0 - 2011-07-12
 
