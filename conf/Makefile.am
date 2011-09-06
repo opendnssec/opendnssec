@@ -16,9 +16,6 @@ noinst_DATA = ${XML} ${XSL}
 
 dist_data_DATA = ${RNG} ${RNC} ${XSL}
 
-EXTRA_DIST =	${TRANG} \
-		$(srcdir)/trang/copying.txt
-
 CLEANFILES =+		*.xml
 DISTCLEANFILES =+	*.rng
 
@@ -26,18 +23,18 @@ SUFFIXES = .rng .rnc .xml
 
 
 .rnc.rng:
-	@test -x ${JAVA} || \
+	@test -x "${JAVA}" || \
 		(echo "java is required for converting RelaxNG Compact to RelaxNG"; false)
 	${JAVA} -jar ${TRANG} $< $@
 
 regress: $(RNG)
-	@test -x ${XMLLINT} || \
+	@test -x "${XMLLINT}" || \
 		(echo "xmllint is required for regression tests"; false)
 	@for i in ${XML}; do \
 		${XMLLINT} --noout --relaxng \
-			`basename $$i .xml`.rng $$i || exit $?; \
+			`basename $$i .xml`.rng $$i || exit 1; \
 	done
-	@test -x ${XSLTPROC} || \
+	@test -x "${XSLTPROC}" || \
 		(echo "xsltproc is required for regression tests"; false)
 	@${XSLTPROC} -o kasp.html $(srcdir)/kasp2html.xsl kasp.xml && \
 		(echo "kasp.xml built")

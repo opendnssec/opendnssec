@@ -107,7 +107,7 @@ class AuditorTest < Test::Unit::TestCase
       # Taken out next warning, as we already have an error for expired RRSIG for this record
       #      "Signature expiration (962409629) for www.tjeb.nl, AAAA should be later than (the refresh period (120) - the resign period (60)) from now",
       "RRSIGS should include algorithm RSASHA1 for not.there.tjeb.nl, A, have :",
-      "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl.	3600	IN	A	1.2.3.4",
+      "non-DNSSEC RRSet A included in Output that was not present in Input : not.there.tjeb.nl. 3600 IN A 1.2.3.4",
       "RRSet (not.there.tjeb.nl, A) failed verification : No signatures in the RRSet : not.there.tjeb.nl, A, tag = none",
       "RRSet (tjeb.nl, RRSIG) failed verification : No RRSet to verify, tag = 1390",
       "contains invalid RR : tjeb.nl.", # DNSKEY
@@ -122,8 +122,8 @@ class AuditorTest < Test::Unit::TestCase
       # - extra NSEC for closed loop of each next domain
       # - missing NSEC for closed loop of each next domain
       "NSEC3PARAM RRs included in NSEC-signed zone",
-      "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones.	143	IN	A	123.123.123.123",
-      "Output zone does not contain out of zone RRSet : A, even.more.out.of.bailiwick.	143	IN	A	1.2.3.4",
+      "Output zone does not contain out of zone RRSet : A, ff.wat.out.of.zones. 143 IN A 123.123.123.123",
+      "Output zone does not contain out of zone RRSet : A, even.more.out.of.bailiwick. 143 IN A 1.2.3.4",
       "No NSEC record for tjeb.nl",
       "NSEC record should have TTL of 3600 from zone policy //Zone/SOA/Minimum, but is bla.tjeb.nl.",
       "NSEC includes A which is not in rrsets for dragon.tjeb.nl",
@@ -278,7 +278,7 @@ class AuditorTest < Test::Unit::TestCase
       # @TODO@ Check SOA Serial == KEEP
 
       # We added the not.there.tjeb.nl record to the signed zone
-      "Number of non-DNSSEC resource records differs : 23 in test/tmp1/tjeb.nl.unsorted, and 24 in test/signer_test_bad/signed_zones/tjeb.nl.nse",
+      "Number of non-DNSSEC resource records differs : 23 in test/tmp1/tjeb.nl.inbound, and 24 in test/signer_test_bad/signed_zones/tjeb.nl.nse",
 
       "New KSK DNSKEY has incorrect algorithm (was RSASHA1) or alg_length (was 1024)"
       # @TODO@ Update online spec some time!
@@ -405,7 +405,8 @@ class AuditorTest < Test::Unit::TestCase
     }
     w.close
     ret_strings = []
-    r.each {|l| ret_strings.push(l)}
+    r.each {|l| 
+      ret_strings.push(l)}
     Process.waitpid(pid)
     ret_val = $?.exitstatus
     assert_equal(expected_ret, ret_val, "Expected return of #{expected_ret} from successful auditor run")
@@ -440,7 +441,8 @@ class AuditorTest < Test::Unit::TestCase
     }
     w.close
     ret_strings = []
-    r.each {|l| ret_strings.push(l)}
+    r.each {|l|
+      ret_strings.push(l)}
 
     Process.waitpid(pid)
 
@@ -452,7 +454,7 @@ class AuditorTest < Test::Unit::TestCase
       # Not enough pre-published KSK
       #      "Not enough prepublished KSKs! Should be 2 but have 0",
       # KSK too long in use
-      "KSK 51902 in use too long - should be max 1 seconds but has been",
+      "KSK 51902 reaching end of lifetime - should be max 1 seconds but has been",
       # ZSK too long in use
       "ZSK 52925 in use too long - should be max 1 seconds but has been",
       # SOA serial checking
@@ -527,13 +529,13 @@ class AuditorTest < Test::Unit::TestCase
     changed_config.kasp_timestamp = 0
     config.changed_config = changed_config
 
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0, 0)
     key_cache = checker.load_tracker_cache
     assert(checker.cache.inuse.length == 0)
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 0)
 
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0, 0)
     key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key1, keynot5011, key3],
       [ksk_key1.key_tag, keynot5011.key_tag], 100, 1)
@@ -541,7 +543,7 @@ class AuditorTest < Test::Unit::TestCase
     assert(checker.cache.retired.length == 0)
     assert(checker.cache.prepublished.length == 2)
 
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0, 0)
     key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key1, keynot5011, key5011],
       [key1.key_tag, ksk_key1.key_tag, key5011.key_tag], 101, 1)
@@ -553,7 +555,7 @@ class AuditorTest < Test::Unit::TestCase
     # are emitted
     sleep(2.1)
     key5011.revoked = true
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", syslog, config, 0, 0)
     key_cache = checker.load_tracker_cache
     checker.process_key_data([ksk_key1, key2, key5011, key1],
       [ksk_key1.key_tag, key2.key_tag, key1.key_tag], 100, 1)
@@ -568,7 +570,7 @@ class AuditorTest < Test::Unit::TestCase
       File.delete("test/tmp/tracker/example.com.")
     rescue Exception
     end
-    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil, 1)
+    checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil, 1, 0)
     checker.last_soa_serial = 0
     cache = checker.cache
     time = Time.now.to_i
@@ -585,7 +587,7 @@ class AuditorTest < Test::Unit::TestCase
     assert(checker.cache.retired.length == 1)
     checker.save_tracker_cache
 
-    new_checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1)
+    new_checker = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1, 0)
     assert(new_checker.cache.retired.length == 1)
     assert(new_checker.cache.include_retired_key?(k1))
     assert(new_checker.cache.inuse.length == 2)
@@ -603,7 +605,7 @@ class AuditorTest < Test::Unit::TestCase
     new_checker.cache.delete_inuse_key(k3)
     new_checker.save_tracker_cache
 
-    n_c = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1)
+    n_c = KASPAuditor::KeyTracker.new("test/tmp", "example.com.", TestLogger.new(true), nil,1, 0)
     assert(n_c.cache.prepublished.length == 0)
     assert(n_c.cache.inuse.length == 0)
     assert(n_c.cache.retired.length == 0)

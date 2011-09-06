@@ -22,13 +22,13 @@ EXTRA_DIST = \
 
 CLEANFILES = $(BUILT_SOURCES)
 
-LIBHSM = ${top_builddir}/libhsm/src/libhsm.a
+LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
-	-I$(srcdir)/../../libhsm/src \
-	-I$(builddir)/../../libhsm/src \
+	-I$(srcdir)/../../libhsm/src/lib \
+	-I$(builddir)/../../libhsm/src/lib \
 	-I$(srcdir)/xmlext-pb \
 	@XML2_INCLUDES@ \
 	@LDNS_INCLUDES@ \

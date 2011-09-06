@@ -10,6 +10,7 @@
 			<Module>@pkcs11_softhsm_module@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
+			<SkipPublicKey/>
 		</Repository>
 
 <!--
@@ -49,6 +50,7 @@
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
+		<!-- <RolloverNotification>P14D</RolloverNotification> -->
 		
 		<!-- the <DelegationSignerSubmitCommand> will get all current
 		     DNSKEYs (as a RRset) on standard input
@@ -65,7 +67,18 @@
 -->
 
 		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
-		<WorkerThreads>8</WorkerThreads>
+		<WorkerThreads>4</WorkerThreads>
+<!--
+		<SignerThreads>4</SignerThreads>
+-->
+
+<!--
+		<Adapters>
+			<Adapter type="File">@OPENDNSSEC_CONFIG_DIR@/adapters/file.cfg</Adapter>
+			<Adapter type="DNS">@OPENDNSSEC_CONFIG_DIR@/adapters/dns.cfg</Adapter>
+                </Adapters>
+-->
+
 
 		<!-- the <NotifyCommmand> will expand the following variables:
 

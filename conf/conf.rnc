@@ -132,11 +132,19 @@ start = element Configuration {
 		# Number of Worker Threads
 		# DEFAULT: 4
 		element WorkerThreads { xsd:positiveInteger }?,
+		# Number of Signer Threads
+		# DEFAULT: 4
+		element SignerThreads { xsd:positiveInteger }?,
+
+                # Initialize Adapters
+                element Adapters {
+                        element Adapter { adapter }+
+                }?,
 
 		# System command to call after a zone has been (re)signed
 		#
 		# '%zone' in the string will be replaced by the zone name
-		# '%znefile' in the string will be replaced by the zone file
+		# '%zonefile' in the string will be replaced by the zone file
 		element NotifyCommand { xsd:string }?
 	}?,
 
@@ -185,3 +193,9 @@ mysql = element MySQL {
 }
 
 sqlite = element SQLite { xsd:string }
+
+# adapters
+adapter = element Adapter {
+	attribute type { xsd:string },
+	xsd:string
+}

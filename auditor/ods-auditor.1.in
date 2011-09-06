@@ -8,19 +8,23 @@
 .LP
 .B ods\-auditor
 .RB [ \-c
-.I path
-.B \-k
 .IR path ]
-.br
-.B ods\-auditor
-.RB [ \-c
-.I path
-.B \-k
+.RB [ \-k
+.IR path ]
+.RB [ \-s
+.IR path ]
+.RB [ \-u
 .IR path ]
 .B \-z
 .I name
-.RB [ \-s
-.IR path ]
+.RB [ \-f | \-p ]
+.br
+.B ods\-auditor
+.RB [ \-h ]
+.br
+.B ods\-auditor
+.RB [ \-v ]
+
 .SH "DESCRIPTION"
 .LP
 ods\-auditor is a module which provides auditing capabilities to OpenDNSSEC.
@@ -61,6 +65,19 @@ the default location of the signed zone file with another. This is for use by
 the signer.
 
 (defaults to the path given in the zone list)
+.TP
+\fB\-u\fR, \fB\-\-unsigned\fR \fIpath\fR
+If a single zone is specified, then this option may override
+the default location of the unsigned zone file with another. This is for use by
+the signer.
+
+(defaults to the path given in the zone list)
+.TP
+\fB\-f\fR, \fB\-\-full\fR
+Perform a full audit
+.TP
+\fB\-p\fR, \fB\-\-partial\fR
+Perform a partial audit
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 Display version information

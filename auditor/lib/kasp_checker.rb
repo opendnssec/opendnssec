@@ -45,6 +45,7 @@ module KASPChecker
     CONF_FILE = "conf"
     attr_accessor :conf_file, :kasp_file, :rng_path, :xmllint
     def check
+      @ret_val = 999
       conf_file = @conf_file
       if (!conf_file)
         KASPAuditor.exit("No configuration file specified", 1)
@@ -68,9 +69,19 @@ module KASPChecker
         log(LOG_ERR, "KASP configuration file cannot be found")
       end
 
+      @ret_val = 0 if (@ret_val >= LOG_WARNING) # Only return an error if LOG_ERR or above was raised
+      if (@ret_val == 999)
+        exit(0)
+      else
+        exit(@ret_val)
+      end
+
     end
 
     def log(level, msg)
+      if (level.to_i < @ret_val)
+        @ret_val = level.to_i
+      end
       if (@syslog)
         Syslog.open("ods-kaspcheck", Syslog::LOG_PID |
           Syslog::LOG_CONS, @syslog) { |slog|
@@ -99,13 +110,13 @@ module KASPChecker
         rng_location = (rng_location.to_s + "").untaint
         file = (file.to_s + "").untaint
 
+        print "About to check XML validity in #{file}\n"
         r, w = IO.pipe
         pid = fork {
           r.close
           $stdout.reopen w
 
           ret = system("#{(@xmllint.to_s + "").untaint} --noout --relaxng #{rng_location} #{file}")
-          w.close
           exit!(ret)
         }
         w.close
@@ -419,6 +430,13 @@ module KASPChecker
               denial_type = "NSEC"
             else
               denial_type = "NSEC3"
+              # Now check that the algorithm is correct
+              policy.each_element('Denial/NSEC3/Hash/') {|hash|
+                alg = hash.elements["Algorithm"].text
+                if (alg.to_i != 1)
+                  log(LOG_ERR, "NSEC3 Hash algorithm is #{alg} but should be 1");
+                end
+              }
             end
 
             # For all keys (if any are configured)...
@@ -441,6 +459,19 @@ module KASPChecker
               log(LOG_WARNING, "KSK minimum lifetime (#{ksk_lifetime} seconds)" +
                   " is less than ZSK minimum lifetime (#{zsk_lifetime} seconds)"+
                   " for #{name} Policy in #{kasp_file}")
+            end
+
+            # 15. Warn if resalt is less than resign interval.
+            if (denial_type == "NSEC3")
+              resign_secs = get_duration(policy,'Signatures/Resign', kasp_file)
+              resalt_secs = get_duration(policy,'Denial/NSEC3/Resalt', kasp_file)
+              if (resalt_secs)
+                if (resalt_secs < resign_secs)
+                  log(LOG_WARNING, "NSEC3 resalt interval (#{resalt_secs}) is less than" +
+                      " signature resign interval (#{resign_secs})" +
+                      " for #{name} Policy in #{kasp_file}")
+                end
+              end
             end
 
             #   9. If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).

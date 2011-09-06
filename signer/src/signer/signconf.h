@@ -34,8 +34,11 @@
 #ifndef SIGNER_SIGNCONF_H
 #define SIGNER_SIGNCONF_H
 
-#include "signer/se_key.h"
-#include "util/duration.h"
+#include "scheduler/task.h"
+#include "shared/allocator.h"
+#include "shared/duration.h"
+#include "signer/keys.h"
+#include "signer/nsec3params.h"
 
 #include <ldns/ldns.h>
 #include <time.h>
@@ -49,6 +52,7 @@ typedef struct signconf_struct signconf_type;
 struct signconf_struct {
     /* Zone */
     const char* name;
+    allocator_type* allocator;
     /* Signatures */
     duration_type* sig_resign_interval;
     duration_type* sig_refresh_interval;
@@ -62,6 +66,7 @@ struct signconf_struct {
     uint32_t nsec3_algo;
     uint32_t nsec3_iterations;
     const char* nsec3_salt;
+    nsec3params_type* nsec3params;
     /* Keys */
     duration_type* dnskey_ttl;
     keylist_type* keys;
@@ -83,13 +88,15 @@ struct signconf_struct {
 signconf_type* signconf_create(void);
 
 /**
- * Read signer configuration.
- * \param[in] filename file name
- * \param[in] last_modified last modified
- * \return signconf_type* signer configuration
+ * Update signer configuration.
+ * \param[out] signconf signer configuration
+ * \param[in] scfile signer configuration file name
+ * \param[in] last_modified last known modification
+ * \return ods_status status
  *
  */
-signconf_type* signconf_read(const char* filename, time_t last_modified);
+ods_status signconf_update(signconf_type** signconf, const char* scfile,
+    time_t last_modified);
 
 /**
  * Read signer configuration from backup.
@@ -101,35 +108,28 @@ signconf_type* signconf_recover_from_backup(const char* filename);
 
 /**
  * Backup signer configuration.
+ * \param[in] fd file descriptor
  * \param[in] sc signer configuration settings
  *
  */
-void signconf_backup(signconf_type* sc);
+void signconf_backup(FILE* fd, signconf_type* sc);
 
 /**
  * Check signer configuration.
- * \param sc signer configuration settings
- * \return 0 on success, 1 on fail
+ * \param signconf signer configuration
+ * \return ods_status status
  *
  */
-int signconf_check(signconf_type* sc);
+ods_status signconf_check(signconf_type* signconf);
 
 /**
- * Compare two signer configurations.
- * \param[in] a one signconf
- * \param[in] b the other signconf
- * \param[out] update set to 1 if we need to re-nsec3ify
- * \return what task to perform
+ * Compare signer configurations on denial of existence material.
+ * \param[in] a a signer configuration
+ * \param[in] b another signer configuration
+ * \return task_id what task needs to be scheduled
  *
  */
-int signconf_compare(signconf_type* a, signconf_type* b, int* update);
-
-/**
- * Clean up signer configuration.
- * \param[in] sc signconf to cleanup
- *
- */
-void signconf_cleanup(signconf_type* sc);
+task_id signconf_compare_denial(signconf_type* a, signconf_type* b);
 
 /**
  * Print signer configuration.
@@ -139,5 +139,20 @@ void signconf_cleanup(signconf_type* sc);
  *
  */
 void signconf_print(FILE* out, signconf_type* sc, const char* name);
+
+/**
+ * Log signer configuration.
+ * \param[in] sc signconf to log
+ * \param[in] name zone name
+ *
+ */
+void signconf_log(signconf_type* sc, const char* name);
+
+/**
+ * Clean up signer configuration.
+ * \param[in] sc signconf to cleanup
+ *
+ */
+void signconf_cleanup(signconf_type* sc);
 
 #endif /* SIGNER_SIGNCONF_H */

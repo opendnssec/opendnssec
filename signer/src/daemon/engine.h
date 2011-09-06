@@ -35,19 +35,16 @@
 #define DAEMON_ENGINE_H
 
 #include "config.h"
-#include "daemon/cmdhandler.h"
 #include "daemon/cfg.h"
+#include "daemon/cmdhandler.h"
 #include "daemon/worker.h"
-#include "scheduler/locks.h"
-#include "scheduler/task.h"
+#include "scheduler/fifoq.h"
+#include "scheduler/schedule.h"
+#include "shared/allocator.h"
+#include "shared/locks.h"
 #include "signer/zonelist.h"
 
 #include <signal.h>
-
-#define SIGNAL_RUN 0
-#define SIGNAL_INIT 1
-#define SIGNAL_RELOAD 2
-#define SIGNAL_SHUTDOWN 3
 
 /**
  * Engine stuff.
@@ -55,16 +52,15 @@
  */
 typedef struct engine_struct engine_type;
 struct engine_struct {
+    allocator_type* allocator;
     engineconfig_type* config;
-    cmdhandler_type* cmdhandler;
     worker_type** workers;
+    worker_type** drudgers;
     zonelist_type* zonelist;
-    tasklist_type* tasklist;
+    schedule_type* taskq;
+    fifoq_type* signq;
+    cmdhandler_type* cmdhandler;
     int cmdhandler_done;
-
-    sig_atomic_t signal;
-    cond_basic_type signal_cond;
-    lock_basic_type signal_lock;
 
     pid_t pid;
     pid_t zfpid;
@@ -74,14 +70,11 @@ struct engine_struct {
     int daemonize;
     int need_to_exit;
     int need_to_reload;
-};
 
-/**
- * Create engine.
- * \return engine_type* created engine
- *
- */
-engine_type* engine_create(void);
+    sig_atomic_t signal;
+    cond_basic_type signal_cond;
+    lock_basic_type signal_lock;
+};
 
 /**
  * Start engine.
@@ -96,42 +89,18 @@ void engine_start(const char* cfgfile, int cmdline_verbosity,
     int daemonize, int info, int single_run);
 
 /**
- * Parse notify command.
- * \param[in] zone zone
- * \param[in] cmd notify command.
+ * Wake up workers.
+ * \param[in] engine engine
  *
  */
-void set_notify_ns(zone_type* zone, const char* cmd);
-
-/**
- * Update zone list.
- * \param[in] the signer engine
- * \param[in] buf response message
- * \return int 0 if zonelist changed, 1 otherwise
- *
- */
-int engine_update_zonelist(engine_type* engine, char* buf);
+void engine_wakeup_workers(engine_type* engine);
 
 /**
  * Update zones.
- * \param[in] engine the signer engine
- * \paran[in] zone_name update only this zone
- * \param[in] buf response message
- * \param[in] first_try if true, update zone list if zone not found
- * \return int 1 if zone was not found (zone_name != NULL)
+ * \param[in] engine engine
  *
  */
-int engine_update_zones(engine_type* engine, const char* zone_name, char* buf,
-    int first_try);
-
-/**
- * Search for zone in workers
- * \param[in] engine the signer engine
- * \paran[in] zone_name search for this zone
- * \return int 1 if zone was not found
- *
- */
-int engine_search_workers(engine_type* engine, const char* zone_name);
+void engine_update_zones(engine_type* engine);
 
 /**
  * Clean up engine.

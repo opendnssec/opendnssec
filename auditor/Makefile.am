@@ -59,9 +59,9 @@ EXTRA_DIST =	$(srcdir)/lib/*.rb \
 		$(srcdir)/test/signer_test_good/signed_zones/*.nsec3 \
 		$(srcdir)/test/signer_test_good/zone_config/*.nsec \
 		$(srcdir)/test/signer_test_good/zone_config/*nsec3 \
-		$(srcdir)/test/tmp/*.unsorted \
-		$(srcdir)/test/tmp1/*.unsorted \
-		$(srcdir)/test/tmp2/*.unsorted \
-		$(srcdir)/test/tmp3/*.unsorted \
+		$(srcdir)/test/tmp/*.inbound \
+		$(srcdir)/test/tmp1/*.inbound \
+		$(srcdir)/test/tmp2/*.inbound \
+		$(srcdir)/test/tmp3/*.inbound \
 		$(srcdir)/test/tmp3/tracker/*.nl \
 		$(srcdir)/test/tmp3/tracker/*.config

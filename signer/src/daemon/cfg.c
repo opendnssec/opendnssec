@@ -34,13 +34,16 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
-#include "util/file.h"
-#include "util/log.h"
-#include "util/se_malloc.h"
+#include "shared/allocator.h"
+#include "shared/file.h"
+#include "shared/log.h"
+#include "shared/status.h"
 
 #include <errno.h>
-#include <stdio.h> /* fprintf() */
-#include <string.h> /* strerror() */
+#include <stdio.h>
+#include <string.h>
+
+static const char* conf_str = "config";
 
 
 /**
@@ -48,49 +51,61 @@
  *
  */
 engineconfig_type*
-engine_config(const char* cfgfile, int cmdline_verbosity)
+engine_config(allocator_type* allocator, const char* cfgfile,
+    int cmdline_verbosity)
 {
-    engineconfig_type* ecfg = (engineconfig_type*) se_calloc(1,
-        sizeof(engineconfig_type));
+    engineconfig_type* ecfg;
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
-    se_log_assert(cfgfile);
-    se_log_verbose("read config file: %s", cfgfile?cfgfile:"(null)");
-
-    /* check syntax (slows down parsing configuration file) */
-    if (parse_file_check(cfgfile, rngfile) != 0) {
-        se_log_error("unable to parse cfgfile %s", cfgfile?cfgfile:"(null)");
-        se_free((void*) ecfg);
+    if (!allocator || !cfgfile) {
         return NULL;
     }
-
+    /* check syntax (slows down parsing configuration file) */
+    if (parse_file_check(cfgfile, rngfile) != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to create config: parse error in %s",
+            conf_str, cfgfile);
+        return NULL;
+    }
     /* open cfgfile */
-    cfgfd = se_fopen(cfgfile, NULL, "r");
+    cfgfd = ods_fopen(cfgfile, NULL, "r");
     if (cfgfd) {
+        ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
+        /* create config */
+        ecfg = (engineconfig_type*) allocator_alloc(allocator,
+            sizeof(engineconfig_type));
+        if (!ecfg) {
+            ods_log_error("[%s] unable to create config: allocator_alloc() "
+                "failed", conf_str);
+            return NULL;
+        }
+        ecfg->allocator = allocator;
         /* get values */
-        ecfg->cfg_filename = se_strdup(cfgfile);
-        ecfg->zonelist_filename = parse_conf_zonelist_filename(cfgfile);
-        ecfg->zonefetch_filename = parse_conf_zonefetch_filename(cfgfile);
-        ecfg->log_filename = parse_conf_log_filename(cfgfile);
-        ecfg->pid_filename = parse_conf_pid_filename(cfgfile);
-        ecfg->notify_command = parse_conf_notify_command(cfgfile);
-        ecfg->clisock_filename = parse_conf_clisock_filename(cfgfile);
-        ecfg->working_dir = parse_conf_working_dir(cfgfile);
-        ecfg->username = parse_conf_username(cfgfile);
-        ecfg->group = parse_conf_group(cfgfile);
-        ecfg->chroot = parse_conf_chroot(cfgfile);
+        ecfg->cfg_filename = allocator_strdup(allocator, cfgfile);
+        ecfg->zonelist_filename = parse_conf_zonelist_filename(allocator,
+            cfgfile);
+        ecfg->zonefetch_filename = parse_conf_zonefetch_filename(allocator,
+            cfgfile);
+        ecfg->log_filename = parse_conf_log_filename(allocator, cfgfile);
+        ecfg->pid_filename = parse_conf_pid_filename(allocator, cfgfile);
+        ecfg->notify_command = parse_conf_notify_command(allocator, cfgfile);
+        ecfg->clisock_filename = parse_conf_clisock_filename(allocator,
+            cfgfile);
+        ecfg->working_dir = parse_conf_working_dir(allocator, cfgfile);
+        ecfg->username = parse_conf_username(allocator, cfgfile);
+        ecfg->group = parse_conf_group(allocator, cfgfile);
+        ecfg->chroot = parse_conf_chroot(allocator, cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
         ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
         ecfg->verbosity = cmdline_verbosity;
-
+        ecfg->num_adapters = 0;
         /* done */
-        se_fclose(cfgfd);
+        ods_fclose(cfgfd);
         return ecfg;
     }
-
-    se_log_error("unable to read cfgfile %s", cfgfile?cfgfile:"(null)");
+    ods_log_error("[%s] unable to create config: failed to open file %s",
+        conf_str, cfgfile);
     return NULL;
 }
 
@@ -99,19 +114,27 @@ engine_config(const char* cfgfile, int cmdline_verbosity)
  * Check configuration.
  *
  */
-int
-engine_check_config(engineconfig_type* config)
+ods_status
+engine_config_check(engineconfig_type* config)
 {
-    int ret = 0;
-
     if (!config) {
-        se_log_error("engine config does not exist");
-        return 1;
+        ods_log_error("[%s] config-check failed: no config", conf_str);
+        return ODS_STATUS_CFG_ERR;
     }
-
-    /* room for more checks here */
-
-    return ret;
+    if (!config->cfg_filename) {
+        ods_log_error("[%s] config-check failed: no config filename", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+    if (!config->zonelist_filename) {
+        ods_log_error("[%s] config-check failed: no zonelist filename", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+    if (!config->clisock_filename) {
+        ods_log_error("[%s] config-check failed: no socket filename", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+    /*  [TODO] room for more checks here */
+    return ODS_STATUS_OK;
 }
 
 
@@ -122,11 +145,10 @@ engine_check_config(engineconfig_type* config)
 void
 engine_config_print(FILE* out, engineconfig_type* config)
 {
-    se_log_assert(out);
-    se_log_debug("print config");
-
+    if (!out) {
+        return;
+    }
     fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-
     if (config) {
         fprintf(out, "<Configuration>\n");
 
@@ -192,68 +214,34 @@ engine_config_print(FILE* out, engineconfig_type* config)
            - clisock_filename
          */
     }
-
     return;
 }
 
 
 /**
- * Clean up engine configuration.
+ * Clean up config.
  *
  */
 void
 engine_config_cleanup(engineconfig_type* config)
 {
-    if (config) {
-        se_log_debug("clean up config");
-        if (config->cfg_filename) {
-            se_free((void*) config->cfg_filename);
-            config->cfg_filename = NULL;
-        }
-        if (config->zonelist_filename) {
-            se_free((void*) config->zonelist_filename);
-            config->zonelist_filename = NULL;
-        }
-        if (config->zonefetch_filename) {
-            se_free((void*) config->zonefetch_filename);
-            config->zonefetch_filename = NULL;
-        }
-        if (config->log_filename) {
-            se_free((void*) config->log_filename);
-            config->zonefetch_filename = NULL;
-        }
-        if (config->pid_filename) {
-            se_free((void*) config->pid_filename);
-            config->pid_filename = NULL;
-        }
-        if (config->notify_command) {
-            se_free((void*) config->notify_command);
-            config->notify_command = NULL;
-        }
-        if (config->clisock_filename) {
-            se_free((void*) config->clisock_filename);
-            config->clisock_filename = NULL;
-        }
-        if (config->working_dir) {
-            se_free((void*) config->working_dir);
-            config->working_dir = NULL;
-        }
-        if (config->username) {
-            se_free((void*) config->username);
-            config->username = NULL;
-        }
-        if (config->group) {
-            se_free((void*) config->group);
-            config->group = NULL;
-        }
-        if (config->chroot) {
-            se_free((void*) config->chroot);
-            config->chroot = NULL;
-        }
-        se_free((void*) config);
-    } else {
-        se_log_warning("cleanup empty config");
+    allocator_type* allocator;
+    if (!config) {
+        return;
     }
-
+    allocator = config->allocator;
+    allocator_deallocate(allocator, (void*) config->cfg_filename);
+    allocator_deallocate(allocator, (void*) config->zonelist_filename);
+    allocator_deallocate(allocator, (void*) config->zonefetch_filename);
+    allocator_deallocate(allocator, (void*) config->log_filename);
+    allocator_deallocate(allocator, (void*) config->pid_filename);
+    allocator_deallocate(allocator, (void*) config->notify_command);
+    allocator_deallocate(allocator, (void*) config->clisock_filename);
+    allocator_deallocate(allocator, (void*) config->working_dir);
+    allocator_deallocate(allocator, (void*) config->username);
+    allocator_deallocate(allocator, (void*) config->group);
+    allocator_deallocate(allocator, (void*) config->chroot);
+    allocator_deallocate(allocator, (void*) config);
     return;
 }
+

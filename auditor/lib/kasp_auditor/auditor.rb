@@ -117,8 +117,8 @@ module KASPAuditor
           log(LOG_ERR, "SOA name not absolute #{@soa.name} - aborting")
           return 1
         end
-        log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
-        @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
+        log(LOG_INFO, "Auditing #{@soa.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED, full audit")
+        @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval, @config.signatures.validity.default)
         @key_cache = @key_tracker.load_tracker_cache
 
         signed_file = (signed_file.to_s + "").untaint
@@ -185,7 +185,7 @@ module KASPAuditor
         end
 
         # Now take a look at how the keys are changing over time...
-        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @config.soa.ttl)
+        @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @config.keys.ttl)
       rescue FatalError => e
         return 3
       end
@@ -219,7 +219,7 @@ module KASPAuditor
         end
       elsif (@config.denial.nsec3) # && ((@first_nsec.type == Dnsruby::Types::NSEC3)))
         # Now check that the last nsec3 points to the first nsec3
-        if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
+        if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s.downcase == @first_nsec.name.to_s.downcase))
         else
           # An unknown NSEC3 could be between the last and first
           if (@unknown_nsecs[get_next_nsec3_name(@last_nsec).to_s+"."] &&
@@ -634,7 +634,11 @@ module KASPAuditor
       }
       if (!l_rr.opt_out?)
         File.open(@working + "#{File::SEPARATOR}audit.optout.#{Process.pid}", "a") { |f|
-          f.write("#{l_rr.name.to_s} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
+          l_rr_name = l_rr.name.to_s
+          if (@soa.name.to_s == "")
+            l_rr_name += "."
+          end
+          f.write("#{l_rr_name} #{RR::NSEC3.encode_next_hashed(l_rr.next_hashed) + "." + @soa.name.to_s}\n")
         }
       end
     end
@@ -642,6 +646,7 @@ module KASPAuditor
     # Work out the Name that next_hashed points to (adds the zone name)
     # Name returned from String input
     def get_next_nsec3_name(rr)
+      return nil if (!rr)
       return Name.create(Dnsruby::RR::NSEC3.encode_next_hashed(rr.next_hashed) + "." + @zone_name)
     end
 
@@ -738,8 +743,8 @@ module KASPAuditor
             # iff we're using NSEC3
             write_types_to_file(current_domain, types_covered, last_rr.name, is_glue)
           end
+          delegation = false
           if !(test_subdomain(current_domain, subdomain))
-            delegation = false
             is_glue = false
           else
             is_glue = true
@@ -749,12 +754,16 @@ module KASPAuditor
           types_covered.push(l_rr.type)
           current_domain = l_rr.name
           last_rr = old_rr
+          if last_rr.type == Types::NS
+            delegation = true
+          end
+        else
+          if l_rr.type == Types::NS
+            delegation = true
+          end
         end
         if !([Types::A, Types::AAAA, Types::RRSIG].include?l_rr.type)
           is_glue = false
-        end
-        if l_rr.type == Types::NS
-          delegation = true
         end
 
         # Keep track of the RRSet we're currently loading - as soon as all the RRs have been loaded, then check the RRSIG
@@ -922,7 +931,18 @@ module KASPAuditor
       hashed_domain = RR::NSEC3.calculate_hash(domain, iterations,
         RR::NSEC3.decode_salt(salt), hash_alg)
       File.open(@working + "#{File::SEPARATOR}audit.types.#{Process.pid}", "a") { |f|
-        f.write("#{hashed_domain+"."+@soa.name.to_s} #{domain} #{types_string}\n")
+        hashed_name = hashed_domain+"."+@soa.name.to_s
+        if (@soa.name.to_s == "")
+          hashed_name = hashed_domain
+          if (hashed_name == "")
+            hashed_name = "."
+          end
+        end
+        domain_string = domain
+        if (domain.to_s == "")
+          domain_string = "."
+        end
+        f.write("#{hashed_name} #{domain_string} #{types_string}\n")
       }
     end
 
@@ -940,10 +960,10 @@ module KASPAuditor
     def check_dnskeys_at_zone_apex(seen_dnskey_sep_set, seen_dnskey_sep_clear)
       # We are at the zone apex - we should have seen DNSKEYs here
       if (!seen_dnskey_sep_set)
-        log(LOG_ERR, "No DNSKEY RR with SEP bit set in output zone")
+        log(LOG_WARNING, "No DNSKEY RR with SEP bit set in output zone")
       end
       if (!seen_dnskey_sep_clear)
-        log(LOG_ERR, "No DNSKEY RR with SEP bit clear in output zone")
+        log(LOG_WARNING, "No DNSKEY RR with SEP bit clear in output zone")
       end
     end
 
@@ -1108,6 +1128,7 @@ module KASPAuditor
         @syslog.log(LOG_WARNING, msg)
         return
       end
+      msg.gsub!("\t", " ")
       print "#{pri}: #{msg}\n"
       begin
         @syslog.log(pri, msg)

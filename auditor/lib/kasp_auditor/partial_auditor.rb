@@ -91,10 +91,10 @@ module KASPAuditor
         @enforcer_interval=enforcer_interval
         @keys_used = []
         @domain_list = []
-        log(LOG_INFO, "Auditing #{@config.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED")
+        log(LOG_INFO, "Auditing #{@config.name} zone : #{@config.denial.nsec ? 'NSEC' : 'NSEC3'} SIGNED, partial audit")
 
         # Load the stored key history from previous runs
-        @key_tracker = KeyTracker.new(@working, @config.name, self, @config, @enforcer_interval)
+        @key_tracker = KeyTracker.new(@working, @config.name, self, @config, @enforcer_interval, @config.signatures.validity.default)
         @key_cache = @key_tracker.load_tracker_cache
 
         # Work out what we need to check about this zone, and thus what we
@@ -726,7 +726,7 @@ module KASPAuditor
     def update_key_stores
       # Use the key_tracker to update and check key stores using
       # the key information in the SOA file.
-      @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval)
+      @key_tracker = KeyTracker.new(@working, @soa.name.to_s, self, @config, @enforcer_interval, @config.signatures.validity.default)
       @key_tracker.process_key_data(@keys, @keys_used, @soa.serial, @config.soa.ttl)
     end
 

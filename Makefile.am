@@ -11,7 +11,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = common libhsm conf tools contrib
+SUBDIRS = common libhsm conf tools contrib plugins/eppclient
 
 if ENABLE_SIGNER
 SUBDIRS += signer
@@ -25,12 +25,9 @@ if ENABLE_AUDITOR
 SUBDIRS += auditor
 endif
 
-if ENABLE_EPPCLIENT
-SUBDIRS += plugins/eppclient
-endif
-
 EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \
-		$(srcdir)/MIGRATION
+		$(srcdir)/MIGRATION \
+		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 
 install-data-hook:

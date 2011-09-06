@@ -5,7 +5,7 @@ CLEANFILES = token.db othertoken.db
 
 AM_CPPFLAGS = \
 		-I$(top_builddir)/common \
-		-I$(srcdir)/../src \
+		-I$(srcdir)/../src/lib \
 		@LDNS_INCLUDES@
 
 AM_CFLAGS =	-std=c99
@@ -14,7 +14,7 @@ EXTRA_DIST =	*.xml $(srcdir)/softhsm.conf
 
 noinst_PROGRAMS = hsmcheck
  
-hsmcheck_LDADD = ../src/libhsm.a @LDNS_LIBS@ @XML2_LIBS@
+hsmcheck_LDADD = ../src/lib/libhsm.a @LDNS_LIBS@ @XML2_LIBS@
 hsmcheck_LDFLAGS = -no-install
 
 SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf

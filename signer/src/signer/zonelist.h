@@ -34,13 +34,13 @@
 #ifndef SIGNER_ZONELIST_H
 #define SIGNER_ZONELIST_H
 
+#include "shared/allocator.h"
+#include "shared/locks.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>
 #include <stdio.h>
 #include <time.h>
-
-struct tasklist_struct;
 
 /**
  * Zone list
@@ -48,82 +48,73 @@ struct tasklist_struct;
  */
 typedef struct zonelist_struct zonelist_type;
 struct zonelist_struct {
+    allocator_type* allocator;
     ldns_rbtree_t* zones;
     time_t last_modified;
+    int just_added;
+    int just_updated;
+    int just_removed;
+    lock_basic_type zl_lock;
 };
 
 /**
  * Create zone list.
+ * \param[in] allocator memory allocator
  * \return zonelist_type* created zone list
- */
-zonelist_type* zonelist_create(void);
-
-/**
- * Read zonelist file.
- * \param[in] zonelistfile zonelist configuration file
- * \param[in] last_modified last modified
- * \return zonelist_type* zone list if reading was succesful, NULL otherwise
- */
-zonelist_type* zonelist_read(const char* zonelistfile, time_t last_modified);
-
-/**
- * Lock all zones in zone list.
- * \param[in] zonelist zone list
  *
  */
-void zonelist_lock(zonelist_type* zonelist);
+zonelist_type* zonelist_create(allocator_type* allocator);
 
 /**
- * Unlock all zones in zone list.
- * \param[in] zonelist zone list
- *
- */
-void zonelist_unlock(zonelist_type* zonelist);
-
-/**
- * Lookup zone by name.
- * \param[in] zonelist zone list
+ * Lookup zone by name and class.
+ * \param[in] zl zone list
  * \param[in] name zone name
- * \return zone_type* zone if found
+ * \param[in] klass zone class
+ * \return zone_type* found zone
  *
  */
 zone_type* zonelist_lookup_zone_by_name(zonelist_type* zonelist,
-    const char* name);
-
+    const char* name, ldns_rr_class klass);
 
 /**
- * Add zone to zone list.
- * \param[in] zonelist zone list
- * \param[in] zone zone to add
+ * Add zone.
+ * \param[in] zl zone list
+ * \param[in] zone zone
  * \return zone_type* added zone
  *
  */
-zone_type* zonelist_add_zone(zonelist_type* zonelist, zone_type* zone);
+zone_type* zonelist_add_zone(zonelist_type* zl, zone_type* zone);
 
 /**
- * Update zone list.
- * /param[in] zl zone list
- * /param[in] tl task list
- * /param[in] cmd notify command
- * /param[in] buf feedback message
+ * Delete zone.
+ * \param[in] zl zone list
+ * \param[in] zone zone
+ * \return zone_type* deleted zone
  *
  */
-void zonelist_update(zonelist_type* zl, struct tasklist_struct* tl,
-    const char* cmd, char* buf);
+zone_type* zonelist_del_zone(zonelist_type* zlist, zone_type* zone);
 
 /**
- * Merge zone lists.
- * /param[in] zl1 base zone list
- * /param[in] zl2 additional zone list
+ * Update zonelist.
+ * \param[in] zl zone list
+ * \param[in] zlfile zone list filename
+ * \return ods_status status
  *
  */
-void zonelist_merge(zonelist_type* zl1, zonelist_type* zl2);
+ods_status zonelist_update(zonelist_type* zl, const char* zlfile);
 
 /**
- * Clean up a zonelist.
- * \param[in] zonelist list to clean up
+ * Clean up zone list.
+ * \param[in] zl zone list
  *
  */
-void zonelist_cleanup(zonelist_type* zonelist);
+void zonelist_cleanup(zonelist_type* zl);
+
+/**
+ * Free zone list.
+ * \param[in] zl zone list
+ *
+ */
+void zonelist_free(zonelist_type* zl);
 
 #endif /* SIGNER_ZONELIST_H */

@@ -25,6 +25,8 @@ OpenDNSSEC to another.
         backup of your database prior to running them.
 
 
+
+
 *** Migrating to a larger keypairs(id) field (MySQL ONLY) ***
 
   The version of the MySQL database that was created with v1.2 (and prior to

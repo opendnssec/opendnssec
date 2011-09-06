@@ -100,6 +100,7 @@ module KASPAuditor
     # Run the auditor.
     def run
       conf_file = @conf_file
+      @zone_name.chomp(".")
       if (!conf_file)
         KASPAuditor.exit("No configuration file specified", 1)
       end
@@ -143,7 +144,7 @@ module KASPAuditor
         syslog.log(LOG_INFO, "Auditor starting on #{config.name}")
         print("Auditor starting on #{config.name}\n")
         # Override this with @unsigned_zone if present
-        input_file = signer_working_folder + File::Separator + config.name + ".unsorted"
+        input_file = signer_working_folder + File::Separator + config.name + ".inbound"
         if ((@zone_name == config.name) && (@unsigned_zone))
           input_file = @unsigned_zone
         end

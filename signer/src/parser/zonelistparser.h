@@ -27,23 +27,37 @@
  */
 
 /**
- *
  * Parsing zonelist files.
+ *
  */
 
 #ifndef PARSER_ZONELISTPARSER_H
 #define PARSER_ZONELISTPARSER_H
 
-#include "signer/zone.h"
+#include "adapter/adapter.h"
+#include "shared/allocator.h"
+#include "shared/status.h"
 
-struct zonelist_struct;
+#include <libxml/xpath.h>
+#include <libxml/xmlreader.h>
+
+/**
+ * Parse adapter.
+ * \param[in] xpathCtx XPath Context Pointer
+ * \param[in] expr expression
+ * \param[in] inbound true if Input Adapter
+ *
+ */
+adapter_type* parse_zonelist_adapter(xmlXPathContextPtr xpathCtx,
+    xmlChar* expr, int inbound);
 
 /**
  * Parse the zonelist file.
+ * \param[in] zlist zone list storage
  * \param[in] zlfile zonelist file name
- * \return zonelist_type* zone list
+ * \return ods_status status
  *
  */
-struct zonelist_struct* parse_zonelist_zones(const char* zlfile);
+ods_status parse_zonelist_zones(void* zlist, const char* zlfile);
 
 #endif /* PARSER_ZONELISTPARSER_H */

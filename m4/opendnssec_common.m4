@@ -84,13 +84,13 @@ AC_DEFINE_UNQUOTED(ODS_SE_AUDITOR,       ["$OPENDNSSEC_SIGNER_AUDITOR"],     [Pa
 AC_DEFINE_UNQUOTED(ODS_SE_MAXLINE,       [1024],                             [Maximum line length that the OpenDNSSEC signer client can handle])
 AC_DEFINE_UNQUOTED(ODS_SE_MAX_BACKOFF,   [3600],                             [Number of seconds the OpenDNSSEC signer engine should backoff when a task failed])
 AC_DEFINE_UNQUOTED(ODS_SE_WORKERTHREADS, [4],                                [Default number of worker threads for the OpenDNSSEC signer engine])
-AC_DEFINE_UNQUOTED(ODS_SE_SIGNERTHREADS, [1],                                [Default number of signer threads for the OpenDNSSEC signer engine])
 AC_DEFINE_UNQUOTED(ODS_SE_STOP_RESPONSE, ["Engine shut down."],              [Shutdown message for the OpenDNSSEC signer client])
 AC_DEFINE_UNQUOTED(ODS_SE_FILE_MAGIC,    [";ODSSE2"],                        [File magic for storing backups from the OpenDNSSEC signer engine])
 AC_DEFINE_UNQUOTED(ODS_SE_FILE_MAGIC_V1, [";ODSSE1"],                        [File magic for storing backups from the OpenDNSSEC signer engine])
 
 # auditor specific
 OPENDNSSEC_AUDITOR_KASPCHECK=$OPENDNSSEC_BIN_DIR/ods-kaspcheck
+
 AC_DEFINE_UNQUOTED(ODS_AU_KASPCHECK,  ["$OPENDNSSEC_AUDITOR_KASPCHECK"],    [Path to the OpenDNSSEC kaspcheck binary])
 
 # enforcer specific

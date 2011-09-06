@@ -34,13 +34,15 @@
 #include "config.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "scheduler/locks.h"
+#include "shared/locks.h"
+#include "shared/log.h"
 
 #include <signal.h>
 
 static int signal_hup_recvd = 0;
 static int signal_term_recvd = 0;
 static engine_type* signal_engine = NULL;
+static const char* signal_str = "signal";
 
 
 /**
@@ -48,9 +50,10 @@ static engine_type* signal_engine = NULL;
  *
  */
 void
-signal_set_engine(struct engine_struct* engine)
+signal_set_engine(void* engine)
 {
     signal_engine = (engine_type*) engine;
+    return;
 }
 
 
@@ -63,20 +66,24 @@ signal_handler(sig_atomic_t sig)
 {
     switch (sig) {
         case SIGHUP:
-            se_log_debug("reload signal received");
+            ods_log_debug("[%s] SIGHUP received", signal_str);
             signal_hup_recvd++;
             if (signal_engine) {
                 lock_basic_lock(&signal_engine->signal_lock);
+                /* [LOCK] signal */
                 lock_basic_alarm(&signal_engine->signal_cond);
+                /* [UNLOCK] signal */
                 lock_basic_unlock(&signal_engine->signal_lock);
             }
             break;
         case SIGTERM:
-            se_log_debug("shutdown signal received");
+            ods_log_debug("[%s] SIGTERM received", signal_str);
             signal_term_recvd++;
             if (signal_engine) {
                 lock_basic_lock(&signal_engine->signal_lock);
+                /* [LOCK] signal */
                 lock_basic_alarm(&signal_engine->signal_cond);
+                /* [UNLOCK] signal */
                 lock_basic_unlock(&signal_engine->signal_lock);
             }
             break;

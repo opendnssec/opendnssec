@@ -35,30 +35,16 @@
 #define SCHEDULER_TASK_H
 
 #include "config.h"
-#include "scheduler/locks.h"
-
-#include <stdio.h>
-#include <time.h>
-
-#ifdef HAVE_SYS_TYPES_H
-# include <sys/types.h>
-#endif
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
+#include "shared/allocator.h"
 
 #include <ldns/ldns.h>
 
-struct zone_struct;
-
 enum task_id_enum {
     TASK_NONE = 0,
-    TASK_READ,
-    TASK_ADDKEYS,
-    TASK_UPDATE,
+    TASK_SIGNCONF, /* ods-signer update */
+    TASK_READ, /* ods-signer sign */
     TASK_NSECIFY,
-    TASK_SIGN,
-    TASK_AUDIT,
+    TASK_SIGN, /* ods-signer flush */
     TASK_WRITE
 };
 typedef enum task_id_enum task_id;
@@ -68,60 +54,43 @@ typedef enum task_id_enum task_id;
  */
 typedef struct task_struct task_type;
 struct task_struct {
+    allocator_type* allocator;
     task_id what;
+    task_id interrupt;
+    task_id halted;
     time_t when;
+    time_t halted_when;
     time_t backoff;
-    const char* who;
-    ldns_rdf* dname;
-    struct zone_struct* zone;
     int flush;
-};
-
-/**
- * Task list.
- */
-typedef struct tasklist_struct tasklist_type;
-struct tasklist_struct {
-    ldns_rbtree_t* tasks;
-    int loading;
-    lock_basic_type tasklist_lock;
+    void* zone;
 };
 
 /**
  * Create a new task.
  * \param[in] what task identifier
  * \param[in] when scheduled time
- * \param[in] who zone name
- * \param[in] zone pointer to zone structure
+ * \param[in] zone zone reference
  * \return task_type* created task
  *
  */
-task_type* task_create(int what, time_t when, const char* who,
-    struct zone_struct* zone);
+task_type* task_create(task_id what, time_t when, void* zone);
 
 /**
  * Recover a task from backup.
  * \param[in] filename where the task backup is stored
- * \param[in] zone pointer to zone structure
+ * \param[in] zone zone reference
  * \return task_type* created task
  *
  */
-task_type* task_recover_from_backup(const char* filename,
-    struct zone_struct* zone);
+task_type* task_recover_from_backup(const char* filename, void* zone);
 
 /**
  * Backup task.
+ * \param[in] fd file descriptor
  * \param[in] task task
  *
  */
-void task_backup(task_type* task);
-
-/**
- * Clean up task.
- * \param[in] task task
- *
- */
-void task_cleanup(task_type* task);
+void task_backup(FILE* fd, task_type* task);
 
 /**
  * Compare tasks.
@@ -136,10 +105,25 @@ int task_compare(const void* a, const void* b);
  * Convert task to string.
  * \param[in] task task
  * \param[out] buffer to store string-based task in
- * \return string-based task
+ * \return string-format task
  *
  */
 char* task2str(task_type* task, char* buftask);
+
+/**
+ * String-format of who.
+ * \param[in] what task identifier
+ * \return const char* string-format of what
+ *
+ */
+const char* task_what2str(task_id what);
+
+/**
+ * String-format of who.
+ * \param[in] task task
+ * \return const char* string-format of who
+ */
+const char* task_who2str(task_type* task);
 
 /**
  * Print task.
@@ -150,70 +134,17 @@ char* task2str(task_type* task, char* buftask);
 void task_print(FILE* out, task_type* task);
 
 /**
- * New task list.
- *  number of possible tasks
- * \return tasklist_type* created tasklist
+ * Log task.
+ * \param[in] task task
  *
  */
-tasklist_type* tasklist_create(void);
+void task_log(task_type* task);
 
 /**
- * Cleanup task list.
- * \param list[in] tasklist to be cleaned up
+ * Clean up task.
+ * \param[in] task task
  *
  */
-void tasklist_cleanup(tasklist_type* list);
-
-/**
- * Flush task list.
- * \param list[in] tasklist to be flushed
- * \param list[in] what if not TASK_NONE, change the what to do
- *
- */
-void tasklist_flush(tasklist_type* list, task_id what);
-
-/**
- * Schedule a task.
- * \param[in] list task list
- * \param[in] task task to schedule
- * \param[in] log log new task
- * \return task_type* scheduled task
- *
- */
-task_type* tasklist_schedule_task(tasklist_type* list, task_type* task, int log);
-
-/**
- * Delete task from task list.
- * \param[in] list task list
- * \param[in] task task to delete
- * \return task_type* deleted task
- *
- */
-task_type*
-tasklist_delete_task(tasklist_type* list, task_type* task);
-
-/**
- * Pop task from task list.
- * \param[in] list task list
- * \return task_type* popped task
- *
- */
-task_type* tasklist_pop_task(tasklist_type* list);
-
-/**
- * First task from task list.
- * \param[in] list task list
- * \return task_type* first task
- *
- */
-task_type* tasklist_first_task(tasklist_type* list);
-
-/**
- * Print task list.
- * \param[in] out file descriptor
- * \param[in] list task list
- *
- */
-void tasklist_print(FILE* out, tasklist_type* list);
+void task_cleanup(task_type* task);
 
 #endif /* SCHEDULER_TASK_H */

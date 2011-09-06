@@ -9,8 +9,7 @@ Source: opendnssec-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 # Following are optional fields
 URL: http://www.opendnssec.org/files/source/%{name}-%{version}.tar.gz
-Requires: libxml2, sqlite, ruby, rubygem-dnsruby >= 1.4, ldns >= 1.6.2
-BuildPreReq: rubygem-dnsruby >= 1.4, ldns >= 1.6.2
+Requires: libxml2, sqlite, ruby, rubygem-dnsruby >= 1.52, ldns >= 1.6.9
 Obsoletes: opendnssec
 
 
@@ -39,12 +38,26 @@ rm -rf %{buildroot}
 %{__make} DESTDIR=%{buildroot} install
 mkdir -p %{buildroot}/%{_var}/run/opendnssec
 mkdir -p %{buildroot}/%{_sysconfdir}/init.d
+mkdir -p %{buildroot}/usr/libexec/opendnssec
 install -c -m 755 tools/ods-control %{buildroot}/%{_sysconfdir}/init.d/ods-control
 cd %{buildroot}
 
+%pre
+/usr/sbin/useradd -r -l -s /sbin/nologin -c 'OpenDNSSEC signer daemons' opendnssec 2>/dev/null || /bin/true
+
 %post
+ed -s /etc/init.d/ods-control <<EOF
+1a
+# chkconfig: 2345 65 35
+.
+w
+q
+EOF
 /sbin/chkconfig --add ods-control
 
+%preun
+/etc/init.d/ods-control stop 2>&1 >/dev/null
+/sbin/chkconfig --del ods-control
 
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf "$RPM_BUILD_ROOT"
@@ -57,10 +70,9 @@ cd %{buildroot}
 %{_sysconfdir}/init.d/*
 %{_bindir}/*
 %{_sbindir}/*
-%{_includedir}/*
-%{_libdir}/*
 %{_prefix}/libexec/opendnssec
 %{_prefix}/share/opendnssec
+%doc /usr/share/man
 
 %changelog
 * Wed Nov 25 2009  <andyh@nominet.org.uk>

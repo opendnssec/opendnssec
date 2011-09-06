@@ -112,7 +112,7 @@ nsec3 = element NSEC3 {
 		element OptOut { empty }?,
 		element Hash {
 			algorithm,
-			element Iterations { xsd:positiveInteger { maxInclusive = "65535" } },
+			element Iterations { xsd:nonNegativeInteger { maxInclusive = "65535" } },
 			element Salt { xsd:string }
 		}
 	}

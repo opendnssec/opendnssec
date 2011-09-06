@@ -7,7 +7,7 @@
 
 exit_value = 0
 ARGV.each {|zone|
-  if (zone.start_with?("~"))
+  if (zone[0]==126)
     zone = zone[1, (zone.length() -1)]
     if (!File.exist?("#{ENV['WORKSPACE']}/sandbox/var/opendnssec/signed/#{zone}")
 )

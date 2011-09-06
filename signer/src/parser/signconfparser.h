@@ -27,26 +27,29 @@
  */
 
 /**
- *
  * Parsing signer configuration files.
+ *
  */
 
 #ifndef PARSER_SIGNCONFPARSER_H
 #define PARSER_SIGNCONFPARSER_H
 
-#include "signer/se_key.h"
-#include "util/duration.h"
+#include "parser/confparser.h"
+#include "shared/allocator.h"
+#include "shared/duration.h"
+#include "signer/keys.h"
 #include "config.h"
 
 #include <ldns/ldns.h>
 
 /**
  * Parse keys from the signer configuration file.
+ * \param[in] sc signer configuration reference
  * \param[in] cfgfile the configuration file name.
  * \return keylist_type* key list
  *
  */
-keylist_type* parse_sc_keys(const char* cfgfile);
+keylist_type* parse_sc_keys(void* sc, const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
@@ -87,9 +90,6 @@ uint32_t parse_sc_nsec3_iterations(const char* cfgfile);
  * \return int integer
  *
  */
-int parse_sc_dnskey_ttl_use(const char* cfgfile);
-int parse_sc_soa_ttl_use(const char* cfgfile);
-int parse_sc_soa_min_use(const char* cfgfile);
 int parse_sc_nsec3_optout(const char* cfgfile);
 int parse_sc_audit(const char* cfgfile);
 
@@ -99,7 +99,9 @@ int parse_sc_audit(const char* cfgfile);
  * \return const char* string
  *
  */
-const char* parse_sc_soa_serial(const char* cfgfile);
-const char* parse_sc_nsec3_salt(const char* cfgfile);
+const char* parse_sc_soa_serial(allocator_type* allocator,
+    const char* cfgfile);
+const char* parse_sc_nsec3_salt(allocator_type* allocator,
+    const char* cfgfile);
 
 #endif /* PARSER_SIGNCONFPARSER_H */

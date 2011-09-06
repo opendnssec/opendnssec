@@ -119,7 +119,7 @@ module KASPAuditor
     # If the key caches can't be found, then create new ones.
     #
     # These files, once started for a zone, will never be deleted.
-    def initialize(working_directory, zone_name, parent, config, enforcer_interval)
+    def initialize(working_directory, zone_name, parent, config, enforcer_interval, validity)
       @working = working_directory
       @zone = zone_name
       @parent  = parent
@@ -127,6 +127,7 @@ module KASPAuditor
       @enforcer_interval = enforcer_interval
       @last_soa_serial = nil
       @initial_timestamp = Time.now.to_i
+      @validity = validity
       @cache = load_tracker_cache()
     end
 
@@ -202,7 +203,11 @@ module KASPAuditor
     end
 
     def get_tracker_filename
-      return @working + "#{File::SEPARATOR}tracker#{File::SEPARATOR}" + @zone
+      zone = @zone
+      if ((zone.to_s == ".") || (zone.to_s==""))
+        zone = "root.zone"
+      end
+      return @working + "#{File::SEPARATOR}tracker#{File::SEPARATOR}" + zone
     end
 
     #Compare two serials according to RFC 1982. Return 0 if equal,
@@ -233,7 +238,7 @@ module KASPAuditor
     # used to sign RRSIGs in the zone.
     # The data is then used to track the lifecycle of zone keys, and perform
     # associated auditing checks
-    def process_key_data(keys, keys_used, soa_serial, soa_ttl)
+    def process_key_data(keys, keys_used, soa_serial, key_ttl)
       update_cache(keys, keys_used)
       if (@last_soa_serial)
         if (compare_serial(soa_serial, @last_soa_serial) == 1)
@@ -243,13 +248,13 @@ module KASPAuditor
         @last_soa_serial = soa_serial
       end
       @last_soa_serial = soa_serial
-      run_checks(soa_ttl)
+      run_checks(key_ttl)
       # Then we need to save the data
       save_tracker_cache
     end
 
     # run the checks on the new zone data - called internally
-    def run_checks(soa_ttl)
+    def run_checks(key_ttl)
       # We also need to perform the auditing checks against the config
       # Checks to be performed :
       #   b) Warn if number of prepublished ZSKs < ZSK:Standby
@@ -311,7 +316,7 @@ module KASPAuditor
           zsks.each {|z|
             zsk_lifetime = z.lifetime if (z.lifetime > zsk_lifetime)
           }
-          lifetime = zsk_lifetime + @enforcer_interval 
+          lifetime = zsk_lifetime + @enforcer_interval + @validity
           if timestamp < (Time.now.to_i - lifetime)
             msg = "ZSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
             @parent.log(LOG_WARNING, msg)
@@ -327,23 +332,24 @@ module KASPAuditor
           ksks.each {|k|
             ksk_lifetime = k.lifetime if (k.lifetime > ksk_lifetime)
           }
-          lifetime = ksk_lifetime + @enforcer_interval 
+          lifetime = ksk_lifetime + @enforcer_interval + @validity
           if timestamp < (Time.now.to_i - lifetime)
-            msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
+#            msg = "KSK #{key.key_tag} in use too long - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds"
+            msg = "KSK #{key.key_tag} reaching end of lifetime - should be max #{lifetime} seconds but has been #{Time.now.to_i-timestamp} seconds, not including time taken for DS to be seen"
             @parent.log(LOG_WARNING, msg)
           end
         end
       }
       if (@config.audit_tag_present)
-        check_inuse_keys_history(soa_ttl)
+        check_inuse_keys_history(key_ttl)
       end
     end
     
-    def check_inuse_keys_history(soa_ttl)
-      # Error if a key is seen in use without having first been seen in prepublished for at least the zone SOA TTL
-      # Remember not to warn if we haven't been running as long as the zone SOA TTL...
-      if (Time.now.to_i >= (@initial_timestamp + soa_ttl))
-        # Has a key jumped to in-use without having gone through prepublished for at least soa_ttl?
+    def check_inuse_keys_history(key_ttl)
+      # Error if a key is seen in use without having first been seen in prepublished for at least the zone key TTL
+      # Remember not to warn if we haven't been running as long as the zone key TTL...
+      if (Time.now.to_i >= (@initial_timestamp + key_ttl))
+        # Has a key jumped to in-use without having gone through prepublished for at least key_ttl?
         # Just load the cache from disk again - then we could compare the two
         old_cache = load_tracker_cache(false)
         @cache.inuse.keys.each {|new_inuse_key|
@@ -355,9 +361,9 @@ module KASPAuditor
             next
           end
 
-          if ((Time.now.to_i - old_key_timestamp) < soa_ttl)
+          if ((Time.now.to_i - old_key_timestamp) < key_ttl)
             @parent.log(LOG_ERR, "Key (#{new_inuse_key.key_tag}) has gone to active use, but has only been prepublished for" +
-                " #{(Time.now.to_i - old_key_timestamp)} seconds. Zone SOA ttl is #{soa_ttl}")
+                " #{(Time.now.to_i - old_key_timestamp)} seconds. Zone DNSKEY ttl is #{key_ttl}")
           end
         }
       end

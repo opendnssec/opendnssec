@@ -35,12 +35,13 @@
 #define SIGNER_DENIAL_H
 
 #include "config.h"
+#include "shared/allocator.h"
+#include "shared/status.h"
 #include "signer/nsec3params.h"
 #include "signer/rrset.h"
 
 #include <ldns/ldns.h>
-
-struct domain_struct;
+#include <time.h>
 
 /**
  * Denial of Existence data point.
@@ -48,70 +49,51 @@ struct domain_struct;
  */
 typedef struct denial_struct denial_type;
 struct denial_struct {
-    ldns_rdf* owner;
+    void* zone;
+    void* domain;
+    ldns_rbnode_t* node;
+    ldns_rdf* dname;
     rrset_type* rrset;
-    struct domain_struct* domain;
-    uint8_t bitmap_changed;
-    uint8_t nxt_changed;
+    unsigned bitmap_changed : 1;
+    unsigned nxt_changed : 1;
 };
 
 /**
  * Create new Denial of Existence data point.
- * \param[in] owner owner name of the NSEC or NSEC3 RRset
- * \return denial_type* denial of existence data
+ * \param[in] zoneptr zone reference
+ * \param[in] dname owner name
+ * \return denial_type* denial of existence data point
  *
  */
-denial_type* denial_create(ldns_rdf* owner);
+denial_type* denial_create(void* zoneptr, ldns_rdf* dname);
 
 /**
- * Recover Denial of Existence data point from backup.
- * \param[in] fd backup file descriptor
- * \return denial_type* recovered denial of existence data
- *
- */
-denial_type* denial_recover_from_backup(FILE* fd);
-
-/**
- * Recover RRSIG from backup.
+ * Apply differences at denial.
  * \param[in] denial Denial of Existence data point
- * \param[in] rrsig RRSIG
- * \param[in] type_covered RRtype that is covered by rrsig
- * \param[in] locator key locator
- * \param[in] flags key flags
- * \return int 0 on success, 1 on error
  *
  */
-int denial_recover_rrsig_from_backup(denial_type* denial, ldns_rr* rrsig,
-    ldns_rr_type type_covered, const char* locator, uint32_t flags);
+void denial_diff(denial_type* denial);
 
 /**
- * Add NSEC to the Denial of Existence data point.
+ * Add NSEC(3) to the Denial of Existence data point.
  * \param[in] denial Denial of Existence data point
  * \param[in] nxt next Denial of Existence data point
- * \param[in] ttl ttl
- * \param[in] klass class
- * \return int 0 if ok, 1 on error
+ * \param[out] num_added number of RRs added
  *
  */
-int denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t ttl,
-    ldns_rr_class klass);
+void denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added);
 
 /**
- * Add NSEC3 to the Denial of Existence data point.
- * \param[in] denial Denial of Existence data point
- * \param[in] nxt next Denial of Existence data point
- * \param[in] ttl ttl
- * \param[in] klass class
- * \param[in] nsec3params NSEC3 parameters
- * \return int 0 if ok, 1 on error
+ * Print Denial of Existence data point.
+ * \param[in] fd file descriptor
+ * \param[in] denial denial of existence data point
  *
  */
-int denial_nsecify3(denial_type* denial, denial_type* nxt, uint32_t ttl,
-    ldns_rr_class klass, nsec3params_type* nsec3params);
+void denial_print(FILE* fd, denial_type* denial);
 
 /**
- * Clean up Denial of Existence data point.
- * \param[in] denial Denial of Existence data point
+ * Cleanup Denial of Existence data point.
+ * \param[in] denial denial of existence data point
  *
  */
 void denial_cleanup(denial_type* denial);

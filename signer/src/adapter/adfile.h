@@ -35,30 +35,49 @@
 #define ADAPTER_ADFILE_H
 
 #include "config.h"
+#include "shared/allocator.h"
+#include "shared/status.h"
 
 #include <stdio.h>
 
-#define SE_ADFILE_MAXLINE 65535
-
-struct zone_struct;
+/**
+ * File adapter.
+ *
+ */
+/** NULL */
 
 /**
- * Read zone file.
- * \param[in] zone zone structure
+ * Initialize file adapters.
+ * \param[in] adapter
+ *
+ */
+void adfile_init(void* adapter);
+
+/**
+ * Read zone from input file adapter.
+ * \param[in] zone zone reference
  * \param[in] filename read from this specific file
- * \param[in] recover true if we are recovering from backup
- * \return 0 on success, 1 on error
+ * \return ods_status status
  *
  */
-int adfile_read(struct zone_struct* zone, const char* filename, int recover);
+ods_status adfile_read(void* zone, const char* filename);
 
 /**
- * Write zone file.
- * \param[in] zone zone structure
- * \param[in] filename write to this specific file
- * \return 0 on success, 1 on error
+ * Read zone from backup file.
+ * \param[in] zone zone reference
+ * \param[in] filename read from this specific file
+ * \return ods_status status
  *
  */
-int adfile_write(struct zone_struct* zone, const char* filename);
+ods_status adbackup_read(void* zone, const char* filename);
+
+/**
+ * Write zone to output file adapter.
+ * \param[in] zone zone reference
+ * \param[in] filename write to this specific file
+ * \return ods_status status
+ *
+ */
+ods_status adfile_write(void* zone, const char* filename);
 
 #endif /* ADAPTER_ADFILE_H */

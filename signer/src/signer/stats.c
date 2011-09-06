@@ -31,9 +31,8 @@
  *
  */
 
+#include "shared/log.h"
 #include "signer/stats.h"
-#include "util/log.h"
-#include "util/se_malloc.h"
 
 /**
  * Initialize statistics.
@@ -42,8 +41,9 @@
 stats_type*
 stats_create(void)
 {
-    stats_type* stats = (stats_type*) se_malloc(sizeof(stats_type));
+    stats_type* stats = (stats_type*) malloc(sizeof(stats_type));
     stats_clear(stats);
+    lock_basic_init(&stats->stats_lock);
     return stats;
 }
 
@@ -55,7 +55,7 @@ stats_create(void)
 void
 stats_clear(stats_type* stats)
 {
-    se_log_assert(stats);
+    ods_log_assert(stats);
     stats->sort_count = 0;
     stats->sort_time = 0;
     stats->sort_done = 0;
@@ -80,13 +80,14 @@ stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type)
 {
     uint32_t avsign = 0;
 
-    se_log_assert(stats);
-    se_log_assert(name);
+    if (!stats) {
+        return;
+    }
+    ods_log_assert(stats);
     if (stats->sig_time) {
         avsign = (uint32_t) (stats->sig_count/stats->sig_time);
     }
-
-    se_log_info("[STATS] %s RR[count=%u time=%u(sec)] "
+    ods_log_info("[STATS] %s RR[count=%u time=%u(sec)] "
         "NSEC%s[count=%u time=%u(sec)] "
         "RRSIG[new=%u reused=%u time=%u(sec) avg=%u(sig/sec)] "
         "AUDIT[time=%u(sec)] TOTAL[time=%u(sec)] ",
@@ -106,10 +107,7 @@ stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type)
 void
 stats_cleanup(stats_type* stats)
 {
-    if (stats) {
-	se_free((void*) stats);
-    } else {
-        se_log_warning("cleanup empty statistics");
-    }
+    lock_basic_destroy(&stats->stats_lock);
+    free((void*) stats);
     return;
 }

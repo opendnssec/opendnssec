@@ -73,7 +73,7 @@ class OptionsParser
         opts.on("-z", "--zone [ZONE_NAME]",
                 "Single zone to audit",
                 "  (defaults to audit all zones)") do |ext|
-          options.zone_name = ext
+          options.zone_name = ext.chomp(".")
         end
 
         # signed_temp

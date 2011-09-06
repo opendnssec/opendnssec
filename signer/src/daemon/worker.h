@@ -35,23 +35,33 @@
 #define DAEMON_WORKER_H
 
 #include "scheduler/task.h"
-#include "scheduler/locks.h"
-#include "signer/zone.h"
+#include "shared/allocator.h"
+#include "shared/locks.h"
 
 #include <time.h>
 
-#define WORKER_WORKER 1
+enum worker_enum {
+    WORKER_NONE = 0,
+    WORKER_WORKER = 1,
+    WORKER_DRUDGER
+};
+typedef enum worker_enum worker_id;
 
 struct engine_struct;
 
 typedef struct worker_struct worker_type;
 struct worker_struct {
+    allocator_type* allocator;
     int thread_num;
-    se_thread_type thread_id;
-    tasklist_type* tasklist;
+    ods_thread_type thread_id;
+    void* engine;
     task_type* task;
-    struct engine_struct* engineptr;
-    int type;
+    task_id working_with;
+    worker_id type;
+    time_t clock_in;
+    size_t jobs_appointed;
+    size_t jobs_completed;
+    size_t jobs_failed;
     int sleeping;
     int waiting;
     int need_to_exit;
@@ -61,34 +71,21 @@ struct worker_struct {
 
 /**
  * Create worker.
+ * \param[in] allocator memory allocator
  * \param[in] num thread number
  * \param[in] type type of worker
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(int num, int type);
+worker_type* worker_create(allocator_type* allocator, int num,
+    worker_id type);
 
 /**
- * Start worker.
- * \param[in] worker worker to start
+ * Start working.
+ * \param[in] worker worker to start working
  *
  */
 void worker_start(worker_type* worker);
-
-/**
- * Worker perform task.
- * \param[in] worker worker that picked up the task
- * \param[in] task task to be performed
- *
- */
-void worker_perform_task(worker_type* worker, task_type* task);
-
-/**
- * Clean up worker.
- * \param[in] worker clean up this worker
- *
- */
-void worker_cleanup(worker_type* worker);
 
 /**
  * Put worker to sleep.
@@ -100,11 +97,14 @@ void worker_cleanup(worker_type* worker);
 void worker_sleep(worker_type* worker, time_t timeout);
 
 /**
- * Let worker wait.
- * \param[in] worker waiting worker
+ * Put worker to sleep unless the worker has measured up to all
+ * appointed jobs.
+ * \param[in] worker put this worker to sleep
+ * \param[in] timeout time before alarm clock is going off,
+ *            0 means no alarm clock is set.
  *
  */
-void worker_wait(worker_type* worker);
+void worker_sleep_unless(worker_type* worker, time_t timeout);
 
 /**
  * Wake up worker.
@@ -114,10 +114,34 @@ void worker_wait(worker_type* worker);
 void worker_wakeup(worker_type* worker);
 
 /**
- * Notify worker.
- * \param[in] worker notify this worker
+ * Let worker wait.
+ * \param[in] lock lock to use
+ * \param[in] condition condition to be met
  *
  */
-void worker_notify(worker_type* worker);
+void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
+
+/**
+ * Notify a worker.
+ * \param[in] lock lock to use
+ * \param[in] condition condition that has been met
+ *
+ */
+void worker_notify(lock_basic_type* lock, cond_basic_type* condition);
+
+/**
+ * Notify all workers.
+ * \param[in] lock lock to use
+ * \param[in] condition condition that has been met
+ *
+ */
+void worker_notify_all(lock_basic_type* lock, cond_basic_type* condition);
+
+/**
+ * Clean up worker.
+ * \param[in] worker worker to clean up
+ *
+ */
+void worker_cleanup(worker_type* worker);
 
 #endif /* DAEMON_WORKER_H */

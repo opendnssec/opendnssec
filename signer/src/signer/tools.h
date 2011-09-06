@@ -35,65 +35,33 @@
 #define SIGNER_TOOLS_H
 
 #include "config.h"
-#include "daemon/cfg.h"
+#include "shared/status.h"
 #include "signer/zone.h"
 
 /**
- * Read zone input adapter.
+ * Load zone signconf.
  * \param[in] zone zone
- * \return int 0 on success, 1 on fail
+ * \return ods_status status
  *
  */
-int tools_read_input(zone_type* zone);
+ods_status tools_signconf(zone_type* zone);
 
 /**
- * Add DNSKEY (and NSEC3PARAM) records to zone.
+ * Read zone from input adapter.
  * \param[in] zone zone
- * \return int 0 on success, 1 on fail
+ * \return ods_status status
  *
  */
-int tools_add_dnskeys(zone_type* zone);
-
-/**
- * Update zone with pending changes.
- * \param[in] zone zone
- * \return int 0 on success, 1 on fail
- *
- */
-int tools_update(zone_type* zone);
-
-/**
- * Add NSEC(3) records to zone.
- * \param[in] zone zone
- * \return int 0 on success, 1 on fail
- *
- */
-int tools_nsecify(zone_type* zone);
-
-/**
- * Add RRSIG records to zone.
- * \param[in] zone zone
- * \return int 0 on success, 1 on fail
- *
- */
-int tools_sign(zone_type* zone);
-
-/**
- * Audit zone.
- * \param[in] zone zone
- * \param[in] working_dir working directory
- * \param[in] cfg_filename conf.xml filename
- * \return int 0 on success, 1 on fail
- *
- */
-int tools_audit(zone_type* zone, char* working_dir, char* cfg_filename);
+ods_status tools_input(zone_type* zone);
 
 /**
  * Write zone to output adapter.
  * \param[in] zone zone
- * \return int 0 on success, 1 on fail
+ * \param[in] dir working directory
+ * \param[in] cfgfile configuration file conx.xml
+ * \return ods_status status
  *
  */
-int tools_write_output(zone_type* zone);
+ods_status tools_output(zone_type* zone, const char* dir, const char* cfgfile);
 
 #endif /* SIGNER_TOOLS_H */

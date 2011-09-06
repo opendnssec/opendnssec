@@ -31,21 +31,27 @@
  *
  */
 
+#include "shared/allocator.h"
+#include "shared/log.h"
 #include "signer/backup.h"
 #include "signer/nsec3params.h"
-#include "util/log.h"
-#include "util/se_malloc.h"
+#include "signer/signconf.h"
 
-#include <ctype.h> /* isxdigit() */
-#include <ldns/ldns.h> /* ldns_hexdigit_to_int() */
-#include <string.h> /* strlen() */
+#include <ctype.h>
+#include <ldns/ldns.h>
+#include <stdlib.h>
+#include <string.h>
+
+static const char* nsec3_str = "nsec3";
+
 
 /**
  * Create NSEC3 salt.
  *
  */
-int
-nsec3params_create_salt(const char* salt_str, uint8_t* salt_len, uint8_t** salt)
+ods_status
+nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
+    uint8_t** salt)
 {
     uint8_t c;
     uint8_t* salt_tmp;
@@ -53,37 +59,34 @@ nsec3params_create_salt(const char* salt_str, uint8_t* salt_len, uint8_t** salt)
     if (!salt_str) {
         *salt_len = 0;
         *salt = NULL;
-        return 0;
+        return ODS_STATUS_OK;
     }
-
     *salt_len = (uint8_t) strlen(salt_str);
     if (*salt_len == 1 && salt_str[0] == '-') {
         *salt_len = 0;
         *salt = NULL;
-        return 0;
+        return ODS_STATUS_OK;
     } else if (*salt_len % 2 != 0) {
-        se_log_error("invalid salt %s", salt_str);
+        ods_log_error("[%s] invalid salt %s", nsec3_str, salt_str);
         *salt = NULL;
-        return 1;
+        return ODS_STATUS_ERR;
     }
-
     /* construct salt data */
-    salt_tmp = (uint8_t*) se_calloc(*salt_len / 2, sizeof(uint8_t));
+    salt_tmp = (uint8_t*) calloc(*salt_len / 2, sizeof(uint8_t));
     for (c = 0; c < *salt_len; c += 2) {
         if (isxdigit((int) salt_str[c]) && isxdigit((int) salt_str[c+1])) {
             salt_tmp[c/2] = (uint8_t) ldns_hexdigit_to_int(salt_str[c]) * 16 +
                                       ldns_hexdigit_to_int(salt_str[c+1]);
         } else {
-            se_log_error("invalid salt %s", salt_str);
-            se_free((void*)salt_tmp);
+            ods_log_error("[%s] invalid salt %s", nsec3_str, salt_str);
+            free((void*)salt_tmp);
             *salt = NULL;
-            return 1;
+            return ODS_STATUS_ERR;
         }
     }
-
     *salt_len = *salt_len / 2; /* update length */
     *salt = salt_tmp;
-    return 0;
+    return ODS_STATUS_OK;
 }
 
 
@@ -92,24 +95,61 @@ nsec3params_create_salt(const char* salt_str, uint8_t* salt_len, uint8_t** salt)
  *
  */
 nsec3params_type*
-nsec3params_create(uint8_t algo, uint8_t flags, uint16_t iter, const char* salt)
+nsec3params_create(void* sc, uint8_t algo, uint8_t flags, uint16_t iter,
+    const char* salt)
 {
-    nsec3params_type* nsec3params = (nsec3params_type*)
-                                    se_malloc(sizeof(nsec3params_type));
+    nsec3params_type* nsec3params = NULL;
+    signconf_type* signconf = (signconf_type*) sc;
     uint8_t salt_len; /* calculate salt len */
     uint8_t* salt_data; /* calculate salt data */
 
-    nsec3params->algorithm = algo; /* algorithm identifier */
-    nsec3params->flags = flags; /* flags */
-    nsec3params->iterations = iter; /* iterations */
-    /* construct the salt from the string */
-    if (nsec3params_create_salt(salt, &salt_len, &salt_data) != 0) {
-        se_free((void*)nsec3params);
+    if (!sc) {
         return NULL;
     }
-    nsec3params->salt_len = salt_len; /* salt length */
-    nsec3params->salt_data = salt_data; /* salt data */
+    nsec3params = (nsec3params_type*) allocator_alloc(signconf->allocator,
+        sizeof(nsec3params_type));
+    if (!nsec3params) {
+        ods_log_error("[%s] unable to create: allocator_alloc() failed",
+            nsec3_str);
+        return NULL;
+    }
+    nsec3params->sc = sc;
+    nsec3params->algorithm = algo;
+    nsec3params->flags = flags;
+    nsec3params->iterations = iter;
+    /* construct the salt from the string */
+    if (nsec3params_create_salt(salt, &salt_len, &salt_data) != 0) {
+        ods_log_error("[%s] unable to create: create salt failed", nsec3_str);
+        allocator_deallocate(signconf->allocator, (void*)nsec3params);
+        return NULL;
+    }
+    nsec3params->salt_len = salt_len;
+    nsec3params->salt_data = salt_data;
+    nsec3params->rr = NULL;
     return nsec3params;
+}
+
+
+/**
+ * Backup NSEC3 parameters.
+ *
+ */
+void
+nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
+    uint16_t iter, const char* salt, ldns_rr* rr)
+{
+    if (!fd) {
+        return;
+    }
+    fprintf(fd, ";;Nsec3parameters: salt %s algorithm %u optout %u "
+        "iterations %u\n", salt?salt:"-", (unsigned) algo,
+        (unsigned) flags, (unsigned) iter);
+    if (rr) {
+        ldns_rr_print(fd, rr);
+    }
+    fprintf(fd, ";;Nsec3done\n");
+    fprintf(fd, ";;\n");
+    return;
 }
 
 
@@ -129,7 +169,7 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
     uint8_t salt_len; /* calculate salt len */
     uint8_t* salt_data; /* calculate salt data */
 
-    se_log_assert(fd);
+    ods_log_assert(fd);
 
     if (!backup_read_str(fd, &salt) ||
         !backup_read_uint8_t(fd, &algorithm) ||
@@ -139,39 +179,40 @@ nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
             != LDNS_STATUS_OK ||
         !backup_read_check_str(fd, ";END"))
     {
-        se_log_error("nsec3params part in backup file is corrupted");
+        ods_log_error("[%s] nsec3params part in backup file is corrupted", nsec3_str);
         if (nsec3params_rr) {
             ldns_rr_free(nsec3params_rr);
             nsec3params_rr = NULL;
         }
         if (salt) {
-            se_free((void*) salt);
+            free((void*) salt);
             salt = NULL;
         }
         return NULL;
     }
 
-    nsec3params = (nsec3params_type*) se_malloc(sizeof(nsec3params_type));
+    nsec3params = (nsec3params_type*) malloc(sizeof(nsec3params_type));
     nsec3params->algorithm = algorithm; /* algorithm identifier */
     nsec3params->flags = flags; /* flags */
     nsec3params->iterations = iterations; /* iterations */
     /* construct the salt from the string */
     if (nsec3params_create_salt(salt, &salt_len, &salt_data) != 0) {
-        se_free((void*)nsec3params);
-        se_free((void*)salt);
+        free((void*)nsec3params);
+        free((void*)salt);
         ldns_rr_free(nsec3params_rr);
         return NULL;
     }
-    se_free((void*) salt);
+    free((void*) salt);
     nsec3params->salt_len = salt_len; /* salt length */
     nsec3params->salt_data = salt_data; /* salt data */
     *rr = nsec3params_rr;
+    nsec3params->rr = nsec3params_rr;
     return nsec3params;
 }
 
 
 /**
- * Convert Salt to string.
+ * Convert salt to string.
  *
  */
 const char*
@@ -186,7 +227,6 @@ nsec3params_salt2str(nsec3params_type* nsec3params)
 
     salt_length = nsec3params->salt_len;
     data = nsec3params->salt_data;
-
     /* from now there are variable length entries so remember pos */
     if (salt_length == 0) {
         buffer = ldns_buffer_new(2);
@@ -197,12 +237,11 @@ nsec3params_salt2str(nsec3params_type* nsec3params)
             written = ldns_buffer_printf(buffer, "%02x", data[salt_pos]);
         }
     }
-
     if (ldns_buffer_status(buffer) == LDNS_STATUS_OK) {
         str = ldns_buffer2str(buffer);
     } else {
-        se_log_error("failed to convert nsec3 salt to string: %s",
-            ldns_get_errorstr_by_id(ldns_buffer_status(buffer)));
+        ods_log_error("[%s] unable to convert nsec3 salt to string: %s",
+            nsec3_str, ldns_get_errorstr_by_id(ldns_buffer_status(buffer)));
     }
     ldns_buffer_free(buffer);
     return (const char*) str;
@@ -216,11 +255,12 @@ nsec3params_salt2str(nsec3params_type* nsec3params)
 void
 nsec3params_cleanup(nsec3params_type* nsec3params)
 {
-    if (nsec3params) {
-        se_free((void*) nsec3params->salt_data);
-	se_free((void*) nsec3params);
-    } else {
-        se_log_warning("cleanup empty nsec3 parameters");
+    signconf_type* sc = NULL;
+    if (!nsec3params) {
+        return;
     }
+    sc = (signconf_type*) nsec3params->sc;
+    allocator_deallocate(sc->allocator, (void*) nsec3params->salt_data);
+    allocator_deallocate(sc->allocator, (void*) nsec3params);
     return;
 }

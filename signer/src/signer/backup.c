@@ -32,13 +32,15 @@
  */
 
 #include "config.h"
+#include "shared/duration.h"
+#include "shared/file.h"
+#include "shared/log.h"
 #include "signer/backup.h"
-#include "util/duration.h"
-#include "util/file.h"
-#include "util/log.h"
-#include "util/se_malloc.h"
 
 #include <ldns/ldns.h>
+
+static const char* backup_str = "backup";
+
 
 /**
  * Read token from backup file.
@@ -49,6 +51,7 @@ backup_read_token(FILE* in)
 {
     static char buf[4000];
     buf[sizeof(buf)-1]=0;
+
     while (1) {
         if (fscanf(in, "%3990s", buf) != 1) {
             return 0;
@@ -72,11 +75,11 @@ backup_read_check_str(FILE* in, const char* str)
 {
     char *p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read check string \'%s\'\n", str);
+        ods_log_debug("[%s] cannot read check string \'%s\'", backup_str, str);
         return 0;
     }
-    if (se_strcmp(p, str) != 0) {
-        se_log_debug("backup: \'%s\' does not match \'%s\'\n", p, str);
+    if (ods_strcmp(p, str) != 0) {
+        ods_log_debug("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
         return 0;
     }
     return 1;
@@ -92,10 +95,10 @@ backup_read_str(FILE* in, const char** str)
 {
     char *p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read string\n");
+        ods_log_debug("[%s] cannot read string", backup_str);
         return 0;
     }
-    *str = se_strdup(p);
+    *str = strdup(p);
     return 1;
 }
 
@@ -109,7 +112,7 @@ backup_read_time_t(FILE* in, time_t* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read time\n");
+        ods_log_debug("[%s] cannot read time", backup_str);
        return 0;
     }
     *v=atol(p);
@@ -126,7 +129,7 @@ backup_read_duration(FILE* in, duration_type** v)
 {
     char* p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read duration\n");
+        ods_log_debug("[%s] cannot read duration", backup_str);
        return 0;
     }
     *v=duration_create_from_string((const char*) p);
@@ -143,7 +146,7 @@ backup_read_rr_type(FILE* in, ldns_rr_type* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read rr type\n");
+        ods_log_debug("[%s] cannot read rr type", backup_str);
        return 0;
     }
     *v=(ldns_rr_type) atoi(p);
@@ -160,7 +163,7 @@ backup_read_int(FILE* in, int* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read integer\n");
+        ods_log_debug("[%s] cannot read integer", backup_str);
        return 0;
     }
     *v=atoi(p);
@@ -177,7 +180,7 @@ backup_read_size_t(FILE* in, size_t* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read size_t\n");
+        ods_log_debug("[%s] cannot read size_t", backup_str);
        return 0;
     }
     *v=(size_t)atoi(p);
@@ -194,7 +197,7 @@ backup_read_uint8_t(FILE* in, uint8_t* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read uint8_t\n");
+        ods_log_debug("[%s] cannot read uint8_t", backup_str);
        return 0;
     }
     *v= (uint8_t)atoi(p);
@@ -211,7 +214,7 @@ backup_read_uint16_t(FILE* in, uint16_t* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read uint16_t\n");
+        ods_log_debug("[%s] cannot read uint16_t", backup_str);
        return 0;
     }
     *v= (uint16_t)atoi(p);
@@ -228,7 +231,7 @@ backup_read_uint32_t(FILE* in, uint32_t* v)
 {
     char* p = backup_read_token(in);
     if (!p) {
-        se_log_debug("backup: cannot read uint32_t\n");
+        ods_log_debug("[%s] cannot read uint32_t", backup_str);
        return 0;
     }
     *v= (uint32_t)atol(p);
