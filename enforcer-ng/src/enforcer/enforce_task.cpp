@@ -376,10 +376,32 @@ enforce_task_perform(task_type *task)
 }
 
 task_type *
-enforce_task(engine_type *engine, const char *what, const char *who)
+enforce_task(engine_type *engine)
 {
+    const char *what = "enforce";
+    const char *who = "next zone";
     task_id what_id = task_register(what, 
                                  "enforce_task_perform",
                                  enforce_task_perform);
     return task_create(what_id, time_now(), who, (void*)engine);
+}
+
+
+int
+flush_enforce_task(engine_type *engine)
+{
+    /* flush (force to run) the enforcer task when it is waiting in the 
+     task list. */
+    task_type *enf = enforce_task(engine);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    /* [LOCK] schedule */
+    task_type *running_enforcer = schedule_lookup_task(engine->taskq, enf);
+    task_cleanup(enf);
+    if (running_enforcer)
+        running_enforcer->flush = 1;
+    /* [UNLOCK] schedule */
+    lock_basic_unlock(&engine->taskq->schedule_lock);
+    if (running_enforcer)
+        engine_wakeup_workers(engine);
+    return running_enforcer ? 1 : 0;
 }

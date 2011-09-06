@@ -78,20 +78,8 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                    scmd,time(NULL)-tstart);
     ods_writen(sockfd, buf, strlen(buf));
-    
-    /* flush (force to run) the enforcer task when it is waiting in the 
-     task list. */
-    task_type *enf = enforce_task(engine,"enforce","next zone");
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-    task_type *running_enforcer = schedule_lookup_task(engine->taskq, enf);
-    task_cleanup(enf);
-    if (running_enforcer)
-        running_enforcer->flush = 1;
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-    if (running_enforcer)
-        engine_wakeup_workers(engine);
+
+    flush_enforce_task(engine);
     
     return 1;
 }

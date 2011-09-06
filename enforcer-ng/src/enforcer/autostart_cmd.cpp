@@ -45,7 +45,5 @@ autostart(engine_type* engine)
                   policy_resalt_task(engine->config,"resalt","policies"),
                   "resalt");
 
-    schedule_task(engine,
-                  enforce_task(engine,"enforce","next zone"),
-                  "enforce");
+    schedule_task(engine, enforce_task(engine), "enforce");
 }

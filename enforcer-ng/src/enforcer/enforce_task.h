@@ -7,7 +7,8 @@
 time_t perform_enforce(int sockfd, engine_type *engine, int bForce,
                        task_type *task);
 
-task_type *enforce_task(engine_type *engine, const char *what,
-                        const char *who);
+task_type *enforce_task(engine_type *engine);
+
+int flush_enforce_task(engine_type *engine);
 
 #endif
