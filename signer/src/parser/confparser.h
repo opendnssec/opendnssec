@@ -27,8 +27,8 @@
  */
 
 /**
- *
  * Parsing configuration files.
+ *
  */
 
 #ifndef PARSER_CONFPARSER_H
