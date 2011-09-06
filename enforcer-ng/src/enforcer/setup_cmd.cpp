@@ -42,25 +42,25 @@ delete_database_files(int sockfd, const char *datastore)
     std::string policy_pb = std::string(datastore) + ".policy.pb";
     std::string keystate_pb = std::string(datastore) + ".keystate.pb";
     std::string hsmkey_pb = std::string(datastore) + ".hsmkey.pb";
-    if (unlink(policy_pb.c_str())==-1) {
+    if (unlink(policy_pb.c_str())==-1 && errno!=ENOENT) {
         ods_log_error("[%s] unlink of \"%s\" failed: %s",
                       module_str,policy_pb.c_str(),strerror(errno));
-        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s\n",
-                       policy_pb.c_str(),strerror(errno));
+        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s (%d)\n",
+                       policy_pb.c_str(),strerror(errno),errno);
         ods_writen(sockfd, buf, strlen(buf));
     }
-    if (unlink(keystate_pb.c_str())==-1) {
+    if (unlink(keystate_pb.c_str())==-1 && errno!=ENOENT) {
         ods_log_error("[%s] unlink of \"%s\" failed: %s",
                       module_str,keystate_pb.c_str(),strerror(errno));
-        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s\n",
-                       keystate_pb.c_str(),strerror(errno));
+        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s (%d)\n",
+                       keystate_pb.c_str(),strerror(errno),errno);
         ods_writen(sockfd, buf, strlen(buf));
     }
-    if (unlink(hsmkey_pb.c_str())==-1) {
+    if (unlink(hsmkey_pb.c_str())==-1 && errno!=ENOENT) {
         ods_log_error("[%s] unlink of \"%s\" failed: %s",
                       module_str,hsmkey_pb.c_str(),strerror(errno));
-        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s\n",
-                       hsmkey_pb.c_str(),strerror(errno));
+        (void)snprintf(buf, ODS_SE_MAXLINE, "unlink of \"%s\" failed: %s (%d)\n",
+                       hsmkey_pb.c_str(),strerror(errno),errno);
         ods_writen(sockfd, buf, strlen(buf));
     }
 }
