@@ -11,6 +11,7 @@ extern "C" {
 
 #include "policy/update_kasp_task.h"
 #include "keystate/update_keyzones_task.h"
+#include "hsmkey/hsmkey_gen_task.h"    
 
 #include "shared/duration.h"
 #include "shared/file.h"
@@ -65,19 +66,21 @@ delete_database_files(int sockfd, const char *datastore)
     }
 }
 
-static void reload_engine(int sockfd, engine_type* engine)
+static void flush_all_tasks(int sockfd, engine_type* engine)
 {
     char buf[ODS_SE_MAXLINE];
-    ods_log_assert(engine);
-    engine->need_to_reload = 1;
-    lock_basic_lock(&engine->signal_lock);
-    /* [LOCK] signal */
-    lock_basic_alarm(&engine->signal_cond);
-    /* [UNLOCK] signal */
-    lock_basic_unlock(&engine->signal_lock);
-    ods_log_debug("[%s] reloading engine...", module_str);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "reloading engine...\n");
+    ods_log_debug("[%s] flushing all tasks...", module_str);
+    (void)snprintf(buf, ODS_SE_MAXLINE, "flushing all tasks...\n");
     ods_writen(sockfd, buf, strlen(buf));
+    
+    ods_log_assert(engine);
+    ods_log_assert(engine->taskq);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    /* [LOCK] schedule */
+    schedule_flush(engine->taskq, TASK_NONE);
+    /* [UNLOCK] schedule */
+    lock_basic_unlock(&engine->taskq->schedule_lock);
+    engine_wakeup_workers(engine);
 }
 
 /**
@@ -99,12 +102,11 @@ int handled_setup_cmd(int sockfd, engine_type* engine,
     time_t tstart = time(NULL);
 
     delete_database_files(sockfd, engine->config->datastore);
-
     perform_update_kasp(sockfd, engine->config);
-
     perform_update_keyzones(sockfd, engine->config);
+    perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */);
 
-    reload_engine(sockfd, engine);
+    flush_all_tasks(sockfd, engine);
 
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                    scmd,time(NULL)-tstart);

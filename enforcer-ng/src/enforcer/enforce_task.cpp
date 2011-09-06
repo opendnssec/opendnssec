@@ -96,10 +96,8 @@ public:
 
     void LaunchKeyGen() const
     {
-        /* schedule task */
-        task_type *task = hsmkey_gen_task(_engine->config,
-                                          "pre-generate", "hsm keys");
-        schedule_task(_sockfd,_engine,task,"pre-generate");
+        schedule_task(_sockfd, _engine,hsmkey_gen_task(_engine->config),
+                      "hsm key gen");
     }
     
     virtual void OnKeyCreated(int bits, const std::string &repository,
@@ -118,6 +116,23 @@ public:
 };
 
 
+static time_t 
+reschedule_enforce(task_type *task, time_t t_when, const char *z_when)
+{
+    if (!task)
+        return -1;
+    
+    ods_log_assert(task->allocator);
+    ods_log_assert(task->who);
+    allocator_deallocate(task->allocator,(void*)task->who);
+    task->who = allocator_strdup(task->allocator, z_when);
+    
+    
+    task->when = std::max(t_when, time_now());
+    task->backoff = 0;
+    return task->when;
+}
+
 time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
                        task_type* task)
 {
@@ -127,6 +142,12 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
+    time_t t_now = time_now();
+    // when to reschedule next zone for enforcement
+    time_t t_when = t_now + 1 * 365 * 24 * 60 * 60; // now + 1 year
+    // which zone to reschedule next for enforcement
+    std::string z_when("next zone");
+    
     // Read the zonelist and policies in from the same directory as
     // the database, use serialized protocolbuffer for now, but switch
     // to using database table ASAP.
@@ -138,15 +159,18 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
         std::string datapath(datastore);
         datapath += ".policy.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (kaspDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] policies have been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
+        if (fd != -1) {
+            if (kaspDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] policies have been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] policies could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+                bFailedToLoad = true;
+            }
+            close(fd);
+        } else
             bFailedToLoad = true;
-        }
-        close(fd);
     }
 
     ::ods::keystate::KeyStateDocument *keystateDoc =
@@ -155,14 +179,16 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
         std::string datapath(datastore);
         datapath += ".keystate.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (keystateDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] keystates have been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] keystates could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
+        if (fd != -1) {
+            if (keystateDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] keystates have been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] keystates could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+            }
+            close(fd);
         }
-        close(fd);
     }
 
     ::ods::hsmkey::HsmKeyDocument *hsmkeyDoc = 
@@ -171,31 +197,26 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
         std::string datapath(datastore);
         datapath += ".hsmkey.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (hsmkeyDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] HSM key list has been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] HSM key list could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
+        if (fd != -1) {
+            if (hsmkeyDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] HSM key list has been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] HSM key list could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+            }
+            close(fd);
         }
-        close(fd);
     }
     
     if (bFailedToLoad) {
         delete kaspDoc;
         delete keystateDoc;
         delete hsmkeyDoc;
-        ods_log_error("[%s] unable to continue",
-                      module_str);
-        return -1;
+        ods_log_error("[%s] retrying in 30 minutes", module_str);
+        return reschedule_enforce(task,t_now + 30*60, z_when.c_str());
     }
 
-    time_t t_now = time_now();
-    // when to reschedule next zone for enforcement
-    time_t t_when = t_now + 1 * 365 * 24 * 60 * 60; // now + 1 year
-    // which zone to reschedule next for enforcement
-    std::string z_when;
-    
     HsmKeyFactoryCallbacks *hsmKeyFactoryCallbacks = 
         new HsmKeyFactoryCallbacks(sockfd,engine);
     // Hook the key factory into the hsmkeyDoc list of pre-generated 
@@ -351,18 +372,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
         schedule_task(sockfd,engine,submit,"ds-submit");
     }
 
-    if (!task)
-        return -1;
-    
-    ods_log_assert(task->allocator);
-    ods_log_assert(task->who);
-    allocator_deallocate(task->allocator,(void*)task->who);
-    task->who = allocator_strdup(task->allocator, z_when.c_str());
-
-    
-    task->when = std::max(t_when, time_now());
-    task->backoff = 0;
-    return task->when;
+    return reschedule_enforce(task,t_when,z_when.c_str());
 }
 
 static task_type *

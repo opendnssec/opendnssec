@@ -130,13 +130,17 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
     // If only manual key generation is allowed and we are not being called 
     // manually, then return.
     if (config->manual_keygen != 0 && bManual == 0) {
-        ods_log_debug("[%s] not generating keys, because only manual key "
-                      "generation allowed",
+        char buf[ODS_SE_MAXLINE];
+        ods_log_debug("[%s] not generating keys, because ManualKeyGeneration "
+                      "flag is set in conf.xml.",
                       module_str);
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+                       "not generating keys, because ManualKeyGeneration "
+                       "flag is set in conf.xml.\n");
+        ods_writen(sockfd, buf, strlen(buf));
         return;
     }
     
-    char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
     
     GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -148,14 +152,16 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
         std::string datapath(datastore);
         datapath += ".policy.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (kaspDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] policies have been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
+        if (fd != -1) {
+            if (kaspDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] policies have been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] policies could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+            }
+            close(fd);
         }
-        close(fd);
     }
 
     // Load the current list of pre-generated keys
@@ -165,15 +171,17 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
         std::string datapath(datastore);
         datapath += ".hsmkey.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (hsmkeyDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] HSM key info list has been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] HSM key info list could not be loaded "
-                          "from \"%s\"",
-                          module_str,datapath.c_str());
+        if (fd != -1) {
+            if (hsmkeyDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] HSM key info list has been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] HSM key info list could not be loaded "
+                              "from \"%s\"",
+                              module_str,datapath.c_str());
+            }
+            close(fd);
         }
-        close(fd);
     }
 
     bool bkeysgenerated = false;
@@ -308,16 +316,18 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
 static task_type * 
 hsmkey_gen_task_perform(task_type *task)
 {
-    perform_hsmkey_gen(-1,(engineconfig_type *)task->context,0);
+    perform_hsmkey_gen(-1, (engineconfig_type *)task->context, 0);
     task_cleanup(task);
     return NULL;
 }
 
 task_type *
-hsmkey_gen_task(engineconfig_type *config,const char *what, const char *who)
+hsmkey_gen_task(engineconfig_type *config)
 {
+    const char *what = "pre-generate";
+    const char *who = "hsm keys";
     task_id what_id = task_register(what,
-                                 "hsmkey_gen_task_perform",
-                                 hsmkey_gen_task_perform);
+                                    "hsmkey_gen_task_perform",
+                                    hsmkey_gen_task_perform);
 	return task_create(what_id, time_now(), who, (void*)config);
 }

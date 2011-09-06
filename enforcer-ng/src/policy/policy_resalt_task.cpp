@@ -34,14 +34,16 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
         std::string datapath(datastore);
         datapath += ".policy.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (kaspDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] policies have been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
+        if (fd != -1) {
+            if (kaspDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] policies have been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] policies could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+            }
+            close(fd);
         }
-        close(fd);
     }
 
     time_t next_reschedule = TIME_INFINITE;
@@ -137,17 +139,18 @@ policy_resalt_task_perform(task_type *task)
 {
 	task->backoff = 0;
     task->when = perform_policy_resalt(-1,(engineconfig_type *)task->context);
-    if (task->when != TIME_INFINITE)
-        return task; // return task, it needs to be rescheduled.
-
-    // no need to reschedule, cleanup and return NULL.
-    task_cleanup(task);
-    return NULL;
+    if (task->when == TIME_INFINITE) {
+        // The resalt did not work, so we just try it again in 30 minutes.
+        task->when = time_now() + 30*60;
+    }
+    return task; // return task, it needs to be rescheduled.
 }
 
 task_type *
-policy_resalt_task(engineconfig_type *config, const char *what, const char *who)
+policy_resalt_task(engineconfig_type *config)
 {
+    const char *what = "resalt";
+    const char *who = "policies";
     task_id what_id = task_register(what,
                                  "policy_resalt_task_perform", 
                                  policy_resalt_task_perform);

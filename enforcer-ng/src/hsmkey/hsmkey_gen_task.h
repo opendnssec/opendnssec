@@ -6,7 +6,6 @@
 
 void perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual);
 
-task_type *hsmkey_gen_task(engineconfig_type *config, const char *what,
-                           const char *who);
+task_type *hsmkey_gen_task(engineconfig_type *config);
 
 #endif

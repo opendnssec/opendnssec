@@ -40,10 +40,6 @@ void
 autostart(engine_type* engine)
 {
     ods_log_debug("[%s] autostart", module_str);
-
-    schedule_task(engine,
-                  policy_resalt_task(engine->config,"resalt","policies"),
-                  "resalt");
-
+    schedule_task(engine, policy_resalt_task(engine->config), "resalt");
     schedule_task(engine, enforce_task(engine), "enforce");
 }
