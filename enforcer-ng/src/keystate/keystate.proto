@@ -46,6 +46,7 @@ message KeyData {
 
     required KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
     optional bool active_ksk = 16 [default = false, (xml).path="ActiveKSK"];
+    optional dsatparent ds_at_parent = 17 [default = unsubmitted, (xml).path="DSAtParent"];
 }
 
 message KeyState {
@@ -67,4 +68,13 @@ enum rrstate {
     omnipresent = 2;
     unretentive = 3;
     NA = 4;
+}
+
+enum dsatparent {
+    unsubmitted = 0;
+    submit = 1;
+    submitted = 2;
+    seen = 3;
+    retract = 4;
+    retracted = 5;
 }
