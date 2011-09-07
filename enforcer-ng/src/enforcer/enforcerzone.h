@@ -77,6 +77,10 @@ public:
     virtual void setPublish(bool value);
     virtual void setActiveZSK(bool value);
     virtual void setActiveKSK(bool value);
+    
+    /* Current state of the DS record at the parent */
+    virtual DsAtParent dsAtParent();
+    virtual void setDsAtParent(DsAtParent value);
 };
 
 class KeyDataListPB : public KeyDataList {

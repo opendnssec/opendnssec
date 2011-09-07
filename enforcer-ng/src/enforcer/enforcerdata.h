@@ -6,6 +6,14 @@
 #include "policy/kasp.pb.h"
 
 enum KeyRole { KSK=1, ZSK, CSK };
+enum DsAtParent { 
+    DS_UNSUBMITTED = 0,
+    DS_SUBMIT,
+    DS_SUBMITTED,
+    DS_SEEN,
+    DS_RETRACT,
+    DS_RETRACTED
+};
 
 class HsmKey {
 public:
@@ -185,6 +193,9 @@ public:
     virtual void setPublish(bool value) = 0;
     virtual void setActiveZSK(bool value) = 0;
     virtual void setActiveKSK(bool value) = 0;
+    
+    virtual void setDsAtParent(DsAtParent value) = 0;
+    virtual DsAtParent dsAtParent() = 0;
 };
 
 class KeyDataList {

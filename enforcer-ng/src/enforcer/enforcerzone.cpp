@@ -199,6 +199,21 @@ void KeyDataPB::setActiveKSK(bool value)
     _keydata->set_active_ksk(value);
 }
 
+DsAtParent KeyDataPB::dsAtParent()
+{
+    return (DsAtParent)_keydata->ds_at_parent();
+}
+
+void KeyDataPB::setDsAtParent(DsAtParent value)
+{
+    if (::ods::keystate::dsatparent_IsValid(value))
+        _keydata->set_ds_at_parent( (::ods::keystate::dsatparent)value );
+    else {
+        ods_log_error("[%s] %d is not a valid dsatparent value",
+                      module_str,value);
+    }
+}
+
 // KeyDataListPB
 
 KeyDataListPB::KeyDataListPB(::ods::keystate::EnforcerZone *zone)
