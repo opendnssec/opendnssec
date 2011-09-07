@@ -20,6 +20,8 @@ Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
 * ods-ksmutil: "update kasp" now reflects changes in policy descriptions.
 * ods-ksmutil: Policy descriptions now have special characters quoted.
+* Bugfix #257: Error in ods-signerd, where a corrupted backup file results
+  in an invalid pointer free().
 * Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
 * ods-ksmutil: fixed issue where first ds-seen command run on a zone would work,
   but return an error code and not send a HUP to the enforcerd. 
