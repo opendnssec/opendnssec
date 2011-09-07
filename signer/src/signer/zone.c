@@ -1024,7 +1024,7 @@ recover_error:
 
     ldns_rr_free(nsec3params_rr);
     nsec3params_rr = NULL;
-
+    nsec3params->rr = NULL;
     nsec3params_cleanup(nsec3params);
     nsec3params = NULL;
 
