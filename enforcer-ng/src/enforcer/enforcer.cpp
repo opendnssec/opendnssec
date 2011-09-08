@@ -603,22 +603,20 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 						case RUM:
 							/** Ask the user to submit the DS to
 							 * the parent */
-							key.setDSSeen( false );
-							key.setSubmitToParent( true );
+							key.setDsAtParent(DS_SUBMIT);
 							break;
 						case OMN:
 							/** User had not indicated DS is seen */
-							if (!key.isDSSeen()) continue;
+							if (key.dsAtParent() != DS_SEEN) continue;
 							break;
 						case UNR:
 							/** Ask the user to remove the DS from
 							 * the parent */
-							//~ key.setDSGone( false );	//TODO implement interface
-							//~ key.setRemoveFromParent( true );	//TODO implement interface
+							key.setDsAtParent(DS_RETRACT);
 							break;
 						case HID:
 							/** User had not indicated DS is removed */
-							//~ if (!key.DSGone()) continue;	//TODO implement interface
+							if (key.dsAtParent() != DS_UNSUBMITTED) continue;
 							break;
 					}
 				}
@@ -904,8 +902,8 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
 				now, (KeyRole)role, false, false, false);
 			new_key.setLocator( newkey_hsmkey->locator() );
-			new_key.setDSSeen( false );
-			new_key.setSubmitToParent( false );
+
+			new_key.setDsAtParent(DS_UNSUBMITTED);
 			
 			setState(zone, new_key, DS, (role&KSK?HID:NOCARE), now);
 			setState(zone, new_key, DK, HID, now);
