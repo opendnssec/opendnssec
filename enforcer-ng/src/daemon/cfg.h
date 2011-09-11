@@ -55,6 +55,7 @@ struct engineconfig_struct {
     const char* log_filename;
     const char* pid_filename;
     const char* delegation_signer_submit_command;
+    const char* delegation_signer_retract_command;
     const char* clisock_filename;
     const char* working_dir;
     const char* username;

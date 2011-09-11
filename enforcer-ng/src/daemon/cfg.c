@@ -99,7 +99,10 @@ engine_config(allocator_type* allocator, const char* cfgfile,
             cfgfile);
         ecfg->log_filename = parse_conf_log_filename(allocator, cfgfile);
         ecfg->pid_filename = parse_conf_pid_filename(allocator, cfgfile);
-        ecfg->delegation_signer_submit_command = parse_conf_delegation_signer_submit_command(allocator, cfgfile);
+        ecfg->delegation_signer_submit_command = 
+            parse_conf_delegation_signer_submit_command(allocator, cfgfile);
+        ecfg->delegation_signer_retract_command = 
+            parse_conf_delegation_signer_retract_command(allocator, cfgfile);
         ecfg->clisock_filename = parse_conf_clisock_filename(allocator,
             cfgfile);
         ecfg->working_dir = parse_conf_working_dir(allocator, cfgfile);
@@ -231,6 +234,10 @@ engine_config_print(FILE* out, engineconfig_type* config)
             fprintf(out, "\t\t<DelegationSignerSubmitCommand>%s</DelegationSignerSubmitCommand>\n",
                 config->delegation_signer_submit_command);
         }
+        if (config->delegation_signer_retract_command) {
+            fprintf(out, "\t\t<DelegationSignerRetractCommand>%s</DelegationSignerRetractCommand>\n",
+                    config->delegation_signer_retract_command);
+        }
         fprintf(out, "\t</Enforcer>\n");
 
         fprintf(out, "</Configuration>\n");
@@ -263,6 +270,7 @@ engine_config_cleanup(engineconfig_type* config)
     allocator_deallocate(allocator, (void*) config->log_filename);
     allocator_deallocate(allocator, (void*) config->pid_filename);
     allocator_deallocate(allocator, (void*) config->delegation_signer_submit_command);
+    allocator_deallocate(allocator, (void*) config->delegation_signer_retract_command);
     allocator_deallocate(allocator, (void*) config->clisock_filename);
     allocator_deallocate(allocator, (void*) config->working_dir);
     allocator_deallocate(allocator, (void*) config->username);

@@ -81,6 +81,8 @@ const char* parse_conf_pid_filename(allocator_type* allocator,
     const char* cfgfile);
 const char* parse_conf_delegation_signer_submit_command(allocator_type* allocator,
     const char* cfgfile);
+const char* parse_conf_delegation_signer_retract_command(allocator_type* allocator,
+                                                        const char* cfgfile);
 const char* parse_conf_clisock_filename(allocator_type* allocator,
     const char* cfgfile);
 const char* parse_conf_working_dir(allocator_type* allocator,

@@ -288,7 +288,8 @@ parse_conf_pid_filename(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_delegation_signer_submit_command(allocator_type* allocator, const char* cfgfile)
+parse_conf_delegation_signer_submit_command(allocator_type* allocator,
+                                            const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -303,6 +304,22 @@ parse_conf_delegation_signer_submit_command(allocator_type* allocator, const cha
     return dup;
 }
 
+const char*
+parse_conf_delegation_signer_retract_command(allocator_type* allocator,
+                                             const char* cfgfile)
+{
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+        cfgfile,
+        "//Configuration/Enforcer/DelegationSignerRetractCommand",
+        0);
+    
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
+}
 
 const char*
 parse_conf_clisock_filename(allocator_type* allocator, const char* cfgfile)

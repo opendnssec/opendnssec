@@ -96,7 +96,11 @@ start = element Configuration {
 		# Command to use for submitting new DS records to a parent -
 		# the command should accept DNSKEY RRsets via STDIN
 		element DelegationSignerSubmitCommand { xsd:string }?,
-		
+
+		# Command to use for retracting an existing DS record from the parent -
+		# the command should accept DNSKEY RRsets via STDIN
+		element DelegationSignerRetractCommand { xsd:string }?,
+
 		# File used to detect enforcerd is already running.
 		element PidFile { xsd:string }?,
 

@@ -20,6 +20,7 @@ extern "C" {
 #include "hsmkey/hsmkey_gen_task.h"
 #include "signconf/signconf_task.h"
 #include "keystate/keystate_ds_submit_task.h"
+#include "keystate/keystate_ds_retract_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/allocator.h"
@@ -379,13 +380,8 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     // DS_RETRACT flag set.
     if (bRetractFromParent) {
         task_type *retract =
-#if 0
-// TODO: implement retract task
             keystate_ds_retract_task(engine->config,
                                 "ds-retract","KSK keys with retract flag set");
-#else 
-            NULL;
-#endif
         schedule_task(sockfd,engine,retract,"ds-retract");
     }
 

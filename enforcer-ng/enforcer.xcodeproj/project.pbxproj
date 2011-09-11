@@ -69,6 +69,8 @@
 		A7943626131B420E00108EFB /* str.c in Sources */ = {isa = PBXBuildFile; fileRef = A794360E131B420E00108EFB /* str.c */; };
 		A7943627131B420E00108EFB /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = A7943610131B420E00108EFB /* util.c */; };
 		A7943638131B443600108EFB /* keys.c in Sources */ = {isa = PBXBuildFile; fileRef = A7943636131B443600108EFB /* keys.c */; };
+		A79F968B141D63B100D9CB2A /* keystate_ds_retract_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79F9689141D63AE00D9CB2A /* keystate_ds_retract_cmd.cpp */; };
+		A79F968F141D63DB00D9CB2A /* keystate_ds_retract_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A79F968D141D63D800D9CB2A /* keystate_ds_retract_task.cpp */; };
 		A7A138181403B277002E972A /* autostart_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7A138161403B277002E972A /* autostart_cmd.cpp */; };
 		A7ACCD0D1352E0730003E535 /* enforcerzone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0B1352E0730003E535 /* enforcerzone.cpp */; };
 		A7ACCD0E1352E0730003E535 /* hsmkeyfactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A7ACCD0C1352E0730003E535 /* hsmkeyfactory.cpp */; };
@@ -216,6 +218,10 @@
 		A7943611131B420E00108EFB /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		A7943636131B443600108EFB /* keys.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = keys.c; sourceTree = "<group>"; };
 		A7943637131B443600108EFB /* keys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = keys.h; sourceTree = "<group>"; };
+		A79F9689141D63AE00D9CB2A /* keystate_ds_retract_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_ds_retract_cmd.cpp; path = keystate/keystate_ds_retract_cmd.cpp; sourceTree = "<group>"; };
+		A79F968A141D63B000D9CB2A /* keystate_ds_retract_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_ds_retract_cmd.h; path = keystate/keystate_ds_retract_cmd.h; sourceTree = "<group>"; };
+		A79F968D141D63D800D9CB2A /* keystate_ds_retract_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_ds_retract_task.cpp; path = keystate/keystate_ds_retract_task.cpp; sourceTree = "<group>"; };
+		A79F968E141D63D900D9CB2A /* keystate_ds_retract_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_ds_retract_task.h; path = keystate/keystate_ds_retract_task.h; sourceTree = "<group>"; };
 		A7A138161403B277002E972A /* autostart_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = autostart_cmd.cpp; sourceTree = "<group>"; };
 		A7A138171403B277002E972A /* autostart_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = autostart_cmd.h; sourceTree = "<group>"; };
 		A7ACCD091352E0720003E535 /* enforcerzone.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforcerzone.h; sourceTree = "<group>"; };
@@ -405,6 +411,10 @@
 				A77C59051372C53F000A4E51 /* keystate_ds_seen_cmd.cpp */,
 				A77C59041372C53E000A4E51 /* keystate_ds_seen_task.h */,
 				A77C59031372C53E000A4E51 /* keystate_ds_seen_task.cpp */,
+				A79F968A141D63B000D9CB2A /* keystate_ds_retract_cmd.h */,
+				A79F9689141D63AE00D9CB2A /* keystate_ds_retract_cmd.cpp */,
+				A79F968E141D63D900D9CB2A /* keystate_ds_retract_task.h */,
+				A79F968D141D63D800D9CB2A /* keystate_ds_retract_task.cpp */,
 				A771B778141910A100516619 /* keystate_ds_gone_cmd.h */,
 				A771B777141910A100516619 /* keystate_ds_gone_cmd.cpp */,
 				A771B776141910A000516619 /* keystate_ds_gone_task.h */,
@@ -691,6 +701,8 @@
 				A7D8A45F1410E47A00FD849A /* keystate_rollover_cmd.cpp in Sources */,
 				A771B779141910A100516619 /* keystate_ds_gone_task.cpp in Sources */,
 				A771B77A141910A100516619 /* keystate_ds_gone_cmd.cpp in Sources */,
+				A79F968B141D63B100D9CB2A /* keystate_ds_retract_cmd.cpp in Sources */,
+				A79F968F141D63DB00D9CB2A /* keystate_ds_retract_task.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
