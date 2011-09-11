@@ -12,7 +12,7 @@ extern "C" {
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
-
+#include <memory.h>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_export_task";
@@ -115,22 +115,28 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
-    ::ods::keystate::KeyStateDocument *keystateDoc =
-    new ::ods::keystate::KeyStateDocument;
+    std::auto_ptr< ::ods::keystate::KeyStateDocument >
+        keystateDoc(new ::ods::keystate::KeyStateDocument);
     {
         std::string datapath(datastore);
         datapath += ".keystate.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (keystateDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] keys have been loaded",
-                          module_str);
+        if (fd!=-1) {
+            if (keystateDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] keys have been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] keys could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+            }
+            close(fd);
         } else {
             ods_log_error("[%s] keys could not be loaded from \"%s\"",
                           module_str,datapath.c_str());
         }
-        close(fd);
     }
     
+    bool bFlagsChanged = false;
     std::string zname(zone);
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
 
@@ -140,16 +146,52 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
         
         for (int k=0; k<enfzone.keys_size(); ++k) {
             const ::ods::keystate::KeyData &key = enfzone.keys(k);
-            if (key.role()== ::ods::keystate::KSK
-                || key.role()== ::ods::keystate::CSK)
-            {
-                std::string dnskey;
-                dnskey_from_id(dnskey,key.locator().c_str(),
-                               key.role(),
-                               enfzone.name().c_str(),
-                               key.algorithm(),bds);
-                ods_writen(sockfd, dnskey.c_str(), dnskey.size());
+            if (key.role()==::ods::keystate::ZSK)
+                continue;
+            
+            if (key.ds_at_parent()!=::ods::keystate::submit
+                && key.ds_at_parent()!=::ods::keystate::submitted
+                )
+                continue;
+            
+            std::string dnskey;
+            dnskey_from_id(dnskey,key.locator().c_str(),
+                           key.role(),
+                           enfzone.name().c_str(),
+                           key.algorithm(),bds);
+            ods_writen(sockfd, dnskey.c_str(), dnskey.size());
+            
+            bFlagsChanged = key.ds_at_parent()==::ods::keystate::submit;
+            if (bFlagsChanged) {
+                keystateDoc->mutable_zones(z)->mutable_keys(k)
+                    ->set_ds_at_parent(::ods::keystate::submitted);
             }
+        }
+    }
+    
+    if (bFlagsChanged) {
+        // Persist the keystate zones back to disk as they may have
+        // been changed by the enforcer update
+        if (keystateDoc->IsInitialized()) {
+            std::string datapath(datastore);
+            datapath += ".keystate.pb";
+            int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
+            if (fd!=-1) {
+                if (keystateDoc->SerializeToFileDescriptor(fd)) {
+                    ods_log_debug("[%s] key states have been updated",
+                                  module_str);
+                } else {
+                    ods_log_error("[%s] key states file could not be written",
+                                  module_str);
+                }
+                close(fd);
+            } else {
+                ods_log_error("[%s] key states file \"%s\"could not be opened "
+                              "for writing", module_str,datastore);
+            }
+        } else {
+            ods_log_error("[%s] a message in the key states is missing "
+                          "mandatory information", module_str);
         }
     }
 }
