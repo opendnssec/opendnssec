@@ -26,6 +26,8 @@
 		A75BBBDB137AAC1E007A4B11 /* keystate_export_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A75BBBD4137A9591007A4B11 /* keystate_export_cmd.cpp */; };
 		A75BBBDC137AAC22007A4B11 /* keystate_export_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A75BBBD6137A9592007A4B11 /* keystate_export_task.cpp */; };
 		A75E74B7133B6E9700F09B43 /* zonelist.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A75E74B5133B6E9700F09B43 /* zonelist.pb.cc */; };
+		A771B779141910A100516619 /* keystate_ds_gone_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A771B775141910A000516619 /* keystate_ds_gone_task.cpp */; };
+		A771B77A141910A100516619 /* keystate_ds_gone_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A771B777141910A100516619 /* keystate_ds_gone_cmd.cpp */; };
 		A772F49313323E5E004179E8 /* xmlext.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49113323E5E004179E8 /* xmlext.pb.cc */; };
 		A772F49913323E7A004179E8 /* kasp.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = A772F49513323E7A004179E8 /* kasp.pb.cc */; };
 		A772F49E13324716004179E8 /* xmlext-rd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A772F49D13324716004179E8 /* xmlext-rd.cpp */; };
@@ -127,12 +129,16 @@
 		A75B340E131508F400AC30B1 /* enforcer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = enforcer; sourceTree = BUILT_PRODUCTS_DIR; };
 		A75B3410131508F400AC30B1 /* enforcerd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = enforcerd; sourceTree = BUILT_PRODUCTS_DIR; };
 		A75BBBD4137A9591007A4B11 /* keystate_export_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_export_cmd.cpp; path = keystate/keystate_export_cmd.cpp; sourceTree = "<group>"; };
-		A75BBBD5137A9592007A4B11 /* keystate_export_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; name = keystate_export_cmd.h; path = keystate/keystate_export_cmd.h; sourceTree = "<group>"; };
+		A75BBBD5137A9592007A4B11 /* keystate_export_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_export_cmd.h; path = keystate/keystate_export_cmd.h; sourceTree = "<group>"; };
 		A75BBBD6137A9592007A4B11 /* keystate_export_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_export_task.cpp; path = keystate/keystate_export_task.cpp; sourceTree = "<group>"; };
-		A75BBBD7137A9593007A4B11 /* keystate_export_task.h */ = {isa = PBXFileReference; fileEncoding = 4; name = keystate_export_task.h; path = keystate/keystate_export_task.h; sourceTree = "<group>"; };
+		A75BBBD7137A9593007A4B11 /* keystate_export_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_export_task.h; path = keystate/keystate_export_task.h; sourceTree = "<group>"; };
 		A75E74B4133B6E9700F09B43 /* zonelist.pb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zonelist.pb.h; sourceTree = "<group>"; };
 		A75E74B5133B6E9700F09B43 /* zonelist.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zonelist.pb.cc; sourceTree = "<group>"; };
 		A75E74B6133B6E9700F09B43 /* zonelist.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = zonelist.proto; sourceTree = "<group>"; };
+		A771B775141910A000516619 /* keystate_ds_gone_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_ds_gone_task.cpp; path = keystate/keystate_ds_gone_task.cpp; sourceTree = "<group>"; };
+		A771B776141910A000516619 /* keystate_ds_gone_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_ds_gone_task.h; path = keystate/keystate_ds_gone_task.h; sourceTree = "<group>"; };
+		A771B777141910A100516619 /* keystate_ds_gone_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_ds_gone_cmd.cpp; path = keystate/keystate_ds_gone_cmd.cpp; sourceTree = "<group>"; };
+		A771B778141910A100516619 /* keystate_ds_gone_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_ds_gone_cmd.h; path = keystate/keystate_ds_gone_cmd.h; sourceTree = "<group>"; };
 		A772F49013323E5E004179E8 /* xmlext.pb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xmlext.pb.h; sourceTree = "<group>"; };
 		A772F49113323E5E004179E8 /* xmlext.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = xmlext.pb.cc; sourceTree = "<group>"; };
 		A772F49213323E5E004179E8 /* xmlext.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = xmlext.proto; sourceTree = "<group>"; };
@@ -399,6 +405,10 @@
 				A77C59051372C53F000A4E51 /* keystate_ds_seen_cmd.cpp */,
 				A77C59041372C53E000A4E51 /* keystate_ds_seen_task.h */,
 				A77C59031372C53E000A4E51 /* keystate_ds_seen_task.cpp */,
+				A771B778141910A100516619 /* keystate_ds_gone_cmd.h */,
+				A771B777141910A100516619 /* keystate_ds_gone_cmd.cpp */,
+				A771B776141910A000516619 /* keystate_ds_gone_task.h */,
+				A771B775141910A000516619 /* keystate_ds_gone_task.cpp */,
 				A7D8A45D1410E47900FD849A /* keystate_rollover_cmd.h */,
 				A7D8A45C1410E47700FD849A /* keystate_rollover_cmd.cpp */,
 				A7D8A45B1410E47600FD849A /* keystate_rollover_task.h */,
@@ -679,6 +689,8 @@
 				A7A138181403B277002E972A /* autostart_cmd.cpp in Sources */,
 				A7D8A45E1410E47A00FD849A /* keystate_rollover_task.cpp in Sources */,
 				A7D8A45F1410E47A00FD849A /* keystate_rollover_cmd.cpp in Sources */,
+				A771B779141910A100516619 /* keystate_ds_gone_task.cpp in Sources */,
+				A771B77A141910A100516619 /* keystate_ds_gone_cmd.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -706,11 +718,11 @@
 				COPY_PHASE_STRIP = NO;
 				HEADER_SEARCH_PATHS = (
 					/usr/include/libxml2,
-					../libhsm/src,
+					../libhsm/src/lib,
 					../common,
 					src,
 				);
-				LIBRARY_SEARCH_PATHS = ../libhsm/src;
+				LIBRARY_SEARCH_PATHS = ../libhsm/src/lib;
 				ONLY_ACTIVE_ARCH_PRE_XCODE_3_1 = "$(NATIVE_ARCH_ACTUAL)";
 				OTHER_LDFLAGS = (
 					"-lxml2",
@@ -729,11 +741,11 @@
 				COPY_PHASE_STRIP = YES;
 				HEADER_SEARCH_PATHS = (
 					/usr/include/libxml2,
-					../libhsm/src,
+					../libhsm/src/lib,
 					../common,
 					src,
 				);
-				LIBRARY_SEARCH_PATHS = ../libhsm/src;
+				LIBRARY_SEARCH_PATHS = ../libhsm/src/lib;
 				OTHER_LDFLAGS = (
 					"-lxml2",
 					"-lldns",
