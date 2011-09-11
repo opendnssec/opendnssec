@@ -11,6 +11,7 @@ extern "C" {
 #include "xmlext-pb/xmlext-rd.h"
 
 
+#include <memory.h>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_ds_seen_task";
@@ -21,90 +22,127 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
 {
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
-
+    
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
-    ::ods::keystate::KeyStateDocument *keystateDoc =
-    new ::ods::keystate::KeyStateDocument;
+    std::auto_ptr< ::ods::keystate::KeyStateDocument >
+    keystateDoc(new ::ods::keystate::KeyStateDocument);
     {
         std::string datapath(datastore);
         datapath += ".keystate.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (keystateDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] keys have been loaded",
-                          module_str);
+        if (fd != -1) {
+            if (keystateDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] keys have been loaded",
+                              module_str);
+                close(fd);
+            } else {
+                ods_log_error("[%s] keys could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+                close(fd);
+                return;
+            }
         } else {
             ods_log_error("[%s] keys could not be loaded from \"%s\"",
                           module_str,datapath.c_str());
+            return;
         }
-        close(fd);
     }
     
-    (void)snprintf(buf, ODS_SE_MAXLINE,
-                   "Database set to: %s\n"
-                   "Keys:\n"
-                   "Zone:                           "
-                   "Key role:     "
-                   "Id:                                      "
-                   "ds-seen: "
-                   "\n"
-                   ,datastore
-                   );
-    ods_writen(sockfd, buf, strlen(buf));
-
-    bool bKeyStateModified = false;
+    if (!zone || !id) {
+        
+        // list all keys that have submitted flag set.
+        
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+                       "Database set to: %s\n"
+                       "Submitted Keys:\n"
+                       "Zone:                           "
+                       "Key role:     "
+                       "Id:                                      "
+                       "\n"
+                       ,datastore
+                       );
+        ods_writen(sockfd, buf, strlen(buf));
+        
+        for (int z=0; z<keystateDoc->zones_size(); ++z) {
+            
+            const ::ods::keystate::EnforcerZone &enfzone = keystateDoc->zones(z);
+            for (int k=0; k<enfzone.keys_size(); ++k) {
+                const ::ods::keystate::KeyData &key = enfzone.keys(k);
+                
+                // ZSKs are never trust anchors so skip them.
+                if (key.role() == ::ods::keystate::ZSK)
+                    continue;
+                
+                // Skip KSKs with a zero length id, they are placeholder keys.
+                if (key.locator().size()==0)
+                    continue;
+                
+                if (key.ds_at_parent()!=::ods::keystate::submitted)
+                    continue;
+                
+                std::string keyrole = keyrole_Name(key.role());
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "%-31s %-13s %-40s\n",
+                               enfzone.name().c_str(),
+                               keyrole.c_str(),
+                               key.locator().c_str()
+                               );
+                ods_writen(sockfd, buf, strlen(buf));
+            }
+        }
+        return;
+    }
+    
+    // Try to change the state of a specific submitted key back to unsubmitted.
     bool id_match = false;
+    bool bKeyStateModified = false;
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
-
+        
         ::ods::keystate::EnforcerZone *enfzone = keystateDoc->mutable_zones(z);
         for (int k=0; k<enfzone->keys_size(); ++k) {
             const ::ods::keystate::KeyData &key = enfzone->keys(k);
-
-            // ZSKs are not referenced by DS records so skip them.
+            
+            // ZSKs are never trust anchors so skip them.
             if (key.role() == ::ods::keystate::ZSK)
                 continue;
+            
             // Skip KSKs with a zero length id, they are placeholder keys.
             if (key.locator().size()==0)
                 continue;
             
-            std::string keyrole = keyrole_Name(key.role());
-            
-            if (id && key.locator()==id || zone && enfzone->name()==zone)
-            {
+            if (key.locator()==id && enfzone->name()==zone) {
+                id_match = true;
+                
+                if (key.ds_at_parent()!=::ods::keystate::submitted) {
+                    
+                    std::string dsatparentname =
+                        dsatparent_Name(key.ds_at_parent());
+                    (void)snprintf(buf, ODS_SE_MAXLINE, 
+                                   "Key that matches id \"%s\" in zone "
+                                   "\"%s\" is not submitted but %s\n",
+                                   id, zone,dsatparentname.c_str());
+                    ods_writen(sockfd, buf, strlen(buf));
+                    break;
+                }
+                
                 bKeyStateModified = true;
+                
                 ::ods::keystate::KeyData *mkey =
                     keystateDoc->mutable_zones(z)->mutable_keys(k);
-                mkey->set_ds_seen(true);
-                mkey->set_submit_to_parent(false);
-                id_match = true;
+                mkey->set_ds_at_parent(::ods::keystate::seen);
                 enfzone->set_next_change(0); // reschedule immediately
             }
-
-            const char *status = key.ds_seen() ? "yes" : "no";
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-40s %-8s\n",
-                           enfzone->name().c_str(),
-                           keyrole.c_str(),
-                           key.locator().c_str(),
-                           status
-                           );
-            ods_writen(sockfd, buf, strlen(buf));
         }
     }
     
     if (!id_match) {
-        if (id) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, 
-                    "WARNING - No key matches id \"%s\"\n", id);
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-        if (zone) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, 
-                    "WARNING - No key matches zone \"%s\"\n", zone);
-            ods_writen(sockfd, buf, strlen(buf));
-        }
+        (void)snprintf(buf, ODS_SE_MAXLINE, 
+                       "No KSK key matches id \"%s\" in zone \"%s\"\n",
+                       id, zone);
+        ods_writen(sockfd, buf, strlen(buf));
     }
-
+    
     // Persist the keystate zones back to disk as they may have
     // been changed by the enforcer update
     if (bKeyStateModified) {
