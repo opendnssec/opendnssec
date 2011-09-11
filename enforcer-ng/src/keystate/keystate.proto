@@ -36,8 +36,8 @@ message KeyData {
     required KeyState rrsig = 5 [(xml).path="RRSIG"];
     required KeyState dnskey = 6 [(xml).path="DNSKEY"];
     required keyrole role = 7 [(xml).path="Role"];
-    optional bool ds_seen = 8 [default = false, (xml).path="DSSeen"]; // parent says DS has been seen
-    optional bool submit_to_parent = 9 [default = false, (xml).path="DSSubmit"]; // submit DS to parent
+//    optional bool ds_seen = 8 [default = false, (xml).path="DSSeen"]; // parent says DS has been seen
+//    optional bool submit_to_parent = 9 [default = false, (xml).path="DSSubmit"]; // submit DS to parent
     optional bool introducing = 10 [default=true, (xml).path="Introducing"];
     optional bool revoke = 11 [default = false, (xml).path="Revoke"];
     optional bool standby = 12 [default = false, (xml).path="Standby"];

@@ -177,12 +177,6 @@ public:
     virtual KeyState &keyStateDNSKEY() = 0;
     virtual KeyState &keyStateRRSIGDNSKEY() = 0;
 
-    virtual bool isDSSeen() = 0;
-    virtual void setDSSeen(bool value) = 0;
-    
-    virtual bool submitToParent() = 0;
-    virtual void setSubmitToParent(bool value) = 0;
-
     /* Movement direction, efault true */
     virtual bool introducing() = 0; /* goal */
     virtual void setIntroducing(bool value) = 0;

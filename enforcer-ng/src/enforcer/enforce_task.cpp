@@ -227,6 +227,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     // its schedule time is earlier or identical to time_now.
     bool bSignerConfNeedsWriting = false;
     bool bSubmitToParent = false;
+    bool bRetractFromParent = false;
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
         // Update zone when scheduled time is earlier or identical to time_now.
         time_t t_next = keystateDoc->zones(z).next_change();
@@ -248,8 +249,10 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 
                 KeyDataList &kdl = enfZone.keyDataList();
                 for (int k=0; k<kdl.numKeys(); ++k) {
-                    if (kdl.key(k).submitToParent())
+                    if (kdl.key(k).dsAtParent() == DS_SUBMIT)
                         bSubmitToParent = true;
+                    if (kdl.key(k).dsAtParent() == DS_RETRACT)
+                        bRetractFromParent = true;
                 }
 
                 if (t_next == -1) {
@@ -364,12 +367,26 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     }
     
     // Launch ds-submit task when one of the updated key states has the
-    // submitToParent flag set.
+    // DS_SUBMIT flag set.
     if (bSubmitToParent) {
         task_type *submit =
             keystate_ds_submit_task(engine->config,
-                                    "ds-submit","keys with ds-submit flag set");
+                                    "ds-submit","KSK keys with submit flag set");
         schedule_task(sockfd,engine,submit,"ds-submit");
+    }
+
+    // Launch ds-retract task when one of the updated key states has the
+    // DS_RETRACT flag set.
+    if (bRetractFromParent) {
+        task_type *retract =
+#if 0
+// TODO: implement retract task
+            keystate_ds_retract_task(engine->config,
+                                "ds-retract","KSK keys with retract flag set");
+#else 
+            NULL;
+#endif
+        schedule_task(sockfd,engine,retract,"ds-retract");
     }
 
     return reschedule_enforce(task,t_when,z_when.c_str());

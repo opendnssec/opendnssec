@@ -59,12 +59,6 @@ public:
     virtual KeyRole role();
     void setRole(KeyRole value);
     
-    virtual bool isDSSeen();
-    virtual void setDSSeen(bool value);
-    
-    virtual bool submitToParent();
-    virtual void setSubmitToParent(bool value);
-
     virtual bool introducing(); /* goal */
     virtual void setIntroducing(bool value);
     

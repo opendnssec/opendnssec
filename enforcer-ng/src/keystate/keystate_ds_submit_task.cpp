@@ -164,7 +164,11 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                 const ::ods::keystate::KeyData &key = enfzone.keys(k);
 
                 // Don't ever submit ZSKs to the parent.
-                if (key.role()==::ods::keystate::ZSK || key.ds_seen())
+                if (key.role()==::ods::keystate::ZSK)
+                    continue;
+
+                // Onlyt submit KSKs that have the submit flag set.
+                if (key.ds_at_parent()!=::ods::keystate::submit)
                     continue;
                     
                 if (id) {
@@ -180,7 +184,7 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                         {
                             bFlagsChanged = true;
                             keystateDoc->mutable_zones(z)->mutable_keys(k)
-                                ->set_submit_to_parent(false);
+                             ->set_ds_at_parent(::ods::keystate::submitted);
                         }
                     }
                 } else {
@@ -197,25 +201,22 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                             {
                                 bFlagsChanged = true;
                                 keystateDoc->mutable_zones(z)->mutable_keys(k)
-                                    ->set_submit_to_parent(false);
+                                 ->set_ds_at_parent(::ods::keystate::submitted);
                             }
                         }
                     } else {
                         // --auto
-                        //     Submit keys to the parent that have
-                        //     the "submit to parent" flag set.
-                        if (key.submit_to_parent()) {
-                            // only submit the key to the parent when flag is set.
-                            if (submit_dnskey_by_id(sockfd,ds_submit_command,
-                                                key.locator().c_str(),
-                                                key.role(),
-                                                enfzone.name().c_str(),
-                                                key.algorithm()))
-                            {
-                                bFlagsChanged = true;
-                                keystateDoc->mutable_zones(z)->mutable_keys(k)
-                                    ->set_submit_to_parent(false);
-                            }
+                        //     Submit all keys to the parent that have
+                        //     the submit flag set.
+                        if (submit_dnskey_by_id(sockfd,ds_submit_command,
+                                            key.locator().c_str(),
+                                            key.role(),
+                                            enfzone.name().c_str(),
+                                            key.algorithm()))
+                        {
+                            bFlagsChanged = true;
+                            keystateDoc->mutable_zones(z)->mutable_keys(k)
+                             ->set_ds_at_parent(::ods::keystate::submitted);
                         }
                     }
                 }
@@ -253,14 +254,13 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
         return;
     }
 
-    // List the keys with ds-submit flags.
+    // List the keys with submit flags.
     (void)snprintf(buf, ODS_SE_MAXLINE,
                    "Database set to: %s\n"
-                   "Keys:\n"
+                   "Submit Keys:\n"
                    "Zone:                           "
                    "Key role:     "
                    "Id:                                      "
-                   "Should Submit: "
                    "\n"
                    ,datastore
                    );
@@ -270,16 +270,19 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
         for (int k=0; k<enfzone.keys_size(); ++k) {
             const ::ods::keystate::KeyData &key = enfzone.keys(k);
             // Don't suggest ZSKs can be submitted, leave them out of the list.
-            if (key.role() == ::ods::keystate::ZSK || key.ds_seen())
+            if (key.role() == ::ods::keystate::ZSK)
                 continue;
+
+            // Only show keys that have the submit flag set.
+            if (key.ds_at_parent()!=::ods::keystate::submit)
+                continue;
+            
             std::string keyrole = keyrole_Name(key.role());
-            const char *action = key.submit_to_parent() ? "yes" : "no";
             (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-40s %-14s\n",
+                           "%-31s %-13s %-40s\n",
                            enfzone.name().c_str(),
                            keyrole.c_str(),
-                           key.locator().c_str(),
-                           action
+                           key.locator().c_str()
                            );
             ods_writen(sockfd, buf, strlen(buf));
         }

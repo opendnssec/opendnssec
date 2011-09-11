@@ -144,26 +144,6 @@ void KeyDataPB::setRole(KeyRole value)
     }
 }
 
-bool KeyDataPB::isDSSeen()
-{
-    return _keydata->ds_seen();
-}
-
-void KeyDataPB::setDSSeen(bool value)
-{
-    _keydata->set_ds_seen( value );
-}
-
-bool KeyDataPB::submitToParent()
-{
-    return _keydata->submit_to_parent();
-}
-
-void KeyDataPB::setSubmitToParent(bool value)
-{
-    _keydata->set_submit_to_parent( value );
-}
-
 bool KeyDataPB::introducing()
 {
     return _keydata->introducing();
