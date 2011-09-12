@@ -16,6 +16,8 @@ extern "C" {
 
 #include "keystate/keystate.pb.h"
 
+#include <algorithm>
+
 static const char *module_str = "keystate_rollover_cmd";
 
 void help_keystate_rollover_cmd(int sockfd)
