@@ -144,14 +144,19 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
         std::string datapath(datastore);
         datapath += ".keystate.pb";
         int fd = open(datapath.c_str(),O_RDONLY);
-        if (keystateDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] keys have been loaded",
-                          module_str);
+        if (fd != -1) {
+            if (keystateDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] keys have been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] keys could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+            }
+            close(fd);
         } else {
-            ods_log_error("[%s] keys could not be loaded from \"%s\"",
+            ods_log_error("[%s] file \"%s\" could not be opened",
                           module_str,datapath.c_str());
         }
-        close(fd);
     }
 
     // Evalutate parameters and submit keys to the parent when instructed
