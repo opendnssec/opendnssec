@@ -19,6 +19,7 @@ static const char *module_str = "keystate_rollover_task";
 
 void 
 perform_keystate_rollover(int sockfd, engineconfig_type *config,
-                          const char *zone)
+                          const char *zone, const char *keytype)
 {
+
 }

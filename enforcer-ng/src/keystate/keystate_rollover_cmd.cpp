@@ -21,7 +21,7 @@ void help_keystate_rollover_cmd(int sockfd)
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "key rollover    rollover the key\n"
         "  --zone <zone> (aka -z) rollover key with id <id>.\n"
-        "  [--keytype <type>]\n"
+        "  [--keytype <keytype>]\n"
         "                (aka -t) type of the key KSK or ZSK (default all).\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
@@ -57,7 +57,9 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
     }
     
     const char *zone = NULL;
+    const char *keytype = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+    (void)ods_find_arg_and_param(&argc,argv,"keytype","t",&keytype);
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
@@ -75,7 +77,7 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
     
     /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_keystate_rollover(sockfd,engine->config,zone);
+    perform_keystate_rollover(sockfd,engine->config,zone,keytype);
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                    scmd,time(NULL)-tstart);
     ods_writen(sockfd, buf, strlen(buf));
