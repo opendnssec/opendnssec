@@ -20,9 +20,10 @@ void help_keystate_ds_seen_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key ds-seen     list all KSK keys that were submitted to the parent.\n"
-        "  --zone <zone> (aka -z) set seen for the key in\n"
-        "  --id <id>     (aka -k) zone <zone> with id <id>.\n"       );
+        "key ds-seen     list KSK keys that were submitted to the parent.\n"
+        "  --zone <zone> (aka -z) set KSK key to seen for zone <zone>\n"
+        "  --id <id>     (aka -k) with id <id>.\n"
+        );
     ods_writen(sockfd, buf, strlen(buf));
 }
 

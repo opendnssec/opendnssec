@@ -24,9 +24,9 @@ void help_keystate_ds_gone_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key ds-gone     list all KSK keys that were retracted from the parent.\n"
-        "  --zone <zone> (aka -z) set unsubmitted for the key in\n"
-        "  --id <id>     (aka -k) zone <zone> with id <id>.\n"
+        "key ds-gone     list KSK keys that were retracted from the parent.\n"
+        "  --zone <zone> (aka -z) set KSK key to unsubmitted for zone <zone>\n"
+        "  --id <id>     (aka -k) with id <id>.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }

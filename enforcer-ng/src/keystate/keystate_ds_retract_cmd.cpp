@@ -20,11 +20,11 @@ help_keystate_ds_retract_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key ds-retract   show retract flag for all keys.\n"
+        "key ds-retract  list KSK keys that should be retracted from the parent.\n"
         "  --zone <zone> (aka -z) force retract of KSK key for zone <zone>.\n"
         "  --id <id>     (aka -k) force retract of KSK key with id <id>.\n"
         "  --auto        (aka -a) perform retract for all keys that have "
-                        "the ds-retract flag set.\n"
+                        "the retract flag set.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }

@@ -20,11 +20,11 @@ help_keystate_ds_submit_cmd(int sockfd)
 {
     char buf[ODS_SE_MAXLINE];
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "key ds-submit   show submit flag for all keys.\n"
+        "key ds-submit   list KSK keys that should be submitted to the parent.\n"
         "  --zone <zone> (aka -z) force submit of KSK key for zone <zone>.\n"
         "  --id <id>     (aka -k) force submit of KSK key with id <id>.\n"
         "  --auto        (aka -a) perform submit for all keys that have "
-                        "the ds-submit flag set.\n"
+                        "the submit flag set.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
