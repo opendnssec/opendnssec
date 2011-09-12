@@ -51,6 +51,7 @@
 #include "keystate/keystate_export_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
 #include "keystate/keystate_ds_seen_cmd.h"
+#include "keystate/keystate_ds_retract_cmd.h"
 #include "keystate/keystate_ds_gone_cmd.h"
 
 #include "enforcer/enforce_cmd.h"
@@ -132,6 +133,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_keystate_export_cmd,
     help_keystate_ds_submit_cmd,
     help_keystate_ds_seen_cmd,
+    help_keystate_ds_retract_cmd,
     help_keystate_ds_gone_cmd,
     
     help_enforce_zones_cmd,
@@ -166,6 +168,8 @@ enforcer_commands[] = {
     handled_keystate_export_cmd,
     handled_keystate_ds_submit_cmd,
     handled_keystate_ds_seen_cmd,
+    handled_keystate_ds_retract_cmd,
+    handled_keystate_ds_gone_cmd,
     
     handled_enforce_zones_cmd,
     handled_signconf_cmd,
