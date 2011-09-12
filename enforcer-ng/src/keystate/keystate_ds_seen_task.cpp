@@ -11,7 +11,7 @@ extern "C" {
 #include "xmlext-pb/xmlext-rd.h"
 
 
-#include <memory.h>
+#include <memory>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_ds_seen_task";

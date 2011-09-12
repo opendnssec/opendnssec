@@ -12,7 +12,7 @@ extern "C" {
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
-#include <memory.h>
+#include <memory>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_export_task";
@@ -51,11 +51,14 @@ dnskey_from_id(std::string &dnskey,
     char *rrstr;
     /* DNSKEY record */
     dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+    
+#if 0
     /*TODO: find out what's the point of calculating the keytag here ?
      is this keytag used somehow in the ldns_key_rr2ds calls that may 
      be performed on the dnskey_rr ?
      */
     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
+#endif
     
     if (!bDS) {
 #if 0

@@ -12,7 +12,7 @@ extern "C" {
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
-#include <memory.h>
+#include <memory>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_rollover_task";
