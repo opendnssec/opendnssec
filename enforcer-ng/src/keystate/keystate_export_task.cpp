@@ -136,7 +136,8 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
         }
     }
     
-    bool bFlagsChanged = false;
+    bool bSubmitChanged = false;
+    bool bRetractChanged = false;
     std::string zname(zone);
     for (int z=0; z<keystateDoc->zones_size(); ++z) {
 
@@ -151,6 +152,8 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
             
             if (key.ds_at_parent()!=::ods::keystate::submit
                 && key.ds_at_parent()!=::ods::keystate::submitted
+                && key.ds_at_parent()!=::ods::keystate::retract
+                && key.ds_at_parent()!=::ods::keystate::retracted
                 )
                 continue;
             
@@ -161,15 +164,20 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
                            key.algorithm(),bds);
             ods_writen(sockfd, dnskey.c_str(), dnskey.size());
             
-            bFlagsChanged = key.ds_at_parent()==::ods::keystate::submit;
-            if (bFlagsChanged) {
+            bSubmitChanged = key.ds_at_parent()==::ods::keystate::submit;
+            bRetractChanged = key.ds_at_parent()==::ods::keystate::retract;
+            if (bSubmitChanged) {
                 keystateDoc->mutable_zones(z)->mutable_keys(k)
                     ->set_ds_at_parent(::ods::keystate::submitted);
+            }
+            if (bRetractChanged) {
+                keystateDoc->mutable_zones(z)->mutable_keys(k)
+                ->set_ds_at_parent(::ods::keystate::retracted);
             }
         }
     }
     
-    if (bFlagsChanged) {
+    if (bSubmitChanged || bRetractChanged) {
         // Persist the keystate zones back to disk as they may have
         // been changed by the enforcer update
         if (keystateDoc->IsInitialized()) {
