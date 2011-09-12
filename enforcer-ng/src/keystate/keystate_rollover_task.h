@@ -4,6 +4,6 @@
 #include "daemon/cfg.h"
 
 void perform_keystate_rollover(int sockfd, engineconfig_type *config,
-                               const char *zone, const char *keytype);
+                               const char *zone, int nkeyrole);
 
 #endif

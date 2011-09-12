@@ -11,7 +11,10 @@ extern "C" {
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
+#include "enforcer/enforce_task.h"
 }
+
+#include "keystate/keystate.pb.h"
 
 static const char *module_str = "keystate_rollover_cmd";
 
@@ -74,13 +77,41 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
         ods_writen(sockfd, buf, strlen(buf));
         return 1; // errors, but handled
     }
+
+    int nkeytype = 0;
+    if (keytype) {
+        std::string kt(keytype);
+        int (*fp)(int) = toupper;
+        std::transform(kt.begin(),kt.end(),kt.begin(),fp);
+        if (kt == "KSK") {
+            nkeytype = (int)::ods::keystate::KSK;
+        } else {
+            if (kt == "ZSK") {
+                nkeytype = (int)::ods::keystate::ZSK;
+            } else {
+                if (kt == "CSK") {
+                    nkeytype = (int)::ods::keystate::CSK;
+                } else {
+                    ods_log_warning("[%s] given keytype \"%s\" invalid",
+                                    module_str,keytype);
+                    (void)snprintf(buf, ODS_SE_MAXLINE, 
+                                   "given keytype \"%s\" invalid\n",
+                                   keytype);
+                    ods_writen(sockfd, buf, strlen(buf));
+                    return 1; // errors, but handled
+                }
+            }
+        }
+    }
     
     /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_keystate_rollover(sockfd,engine->config,zone,keytype);
+    perform_keystate_rollover(sockfd,engine->config,zone,nkeytype);
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                    scmd,time(NULL)-tstart);
     ods_writen(sockfd, buf, strlen(buf));
+
+    flush_enforce_task(engine);
 
     return 1;
 }
