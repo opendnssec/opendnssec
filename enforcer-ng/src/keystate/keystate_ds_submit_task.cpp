@@ -12,7 +12,7 @@ extern "C" {
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
-
+#include <memory.h>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_ds_submit_task";
@@ -138,8 +138,8 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
-    ::ods::keystate::KeyStateDocument *keystateDoc =
-    new ::ods::keystate::KeyStateDocument;
+    std::auto_ptr< ::ods::keystate::KeyStateDocument >
+        keystateDoc(new ::ods::keystate::KeyStateDocument);
     {
         std::string datapath(datastore);
         datapath += ".keystate.pb";
