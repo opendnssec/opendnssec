@@ -954,6 +954,7 @@ zone_recover(zone_type* zone)
 
         /* all ok */
         zone->zonedata->initialized = 1;
+        zone->prepared = 1;
         if (zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
@@ -992,6 +993,7 @@ zone_recover(zone_type* zone)
             zone->zonedata->outbound_serial = outbound;
             /* all ok */
             zone->zonedata->initialized = 1;
+            zone->prepared = 1;
             if (zone->stats) {
                 lock_basic_lock(&zone->stats->stats_lock);
                 stats_clear(zone->stats);
