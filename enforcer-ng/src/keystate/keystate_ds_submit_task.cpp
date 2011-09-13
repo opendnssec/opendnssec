@@ -181,15 +181,19 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                     //     Force submit key to the parent for specific key id.
                     if (key.locator()==id) {
                         // submit key with this id to the parent
-                        if (submit_dnskey_by_id(sockfd,ds_submit_command,
-                                            key.locator().c_str(),
-                                            key.role(),
-                                            enfzone.name().c_str(),
-                                            key.algorithm()))
+                        uint16_t keytag = 
+                            submit_dnskey_by_id(sockfd,ds_submit_command,
+                                                key.locator().c_str(),
+                                                key.role(),
+                                                enfzone.name().c_str(),
+                                                key.algorithm());
+                        if (keytag)
                         {
                             bFlagsChanged = true;
-                            keystateDoc->mutable_zones(z)->mutable_keys(k)
-                             ->set_ds_at_parent(::ods::keystate::submitted);
+                            ::ods::keystate::KeyData *kd = 
+                            keystateDoc->mutable_zones(z)->mutable_keys(k);
+                            kd->set_ds_at_parent(::ods::keystate::submitted);
+                            kd->set_keytag(keytag);
                         }
                     }
                 } else {
@@ -198,30 +202,38 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                         //     Force submit key to the parent for specific zone.
                         if (enfzone.name()==zone) {
                             // submit key for this zone to the parent
-                            if (submit_dnskey_by_id(sockfd,ds_submit_command,
-                                                key.locator().c_str(),
-                                                key.role(),
-                                                enfzone.name().c_str(),
-                                                key.algorithm()))
+                            uint16_t keytag = 
+                                submit_dnskey_by_id(sockfd,ds_submit_command,
+                                                    key.locator().c_str(),
+                                                    key.role(),
+                                                    enfzone.name().c_str(),
+                                                    key.algorithm());
+                            if (keytag)
                             {
                                 bFlagsChanged = true;
-                                keystateDoc->mutable_zones(z)->mutable_keys(k)
-                                 ->set_ds_at_parent(::ods::keystate::submitted);
+                                ::ods::keystate::KeyData *kd = 
+                                keystateDoc->mutable_zones(z)->mutable_keys(k);
+                                kd->set_ds_at_parent(::ods::keystate::submitted);
+                                kd->set_keytag(keytag);
                             }
                         }
                     } else {
                         // --auto
                         //     Submit all keys to the parent that have
                         //     the submit flag set.
-                        if (submit_dnskey_by_id(sockfd,ds_submit_command,
-                                            key.locator().c_str(),
-                                            key.role(),
-                                            enfzone.name().c_str(),
-                                            key.algorithm()))
+                        uint16_t keytag = 
+                            submit_dnskey_by_id(sockfd,ds_submit_command,
+                                                key.locator().c_str(),
+                                                key.role(),
+                                                enfzone.name().c_str(),
+                                                key.algorithm());
+                        if (keytag)
                         {
                             bFlagsChanged = true;
-                            keystateDoc->mutable_zones(z)->mutable_keys(k)
-                             ->set_ds_at_parent(::ods::keystate::submitted);
+                            ::ods::keystate::KeyData *kd = 
+                            keystateDoc->mutable_zones(z)->mutable_keys(k);
+                            kd->set_ds_at_parent(::ods::keystate::submitted);
+                            kd->set_keytag(keytag);
                         }
                     }
                 }

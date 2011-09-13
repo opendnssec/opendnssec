@@ -5,6 +5,7 @@
 #include "scheduler/task.h"
 
 void perform_keystate_ds_gone(int sockfd, engineconfig_type *config,
-                              const char *zone, const char *id);
+                              const char *zone, const char *id,
+                              uint16_t keytag);
 
 #endif

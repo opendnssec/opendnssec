@@ -27,6 +27,8 @@ void help_keystate_ds_gone_cmd(int sockfd)
         "key ds-gone     list KSK keys that were retracted from the parent.\n"
         "  --zone <zone> (aka -z) set KSK key to unsubmitted for zone <zone>\n"
         "  --id <id>     (aka -k) with id <id>.\n"
+        "  --keytag <keytag>\n"
+        "                (aka -x) with keytag <keytag>.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -62,8 +64,10 @@ int handled_keystate_ds_gone_cmd(int sockfd, engine_type* engine,
 
     const char *zone = NULL;
     const char *id = NULL;
+    const char *keytag = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
     (void)ods_find_arg_and_param(&argc,argv,"id","k",&id);
+    (void)ods_find_arg_and_param(&argc,argv,"keytag","x",&keytag);
 
     // Check for unknown parameters on the command line
     if (argc) {
@@ -83,8 +87,10 @@ int handled_keystate_ds_gone_cmd(int sockfd, engine_type* engine,
         return 1; // errors, but handled
     }
 
-    // Either no option or both need to be present.
-    if (zone || id) {
+    // Either no option or combi of zone & id or zone & keytag needs to be 
+    // present. But not both id and keytag
+    uint16_t nkeytag = 0;
+    if (zone || id || keytag) {
         if (!zone) {
             ods_log_warning("[%s] expected option --zone <zone> for %s command",
                             module_str,scmd);
@@ -92,18 +98,44 @@ int handled_keystate_ds_gone_cmd(int sockfd, engine_type* engine,
             ods_writen(sockfd, buf, strlen(buf));
             return 1; // errors, but handled
         }
-        if (!id) {
-            ods_log_warning("[%s] expected option --id <id> for %s command",
+        if (!id && !keytag) {
+            ods_log_warning("[%s] expected option --id <id> or "
+                            "--keytag <keytag> for %s command",
                             module_str,scmd);
-            (void)snprintf(buf, ODS_SE_MAXLINE,"expected --id <id> option\n");
+            (void)snprintf(buf, ODS_SE_MAXLINE,"expected --id <id> or "
+                           "--keytag <keytag> option\n");
             ods_writen(sockfd, buf, strlen(buf));
             return 1; // errors, but handled
+        } else {
+            if (id && keytag) {
+                ods_log_warning("[%s] both --id <id> and --keytag <keytag> given, "
+                                "please only specify one for %s command",
+                                module_str,scmd);
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "both --id <id> and --keytag <keytag> given, "
+                               "please only specify one\n");
+                ods_writen(sockfd, buf, strlen(buf));
+                return 1; // errors, but handled
+            }
+        }
+        if (keytag) {
+            int kt = atoi(keytag);
+            if (kt<=0 || kt>=65536) {
+                ods_log_warning("[%s] value \"%s\" for --keytag is invalid",
+                                module_str,keytag);
+                (void)snprintf(buf, ODS_SE_MAXLINE,
+                               "value \"%s\" for --keytag is invalid\n",
+                               keytag);
+                ods_writen(sockfd, buf, strlen(buf));
+                return 1; // errors, but handled
+            }
+            nkeytag = (uint16_t )kt;
         }
     }
     
     /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_keystate_ds_gone(sockfd,engine->config,zone,id);
+    perform_keystate_ds_gone(sockfd,engine->config,zone,id,nkeytag);
     (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
                    scmd,time(NULL)-tstart);
     ods_writen(sockfd, buf, strlen(buf));

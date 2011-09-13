@@ -18,7 +18,7 @@ static const char *module_str = "keystate_ds_seen_task";
 
 void 
 perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
-                         const char *zone, const char *id)
+                         const char *zone, const char *id, uint16_t keytag)
 {
     char buf[ODS_SE_MAXLINE];
     const char *datastore = config->datastore;
@@ -49,7 +49,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
         }
     }
     
-    if (!zone || !id) {
+    if (!(zone && (id || keytag))) {
         
         // list all keys that have submitted flag set.
         
@@ -58,6 +58,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                        "Submitted Keys:\n"
                        "Zone:                           "
                        "Key role:     "
+                       "Key tag:      "
                        "Id:                                      "
                        "\n"
                        ,datastore
@@ -83,9 +84,10 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                 
                 std::string keyrole = keyrole_Name(key.role());
                 (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "%-31s %-13s %-40s\n",
+                               "%-31s %-13s %-13u %-40s\n",
                                enfzone.name().c_str(),
                                keyrole.c_str(),
+                               key.keytag(),
                                key.locator().c_str()
                                );
                 ods_writen(sockfd, buf, strlen(buf));
@@ -111,7 +113,11 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
             if (key.locator().size()==0)
                 continue;
             
-            if (key.locator()==id && enfzone->name()==zone) {
+            // Skip when zone doesn't match
+            if (enfzone->name()!=zone)
+                continue;
+            
+            if (id && key.locator()==id || keytag && key.keytag()==keytag ) {
                 id_match = true;
                 
                 if (key.ds_at_parent()!=::ods::keystate::submitted) {
@@ -121,25 +127,31 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                     (void)snprintf(buf, ODS_SE_MAXLINE, 
                                    "Key that matches id \"%s\" in zone "
                                    "\"%s\" is not submitted but %s\n",
-                                   id, zone,dsatparentname.c_str());
+                                   key.locator().c_str(), zone,
+                                   dsatparentname.c_str());
                     ods_writen(sockfd, buf, strlen(buf));
                     break;
                 }
                 
                 bKeyStateModified = true;
                 
-                ::ods::keystate::KeyData *mkey =
+                ::ods::keystate::KeyData *kd =
                     keystateDoc->mutable_zones(z)->mutable_keys(k);
-                mkey->set_ds_at_parent(::ods::keystate::seen);
+                kd->set_ds_at_parent(::ods::keystate::seen);
                 enfzone->set_next_change(0); // reschedule immediately
             }
         }
     }
     
     if (!id_match) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, 
-                       "No KSK key matches id \"%s\" in zone \"%s\"\n",
-                       id, zone);
+        if (id)
+            (void)snprintf(buf, ODS_SE_MAXLINE, 
+                           "No KSK key matches id \"%s\" in zone \"%s\"\n",
+                           id, zone);
+        else
+            (void)snprintf(buf, ODS_SE_MAXLINE, 
+                           "No KSK key matches keytag \"%u\" in zone \"%s\"\n",
+                           keytag, zone);
         ods_writen(sockfd, buf, strlen(buf));
     }
     
