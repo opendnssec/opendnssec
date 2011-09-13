@@ -4,8 +4,6 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 sysconfdir =	@sysconfdir@/opendnssec
 
-if ENABLE_EPPCLIENT
-
 AM_CPPFLAGS =	-I$(srcdir)/.. \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@ \
 		@LIBCURL_CPPFLAGS@ @SQLITE3_INCLUDES@
@@ -28,8 +26,6 @@ install-data-hook:
 	test -d ${DESTDIR}${sysconfdir} || mkdir -p ${DESTDIR}${sysconfdir}
 	test -f ${DESTDIR}${sysconfdir}/eppclientd.conf || \
 		${INSTALL_DATA} eppclientd.conf ${DESTDIR}${sysconfdir}
-
-endif
 
 EXTRA_DIST = $(srcdir)/eppclientd.conf.in $(srcdir)/*.h $(srcdir)/*.c
 EXTRA_DIST += $(srcdir)/compat/*.c $(srcdir)/compat/*.h
