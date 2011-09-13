@@ -137,17 +137,10 @@ ods_status
 adapter_write(void* zone)
 {
     zone_type* adzone = (zone_type*) zone;
-    if (!adzone || !adzone->adoutbound) {
-        ods_log_error("[%s] unable to write zone: no output adapter",
-            adapter_str);
+    if (!adzone || !adzone->db || !adzone->adoutbound) {
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone->adoutbound->configstr);
-    if (!adzone->db) {
-        ods_log_error("[%s] unable to write zone %s: no zone data",
-            adapter_str, adzone->name);
-        return ODS_STATUS_ASSERT_ERR;
-    }
     switch(adzone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "

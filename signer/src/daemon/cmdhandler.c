@@ -375,7 +375,6 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     uint32_t inbserial = 0;
     uint32_t intserial = 0;
     uint32_t outserial = 0;
-    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
@@ -401,20 +400,8 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->db->intserial = intserial;
         zone->db->outserial = outserial;
 
-        status = zone_publish_dnskeys(zone);
-        if (status == ODS_STATUS_OK) {
-            status = zone_publish_nsec3param(zone);
-        }
-        if (status != ODS_STATUS_OK) {
-            ods_log_warning("[%s] unable to restore DNSKEY/NSEC3PARAM RRset "
-                " for zone %s, reloading signconf", cmdh_str, zone->name);
-            task = (task_type*) zone->task;
-            task->what = TASK_SIGNCONF;
-        } else {
-            namedb_diff(zone->db);
-            task = (task_type*) zone->task;
-            task->what = TASK_READ;
-        }
+        task = (task_type*) zone->task;
+        task->what = TASK_READ;
         lock_basic_unlock(&zone->zone_lock);
 
         (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "

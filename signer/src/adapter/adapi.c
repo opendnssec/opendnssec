@@ -130,7 +130,7 @@ adapi_trans_full(zone_type* zone)
     }
     namedb_diff(zone->db);
 
-   if (zone->stats) {
+    if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->nsec_time = 0;
         zone->stats->nsec_count = 0;

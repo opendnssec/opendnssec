@@ -563,6 +563,10 @@ rrset2rrlist(rrset_type* rrset)
     size_t i = 0;
     rr_list = ldns_rr_list_new();
     for (i=0; i < rrset->rr_count; i++) {
+        if (!rrset->rrs[i].exists) {
+            log_rr(rrset->rrs[i].rr, "RR does not exist", LOG_WARNING);
+            continue;
+        }
         /* clone if you want to keep the original format in the signed zone */
         ldns_rr2canonical(rrset->rrs[i].rr);
         ret = (int) ldns_rr_list_push_rr(rr_list, rrset->rrs[i].rr);
@@ -605,28 +609,6 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
         validity = duration2time(sc->sig_validity_denial);
     } else {
         validity = duration2time(sc->sig_validity_default);
-    }
-
-    /**
-     * Additional check for signature lifetimes.
-     */
-    if (((validity + offset + random_jitter) - jitter) <
-        ((validity + offset) - jitter) ) {
-        ods_log_error("[%s] signature validity %u too low, should be at "
-            "least %u", rrset_str,
-            ((validity + offset + random_jitter) - jitter),
-            ((validity + offset) - jitter));
-    } else if (((validity + offset + random_jitter) - jitter) >
-               ((validity + offset) + jitter) ) {
-        ods_log_error("[%s] signature validity %u too high, should be at "
-            "most %u", rrset_str,
-            ((validity + offset + random_jitter) - jitter),
-            ((validity + offset) + jitter));
-    } else {
-        ods_log_debug("[%s] signature validity %u in range [%u - %u]",
-            rrset_str, ((validity + offset + random_jitter) - jitter),
-            ((validity + offset) - jitter),
-            ((validity + offset) + jitter));
     }
     *inception = signtime - offset;
     *expiration = (signtime + validity + random_jitter) - jitter;
@@ -765,11 +747,14 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
         return;
     }
     for (i=0; i < rrset->rr_count; i++) {
-        ldns_rr_print(fd, rrset->rrs[i].rr);
-        if (rrset->rrtype == LDNS_RR_TYPE_CNAME ||
-            rrset->rrtype == LDNS_RR_TYPE_DNAME) {
-            /* singleton types */
-            break;
+/*        if (rrset->rrs[i].exists) { */
+        if (1) {
+            ldns_rr_print(fd, rrset->rrs[i].rr);
+            if (rrset->rrtype == LDNS_RR_TYPE_CNAME ||
+                rrset->rrtype == LDNS_RR_TYPE_DNAME) {
+                /* singleton types */
+                break;
+            }
         }
     }
     if (skip_rrsigs || !rrset->rrsig_count) {
@@ -826,10 +811,9 @@ rrset_backup(FILE* fd, rrset_type* rrset)
     if (!rrset || !fd) {
         return;
     }
-    if (!rrset || !fd) {
-        return;
-    }
     for (i=0; i < rrset->rrsig_count; i++) {
+        fprintf(fd, ";;RRSIG %s %u\n", rrset->rrsigs[i].key_locator,
+            rrset->rrsigs[i].key_flags);
         ldns_rr_print(fd, rrset->rrsigs[i].rr);
     }
     return;

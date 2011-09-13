@@ -361,7 +361,7 @@ key_recover(FILE* fd, keylist_type* kl)
     }
     /* key ok */
     key = keylist_push(kl, locator, algorithm, flags, publish, ksk, zsk);
-    locator = NULL;
+    ldns_rr_free(rr);
     return key;
 }
 

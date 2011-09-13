@@ -627,7 +627,6 @@ domain_recover(domain_type* domain, FILE* fd, int dstatus)
                 goto recover_dname_error;
             }
             /* signature done */
-            free((void*) locator);
             locator = NULL;
             rr = NULL;
         } else if (ods_strcmp(token, ";;Denial") == 0) {
@@ -646,7 +645,8 @@ domain_recover(domain_type* domain, FILE* fd, int dstatus)
 
             /* recover denial structure */
             ods_log_assert(!domain->denial);
-            denial = denial_create(domain->zone, ldns_rr_owner(rr));
+            denial = denial_create(domain->zone,
+                ldns_rdf_clone(ldns_rr_owner(rr)));
             ods_log_assert(denial);
             denial->domain = (void*) domain; /* back reference */
             domain->denial = (void*) denial;
@@ -704,13 +704,13 @@ domain_recover(domain_type* domain, FILE* fd, int dstatus)
                 goto recover_dname_error;
             }
             /* signature done */
-            free((void*) locator);
             locator = NULL;
             rr = NULL;
         } else if (ods_strcmp(token, ";;Domaindone") == 0) {
             /* domain done */
             free((void*) token);
             token = NULL;
+            locator = NULL;
             break;
         } else {
             /* domain corrupted */
@@ -719,6 +719,7 @@ domain_recover(domain_type* domain, FILE* fd, int dstatus)
         /* done, next token */
         free((void*) token);
         token = NULL;
+        locator = NULL;
     }
 
     return ODS_STATUS_OK;
