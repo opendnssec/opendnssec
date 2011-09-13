@@ -11,7 +11,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = common libhsm conf tools contrib plugins/eppclient
+SUBDIRS = common libhsm conf tools contrib
 
 if ENABLE_SIGNER
 SUBDIRS += signer
@@ -23,6 +23,10 @@ endif
 
 if ENABLE_AUDITOR
 SUBDIRS += auditor
+endif
+
+if ENABLE_EPPCLIENT
+SUBDIRS += plugins/eppclient
 endif
 
 EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \

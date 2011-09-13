@@ -225,7 +225,7 @@ engine_config_print(FILE* out, engineconfig_type* config)
 void
 engine_config_cleanup(engineconfig_type* config)
 {
-    allocator_type* allocator;
+    allocator_type* allocator = NULL;
     if (!config) {
         return;
     }

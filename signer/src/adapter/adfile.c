@@ -305,7 +305,6 @@ adfile_read_file(FILE* fd, zone_type* zone)
             return result;
         }
         adapi_set_serial(zone, new_serial);
-        adapi_trans_full(zone);
     }
     return result;
 }
@@ -330,6 +329,9 @@ adfile_read(void* zone, const char* filename)
     }
     status = adfile_read_file(fd, adzone);
     ods_fclose(fd);
+    if (status == ODS_STATUS_OK) {
+        adapi_trans_full(zone);
+    }
     return status;
 }
 

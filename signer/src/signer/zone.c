@@ -827,6 +827,28 @@ zone_recover(zone_type* zone)
                  goto recover_error;
             }
         }
+        zone->signconf->nsec3_salt = allocator_strdup(
+            zone->signconf->allocator, salt);
+        free((void*) salt);
+        salt = NULL;
+        if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
+            nsec3params = nsec3params_create((void*) zone->signconf,
+                zone->signconf->nsec3_algo,
+                zone->signconf->nsec3_optout,
+                zone->signconf->nsec3_iterations,
+                zone->signconf->nsec3_salt);
+            if (!nsec3params) {
+                goto recover_error;
+            }
+            nsec3params->rr = nsec3params_rr;
+            zone->signconf->nsec3params = nsec3params;
+        }
+        zone->signconf->last_modified = lastmod;
+        status = zone_publish_nsec3param(zone);
+        if (status != ODS_STATUS_OK) {
+            zone->task = NULL;
+            goto recover_error;
+        }
         /* keys part */
         zone->signconf->keys = keylist_create((void*) zone->signconf);
         while (backup_read_str(fd, &token)) {
@@ -848,61 +870,38 @@ zone_recover(zone_type* zone)
             free((void*) token);
             token = NULL;
         }
+        status = zone_publish_dnskeys(zone);
+        if (status != ODS_STATUS_OK) {
+            goto recover_error;
+        }
+        /* task */
+        task = task_create((task_id) what, when, (void*) zone);
+        if (!task) {
+            goto recover_error;
+        }
+        zone->task = (void*) task;
         /* namedb part */
         filename = ods_build_path(zone->name, ".inbound", 0);
         status = adbackup_read(zone, filename);
         free((void*)filename);
         if (status != ODS_STATUS_OK) {
+            zone->task = NULL;
             goto recover_error;
         }
-
         zone->klass = (ldns_rr_class) klass;
         zone->default_ttl = ttl;
         zone->db->inbserial = inbound;
         zone->db->intserial = internal;
         zone->db->outserial = outbound;
-        zone->signconf->nsec3_salt = allocator_strdup(
-            zone->signconf->allocator, salt);
-        free((void*) salt);
-        salt = NULL;
-        task = task_create((task_id) what, when, (void*) zone);
-        if (!task) {
-            goto recover_error;
-        }
-        if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            nsec3params = nsec3params_create((void*) zone->signconf,
-                zone->signconf->nsec3_algo,
-                zone->signconf->nsec3_optout,
-                zone->signconf->nsec3_iterations,
-                zone->signconf->nsec3_salt);
-            if (!nsec3params) {
-                goto recover_error;
-            }
-            nsec3params->rr = nsec3params_rr;
-            zone->signconf->nsec3params = nsec3params;
-        }
-        zone->task = (void*) task;
-        zone->signconf->last_modified = lastmod;
-
-        status = zone_publish_dnskeys(zone);
-        if (status != ODS_STATUS_OK) {
-            zone->task = NULL;
-            goto recover_error;
-        }
-        status = zone_publish_nsec3param(zone);
-        if (status != ODS_STATUS_OK) {
-            zone->task = NULL;
-            goto recover_error;
-        }
         status = namedb_recover(zone->db, fd);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
             goto recover_error;
         }
-        namedb_diff(zone->db);
         ods_fclose(fd);
 
         /* all ok */
+        namedb_diff(zone->db);
         zone->db->is_initialized = 1;
         if (zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
@@ -941,6 +940,7 @@ zone_recover(zone_type* zone)
             zone->db->intserial = internal;
             zone->db->outserial = outbound;
             /* all ok */
+            namedb_diff(zone->db);
             zone->db->is_initialized = 1;
             if (zone->stats) {
                 lock_basic_lock(&zone->stats->stats_lock);
@@ -960,24 +960,14 @@ recover_error:
     ods_fclose(fd);
 
     /* signconf cleanup */
+    free((void*)salt);
+    salt = NULL;
     signconf_cleanup(zone->signconf);
     zone->signconf = signconf_create();
     ods_log_assert(zone->signconf);
-
     /* task cleanup */
     task_cleanup(task);
     task = NULL;
-
-    /* nsec3params cleanup */
-    free((void*)salt);
-    salt = NULL;
-
-    ldns_rr_free(nsec3params_rr);
-    nsec3params_rr = NULL;
-    nsec3params->rr = NULL;
-    nsec3params_cleanup(nsec3params);
-    nsec3params = NULL;
-
     /* namedb cleanup */
     namedb_cleanup(zone->db);
     zone->db = namedb_create((void*)zone);

@@ -192,17 +192,17 @@ void namedb_export(FILE* fd, namedb_type* db);
 
 /**
  * Wipe out all NSEC(3) RRsets.
- * \param[in] zd zone data
+ * \param[in] db namedb
  *
  */
-void namedb_wipe_denial(namedb_type* zd);
+void namedb_wipe_denial(namedb_type* db);
 
 /**
  * Clean up denial of existence chain.
- * \param[in] zd zone data
+ * \param[in] db namedb
  *
  */
-void namedb_cleanup_chain(namedb_type* zd);
+void namedb_cleanup_denials(namedb_type* db);
 
 /**
  * Clean up namedb.
@@ -213,20 +213,20 @@ void namedb_cleanup(namedb_type* db);
 
 
 /**
- * Backup zone data.
+ * Backup namedb.
  * \param[in] fd output file descriptor
  * \param[in] zd zone data
  *
  */
-void namedb_backup(FILE* fd, namedb_type* zd);
+void namedb_backup(FILE* fd, namedb_type* db);
 
 /**
- * Recover zone data from backup.
- * \param[in] zd zone data
+ * Recover namedb from backup.
+ * \param[in] db namedb
  * \param[in] fd backup file descriptor
  * \return ods_status status
  *
  */
-ods_status namedb_recover(namedb_type* zd, FILE* fd);
+ods_status namedb_recover(namedb_type* db, FILE* fd);
 
 #endif /* SIGNER_NAMEDB_H */

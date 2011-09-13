@@ -286,7 +286,15 @@ tools_output(zone_type* zone, const char* dir, const char* cfgfile)
     ods_log_assert(zone->adoutbound);
     /* Auditor? */
     if (zone->signconf->audit) {
-        status = tools_audit(zone, dir, cfgfile);
+        ods_log_assert(zone->adinbound);
+        if (zone->adinbound->type != ADAPTER_FILE) {
+            ods_log_warning("[%s] unable to audit zone %s: "
+                "auditor is only enabled for Input File Adapter",
+                tools_str, zone->name);
+            status = ODS_STATUS_OK;
+        } else {
+            status = tools_audit(zone, dir, cfgfile);
+        }
     }
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to write zone %s: audit failed",
@@ -312,8 +320,8 @@ tools_output(zone_type* zone, const char* dir, const char* cfgfile)
     /* Output Adapter */
     status = adapter_write((void*)zone);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to write zone %s: adapter failed",
-            tools_str, zone->name);
+        ods_log_error("[%s] unable to write zone %s: adapter failed (%s)",
+            tools_str, zone->name, ods_status2str(status));
         return status;
     }
     zone->db->outserial = zone->db->intserial;

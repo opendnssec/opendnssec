@@ -164,7 +164,7 @@ namedb_create(void* zone)
 
 
 /**
- * Recover zone data from backup.
+ * Recover namedb from backup.
  *
  */
 ods_status
@@ -207,7 +207,7 @@ namedb_recover(namedb_type* db, FILE* fd)
             /* lookup success */
             status = domain_recover(domain, fd, dstatus);
             if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to recover domain", db_str);
+                log_dname(domain->dname, "unable to recover domain", LOG_ERR);
                 goto recover_domain_error;
             }
             if (domain->denial) {
@@ -215,7 +215,7 @@ namedb_recover(namedb_type* db, FILE* fd)
                 denial_node = denial2node(denial);
                 /* insert */
                 if (!ldns_rbtree_insert(db->denials, denial_node)) {
-                    ods_log_error("[%s] unable to recover denial", db_str);
+                    log_dname(denial->dname, "unable to recover denial", LOG_ERR);
                     free((void*)denial_node);
                     goto recover_domain_error;
                 }
@@ -242,9 +242,9 @@ namedb_recover(namedb_type* db, FILE* fd)
     }
 
     if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+        ods_log_error("[%s] magic in backup corrupted", db_str);
         goto recover_domain_error;
     }
-
     return ODS_STATUS_OK;
 
 recover_domain_error:
@@ -950,7 +950,7 @@ namedb_nsecify(namedb_type* db, uint32_t* num_added)
 
 
 /**
- * Examine updates to zone data.
+ * Examine updates to db.
  *
  */
 ods_status
@@ -1089,7 +1089,7 @@ denial_delfunc(ldns_rbnode_t* elem)
         denial = (denial_type*) elem->data;
         denial_delfunc(elem->left);
         denial_delfunc(elem->right);
-        domain = denial->domain;
+        domain = (domain_type*) denial->domain;
         if (domain) {
             domain->denial = NULL;
         }
@@ -1147,15 +1147,15 @@ namedb_cleanup(namedb_type* db)
     if (!z || !z->allocator) {
         return;
     }
-    namedb_cleanup_domains(db);
     namedb_cleanup_denials(db);
+    namedb_cleanup_domains(db);
     allocator_deallocate(z->allocator, (void*) db);
     return;
 }
 
 
 /**
- * Backup zone data.
+ * Backup namedb.
  *
  */
 void
@@ -1163,11 +1163,9 @@ namedb_backup(FILE* fd, namedb_type* db)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
-
     if (!fd || !db) {
         return;
     }
-
     node = ldns_rbtree_first(db->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
