@@ -4,9 +4,8 @@
 
 PREFIX=/var/tmp/opendnssec-release
 
-sh autogen.sh
+sh autogen.sh &&
 sh configure \
 	--prefix=${PREFIX} \
-	--enable-eppclient \
-	--enable-auditor $@
+	--enable-auditor $@ &&
 make dist
