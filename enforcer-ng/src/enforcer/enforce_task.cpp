@@ -54,7 +54,7 @@ schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what
     }
 }
 
-const ::ods::kasp::Policy *
+static const ::ods::kasp::Policy *
 find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
                           const ::ods::keystate::EnforcerZone &ks_zone)
 {

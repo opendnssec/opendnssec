@@ -58,7 +58,7 @@ perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
                        "Submitted Keys:\n"
                        "Zone:                           "
                        "Key role:     "
-                       "Key tag:      "
+                       "Keytag:       "
                        "Id:                                      "
                        "\n"
                        ,datastore

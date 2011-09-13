@@ -10,6 +10,7 @@ extern "C" {
 #include <google/protobuf/message.h>
 
 #include "keystate/keystate.pb.h"
+#include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
 #include <memory>
@@ -17,12 +18,13 @@ extern "C" {
 
 static const char *module_str = "keystate_ds_submit_task";
 
-static bool submit_dnskey_by_id(int sockfd,
-                                const char *ds_submit_command,
-                                const char *id,
-                                ::ods::keystate::keyrole role,
-                                const char *zone,
-                                int algorithm)
+static uint16_t submit_dnskey_by_id(int sockfd,
+                                    const char *ds_submit_command,
+                                    const char *id,
+                                    ::ods::keystate::keyrole role,
+                                    const char *zone,
+                                    int algorithm,
+                                    uint32_t ttl)
 {
     char buf[ODS_SE_MAXLINE];
 
@@ -37,7 +39,6 @@ static bool submit_dnskey_by_id(int sockfd,
         return false;
     }
     
-    bool bOK = false;
     char *dnskey_rr_str;
 
     hsm_sign_params_t *sign_params = hsm_sign_params_new();
@@ -47,6 +48,12 @@ static bool submit_dnskey_by_id(int sockfd,
     sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
     
     ldns_rr *dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+    /* Calculate the keytag for this key, we return it. */
+    uint16_t keytag = ldns_calc_keytag(dnskey_rr);
+    /* Override the TTL in the dnskey rr */
+    if (ttl)
+        ldns_rr_set_ttl(dnskey_rr, ttl);
+    
 #if 0
     ldns_rr_print(stdout, dnskey_rr);
 #endif        
@@ -79,6 +86,7 @@ static bool submit_dnskey_by_id(int sockfd,
         /* send records to the configured command */
         FILE *fp = popen(ds_submit_command, "w");
         if (fp == NULL) {
+            keytag = 0;
             ods_log_error("[%s] Failed to run command: %s: %s",
                           module_str,ds_submit_command,strerror(errno));
             (void)snprintf(buf,ODS_SE_MAXLINE,"failed to run command: %s: %s\n",
@@ -88,6 +96,7 @@ static bool submit_dnskey_by_id(int sockfd,
         } else {
             int bytes_written = fprintf(fp, "%s", dnskey_rr_str);
             if (bytes_written < 0) {
+                keytag = 0;
                 ods_log_error("[%s] Failed to write to %s: %s",
                               module_str,ds_submit_command,strerror(errno));
                 (void)snprintf(buf,ODS_SE_MAXLINE,"failed to write to %s: %s\n",
@@ -97,7 +106,7 @@ static bool submit_dnskey_by_id(int sockfd,
             } else {
             
                 if (pclose(fp) == -1) {
-                    
+                    keytag = 0;
                     ods_log_error("[%s] Failed to close %s: %s",
                                   module_str,ds_submit_command,strerror(errno));
                     (void)snprintf(buf,ODS_SE_MAXLINE,"failed to close %s: %s\n",
@@ -105,7 +114,6 @@ static bool submit_dnskey_by_id(int sockfd,
                     ods_writen(sockfd, buf, strlen(buf));
                     
                 } else {
-                    bOK = true;
                     (void)snprintf(buf,ODS_SE_MAXLINE, 
                                    "key %s submitted to %s\n", 
                                    id, ds_submit_command);
@@ -114,6 +122,7 @@ static bool submit_dnskey_by_id(int sockfd,
             }
         }
     } else {
+        keytag = 0;
         ods_log_error("[%s] No Delegation Signer Submit Command configured "
                       "in conf.xml.",module_str);
         (void)snprintf(buf,ODS_SE_MAXLINE,
@@ -125,7 +134,26 @@ static bool submit_dnskey_by_id(int sockfd,
 
     // Once the new DS records are seen in DNS please issue the ds-seen 
     // command for zone %s with the following cka_ids %s
-    return bOK;
+    return keytag;
+}
+
+static const ::ods::kasp::Policy *
+find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
+                          const ::ods::keystate::EnforcerZone &ks_zone)
+{
+    // Find the policy associated with the zone.
+    for (int p=0; p<kasp.policies_size(); ++p) {
+        if (kasp.policies(p).name() == ks_zone.policy()) {
+            ods_log_debug("[%s] policy %s found for zone %s",
+                          module_str,ks_zone.policy().c_str(),
+                          ks_zone.name().c_str());
+            return &kasp.policies(p);
+        }
+    }
+    ods_log_error("[%s] policy %s could not be found for zone %s",
+                  module_str,ks_zone.policy().c_str(),
+                  ks_zone.name().c_str());
+    return NULL;
 }
 
 void 
@@ -138,6 +166,37 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
+    std::auto_ptr< ::ods::kasp::KaspDocument >
+    kaspDoc(new ::ods::kasp::KaspDocument);
+    {
+        std::string datapath(datastore);
+        datapath += ".policy.pb";
+        int fd = open(datapath.c_str(),O_RDONLY);
+        if (fd != -1) {
+            if (kaspDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] policies have been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] policies could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+                (void)snprintf(buf,ODS_SE_MAXLINE, "policies could not be loaded "
+                               "from \"%s\"\n", 
+                               datapath.c_str());
+                ods_writen(sockfd, buf, strlen(buf));
+                return;
+            }
+            close(fd);
+        } else {
+            ods_log_error("[%s] file \"%s\" could not be opened",
+                          module_str,datapath.c_str());
+            (void)snprintf(buf,ODS_SE_MAXLINE,
+                           "file \"%s\" could not be opened\n", 
+                           datapath.c_str());
+            ods_writen(sockfd, buf, strlen(buf));
+            return;
+        }
+    }
+
     std::auto_ptr< ::ods::keystate::KeyStateDocument >
         keystateDoc(new ::ods::keystate::KeyStateDocument);
     {
@@ -151,11 +210,19 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
             } else {
                 ods_log_error("[%s] keys could not be loaded from \"%s\"",
                               module_str,datapath.c_str());
+                (void)snprintf(buf,ODS_SE_MAXLINE, "keys could not be loaded "
+                               "from \"%s\"\n", 
+                               datapath.c_str());
+                ods_writen(sockfd, buf, strlen(buf));
             }
             close(fd);
         } else {
             ods_log_error("[%s] file \"%s\" could not be opened",
                           module_str,datapath.c_str());
+            (void)snprintf(buf,ODS_SE_MAXLINE,
+                           "file \"%s\" could not be opened\n", 
+                           datapath.c_str());
+            ods_writen(sockfd, buf, strlen(buf));
         }
     }
 
@@ -175,7 +242,15 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                 // Onlyt submit KSKs that have the submit flag set.
                 if (key.ds_at_parent()!=::ods::keystate::submit)
                     continue;
-                    
+                
+                // Find the policy for the zone and get the ttl for the dnskey
+                uint32_t dnskey_ttl = 0;
+                const ::ods::kasp::Policy *policy = 
+                find_kasp_policy_for_zone(kaspDoc->kasp(), enfzone);
+                if (policy) {
+                    dnskey_ttl = policy->keys().ttl();
+                }
+
                 if (id) {
                     // --id <id>
                     //     Force submit key to the parent for specific key id.
@@ -186,7 +261,8 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                                                 key.locator().c_str(),
                                                 key.role(),
                                                 enfzone.name().c_str(),
-                                                key.algorithm());
+                                                key.algorithm(),
+                                                dnskey_ttl);
                         if (keytag)
                         {
                             bFlagsChanged = true;
@@ -207,7 +283,8 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                                                     key.locator().c_str(),
                                                     key.role(),
                                                     enfzone.name().c_str(),
-                                                    key.algorithm());
+                                                    key.algorithm(),
+                                                    dnskey_ttl);
                             if (keytag)
                             {
                                 bFlagsChanged = true;
@@ -226,7 +303,8 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                                                 key.locator().c_str(),
                                                 key.role(),
                                                 enfzone.name().c_str(),
-                                                key.algorithm());
+                                                key.algorithm(),
+                                                dnskey_ttl);
                         if (keytag)
                         {
                             bFlagsChanged = true;

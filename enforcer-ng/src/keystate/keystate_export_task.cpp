@@ -10,6 +10,7 @@ extern "C" {
 #include <google/protobuf/message.h>
 
 #include "keystate/keystate.pb.h"
+#include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
 #include <memory>
@@ -23,7 +24,8 @@ dnskey_from_id(std::string &dnskey,
                ::ods::keystate::keyrole role,
                const char *zone,
                int algorithm,
-               int bDS)
+               int bDS,
+               uint32_t ttl)
 {
     hsm_key_t *key;
     hsm_sign_params_t *sign_params;
@@ -53,6 +55,9 @@ dnskey_from_id(std::string &dnskey,
     hsm_sign_params_free(sign_params);
     /* Calculate the keytag for this key, we return it. */
     uint16_t keytag = ldns_calc_keytag(dnskey_rr);
+    /* Override the TTL in the dnskey rr */
+    if (ttl)
+        ldns_rr_set_ttl(dnskey_rr, ttl);
     
     char *rrstr;
     if (!bDS) {
@@ -104,6 +109,25 @@ dnskey_from_id(std::string &dnskey,
     return keytag;
 }
 
+static const ::ods::kasp::Policy *
+find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
+                          const ::ods::keystate::EnforcerZone &ks_zone)
+{
+    // Find the policy associated with the zone.
+    for (int p=0; p<kasp.policies_size(); ++p) {
+        if (kasp.policies(p).name() == ks_zone.policy()) {
+            ods_log_debug("[%s] policy %s found for zone %s",
+                          module_str,ks_zone.policy().c_str(),
+                          ks_zone.name().c_str());
+            return &kasp.policies(p);
+        }
+    }
+    ods_log_error("[%s] policy %s could not be found for zone %s",
+                  module_str,ks_zone.policy().c_str(),
+                  ks_zone.name().c_str());
+    return NULL;
+}
+
 void 
 perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
                         int bds)
@@ -113,6 +137,37 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
+    std::auto_ptr< ::ods::kasp::KaspDocument >
+        kaspDoc(new ::ods::kasp::KaspDocument);
+    {
+        std::string datapath(datastore);
+        datapath += ".policy.pb";
+        int fd = open(datapath.c_str(),O_RDONLY);
+        if (fd != -1) {
+            if (kaspDoc->ParseFromFileDescriptor(fd)) {
+                ods_log_debug("[%s] policies have been loaded",
+                              module_str);
+            } else {
+                ods_log_error("[%s] policies could not be loaded from \"%s\"",
+                              module_str,datapath.c_str());
+                (void)snprintf(buf,ODS_SE_MAXLINE, "policies could not be loaded "
+                               "from \"%s\"\n", 
+                               datapath.c_str());
+                ods_writen(sockfd, buf, strlen(buf));
+                return;
+            }
+            close(fd);
+        } else {
+            ods_log_error("[%s] file \"%s\" could not be opened",
+                          module_str,datapath.c_str());
+            (void)snprintf(buf,ODS_SE_MAXLINE,
+                           "file \"%s\" could not be opened\n", 
+                           datapath.c_str());
+            ods_writen(sockfd, buf, strlen(buf));
+            return;
+        }
+    }
+
     std::auto_ptr< ::ods::keystate::KeyStateDocument >
         keystateDoc(new ::ods::keystate::KeyStateDocument);
     {
@@ -126,11 +181,21 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
             } else {
                 ods_log_error("[%s] keys could not be loaded from \"%s\"",
                               module_str,datapath.c_str());
+                (void)snprintf(buf,ODS_SE_MAXLINE, "keys could not be loaded "
+                               "from \"%s\"\n", 
+                               datapath.c_str());
+                ods_writen(sockfd, buf, strlen(buf));
+                return;
             }
             close(fd);
         } else {
-            ods_log_error("[%s] keys could not be loaded from \"%s\"",
+            ods_log_error("[%s] file \"%s\" could not be opened",
                           module_str,datapath.c_str());
+            (void)snprintf(buf,ODS_SE_MAXLINE,
+                           "file \"%s\" could not be opened\n", 
+                           datapath.c_str());
+            ods_writen(sockfd, buf, strlen(buf));
+            return;
         }
     }
     
@@ -144,6 +209,13 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
         if (enfzone.name() != zname) 
             continue;
         
+        uint32_t dnskey_ttl = 0;
+        const ::ods::kasp::Policy *policy = 
+            find_kasp_policy_for_zone(kaspDoc->kasp(), enfzone);
+        if (policy) {
+            dnskey_ttl = policy->keys().ttl();
+        }
+
         for (int k=0; k<enfzone.keys_size(); ++k) {
             const ::ods::keystate::KeyData &key = enfzone.keys(k);
             if (key.role()==::ods::keystate::ZSK)
@@ -160,7 +232,8 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
             uint16_t keytag = dnskey_from_id(dnskey,key.locator().c_str(),
                                              key.role(),
                                              enfzone.name().c_str(),
-                                             key.algorithm(),bds);
+                                             key.algorithm(),bds,
+                                             dnskey_ttl);
             if (keytag) {
                 ods_writen(sockfd, dnskey.c_str(), dnskey.size());
                 bSubmitChanged = key.ds_at_parent()==::ods::keystate::submit;

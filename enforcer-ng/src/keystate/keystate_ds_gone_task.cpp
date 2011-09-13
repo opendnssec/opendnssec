@@ -57,7 +57,7 @@ perform_keystate_ds_gone(int sockfd, engineconfig_type *config,
                        "Retracted Keys:\n"
                        "Zone:                           "
                        "Key role:     "
-                       "Key tag:      "
+                       "Keytag:       "
                        "Id:                                      "
                        "\n"
                        ,datastore
