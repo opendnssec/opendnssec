@@ -69,21 +69,3 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
     }
 	delete doc;
 }
-
-static task_type * 
-update_kasp_task_perform(task_type *task)
-{
-    perform_update_kasp(-1,(engineconfig_type *)task->context);
-    
-    task_cleanup(task);
-    return NULL;
-}
-
-task_type *
-update_kasp_task(engineconfig_type *config)
-{
-    task_id what = task_register("update kasp",
-                                 "update_kasp_task_perform",
-                                 update_kasp_task_perform);
-	return task_create(what ,time_now(), "all", (void*)config);
-}

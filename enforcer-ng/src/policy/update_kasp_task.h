@@ -6,6 +6,4 @@
 
 void perform_update_kasp(int sockfd, engineconfig_type *config);
 
-task_type *update_kasp_task(engineconfig_type *config);
-
 #endif
