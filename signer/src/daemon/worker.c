@@ -306,6 +306,11 @@ worker_perform_task(worker_type* worker)
                         worker->thread_num, task_who2str(task->who),
                         worker->jobs_completed, worker->jobs_appointed);
                     status = ODS_STATUS_ERR;
+                } else if (worker->need_to_exit) {
+                    ods_log_debug("[%s[%i]] sign zone %s failed: worker "
+                        "needs to exit", worker2str(worker->type),
+                        worker->thread_num, task_who2str(task->who));
+                    status = ODS_STATUS_ERR;
                 } else {
                     ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u "
                         "signatures succeeded", worker2str(worker->type),
