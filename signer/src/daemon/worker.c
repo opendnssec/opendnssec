@@ -34,6 +34,7 @@
 #include "daemon/engine.h"
 #include "daemon/worker.h"
 #include "shared/allocator.h"
+#include "shared/duration.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
@@ -244,6 +245,10 @@ worker_check_jobs(worker_type* worker, task_type* task) {
             "completed", worker2str(worker->type), worker->thread_num,
             task_who2str(task), worker->jobs_completed,
             worker->jobs_appointed);
+        return ODS_STATUS_ERR;
+    } else if (worker->need_to_exit) {
+        ods_log_debug("[%s[%i]] sign zone %s failed: worker needs to exit",
+            worker2str(worker->type), worker->thread_num, task_who2str(task));
         return ODS_STATUS_ERR;
     } else {
         ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u signatures "
