@@ -31,6 +31,7 @@ endif
 
 EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \
 		$(srcdir)/MIGRATION \
+		$(srcdir)/README.enforcer_testers \
 		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 
