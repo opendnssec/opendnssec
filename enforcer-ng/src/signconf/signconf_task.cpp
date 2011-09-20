@@ -1,10 +1,8 @@
 #include <fcntl.h>
 
-extern "C" {
 #include "signconf/signconf_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
-}
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>

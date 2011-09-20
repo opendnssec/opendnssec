@@ -42,6 +42,10 @@
 
 #include <ldns/ldns.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Read token from backup file.
  * \param[in] in input file descriptor
@@ -139,5 +143,9 @@ int backup_read_uint16_t(FILE* in, uint16_t* v);
  *
  */
 int backup_read_uint32_t(FILE* in, uint32_t* v);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SHARED_BACKUP_H */

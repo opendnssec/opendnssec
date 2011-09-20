@@ -45,6 +45,10 @@
 
 #include <ldns/ldns.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SE_SOA_RDATA_SERIAL  2
 #define SE_SOA_RDATA_MINIMUM 6
 
@@ -95,5 +99,9 @@ ldns_status util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr);
  *
  */
 int util_write_pidfile(const char* pidfile, pid_t pid);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UTIL_UTIL_H */

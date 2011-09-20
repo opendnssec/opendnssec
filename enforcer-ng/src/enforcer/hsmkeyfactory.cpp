@@ -1,9 +1,7 @@
 #include "enforcer/hsmkeyfactory.h"
 
-extern "C" {
 #include "shared/duration.h"
 #include "shared/log.h"
-}
 
 static const char * const module_str = "hsmkeyfactory";
 

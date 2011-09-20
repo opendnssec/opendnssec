@@ -38,6 +38,10 @@
 
 #include <signal.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SIGNAL_RUN 0
 #define SIGNAL_INIT 1
 #define SIGNAL_RELOAD 2
@@ -66,5 +70,9 @@ void signal_handler(sig_atomic_t sig);
  *
  */
 sig_atomic_t signal_capture(sig_atomic_t dflsig);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DAEMON_SIGNAL_H */

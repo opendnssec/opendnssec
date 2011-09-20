@@ -4,16 +4,12 @@
 
 #include "hsmkey/hsmkey.pb.h"
 
-// Interface of this cpp file is used by C code, we need to declare 
-// extern "C" to prevent linking errors.
-extern "C" {
 #include "hsmkey/update_hsmkeys_cmd.h"
 #include "hsmkey/update_hsmkeys_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-}
 
 static const char *module_str = "update_hsmkeys_cmd";
 

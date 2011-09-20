@@ -38,6 +38,10 @@
 #include "shared/allocator.h"
 #include "shared/status.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Check config file with rng file.
  * \param[in] cfgfile the configuration file name
@@ -109,5 +113,9 @@ int parse_conf_use_syslog(const char* cfgfile);
 /** Enforcer specific */
 int parse_conf_worker_threads(const char* cfgfile);
 int parse_conf_manual_keygen(const char* cfgfile);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PARSE_CONFPARSER_H */

@@ -2,16 +2,12 @@
 #include <iostream>
 #include <cassert>
 
-// Interface of this cpp file is used by C code, we need to declare 
-// extern "C" to prevent linking errors.
-extern "C" {
 #include "keystate/keystate_export_cmd.h"
 #include "keystate/keystate_export_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-}
 
 static const char *module_str = "keystate_export_cmd";
 

@@ -12,9 +12,6 @@
 #include "enforcer/enforcerdata.h"
 #include "enforcer/enforcer.h"
 
-// Interface of this cpp file is used by C code, we need to declare
-// extern "C" to prevent linking errors.
-extern "C" {
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
@@ -24,7 +21,6 @@ extern "C" {
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/allocator.h"
-}
 
 #include "enforcer/enforcerzone.h"
 #include "enforcer/hsmkeyfactory.h"

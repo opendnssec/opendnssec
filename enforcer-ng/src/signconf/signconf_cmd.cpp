@@ -4,16 +4,12 @@
 
 #include "policy/kasp.pb.h"
 
-// Interface of this cpp file is used by C code, we need to declare 
-// extern "C" to prevent linking errors.
-extern "C" {
 #include "signconf/signconf_cmd.h"
 #include "signconf/signconf_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-}
 
 static const char *module_str = "signconf_cmd";
 

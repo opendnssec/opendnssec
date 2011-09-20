@@ -1,8 +1,6 @@
 #include "enforcer/enforcerzone.h"
 
-extern "C" {
 #include "shared/log.h"
-}
 
 static const char * const module_str = "enforcezone";
 

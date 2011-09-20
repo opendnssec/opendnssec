@@ -10,11 +10,7 @@
 
 #include "resalt.h"
 
-
-extern "C" {
 #include "shared/duration.h"
-}
-
 
 int PolicyUpdateSalt(::ods::kasp::Policy &policy)
 {

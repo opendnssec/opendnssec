@@ -5,10 +5,8 @@
 #include "xmlext-wr.h"
 #include "xmlext.pb.h"
 
-extern "C" {
 #include "shared/log.h"
 #include "shared/file.h"
-}
 
 static const char *module_str = "xmlext_wr";
 

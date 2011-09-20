@@ -45,6 +45,10 @@
 #include <libhsm.h>
 #include <libhsmdns.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Get key from one of the HSMs, store the DNSKEY and HSM key.
  * \param[in] ctx HSM context
@@ -68,5 +72,9 @@ ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id);
  */
 ldns_rr* lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ldns_rdf* owner, time_t inception, time_t expiration);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SHARED_HSM_H */

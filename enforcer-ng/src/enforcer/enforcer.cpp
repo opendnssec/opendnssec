@@ -22,12 +22,8 @@
 #include "policy/kasp.pb.h"
 #include "hsmkey/hsmkey.pb.h"
 
-/* Interface of this cpp file is used by C code, we need to declare
- * extern "C" to prevent linking errors. */
-extern "C" {
-	#include "shared/duration.h"
-	#include "shared/log.h"
-}
+#include "shared/duration.h"
+#include "shared/log.h"
 
 using namespace std;
 using ::ods::kasp::Policy;

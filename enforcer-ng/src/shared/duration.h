@@ -40,6 +40,10 @@
 #include <stdint.h>
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Duration.
  *
@@ -164,5 +168,9 @@ time_t time_now(void);
  *
  */
 void duration_cleanup(duration_type* duration);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UTIL_DURATION_H */

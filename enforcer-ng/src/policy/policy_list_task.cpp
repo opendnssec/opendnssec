@@ -1,9 +1,6 @@
-
-extern "C" {
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "policy/policy_list_task.h"
-}
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>

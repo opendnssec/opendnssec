@@ -32,6 +32,9 @@
 
 #include <ldns/ldns.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*! Extra information for signing rrsets (algorithm, expiration, etc) */
 typedef struct {
@@ -125,5 +128,9 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
 */
 int
 hsm_supported_algorithm(ldns_algorithm algorithm);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HSMDNS_H */

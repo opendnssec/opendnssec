@@ -38,8 +38,11 @@
 #include "shared/allocator.h"
 #include <time.h>
 
-int ods_str_explode(char *buf, int argc, const char *argv[]);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+int ods_str_explode(char *buf, int argc, const char *argv[]);
 
 /**
  * Join arguments together with a join character into a single string 
@@ -82,5 +85,9 @@ int ods_find_arg(int *pargc, const char *argv[],
 int ods_find_arg_and_param(int *pargc, const char *argv[],
                            const char *longname, const char *shortname,
                            const char **pvalue);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SHARED_STR_H */

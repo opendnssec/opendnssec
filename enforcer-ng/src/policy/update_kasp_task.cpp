@@ -1,8 +1,6 @@
-extern "C" {
 #include "update_kasp_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
-}
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>

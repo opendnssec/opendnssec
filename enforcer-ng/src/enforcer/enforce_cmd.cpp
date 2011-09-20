@@ -6,9 +6,6 @@
 #include "enforcer/enforcerdata.h"
 #include "enforcer/enforcer.h"
 
-// Interface of this cpp file is used by C code, we need to declare 
-// extern "C" to prevent linking errors.
-extern "C" {
 #include "enforcer/enforce_cmd.h"
 #include "enforcer/enforce_task.h"
 #include "signconf/signconf_task.h"
@@ -16,7 +13,6 @@ extern "C" {
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-}
 
 static const char *module_str = "enforce_cmd";
 

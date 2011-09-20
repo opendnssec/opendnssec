@@ -52,6 +52,9 @@
 
 #include <ldns/ldns.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Task schedule.
@@ -164,5 +167,9 @@ void schedule_print(FILE* out, schedule_type* schedule);
  *
  */
 void schedule_cleanup(schedule_type* schedule);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SCHEDULER_SCHEDULE_H */

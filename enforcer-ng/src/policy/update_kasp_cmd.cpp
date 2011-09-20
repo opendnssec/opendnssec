@@ -4,16 +4,12 @@
 
 #include "policy/kasp.pb.h"
 
-// Interface of this cpp file is used by C code, we need to declare 
-// extern "C" to prevent linking errors.
-extern "C" {
 #include "policy/update_kasp_cmd.h"
 #include "policy/update_kasp_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-}
 
 static const char *module_str = "update_kasp_cmd";
 

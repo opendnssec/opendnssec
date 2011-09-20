@@ -1,10 +1,7 @@
-
-extern "C" {
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "keystate/zone_list_task.h"
-}
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>

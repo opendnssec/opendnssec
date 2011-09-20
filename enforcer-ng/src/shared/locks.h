@@ -40,6 +40,10 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define LOCKRET(func) do { \
 	int err; \
 	if ( (err=(func)) != 0) \
@@ -49,7 +53,15 @@
 
 #if defined(HAVE_PTHREAD)
 
+#ifdef __cplusplus
+}
+#endif
+
 #include <pthread.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** use pthread mutex for basic lock */
 typedef pthread_mutex_t lock_basic_type;
@@ -111,5 +123,9 @@ void ods_thr_fork_wait(ods_thread_type thread);
 #endif /* HAVE_PTHREAD */
 
 void ods_thread_blocksigs(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SHARED_LOCKS_H */

@@ -2,9 +2,6 @@
 #include <iostream>
 #include <cassert>
 
-// Interface of this cpp file is used by C code, we need to declare 
-// extern "C" to prevent linking errors.
-extern "C" {
 #include "keystate/update_keyzones_cmd.h"
 #include "keystate/update_keyzones_task.h"
 #include "enforcer/enforce_task.h"
@@ -12,7 +9,6 @@ extern "C" {
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-}
 
 static const char *module_str = "update_keyzones_cmd";
 

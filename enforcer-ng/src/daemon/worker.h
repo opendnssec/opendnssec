@@ -40,6 +40,10 @@
 
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum worker_enum {
     WORKER_NONE = 0,
     WORKER_WORKER = 1,
@@ -140,5 +144,9 @@ void worker_notify_all(lock_basic_type* lock, cond_basic_type* condition);
  *
  */
 void worker_cleanup(worker_type* worker);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DAEMON_WORKER_H */

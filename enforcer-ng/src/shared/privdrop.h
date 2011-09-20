@@ -39,6 +39,10 @@
 
 #include "shared/status.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Get the group identifier from a group name.
  * \param[in] groupname group name
@@ -75,6 +79,10 @@ ods_status privdrop(const char *username, const char *groupname,
  *
  */
 void privclose(const char* username, const char* groupname);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SHARED_PRIVDROP_H */
 

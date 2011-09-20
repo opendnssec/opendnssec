@@ -7,9 +7,7 @@
 #include <cerrno>
 #include "xmlext-rd.h"
 
-extern "C" {
 #include "shared/duration.h"
-}
 
 #include "xmlext.pb.h"
 

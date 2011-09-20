@@ -36,6 +36,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum ods_enum_status {
     ODS_STATUS_OK,
     ODS_STATUS_ASSERT_ERR,
@@ -84,5 +88,9 @@ ods_lookup_table* ods_lookup_by_id(ods_lookup_table *table, int id);
  *
  */
 const char *ods_status2str(ods_status status);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UTIL_STATUS_H */

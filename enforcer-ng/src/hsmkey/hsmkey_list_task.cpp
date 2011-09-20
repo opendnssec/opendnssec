@@ -1,9 +1,7 @@
-extern "C" {
 #include "hsmkey/hsmkey_list_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 #include "shared/str.h"
-}
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>

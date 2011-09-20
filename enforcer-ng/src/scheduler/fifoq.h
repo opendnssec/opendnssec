@@ -52,6 +52,10 @@
 
 #include <ldns/ldns.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define FIFOQ_MAX_COUNT 1000
 
 /**
@@ -108,5 +112,9 @@ ods_status fifoq_push(fifoq_type* q, void* item, worker_type* worker);
  *
  */
 void fifoq_cleanup(fifoq_type* q);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SCHEDULER_FIFOQ_H */

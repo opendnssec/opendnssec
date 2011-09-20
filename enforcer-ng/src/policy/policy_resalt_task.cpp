@@ -1,10 +1,9 @@
-extern "C" {
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "policy/policy_resalt_task.h"
-}
 #include "policy/resalt.h"
+#include "scheduler/task.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>

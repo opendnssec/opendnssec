@@ -1,10 +1,8 @@
-extern "C" {
 #include "keystate/keystate_export_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
-}
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>

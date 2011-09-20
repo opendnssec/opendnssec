@@ -39,6 +39,10 @@
 
 #include <ldns/ldns.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum task_id_enum {
     TASK_NONE = 0,
 /* tasks defined by signer */
@@ -174,5 +178,9 @@ void task_log(task_type* task);
  *
  */
 task_type *task_perform(task_type *task);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SCHEDULER_TASK_H */

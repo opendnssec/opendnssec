@@ -46,6 +46,10 @@
 
 #include <signal.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Engine stuff.
  *
@@ -141,5 +145,9 @@ void engine_wakeup_workers(engine_type* engine);
  *
  */
 void engine_cleanup(engine_type* engine);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DAEMON_ENGINE_H */

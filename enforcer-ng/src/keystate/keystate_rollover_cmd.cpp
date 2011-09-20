@@ -2,9 +2,6 @@
 #include <iostream>
 #include <cassert>
 
-// Interface of this cpp file is used by C code, we need to declare 
-// extern "C" to prevent linking errors.
-extern "C" {
 #include "keystate/keystate_rollover_cmd.h"
 #include "keystate/keystate_rollover_task.h"
 #include "shared/duration.h"
@@ -12,7 +9,6 @@ extern "C" {
 #include "shared/str.h"
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
-}
 
 #include "keystate/keystate.pb.h"
 

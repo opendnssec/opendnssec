@@ -41,6 +41,10 @@
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Engine configuration.
  *
@@ -101,5 +105,9 @@ void engine_config_print(FILE* out, engineconfig_type* config);
  *
  */
 void engine_config_cleanup(engineconfig_type* config);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DAEMON_CONFIG_H */

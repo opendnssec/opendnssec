@@ -47,6 +47,9 @@
 #include <libhsm.h>
 #include <libhsmdns.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Key.
@@ -158,5 +161,9 @@ void keylist_print(FILE* out, keylist_type* kl);
  *
  */
 void keylist_log(keylist_type* kl, const char* name);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SIGNER_KEYS_H */

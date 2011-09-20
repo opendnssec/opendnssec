@@ -40,6 +40,10 @@
 
 #include <sys/un.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define ODS_SE_MAX_HANDLERS 5
 
 /* back reference to the engine */
@@ -80,5 +84,8 @@ void cmdhandler_start(cmdhandler_type* cmdhandler);
  */
 void cmdhandler_cleanup(cmdhandler_type* cmdhandler);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DAEMON_CMDHANDLER_H */
