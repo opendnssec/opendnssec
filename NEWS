@@ -1,5 +1,12 @@
 $Id$
 
+* Enforcer: Check HSM connection when waking up from sleep, attempt to
+  reconnect if it is not valid. (r5511 in trunk, ported into the branch due
+  to issues seen when CKR_DEVICE_ERROR returned by HSM.)
+* libhsm: Added hsm_check_context() to check if the associated sessions are
+  still alive. (Required for the above.)
+
+
 OpenDNSSEC 1.3.2 - 2011-09-13
 
 Bugfixes:

@@ -161,6 +161,17 @@ can be freed with hsm_destroy_context()
 hsm_ctx_t *
 hsm_create_context(void);
 
+/*! Check HSM context
+
+Check if the associated sessions are still alive.
+If they are not alive, then try re-open libhsm.
+
+\param context HSM context
+\return 0 if successful, !0 if failed
+*/
+int
+hsm_check_context(hsm_ctx_t *context);
+
 
 /*! Destroy HSM context
 
