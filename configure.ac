@@ -202,12 +202,11 @@ AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
 # auditor
 AC_ARG_ENABLE(auditor,
-	AC_HELP_STRING([--disable-auditor],
-		[Disable auditor build (default enabled)]),
+	AC_HELP_STRING([--enable-auditor],
+		[Enable auditor build (default disabled)]),
 		[enable_auditor="${enableval}"],
-		[enable_auditor="yes"])
+		[enable_auditor="no"])
 if test "x${enable_auditor}" = "xyes"; then
-	AM_PROG_RUBY
 	AC_CONFIG_SUBDIRS([ auditor ])
 fi
 AM_CONDITIONAL([ENABLE_AUDITOR], [test "${enable_auditor}" = "yes"])
