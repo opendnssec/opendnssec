@@ -485,12 +485,15 @@ time_now(void)
 {
 #ifdef ENFORCER_TIMESHIFT
     const char* env = getenv("ENFORCER_TIMESHIFT");
+#endif /* ENFORCER_TIMESHIFT */
+    time_t now = time(NULL);
+
+#ifdef ENFORCER_TIMESHIFT
     if (env) {
         return timeshift2time(env);
     } else
 #endif /* ENFORCER_TIMESHIFT */
 
-    time_t now = time(NULL);
     return now > time_now_set ? now : time_now_set;
 }
 
