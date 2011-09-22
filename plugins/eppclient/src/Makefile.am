@@ -5,6 +5,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 sysconfdir =	@sysconfdir@/opendnssec
 
 AM_CPPFLAGS =	-I$(srcdir)/.. \
+		-I$(top_srcdir)/common \
 		@LDNS_INCLUDES@ @XML2_INCLUDES@ \
 		@LIBCURL_CPPFLAGS@ @SQLITE3_INCLUDES@
 AM_CFLAGS =	-std=c99 -D_XOPEN_SOURCE=600
