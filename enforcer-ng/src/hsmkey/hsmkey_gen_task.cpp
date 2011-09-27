@@ -40,10 +40,10 @@ bool generate_keypair(int sockfd,
                    keysize,repository);
     ods_writen(sockfd, buf, strlen(buf));
     
-    key = hsm_generate_rsa_key(NULL, repository, keysize);
+    key = hsm_generate_rsa_key(ctx, repository, keysize);
     if (key) {
         hsm_key_info_t *key_info;
-        key_info = hsm_get_key_info(NULL, key);
+        key_info = hsm_get_key_info(ctx, key);
         locator.assign(key_info ? key_info->id : "NULL");
         ods_log_debug("[%s] Key generation successful: %s",
                       module_str,locator.c_str());
