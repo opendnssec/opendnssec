@@ -64,7 +64,28 @@ message Keys {
 	optional int32 purge = 5 [(xml).path="Purge", (xml).type=duration]; // enforcer may purge keys after this amount of time
 	repeated Ksk ksk = 6 [(xml).path="KSK"]; // Key Signing Keys (KSK) parameters.
 	repeated Zsk zsk = 7 [(xml).path="ZSK"]; // Zone Signing Keys (ZSK) parameters.
-    repeated Csk csk = 8 [(xml).path="CSK"]; // Combined Signing Keys (CSK) paramters.
+	repeated Csk csk = 8 [(xml).path="CSK"]; // Combined Signing Keys (CSK) paramters.
+}
+
+// These values correspond directly to the minimize flags. 3,6 & 7
+// are forbidden. MinimizeDS<<2 & MinimizeDNSKEY <<1 & MinimizeRRSIG
+
+enum KskRollType {
+	KskDoubleRRset = 0;		//no minimize
+	KskDoubleDS = 2;		//minimize DNSKEY
+	KskDoubleSignature = 4; //minimize DS
+}
+enum ZskRollType {
+	ZskDoubleSignature = 0;	//no minimize
+	ZskPrePublication = 1;	//minimize RRSIG
+	ZskDoubleRRsig = 2;		//minimize DNSKEY
+}
+enum CskRollType {
+	CskDoubleRRset = 0;		//no minimize
+	CskSingleSignature = 1;	//minimize RRSIG
+	CskDoubleDS = 2;		//minimize DNSKEY
+	CskDoubleSignature = 4;	//minimize DS
+	CskPrePublication = 5;	//minimize DS and RRSIG
 }
 
 message Ksk {
@@ -78,6 +99,7 @@ message Ksk {
 
 	// Ksk specific
 	optional bool rfc5011 = 7 [(xml).path="RFC5011"]; // Use RFC 5011 for key rollover ?
+	optional KskRollType rollover_type = 8 [default = KskDoubleSignature, (xml).path="KskRollType"]; // user friendly way of configure minimize flags
 }
 
 message Zsk {
@@ -88,19 +110,22 @@ message Zsk {
 	required string repository = 4 [(xml).path="Repository"]; // default zsk sm (for newly generated keys)
 	optional uint32 standby = 5 [(xml).path="Standby"]; // Number of Standby keys. Makes the rollover faster, since the key is already pre-published and ready
 	optional bool manual_rollover = 6 [(xml).path="ManualRollover"]; // Use manual key rollover ? Then do not automatically roll keys when their time is up.
+
+	optional ZskRollType rollover_type = 8 [default = ZskPrePublication, (xml).path="ZskRollType"]; // user friendly way of configure minimize flags
 }
 
 message Csk {
-    // anykey = generic key definition
-    required uint32 algorithm = 1 [(xml).path="Algorithm"]; // ksk algorithm (maxInclusive 255)
-    optional uint32 bits = 2 [(xml).path="Algorithm/@length"]; // ksk key size
-    required int32 lifetime = 3 [(xml).path="Lifetime", (xml).type=duration]; // ksk lifetime
-    required string repository = 4 [(xml).path="Repository"]; // default ksk sm (for newly generated keys)
-    optional uint32 standby = 5 [(xml).path="Standby"]; // Number of Standby keys. Makes the rollover faster, since the key is already pre-published and ready
-    optional bool manual_rollover = 6 [(xml).path="ManualRollover"]; // Use manual key rollover ? Then do not automatically roll keys when their time is up.
+	// anykey = generic key definition
+	required uint32 algorithm = 1 [(xml).path="Algorithm"]; // ksk algorithm (maxInclusive 255)
+	optional uint32 bits = 2 [(xml).path="Algorithm/@length"]; // ksk key size
+	required int32 lifetime = 3 [(xml).path="Lifetime", (xml).type=duration]; // ksk lifetime
+	required string repository = 4 [(xml).path="Repository"]; // default ksk sm (for newly generated keys)
+	optional uint32 standby = 5 [(xml).path="Standby"]; // Number of Standby keys. Makes the rollover faster, since the key is already pre-published and ready
+	optional bool manual_rollover = 6 [(xml).path="ManualRollover"]; // Use manual key rollover ? Then do not automatically roll keys when their time is up.
 
-    // Ksk specific
-    optional bool rfc5011 = 7 [(xml).path="RFC5011"]; // Use RFC 5011 for key rollover ?
+	// Ksk specific
+	optional bool rfc5011 = 7 [(xml).path="RFC5011"]; // Use RFC 5011 for key rollover ?
+	optional CskRollType rollover_type = 8 [default = CskPrePublication, (xml).path="CskRollType"]; // user friendly way of configure minimize flags
 }
 
 message Zone {
@@ -129,3 +154,4 @@ message Parent {
 message Audit {
 	optional bool partial = 1 [(xml).path="Partial"]; // Do a partial audit ?
 }
+

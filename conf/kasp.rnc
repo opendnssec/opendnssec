@@ -86,6 +86,8 @@ start = element KASP {
 			element KSK {
 				# generic key definition, see below
 				anykey,
+				# Controlling minimize flags Enforcer-ng
+				element KskRollType { "KskDoubleRRset" | "KskDoubleDS" | "KskDoubleSignature" }?,
 
 				# use RFC 5011 for key rollover?
 				# Not implemented yet
@@ -95,7 +97,21 @@ start = element KASP {
 			# Zone Signing Keys (ZSK) parameters
 			element ZSK {
 				# generic key definition, see below
-				anykey
+				anykey,
+				# Controlling minimize flags Enforcer-ng
+				element KskRollType { "ZskDoubleSignature" | "ZskPrePublication" | "ZskDoubleRRsig" }?
+			}*,
+
+			# Combined Signing Keys (CSK) parameters
+			element CSK {
+				# generic key definition, see below
+				anykey,
+				# Controlling minimize flags Enforcer-ng
+				element CskRollType { "CskDoubleRRset" | "CskSingleSignature" | "CskDoubleDS" | "CskDoubleSignature" | "CskPrePublication" }?,
+				
+				# use RFC 5011 for key rollover?
+				# Not implemented yet
+				element RFC5011 { empty }?
 			}*
 		},
 

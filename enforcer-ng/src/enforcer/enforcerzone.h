@@ -85,8 +85,7 @@ public:
     KeyDataListPB( ::ods::keystate::EnforcerZone *zone);
 
     virtual KeyData &addNewKey(int algorithm, time_t inception, KeyRole role,
-                               bool minimizeDS, bool minimizeRRSIG, 
-                               bool minimizeDNSKEY);
+                               int minimize);
     virtual int numKeys();
     virtual KeyData &key(int index);
     virtual void delKey(int index);

@@ -205,16 +205,15 @@ KeyDataListPB::KeyDataListPB(::ods::keystate::EnforcerZone *zone)
 }
 
 KeyData &KeyDataListPB::addNewKey(int algorithm, time_t inception, KeyRole role,
-                       bool minimizeDS, bool minimizeRRSIG, 
-                       bool minimizeDNSKEY)
+                       int minimize)
 {
     KeyDataPB key( _zone->add_keys() );
     key.setAlgorithm( algorithm );
     key.setInception( inception );
     key.setRole( role );
-    ((KeyStatePB&)key.keyStateDS()).setMinimize( minimizeDS );
-    ((KeyStatePB&)key.keyStateRRSIG()).setMinimize( minimizeRRSIG );
-    ((KeyStatePB&)key.keyStateDNSKEY()).setMinimize( minimizeDNSKEY );
+    ((KeyStatePB&)key.keyStateDS()).setMinimize( (minimize>>2)&1 );
+    ((KeyStatePB&)key.keyStateDNSKEY()).setMinimize( (minimize>>1)&1 );
+    ((KeyStatePB&)key.keyStateRRSIG()).setMinimize( minimize&1 );
     _keys.push_back(key);
     return _keys.back();
 }

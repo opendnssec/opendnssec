@@ -47,8 +47,14 @@ static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 #define DEFAULT_MAX_ZONE_TTL (3600*24*5) 
 
 /**
- * Previous Enforcer had this hardcoded. We don't want to upset 
- * upgrading users. If not configured, use default.
+ * Return the largest TTL over the data in the zone.
+ * 
+ * Since the Enforcer does not introspect the zonefile the value is 
+ * configured in the policy. If not specified, fallback to the old
+ * enforcer's behavior. 
+ * 
+ * \param[in] policy
+ * \return TTL in seconds
  * */
 inline int
 maxZoneTTL(const Policy *policy)
@@ -63,8 +69,8 @@ maxZoneTTL(const Policy *policy)
  * Stores smallest of two times in min. Avoiding negative values,
  * which mean no update necessary. Any other time in the past: ASAP.
  * 
- * @param t, some time to test
- * \param min, smallest of t and min.
+ * \param t[in], some time to test
+ * \param min[in,out], smallest of t and min.
  * */
 inline void 
 minTime(const time_t t, time_t &min)
@@ -77,9 +83,9 @@ minTime(const time_t t, time_t &min)
  * 
  * Adds seconds to a time. Adding seconds directly is not portable.
  * 
- * @param t, base time
- * @param seconds, seconds to add to base
- * @return sum
+ * \param[in] t, base time
+ * \param[in] seconds, seconds to add to base
+ * \return sum
  * */
 time_t
 addtime(const time_t t, const int seconds)
@@ -92,9 +98,9 @@ addtime(const time_t t, const int seconds)
 /**
  * Retrieve a KeyState structure for one of the records of a key.
  * 
- * @param key, key to get the keystate from.
- * @param record, specifies which keystate.
- * @return keystate
+ * \param[in] key, key to get the keystate from.
+ * \param[in] record, specifies which keystate.
+ * \return keystate
  * */
 KeyState&
 getRecord(KeyData &key, const RECORD record)
@@ -115,9 +121,9 @@ getRecord(KeyData &key, const RECORD record)
 /**
  * Return state of a record.
  * 
- * @param key
- * @param record
- * @return state of record.
+ * \param[in] key
+ * \param[in] record
+ * \return state of record.
  * */
 inline STATE
 getState(KeyData &key, const RECORD record)
@@ -133,9 +139,9 @@ getState(KeyData &key, const RECORD record)
  * Input state and return state me be the same: the record is said
  * to be stable.
  * 
- * @param introducing, movement direction of key.
- * @param state, current state of record.
- * @return next state
+ * \param[in] introducing, movement direction of key.
+ * \param[in] state, current state of record.
+ * \return next state
  * */
 STATE
 getDesiredState(const bool introducing, const STATE state)
@@ -146,50 +152,6 @@ getDesiredState(const bool introducing, const STATE state)
 			"Corrupt database? Abort.",  module_str, scmd, (int)state);
 	const STATE jmp[2][5] = {{HID, UNR, UNR, HID, NOCARE}, {RUM, OMN, OMN, RUM, NOCARE}};
 	return jmp[introducing][(int)state];
-}
-
-/**
- * Make sure records are introduced in correct order.
- * 
- * Make sure records are introduced in correct order. Only look at the 
- * policy, timing and validity is done in another function.
- * 
- * @param key
- * @param record
- * @param next_state 
- * @return True IFF policy allows transition of record to state.
- * */
-bool
-policyApproval(KeyData &key, const RECORD record, const STATE next_state)
-{
-	const char *scmd = "policyApproval";
-	
-	/** once the record is introduced the policy has no influence. */
-	if (next_state != RUM) return true;
-	
-	switch(record) {
-		case DS:
-			/** If we want to minimize the DS transitions make sure
-			 * the DNSKEY is fully propagated. */
-			return !key.keyStateDS().minimize() || 
-				getState(key, DK) == OMN;
-		case DK:
-			/** the DS *and* the RRSIGs must be fully propagated. */
-			return !key.keyStateDNSKEY().minimize() || 
-				(getState(key, DS) == OMN && getState(key, RS) == OMN);
-		case RD:
-			/** The only time not to introduce RRSIG DNSKEY is when the
-			 * DNSKEY is still hidden. */
-			return getState(key, DK) != HID;
-		case RS:
-			/** DNSKEY must be hidden. */
-			return !key.keyStateRRSIG().minimize() || 
-				getState(key, DK) == OMN;
-		default: 
-			ods_fatal_exit("[%s] %s Unknown record type (%d), "
-				"fault of programmer. Abort.",
-				module_str, scmd, (int)record);
-	}
 }
 
 /**
@@ -462,6 +424,71 @@ minTransitionTime(EnforcerZone &zone, const RECORD record,
 	}
 }
 
+/**
+ * Make sure records are introduced in correct order.
+ * 
+ * Make sure records are introduced in correct order. Only look at the 
+ * policy, timing and validity is done in another function.
+ * 
+ * \param[in] key
+ * \param[in] record
+ * \param[in] next_state 
+ * \return True iff policy allows transition of record to state.
+ * */
+bool
+policyApproval(KeyDataList &key_list, KeyData &key, const RECORD record, const STATE next_state)
+{
+	const char *scmd = "policyApproval";
+	
+	/** once the record is introduced the policy has no influence. */
+	if (next_state != RUM) return true;
+	
+	ods_log_verbose("[%s] %s MinDS: %d", module_str, scmd, key.keyStateDS().minimize());
+	ods_log_verbose("[%s] %s MinDK: %d", module_str, scmd, key.keyStateDNSKEY().minimize());
+	ods_log_verbose("[%s] %s MinRS: %d", module_str, scmd, key.keyStateRRSIG().minimize());
+	
+	const STATE mask_sig[] =  {NOCARE, OMN, NOCARE, OMN};
+	const STATE mask_dnskey[] =  {OMN, OMN, OMN, NOCARE};
+	
+	switch(record) {
+		case DS:
+			/** If we want to minimize the DS transitions make sure
+			 * the DNSKEY is fully propagated. */
+			return !key.keyStateDS().minimize() || 
+				getState(key, DK) == OMN;
+		case DK:
+			/** 1) there are no restrictions */
+			if (!key.keyStateDNSKEY().minimize()) return true;
+			/** 2) If minimize, signatures must ALWAYS be propagated 
+			 * for CSK and ZSK */
+			if (getState(key, RS) != OMN && getState(key, RS) != NOCARE)
+				return false;
+			/** 3) wait till DS is introduced */
+			if (getState(key, DS) == OMN) return true;
+			/** 4) Except, we might be doing algorithm rollover.
+			 * if no other good KSK available, ignore minimize flag*/
+			return !exists(key_list, key, DK,NOCARE, 
+				true, false, mask_dnskey);
+		case RD:
+			/** The only time not to introduce RRSIG DNSKEY is when the
+			 * DNSKEY is still hidden. */
+			return getState(key, DK) != HID;
+		case RS:
+			/** 1) there are no restrictions */
+			if (!key.keyStateRRSIG().minimize()) return true;
+			/** 2) wait till DNSKEY is introduced */
+			if (getState(key, DK) == OMN) return true;
+			/** 3) Except, we might be doing algorithm rollover
+			 * if no other good ZSK available, ignore minimize flag */
+			return !exists(key_list, key, RS,NOCARE, 
+				true, false, mask_sig);
+		default: 
+			ods_fatal_exit("[%s] %s Unknown record type (%d), "
+				"fault of programmer. Abort.",
+				module_str, scmd, (int)record);
+	}
+}
+
 /** given the zone, what TTL should be used for record?
  * 
  * Normally we use the TTL from the policy. However a larger TTL might
@@ -558,18 +585,34 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 			ods_log_verbose("[%s] %s processing key %s", module_str, 
 				scmd, key.locator().c_str());
 
+			/** 
+			 * Note: We *could* make a check here to see if
+			 * DS && DK || DK && RS .minimize() == True
+			 * if so, we could do:
+			 *  - nothing (key will probably get stuck, current situation)
+			 *  - fatal exit (because we suspect db corruption)
+			 *  - flip one of the bits, log, continue
+			 **/
+
 			for (RECORD record = REC_MIN; record < REC_MAX; ++record) {
 				STATE state = getState(key, record);
 				STATE next_state = getDesiredState(key.introducing(), state);
 				
 				/** record is stable */
 				if (state == next_state) continue;
+				/** This record waits for user input */
+				if (record == DS) {
+					if (next_state == OMN && key.dsAtParent() != DS_SEEN)
+						continue;
+					if (next_state == HID && key.dsAtParent() != DS_UNSUBMITTED)
+						continue;
+				}
 				ods_log_verbose("[%s] %s May %s transition to %s?", 
 					module_str, scmd, RECORDAMES[(int)record], 
 					STATENAMES[(int)next_state]);
-				
+
 				/** Policy prevents transition */
-				if (!policyApproval(key, record, next_state)) continue;
+				if (!policyApproval(key_list, key, record, next_state)) continue;
 				ods_log_verbose("[%s] %s Policy says we can (1/3)", 
 					module_str, scmd);
 				
@@ -596,26 +639,12 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 				 * some other external process. We must communicate
 				 * through the DSSeen and -submit flags */
 				if (record == DS) {
-					switch (next_state) {
-						case RUM:
-							/** Ask the user to submit the DS to
-							 * the parent */
-							key.setDsAtParent(DS_SUBMIT);
-							break;
-						case OMN:
-							/** User had not indicated DS is seen */
-							if (key.dsAtParent() != DS_SEEN) continue;
-							break;
-						case UNR:
-							/** Ask the user to remove the DS from
-							 * the parent */
-							key.setDsAtParent(DS_RETRACT);
-							break;
-						case HID:
-							/** User had not indicated DS is removed */
-							if (key.dsAtParent() != DS_UNSUBMITTED) continue;
-							break;
-					}
+					/** Ask the user to submit the DS to the parent */
+					if (next_state == RUM)
+						key.setDsAtParent(DS_SUBMIT);
+					/** Ask the user to remove the DS from the parent */
+					else if (next_state == UNR)
+						key.setDsAtParent(DS_RETRACT);
 				}
 
 				/** We've passed all tests! Make the transition */
@@ -678,13 +707,25 @@ numberOfKeyConfigs(const Keys &policyKeys, const KeyRole role)
 }
 
 /**
+ * Finds the policy parameters of the Nth key with role. 
+ * 
  * Abstraction to generalize different kind of keys. 
- * Note: a better solution would be inheritance. 
+ * Note: a better solution would be inheritance.
+ * 
+ * \param[in] policyKeys, Keys structure from Policy
+ * \param[in] index, Nth key in policyKeys, see numberOfKeyConfigs() 
+ * 					for count
+ * \param[in] role, sort of key you are looking for.
+ * \param[out] bits
+ * \param[out] algorithm
+ * \param[out] lifetime
+ * \param[out] repository
+ * \param[out] manual
  * */
 void 
 keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
 	int *bits, int *algorithm, int *lifetime, string &repository,
-	bool *manual)
+	bool *manual, int *rollover_type)
 {
 	const char *scmd = "keyProperties";
 	
@@ -699,6 +740,7 @@ keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
 			*lifetime  = policyKeys.ksk(index).lifetime();
 			*manual    = policyKeys.ksk(index).manual_rollover();
 			repository.assign(policyKeys.ksk(index).repository());
+			*rollover_type = policyKeys.ksk(index).rollover_type();
 			break;
 		case ZSK:
 			*bits	   = policyKeys.zsk(index).bits();
@@ -706,6 +748,7 @@ keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
 			*lifetime  = policyKeys.zsk(index).lifetime();
 			*manual    = policyKeys.zsk(index).manual_rollover();
 			repository.assign(policyKeys.zsk(index).repository());
+			*rollover_type = policyKeys.zsk(index).rollover_type();
 			break;
 		case CSK:
 			*bits	   = policyKeys.csk(index).bits();
@@ -713,6 +756,7 @@ keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
 			*lifetime  = policyKeys.csk(index).lifetime();
 			*manual    = policyKeys.csk(index).manual_rollover();
 			repository.assign(policyKeys.csk(index).repository());
+			*rollover_type = policyKeys.csk(index).rollover_type();
 			break;
 		default:
 			/** Programming error, report a bug! */
@@ -749,11 +793,11 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 	/** 2: loop over all configs for this role */
 	for (int i = 0; i < numberOfKeyConfigs(policyKeys, key.role()); i++)
 	{
-		int p_bits, p_alg, p_life;
+		int p_bits, p_alg, p_life, p_rolltype;
 		string p_rep;
 		bool p_man;
 		keyProperties(policyKeys, i, key.role(), &p_bits, &p_alg, 
-			&p_life, p_rep, &p_man); 
+			&p_life, p_rep, &p_man, &p_rolltype); 
 		if (p_bits == hsmkey->bits() && p_alg == key.algorithm() &&
 			!p_rep.compare(hsmkey->repository()) )
 			return true;
@@ -767,13 +811,13 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 	const KeyRole role, const int index, 
 	KeyDataList &key_list, KeyData **key)
 {
-	int p_bits, p_alg, p_life;
+	int p_bits, p_alg, p_life, p_rolltype;
 	string p_rep;
 	bool p_man;
 	
 	/** fetch characteristics of config */
 	keyProperties(policyKeys, index, role, &p_bits, &p_alg, &p_life,
-		p_rep, &p_man); 
+		p_rep, &p_man, &p_rolltype); 
 	
 	*key = NULL;
 	for (int j = 0; j < key_list.numKeys(); j++) {
@@ -824,20 +868,22 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 	allow_unsigned = (0 == (numberOfKeyConfigs(policyKeys, ZSK) + 
 							numberOfKeyConfigs(policyKeys, KSK) + 
 							numberOfKeyConfigs(policyKeys, CSK) ));
-	
+
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
 		/** NOTE: we are not looping over keys, but configurations */
 		for ( int i = 0; i < numberOfKeyConfigs( policyKeys, (KeyRole)role ); i++ ) {
 			string repository;
-			int bits, algorithm, lifetime;
+			int bits, algorithm, lifetime, p_rolltype;
 			bool manual_rollover;
 
 			/** select key properties of key i in KeyRole role */
 			keyProperties(policyKeys, i, (KeyRole)role, &bits, 
-				&algorithm, &lifetime, repository, &manual_rollover);
+				&algorithm, &lifetime, repository, &manual_rollover, 
+				&p_rolltype);
 
+			/** Should we do a manual rollover *now*? */
 			bool rollNow = false;
 			if (manual_rollover) {
 				switch((KeyRole)role) {
@@ -850,23 +896,23 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 						module_str, scmd, role);
 				}
 			}
-
-			/** If a rollover is initiated by the user (forced) for this
-			 * role insert new key regardless of lifetime of existing 
-			 * keys. */
 			if (!rollNow) {
+				/** User did not initiate manual rollover */
+				
 				/** Policy forbids automatic rolling */
 				if (manual_rollover) continue;
-				/** See if there is a similar key which is still usable.
-				 *  Come back whenever it expires. */
+				/** Is there a predecessor key? */
 				KeyData *key;
 				if (youngestKeyForConfig(keyfactory, policyKeys, 
 					(KeyRole)role, i, key_list, &key) && 
 					key->inception() + lifetime > now)
 				{
+					/** yes, but no need to roll at this time. Schedule 
+					 * for later */
 					minTime( addtime(key->inception(), lifetime), return_at );
 					continue;
 				}
+				/** No, or key is expired */
 			}
 
 			/** time for a new key */
@@ -876,6 +922,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			bool got_key;
 
 			if ( policyKeys.zones_share_keys() )
+				/** Try to get an existing key or ask for new shared */
 				got_key = getLastReusableKey( zone, policy, 
 					(KeyRole)role, bits, repository, algorithm, now, 
 					&newkey_hsmkey, keyfactory, lifetime) ||
@@ -897,7 +944,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			
 			/** Make new key from HSM_key and set defaults */
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
-				now, (KeyRole)role, false, false, false);
+				now, (KeyRole)role, p_rolltype);
 			new_key.setLocator( newkey_hsmkey->locator() );
 
 			new_key.setDsAtParent(DS_UNSUBMITTED);

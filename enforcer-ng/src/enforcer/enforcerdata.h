@@ -195,8 +195,7 @@ public:
 class KeyDataList {
 public:
     virtual KeyData &addNewKey(int algorithm, time_t inception, KeyRole role,
-                               bool minimizeDS, bool minimizeRRSIG, 
-                               bool minimizeDNSKEY) = 0;
+                               int minimize) = 0;
     virtual int numKeys() = 0;
     virtual KeyData &key(int index) = 0;
     virtual void delKey(int index) = 0;
