@@ -224,6 +224,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             task->what = TASK_SIGNCONF;
             task->when = time_now();
             status = schedule_task(cmdc->engine->taskq, task, 0);
+            zone->task = task;
         } else {
             /* task not queued, being worked on? */
             ods_log_verbose("[%s] worker busy with zone %s, will update "
@@ -233,8 +234,6 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             /* task->halted(_when) set by worker */
         }
         lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
-
-        zone->task = task;
         lock_basic_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
@@ -314,6 +313,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             task->what = TASK_READ;
             task->when = time_now();
             status = schedule_task(cmdc->engine->taskq, task, 0);
+            zone->task = task;
         } else {
             /* task now queued, being worked on? */
             ods_log_verbose("[%s] worker busy with zone %s, will read "
@@ -324,7 +324,6 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         }
         lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
 
-        zone->task = task;
         lock_basic_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
