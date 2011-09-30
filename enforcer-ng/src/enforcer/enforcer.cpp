@@ -1010,7 +1010,8 @@ void
 removeDeadKeys(KeyDataList &key_list, const time_t now, const int purgetime)
 {
 	const char *scmd = "removeDeadKeys";
-	
+	//TODO if all hidden or nocare and purgetime not passed yet
+	//return time of first purgeble key. 
 	for (int i = key_list.numKeys()-1; i >= 0; i--) {
 		KeyData &key = key_list.key(i);
 		if (!key.introducing() &&
