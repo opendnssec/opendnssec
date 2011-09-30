@@ -820,6 +820,7 @@ engine_update_zones(engine_type* engine)
            /* zone fetcher enabled? */
            zone->fetch = (engine->config->zonefetch_filename != NULL);
             lock_basic_unlock(&zone->zone_lock);
+           zone->task = task;
         } else if (zone->zl_status == ZONE_ZL_UPDATED) {
             lock_basic_lock(&zone->zone_lock);
             ods_log_assert(zone->task);
@@ -838,6 +839,7 @@ engine_update_zones(engine_type* engine)
                 task->what = TASK_SIGNCONF;
                 task->when = now;
                 status = schedule_task(engine->taskq, task, 0);
+                zone->task = task;
             } else {
                 /* task not queued, being worked on? */
                 ods_log_debug("[%s] worker busy with zone %s, will update "
@@ -850,7 +852,6 @@ engine_update_zones(engine_type* engine)
             lock_basic_unlock(&zone->zone_lock);
             wake_up = 1;
         }
-        zone->task = task;
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] failed to schedule task for zone %s: %s",
                 engine_str, zone->name, ods_status2str(status));
