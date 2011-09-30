@@ -238,6 +238,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             task->what = TASK_SIGNCONF;
             task->when = time_now();
             status = schedule_task(cmdc->engine->taskq, task, 0);
+            zone->task = task;
         } else {
             /* task not queued, being worked on? */
             ods_log_verbose("[%s] worker busy with zone %s, will update "
@@ -249,7 +250,6 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         /* [UNLOCK] schedule */
         lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
 
-        zone->task = task;
         lock_basic_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
