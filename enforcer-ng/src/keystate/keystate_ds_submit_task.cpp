@@ -27,13 +27,15 @@ static uint16_t submit_dnskey_by_id(int sockfd,
     char buf[ODS_SE_MAXLINE];
 
     /* Code to output the DNSKEY record  (stolen from hsmutil) */
-    hsm_key_t *key = hsm_find_key_by_id(NULL, id);
+    hsm_ctx_t *hsm_ctx = hsm_create_context();
+    hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
     
     if (!key) {
         ods_log_error("[%s] key %s not found in any HSM",
                       module_str,id);
         (void)snprintf(buf,ODS_SE_MAXLINE, "key %s not found in any HSM\n", id);
         ods_writen(sockfd, buf, strlen(buf));
+        hsm_destroy_context(hsm_ctx);
         return false;
     }
     
@@ -45,7 +47,7 @@ static uint16_t submit_dnskey_by_id(int sockfd,
     sign_params->flags = LDNS_KEY_ZONE_KEY;
     sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
     
-    ldns_rr *dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+    ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
     /* Calculate the keytag for this key, we return it. */
     uint16_t keytag = ldns_calc_keytag(dnskey_rr);
     /* Override the TTL in the dnskey rr */
@@ -129,7 +131,7 @@ static uint16_t submit_dnskey_by_id(int sockfd,
     }
         
     LDNS_FREE(dnskey_rr_str);
-
+    hsm_destroy_context(hsm_ctx);
     // Once the new DS records are seen in DNS please issue the ds-seen 
     // command for zone %s with the following cka_ids %s
     return keytag;

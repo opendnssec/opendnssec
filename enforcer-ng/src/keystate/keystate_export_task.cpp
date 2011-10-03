@@ -31,10 +31,12 @@ dnskey_from_id(std::string &dnskey,
     ldns_algorithm algo = (ldns_algorithm)algorithm;
     
     /* Code to output the DNSKEY record  (stolen from hsmutil) */
-    key = hsm_find_key_by_id(NULL, id);
+    hsm_ctx_t *hsm_ctx = hsm_create_context();
+    key = hsm_find_key_by_id(hsm_ctx, id);
     
     if (!key) {
         // printf("Key %s in DB but not repository\n", id);
+        hsm_destroy_context(hsm_ctx);
         return 0;
     }
     
@@ -49,7 +51,7 @@ dnskey_from_id(std::string &dnskey,
     if (role == ::ods::keystate::KSK)
         sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
     /* Get the DNSKEY record */
-    dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+    dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
     hsm_sign_params_free(sign_params);
     /* Calculate the keytag for this key, we return it. */
     uint16_t keytag = ldns_calc_keytag(dnskey_rr);
@@ -103,6 +105,7 @@ dnskey_from_id(std::string &dnskey,
     }
     ldns_rr_free(dnskey_rr);
     hsm_key_free(key);
+    hsm_destroy_context(hsm_ctx);
     
     return keytag;
 }
