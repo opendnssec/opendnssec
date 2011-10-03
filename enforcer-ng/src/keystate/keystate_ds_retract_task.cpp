@@ -26,6 +26,12 @@ static bool retract_dnskey_by_id(int sockfd,
 
     /* Code to output the DNSKEY record  (stolen from hsmutil) */
     hsm_ctx_t *hsm_ctx = hsm_create_context();
+    if (!hsm_ctx) {
+        ods_log_error("[%s] Could not connect to HSM", module_str);
+        (void)snprintf(buf,ODS_SE_MAXLINE, "Could not connect to HSM\n");
+        ods_writen(sockfd, buf, strlen(buf));
+        return false;
+    }
     hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
     
     if (!key) {

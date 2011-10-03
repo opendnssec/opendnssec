@@ -32,6 +32,10 @@ dnskey_from_id(std::string &dnskey,
     
     /* Code to output the DNSKEY record  (stolen from hsmutil) */
     hsm_ctx_t *hsm_ctx = hsm_create_context();
+    if (!hsm_ctx) {
+        ods_log_error("[%s] Could not connect to HSM", module_str);
+        return false;
+    }
     key = hsm_find_key_by_id(hsm_ctx, id);
     
     if (!key) {

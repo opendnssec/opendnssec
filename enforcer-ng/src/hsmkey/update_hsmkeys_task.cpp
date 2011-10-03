@@ -21,6 +21,10 @@ static void import_all_keys_from_all_hsms(int sockfd,
 {
     char buf[ODS_SE_MAXLINE];
     hsm_ctx_t * hsm_ctx = hsm_create_context();
+    if (!hsm_ctx) {
+        ods_log_error("[%s] Could not connect to HSM", module_str);
+        return;
+    }
     size_t nkeys;
     hsm_key_t **kl = hsm_list_keys(hsm_ctx, &nkeys);
 
