@@ -400,7 +400,7 @@ minTransitionTime(EnforcerZone &zone, const RECORD record,
 
 	/** We may freely move a record to a uncertain state. */
 	if (next_state == RUM || next_state == UNR) return lastchange;
-	
+
 	switch(record) {
 		case DS:
 			return addtime(lastchange, ttl
@@ -943,6 +943,16 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				module_str, scmd, role);
 			HsmKey *newkey_hsmkey;
 			bool got_key;
+
+			/** Sanity check. This would produce silly output and give
+			 * the signer lots of useless work */
+			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime || 
+					role&ZSK && maxZoneTTL(policy) + policy->keys().ttl() >= lifetime) {
+				ods_log_crit("[%s] %s Key lifetime unreasonably short "
+					"with respect to TTL. Will not insert key!",
+					module_str, scmd);
+				continue;
+			}
 
 			if ( policyKeys.zones_share_keys() )
 				/** Try to get an existing key or ask for new shared */
