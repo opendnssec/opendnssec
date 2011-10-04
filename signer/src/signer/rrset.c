@@ -474,6 +474,11 @@ rrset_diff(rrset_type* rrset, keylist_type* kl)
 
             current = current->next;
         } else { /* equal RRs */
+            /* TTL is not compared in util_dnssec_rrs_compare() so we copy it */
+            if (ldns_rr_ttl(current->rr) != ldns_rr_ttl(pending->rr)) {
+                ldns_rr_set_ttl(current->rr, ldns_rr_ttl(pending->rr));
+                rrset->needs_signing = 1;
+            }
             /* remove pending RR */
             if (!prev) {
                 rrset->add = pending->next;
