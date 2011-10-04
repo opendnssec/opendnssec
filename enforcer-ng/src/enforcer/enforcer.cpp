@@ -443,10 +443,6 @@ policyApproval(KeyDataList &key_list, KeyData &key, const RECORD record, const S
 	/** once the record is introduced the policy has no influence. */
 	if (next_state != RUM) return true;
 	
-	ods_log_verbose("[%s] %s MinDS: %d", module_str, scmd, key.keyStateDS().minimize());
-	ods_log_verbose("[%s] %s MinDK: %d", module_str, scmd, key.keyStateDNSKEY().minimize());
-	ods_log_verbose("[%s] %s MinRS: %d", module_str, scmd, key.keyStateRRSIG().minimize());
-	
 	const STATE mask_sig[] =  {NOCARE, OMN, NOCARE, OMN};
 	const STATE mask_dnskey[] =  {OMN, OMN, OMN, NOCARE};
 	
@@ -640,11 +636,38 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 				 * through the DSSeen and -submit flags */
 				if (record == DS) {
 					/** Ask the user to submit the DS to the parent */
-					if (next_state == RUM)
-						key.setDsAtParent(DS_SUBMIT);
+					if (next_state == RUM) {
+						switch(key.dsAtParent()) {
+							case DS_SEEN:
+							case DS_SUBMIT:
+							case DS_SUBMITTED:
+								break;
+							case DS_RETRACT:
+								/** Hypothetical case where we 
+								 * reintroduce keys */
+								key.setDsAtParent(DS_SUBMITTED);
+								break;
+							default:
+								key.setDsAtParent(DS_SUBMIT);
+						}
+					}
 					/** Ask the user to remove the DS from the parent */
-					else if (next_state == UNR)
-						key.setDsAtParent(DS_RETRACT);
+					else if (next_state == UNR) {
+						switch(key.dsAtParent()) {
+							case DS_SUBMIT:
+								/** Never submitted
+								 * NOTE: not safe if we support 
+								 * reintroduction of keys. */
+								key.setDsAtParent(DS_UNSUBMITTED);
+								break;
+							case DS_UNSUBMITTED:
+							case DS_RETRACTED:
+							case DS_RETRACT:
+								break;
+							default:
+								key.setDsAtParent(DS_RETRACT);
+						}
+					}
 				}
 
 				/** We've passed all tests! Make the transition */
