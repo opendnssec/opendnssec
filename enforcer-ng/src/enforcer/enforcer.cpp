@@ -1025,43 +1025,50 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 /**
  * Removes all keys from list that are no longer used.
  * 
- * @param key_list list to filter.
- * @param now
- * @param purgetime period after which dead keys may be removed
+ * \param[in] key_list list to filter.
+ * \param[in] now
+ * \param[in] purgetime period after which dead keys may be removed
+ * \return time_t Next key purgable. 
  * */
-void
+time_t
 removeDeadKeys(KeyDataList &key_list, const time_t now, const int purgetime)
 {
 	const char *scmd = "removeDeadKeys";
-	//TODO if all hidden or nocare and purgetime not passed yet
-	//return time of first purgeble key. 
+	time_t firstPurge = -1;
+	
 	for (int i = key_list.numKeys()-1; i >= 0; i--) {
 		KeyData &key = key_list.key(i);
-		if (!key.introducing() &&
-			(getState(key, DS) == HID && 
-			now >= addtime(key.keyStateDS().lastChange(), purgetime) || 
-				getState(key, DS) == NOCARE) &&
-			(getState(key, DK) == HID && 
-			now >= addtime(key.keyStateDNSKEY().lastChange(), purgetime) || 
-				getState(key, DK) == NOCARE) &&
-			(getState(key, RD) == HID && 
-			now >= addtime(key.keyStateRRSIGDNSKEY().lastChange(), purgetime) ||
-				getState(key, RD) == NOCARE) &&
-			(getState(key, RS) == HID &&
-			now >= addtime(key.keyStateRRSIG().lastChange(), purgetime) ||
-				getState(key, RS) == NOCARE) )
-		{
-			ods_log_info("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
-			key_list.delKey(i);
+		if (key.introducing()) continue;
+		
+		time_t keyTime = -1;
+		bool keyPurgable = true;
+		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
+			if (getState(key, r) == NOCARE) continue;
+			if (getState(key, r) != HID) {
+				keyPurgable = false;
+				break;
+			}
+			time_t recordTime = getRecord(key, r).lastChange();
+			if (recordTime > keyTime) keyTime = recordTime;
+		}
+		if (keyTime != -1) keyTime = addtime(keyTime, purgetime);
+		if (keyPurgable) {
+			if (now >= keyTime) {
+				ods_log_info("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
+				key_list.delKey(i);
+			} else {
+				minTime(keyTime, firstPurge);
+			}
 		}
 	}
+	return firstPurge;
 }
 
 /* see header file */
 time_t 
 update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 {
-	time_t policy_return_time, zone_return_time;
+	time_t policy_return_time, zone_return_time, purge_return_time = -1;
 	bool allow_unsigned;
 	KeyDataList &key_list = zone.keyDataList();
 	const Policy *policy = zone.policy();
@@ -1078,7 +1085,7 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 
 	/** Only purge old keys if the configuration says so. */
 	if (policy->keys().has_purge())
-		removeDeadKeys(key_list, now, policy->keys().purge());
+		purge_return_time = removeDeadKeys(key_list, now, policy->keys().purge());
 
 	/** Always set these flags. Normally this needs to be done _only_
 	 * when signerConfNeedsWriting() is set. However a previous
@@ -1092,5 +1099,6 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 	}
 
 	minTime(policy_return_time, zone_return_time);
+	minTime(purge_return_time,  zone_return_time);
 	return zone_return_time;
 }
