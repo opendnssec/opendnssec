@@ -174,3 +174,11 @@ Q: Can I speed up the process when debugging the enforcer?
 A: Yes, use "ods-enforcer time leap" to immediately execute the first 
    task scheduled. WARNING, never use this in production, this WILL 
    break validation.
+
+Q: My KSK does not seem to roll?
+Q: My ZSK gets replaced before it is fully introduced?
+A: First check if your KSK and ZSK have the same algorithm configured.
+   If they do, it is possible that you've set your Zone TLL smaller than
+   your ZSK lifetime. A sane policy would have the key lifetime several
+   orders of magnitude bigger than the TTL. Be sure to set your 
+   lifetime > MaxZoneTTL + KeyTTL.
