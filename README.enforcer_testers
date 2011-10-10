@@ -69,6 +69,14 @@ this release is likely not up to date and inaccurate.
   As entropy is a scarce resource, generating new keys can take a 
   considerable amount of time. The Enforcer tries to keep a pool of 
   pre-generated keys ready to speed up general key management. 
+- Configurable rollover strategy
+  Rollover type is configurable on a per key basis. defaults:
+  <KskRollType>KskDoubleSignature</KskRollType>
+  <ZskRollType>ZskPrePublication</ZskRollType>
+  <CskRollType>CskPrePublication</CskRollType>
+  Configurations using these settings would minimize transactions with
+  the parent and minimize the number of signatures over the data.
+  see Internet Draft: draft-mekking-dnsop-dnssec-key-timing-bis-02
 
 3 CHANGES FOR THE USER
 
@@ -98,7 +106,6 @@ this release is likely not up to date and inaccurate.
 
 - Provide migration scripts to support the transition from an earlier 
   OpenDNSSEC installation.
-- Specify in the KASP what rollover strategy is preferred.
 - Provide database backend.
 
 5 FUTURE FEATURES
