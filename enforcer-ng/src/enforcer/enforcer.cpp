@@ -925,11 +925,9 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				&algorithm, &lifetime, repository, &manual_rollover, 
 				&p_rolltype);
 
-			/** If there is no key for this algorithm available already
-			 * (of whatever state) force a rollover. */
-			bool forceRoll = !keyForAlgorithm(key_list, (KeyRole)role, algorithm);
+			bool forceRoll = false;
 			/** Should we do a manual rollover *now*? */
-			if (!forceRoll && manual_rollover) {
+			if (manual_rollover) {
 				switch((KeyRole)role) {
 					case KSK: forceRoll = zone.rollKskNow(); break;
 					case ZSK: forceRoll = zone.rollZskNow(); break;
@@ -939,7 +937,10 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 						ods_fatal_exit("[%s] %s Unknow Role: (%d)",
 						module_str, scmd, role);
 				}
-				/** No reason to roll */
+				/** If no similar key available, roll. */
+				forceRoll |= !keyForAlgorithm(key_list, (KeyRole)role, 
+					algorithm);
+				/** No reason to roll at all */
 				if (!forceRoll) continue;
 			}
 			/** Try an automatic roll */
