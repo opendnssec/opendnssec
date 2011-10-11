@@ -1,5 +1,15 @@
 $Id$
 
+OpenDNSSEC EnforcerNG branch alpha2
+* Support for RollOverType in kasp.xml
+* Fixed concurrency related crashes.
+* Automatically retract never submitted DS records.
+* Schedule the purging of keys.
+* Automatic introduce keys marked as manual, like other enforcer.
+* Do not allow lifetime of key to be shorter than TTL.
+* CSK is now configurable.
+* Remove some scheduling when waiting for user input.
+
 OpenDNSSEC trunk
 
 * Enforcer: Key label logging upon deletion (#192 Sebastian Castro)
