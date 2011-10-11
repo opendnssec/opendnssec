@@ -858,6 +858,25 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 }
 
 /**
+ * Test for existence of a similar key.
+ * 
+ * \param[in] Key list
+ * \param[in] Role
+ * \param[in] Algorithm
+ * \return existence of such a key.
+ */
+bool
+keyForAlgorithm(KeyDataList &key_list, const KeyRole role, const int algorithm)
+{
+	for (int j = 0; j < key_list.numKeys(); j++) {
+		KeyData &k = key_list.key(j);
+		if (k.role() == role && algorithm == k.algorithm() )
+			return true;
+	}
+	return false;
+}
+
+/**
  * See what needs to be done for the policy 
  * 
  * @param zone
@@ -906,24 +925,25 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				&algorithm, &lifetime, repository, &manual_rollover, 
 				&p_rolltype);
 
+			/** If there is no key for this algorithm available already
+			 * (of whatever state) force a rollover. */
+			bool forceRoll = !keyForAlgorithm(key_list, (KeyRole)role, algorithm);
 			/** Should we do a manual rollover *now*? */
-			bool rollNow = false;
-			if (manual_rollover) {
+			if (!forceRoll && manual_rollover) {
 				switch((KeyRole)role) {
-					case KSK: rollNow = zone.rollKskNow(); break;
-					case ZSK: rollNow = zone.rollZskNow(); break;
-					case CSK: rollNow = zone.rollCskNow(); break;
+					case KSK: forceRoll = zone.rollKskNow(); break;
+					case ZSK: forceRoll = zone.rollZskNow(); break;
+					case CSK: forceRoll = zone.rollCskNow(); break;
 					default:
 						/** Programming error, report a bug! */
 						ods_fatal_exit("[%s] %s Unknow Role: (%d)",
 						module_str, scmd, role);
 				}
+				/** No reason to roll */
+				if (!forceRoll) continue;
 			}
-			if (!rollNow) {
-				/** User did not initiate manual rollover */
-				
-				/** Policy forbids automatic rolling */
-				if (manual_rollover) continue;
+			/** Try an automatic roll */
+			if (!forceRoll) {
 				/** Is there a predecessor key? */
 				KeyData *key;
 				if (youngestKeyForConfig(keyfactory, policyKeys, 
@@ -935,7 +955,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 					minTime( addtime(key->inception(), lifetime), return_at );
 					continue;
 				}
-				/** No, or key is expired */
+				/** No, or key is expired, we need a new one. */
 			}
 
 			/** time for a new key */
