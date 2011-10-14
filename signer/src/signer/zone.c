@@ -341,6 +341,28 @@ dnskey_withdraw(zone_type* zone, ldns_rr_list* del)
 
 
 /**
+ * Withdraw NSEC3PARAM.
+ *
+ */
+static ods_status
+nsec3param_withdraw(zone_type* zone, ldns_rr* rr)
+{
+    ldns_rr* clone = NULL;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!rr) { /* no nsec3param, nothing to withdraw */
+        return status;
+    }
+    clone = ldns_rr_clone(rr);
+    status = zone_del_rr(zone, clone, 0);
+    if (status != ODS_STATUS_OK) {
+        return status;
+    }
+    return status;
+}
+
+
+/**
  * Load signer configuration for zone.
  *
  */
@@ -411,6 +433,17 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
 
         /* Denial of Existence Rollover? */
         if (denial_what == TASK_NSECIFY) {
+            status = ODS_STATUS_OK;
+            if (keys_what == TASK_READ && zone->nsec3params) {
+                status = nsec3param_withdraw(zone, zone->nsec3params->rr);
+            }
+            if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s] unable to load signconf: zone %s "
+                    "signconf %s: failed to delete NSEC3PARAM RRset",
+                    zone_str, zone->name, zone->signconf_filename);
+                zonedata_rollback(zone->zonedata);
+                return status;
+            }
             /* or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3PARAM changed */
             nsec3params_cleanup(zone->nsec3params);
             zone->nsec3params = NULL;
