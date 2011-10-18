@@ -367,7 +367,7 @@ rrset_diff(rrset_type* rrset)
         if (rrset->rrs[i].is_added) {
             rrset->rrs[i].exists = 1;
             rrset->rrs[i].is_added = 0;
-        } else if (rrset->rrs[i].is_removed) {
+        } else {
             rrset->rrs[i].exists = 0;
             rrset_del_rr(rrset, i);
             i--;
