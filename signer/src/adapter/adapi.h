@@ -113,7 +113,7 @@ ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr);
 ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr);
 
 /**
- * Print zone.
+ * Print zonefile.
  * \param[in] fd file descriptor
  * \param[in] zone zone
  *
