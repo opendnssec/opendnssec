@@ -80,7 +80,12 @@ zone_create(char* name, ldns_rr_class klass)
     }
     /* [end] PS 9218653 */
     zone->name = allocator_strdup(allocator, name);
-    /* check zone->name? */
+    if (!zone->name) {
+        ods_log_error("[%s] unable to create zone %s: allocator_strdup() "
+            "failed", zone_str, name);
+        zone_cleanup(zone);
+        return NULL;
+    }
     zone->klass = klass;
     zone->default_ttl = 3600; /* TODO: configure --default-ttl option? */
     zone->apex = ldns_dname_new_frm_str(name);
@@ -96,14 +101,14 @@ zone_create(char* name, ldns_rr_class klass)
     zone->task = NULL;
     zone->db = namedb_create((void*)zone);
     if (!zone->db) {
-        ods_log_error("[%s] unable to create zone %s: create namedb "
+        ods_log_error("[%s] unable to create zone %s: namedb_create() "
             "failed", zone_str, name);
         zone_cleanup(zone);
         return NULL;
     }
     zone->signconf = signconf_create();
     if (!zone->signconf) {
-        ods_log_error("[%s] unable to create zone %s: create signconf "
+        ods_log_error("[%s] unable to create zone %s: signconf_create() "
             "failed", zone_str, name);
         zone_cleanup(zone);
         return NULL;
