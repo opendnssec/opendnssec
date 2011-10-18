@@ -9,10 +9,10 @@
 		<SignerConfiguration>@OPENDNSSEC_STATE_DIR@/signconf/example.com.xml</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<Adapter type="File">@OPENDNSSEC_STATE_DIR@/unsigned/example.com</File>
+				<Adapter type="File">@OPENDNSSEC_STATE_DIR@/unsigned/example.com</Adapter>
 			</Input>
 			<Output>
-				<Adapter type="File">@OPENDNSSEC_STATE_DIR@/signed/example.com</File>
+				<Adapter type="File">@OPENDNSSEC_STATE_DIR@/signed/example.com</Adapter>
 			</Output>
 		</Adapters>
 	</Zone>
