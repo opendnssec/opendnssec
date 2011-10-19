@@ -434,7 +434,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
         /* Denial of Existence Rollover? */
         if (denial_what == TASK_NSECIFY) {
             status = ODS_STATUS_OK;
-            if (keys_what == TASK_READ && zone->nsec3params) {
+            if (denial_what == TASK_NSECIFY && zone->nsec3params) {
                 status = nsec3param_withdraw(zone, zone->nsec3params->rr);
             }
             if (status != ODS_STATUS_OK) {
