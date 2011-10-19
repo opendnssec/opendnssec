@@ -7,6 +7,11 @@ OpenDNSSEC 1.3.3
   to issues seen when CKR_DEVICE_ERROR returned by HSM.)
 * libhsm: Added hsm_check_context() to check if the associated sessions are
   still alive. (Required for the above.)
+* Signer Engine: Fix a threading issue, that could leave a zone without
+  a task.
+* Signer Engine: Update the signed zone file if only the $TTL or explicit
+  TTL has been changed.
+* Signer Engine: Remove the NSEC3PARAM RR when doing NSEC3 to NSEC rollover.
 * Fix a similar bug like #257: Error in ods-signerd, where a corrupted
   backup file results in an invalid pointer free().
 
