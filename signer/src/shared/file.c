@@ -84,7 +84,10 @@ ods_fgetc(FILE* fd, unsigned int* line_nr)
     ods_log_assert(line_nr);
 
     c = fgetc(fd);
-	if (c == '\n') {
+    if (c == 13) { /* carriage return */
+        c = ' ';
+    }
+    if (c == '\n') {
         (*line_nr)++;
     }
     return c;
