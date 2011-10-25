@@ -104,6 +104,7 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
 {
     xmlXPathObjectPtr xpathObj = NULL;
     xmlNode* curNode = NULL;
+    xmlChar* type = NULL;
     adapter_type* adapter = NULL;
     int i = 0;
 
@@ -122,6 +123,17 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
             while (curNode) {
                 if (xmlStrEqual(curNode->name, (const xmlChar*)"File")) {
                     adapter = zlp_adapter(curNode, ADAPTER_FILE, inbound);
+                } else if (xmlStrEqual(curNode->name,
+                    (const xmlChar*)"Adapter")) {
+                    type = xmlGetProp(curNode, (const xmlChar*)"type");
+                    if (xmlStrEqual(type, (const xmlChar*)"File")) {
+                        adapter = zlp_adapter(curNode, ADAPTER_FILE, inbound);
+                    } else {
+                        ods_log_error("[%s] unable to parse %s adapter: "
+                            "unknown type", parser_str, (const char*) type);
+                    }
+                    free((void*)type);
+                    type = NULL;
                 }
                 if (adapter) {
                     break;
