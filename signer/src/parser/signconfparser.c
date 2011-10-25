@@ -71,7 +71,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
     /* Load XML document */
     doc = xmlParseFile(cfgfile);
     if (doc == NULL) {
-        ods_log_error("[%s] could not parse <Keys>: "
+        ods_log_error("[%s] unable to parse <Keys>: "
             "xmlParseFile() failed", parser_str);
         return NULL;
     }
@@ -79,7 +79,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
     xpathCtx = xmlXPathNewContext(doc);
     if(xpathCtx == NULL) {
         xmlFreeDoc(doc);
-        ods_log_error("[%s] could not parse <Keys>: "
+        ods_log_error("[%s] unable to parse <Keys>: "
             "xmlXPathNewContext() failed", parser_str);
         return NULL;
     }
@@ -89,7 +89,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
     if(xpathObj == NULL) {
         xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
-        ods_log_error("[%s] could not parse <Keys>: "
+        ods_log_error("[%s] unable to parse <Keys>: "
             "xmlXPathEvalExpression() failed", parser_str);
         return NULL;
     }
@@ -123,15 +123,25 @@ parse_sc_keys(void* sc, const char* cfgfile)
                 curNode = curNode->next;
             }
             if (locator && algorithm && flags) {
-                new_key = keylist_push(kl, locator,
-                    (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
-                    publish, ksk, zsk);
-                if (!new_key) {
-                    ods_log_error("[%s] failed to push key %s to key list",
-                        parser_str, locator);
+                /* search for duplicates */
+                new_key = keylist_lookup(kl, locator);
+                if (new_key &&
+                    new_key->algorithm == (uint8_t) atoi(algorithm) &&
+                    new_key->flags == (uint32_t) atoi(flags) &&
+                    new_key->publish == publish &&
+                    new_key->ksk == ksk &&
+                    new_key->zsk == zsk) {
+                    /* duplicate */
+                    ods_log_warning("[%s] unable to push duplicate key %s "
+                        "to keylist, skipping", parser_str, locator);
+                } else {
+                    new_key = keylist_push(kl, locator,
+                        (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
+                        publish, ksk, zsk);
                 }
             } else {
-                ods_log_error("[%s] Key missing required elements, skipping",
+                ods_log_error("[%s] unable to push key to keylist: <Key> "
+                    "is missing required elements, skipping",
                     parser_str);
             }
             /* free((void*)locator); */
