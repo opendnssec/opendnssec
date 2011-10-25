@@ -124,7 +124,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
             }
             if (locator && algorithm && flags) {
                 /* search for duplicates */
-                new_key = keylist_lookup(kl, locator);
+                new_key = keylist_lookup_by_locator(kl, locator);
                 if (new_key &&
                     new_key->algorithm == (uint8_t) atoi(algorithm) &&
                     new_key->flags == (uint32_t) atoi(flags) &&

@@ -491,7 +491,7 @@ rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
             (delegpt == LDNS_RR_TYPE_SOA || rrset->rrtype == LDNS_RR_TYPE_DS));
         /* 1. If the RRset has changed, drop all signatures */
         /* 2. If Refresh is disabled, drop all signatures */
-        if (rrset->needs_signing || refresh <= signtime) {
+        if (rrset->needs_signing || refresh <= (uint32_t) signtime) {
             drop_sig = 1;
             goto recycle_drop_sig;
         }
