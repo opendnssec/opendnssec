@@ -748,7 +748,7 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
 
     /* 1. If the RRset has changed, drop all signatures */
     /* 2. If Refresh is disabled, drop all signatures */
-    if (rrset->needs_signing || !refresh) {
+    if (rrset->needs_signing || refresh <= signtime) {
         ods_log_debug("[%s] drop signatures for RRset[%i]", rrset_str,
             rrset->rr_type);
         if (rrset->rrsigs) {
