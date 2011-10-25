@@ -1053,7 +1053,14 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             rrset->rr_type);
         log_rr(rrsig, "+rrsig", 7);
         status = rrsigs_add_sig(new_rrsigs, rrsig, key->locator, key->flags);
-        if (status != ODS_STATUS_OK) {
+        if (status == ODS_STATUS_UNCHANGED) {
+            ods_log_warning("[%s] unable to add duplicate RRSIG: skipping",
+                rrset_str);
+            log_rr(rrsig, "~RRSIG", 2);
+            status = ODS_STATUS_OK;
+            ldns_rr_free(rrsig);
+            rrsig = NULL;
+        } else if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to sign RRset[%i]: error adding RRSIG",
                 rrset_str, rrset->rr_type);
                 log_rr(rrsig, "+RRSIG", 1);
@@ -1074,7 +1081,12 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
             status = rrsigs_add_sig(rrset->rrsigs,
                 ldns_rr_clone(walk_rrsigs->rr),
                 walk_rrsigs->key_locator, walk_rrsigs->key_flags);
-            if (status != ODS_STATUS_OK) {
+            if (status == ODS_STATUS_UNCHANGED) {
+                ods_log_warning("[%s] unable to add duplicate RRSIG to "
+                    "RRset[%i]: skipping", rrset_str, rrset->rr_type);
+                log_rr(walk_rrsigs->rr, "~RRSIG", 2);
+                status = ODS_STATUS_OK;
+            } else if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to sign RRset[%i]: error adding "
                     "RRSIG to RRset[%i]", rrset_str, rrset->rr_type,
                     rrset->rr_type);

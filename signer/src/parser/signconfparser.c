@@ -127,12 +127,25 @@ parse_sc_keys(allocator_type* allocator, const char* cfgfile)
                 curNode = curNode->next;
             }
             if (locator && algorithm && flags) {
-                new_key = key_create(allocator, locator,
-                    (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
-                    publish, ksk, zsk);
-                if (keylist_push(kl, new_key) != ODS_STATUS_OK) {
-                    ods_log_error("[%s] failed to push key %s to key list",
+                /* search for duplicates */
+                new_key = keylist_lookup(kl, locator);
+                if (new_key &&
+                    new_key->algorithm == (uint8_t) atoi(algorithm) &&
+                    new_key->flags == (uint32_t) atoi(flags) &&
+                    new_key->publish == publish &&
+                    new_key->ksk == ksk &&
+                    new_key->zsk == zsk) {
+                    /* duplicate */
+                    ods_log_warning("[%s] found duplicate key %s, skipping",
                         parser_str, locator);
+                } else {
+                    new_key = key_create(allocator, locator,
+                        (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
+                        publish, ksk, zsk);
+                    if (keylist_push(kl, new_key) != ODS_STATUS_OK) {
+                        ods_log_error("[%s] failed to push key %s to keylist",
+                            parser_str, locator);
+                    }
                 }
             } else {
                 ods_log_error("[%s] Key missing required elements, skipping",
