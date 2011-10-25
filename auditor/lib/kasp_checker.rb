@@ -362,7 +362,7 @@ module KASPChecker
             #   2. For all policies, check that the "Re-sign" interval is less than the "Refresh" interval.
             resign_secs = get_duration(policy,'Signatures/Resign', kasp_file)
             refresh_secs = get_duration(policy, 'Signatures/Refresh', kasp_file)
-            if (refresh_secs <= resign_secs)
+            if (refresh_secs != 0 && refresh_secs <= resign_secs)
               log(LOG_ERR, "The Refresh interval (#{refresh_secs} seconds) for " +
                   "#{name} Policy in #{kasp_file} is less than or equal to the Resign interval" +
                   " (#{resign_secs} seconds)")
