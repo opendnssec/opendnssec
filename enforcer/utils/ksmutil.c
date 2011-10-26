@@ -5884,7 +5884,7 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
         snprintf(temp_time, 32, "%d", policy->denial->algorithm);
         (void) xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Algorithm", (const xmlChar *)temp_time);
         snprintf(temp_time, 32, "%d", policy->denial->iteration);
-        (void) xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Iteration", (const xmlChar *)temp_time);
+        (void) xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Iterations", (const xmlChar *)temp_time);
         snprintf(temp_time, 32, "%d", policy->denial->saltlength);
         salt_node = xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Salt", NULL);
         (void) xmlNewProp(salt_node, (const xmlChar *)"length", (const xmlChar *)temp_time);
