@@ -249,9 +249,9 @@ parse_zonelist_zones(void* zlist, const char* zlfile)
                 == NULL) {
                 ods_log_crit("[%s] unable to add zone %s", parser_str,
                     zone_name);
-                 zone_cleanup(new_zone);
-                 new_zone = NULL;
-                 error = 1;
+                zone_cleanup(new_zone);
+                new_zone = NULL;
+                error = 1;
             }
             xmlXPathFreeContext(xpathCtx);
             xpathCtx = NULL;
