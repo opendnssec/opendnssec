@@ -1192,9 +1192,6 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     ods_log_assert(sc);
 
     prev = zd->outbound_serial;
-    if (!zd->initialized) {
-        prev = zd->inbound_serial;
-    }
     ods_log_debug("[%s] update serial: in=%u internal=%u out=%u now=%u",
         zd_str, zd->inbound_serial, zd->internal_serial, zd->outbound_serial,
         (uint32_t) time_now());
@@ -1203,20 +1200,35 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         ods_log_error("[%s] no serial type given", zd_str);
         return ODS_STATUS_ERR;
     }
-
     if (ods_strcmp(sc->soa_serial, "unixtime") == 0) {
         soa = (uint32_t) time_now();
-        if (!DNS_SERIAL_GT(soa, prev)) {
+        if (!zd->initialized) {
+            if (!DNS_SERIAL_GT(soa, zd->inbound_serial)) {
+                ods_log_warning("[%s] unable to use unixtime %u as serial: "
+                    "not greater than inbound serial %u", zd_str, soa,
+                    zd->inbound_serial);
+                soa = zd->inbound_serial + 1;
+            }
+        } else if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
     } else if (strncmp(sc->soa_serial, "counter", 7) == 0) {
         soa = zd->inbound_serial;
-        if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
+        if (!zd->initialized) {
+            soa = zd->inbound_serial + 1;
+        } else if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
     } else if (strncmp(sc->soa_serial, "datecounter", 11) == 0) {
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
-        if (!DNS_SERIAL_GT(soa, prev)) {
+        if (!zd->initialized) {
+            if (!DNS_SERIAL_GT(soa, zd->inbound_serial)) {
+                ods_log_warning("[%s] unable to use datecounter %u as serial: "
+                    "not greater than inbound serial %u", zd_str, soa,
+                    zd->inbound_serial);
+                soa = zd->inbound_serial + 1;
+            }
+        } else if (!DNS_SERIAL_GT(soa, prev)) {
             soa = prev + 1;
         }
     } else if (strncmp(sc->soa_serial, "keep", 4) == 0) {
