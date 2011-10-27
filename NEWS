@@ -27,6 +27,7 @@ Bugfixes:
   but return an error code and not send a HUP to the enforcerd. 
 * Signer Engine: Fix an issue where some systems could not copy the zone file.
 * ods-ksmutil: Fix typo in policy export with NSEC3.
+* ods-ksmutil: key import was not setting the retire time.
 
 
 OpenDNSSEC 1.3.0 - 2011-07-12

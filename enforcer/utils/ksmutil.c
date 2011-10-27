@@ -2888,6 +2888,8 @@ cmd_import ()
 
     struct tm   datetime;       /* Used for getting the date/time */
 
+	int fix_time = 0;	/* Will we be setting the retire time? */
+
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
@@ -3086,6 +3088,7 @@ cmd_import ()
             snprintf(form_opt_time, KSM_TIME_LENGTH, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
                     datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday,
                     datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
+			fix_time = 1;
         }
     } else {
         form_opt_time[0] = '\0';
@@ -3117,7 +3120,7 @@ cmd_import ()
     }
 
     /* create basic keypair */
-    status = KsmImportKeyPair(policy_id, o_cka_id, repo_id, size_int, algo_id, state_id, form_time, &keypair_id);
+    status = KsmImportKeyPair(policy_id, o_cka_id, repo_id, size_int, algo_id, state_id, form_time, fix_time, &keypair_id);
     if (status != 0) {
         printf("Error: couldn't import key\n");
         db_disconnect(lock_fd);
@@ -3129,7 +3132,7 @@ cmd_import ()
 /*    if (data.value == 1) {
         status = KsmDnssecKeyCreateOnPolicy(policy_id, (int) keypair_id, keytype_id);
     } else {*/
-    status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, state_id, form_time, &ignore);
+    status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, state_id, form_time, form_opt_time, &ignore);
 
     if (status != 0) {
         printf("Error: couldn't allocate key to zone(s)\n");
@@ -8036,7 +8039,7 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
         }
         if(key_pair_id > 0) {
-            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, KSM_STATE_GENERATE, datetime, &ignore);
+            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, KSM_STATE_GENERATE, datetime, NULL, &ignore);
             /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
         } else {
             /* This shouldn't happen */

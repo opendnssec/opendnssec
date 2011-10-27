@@ -356,6 +356,8 @@ int KsmImportAudit(int policy_id, const char* audit_contents)
  *          state to set key to
  *      time
  *          timestamp of entry into state given
+ *      fixDate
+ *      	set to 1 if the retire date should be fixed
  *
  *      DB_ID* id (returned)
  *          ID of the created entry.  This will be undefined on error.
@@ -364,7 +366,7 @@ int KsmImportAudit(int policy_id, const char* audit_contents)
  *      int
  *          Status return.  0=> Success, non-zero => error.
 -*/
-int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, DB_ID* id)
+int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, int fixDate, DB_ID* id)
 {
     unsigned long rowid;			/* ID of last inserted row */
     int         status = 0;         /* Status return */
@@ -381,6 +383,9 @@ int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, in
         StrAppend(&columns, ", ");
         StrAppend(&columns, KsmKeywordStateValueToName(state));
     }
+    if (state == KSM_STATE_ACTIVE && fixDate == 1) {
+        StrAppend(&columns, ", fixedDate");
+    }
 
     sql = DisSpecifyInit("keypairs", columns);
     DisAppendInt(&sql, policy_id);
@@ -390,6 +395,9 @@ int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, in
     DisAppendInt(&sql, alg);
     if (state == KSM_STATE_GENERATE) {
         DisAppendString(&sql, time);
+    }
+    if (state == KSM_STATE_ACTIVE && fixDate == 1) {
+        DisAppendInt(&sql, fixDate);
     }
     DisEnd(&sql);
 
@@ -408,8 +416,6 @@ int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, in
 			*id = (DB_ID) rowid;
 		}
     }
-
-    /* TODO Fix retire time if needed */
 
     return status;
 }
