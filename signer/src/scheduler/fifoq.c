@@ -124,7 +124,7 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
  *
  */
 ods_status
-fifoq_push(fifoq_type* q, void* item, worker_type* worker)
+fifoq_push(fifoq_type* q, void* item, worker_type* worker, int tries)
 {
     size_t count = 0;
 
@@ -142,6 +142,12 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker)
     if (q->count >= FIFOQ_MAX_COUNT) {
         ods_log_deeebug("[%s] unable to push item: max cap reached",
             fifoq_str);
+        /* #262 if drudgers remain on hold, do additional broadcast */
+        if (tries > 5) {
+            lock_basic_broadcast(&q->q_threshold);
+            ods_log_warning("[%s] max cap reached, but drudgers seem to be "
+                "on hold, notify drudgers again", fifoq_str);
+        }
         return ODS_STATUS_UNCHANGED;
     }
     count = q->count;

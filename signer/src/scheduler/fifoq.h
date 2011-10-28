@@ -97,10 +97,12 @@ void* fifoq_pop(fifoq_type* q, worker_type** worker);
  * \param[in] q queue
  * \param[in] item item
  * \param[in] worker owner of item
+ * \param[in] tries number of tries
  * \return ods_status status
  *
  */
-ods_status fifoq_push(fifoq_type* q, void* item, worker_type* worker);
+ods_status fifoq_push(fifoq_type* q, void* item, worker_type* worker,
+    int tries);
 
 /**
  * Clean up queue.
