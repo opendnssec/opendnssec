@@ -53,6 +53,7 @@
 #include <ldns/ldns.h>
 
 #define FIFOQ_MAX_COUNT 1000
+#define FIFOQ_TRIES_COUNT 100
 
 /**
  * FIFO Queue.
@@ -102,7 +103,7 @@ void* fifoq_pop(fifoq_type* q, worker_type** worker);
  *
  */
 ods_status fifoq_push(fifoq_type* q, void* item, worker_type* worker,
-    int tries);
+    int* tries);
 
 /**
  * Clean up queue.
