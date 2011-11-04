@@ -60,6 +60,9 @@ module KASPAuditor
     if (log)
       log.log(LOG_ERR, msg)
     end
+    if (err != 0)
+      log.log(LOG_ERR, "Audit failed")
+    end
     print msg + "\n"
     Kernel.exit(err)
   end
