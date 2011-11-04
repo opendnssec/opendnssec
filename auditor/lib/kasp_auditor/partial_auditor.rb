@@ -390,6 +390,7 @@ module KASPAuditor
             begin
               ret_line = zone_reader.process_line(line)
             rescue Exception => e
+              @parent.log("ERROR - Can't process zone file : #{file.inspect} : #{e}")
               KASPAuditor.exit("ERROR - Can't process zone file : #{file.inspect} : #{e}", 1)
             end
             if (!ret_line)

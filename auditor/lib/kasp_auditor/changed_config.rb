@@ -96,7 +96,7 @@ module KASPAuditor
       kasp_file = args[2]
       config = args[3]
       working_folder = args[4]
-      syslog = args[5]
+      @syslog = args[5]
       return if args.length > 6
 
       tracker_folder = (working_folder + File::SEPARATOR +
@@ -105,7 +105,7 @@ module KASPAuditor
       begin
         Dir.mkdir(tracker_folder) unless File.directory?(tracker_folder)
       rescue Errno::ENOENT
-        syslog.log(LOG_ERR, "Can't create working folder : #{tracker_folder}")
+        @syslog.log(LOG_ERR, "Can't create working folder : #{tracker_folder}")
         KASPAuditor.exit("Can't create working folder : #{tracker_folder}", 1)
       end
 
@@ -338,7 +338,7 @@ module KASPAuditor
           e_i_text = doc.elements['Configuration/Enforcer/Interval'].text
           enforcer_interval = Config.xsd_duration_to_seconds(e_i_text)
         rescue Exception
-          KASPAuditor.exit("Can't read Enforcer->Interval from Configuration", 1)
+          KASPAuditor.exit("Can't read Enforcer->Interval from Configuration", 1, @syslog)
         end
       }
       return enforcer_interval

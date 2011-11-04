@@ -47,9 +47,10 @@ module KASPAuditor
       system("#{Commands.sort} #{file1} > #{file2}")
     end
 
-    def initialize(config)
+    def initialize(config, log)
       @config = config
       @line_num = 0
+      @log = log
       origin = config.name
       soa_minimum = config.soa ? config.soa.minimum : nil
       soa_ttl = config.soa ? config.soa.ttl : nil
@@ -85,11 +86,11 @@ module KASPAuditor
               end
             }
           rescue Exception => e
-            KASPAuditor.exit("ERROR - Can't open zone file : #{infile.inspect} : #{e}", 1)
+            KASPAuditor.exit("ERROR - Can't open zone file : #{infile.inspect} : #{e}", 1, @log)
           end
         }
       rescue Exception => e
-        KASPAuditor.exit("ERROR - Can't open temporary output file : #{outfile.inspect} : #{e}", 1)
+        KASPAuditor.exit("ERROR - Can't open temporary output file : #{outfile.inspect} : #{e}", 1, @log)
       end
     end
 

@@ -196,9 +196,9 @@ module KASPAuditor
       # Preparse the input and output files
       do_audit = true
       pids=[]
-      new_pid = normalise_and_sort(input_file, "in", pid, working, config)
+      new_pid = normalise_and_sort(input_file, "in", pid, working, config, syslog)
       pids.push(new_pid)
-      new_pid = normalise_and_sort(output_file, "out", pid, working, config)
+      new_pid = normalise_and_sort(output_file, "out", pid, working, config, syslog)
       pids.push(new_pid)
       pids.each {|id|
         ret_id, ret_status = Process.wait2(id)
@@ -233,8 +233,8 @@ module KASPAuditor
     end
 
     # Prepare the input unsigned and signed files for auditing
-    def normalise_and_sort(f, prefix, pid, working, config)
-      pp = Preparser.new(config)
+    def normalise_and_sort(f, prefix, pid, working, config, log)
+      pp = Preparser.new(config, log)
       parsed_file = working+get_name(f)+".#{prefix}.parsed.#{pid}"
       sorted_file = working+get_name(f)+".#{prefix}.sorted.#{pid}"
       delete_file(parsed_file)
