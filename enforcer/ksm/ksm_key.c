@@ -140,7 +140,7 @@ int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, in
  *          Status return.  0=> Success, non-zero => error.
 -*/
 
-int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, const char* time, DB_ID* id)
+int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, const char* time, const char* retTime, DB_ID* id)
 {
 	unsigned long rowid;			/* ID of last inserted row */
     int         status = 0;         /* Status return */
@@ -157,6 +157,9 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, cons
         StrAppend(&columns, ", ");
         StrAppend(&columns, KsmKeywordStateValueToName(state));
     }
+	if (state == KSM_STATE_ACTIVE && (retTime != NULL && retTime[0] != '\0')) {
+        StrAppend(&columns, ", retire");
+    }
 
     sql = DisSpecifyInit("dnsseckeys", columns);
     DisAppendInt(&sql, zone_id);
@@ -165,6 +168,9 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, cons
     DisAppendInt(&sql, state);
     if (state != KSM_STATE_GENERATE) {
         DisAppendString(&sql, time);
+    }
+	if (state == KSM_STATE_ACTIVE && (retTime != NULL && retTime[0] != '\0')) {
+        DisAppendString(&sql, retTime);
     }
     DisEnd(&sql);
 

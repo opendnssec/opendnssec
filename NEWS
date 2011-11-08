@@ -24,6 +24,7 @@ Bugfixes:
   use the serial from the signconf.
 * Fix a similar bug like #257: Error in ods-signerd, where a corrupted
   backup file results in an invalid pointer free().
+* ods-ksmutil: key import was not setting the retire time.
 
 
 OpenDNSSEC 1.3.2 - 2011-09-13
