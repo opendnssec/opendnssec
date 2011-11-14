@@ -257,7 +257,12 @@ tools_audit(zone_type* zone, const char* working_dir, const char* cfg_filename)
     }
     free((void*)inbound);
     if (error) {
+        ods_log_error("[%s] audit failed for zone %s", tools_str,
+            zone->name);
         status = ODS_STATUS_ERR;
+    } else {
+        ods_log_info("[%s] audit passed for zone %s", tools_str,
+            zone->name);
     }
     end = time(NULL);
     if (status == ODS_STATUS_OK && zone->stats) {
