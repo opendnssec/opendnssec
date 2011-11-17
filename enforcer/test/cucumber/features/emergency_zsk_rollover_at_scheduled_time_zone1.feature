@@ -1,6 +1,6 @@
 # This tests that emergency rollover works on Zone1 ZSK, when performed at
 # exactly the same time as a scheduled ZSK rollover should occur.
-# See : http://trac.opendnssec.org/wiki/ProjectPlan/SystemTest/SimplifiedTest
+# See : https://wiki.opendnssec.org/display/OpenDNSSEC/System+test
 
 
 Feature: Emergency ZSK rollover at scheduled time
