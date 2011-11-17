@@ -4,7 +4,7 @@ Cucumber tests for enforcer
 These tests implement (amongst other things) the test
 specification at :
 
-http://trac.opendnssec.org/wiki/ProjectPlan/SystemTest/SimplifiedTest
+https://wiki.opendnssec.org/display/OpenDNSSEC/System+test
 
 (Zone2 KSK has still to be added)
 
