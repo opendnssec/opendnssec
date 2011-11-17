@@ -1,8 +1,10 @@
 $Id$
 
-OpenDNSSEC 1.3.3 - 2011-11-XX
+OpenDNSSEC 1.3.3 - 2011-11-17
 
 Bugfixes:
+* Auditor: Handle ruby 1.9 differences in ods-kaspcheck.
+* Auditor: Require dnsruby 1.53 for bugfixes.
 * Bugfix #262: Drudgers seem to be in a waiting state, but the RRset FIFO 
   queue is full. Do an additional broadcast.
 * Enforcer: Check HSM connection when waking up from sleep, attempt to
@@ -10,6 +12,7 @@ Bugfixes:
   to issues seen when CKR_DEVICE_ERROR returned by HSM.)
 * libhsm: Added hsm_check_context() to check if the associated sessions are
   still alive. (Required for the above.)
+* ods-ksmutil: key import was not setting the retire time.
 * Signer Engine: Fix a threading issue, that could leave a zone without
   a task.
 * Signer Engine: Update the signed zone file if only the $TTL or explicit
@@ -22,9 +25,9 @@ Bugfixes:
   otherwise error.
 * Signer Engine: Warn the user if the serial is b0rk, and you can not 
   use the serial from the signconf.
+* Signer Engine: Log Auditor exit code.
 * Fix a similar bug like #257: Error in ods-signerd, where a corrupted
   backup file results in an invalid pointer free().
-* ods-ksmutil: key import was not setting the retire time.
 
 
 OpenDNSSEC 1.3.2 - 2011-09-13
