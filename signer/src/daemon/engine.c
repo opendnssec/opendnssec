@@ -160,7 +160,7 @@ self_pipe_trick(engine_type* engine)
     ods_log_assert(engine->cmdhandler);
 
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd <= 0) {
+    if (sockfd < 0) {
         ods_log_error("[%s] cannot connect to command handler: "
             "socket() failed: %s\n", engine_str, strerror(errno));
         return 1;

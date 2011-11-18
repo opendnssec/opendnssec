@@ -271,7 +271,7 @@ interface_start(char* cmd)
 
     /* new socket */
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd <= 0) {
+    if (sockfd < 0) {
         fprintf(stderr, "Unable to connect to engine. "
             "socket() failed: %s\n", strerror(errno));
         exit(1);
