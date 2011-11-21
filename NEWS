@@ -1,5 +1,9 @@
 $Id$
 
+* ods-ksmutil: Suppress database connection information when no -v flag is given.
+  (issue OPENDNSSEC-124)
+
+
 OpenDNSSEC 1.3.3 - 2011-11-17
 
 Bugfixes:

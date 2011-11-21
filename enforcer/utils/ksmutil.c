@@ -5378,7 +5378,9 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         temp_char = (char *)xmlXPathCastToString(xpathObj);
         StrAppend(dbschema, temp_char);
         StrFree(temp_char);
-        fprintf(stderr, "SQLite database set to: %s\n", *dbschema);
+		if (verbose_flag) {
+			fprintf(stderr, "SQLite database set to: %s\n", *dbschema);
+		}
     }
     xmlXPathFreeObject(xpathObj);
 
@@ -5398,8 +5400,10 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             temp_char = (char *)xmlXPathCastToString(xpathObj);
             StrAppend(host, temp_char);
             StrFree(temp_char);
-            fprintf(stderr, "MySQL database host set to: %s\n", *host);
-        }
+			if (verbose_flag) {
+				fprintf(stderr, "MySQL database host set to: %s\n", *host);
+			}
+		}
         xmlXPathFreeObject(xpathObj);
 
         /* PORT, optional */
@@ -5414,7 +5418,9 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             temp_char = (char *)xmlXPathCastToString(xpathObj);
             StrAppend(port, temp_char);
             StrFree(temp_char);
-            fprintf(stderr, "MySQL database port set to: %s\n", *port);
+			if (verbose_flag) {
+				fprintf(stderr, "MySQL database port set to: %s\n", *port);
+			}
         }
         xmlXPathFreeObject(xpathObj);
 
@@ -5430,7 +5436,9 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             temp_char = (char *)xmlXPathCastToString(xpathObj);
             StrAppend(dbschema, temp_char);
             StrFree(temp_char);
-            fprintf(stderr, "MySQL database schema set to: %s\n", *dbschema);
+			if (verbose_flag) {
+				fprintf(stderr, "MySQL database schema set to: %s\n", *dbschema);
+			}
         } else {
             db_found = 0;
         }
@@ -5448,7 +5456,9 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
             temp_char = (char *)xmlXPathCastToString(xpathObj);
             StrAppend(user, temp_char);
             StrFree(temp_char);
-            fprintf(stderr, "MySQL database user set to: %s\n", *user);
+			if (verbose_flag) {
+				fprintf(stderr, "MySQL database user set to: %s\n", *user);
+			}
         } else {
             db_found = 0;
         }
@@ -5468,7 +5478,9 @@ get_db_details(char** dbschema, char** host, char** port, char** user, char** pa
         StrFree(temp_char);
         xmlXPathFreeObject(xpathObj);
 
-        fprintf(stderr, "MySQL database password set\n");
+		if (verbose_flag) {
+			fprintf(stderr, "MySQL database password set\n");
+		}
 
     }
 
