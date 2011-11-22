@@ -38,6 +38,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <syslog.h>
+#include <sys/stat.h>
 
 #include <libxml/xmlreader.h>
 #include <libxml/xpath.h>
@@ -1615,6 +1616,8 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
     FILE *fp;
     int bytes_written = -1;
 
+	struct stat stat_ret; /* we will test the DSSubmitCmd */
+
     nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d, %d, %d, %d, %d, %d)",
             KSM_STATE_PUBLISH, KSM_STATE_READY, KSM_STATE_ACTIVE,
             KSM_STATE_DSSUB, KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, 
@@ -1845,22 +1848,33 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
     }
 
     if (DSSubmitCmd[0] != '\0') {
-        /* send records to the configured command */
-        fp = popen(DSSubmitCmd, "w");
-        if (fp == NULL) {
-            log_msg(NULL, LOG_ERR, "Failed to run command: %s: %s", DSSubmitCmd, strerror(errno));
-            return -1;
-        }
-        bytes_written = fprintf(fp, "%s", ds_buffer);
-        if (bytes_written < 0) {
-            log_msg(NULL, LOG_ERR, "Failed to write to %s: %s", DSSubmitCmd, strerror(errno));
-            return -1;
-        }
+		/* First check that the command exists */
+		if (stat(DSSubmitCmd, &stat_ret) != 0) {
+			log_msg(NULL, LOG_WARNING, "Cannot stat file %s: %s", DSSubmitCmd, strerror(errno));
+		}
+		/* Then see if it is a regular file, then if usr, grp or all have execute set */
+		else if (S_ISREG(stat_ret.st_mode) && !(stat_ret.st_mode & S_IXUSR || stat_ret.st_mode & S_IXGRP || stat_ret.st_mode & S_IXOTH)) {
+			log_msg(NULL, LOG_WARNING, "File %s is not executable", DSSubmitCmd);
+		}
+		else {
 
-        if (pclose(fp) == -1) {
-            log_msg(NULL, LOG_ERR, "Failed to close %s: %s", DSSubmitCmd, strerror(errno));
-            return -1;
-        }
+			/* send records to the configured command */
+			fp = popen(DSSubmitCmd, "w");
+			if (fp == NULL) {
+				log_msg(NULL, LOG_ERR, "Failed to run command: %s: %s", DSSubmitCmd, strerror(errno));
+				return -1;
+			}
+			bytes_written = fprintf(fp, "%s", ds_buffer);
+			if (bytes_written < 0) {
+				log_msg(NULL, LOG_ERR, "Failed to write to %s: %s", DSSubmitCmd, strerror(errno));
+				return -1;
+			}
+
+			if (pclose(fp) == -1) {
+				log_msg(NULL, LOG_ERR, "Failed to close %s: %s", DSSubmitCmd, strerror(errno));
+				return -1;
+			}
+		}
     }
 
     StrFree(ds_buffer);

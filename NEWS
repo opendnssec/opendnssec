@@ -17,6 +17,8 @@ OpenDNSSEC trunk
   reconnect if it is not valid.
 * ods-ksmutil: Suppress database connection information when no -v flag is given.
   (issue OPENDNSSEC-124)
+* Enforcer: Check DelegationSignerSubmitCommand exists and can be executed by
+  ods-enforcerd (issue OPENDNSSEC-1)
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
