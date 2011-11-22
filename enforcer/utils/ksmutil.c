@@ -6101,6 +6101,7 @@ int ListKeys(int zone_id)
     char*       temp_loc = NULL;    /* place to store location returned */
     char*       temp_hsm = NULL;    /* place to store hsm returned */
     int         temp_alg = 0;       /* place to store algorithm returned */
+    int         temp_size = 0;      /* place to store size returned */
 
     /* Key information */
     hsm_key_t *key = NULL;
@@ -6117,7 +6118,7 @@ int ListKeys(int zone_id)
     }
 
     /* Select rows */
-    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm from securitymodules s, zones z, KEYDATA_VIEW k where z.id = k.zone_id and s.id = k.securitymodule_id and state != 6 and zone_id is not null ");
+    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm, k.size from securitymodules s, zones z, KEYDATA_VIEW k where z.id = k.zone_id and s.id = k.securitymodule_id and state != 6 and zone_id is not null ");
     if (zone_id != -1) {
         StrAppend(&sql, "and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
@@ -6132,7 +6133,7 @@ int ListKeys(int zone_id)
     if (status == 0) {
         status = DbFetchRow(result, &row);
         if (verbose_flag == 1) {
-            printf("Zone:                           Keytype:      State:    Date of next transition:  CKA_ID:                           Repository:                       Keytag:\n");
+            printf("Zone:                           Keytype:      State:    Date of next transition:  Size:   Algorithm:  CKA_ID:                           Repository:                       Keytag:\n");
         }
         else {
             printf("Zone:                           Keytype:      State:    Date of next transition:\n");
@@ -6149,6 +6150,7 @@ int ListKeys(int zone_id)
             DbString(row, 7, &temp_loc);
             DbString(row, 8, &temp_hsm);
             DbInt(row, 9, &temp_alg);
+            DbInt(row, 10, &temp_size);
             done_row = 0;
 
             if (temp_state == KSM_STATE_PUBLISH) {
@@ -6185,6 +6187,7 @@ int ListKeys(int zone_id)
             }
 
             if (done_row == 1 && verbose_flag == 1) {
+				printf("%-7d %-12d", temp_size, temp_alg);
                 key = hsm_find_key_by_id(NULL, temp_loc);
                 if (!key) {
                     printf("%-33s %s NOT IN repository\n", temp_loc, temp_hsm);
