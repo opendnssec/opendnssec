@@ -11,7 +11,7 @@ AC_DEFUN([ACX_PROTOBUF],[
 	)
 
 	AC_MSG_CHECKING(what are the protobuf includes)
-	PROTOBUF_INCLUDES="-I$PROTOBUF_PATH/include"
+	PROTOBUF_INCLUDES="-I$PROTOBUF_PATH/include -I/usr/include"
 	AC_MSG_RESULT($PROTOBUF_INCLUDES)
 
 	AC_MSG_CHECKING(what are the protobuf libs)
