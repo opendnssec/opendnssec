@@ -6133,7 +6133,7 @@ int ListKeys(int zone_id)
     if (status == 0) {
         status = DbFetchRow(result, &row);
         if (verbose_flag == 1) {
-            printf("Zone:                           Keytype:      State:    Date of next transition:  Size:   Algorithm:  CKA_ID:                           Repository:                       Keytag:\n");
+            printf("Zone:                           Keytype:      State:    Date of next transition (to):  Size:   Algorithm:  CKA_ID:                           Repository:                       Keytag:\n");
         }
         else {
             printf("Zone:                           Keytype:      State:    Date of next transition:\n");
@@ -6154,35 +6154,59 @@ int ListKeys(int zone_id)
             done_row = 0;
 
             if (temp_state == KSM_STATE_PUBLISH) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
+                printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
+				if (verbose_flag) {
+					printf("(ready)   ");
+				}
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_READY) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_type == KSM_TYPE_KSK) ? "waiting for ds-seen" : "next rollover");
+                printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_type == KSM_TYPE_KSK) ? "waiting for ds-seen" : "next rollover");
+				if (verbose_flag) {
+					printf("(active)   ");
+				}
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_ACTIVE) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_retire == NULL) ? "(not scheduled)" : temp_retire);
+                printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_retire == NULL) ? "(not scheduled)" : temp_retire);
+				if (verbose_flag) {
+					printf("(retire)   ");
+				}
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_RETIRE) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_dead == NULL) ? "(not scheduled)" : temp_dead);
+                printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_dead == NULL) ? "(not scheduled)" : temp_dead);
+				if (verbose_flag) {
+					printf("(dead)     ");
+				}
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_DSSUB) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), "waiting for ds-seen");
+                printf("%-31s %-13s %-9s %-20s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), "waiting for ds-seen");
+				if (verbose_flag) {
+					printf("(dspub)    ");
+				}
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_DSPUBLISH) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
+                printf("%-31s %-13s %-9s %-20s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
+				if (verbose_flag) {
+					printf("(dsready)  ");
+				}
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_DSREADY) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), "When required");
+                printf("%-31s %-13s %-9s %-20s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), "When required");
+				if (verbose_flag) {
+					printf("(keypub)   ");
+				}
                 done_row = 1;
             }
             else if (temp_state == KSM_STATE_KEYPUBLISH) {
-                printf("%-31s %-13s %-9s %-26s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), (temp_active == NULL) ? "(not scheduled)" : temp_active);
+                printf("%-31s %-13s %-9s %-20s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), (temp_active == NULL) ? "(not scheduled)" : temp_active);
+				if (verbose_flag) {
+					printf("(active)   ");
+				}
                 done_row = 1;
             }
 

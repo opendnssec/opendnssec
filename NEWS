@@ -16,6 +16,7 @@ OpenDNSSEC trunk
 * Enforcer: Check DelegationSignerSubmitCommand exists and can be executed by
   ods-enforcerd (issue OPENDNSSEC-1)
 * ods-ksmutil: Include key size and algorithm in "key list" with -v flag (OPENDNSSEC-10)
+			   Also show next state with -v flag (OPENDNSSEC-28)
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
