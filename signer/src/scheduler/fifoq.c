@@ -145,7 +145,7 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
         /* #262 if drudgers remain on hold, do additional broadcast */
         if (*tries > FIFOQ_TRIES_COUNT) {
             lock_basic_broadcast(&q->q_threshold);
-            ods_log_warning("[%s] max cap reached, but drudgers seem to be "
+            ods_log_debug("[%s] max cap reached, but drudgers seem to be "
                 "on hold, notify drudgers again", fifoq_str);
             /* reset tries */
             *tries = 0;
