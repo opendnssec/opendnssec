@@ -66,7 +66,7 @@ int KsmRundown(void);
 #define KSM_INT_STR_SIZE    32          /* Max size of int as string */
 #define KSM_SALT_LENGTH     512         /* Includes trailing NULL */
 #define KSM_ZONE_NAME_LENGTH     256    /* Includes trailing NULL */
-#define KSM_ADAPTER_NAME_LENGTH  256    /* Includes trailing NULL */
+#define KSM_ADAPTER_NAME_LENGTH  512    /* Includes trailing NULL */
 /* ksm_key */
 
 /* Key time flag states */
@@ -294,6 +294,8 @@ typedef struct {
     char  input[KSM_PATH_LENGTH];
     char  output[KSM_PATH_LENGTH];
     char  policy_name[KSM_NAME_LENGTH];
+    char  in_type[KSM_ADAPTER_NAME_LENGTH];
+    char  out_type[KSM_ADAPTER_NAME_LENGTH];
 } KSM_ZONE;
 
 int KsmZoneInit(DB_RESULT* handle, int policy_id);
@@ -613,7 +615,7 @@ int KsmPolicyInitialPublicationInterval(KSM_POLICY *policy);
 /* KsmImport */
 int KsmImportRepository(const char* repo_name, const char* repo_capacity, int require_backup);
 int KsmImportPolicy(const char* policy_name, const char* policy_description);
-int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone, const char* signconf, const char* input, const char* output);
+int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone, const char* signconf, const char* input, const char* output, const char* input_type, const char* output_type);
 int KsmImportAudit(int policy_id, const char* audit_contents);
 int KsmImportKeyPair(int policy_id, const char* HSMKeyID, int smID, int size, int alg, int state, const char* time, int fixDate, DB_ID* id);
 int KsmSmIdFromName(const char* name, int *id);

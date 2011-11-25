@@ -100,10 +100,12 @@ char *config = (char *) OPENDNSSEC_CONFIG_FILE;
 char *o_keystate = NULL;
 char *o_algo = NULL;
 char *o_input = NULL;
+char *o_in_type = NULL;
 char *o_cka_id = NULL;
 char *o_size = NULL;
 char *o_interval = NULL;
 char *o_output = NULL;
+char *o_out_type = NULL;
 char *o_policy = NULL;
 char *o_repository = NULL;
 char *o_signerconf = NULL;
@@ -159,14 +161,16 @@ usage_update ()
     void
 usage_zoneadd ()
 {
-    fprintf(stderr,
-            "  zone add\n"
-            "\t--zone <zone>                            aka -z\n"
-            "\t[--policy <policy>]                      aka -p\n"
-            "\t[--signerconf <signerconf.xml>]          aka -s\n"
-            "\t[--input <input>]                        aka -i\n"
-            "\t[--output <output>]                      aka -o\n"
-            "\t[--no-xml]                               aka -m\n");
+	fprintf(stderr,
+			"  zone add\n"
+			"\t--zone <zone>                            aka -z\n"
+			"\t[--policy <policy>]                      aka -p\n"
+			"\t[--signerconf <signerconf.xml>]          aka -s\n"
+			"\t[--input <input>]                        aka -i\n"
+			"\t[--in-type <input type>]                 aka -j\n"
+			"\t[--output <output>]                      aka -o\n"
+			"\t[--out-type <output type>]               aka -q\n"
+			"\t[--no-xml]                               aka -m\n");
 }
 
     void
@@ -845,6 +849,8 @@ cmd_addzone ()
     char* sig_conf_name = NULL;
     char* input_name = NULL;
     char* output_name = NULL;
+    char* input_type = NULL;
+    char* output_type = NULL;
     int policy_id = 0;
     int new_zone;   /* ignored */
 
@@ -902,6 +908,12 @@ cmd_addzone ()
         StrAppend(&input_name, o_input);
     }
 
+	if (o_in_type == NULL) {
+		StrAppend(&input_type, "File");
+	} else {
+		StrAppend(&input_type, o_in_type);
+	}
+
     if (o_output == NULL) {
         StrAppend(&output_name, OPENDNSSEC_STATE_DIR);
         StrAppend(&output_name, "/signed/");
@@ -915,6 +927,12 @@ cmd_addzone ()
         StrAppend(&output_name, o_output);
     }
 
+	if (o_out_type == NULL) {
+		StrAppend(&output_type, "File");
+	} else {
+		StrAppend(&output_type, o_out_type);
+	}
+
     free(path);
 
     /* Set zonelist from the conf.xml that we have got */
@@ -925,6 +943,8 @@ cmd_addzone ()
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
+        StrFree(input_type);
+        StrFree(output_type);
         return(1);
     }
 
@@ -941,6 +961,8 @@ cmd_addzone ()
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
+        StrFree(input_type);
+        StrFree(output_type);
         return(1);
     } 
 
@@ -954,9 +976,11 @@ cmd_addzone ()
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
+        StrFree(input_type);
+        StrFree(output_type);
         return(1);
     }
-    status = KsmImportZone(o_zone, policy_id, 1, &new_zone, sig_conf_name, input_name, output_name);
+    status = KsmImportZone(o_zone, policy_id, 1, &new_zone, sig_conf_name, input_name, output_name, input_type, output_type);
     if (status != 0) {
         if (status == -2) {
             printf("Failed to Import zone %s; it already exists\n", o_zone);
@@ -970,6 +994,8 @@ cmd_addzone ()
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
+        StrFree(input_type);
+        StrFree(output_type);
         return(1);
     }
 
@@ -983,6 +1009,8 @@ cmd_addzone ()
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
+        StrFree(input_type);
+        StrFree(output_type);
         return(1);
     }
     status = KsmParameter(result, &data);
@@ -993,6 +1021,8 @@ cmd_addzone ()
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
+        StrFree(input_type);
+        StrFree(output_type);
         return(1);
     }
     KsmParameterEnd(result);
@@ -1010,6 +1040,8 @@ cmd_addzone ()
                 StrFree(sig_conf_name);
                 StrFree(input_name);
                 StrFree(output_name);
+				StrFree(input_type);
+				StrFree(output_type);
                 return(1);
             }
         }
@@ -1024,11 +1056,13 @@ cmd_addzone ()
         /* TODO don't add if it already exists */
         xmlKeepBlanksDefault(0);
         xmlTreeIndentString = "\t";
-        doc = add_zone_node(zonelist_filename, o_zone, o_policy, sig_conf_name, input_name, output_name);
+        doc = add_zone_node(zonelist_filename, o_zone, o_policy, sig_conf_name, input_name, output_name, input_type, output_type);
 
         StrFree(sig_conf_name);
         StrFree(input_name);
         StrFree(output_name);
+        StrFree(input_type);
+        StrFree(output_type);
 
         if (doc == NULL) {
             StrFree(zonelist_filename);
@@ -3510,11 +3544,13 @@ main (int argc, char *argv[])
         {"algorithm", required_argument, 0, 'g'},
         {"help",    no_argument,       0, 'h'},
         {"input",   required_argument, 0, 'i'},
+        {"in-type", required_argument, 0, 'j'},
         {"cka_id",  required_argument, 0, 'k'},
         {"no-xml",  no_argument,        0, 'm'},
         {"interval",  required_argument, 0, 'n'},
         {"output",  required_argument, 0, 'o'},
         {"policy",  required_argument, 0, 'p'},
+        {"out-type", 	required_argument, 0, 'q'},
         {"repository",  required_argument, 0, 'r'},
         {"signerconf",  required_argument, 0, 's'},
         {"keytype", required_argument, 0, 't'},
@@ -3529,7 +3565,7 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt_long(argc, argv, "ab:c:de:fg:hi:k:n:o:p:r:s:t:vVw:x:y:z:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "ab:c:de:fg:hi:j:k:n:o:p:q:r:s:t:vVw:x:y:z:", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'a':
                 all_flag = 1;
@@ -3562,6 +3598,9 @@ main (int argc, char *argv[])
             case 'i':
                 o_input = StrStrdup(optarg);
                 break;
+            case 'j':
+                o_in_type = StrStrdup(optarg);
+                break;
             case 'k':
                 o_cka_id = StrStrdup(optarg);
                 break;
@@ -3576,6 +3615,9 @@ main (int argc, char *argv[])
                 break;
             case 'p':
                 o_policy = StrStrdup(optarg);
+                break;
+            case 'q':
+                o_out_type = StrStrdup(optarg);
                 break;
             case 'r':
                 o_repository = StrStrdup(optarg);
@@ -4728,19 +4770,27 @@ int update_policies(char* kasp_filename)
 int update_zones(char* zone_list_filename)
 {
     int status = 0;
-    xmlTextReaderPtr reader = NULL;
+
+	/* All of the XML stuff */
     xmlDocPtr doc = NULL;
+    xmlDocPtr rngdoc = NULL;
+    xmlNode *curNode;
+    xmlNode *childNode;
+    xmlNode *childNode2;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
-    int ret = 0; /* status of the XML parsing */
+	xmlRelaxNGParserCtxtPtr rngpctx = NULL;
+    xmlRelaxNGValidCtxtPtr rngctx = NULL;
+    xmlRelaxNGPtr schema = NULL;
+
     char* zone_name = NULL;
     char* policy_name = NULL;
     char* current_policy = NULL;
     char* current_signconf = NULL;
     char* current_input = NULL;
     char* current_output = NULL;
-    char* temp_char = NULL;
-    char* tag_name = NULL;
+    char* current_in_type = NULL;
+    char* current_out_type = NULL;
     int policy_id = 0;
     int new_zone = 0;   /* flag to say if the zone is new or not */
     int file_zone_count = 0; /* As a quick check we will compare the number of */
@@ -4758,239 +4808,196 @@ int update_zones(char* zone_list_filename)
     int temp_count = 0;
     int i = 0;
 
-    xmlChar *name_expr = (unsigned char*) "name";
-    xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
-    xmlChar *signconf_expr = (unsigned char*) "//Zone/SignerConfiguration";
-    xmlChar *input_expr = (unsigned char*) "//Zone/Adapters/Input/File";
-    xmlChar *output_expr = (unsigned char*) "//Zone/Adapters/Output/File";
+	xmlChar *node_expr = (unsigned char*) "//Zone";
+    const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/zonelist.rng";
 
-    /* TODO validate the file ? */
-    /* Read through the file counting zones TODO better way to do this? */
-    reader = xmlNewTextReaderFilename(zone_list_filename);
-    if (reader != NULL) {
-        ret = xmlTextReaderRead(reader);
-        while (ret == 1) {
-            tag_name = (char*) xmlTextReaderLocalName(reader);
-            /* Found <Zone> */
-            if (strncmp(tag_name, "Zone", 4) == 0 
-                    && strncmp(tag_name, "ZoneList", 8) != 0
-                    && xmlTextReaderNodeType(reader) == 1) {
-                file_zone_count++;
-            }
-            /* Read the next line */
-            ret = xmlTextReaderRead(reader);
-            StrFree(tag_name);
-        }
-        xmlFreeTextReader(reader);
-        if (ret != 0) {
-            printf("%s : failed to parse\n", zone_list_filename);
-        }
-    } else {
-        printf("Unable to open %s\n", zone_list_filename);
+	/* Load XML document */
+    doc = xmlParseFile(zone_list_filename);
+    if (doc == NULL) {
+        printf("Error: unable to parse file \"%s\"\n", zone_list_filename);
+        return(-1);
     }
 
-    /* Allocate space for the list of zone IDs */
+	/* Load rng document: TODO make the rng stuff optional? */
+    rngdoc = xmlParseFile(rngfilename);
+    if (rngdoc == NULL) {
+        printf("Error: unable to parse file \"%s\"\n", rngfilename);
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs parser context for the relax-ng document. */
+    rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+    if (rngpctx == NULL) {
+        printf("Error: unable to create XML RelaxNGs parser context\n");
+        return(-1);
+    }
+
+    /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
+    schema = xmlRelaxNGParse(rngpctx);
+    if (schema == NULL) {
+        printf("Error: unable to parse a schema definition resource\n");
+        return(-1);
+    }
+
+    /* Create an XML RelaxNGs validation context based on the given schema */
+    rngctx = xmlRelaxNGNewValidCtxt(schema);
+    if (rngctx == NULL) {
+        printf("Error: unable to create RelaxNGs validation context based on the schema\n");
+        return(-1);
+    }
+
+    /* Validate a document tree in memory. */
+    status = xmlRelaxNGValidateDoc(rngctx,doc);
+    if (status != 0) {
+        printf("Error validating file \"%s\"\n", zone_list_filename);
+        return(-1);
+    }
+
+	/* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        xmlFreeDoc(doc);
+        return(1);
+    }
+
+	/* Evaluate xpath expression */
+    xpathObj = xmlXPathEvalExpression(node_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(1);
+    }
+
+	file_zone_count = xpathObj->nodesetval->nodeNr;
+
+	/* Allocate space for the list of zone IDs */
     zone_ids = MemMalloc(file_zone_count * sizeof(int));
 
-    /* Start reading the file; we will be looking for "Zone" tags */ 
-    reader = xmlNewTextReaderFilename(zone_list_filename);
-    if (reader != NULL) {
-        ret = xmlTextReaderRead(reader);
-        while (ret == 1) {
-            tag_name = (char*) xmlTextReaderLocalName(reader);
-            /* Found <Zone> */
-            if (strncmp(tag_name, "Zone", 4) == 0 
-                    && strncmp(tag_name, "ZoneList", 8) != 0
-                    && xmlTextReaderNodeType(reader) == 1) {
-                /* Get the repository name */
-                zone_name = NULL;
-                temp_char = (char*) xmlTextReaderGetAttribute(reader, name_expr);
-                StrAppend(&zone_name, temp_char);
-                StrFree(temp_char);
+    if (xpathObj->nodesetval) {
+        for (i = 0; i < file_zone_count; i++) {
 
-				/* 
-				   It is tempting to remove the trailing dot here; however I am 
-				   not sure that it is the right thing to do... It trashed my 
-				   test setup by deleting the zone sion. and replacing it with 
-				   sion (but of course none of the keys were moved). I think 
-				   that allowing people to edit zonelist.xml means that we must 
-				   allow them to add the td if they want to. 
-				 */
-
-                /* Make sure that we got something */
-                if (zone_name == NULL) {
-                    /* error */
-                    printf("Error extracting zone name from %s\n", zone_list_filename);
-                    /* Don't return? try to parse the rest of the file? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                printf("Zone %s found\n", zone_name);
-
-                /* Expand this node and get the rest of the info with XPath */
-                xmlTextReaderExpand(reader);
-                doc = xmlTextReaderCurrentDoc(reader);
-                if (doc == NULL) {
-                    printf("Error: can not read zone \"%s\"; skipping\n", zone_name);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                xpathCtx = xmlXPathNewContext(doc);
-                if(xpathCtx == NULL) {
-                    printf("Error: can not create XPath context for \"%s\"; skipping zone\n", zone_name);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                /* Extract the Policy name for this zone */
-                /* Evaluate xpath expression for policy */
-                xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
-                if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", policy_expr);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                current_policy = NULL;
-                temp_char = (char *)xmlXPathCastToString(xpathObj);
-                StrAppend(&current_policy, temp_char);
-                StrFree(temp_char);
-                printf("Policy set to %s.\n", current_policy);
-                xmlXPathFreeObject(xpathObj);
-
-                /* If we have a different policy to last time get its ID */
-                if (policy_name == NULL || strcmp(current_policy, policy_name) != 0) {
-                    StrFree(policy_name);
-                    StrAppend(&policy_name, current_policy);
-
-                    status = KsmPolicyIdFromName(policy_name, &policy_id);
-                    if (status != 0) {
-                        printf("Error, can't find policy : %s\n", policy_name);
-                        /* Don't return? try to parse the rest of the zones? */
-                        ret = xmlTextReaderRead(reader);
-                        continue;
-                    }
-                }
-
-                /* Extract the Signconf name for this zone */
-                /* Evaluate xpath expression */
-                xpathObj = xmlXPathEvalExpression(signconf_expr, xpathCtx);
-                if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", signconf_expr);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                current_signconf = NULL;
-                temp_char = (char *)xmlXPathCastToString(xpathObj);
-                StrAppend(&current_signconf, temp_char);
-                StrFree(temp_char);
-                xmlXPathFreeObject(xpathObj);
-
-                /* Extract the Input name for this zone */
-                /* Evaluate xpath expression */
-                xpathObj = xmlXPathEvalExpression(input_expr, xpathCtx);
-                if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", input_expr);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                current_input = NULL;
-                temp_char = (char *)xmlXPathCastToString(xpathObj);
-                StrAppend(&current_input, temp_char);
-                StrFree(temp_char);
-                xmlXPathFreeObject(xpathObj);
-
-                /* Extract the Output name for this zone */
-                /* Evaluate xpath expression */
-                xpathObj = xmlXPathEvalExpression(output_expr, xpathCtx);
-                xmlXPathFreeContext(xpathCtx);
-                if(xpathObj == NULL) {
-                    printf("Error: unable to evaluate xpath expression: %s; skipping zone\n", output_expr);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                current_output = NULL;
-                temp_char = (char *)xmlXPathCastToString(xpathObj);
-                StrAppend(&current_output, temp_char);
-                StrFree(temp_char);
-                xmlXPathFreeObject(xpathObj);
-
-                /*
-                 * Now we have all the information update/insert this repository
-                 */
-                status = KsmImportZone(zone_name, policy_id, 0, &new_zone, current_signconf, current_input, current_output);
-                if (status != 0) {
-					if (status == -3) {
-						printf("Error Importing zone %s; it already exists both with and without a trailing dot\n", zone_name);
-					} else {
-						printf("Error Importing Zone %s\n", zone_name);
-					}
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    continue;
-                }
-
-                /* If need be link existing keys to zone */
-                if (new_zone == 1) {
-                    printf("Added zone %s to database\n", zone_name);
-                /* WITH NEW KEYSHARING LEAVE THIS TO THE ENFORCER TODO - CHECK THIS IS RIGHT */
-                    /*
-                    status = KsmLinkKeys(zone_name, policy_id);
-                    if (status != 0) {
-                        printf("Failed to Link Keys to zone\n");
-                        ret = xmlTextReaderRead(reader);
-                        continue;
-                    }*/
-                }
-
-                /* make a note of the zone_id */
-                status = KsmZoneIdFromName(zone_name, &temp_id);
-                if (status != 0) {
-                    printf("Error: unable to find a zone named \"%s\" in database\n", zone_name);
-                    printf("Error: Possibly two domains differ only by having a trailing dot or not?\n");
-                    StrFree(zone_ids);
-                    return(status);
-                }
-               
-               /* We malloc'd this above */
-                zone_ids[i] = temp_id;
-                i++;
-
-                StrFree(zone_name);
-                StrFree(current_policy);
-                StrFree(current_signconf);
-                StrFree(current_input);
-                StrFree(current_output);
-
-                new_zone = 0;
-
+            curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            zone_name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
+			if (strlen(zone_name) == 0) {
+                /* error */
+                printf("Error extracting zone name from %s\n", zone_list_filename);
+                break;
             }
-            /* Read the next line */
-            ret = xmlTextReaderRead(reader);
-            StrFree(tag_name);
-        }
-        xmlFreeTextReader(reader);
-        if (ret != 0) {
-            printf("%s : failed to parse\n", zone_list_filename);
-        }
-    } else {
-        printf("Unable to open %s\n", zone_list_filename);
-    }
-    if (doc) {
-        xmlFreeDoc(doc);
-    }
-    StrFree(policy_name);
+
+			/* 
+			   It is tempting to remove the trailing dot here; however I am 
+			   not sure that it is the right thing to do... It trashed my 
+			   test setup by deleting the zone sion. and replacing it with 
+			   sion (but of course none of the keys were moved). I think 
+			   that allowing people to edit zonelist.xml means that we must 
+			   allow them to add the td if they want to. 
+		   */
+			
+			printf("Zone %s found; ", zone_name);
+			while (curNode) {
+				/* POLICY */
+				if (xmlStrEqual(curNode->name, (const xmlChar *)"Policy")) {
+					current_policy = (char *) xmlNodeGetContent(curNode);
+
+					printf("policy set to %s\n", current_policy);
+
+					/* If we have a different policy to last time get its ID */
+					if (policy_name == NULL || strcmp(current_policy, policy_name) != 0) {
+						StrFree(policy_name);
+						StrAppend(&policy_name, current_policy);
+
+						status = KsmPolicyIdFromName(policy_name, &policy_id);
+						if (status != 0) {
+							printf("ERROR, can't find policy %s.\n", policy_name);
+							return(1);
+						}
+					}
+				}
+				/* SIGNERCONFIGURATION */
+				else if (xmlStrEqual(curNode->name, (const xmlChar *)"SignerConfiguration")) {
+					current_signconf = (char *) xmlNodeGetContent(curNode);
+				}
+				/* ADAPTERS */
+				else if (xmlStrEqual(curNode->name, (const xmlChar *)"Adapters")) {
+					childNode = curNode->children;
+					while (childNode){
+						/* INPUT */
+						if (xmlStrEqual(childNode->name, (const xmlChar *)"Input")) {		
+							childNode2 = childNode->children;
+							while (childNode2){
+								if (xmlStrEqual(childNode2->name, (const xmlChar *)"Adapter")) {
+									current_input = (char *) xmlNodeGetContent(childNode2);
+									current_in_type = (char *) xmlGetProp(childNode2, (const xmlChar *)"type");
+								}
+								else if (xmlStrEqual(childNode2->name, (const xmlChar *)"File")) {
+									current_input = (char *) xmlNodeGetContent(childNode2);
+									current_in_type = (char *) childNode2->name;
+								}
+								childNode2 = childNode2->next;
+							}
+						}
+						/* OUTPUT */
+						else if (xmlStrEqual(childNode->name, (const xmlChar *)"Output")) {		
+							childNode2 = childNode->children;
+							while (childNode2){
+								if (xmlStrEqual(childNode2->name, (const xmlChar *)"Adapter")) {
+									current_output = (char *) xmlNodeGetContent(childNode2);
+									current_out_type = (char *) xmlGetProp(childNode2, (const xmlChar *)"type");
+								}
+								else if (xmlStrEqual(childNode2->name, (const xmlChar *)"File")) {
+									current_output = (char *) xmlNodeGetContent(childNode2);
+									current_out_type = (char *) childNode2->name;
+								}
+								childNode2 = childNode2->next;
+							}
+						}
+						childNode = childNode->next;
+					}
+				}
+				curNode = curNode->next;
+            }
+
+			/*
+			 * Now we have all the information update/insert this repository
+			 */
+			status = KsmImportZone(zone_name, policy_id, 0, &new_zone, current_signconf, current_input, current_output, current_in_type, current_out_type);
+			if (status != 0) {
+				if (status == -3) {
+					printf("Error Importing zone %s; it already exists both with and without a trailing dot\n", zone_name);
+				} else {
+					printf("Error Importing Zone %s\n", zone_name);
+				}
+				return(1);
+			}
+
+			if (new_zone == 1) {
+				printf("Added zone %s to database\n", zone_name);
+			}
+
+			/* make a note of the zone_id */
+			status = KsmZoneIdFromName(zone_name, &temp_id);
+			if (status != 0) {
+				printf("Error: unable to find a zone named \"%s\" in database\n", zone_name);
+				printf("Error: Possibly two domains differ only by having a trailing dot or not?\n");
+				StrFree(zone_ids);
+				return(status);
+			}
+
+			/* We malloc'd this above */
+			zone_ids[i] = temp_id;
+
+			new_zone = 0;
+		} /* End of <Zone> */
+
+	}
+
+	/* Cleanup */
+    xmlXPathFreeContext(xpathCtx);
+    xmlRelaxNGFree(schema);
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(doc);
+    xmlFreeDoc(rngdoc);
 
     /* Now see how many zones are in the database */
     sql = DqsCountInit(DB_ZONE_TABLE);
@@ -5659,14 +5666,18 @@ xmlDocPtr add_zone_node(const char *docname,
                         const char *policy_name, 
                         const char *sig_conf_name, 
                         const char *input_name, 
-                        const char *output_name)
+                        const char *output_name,
+                        const char *input_type, 
+                        const char *output_type)
 {
     xmlDocPtr doc;
     xmlNodePtr cur;
     xmlNodePtr newzonenode;
     xmlNodePtr newadaptnode;
     xmlNodePtr newinputnode;
+    xmlNodePtr newinadnode;
     xmlNodePtr newoutputnode;
+    xmlNodePtr newoutadnode;
     doc = xmlParseFile(docname);
     if (doc == NULL ) {
         fprintf(stderr,"Document not parsed successfully. \n");
@@ -5694,11 +5705,13 @@ xmlDocPtr add_zone_node(const char *docname,
 
     newinputnode = xmlNewChild (newadaptnode, NULL, (const xmlChar *)"Input", NULL);
 
-    (void) xmlNewTextChild (newinputnode, NULL, (const xmlChar *)"File", (const xmlChar *)input_name);
+    newinadnode = xmlNewTextChild (newinputnode, NULL, (const xmlChar *)"Adapter", (const xmlChar *)input_name);
+    (void) xmlNewProp(newinadnode, (const xmlChar *)"type", (const xmlChar *)input_type);
 
     newoutputnode = xmlNewChild (newadaptnode, NULL, (const xmlChar *)"Output", NULL);
 
-    (void) xmlNewTextChild (newoutputnode, NULL, (const xmlChar *)"File", (const xmlChar *)output_name);
+    newoutadnode = xmlNewTextChild (newoutputnode, NULL, (const xmlChar *)"Adapter", (const xmlChar *)output_name);
+    (void) xmlNewProp(newoutadnode, (const xmlChar *)"type", (const xmlChar *)output_type);
 
     return(doc);
 }
@@ -8373,7 +8386,9 @@ int append_zone(xmlDocPtr doc, KSM_ZONE *zone)
     xmlNodePtr zone_node;
     xmlNodePtr adapters_node;
     xmlNodePtr input_node;
+    xmlNodePtr in_ad_node;
     xmlNodePtr output_node;
+    xmlNodePtr out_ad_node;
 
     root = xmlDocGetRootElement(doc);
     if (root == NULL) {
@@ -8398,11 +8413,23 @@ int append_zone(xmlDocPtr doc, KSM_ZONE *zone)
     adapters_node = xmlNewTextChild(zone_node, NULL, (const xmlChar *)"Adapters", NULL);
     /* Input */
     input_node = xmlNewTextChild(adapters_node, NULL, (const xmlChar *)"Input", NULL);
-    (void) xmlNewTextChild(input_node, NULL, (const xmlChar *)"File", (const xmlChar *)zone->input);
+    in_ad_node = xmlNewTextChild (input_node, NULL, (const xmlChar *)"Adapter", (const xmlChar *)zone->input);
+	/* Default type is "File" */
+	if (zone->in_type[0] == '\0') { /* Default to "File" */
+		(void) xmlNewProp(in_ad_node, (const xmlChar *)"type", (const xmlChar *)"File");
+	} else {
+		(void) xmlNewProp(in_ad_node, (const xmlChar *)"type", (const xmlChar *)zone->in_type);
+	}
+
     /* Output */
     output_node = xmlNewTextChild(adapters_node, NULL, (const xmlChar *)"Output", NULL);
-    (void) xmlNewTextChild(output_node, NULL, (const xmlChar *)"File", (const xmlChar *)zone->output);
-
+    out_ad_node = xmlNewTextChild (output_node, NULL, (const xmlChar *)"Adapter", (const xmlChar *)zone->output);
+	/* Default type is "File" */
+	if (zone->out_type[0] == '\0') {
+		(void) xmlNewProp(out_ad_node, (const xmlChar *)"type", (const xmlChar *)"File");
+	} else {
+		(void) xmlNewProp(out_ad_node, (const xmlChar *)"type", (const xmlChar *)zone->out_type);
+	}
 
     return(0);
 }

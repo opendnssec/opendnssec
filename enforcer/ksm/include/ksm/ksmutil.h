@@ -73,7 +73,9 @@ xmlDocPtr add_zone_node(const char *docname,
                         const char *policy_name, 
                         const char *sig_conf_name, 
                         const char *input_name, 
-                        const char *output_name);
+                        const char *output_name,
+                        const char *input_type, 
+                        const char *output_type);
 xmlDocPtr del_zone_node(const char *docname,
                         const char *zone_name);
 void list_zone_node(const char *docname, int *zone_ids);

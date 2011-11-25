@@ -88,8 +88,8 @@ INSERT INTO parameters_policies VALUES (40,40,2,0);
 INSERT INTO parameters_policies VALUES (41,41,2,0);
 
 -- A couple of Zones:
-INSERT INTO zones VALUES (1,'opendnssec.org',2,'signconf','input','output');
-INSERT INTO zones VALUES (2,'opendnssec.se',2,'signconf','input','output');
+INSERT INTO zones VALUES (1,'opendnssec.org',2,'signconf','input','output','file','file');
+INSERT INTO zones VALUES (2,'opendnssec.se',2,'signconf','input','output','file','file');
 
 -- some security modules
 insert into securitymodules (id, name, capacity) values (NULL, "sca6000-1", 1000);

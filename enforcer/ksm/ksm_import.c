@@ -199,10 +199,16 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
  *          Where is the signconf saved
  *
  *      const char* input
- *          Where is the input file
+ *          Where is the input
  *
  *      const char* output
- *          Where is the output file
+ *          Where is the output
+ *
+ *      const char* input_type
+ *          What adapter type is the input
+ *
+ *      const char* output_type
+ *          What adapter type is the output
  *
  * Returns:
  *      int
@@ -211,7 +217,7 @@ int KsmImportPolicy(const char* policy_name, const char* policy_description)
  *                         -2 if the zone exists and fail_if_exists == 1
  *                         -3 if the zone exists with and without a trailing dot
 -*/
-int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone, const char* signconf, const char* input, const char* output)
+int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int *new_zone, const char* signconf, const char* input, const char* output, const char* input_type, const char* output_type)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -256,12 +262,14 @@ int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int 
     /* If the count was 0 then we do an insert, otherwise we do an update */
     if (count == 0)
     {
-        sql = DisSpecifyInit(DB_ZONE_TABLE, "name, policy_id, signconf, input, output");
+        sql = DisSpecifyInit(DB_ZONE_TABLE, "name, policy_id, signconf, input, output, in_type, out_type");
         DisAppendString(&sql, zone_name);
         DisAppendInt(&sql, policy_id);
         DisAppendString(&sql, signconf);
         DisAppendString(&sql, input);
         DisAppendString(&sql, output);
+        DisAppendString(&sql, input_type);
+        DisAppendString(&sql, output_type);
         DisEnd(&sql);
 
         status = DbExecuteSqlNoResult(DbHandle(), sql);
@@ -279,6 +287,8 @@ int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int 
         DusSetString(&sql, "signconf", signconf, 1);
         DusSetString(&sql, "input", input, 2);
         DusSetString(&sql, "output", output, 3);
+        DusSetString(&sql, "in_type", input_type, 4);
+        DusSetString(&sql, "out_type", output_type, 5);
         DusConditionString(&sql, "name", DQS_COMPARE_EQ, zone_name, 0);
         DusEnd(&sql);
 
