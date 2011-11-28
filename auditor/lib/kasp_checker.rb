@@ -411,7 +411,7 @@ module KASPChecker
             publish_safety_secs = get_duration(policy, 'Keys/PublishSafety', kasp_file)
             retire_safety_secs = get_duration(policy, 'Keys/RetireSafety', kasp_file)
             ttl_secs = get_duration(policy, 'Keys/TTL', kasp_file)
-            [{publish_safety_secs , "Keys/PublishSafety"}, {retire_safety_secs, "Keys/RetireSafety"}].each {|pair|
+            [{publish_safety_secs => "Keys/PublishSafety"}, {retire_safety_secs => "Keys/RetireSafety"}].each {|pair|
               pair.each {|time, label|
                 if (time < (0.1 * ttl_secs))
                   log(LOG_WARNING, "#{label} (#{time} seconds) in #{name} policy" +

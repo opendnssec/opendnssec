@@ -5,10 +5,10 @@ The KASP auditor is written to check the output of the signer.
 The auditor and its tools are part of the OpenDNSSEC project.
 For more information, visit http://www.opendnssec.org
 The Auditor requirements may be found at :
-http://trac.opendnssec.org/wiki/Signer/AuditorRequirements
+https://wiki.opendnssec.org/display/OpenDNSSEC/Auditor+Requirements
 As of OpenDNSSEC version 1.1, a Partial Auditor is available.
 The Partial Auditor requirements may be found at :
-http://trac.opendnssec.org/wiki/Signer/PartialAuditorRequirements
+https://wiki.opendnssec.org/display/OpenDNSSEC/Partial+Auditor+Requirements
 
 CONTENTS
     Introduction
@@ -36,7 +36,7 @@ Errors and warnings are written to the configured log facility.
 
 Checks performed include : DNSKEY, NSEC(3), RRSIG and NSEC3PARAM
 checks. More details are available on the OpenDNSSEC website :
-http://trac.opendnssec.org/wiki/Signer/AuditorRequirements
+https://wiki.opendnssec.org/display/OpenDNSSEC/Auditor+Requirements
 
 -------------------------------------------------------------------
 Partial Auditor
@@ -58,7 +58,7 @@ checked).
 All other checks (including key rollover checks and checks on
 every NSEC, NSEC3, RRSIG and DNSKEY record) are still
 performed. For full details please see :
-http://trac.opendnssec.org/wiki/Signer/PartialAuditorRequirements
+https://wiki.opendnssec.org/display/OpenDNSSEC/Partial+Auditor+Requirements
 
 To enable the partial auditor, replace the <Audit/> tag in the 
 Policy in kasp.xml with <Audit><Partial/></Audit>.
