@@ -230,6 +230,7 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
         sc_zone->set_ttl( kp_zone.ttl() );
         sc_zone->set_min( kp_zone.min() );
         sc_zone->set_serial( (::ods::signconf::serial) kp_zone.serial() );
+        sc_zone->set_max_zone_ttl( kp_zone.max_zone_ttl() );
 
         if (policy->audit_size() > 0)
             sc_zone->set_audit(true);

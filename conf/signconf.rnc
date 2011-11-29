@@ -42,7 +42,9 @@ zone = element Zone {
 				element Denial { xsd:duration }
 			},
 			element Jitter { xsd:duration },
-			element InceptionOffset { xsd:duration }
+			element InceptionOffset { xsd:duration },
+			
+			maxzonettl? # Maximum TTL that may be used in a zone.
 		},
 
 		# use NSEC or NSEC3?
@@ -119,3 +121,5 @@ nsec3 = element NSEC3 {
 
 # This section is taken directly from the corresponding KASP policy
 audit = element Audit { empty }
+
+maxzonettl = element MaxZoneTTL { xsd:duration }

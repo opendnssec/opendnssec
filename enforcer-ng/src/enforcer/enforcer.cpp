@@ -43,8 +43,8 @@ static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 
 /** When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
-/** Default behave like previous enforcer, 5 days */
-#define DEFAULT_MAX_ZONE_TTL (3600*24*5) 
+/** Default behave like previous enforcer, 2 days */
+#define DEFAULT_MAX_ZONE_TTL (3600*24*2) 
 
 /**
  * Return the largest TTL over the data in the zone.
@@ -59,8 +59,8 @@ static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 inline int
 maxZoneTTL(const Policy *policy)
 {
-	return (policy->zone().has_max_zone_ttl() ? 
-		policy->zone().max_zone_ttl() : DEFAULT_MAX_ZONE_TTL);
+	return (policy->zone().has_max_zone_ttl() && policy->zone().max_zone_ttl() > 0) ? 
+		policy->zone().max_zone_ttl() : DEFAULT_MAX_ZONE_TTL;
 }
 
 /**

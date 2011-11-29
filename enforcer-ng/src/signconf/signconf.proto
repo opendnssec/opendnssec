@@ -21,6 +21,7 @@ message Zone{
 	required int32 min = 6 [(xml).path="SOA/Minimum", (xml).type=duration]; // min of the soa
 	required serial serial = 7 [(xml).path="SOA/Serial"]; // kind of serial used 
 	optional bool audit = 8 [(xml).path="Audit"];
+	optional int32 max_zone_ttl = 9 [default = 0, (xml).path="MaxZoneTTL",(xml).type=duration];  // Maximum TTL for RRSIG that may be used in a zone. Signer should use it as a cap.
 }
 
 message Signatures {
