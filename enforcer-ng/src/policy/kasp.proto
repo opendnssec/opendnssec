@@ -133,7 +133,7 @@ message Zone {
 	optional int32 ttl = 2 [(xml).path="SOA/TTL", (xml).type=duration]; // ttl of the soa
 	optional int32 min = 3 [(xml).path="SOA/Minimum", (xml).type=duration]; // min of the soa
 	optional serial serial = 4 [(xml).path="SOA/Serial"]; // how serial no are changed
-	optional int32 max_zone_ttl = 5 [default = 0, (xml).path="MaxZoneTTL",(xml).type=duration];  // Maximum TTL for RRSIG that may be used in a zone.
+	optional int32 max_zone_ttl = 5 [default = 172800, (xml).path="MaxZoneTTL",(xml).type=duration];  // Maximum TTL for RRSIG that may be used in a zone. Default 2 days like original Enforcer.
 }
 
 enum serial {

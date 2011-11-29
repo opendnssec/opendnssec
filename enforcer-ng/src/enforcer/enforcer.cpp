@@ -43,25 +43,6 @@ static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 
 /** When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
-/** Default behave like previous enforcer, 2 days */
-#define DEFAULT_MAX_ZONE_TTL (3600*24*2) 
-
-/**
- * Return the largest TTL over the data in the zone.
- * 
- * Since the Enforcer does not introspect the zonefile the value is 
- * configured in the policy. If not specified, fallback to the old
- * enforcer's behavior. 
- * 
- * \param[in] policy
- * \return TTL in seconds
- * */
-inline int
-maxZoneTTL(const Policy *policy)
-{
-	return (policy->zone().has_max_zone_ttl() && policy->zone().max_zone_ttl() > 0) ? 
-		policy->zone().max_zone_ttl() : DEFAULT_MAX_ZONE_TTL;
-}
 
 /**
  * Stores the minimum of parm1 and parm2 in parm2.
@@ -511,7 +492,7 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 			break;
 		case RS:
 			endDate = zone.ttlEnddateRs();
-			recordTTL = maxZoneTTL(policy);
+			recordTTL = policy->zone().max_zone_ttl();
 			break;				  
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
@@ -570,7 +551,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	if (zone.ttlEnddateDk() <= now)
 		zone.setTtlEnddateDk(addtime(now, policy->keys().ttl()));
 	if (zone.ttlEnddateRs() <= now)
-		zone.setTtlEnddateRs(addtime(now, maxZoneTTL(policy))); 
+		zone.setTtlEnddateRs(addtime(now, policy->zone().max_zone_ttl())); 
 
 	/** Keep looping till there are no state changes.
 	 * Find the earliest update time */
@@ -968,7 +949,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			/** Sanity check. This would produce silly output and give
 			 * the signer lots of useless work */
 			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime || 
-					role&ZSK && maxZoneTTL(policy) + policy->keys().ttl() >= lifetime) {
+					role&ZSK && policy->zone().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
 				ods_log_crit("[%s] %s Key lifetime unreasonably short "
 					"with respect to TTL. Will not insert key!",
 					module_str, scmd);
