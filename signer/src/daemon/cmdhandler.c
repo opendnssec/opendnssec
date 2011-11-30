@@ -110,24 +110,26 @@ cmdhandler_handle_cmd_help(int sockfd)
 static void
 cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
 {
+    engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     size_t i;
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    if (!cmdc->engine->zonelist || !cmdc->engine->zonelist->zones) {
+    engine = (engine_type*) cmdc->engine;
+    if (!engine->zonelist || !engine->zonelist->zones) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "I have no zones configured\n");
         ods_writen(sockfd, buf, strlen(buf));
         return;
     }
     /* how many zones */
-    lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
+    lock_basic_lock(&engine->zonelist->zl_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i zones configured\n",
-        (int) cmdc->engine->zonelist->zones->count);
+        (int) engine->zonelist->zones->count);
     ods_writen(sockfd, buf, strlen(buf));
     /* list zones */
-    node = ldns_rbtree_first(cmdc->engine->zonelist->zones);
+    node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
         for (i=0; i < ODS_SE_MAXLINE; i++) {
@@ -137,7 +139,7 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
         ods_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
+    lock_basic_unlock(&engine->zonelist->zl_lock);
     return;
 }
 
@@ -150,54 +152,55 @@ static void
 cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
     const char* tbd)
 {
+    engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     ods_status status = ODS_STATUS_OK;
     zone_type* zone = NULL;
-    task_type* task = NULL;
     ods_status zl_changed = ODS_STATUS_OK;
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    ods_log_assert(cmdc->engine->taskq);
+    engine = (engine_type*) cmdc->engine;
+    ods_log_assert(engine->taskq);
     if (ods_strcmp(tbd, "--all") == 0) {
-        lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
-        zl_changed = zonelist_update(cmdc->engine->zonelist,
-            cmdc->engine->config->zonelist_filename);
+        lock_basic_lock(&engine->zonelist->zl_lock);
+        zl_changed = zonelist_update(engine->zonelist,
+            engine->config->zonelist_filename);
         if (zl_changed == ODS_STATUS_UNCHANGED) {
-            lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
                 "\n");
             ods_writen(sockfd, buf, strlen(buf));
         } else if (zl_changed == ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list updated: %i "
             "removed, %i added, %i updated.\n",
-                cmdc->engine->zonelist->just_removed,
-                cmdc->engine->zonelist->just_added,
-                cmdc->engine->zonelist->just_updated);
+                engine->zonelist->just_removed,
+                engine->zonelist->just_added,
+                engine->zonelist->just_updated);
             ods_writen(sockfd, buf, strlen(buf));
-            cmdc->engine->zonelist->just_removed = 0;
-            cmdc->engine->zonelist->just_added = 0;
-            cmdc->engine->zonelist->just_updated = 0;
-            lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
-            ods_log_debug("[%s] commit zone list changes", cmdh_str);
-            engine_update_zones(cmdc->engine);
-            ods_log_debug("[%s] signer configurations updated", cmdh_str);
         } else {
-            lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
+            lock_basic_unlock(&engine->zonelist->zl_lock);
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has errors.\n");
             ods_writen(sockfd, buf, strlen(buf));
+        }
+        if (zl_changed == ODS_STATUS_OK ||
+            zl_changed == ODS_STATUS_UNCHANGED) {
+            engine->zonelist->just_removed = 0;
+            engine->zonelist->just_added = 0;
+            engine->zonelist->just_updated = 0;
+            lock_basic_unlock(&engine->zonelist->zl_lock);
+            engine_update_zones(engine);
         }
         return;
     } else {
         /* look up zone */
-        lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
-        zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
+        lock_basic_lock(&engine->zonelist->zl_lock);
+        zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
         /* If this zone is just added, don't update (it might not have a task yet) */
         if (zone && zone->zl_status == ZONE_ZL_ADDED) {
             zone = NULL;
         }
-        lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
+        lock_basic_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found.\n",
@@ -209,40 +212,17 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         }
 
         lock_basic_lock(&zone->zone_lock);
-        ods_log_assert(zone->task);
-
-        lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
-        task = unschedule_task(cmdc->engine->taskq, (task_type*) zone->task);
-        if (task != NULL) {
-            ods_log_debug("[%s] reschedule task for zone %s", cmdh_str,
-                zone->name);
-            if (task->what != TASK_SIGNCONF) {
-                task->halted = task->what;
-                task->halted_when = task->when;
-                task->interrupt = TASK_SIGNCONF;
-            }
-            task->what = TASK_SIGNCONF;
-            task->when = time_now();
-            status = schedule_task(cmdc->engine->taskq, task, 0);
-            zone->task = task;
-        } else {
-            /* task not queued, being worked on? */
-            ods_log_verbose("[%s] worker busy with zone %s, will update "
-                "signconf as soon as possible", cmdh_str, zone->name);
-            task = (task_type*) zone->task;
-            task->interrupt = TASK_SIGNCONF;
-            /* task->halted(_when) set by worker */
-        }
-        lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
+        status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
         lock_basic_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
-            ods_log_crit("[%s] unable to schedule task for zone %s: %s",
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
+                "task for zone %s.\n", tbd);
+            ods_writen(sockfd, buf, strlen(buf));
+            ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
                 cmdh_str, zone->name, ods_status2str(status));
-            task_cleanup(task);
-            zone->task = NULL;
         } else {
-            engine_wakeup_workers(cmdc->engine);
+            engine_wakeup_workers(engine);
         }
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
             tbd);
@@ -259,21 +239,21 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
 static void
 cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 {
+    engine_type* engine = NULL;
     zone_type* zone = NULL;
-    task_type* task = NULL;
     ods_status status = ODS_STATUS_OK;
     char buf[ODS_SE_MAXLINE];
 
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    ods_log_assert(cmdc->engine->taskq);
-
+    engine = (engine_type*) cmdc->engine;
+    ods_log_assert(engine->taskq);
     if (ods_strcmp(tbd, "--all") == 0) {
-        lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
-        schedule_flush(cmdc->engine->taskq, TASK_READ);
-        lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
-        engine_wakeup_workers(cmdc->engine);
+        lock_basic_lock(&engine->taskq->schedule_lock);
+        schedule_flush(engine->taskq, TASK_READ);
+        lock_basic_unlock(&engine->taskq->schedule_lock);
+        engine_wakeup_workers(engine);
         (void)snprintf(buf, ODS_SE_MAXLINE, "All zones scheduled for "
             "immediate re-sign.\n");
         ods_writen(sockfd, buf, strlen(buf));
@@ -281,14 +261,14 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             cmdh_str);
         return;
     } else {
-        lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
-        zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
+        lock_basic_lock(&engine->zonelist->zl_lock);
+        zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
         /* If this zone is just added, don't update (it might not have a task yet) */
         if (zone && zone->zl_status == ZONE_ZL_ADDED) {
             zone = NULL;
         }
-        lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
+        lock_basic_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found.\n",
@@ -298,49 +278,22 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         }
 
         lock_basic_lock(&zone->zone_lock);
-        ods_log_assert(zone->task);
-
-        lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
-        task = unschedule_task(cmdc->engine->taskq, (task_type*) zone->task);
-        if (task != NULL) {
-            ods_log_debug("[%s] reschedule task for zone %s", cmdh_str,
-                zone->name);
-            if (task->what != TASK_READ) {
-                task->halted = task->what;
-                task->halted_when = task->when;
-                task->interrupt = TASK_READ;
-            }
-            task->what = TASK_READ;
-            task->when = time_now();
-            status = schedule_task(cmdc->engine->taskq, task, 0);
-            zone->task = task;
-        } else {
-            /* task now queued, being worked on? */
-            ods_log_verbose("[%s] worker busy with zone %s, will read "
-                "zone input as soon as possible", cmdh_str, zone->name);
-            task = (task_type*) zone->task;
-            task->interrupt = TASK_READ;
-            /* task->halted(_when) set by worker */
-        }
-        lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
-
+        status = zone_reschedule_task(zone, engine->taskq, TASK_READ);
         lock_basic_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Cannot schedule task "
-                "for zone %s.\n", tbd);
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
+                "task for zone %s.\n", tbd);
             ods_writen(sockfd, buf, strlen(buf));
-            ods_log_crit("[%s] cannot schedule task for zone %s: %s",
+            ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
                 cmdh_str, zone->name, ods_status2str(status));
-            task_cleanup(task);
-            zone->task = NULL;
         } else {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for "
                 "immediate re-sign.\n", tbd);
             ods_writen(sockfd, buf, strlen(buf));
             ods_log_verbose("[%s] zone %s scheduled for immediate re-sign",
                 cmdh_str, tbd);
-            engine_wakeup_workers(cmdc->engine);
+            engine_wakeup_workers(engine);
         }
     }
     return;
@@ -368,24 +321,23 @@ unlink_backup_file(const char* filename, const char* extension)
 static void
 cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 {
+    engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
     task_type* task = NULL;
     uint32_t inbserial = 0;
     uint32_t intserial = 0;
     uint32_t outserial = 0;
-
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-
+    engine = (engine_type*) cmdc->engine;
     unlink_backup_file(tbd, ".inbound");
     unlink_backup_file(tbd, ".backup");
-
-    lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
-    zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
+    lock_basic_lock(&engine->zonelist->zl_lock);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
         LDNS_RR_CLASS_IN);
-    lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
+    lock_basic_unlock(&engine->zonelist->zl_lock);
     if (zone) {
         lock_basic_lock(&zone->zone_lock);
         inbserial = zone->db->inbserial;
@@ -413,7 +365,6 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         ods_log_warning("[%s] cannot clear zone %s, zone not found",
             cmdh_str, tbd?tbd:"(null)");
     }
-
     ods_writen(sockfd, buf, strlen(buf));
     return;
 }
@@ -426,6 +377,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 static void
 cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
 {
+    engine_type* engine = NULL;
     char* strtime = NULL;
     char buf[ODS_SE_MAXLINE];
     size_t i = 0;
@@ -434,7 +386,8 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     task_type* task = NULL;
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    if (!cmdc->engine->taskq || !cmdc->engine->taskq->tasks) {
+    engine = (engine_type*) cmdc->engine;
+    if (!engine->taskq || !engine->taskq->tasks) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "I have no tasks scheduled.\n");
         ods_writen(sockfd, buf, strlen(buf));
         return;
@@ -446,23 +399,23 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         strtime?strtime:"(null)");
     ods_writen(sockfd, buf, strlen(buf));
     /* current work */
-    lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
-    for (i=0; i < (size_t) cmdc->engine->config->num_worker_threads; i++) {
-        task = cmdc->engine->workers[i]->task;
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        task = engine->workers[i]->task;
         if (task) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Working with task %s on "
                 "zone %s\n",
-                task_what2str(cmdc->engine->workers[i]->working_with),
+                task_what2str(engine->workers[i]->working_with),
                 task_who2str(task));
             ods_writen(sockfd, buf, strlen(buf));
         }
     }
     /* how many tasks */
     (void)snprintf(buf, ODS_SE_MAXLINE, "\nI have %i tasks scheduled.\n",
-        (int) cmdc->engine->taskq->tasks->count);
+        (int) engine->taskq->tasks->count);
     ods_writen(sockfd, buf, strlen(buf));
     /* list tasks */
-    node = ldns_rbtree_first(cmdc->engine->taskq->tasks);
+    node = ldns_rbtree_first(engine->taskq->tasks);
     while (node && node != LDNS_RBTREE_NULL) {
         task = (task_type*) node->data;
         for (i=0; i < ODS_SE_MAXLINE; i++) {
@@ -472,7 +425,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         ods_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
+    lock_basic_unlock(&engine->taskq->schedule_lock);
     return;
 }
 
@@ -484,14 +437,16 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
 static void
 cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
 {
+    engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    ods_log_assert(cmdc->engine->taskq);
-    lock_basic_lock(&cmdc->engine->taskq->schedule_lock);
-    schedule_flush(cmdc->engine->taskq, TASK_NONE);
-    lock_basic_unlock(&cmdc->engine->taskq->schedule_lock);
-    engine_wakeup_workers(cmdc->engine);
+    engine = (engine_type*) cmdc->engine;
+    ods_log_assert(engine->taskq);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    schedule_flush(engine->taskq, TASK_NONE);
+    lock_basic_unlock(&engine->taskq->schedule_lock);
+    engine_wakeup_workers(engine);
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
     ods_writen(sockfd, buf, strlen(buf));
     ods_log_verbose("[%s] all tasks scheduled immediately", cmdh_str);
@@ -506,13 +461,15 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
 static void
 cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_type* cmdc)
 {
+    engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    cmdc->engine->need_to_reload = 1;
-    lock_basic_lock(&cmdc->engine->signal_lock);
-    lock_basic_alarm(&cmdc->engine->signal_cond);
-    lock_basic_unlock(&cmdc->engine->signal_lock);
+    engine = (engine_type*) cmdc->engine;
+    engine->need_to_reload = 1;
+    lock_basic_lock(&engine->signal_lock);
+    lock_basic_alarm(&engine->signal_cond);
+    lock_basic_unlock(&engine->signal_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Reloading engine.\n");
     ods_writen(sockfd, buf, strlen(buf));
     return;
@@ -526,13 +483,15 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_type* cmdc)
 static void
 cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_type* cmdc)
 {
+    engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    cmdc->engine->need_to_exit = 1;
-    lock_basic_lock(&cmdc->engine->signal_lock);
-    lock_basic_alarm(&cmdc->engine->signal_cond);
-    lock_basic_unlock(&cmdc->engine->signal_lock);
+    engine = (engine_type*) cmdc->engine;
+    engine->need_to_exit = 1;
+    lock_basic_lock(&engine->signal_lock);
+    lock_basic_alarm(&engine->signal_cond);
+    lock_basic_unlock(&engine->signal_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
     ods_writen(sockfd, buf, strlen(buf));
     return;
@@ -574,12 +533,14 @@ cmdhandler_handle_cmd_running(int sockfd)
 static void
 cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_type* cmdc, int val)
 {
+    engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    ods_log_assert(cmdc->engine->config);
-    ods_log_init(cmdc->engine->config->log_filename,
-        cmdc->engine->config->use_syslog, val);
+    engine = (engine_type*) cmdc->engine;
+    ods_log_assert(engine->config);
+    ods_log_init(engine->config->log_filename, engine->config->use_syslog,
+        val);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
     ods_writen(sockfd, buf, strlen(buf));
     return;
@@ -857,7 +818,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     ods_log_assert(cmdhandler);
     ods_log_assert(cmdhandler->engine);
     ods_log_debug("[%s] start", cmdh_str);
-    engine = cmdhandler->engine;
+    engine = (engine_type*) cmdhandler->engine;
     ods_thread_detach(cmdhandler->thread_id);
     FD_ZERO(&rset);
     while (cmdhandler->need_to_exit == 0) {
@@ -900,7 +861,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             ods_log_debug("[%s] %i clients in progress...", cmdh_str, count);
         }
     }
-    ods_log_debug("[%s] done", cmdh_str);
+    ods_log_debug("[%s] shutdown", cmdh_str);
     engine = cmdhandler->engine;
     engine->cmdhandler_done = 1;
     return;
@@ -914,7 +875,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 void
 cmdhandler_cleanup(cmdhandler_type* cmdhandler)
 {
-    allocator_type* allocator;
+    allocator_type* allocator = NULL;
     if (!cmdhandler) {
         return;
     }

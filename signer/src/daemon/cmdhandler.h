@@ -42,13 +42,10 @@
 
 #define ODS_SE_MAX_HANDLERS 5
 
-/* back reference to the engine */
-struct engine_struct;
-
 typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
     allocator_type* allocator;
-    struct engine_struct* engine;
+    void* engine;
     struct sockaddr_un listen_addr;
     ods_thread_type thread_id;
     int listen_fd;
