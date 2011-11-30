@@ -1,0 +1,256 @@
+/*
+ * $Id: ixfr.c 5260 2011-06-28 14:13:14Z matthijs $
+ *
+ * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+/**
+ * IXFR Journal.
+ *
+ */
+
+#include "config.h"
+#include "signer/ixfr.h"
+#include "signer/rrset.h"
+#include "signer/zone.h"
+
+static const char* ixfr_str = "journal";
+
+
+/**
+ * Create a part of ixfr journal.
+ *
+ */
+static part_type*
+part_create(allocator_type* allocator)
+{
+    part_type* part = NULL;
+    ods_log_assert(allocator);
+
+    part = (part_type*) allocator_alloc(allocator, sizeof(part_type));
+    if (!part) {
+        ods_log_error("[%s] unable to create ixfr part: "
+            "allocator_alloc() failed", ixfr_str);
+        return NULL;
+    }
+
+    part->plus = ldns_rr_list_new();
+    if (!part->plus) {
+        ods_log_error("[%s] unable to create ixfr part: "
+            "ldns_rr_list_new() failed", ixfr_str);
+        allocator_deallocate(allocator, (void*) part);
+        return NULL;
+    }
+    part->min = ldns_rr_list_new();
+    if (!part->min) {
+        ods_log_error("[%s] unable to create ixfr part: "
+            "ldns_rr_list_new() failed", ixfr_str);
+        ldns_rr_list_free(part->plus);
+        allocator_deallocate(allocator, (void*) part);
+        return NULL;
+    }
+    return part;
+}
+
+
+/**
+ * Clean up a part of ixfr journal.
+ *
+ */
+static void
+part_cleanup(allocator_type* allocator, part_type* part)
+{
+    if (!part || !allocator) {
+        return;
+    }
+    ldns_rr_list_deep_free(part->min);
+    ldns_rr_list_free(part->plus);
+    allocator_deallocate(allocator, (void*) part);
+    return;
+}
+
+/**
+ * Create a new ixfr journal.
+ *
+ */
+ixfr_type*
+ixfr_create(void* zone)
+{
+    size_t i = 0;
+    ixfr_type* xfr = NULL;
+    zone_type* z = (zone_type*) zone;
+
+    ods_log_assert(z);
+    ods_log_assert(z->name);
+    ods_log_assert(z->allocator);
+
+    xfr = (ixfr_type*) allocator_alloc(z->allocator, sizeof(ixfr_type));
+    if (!xfr) {
+        ods_log_error("[%s] unable to create ixfr for zone %s: "
+            "allocator_alloc() failed", ixfr_str, z->name);
+        return NULL;
+    }
+    for (i=0; i < IXFR_MAX_PARTS; i++) {
+        xfr->part[i] = NULL;
+    }
+    xfr->part[0] = part_create(z->allocator);
+    if (!xfr->part[0]) {
+        ods_log_error("[%s] unable to create ixfr for zone %s: "
+            "allocator_alloc() failed", ixfr_str, z->name);
+        allocator_deallocate(z->allocator, (void*) xfr);
+        return NULL;
+    }
+    xfr->zone = zone;
+    return xfr;
+}
+
+
+/**
+ * Add +RR to ixfr journal.
+ *
+ */
+void
+ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
+{
+    if (!ixfr || !rr) {
+        return;
+    }
+    ods_log_assert(ixfr->part[0]);
+    ods_log_assert(ixfr->part[0]->plus);
+    if (!ldns_rr_list_push_rr(ixfr->part[0]->plus, rr)) {
+        ods_log_error("[%s] unable to +RR: ldns_rr_list_pus_rr() failed",
+            ixfr_str);
+        exit(1);
+    }
+    return;
+}
+
+
+/**
+ * Add -RR to ixfr journal.
+ *
+ */
+void
+ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
+{
+    if (!ixfr || !rr) {
+        return;
+    }
+    ods_log_assert(ixfr->part[0]);
+    ods_log_assert(ixfr->part[0]->min);
+    if (!ldns_rr_list_push_rr(ixfr->part[0]->min, rr)) {
+        ods_log_error("[%s] unable to +RR: ldns_rr_list_pus_rr() failed",
+            ixfr_str);
+        exit(1);
+    }
+    return;
+}
+
+
+/**
+ * Print the ixfr journal.
+ *
+ */
+void
+ixfr_print(FILE* fd, ixfr_type* ixfr)
+{
+    int i = 0;
+    if (!ixfr || !fd) {
+        return;
+    }
+    ods_log_debug("[%s] print ixfr", ixfr_str);
+
+    for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
+        if (ixfr->part[i]) {
+            ods_log_assert(ixfr->part[i]->plus);
+            ods_log_assert(ixfr->part[i]->min);
+
+            ods_log_deeebug("[%s] print ixfr part #%d", ixfr_str, i);
+
+            fprintf(fd, ";; IXFR part #%d -RR\n", i);
+            ldns_rr_list_print(fd, ixfr->part[i]->min);
+            fprintf(fd, ";; IXFR part #%d +RR\n", i);
+            ldns_rr_list_print(fd, ixfr->part[i]->plus);
+            fprintf(fd, "\n");
+        }
+    }
+    return;
+}
+
+
+/**
+ * Purge the ixfr journal.
+ *
+ */
+void
+ixfr_purge(ixfr_type* ixfr)
+{
+    int i = 0;
+    zone_type* zone = NULL;
+    if (!ixfr) {
+        return;
+    }
+    zone = (zone_type*) ixfr->zone;
+    ods_log_assert(zone);
+    ods_log_assert(zone->allocator);
+    ods_log_verbose("[%s] purge ixfr for zone %s", ixfr_str, zone->name);
+    for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
+        if (i == (IXFR_MAX_PARTS - 1)) {
+            part_cleanup(zone->allocator, ixfr->part[i]);
+            ixfr->part[i] = NULL;
+        } else {
+            ixfr->part[i+1] = ixfr->part[i];
+            ixfr->part[i] = NULL;
+        }
+    }
+    ixfr->part[0] = part_create(zone->allocator);
+    if (!ixfr->part[0]) {
+        ods_log_error("[%s] unable to purge ixfr for zone %s: "
+            "part_create() failed", ixfr_str, zone->name);
+        exit(1);
+    }
+    return;
+}
+
+
+/**
+ * Cleanup the ixfr journal.
+ *
+ */
+void
+ixfr_cleanup(ixfr_type* ixfr)
+{
+    int i = 0;
+    zone_type* z = NULL;
+    if (!ixfr) {
+        return;
+    }
+    z = (zone_type*) ixfr->zone;
+    for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
+        part_cleanup(z->allocator, ixfr->part[i]);
+    }
+    allocator_deallocate(z->allocator, (void*) ixfr);
+    return;
+}
