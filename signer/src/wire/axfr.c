@@ -37,6 +37,7 @@
 #include "shared/file.h"
 #include "wire/axfr.h"
 #include "wire/buffer.h"
+#include "wire/query.h"
 #include "wire/sock.h"
 
 const char* axfr_str = "axfr";
@@ -87,7 +88,8 @@ axfr(query_type* q, engine_type* engine)
         if (!q->axfr_fd) {
             ods_log_error("[%s] unable to open axfr file %s for zone %s",
                 axfr_str, xfrfile, q->zone->name);
-            return QUERY_DISCARDED;
+            buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+            return QUERY_PROCESSED;
         }
         if (q->tsig_rr->status == TSIG_OK) {
             q->tsig_sign_it = 1; /* sign first packet in stream */
@@ -98,17 +100,21 @@ axfr(query_type* q, engine_type* engine)
         rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl, &status,
             &l);
         if (!rr) {
+            /* no SOA no transfer */
             ods_log_error("[%s] bad axfr zone %s, corrupted file",
                 axfr_str, q->zone->name);
-            return QUERY_DISCARDED;
+            buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+            return QUERY_PROCESSED;
         }
         if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_SOA) {
             ods_log_error("[%s] bad axfr zone %s, first rr is not soa",
                 axfr_str, q->zone->name);
             ldns_rr_free(rr);
-            return QUERY_DISCARDED;
+            buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+            return QUERY_PROCESSED;
         }
         /* does it fit? */
+        buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
         buffer_write_rr(q->buffer, rr);
 /*
         ldns_rr_free(rr);
@@ -116,14 +122,15 @@ axfr(query_type* q, engine_type* engine)
 */
     } else {
         /* subsequent axfr packets */
+        buffer_set_limit(q->buffer, BUFFER_PKT_HEADER_SIZE);
+        buffer_pkt_set_qdcount(q->buffer, 0);
+        query_prepare(q);
     }
-
     /* add as many records as fit */
+    buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
     buffer_write_rr(q->buffer, rr);
-/*
-        ldns_rr_free(rr);
-        rr = NULL;
-*/
+    ldns_rr_free(rr);
+    rr = NULL;
 
 /*
     while ((rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl,

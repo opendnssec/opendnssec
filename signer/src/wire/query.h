@@ -105,6 +105,13 @@ struct response_struct {
 query_type* query_create(void);
 
 /**
+ * Prepare response.
+ * \param[in] q query
+ *
+ */
+void query_prepare(query_type* q);
+
+/**
  * Process query.
  * \param[in] q query
  * \param[in] engine signer engine

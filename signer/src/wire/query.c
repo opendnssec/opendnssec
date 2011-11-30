@@ -500,6 +500,28 @@ query_response(query_type* q, ldns_rr_type qtype)
 
 
 /**
+ * Prepare response.
+ *
+ */
+void
+query_prepare(query_type* q)
+{
+    uint16_t limit = 0;
+    uint16_t flags = 0;
+    ods_log_assert(q);
+    ods_log_assert(q->buffer);
+    limit = buffer_limit(q->buffer);
+    flags = buffer_pkt_flags(q->buffer);
+    flags &= 0x0100U; /* preserve the rd flag */
+    flags |= 0x8000U; /* set the qr flag */
+    buffer_pkt_set_flags(q->buffer, flags);
+    buffer_clear(q->buffer);
+    buffer_set_position(q->buffer, limit);
+    return;
+}
+
+
+/**
  * QUERY.
  *
  */
@@ -507,8 +529,6 @@ static query_state
 query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
 {
     dnsout_type* dnsout = NULL;
-    uint16_t limit = 0;
-    uint16_t flags = 0;
     if (!q || !q->zone) {
         return QUERY_DISCARDED;
     }
@@ -533,26 +553,20 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return query_refused(q);
     }
     /* ixfr? */
-    if (qtype == LDNS_RR_TYPE_IXFR || qtype == LDNS_RR_TYPE_AXFR) {
+    if (qtype == LDNS_RR_TYPE_IXFR) {
         ods_log_assert(q->zone->name);
         ods_log_debug("[%s] incoming ixfr request for zone %s",
             query_str, q->zone->name);
         return query_notimpl(q);
     }
     /* prepare */
-    limit = buffer_limit(q->buffer);
-    flags = buffer_pkt_flags(q->buffer);
-    flags &= 0x0100U; /* preserve the rd flag */
-    flags |= 0x8000U; /* set the qr flag */
-    buffer_pkt_set_flags(q->buffer, flags);
-    buffer_clear(q->buffer);
-    buffer_set_position(q->buffer, limit);
+    query_prepare(q);
     /* axfr? */
     if (qtype == LDNS_RR_TYPE_AXFR) {
         ods_log_assert(q->zone->name);
         ods_log_debug("[%s] incoming axfr request for zone %s",
             query_str, q->zone->name);
-        return query_notimpl(q);
+        return axfr(q, engine);
     }
     /* (soa) query */
     return query_response(q, qtype);
