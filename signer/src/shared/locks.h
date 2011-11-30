@@ -78,7 +78,7 @@ typedef pthread_t ods_thread_type;
 #define ods_thread_detach(thr) LOCKRET(pthread_detach(thr))
 #define ods_thread_self() pthread_self()
 #define ods_thread_join(thr) LOCKRET(pthread_join(thr, NULL))
-
+#define ods_thread_kill(thr, sig) LOCKRET(pthread_kill(thr, sig))
 int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
 void ods_thread_blocksigs(void);
 

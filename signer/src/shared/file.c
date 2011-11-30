@@ -35,6 +35,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -264,9 +265,7 @@ ods_file_lastmodified(const char* file)
     int ret;
     struct stat buf;
     FILE* fd;
-
     ods_log_assert(file);
-
     if ((fd = ods_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
         ods_fclose(fd);
@@ -295,6 +294,38 @@ ods_strcmp(const char* s1, const char* s2)
         }
     }
     return strncmp(s1, s2, strlen(s1));
+}
+
+
+/**
+ * Compare a string lowercased
+ *
+ */
+int
+ods_strlowercmp(const char* str1, const char* str2)
+{
+    while (str1 && str2 && *str1 != '\0' && *str2 != '\0') {
+        if (tolower((int)*str1) != tolower((int)*str2)) {
+            if (tolower((int)*str1) < tolower((int)*str2)) {
+                return -1;
+            }
+            return 1;
+        }
+        str1++;
+        str2++;
+    }
+    if (str1 && str2) {
+        if (*str1 == *str2) {
+            return 0;
+        } else if (*str1 == '\0') {
+            return -1;
+        }
+    } else if (!str1 && !str2) {
+        return 0;
+    } else if (!str1 && str2) {
+        return -1;
+    }
+    return 1;
 }
 
 
