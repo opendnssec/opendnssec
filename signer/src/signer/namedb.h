@@ -35,7 +35,6 @@
 #define SIGNER_NAMEDB_H
 
 #include "config.h"
-#include "adapter/adapter.h"
 #include "signer/denial.h"
 #include "signer/domain.h"
 #include "signer/nsec3params.h"
@@ -163,9 +162,10 @@ ods_status namedb_examine(namedb_type* db);
 /**
  * Apply differences in db.
  * \param[in] db namedb
+ * \param[in] is_ixfr true if incremental change
  *
  */
-void namedb_diff(namedb_type* db);
+void namedb_diff(namedb_type* db, unsigned is_ixfr);
 
 /**
  * Rollback differences in db.

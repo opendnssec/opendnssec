@@ -188,9 +188,10 @@ void rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum);
 /**
  * Apply differences at RRset.
  * \param[in] rrset RRset
+ * \param[in] is_ixfr true if incremental change
  *
  */
-void rrset_diff(rrset_type* rrset);
+void rrset_diff(rrset_type* rrset, unsigned is_ixfr);
 
 /**
  * Sign RRset.
