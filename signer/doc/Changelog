@@ -1,3 +1,321 @@
+29 November 2011: Matthijs
+- OPENDNSSEC-156: Always update the new addns config
+- OPENDNSSEC-163: better ixfr handling
+- OPENDNSSEC-165: Print the name of the RCODE in error message
+- OPENDNSSEC-166: No error log if tsig is missing for notify
+
+28 November 2011: Matthijs
+- OPENDNSSEC-26: Write SOA in outgoing notifies and ixfr requests
+
+25 November 2011: Matthijs
+- A notify handler
+- OPENDNSSEC-147: Implement a notify handler that awaits NOTIFY OK
+  responses and is TSIG signed (if configured)
+
+24 November 2011: Matthijs
+- OPENDNSSEC-150: TSIG for DNS Input Adapter (OPENDNSSEC-24)
+
+21 November 2011: Matthijs
+- OPENDNSSEC-23: Update addns.rnc
+- TSIG signing and verifying
+
+18 November 2011: Matthijs
+- OPENDNSSEC-11: A fd of 0 is legal (self pipe trick failed issue?)
+
+17 November 2011: Matthijs
+- TSIG
+- B64 compatability functions
+
+16 November 2011: Matthijs
+- Examine soa record in notify and forward to xfrd process
+
+14 November 2011: Matthijs
+- OPENDNSSEC-8: Signer should log auditor exit code
+- Handle incoming queries
+
+7 November 2011: Matthijs
+- Write XFR to disk first to a tmp file (so we don't block xfr requests
+  when writing a new signed file)
+
+1 November 2011: Matthijs
+- Maintain a ixfr journal of 3 parts, purge after each succesfull write
+- Make sure that signatures that are deleted make it to the ixfr journal
+- Send NOTIFY after succesful write of zone
+
+28 October 2011: Matthijs
+- Trac #262: Drudgers seem to be in a waiting state, but the RRset FIFO
+  queue is full. Do an additional broadcast.
+
+27 October 2011: Matthijs
+- Warn the user if the serial is b0rk, and you can not use the serial
+  from the signconf
+
+26 October 2011: Matthijs
+- Make sure that all required zonelist elements exist, otherwise error.
+  Resolves Paul Wouters ods-signer crash where the input adapter was
+  commented out.
+
+25 October 2011: Matthijs
+- Allow for <Refresh/> of 0 seconds
+- Defense in depth in signer for duplicate keys
+
+19 October 2011: Matthijs
+- Print xfr to disk
+
+18 October 2011: Matthijs
+- Always remove records that are not added (currently all axfr)
+
+14 October 2011: Matthijs
+- Pivotal #19686881: NSEC3PARAM left in records after switch NSEC3->NSEC
+
+13 October 2011: Matthijs
+- Inbound soa serial refresh retry management
+
+12 October 2011: Matthijs
+- Don't block incoming notifies
+
+10 October 2011: Matthijs
+- The wire
+- An addns parser
+- A dns handler
+- DNS Adapters
+
+4 October 2011: Matthijs
+- Pivotal #19168315: Signer does not update TTL on RRs unless there is
+  change in RDATA
+
+30 September 2011: Matthijs
+- Fix a similar bug like Trac #257: Error in ods-signerd, where a corrupted
+  backup file results in an invalid pointer free().
+
+23 August 2011: Matthijs
+- Introduce halted_when: make sure that the halted task is continued at
+  the correct time
+- Log functions for RR and domain name
+- Move zonedata to new namedb structure
+- Move NSEC3 Parameters and keylist into signconf structure
+
+16 August 2011: Matthijs
+- Fix assertion failure: No valid signconf, yet want to sign
+- Pivotal #17052469: Enters a deadlock if it is stopped while signing
+
+12 August 2011: Matthijs
+- Pivotal #16881025: No signatures in signed zone
+
+8 August 2011: Matthijs
+- Check the inbound serial in the .axfr file to prevent redundant AXFRs
+
+4 August 2011: Matthijs
+- Pivotal #16517425: Signature lifetime too long/short
+
+26 July 2011: Matthijs
+- Trac #256: Make sure arguments in ods-control signer are not ignored
+
+5 July 2011: Matthijs
+- Pivotal #15342489: Return better error codes from ods_file_copy
+
+30 June 2011: Matthijs
+- Trac #247: Fixes bug introduced by bugfix #242
+- Zonefetcher: Sometimes invalid 'Address already in use' occurred
+
+27 June 2011: Matthijs
+- Pivotal #15021787: Not updating TTL of DNSKEY RRset
+
+23 June 2011: Matthijs
+- Pivotal #14922121: Crashing when ods-signer update unknown zone
+
+6 June 2011: Matthijs
+- Handle stdout console output throttling that would truncate
+  daemon output intermittently
+
+26 May 2011: Matthijs
+- Trac #242: Lock axfr file when reading/writing
+- Read IXFR from file
+
+6 May 2011: Matthijs
+- Fix a race condition when doing a single run
+
+26 April 2011: Matthijs
+- Fix assertion failure if zone was just added.
+
+20 April 2011: Matthijs
+- A journal for IXFR serving
+
+18 April 2011: Matthijs
+- Remove Dummy Adapter, introduce File DNS Adapter
+
+11 April 2011: Matthijs
+- Coverity report
+- Fallback backup recovery
+
+7 April 2011: Matthijs
+- Adjust zonelist.xml for new adapters
+
+24 March 2011: Matthijs
+- Trac #221: Segmentation Fault on schedule.c:232
+- Introduce the Dummy Adapter
+
+23 March 2011: Matthijs
+- Pivotal #11398785: Only recover nsec3params if nsec_type is NSEC3
+- Pivotal #11399873: Republish dnskey and nsec3params after flush
+
+22 March 2011: Matthijs
+- Pivotal #11348469: Read serials from backup
+- Pivotal #11387763: Use outbound serial as previous, reset internal serial
+  if not outputted
+- Pivotal #11396309: Unset needs_signing when recovering a signature
+
+21 March 2011: Matthijs
+- Pivotal #11336393: Maintain flush count and return first flush-task if
+  flushcount > 0
+
+18 March 2011: Matthijs
+- Rollback serial if signing failed
+- Only update stats if signing was ok
+- Get NSEC3PARAM in zone after switching from NSEC to NSEC3
+- Only publish DNSKEYs if not already published
+- <Serial>counter</Serial> will use inbound serial + 1
+
+16 March 2011: Matthijs
+- Bump to ldns 1.6.9
+- Pivotal #11131107: Publish dnskeys and nsec3params after loading
+  signconf (not before reading)
+- Pivotal #11131385: Only reset interrupt here if not is load signconf
+- Pivotal #11167453: Initialize stats start time when re-signing
+
+14 March 2011: Matthijs
+- Pivotal #11073405: Create ctx before publishing dnskeys
+
+11 March 2011: Matthijs
+- Different backup approach 
+
+9 March 2011: Matthijs
+- Lock zone stats when accessing, preventing weird statistics
+
+17 February 2011: Matthijs
+- Allow for duplicates in the unsigned zone input
+- Introduce RRset queue, signer threads (OpenDNSSEC 1.3)
+
+16 February 2011: Matthijs
+- Pivotal #9218653: Make signer ready for signing the root
+- Pivotal #9960235: Enable core dumps
+- Pivotal #10013459: Text "critical" in alert logs
+- Pivotal #10016809: Override DNSKEY and SOA values with those of the
+  policy
+- Trac #198: zone updates ignored?
+- Prevent race condition when setting up the workers and cmdhandler
+- Quit when there are errors in the configuration
+- NSEC chain could become broken if the predecessor domain
+  of a deleted domain was a glue domain
+- Use SOA MINIMUM as NSEC(3) TTL
+
+14 February 2011: Matthijs
+- Prepare for a more generic adapter approach
+
+9 February 2011: Matthijs
+- Simplify serial maintenance
+
+8 February 2011: Matthijs
+- Pivotal #7813483: Replace tabs with white space when logging RRs
+- Do not block update command while signing
+- Check if zone is ready for signing (does it have a valid signconf?)
+
+7 February 2011: Matthijs
+- Denial of existence tree
+- Redesign of zone data structure, to handle commit/rollback updates
+- A function to calculate zone data differences
+
+3 February 2011: Matthijs
+- Adapter utilities and API
+
+31 January 2011: Matthijs
+- Introduce a task independent schedule
+
+27 January 2011: Matthijs
+- Shared code
+
+25 January 2011: Matthijs
+- Trac #207: quicksorter fails on new line comments
+
+20 December 2010: Matthijs
+- Pivotal #7533929: Start zonefetcher before dropping privileges
+
+6 December 2010: Matthijs
+- Pivotal #6999729: When rolling NSEC to NSEC3, you get both denial records
+  in the zone
+
+2 December 2010: Matthijs
+- Pivotal #6838873: TTL of NSEC(3)s are not changed
+
+1 December 2010: Matthijs
+- Pivotal #6872139: Remove minimize TTL code
+- Pivotal #6916711: Set notify command when reloading zonelist
+
+23 November 2010: Matthijs
+- Pivotal #6619421: TTL of signature is not changed
+
+22 November 2010: Matthijs
+- Pivotal #6619971: TTL for RR in include file and RRs after the statement
+- Pivotal #6619659: NSEC is now dropped when RR is removed.
+  Also, don't delete NSEC3 node that has become empty non-terminal
+
+12 November 2010: Matthijs
+- Pivotal #6266045: Redirect notify command output to /dev/null
+- Pivotal #6267237: canonicalize owner RRSIG
+
+8 November 2010: Matthijs
+- Coverity report
+
+3 November 2010: Matthijs
+- Fixed several memleaks
+
+25 October 2010: Matthijs
+- Trac #187: ods-signer running
+- Narrow glue at the zone cut is allowed
+- Move zone fetcher output to correct input adapter file
+
+15 October 2010: Matthijs
+- Signer logs statistics just after outputting a new signed zone
+
+14 October 2010: Matthijs
+- Pivotal #5677996: Cancel update if read zone failed
+- Don't allow for glue below DNAME
+
+13 October 2010: Matthijs
+- Add manpages
+
+11 October 2010: Matthijs
+- Function to examine zonedata
+
+6 October 2010: Matthijs
+- Don't delete empty non-terminal domains
+- When signing, skip glue that exists *at* the delegation
+
+5 October 2010: Matthijs
+- Signature recycle logic revised
+
+29 September 2010: Matthijs
+- Apply Roland van Rijswijk patch to zonefetcher
+
+28 September 2010: Matthijs
+- Announce new signer (OpenDNSSEC 1.2)
+
+23 September 2010: Matthijs
+- Handle out of zone data
+- CNAME and DNAME are singleton types
+
+22 September 2010: Matthijs
+- Subdomain count management
+
+21 September 2010: Matthijs
+- Drop SOA RRSIGs when doing ods-signer sign <zone>
+- Fix task compare and task queue flush
+- Fix NSEC3 rdata count
+
+17 September 2010: Matthijs
+- Update backup magic
+- Make sure that all zones have been processed once in single run mode
+
 16 September 2010: Matthijs
 - NotifyCommand
 
