@@ -517,6 +517,8 @@ query_prepare(query_type* q)
     buffer_pkt_set_flags(q->buffer, flags);
     buffer_clear(q->buffer);
     buffer_set_position(q->buffer, limit);
+    buffer_set_limit(q->buffer, buffer_capacity(q->buffer));
+    q->reserved_space = tsig_rr_reserved_space(q->tsig_rr);
     return;
 }
 
