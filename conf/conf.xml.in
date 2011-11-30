@@ -33,10 +33,6 @@
 		
 		<PolicyFile>@OPENDNSSEC_CONFIG_DIR@/kasp.xml</PolicyFile>
 		<ZoneListFile>@OPENDNSSEC_CONFIG_DIR@/zonelist.xml</ZoneListFile>
-
-	<!--
-		<ZoneFetchFile>@OPENDNSSEC_CONFIG_DIR@/zonefetch.xml</ZoneFetchFile>
-	-->
 	</Common>
 
 	<Enforcer>
@@ -73,12 +69,10 @@
 -->
 
 <!--
-		<Adapters>
-			<Adapter type="File">@OPENDNSSEC_CONFIG_DIR@/adapters/file.cfg</Adapter>
-			<Adapter type="DNS">@OPENDNSSEC_CONFIG_DIR@/adapters/dns.cfg</Adapter>
-                </Adapters>
+		<Listener>
+			<Interface><Port>53</Port></Interface>
+		</Listener>
 -->
-
 
 		<!-- the <NotifyCommmand> will expand the following variables:
 

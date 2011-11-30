@@ -99,6 +99,8 @@ AC_FUNC_VPRINTF
 
 AC_REPLACE_FUNCS(strlcat)
 AC_REPLACE_FUNCS(strlcpy)
+AC_REPLACE_FUNCS(b64_pton)
+AC_REPLACE_FUNCS(b64_ntop)
 
 ACX_BROKEN_SETRES
 AC_CHECK_STRPTIME
@@ -142,6 +144,7 @@ ACX_LIBXML2
 ACX_LDNS(1,6,9)
 ACX_PKCS11_MODULES
 ACX_RT
+ACX_SSL
 
 # pthread
 ACX_PTHREAD
@@ -259,11 +262,11 @@ AC_CONFIG_FILES([
 	Doxyfile
 	common/Makefile
 	conf/Makefile
+	conf/addns.xml
 	conf/conf.xml
 	conf/kasp.xml
 	conf/signconf.xml
 	conf/zonelist.xml
-	conf/zonefetch.xml
 	contrib/Makefile
 	enforcer/Makefile
 	enforcer/common/Makefile

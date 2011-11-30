@@ -2,9 +2,9 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-RNC =	conf.rnc kasp.rnc zonelist.rnc signconf.rnc zonefetch.rnc
-RNG =	conf.rng kasp.rng zonelist.rng signconf.rng zonefetch.rng
-XML =	conf.xml kasp.xml zonelist.xml signconf.xml zonefetch.xml
+RNC =	addns.rnc conf.rnc kasp.rnc zonelist.rnc signconf.rnc
+RNG =	addns.rng conf.rng kasp.rng zonelist.rng signconf.rng
+XML =	addns.xml conf.xml kasp.xml zonelist.xml signconf.xml
 XSL=	kasp2html.xsl
 
 TRANG=	$(srcdir)/trang/trang.jar
@@ -44,12 +44,12 @@ install-data-hook:
 	test -f ${DESTDIR}${sysconfdir}/conf.xml || \
 		${INSTALL_DATA} -m 0640 conf.xml ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} -m 640 conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample
+	test -f ${DESTDIR}${sysconfdir}/addns.xml || \
+		${INSTALL_DATA} addns.xml ${DESTDIR}${sysconfdir}
+	${INSTALL_DATA} addns.xml ${DESTDIR}${sysconfdir}/addns.xml.sample
 	test -f ${DESTDIR}${sysconfdir}/zonelist.xml || \
 		${INSTALL_DATA} zonelist.xml ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} zonelist.xml ${DESTDIR}${sysconfdir}/zonelist.xml.sample
-	test -f ${DESTDIR}${sysconfdir}/zonefetch.xml || \
-		${INSTALL_DATA} -m 0640 zonefetch.xml ${DESTDIR}${sysconfdir}
-	${INSTALL_DATA} -m 640 zonefetch.xml ${DESTDIR}${sysconfdir}/zonefetch.xml.sample
 	test -f ${DESTDIR}${sysconfdir}/kasp.xml || \
 		${INSTALL_DATA} kasp.xml ${DESTDIR}${sysconfdir}
 	${INSTALL_DATA} kasp.xml ${DESTDIR}${sysconfdir}/kasp.xml.sample

@@ -1,6 +1,6 @@
-# $Id$
+# $Id: addns.rnc 1920 2009-09-30 07:49:39Z matthijs $
 #
-# Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+# Copyright (c) 2011 NLnet Labs
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,38 +27,38 @@
 
 datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 
-start = element ZoneFetch {
+start = element Adapter { dns }
+	
+dns = element DNS {
+	# TSIG secrets
+	tsig*,
 
-	# where to listen for notifies
-	# DEFAULT: do not listen to notify
-	element NotifyListen { localAddress }?,
+	# inbound zone transfer settings
+	element Inbound {
+		element RequestTransfer { remote* },
+		element AllowNotify { acl* }
+	},
 
-	# default inbound AXFR settings
-	# (per zone settings not yet implemented)
-	element Default { source }
+	# outbound zone transfer settings
+	element Outbound {
+		element ProvideTransfer { acl* },
+		element Notify { remote* }
+	}
 }
 
-source =
-	# TSIG secret for inbound AXFR
-	# DEFAULT: do not use TSIG
-	element TSIG {
-		element Name { xsd:string },
+# TSIG secret
+tsig = element TSIG {
+	element Name { xsd:string },
+	# http://www.iana.org/assignments/tsig-algorithm-names
+	element Algorithm { xsd:string },
+	# base64 encoded secret
+	element Secret { xsd:base64Binary }
+}
 
-		# http://www.iana.org/assignments/tsig-algorithm-names
-		element Algorithm { xsd:string },
-		
-		# base64 encoded secret
-		element Secret { xsd:base64Binary }
-	}?,
+remote = element Remote { address, port?, key? }
+acl   = element ACL { prefix, key? }
 
-	# <address of host to request AXFR from
-	# incoming NOTIFY has to match this address as well
-	# DEFAULT: none
-	element RequestTransfer { remoteAddress }+
-
-ipv4 = element IPv4 { xsd:string }
-ipv6 = element IPv6 { xsd:string }
-port = element Port { xsd:positiveInteger { maxInclusive = "65535" } }
-
-localAddress = (ipv4 | ipv6)?, port?
-remoteAddress = (ipv4 | ipv6), port? 
+address = element Address { xsd:string } # e.g., 192.0.2.1 or 2001:DB8::1
+prefix  = element Prefix { xsd:string }  # e.g., 192.0.2.0/24 or 2001:DB8::/32
+port    = element Port { xsd:positiveInteger { maxInclusive = "65535" } }
+key     = element Key { xsd:string }

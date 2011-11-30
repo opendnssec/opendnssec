@@ -49,14 +49,17 @@ start = element ZoneList {
 	}*
 }
 
-adapter = adfile | adadapter
+# adapters
+adapter = adfile | adother
 
-# File Adapter
+# file adapter
 adfile = element File { xsd:string }
 
-# General Adapter
-adadapter = element Adapter {
+# other adapters
+adother = element Adapter {
+	# Adapter type
 	attribute type { xsd:string },
+
+	# Configuration file
 	xsd:string
 }
-
