@@ -40,6 +40,8 @@
 #include "wire/query.h"
 #include "wire/sock.h"
 
+#define AXFR_TSIG_SIGN_EVERY_NTH 96 /* tsig sign every N packets. */
+
 const char* axfr_str = "axfr";
 
 
@@ -54,11 +56,13 @@ axfr(query_type* q, engine_type* engine)
     ldns_rr* rr = NULL;
     ldns_rdf* prev = NULL;
     ldns_rdf* orig = NULL;
+    uint16_t total_added = 0;
     uint32_t ttl = 0;
     ldns_status status = LDNS_STATUS_OK;
     char line[SE_ADFILE_MAXLINE];
     unsigned soa_seen = 0;
     unsigned l = 0;
+    long fpos = 0;
 
     ods_log_assert(q);
     ods_log_assert(engine);
@@ -97,6 +101,7 @@ axfr(query_type* q, engine_type* engine)
         /* compression? */
 
         /* add soa rr */
+        fpos = ftell(q->axfr_fd);
         rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl, &status,
             &l);
         if (!rr) {
@@ -114,12 +119,17 @@ axfr(query_type* q, engine_type* engine)
             return QUERY_PROCESSED;
         }
         /* does it fit? */
-        buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
-        buffer_write_rr(q->buffer, rr);
-/*
-        ldns_rr_free(rr);
-        rr = NULL;
-*/
+        if (buffer_write_rr(q->buffer, rr)) {
+            buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
+            total_added++;
+            ldns_rr_free(rr);
+            rr = NULL;
+        } else {
+            ldns_rr_free(rr);
+            rr = NULL;
+            buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+            return QUERY_PROCESSED;
+        }
     } else {
         /* subsequent axfr packets */
         buffer_set_limit(q->buffer, BUFFER_PKT_HEADER_SIZE);
@@ -127,24 +137,50 @@ axfr(query_type* q, engine_type* engine)
         query_prepare(q);
     }
     /* add as many records as fit */
-    buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
-    buffer_write_rr(q->buffer, rr);
-    ldns_rr_free(rr);
-    rr = NULL;
-
-/*
+    fpos = ftell(q->axfr_fd);
     while ((rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl,
         &status, &l)) != NULL) {
         if (status != LDNS_STATUS_OK) {
+            ldns_rr_free(rr);
+            rr = NULL;
             ods_log_error("[%s] error reading rr at line %i (%s): %s",
                 axfr_str, l, ldns_get_errorstr_by_id(status), line);
-            return QUERY_DISCARDED;
+            buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+            return QUERY_PROCESSED;
         }
-
-        buffer_write_rr(q->buffer, rr);
-        ldns_rr_free(rr);
-        rr = NULL;
+        /* does it fit? */
+        if (buffer_write_rr(q->buffer, rr)) {
+            fpos = ftell(q->axfr_fd);
+            buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
+            total_added++;
+            ldns_rr_free(rr);
+            rr = NULL;
+        } else {
+            ldns_rr_free(rr);
+            rr = NULL;
+            if (fseek(q->axfr_fd, fpos, SEEK_SET) != 0) {
+                ods_log_error("[%s] unable to reset file position in axfr "
+                    "file: fseek() failed (%s)", axfr_str, strerror(errno));
+                buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+                return QUERY_PROCESSED;
+            } else {
+                goto return_answer;
+            }
+        }
     }
-*/
+    q->tsig_sign_it = 1; /* sign last packet */
+    q->axfr_is_done = 1;
+
+return_answer:
+    buffer_pkt_set_ancount(q->buffer, total_added);
+    buffer_pkt_set_nscount(q->buffer, 0);
+    buffer_pkt_set_arcount(q->buffer, 0);
+
+    /* check if it needs tsig signatures */
+    if (q->tsig_rr->status == TSIG_OK) {
+        if (q->tsig_rr->update_since_last_prepare >= AXFR_TSIG_SIGN_EVERY_NTH) {
+            q->tsig_sign_it = 1;
+        }
+    }
     return QUERY_PROCESSED;
 }

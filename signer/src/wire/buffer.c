@@ -646,16 +646,26 @@ buffer_write_rdf(buffer_type* buffer, ldns_rdf* rdf)
  * Write rr to buffer.
  *
  */
-void
+int
 buffer_write_rr(buffer_type* buffer, ldns_rr* rr)
 {
     size_t i = 0;
+    size_t tc_mark = 0;
     size_t rdlength_pos = 0;
     uint16_t rdlength = 0;
     ods_log_assert(buffer);
     ods_log_assert(rr);
+    /* set truncation mark, in case rr does not fit */
+    tc_mark = buffer_position(buffer);
     /* owner type class ttl */
+    if (!buffer_available(buffer, ldns_rdf_size(ldns_rr_owner(rr)))) {
+        goto buffer_tc;
+    }
     buffer_write_rdf(buffer, ldns_rr_owner(rr));
+    if (!buffer_available(buffer, sizeof(uint16_t) + sizeof(uint16_t) +
+        sizeof(uint32_t) + sizeof(rdlength))) {
+        goto buffer_tc;
+    }
     buffer_write_u16(buffer, (uint16_t) ldns_rr_get_type(rr));
     buffer_write_u16(buffer, (uint16_t) ldns_rr_get_class(rr));
     buffer_write_u32(buffer, (uint32_t) ldns_rr_ttl(rr));
@@ -664,13 +674,20 @@ buffer_write_rr(buffer_type* buffer, ldns_rr* rr)
     buffer_skip(buffer, sizeof(rdlength));
     /* write rdata */
     for (i=0; i < ldns_rr_rd_count(rr); i++) {
+        if (!buffer_available(buffer, ldns_rdf_size(ldns_rr_rdf(rr, i)))) {
+            goto buffer_tc;
+        }
         buffer_write_rdf(buffer, ldns_rr_rdf(rr, i));
     }
     /* write rdlength */
     rdlength = buffer_position(buffer) - rdlength_pos - sizeof(rdlength);
     buffer_write_u16_at(buffer, rdlength_pos, rdlength);
     /* position updated by buffer_write() */
-    return;
+    return 1;
+
+buffer_tc:
+    buffer_set_position(buffer, tc_mark);
+    return 0;
 }
 
 

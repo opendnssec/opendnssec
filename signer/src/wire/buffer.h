@@ -337,9 +337,10 @@ void buffer_write_rdf(buffer_type* buffer, ldns_rdf* rdf);
  * Write rr to buffer.
  * \param[in] buffer buffer
  * \param[in] rr data to write
+ * \return int 1 if rr fits, 0 otherwise
  *
  */
-void buffer_write_rr(buffer_type* buffer, ldns_rr* rr);
+int buffer_write_rr(buffer_type* buffer, ldns_rr* rr);
 
 /**
  * Read from buffer.

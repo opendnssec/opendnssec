@@ -414,8 +414,9 @@ notify_send(notify_type* notify)
     buffer_pkt_set_aa(xfrhandler->packet);
     /* add current SOA to answer section */
     if (notify->soa) {
-        buffer_pkt_set_ancount(xfrhandler->packet, 1);
-        buffer_write_rr(xfrhandler->packet, notify->soa);
+        if (buffer_write_rr(xfrhandler->packet, notify->soa)) {
+            buffer_pkt_set_ancount(xfrhandler->packet, 1);
+        }
     }
     if (notify->secondary->tsig) {
         notify_tsig_sign(notify, xfrhandler->packet);
