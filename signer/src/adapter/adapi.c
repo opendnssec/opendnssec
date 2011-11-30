@@ -34,6 +34,7 @@
 #include "config.h"
 #include "adapter/adapi.h"
 #include "shared/duration.h"
+#include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
@@ -128,7 +129,7 @@ adapi_trans_full(zone_type* zone)
     if (!zone || !zone->db) {
         return;
     }
-    namedb_diff(zone->db);
+    namedb_diff(zone->db, 0);
 
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
@@ -158,10 +159,31 @@ adapi_trans_full(zone_type* zone)
 void
 adapi_trans_diff(zone_type* zone)
 {
+    time_t start = 0;
+    time_t end = 0;
+    uint32_t num_added = 0;
     if (!zone || !zone->db) {
         return;
     }
-    /* todo */
+    namedb_diff(zone->db, 1);
+
+   if (zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->nsec_time = 0;
+        zone->stats->nsec_count = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
+    }
+    start = time(NULL);
+    /* nsecify(3) */
+    namedb_nsecify(zone->db, &num_added);
+    end = time(NULL);
+    lock_basic_lock(&zone->stats->stats_lock);
+    if (!zone->stats->start_time) {
+        zone->stats->start_time = start;
+    }
+    zone->stats->nsec_time = (end-start);
+    zone->stats->nsec_count = num_added;
+    lock_basic_unlock(&zone->stats->stats_lock);
     return;
 }
 
@@ -348,5 +370,39 @@ adapi_printzone(FILE* fd, zone_type* zone)
         return;
     }
     namedb_export(fd, zone->db);
+    return;
+}
+
+
+/**
+ * Print axfr.
+ *
+ */
+void
+adapi_printaxfr(FILE* fd, zone_type* zone)
+{
+    rrset_type* rrset = NULL;
+    if (!fd || !zone || !zone->db) {
+        return;
+    }
+    namedb_export(fd, zone->db);
+    rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
+    ods_log_assert(rrset);
+    rrset_print(fd, rrset, 1);
+    return;
+}
+
+
+/**
+ * Print ixfr.
+ *
+ */
+void
+adapi_printixfr(FILE* fd, zone_type* zone)
+{
+    if (!fd || !zone || !zone->ixfr) {
+        return;
+    }
+    ixfr_print(fd, zone->ixfr);
     return;
 }
