@@ -47,7 +47,8 @@
 enum query_enum {
         QUERY_PROCESSED = 0,
         QUERY_DISCARDED,
-        QUERY_AXFR
+        QUERY_AXFR,
+        QUERY_IXFR
 };
 typedef enum query_enum query_state;
 
@@ -77,8 +78,9 @@ struct query_struct {
     zone_type* zone;
     /* Compression */
 
-    /* AXFR */
+    /* AXFR IXFR */
     FILE* axfr_fd;
+    uint32_t serial;
     /* Bits */
     unsigned axfr_is_done : 1;
     unsigned tsig_prepare_it : 1;
