@@ -242,6 +242,28 @@ latest version of the zone.
 
 
 -------------------------------------------------------------------
+DNS FILE ADAPTERS
+-------------------------------------------------------------------
+You can use DNS adapters instead of File adapters. Put something 
+like this in your zonelist.xml:
+
+<Zone name="example.com">
+	...
+	<Adapters>
+		<Input>
+			<Adapter type="DNS">example.com.dns.xml</Adapter>
+		</Input>
+		<Output>
+			<Adapter type="DNS">example.com.dns.xml</Adapter>
+		</Output>
+	</Adapters>
+</Zone>
+
+The example.com.dns.xml holds all master and slave configurations for
+transfers.
+
+
+-------------------------------------------------------------------
 DEBUGGING
 -------------------------------------------------------------------
 Warning: DO NOT TRY THIS EXCEPT FOR DEBUGGING PURPOSES

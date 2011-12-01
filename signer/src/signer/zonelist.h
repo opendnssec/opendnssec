@@ -77,6 +77,17 @@ zone_type* zonelist_lookup_zone_by_name(zonelist_type* zonelist,
     const char* name, ldns_rr_class klass);
 
 /**
+ * Lookup zone by dname and class.
+ * \param[in] zl zone list
+ * \param[in] dname zone domain name
+ * \param[in] klass zone class
+ * \return zone_type* found zone
+ *
+ */
+zone_type* zonelist_lookup_zone_by_dname(zonelist_type* zonelist,
+    ldns_rdf* dname, ldns_rr_class klass);
+
+/**
  * Add zone.
  * \param[in] zl zone list
  * \param[in] zone zone

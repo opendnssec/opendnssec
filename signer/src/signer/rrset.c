@@ -162,6 +162,10 @@ rrset_type2str(ldns_rr_type type)
     descriptor = ldns_rr_descript(type);
     if (descriptor && descriptor->_name) {
         return descriptor->_name;
+    } else if (type == LDNS_RR_TYPE_AXFR) {
+        return "AXFR";
+    } else if (type == LDNS_RR_TYPE_IXFR) {
+        return "IXFR";
     }
     return "TYPE???";
 }
@@ -357,19 +361,40 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
  *
  */
 void
-rrset_diff(rrset_type* rrset)
+rrset_diff(rrset_type* rrset, unsigned is_ixfr)
 {
+    zone_type* zone = NULL;
     uint16_t i = 0;
+    uint8_t del_sigs = 0;
     if (!rrset) {
         return;
     }
+    zone = (zone_type*) rrset->zone;
     for (i=0; i < rrset->rr_count; i++) {
         if (rrset->rrs[i].is_added) {
+            if (!rrset->rrs[i].exists) {
+                /* ixfr +RR */
+                ixfr_add_rr(zone->ixfr, rrset->rrs[i].rr);
+                del_sigs = 1;
+            }
             rrset->rrs[i].exists = 1;
             rrset->rrs[i].is_added = 0;
-        } else {
+        } else if (!is_ixfr || rrset->rrs[i].is_removed) {
+            if (rrset->rrs[i].exists) {
+                /* ixfr -RR */
+                ixfr_del_rr(zone->ixfr, rrset->rrs[i].rr);
+            }
             rrset->rrs[i].exists = 0;
             rrset_del_rr(rrset, i);
+            del_sigs = 1;
+            i--;
+        }
+    }
+    if (del_sigs) {
+       for (i=0; i < rrset->rrsig_count; i++) {
+            /* ixfr -RRSIG */
+            ixfr_del_rr(zone->ixfr, rrset->rrsigs[i].rr);
+            rrset_del_rrsig(rrset, i);
             i--;
         }
     }
@@ -519,6 +544,8 @@ rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
 recycle_drop_sig:
         if (drop_sig) {
             /* A rule mismatched, refresh signature */
+            /* ixfr -RRSIG */
+            ixfr_del_rr(zone->ixfr, rrset->rrsigs[i].rr);
             rrset_del_rrsig(rrset, i);
             i--;
         } else {
@@ -721,6 +748,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         signature = rrset_add_rrsig(rrset, rrsig, locator,
             zone->signconf->keys->keys[i].flags);
         newsigs++;
+        /* ixfr +RRSIG */
+        ods_log_assert(signature->rr);
+        ixfr_add_rr(zone->ixfr, signature->rr);
     }
     /* RRset signing completed */
     ldns_rr_list_free(rr_list);
@@ -747,8 +777,7 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
         return;
     }
     for (i=0; i < rrset->rr_count; i++) {
-/*        if (rrset->rrs[i].exists) { */
-        if (1) {
+        if (rrset->rrs[i].exists) {
             ldns_rr_print(fd, rrset->rrs[i].rr);
             if (rrset->rrtype == LDNS_RR_TYPE_CNAME ||
                 rrset->rrtype == LDNS_RR_TYPE_DNAME) {

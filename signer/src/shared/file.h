@@ -130,6 +130,15 @@ time_t ods_file_lastmodified(const char* file);
 int ods_strcmp(const char* s1, const char* s2);
 
 /**
+ * Compare strings lowercased.
+ * \param[in] s1 one string
+ * \param[in] s2 another string
+ * \return -1, 0 or 1
+ *
+ */
+int ods_strlowercmp(const char* s1, const char* s2);
+
+/**
  * Replace a substring in string.
  * \param[in] str The string
  * \param[in] oldstr old substring

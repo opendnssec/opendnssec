@@ -383,7 +383,7 @@ worker_perform_task(worker_type* worker)
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task), worker->jobs_appointed);
             /* sleep until work is done */
-                worker_sleep_unless(worker, 0);
+            worker_sleep_unless(worker, 0);
             status = worker_check_jobs(worker, task);
             worker_clear_jobs(worker);
             /* stop timer */
@@ -409,8 +409,7 @@ worker_perform_task(worker_type* worker)
             /* perform 'write to output adapter' task */
             worker_working_with(worker, TASK_WRITE, TASK_SIGN,
                 "write", task_who2str(task), &what, &when);
-            status = tools_output(zone, engine->config->working_dir,
-                engine->config->cfg_filename);
+            status = tools_output(zone, engine);
             if (status == ODS_STATUS_OK) {
                 if (task->interrupt > TASK_SIGNCONF) {
                     task->interrupt = TASK_NONE;

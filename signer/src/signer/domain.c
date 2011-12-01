@@ -36,6 +36,7 @@
 #include "signer/backup.h"
 #include "signer/denial.h"
 #include "signer/domain.h"
+#include "signer/ixfr.h"
 #include "signer/zone.h"
 
 static const char* dname_str = "domain";
@@ -277,7 +278,7 @@ domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
  *
  */
 void
-domain_diff(domain_type* domain)
+domain_diff(domain_type* domain, unsigned is_ixfr)
 {
     denial_type* denial = NULL;
     rrset_type* rrset = NULL;
@@ -288,7 +289,13 @@ domain_diff(domain_type* domain)
     }
     rrset = domain->rrsets;
     while (rrset) {
-        rrset_diff(rrset);
+        if (rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS ||
+            rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+            /* always do full diff on NSEC3PARAMS | DNSKEY RRset */
+            rrset_diff(rrset, 0);
+        } else {
+            rrset_diff(rrset, is_ixfr);
+        }
         if (rrset->rr_count <= 0) {
             /* delete entire rrset */
             if (!prev_rrset) {
@@ -662,7 +669,7 @@ domain_recover(domain_type* domain, FILE* fd, int dstatus)
                 ldns_rr_free(rr);
                 goto recover_dname_error;
             }
-            rrset_diff(denial->rrset);
+            rrset_diff(denial->rrset, 0);
             /* denial done */
             rr = NULL;
 

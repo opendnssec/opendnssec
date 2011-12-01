@@ -1,7 +1,7 @@
 /*
- * $Id$
+ * $Id: listener.h 4958 2011-04-18 07:11:09Z matthijs $
  *
- * Copyright (c) 2009 NLnet Labs. All rights reserved.
+ * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,7 +23,19 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
+
+/**
+ * Listener.
+ *
+ */
+
+#ifndef WIRE_LISTENER_H
+#define WIRE_LISTENER_H
+
+#include "config.h"
+#include "shared/allocator.h"
 
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -38,17 +50,13 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "config.h"
-
-#ifndef TOOLS_ZONEFETCHER_H
-#define TOOLS_ZONEFETCHER_H
-
 #define DNS_PORT_STRING "53"
 #define INBUF_SIZE      4096 /* max size for incoming queries */
-#define MAX_INTERFACES  128
+#define MAX_INTERFACES  32
 
 /**
  * Access control.
+ *
  */
 union acl_addr_storage {
     struct in_addr addr;
@@ -56,84 +64,75 @@ union acl_addr_storage {
 };
 
 /**
- * Servers.
- */
-typedef struct serverlist_struct serverlist_type;
-struct serverlist_struct
-{
-    int family;
-    const char* port;  /* 0 == no port */
-    const char* ipaddr;
-    union acl_addr_storage addr;
-    serverlist_type* next;
-};
-
-/**
- * Zone list.
- */
-typedef struct zfzonelist_struct zfzonelist_type;
-struct zfzonelist_struct
-{
-    const char* name;
-    ldns_rdf* dname;
-    char* input_file;
-    zfzonelist_type* next;
-};
-
-/**
- * Config.
- */
-typedef struct config_struct config_type;
-struct config_struct
-{
-    int use_tsig;
-    char* tsig_name;
-    char* tsig_algo;
-    char* tsig_secret;
-    char* pidfile;
-    const char* zonelist_file;
-    zfzonelist_type* zonelist;
-    serverlist_type* serverlist;
-    serverlist_type* notifylist;
-};
-
-/**
- * Sockets.
- */
-struct odd_socket
-{
-    struct addrinfo* addr;
-    int s;
-};
-
-typedef struct sockets_struct sockets_type;
-struct sockets_struct
-{
-    struct odd_socket tcp[MAX_INTERFACES];
-    struct odd_socket udp[MAX_INTERFACES];
-};
-
-/**
- * User data.
- */
-struct handle_udp_userdata {
-    int udp_sock;
-    struct sockaddr_storage addr_him;
-    socklen_t hislen;
-};
-
-struct handle_tcp_userdata {
-    int s;
-};
-
-
-/**
- * Start zone fetcher.
+ * Interface.
  *
  */
-int
-tools_zone_fetcher(const char* config_file, const char* zonelist_file,
-    const char* group, const char* user, const char* chroot,
-    const char* log_file, int use_syslog, int verbosity);
+typedef struct interface_struct interface_type;
+struct interface_struct {
+    char* port;
+    char* address;
+    int family;
+    union acl_addr_storage addr;
+};
 
-#endif /* TOOLS_ZONEFETCHER_H */
+/**
+ * Listener.
+ *
+ */
+typedef struct listener_struct listener_type;
+struct listener_struct {
+    allocator_type* allocator;
+    interface_type* interfaces;
+    size_t count;
+};
+
+/**
+ * Create listener.
+ * \param[in] allocator memory allocator
+ * \return listener_type* listener
+ *
+ */
+listener_type* listener_create(allocator_type* allocator);
+
+/**
+ * Push an interface to the listener.
+ * \param[in] listener listener
+ * \param[in] ipv4 IPv4 address or NULL
+ * \param[in] ipv6 IPv6 address or NULL
+ * \param[in] port port or NULL
+ * \return interface_type* added interface
+ *
+ */
+interface_type* listener_push(listener_type* list, char* ipv4, char* ipv6,
+    char* port);
+
+/**
+ * Print listener.
+ * \param[in] fd file descriptor
+ * \param[in] listener listener to print
+ *
+ */
+void listener_print(FILE* fd, listener_type* listener);
+
+/**
+ * Log listener.
+ * \param[in] listener listener
+ *
+ */
+void listener_log(listener_type* listener);
+
+/**
+ * Clean up interface.
+ * \param[in] i interface
+ *
+ */
+void interface_cleanup(interface_type* i);
+
+/**
+ * Clean up listener.
+ * \param[in] listener listener to clean up
+ *
+ */
+void listener_cleanup(listener_type* listener);
+
+#endif /* WIRE_LISTENER_H */

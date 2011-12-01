@@ -77,11 +77,10 @@ parse_zonelist_element(xmlXPathContextPtr xpathCtx, xmlChar* expr)
  *
  */
 static adapter_type*
-zlp_adapter(xmlNode* curNode, adapter_mode type, int inbound)
+zlp_adapter(xmlNode* curNode, adapter_mode type, unsigned inbound)
 {
     const char* file = NULL;
     adapter_type* adapter = NULL;
-
     file = (const char*) xmlNodeGetContent(curNode);
     if (!file) {
         ods_log_error("[%s] unable to read %s adapter", parser_str,
@@ -128,6 +127,8 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
                     type = xmlGetProp(curNode, (const xmlChar*)"type");
                     if (xmlStrEqual(type, (const xmlChar*)"File")) {
                         adapter = zlp_adapter(curNode, ADAPTER_FILE, inbound);
+                    } else if (xmlStrEqual(type, (const xmlChar*)"DNS")) {
+                        adapter = zlp_adapter(curNode, ADAPTER_DNS, inbound);
                     } else {
                         ods_log_error("[%s] unable to parse %s adapter: "
                             "unknown type", parser_str, (const char*) type);

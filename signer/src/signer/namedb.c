@@ -301,22 +301,22 @@ namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
 
     if (ods_strcmp(format, "unixtime") == 0) {
         soa = (uint32_t) time_now();
-        if (!DNS_SERIAL_GT(soa, prev)) {
+        if (!util_serial_gt(soa, prev)) {
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "datecounter") == 0) {
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
-        if (!DNS_SERIAL_GT(soa, prev)) {
+        if (!util_serial_gt(soa, prev)) {
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "counter") == 0) {
         soa = serial;
-        if (db->is_initialized && !DNS_SERIAL_GT(soa, prev)) {
+        if (db->is_initialized && !util_serial_gt(soa, prev)) {
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "keep") == 0) {
         soa = serial;
-        if (db->is_initialized && !DNS_SERIAL_GT(soa, prev)) {
+        if (db->is_initialized && !util_serial_gt(soa, prev)) {
             ods_log_error("[%s] cannot keep SOA SERIAL from input zone "
                 " (%u): previous output SOA SERIAL is %u", db_str, soa, prev);
             return ODS_STATUS_CONFLICT_ERR;
@@ -868,7 +868,7 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
  *
  */
 void
-namedb_diff(namedb_type* db)
+namedb_diff(namedb_type* db, unsigned is_ixfr)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -882,7 +882,7 @@ namedb_diff(namedb_type* db)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
-        domain_diff(domain);
+        domain_diff(domain, is_ixfr);
         domain = namedb_del_denial_trigger(db, domain, 0);
         if (domain) {
             namedb_add_denial_trigger(db, domain);
@@ -1014,16 +1014,34 @@ namedb_wipe_denial(namedb_type* db)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     denial_type* denial = NULL;
+    zone_type* zone = NULL;
+    size_t i = 0;
 
     if (db && db->denials) {
+        zone = (zone_type*) db->zone;
         node = ldns_rbtree_first(db->denials);
         while (node && node != LDNS_RBTREE_NULL) {
             denial = (denial_type*) node->data;
-            if (denial->rrset) {
-                /* [TODO] IXFR delete NSEC */
-                rrset_cleanup(denial->rrset);
-                denial->rrset = NULL;
+            if (!denial->rrset) {
+                continue;
             }
+            for (i=0; i < denial->rrset->rr_count; i++) {
+                if (denial->rrset->rrs[i].exists) {
+                    /* ixfr -RR */
+                    ixfr_del_rr(zone->ixfr, denial->rrset->rrs[i].rr);
+                }
+                denial->rrset->rrs[i].exists = 0;
+                rrset_del_rr(denial->rrset, i);
+                i--;
+            }
+            for (i=0; i < denial->rrset->rrsig_count; i++) {
+                /* ixfr -RRSIG */
+                ixfr_del_rr(zone->ixfr, denial->rrset->rrsigs[i].rr);
+                rrset_del_rrsig(denial->rrset, i);
+                i--;
+            }
+            rrset_cleanup(denial->rrset);
+            denial->rrset = NULL;
             node = ldns_rbtree_next(node);
         }
     }

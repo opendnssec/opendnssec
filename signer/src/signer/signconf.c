@@ -49,7 +49,7 @@ static const char* sc_str = "signconf";
 signconf_type*
 signconf_create(void)
 {
-    signconf_type* sc;
+    signconf_type* sc = NULL;
     allocator_type* allocator = allocator_create(malloc, free);
     if (!allocator) {
         ods_log_error("[%s] unable to create signconf: allocator_create() "
@@ -178,7 +178,7 @@ signconf_update(signconf_type** signconf, const char* scfile,
     /* if so, read the new signer configuration */
     new_sc = signconf_create();
     if (!new_sc) {
-         ods_log_error("[%s] unable to update signconf: signconf_create() "
+        ods_log_error("[%s] unable to update signconf: signconf_create() "
             "failed", sc_str);
         return ODS_STATUS_ERR;
     }
@@ -466,7 +466,7 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
         fprintf(out, "\t\t\t<Refresh>%s</Refresh>\n", s?s:"(null)");
         free((void*)s);
         fprintf(out, "\t\t\t<Validity>\n");
-     s = duration2string(sc->sig_validity_default);
+        s = duration2string(sc->sig_validity_default);
         fprintf(out, "\t\t\t\t<Default>%s</Default>\n", s?s:"(null)");
         free((void*)s);
         s = duration2string(sc->sig_validity_denial);
@@ -602,7 +602,7 @@ signconf_log(signconf_type* sc, const char* name)
 void
 signconf_cleanup(signconf_type* sc)
 {
-    allocator_type* allocator;
+    allocator_type* allocator = NULL;
     if (!sc) {
         return;
     }

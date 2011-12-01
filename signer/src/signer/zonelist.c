@@ -181,6 +181,25 @@ zonelist_lookup_zone_by_name(zonelist_type* zonelist, const char* name,
 
 
 /**
+ * Lookup zone by dname.
+ *
+ */
+zone_type*
+zonelist_lookup_zone_by_dname(zonelist_type* zonelist, ldns_rdf* dname,
+    ldns_rr_class klass)
+{
+    char* name = NULL;
+    zone_type* result = NULL;
+    if (zonelist && zonelist->zones && dname && klass) {
+        name = ldns_rdf2str(dname);
+        result = zonelist_lookup_zone_by_name(zonelist, name, klass);
+        free((void*)name);
+    }
+    return result;
+}
+
+
+/**
  * Add zone.
  *
  */

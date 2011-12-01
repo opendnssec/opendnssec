@@ -52,23 +52,6 @@ static ods_status adfile_read_file(FILE* fd, zone_type* zone);
 
 
 /**
- * Initialize file adapters.
- *
- */
-void
-adfile_init(void* adapter)
-{
-    adapter_type* ad = (adapter_type*) adapter;
-    ods_log_assert(ad);
-    ods_log_assert(ad->type == ADAPTER_FILE);
-    ods_log_assert(ad->configstr);
-    ods_log_info("[%s] initialize file adapter %s", adapter_str,
-        ad->configstr);
-    return;
-}
-
-
-/**
  * Read the next RR from zone file.
  *
  */
@@ -175,7 +158,6 @@ adfile_read_rr:
                 }
                 *status = ldns_rr_new_frm_str(&rr, line, new_ttl, *orig, prev);
                 if (*status == LDNS_STATUS_OK) {
-                    ldns_rr2canonical(rr); /* TODO: canonicalize or not? */
                     return rr;
                 } else if (*status == LDNS_STATUS_SYNTAX_EMPTY) {
                     if (rr) {
@@ -315,15 +297,15 @@ adfile_read_file(FILE* fd, zone_type* zone)
  *
  */
 ods_status
-adfile_read(void* zone, const char* filename)
+adfile_read(void* zone)
 {
     FILE* fd = NULL;
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
-    if (!adzone || !filename) {
+    if (!adzone || !adzone->adinbound || !adzone->adinbound->configstr) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    fd = ods_fopen(filename, NULL, "r");
+    fd = ods_fopen(adzone->adinbound->configstr, NULL, "r");
     if (!fd) {
         return ODS_STATUS_FOPEN_ERR;
     }

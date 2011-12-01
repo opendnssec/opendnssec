@@ -62,6 +62,17 @@ util_is_dnssec_rr(ldns_rr* rr)
 
 
 /**
+ * Compare SERIALs.
+ *
+ */
+int
+util_serial_gt(uint32_t serial_new, uint32_t serial_old)
+{
+    return DNS_SERIAL_GT(serial_new, serial_old);
+}
+
+
+/**
  * Compare SOA RDATAs.
  *
  */
@@ -268,3 +279,15 @@ util_write_pidfile(const char* pidfile, pid_t pid)
     }
     return 0;
 }
+
+
+/**
+ * Calculates the size needed to store the result of b64_pton.
+ *
+ */
+size_t
+util_b64_pton_calculate_size(size_t srcsize)
+{
+    return (((((srcsize + 3) / 4) * 3)) + 1);
+}
+

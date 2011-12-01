@@ -60,6 +60,15 @@
 int util_is_dnssec_rr(ldns_rr* rr);
 
 /**
+ * Compare SERIALs.
+ * \param serial_new new SERIAL value
+ * \param serial_old old SERIAL value
+ * \return int 0 if the new SERIAL <= old SERIAL, non-zero otherwise
+ *
+ */
+int util_serial_gt(uint32_t serial_new, uint32_t serial_old);
+
+/**
  * Compare RRs, ignore SOA SERIAL.
  * \param[in] rr1 RR
  * \param[in] rr2 another RR
@@ -95,5 +104,13 @@ ldns_status util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr);
  *
  */
 int util_write_pidfile(const char* pidfile, pid_t pid);
+
+/**
+ * Calculates the size needed to store the result of b64_pton.
+ * \param[in] len strlen
+ * \return size of b64_pton
+ *
+ */
+size_t util_b64_pton_calculate_size(size_t srcsize);
 
 #endif /* UTIL_UTIL_H */

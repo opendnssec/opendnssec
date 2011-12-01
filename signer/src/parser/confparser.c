@@ -59,6 +59,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
     xmlRelaxNGParserCtxtPtr rngpctx = NULL;
     xmlRelaxNGValidCtxtPtr rngctx = NULL;
     xmlRelaxNGPtr schema = NULL;
+    int status = 0;
 
     if (!cfgfile || !rngfile) {
         return ODS_STATUS_ASSERT_ERR;
@@ -113,8 +114,6 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         return ODS_STATUS_RNG_ERR;
     }
     /* Validate a document tree in memory. */
-/*
-    better not check: if not correct, this will segfault.
     status = xmlRelaxNGValidateDoc(rngctx,doc);
     if (status != 0) {
         ods_log_error("[%s] unable to parse file: xmlRelaxNGValidateDoc() "
@@ -126,7 +125,6 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         xmlFreeDoc(doc);
         return ODS_STATUS_RNG_ERR;
     }
-*/
     xmlRelaxNGFreeValidCtxt(rngctx);
     xmlRelaxNGFree(schema);
     xmlRelaxNGFreeParserCtxt(rngpctx);
@@ -136,6 +134,103 @@ parse_file_check(const char* cfgfile, const char* rngfile)
 }
 
 /* TODO: look how the enforcer reads this now */
+
+
+/**
+ * Parse the listener interfaces.
+ *
+ */
+listener_type*
+parse_conf_listener(allocator_type* allocator, const char* cfgfile)
+{
+    listener_type* listener = NULL;
+    interface_type* interface = NULL;
+    int i = 0;
+    char* ipv4 = NULL;
+    char* ipv6 = NULL;
+    char* port = NULL;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlNode* curNode = NULL;
+    xmlChar* xexpr = NULL;
+
+    ods_log_assert(allocator);
+    ods_log_assert(cfgfile);
+
+    /* Load XML document */
+    doc = xmlParseFile(cfgfile);
+    if (doc == NULL) {
+        ods_log_error("[%s] could not parse <Listener>: "
+            "xmlParseFile() failed", parser_str);
+        return NULL;
+    }
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] could not parse <Listener>: "
+            "xmlXPathNewContext() failed", parser_str);
+        return NULL;
+    }
+    /* Evaluate xpath expression */
+    xexpr = (xmlChar*) "//Configuration/Signer/Listener/Interface";
+    xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
+    if(xpathObj == NULL) {
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] could not parse <Listener>: "
+            "xmlXPathEvalExpression failed", parser_str);
+        return NULL;
+    }
+    /* Parse interfaces */
+    listener = listener_create(allocator);
+    ods_log_assert(listener);
+    if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
+        for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
+            ipv4 = NULL;
+            ipv6 = NULL;
+            port = NULL;
+
+            curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            while (curNode) {
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"IPv4")) {
+                    ipv4 = (char *) xmlNodeGetContent(curNode);
+                } else if (xmlStrEqual(curNode->name, (const xmlChar *)"IPv6")) {
+                    ipv6 = (char *) xmlNodeGetContent(curNode);
+                } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Port")) {
+                    port = (char *) xmlNodeGetContent(curNode);
+                }
+                curNode = curNode->next;
+            }
+            if (ipv4 || ipv6) {
+                interface = listener_push(listener, ipv4, ipv6, port);
+            } else {
+                interface = listener_push(listener, NULL, "", port);
+                if (interface) {
+                    interface = listener_push(listener, "", NULL, port);
+                }
+            }
+            if (!interface) {
+               ods_log_error("[%s] unable to add %s%s:%s interface: "
+                   "listener_push() failed", parser_str, ipv4?ipv4:"",
+                   ipv6?ipv6:"", port?port:"");
+            } else {
+               ods_log_debug("[%s] added %s%s:%s interface to listener",
+                   parser_str, ipv4?ipv4:"", ipv6?ipv6:"", port?port:"");
+            }
+            free((void*)port);
+            free((void*)ipv4);
+            free((void*)ipv6);
+        }
+    }
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+    return listener;
+}
 
 
 /**

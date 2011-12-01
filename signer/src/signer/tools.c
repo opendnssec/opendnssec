@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "daemon/dnshandler.h"
 #include "adapter/adapter.h"
 #include "shared/file.h"
 #include "shared/log.h"
@@ -72,7 +73,7 @@ tools_signconf(zone_type* zone)
         zone->signconf = new_signconf;
         signconf_log(zone->signconf, zone->name);
         zone->default_ttl = (uint32_t) duration2time(zone->signconf->soa_min);
-    } else {
+    } else if (status != ODS_STATUS_UNCHANGED) {
         ods_log_error("[%s] unable to load signconf for zone %s: %s",
             tools_str, zone->name, ods_status2str(status));
     }
@@ -88,11 +89,8 @@ ods_status
 tools_input(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
-    char* tmpname = NULL;
-    char* lockname = NULL;
     time_t start = 0;
     time_t end = 0;
-    FILE* fd = NULL;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -128,50 +126,6 @@ tools_input(zone_type* zone)
         zone->stats->sort_time = 0;
         lock_basic_unlock(&zone->stats->stats_lock);
     }
-    if (zone->adinbound->type == ADAPTER_FILE) {
-        if (zone->fetch) {
-            ods_log_verbose("[%s] fetch zone %s", tools_str,
-                zone->name?zone->name:"(null)");
-            tmpname = ods_build_path(
-                zone->adinbound->configstr, ".axfr", 0);
-            lockname = ods_build_path(
-                zone->adinbound->configstr, ".lock", 0);
-
-lock_fetch:
-            if (access(lockname, F_OK) == 0) {
-                ods_log_deeebug("[%s] axfr file %s is locked, "
-                    "waiting...", tools_str, tmpname);
-                sleep(1);
-                goto lock_fetch;
-            } else {
-                fd = fopen(lockname, "w");
-                if (!fd) {
-                    ods_log_error("[%s] cannot lock AXFR file %s",
-                        tools_str, lockname);
-                    free((void*)tmpname);
-                    free((void*)lockname);
-                    return ODS_STATUS_ERR;
-                }
-            }
-            ods_log_assert(fd); /* locked */
-
-            status = ods_file_copy(tmpname, zone->adinbound->configstr);
-
-            fclose(fd);
-            (void) unlink(lockname); /* unlocked */
-
-            if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to copy axfr file %s to %s: %s",
-                    tools_str, tmpname, zone->adinbound->configstr,
-                    ods_status2str(status));
-                free((void*)tmpname);
-                free((void*)lockname);
-                return status;
-            }
-            free((void*)tmpname);
-            free((void*)lockname);
-        }
-    }
     /* Input Adapter */
     start = time(NULL);
     status = adapter_read((void*)zone);
@@ -181,16 +135,6 @@ lock_fetch:
         zone_rollback_dnskeys(zone);
         zone_rollback_nsec3param(zone);
         namedb_rollback(zone->db);
-    } else {
-        tmpname = ods_build_path(zone->name, ".inbound", 0);
-        status = ods_file_copy(zone->adinbound->configstr, tmpname);
-        free((void*)tmpname);
-        tmpname = NULL;
-        if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to copy zone input file %s: %s",
-                tools_str, zone->name?zone->name:"(null)",
-                ods_status2str(status));
-        }
     }
     end = time(NULL);
     if (status == ODS_STATUS_OK && zone->stats) {
@@ -279,11 +223,13 @@ tools_audit(zone_type* zone, const char* working_dir, const char* cfg_filename)
  *
  */
 ods_status
-tools_output(zone_type* zone, const char* dir, const char* cfgfile)
+tools_output(zone_type* zone, engine_type* engine)
 {
     ods_status status = ODS_STATUS_OK;
     char str[SYSTEM_MAXLEN];
     int error = 0;
+    ods_log_assert(engine);
+    ods_log_assert(engine->config);
     ods_log_assert(zone);
     ods_log_assert(zone->db);
     ods_log_assert(zone->name);
@@ -292,13 +238,15 @@ tools_output(zone_type* zone, const char* dir, const char* cfgfile)
     /* Auditor? */
     if (zone->signconf->audit) {
         ods_log_assert(zone->adinbound);
-        if (zone->adinbound->type != ADAPTER_FILE) {
+        if (zone->adinbound->type != ADAPTER_FILE ||
+            zone->adoutbound->type != ADAPTER_FILE) {
             ods_log_warning("[%s] unable to audit zone %s: "
-                "auditor is only enabled for Input File Adapter",
+                "auditor is only enabled for File Adapters",
                 tools_str, zone->name);
             status = ODS_STATUS_OK;
         } else {
-            status = tools_audit(zone, dir, cfgfile);
+            status = tools_audit(zone, engine->config->working_dir,
+                engine->config->cfg_filename);
         }
     }
     if (status != ODS_STATUS_OK) {
@@ -306,7 +254,7 @@ tools_output(zone_type* zone, const char* dir, const char* cfgfile)
             tools_str, zone->name);
         return ODS_STATUS_CONFLICT_ERR;
     }
-
+    /* prepare */
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         if (zone->stats->sort_done == 0 &&
@@ -331,6 +279,7 @@ tools_output(zone_type* zone, const char* dir, const char* cfgfile)
     }
     zone->db->outserial = zone->db->intserial;
     zone->db->is_initialized = 1;
+    ixfr_purge(zone->ixfr);
     /* kick the nameserver */
     if (zone->notify_ns) {
         ods_log_verbose("[%s] notify nameserver: %s", tools_str,
@@ -342,6 +291,10 @@ tools_output(zone_type* zone, const char* dir, const char* cfgfile)
            ods_log_error("[%s] failed to notify nameserver", tools_str);
            status = ODS_STATUS_ERR;
         }
+    }
+    if (engine->dnshandler) {
+        dnshandler_fwd_notify(engine->dnshandler, (uint8_t*) ODS_SE_NOTIFY_CMD,
+            strlen(ODS_SE_NOTIFY_CMD));
     }
     /* log stats */
     if (zone->stats) {

@@ -41,6 +41,7 @@
 #include "shared/util.h"
 #include "signer/backup.h"
 #include "signer/zone.h"
+#include "wire/netio.h"
 
 #include <ldns/ldns.h>
 
@@ -90,18 +91,25 @@ zone_create(char* name, ldns_rr_class klass)
     zone->default_ttl = 3600; /* TODO: configure --default-ttl option? */
     zone->apex = ldns_dname_new_frm_str(name);
     /* check zone->apex? */
-    ldns_dname2canonical(zone->apex);
     zone->notify_ns = NULL;
     zone->policy_name = NULL;
     zone->signconf_filename = NULL;
     zone->adinbound = NULL;
     zone->adoutbound = NULL;
     zone->zl_status = ZONE_ZL_OK;
-    zone->fetch = 0;
     zone->task = NULL;
+    zone->xfrd = NULL;
+    zone->notify = NULL;
     zone->db = namedb_create((void*)zone);
     if (!zone->db) {
         ods_log_error("[%s] unable to create zone %s: namedb_create() "
+            "failed", zone_str, name);
+        zone_cleanup(zone);
+        return NULL;
+    }
+    zone->ixfr = ixfr_create((void*)zone);
+    if (!zone->ixfr) {
+        ods_log_error("[%s] unable to create zone %s: ixfr_create() "
             "failed", zone_str, name);
         zone_cleanup(zone);
         return NULL;
@@ -115,6 +123,7 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     lock_basic_init(&zone->zone_lock);
+    lock_basic_init(&zone->xfr_lock);
     return zone;
 }
 
@@ -172,6 +181,47 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
 
 
 /**
+ * Reschedule task for zone.
+ *
+ */
+ods_status
+zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
+{
+     task_type* task = NULL;
+     ods_status status = ODS_STATUS_OK;
+
+     ods_log_assert(taskq);
+     ods_log_assert(zone);
+     ods_log_assert(zone->name);
+     ods_log_assert(zone->task);
+     ods_log_debug("[%s] reschedule task for zone %s", zone_str, zone->name);
+     lock_basic_lock(&taskq->schedule_lock);
+     task = unschedule_task(taskq, (task_type*) zone->task);
+     if (task != NULL) {
+         if (task->what != what) {
+             task->halted = task->what;
+             task->halted_when = task->when;
+             task->interrupt = what;
+         }
+         task->what = what;
+         task->when = time_now();
+         status = schedule_task(taskq, task, 0);
+     } else {
+         /* task not queued, being worked on? */
+         ods_log_verbose("[%s] unable to reschedule task for zone %s now: "
+             "task is not queued (task will be rescheduled when it is put "
+             "back on the queue)", zone_str, zone->name);
+         task = (task_type*) zone->task;
+         task->interrupt = what;
+         /* task->halted(_when) set by worker */
+     }
+     lock_basic_unlock(&taskq->schedule_lock);
+     zone->task = task;
+     return status;
+}
+
+
+/**
  * Publish the keys as indicated by the signer configuration.
  *
  */
@@ -220,7 +270,6 @@ zone_publish_dnskeys(zone_type* zone)
         ods_log_assert(zone->signconf->keys->keys[i].dnskey);
         ldns_rr_set_ttl(zone->signconf->keys->keys[i].dnskey, ttl);
         ldns_rr_set_class(zone->signconf->keys->keys[i].dnskey, zone->klass);
-        ldns_rr2canonical(zone->signconf->keys->keys[i].dnskey);
         status = zone_add_rr(zone, zone->signconf->keys->keys[i].dnskey, 0);
         if (status == ODS_STATUS_UNCHANGED) {
             /* rr already exists, adjust pointer */
@@ -318,7 +367,6 @@ zone_publish_nsec3param(zone_type* zone)
          * according to rfc5155 section 11
          */
         ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(rr, 1)), 7, 0);
-        ldns_rr2canonical(rr);
         zone->signconf->nsec3params->rr = rr;
     }
     ods_log_assert(zone->signconf->nsec3params->rr);
@@ -378,7 +426,10 @@ zone_update_serial(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
     rrset_type* rrset = NULL;
+    rr_type* soa = NULL;
+    ldns_rr* rr = NULL;
     ldns_rdf* soa_rdata = NULL;
+    uint32_t tmp = 0;
 
     ods_log_assert(zone);
     ods_log_assert(zone->apex);
@@ -395,16 +446,24 @@ zone_update_serial(zone_type* zone)
     ods_log_assert(rrset);
     ods_log_assert(rrset->rrs);
     ods_log_assert(rrset->rrs[0].rr);
+    rr = ldns_rr_clone(rrset->rrs[0].rr);
+    if (!rr) {
+        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
+            "clone soa rr", zone_str, zone->name);
+        return ODS_STATUS_ERR;
+    }
+    tmp = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
     status = namedb_update_serial(zone->db, zone->signconf->soa_serial,
         zone->db->inbserial);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to update zone %s soa serial: %s",
             zone_str, zone->name, ods_status2str(status));
+        ldns_rr_free(rr);
         return status;
     }
     ods_log_verbose("[%s] zone %s set soa serial to %u", zone_str,
         zone->name, zone->db->intserial);
-    soa_rdata = ldns_rr_set_rdf(rrset->rrs[0].rr,
+    soa_rdata = ldns_rr_set_rdf(rr,
         ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
         zone->db->intserial), SE_SOA_RDATA_SERIAL);
     if (soa_rdata) {
@@ -413,10 +472,13 @@ zone_update_serial(zone_type* zone)
     } else {
         ods_log_error("[%s] unable to update zone %s soa serial: failed to "
             "replace soa serial rdata", zone_str, zone->name);
+        ldns_rr_free(rr);
         return ODS_STATUS_ERR;
     }
+    soa = rrset_add_rr(rrset, rr);
+    ods_log_assert(soa);
+    rrset_diff(rrset, 0);
     zone->db->serial_updated = 0;
-    rrset->needs_signing = 1;
     return ODS_STATUS_OK;
 }
 
@@ -627,15 +689,20 @@ zone_cleanup(zone_type* zone)
 {
     allocator_type* allocator;
     lock_basic_type zone_lock;
+    lock_basic_type xfr_lock;
     if (!zone) {
         return;
     }
     allocator = zone->allocator;
     zone_lock = zone->zone_lock;
+    xfr_lock = zone->zone_lock;
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
     namedb_cleanup(zone->db);
+    ixfr_cleanup(zone->ixfr);
+    xfrd_cleanup(zone->xfrd);
+    notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
     allocator_deallocate(allocator, (void*) zone->notify_ns);
@@ -644,6 +711,7 @@ zone_cleanup(zone_type* zone)
     allocator_deallocate(allocator, (void*) zone->name);
     allocator_deallocate(allocator, (void*) zone);
     allocator_cleanup(allocator);
+    lock_basic_destroy(&xfr_lock);
     lock_basic_destroy(&zone_lock);
     return;
 }
@@ -910,7 +978,7 @@ zone_recover(zone_type* zone)
         ods_fclose(fd);
 
         /* all ok */
-        namedb_diff(zone->db);
+        namedb_diff(zone->db, 0);
         zone->db->is_initialized = 1;
         if (zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
@@ -949,7 +1017,7 @@ zone_recover(zone_type* zone)
             zone->db->intserial = internal;
             zone->db->outserial = outbound;
             /* all ok */
-            namedb_diff(zone->db);
+            namedb_diff(zone->db, 0);
             zone->db->is_initialized = 1;
             if (zone->stats) {
                 lock_basic_lock(&zone->stats->stats_lock);
@@ -978,6 +1046,7 @@ recover_error:
     task_cleanup(task);
     task = NULL;
     /* namedb cleanup */
+    namedb_rollback(zone->db);
     namedb_cleanup(zone->db);
     zone->db = namedb_create((void*)zone);
     ods_log_assert(zone->db);

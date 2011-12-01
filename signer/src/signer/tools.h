@@ -35,6 +35,7 @@
 #define SIGNER_TOOLS_H
 
 #include "config.h"
+#include "daemon/engine.h"
 #include "shared/status.h"
 #include "signer/zone.h"
 
@@ -57,11 +58,10 @@ ods_status tools_input(zone_type* zone);
 /**
  * Write zone to output adapter.
  * \param[in] zone zone
- * \param[in] dir working directory
- * \param[in] cfgfile configuration file conx.xml
+ * \param[in] engine signer engine
  * \return ods_status status
  *
  */
-ods_status tools_output(zone_type* zone, const char* dir, const char* cfgfile);
+ods_status tools_output(zone_type* zone, engine_type* engine);
 
 #endif /* SIGNER_TOOLS_H */

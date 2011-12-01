@@ -1,7 +1,7 @@
 /*
- * $Id$
+ * $Id: axfr.h 4958 2011-04-18 07:11:09Z matthijs $
  *
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,22 +26,31 @@
  *
  */
 
-#define MAX_LINE_LEN 65535
-#define TIMEVAL_SUB(a,b) ((((a).tv_sec - (b).tv_sec)) + ((a).tv_usec - (b).tv_usec) / 1000000)
+/**
+ * AXFR.
+ *
+ */
 
-#ifdef HAVE_SYS_TYPES_H
-# include <sys/types.h>
-#endif
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
+#ifndef WIRE_AXFR_H
+#define WIRE_AXFR_H
+
+#include "config.h"
+#include "daemon/engine.h"
+#include "wire/query.h"
 
 #include <ldns/ldns.h>
 
-int read_line(FILE *input, char *line, int multiline, int skip_comments);
-void rr_list_clear(ldns_rr_list *rr_list);
-uint32_t lookup_class(FILE* fd);
-uint32_t lookup_serial(FILE* fd);
-uint32_t lookup_minimum(FILE* fd);
+/* NSD values */
+#define MAX_COMPRESSION_OFFSET 16383 /* Compression pointers are 14 bit. */
+#define AXFR_MAX_MESSAGE_LEN MAX_COMPRESSION_OFFSET
 
+/**
+ * Do AXFR.
+ * \param[in] q axfr request
+ * \param[in] engine signer engine
+ * \return query_state state of the query
+ *
+ */
+query_state axfr(query_type* q, engine_type* engine);
 
+#endif /* WIRE_AXFR_H */

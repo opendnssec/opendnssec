@@ -35,6 +35,7 @@
 #define ADAPTER_ADAPTER_H
 
 #include "config.h"
+#include "adapter/addns.h"
 #include "adapter/adfile.h"
 #include "shared/allocator.h"
 #include "shared/status.h"
@@ -44,16 +45,10 @@
 /** Adapter mode. */
 enum adapter_mode_enum
 {
-    ADAPTER_FILE = 1
+    ADAPTER_FILE = 1,
+    ADAPTER_DNS
 };
 typedef enum adapter_mode_enum adapter_mode;
-
-/** Adapter mode specific. */
-union adapter_data_union
-{
-    void* file;
-};
-typedef union adapter_data_union adapter_data;
 
 /**
  * Adapter.
@@ -62,29 +57,30 @@ typedef union adapter_data_union adapter_data;
 typedef struct adapter_struct adapter_type;
 struct adapter_struct {
     allocator_type* allocator;
-    const char* configstr;
     adapter_mode type;
-    adapter_data* data;
+    time_t config_last_modified;
+    const char* configstr;
+    void* config;
     unsigned inbound : 1;
 };
-
-/**
- * Initialize adapter.
- * \param[in] adapter adapter
- *
- */
-void adapter_init(adapter_type* adapter);
 
 /**
  * Create new adapter.
  * \param[in] str configuration string
  * \param[in] type type of adapter
- * \param[in] inbound inbound or not (thus outbound)
+ * \param[in] in inbound or not (thus outbound)
  * \return adapter_type* created adapter
  *
  */
-adapter_type* adapter_create(const char* str, adapter_mode type,
-    unsigned inbound);
+adapter_type* adapter_create(const char* str, adapter_mode type, unsigned in);
+
+/**
+ * Load configuration.
+ * \param[in] adapter adapter
+ * \return ods_status status
+ *
+ */
+ods_status adapter_load_config(adapter_type* adapter);
 
 /**
  * Compare adapters.
@@ -98,7 +94,7 @@ int adapter_compare(adapter_type* a1, adapter_type* a2);
 /**
  * Read zone from input adapter.
  * \param[in] zone zone
- * \return ods_status stats
+ * \return ods_status status
  *
  */
 ods_status adapter_read(void* zone);
@@ -106,7 +102,7 @@ ods_status adapter_read(void* zone);
 /**
  * Write zone to output adapter.
  * \param[in] zone zone
- * \return ods_status stats
+ * \return ods_status status
  *
  */
 ods_status adapter_write(void* zone);

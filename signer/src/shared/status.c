@@ -39,10 +39,13 @@
 ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_OK, "All OK" },
     { ODS_STATUS_ASSERT_ERR, "Assertion error"},
+    { ODS_STATUS_NOTIMPL, "Not implemented"},
+
     { ODS_STATUS_CFG_ERR, "Configuration error"},
     { ODS_STATUS_CHDIR_ERR, "Change directory failed"},
     { ODS_STATUS_CHROOT_ERR, "Change root failed"},
     { ODS_STATUS_CMDHANDLER_ERR, "Command handler error"},
+    { ODS_STATUS_XFRHANDLER_ERR, "XFR handler error"},
     { ODS_STATUS_CONFLICT_ERR, "Conflict detected"},
     { ODS_STATUS_ERR, "General error"},
     { ODS_STATUS_FOPEN_ERR, "Unable to open file"},
@@ -52,6 +55,19 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_HSM_ERR, "HSM error"},
     { ODS_STATUS_INSECURE, "Insecure"},
     { ODS_STATUS_MALLOC_ERR, "Memory allocation error"},
+    { ODS_STATUS_RENAME_ERR, "Unable to rename file"},
+
+    { ODS_STATUS_SOCK_BIND, "Unable to bind socket"},
+    { ODS_STATUS_SOCK_FCNTL_NONBLOCK, "Unable to set socket to nonblocking"},
+    { ODS_STATUS_SOCK_GETADDRINFO, "Unable to retrieve address information"},
+    { ODS_STATUS_SOCK_LISTEN, "Unable to listen on socket"},
+    { ODS_STATUS_SOCK_SETSOCKOPT_V6ONLY, "Unable to set socket to v6only"},
+    { ODS_STATUS_SOCK_SOCKET_UDP, "Unable to create udp socket"},
+    { ODS_STATUS_SOCK_SOCKET_TCP, "Unable to create tcp socket"},
+
+    { ODS_STATUS_ACL_SUBNET_BAD_RANGE, "Bad subnet range"},
+    { ODS_STATUS_ACL_SUBNET_OUT_RANGE, "Subnet out of range"},
+
     { ODS_STATUS_PARSE_ERR, "Parse error"},
     { ODS_STATUS_PRIVDROP_ERR, "Unable to drop privileges"},
     { ODS_STATUS_RNG_ERR, "RelaxNG error"},

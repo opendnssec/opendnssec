@@ -84,8 +84,6 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->cfg_filename = allocator_strdup(allocator, cfgfile);
         ecfg->zonelist_filename = parse_conf_zonelist_filename(allocator,
             cfgfile);
-        ecfg->zonefetch_filename = parse_conf_zonefetch_filename(allocator,
-            cfgfile);
         ecfg->log_filename = parse_conf_log_filename(allocator, cfgfile);
         ecfg->pid_filename = parse_conf_pid_filename(allocator, cfgfile);
         ecfg->notify_command = parse_conf_notify_command(allocator, cfgfile);
@@ -99,7 +97,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
         ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
         ecfg->verbosity = cmdline_verbosity;
-        ecfg->num_adapters = 0;
+        ecfg->interfaces = parse_conf_listener(allocator, cfgfile);
         /* done */
         ods_fclose(cfgfd);
         return ecfg;
@@ -122,15 +120,23 @@ engine_config_check(engineconfig_type* config)
         return ODS_STATUS_CFG_ERR;
     }
     if (!config->cfg_filename) {
-        ods_log_error("[%s] config-check failed: no config filename", conf_str);
+        ods_log_error("[%s] config-check failed: no config filename",
+            conf_str);
         return ODS_STATUS_CFG_ERR;
     }
     if (!config->zonelist_filename) {
-        ods_log_error("[%s] config-check failed: no zonelist filename", conf_str);
+        ods_log_error("[%s] config-check failed: no zonelist filename",
+            conf_str);
         return ODS_STATUS_CFG_ERR;
     }
     if (!config->clisock_filename) {
-        ods_log_error("[%s] config-check failed: no socket filename", conf_str);
+        ods_log_error("[%s] config-check failed: no socket filename",
+            conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+    if (!config->interfaces) {
+        ods_log_error("[%s] config-check failed: no listener",
+            conf_str);
         return ODS_STATUS_CFG_ERR;
     }
     /*  [TODO] room for more checks here */
@@ -169,14 +175,8 @@ engine_config_print(FILE* out, engineconfig_type* config)
 	        fprintf(out, "\t\t\t</File>\n");
 	        fprintf(out, "\t\t</Logging>\n");
         }
-
         fprintf(out, "\t\t<ZoneListFile>%s</ZoneListFile>\n",
             config->zonelist_filename);
-        if (config->zonefetch_filename) {
-            fprintf(out, "\t\t<ZoneFetchFile>%s</ZoneFetchFile>\n",
-                config->zonefetch_filename);
-        }
-
         fprintf(out, "\t</Common>\n");
 
         /* Signer */
@@ -230,9 +230,9 @@ engine_config_cleanup(engineconfig_type* config)
         return;
     }
     allocator = config->allocator;
+    listener_cleanup(config->interfaces);
     allocator_deallocate(allocator, (void*) config->cfg_filename);
     allocator_deallocate(allocator, (void*) config->zonelist_filename);
-    allocator_deallocate(allocator, (void*) config->zonefetch_filename);
     allocator_deallocate(allocator, (void*) config->log_filename);
     allocator_deallocate(allocator, (void*) config->pid_filename);
     allocator_deallocate(allocator, (void*) config->notify_command);

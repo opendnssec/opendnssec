@@ -47,8 +47,6 @@ enum worker_enum {
 };
 typedef enum worker_enum worker_id;
 
-struct engine_struct;
-
 typedef struct worker_struct worker_type;
 struct worker_struct {
     allocator_type* allocator;
@@ -62,11 +60,11 @@ struct worker_struct {
     size_t jobs_appointed;
     size_t jobs_completed;
     size_t jobs_failed;
-    int sleeping;
-    int waiting;
-    int need_to_exit;
     cond_basic_type worker_alarm;
     lock_basic_type worker_lock;
+    unsigned sleeping : 1;
+    unsigned waiting : 1;
+    unsigned need_to_exit : 1;
 };
 
 /**

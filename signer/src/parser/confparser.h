@@ -35,7 +35,7 @@
 #define PARSER_CONFPARSER_H
 
 #include "config.h"
-#include "adapter/adapter.h"
+#include "wire/listener.h"
 #include "shared/allocator.h"
 #include "shared/status.h"
 
@@ -62,15 +62,14 @@ const char* parse_conf_string(const char* cfgfile, const char* expr,
     int required);
 
 /**
- * Parse the adapters.
+ * Parse the listener interfaces.
  * \param[in] allocator the allocator
  * \param[in] cfgfile the configuration file name
- * \param[out] count number of adapters encountered
- * \return adapter_type** bunch of adapters that need to be initialized.
+ * \return listener_type* listener interfaces
  *
  */
-adapter_type** parse_conf_adapters(allocator_type* allocator,
-    const char* cfgfile, int* count);
+listener_type* parse_conf_listener(allocator_type* allocator,
+    const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
