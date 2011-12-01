@@ -53,4 +53,13 @@
  */
 query_state axfr(query_type* q, engine_type* engine);
 
+/**
+ * Do IXFR.
+ * \param[in] q ixfr request
+ * \param[in] engine signer engine
+ * \return query_state state of the query
+ *
+ */
+query_state ixfr(query_type* q, engine_type* engine);
+
 #endif /* WIRE_AXFR_H */

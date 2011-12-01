@@ -542,6 +542,11 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         buffer_pkt_set_flags(q->buffer, 0);
         return query_formerr(q);
     }
+    if (buffer_pkt_ancount(q->buffer) != 0 ||
+        (qtype != LDNS_RR_TYPE_IXFR && buffer_pkt_nscount(q->buffer) != 0)) {
+        buffer_pkt_set_flags(q->buffer, 0);
+        return query_formerr(q);
+    }
     /* acl */
     if (!q->zone->adoutbound || q->zone->adoutbound->type != ADAPTER_DNS) {
         ods_log_error("[%s] zone %s is not configured to have output dns "
@@ -554,15 +559,15 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
     if (!acl_find(dnsout->provide_xfr, &q->addr, q->tsig_rr)) {
         return query_refused(q);
     }
+    /* prepare */
+    query_prepare(q);
     /* ixfr? */
     if (qtype == LDNS_RR_TYPE_IXFR) {
         ods_log_assert(q->zone->name);
         ods_log_debug("[%s] incoming ixfr request for zone %s",
             query_str, q->zone->name);
-        return query_notimpl(q);
+        return ixfr(q, engine);
     }
-    /* prepare */
-    query_prepare(q);
     /* axfr? */
     if (qtype == LDNS_RR_TYPE_AXFR) {
         ods_log_assert(q->zone->name);
