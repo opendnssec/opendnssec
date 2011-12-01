@@ -639,15 +639,17 @@ addns_write(void* zone, const char* filename)
     adapi_printaxfr(fd, z);
     ods_fclose(fd);
 
-    itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0);
-    fd = ods_fopen(itmpfile, NULL, "w");
-    if (!fd) {
-        free((void*) atmpfile);
-        free((void*) itmpfile);
-        return ODS_STATUS_FOPEN_ERR;
+    if (z->db->is_initialized) {
+        itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0);
+        fd = ods_fopen(itmpfile, NULL, "w");
+        if (!fd) {
+            free((void*) atmpfile);
+            free((void*) itmpfile);
+            return ODS_STATUS_FOPEN_ERR;
+        }
+        adapi_printixfr(fd, z);
+        ods_fclose(fd);
     }
-    adapi_printixfr(fd, z);
-    ods_fclose(fd);
 
     /* lock and move */
     axfrfile = ods_build_path(z->name, ".axfr", 0);
@@ -664,18 +666,21 @@ addns_write(void* zone, const char* filename)
     }
     free((void*) atmpfile);
     free((void*) axfrfile);
-    ixfrfile = ods_build_path(z->name, ".ixfr", 0);
-    ret = rename(itmpfile, ixfrfile);
-    if (ret != 0) {
-        ods_log_error("[%s] unable to rename file %s to %s: %s", adapter_str,
-            itmpfile, ixfrfile, strerror(errno));
-        lock_basic_unlock(&z->xfr_lock);
+
+    if (z->db->is_initialized) {
+        ixfrfile = ods_build_path(z->name, ".ixfr", 0);
+        ret = rename(itmpfile, ixfrfile);
+        if (ret != 0) {
+            ods_log_error("[%s] unable to rename file %s to %s: %s",
+                adapter_str, itmpfile, ixfrfile, strerror(errno));
+            lock_basic_unlock(&z->xfr_lock);
+            free((void*) itmpfile);
+            free((void*) ixfrfile);
+            return ODS_STATUS_RENAME_ERR;
+        }
         free((void*) itmpfile);
         free((void*) ixfrfile);
-        return ODS_STATUS_RENAME_ERR;
     }
-    free((void*) itmpfile);
-    free((void*) ixfrfile);
     lock_basic_unlock(&z->xfr_lock);
 
     dnsout_send_notify(zone);
