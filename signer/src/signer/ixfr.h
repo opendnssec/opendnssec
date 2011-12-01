@@ -46,8 +46,10 @@
  */
 typedef struct part_struct part_type;
 struct part_struct {
-    ldns_rr_list* plus;
+    ldns_rr* soamin;
     ldns_rr_list* min;
+    ldns_rr* soaplus;
+    ldns_rr_list* plus;
 };
 
 /**

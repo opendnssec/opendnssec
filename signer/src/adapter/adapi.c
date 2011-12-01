@@ -400,9 +400,18 @@ adapi_printaxfr(FILE* fd, zone_type* zone)
 void
 adapi_printixfr(FILE* fd, zone_type* zone)
 {
-    if (!fd || !zone || !zone->ixfr) {
+    rrset_type* rrset = NULL;
+    if (!fd || !zone || !zone->db || !zone->ixfr) {
         return;
     }
+    if (!zone->db->is_initialized) {
+        /* no ixfr yet */
+        return;
+    }
+    rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
+    ods_log_assert(rrset);
+    rrset_print(fd, rrset, 1);
     ixfr_print(fd, zone->ixfr);
+    rrset_print(fd, rrset, 1);
     return;
 }
