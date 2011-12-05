@@ -17,6 +17,8 @@ OpenDNSSEC trunk
   ods-enforcerd (issue OPENDNSSEC-1)
 * ods-ksmutil: Include key size and algorithm in "key list" with -v flag (OPENDNSSEC-10)
 			   Also show next state with -v flag (OPENDNSSEC-28)
+* ods-ksmutil: "key generate" now displays how many keys will be generated and presents
+  the user with the opportunity to stop the operation. (OPENDNSSEC-83)
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.

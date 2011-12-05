@@ -115,6 +115,7 @@ char *o_retire = NULL;
 char *o_zone = NULL;
 char *o_keytag = NULL;
 static int all_flag = 0;
+static int auto_accept_flag = 0;
 static int ds_flag = 0;
 static int retire_flag = 1;
 static int verbose_flag = 0;
@@ -317,7 +318,8 @@ usage_keygen ()
     fprintf(stderr,
             "  key generate\n"
 		    "\t--policy <policy>\n"
-            "\t--interval <interval>\n");
+            "\t--interval <interval>\n"
+            "\t--auto-accept\n");
 }
 
     void
@@ -3536,6 +3538,7 @@ main (int argc, char *argv[])
     static struct option long_options[] =
     {
         {"all",     no_argument,       0, 'a'},
+        {"auto-accept", no_argument,   0, 'A'},
         {"bits",    required_argument, 0, 'b'},
         {"config",  required_argument, 0, 'c'},
         {"ds",      no_argument,       0, 'd'},
@@ -3565,10 +3568,13 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt_long(argc, argv, "ab:c:de:fg:hi:j:k:n:o:p:q:r:s:t:vVw:x:y:z:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "aAb:c:de:fg:hi:j:k:n:o:p:q:r:s:t:vVw:x:y:z:", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'a':
                 all_flag = 1;
+                break;
+            case 'A':
+                auto_accept_flag = 1;
                 break;
             case 'b':
                 o_size = StrStrdup(optarg);
@@ -6472,8 +6478,10 @@ int cmd_genkeys()
     DB_ID ignore = 0;
     int ksks_needed = 0;    /* Total No of ksks needed before next generation run */
     int zsks_needed = 0;    /* Total No of zsks needed before next generation run */
-    int keys_in_queue = 0;  /* number of unused keys */
-    int new_keys = 0;       /* number of keys required */
+    int ksks_in_queue = 0;  /* number of unused keys */
+    int zsks_in_queue = 0;  /* number of unused keys */
+    int new_ksks = 0;       /* number of keys required */
+    int new_zsks = 0;       /* number of keys required */
     unsigned int current_count = 0;  /* number of keys already in HSM */
 
     DB_RESULT result; 
@@ -6485,6 +6493,9 @@ int cmd_genkeys()
         /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+
+	/* We will ask if the user is sure once we have counted keys */
+	int user_certain;
 
     /* try to connect to the database */
     status = db_connect(&dbhandle, &lock_fd, 1);
@@ -6653,37 +6664,113 @@ int cmd_genkeys()
     status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, interval, &ksks_needed, policy->ksk->rollover_scheme, zone_count);
     if (status != 0) {
         printf("Could not predict ksk requirement for next interval for %s\n", policy->name);
-        /* TODO exit? continue with next policy? */
+		return(1);
     }
     /* Find out how many suitable keys we have */
-    status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, interval, rightnow, &keys_in_queue, KSM_TYPE_KSK);
+    status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, interval, rightnow, &ksks_in_queue, KSM_TYPE_KSK);
     if (status != 0) {
         printf("Could not count current ksk numbers for policy %s\n", policy->name);
-        /* TODO exit? continue with next policy? */
+		return(1);
     }
     /* Correct for shared keys */
     if (policy->shared_keys == KSM_KEYS_SHARED) {
-        keys_in_queue /= zone_count;
+        ksks_in_queue /= zone_count;
     }
 
-    new_keys = ksks_needed - keys_in_queue;
+    new_ksks = ksks_needed - ksks_in_queue;
     /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
 
-    /* Check capacity of HSM will not be exceeded */
-    if (policy->ksk->sm_capacity != 0 && new_keys > 0) {
-        current_count = hsm_count_keys_repository(ctx, policy->ksk->sm_name);
-        if (current_count >= policy->ksk->sm_capacity) {
-            printf("Repository %s is full, cannot create more KSKs for policy %s\n", policy->ksk->sm_name, policy->name);
-            new_keys = 0;
-        }
-        else if (current_count + new_keys >  policy->ksk->sm_capacity) {
-            printf("Repository %s is nearly full, will create %lu KSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_keys);
-            new_keys = policy->ksk->sm_capacity - current_count;
-        }
+    /* Find out how many ZSKs are needed for the POLICY */
+    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, interval, &zsks_needed, 0, zone_count);
+    if (status != 0) {
+        printf("Could not predict zsk requirement for next interval for %s\n", policy->name);
+		return(1);
+    }
+    /* Find out how many suitable keys we have */
+    status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, interval, rightnow, &zsks_in_queue, KSM_TYPE_ZSK);
+    if (status != 0) {
+        printf("Could not count current zsk numbers for policy %s\n", policy->name);
+		return(1);
+    }
+    /* Correct for shared keys */
+    if (policy->shared_keys == KSM_KEYS_SHARED) {
+        zsks_in_queue /= zone_count;
+    }
+    /* Might have to account for ksks */
+    if (same_keys) {
+        zsks_in_queue -= ksks_needed;
     }
 
+    new_zsks = zsks_needed - zsks_in_queue;
+    /* fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
+	
+    /* Check capacity of HSM will not be exceeded */
+	if (policy->ksk->sm == policy->zsk->sm) {
+		/* One HSM, One check */
+		if (policy->ksk->sm_capacity != 0 && (new_ksks + new_zsks) > 0) {
+			current_count = hsm_count_keys_repository(ctx, policy->ksk->sm_name);
+			if (current_count >= policy->ksk->sm_capacity) {
+				printf("Repository %s is full, cannot create more keys for policy %s\n", policy->ksk->sm_name, policy->name);
+				return (1);
+			}
+			else if (current_count + new_ksks >  policy->ksk->sm_capacity) {
+				printf("Repository %s is nearly full, will create %lu KSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_ksks);
+				new_ksks = policy->ksk->sm_capacity - current_count;
+			}
+			else if (current_count + new_ksks + new_zsks >  policy->ksk->sm_capacity) {
+				printf("Repository %s is nearly full, will create %lu ZSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_ksks);
+				new_zsks = policy->ksk->sm_capacity - current_count - new_ksks;
+			}
+
+		}
+	} else {
+		/* Two HSMs, Two checks */
+		/* KSKs */
+		if (policy->ksk->sm_capacity != 0 && new_ksks > 0) {
+			current_count = hsm_count_keys_repository(ctx, policy->ksk->sm_name);
+			if (current_count >= policy->ksk->sm_capacity) {
+				printf("Repository %s is full, cannot create more KSKs for policy %s\n", policy->ksk->sm_name, policy->name);
+				new_ksks = 0;
+			}
+			else if (current_count + new_ksks >  policy->ksk->sm_capacity) {
+				printf("Repository %s is nearly full, will create %lu KSKs for policy %s (reduced from %d)\n", policy->ksk->sm_name, policy->ksk->sm_capacity - current_count, policy->name, new_ksks);
+				new_ksks = policy->ksk->sm_capacity - current_count;
+			}
+		}
+
+		/* ZSKs */
+		if (policy->zsk->sm_capacity != 0 && new_zsks > 0) {
+			current_count = hsm_count_keys_repository(ctx, policy->zsk->sm_name);
+			if (current_count >= policy->zsk->sm_capacity) {
+				printf("Repository %s is full, cannot create more ZSKs for policy %s\n", policy->zsk->sm_name, policy->name);
+				new_zsks = 0;
+			}
+			else if (current_count + new_zsks >  policy->zsk->sm_capacity) {
+				printf("Repository %s is nearly full, will create %lu ZSKs for policy %s (reduced from %d)\n", policy->zsk->sm_name, policy->zsk->sm_capacity - current_count, policy->name, new_zsks);
+				new_zsks = policy->zsk->sm_capacity - current_count;
+			}
+		}
+	}
+
+	/* If there is no work to do exit here */
+	if (new_ksks == 0 && new_zsks == 0) {
+		printf("No keys to create, quitting...\n");
+		return(0);
+	}
+
+	/* Make sure that the user is happy */
+	if (!auto_accept_flag) {
+		printf("*WARNING* This will create %d KSKs (%d bits) and %d ZSKs (%d bits)\nAre you sure? [y/N] ", new_ksks, policy->ksk->bits, new_zsks, policy->zsk->bits);
+
+		user_certain = getchar();
+		if (user_certain != 'y' && user_certain != 'Y') {
+			printf("Okay, quitting...\n");
+			exit(0);
+		}
+	}
+	
     /* Create the required keys */
-    for (i=new_keys ; i > 0 ; i--){
+    for (i=new_ksks ; i > 0 ; i--){
         if (hsm_supported_algorithm(policy->ksk->algorithm) == 0) {
             /* NOTE: for now we know that libhsm only supports RSA keys */
             key = hsm_generate_rsa_key(ctx, policy->ksk->sm_name, policy->ksk->bits);
@@ -6726,52 +6813,10 @@ int cmd_genkeys()
             exit(1);
         }
     }
-    ksks_created = new_keys;
+    ksks_created = new_ksks;
 
-    /* Find out how many zsk keys are needed */
-    keys_in_queue = 0;
-    new_keys = 0;
-    current_count = 0;
-
-    /* Find out how many zsk keys are needed for the POLICY */
-    status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, interval, &zsks_needed, 0, zone_count);
-    if (status != 0) {
-        printf("Could not predict zsk requirement for next interval for %s\n", policy->name);
-        /* TODO exit? continue with next policy? */
-    }
-    /* Find out how many suitable keys we have */
-    status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, interval, rightnow, &keys_in_queue, KSM_TYPE_ZSK);
-    if (status != 0) {
-        printf("Could not count current zsk numbers for policy %s\n", policy->name);
-        /* TODO exit? continue with next policy? */
-    }
-    /* Correct for shared keys */
-    if (policy->shared_keys == KSM_KEYS_SHARED) {
-        keys_in_queue /= zone_count;
-    }
-    /* Might have to account for ksks */
-    if (same_keys) {
-        keys_in_queue -= ksks_needed;
-    }
-
-    new_keys = zsks_needed - keys_in_queue;
-    /* fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
-
-    /* Check capacity of HSM will not be exceeded */
-    if (policy->zsk->sm_capacity != 0 && new_keys > 0) {
-        current_count = hsm_count_keys_repository(ctx, policy->zsk->sm_name);
-        if (current_count >= policy->zsk->sm_capacity) {
-            printf("Repository %s is full, cannot create more ZSKs for policy %s\n", policy->zsk->sm_name, policy->name);
-            new_keys = 0;
-        }
-        else if (current_count + new_keys >  policy->zsk->sm_capacity) {
-            printf("Repository %s is nearly full, will create %lu ZSKs for policy %s (reduced from %d)\n", policy->zsk->sm_name, policy->zsk->sm_capacity - current_count, policy->name, new_keys);
-            new_keys = policy->zsk->sm_capacity - current_count;
-        }
-    }
-
-    /* Create the required keys */
-    for (i = new_keys ; i > 0 ; i--) {
+    /* Create the required ZSKs */
+    for (i = new_zsks ; i > 0 ; i--) {
         if (hsm_supported_algorithm(policy->zsk->algorithm) == 0) {
             /* NOTE: for now we know that libhsm only supports RSA keys */
             key = hsm_generate_rsa_key(ctx, policy->zsk->sm_name, policy->zsk->bits);
@@ -6820,7 +6865,7 @@ int cmd_genkeys()
     if (ksks_created && policy->ksk->require_backup) {
         printf("NOTE: keys generated in repository %s will not become active until they have been backed up\n", policy->ksk->sm_name);
     }
-    if (new_keys && policy->zsk->require_backup && (policy->zsk->sm != policy->ksk->sm)) {
+    if (new_ksks && policy->zsk->require_backup && (policy->zsk->sm != policy->ksk->sm)) {
         printf("NOTE: keys generated in repository %s will not become active until they have been backed up\n", policy->zsk->sm_name);
     }
 
