@@ -373,7 +373,7 @@ dnssecApproval(KeyDataList &key_list, KeyData &key, const RECORD record,
  * @return absolute time
  * */
 time_t
-minTransitionTime(EnforcerZone &zone, const RECORD record, 
+minTransitionTime(EnforcerZone &zone, const RECORD record,
 	const STATE next_state, const time_t lastchange, const int ttl)
 {
 	const char *scmd = "minTransitionTime";
@@ -602,6 +602,20 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 				time_t returntime_key = minTransitionTime(zone, record, 
 					next_state, getRecord(key, record).lastChange(), 
 					getRecord(key, record).ttl());
+
+				/** If this is an RRSIG and next state is omnipresent
+				 * and the DNSKEY is omnipresent, wait an additional 
+				 * signature lifetime to allow for 'smooth' key 
+				 * rollover. */
+				if ((record == RS && next_state == OMN && 
+						getState(key, DK) == OMN) ||
+						(record == DK && next_state == HID && 
+						getState(key, RS) == HID)) {
+					/** jitter and valdefault default to 0 */
+					returntime_key = addtime(returntime_key, 
+							policy->signatures().jitter() + 
+							policy->signatures().valdefault());
+				}
 
 				/** It is to soon to make this change. Schedule it. */
 				if (returntime_key > now) {
