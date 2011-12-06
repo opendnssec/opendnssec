@@ -6175,7 +6175,7 @@ int ListKeys(int zone_id)
             if (temp_state == KSM_STATE_PUBLISH) {
                 printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
 				if (verbose_flag) {
-					printf("(ready)   ");
+					printf("(ready)    ");
 				}
                 done_row = 1;
             }
