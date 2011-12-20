@@ -19,6 +19,8 @@ OpenDNSSEC trunk
 			   Also show next state with -v flag (OPENDNSSEC-28)
 * ods-ksmutil: "key generate" now displays how many keys will be generated and presents
   the user with the opportunity to stop the operation. (OPENDNSSEC-83)
+* ods-ksmutil: "zone delete" renames the signconf file; so that if the zone is put
+  back the signer will not pick up the old file.
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
