@@ -35,9 +35,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <limits.h>
-
-#include "ksm/string_util.h"
-#include "ksm/string_util2.h"
+#include <ctype.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -46,6 +44,10 @@
 #include <libxml/relaxng.h>
 
 #include "kc_helper.h"
+
+extern int verbose;
+
+#define StrFree(ptr) {if(ptr != NULL) {free(ptr); (ptr) = NULL;}}
 
 void log_init(int facility, const char *program_name)
 {
@@ -74,6 +76,9 @@ void dual_log(const char *format, ...) {
 	else if (strncmp(format, "WARNING:", 8) == 0) {
 		vsyslog(LOG_WARNING, format, args);
 	}
+	else if (strncmp(format, "DEBUG:", 6) == 0) {
+		vsyslog(LOG_DEBUG, format, args);
+	}
 	else {
 		vsyslog(LOG_INFO, format, args);
 	}
@@ -81,46 +86,6 @@ void dual_log(const char *format, ...) {
 	vprintf(format, args2);
 	
 	va_end(args);
-	va_end(args2);
-}
-
-/* XML Error Message */
-    void
-log_xml_error(void *ignore, const char *format, ...)
-{
-    va_list args;
-    va_list args2;
-
-    (void) ignore;
-
-    /* If the variable arg list is bad then random errors can occur */ 
-    va_start(args, format);
-	va_copy(args2, args);
-
-    vsyslog(LOG_ERR, format, args);
-	vprintf(format, args2);
-
-    va_end(args);
-	va_end(args2);
-}
-
-/* XML Warning Message */
-    void
-log_xml_warn(void *ignore, const char *format, ...)
-{
-    va_list args;
-    va_list args2;
-
-    (void) ignore;
-
-    /* If the variable arg list is bad then random errors can occur */ 
-    va_start(args, format);
-	va_copy(args2, args);
-
-    vsyslog(LOG_INFO, format, args);
-	vprintf(format, args2);
-
-    va_end(args);
 	va_end(args2);
 }
 
@@ -133,10 +98,17 @@ int check_rng(const char *filename, const char *rngfilename) {
     xmlRelaxNGValidCtxtPtr rngctx = NULL;
     xmlRelaxNGPtr schema = NULL;
 
+	if (verbose) {
+		dual_log("DEBUG: About to check XML validity in %s\n", filename);
+	}
+
    	/* Load XML document */
     doc = xmlParseFile(filename);
     if (doc == NULL) {
         dual_log("ERROR: unable to parse file \"%s\"\n", filename);
+		/* Maybe the file doesn't exist? */
+		check_file(filename, "Configuration file");
+
         return(1);
     }
 
@@ -144,6 +116,9 @@ int check_rng(const char *filename, const char *rngfilename) {
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
         dual_log("ERROR: unable to parse file \"%s\"\n", rngfilename);
+		/* Maybe the file doesn't exist? */
+		check_file(rngfilename, "RNG file");
+
         return(1);
     }
 
@@ -154,10 +129,10 @@ int check_rng(const char *filename, const char *rngfilename) {
         return(1);
     }
 
-	xmlRelaxNGSetValidErrors(rngctx,
-		(xmlRelaxNGValidityErrorFunc) log_xml_error,
-		(xmlRelaxNGValidityWarningFunc) log_xml_warn,
-		NULL);
+	xmlRelaxNGSetParserErrors(rngpctx,
+		(xmlRelaxNGValidityErrorFunc) fprintf,
+		(xmlRelaxNGValidityWarningFunc) fprintf,
+		stderr);
 
     /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
     schema = xmlRelaxNGParse(rngpctx);
@@ -172,6 +147,11 @@ int check_rng(const char *filename, const char *rngfilename) {
         dual_log("ERROR: unable to create RelaxNGs validation context based on the schema\n");
         return(1);
     }
+
+	xmlRelaxNGSetValidErrors(rngctx,
+		(xmlRelaxNGValidityErrorFunc) fprintf,
+		(xmlRelaxNGValidityWarningFunc) fprintf,
+		stderr);
 
     /* Validate a document tree in memory. */
     if (xmlRelaxNGValidateDoc(rngctx,doc) != 0) {
@@ -301,7 +281,7 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
         temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 		if ((grp = getgrnam(temp_char)) == NULL) {
-            dual_log("ERROR: group '%s' does not exist.\n", temp_char);
+            dual_log("ERROR: Group '%s' does not exist\n", temp_char);
             status += 1;
         }
 		endgrent();
@@ -319,7 +299,7 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
         temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 		if ((pwd = getpwnam(temp_char)) == NULL) {
-            dual_log("ERROR: user '%s' does not exist.\n", temp_char);
+            dual_log("ERROR: User '%s' does not exist\n", temp_char);
             status += 1;
         }
 		endpwent();
@@ -387,6 +367,385 @@ int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_
 
 	return status;
 }
+
+int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp) {
+	int status = 0;
+	int i = 0;
+	char* temp_char = NULL;
+	xmlNode *childNode;
+	xmlNode *childNode2;
+	char my_policy[KC_NAME_LENGTH];
+	int resign = 0;
+	int resigns_per_day = 0;
+	int refresh = 0;
+	int defalt = 0;	/* default is not a suitable variable name */
+	int denial = 0;
+	int jitter = 0;
+	int inception = 0;
+	int ttl = 0;
+	int retire = 0;
+	int publish = 0;
+	int nsec = 0;
+	int resalt = 0;
+	int ksk_algo = 0;
+	int ksk_length = 0;
+	int ksk_life = 0;
+	char *ksk_repo = NULL;
+	int zsk_algo = 0;
+	int zsk_length = 0;
+	int zsk_life = 0;
+	char *zsk_repo = NULL;
+	char *serial = NULL;
+ 
+	snprintf(my_policy, KC_NAME_LENGTH, "policy %s,", policy_name);
+
+	while (curNode) {
+		if (xmlStrEqual(curNode->name, (const xmlChar *)"Signatures")) {
+			childNode = curNode->children;
+			while (childNode){
+				if (xmlStrEqual(childNode->name, (const xmlChar *)"Resign")) {
+					temp_char = (char *) xmlNodeGetContent(childNode);
+					status += check_time_def(temp_char, my_policy, "Signatures/Resign", kasp, &resign);
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Refresh")) {
+					temp_char = (char *) xmlNodeGetContent(childNode);
+					status += check_time_def(temp_char, my_policy, "Signatures/Refresh", kasp, &refresh);
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Validity")) {
+					childNode2 = childNode->children;
+					while (childNode2){
+						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Default")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							status += check_time_def(temp_char, my_policy, "Signatures/Validity/Default", kasp, &defalt);
+						}
+						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Denial")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							status += check_time_def(temp_char, my_policy, "Signatures/Validity/Denial", kasp, &denial);
+						}
+						childNode2 = childNode2->next;
+					}
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Jitter")) {
+					temp_char = (char *) xmlNodeGetContent(childNode);
+					status += check_time_def(temp_char, my_policy, "Signatures/Jitter", kasp, &jitter);
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"InceptionOffset")) {
+					temp_char = (char *) xmlNodeGetContent(childNode);
+					status += check_time_def(temp_char, my_policy, "Signatures/InceptionOffset", kasp, &inception);
+				}
+
+				childNode = childNode->next;
+			}
+		}
+		else if (xmlStrEqual(curNode->name, (const xmlChar *)"Denial")) {
+			childNode = curNode->children;
+			while (childNode) {
+				
+				if (xmlStrEqual(childNode->name, (const xmlChar *)"NSEC")) {
+					nsec = 1;
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"NSEC3")) {
+					nsec = 3;
+					childNode2 = childNode->children;
+					while (childNode2){
+						
+						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Resalt")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							status += check_time_def(temp_char, my_policy, "Denial/NSEC3/Resalt", kasp, &resalt);
+						}
+
+						childNode2 = childNode2->next;
+					}
+				}
+
+				childNode = childNode->next;
+			}
+		}
+		else if (xmlStrEqual(curNode->name, (const xmlChar *)"Keys")) {
+			childNode = curNode->children;
+			while (childNode) {
+
+				if (xmlStrEqual(childNode->name, (const xmlChar *)"TTL")) {
+					temp_char = (char *) xmlNodeGetContent(childNode);
+					status += check_time_def(temp_char, my_policy, "Keys/TTL", kasp, &ttl);
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"RetireSafety")) {
+					temp_char = (char *) xmlNodeGetContent(childNode);
+					status += check_time_def(temp_char, my_policy, "Keys/RetireSafety", kasp, &retire);
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"PublishSafety")) {
+					temp_char = (char *) xmlNodeGetContent(childNode);
+					status += check_time_def(temp_char, my_policy, "Keys/PublishSafety", kasp, &publish);
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"KSK")) {
+					childNode2 = childNode->children;
+					while (childNode2){
+
+						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							StrStrtoi(temp_char, &ksk_algo);
+
+							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
+							StrStrtoi(temp_char, &ksk_length);
+						}
+						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							status += check_time_def(temp_char, my_policy, "Keys/KSK Lifetime", kasp, &ksk_life);
+						}
+						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
+							ksk_repo = (char *) xmlNodeGetContent(childNode2);
+						}
+
+						childNode2 = childNode2->next;
+					}
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"ZSK")) {
+					childNode2 = childNode->children;
+					while (childNode2){
+
+						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							StrStrtoi(temp_char, &zsk_algo);
+
+							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
+							StrStrtoi(temp_char, &zsk_length);
+
+						}
+						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							status += check_time_def(temp_char, my_policy, "Keys/ZSK Lifetime", kasp, &zsk_life);
+						}
+						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
+							zsk_repo = (char *) xmlNodeGetContent(childNode2);
+						}
+
+						childNode2 = childNode2->next;
+					}
+				}
+				
+				childNode = childNode->next;
+			}
+		}
+		else if (xmlStrEqual(curNode->name, (const xmlChar *)"Zone")) {
+			childNode = curNode->children;
+			while (childNode) {
+				
+				if (xmlStrEqual(childNode->name, (const xmlChar *)"SOA")) {
+					childNode2 = childNode->children;
+					while (childNode2){
+
+						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Serial")) {
+							serial = (char *) xmlNodeGetContent(childNode2);
+						}
+
+						childNode2 = childNode2->next;
+					}
+				}
+
+				childNode = childNode->next;
+			}
+		}
+
+
+		curNode = curNode->next;
+	}
+
+	/* Now for the actual tests, from 
+	 * https://wiki.opendnssec.org/display/OpenDNSSEC/Configuration+Checker+%28ods-kaspcheck%29 */
+
+	/* For all policies, check that the "Re-sign" interval is less 
+	 * than the "Refresh" interval. */
+	if (refresh <= resign) {
+		dual_log("ERROR: The Refresh interval (%d seconds) for "
+				"%s Policy in %s is less than or equal to the Resign interval "
+				"(%d seconds)\n", refresh, policy_name, kasp, resign);
+		status++;
+	}
+
+	/* Ensure that the "Default" and "Denial" validity periods are 
+	 * greater than the "Refresh" interval. */
+	if (defalt <= refresh) {
+		dual_log("ERROR: Validity/Default (%d seconds) for "
+				"%s policy in %s is less than or equal to the Refresh interval "
+				"(%d seconds)\n", defalt, policy_name, kasp, refresh);
+		status++;
+	}
+	if (denial <= refresh) {
+		dual_log("ERROR: Validity/Denial (%d seconds) for "
+				"%s policy in %s is less than or equal to the Refresh interval "
+				"(%d seconds)\n", denial, policy_name, kasp, refresh);
+		status++;
+	}
+
+	/* Warn if "Jitter" is greater than 50% of the maximum of the "default" 
+	 * and "Denial" period. (This is a bit arbitrary. The point is to get 
+	 * the user to realise that there will be a large spread in the signature 
+	 * lifetimes.) */
+	if (defalt > denial) {
+		if (jitter > (defalt * 0.5)) {
+			dual_log("WARNING: Jitter time (%d seconds) is large " 
+					"compared to Validity/Default (%d seconds) " 
+					"for %s policy in %s\n", jitter, defalt, policy_name, kasp);
+		}
+	} else {
+		if (jitter > (denial * 0.5)) {
+			dual_log("WARNING: Jitter time (%d seconds) is large " 
+					"compared to Validity/Denial (%d seconds) " 
+					"for %s policy in %s\n", jitter, denial, policy_name, kasp);
+		}
+	}
+	
+
+	/* Warn if the InceptionOffset is greater than one hour. (Again arbitrary 
+	 * - but do we really expect the times on two systems to differ by more 
+	 *   than this?) */
+	if (inception > 3600) {
+		dual_log("WARNING: InceptionOffset is higher than expected "
+				"(%d seconds) for %s policy in %s\n", 
+				inception, policy_name, kasp);
+	}
+
+	/* Warn if the "PublishSafety" and "RetireSafety" margins are less 
+	 * than 0.1 * TTL or more than 5 * TTL. */
+	if (publish < (ttl * 0.1)) {
+		dual_log("WARNING: Keys/PublishSafety (%d seconds) is less than "
+				"0.1 * TTL (%d seconds) for %s policy in %s\n", 
+				publish, ttl, policy_name, kasp);
+	}
+	else if (publish > (ttl * 5)) {
+		dual_log("WARNING: Keys/PublishSafety (%d seconds) is greater than "
+				"5 * TTL (%d seconds) for %s policy in %s\n", 
+				publish, ttl, policy_name, kasp);
+	}
+
+	if (retire < (ttl * 0.1)) {
+		dual_log("WARNING: Keys/RetireSafety (%d seconds) is less than "
+				"0.1 * TTL (%d seconds) for %s policy in %s\n", 
+				retire, ttl, policy_name, kasp);
+	}
+	else if (retire > (ttl * 5)) {
+		dual_log("WARNING: Keys/RetireSafety (%d seconds) is greater than "
+				"5 * TTL (%d seconds) for %s policy in %s\n", 
+				retire, ttl, policy_name, kasp);
+	}
+
+	/* The algorithm should be checked to ensure it is consistent with the 
+	 * NSEC/NSEC3 choice for the zone. */
+	if (nsec == 1) {
+	}
+	else if (nsec == 3) {
+		if (ksk_algo != 6 && ksk_algo != 7 && ksk_algo != 8 && ksk_algo != 10) {
+			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
+					"KSK NSEC3 in %s - should be 6,7,8 or 10.\n", policy_name, ksk_algo, kasp);
+			status++;
+		}
+		if (zsk_algo != 6 && zsk_algo != 7 && zsk_algo != 8 && zsk_algo != 10) {
+			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
+					"ZSK NSEC3 in %s - should be 6,7,8 or 10.\n", policy_name, zsk_algo, kasp);
+			status++;
+		}
+
+		/* Warn if resalt is less than resign interval. */
+		if (resalt < resign) {
+			dual_log("WARNING: NSEC3 resalt interval (%d secs) is less than "
+					"signature resign interval (%d secs) for %s Policy\n",
+					resalt, resign, policy_name);
+		}
+
+	}
+
+	/* If datecounter is used for serial, then no more than 99 signings 
+	 * should be done per day (there are only two digits to play with in the 
+	 * version number). */
+	if (strncmp(serial, "datecounter", 11) == 0) {
+		resigns_per_day = (60 * 60 * 24) / resign;
+		if (resigns_per_day > 99) {
+			dual_log("ERROR: In %s, policy %s, serial type datecounter used "
+					"but %d re-signs requested. No more than 99 re-signs per "
+					"day should be used with datecounter as only 2 digits are "
+					"allocated for the version number.\n", 
+					kasp, policy_name, resigns_per_day);
+			status++;
+		}
+	}
+
+	/* The key strength should be checked for sanity 
+	 * - warn if less than 1024 or error if more than 4096. 
+	 *   Only do this check for RSA. */
+	if (ksk_algo == 5 || ksk_algo == 7 || ksk_algo == 8 || ksk_algo == 10) {
+		if (ksk_length < 1024) {
+			dual_log("WARNING: Key length of %d used for KSK in %s policy in %s. Should "
+					"probably be 1024 or more\n", ksk_length, policy_name, kasp);
+		}
+		else if (ksk_length > 4096) {
+			dual_log("ERROR: Key length of %d used for KSK in %s policy in %s. Should "
+					"be 4096 or less\n", ksk_length, policy_name, kasp);
+			status++;
+		}
+	}
+	if (zsk_algo == 5 || zsk_algo == 7 || zsk_algo == 8 || zsk_algo == 10) {
+		if (zsk_length < 1024) {
+			dual_log("WARNING: Key length of %d used for ZSK in %s policy in %s. Should "
+					"probably be 1024 or more\n", zsk_length, policy_name, kasp);
+		}
+		else if (zsk_length > 4096) {
+			dual_log("ERROR: Key length of %d used for ZSK in %s policy in %s. Should "
+					"be 4096 or less\n", zsk_length, policy_name, kasp);
+			status++;
+		}
+	}
+
+	/* Check that repositories listed in the KSK and ZSK sections are defined
+	 * in conf.xml. */
+	for (i = 0; i < repo_count; i++) {
+		if (strcmp(ksk_repo, repo_list[i]) == 0) {
+			break;
+		}
+	}
+	if (i >= repo_count) {
+		dual_log("ERROR: Unknown repository (%s) defined for KSK in "
+				"%s policy in %s\n", ksk_repo, policy_name, kasp);
+		status++;
+	}
+
+	for (i = 0; i < repo_count; i++) {
+		if (strcmp(zsk_repo, repo_list[i]) == 0) {
+			break;
+		}
+	}
+	if (i >= repo_count) {
+		dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
+				"%s policy\n", zsk_repo, policy_name);
+		status++;
+	}
+	
+	/* Warn if for any zone, the KSK lifetime is less than the ZSK lifetime. */
+	if (ksk_life < zsk_life) {
+		dual_log("WARNING: KSK minimum lifetime (%d seconds) is less than "
+				"ZSK minimum lifetime (%d seconds) for %s Policy in %s\n", 
+				ksk_life, zsk_life, policy_name, kasp);
+	}
+
+	/* Check that the value of the "Serial" tag is valid. (Done by rng) */
+
+	/* Error if Jitter is greater than either the Default or Denial Validity. */
+	if (jitter > defalt) {
+		dual_log("ERROR: Jitter time (%d seconds) is greater than the " 
+				"Default Validity (%d seconds) for %s policy in %s\n", 
+				jitter, defalt, policy_name, kasp);
+		status++;
+	}
+	if (jitter > denial) {
+		dual_log("ERROR: Jitter time (%d seconds) is greater than the " 
+				"Denial Validity (%d seconds) for %s policy in %s\n", 
+				jitter, denial, policy_name, kasp);
+		status++;
+	}
+
+	return status;
+}
+
+/* NOTE: The following are taken from various files within libksm */
 
 /*+
  * DtXMLIntervalSeconds - Parse xsd:durations Interval String
@@ -596,372 +955,278 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
     return status;
 }
 
-int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp) {
-	int status = 0;
-	int i = 0;
-	char* temp_char = NULL;
-	xmlNode *childNode;
-	xmlNode *childNode2;
-	char my_policy[KC_NAME_LENGTH];
-	int resign = 0;
-	int resigns_per_day = 0;
-	int refresh = 0;
-	int defalt = 0;	/* default is not a suitable variable name */
-	int denial = 0;
-	int jitter = 0;
-	int inception = 0;
-	int ttl = 0;
-	int retire = 0;
-	int publish = 0;
-	int nsec = 0;
-	int resalt = 0;
-	int ksk_algo = 0;
-	int ksk_length = 0;
-	int ksk_life = 0;
-	char *ksk_repo = NULL;
-	int zsk_algo = 0;
-	int zsk_length = 0;
-	int zsk_life = 0;
-	char *zsk_repo = NULL;
-	char *serial = NULL;
- 
-	snprintf(my_policy, KC_NAME_LENGTH, "policy %s,", policy_name);
+/*+
+ * StrStrtoi - Convert String to int
+ *
+ * Description:
+ *      Converts a string to a "int".
+ *
+ *      This version strips out tabs and whitespace characters.
+ *
+ * Arguments:
+ *      const char* string (input)
+ *          String to convert.
+ *
+ *      int* value (returned)
+ *          Return value.
+ *
+ * Returns:
+ *      int
+ *          0   Success
+ *          1   Conversion failed
+-*/
 
-	while (curNode) {
-		if (xmlStrEqual(curNode->name, (const xmlChar *)"Signatures")) {
-			childNode = curNode->children;
-			while (childNode){
-				if (xmlStrEqual(childNode->name, (const xmlChar *)"Resign")) {
-					temp_char = (char *) xmlNodeGetContent(childNode);
-					status += check_time_def(temp_char, my_policy, "Signatures/Resign", kasp, &resign);
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Refresh")) {
-					temp_char = (char *) xmlNodeGetContent(childNode);
-					status += check_time_def(temp_char, my_policy, "Signatures/Refresh", kasp, &refresh);
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Validity")) {
-					childNode2 = childNode->children;
-					while (childNode2){
-						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Default")) {
-							temp_char = (char *) xmlNodeGetContent(childNode2);
-							status += check_time_def(temp_char, my_policy, "Signatures/Validity/Default", kasp, &defalt);
-						}
-						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Denial")) {
-							temp_char = (char *) xmlNodeGetContent(childNode2);
-							status += check_time_def(temp_char, my_policy, "Signatures/Validity/Denial", kasp, &denial);
-						}
-						childNode2 = childNode2->next;
-					}
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Jitter")) {
-					temp_char = (char *) xmlNodeGetContent(childNode);
-					status += check_time_def(temp_char, my_policy, "Signatures/Jitter", kasp, &jitter);
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"InceptionOffset")) {
-					temp_char = (char *) xmlNodeGetContent(childNode);
-					status += check_time_def(temp_char, my_policy, "Signatures/InceptionOffset", kasp, &inception);
-				}
+int StrStrtoi(const char* string, int* value)
+{
+    long    longval;    /* "long" to be passed to StrStrtol */
+    int     status;     /* Status return */
 
-				childNode = childNode->next;
-			}
-		}
-		else if (xmlStrEqual(curNode->name, (const xmlChar *)"Denial")) {
-			childNode = curNode->children;
-			while (childNode) {
-				
-				if (xmlStrEqual(childNode->name, (const xmlChar *)"NSEC")) {
-					nsec = 1;
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"NSEC3")) {
-					nsec = 3;
-					childNode2 = childNode->children;
-					while (childNode2){
-						
-						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Resalt")) {
-							temp_char = (char *) xmlNodeGetContent(childNode2);
-							status += check_time_def(temp_char, my_policy, "Denial/NSEC3/Resalt", kasp, &resalt);
-						}
+    if (value == NULL) {
+        dual_log("ERROR: NULL value passed to StrStrtoi\n");
+        return 1;
+    }
+    status = StrStrtol(string, &longval);
+    if (status == 0) {
+        if ((longval >= INT_MIN) && (longval <= INT_MAX)) {
+            *value = (int) longval;
+        }
+        else {
+            status = 1;     /* Integer overflow */
+        }
+    }
 
-						childNode2 = childNode2->next;
-					}
-				}
+    return status;
+}
 
-				childNode = childNode->next;
-			}
-		}
-		else if (xmlStrEqual(curNode->name, (const xmlChar *)"Keys")) {
-			childNode = curNode->children;
-			while (childNode) {
+/*+
+ * StrStrtol - Convert String to long
+ *
+ * Description:
+ *      Converts a string to a "long".  It uses strtol, but also passes
+ *      back a status code to indicate if the conversion was successful.
+ *
+ *      This version strips out tabs and whitespace characters.
+ *
+ * Arguments:
+ *      const char* string (input)
+ *          String to convert.
+ *
+ *      long* value (returned)
+ *          Return value.
+ *
+ * Returns:
+ *      int
+ *          0   Success
+ *          1   Conversion failed
+-*/
 
-				if (xmlStrEqual(childNode->name, (const xmlChar *)"TTL")) {
-					temp_char = (char *) xmlNodeGetContent(childNode);
-					status += check_time_def(temp_char, my_policy, "Keys/TTL", kasp, &ttl);
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"RetireSafety")) {
-					temp_char = (char *) xmlNodeGetContent(childNode);
-					status += check_time_def(temp_char, my_policy, "Keys/RetireSafety", kasp, &retire);
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"PublishSafety")) {
-					temp_char = (char *) xmlNodeGetContent(childNode);
-					status += check_time_def(temp_char, my_policy, "Keys/PublishSafety", kasp, &publish);
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"KSK")) {
-					childNode2 = childNode->children;
-					while (childNode2){
+int StrStrtol(const char* string, long* value)
+{
+    char*   endptr;         /* End of string pointer */
+    int     status = 1;     /* Assume failure */
+    char*   copy;           /* Copy of the string */
+    char*   start;          /* Start of the trimmed string */
 
-						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
-							temp_char = (char *) xmlNodeGetContent(childNode2);
-							StrStrtoi(temp_char, &ksk_algo);
+    if (value == NULL) {
+        dual_log("ERROR: NULL value passed to StrStrtol\n");
+        return 1;
+    }
+    if (string) {
+        copy = StrStrdup(string);
+        StrTrimR(copy);             /* Remove trailing spaces */
+        start = StrTrimL(copy);     /* ... and leading ones */
+        if (*start) {
 
-							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
-							StrStrtoi(temp_char, &ksk_length);
-						}
-						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
-							temp_char = (char *) xmlNodeGetContent(childNode2);
-							status += check_time_def(temp_char, my_policy, "Keys/KSK Lifetime", kasp, &ksk_life);
-						}
-						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
-							ksk_repo = (char *) xmlNodeGetContent(childNode2);
-						}
+            /* String is not NULL, so try a conversion */
 
-						childNode2 = childNode2->next;
-					}
-				}
-				else if (xmlStrEqual(childNode->name, (const xmlChar *)"ZSK")) {
-					childNode2 = childNode->children;
-					while (childNode2){
+            errno = 0;
+            *value = strtol(start, &endptr, 10);
 
-						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
-							temp_char = (char *) xmlNodeGetContent(childNode2);
-							StrStrtoi(temp_char, &zsk_algo);
+            /* Only success if all characters converted */
 
-							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
-							StrStrtoi(temp_char, &zsk_length);
+            if (errno == 0) {
+                status = (*endptr == '\0') ? 0 : 1;
+            }
+            else {
+                status = 1;
+            }
+        }
+        StrFree(copy);
+    }
 
-						}
-						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
-							temp_char = (char *) xmlNodeGetContent(childNode2);
-							status += check_time_def(temp_char, my_policy, "Keys/ZSK Lifetime", kasp, &zsk_life);
-						}
-						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
-							zsk_repo = (char *) xmlNodeGetContent(childNode2);
-						}
+    return status;
+}
 
-						childNode2 = childNode2->next;
-					}
-				}
-				
-				childNode = childNode->next;
-			}
-		}
-		else if (xmlStrEqual(curNode->name, (const xmlChar *)"Zone")) {
-			childNode = curNode->children;
-			while (childNode) {
-				
-				if (xmlStrEqual(childNode->name, (const xmlChar *)"SOA")) {
-					childNode2 = childNode->children;
-					while (childNode2){
+/*+
+ * StrStrdup - Duplicate String
+ *
+ * Description:
+ *      Wrapper for "strdup" that always returns, or exits the program (after
+ *      outputting a message to stderr) if the string duplication fails.
+ *
+ * Arguments:
+ *      const char* string (input)
+ *          String to be duplicated.
+ *
+ * Returns:
+ *      char*
+ *          Pointer to duplicated string (guaranteed to be non-null).  The
+ *          string should be freed with StrFree() - a macro wrapper for "free".
+-*/
 
-						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Serial")) {
-							serial = (char *) xmlNodeGetContent(childNode2);
-						}
+char* StrStrdup(const char* string)
+{
+    char* duplicate = NULL; /* Pointer to the duplicated string */
 
-						childNode2 = childNode2->next;
-					}
-				}
+    if (string) {
+        duplicate = strdup(string);
+        if (duplicate == NULL) {
+			dual_log("ERROR: StrStrdup: Call to malloc() returned null - out of swap space?");
+            exit(1);
+        }
+    }
+    else {
+        duplicate = MemCalloc(1, 1);    /* Allocate a single zeroed byte */
+    }
 
-				childNode = childNode->next;
-			}
-		}
+    return duplicate;
+}
 
+/*+
+ * StrAppend - Append String with Reallocation
+ *
+ * Description:
+ *      Appends the given string to a dynamically-allocated string, reallocating
+ *      the former as needed.
+ *
+ *      The function is a no-op if either of its arguments are NULL.
+ *
+ * Arguments:
+ *      char** str1
+ *          On input this holds the current string.  It is assumed that the
+ *          string has been dynamically allocated (with malloc or the like).
+ *          On output, this holds the concatenation of the two strings.
+ *
+ *          If, on input, the string is NULL (i.e. *str is NULL, *not* str1 is
+ *          NULL), a new string is allocated and str2 copied to it.
+ *
+ *          On exit, the string can be freed via a call to StrFree.
+ *
+ *      const char* str2
+ *          The string to be appended.
+-*/
 
-		curNode = curNode->next;
-	}
+void StrAppend(char** str1, const char* str2)
+{
+    int len1;   /* Length of string 1 */
+    int len2;   /* Length of string 2 */
 
-	/* Now for the actual tests, from 
-	 * https://wiki.opendnssec.org/display/OpenDNSSEC/Configuration+Checker+%28ods-kaspcheck%29 */
+    if (str1 && str2) {
 
-	/* For all policies, check that the "Re-sign" interval is less 
-	 * than the "Refresh" interval. */
-	if (refresh <= resign) {
-		dual_log("ERROR: The Refresh interval (%d seconds) for "
-				"%s Policy is less than or equal to the Resign interval "
-				"(%d seconds)\n", refresh, policy_name, resign);
-		status++;
-	}
+        /* Something to append and we can append it */
 
-	/* Ensure that the "Default" and "Denial" validity periods are 
-	 * greater than the "Refresh" interval. */
-	if (defalt <= refresh) {
-		dual_log("ERROR: Validity/Default (%d seconds) for "
-				"%s Policy is less than or equal to the Refresh interval "
-				"(%d seconds)\n", defalt, policy_name, refresh);
-		status++;
-	}
-	if (denial <= refresh) {
-		dual_log("ERROR: Validity/Denial (%d seconds) for "
-				"%s Policy is less than or equal to the Refresh interval "
-				"(%d seconds)\n", denial, policy_name, refresh);
-		status++;
-	}
+        len2 = strlen(str2);
+        if (*str1) {
+            len1 = strlen(*str1);
 
-	/* Warn if "Jitter" is greater than 50% of the maximum of the "default" 
-	 * and "Denial" period. (This is a bit arbitrary. The point is to get 
-	 * the user to realise that there will be a large spread in the signature 
-	 * lifetimes.) */
-	if (defalt > denial) {
-		if (jitter > (defalt * 0.5)) {
-			dual_log("WARNING: Jitter time (%d seconds) is large " 
-					"compared to Validity/Default " 
-					"(%d seconds) for %s policy\n", jitter, defalt, policy_name);
-		}
-	} else {
-		if (jitter > (denial * 0.5)) {
-			dual_log("WARNING: Jitter time (%d seconds) is large " 
-					"compared to Validity/Denial " 
-					"(%d seconds) for %s policy\n", jitter, denial, policy_name);
-		}
-	}
-	
+            /* Allocate space for combined string and concatenate */
 
-	/* Warn if the InceptionOffset is greater than one hour. (Again arbitrary 
-	 * - but do we really expect the times on two systems to differ by more 
-	 *   than this?) */
-	if (inception > 3600) {
-		dual_log("WARNING: InceptionOffset is higher than expected "
-				"(%d seconds) for %s policy\n", inception, policy_name);
-	}
+            *str1 = MemRealloc(*str1, (len1 + len2 + 1) * sizeof(char));
+            strcat(*str1, str2);
+        }
+        else {
 
-	/* Warn if the "PublishSafety" and "RetireSafety" margins are less 
-	 * than 0.1 * TTL or more than 5 * TTL. */
-	if (publish < (ttl * 0.1)) {
-		dual_log("WARNING: PublishSafety (%d seconds) is less than "
-				"0.1 * TTL (%d seconds) for %s policy\n", publish, ttl, policy_name);
-	}
-	else if (publish > (ttl * 5)) {
-		dual_log("WARNING: PublishSafety (%d seconds) is greater than "
-				"5 * TTL (%d seconds) for %s policy\n", publish, ttl, policy_name);
-	}
+            /* Nothing in string 1, so just duplicate string 2 */
 
-	if (retire < (ttl * 0.1)) {
-		dual_log("WARNING: RetireSafety (%d seconds) is less than "
-				"0.1 * TTL (%d seconds) for %s policy\n", retire, ttl, policy_name);
-	}
-	else if (retire > (ttl * 5)) {
-		dual_log("WARNING: RetireSafety (%d seconds) is greater than "
-				"5 * TTL (%d seconds) for %s policy\n", retire, ttl, policy_name);
-	}
+            *str1 = StrStrdup(str2);
+        }
+    }
 
-	/* The algorithm should be checked to ensure it is consistent with the 
-	 * NSEC/NSEC3 choice for the zone. */
-	if (nsec == 1) {
-	}
-	else if (nsec == 3) {
-		if (ksk_algo != 6 && ksk_algo != 7 && ksk_algo != 8 && ksk_algo != 10) {
-			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"KSK - should be 6,7,8 or 10.\n", policy_name, ksk_algo);
-			status++;
-		}
-		if (zsk_algo != 6 && zsk_algo != 7 && zsk_algo != 8 && zsk_algo != 10) {
-			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"ZSK - should be 6,7,8 or 10.\n", policy_name, zsk_algo);
-			status++;
-		}
+    return;
+}
 
-		/* Warn if resalt is less than resign interval. */
-		if (resalt < resign) {
-			dual_log("WARNING: NSEC3 resalt interval (%d secs) is less than "
-					"signature resign interval (%d secs) for %s Policy\n",
-					resalt, resign, policy_name);
-		}
+/*+
+ * StrTrimR - Trim Right
+ *
+ * Description:
+ *      Modifies a string by trimming white-space characters from the right of
+ *      the string.  It does this by modifying the string, inserting a null
+ *      character after the last non white-space character.
+ *
+ * Arguments:
+ *      char *text (modified)
+ *          Text to modify.  If this is NULL, the routine is a no-op.
+ *
+ * Returns:
+ *      void
+-*/
 
-	}
+void StrTrimR(char *text)
+{
+    if (text) {
 
-	/* If datecounter is used for serial, then no more than 99 signings 
-	 * should be done per day (there are only two digits to play with in the 
-	 * version number). */
-	if (strncmp(serial, "datecounter", 11) == 0) {
-		resigns_per_day = (60 * 60 * 24) / resign;
-		if (resigns_per_day > 99) {
-			dual_log("ERROR : In policy %s, serial type datecounter used "
-					"but %d re-signs requested. No more than 99 re-signs per "
-					"day should be used with datecounter as only 2 digits are "
-					"allocated for the version number.\n", policy_name, resigns_per_day);
-			status++;
-		}
-	}
+        /* Work backwards through the string */
 
-	/* The key strength should be checked for sanity 
-	 * - warn if less than 1024 or error if more than 4096. 
-	 *   Only do this check for RSA. */
-	if (ksk_algo == 5 || ksk_algo == 7 || ksk_algo == 8 || ksk_algo == 10) {
-		if (ksk_length < 1024) {
-			dual_log("WARNING: Key length of %d used for KSK in %s policy. Should "
-					"probably be 1024 or more.\n", ksk_length, policy_name);
-		}
-		else if (ksk_length > 4096) {
-			dual_log("ERROR: Key length of %d used for KSK in %s policy. Should "
-					"be 4096 or less.\n", ksk_length, policy_name);
-			status++;
-		}
-	}
-	if (zsk_algo == 5 || zsk_algo == 7 || zsk_algo == 8 || zsk_algo == 10) {
-		if (zsk_length < 1024) {
-			dual_log("WARNING: Key length of %d used for ZSK in %s policy. Should "
-					"probably be 1024 or more.\n", zsk_length, policy_name);
-		}
-		else if (zsk_length > 4096) {
-			dual_log("ERROR: Key length of %d used for ZSK in %s policy. Should "
-					"be 4096 or less.\n", zsk_length, policy_name);
-			status++;
-		}
-	}
+        int textlen = strlen(text);
+        while (-- textlen >= 0) {
+            if (! isspace((int) text[textlen])) {
+                text[textlen + 1] = '\0';
+                return;
+            }
+        }
 
-	/* Check that repositories listed in the KSK and ZSK sections are defined
-	 * in conf.xml. */
-	for (i = 0; i < repo_count; i++) {
-		if (strcmp(ksk_repo, repo_list[i]) == 0) {
-			break;
-		}
-	}
-	if (i >= repo_count) {
-		dual_log("ERROR: Unknown repository (%s) defined for KSK in "
-				"%s policy\n", ksk_repo, policy_name);
-		status++;
-	}
+        /* Get here if the entire string is white space */
 
-	for (i = 0; i < repo_count; i++) {
-		if (strcmp(zsk_repo, repo_list[i]) == 0) {
-			break;
-		}
-	}
-	if (i >= repo_count) {
-		dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
-				"%s policy\n", zsk_repo, policy_name);
-		status++;
-	}
-	
+        text[0] = '\0';
+    }
+    return;
+}
 
-	/* Warn if for any zone, the KSK lifetime is less than the ZSK lifetime. */
-	if (ksk_life < ksk_life) {
-		dual_log("WARNING: KSK minimum lifetime (%d seconds) is less than "
-				"ZSK minimum lifetime (%d seconds) for %s Policy\n", 
-				ksk_life, zsk_life, policy_name);
-	}
+/*+
+ * StrTrimL - Trim Left
+ *
+ * Description:
+ *      Searches a string and returns a pointer to the first non white-space
+ *      character in it.
+ *
+ * Arguments:
+ *      char* text (input)
+ *          Text to search.
+ *
+ * Returns:
+ *      char* 
+ *          Pointer to first non white-space character in the string.  If the
+ *          string is NULL, NULL is returned.  If the string is all white space,
+ *          a pointer to the trailing null character is returned.
+-*/
 
-	/* Check that the value of the "Serial" tag is valid. (Done by rng) */
+char* StrTrimL(char* text)
+{
+    if (text) {
+        while (*text && isspace((int) *text)) {
+            ++text;
+        }
+    }
 
-	/* Error if Jitter is greater than either the Default or Denial Validity. */
-	if (jitter > defalt) {
-		dual_log("ERROR: Jitter time (%d seconds) is greater than the " 
-				"Validity/Default} (%d seconds) for %s policy\n", jitter, defalt, policy_name);
-		status++;
-	}
-	if (jitter > denial) {
-		dual_log("ERROR: Jitter time (%d seconds) is greater than the " 
-				"Validity/Denial} (%d seconds) for %s policy\n", jitter, denial, policy_name);
-		status++;
-	}
+    return text;
+}
 
-	return status;
+void* MemCalloc(size_t nmemb, size_t size)
+{
+    void *ptr = calloc(nmemb, size);
+    if (ptr == NULL) {
+		dual_log("ERROR: calloc: Out of swap space");
+		exit(1);
+    }
+    return ptr;
+}
+
+void* MemRealloc(void *ptr, size_t size)
+{
+    void *ptr1 = realloc(ptr, size);
+    if (ptr1 == NULL) {
+		dual_log("ERROR: realloc: Out of swap space");
+        exit(1);
+    }
+    return ptr1;
 }

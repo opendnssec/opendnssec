@@ -36,8 +36,6 @@
 #include "kaspcheck.h"
 #include "kc_helper.h"
 
-#include "ksm/string_util.h"
-#include "ksm/string_util2.h"
 #include "ksm/database.h"
 
 #include <libxml/tree.h>
@@ -50,8 +48,11 @@ const char *progname = NULL;
 
 char *config = (char *) OPENDNSSEC_CONFIG_FILE;
 char *kasp = NULL;
+int verbose = 0;
 char **repo_list = NULL;
 int repo_count = 0;
+
+#define StrFree(ptr) {if(ptr != NULL) {free(ptr); (ptr) = NULL;}}
 
 /*
  * Display usage
@@ -66,6 +67,7 @@ void usage ()
 			 "  -k, --kasp [PATH_TO_KASP_FILE]  Path to KASP policy file\n"
 			 "             (defaults to the path from the conf.xml file)\n"
 			 "  -V, --version                   Display the version information\n"
+			 "  -v, --verbose                   Print extra DEBUG messages\n"
              "  -h, --help                      Show this message\n", progname, OPENDNSSEC_CONFIG_FILE);
 }
 
@@ -83,6 +85,7 @@ int main (int argc, char *argv[])
         {"help",    no_argument,       0, 'h'},
         {"kasp",  required_argument, 0, 'k'},
         {"version", no_argument,       0, 'V'},
+        {"verbose", no_argument,       0, 'v'},
         {0,0,0,0}
     };
 
@@ -94,7 +97,7 @@ int main (int argc, char *argv[])
 		progname = argv[0];
 	}
 
-    while ((ch = getopt_long(argc, argv, "c:hk:V", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "c:hk:Vv", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'c':
 				config = StrStrdup(optarg);
@@ -110,6 +113,9 @@ int main (int argc, char *argv[])
                 printf("%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
                 exit(0);
                 break;
+			case 'v':
+				verbose = 1;
+				break;
 		}
 	}
 
@@ -122,7 +128,9 @@ int main (int argc, char *argv[])
 	/* 2) Checks on kasp.xml */
 	status += check_kasp();
 
-	dual_log("INFO: finished %d\n", status);
+	if (verbose) {
+		dual_log("DEBUG: finished %d\n", status);
+	}
 	return status;
 }
 
@@ -152,13 +160,11 @@ int check_conf(char** kasp) {
 	const char* zonerngfilename = OPENDNSSEC_SCHEMA_DIR "/zonelist.rng";
 
 	/* Check that the file is well-formed */
-	dual_log("INFO: About to check XML validity in %s\n", config);
 	status = check_rng(config, rngfilename);
 
 	if (status == 0) {
 		dual_log("INFO: %s validates\n", config);
 	} else {
-		dual_log("ERROR: %s does not validate\n", config);
 		return status; /* Don't try to read the file if it is invalid */
 	}
 
@@ -228,7 +234,7 @@ int check_conf(char** kasp) {
 					repo_mods[j] = 1; /* done */
 
 					if (strcmp(repo[i].TokenLabel, repo[j].TokenLabel) == 0) {
-						dual_log("ERROR: Repositories %s and %s are on the same module (%s) and have the same TokenLabel (%s)", repo[i].name, repo[j].name, repo[i].module, repo[i].TokenLabel);
+						dual_log("ERROR: Multiple Repositories (%s and %s) in %s have the same Module (%s) and TokenLabel (%s)\n", repo[i].name, repo[j].name, config, repo[i].module, repo[i].TokenLabel);
 						status += 1;
 					}
 				}
@@ -238,7 +244,7 @@ int check_conf(char** kasp) {
 		/* 3) Check that the name is unique */
 		for (j = i+1; j < repo_count; j++) {
 			if (strcmp(repo[i].name, repo[j].name) == 0) {
-				dual_log("ERROR: Two repositories found with the name %s\n", repo[i].name);
+				dual_log("ERROR: Two repositories exist with the same name (%s)\n", repo[i].name);
 				status += 1;
 			}
 		}
@@ -269,12 +275,9 @@ int check_conf(char** kasp) {
 	}
 	temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
-	dual_log("INFO: About to check XML validity in %s\n", temp_char);
-
 	if (check_rng(temp_char, zonerngfilename) == 0) {
 		dual_log("INFO: %s validates\n", temp_char);
 	} else {
-		dual_log("ERROR: %s does not validate\n", temp_char);
 		status += 1;
 	}
 
@@ -288,20 +291,20 @@ int check_conf(char** kasp) {
 			(xmlChar *)"//Configuration/Enforcer/Privileges/Group");
 
 	/* Check datastore exists (if sqlite) */
-	/* also check datastore matches libksm */
+	/* TODO check datastore matches libksm without building against libksm */
 	temp_status = check_file_from_xpath(xpath_ctx, "SQLite datastore",
 			(xmlChar *)"//Configuration/Enforcer/Datastore/SQLite");
 	if (temp_status == -1) {
 		/* Configured for Mysql DB */
-		if (DbFlavour() != MYSQL_DB) {
+		/*if (DbFlavour() != MYSQL_DB) {
 			dual_log("ERROR: libksm compiled for sqlite3 but conf.xml configured for MySQL\n");
-		}
+		}*/
 	} else {
 		status += temp_status;
 		/* Configured for sqlite DB */
-		if (DbFlavour() != SQLITE_DB) {
+		/*if (DbFlavour() != SQLITE_DB) {
 			dual_log("ERROR: libksm compiled for MySQL but conf.xml configured for sqlite3\n");
-		}
+		}*/
 	}
 
 	/* Warn if Interval is M or Y */
@@ -368,18 +371,16 @@ int check_kasp() {
 	int default_found = 0;
 
 	if (kasp == NULL) {
-		kasp = OPENDNSSEC_CONFIG_DIR "/kasp.xml";
-		dual_log("INFO: Assuming default kasp.xml of %s\n", kasp);
+		dual_log("ERROR: No location for kasp.xml set\n");
+		return 1;
 	}
 
 /* Check that the file is well-formed */
-	dual_log("INFO: About to check XML validity in %s\n", kasp);
 	status = check_rng(kasp, rngfilename);
 
 	if (status ==0) {
 		dual_log("INFO: %s validates\n", kasp);
 	} else {
-		dual_log("ERROR: %s does not validate\n", kasp);
 		return 1;
 	}
 
@@ -425,13 +426,13 @@ int check_kasp() {
 		}
 		for (j = i+1; j < policy_count; j++) {
 			if ( (strcmp(policy_names[i], policy_names[j]) == 0) ) {
-				dual_log("ERROR: Two policies named %s found\n", policy_names[i]);
+				dual_log("ERROR: Two policies exist with the same name (%s)\n", policy_names[i]);
 				status += 1;
 			}
 		}
 	}
 	if (default_found == 0) {
-		dual_log("WARNING: No default policy found\n");
+		dual_log("WARNING: No policy named 'default' in %s. This means you will need to refer explicitly to the policy for each zone\n", kasp);
 	}
 
 	/* Go again; this time check each policy */

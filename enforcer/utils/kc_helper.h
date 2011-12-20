@@ -44,9 +44,6 @@ void log_init(int facility, const char *program_name);
 void log_switch(int facility, const char *program_name);
 void dual_log(const char *format, ...);
 
-void log_xml_error(void *ignore, const char *format, ...);
-void log_xml_warn(void *ignore, const char *format, ...);
-
 int check_rng(const char *filename, const char *rngfilename);
 
 int check_file(const char *filename, const char *log_string);
@@ -59,8 +56,18 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
 
 int check_time_def(const char *time_expr, const char *location, const char *field, const char *filename, int* interval);
 int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_xexpr, const char *location, const char *field, const char *filename);
-int DtXMLIntervalSeconds(const char* text, int* interval);
 
 int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp);
+
+int DtXMLIntervalSeconds(const char* text, int* interval);
+int StrStrtoi(const char* string, int* value);
+int StrStrtol(const char* string, long* value);
+char* StrStrdup(const char* string);
+void StrAppend(char** str1, const char* str2);
+void StrTrimR(char *text);
+char* StrTrimL(char* text);
+void* MemCalloc(size_t nmemb, size_t size);
+void* MemRealloc(void *ptr, size_t size);
+
 
 #endif /* KC_HELPER_H */
