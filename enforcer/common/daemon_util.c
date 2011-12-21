@@ -372,7 +372,27 @@ writepid (DAEMONCONFIG *config)
 {
     FILE * fd;
     char pidbuf[32];
+	struct stat stat_ret;
 
+	/* If the file exists then either we didn't shutdown cleanly or an enforcer is 
+	 * already running; in either case shutdown */
+	if (stat(config->pidfile, &stat_ret) != 0) {
+
+		if (errno != ENOENT) {
+			log_msg(config, LOG_ERR, "cannot stat pidfile %s: %s",
+					config->pidfile, strerror(errno));                                      
+			return -1;                                                                      
+		}                                                                                   
+	}                                                                                       
+
+	if (S_ISREG(stat_ret.st_mode)) {                                                        
+		/* The file exists already */                                                       
+		log_msg(config, LOG_ERR, "pidfile %s already exists. If no ods-enforcerd process is running, a previous instance didn't shutdown cleanly, please remove this file and try again.",                                                                                     
+				config->pidfile);                                                       
+		exit(1);                                                                     
+	}                                                                                       
+
+	/* All good, carry on */
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) config->pid);
 
     if ((fd = fopen(config->pidfile, "w")) ==  NULL ) {

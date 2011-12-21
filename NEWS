@@ -21,6 +21,9 @@ OpenDNSSEC trunk
   the user with the opportunity to stop the operation. (OPENDNSSEC-83)
 * ods-ksmutil: "zone delete" renames the signconf file; so that if the zone is put
   back the signer will not pick up the old file.
+* ods-enforcerd: Stop multiple instances of the enforcer running by checking for            
+  the pidfile at startup. If you want to run multiple instances then a different            
+  pidfile will need to be specified with the -P flag.
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
