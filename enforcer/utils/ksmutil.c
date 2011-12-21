@@ -121,6 +121,8 @@ static int retire_flag = 1;
 static int verbose_flag = 0;
 static int xml_flag = 1;
 static int td_flag = 0;
+static int force_flag = 0;
+static int hsm_flag = 1;
 
 static int restart_enforcerd(void);
 
@@ -342,6 +344,16 @@ usage_keydsseen ()
             "\t--no-retire\n");
 }
 
+	void
+usage_keydelete ()
+{
+    fprintf(stderr,
+            "  key delete\n"
+            "\t--cka_id <CKA_ID>                        aka -k\n"
+            "\t--force\n"
+            "\t--no-hsm\n");
+}
+
     void
 usage_key ()
 {
@@ -356,6 +368,7 @@ usage_key ()
     usage_keygen ();
     usage_keykskretire ();
     usage_keydsseen ();
+    usage_keydelete ();
 }
 
     void
@@ -3569,12 +3582,14 @@ main (int argc, char *argv[])
         {"ds",      no_argument,       0, 'd'},
         {"keystate", required_argument, 0, 'e'},
         {"no-retire", no_argument,       0, 'f'},
+        {"force", 	no_argument,       0, 'F'},
         {"algorithm", required_argument, 0, 'g'},
         {"help",    no_argument,       0, 'h'},
         {"input",   required_argument, 0, 'i'},
         {"in-type", required_argument, 0, 'j'},
         {"cka_id",  required_argument, 0, 'k'},
         {"no-xml",  no_argument,        0, 'm'},
+        {"no-hsm",  no_argument,        0, 'M'},
         {"interval",  required_argument, 0, 'n'},
         {"output",  required_argument, 0, 'o'},
         {"policy",  required_argument, 0, 'p'},
@@ -3593,7 +3608,7 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt_long(argc, argv, "aAb:c:de:fg:hi:j:k:n:o:p:q:r:s:t:vVw:x:y:z:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "aAb:c:de:fFg:hi:j:k:mMn:o:p:q:r:s:t:vVw:x:y:z:", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'a':
                 all_flag = 1;
@@ -3616,6 +3631,9 @@ main (int argc, char *argv[])
             case 'f':
                 retire_flag = 0;
                 break;
+            case 'F':
+                force_flag = 1;
+                break;
             case 'g':
                 o_algo = StrStrdup(optarg);
                 break;
@@ -3637,6 +3655,9 @@ main (int argc, char *argv[])
                 break;
             case 'm':
                 xml_flag = 0;
+                break;
+            case 'M':
+                hsm_flag = 0;
                 break;
             case 'n':
                 o_interval = StrStrdup(optarg);
@@ -3819,6 +3840,8 @@ main (int argc, char *argv[])
         }
         else if (!strncmp(case_verb, "DS-SEEN", 7)) {
             result = cmd_dsseen();
+        } else if (!strncmp(case_verb, "DELETE", 6)) {
+            result = cmd_delkey();
         } else {
             printf("Unknown command: key %s\n", case_verb);
             usage_key();
@@ -6410,7 +6433,7 @@ int PurgeKeys(int zone_id, int policy_id)
                 /* Delete from dnsseckeys */
                 sql2 = DdsInit("dnsseckeys");
                 DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
-                DdsEnd(&sql);
+                DdsEnd(&sql2);
 
                 status = DbExecuteSqlNoResult(DbHandle(), sql2);
                 DdsFree(sql2);
@@ -6425,7 +6448,7 @@ int PurgeKeys(int zone_id, int policy_id)
                 /* Delete from keypairs */
                 sql3 = DdsInit("keypairs");
                 DdsConditionInt(&sql3, "id", DQS_COMPARE_EQ, temp_id, 0);
-                DdsEnd(&sql);
+                DdsEnd(&sql3);
 
                 status = DbExecuteSqlNoResult(DbHandle(), sql3);
                 DdsFree(sql3);
@@ -6911,6 +6934,122 @@ int cmd_genkeys()
     return status;
 }
 
+int cmd_delkey()
+{
+    int status = 0;
+    int user_certain;           /* Continue ? */
+	int key_state = -1;
+	int keypair_id = -1;
+
+    /* Database connection details */
+    DB_HANDLE	dbhandle;
+    FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
+    char*       sql = NULL;     /* SQL query */
+    char*       sql2 = NULL;    /* SQL query */
+
+    /* Key information */
+    hsm_key_t *key = NULL;
+
+	/* Check that we have either a keytag or a cka_id */
+    if (o_cka_id == NULL) {
+        printf("Please provide a CKA_ID for the key to delete\n");
+        usage_keydelete();
+        return(-1);
+    }
+
+	/* try to connect to the database */
+    status = db_connect(&dbhandle, &lock_fd, 1);
+    if (status != 0) {
+        printf("Failed to connect to database\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
+
+	
+	/* Find the key and check its state */
+	status = GetKeyState(o_cka_id, &key_state, &keypair_id);
+    if (status != 0 || key_state == -1) {
+        printf("Failed to determine the state of the key\n");
+        db_disconnect(lock_fd);
+        return(1);
+    }
+
+	/* If state == GENERATE or force_flag == 1 Remove the key from the database */
+	if (key_state != KSM_STATE_GENERATE && key_state != KSM_STATE_DEAD) {
+		if (force_flag == 1) {
+			printf("*WARNING* This will delete a key that the enforcer believes is in use; are you really sure? [y/N] ");
+
+			user_certain = getchar();
+			if (user_certain != 'y' && user_certain != 'Y') {
+				printf("Okay, quitting...\n");
+				exit(0);
+			}
+		}
+		else {
+			printf("The enforcer believes that this key is in use, quitting...\n");
+			exit(0);
+		}
+	}
+
+	/* Okay, do it */
+	/* Delete from dnsseckeys */
+	sql = DdsInit("dnsseckeys");
+	DdsConditionInt(&sql, "keypair_id", DQS_COMPARE_EQ, keypair_id, 0);
+	DdsEnd(&sql);
+
+	status = DbExecuteSqlNoResult(DbHandle(), sql);
+	DdsFree(sql);
+	if (status != 0)
+	{
+		printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+		return status;
+	}
+
+	/* Delete from keypairs */
+	sql2 = DdsInit("keypairs");
+	DdsConditionInt(&sql2, "id", DQS_COMPARE_EQ, keypair_id, 0);
+	DdsEnd(&sql2);
+
+	status = DbExecuteSqlNoResult(DbHandle(), sql2);
+	DdsFree(sql2);
+	if (status != 0)
+	{
+		printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
+		return status;
+	}
+
+	/* If hsm_flag == 1 Remove from the HSM */
+	if (hsm_flag == 1) {
+		/* connect to the HSM */
+		status = hsm_open(config, hsm_prompt_pin, NULL);
+		if (status) {
+			hsm_print_error(NULL);
+			return(-1);
+		}
+
+		/* Delete from the HSM */
+		key = hsm_find_key_by_id(NULL, o_cka_id);
+
+		if (!key) {
+			printf("Key not found in HSM: %s\n", o_cka_id);
+			return -1;
+		}
+
+		status = hsm_remove_key(NULL, key);
+
+		hsm_key_free(key);
+	}
+
+	if (!status) {
+		printf("Key delete successful: %s\n", o_cka_id);
+	} else {
+		printf("Key delete failed: %s\n", o_cka_id);
+		return -1;
+	}
+
+	return status;
+}
+
 /* Make sure (if we can) that the permissions on a file are correct for the user/group in conf.xml */
 
 int fix_file_perms(const char *dbschema)
@@ -7277,6 +7416,52 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
     }
 
     return status;
+}
+
+/* Simpler version of the above function */
+int GetKeyState(const char *cka_id, int *temp_key_state, int *temp_keypair_id) {
+	int			status = 0;
+    char		sql[256];    	/* For constructing the command */
+    size_t		nchar;          /* Number of characters written */
+
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+    int         temp_state = 0;     /* place to store state returned */
+    int         temp_keypair = 0;   /* place to store id returned */
+
+	nchar = snprintf(sql, sizeof(sql), "select k.id, k.state from KEYDATA_VIEW k where k.location = '%s'", cka_id);
+    if (nchar >= sizeof(sql)) {
+        printf("Error: Overran buffer in CountKeys\n");
+        return(-1);
+    }
+
+	status = DbExecuteSql(DbHandle(), sql, &result);
+
+	/* loop round until we find a key not in the GENERATE or DEAD state */
+    if (status == 0) {
+        status = DbFetchRow(result, &row);
+        while (status == 0) {
+            /* Got a row, process it */
+            DbInt(row, 0, &temp_keypair);
+            DbInt(row, 1, &temp_state);
+
+			/* Note that GENERATE == {null} in this view so state will be 0 */
+			if (temp_state == 0) {
+				temp_state = KSM_STATE_GENERATE;
+			}
+
+			*temp_key_state = temp_state;
+			*temp_keypair_id = temp_keypair;
+
+			if (temp_state != KSM_STATE_GENERATE && temp_state != KSM_STATE_DEAD) {
+				return(0);
+            }
+
+			status = DbFetchRow(result, &row);
+        }
+	}
+
+	return(0);
 }
 
 /*+

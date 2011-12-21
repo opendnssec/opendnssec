@@ -24,6 +24,8 @@ OpenDNSSEC trunk
 * ods-enforcerd: Stop multiple instances of the enforcer running by checking for            
   the pidfile at startup. If you want to run multiple instances then a different            
   pidfile will need to be specified with the -P flag.
+* ods-ksmutil: "key delete" added. It allows keys that are not currently in use to be 
+  deleted from the database and HSM.
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
