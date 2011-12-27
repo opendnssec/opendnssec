@@ -614,7 +614,10 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 					/** jitter and valdefault default to 0 */
 					returntime_key = addtime(returntime_key, 
 							policy->signatures().jitter() + 
-							policy->signatures().valdefault());
+							max(policy->signatures().valdefault(), 
+								policy->signatures().valdenial()) +
+							policy->signatures().resign() - 
+							policy->signatures().refresh() );
 				}
 
 				/** It is to soon to make this change. Schedule it. */
