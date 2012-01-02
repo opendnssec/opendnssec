@@ -56,6 +56,13 @@
 #include "config.h"
 #include "shared/allocator.h"
 
+#ifndef PF_INET
+#define PF_INET AF_INET
+#endif
+#ifndef PF_INET6
+#define PF_INET6 AF_INET6
+#endif
+
 /*
  * The type of events a handler is interested in.
  * These can be OR'ed together to specify multiple event types.
