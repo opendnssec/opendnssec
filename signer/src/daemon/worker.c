@@ -155,15 +155,24 @@ static void
 worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
 {
     ods_status status = ODS_STATUS_UNCHANGED;
+    int tries = 0;
     ods_log_assert(worker);
     ods_log_assert(q);
     ods_log_assert(rrset);
     while (status == ODS_STATUS_UNCHANGED) {
+        tries++;
         lock_basic_lock(&q->q_lock);
-        status = fifoq_push(q, (void*) rrset, worker);
+        status = fifoq_push(q, (void*) rrset, worker, &tries);
         lock_basic_unlock(&q->q_lock);
         if (worker->need_to_exit) {
             return;
+        }
+        /**
+         * If tries are 0 they we have tries FIFOQ_TRIES_COUNT times,
+         * lets take a small break to not hog CPU.
+         */
+        if (status == ODS_STATUS_UNCHANGED && !tries) {
+            usleep(10000);
         }
     }
     ods_log_assert(status == ODS_STATUS_OK);

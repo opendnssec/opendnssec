@@ -50,6 +50,7 @@
 
 			<!-- Parameters for KSK only -->
 			<KSK>
+				<RolloverType>DoubleDS</RolloverType>
 				<Algorithm length="2048">8</Algorithm>
 				<Lifetime>P1Y</Lifetime>
 				<Repository>SoftHSM</Repository>
@@ -57,6 +58,7 @@
 
 			<!-- Parameters for ZSK only -->
 			<ZSK>
+				<RolloverType>Prepublication</RolloverType>
 				<Algorithm length="1024">8</Algorithm>
 				<Lifetime>P30D</Lifetime>
 				<Repository>SoftHSM</Repository>
