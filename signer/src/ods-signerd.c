@@ -117,6 +117,9 @@ main(int argc, char* argv[])
             case '1':
                 single_run = 1;
                 break;
+            case 'c':
+                cfgfile = optarg;
+                break;
             case 'd':
                 daemonize = 0;
                 break;

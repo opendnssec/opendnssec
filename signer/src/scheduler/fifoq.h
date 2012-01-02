@@ -98,7 +98,7 @@ void* fifoq_pop(fifoq_type* q, worker_type** worker);
  * \param[in] q queue
  * \param[in] item item
  * \param[in] worker owner of item
- * \param[in] tries number of tries
+ * \param[out] tries number of tries
  * \return ods_status status
  *
  */
