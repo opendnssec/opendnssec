@@ -2,15 +2,17 @@ $Id$
 
 OpenDNSSEC 1.3
 
-* ods-ksmutil: Suppress database connection information when no -v flag is given.
-* ods-enforcerd: Stop multiple instances of the enforcer running by checking for
-  the pidfile at startup. If you want to run multiple instances then a different 
-  pidfile will need to be specified with the -P flag.
+* ods-ksmutil: Suppress database connection information when no -v flag is
+  given.
+* ods-enforcerd: Stop multiple instances of the enforcer running by checking
+  for the pidfile at startup. If you want to run multiple instances then a
+  different pidfile will need to be specified with the -P flag.
 
 Bugfixes:
 * Signer Engine: A file descriptor for sockets with value zero is allowed.
 * Signer Engine: Only log messages about a full signing queue in debug mode.
-
+* Bugfix OPENDNSSEC-192: Signer crashes on deleting NSEC3 for a domain that
+  becomes opt-out.
 
 OpenDNSSEC 1.3.4 - 2011-12-09
 

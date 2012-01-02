@@ -404,6 +404,7 @@ zonedata_del_domain(zonedata_type* zd, domain_type* domain)
             "denial of existence data point", 1);
         return domain;
     }
+    domain->denial = NULL;
     log_rdf(domain->dname, "-DD", 6);
     return zonedata_del_domain_fixup(zd->domains, domain);
 }
@@ -991,6 +992,7 @@ zonedata_nsecify(zonedata_type* zd, ldns_rr_class klass, uint32_t ttl,
                         "delete denial of existence data point", zd_str);
                     return ODS_STATUS_ERR;
                 }
+                domain->denial = NULL;
             }
             node = ldns_rbtree_next(node);
             continue;
@@ -1085,6 +1087,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
                         "delete denial of existence data point", zd_str);
                     return ODS_STATUS_ERR;
                 }
+                domain->denial = NULL;
             }
             node = ldns_rbtree_next(node);
             continue;
@@ -1108,6 +1111,7 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
                             "delete denial of existence data point", zd_str);
                         return ODS_STATUS_ERR;
                     }
+                    domain->denial = NULL;
                 }
                 node = ldns_rbtree_next(node);
                 continue;
