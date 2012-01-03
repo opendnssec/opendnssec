@@ -3,6 +3,10 @@ $Id$
 This file gives you instructions on how to migrate from one version of
 OpenDNSSEC to another.
 
+*** Migrating from v1.2 to v1.3 ***
+
+  There are no migration scripts to run to make this transition.
+
 
 *** Migrating from v1.1 to v1.2 ***
 
