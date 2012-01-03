@@ -980,6 +980,7 @@ zone_recover(zone_type* zone)
         /* all ok */
         namedb_diff(zone->db, 0);
         zone->db->is_initialized = 1;
+        ixfr_purge(zone->ixfr);
         if (zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
