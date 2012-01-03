@@ -921,7 +921,7 @@ module KASPAuditor
         # If so, add the appropriate NSEC3 record to the "expected NSEC3s" file
         empty_nonterminals.each {|empty_nonterminal|
           # Should really check to see if file already includes this name
-          if !(File.open(@working + "#{File::SEPARATOR}audit.types.#{Process.pid}", "r").grep(/\s#{empty_nonterminal}/))
+          if (File.open(@working + "#{File::SEPARATOR}audit.types.#{Process.pid}", "r").grep(/\s#{empty_nonterminal}/).length == 0)
             add_domain_to_types_file(empty_nonterminal, iterations, salt, hash_alg, "")
           end
         }
