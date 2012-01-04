@@ -4369,7 +4369,7 @@ int update_policies(char* kasp_filename)
     StrAppend(&kaspcheck_cmd, kasp_filename);
 
     StrAppend(&kaspcheck_cmd_version, ODS_AU_KASPCHECK);
-    StrAppend(&kaspcheck_cmd_version, " -v > /dev/null");
+    StrAppend(&kaspcheck_cmd_version, " --version > /dev/null");
 
     /* Run kaspcheck */
     status = system(kaspcheck_cmd_version);

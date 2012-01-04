@@ -26,17 +26,17 @@ else
 dist_opendnssecdata_DATA = database_create.sqlite3
 endif
 
-bin_PROGRAMS =	ods-ksmutil #ods-kaspcheck
+bin_PROGRAMS =	ods-ksmutil ods-kaspcheck
 man1_MANS =	ods-ksmutil.1
 
 ods_ksmutil_SOURCES = ksmutil.c
 ods_ksmutil_LDADD = $(LIBKSM) $(LIBHSM) $(LIBCOMPAT)
 ods_ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@
 
-#ods_kaspcheck_SOURCES = kaspcheck.c kaspcheck.h \
-#						kc_helper.c kc_helper.h
+ods_kaspcheck_SOURCES = kaspcheck.c kaspcheck.h \
+						kc_helper.c kc_helper.h
 
-#ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
-#ods_kaspcheck_LDADD += @XML2_LIBS@
+ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
+ods_kaspcheck_LDADD += @XML2_LIBS@
 
 EXTRA_DIST = $(srcdir)/migrate_*.pl
