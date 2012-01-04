@@ -27,7 +27,7 @@ dist_opendnssecdata_DATA = database_create.sqlite3
 endif
 
 bin_PROGRAMS =	ods-ksmutil ods-kaspcheck
-man1_MANS =	ods-ksmutil.1
+man1_MANS =	ods-ksmutil.1 ods-kaspcheck.1
 
 ods_ksmutil_SOURCES = ksmutil.c
 ods_ksmutil_LDADD = $(LIBKSM) $(LIBHSM) $(LIBCOMPAT)

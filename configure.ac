@@ -273,6 +273,7 @@ AC_CONFIG_FILES([
 	enforcer/test/cunit/database_setup_mysql.sh
 	enforcer/test/cunit/database_setup_sqlite3.sh
 	enforcer/utils/Makefile
+	enforcer/utils/ods-kaspcheck.1
 	enforcer/utils/ods-ksmutil.1
 	libhsm/Makefile
 	libhsm/src/Makefile
