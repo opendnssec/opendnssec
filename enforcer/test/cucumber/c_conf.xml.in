@@ -43,8 +43,4 @@
 		-->
 	</Signer>
 
-	<Auditor>
-
-	</Auditor>
-
 </Configuration>

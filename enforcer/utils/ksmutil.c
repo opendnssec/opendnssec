@@ -1776,8 +1776,6 @@ cmd_exportpolicy ()
     policy->zsk = (KSM_KEY_POLICY *)malloc(sizeof(KSM_KEY_POLICY));
     policy->denial = (KSM_DENIAL_POLICY *)malloc(sizeof(KSM_DENIAL_POLICY));
     policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
-    /*    policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
-    policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
     policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
     if (policy->signer == NULL || policy->signature == NULL || 
             policy->zone == NULL || policy->parent == NULL ||
@@ -4353,10 +4351,6 @@ int update_policies(char* kasp_filename)
 
     xmlChar *node_expr = (unsigned char*) "//Policy";
 
-
-/*    xmlChar *audit_expr = (unsigned char*) "//Policy/Audit"; */
-    int audit_found = 0;    /* flag to say whether an Audit flag was found or not */
-
     KSM_POLICY *policy;
 
     /* Some files, the xml and rng */
@@ -4386,7 +4380,7 @@ int update_policies(char* kasp_filename)
     }
     else
     {
-            fprintf(stderr, "Couldn't run ods-kaspcheck (Auditor is not installed), will carry on\n");
+            fprintf(stderr, "Couldn't run ods-kaspcheck, will carry on\n");
     }
 
     StrFree(kaspcheck_cmd);
@@ -4468,7 +4462,6 @@ int update_policies(char* kasp_filename)
                 printf("Error extracting policy name from %s\n", kasp_filename);
                 break;
             }
-            audit_found = 0;
 
             printf("Policy %s found\n", policy_name);
 			while (curNode) {
@@ -4778,27 +4771,8 @@ int update_policies(char* kasp_filename)
                         childNode = childNode->next;
                     }
                 } /* End of Parent */
-                /* Audit */
-                else if (xmlStrEqual(curNode->name, (const xmlChar *)"Audit")) {
-                    status = KsmImportAudit(policy->id, "");
-                    childNode = curNode->children;
-                    while (childNode){
-                        if (xmlStrEqual(childNode->name, (const xmlChar *)"Partial")) {
-                            status = KsmImportAudit(policy->id, "<Partial/>");
-                        }
-                        childNode = childNode->next;
-                    }
-                    audit_found = 1;
-                    if(status != 0) {
-                        printf("Error: unable to insert Audit info for policy %s\n", policy->name);
-                    }
-                }
 
                 curNode = curNode->next;
-            }
-            /* Indicate in the database if we didn't find an audit tag */
-            if (audit_found == 0) {
-                status = KsmImportAudit(policy->id, "NULL");
             }
 
             /* Free up some stuff that we don't need any more */
@@ -6052,11 +6026,6 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"TTL", (const xmlChar *)temp_time);
     snprintf(temp_time, 32, "PT%dS", policy->parent->soa_min);
     (void) xmlNewTextChild(parent_soa_node, NULL, (const xmlChar *)"Minimum", (const xmlChar *)temp_time);
-
-    /* AUDIT (Currently this either exists and is empty or it doesn't) */
-    if (strncmp(policy->audit, "NULL", 4) != 0) {
-        (void) xmlNewChild(policy_node, NULL, (const xmlChar *)"Audit", NULL);
-    }
 
     return(0);
 }

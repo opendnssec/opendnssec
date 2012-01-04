@@ -56,13 +56,4 @@
 -->
 	</Signer>
 
-	<Auditor>
-		<Privileges>
-			<User>root</User>
-<!--			<Group>users</Group> -->
-		</Privileges>
-
-		<WorkingDirectory>/var/opendnssec/tmp</WorkingDirectory>
-	</Auditor>
-
 </Configuration>

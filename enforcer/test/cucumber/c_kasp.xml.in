@@ -227,11 +227,6 @@ A default policy that will amaze you and your friends
 			</SOA>
 		</Parent>
 
-		<Audit>
-      <!--              <Partial/>
-    -->
-            </Audit>
-
 	</Policy>
 
 

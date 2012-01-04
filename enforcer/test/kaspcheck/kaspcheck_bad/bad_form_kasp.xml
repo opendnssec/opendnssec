@@ -65,7 +65,6 @@
         <Minimum>PT3600S</Minimum>
       </SOA>
     </Parent>
-    <Audit />
   </Policy>
   <Policy name="registry">
     <Description>A default policy that will amaze you and your friends</Description>

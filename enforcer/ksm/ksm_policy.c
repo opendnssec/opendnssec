@@ -74,7 +74,7 @@ int KsmPolicyInit(DB_RESULT* result, const char* name)
 
     /* Construct the query */
 
-    sql = DqsSpecifyInit("policies","id, name, description, audit, salt");
+    sql = DqsSpecifyInit("policies","id, name, description, salt");
     if (name) {
         DqsConditionString(&sql, "NAME", DQS_COMPARE_EQ, name, where++);
     }
@@ -317,9 +317,6 @@ int KsmPolicyRead(KSM_POLICY* policy)
             		if (strncmp(data.name, "publishsafety",13) == 0) policy->keys->publish_safety=data.value;
             		if (strncmp(data.name, "purge",5) == 0) policy->keys->purge=data.value;
             	}
-            /*	if (strncmp(data.category, "audit", 5) == 0) {
-            		if (strncmp(data.name, "audit",5) == 0) policy->audit->audit=data.value;
-                }*/
            		/* Ignore any unknown parameters */
 
                 status = KsmPolicyParameter(result, &data);
@@ -820,8 +817,7 @@ int KsmPolicySetIdFromName(KSM_POLICY *policy)
         if (status == 0) {
             DbInt(row, DB_POLICY_ID, &policy->id);
             DbStringBuffer(row, DB_POLICY_DESCRIPTION, policy->description, KSM_POLICY_DESC_LENGTH*sizeof(char));
-            DbStringBuffer(row, DB_POLICY_AUDIT, policy->audit, KSM_POLICY_AUDIT_LENGTH*sizeof(char));
-            DbStringBuffer(row, 4, policy->denial->salt, KSM_SALT_LENGTH*sizeof(char));
+            DbStringBuffer(row, 3, policy->denial->salt, KSM_SALT_LENGTH*sizeof(char));
         }
         else if (status == -1) {
         /* No rows to return (but no error) */
@@ -961,8 +957,6 @@ KSM_POLICY *KsmPolicyAlloc()
         policy->enforcer = (KSM_ENFORCER_POLICY *)malloc(sizeof(KSM_ENFORCER_POLICY));
         policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
         policy->parent = (KSM_PARENT_POLICY *)malloc(sizeof(KSM_PARENT_POLICY));
-        /*  policy->audit = (KSM_AUDIT_POLICY *)malloc(sizeof(KSM_AUDIT_POLICY)); */
-        policy->audit = (char *)calloc(KSM_POLICY_AUDIT_LENGTH, sizeof(char));
         
         /*  if allocation fails, return NULL*/
         if (policy->description == NULL ||
@@ -974,8 +968,7 @@ KSM_POLICY *KsmPolicyAlloc()
             policy->zsk == NULL || 
             policy->enforcer == NULL ||
             policy->zone == NULL ||
-            policy->parent == NULL || 
-            policy->audit == NULL) {
+            policy->parent == NULL) { 
                 KsmPolicyFree(policy);
                 return NULL;
         }
@@ -995,6 +988,5 @@ void KsmPolicyFree(KSM_POLICY *policy)
     free(policy->enforcer);
     free(policy->zone);
     free(policy->parent);
-    free(policy->audit);
     free(policy);
 }
