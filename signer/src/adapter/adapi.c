@@ -284,6 +284,7 @@ static ods_status
 adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
 {
     ods_status status = ODS_STATUS_OK;
+    uint32_t tmp = 0;
     ods_log_assert(rr);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -294,6 +295,10 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
         ods_log_warning("[%s] only class in is supported, changing class "
             "to in");
         ldns_rr_set_class(rr, LDNS_RR_CLASS_IN);
+    }
+    /* Convert MaxZoneTTL */
+    if (zone->signconf->max_zone_ttl) {
+        tmp = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
     }
     /* RR processing */
     if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
@@ -322,6 +327,10 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
                 (unsigned) ldns_rr_get_type(rr));
             return ODS_STATUS_UNCHANGED;
         }
+    }
+    /* //MaxZoneTTL. Possibly overrides //SOA/TTL and //Keys/TTL. */
+    if (tmp && tmp < ldns_rr_ttl(rr)) {
+       ldns_rr_set_ttl(rr, tmp);
     }
 
     /* TODO: DNAME and CNAME checks */

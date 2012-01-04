@@ -75,6 +75,7 @@ struct signconf_struct {
     duration_type* soa_min;
     const char* soa_serial;
     /* Other useful information */
+    duration_type* max_zone_ttl;
     const char* filename;
     time_t last_modified;
     int audit;

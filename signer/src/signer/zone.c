@@ -230,6 +230,7 @@ zone_publish_dnskeys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
+    uint32_t maxttl = 0;
     uint16_t i = 0;
     ods_status status = ODS_STATUS_OK;
     rrset_type* rrset = NULL;
@@ -247,10 +248,17 @@ zone_publish_dnskeys(zone_type* zone)
             "error creating libhsm context", zone_str, zone->name);
         return ODS_STATUS_HSM_ERR;
     }
-    /* dnskey ttl */
     ttl = zone->default_ttl;
+    /* dnskey ttl */
     if (zone->signconf->dnskey_ttl) {
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
+    }
+    /* MaxZoneTTL */
+    if (zone->signconf->max_zone_ttl) {
+        maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
+        if (maxttl < ttl) {
+            ttl = maxttl;
+        }
     }
     /* publish keys */
     for (i=0; i < zone->signconf->keys->count; i++) {
@@ -267,6 +275,8 @@ zone_publish_dnskeys(zone_type* zone)
                 break;
             }
         }
+        ods_log_debug("[%s] publish %s DNSKEY locator %s", zone_str,
+            zone->name, zone->signconf->keys->keys[i].locator);
         ods_log_assert(zone->signconf->keys->keys[i].dnskey);
         ldns_rr_set_ttl(zone->signconf->keys->keys[i].dnskey, ttl);
         ldns_rr_set_class(zone->signconf->keys->keys[i].dnskey, zone->klass);
@@ -336,6 +346,8 @@ zone_publish_nsec3param(zone_type* zone)
     rr_type* n3prr = NULL;
     ldns_rr* rr = NULL;
     ods_status status = ODS_STATUS_OK;
+    uint32_t ttl = 0;
+    uint32_t maxttl = 0;
 
     if (!zone || !zone->name || !zone->db || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
@@ -355,7 +367,15 @@ zone_publish_nsec3param(zone_type* zone)
             return ODS_STATUS_MALLOC_ERR;
         }
         ldns_rr_set_class(rr, zone->klass);
-        ldns_rr_set_ttl(rr, zone->default_ttl);
+        ttl = zone->default_ttl;
+        /* MaxZoneTTL */
+        if (zone->signconf->max_zone_ttl) {
+            maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
+            if (maxttl < ttl) {
+                ttl = maxttl;
+            }
+        }
+        ldns_rr_set_ttl(rr, ttl);
         ldns_rr_set_owner(rr, ldns_rdf_clone(zone->apex));
         ldns_nsec3_add_param_rdfs(rr,
             zone->signconf->nsec3params->algorithm, 0,

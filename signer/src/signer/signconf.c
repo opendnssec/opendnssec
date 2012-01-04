@@ -87,6 +87,7 @@ signconf_create(void)
     sc->soa_min = NULL;
     sc->soa_serial = NULL;
     /* Other useful information */
+    sc->max_zone_ttl = NULL;
     sc->last_modified = 0;
     sc->audit = 0;
     return sc;
@@ -145,6 +146,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
         signconf->soa_min = parse_sc_soa_min(scfile);
         signconf->soa_serial = parse_sc_soa_serial(signconf->allocator,
             scfile);
+        signconf->max_zone_ttl = parse_sc_max_zone_ttl(scfile);
         signconf->audit = parse_sc_audit(scfile);
         ods_fclose(fd);
         return ODS_STATUS_OK;
@@ -615,6 +617,7 @@ signconf_cleanup(signconf_type* sc)
     duration_cleanup(sc->dnskey_ttl);
     duration_cleanup(sc->soa_ttl);
     duration_cleanup(sc->soa_min);
+    duration_cleanup(sc->max_zone_ttl);
     keylist_cleanup(sc->keys);
     nsec3params_cleanup(sc->nsec3params);
     allocator = sc->allocator;

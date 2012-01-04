@@ -306,6 +306,22 @@ parse_sc_soa_min(const char* cfgfile)
 }
 
 
+duration_type*
+parse_sc_max_zone_ttl(const char* cfgfile)
+{
+    duration_type* duration = NULL;
+    const char* str = parse_conf_string(cfgfile,
+        "//SignerConfiguration/Zone/Signatures/MaxZoneTTL",
+        1);
+    if (!str) {
+        return NULL;
+    }
+    duration = duration_create_from_string(str);
+    free((void*)str);
+    return duration;
+}
+
+
 /**
  * Parse elements from the configuration file.
  *
