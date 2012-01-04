@@ -14,7 +14,7 @@ MAINTAINERCLEANFILES = \
 
 opendnsseclibdir = $(libdir)/opendnssec
 
-bin_SCRIPTS =	ods-auditor ods-kaspcheck
+bin_SCRIPTS =	ods-auditor #ods-kaspcheck
 
 man1_MANS =	ods-auditor.1 ods-kaspcheck.1
 
