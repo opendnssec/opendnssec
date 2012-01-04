@@ -86,10 +86,6 @@
 			</SOA>
 		</Parent>
 
-		<Audit>
-			<!-- <Partial /> -->
-		</Audit>
-
 	</Policy>
 	
 </KASP>

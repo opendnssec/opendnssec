@@ -125,15 +125,6 @@ start = element Configuration {
 		# '%zone' in the string will be replaced by the zone name
 		# '%zonefile' in the string will be replaced by the zone file
 		element NotifyCommand { xsd:string }?
-	}?,
-
-	element Auditor {
-		# User & group to drop privs to
-		privs?,
-
-		# Location to store intermediate audit information
-		# DEFAULT: $(localstatedir)/opendnssec/tmp
-		element WorkingDirectory { xsd:string }?
 	}?
 }
 

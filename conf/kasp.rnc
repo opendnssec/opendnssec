@@ -123,12 +123,7 @@ start = element KASP {
 
 			# Expected parent SOA parameters
 			element SOA { anysoa }
-		},
-
-                element Audit {
-                       # Do a partial audit?
-                       partial?
-                }*
+		}
 	}*
 }
 

@@ -79,10 +79,7 @@ zone = element Zone {
 		},
 
 		# What parameters to use for the SOA record
-		soa,
-		
-		# Auditing parameters
-		audit?
+		soa
 	}
 
 algorithm = element Algorithm { xsd:nonNegativeInteger { maxInclusive = "255" } }
@@ -116,6 +113,3 @@ nsec3 = element NSEC3 {
 			element Salt { xsd:string }
 		}
 	}
-
-# This section is taken directly from the corresponding KASP policy
-audit = element Audit { empty }

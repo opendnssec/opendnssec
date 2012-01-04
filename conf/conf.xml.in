@@ -87,15 +87,4 @@
 -->
 	</Signer>
 
-	<Auditor>
-<!--
-		<Privileges>
-			<User>opendnssec</User>
-			<Group>opendnssec</Group>
-		</Privileges>
--->
-
-		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
-	</Auditor>
-
 </Configuration>
