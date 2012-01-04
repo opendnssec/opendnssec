@@ -17,10 +17,6 @@ if ENABLE_SIGNER
 SUBDIRS += signer
 endif
 
-if ENABLE_AUDITOR
-SUBDIRS += auditor
-endif
-
 if ENABLE_EPPCLIENT
 SUBDIRS += plugins/eppclient
 endif
@@ -44,6 +40,3 @@ docs:
 	(cd libhsm; $(MAKE) doxygen)
 	(cd enforcer; $(MAKE) doxygen)
 	(cd signer; $(MAKE) doxygen)
-if ENABLE_AUDITOR
-	(cd auditor; $(MAKE) rdoc)
-endif
