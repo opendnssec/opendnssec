@@ -2,6 +2,7 @@ $Id$
 
 OpenDNSSEC trunk
 
+* Remove auditor
 * Signer Engine: Input and Output DNS Adapters.
 * Zonefetcher removed.
 * Enforcer: Key label logging upon deletion (#192 Sebastian Castro)

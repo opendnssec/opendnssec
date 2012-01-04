@@ -203,17 +203,6 @@ AH_BOTTOM([
 ])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
-# auditor
-AC_ARG_ENABLE(auditor,
-	AC_HELP_STRING([--enable-auditor],
-		[Enable auditor build (default disabled)]),
-		[enable_auditor="${enableval}"],
-		[enable_auditor="no"])
-if test "x${enable_auditor}" = "xyes"; then
-	AC_CONFIG_SUBDIRS([ auditor ])
-fi
-AM_CONDITIONAL([ENABLE_AUDITOR], [test "${enable_auditor}" = "yes"])
-
 # plugins/eppclient
 AC_ARG_ENABLE(eppclient,
 	AC_HELP_STRING([--enable-eppclient],
