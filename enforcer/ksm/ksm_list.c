@@ -379,9 +379,10 @@ int KsmListRollovers(int zone_id)
     char*       temp_zone = NULL;   /* place to store zone name returned */
     int         temp_type = 0;      /* place to store key type returned */
     char*       temp_date = NULL;   /* place to store date returned */
+    int         temp_state = 0;     /* place to store key state returned */
 
     /* Select rows */
-    StrAppend(&sql, "select z.name, k.keytype, k.retire from zones z, KEYDATA_VIEW k where z.id = k.zone_id and k.state = 4 ");
+    StrAppend(&sql, "select z.name, k.keytype, k.retire, k.state from zones z, KEYDATA_VIEW k where z.id = k.zone_id and k.state in (3,4,7) ");
     if (zone_id != -1) {
         StrAppend(&sql, "and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
@@ -401,8 +402,14 @@ int KsmListRollovers(int zone_id)
             DbString(row, 0, &temp_zone);
             DbInt(row, 1, &temp_type);
             DbString(row, 2, &temp_date);
+            DbInt(row, 3, &temp_state);
 
-            printf("%-31s %-13s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", (temp_date == NULL) ? "(not scheduled)" : temp_date);
+			if (temp_state == KSM_STATE_ACTIVE) {
+				printf("%-31s %-13s %s\n", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", (temp_date == NULL) ? "(not scheduled)" : temp_date);
+			} 
+			else if (temp_type == KSM_TYPE_KSK) {
+				printf("%-31s %-13s %s\n", temp_zone, "KSK", "waiting for ds-seen");
+			}
             
             status = DbFetchRow(result, &row);
         }
