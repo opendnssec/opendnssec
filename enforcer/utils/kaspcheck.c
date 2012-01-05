@@ -163,7 +163,7 @@ int check_conf(char** kasp) {
 	status = check_rng(config, rngfilename);
 
 	if (status == 0) {
-		dual_log("INFO: %s validates\n", config);
+		dual_log("INFO: The XML in %s is valid\n", config);
 	} else {
 		return status; /* Don't try to read the file if it is invalid */
 	}
@@ -276,7 +276,7 @@ int check_conf(char** kasp) {
 	temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 	if (check_rng(temp_char, zonerngfilename) == 0) {
-		dual_log("INFO: %s validates\n", temp_char);
+		dual_log("INFO: The XML in %s is valid\n", temp_char);
 	} else {
 		status += 1;
 	}
@@ -379,7 +379,7 @@ int check_kasp() {
 	status = check_rng(kasp, rngfilename);
 
 	if (status ==0) {
-		dual_log("INFO: %s validates\n", kasp);
+		dual_log("INFO: The XML in %s is valid\n", kasp);
 	} else {
 		return 1;
 	}
