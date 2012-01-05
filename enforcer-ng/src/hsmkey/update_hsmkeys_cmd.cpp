@@ -16,23 +16,17 @@ static const char *module_str = "update_hsmkeys_cmd";
 void
 help_update_hsmkeys_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
+    ods_printf(sockfd,
         "update hsmkeys  import the keys found in all configured HSMs\n"
         "                into the database.\n"
         );
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 int
 handled_update_hsmkeys_cmd(int sockfd, engine_type* engine, const char *cmd,
                            ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    task_type *task;
-    ods_status status;
     const char *scmd = "update hsmkeys";
-    ssize_t ncmd = strlen(scmd);
 
     cmd = ods_check_command(cmd,n,scmd);
     if (!cmd)
@@ -40,12 +34,10 @@ handled_update_hsmkeys_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-    /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_update_hsmkeys(sockfd,engine->config);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
 
-    return 1;
+    perform_update_hsmkeys(sockfd,engine->config,true);
+	
+    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
+	return 1;
 }

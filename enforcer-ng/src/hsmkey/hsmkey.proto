@@ -4,10 +4,13 @@
 package ods.hsmkey;
 
 import "xmlext.proto";
+import "orm.proto";
 
-message HsmKeyDocument {
-    repeated HsmKey keys = 1;
-}
+// hsm key info from libhsm is used to initialize some of the values
+//  in a HsmKey object.
+// locator is hsm key info 'id'
+// bits is hsm key info 'keysize'ss
+// key_type is hsm key info 'algorithm_name'
 
 message HsmKey {
     required string locator = 1;
@@ -18,8 +21,8 @@ message HsmKey {
     optional keyrole role = 6 [default = ZSK]; // from kasp
     repeated string used_by_zones = 7; // maintainted by enforcer
     optional uint32 inception = 8; // 'now' assigned on first use of key in any zone
-    optional bool revoke = 9 [default = false];
-    optional string key_type = 10; // matches numeric value from PKCS#11 spec e.g. CKK_RSA
+    optional bool revoke = 9 [default = false, (orm.column).name = "isrevoked"];
+    optional string key_type = 10; // key type name derived from name in PKCS#11 spec e.g. CKK_RSA becomes "RSA"
     optional string repository = 11; // repository in which the key was found e.g. SoftHSM
 } 
 

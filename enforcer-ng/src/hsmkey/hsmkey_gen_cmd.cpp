@@ -17,20 +17,15 @@ static const char *module_str = "hsmkey_gen_cmd";
  */
 void help_hsmkey_gen_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
+    ods_printf(sockfd,
         "hsm key gen     pre-generate a collection of cryptographic keys\n"
         "                before they are actually needed by the enforcer\n"
         );
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
-                              ssize_t n)
+						   ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    task_type *task;
-    ods_status status;
     const char *scmd = "hsm key gen";
     
     cmd = ods_check_command(cmd,n,scmd);
@@ -39,12 +34,10 @@ int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-    /* perform task immediately */
     time_t tstart = time(NULL);
+
     perform_hsmkey_gen(sockfd,engine->config,1);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
     
+	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;
 }

@@ -13,17 +13,15 @@ static const char *module_str = "hsmkey_list_cmd";
 
 void help_hsmkey_list_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
+    ods_printf(sockfd,
         "hsm key list    list all the cryptographic keys present in the\n"
         "                configured hardware security modules\n"
         "  --verbose     (aka -v) show additonal information for every key.\n"
         );
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 int handled_hsmkey_list_cmd(int sockfd, engine_type* engine, const char *cmd,
-                              ssize_t n)
+							ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     const char *argv[8];
@@ -46,8 +44,7 @@ int handled_hsmkey_list_cmd(int sockfd, engine_type* engine, const char *cmd,
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"too many arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"too many arguments\n");
         return 1; // errors, but handled
     }
     
@@ -55,17 +52,14 @@ int handled_hsmkey_list_cmd(int sockfd, engine_type* engine, const char *cmd,
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"unknown arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"unknown arguments\n");
         return 1; // errors, but handled
     }
     
-    /* perform task immediately */
     time_t tstart = time(NULL);
+	
     perform_hsmkey_list(sockfd,engine->config,bVerbose?1:0);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
-    
+
+    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;
 }

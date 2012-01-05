@@ -8,6 +8,7 @@
 
 #include "hsmkey/hsmkey.pb.h"
 #include "policy/kasp.pb.h"
+#include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
 
@@ -15,20 +16,21 @@
 #include <string.h>
 #include <memory>
 
-static const char *module_str = "keypregen_task";
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
 
-bool generate_keypair(int sockfd,
-                      const char *repository,
-                      unsigned int keysize,
-                      std::string &locator)
+static const char *module_str = "hsmkey_gen_task";
+
+static bool
+generate_keypair(int sockfd,
+				 const char *repository,
+				 unsigned int keysize,
+				 std::string &locator)
 {
-    char buf[ODS_SE_MAXLINE];
     hsm_key_t *key = NULL;
     hsm_ctx_t *ctx = hsm_create_context();
     if (!ctx) {
-        ods_log_error("[%s] Could not connect to HSM", module_str);
-        (void)snprintf(buf,ODS_SE_MAXLINE, "Could not connect to HSM\n");
-        ods_writen(sockfd, buf, strlen(buf));
+		ods_log_error_and_printf(sockfd,module_str,"could not connect to HSM");
         return false;
     }
     
@@ -41,22 +43,18 @@ bool generate_keypair(int sockfd,
     
     ods_log_debug("[%s] Generating %d bit RSA key in repository: %s",
                   module_str,keysize,repository);
-    (void)snprintf(buf, ODS_SE_MAXLINE,
-                   "generating %d bit RSA key in repository: %s\n",
-                   keysize,repository);
-    ods_writen(sockfd, buf, strlen(buf));
-    
+    ods_printf(sockfd,"generating %d bit RSA key in repository: %s\n",
+			   keysize, repository);
+
     key = hsm_generate_rsa_key(ctx, repository, keysize);
     if (key) {
         hsm_key_info_t *key_info;
         key_info = hsm_get_key_info(ctx, key);
         locator.assign(key_info ? key_info->id : "NULL");
+
         ods_log_debug("[%s] Key generation successful: %s",
-                      module_str,locator.c_str());
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "key generation successful: %s\n",
-                       locator.c_str());
-        ods_writen(sockfd, buf, strlen(buf));
+					  module_str,locator.c_str());
+        ods_printf(sockfd,"key generation successful: %s\n",locator.c_str());
         
         hsm_key_info_free(key_info);
 #if 0
@@ -64,9 +62,7 @@ bool generate_keypair(int sockfd,
 #endif
         hsm_key_free(key);
     } else {
-        ods_log_error("[%s] Key generation failed.", module_str);
-        (void)snprintf(buf, ODS_SE_MAXLINE, "key generation failed.\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_log_error_and_printf(sockfd, module_str, "key generation failed");
         hsm_destroy_context(ctx);
         return false;
     }
@@ -74,246 +70,363 @@ bool generate_keypair(int sockfd,
     return true;
 }
 
-bool generate_keypairs(int sockfd, ::ods::hsmkey::HsmKeyDocument *hsmkeyDoc,
-                       int ngen, int nbits, const char *repository,
-                       const char *policy_name,
-                       ::google::protobuf::uint32 algorithm,
-                       ::ods::hsmkey::keyrole role)
+static bool
+generate_keypairs(int sockfd,
+				  OrmConn conn,
+				  int ngen,
+				  int nbits,
+				  const char *repository,
+				  const char *policy_name,
+				  ::google::protobuf::uint32 algorithm,
+				  ::ods::hsmkey::keyrole role)
 {
-    bool bkeysgenerated = false;
+	// nothing todo !
+	if (ngen<=0) {
+		ods_printf(sockfd,
+				   "no %s keys of %d bits needed.\n",
+				   ::ods::hsmkey::keyrole_Name(role).c_str(),
+				   nbits);
+		return true;
+	}
+	
+    bool bkeysgenerated_and_stored = false;
     
-    char buf[ODS_SE_MAXLINE];
-    (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "generating %d keys of %d bits.\n",
-                   ngen,nbits);
-    ods_writen(sockfd, buf, strlen(buf));
+    ods_printf(sockfd,
+			   "generating %d %ss of %d bits.\n",
+			   ngen,
+			   ::ods::hsmkey::keyrole_Name(role).c_str(),
+			   nbits);
     
     // Generate additional keys until certain minimum number is 
     // available.
-    for ( ;ngen; --ngen) {
+    for ( ;ngen>0; --ngen) {
         std::string locator;
-        if (generate_keypair(sockfd,repository,nbits,locator))
-        {
-            bkeysgenerated = true;
-            ::ods::hsmkey::HsmKey* key = hsmkeyDoc->add_keys();
-            key->set_locator(locator);
-            key->set_bits(nbits);
-            key->set_repository(repository);
-            key->set_policy(policy_name);
-            key->set_algorithm(algorithm);
-            key->set_role(role);
-            key->set_key_type("RSA");
-        } else {
+        if (!generate_keypair(sockfd,repository,nbits,locator)) {
             // perhaps this HSM can't generate keys of this size.
-            ods_log_error("[%s] Error during key generation",
-                          module_str);
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "unable to generate a key of %d bits.\n",
-                           nbits);
-            ods_writen(sockfd, buf, strlen(buf));
+            ods_log_error_and_printf(sockfd,
+									 module_str,
+									 "unable to generate a %s of %d bits",
+									 ::ods::hsmkey::keyrole_Name(role).c_str(),
+									 nbits);
             break;
+		} else {
+			
+			// initialize the db hsm key with info from the generated hsm key.
+            ::ods::hsmkey::HsmKey key;
+            key.set_locator(locator);
+            key.set_bits(nbits);
+            key.set_repository(repository);
+            key.set_policy(policy_name);
+            key.set_algorithm(algorithm);
+            key.set_role(role);
+            key.set_key_type("RSA");
+
+			{
+				// We do insertion of the generated key into the database here
+				// after generating of the key.
+				// Key generation can take a long time so we accept the risk of 
+				// creating orphaned keys in the hsm that are not registered in
+				// the database because the transaction to insert them failed.
+				OrmTransactionRW transaction(conn);
+				const char *errmsg = NULL;
+				if (!transaction.started())
+					errmsg = "error starting transaction for storing "
+							 "generated hsm key in the database.";
+				else {
+					pb::uint64 keyid;
+					if (!OrmMessageInsert(conn, key, keyid)) 
+						errmsg = "error inserting generated hsm key into "
+								 "the database.";
+					else {
+						if (!transaction.commit())
+							errmsg = "error commiting generated hsm key to "
+									 "the database.";
+						else
+							bkeysgenerated_and_stored = true;
+					}
+				}
+				if (errmsg) {
+					ods_log_error_and_printf(sockfd, module_str, errmsg);
+					break;
+				}
+			}
         }
     }
     
-    if (ngen==0) {
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "finished generating %d bit keys.\n", nbits);
-        ods_writen(sockfd, buf, strlen(buf));
+    if (ngen<=0) {
+        ods_printf(sockfd,
+				   "finished generating %d bit %ss.\n",
+				   nbits,
+				   ::ods::hsmkey::keyrole_Name(role).c_str());
     }
+    return bkeysgenerated_and_stored;
+}
 
-    return bkeysgenerated;
+static bool
+count_unused_hsmkeys(OrmConn conn,
+					 const std::string &policy,
+					 const std::string &repository,
+					 pb::uint32 algorithm,
+					 int bits,
+					 ::ods::hsmkey::keyrole role,
+					 int &nunusedkeys)
+{
+	nunusedkeys = 0;
+	
+	OrmTransaction transaction(conn);
+	if (!transaction.started())
+		return false;
+	
+	// Count the keys that match this 
+	OrmResultRef rows;
+	if (OrmMessageEnumWhere(conn,::ods::hsmkey::HsmKey::descriptor(),
+							rows,"inception IS NULL")) 
+	{
+		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+			::ods::hsmkey::HsmKey key;
+			if (OrmGetMessage(rows, key, true)) {
+				
+				// only count keys that are not used and 
+				// thus have inception not set.
+				if (!key.has_inception()) {
+					// key is available
+					if (key.bits() == bits
+						&& key.role() == role
+						&& key.policy() == policy
+						&& key.repository() == repository
+						&& key.algorithm() == algorithm
+						)
+					{
+						// This key has all the right properties
+						++nunusedkeys;
+					}
+				}
+			}
+		}
+		rows.release();
+	}
+	
+	return true;
+}
+
+static void
+generate_ksks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
+			  time_t duration)
+{
+	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::KSK;
+	for (int k=0; k<policy.keys().ksk_size(); ++k) {
+		const ::ods::kasp::Ksk& key = policy.keys().ksk(k);
+		int nunusedkeys;
+		if (!count_unused_hsmkeys(conn,
+								  policy.name(),
+								  key.repository(),
+								  key.algorithm(),
+								  key.bits(),
+								  key_role,
+								  nunusedkeys))
+		{
+			ods_log_error_and_printf(sockfd,module_str,
+									 "counting KSKs failed");
+		} else {
+			int key_pregen = 1 + (duration / key.lifetime());
+			if (!generate_keypairs(sockfd,
+								   conn,
+								   key_pregen-nunusedkeys,
+								   key.bits(),
+								   key.repository().c_str(),
+								   policy.name().c_str(),
+								   key.algorithm(),
+								   key_role))
+			{
+				ods_log_error_and_printf(sockfd,module_str,
+										 "generating KSKs failed");
+			}
+		}
+	}
+}
+
+static void
+generate_zsks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
+			  time_t duration)
+{
+	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::ZSK;
+	for (int k=0; k<policy.keys().zsk_size(); ++k) {
+		const ::ods::kasp::Zsk& key = policy.keys().zsk(k);
+		int nunusedkeys;
+		if (!count_unused_hsmkeys(conn,
+								  policy.name(),
+								  key.repository(),
+								  key.algorithm(),
+								  key.bits(),
+								  key_role,
+								  nunusedkeys))
+		{
+			ods_log_error_and_printf(sockfd,module_str,
+									 "counting ZSKs failed");
+		} else {
+			int key_pregen = 1 + (duration / key.lifetime());
+			if (!generate_keypairs(sockfd,
+								   conn,
+								   key_pregen-nunusedkeys,
+								   key.bits(),
+								   key.repository().c_str(),
+								   policy.name().c_str(),
+								   key.algorithm(),
+								   key_role))
+			{
+				ods_log_error_and_printf(sockfd,module_str,
+										 "generating ZSKs failed");
+			}
+		}
+	}
+}
+
+static void
+generate_csks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
+			  time_t duration)
+{
+	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::CSK;
+	for (int k=0; k<policy.keys().csk_size(); ++k) {
+		const ::ods::kasp::Csk& key = policy.keys().csk(k);
+		int nunusedkeys;
+		if (!count_unused_hsmkeys(conn,
+								  policy.name(),
+								  key.repository(),
+								  key.algorithm(),
+								  key.bits(),
+								  key_role,
+								  nunusedkeys))
+		{
+			ods_log_error_and_printf(sockfd,module_str,
+									 "counting CSKs failed");
+		} else {
+			int key_pregen = 1 + (duration / key.lifetime());
+			if (!generate_keypairs(sockfd,
+								   conn,
+								   key_pregen-nunusedkeys,
+								   key.bits(),
+								   key.repository().c_str(),
+								   policy.name().c_str(),
+								   key.algorithm(),
+								   key_role))
+			{
+				ods_log_error_and_printf(sockfd,module_str,
+										 "generating CSKs failed");
+			}
+		}
+	}
+}
+
+bool count_zones_for_policy(int sockfd,
+							OrmConn conn,
+							const std::string &policy,
+							pb::uint64 &count)
+{
+	count = 0;
+	
+	OrmTransaction transaction(conn);
+	if (!transaction.started()) {
+		ods_log_error_and_printf(sockfd, module_str,
+								 "starting transaction failed");
+		return false;
+	}
+	
+	std::string qpolicy;
+	if (!OrmQuoteStringValue(conn, policy, qpolicy)) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "quoting a string failed");
+		return false;
+	}
+
+	const ::google::protobuf::Descriptor *zdesc =
+		::ods::keystate::EnforcerZone::descriptor();
+	if (!OrmMessageCountWhere(conn,zdesc,count,"policy=%s",qpolicy.c_str()))
+	{
+		ods_log_error_and_printf(sockfd,module_str,
+							"counting zones associated with policy %s failed",
+								 policy.c_str() );
+		return false;
+	}
+
+	return true;
 }
 
 void 
 perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
 {
-    const int KSK_PREGEN = 2;
-    const int ZSK_PREGEN = 4;
-    const int CSK_PREGEN = 4;
-    
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     // If only manual key generation is allowed and we are not being called 
     // manually, then return.
     if (config->manual_keygen != 0 && bManual == 0) {
-        char buf[ODS_SE_MAXLINE];
         ods_log_debug("[%s] not generating keys, because ManualKeyGeneration "
                       "flag is set in conf.xml.",
                       module_str);
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "not generating keys, because ManualKeyGeneration "
-                       "flag is set in conf.xml.\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,
+				   "not generating keys, because ManualKeyGeneration flag is "
+				   "set in conf.xml.\n");
         return;
     }
     
-    const char *datastore = config->datastore;
-    
-    GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn))
+		return; // errors have already been reported.
+	
+	// load all policies into memory, we are going to be modifying the database 
+	// hsm key tables later on in multiple separate transactions. We therefore 
+	// need to finalize the transaction used to access the policies because
+	// transaction nesting may not be possible on all databases.
+	::ods::kasp::KASP kasp;
+	{	OrmTransaction transaction(conn);
+		if (!transaction.started()) {
+			ods_log_error_and_printf(sockfd, module_str,
+									 "starting transaction failed");
+			return;
+		}
+		
+		{	OrmResultRef rows;
+			if (!OrmMessageEnum(conn,::ods::kasp::Policy::descriptor(),rows)) {
+				ods_log_error_and_printf(sockfd, module_str,
+										 "enumerating policies failed");
+				return;
+			}
+			
+			for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+				::ods::kasp::Policy *policy = kasp.add_policies();
+				if (!policy) {
+					ods_log_error_and_printf(sockfd, module_str,
+											 "out of memory allocating policy");
+					return;
+				}
+				
+				if (!OrmGetMessage(rows, *policy, true)) {
+					ods_log_error_and_printf(sockfd, module_str,
+										"reading policy from database failed");
+					return;
+				}
+			}
+		}
+	}	
 
-    // Use auto_ptr so we don't forget to delete the KaspDocument
-    std::auto_ptr< ::ods::kasp::KaspDocument >
-        kaspDoc( new ::ods::kasp::KaspDocument );
-    {
-        std::string datapath(datastore);
-        datapath += ".policy.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (fd != -1) {
-            if (kaspDoc->ParseFromFileDescriptor(fd)) {
-                ods_log_debug("[%s] policies have been loaded",
-                              module_str);
-            } else {
-                ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                              module_str,datapath.c_str());
-            }
-            close(fd);
-        }
-    }
+	// Now perform the policy driven key pre-generation.
+	time_t duration = 365 * 24 * 3600; // a normal year in seconds.
+	
+	//FIXME: get duration as a parameter on the command line.
+	
+    for (int i=0; i<kasp.policies_size(); ++i) {
 
-    // Load the current list of pre-generated keys
-    std::auto_ptr< ::ods::hsmkey::HsmKeyDocument >
-        hsmkeyDoc( new ::ods::hsmkey::HsmKeyDocument );
-    {
-        std::string datapath(datastore);
-        datapath += ".hsmkey.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (fd != -1) {
-            if (hsmkeyDoc->ParseFromFileDescriptor(fd)) {
-                ods_log_debug("[%s] HSM key info list has been loaded",
-                              module_str);
-            } else {
-                ods_log_error("[%s] HSM key info list could not be loaded "
-                              "from \"%s\"",
-                              module_str,datapath.c_str());
-            }
-            close(fd);
-        }
-    }
-
-    bool bkeysgenerated = false;
-
-    // We implement policy driven key pre-generation.
-    int npolicies = kaspDoc->kasp().policies_size();
-    for (int i=0; i<npolicies; ++i) {
-        const ::ods::kasp::Policy &policy = kaspDoc->kasp().policies(i);
-        
-        // handle KSK keys
-        for (int iksk=0; iksk<policy.keys().ksk_size(); ++iksk) {
-            const ::ods::kasp::Ksk& ksk = policy.keys().ksk(iksk);
-            int nfreekeys = 0;
-            for (int k=0; k<hsmkeyDoc->keys_size(); ++k) {
-                const ::ods::hsmkey::HsmKey& key = hsmkeyDoc->keys(k);
-                if (!key.has_inception()) {
-                    // this key is available
-                    if (key.bits() == ksk.bits()
-                        && key.role() == ::ods::hsmkey::KSK
-                        && key.policy() == policy.name()
-                        && key.repository() == ksk.repository()
-                        )
-                    {
-                        // This key has all the right properties
-                        ++nfreekeys;
-                    }
-                }
-            }
-            int ngen = KSK_PREGEN-nfreekeys;
-            if (ngen>0) {
-                int nbits = ksk.bits();
-                
-                if (generate_keypairs(sockfd, hsmkeyDoc.get(),
-                                      ngen, nbits,
-                                      ksk.repository().c_str(),
-                                      policy.name().c_str(),
-                                      ksk.algorithm(),
-                                      ::ods::hsmkey::KSK))
-                {
-                    bkeysgenerated = true;
-                }
-            }
-        }
-
-        // handle ZSK keys
-        for (int izsk=0; izsk<policy.keys().zsk_size(); ++izsk) {
-            const ::ods::kasp::Zsk& zsk = policy.keys().zsk(izsk);
-            int nfreekeys = 0;
-            for (int k=0; k<hsmkeyDoc->keys_size(); ++k) {
-                const ::ods::hsmkey::HsmKey& key = hsmkeyDoc->keys(k);
-                if (!key.has_inception()) {
-                    // this key is available
-                    if (key.bits() == zsk.bits()
-                        && key.role() == ::ods::hsmkey::ZSK
-                        && key.policy() == policy.name()
-                        && key.repository() == zsk.repository()
-                        )
-                    {
-                        // This key has all the right properties
-                        ++nfreekeys;
-                    }
-                }
-            }
-            int ngen = ZSK_PREGEN-nfreekeys;
-            if (ngen>0) {
-                int nbits = zsk.bits();
-                
-                if (generate_keypairs(sockfd, hsmkeyDoc.get(),
-                                      ngen, nbits,
-                                      zsk.repository().c_str(),
-                                      policy.name().c_str(),
-                                      zsk.algorithm(),
-                                      ::ods::hsmkey::ZSK))
-                {
-                    bkeysgenerated = true;
-                }
-            }
-        }
-
-        // handle CSK keys
-        for (int icsk=0; icsk<policy.keys().csk_size(); ++icsk) {
-            const ::ods::kasp::Csk& csk = policy.keys().csk(icsk);
-            int nfreekeys = 0;
-            for (int k=0; k<hsmkeyDoc->keys_size(); ++k) {
-                const ::ods::hsmkey::HsmKey& key = hsmkeyDoc->keys(k);
-                if (!key.has_inception()) {
-                    // this key is available
-                    if (key.bits() == csk.bits()
-                        && key.role() == ::ods::hsmkey::CSK
-                        && key.policy() == policy.name()
-                        && key.repository() == csk.repository()
-                        )
-                    {
-                        // This key has all the right properties
-                        ++nfreekeys;
-                    }
-                }
-            }
-            int ngen = CSK_PREGEN-nfreekeys;
-            if (ngen>0) {
-                int nbits = csk.bits();
-                
-                if (generate_keypairs(sockfd, hsmkeyDoc.get(),
-                                      ngen, nbits,
-                                      csk.repository().c_str(),
-                                      policy.name().c_str(),
-                                      csk.algorithm(),
-                                      ::ods::hsmkey::CSK))
-                {
-                    bkeysgenerated = true;
-                }
-            }
-        }
-    }
-
-    // Write the list of pre-generated keys back to a pb file.
-    if (bkeysgenerated) {
-        std::string datapath(datastore);
-        datapath += ".hsmkey.pb";
-        int fd = open(datapath.c_str(),O_CREAT|O_WRONLY,0644);
-        if (hsmkeyDoc->SerializeToFileDescriptor(fd)) {
-            ods_log_debug("[%s] HSM key info list has been written",
-                          module_str);
-        } else {
-            ods_log_error("[%s] HSM key info list could not be written to \"%s\"",
-                          module_str,datapath.c_str());
-        }
-        close(fd);
+		pb::uint64 count;
+		if (!count_zones_for_policy(sockfd,conn,kasp.policies(i).name(),count)) {
+			ods_log_error_and_printf(sockfd,
+									 module_str,
+									 "skipping key generation for %s policy",
+									 kasp.policies(i).name().c_str());
+			continue;
+		}
+				
+		generate_ksks(sockfd, conn, kasp.policies(i), duration);
+		generate_zsks(sockfd, conn, kasp.policies(i), duration);
+		generate_csks(sockfd, conn, kasp.policies(i), duration);
     }
 }
 
