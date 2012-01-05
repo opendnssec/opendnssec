@@ -9,8 +9,8 @@ extern "C" {
 
 void help_setup_cmd(int sockfd);
 
-int handled_setup_cmd(int sockfd, engine_type* engine,
-                      const char *cmd, ssize_t n);
+int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
+					  ssize_t n);
 
 #ifdef __cplusplus
 }

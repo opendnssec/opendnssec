@@ -255,9 +255,10 @@ void KeyDataListPB::delKey(int index)
 // EnforcerZonePB
 
 EnforcerZonePB::EnforcerZonePB(::ods::keystate::EnforcerZone *zone, 
-                                     const ::ods::kasp::Policy *policy) 
-: _zone(zone), _policy(policy), _keyDataList(_zone)
+                                     const ::ods::kasp::Policy &policy) 
+: _zone(zone), _keyDataList(_zone)
 {
+	_policy.CopyFrom(policy);
 }
 
 const std::string &EnforcerZonePB::name()
@@ -267,7 +268,7 @@ const std::string &EnforcerZonePB::name()
 
 const ::ods::kasp::Policy *EnforcerZonePB::policy()
 {
-    return _policy;
+    return &_policy;
 }
 
 KeyDataList &EnforcerZonePB::keyDataList()

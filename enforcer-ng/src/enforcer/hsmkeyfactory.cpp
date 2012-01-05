@@ -9,68 +9,106 @@ static const char * const module_str = "hsmkeyfactory";
 // HsmKeyPB
 //////////////////////////////
 
+class KeyRef {
+public:
+	int _refcount;
+	::ods::hsmkey::HsmKey *_key;
+	KeyRef(::ods::hsmkey::HsmKey *key) : _refcount(1), _key(key) {
+	}
+	~KeyRef() {
+		release();
+	}
+	KeyRef *retain() {
+		_refcount++;
+		return this;
+	}
+	void release() {
+		if (this != NULL && _refcount > 0 && --_refcount == 0)
+			delete this;
+	}
+private:
+	KeyRef(const KeyRef &);
+	void operator=(const KeyRef &);
+};
+
 
 HsmKeyPB::HsmKeyPB(::ods::hsmkey::HsmKey *key)
-: _key(key)
 {
-    
+	_keyref = new KeyRef(key);
+	_keyref->_refcount = 1;
+	_keyref->_key = key;
+}
+
+HsmKeyPB::HsmKeyPB(const HsmKeyPB &value) : _keyref(NULL)
+{
+	if (value._keyref != _keyref) {
+		if (_keyref)
+			_keyref->release();
+		_keyref = value._keyref->retain();
+	}
+}
+
+HsmKeyPB::~HsmKeyPB()
+{
+	_keyref->release();
+	_keyref = NULL;
 }
 
 const std::string &HsmKeyPB::locator()
 { 
-    return _key->locator();
+    return _keyref->_key->locator();
 }
 
 bool HsmKeyPB::candidateForSharing()
 {
-    return _key->candidate_for_sharing();
+    return _keyref->_key->candidate_for_sharing();
 }
 
 void HsmKeyPB::setCandidateForSharing(bool value)
 {
-    _key->set_candidate_for_sharing(value);
+    _keyref->_key->set_candidate_for_sharing(value);
 }
 
 int HsmKeyPB::bits()
 {
-    return _key->bits();
+    return _keyref->_key->bits();
 }
 
 void HsmKeyPB::setBits(int value)
 {
-    _key->set_bits(value);
+    _keyref->_key->set_bits(value);
 }
 
 const std::string &HsmKeyPB::policy()
 {
-    return _key->policy();
+    return _keyref->_key->policy();
 }
 
 void HsmKeyPB::setPolicy(const std::string &value) 
 {
-    _key->set_policy(value);
+    _keyref->_key->set_policy(value);
 }
 
 int HsmKeyPB::algorithm()
 {
-    return _key->algorithm();
+    return _keyref->_key->algorithm();
 }
 
 void HsmKeyPB::setAlgorithm(int value)
 {
-    _key->set_algorithm(value);
+    _keyref->_key->set_algorithm(value);
 }
 
 
 KeyRole HsmKeyPB::keyRole()
 {
-    return (KeyRole)_key->role();
+    return (KeyRole)_keyref->_key->role();
 }
 
 void HsmKeyPB::setKeyRole(KeyRole value)
 {
     if (::ods::hsmkey::keyrole_IsValid(value))
-        _key->set_role( (::ods::hsmkey::keyrole)value );
+        _keyref->_key->set_role( (::ods::hsmkey::keyrole)value );
     else {
         ods_log_error("[%s] %d is not a valid keyrole value",
                       module_str,value);
@@ -81,7 +119,7 @@ bool HsmKeyPB::usedByZone(const std::string &zone)
 {
     ::google::protobuf::RepeatedPtrField< ::std::string>::iterator it;
     ::google::protobuf::RepeatedPtrField< ::std::string>*ubz = 
-        _key->mutable_used_by_zones();
+        _keyref->_key->mutable_used_by_zones();
     for (it = ubz->begin(); it!=ubz->end(); ++it) {
         if (*it == zone) {
             return true;
@@ -93,55 +131,54 @@ bool HsmKeyPB::usedByZone(const std::string &zone)
 void HsmKeyPB::setUsedByZone(const std::string &zone, bool bValue)
 {
     ::google::protobuf::RepeatedPtrField< ::std::string>*ubz = 
-        _key->mutable_used_by_zones();
-    for (int z=0; z<_key->used_by_zones_size(); ++z) {
-        if (_key->used_by_zones(z) == zone) {
+        _keyref->_key->mutable_used_by_zones();
+    for (int z=0; z<_keyref->_key->used_by_zones_size(); ++z) {
+        if (_keyref->_key->used_by_zones(z) == zone) {
             if (!bValue) {
-                ubz->SwapElements(z,_key->used_by_zones_size()-1);
+                ubz->SwapElements(z,_keyref->_key->used_by_zones_size()-1);
                 ubz->RemoveLast();
             }
             return;
         }
     }
     if (bValue)
-        _key->add_used_by_zones(zone);
+        _keyref->_key->add_used_by_zones(zone);
 }
 
 time_t HsmKeyPB::inception()
 {
-    return _key->inception();
+    return _keyref->_key->inception();
 }
 
 void HsmKeyPB::setInception(time_t value)
 {
-    _key->set_inception(value);
+    _keyref->_key->set_inception(value);
 }
 
 bool HsmKeyPB::revoke()
 {
-    return _key->revoke();
+    return _keyref->_key->revoke();
 }
 
 void HsmKeyPB::setRevoke(bool value)
 {
-    _key->set_revoke(value);
+    _keyref->_key->set_revoke(value);
 }
 
 const std::string &HsmKeyPB::repository()
 {
-    return _key->repository();
+    return _keyref->_key->repository();
 }
 
 //////////////////////////////
 // HsmKeyFactoryPB
 //////////////////////////////
 
-HsmKeyFactoryPB::HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc,
+HsmKeyFactoryPB::HsmKeyFactoryPB(OrmConn conn,
                                  HsmKeyFactoryDelegatePB *delegate)
-: _doc(doc), _delegate(delegate)
+: _conn(conn), _delegate(delegate)
 {
 }
-
 
 /* Create a new key with the specified number of bits (or retrieve it 
  from a pre-generated keypool)  */
@@ -150,64 +187,76 @@ bool HsmKeyFactoryPB::CreateNewKey(int bits, const std::string &repository,
                                    KeyRole role,
                                    HsmKey **ppKey)
 {
-    // First go through the keys and try to find a key that matches the
-    // parameters exactly.
-    for (int k=0; k<_doc->keys_size(); ++k) {
-        ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
-        if (!pbkey->has_inception() 
-            && pbkey->bits() == bits
-            && pbkey->repository() == repository
-            && pbkey->policy() == policy
-            && pbkey->algorithm() == algorithm
-            && pbkey->role() == (::ods::hsmkey::keyrole)role
-            )
-        {
-            pbkey->set_inception(time_now());
-            std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
-            ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
-                                            pbkey->locator(),HsmKeyPB(pbkey)));
-            *ppKey = &ret.first->second;
+#if 0
+	// perform retrieval and update of a hsm key inside a single transaction.
+	OrmTransactionRW transaction(_conn);
+	if (!transaction.started())
+		return false;
+#endif
+	
+    // Find keys that are available and match exactly with the given parameters.
+	{	OrmResultRef rows;
+		if (!OrmMessageEnumWhere(_conn, ::ods::hsmkey::HsmKey::descriptor(),
+								 rows, "inception IS NULL"))
+			return false;
 
-            // Fixate unset attributes that returned their default value.
-            // Otherwise when we list the keys those values will show 
-            // up as 'not set'
-            if (!pbkey->has_policy())
-                (*ppKey)->setPolicy(policy);
-            if (!pbkey->has_algorithm())
-                (*ppKey)->setAlgorithm(algorithm);
-            if (!pbkey->has_role())
-                (*ppKey)->setKeyRole(role);
-            return true;
-        }
+		::ods::hsmkey::HsmKey *pbkey = new ::ods::hsmkey::HsmKey;
+		
+		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+			OrmContextRef context;
+			if (OrmGetMessage(rows, *pbkey, true, context)) {
+				if (!pbkey->has_inception() 
+					&& pbkey->bits() == bits
+					&& pbkey->repository() == repository
+					&& pbkey->policy() == policy
+					&& pbkey->algorithm() == algorithm
+					&& pbkey->role() == (::ods::hsmkey::keyrole)role
+					)
+				{
+					// found a candidate, so we no longer need the rows
+					rows.release();
+
+					pbkey->set_inception(time_now());
+					HsmKeyPB pbkey_ref(pbkey);
+					
+					// Fixate unset attributes that returned their default value.
+					// Otherwise when we list the keys those values will show 
+					// up as 'not set'
+					if (!pbkey->has_policy())
+						pbkey_ref.setPolicy(policy);
+					if (!pbkey->has_algorithm())
+						pbkey_ref.setAlgorithm(algorithm);
+					if (!pbkey->has_role())
+						pbkey_ref.setKeyRole(role);
+					
+					pbkey = NULL;
+
+					// We have modified the key and need to update it.
+					if (!OrmMessageUpdate(context)) 
+						return false;
+#if 0
+					if (!transaction.commit())
+						return false;
+#endif
+					std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
+					ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
+										pbkey_ref.locator(),pbkey_ref));
+					*ppKey = &ret.first->second;
+					return true;
+				}
+			}
+		}
+
+		delete pbkey;
     }
 
-    // If that fails go through the list of keys again and try to find
-    // a key that has some of the attributes not assigned.
-    for (int k=0; k<_doc->keys_size(); ++k) {
-        ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
-        if (!pbkey->has_inception()
-            && pbkey->bits() == bits
-            && pbkey->repository() == repository
-            && (!pbkey->has_policy() || pbkey->policy() == policy)
-            && (!pbkey->has_algorithm() || pbkey->algorithm() == algorithm)
-            && (!pbkey->has_role()||pbkey->role()==(::ods::hsmkey::keyrole)role)
-            ) 
-        {
-            pbkey->set_inception(time_now());
-            std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
-            ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
-                                            pbkey->locator(),HsmKeyPB(pbkey)));
-            *ppKey = &ret.first->second;
-            if (!pbkey->has_policy())
-                (*ppKey)->setPolicy(policy);
-            if (!pbkey->has_algorithm())
-                (*ppKey)->setAlgorithm(algorithm);
-            if (!pbkey->has_role())
-                (*ppKey)->setKeyRole(role);
-            return true;
-        }
-    }
-    
+#if 0
+	// explicit rollback not strictly needed as it's the default action.
+	// but we want to be sure to leave the transaction before we start calling 
+	// callbacks on our delegate.
+	transaction.rollback(); 
+#endif
+	
     // We were not able to find any suitable key, give up.
     if (_delegate)
         _delegate->OnKeyShortage(bits,repository,policy,algorithm,role);
@@ -240,15 +289,30 @@ bool HsmKeyFactoryPB::GetHsmKeyByLocator(const std::string loc, HsmKey **ppKey)
     
     // Now enumerate keys in the document try to find a key that matches the
     // parameters exactly and is not yet present in the _keys vector field.
-    for (int k=0; k<_doc->keys_size(); ++k) {
-        ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
-        if (pbkey->locator() == loc) {
-            std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
-            ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
-                                            pbkey->locator(),HsmKeyPB(pbkey)));
-            *ppKey = &ret.first->second;
-            return true;
-        }
+	OrmResultRef rows;
+	if (OrmMessageEnum(_conn, ::ods::hsmkey::HsmKey::descriptor(), rows)) {
+
+		::ods::hsmkey::HsmKey *pbkey = NULL;
+
+		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+			
+			if (!pbkey)
+				pbkey = new ::ods::hsmkey::HsmKey;
+			
+			if (OrmGetMessage(rows, *pbkey, true)) {
+				if (pbkey->locator() == loc) {
+					std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
+					ret = _keys.insert(
+						std::pair<std::string,HsmKeyPB>(loc,HsmKeyPB(pbkey)) );
+					pbkey = NULL;
+					*ppKey = &ret.first->second;
+					return true;
+				}
+			}
+		}
+
+		if (pbkey)
+			delete pbkey;
     }
     return false;
 }
@@ -274,37 +338,84 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits, const std::string &repository,
         }
     }
 
+
+#if 0
+	// All the database access has to be done within a single transaction
+	OrmTransactionRW trans(_conn);
+#endif
+	
     // Now enumerate keys in the document try to find a key that matches the
     // parameters exactly and is not yet present in the _keys vector field.
-    for (int k=0; k<_doc->keys_size(); ++k) {
-        ::ods::hsmkey::HsmKey *pbkey = _doc->mutable_keys(k);
-        if (pbkey->has_inception()
-            && pbkey->bits() == bits
-            && pbkey->repository() == repository
-            && pbkey->policy() == policy
-            && pbkey->algorithm() == algorithm
-            && pbkey->role() == (::ods::hsmkey::keyrole)role
-            )
-        {
-            pbkey->set_inception(time_now());
-            std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
-            ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
-                                            pbkey->locator(),HsmKeyPB(pbkey)));
-            *ppKey = &ret.first->second;
-            (*ppKey)->setUsedByZone(zone,true);
-            
-            // Fixate unset attributes that returned their default value.
-            // Otherwise when we list the keys those values will show 
-            // up as 'not set'
-            if (!pbkey->has_policy())
-                (*ppKey)->setPolicy(policy);
-            if (!pbkey->has_algorithm())
-                (*ppKey)->setAlgorithm(algorithm);
-            if (!pbkey->has_role())
-                (*ppKey)->setKeyRole(role);
-            return true;
-        }
+	OrmResultRef rows;
+	if (OrmMessageEnum(_conn, ::ods::hsmkey::HsmKey::descriptor(), rows)) {
+
+		::ods::hsmkey::HsmKey *pbkey = NULL;
+		
+		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+
+			if (!pbkey)
+				pbkey = new ::ods::hsmkey::HsmKey;
+			
+			OrmContextRef context;
+			if (OrmGetMessage(rows, *pbkey, true, context)) {
+				if (pbkey->has_inception()
+					&& pbkey->bits() == bits
+					&& pbkey->repository() == repository
+					&& pbkey->policy() == policy
+					&& pbkey->algorithm() == algorithm
+					&& pbkey->role() == (::ods::hsmkey::keyrole)role
+					)
+				{
+					pbkey->set_inception(time_now());
+					HsmKeyPB pbkey_ref(pbkey);
+					
+					
+					// Fixate unset attributes that returned their default value.
+					// Otherwise when we list the keys those values will show 
+					// up as 'not set'
+					if (!pbkey->has_policy())
+						pbkey_ref.setPolicy(policy);
+					if (!pbkey->has_algorithm())
+						pbkey_ref.setAlgorithm(algorithm);
+					if (!pbkey->has_role())
+						pbkey_ref.setKeyRole(role);
+
+					pbkey = NULL;
+					
+					// We have modified the key and need to update it.
+					if (OrmMessageUpdate(context)) {
+						
+						// we won't be needing the result anymore, so release it
+						rows.release();
+#if 0
+						// now more active queries, so commit should work.
+						if (trans.commit()) {
+#endif
+							std::pair<std::map<std::string,HsmKeyPB>::iterator,bool> ret;
+							ret = _keys.insert(std::pair<std::string,HsmKeyPB>(
+												pbkey_ref.locator(),pbkey_ref));
+							*ppKey = &ret.first->second;
+							(*ppKey)->setUsedByZone(zone,true);
+							return true;
+#if 0
+						}
+#endif
+					}
+				}
+			}
+		}
+
+		if (pbkey)
+			delete pbkey;
+
+		rows.release();
+		
     }
 
+#if 0	
+	// transaction rolback is default, but we make it explicit here.
+	trans.rollback();
+#endif
+	
     return false;
 }

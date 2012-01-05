@@ -17,6 +17,9 @@ enum DsAtParent {
 
 class HsmKey {
 public:
+	HsmKey() {}
+	virtual ~HsmKey() {}
+	
     virtual const std::string &locator() = 0;
 
     /* When looking for a shared key, this flag determines whether the 
@@ -54,6 +57,10 @@ public:
     virtual void setRevoke(bool value) = 0;
     
     virtual const std::string &repository() = 0;
+	
+private:
+	HsmKey(const HsmKey &);
+	void operator=(const HsmKey &);
 };
 
 

@@ -27,7 +27,7 @@
 
 using namespace std;
 using ::ods::kasp::Policy;
-using ::ods::kasp::Keys;
+using ::ods::kasp::KeyList;
 
 static const char *module_str = "enforcer";
 
@@ -714,7 +714,7 @@ getLastReusableKey(EnforcerZone &zone,
  * return number of keys _in_a_policy_ 
  * */
 int 
-numberOfKeyConfigs(const Keys &policyKeys, const KeyRole role)
+numberOfKeyConfigs(const KeyList &policyKeys, const KeyRole role)
 {
 	const char *scmd = "numberOfKeyConfigs";
 	switch (role) {
@@ -744,7 +744,7 @@ numberOfKeyConfigs(const Keys &policyKeys, const KeyRole role)
  * \param[out] manual
  * */
 void 
-keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
+keyProperties(const KeyList &policyKeys, const int index, const KeyRole role,
 	int *bits, int *algorithm, int *lifetime, string &repository,
 	bool *manual, int *rollover_type)
 {
@@ -796,7 +796,7 @@ keyProperties(const Keys &policyKeys, const int index, const KeyRole role,
  * @return bool True if a matching policy exists
  * */
 bool
-existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys, 
+existsPolicyForKey(HsmKeyFactory &keyfactory, const KeyList &policyKeys, 
 	KeyData &key)
 {
 	const char *scmd = "existsPolicyForKey";
@@ -828,7 +828,7 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const Keys &policyKeys,
 }
 
 bool
-youngestKeyForConfig(HsmKeyFactory &keyfactory, const Keys &policyKeys, 
+youngestKeyForConfig(HsmKeyFactory &keyfactory, const KeyList &policyKeys, 
 	const KeyRole role, const int index, 
 	KeyDataList &key_list, KeyData **key)
 {
@@ -890,7 +890,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 {
 	time_t return_at = -1;
 	const Policy *policy = zone.policy();
-	Keys policyKeys = policy->keys();
+	KeyList policyKeys = policy->keys();
 	const string policyName = policy->name();
 	const char *scmd = "updatePolicy";
 

@@ -22,23 +22,17 @@ static const char *module_str = "enforce_cmd";
  */
 void help_enforce_zones_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
-    "enforce         force the enforcer to run once for every zone.\n"
-    );
-    ods_writen(sockfd, buf, strlen(buf));
+    ods_printf(sockfd,
+		    "enforce         force the enforcer to run once for every zone.\n");
 }
 
 /**
  * Handle the 'enforce' command.
  *
  */
-int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
-                              const char *cmd, ssize_t n)
+int handled_enforce_zones_cmd(int sockfd, engine_type* engine, const char *cmd,
+							  ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    task_type *task;
-    ods_status status;
     const char *scmd = "enforce";
 
     cmd = ods_check_command(cmd,n,scmd);
@@ -47,14 +41,10 @@ int handled_enforce_zones_cmd(int sockfd, engine_type* engine,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-	/* perform tasks immediately */
 	time_t tstart = time(NULL);
 
 	perform_enforce(sockfd, engine, 1, NULL);
 	
-	(void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-				   scmd,time(NULL)-tstart);
-	ods_writen(sockfd, buf, strlen(buf));
-
+	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;
 }

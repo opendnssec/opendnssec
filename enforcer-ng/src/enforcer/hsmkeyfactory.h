@@ -7,15 +7,22 @@
  */
 
 #include <map>
+#include "shared/log.h"
 #include "enforcer/enforcerdata.h"
 #include "hsmkey/hsmkey.pb.h"
+#include "protobuf-orm/pb-orm.h"
+
+class KeyRef;
 
 class HsmKeyPB : public HsmKey {
 private:
-    ::ods::hsmkey::HsmKey *_key;
+	KeyRef *_keyref;
+	
 public:
     HsmKeyPB(::ods::hsmkey::HsmKey *key);
-    
+	HsmKeyPB(const HsmKeyPB &value);
+    virtual ~HsmKeyPB();
+	
     virtual const std::string &locator();
     
     virtual bool candidateForSharing();
@@ -42,7 +49,10 @@ public:
     virtual bool revoke();
     virtual void setRevoke(bool value);
     
-    virtual const std::string &repository();    
+    virtual const std::string &repository();
+	
+private:
+	void operator=(const HsmKeyPB &);
 };
 
 class HsmKeyFactoryDelegatePB {
@@ -69,12 +79,12 @@ public:
 
 class HsmKeyFactoryPB : public HsmKeyFactory {
 private:
-    ::ods::hsmkey::HsmKeyDocument *_doc;
+    OrmConn _conn;
     std::map<std::string,HsmKeyPB> _keys;
     HsmKeyFactoryDelegatePB *_delegate;
     
 public:
-    HsmKeyFactoryPB(::ods::hsmkey::HsmKeyDocument *doc,
+    HsmKeyFactoryPB(OrmConn conn,
                     HsmKeyFactoryDelegatePB *delegate);
     
     virtual bool CreateNewKey(int bits, const std::string &repository,
