@@ -10,6 +10,9 @@
 
 #include "xmlext-pb/xmlext-rd.h"
 
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
+
 #include <fcntl.h>
 
 static const char *module_str = "zone_list_task";
@@ -17,76 +20,81 @@ static const char *module_str = "zone_list_task";
 void 
 perform_zone_list(int sockfd, engineconfig_type *config)
 {
-    char buf[ODS_SE_MAXLINE];
 	const char *zonelistfile = config->zonelist_filename;
-    const char *datastore = config->datastore;
-    
+
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-    // Load the keystate from the doc file
-    ::ods::keystate::KeyStateDocument *keystateDoc =
-        new ::ods::keystate::KeyStateDocument;
-    {
-        std::string datapath(datastore);
-        datapath += ".keystate.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (keystateDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] keystate has been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] keystate could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
-        }
-        close(fd);
-    }
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn))
+		return; // error already reported.
 
-    int nzones = keystateDoc->zones_size();
-    if (nzones == 0) {
-        (void)snprintf(buf, ODS_SE_MAXLINE,
+	{	OrmTransaction transaction(conn);
+		if (!transaction.started()) {
+			const char *errmsg = "could not start database transaction";
+			ods_log_error_and_printf(sockfd,module_str,errmsg);
+			return;
+		}
+		
+		::ods::keystate::EnforcerZone zone;
+		
+		{	OrmResultRef rows;
+			if (!OrmMessageEnum(conn, zone.descriptor(),rows)) {
+				const char *errmsg = "failure during zone enumeration";
+				ods_log_error_and_printf(sockfd,module_str,errmsg);
+				return;
+			}
+			
+			if (!OrmFirst(rows)) {
+				ods_printf(sockfd,
+						   "Zonelist filename set to: %s\n"
+						   "Database set to: %s\n"
+						   "I have no zones configured\n",
+						   zonelistfile,
+						   config->datastore);
+				return;
+			}
+
+			//TODO: SPEED: what if there are milions of zones ?
+			
+			ods_printf(sockfd,
                        "Zonelist filename set to: %s\n"
                        "Database set to: %s\n"
-                       "I have no zones configured\n"
-                       ,zonelistfile,datastore
-                       );
-        ods_writen(sockfd, buf, strlen(buf));
-    } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "Zonelist filename set to: %s\n"
-                       "Database set to: %s\n"
-                       "I have %i zones configured\n"
+//                       "I have %i zones configured\n"
                        "Zones:\n"
                        "Zone:                           "
                        "Policy:       "
                        "Next change:               "
                        "Signer Configuration:"
-                       "\n"
-                       ,zonelistfile,datastore,nzones
+                       "\n",
+                       zonelistfile,
+					   config->datastore //,nzones
                        );
-        ods_writen(sockfd, buf, strlen(buf));
-        
-        for (int i=0; i<nzones; ++i) {
-            const ::ods::keystate::EnforcerZone &zl_zone = keystateDoc->zones(i);
-            
-            char nctime[32];
-            if (zl_zone.next_change()>0) {
-                if (!ods_ctime_r(nctime,sizeof(nctime),zl_zone.next_change())) {
-                    strncpy(nctime,"invalid date/time",sizeof(nctime));
-                    nctime[sizeof(nctime)-1] = '\0';
-                }
-            } else {
-                strncpy(nctime,"as soon as possible",sizeof(nctime));
-                nctime[sizeof(nctime)-1] = '\0';
-            }
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-26s %-34s\n",
-                           zl_zone.name().c_str(),
-                           zl_zone.policy().c_str(),
-                           nctime,
-                           zl_zone.signconf_path().c_str()
-                           );
-            ods_writen(sockfd, buf, strlen(buf));
+			
+			for (bool next=true; next; next=OrmNext(rows)) {
+
+				if (!OrmGetMessage(rows, zone, true))
+					return;
+				
+				char nctime[32];
+				if (zone.next_change()>0) {
+					if (!ods_ctime_r(nctime,sizeof(nctime),zone.next_change())) {
+						strncpy(nctime,"invalid date/time",sizeof(nctime));
+						nctime[sizeof(nctime)-1] = '\0';
+					}
+				} else {
+					strncpy(nctime,"as soon as possible",sizeof(nctime));
+					nctime[sizeof(nctime)-1] = '\0';
+				}
+				ods_printf(sockfd,
+						   "%-31s %-13s %-26s %-34s\n",
+						   zone.name().c_str(),
+						   zone.policy().c_str(),
+						   nctime,
+						   zone.signconf_path().c_str()
+						   );
+			}
         }
     }
-    delete keystateDoc;
+
     ods_log_debug("[%s] zone list completed", module_str);
 }

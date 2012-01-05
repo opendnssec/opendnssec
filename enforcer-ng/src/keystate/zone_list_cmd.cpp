@@ -13,19 +13,12 @@ static const char *module_str = "zone_list_cmd";
 
 void help_zone_list_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
-                    "zone list       list zones\n"
-                    );
-    ods_writen(sockfd, buf, strlen(buf));
+    ods_printf(sockfd,"zone list       list zones\n");
 }
 
 int handled_zone_list_cmd(int sockfd, engine_type* engine, const char *cmd, 
-                                ssize_t n)
+						  ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    task_type *task;
-    ods_status status;
     const char *scmd =  "zone list";
     
     cmd = ods_check_command(cmd,n,scmd);
@@ -34,12 +27,10 @@ int handled_zone_list_cmd(int sockfd, engine_type* engine, const char *cmd,
     
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-    /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_zone_list(sockfd,engine->config);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
 
+    perform_zone_list(sockfd,engine->config);
+
+    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;
 }

@@ -13,17 +13,15 @@ static const char *module_str = "keystate_export_cmd";
 
 void help_keystate_export_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
+	ods_printf(sockfd,
         "key export      export trust anchors of a given zone\n"
         "  --zone <zone> (aka -z) export for the given zone.\n"
         "  [--dnskey]    export DNSKEY in BIND format (default).\n"
         "  [--ds]        export DS in BIND format.\n");
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
-int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd,
-                              ssize_t n)
+int handled_keystate_export_cmd(int sockfd, engine_type* engine,
+								const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     const char *argv[8];
@@ -46,8 +44,7 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"too many arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"too many arguments\n");
         return 1; // errors, but handled
     }
     
@@ -58,15 +55,13 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine, const char *cmd
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"unknown arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"unknown arguments\n");
         return 1; // errors, but handled
     }
     if (!zone) {
         ods_log_warning("[%s] expected option --zone <zone> for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"expected --zone <zone> option\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"expected --zone <zone> option\n");
         return 1; // errors, but handled
     }
     

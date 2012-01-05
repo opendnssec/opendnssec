@@ -13,12 +13,10 @@ static const char *module_str = "zone_export_cmd";
 
 void help_zone_export_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
+    ods_printf(sockfd,
         "zone export     export all the keys used by a zone\n"
         "  --zone <zone> (aka -z) export for the specified zone.\n"
         );
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 int handled_zone_export_cmd(int sockfd, engine_type* engine, const char *cmd,
@@ -45,8 +43,7 @@ int handled_zone_export_cmd(int sockfd, engine_type* engine, const char *cmd,
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"too many arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"too many arguments\n");
         return 1; // errors, but handled
     }
     
@@ -55,20 +52,18 @@ int handled_zone_export_cmd(int sockfd, engine_type* engine, const char *cmd,
     if (!zone) {
         ods_log_warning("[%s] expected option --zone <zone> for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"expected --zone <zone> option\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"expected --zone <zone> option\n");
         return 1; // errors, but handled
     }
 
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"unknown arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"unknown arguments\n");
         return 1; // errors, but handled
     }
     
-    /* perform task immediately */
     perform_zone_export(sockfd,engine->config,zone);
+	
     return 1;
 }

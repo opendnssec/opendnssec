@@ -15,20 +15,15 @@ static const char *module_str = "update_keyzones_cmd";
 void
 help_update_keyzones_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    snprintf(buf, ODS_SE_MAXLINE,
+    ods_printf(sockfd,
              "update zonelist update zonelist by importing zonelist.xml\n"
         );
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 int
 handled_update_keyzones_cmd(int sockfd, engine_type* engine, const char *cmd,
                             ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    task_type *task;
-    ods_status status;
     const char *scmd = "update zonelist";
 
     cmd = ods_check_command(cmd,n,scmd);
@@ -37,14 +32,12 @@ handled_update_keyzones_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
     
-    /* perform task immediately */
     time_t tstart = time(NULL);
+	
     perform_update_keyzones(sockfd,engine->config);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
+	
+    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 
     flush_enforce_task(engine);
-
     return 1;
 }

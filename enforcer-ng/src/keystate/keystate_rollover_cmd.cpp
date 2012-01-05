@@ -18,14 +18,12 @@ static const char *module_str = "keystate_rollover_cmd";
 
 void help_keystate_rollover_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
+    ods_printf(sockfd,
         "key rollover    rollover the key\n"
         "  --zone <zone> (aka -z) rollover key with id <id>.\n"
         "  [--keytype <keytype>]\n"
         "                (aka -t) type of the key KSK or ZSK (default all).\n"
         );
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *cmd,
@@ -52,8 +50,7 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"too many arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"too many arguments\n");
         return 1; // errors, but handled
     }
     
@@ -64,15 +61,13 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"unknown arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"unknown arguments\n");
         return 1; // errors, but handled
     }
     if (!zone) {
         ods_log_warning("[%s] expected option --zone <zone> for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"expected --zone <zone> option\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"expected --zone <zone> option\n");
         return 1; // errors, but handled
     }
 
@@ -92,22 +87,18 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
                 } else {
                     ods_log_warning("[%s] given keytype \"%s\" invalid",
                                     module_str,keytype);
-                    (void)snprintf(buf, ODS_SE_MAXLINE, 
-                                   "given keytype \"%s\" invalid\n",
-                                   keytype);
-                    ods_writen(sockfd, buf, strlen(buf));
+                    ods_printf(sockfd,"given keytype \"%s\" invalid\n",keytype);
                     return 1; // errors, but handled
                 }
             }
         }
     }
     
-    /* perform task immediately */
     time_t tstart = time(NULL);
+
     perform_keystate_rollover(sockfd,engine->config,zone,nkeytype);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
+
+    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 
     flush_enforce_task(engine);
 

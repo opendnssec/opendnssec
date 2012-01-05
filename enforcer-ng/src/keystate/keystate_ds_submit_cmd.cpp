@@ -14,15 +14,13 @@ static const char *module_str = "keystate_ds_submit_cmd";
 void
 help_keystate_ds_submit_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
+    ods_printf(sockfd,
         "key ds-submit   list KSK keys that should be submitted to the parent.\n"
         "  --zone <zone> (aka -z) force submit of KSK key for zone <zone>.\n"
         "  --id <id>     (aka -k) force submit of KSK key with id <id>.\n"
         "  --auto        (aka -a) perform submit for all keys that have "
                         "the submit flag set.\n"
         );
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 int
@@ -52,8 +50,7 @@ handled_keystate_ds_submit_cmd(int sockfd, engine_type* engine,
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"too many arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"too many arguments\n");
         return 1; // errors, but handled
     }
     
@@ -65,8 +62,7 @@ handled_keystate_ds_submit_cmd(int sockfd, engine_type* engine,
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
-        (void)snprintf(buf, ODS_SE_MAXLINE,"unknown arguments\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"unknown arguments\n");
         return 1; // errors, but handled
     }
     
@@ -74,9 +70,8 @@ handled_keystate_ds_submit_cmd(int sockfd, engine_type* engine,
     time_t tstart = time(NULL);
     perform_keystate_ds_submit(sockfd,engine->config,zone,id,bAutomatic?1:0);
     if (!zone && !id) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                       scmd,time(NULL)-tstart);
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_printf(sockfd,"%s completed in %ld seconds.\n",
+				   scmd,time(NULL)-tstart);
     }
 
     return 1;

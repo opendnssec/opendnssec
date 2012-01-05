@@ -10,107 +10,89 @@
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
+
 #include <memory>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_rollover_task";
 
+#define ODS_LOG_AND_RETURN(errmsg) do { \
+ods_log_error_and_printf(sockfd,module_str,errmsg); return; } while (0)
+#define ODS_LOG_AND_CONTINUE(errmsg) do { \
+ods_log_error_and_printf(sockfd,module_str,errmsg); continue; } while (0)
+
 void 
 perform_keystate_rollover(int sockfd, engineconfig_type *config,
                           const char *zone, int nkeyrole)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *datastore = config->datastore;
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn))
+		return; // error already reported.
+	
+	{	OrmTransactionRW transaction(conn);
+		if (!transaction.started())
+			ODS_LOG_AND_RETURN("transaction not started");
+		
+		{	OrmResultRef rows;
+			::ods::keystate::EnforcerZone enfzone;
+			
+			std::string qzone;
+			if (!OrmQuoteStringValue(conn, std::string(zone), qzone))
+				ODS_LOG_AND_RETURN("quoting string value failed");
+			
+			if (!OrmMessageEnumWhere(conn,enfzone.descriptor(),
+									 rows,"name = %s",qzone.c_str()))
+				ODS_LOG_AND_RETURN("zone enumeration failed");
+			
+			if (!OrmFirst(rows)) {
+				ods_printf(sockfd,"zone %s not found\n",zone);
+				return;
+			}
 
-    std::auto_ptr< ::ods::keystate::KeyStateDocument >
-    keystateDoc(new ::ods::keystate::KeyStateDocument);
-    {
-        std::string datapath(datastore);
-        datapath += ".keystate.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (fd != -1) {
-            if (keystateDoc->ParseFromFileDescriptor(fd)) {
-                ods_log_debug("[%s] keys have been loaded",
-                              module_str);
-            } else {
-                ods_log_error("[%s] keys could not be loaded from \"%s\"",
-                              module_str,datapath.c_str());
-            }
-            close(fd);
-        } else {
-            ods_log_error("[%s] file \"%s\" could not be opened",
-                          module_str,datapath.c_str());
-        }
-    }
+			OrmContextRef context;
+			if (!OrmGetMessage(rows, enfzone, /*just zone*/false, context))
+				ODS_LOG_AND_RETURN("retrieving zone from database failed");
+				
+			// we no longer need the query result, so release it.
+			rows.release();
+			
+			switch (nkeyrole) {
+				case 0:
+					enfzone.set_roll_ksk_now(true);
+					enfzone.set_roll_zsk_now(true);
+					enfzone.set_roll_csk_now(true);
+					enfzone.set_next_change(0); // reschedule immediately
+					ods_printf(sockfd,"rolling all keys for zone %s\n",zone);
+					break;
+				case ::ods::keystate::KSK:
+					enfzone.set_roll_ksk_now(true);
+					enfzone.set_next_change(0); // reschedule immediately
+					ods_printf(sockfd,"rolling KSK for zone %s\n",zone);
+					break;
+				case ::ods::keystate::ZSK:
+					enfzone.set_roll_zsk_now(true);
+					enfzone.set_next_change(0); // reschedule immediately
+					ods_printf(sockfd,"rolling ZSK for zone %s\n",zone);
+					break;
+				case ::ods::keystate::CSK:
+					enfzone.set_roll_csk_now(true);
+					enfzone.set_next_change(0); // reschedule immediately
+					ods_printf(sockfd,"rolling CSK for zone %s\n",zone);
+					break;
+				default:
+					ods_log_assert(false && "nkeyrole out of range");
+					ODS_LOG_AND_RETURN("nkeyrole out of range");
+			}
 
-    bool bFlagsChanged = false;
-    for (int z=0; z<keystateDoc->zones_size(); ++z) {
-        ::ods::keystate::EnforcerZone *enfzone  = keystateDoc->mutable_zones(z);
-        if (enfzone->name() != std::string(zone))
-            continue;
+			// Update the changes back into the database.
+			if (!OrmMessageUpdate(context))
+				ODS_LOG_AND_RETURN("updating zone in the database failed");
 
-        if (nkeyrole == 0) {
-            enfzone->set_roll_ksk_now(true);
-            enfzone->set_roll_zsk_now(true);
-            enfzone->set_roll_csk_now(true);
-            enfzone->set_next_change(0); // reschedule immediately
-            bFlagsChanged = true;
-            (void)snprintf(buf, ODS_SE_MAXLINE, "rolling all keys for zone %s\n",
-                           zone);
-            ods_writen(sockfd, buf, strlen(buf));
-        } else
-        if (nkeyrole == (int)::ods::keystate::KSK) {
-            enfzone->set_roll_ksk_now(true);
-            enfzone->set_next_change(0); // reschedule immediately
-            bFlagsChanged = true;
-            (void)snprintf(buf, ODS_SE_MAXLINE, "rolling KSK for zone %s\n",
-                           zone);
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-        if (nkeyrole == (int)::ods::keystate::ZSK) {
-            enfzone->set_roll_zsk_now(true);
-            enfzone->set_next_change(0); // reschedule immediately
-            bFlagsChanged = true;
-            (void)snprintf(buf, ODS_SE_MAXLINE, "rolling ZSK for zone %s\n",
-                           zone);
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-        if (nkeyrole == (int)::ods::keystate::CSK) {
-            enfzone->set_roll_csk_now(true);
-            enfzone->set_next_change(0); // reschedule immediately
-            bFlagsChanged = true;
-            (void)snprintf(buf, ODS_SE_MAXLINE, "rolling CSK for zone %s\n",
-                           zone);
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-        break;
-    }
-
-    if (bFlagsChanged) {
-        // Persist the keystate zones back to disk as they may have
-        // been changed by the enforcer update
-        if (keystateDoc->IsInitialized()) {
-            std::string datapath(datastore);
-            datapath += ".keystate.pb";
-            int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
-            if (keystateDoc->SerializeToFileDescriptor(fd)) {
-                ods_log_debug("[%s] key states have been updated",
-                              module_str);
-                
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "update of key states completed.\n");
-                ods_writen(sockfd, buf, strlen(buf));
-            } else {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "error: key states file could not be written.\n");
-                ods_writen(sockfd, buf, strlen(buf));
-            }
-            close(fd);
-        } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "error: a message in the key states is missing "
-                           "mandatory information.\n");
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-    }
+			// The zone has been changed and we need to commit it.
+			if (!transaction.commit())
+				ODS_LOG_AND_RETURN("commiting updated zone to the database failed");
+		}
+	}
 }

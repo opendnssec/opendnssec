@@ -11,129 +11,130 @@
 
 #include <fcntl.h>
 
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
+
 static const char *module_str = "update_keyzones_task";
 
-static 
-::ods::zonelist::ZoneListDocument *
-load_zonelist_xml(int sockfd, const char *zonelistfile)
+static bool
+load_zonelist_xml(int sockfd, const char * zonelistfile,
+				  std::auto_ptr< ::ods::zonelist::ZoneListDocument >&doc)
 {
-    char buf[ODS_SE_MAXLINE];
 	// Create a zonefile and load it with zones from the xml zonelist.xml
-	::ods::zonelist::ZoneListDocument *doc  = new ::ods::zonelist::ZoneListDocument;
-	if (read_pb_message_from_xml_file(doc, zonelistfile)) {
-		if (doc->has_zonelist()) {
-			const ::ods::zonelist::ZoneList  &zonelist = doc->zonelist();
-			if (zonelist.zones_size() > 0) {
-				if (zonelist.IsInitialized()) {
-                    
-                    return doc;
-                    
-				} else {
-                    (void)snprintf(buf, ODS_SE_MAXLINE, "error: a zone in the zonelist is missing mandatory information.\n");
-                    ods_writen(sockfd, buf, strlen(buf));
-                }
-			} else {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "warning: no zones found in zonelist.\n");
-                ods_writen(sockfd, buf, strlen(buf));
-            }
-		} else {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "warning: no zonelist found in zonelist.xml file.\n");
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-    } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "warning: unable to read the zonelist.xml file.\n");
-        ods_writen(sockfd, buf, strlen(buf));
-    }
-    delete doc;
-    return NULL;
+	doc.reset(new ::ods::zonelist::ZoneListDocument);
+	if (doc.get() == NULL) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "out of memory allocating ZoneListDocument");
+		return false;
+	}
+	
+	if (!read_pb_message_from_xml_file(doc.get(), zonelistfile)) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "unable to read the zonelist.xml file");
+		return false;
+	}
+		
+	if (!doc->has_zonelist()) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "no zonelist found in zonelist.xml file");
+		return false;
+	}
+		
+	const ::ods::zonelist::ZoneList  &zonelist = doc->zonelist();
+	if (zonelist.zones_size() <= 0) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "no zones found in zonelist");
+		return false;
+	}
+	
+	if (!zonelist.IsInitialized()) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "a zone in the zonelist is missing mandatory "
+								 "information");
+		return false;
+	}
+
+	return true;
 }
 
 
 void 
 perform_update_keyzones(int sockfd, engineconfig_type *config)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *datastore = config->datastore;
-
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
-    ::ods::zonelist::ZoneListDocument *
-        zonelistDoc = load_zonelist_xml(sockfd, config->zonelist_filename);
-    if (zonelistDoc == NULL) {
-        ods_log_error("[%s] zonelist could not be loaded from \"%s\"",
-                      module_str,config->zonelist_filename);
-        return; // failure, exit.
-    }
-    
-    ::ods::keystate::KeyStateDocument *keystateDoc =
-    new ::ods::keystate::KeyStateDocument;
-    {
-        std::string datapath(datastore);
-        datapath += ".keystate.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (keystateDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] keys have been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] keys could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
-        }
-        close(fd);
-    }
-    
-    // Add new zones found in the zonelist to the keystates
-    // We don't want nested lookup loops of O(N^2) we create a map to get O(2N)
-    std::map<const std::string,const ::ods::keystate::EnforcerZone*> kszonemap;
-    for (int z=0; z<keystateDoc->zones_size(); ++z) {
-        const ::ods::keystate::EnforcerZone &ks_zone = keystateDoc->zones(z);
-        kszonemap[ ks_zone.name() ] = &ks_zone;
-    }
+    std::auto_ptr< ::ods::zonelist::ZoneListDocument > zonelistDoc;
+	if (!load_zonelist_xml(sockfd, config->zonelist_filename, zonelistDoc))
+		return; // errors have already been reported.
+
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn))
+		return;  // errors have already been reported.
+
+	//TODO: SPEED: We should create an index on the EnforcerZone.name column
+		
     // Go through the list of zones from the zonelist to determine if we need
     // to insert new zones to the keystates.
     for (int i=0; i<zonelistDoc->zonelist().zones_size(); ++i) {
         const ::ods::zonelist::ZoneData &zl_zone = 
             zonelistDoc->zonelist().zones(i);
-        // if we can't find the zone in the kszonemap, it is new and we need
-        // to add it.
-        if (kszonemap.find( zl_zone.name() ) == kszonemap.end()) {
-            ::ods::keystate::EnforcerZone *ks_zone = keystateDoc->add_zones();
-            
-            // setup information the enforcer will need.
-            ks_zone->set_name( zl_zone.name() );
-            ks_zone->set_policy( zl_zone.policy() );
-            ks_zone->set_signconf_path( zl_zone.signer_configuration() );
-                        
-            // enforcer needs to trigger signer configuration writing.
-            ks_zone->set_signconf_needs_writing( false );
-        }
+		
+		{	OrmTransactionRW transaction(conn);
+			if (!transaction.started()) {
+				ods_log_error_and_printf(sockfd, module_str,
+					"error starting a database transaction for updating zones");
+				return;
+			}
+			
+			std::string qzone;
+			if (!OrmQuoteStringValue(conn, zl_zone.name(), qzone)) {
+				ods_log_error_and_printf(sockfd, module_str,
+										 "quoting a string failed");
+				return;
+			}
+
+			::ods::keystate::EnforcerZone ks_zone;
+			{	OrmResultRef rows;
+				
+				if (!OrmMessageEnumWhere(conn, ks_zone.descriptor(), rows,
+										 "name = %s",qzone.c_str()))
+				{
+					ods_log_error_and_printf(sockfd, module_str,
+											 "zone lookup by name failed");
+					return;
+				}
+			
+				// if OrmFirst succeeds, a zone with the queried name is 
+				// already present
+				if (OrmFirst(rows))
+					continue; // skip existing zones
+
+				//TODO: FEATURE: update zone fields with information from zonelist.
+
+				// query no longer needed, so lets drop it.
+				rows.release();
+				
+				// setup information the enforcer will need.
+				ks_zone.set_name( zl_zone.name() );
+				ks_zone.set_policy( zl_zone.policy() );
+				ks_zone.set_signconf_path( zl_zone.signer_configuration() );
+							
+				// enforcer needs to trigger signer configuration writing.
+				ks_zone.set_signconf_needs_writing( false );
+				
+				pb::uint64 zoneid;
+				if (!OrmMessageInsert(conn, ks_zone, zoneid)) {
+					ods_log_error_and_printf(sockfd, module_str,
+									"inserting zone into the database failed");
+					return;
+				}
+				
+				if (!transaction.commit()) {
+					ods_log_error_and_printf(sockfd, module_str,
+									"committing zone to the database failed");
+					return;
+				}
+			}
+		}
     }
-    
-    // Persist the keystate zones back to disk as they may have
-    // been changed by the key state update
-    if (keystateDoc->IsInitialized()) {
-        std::string datapath(datastore);
-        datapath += ".keystate.pb";
-        int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
-        if (keystateDoc->SerializeToFileDescriptor(fd)) {
-            ods_log_debug("[%s] key states have been updated",
-                          module_str);
-            
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "update of key states completed.\n");
-            ods_writen(sockfd, buf, strlen(buf));
-        } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE, 
-                           "error: key states file could not be written.\n");
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-        close(fd);
-    } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE, 
-                       "error: a message in the key states is missing "
-                       "mandatory information.\n");
-        ods_writen(sockfd, buf, strlen(buf));
-    }
-    
-    delete keystateDoc;
-    delete zonelistDoc;
 }

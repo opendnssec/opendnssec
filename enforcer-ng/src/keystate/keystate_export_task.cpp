@@ -11,6 +11,9 @@
 #include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
+
 #include <memory>
 #include <fcntl.h>
 
@@ -114,184 +117,127 @@ dnskey_from_id(std::string &dnskey,
     return keytag;
 }
 
-static const ::ods::kasp::Policy *
-find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
-                          const ::ods::keystate::EnforcerZone &ks_zone)
+static bool
+load_kasp_policy(OrmConn conn,const std::string &name,
+				 ::ods::kasp::Policy &policy)
 {
-    // Find the policy associated with the zone.
-    for (int p=0; p<kasp.policies_size(); ++p) {
-        if (kasp.policies(p).name() == ks_zone.policy()) {
-            ods_log_debug("[%s] policy %s found for zone %s",
-                          module_str,ks_zone.policy().c_str(),
-                          ks_zone.name().c_str());
-            return &kasp.policies(p);
-        }
-    }
-    ods_log_error("[%s] policy %s could not be found for zone %s",
-                  module_str,ks_zone.policy().c_str(),
-                  ks_zone.name().c_str());
-    return NULL;
+	std::string qname;
+	if (!OrmQuoteStringValue(conn, name, qname))
+		return false;
+	
+	OrmResultRef rows;
+	if (!OrmMessageEnumWhere(conn,policy.descriptor(),rows,
+							 "name=%s",qname.c_str()))
+		return false;
+	
+	if (!OrmFirst(rows))
+		return false;
+	
+	return OrmGetMessage(rows, policy, true);
 }
 
 void 
 perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
                         int bds)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *datastore = config->datastore;
+	#define LOG_AND_RETURN(errmsg) do { ods_log_error_and_printf(\
+		sockfd,module_str,errmsg); return; } while (0)
+	#define LOG_AND_RETURN_1(errmsg,param) do { ods_log_error_and_printf(\
+		sockfd,module_str,errmsg,param); return; } while (0)
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
-    std::auto_ptr< ::ods::kasp::KaspDocument >
-        kaspDoc(new ::ods::kasp::KaspDocument);
-    {
-        std::string datapath(datastore);
-        datapath += ".policy.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (fd != -1) {
-            if (kaspDoc->ParseFromFileDescriptor(fd)) {
-                ods_log_debug("[%s] policies have been loaded",
-                              module_str);
-            } else {
-                ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                              module_str,datapath.c_str());
-                (void)snprintf(buf,ODS_SE_MAXLINE, "policies could not be loaded "
-                               "from \"%s\"\n", 
-                               datapath.c_str());
-                ods_writen(sockfd, buf, strlen(buf));
-                return;
-            }
-            close(fd);
-        } else {
-            ods_log_error("[%s] file \"%s\" could not be opened",
-                          module_str,datapath.c_str());
-            (void)snprintf(buf,ODS_SE_MAXLINE,
-                           "file \"%s\" could not be opened\n", 
-                           datapath.c_str());
-            ods_writen(sockfd, buf, strlen(buf));
-            return;
-        }
-    }
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn))
+		return; // error already reported.
+	
+	{	OrmTransactionRW transaction(conn);
+		if (!transaction.started())
+			LOG_AND_RETURN("transaction not started");
 
-    std::auto_ptr< ::ods::keystate::KeyStateDocument >
-        keystateDoc(new ::ods::keystate::KeyStateDocument);
-    {
-        std::string datapath(datastore);
-        datapath += ".keystate.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (fd!=-1) {
-            if (keystateDoc->ParseFromFileDescriptor(fd)) {
-                ods_log_debug("[%s] keys have been loaded",
-                              module_str);
-            } else {
-                ods_log_error("[%s] keys could not be loaded from \"%s\"",
-                              module_str,datapath.c_str());
-                (void)snprintf(buf,ODS_SE_MAXLINE, "keys could not be loaded "
-                               "from \"%s\"\n", 
-                               datapath.c_str());
-                ods_writen(sockfd, buf, strlen(buf));
-                return;
-            }
-            close(fd);
-        } else {
-            ods_log_error("[%s] file \"%s\" could not be opened",
-                          module_str,datapath.c_str());
-            (void)snprintf(buf,ODS_SE_MAXLINE,
-                           "file \"%s\" could not be opened\n", 
-                           datapath.c_str());
-            ods_writen(sockfd, buf, strlen(buf));
-            return;
-        }
-    }
+		std::string qzone;
+		if (!OrmQuoteStringValue(conn, std::string(zone), qzone))
+			LOG_AND_RETURN("quoting string value failed");
+		
+		{	OrmResultRef rows;
+			::ods::keystate::EnforcerZone enfzone;
+			if (!OrmMessageEnumWhere(conn,enfzone.descriptor(),
+									 rows,"name = %s",qzone.c_str()))
+				LOG_AND_RETURN("zone enumeration failed");
+			
+			if (!OrmFirst(rows)) {
+				ods_printf(sockfd,"zone %s not found\n",zone);
+				return;
+			}
+			
+			OrmContextRef context;
+			if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
+				LOG_AND_RETURN("retrieving zone from database failed");
+			
+			// we no longer need the query result, so release it.
+			rows.release();
+
+			// Retrieve the dnskey ttl from the policy associated with the zone.
+			::ods::kasp::Policy policy;
+			if (!load_kasp_policy(conn, enfzone.policy(), policy))
+				LOG_AND_RETURN_1("policy %s not found",enfzone.policy().c_str());
+			uint32_t dnskey_ttl = policy.keys().ttl();
+
+			bool bSubmitChanged = false;
+			bool bRetractChanged = false;
+			bool bKeytagChanged = false;
+			
+			for (int k=0; k<enfzone.keys_size(); ++k) {
+				const ::ods::keystate::KeyData &key = enfzone.keys(k);
+				if (key.role()==::ods::keystate::ZSK)
+					continue;
+				
+				if (key.ds_at_parent()!=::ods::keystate::submit
+					&& key.ds_at_parent()!=::ods::keystate::submitted
+					&& key.ds_at_parent()!=::ods::keystate::retract
+					&& key.ds_at_parent()!=::ods::keystate::retracted
+					)
+					continue;
+				
+				std::string dnskey;
+				uint16_t keytag = dnskey_from_id(dnskey,key.locator().c_str(),
+												 key.role(),
+												 enfzone.name().c_str(),
+												 key.algorithm(),bds,
+												 dnskey_ttl);
+				if (keytag) {
+					ods_writen(sockfd, dnskey.c_str(), dnskey.size());
+					bSubmitChanged = key.ds_at_parent()==::ods::keystate::submit;
+					bRetractChanged = key.ds_at_parent()==::ods::keystate::retract;
+					bKeytagChanged = key.keytag()!=keytag;
+					if (bSubmitChanged) {
+						::ods::keystate::KeyData *kd = enfzone.mutable_keys(k);
+						kd->set_ds_at_parent(::ods::keystate::submitted);
+					}
+					if (bRetractChanged) {
+						::ods::keystate::KeyData *kd = enfzone.mutable_keys(k);
+						kd->set_ds_at_parent(::ods::keystate::retracted);
+					}
+					if (bKeytagChanged) {
+						::ods::keystate::KeyData *kd = enfzone.mutable_keys(k);
+						kd->set_keytag(keytag);
+					}
+				} else
+					LOG_AND_RETURN_1("unable to find key with id %s",
+									 key.locator().c_str());
+			}
     
-    bool bSubmitChanged = false;
-    bool bRetractChanged = false;
-    bool bKeytagChanged = false;
-    std::string zname(zone);
-    for (int z=0; z<keystateDoc->zones_size(); ++z) {
-
-        const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
-        if (enfzone.name() != zname) 
-            continue;
-        
-        uint32_t dnskey_ttl = 0;
-        const ::ods::kasp::Policy *policy = 
-            find_kasp_policy_for_zone(kaspDoc->kasp(), enfzone);
-        if (policy) {
-            dnskey_ttl = policy->keys().ttl();
-        }
-
-        for (int k=0; k<enfzone.keys_size(); ++k) {
-            const ::ods::keystate::KeyData &key = enfzone.keys(k);
-            if (key.role()==::ods::keystate::ZSK)
-                continue;
-            
-            if (key.ds_at_parent()!=::ods::keystate::submit
-                && key.ds_at_parent()!=::ods::keystate::submitted
-                && key.ds_at_parent()!=::ods::keystate::retract
-                && key.ds_at_parent()!=::ods::keystate::retracted
-                )
-                continue;
-            
-            std::string dnskey;
-            uint16_t keytag = dnskey_from_id(dnskey,key.locator().c_str(),
-                                             key.role(),
-                                             enfzone.name().c_str(),
-                                             key.algorithm(),bds,
-                                             dnskey_ttl);
-            if (keytag) {
-                ods_writen(sockfd, dnskey.c_str(), dnskey.size());
-                bSubmitChanged = key.ds_at_parent()==::ods::keystate::submit;
-                bRetractChanged = key.ds_at_parent()==::ods::keystate::retract;
-                bKeytagChanged = key.keytag()!=keytag;
-                if (bSubmitChanged) {
-                    ::ods::keystate::KeyData *kd = 
-                        keystateDoc->mutable_zones(z)->mutable_keys(k);
-                    kd->set_ds_at_parent(::ods::keystate::submitted);
-                }
-                if (bRetractChanged) {
-                    ::ods::keystate::KeyData *kd = 
-                        keystateDoc->mutable_zones(z)->mutable_keys(k);
-                    kd->set_ds_at_parent(::ods::keystate::retracted);
-                }
-                if (bKeytagChanged) {
-                    ::ods::keystate::KeyData *kd = 
-                    keystateDoc->mutable_zones(z)->mutable_keys(k);
-                    kd->set_keytag(keytag);
-                }
-            } else {
-                ods_log_error("[%s] unable to find key with id %s",
-                              module_str,key.locator().c_str());
-                (void)snprintf(buf,ODS_SE_MAXLINE, "key %s not found\n", 
-                               key.locator().c_str());
-                ods_writen(sockfd, buf, strlen(buf));
-            }
-        }
-    }
-    
-    if (bSubmitChanged || bRetractChanged || bKeytagChanged) {
-        // Persist the keystate zones back to disk as they may have
-        // been changed by the enforcer update
-        if (keystateDoc->IsInitialized()) {
-            std::string datapath(datastore);
-            datapath += ".keystate.pb";
-            int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
-            if (fd!=-1) {
-                if (keystateDoc->SerializeToFileDescriptor(fd)) {
-                    ods_log_debug("[%s] key states have been updated",
-                                  module_str);
-                } else {
-                    ods_log_error("[%s] key states file could not be written",
-                                  module_str);
-                }
-                close(fd);
-            } else {
-                ods_log_error("[%s] key states file \"%s\"could not be opened "
-                              "for writing", module_str,datastore);
-            }
-        } else {
-            ods_log_error("[%s] a message in the key states is missing "
-                          "mandatory information", module_str);
-        }
-    }
+			if (bSubmitChanged || bRetractChanged || bKeytagChanged) {
+				// Update the zone recursively in the database as keystates
+				// have been changed because of the export
+				
+				if (!OrmMessageUpdate(context))
+					LOG_AND_RETURN("updating zone in the database failed");
+				
+				
+				if (!transaction.commit())
+					LOG_AND_RETURN("committing zone to the database failed");
+			}
+		}
+	}
 }

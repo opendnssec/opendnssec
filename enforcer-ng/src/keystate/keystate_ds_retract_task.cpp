@@ -10,42 +10,44 @@
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
 
+#include <memory>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_ds_retract_task";
 
-static bool retract_dnskey_by_id(int sockfd,
-                                const char *ds_retract_command,
-                                const char *id,
-                                ::ods::keystate::keyrole role,
-                                const char *zone,
-                                int algorithm)
+static bool 
+retract_dnskey_by_id(int sockfd,
+					const char *ds_retract_command,
+					const char *id,
+					::ods::keystate::keyrole role,
+					const char *zone,
+					int algorithm)
 {
-    char buf[ODS_SE_MAXLINE];
-
     /* Code to output the DNSKEY record  (stolen from hsmutil) */
     hsm_ctx_t *hsm_ctx = hsm_create_context();
     if (!hsm_ctx) {
-        ods_log_error("[%s] Could not connect to HSM", module_str);
-        (void)snprintf(buf,ODS_SE_MAXLINE, "Could not connect to HSM\n");
-        ods_writen(sockfd, buf, strlen(buf));
+		ods_log_error_and_printf(sockfd,
+								 module_str,
+								 "could not connect to HSM");
         return false;
     }
     hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
     
     if (!key) {
-        ods_log_error("[%s] key %s not found in any HSM",
-                      module_str,id);
-        (void)snprintf(buf,ODS_SE_MAXLINE, "key %s not found in any HSM\n", id);
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_log_error_and_printf(sockfd,
+								 module_str,
+								 "key %s not found in any HSM",
+								 id);
         hsm_destroy_context(hsm_ctx);
         return false;
     }
     
     bool bOK = false;
     char *dnskey_rr_str;
-
+	
     hsm_sign_params_t *sign_params = hsm_sign_params_new();
     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
     sign_params->algorithm = (ldns_algorithm)algorithm;
@@ -61,7 +63,7 @@ static bool retract_dnskey_by_id(int sockfd,
     hsm_sign_params_free(sign_params);
     ldns_rr_free(dnskey_rr);
     hsm_key_free(key);
-
+	
     /* Replace tab with white-space */
     for (int i = 0; dnskey_rr_str[i]; ++i) {
         if (dnskey_rr_str[i] == '\t') {
@@ -79,221 +81,277 @@ static bool retract_dnskey_by_id(int sockfd,
         }
     }
 
-    // retract the dnskey rr string to a configured
+    // pass the dnskey rr string to a configured
     // delegation signer retract program.
     if (ds_retract_command && ds_retract_command[0] != '\0') {
         /* send records to the configured command */
         FILE *fp = popen(ds_retract_command, "w");
         if (fp == NULL) {
-            ods_log_error("[%s] Failed to run command: %s: %s",
-                          module_str,ds_retract_command,strerror(errno));
-            (void)snprintf(buf,ODS_SE_MAXLINE,"failed to run command: %s: %s\n",
-                           ds_retract_command,strerror(errno));
-            ods_writen(sockfd, buf, strlen(buf));
-            
+            ods_log_error_and_printf(sockfd,
+									 module_str,
+									 "failed to run command: %s: %s",
+									 ds_retract_command,
+									 strerror(errno));
         } else {
             int bytes_written = fprintf(fp, "%s", dnskey_rr_str);
             if (bytes_written < 0) {
-                ods_log_error("[%s] Failed to write to %s: %s",
-                              module_str,ds_retract_command,strerror(errno));
-                (void)snprintf(buf,ODS_SE_MAXLINE,"failed to write to %s: %s\n",
-                               ds_retract_command,strerror(errno));
-                               ods_writen(sockfd, buf, strlen(buf));
-                
+                ods_log_error_and_printf(sockfd,
+										 module_str,
+										 "[%s] Failed to write to %s: %s",
+										 ds_retract_command,
+										 strerror(errno));
             } else {
-            
+				
                 if (pclose(fp) == -1) {
-                    
-                    ods_log_error("[%s] Failed to close %s: %s",
-                                  module_str,ds_retract_command,strerror(errno));
-                    (void)snprintf(buf,ODS_SE_MAXLINE,"failed to close %s: %s\n",
-                                   ds_retract_command,strerror(errno));
-                    ods_writen(sockfd, buf, strlen(buf));
-                    
+                    ods_log_error_and_printf(sockfd,
+											 module_str,
+											 "failed to close %s: %s",
+											 ds_retract_command,
+											 strerror(errno));
                 } else {
                     bOK = true;
-                    (void)snprintf(buf,ODS_SE_MAXLINE, 
-                                   "key %s retracted to %s\n", 
-                                   id, ds_retract_command);
-                    ods_writen(sockfd, buf, strlen(buf));
+                    ods_printf(sockfd,
+							   "key %s retracted by %s\n",
+							   id,
+							   ds_retract_command);
                 }
             }
         }
     } else {
-        ods_log_error("[%s] No Delegation Signer retract Command configured "
-                      "in conf.xml.",module_str);
-        (void)snprintf(buf,ODS_SE_MAXLINE,
-                       "no ds retract command configured in conf.xml.\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_log_error_and_printf(sockfd,
+								 module_str,
+								 "no \"DelegationSignerRetractCommand\" binary "
+								 "configured in conf.xml.");
     }
-        
+	
     LDNS_FREE(dnskey_rr_str);
     hsm_destroy_context(hsm_ctx);
-
-    // Once the new DS records are seen in DNS please issue the ds-seen 
-    // command for zone %s with the following cka_ids %s
     return bOK;
+}
+
+static void
+retract_keys(OrmConn conn,
+			int sockfd,
+			const char *zone,
+			const char *id,
+			const char *datastore,
+			const char *ds_retract_command)
+{
+	#define LOG_AND_RETURN(errmsg)\
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
+	#define LOG_AND_RETURN_1(errmsg,p)\
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg,p);return;}while(0)
+	
+	OrmTransactionRW transaction(conn);
+	if (!transaction.started())
+		LOG_AND_RETURN("transaction not started");
+	
+	{	OrmResultRef rows;
+		::ods::keystate::EnforcerZone enfzone;
+		if (zone) {
+			std::string qzone;
+			if (!OrmQuoteStringValue(conn, std::string(zone), qzone))
+				LOG_AND_RETURN("quoting string value failed");
+			
+			if (!OrmMessageEnumWhere(conn,enfzone.descriptor(),
+									 rows,"name = %s",qzone.c_str()))
+				LOG_AND_RETURN("zone enumeration failed");
+		} else {
+			if (!OrmMessageEnum(conn,enfzone.descriptor(),rows))
+				LOG_AND_RETURN("zone enumeration failed");
+		}
+		
+		bool bZonesModified = false;
+		
+		if (!OrmFirst(rows)) {
+			if (zone)
+				LOG_AND_RETURN_1("zone %s not found",zone);
+		} else {
+			
+			for (bool next=true; next; next=OrmNext(rows)) {
+				
+				OrmContextRef context;
+				if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
+					LOG_AND_RETURN("retrieving zone from database failed");
+				
+				// Try to change the state of a specific 'retract' key to 'retracted'.
+				bool bKeyModified = false;
+				for (int k=0; k<enfzone.keys_size(); ++k) {
+					const ::ods::keystate::KeyData &key = enfzone.keys(k);
+					
+					// Don't retract ZSKs from the parent.
+					if (key.role()==::ods::keystate::ZSK)
+						continue;
+					
+					// Only retract KSKs that have the retract flag set.
+					if (key.ds_at_parent()!=::ods::keystate::retract)
+						continue;
+
+					if (id) {
+						// --id <id>
+						//     Force retract key to the parent for specific key id.
+						if (key.locator()==id) {
+							// retract key with this id from the parent
+							if (retract_dnskey_by_id(sockfd,ds_retract_command,
+													 key.locator().c_str(),
+													 key.role(),
+													 enfzone.name().c_str(),
+													 key.algorithm()))
+							{
+								::ods::keystate::KeyData *kd =
+									enfzone.mutable_keys(k);
+								kd->set_ds_at_parent(::ods::keystate::retracted);
+								bKeyModified = true;
+							}
+						}
+					} else {
+						if (zone) {
+							// --zone <zone>
+							//     Force retract key from the parent for specific zone.
+							if (enfzone.name()==zone) {
+								// retract key for this zone from the parent
+								if (retract_dnskey_by_id(sockfd,ds_retract_command,
+														 key.locator().c_str(),
+														 key.role(),
+														 enfzone.name().c_str(),
+														 key.algorithm()))
+								{
+									::ods::keystate::KeyData *kd = 
+									enfzone.mutable_keys(k);
+									kd->set_ds_at_parent(::ods::keystate::retracted);
+									bKeyModified = true;
+								}
+							}
+						} else {
+							// --auto
+							//     Retract all keys from the parent that have
+							//     the retract flag set.
+							if (retract_dnskey_by_id(sockfd,ds_retract_command,
+													 key.locator().c_str(),
+													 key.role(),
+													 enfzone.name().c_str(),
+													 key.algorithm()))
+							{
+								::ods::keystate::KeyData *kd = 
+									enfzone.mutable_keys(k);
+								kd->set_ds_at_parent(::ods::keystate::retracted);
+								bKeyModified = true;
+							}
+						}
+					}
+				}
+				
+				if (bKeyModified) {
+					if (!OrmMessageUpdate(context))
+						LOG_AND_RETURN_1("failed to update zone %s in the database", enfzone.name().c_str());
+					
+					bZonesModified = true;
+				}
+			}
+			
+			// we no longer need the query result, so release it.
+			rows.release();
+			
+		}
+		
+		// Report back the status of the operation.
+		if (bZonesModified) {
+			// Commit updated records to the database.
+			if (!transaction.commit())
+				LOG_AND_RETURN_1("unable to commit updated zone %s to the database",zone);
+			
+			ods_log_debug("[%s] key states have been updated",module_str);
+			ods_printf(sockfd,"update of key states completed.\n");
+		} else {
+			ods_log_debug("[%s] key states are unchanged",module_str);
+			if (id)
+				ods_printf(sockfd,
+						   "No key state changes for id \"%s\"\n",
+						   id);
+			else
+				if (zone)
+					ods_printf(sockfd,
+							   "No key state changes for zone \"%s\"\n",
+							   zone);
+				else
+					ods_printf(sockfd,"key states are unchanged\n");
+		}
+	}
+	
+	#undef LOG_AND_RETURN
+	#undef LOG_AND_RETURN_1
+}
+
+static void
+list_keys_retract(OrmConn conn, int sockfd, const char *datastore)
+{
+	#define LOG_AND_RETURN(errmsg)\
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
+	
+	// List the keys with retract flags.
+    ods_printf(sockfd,
+			   "Database set to: %s\n"
+			   "Retract Keys:\n"
+			   "Zone:                           "
+			   "Key role:     "
+			   "Id:                                      "
+			   "\n"
+			   ,datastore
+			   );
+	
+	OrmTransaction transaction(conn);
+	if (!transaction.started())
+		LOG_AND_RETURN("transaction not started");
+	
+	{	OrmResultRef rows;
+		::ods::keystate::EnforcerZone enfzone;
+		if (!OrmMessageEnum(conn,enfzone.descriptor(),rows))
+			LOG_AND_RETURN("zone enumeration failed");
+
+		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+			
+			if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true))
+				LOG_AND_RETURN("retrieving zone from database failed");
+			
+			for (int k=0; k<enfzone.keys_size(); ++k) {
+				const ::ods::keystate::KeyData &key = enfzone.keys(k);
+				
+				// Don't suggest ZSKs can be retracted, don't show them
+				if (key.role() == ::ods::keystate::ZSK)
+					continue;
+				
+				// Only show keys that have the retract flag set.
+				if (key.ds_at_parent()!=::ods::keystate::retract)
+					continue;
+				
+				std::string keyrole = keyrole_Name(key.role());
+				ods_printf(sockfd,
+						   "%-31s %-13s %-40s\n",
+						   enfzone.name().c_str(),
+						   keyrole.c_str(),
+						   key.locator().c_str()
+						   );
+			}
+		}
+    }
+	
+	#undef LOG_AND_RETURN
 }
 
 void 
 perform_keystate_ds_retract(int sockfd, engineconfig_type *config,
-                           const char *zone, const char *id, int bauto)
+							const char *zone, const char *id, int bauto)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *datastore = config->datastore;
-    const char *ds_retract_command = config->delegation_signer_retract_command;
-
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
-    
-    ::ods::keystate::KeyStateDocument *keystateDoc =
-    new ::ods::keystate::KeyStateDocument;
-    {
-        std::string datapath(datastore);
-        datapath += ".keystate.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (keystateDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] keys have been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] keys could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
-        }
-        close(fd);
-    }
-
-    // Evalutate parameters and retract keys to the parent when instructed
-    // to do so.
-    if (id || zone || bauto) {
-        bool bFlagsChanged = false;
-        for (int z=0; z<keystateDoc->zones_size(); ++z) {
-            const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
-            for (int k=0; k<enfzone.keys_size(); ++k) {
-                const ::ods::keystate::KeyData &key = enfzone.keys(k);
-
-                // Don't ever retract ZSKs to the parent.
-                if (key.role()==::ods::keystate::ZSK)
-                    continue;
-
-                // Onlyt retract KSKs that have the retract flag set.
-                if (key.ds_at_parent()!=::ods::keystate::retract)
-                    continue;
-                    
-                if (id) {
-                    // --id <id>
-                    //     Force retract key to the parent for specific key id.
-                    if (key.locator()==id) {
-                        // retract key with this id to the parent
-                        if (retract_dnskey_by_id(sockfd,ds_retract_command,
-                                            key.locator().c_str(),
-                                            key.role(),
-                                            enfzone.name().c_str(),
-                                            key.algorithm()))
-                        {
-                            bFlagsChanged = true;
-                            keystateDoc->mutable_zones(z)->mutable_keys(k)
-                             ->set_ds_at_parent(::ods::keystate::retracted);
-                        }
-                    }
-                } else {
-                    if (zone) {
-                        // --zone <zone>
-                        //     Force retract key to the parent for specific zone.
-                        if (enfzone.name()==zone) {
-                            // retract key for this zone to the parent
-                            if (retract_dnskey_by_id(sockfd,ds_retract_command,
-                                                key.locator().c_str(),
-                                                key.role(),
-                                                enfzone.name().c_str(),
-                                                key.algorithm()))
-                            {
-                                bFlagsChanged = true;
-                                keystateDoc->mutable_zones(z)->mutable_keys(k)
-                                 ->set_ds_at_parent(::ods::keystate::retracted);
-                            }
-                        }
-                    } else {
-                        // --auto
-                        //     retract all keys to the parent that have
-                        //     the retract flag set.
-                        if (retract_dnskey_by_id(sockfd,ds_retract_command,
-                                            key.locator().c_str(),
-                                            key.role(),
-                                            enfzone.name().c_str(),
-                                            key.algorithm()))
-                        {
-                            bFlagsChanged = true;
-                            keystateDoc->mutable_zones(z)->mutable_keys(k)
-                             ->set_ds_at_parent(::ods::keystate::retracted);
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (bFlagsChanged) {
-            // Persist the keystate zones back to disk as they may have
-            // been changed by the enforcer update
-            if (keystateDoc->IsInitialized()) {
-                std::string datapath(datastore);
-                datapath += ".keystate.pb";
-                int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
-                if (keystateDoc->SerializeToFileDescriptor(fd)) {
-                    ods_log_debug("[%s] key states have been updated",
-                                  module_str);
-                    
-                    (void)snprintf(buf, ODS_SE_MAXLINE,
-                                   "update of key states completed.\n");
-                    ods_writen(sockfd, buf, strlen(buf));
-                } else {
-                    (void)snprintf(buf, ODS_SE_MAXLINE,
-                                   "error: key states file could not be written.\n");
-                    ods_writen(sockfd, buf, strlen(buf));
-                }
-                close(fd);
-            } else {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "error: a message in the key states is missing "
-                               "mandatory information.\n");
-                ods_writen(sockfd, buf, strlen(buf));
-            }
-        }
-        
-        return;
-    }
-
-    // List the keys with retract flags.
-    (void)snprintf(buf, ODS_SE_MAXLINE,
-                   "Database set to: %s\n"
-                   "Retract Keys:\n"
-                   "Zone:                           "
-                   "Key role:     "
-                   "Id:                                      "
-                   "\n"
-                   ,datastore
-                   );
-    ods_writen(sockfd, buf, strlen(buf));
-    for (int z=0; z<keystateDoc->zones_size(); ++z) {
-        const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
-        for (int k=0; k<enfzone.keys_size(); ++k) {
-            const ::ods::keystate::KeyData &key = enfzone.keys(k);
-            // Don't suggest ZSKs can be retracted, leave them out of the list.
-            if (key.role() == ::ods::keystate::ZSK)
-                continue;
-
-            // Only show keys that have the retract flag set.
-            if (key.ds_at_parent()!=::ods::keystate::retract)
-                continue;
-            
-            std::string keyrole = keyrole_Name(key.role());
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-40s\n",
-                           enfzone.name().c_str(),
-                           keyrole.c_str(),
-                           key.locator().c_str()
-                           );
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-    }
+	OrmConnRef conn;
+	if (ods_orm_connect(sockfd, config, conn)) {
+		// Evaluate parameters and retract keys from the parent when instructed to.
+		if (zone || id || bauto)
+			retract_keys(conn,sockfd,zone,id,config->datastore,
+						 config->delegation_signer_retract_command);
+		else
+			list_keys_retract(conn,sockfd,config->datastore);
+	}
 }
 
 static task_type * 

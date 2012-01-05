@@ -4,16 +4,16 @@
 package ods.keystate;
 
 import "xmlext.proto";
-
-message KeyStateDocument {
-    repeated EnforcerZone zones = 1;
-}
+import "orm.proto";
 
 message KeyStateExport {
     optional EnforcerZone zone = 1 [(xml).path="Zone"];
 }
 
 message EnforcerZone {
+	option(orm.index).name = "EnforcerZone_name_index";
+	option(orm.index).spec = "name";
+	
     required string name = 1 [(xml).path="@name"];
     required string policy = 2 [(xml).path="@policy"];
     repeated KeyData keys = 3 [(xml).path="Key"];
@@ -39,7 +39,7 @@ message KeyData {
 //    optional bool ds_seen = 8 [default = false, (xml).path="DSSeen"]; // parent says DS has been seen
 //    optional bool submit_to_parent = 9 [default = false, (xml).path="DSSubmit"]; // submit DS to parent
     optional bool introducing = 10 [default=true, (xml).path="Introducing"];
-    optional bool revoke = 11 [default = false, (xml).path="Revoke"];
+    optional bool revoke = 11 [default = false, (xml).path="Revoke", (orm.column).name="shouldrevoke"];
     optional bool standby = 12 [default = false, (xml).path="Standby"];
     optional bool active_zsk = 13 [default = false, (xml).path="ActiveZSK"];
     optional bool publish = 14 [default = false, (xml).path="Publish"];

@@ -11,38 +11,40 @@
 #include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
+
 #include <memory>
 #include <fcntl.h>
 
 static const char *module_str = "keystate_ds_submit_task";
 
-static uint16_t submit_dnskey_by_id(int sockfd,
-                                    const char *ds_submit_command,
-                                    const char *id,
-                                    ::ods::keystate::keyrole role,
-                                    const char *zone,
-                                    int algorithm,
-                                    uint32_t ttl)
+static uint16_t
+submit_dnskey_by_id(int sockfd,
+					const char *ds_submit_command,
+					const char *id,
+					::ods::keystate::keyrole role,
+					const char *zone,
+					int algorithm,
+					uint32_t ttl)
 {
-    char buf[ODS_SE_MAXLINE];
-
     /* Code to output the DNSKEY record  (stolen from hsmutil) */
     hsm_ctx_t *hsm_ctx = hsm_create_context();
     if (!hsm_ctx) {
-        ods_log_error("[%s] Could not connect to HSM", module_str);
-        (void)snprintf(buf,ODS_SE_MAXLINE, "Could not connect to HSM\n");
-        ods_writen(sockfd, buf, strlen(buf));
-        return false;
+		ods_log_error_and_printf(sockfd,
+								 module_str,
+								 "could not connect to HSM");
+        return 0;
     }
     hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
     
     if (!key) {
-        ods_log_error("[%s] key %s not found in any HSM",
-                      module_str,id);
-        (void)snprintf(buf,ODS_SE_MAXLINE, "key %s not found in any HSM\n", id);
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_log_error_and_printf(sockfd,
+								 module_str,
+								 "key %s not found in any HSM",
+								 id);
         hsm_destroy_context(hsm_ctx);
-        return false;
+        return 0;
     }
     
     char *dnskey_rr_str;
@@ -93,47 +95,43 @@ static uint16_t submit_dnskey_by_id(int sockfd,
         FILE *fp = popen(ds_submit_command, "w");
         if (fp == NULL) {
             keytag = 0;
-            ods_log_error("[%s] Failed to run command: %s: %s",
-                          module_str,ds_submit_command,strerror(errno));
-            (void)snprintf(buf,ODS_SE_MAXLINE,"failed to run command: %s: %s\n",
-                           ds_submit_command,strerror(errno));
-            ods_writen(sockfd, buf, strlen(buf));
-            
+            ods_log_error_and_printf(sockfd,
+									 module_str,
+									 "failed to run command: %s: %s",
+									 ds_submit_command,
+									 strerror(errno));
         } else {
             int bytes_written = fprintf(fp, "%s", dnskey_rr_str);
             if (bytes_written < 0) {
                 keytag = 0;
-                ods_log_error("[%s] Failed to write to %s: %s",
-                              module_str,ds_submit_command,strerror(errno));
-                (void)snprintf(buf,ODS_SE_MAXLINE,"failed to write to %s: %s\n",
-                               ds_submit_command,strerror(errno));
-                               ods_writen(sockfd, buf, strlen(buf));
-                
+                ods_log_error_and_printf(sockfd,
+										 module_str,
+										 "[%s] Failed to write to %s: %s",
+										 ds_submit_command,
+										 strerror(errno));
             } else {
             
                 if (pclose(fp) == -1) {
                     keytag = 0;
-                    ods_log_error("[%s] Failed to close %s: %s",
-                                  module_str,ds_submit_command,strerror(errno));
-                    (void)snprintf(buf,ODS_SE_MAXLINE,"failed to close %s: %s\n",
-                                   ds_submit_command,strerror(errno));
-                    ods_writen(sockfd, buf, strlen(buf));
-                    
+                    ods_log_error_and_printf(sockfd,
+											 module_str,
+											 "failed to close %s: %s",
+											 ds_submit_command,
+											 strerror(errno));
                 } else {
-                    (void)snprintf(buf,ODS_SE_MAXLINE, 
-                                   "key %s submitted to %s\n", 
-                                   id, ds_submit_command);
-                    ods_writen(sockfd, buf, strlen(buf));
+                    ods_printf(sockfd,
+							   "key %s submitted to %s\n",
+							   id,
+							   ds_submit_command);
                 }
             }
         }
     } else {
         keytag = 0;
-        ods_log_error("[%s] No Delegation Signer Submit Command configured "
-                      "in conf.xml.",module_str);
-        (void)snprintf(buf,ODS_SE_MAXLINE,
-                       "no ds submit command configured in conf.xml.\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        ods_log_error_and_printf(sockfd,
+								 module_str,
+								 "no \"DelegationSignerSubmitCommand\" binary "
+								 "configured in conf.xml.");
     }
         
     LDNS_FREE(dnskey_rr_str);
@@ -143,251 +141,270 @@ static uint16_t submit_dnskey_by_id(int sockfd,
     return keytag;
 }
 
-static const ::ods::kasp::Policy *
-find_kasp_policy_for_zone(const ::ods::kasp::KASP &kasp,
-                          const ::ods::keystate::EnforcerZone &ks_zone)
+static bool
+load_kasp_policy(OrmConn conn,const std::string &name,
+				 ::ods::kasp::Policy &policy)
 {
-    // Find the policy associated with the zone.
-    for (int p=0; p<kasp.policies_size(); ++p) {
-        if (kasp.policies(p).name() == ks_zone.policy()) {
-            ods_log_debug("[%s] policy %s found for zone %s",
-                          module_str,ks_zone.policy().c_str(),
-                          ks_zone.name().c_str());
-            return &kasp.policies(p);
-        }
+	std::string qname;
+	if (!OrmQuoteStringValue(conn, name, qname))
+		return false;
+	
+	OrmResultRef rows;
+	if (!OrmMessageEnumWhere(conn,policy.descriptor(),rows,
+							 "name=%s",qname.c_str()))
+		return false;
+	
+	if (!OrmFirst(rows))
+		return false;
+	
+	return OrmGetMessage(rows, policy, true);
+}
+
+static void
+submit_keys(OrmConn conn,
+			int sockfd,
+			const char *zone,
+			const char *id,
+			const char *datastore,
+			const char *ds_submit_command)
+{
+	#define LOG_AND_RETURN(errmsg)\
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
+	#define LOG_AND_RETURN_1(errmsg,p)\
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg,p);return;}while(0)
+
+	OrmTransactionRW transaction(conn);
+	if (!transaction.started())
+		LOG_AND_RETURN("transaction not started");
+
+	{	OrmResultRef rows;
+		::ods::keystate::EnforcerZone enfzone;
+		if (zone) {
+			std::string qzone;
+			if (!OrmQuoteStringValue(conn, std::string(zone), qzone))
+				LOG_AND_RETURN("quoting string value failed");
+			
+			if (!OrmMessageEnumWhere(conn,enfzone.descriptor(),rows,"name = %s",qzone.c_str()))
+				LOG_AND_RETURN("zone enumeration failed");
+		} else {
+			if (!OrmMessageEnum(conn,enfzone.descriptor(),rows))
+				LOG_AND_RETURN("zone enumeration failed");
+		}
+
+		bool bZonesModified = false;
+
+		if (!OrmFirst(rows)) {
+			if (zone)
+				LOG_AND_RETURN_1("zone %s not found",zone);
+		} else {
+			
+			for (bool next=true; next; next=OrmNext(rows)) {
+				
+				OrmContextRef context;
+				if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
+					LOG_AND_RETURN("retrieving zone from database failed");
+				
+				// Try to change the state of a specific 'submitted' key to 'seen'.
+				bool bKeyModified = false;
+				for (int k=0; k<enfzone.keys_size(); ++k) {
+					const ::ods::keystate::KeyData &key = enfzone.keys(k);
+						
+					// Don't ever submit ZSKs to the parent.
+					if (key.role()==::ods::keystate::ZSK)
+						continue;
+					
+					// Onlyt submit KSKs that have the submit flag set.
+					if (key.ds_at_parent()!=::ods::keystate::submit)
+						continue;
+				
+					// Find the policy for the zone and get the ttl for the dnskey
+					uint32_t dnskey_ttl = 0;
+					::ods::kasp::Policy policy;
+					if (!load_kasp_policy(conn, enfzone.policy(), policy)) {
+						ods_log_error_and_printf(sockfd,module_str,
+												 "unable to load policy %s",
+												 enfzone.policy().c_str());
+						continue;
+					}
+					dnskey_ttl = policy.keys().ttl();
+
+					if (id) {
+						// --id <id>
+						//     Force submit key to the parent for specific key id.
+						if (key.locator()==id) {
+							// submit key with this id to the parent
+							uint16_t keytag = 
+							submit_dnskey_by_id(sockfd,ds_submit_command,
+												key.locator().c_str(),
+												key.role(),
+												enfzone.name().c_str(),
+												key.algorithm(),
+												dnskey_ttl);
+							if (keytag)
+							{
+								::ods::keystate::KeyData *kd =
+									enfzone.mutable_keys(k);
+								kd->set_ds_at_parent(::ods::keystate::submitted);
+								kd->set_keytag(keytag);
+								bKeyModified = true;
+							}
+						}
+					} else {
+						if (zone) {
+							// --zone <zone>
+							//     Force submit key to the parent for specific zone.
+							if (enfzone.name()==zone) {
+								// submit key for this zone to the parent
+								uint16_t keytag = 
+								submit_dnskey_by_id(sockfd,ds_submit_command,
+													key.locator().c_str(),
+													key.role(),
+													enfzone.name().c_str(),
+													key.algorithm(),
+													dnskey_ttl);
+								if (keytag)
+								{
+									::ods::keystate::KeyData *kd = 
+										enfzone.mutable_keys(k);
+									kd->set_ds_at_parent(::ods::keystate::submitted);
+									kd->set_keytag(keytag);
+									bKeyModified = true;
+								}
+							}
+						} else {
+							// --auto
+							//     Submit all keys to the parent that have
+							//     the submit flag set.
+							uint16_t keytag = 
+							submit_dnskey_by_id(sockfd,ds_submit_command,
+												key.locator().c_str(),
+												key.role(),
+												enfzone.name().c_str(),
+												key.algorithm(),
+												dnskey_ttl);
+							if (keytag)
+							{
+								::ods::keystate::KeyData *kd = 
+									enfzone.mutable_keys(k);
+								kd->set_ds_at_parent(::ods::keystate::submitted);
+								kd->set_keytag(keytag);
+								bKeyModified = true;
+							}
+						}
+					}
+				}
+				
+				if (bKeyModified) {
+					if (!OrmMessageUpdate(context))
+						LOG_AND_RETURN_1("failed to update zone %s in the database", enfzone.name().c_str());
+
+					bZonesModified = true;
+				}
+			}
+			
+			// we no longer need the query result, so release it.
+			rows.release();
+			
+		}
+
+		// Report back the status of the operation.
+		if (bZonesModified) {
+			// Commit updated records to the database.
+			if (!transaction.commit())
+				LOG_AND_RETURN_1("unable to commit updated zone %s to the database",zone);
+			
+			ods_log_debug("[%s] key states have been updated",module_str);
+			ods_printf(sockfd,"update of key states completed.\n");
+		} else {
+			ods_log_debug("[%s] key states are unchanged",module_str);
+			if (id)
+				ods_printf(sockfd,
+						   "No key state changes for id \"%s\"\n",
+						   id);
+			else
+				if (zone)
+					ods_printf(sockfd,
+							   "No key state changes for zone \"%s\"\n",
+							   zone);
+				else
+					ods_printf(sockfd,"key states are unchanged\n");
+		}
+	}
+	
+	#undef LOG_AND_RETURN
+	#undef LOG_AND_RETURN_1
+}
+
+static void
+list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
+{
+	#define LOG_AND_RETURN(errmsg)\
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
+	
+	// List the keys with submit flags.
+    ods_printf(sockfd,
+			   "Database set to: %s\n"
+			   "Submit Keys:\n"
+			   "Zone:                           "
+			   "Key role:     "
+			   "Id:                                      "
+			   "\n"
+			   ,datastore
+			   );
+
+	OrmTransaction transaction(conn);
+	if (!transaction.started())
+		LOG_AND_RETURN("transaction not started");
+	
+	{	OrmResultRef rows;
+		::ods::keystate::EnforcerZone enfzone;
+		if (!OrmMessageEnum(conn,enfzone.descriptor(),rows))
+			LOG_AND_RETURN("zone enumeration failed");
+
+		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+			
+			if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true))
+				LOG_AND_RETURN("retrieving zone from database failed");
+			
+			for (int k=0; k<enfzone.keys_size(); ++k) {
+				const ::ods::keystate::KeyData &key = enfzone.keys(k);
+
+				// Don't suggest ZSKs can be submitted, don't list them.
+				if (key.role() == ::ods::keystate::ZSK)
+					continue;
+				
+				// Only show keys that have the submit flag set.
+				if (key.ds_at_parent()!=::ods::keystate::submit)
+					continue;
+				
+				std::string keyrole = keyrole_Name(key.role());
+				ods_printf(sockfd,
+						   "%-31s %-13s %-40s\n",
+						   enfzone.name().c_str(),
+						   keyrole.c_str(),
+						   key.locator().c_str()
+						   );
+			}
+		}
     }
-    ods_log_error("[%s] policy %s could not be found for zone %s",
-                  module_str,ks_zone.policy().c_str(),
-                  ks_zone.name().c_str());
-    return NULL;
+	
+	#undef LOG_AND_RETURN
 }
 
 void 
 perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                            const char *zone, const char *id, int bauto)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *datastore = config->datastore;
-    const char *ds_submit_command = config->delegation_signer_submit_command;
-
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
-    
-    std::auto_ptr< ::ods::kasp::KaspDocument >
-    kaspDoc(new ::ods::kasp::KaspDocument);
-    {
-        std::string datapath(datastore);
-        datapath += ".policy.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (fd != -1) {
-            if (kaspDoc->ParseFromFileDescriptor(fd)) {
-                ods_log_debug("[%s] policies have been loaded",
-                              module_str);
-            } else {
-                ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                              module_str,datapath.c_str());
-                (void)snprintf(buf,ODS_SE_MAXLINE, "policies could not be loaded "
-                               "from \"%s\"\n", 
-                               datapath.c_str());
-                ods_writen(sockfd, buf, strlen(buf));
-                return;
-            }
-            close(fd);
-        } else {
-            ods_log_error("[%s] file \"%s\" could not be opened",
-                          module_str,datapath.c_str());
-            (void)snprintf(buf,ODS_SE_MAXLINE,
-                           "file \"%s\" could not be opened\n", 
-                           datapath.c_str());
-            ods_writen(sockfd, buf, strlen(buf));
-            return;
-        }
-    }
-
-    std::auto_ptr< ::ods::keystate::KeyStateDocument >
-        keystateDoc(new ::ods::keystate::KeyStateDocument);
-    {
-        std::string datapath(datastore);
-        datapath += ".keystate.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (fd != -1) {
-            if (keystateDoc->ParseFromFileDescriptor(fd)) {
-                ods_log_debug("[%s] keys have been loaded",
-                              module_str);
-            } else {
-                ods_log_error("[%s] keys could not be loaded from \"%s\"",
-                              module_str,datapath.c_str());
-                (void)snprintf(buf,ODS_SE_MAXLINE, "keys could not be loaded "
-                               "from \"%s\"\n", 
-                               datapath.c_str());
-                ods_writen(sockfd, buf, strlen(buf));
-            }
-            close(fd);
-        } else {
-            ods_log_error("[%s] file \"%s\" could not be opened",
-                          module_str,datapath.c_str());
-            (void)snprintf(buf,ODS_SE_MAXLINE,
-                           "file \"%s\" could not be opened\n", 
-                           datapath.c_str());
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-    }
-
-    // Evalutate parameters and submit keys to the parent when instructed
-    // to do so.
-    if (id || zone || bauto) {
-        bool bFlagsChanged = false;
-        for (int z=0; z<keystateDoc->zones_size(); ++z) {
-            const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
-            for (int k=0; k<enfzone.keys_size(); ++k) {
-                const ::ods::keystate::KeyData &key = enfzone.keys(k);
-
-                // Don't ever submit ZSKs to the parent.
-                if (key.role()==::ods::keystate::ZSK)
-                    continue;
-
-                // Onlyt submit KSKs that have the submit flag set.
-                if (key.ds_at_parent()!=::ods::keystate::submit)
-                    continue;
-                
-                // Find the policy for the zone and get the ttl for the dnskey
-                uint32_t dnskey_ttl = 0;
-                const ::ods::kasp::Policy *policy = 
-                find_kasp_policy_for_zone(kaspDoc->kasp(), enfzone);
-                if (policy) {
-                    dnskey_ttl = policy->keys().ttl();
-                }
-
-                if (id) {
-                    // --id <id>
-                    //     Force submit key to the parent for specific key id.
-                    if (key.locator()==id) {
-                        // submit key with this id to the parent
-                        uint16_t keytag = 
-                            submit_dnskey_by_id(sockfd,ds_submit_command,
-                                                key.locator().c_str(),
-                                                key.role(),
-                                                enfzone.name().c_str(),
-                                                key.algorithm(),
-                                                dnskey_ttl);
-                        if (keytag)
-                        {
-                            bFlagsChanged = true;
-                            ::ods::keystate::KeyData *kd = 
-                            keystateDoc->mutable_zones(z)->mutable_keys(k);
-                            kd->set_ds_at_parent(::ods::keystate::submitted);
-                            kd->set_keytag(keytag);
-                        }
-                    }
-                } else {
-                    if (zone) {
-                        // --zone <zone>
-                        //     Force submit key to the parent for specific zone.
-                        if (enfzone.name()==zone) {
-                            // submit key for this zone to the parent
-                            uint16_t keytag = 
-                                submit_dnskey_by_id(sockfd,ds_submit_command,
-                                                    key.locator().c_str(),
-                                                    key.role(),
-                                                    enfzone.name().c_str(),
-                                                    key.algorithm(),
-                                                    dnskey_ttl);
-                            if (keytag)
-                            {
-                                bFlagsChanged = true;
-                                ::ods::keystate::KeyData *kd = 
-                                keystateDoc->mutable_zones(z)->mutable_keys(k);
-                                kd->set_ds_at_parent(::ods::keystate::submitted);
-                                kd->set_keytag(keytag);
-                            }
-                        }
-                    } else {
-                        // --auto
-                        //     Submit all keys to the parent that have
-                        //     the submit flag set.
-                        uint16_t keytag = 
-                            submit_dnskey_by_id(sockfd,ds_submit_command,
-                                                key.locator().c_str(),
-                                                key.role(),
-                                                enfzone.name().c_str(),
-                                                key.algorithm(),
-                                                dnskey_ttl);
-                        if (keytag)
-                        {
-                            bFlagsChanged = true;
-                            ::ods::keystate::KeyData *kd = 
-                            keystateDoc->mutable_zones(z)->mutable_keys(k);
-                            kd->set_ds_at_parent(::ods::keystate::submitted);
-                            kd->set_keytag(keytag);
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (bFlagsChanged) {
-            // Persist the keystate zones back to disk as they may have
-            // been changed by the enforcer update
-            if (keystateDoc->IsInitialized()) {
-                std::string datapath(datastore);
-                datapath += ".keystate.pb";
-                int fd = open(datapath.c_str(),O_WRONLY|O_CREAT, 0644);
-                if (keystateDoc->SerializeToFileDescriptor(fd)) {
-                    ods_log_debug("[%s] key states have been updated",
-                                  module_str);
-                    
-                    (void)snprintf(buf, ODS_SE_MAXLINE,
-                                   "update of key states completed.\n");
-                    ods_writen(sockfd, buf, strlen(buf));
-                } else {
-                    (void)snprintf(buf, ODS_SE_MAXLINE,
-                                   "error: key states file could not be written.\n");
-                    ods_writen(sockfd, buf, strlen(buf));
-                }
-                close(fd);
-            } else {
-                (void)snprintf(buf, ODS_SE_MAXLINE,
-                               "error: a message in the key states is missing "
-                               "mandatory information.\n");
-                ods_writen(sockfd, buf, strlen(buf));
-            }
-        }
-        
-        return;
-    }
-
-    // List the keys with submit flags.
-    (void)snprintf(buf, ODS_SE_MAXLINE,
-                   "Database set to: %s\n"
-                   "Submit Keys:\n"
-                   "Zone:                           "
-                   "Key role:     "
-                   "Id:                                      "
-                   "\n"
-                   ,datastore
-                   );
-    ods_writen(sockfd, buf, strlen(buf));
-    for (int z=0; z<keystateDoc->zones_size(); ++z) {
-        const ::ods::keystate::EnforcerZone &enfzone  = keystateDoc->zones(z);
-        for (int k=0; k<enfzone.keys_size(); ++k) {
-            const ::ods::keystate::KeyData &key = enfzone.keys(k);
-            // Don't suggest ZSKs can be submitted, leave them out of the list.
-            if (key.role() == ::ods::keystate::ZSK)
-                continue;
-
-            // Only show keys that have the submit flag set.
-            if (key.ds_at_parent()!=::ods::keystate::submit)
-                continue;
-            
-            std::string keyrole = keyrole_Name(key.role());
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-13s %-40s\n",
-                           enfzone.name().c_str(),
-                           keyrole.c_str(),
-                           key.locator().c_str()
-                           );
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-    }
+	OrmConnRef conn;
+	if (ods_orm_connect(sockfd, config, conn)) {
+		// Evaluate parameters and submit keys to the parent when instructed to.
+		if (zone || id || bauto)
+			submit_keys(conn,sockfd,zone,id,config->datastore,
+						config->delegation_signer_submit_command);
+		else
+			list_keys_submit(conn,sockfd,config->datastore);
+	}
 }
 
 static task_type * 

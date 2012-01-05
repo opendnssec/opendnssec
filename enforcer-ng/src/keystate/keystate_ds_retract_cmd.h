@@ -10,7 +10,7 @@ extern "C" {
 void help_keystate_ds_retract_cmd(int sockfd);
 
 int handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
-                                    const char *cmd, ssize_t n);
+									const char *cmd, ssize_t n);
 
 #ifdef __cplusplus
 }

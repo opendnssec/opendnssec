@@ -9,8 +9,8 @@ extern "C" {
 
 void help_keystate_export_cmd(int sockfd);
 
-int handled_keystate_export_cmd(int sockfd, engine_type* engine,
-                                const char *cmd, ssize_t n);
+int handled_keystate_export_cmd(int sockfd, engine_type* engine, 
+								const char *cmd, ssize_t n);
 
 #ifdef __cplusplus
 }
