@@ -1,0 +1,96 @@
+/*
+ * Created by René Post on 10/21/11.
+ * Copyright (c) 2011 xpt Software & Consulting B.V. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*****************************************************************************
+ orm.proto
+ protobuf-orm
+ 
+ Extended field options for protobuf messages
+ The options affect the mapping of protobuf messages onto database tables
+ *****************************************************************************/
+
+package orm;
+
+import "google/protobuf/descriptor.proto";
+
+// A custom 'column' fiel option created as an extension to the FieldOptions 
+// message. When an column option is set on a field in a .proto file, the
+// generated C++ code will have this information hardwired in.
+// The object relational mapper (ORM) code can then reason about this option.
+//
+// The 'column' option is a field option that allows specifying 2 aspects:
+// 1. A specific SQL type to be used instead of a default type mapping.
+// 2. A column name to use instead of the actual name of the field.
+
+extend google.protobuf.FieldOptions {
+	optional Column column = 50001;
+}
+
+message Column {
+	// Specify an sql type to use instead of the standard mapping.
+	optional sqltype type = 1;
+
+	// Specify a column name to use instead of the name of the field.
+	optional string name = 2; 
+
+	// String representation of the default value to assign to the field.
+	optional string default = 3;
+}
+
+enum sqltype {
+	// Use the SQL type DATETIME for the column storing the field.
+	// (orm).default options look like this: "2011-12-31 23:59:59"
+	// Note that the default value is interpreted as UTC time.
+	// Note that the earliest date/time that can be 
+	//  specified is: 1970-01-01 00:00:00
+	DATETIME = 1;
+
+	// Use the SQL type DATE for the column storing the field.
+	// (orm).default options look like this: "2011-12-31"
+	// Note that the default value is interpreted as UTC time.
+	// Note that the earliest date that can be specified is: 1970-01-01
+	DATE = 2;
+	
+	// User the SQL type TIME for the column storing the field
+	// (orm).default options look like this: "23:59:59"
+	// Note that the default value is interpreted as UTC time.
+	// Note also that the default has to be in the range: 00:00:00 to 23:59:59
+	TIME = 3;
+	
+	// Use the SQL type YEAR for the column storing the field.
+	// (orm).default options look like this: "2011"
+	// Note that the default has to be in the range: 1901 to 2155
+	YEAR = 4;
+}
+
+extend google.protobuf.MessageOptions {
+	optional Index index = 50001;
+}
+
+message Index {
+	optional string name = 1;
+	optional string spec = 2;
+}
