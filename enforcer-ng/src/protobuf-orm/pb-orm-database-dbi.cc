@@ -44,8 +44,9 @@ namespace DB {
 	bool DBI::initialize(const std::string &driverdir)
 	{
 		printf("%s\n",dbi_version());
-		
-		return dbi_initialize(driverdir.c_str()) == DBI_ERROR_NONE;
+
+		// return number of drivers loaded
+		return dbi_initialize(driverdir.c_str()) > 0; 
 	}
 
 	void DBI::shutdown()

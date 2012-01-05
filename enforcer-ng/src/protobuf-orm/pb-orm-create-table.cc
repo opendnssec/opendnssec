@@ -281,7 +281,9 @@ bool OrmCreateTable(OrmConn conn, const pb::Descriptor* descriptor)
 			
 			std::string column_name;
 			if (field->type() == pb::FieldDescriptor::TYPE_MESSAGE) {
-				column_name = field->name() + " INTEGER";
+				std::string name;
+				pb_field_name(field,name);
+				column_name = name + " INTEGER";
 			} else {
 				std::string name;
 				pb_field_name(field,name);
