@@ -9,6 +9,9 @@
 
 #include "xmlext-pb/xmlext-rd.h"
 
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
+
 #include <fcntl.h>
 #include <memory>
 
@@ -17,59 +20,58 @@ static const char *module_str = "policy_list_task";
 void 
 perform_policy_list(int sockfd, engineconfig_type *config)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *datastore = config->datastore;
-    
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn))
+		return; // errors have already been reported.
+	
+	{	OrmTransaction transaction(conn);
+		
+		if (!transaction.started()) {
+			ods_log_error_and_printf(sockfd, module_str,
+									 "database transaction failed");
+			return;
+		}
+		
+		{	OrmResultRef rows;
+			::ods::kasp::Policy policy;
+			if (!OrmMessageEnum(conn,policy.descriptor(),rows)) {
+				ods_log_error_and_printf(sockfd, module_str,
+										"database policy enumeration failed\n");
+				return;
+			}
+			
+			if (!OrmFirst(rows)) {
+				ods_log_debug("[%s] policy list completed", module_str);
+				ods_printf(sockfd,
+						   "Database set to: %s\n"
+						   "I have no policies configured\n"
+						   ,config->datastore);
+				return;
+			}
+			
+			ods_printf(sockfd,
+						   "Database set to: %s\n"
+						   "Policies:\n"
+						   "Policy:                         "
+						   "Description:"
+						   "\n"
+						   ,config->datastore);
+			
+			// Enumerate the hsm keys referenced in the database
+			for (bool next=true; next; next=OrmNext(rows)) {
 
-    // Load the policylist from the doc file
-    std::auto_ptr< ::ods::kasp::KaspDocument >
-        kaspDoc(new ::ods::kasp::KaspDocument);
-    {
-        std::string datapath(datastore);
-        datapath += ".policy.pb";
-        int fd = open(datapath.c_str(),O_RDONLY);
-        if (kaspDoc->ParseFromFileDescriptor(fd)) {
-            ods_log_debug("[%s] policies have been loaded",
-                          module_str);
-        } else {
-            ods_log_error("[%s] policies could not be loaded from \"%s\"",
-                          module_str,datapath.c_str());
-        }
-        close(fd);
-    }
-
-    int npolicies = kaspDoc->kasp().policies_size();
-    if (npolicies == 0) {
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "Database set to: %s\n"
-                       "I have no policies configured\n"
-                       ,datastore
-                       );
-        ods_writen(sockfd, buf, strlen(buf));
-    } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "Database set to: %s\n"
-                       "I have %i policies configured\n"
-                       "Policies:\n"
-                       "Policy:                         "
-                       "Description:"
-                       "\n"
-                       ,datastore,npolicies
-                       );
-        ods_writen(sockfd, buf, strlen(buf));
-        
-        for (int i=0; i<npolicies; ++i) {
-            const ::ods::kasp::Policy &policy = kaspDoc->kasp().policies(i);
-            
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "%-31s %-48s\n",
-                           policy.name().c_str(),
-                           policy.description().c_str()
-                           );
-            ods_writen(sockfd, buf, strlen(buf));
+				if (!OrmGetMessage(rows, policy, true)) {
+					ods_log_error_and_printf(sockfd, module_str,
+										"reading policy from database failed");
+					return;
+				}
+					
+				ods_printf(sockfd,"%-31s %-48s\n",policy.name().c_str(),
+						   policy.description().c_str());
+			}
         }
     }
-    
     ods_log_debug("[%s] policy list completed", module_str);
 }

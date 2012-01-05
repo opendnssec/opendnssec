@@ -7,6 +7,7 @@
 package ods.kasp;
 
 import "xmlext.proto";
+import "orm.proto";
 
 message KaspDocument {
 	required KASP kasp = 2 [(xml).path="KASP"]; // root element in kasp.xml config file 
@@ -21,7 +22,7 @@ message Policy {
 	required string description = 2 [(xml).path="Description"];
 	required Signatures signatures = 3 [(xml).path="Signatures"]; // Parameters for signatures created using the policy
 	required Denial denial = 4 [(xml).path="Denial"]; // Parameters for authenticated denial of existence (proving that domain names do not exist)
-	required Keys keys = 5 [(xml).path="Keys"]; // Parameters relating to both zone-signing keys (ZSK) and key-signing keys (KSK).
+	required KeyList keys = 5 [(xml).path="Keys", (orm.column).name="keylist"]; // Parameters relating to both zone-signing keys (ZSK) and key-signing keys (KSK).
 	required Zone zone = 6 [(xml).path="Zone"]; // General information concerning the zones
 	required Parent parent = 7 [(xml).path="Parent"]; // Timing information concerning the parent zone when the zone is part of a chain of trust
 	repeated Audit audit = 8 [(xml).path="Audit"];
@@ -56,12 +57,12 @@ message NSEC3 {
     optional uint32 salt_last_change = 8 [(xml).path="Hash/Salt/@lastchanged"]; // timestamp for when the last resalt took place
 }
 
-message Keys {
+message KeyList {
 	required int32 ttl = 1 [(xml).path="TTL", (xml).type=duration]; // TTL for DNSKEYs
 	required int32 retiresafety = 2 [(xml).path="RetireSafety", (xml).type=duration]; // key retirement safety factor
 	required int32 publishsafety = 3 [(xml).path="PublishSafety", (xml).type=duration]; // key publication safety factor
 	optional bool zones_share_keys = 4 [(xml).path="ShareKeys"]; // do the zones share the same keys ?
-	optional int32 purge = 5 [(xml).path="Purge", (xml).type=duration]; // enforcer may purge keys after this amount of time
+	optional int32 purge = 5 [(xml).path="Purge", (xml).type=duration, (orm.column).name="purgeafter"]; // enforcer may purge keys after this amount of time
 	repeated Ksk ksk = 6 [(xml).path="KSK"]; // Key Signing Keys (KSK) parameters.
 	repeated Zsk zsk = 7 [(xml).path="ZSK"]; // Zone Signing Keys (ZSK) parameters.
 	repeated Csk csk = 8 [(xml).path="CSK"]; // Combined Signing Keys (CSK) paramters.

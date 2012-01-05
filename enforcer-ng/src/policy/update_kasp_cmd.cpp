@@ -16,20 +16,14 @@ static const char *module_str = "update_kasp_cmd";
 void
 help_update_kasp_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
-        "update kasp     import policies from kasp.xml into the enforcer.\n"
-        );
-    ods_writen(sockfd, buf, strlen(buf));
+    ods_printf(sockfd,
+	   "update kasp     import policies from kasp.xml into the enforcer.\n");
 }
 
 int
 handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
                         ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    task_type *task;
-    ods_status status;
     const char *scmd = "update kasp";
 
     cmd = ods_check_command(cmd,n,scmd);
@@ -38,12 +32,10 @@ handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-    /* perform task immediately */
     time_t tstart = time(NULL);
+	
     perform_update_kasp(sockfd, engine->config);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
-
+	
+    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;
 }
