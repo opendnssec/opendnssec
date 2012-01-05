@@ -250,6 +250,74 @@ ods_writen(int fd, const void* vptr, size_t n)
 
 
 /**
+ * Write to file descriptor with format
+ *
+ */
+void
+ods_printf(int fd, const char * format, ...)
+{
+    char buf[ODS_SE_MAXLINE];
+	va_list ap;
+	va_start(ap, format);
+	int ok = (vsnprintf(buf, ODS_SE_MAXLINE, format,ap) < ODS_SE_MAXLINE);
+	va_end(ap);
+	if (!ok) {
+		ods_log_error("[%s] vsnprintf buffer too small",file_str);
+		size_t nbuf = strlen(strcpy(buf,"error: vsnprintf buffer too small\n"));
+		ods_writen(fd, buf, nbuf);
+	}
+	ods_writen(fd, buf, strlen(buf));
+}
+
+
+/**
+ * Combined error logging and writing to a file descriptor.
+ *
+ */
+void 
+ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
+{
+	va_list ap;
+	char fmt[128];
+    char buf[ODS_SE_MAXLINE];
+	int ok;
+	
+	/* first perform the ods_log_error */
+	ok = (snprintf(fmt, sizeof(fmt), "[%s] %s", mod, format) < sizeof(fmt));
+	if (!ok) {
+		ods_log_error("[%s] snprintf buffer too small",file_str);
+		size_t nbuf = strlen(strcpy(buf,"error: snprintf buffer too small\n"));
+		ods_writen(fd, buf, nbuf);
+		return;
+	}
+	va_start(ap, format);
+	ods_log_verror(fmt, ap);
+	va_end(ap);
+
+
+	/* then perform the ods_printf */
+	ok = (snprintf(fmt, sizeof(fmt), "error: %s\n", format) < sizeof(fmt));
+	if (!ok) {
+		ods_log_error("[%s] snprintf buffer too small",file_str);
+		size_t nbuf = strlen(strcpy(buf,"error: snprintf buffer too small\n"));
+		ods_writen(fd, buf, nbuf);
+		return;
+	}
+	
+	va_start(ap, format);
+	ok = (vsnprintf(buf, ODS_SE_MAXLINE, fmt,ap) < ODS_SE_MAXLINE);
+	va_end(ap);
+	if (!ok) {
+		ods_log_error("[%s] vsnprintf buffer too small",file_str);
+		size_t nbuf = strlen(strcpy(buf,"error: vsnprintf buffer too small\n"));
+		ods_writen(fd, buf, nbuf);
+		return;
+	}
+	ods_writen(fd, buf, strlen(buf));
+}
+
+
+/**
  * Get file last modified.
  *
  */
