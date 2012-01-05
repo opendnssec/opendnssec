@@ -16,21 +16,16 @@ static const char *module_str = "signconf_cmd";
 void
 help_signconf_cmd(int sockfd)
 {
-    char buf[ODS_SE_MAXLINE];
-    (void) snprintf(buf, ODS_SE_MAXLINE,
+    ods_printf(sockfd,
         "signconf        force the writing of signer configuration files "
                         "for all zones.\n"
         );
-    ods_writen(sockfd, buf, strlen(buf));
 }
 
 int
 handled_signconf_cmd(int sockfd, engine_type* engine, const char *cmd,
                      ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    task_type *task;
-    ods_status status;
     const char *scmd = "signconf";
 
     cmd = ods_check_command(cmd,n,scmd);
@@ -39,12 +34,10 @@ handled_signconf_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-    /* perform task immediately */
     time_t tstart = time(NULL);
+	
     perform_signconf(sockfd, engine->config,1);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "%s completed in %ld seconds.\n",
-                   scmd,time(NULL)-tstart);
-    ods_writen(sockfd, buf, strlen(buf));
-
+	
+    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;
 }
