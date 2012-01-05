@@ -9,7 +9,8 @@ BUILT_SOURCES = \
 	$(srcdir)/parser/conf.pb.cc $(srcdir)/parser/conf.pb.h \
 	$(srcdir)/policy/kasp.pb.cc $(srcdir)/policy/kasp.pb.h \
 	$(srcdir)/signconf/signconf.pb.cc $(srcdir)/signconf/signconf.pb.h \
-	$(srcdir)/zone/zonelist.pb.cc $(srcdir)/zone/zonelist.pb.h
+	$(srcdir)/zone/zonelist.pb.cc $(srcdir)/zone/zonelist.pb.h \
+	$(srcdir)/protobuf-orm/orm.pb.cc $(srcdir)/protobuf-orm/orm.pb.h
 
 EXTRA_DIST = \
 	$(srcdir)/xmlext-pb/xmlext.proto \
@@ -18,7 +19,8 @@ EXTRA_DIST = \
 	$(srcdir)/parser/conf.proto \
 	$(srcdir)/policy/kasp.proto \
 	$(srcdir)/signconf/signconf.proto \
-	$(srcdir)/zone/zonelist.proto
+	$(srcdir)/zone/zonelist.proto \
+	$(srcdir)/protobuf-orm/zonelist.proto
 
 CLEANFILES = $(BUILT_SOURCES)
 
@@ -48,6 +50,7 @@ ods_enforcerd_SOURCES = \
 	daemon/engine.c daemon/engine.h \
 	daemon/signal.c daemon/signal.h \
 	daemon/worker.c daemon/worker.h \
+	daemon/orm.cpp daemon/orm.h \
 	parser/confparser.c parser/confparser.h \
 	scheduler/fifoq.c scheduler/fifoq.h \
 	scheduler/schedule.c scheduler/schedule.h \
@@ -64,6 +67,7 @@ ods_enforcerd_SOURCES = \
 	shared/str.c shared/str.h \
 	shared/backup.c shared/backup.h \
 	shared/keys.c shared/keys.h \
+	shared/protobuf.cpp shared/protobuf.h \
 	xmlext-pb/xmlext-rd.cpp xmlext-pb/xmlext-rd.h \
 	xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \
 	policy/update_kasp_cmd.cpp policy/update_kasp_cmd.h \
@@ -108,7 +112,28 @@ ods_enforcerd_SOURCES = \
 	enforcer/enforce_task.cpp enforcer/enforce_task.h \
 	enforcer/enforcer.cpp enforcer/enforcer.h \
 	enforcer/enforcerzone.cpp enforcer/enforcerzone.h \
-	enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.h
+	enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.h \
+	protobuf-orm/pb-orm.h \
+	protobuf-orm/pb-orm-common.h \
+	protobuf-orm/pb-orm-connect.cc protobuf-orm/pb-orm-connect.h \
+	protobuf-orm/pb-orm-context.cc protobuf-orm/pb-orm-context.h \
+	protobuf-orm/pb-orm-create-table.cc protobuf-orm/pb-orm-create-table.h \
+	protobuf-orm/pb-orm-create.cc protobuf-orm/pb-orm-create.h \
+	protobuf-orm/pb-orm-database-dbi.cc protobuf-orm/pb-orm-database-dbi.h \
+	protobuf-orm/pb-orm-database-helper.cc protobuf-orm/pb-orm-database-helper.h \
+	protobuf-orm/pb-orm-database-sqlite3.cc protobuf-orm/pb-orm-database-sqlite3.h \
+	protobuf-orm/pb-orm-database.cc protobuf-orm/pb-orm-database.h \
+	protobuf-orm/pb-orm-delete.cc protobuf-orm/pb-orm-delete.h \
+	protobuf-orm/pb-orm-drop-table.cc protobuf-orm/pb-orm-drop-table.h \
+	protobuf-orm/pb-orm-enum.cc protobuf-orm/pb-orm-enum.h \
+	protobuf-orm/pb-orm-initialize.cc protobuf-orm/pb-orm-initialize.h \
+	protobuf-orm/pb-orm-log.cc protobuf-orm/pb-orm-log.h \
+	protobuf-orm/pb-orm-read.cc protobuf-orm/pb-orm-read.h \
+	protobuf-orm/pb-orm-shutdown.cc protobuf-orm/pb-orm-shutdown.h \
+	protobuf-orm/pb-orm-str.cc protobuf-orm/pb-orm-str.h \
+	protobuf-orm/pb-orm-transaction.cc protobuf-orm/pb-orm-transaction.h \
+	protobuf-orm/pb-orm-update.cc protobuf-orm/pb-orm-update.h \
+	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h
 
 ods_enforcerd_LDADD=		$(LIBHSM)
 ods_enforcerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @PROTOBUF_LIBS@
