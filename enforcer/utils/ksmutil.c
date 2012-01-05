@@ -4358,11 +4358,11 @@ int update_policies(char* kasp_filename)
     char* kaspcheck_cmd = NULL;
     char* kaspcheck_cmd_version = NULL;
     
-    StrAppend(&kaspcheck_cmd, ODS_AU_KASPCHECK);
+    StrAppend(&kaspcheck_cmd, ODS_EN_KASPCHECK);
     StrAppend(&kaspcheck_cmd, " -k ");
     StrAppend(&kaspcheck_cmd, kasp_filename);
 
-    StrAppend(&kaspcheck_cmd_version, ODS_AU_KASPCHECK);
+    StrAppend(&kaspcheck_cmd_version, ODS_EN_KASPCHECK);
     StrAppend(&kaspcheck_cmd_version, " --version > /dev/null");
 
     /* Run kaspcheck */
