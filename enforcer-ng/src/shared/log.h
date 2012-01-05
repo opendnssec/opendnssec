@@ -109,6 +109,14 @@ void ods_log_warning(const char *format, ...);
 void ods_log_error(const char *format, ...);
 
 /**
+ * Log errors.
+ * \param[in] format printf-style format string, arguments follow
+ * \param[in] args list of arguments already started with va_start
+ *
+ */
+void ods_log_verror(const char *format, va_list args);
+
+/**
  * Log criticals.
  * \param[in] format printf-style format string, arguments follow
  *

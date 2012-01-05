@@ -321,6 +321,17 @@ ods_log_error(const char *format, ...)
     va_end(args);
 }
 
+/**
+ * Log error.
+ *
+ */
+void
+ods_log_verror(const char *format, va_list args)
+{
+    if (log_level >= LOG_ERR) {
+        ods_log_vmsg(LOG_ERR, "error  ", format, args);
+    }
+}
 
 /**
  * Log critical.
