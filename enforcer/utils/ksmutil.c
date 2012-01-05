@@ -350,7 +350,6 @@ usage_keydelete ()
     fprintf(stderr,
             "  key delete\n"
             "\t--cka_id <CKA_ID>                        aka -k\n"
-            "\t--force\n"
             "\t--no-hsm\n");
 }
 

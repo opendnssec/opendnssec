@@ -17,8 +17,11 @@
 .br
 .B ods-ksmutil zonelist import|export
 .br
-.B ods-ksmutil key generate|import|export|list|purge|rollover|ksk-retire|ds-seen
+.B ods-ksmutil key 
+.RS
+.B		generate|import|export|list|purge|rollover|ksk\-retire|ds\-seen|delete
 .RB ...
+.RE
 .br
 .B ods-ksmutil rollover list
 .RB ...
@@ -240,9 +243,19 @@ An optional \-\-no\-retire flag can also be passed in, without this the
 existing key is moved into the retired state at the same time as making 
 the new key active. If you wish to delay this step then pass in this flag 
 and use the ksk\-retire command when needed.
+
+.TP
+.B key delete --cka_id|-k \fIckaid\fB [\-\-no\-hsm]
+Remove a named key from the system.
+
+Keys in the GENERATE or DEAD state can be safely removed from the system as
+they are not in use.
+
+The \-\-no\-hsm flag can be provided if you want to leave the key material on the HSM.
+
 .br
 .TP
-.B ods-ksmutil rollover list
+.B rollover list
 List the expected dates and times of upcoming rollovers.  This can be
 used to get an idea of upcoming work, such as the non-standardised
 submission of DS records to a registry.
