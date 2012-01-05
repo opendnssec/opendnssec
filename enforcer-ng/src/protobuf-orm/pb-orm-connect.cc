@@ -36,6 +36,7 @@
 #include "pb-orm-database-sqlite3.h"
 
 bool OrmConnectMySQL(const std::string &host,
+					 int port,
 					 const std::string &username,
 					 const std::string &password,
 					 const std::string &dbname,
@@ -55,6 +56,8 @@ bool OrmConnectMySQL(const std::string &host,
 		conn->set_option("username", username);
 	if (password.size() > 0)
 		conn->set_option("password", password);
+	if (port)
+		conn->set_option("port",port);
 	if (dbname.size() > 0)
 		conn->set_option("dbname", dbname);
 	if (encoding.size() > 0)

@@ -34,7 +34,20 @@
 
 #include "pb-orm-common.h"
 
+/**
+ * Establish and ORM connection with a MySQL database.
+ * \param[in] host name of the MySQL server to connect to e.g. "example.com"
+ * \param[in] port port on the MySQL server to connect to use 0 (zero) to 
+ *				connect to the default MySQL server port (3306).
+ * \param[in] username name of the database user
+ * \param[in] password password for the database user
+ * \param[in] dbname name of the database to use
+ * \param[in] encoding the character encoding to use e.g. "UTF-8"
+ * \return bool returns whether the connection was successfully established.
+ *
+ */
 bool OrmConnectMySQL(const std::string &host,
+					 int port,
 					 const std::string &username,
 					 const std::string &password,
 					 const std::string &dbname,
