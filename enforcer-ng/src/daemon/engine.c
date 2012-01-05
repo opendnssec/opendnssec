@@ -38,6 +38,7 @@
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "daemon/worker.h"
+#include "daemon/orm.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/allocator.h"
@@ -47,6 +48,7 @@
 #include "shared/privdrop.h"
 #include "shared/status.h"
 #include "shared/util.h"
+#include "shared/protobuf.h"
 
 #include <errno.h>
 #include <libhsm.h>
@@ -670,7 +672,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 
     /* setup */
     tzset(); /* for portability */
-    
+
+    /* initialize protobuf and protobuf-orm */
+	ods_protobuf_initialize();
+	ods_orm_initialize();
+	
     return engine;
 }
 
@@ -682,6 +688,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 void
 engine_stop(engine_type *engine)
 {
+	ods_orm_shutdown();
+	ods_protobuf_shutdown();
+
     if (engine && engine->config) {
         if (engine->config->pid_filename) {
             (void)unlink(engine->config->pid_filename);

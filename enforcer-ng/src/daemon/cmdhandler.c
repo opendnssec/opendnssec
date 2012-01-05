@@ -73,8 +73,7 @@ static char* module_str = "cmdhandler";
  * Handle the 'queue' command.
  *
  */
-int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd,
-                      ssize_t n)
+int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char* strtime = NULL;
     char ctimebuf[32]; /* at least 26 according to docs */
@@ -126,8 +125,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd,
  * Handle the 'time leap' command.
  *
  */
-int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, 
-                      ssize_t n)
+int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     int bShouldLeap = 0;
     char* strtime = NULL;
@@ -206,8 +204,7 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd,
  * Handle the 'flush' command.
  *
  */
-int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd, 
-                      ssize_t n)
+int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 5 || strncmp(cmd, "flush", n) != 0) return 0;
@@ -234,8 +231,7 @@ int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd,
  * Handle the 'running' command.
  *
  */
-int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd,
-                        ssize_t n)
+int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 7 || strncmp(cmd, "running", n) != 0) return 0;
@@ -250,8 +246,7 @@ int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd,
  * Handle the 'reload' command.
  *
  */
-int handled_reload_cmd(int sockfd, engine_type* engine, const char *cmd,
-                       ssize_t n)
+int handled_reload_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 6 || strncmp(cmd, "reload", n) != 0) return 0;
@@ -277,8 +272,7 @@ int handled_reload_cmd(int sockfd, engine_type* engine, const char *cmd,
  * Handle the 'stop' command.
  *
  */
-int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd, 
-                     ssize_t n)
+int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     if (n != 4 || strncmp(cmd, "stop", n) != 0) return 0;
@@ -304,8 +298,7 @@ int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd,
  * Handle the 'verbosity' command.
  *
  */
-int handled_verbosity_cmd(int sockfd, engine_type* engine, const char *cmd, 
-                          ssize_t n)
+int handled_verbosity_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     if (n < 9 || strncmp(cmd, "verbosity", 9) != 0) return 0;
     ods_log_debug("[%s] verbosity command", module_str);
@@ -334,8 +327,7 @@ int handled_verbosity_cmd(int sockfd, engine_type* engine, const char *cmd,
  * Handle the 'help' command.
  *
  */
-int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd,
-                     ssize_t n)
+int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     help_xxxx_cmd_type *help;
@@ -376,8 +368,7 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd,
  * Handle unknown command.
  *
  */
-int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, 
-                        ssize_t n)
+int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     ods_log_debug("[%s] unknown command", module_str);
@@ -389,8 +380,7 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd,
 
 
 static void
-cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, 
-                           ssize_t n)
+cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssize_t n)
 {
     handled_xxxx_cmd_type *handled_cmd = NULL;
     handled_xxxx_cmd_type internal_handled_cmds[] = {
