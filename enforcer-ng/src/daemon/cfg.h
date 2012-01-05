@@ -65,11 +65,15 @@ struct engineconfig_struct {
     const char* username;
     const char* group;
     const char* chroot;
-    const char* datastore;
+    const char* datastore; /* Datastore/SQLite or Datastore/MySQL/Database */
+	const char* db_host; /* Datastore/MySQL/Host */
+	const char* db_username; /* Datastore/MySQL/Username */
+	const char* db_password; /* Datastore/MySQL/Password */
     int use_syslog;
     int num_worker_threads;
     int manual_keygen;
     int verbosity;
+	int db_port; /* Datastore/MySQL/Host/@Port */
 };
 
 /**

@@ -414,9 +414,34 @@ parse_conf_datastore(allocator_type* allocator, const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
-        cfgfile,
-        "//Configuration/Enforcer/Datastore/SQLite",
-        0);
+		cfgfile,
+		"//Configuration/Enforcer/Datastore/MySQL/Database",
+		0);
+	if (!str) {
+		str = parse_conf_string(
+			cfgfile,
+			"//Configuration/Enforcer/Datastore/SQLite",
+			0);
+	}
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    } else {
+		 /* use "KASP" as default for datastore */
+		dup = allocator_strdup(allocator, "KASP");
+	}
+    return dup;
+	
+}
+
+const char*
+parse_conf_db_host(allocator_type* allocator, const char* cfgfile)
+{
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+		cfgfile,
+		"//Configuration/Enforcer/Datastore/MySQL/Host",
+		0);
     
     if (str) {
         dup = allocator_strdup(allocator, str);
@@ -425,6 +450,37 @@ parse_conf_datastore(allocator_type* allocator, const char* cfgfile)
     return dup;
 }
 
+const char*
+parse_conf_db_username(allocator_type* allocator, const char* cfgfile)
+{
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+		cfgfile,
+		"//Configuration/Enforcer/Datastore/MySQL/Username",
+		0);
+    
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
+}
+
+const char*
+parse_conf_db_password(allocator_type* allocator, const char* cfgfile)
+{
+    const char* dup = NULL;
+    const char* str = parse_conf_string(
+		cfgfile,
+		"//Configuration/Enforcer/Datastore/MySQL/Password",
+		0);
+    
+    if (str) {
+        dup = allocator_strdup(allocator, str);
+        free((void*)str);
+    }
+    return dup;
+}
 
 /**
  * Parse elements from the configuration file.
@@ -473,3 +529,18 @@ parse_conf_manual_keygen(const char* cfgfile)
     return 0;
 }
 
+int
+parse_conf_db_port(const char* cfgfile)
+{
+    int port = 0; /* returning 0 (zero) means use the default port */
+    const char* str = parse_conf_string(cfgfile,
+		"//Configuration/Enforcer/Datastore/MySQL/Host/@Port",
+		0);
+    if (str) {
+        if (strlen(str) > 0) {
+            port = atoi(str);
+        }
+        free((void*)str);
+    }
+    return port;
+}

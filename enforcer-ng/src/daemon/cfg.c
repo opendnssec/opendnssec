@@ -110,10 +110,14 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->group = parse_conf_group(allocator, cfgfile);
         ecfg->chroot = parse_conf_chroot(allocator, cfgfile);
         ecfg->datastore = parse_conf_datastore(allocator, cfgfile);
+		ecfg->db_host = parse_conf_db_host(allocator,cfgfile);
+		ecfg->db_username = parse_conf_db_username(allocator,cfgfile);
+		ecfg->db_password = parse_conf_db_password(allocator,cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
         ecfg->manual_keygen = parse_conf_manual_keygen(cfgfile);
         ecfg->verbosity = cmdline_verbosity;
+		ecfg->db_port = parse_conf_db_port(cfgfile);
 
         /* done */
         ods_fclose(cfgfd);
@@ -277,6 +281,9 @@ engine_config_cleanup(engineconfig_type* config)
     allocator_deallocate(allocator, (void*) config->group);
     allocator_deallocate(allocator, (void*) config->chroot);
     allocator_deallocate(allocator, (void*) config->datastore);
+	allocator_deallocate(allocator, (void*) config->db_host);
+	allocator_deallocate(allocator, (void*)	config->db_username);
+	allocator_deallocate(allocator, (void*)	config->db_password);
     allocator_deallocate(allocator, (void*) config);
     return;
 }

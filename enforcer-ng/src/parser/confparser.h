@@ -99,6 +99,12 @@ const char* parse_conf_chroot(allocator_type* allocator,
     const char* cfgfile);
 const char* parse_conf_datastore(allocator_type* allocator,
     const char* cfgfile);
+const char* parse_conf_db_host(allocator_type* allocator,
+	const char* cfgfile);
+const char* parse_conf_db_username(allocator_type* allocator,
+	const char* cfgfile);
+const char* parse_conf_db_password(allocator_type* allocator,
+	const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
@@ -113,6 +119,7 @@ int parse_conf_use_syslog(const char* cfgfile);
 /** Enforcer specific */
 int parse_conf_worker_threads(const char* cfgfile);
 int parse_conf_manual_keygen(const char* cfgfile);
+int parse_conf_db_port(const char *cfgfile);
 
 #ifdef __cplusplus
 }
