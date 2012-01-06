@@ -176,14 +176,6 @@ adapter_read(void* zone)
         case ADAPTER_FILE:
             ods_log_verbose("[%s] read zone %s from file input adapter %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
-            if (adzone->signconf->audit) {
-                char* tmpname = ods_build_path(adzone->name, ".inbound", 0);
-                status = ods_file_copy(adzone->adinbound->configstr, tmpname);
-                free((void*)tmpname);
-                if (status != ODS_STATUS_OK) {
-                    return status;
-                }
-            }
             return adfile_read(zone);
             break;
         case ADAPTER_DNS:
@@ -218,7 +210,7 @@ adapter_write(void* zone)
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "
                 "adapter %s", adapter_str, adzone->name,
-                adzone->db->outserial, adzone->adoutbound->configstr);
+                adzone->db->intserial, adzone->adoutbound->configstr);
             return adfile_write(zone, adzone->adoutbound->configstr);
             break;
         case ADAPTER_DNS:
