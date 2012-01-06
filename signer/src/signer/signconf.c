@@ -88,7 +88,6 @@ signconf_create(void)
     sc->soa_serial = NULL;
     /* Other useful information */
     sc->last_modified = 0;
-    sc->audit = 0;
     return sc;
 }
 
@@ -145,7 +144,6 @@ signconf_read(signconf_type* signconf, const char* scfile)
         signconf->soa_min = parse_sc_soa_min(scfile);
         signconf->soa_serial = parse_sc_soa_serial(signconf->allocator,
             scfile);
-        signconf->audit = parse_sc_audit(scfile);
         ods_fclose(fd);
         return ODS_STATUS_OK;
     }
@@ -210,6 +208,7 @@ signconf_recover_from_backup(const char* filename)
 {
     signconf_type* signconf = NULL;
     const char* zonename = NULL;
+    int audit = 0; /* dummy, auditor is removed */
     FILE* scfd = NULL;
     if (!filename) {
         return NULL;
@@ -247,7 +246,7 @@ signconf_recover_from_backup(const char* filename)
             !backup_read_check_str(scfd, ";soa_serial:") ||
             !backup_read_str(scfd, &signconf->soa_serial) ||
             !backup_read_check_str(scfd, ";audit:") ||
-            !backup_read_int(scfd, &signconf->audit) ||
+            !backup_read_int(scfd, &audit) ||
             !backup_read_check_str(scfd, ODS_SE_FILE_MAGIC))
         {
             ods_log_error("[%s] unable to recover signconf backup file %s: corrupt "
@@ -304,7 +303,7 @@ signconf_backup(FILE* fd, signconf_type* sc)
     signconf_backup_duration(fd, "soattl", sc->soa_ttl);
     signconf_backup_duration(fd, "soamin", sc->soa_min);
     fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
-    fprintf(fd, "audit %i\n", sc->audit);
+    fprintf(fd, "audit 0\n");
     return;
 }
 
@@ -524,11 +523,6 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
             sc->soa_serial?sc->soa_serial:"(null)");
         fprintf(out, "\t\t</SOA>\n");
         fprintf(out, "\n");
-        /* Audit */
-        if (sc->audit) {
-            fprintf(out, "\t\t<Audit />\n");
-            fprintf(out, "\n");
-        }
         fprintf(out, "\t</Zone>\n");
         fprintf(out, "</SignerConfiguration>\n");
     }
@@ -566,11 +560,10 @@ signconf_log(signconf_type* sc, const char* name)
         /* signconf */
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
             "VALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
-            "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s] AUDIT[%i]",
+            "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
             sc_str, name?name:"(null)", resign, refresh, validity, denial,
             jitter, offset, (int) sc->nsec_type, dnskeyttl, soattl,
-            soamin, sc->soa_serial?sc->soa_serial:"(null)",
-            (int) sc->audit);
+            soamin, sc->soa_serial?sc->soa_serial:"(null)");
         /* nsec3 parameters */
         if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
             ods_log_debug("[%s] zone %s nsec3: OPTOUT[%i] ALGORITHM[%u] "

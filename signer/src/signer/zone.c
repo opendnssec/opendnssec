@@ -803,6 +803,7 @@ zone_recover(zone_type* zone)
     int flush = 0;
     /* signconf part */
     time_t lastmod = 0;
+    int audit = 0;
     /* nsec3params part */
     const char* salt = NULL;
     ldns_rr* nsec3params_rr = NULL;
@@ -882,7 +883,7 @@ zone_recover(zone_type* zone)
             !backup_read_check_str(fd, "serial") ||
             !backup_read_str(fd, &zone->signconf->soa_serial) ||
             !backup_read_check_str(fd, "audit") ||
-            !backup_read_int(fd, &zone->signconf->audit) ||
+            !backup_read_int(fd, &audit) ||
             !backup_read_check_str(fd, ";;")) {
             goto recover_error;
         }

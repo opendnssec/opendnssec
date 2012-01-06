@@ -77,7 +77,6 @@ struct signconf_struct {
     /* Other useful information */
     const char* filename;
     time_t last_modified;
-    int audit;
 };
 
 /**

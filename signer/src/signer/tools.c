@@ -149,76 +149,6 @@ tools_input(zone_type* zone)
 
 
 /**
- * Audit zone.
- *
- */
-static ods_status
-tools_audit(zone_type* zone, const char* working_dir, const char* cfg_filename)
-{
-    char* inbound = NULL;
-    char* finalized = NULL;
-    char str[SYSTEM_MAXLEN];
-    ods_status status = ODS_STATUS_OK;
-    int error = 0;
-    time_t start = 0;
-    time_t end = 0;
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->signconf);
-    ods_log_assert(working_dir);
-    ods_log_assert(cfg_filename);
-    if (zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
-        if (zone->stats->sort_done == 0 &&
-            (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
-            lock_basic_unlock(&zone->stats->stats_lock);
-            return ODS_STATUS_OK;
-        }
-        lock_basic_unlock(&zone->stats->stats_lock);
-    }
-    ods_log_verbose("[%s] audit zone %s", tools_str, zone->name);
-    inbound = ods_build_path(zone->name, ".inbound", 0);
-    finalized = ods_build_path(zone->name, ".finalized", 0);
-    status = adfile_write(zone, finalized);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to audit zone %s: failed to write zone",
-            tools_str, zone->name);
-        free((void*)inbound);
-        free((void*)finalized);
-        return status;
-    }
-    snprintf(str, SYSTEM_MAXLEN, "%s -c %s -u %s/%s -s %s/%s -z %s "
-        "> /dev/null", ODS_SE_AUDITOR, cfg_filename, working_dir,
-        inbound, working_dir, finalized, zone->name);
-    start = time(NULL);
-    ods_log_debug("system call: %s", str);
-    error = system(str);
-    if (finalized) {
-        if (!error) {
-            unlink(finalized);
-        }
-        free((void*)finalized);
-    }
-    free((void*)inbound);
-    if (error) {
-        ods_log_error("[%s] audit failed for zone %s", tools_str,
-            zone->name);
-        status = ODS_STATUS_ERR;
-    } else {
-        ods_log_info("[%s] audit passed for zone %s", tools_str,
-            zone->name);
-    }
-    end = time(NULL);
-    if (status == ODS_STATUS_OK && zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
-        zone->stats->audit_time = (end-start);
-        lock_basic_unlock(&zone->stats->stats_lock);
-    }
-    return status;
-}
-
-
-/**
  * Write zone to output adapter.
  *
  */
@@ -235,25 +165,6 @@ tools_output(zone_type* zone, engine_type* engine)
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->adoutbound);
-    /* Auditor? */
-    if (zone->signconf->audit) {
-        ods_log_assert(zone->adinbound);
-        if (zone->adinbound->type != ADAPTER_FILE ||
-            zone->adoutbound->type != ADAPTER_FILE) {
-            ods_log_warning("[%s] unable to audit zone %s: "
-                "auditor is only enabled for File Adapters",
-                tools_str, zone->name);
-            status = ODS_STATUS_OK;
-        } else {
-            status = tools_audit(zone, engine->config->working_dir,
-                engine->config->cfg_filename);
-        }
-    }
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to write zone %s: audit failed",
-            tools_str, zone->name);
-        return ODS_STATUS_CONFLICT_ERR;
-    }
     /* prepare */
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
