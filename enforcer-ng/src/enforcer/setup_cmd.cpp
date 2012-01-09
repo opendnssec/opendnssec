@@ -130,22 +130,30 @@ int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 	
     time_t tstart = time(NULL);
 	
-	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, engine->config, conn))
-		return 1; // errors have already been reported.
-	
+	{
+		// Drop the database tables using a dedicated database connection.
+		OrmConnRef conn;
+		if (!ods_orm_connect(sockfd, engine->config, conn))
+			return 1; // errors have already been reported.
+		
+		if (!drop_database_tables(sockfd,conn,engine->config))
+			return 1; // errors have already been reported.
+	}
 
-	if (!drop_database_tables(sockfd,conn,engine->config))
-		return 1; // errors have already been reported.
-	
-	if (!create_database_tables(sockfd, conn))
-		return 1; // errors have already been reported.
-	
-    perform_update_kasp(sockfd, engine->config);
-    perform_update_keyzones(sockfd, engine->config);
+	{ 
+		// Create the database tables using a dedicated database connection.
+		OrmConnRef conn;
+		if (!ods_orm_connect(sockfd, engine->config, conn))
+			return 1; // errors have already been reported.
+		
+		if (!create_database_tables(sockfd, conn))
+			return 1; // errors have already been reported.
+	}
+
+	perform_update_kasp(sockfd, engine->config);
+	perform_update_keyzones(sockfd, engine->config);
 	perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
-
-    perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 					   engine->config->automatic_keygen_duration);
 
     flush_all_tasks(sockfd, engine);

@@ -50,8 +50,8 @@ namespace pb = ::google::protobuf;
 //////////////////////////
 
 // Select the type of the database client library to use.
-#define USE_CLIENT_LIB_DBI 1		// uses libdbi (has errors in sqlite3 driver)
-//~ #define USE_CLIENT_LIB_SQLITE3 1	// use SQLite3 lib directly (bypassing libdbi)
+//#define USE_CLIENT_LIB_DBI 1		// uses libdbi (has errors in sqlite3 driver)
+#define USE_CLIENT_LIB_SQLITE3 1	// use SQLite3 lib directly (bypassing libdbi)
 
 // Select the actual database driver to use with libdbi
 #ifdef USE_CLIENT_LIB_DBI
