@@ -38,6 +38,8 @@
 #include "wire/notify.h"
 #include "wire/xfrd.h"
 
+#include <sys/socket.h>
+
 static const char* notify_str = "notify";
 
 static void notify_handle_zone(netio_type* netio,

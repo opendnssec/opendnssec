@@ -704,6 +704,8 @@ dnsconfig_zone(engine_type* engine, zone_type* zone)
             ods_log_assert(zone->xfrd);
             netio_add_handler(engine->xfrhandler->netio,
                 &zone->xfrd->handler);
+        } else if (!zone->xfrd->serial_disk_acquired) {
+            xfrd_set_timer_now(zone->xfrd);
         }
     } else if (zone->xfrd) {
         netio_remove_handler(engine->xfrhandler->netio,

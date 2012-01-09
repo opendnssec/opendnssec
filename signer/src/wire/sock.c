@@ -81,6 +81,7 @@ sock_fcntl_and_bind(sock_type* sock, const char* node, const char* port,
     return ODS_STATUS_OK;
 }
 
+
 /**
  * Set socket to v6 only.
  *
@@ -385,64 +386,6 @@ send_udp(struct udp_data* data, query_type* q)
 
 
 /**
- * Handle QUERY.
- *
- */
-/*
-static void
-sock_handle_transfer(ldns_pkt* pkt, ldns_rr* rr, engine_type* engine,
-    zone_type* zone, void (*sendfunc)(uint8_t*, size_t, void*), int is_tcp,
-    void* userdata)
-{
-    if (!pkt || !rr || !engine || !zone) {
-        sock_send_error(pkt, LDNS_RCODE_FORMERR, sendfunc, userdata);
-        return;
-    }
-    if (ldns_pkt_get_rcode(pkt) != LDNS_RCODE_NOERROR ||
-        ldns_pkt_qr(pkt) ||
-        ldns_pkt_aa(pkt) ||
-        ldns_pkt_tc(pkt) ||
-        ldns_pkt_ra(pkt) ||
-        ldns_pkt_qdcount(pkt) != 1 ||
-        ldns_pkt_ancount(pkt) > 1 ||
-        ldns_rr_get_class(rr) != LDNS_RR_CLASS_IN) {
-        sock_send_error(pkt, LDNS_RCODE_FORMERR, sendfunc, userdata);
-        return;
-    }
-    if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_IXFR &&
-        (ldns_pkt_nscount(pkt) != 0 || ldns_pkt_arcount(pkt) != 0)) {
-        sock_send_error(pkt, LDNS_RCODE_FORMERR, sendfunc, userdata);
-        return;
-    }
-
-    switch (ldns_rr_get_type(rr)) {
-        case LDNS_RR_TYPE_AXFR:
-             add axfr to answer section
-            if (is_tcp) {
-                struct tcp_data *ud =
-                    (struct tcp_data*) userdata;
-                query_reset(ud->socket->query, TCP_MAX_MESSAGE_LEN, 1);
-                axfr(ud->socket->query, engine);
-            }
-        case LDNS_RR_TYPE_IXFR:
-            search serial
-            add ixfr to answer section
-        case LDNS_RR_TYPE_SOA:
-            add soa to answer section
-            add ns to auth section
-            add glues to addition section
-        default:
-            sock_send_error(pkt, LDNS_RCODE_NOTIMPL, sendfunc, userdata);
-            return;
-    }
-    default
-    sock_send_error(pkt, LDNS_RCODE_NOTIMPL, sendfunc, userdata);
-    return;
-}
-*/
-
-
-/**
  * Handle incoming udp queries.
  *
  */
@@ -474,6 +417,7 @@ sock_handle_udp(netio_type* ATTR_UNUSED(netio), netio_handler_type* handler,
     buffer_flip(q->buffer);
     qstate = query_process(q, data->engine);
     if (qstate != QUERY_DISCARDED) {
+        ods_log_debug("[%s] query processed qstate=%d", sock_str, qstate);
         query_add_tsig(q);
         buffer_flip(q->buffer);
         send_udp(data, q);
@@ -717,6 +661,7 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
         cleanup_tcp_handler(netio, handler);
         return;
     }
+    ods_log_debug("[%s] query processed qstate=%d", sock_str, qstate);
     /* tsig */
     query_add_tsig(data->query);
     /* switch to tcp write handler. */
@@ -816,10 +761,14 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
     ods_log_debug("[%s] TCP_WRITE: sizeof tcplen %u", sock_str,
         sizeof(q->tcplen));
     ods_log_assert(data->bytes_transmitted == q->tcplen + sizeof(q->tcplen));
-    if (data->qstate == QUERY_AXFR) {
+    if (data->qstate == QUERY_AXFR || data->qstate == QUERY_IXFR) {
         /* continue processing AXFR and writing back results.  */
         buffer_clear(q->buffer);
-        data->qstate = axfr(q, data->engine);
+        if (data->qstate == QUERY_IXFR) {
+            data->qstate = ixfr(q, data->engine);
+        } else {
+            data->qstate = axfr(q, data->engine);
+        }
         if (data->qstate != QUERY_PROCESSED) {
             /* tsig */
             query_add_tsig(q);
