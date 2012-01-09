@@ -87,6 +87,10 @@ start = element Configuration {
 		# Use manual key generation?
 		element ManualKeyGeneration { empty }?,
 
+		# Period to automatically pre-generate keys for, when ManualKeyGeneration is not used
+		# DEFAULT: P1Y
+		element AutomaticKeyGenerationPeriod { xsd:duration }?,
+
 		# How long before a KSK Rollover should we start warning (optional)
 		element RolloverNotification { xsd:duration }?,
 
