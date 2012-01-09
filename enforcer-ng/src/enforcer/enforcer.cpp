@@ -492,7 +492,8 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 			break;
 		case RS:
 			endDate = zone.ttlEnddateRs();
-			recordTTL = policy->zone().max_zone_ttl();
+			recordTTL = max(policy->signatures().valdenial(), 
+							policy->zone().max_zone_ttl());
 			break;				  
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
@@ -551,7 +552,9 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	if (zone.ttlEnddateDk() <= now)
 		zone.setTtlEnddateDk(addtime(now, policy->keys().ttl()));
 	if (zone.ttlEnddateRs() <= now)
-		zone.setTtlEnddateRs(addtime(now, policy->zone().max_zone_ttl())); 
+		zone.setTtlEnddateRs(addtime(now, 
+				max(policy->signatures().valdenial(), 
+					policy->zone().max_zone_ttl()))); 
 
 	/** Keep looping till there are no state changes.
 	 * Find the earliest update time */
