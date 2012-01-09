@@ -493,7 +493,7 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 		case RS:
 			endDate = zone.ttlEnddateRs();
 			recordTTL = max(policy->signatures().valdenial(), 
-							policy->zone().max_zone_ttl());
+							policy->signatures().max_zone_ttl());
 			break;				  
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
@@ -554,7 +554,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	if (zone.ttlEnddateRs() <= now)
 		zone.setTtlEnddateRs(addtime(now, 
 				max(policy->signatures().valdenial(), 
-					policy->zone().max_zone_ttl()))); 
+					policy->signatures().max_zone_ttl()))); 
 
 	/** Keep looping till there are no state changes.
 	 * Find the earliest update time */
@@ -969,7 +969,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			/** Sanity check. This would produce silly output and give
 			 * the signer lots of useless work */
 			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime || 
-					role&ZSK && policy->zone().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
+					role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
 				ods_log_crit("[%s] %s Key lifetime unreasonably short "
 					"with respect to TTL. Will not insert key!",
 					module_str, scmd);

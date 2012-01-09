@@ -35,6 +35,7 @@ message Signatures {
 	optional int32 inceptionOffset = 4 [(xml).path="InceptionOffset",(xml).type=duration]; // estimated max clockskew expected in clients
 	optional int32 valdefault = 5 [(xml).path="Validity/Default",(xml).type=duration]; // signature validity period
 	optional int32 valdenial = 6 [(xml).path="Validity/Denial",(xml).type=duration]; // nsec(3) validity period
+	optional int32 max_zone_ttl = 7 [default = 86400, (xml).path="MaxZoneTTL",(xml).type=duration];  // Maximum TTL for RRSIG that may be used in a zone. Default 1 day.
 }
 
 message Denial {
@@ -134,7 +135,6 @@ message Zone {
 	optional int32 ttl = 2 [(xml).path="SOA/TTL", (xml).type=duration]; // ttl of the soa
 	optional int32 min = 3 [(xml).path="SOA/Minimum", (xml).type=duration]; // min of the soa
 	optional serial serial = 4 [(xml).path="SOA/Serial"]; // how serial no are changed
-	optional int32 max_zone_ttl = 5 [default = 86400, (xml).path="MaxZoneTTL",(xml).type=duration];  // Maximum TTL for RRSIG that may be used in a zone. Default 1 day.
 }
 
 enum serial {

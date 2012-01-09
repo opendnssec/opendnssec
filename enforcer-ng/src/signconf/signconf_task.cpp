@@ -59,6 +59,7 @@ write_signer_configuration_to_file(int sockfd,
 	sc_sigs->set_valdenial( kp_sigs.valdenial() );
 	sc_sigs->set_jitter( kp_sigs.jitter() );
 	sc_sigs->set_inceptionoffset( kp_sigs.inceptionoffset() );
+	sc_sigs->set_max_zone_ttl( kp_sigs.max_zone_ttl() );
 	
 	// Get the Denial parameters straight from the policy
 	::ods::signconf::Denial *sc_denial = sc_zone->mutable_denial();
@@ -153,7 +154,6 @@ write_signer_configuration_to_file(int sockfd,
 	sc_zone->set_ttl( kp_zone.ttl() );
 	sc_zone->set_min( kp_zone.min() );
 	sc_zone->set_serial( (::ods::signconf::serial) kp_zone.serial() );
-	sc_zone->set_max_zone_ttl( kp_zone.max_zone_ttl() );
 	
 	if (policy->audit_size() > 0)
 		sc_zone->set_audit(true);
