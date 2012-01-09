@@ -33,6 +33,9 @@
 #include "pb-orm-log.h"
 #include "pb-orm-str.h"
 
+#include <stdio.h> 
+#include <stdarg.h>
+
 namespace DB {
 
 	///////////////////////////

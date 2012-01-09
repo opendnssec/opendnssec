@@ -33,6 +33,7 @@
 #define pb_orm_enum_h
 
 #include "pb-orm-common.h"
+#include <cstdarg>
 
 bool OrmConnQuery(OrmConn conn,
 				  const std::string &statement,

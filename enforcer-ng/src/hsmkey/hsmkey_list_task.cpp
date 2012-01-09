@@ -57,14 +57,14 @@ perform_hsmkey_list(int sockfd, engineconfig_type *config, int bVerbose)
 		
 		if (!transaction.started()) {
 			ods_printf(sockfd,"error: database transaction failed\n");
-			return false;
+			return;
 		}
 			
 		{	OrmResultRef rows;
 
 			if (!OrmMessageEnum(conn, ::ods::hsmkey::HsmKey::descriptor(), rows)) {
 				ods_printf(sockfd,"error: database hsm key enumeration failed\n");
-				return false;
+				return;
 			}
 			
 			// Enumerate the hsm keys referenced in the database

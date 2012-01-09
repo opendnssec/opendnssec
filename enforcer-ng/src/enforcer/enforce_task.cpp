@@ -1,6 +1,7 @@
 #include <ctime>
 #include <iostream>
 #include <cassert>
+#include <memory>
 #include <fcntl.h>
 #include <map>
 

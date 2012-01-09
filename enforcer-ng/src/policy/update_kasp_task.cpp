@@ -12,7 +12,7 @@
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
 
-#include <memory.h>
+#include <memory>
 #include <fcntl.h>
 
 static const char *module_str = "update_kasp_task";

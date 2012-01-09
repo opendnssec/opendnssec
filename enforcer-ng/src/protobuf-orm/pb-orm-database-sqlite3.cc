@@ -37,6 +37,7 @@
 #include <time.h>
 #include <map>
 #include <sqlite3.h>
+#include <cstdio>
 
 #include "pb-orm-str.h"
 #include "pb-orm-log.h"

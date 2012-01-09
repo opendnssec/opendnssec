@@ -1,3 +1,4 @@
+#include <memory>
 #include <fcntl.h>
 
 #include "signconf/signconf_task.h"

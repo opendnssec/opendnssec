@@ -9,6 +9,7 @@
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
+#include <memory>
 #include <fcntl.h>
 
 #include "protobuf-orm/pb-orm.h"

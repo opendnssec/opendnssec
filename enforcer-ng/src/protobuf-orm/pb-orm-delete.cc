@@ -39,6 +39,9 @@
 
 #include "orm.pb.h"
 
+#include <stdio.h> 
+#include <stdarg.h>
+
 bool OrmMessageDelete(OrmConn conn,const pb::Descriptor *descriptor,pb::uint64 id)
 {
 	return OrmMessageDeleteWhere(conn,descriptor,"id=%llu",id);

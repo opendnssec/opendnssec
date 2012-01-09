@@ -33,6 +33,7 @@
 #define pb_orm_delete_h
 
 #include "pb-orm-common.h"
+#include <cstdarg>
 
 // Delete a message from a table. This will recursively delete all the 
 // data associated with the messages being deleted.

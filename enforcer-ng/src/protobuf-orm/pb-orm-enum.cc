@@ -34,6 +34,9 @@
 #include "pb-orm-log.h"
 #include "pb-orm-database.h"
 
+#include <stdio.h> 
+#include <stdarg.h>
+
 bool OrmConnQuery(OrmConn conn,
 				  const std::string &statement,
 				  OrmResult &result)
@@ -299,7 +302,7 @@ bool OrmGetSize(OrmResult result, pb::uint64 &size)
 {
 	if (result==NULL || !RESULT.assigned())
 		return false;
-	return RESULT->get_numrows(size);
+	return RESULT->get_numrows((unsigned long long &)size);
 }
 
 bool OrmFirst(OrmResult result)

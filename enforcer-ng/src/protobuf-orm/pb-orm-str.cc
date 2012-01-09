@@ -33,6 +33,9 @@
 #include "pb-orm-log.h"
 #include "pb-orm-database.h"
 
+#include <stdio.h> 
+#include <stdarg.h>
+
 bool OrmFormat(std::string &dest, const char *format, ...)
 {
 	char buf[128];
