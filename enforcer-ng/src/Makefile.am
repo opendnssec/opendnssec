@@ -32,6 +32,7 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/../../libhsm/src/lib \
 	-I$(builddir)/../../libhsm/src/lib \
 	-I$(srcdir)/xmlext-pb \
+	-I$(srcdir)/protobuf-orm \
 	@XML2_INCLUDES@ \
 	@LDNS_INCLUDES@ \
 	@PROTOBUF_INCLUDES@
