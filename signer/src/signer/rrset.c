@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "shared/file.h"
 #include "shared/hsm.h"
 #include "shared/log.h"
 #include "shared/util.h"
@@ -558,22 +559,53 @@ recycle_drop_sig:
 
 
 /**
- * Is the RRset signed with this algorithm?
+ * Is the list of RRSIGs ok?
  *
  */
 static int
-rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
+rrset_sigok(rrset_type* rrset, key_type* key)
 {
+    key_type* sigkey = NULL;
+    zone_type* zone = NULL;
     size_t i = 0;
-    if (!rrset) {
-        return 0;
-    }
+    ods_log_assert(rrset);
+    ods_log_assert(key);
+    ods_log_assert(key->locator);
+    zone = (zone_type*) rrset->zone;
+    ods_log_assert(zone);
+
+    /* Does this key have a RRSIG? */
     for (i=0; i < rrset->rrsig_count; i++) {
-        if (algorithm == ldns_rdf2native_int8(
-                ldns_rr_rrsig_algorithm(rrset->rrsigs[i].rr))) {
+        if (ods_strcmp(key->locator, rrset->rrsigs[i].key_locator) == 0 &&
+            key->flags == rrset->rrsigs[i].key_flags) {
+            /* Active key already has a valid RRSIG. SIGOK */
             return 1;
         }
     }
+    /* DNSKEY RRset always needs to be signed with active key */
+    if (rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+        return 0;
+    }
+    /* Let's look for RRSIGs from inactive ZSKs */
+    for (i=0; i < rrset->rrsig_count; i++) {
+        /* Same algorithm? */
+        if (key->algorithm != ldns_rdf2native_int8(
+                ldns_rr_rrsig_algorithm(rrset->rrsigs[i].rr))) {
+            /* Not the same algorithm, so this one does not count */
+            continue;
+        }
+        /* Inactive key? */
+        sigkey = keylist_lookup_by_locator(zone->signconf->keys,
+            rrset->rrsigs[i].key_locator);
+        ods_log_assert(sigkey);
+        if (sigkey->zsk) {
+            /* Active key, so this one does not count */
+            continue;
+        }
+        /* So we found a valid RRSIG from an inactive key. SIGOK */
+        return 1;
+    }
+    /* We need a new RRSIG. */
     return 0;
 }
 
@@ -722,15 +754,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             continue;
         }
         /* Additional rules for signatures */
-        if (rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
+        if (rrset_sigok(rrset, &zone->signconf->keys->keys[i])) {
             continue;
         }
-
-        /**
-         * currently, there is no rule that the number of signatures
-         * over this RRset equals the number of active keys.
-         */
-
         /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
             rrset->rrtype, zone->signconf->keys->keys[i].locator);
