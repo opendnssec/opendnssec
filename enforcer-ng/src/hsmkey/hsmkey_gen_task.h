@@ -4,7 +4,8 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual);
+void perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
+						time_t duration);
 
 task_type *hsmkey_gen_task(engineconfig_type *config);
 

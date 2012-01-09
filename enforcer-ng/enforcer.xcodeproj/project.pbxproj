@@ -13,7 +13,6 @@
 		A71B7E9D1484D7BE0084A251 /* kasp.proto in Sources */ = {isa = PBXBuildFile; fileRef = A772F49713323E7A004179E8 /* kasp.proto */; };
 		A71B7E9E1484D7CA0084A251 /* zonelist.proto in Sources */ = {isa = PBXBuildFile; fileRef = A75E74B6133B6E9700F09B43 /* zonelist.proto */; };
 		A71B7E9F1484D7D20084A251 /* xmlext.proto in Sources */ = {isa = PBXBuildFile; fileRef = A772F49213323E5E004179E8 /* xmlext.proto */; };
-		A71B7EA11484E9D10084A251 /* conf.proto in Sources */ = {isa = PBXBuildFile; fileRef = A77C57F0136CB0A0000A4E51 /* conf.proto */; };
 		A71D0996136C44EA00D8F205 /* hsmkey_list_task.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A71D0993136C44E300D8F205 /* hsmkey_list_task.cpp */; };
 		A71D0997136C44EF00D8F205 /* hsmkey_list_cmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A71D098F136C42E100D8F205 /* hsmkey_list_cmd.cpp */; };
 		A73185BB1314F41C007DB701 /* cfg.c in Sources */ = {isa = PBXBuildFile; fileRef = A73184FF13144EE1007DB701 /* cfg.c */; };
@@ -180,7 +179,6 @@
 		A772F49C13324716004179E8 /* xmlext-rd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "xmlext-rd.h"; sourceTree = "<group>"; };
 		A772F49D13324716004179E8 /* xmlext-rd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "xmlext-rd.cpp"; sourceTree = "<group>"; };
 		A7790E59135CE27C00EED13E /* hsmkey.proto */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp.preprocessed; fileEncoding = 4; path = hsmkey.proto; sourceTree = "<group>"; };
-		A77C57F0136CB0A0000A4E51 /* conf.proto */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp.preprocessed; fileEncoding = 4; path = conf.proto; sourceTree = "<group>"; };
 		A77C57FD136D674C000A4E51 /* keystate_list_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = keystate_list_task.h; path = keystate/keystate_list_task.h; sourceTree = "<group>"; };
 		A77C57FE136D674C000A4E51 /* keystate_list_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_list_task.cpp; path = keystate/keystate_list_task.cpp; sourceTree = "<group>"; };
 		A77C5800136D6BC7000A4E51 /* keystate_list_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = keystate_list_cmd.cpp; path = keystate/keystate_list_cmd.cpp; sourceTree = "<group>"; };
@@ -423,7 +421,6 @@
 		A731851A13144EE1007DB701 /* parser */ = {
 			isa = PBXGroup;
 			children = (
-				A77C57F0136CB0A0000A4E51 /* conf.proto */,
 				A731851B13144EE1007DB701 /* confparser.c */,
 				A731851C13144EE1007DB701 /* confparser.h */,
 			);
@@ -818,7 +815,6 @@
 				A71B7E9D1484D7BE0084A251 /* kasp.proto in Sources */,
 				A71B7E9E1484D7CA0084A251 /* zonelist.proto in Sources */,
 				A71B7E9F1484D7D20084A251 /* xmlext.proto in Sources */,
-				A71B7EA11484E9D10084A251 /* conf.proto in Sources */,
 				A7BAA574149937D400C7DD2B /* pb-orm-connect.cc in Sources */,
 				A7BAA575149937D400C7DD2B /* pb-orm-context.cc in Sources */,
 				A7BAA576149937D400C7DD2B /* pb-orm-create-table.cc in Sources */,

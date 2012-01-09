@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <memory>
+#include <math.h>
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
@@ -211,7 +212,7 @@ count_unused_hsmkeys(OrmConn conn,
 
 static void
 generate_ksks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
-			  time_t duration)
+			  time_t duration, pb::uint64 nzones)
 {
 	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::KSK;
 	for (int k=0; k<policy.keys().ksk_size(); ++k) {
@@ -228,10 +229,10 @@ generate_ksks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 			ods_log_error_and_printf(sockfd,module_str,
 									 "counting KSKs failed");
 		} else {
-			int key_pregen = 1 + (duration / key.lifetime());
+			int key_pregen = (int)ceil((double)duration/(double)key.lifetime());
 			if (!generate_keypairs(sockfd,
 								   conn,
-								   key_pregen-nunusedkeys,
+								   (nzones*key_pregen)-nunusedkeys,
 								   key.bits(),
 								   key.repository().c_str(),
 								   policy.name().c_str(),
@@ -247,7 +248,7 @@ generate_ksks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 
 static void
 generate_zsks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
-			  time_t duration)
+			  time_t duration, pb::uint64 nzones)
 {
 	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::ZSK;
 	for (int k=0; k<policy.keys().zsk_size(); ++k) {
@@ -264,10 +265,10 @@ generate_zsks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 			ods_log_error_and_printf(sockfd,module_str,
 									 "counting ZSKs failed");
 		} else {
-			int key_pregen = 1 + (duration / key.lifetime());
+			int key_pregen = (int)ceil((double)duration/(double)key.lifetime());
 			if (!generate_keypairs(sockfd,
 								   conn,
-								   key_pregen-nunusedkeys,
+								   (nzones*key_pregen)-nunusedkeys,
 								   key.bits(),
 								   key.repository().c_str(),
 								   policy.name().c_str(),
@@ -283,7 +284,7 @@ generate_zsks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 
 static void
 generate_csks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
-			  time_t duration)
+			  time_t duration, pb::uint64 nzones)
 {
 	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::CSK;
 	for (int k=0; k<policy.keys().csk_size(); ++k) {
@@ -300,10 +301,10 @@ generate_csks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 			ods_log_error_and_printf(sockfd,module_str,
 									 "counting CSKs failed");
 		} else {
-			int key_pregen = 1 + (duration / key.lifetime());
+			int key_pregen = (int)ceil((double)duration/(double)key.lifetime());
 			if (!generate_keypairs(sockfd,
 								   conn,
-								   key_pregen-nunusedkeys,
+								   (nzones*key_pregen)-nunusedkeys,
 								   key.bits(),
 								   key.repository().c_str(),
 								   policy.name().c_str(),
@@ -352,7 +353,8 @@ bool count_zones_for_policy(int sockfd,
 }
 
 void 
-perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
+perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
+				   time_t duration)
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -408,11 +410,6 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
 		}
 	}	
 
-	// Now perform the policy driven key pre-generation.
-	time_t duration = 365 * 24 * 3600; // a normal year in seconds.
-	
-	//FIXME: get duration as a parameter on the command line.
-	
     for (int i=0; i<kasp.policies_size(); ++i) {
 
 		pb::uint64 count;
@@ -424,16 +421,18 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual)
 			continue;
 		}
 				
-		generate_ksks(sockfd, conn, kasp.policies(i), duration);
-		generate_zsks(sockfd, conn, kasp.policies(i), duration);
-		generate_csks(sockfd, conn, kasp.policies(i), duration);
+		generate_ksks(sockfd, conn, kasp.policies(i), duration, count);
+		generate_zsks(sockfd, conn, kasp.policies(i), duration, count);
+		generate_csks(sockfd, conn, kasp.policies(i), duration, count);
     }
 }
 
 static task_type * 
 hsmkey_gen_task_perform(task_type *task)
 {
-    perform_hsmkey_gen(-1, (engineconfig_type *)task->context, 0);
+	// by default pre-generate keys for all zones to last for a year.
+	time_t year = 365 * 24 * 3600;
+    perform_hsmkey_gen(-1, (engineconfig_type *)task->context, 0, year);
     task_cleanup(task);
     return NULL;
 }
