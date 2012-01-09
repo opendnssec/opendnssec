@@ -78,7 +78,7 @@ drop_database_tables(int sockfd, OrmConn conn, engineconfig_type* config)
 	if  (!OrmDropTable(conn,  ods::keystate::EnforcerZone::descriptor())) {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "dropping EnforcerZone tables failed");
-		return;
+		ok = false;
 	}
 	
 	if (!config->db_host && config->datastore) {
@@ -132,14 +132,14 @@ int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 	
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, engine->config, conn))
-		return; // errors have already been reported.
+		return 1; // errors have already been reported.
 	
 
 	if (!drop_database_tables(sockfd,conn,engine->config))
-		return; // errors have already been reported.
+		return 1; // errors have already been reported.
 	
 	if (!create_database_tables(sockfd, conn))
-		return; // errors have already been reported.
+		return 1; // errors have already been reported.
 	
     perform_update_kasp(sockfd, engine->config);
     perform_update_keyzones(sockfd, engine->config);
