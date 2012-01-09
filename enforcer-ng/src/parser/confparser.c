@@ -35,6 +35,7 @@
 #include "shared/allocator.h"
 #include "shared/log.h"
 #include "shared/status.h"
+#include "shared/duration.h"
 
 #include <libxml/xpath.h>
 #include <libxml/relaxng.h>
@@ -543,4 +544,26 @@ parse_conf_db_port(const char* cfgfile)
         free((void*)str);
     }
     return port;
+}
+
+time_t
+parse_conf_automatic_keygen_period(const char* cfgfile)
+{
+    time_t period = 365 * 24 * 3600; /* default 1 normal year in seconds */
+    const char* str = parse_conf_string(cfgfile,
+		"//Configuration/Enforcer/AutomaticKeyGenerationPeriod",
+		0);
+    if (str) {
+        if (strlen(str) > 0) {
+			duration_type* duration = duration_create_from_string(str);
+			if (duration) {
+				time_t duration_period = duration2time(duration);
+				if (duration_period)
+					period = duration_period;
+				duration_cleanup(duration);
+			}
+        }
+        free((void*)str);
+    }
+    return period;
 }

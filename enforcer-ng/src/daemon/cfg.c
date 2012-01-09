@@ -118,6 +118,8 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->manual_keygen = parse_conf_manual_keygen(cfgfile);
         ecfg->verbosity = cmdline_verbosity;
 		ecfg->db_port = parse_conf_db_port(cfgfile);
+		ecfg->automatic_keygen_duration =
+			parse_conf_automatic_keygen_period(cfgfile);
 
         /* done */
         ods_fclose(cfgfd);

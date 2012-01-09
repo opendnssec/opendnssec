@@ -34,6 +34,7 @@
 #ifndef PARSER_CONFPARSER_H
 #define PARSER_CONFPARSER_H
 
+#include <time.h>
 #include "config.h"
 #include "shared/allocator.h"
 #include "shared/status.h"
@@ -120,7 +121,8 @@ int parse_conf_use_syslog(const char* cfgfile);
 int parse_conf_worker_threads(const char* cfgfile);
 int parse_conf_manual_keygen(const char* cfgfile);
 int parse_conf_db_port(const char *cfgfile);
-
+time_t parse_conf_automatic_keygen_period(const char* cfgfile);
+	
 #ifdef __cplusplus
 }
 #endif

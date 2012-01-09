@@ -74,6 +74,7 @@ struct engineconfig_struct {
     int manual_keygen;
     int verbosity;
 	int db_port; /* Datastore/MySQL/Host/@Port */
+	time_t automatic_keygen_duration;
 };
 
 /**
