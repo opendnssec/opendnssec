@@ -1256,7 +1256,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     if (!zd->initialized) {
         zd->internal_serial = soa;
     } else {
-        zd->internal_serial += update; /* automatically does % 2^32 */
+        zd->internal_serial = prev + update; /* automatically does % 2^32 */
     }
     ods_log_debug("[%s] update serial: %u + %u = %u", zd_str, prev, update,
         zd->internal_serial);
