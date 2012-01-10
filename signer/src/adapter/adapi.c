@@ -296,10 +296,6 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
             "to in");
         ldns_rr_set_class(rr, LDNS_RR_CLASS_IN);
     }
-    /* Convert MaxZoneTTL */
-    if (zone->signconf->max_zone_ttl) {
-        tmp = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
-    }
     /* RR processing */
     if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
         if (ldns_dname_compare(ldns_rr_owner(rr), zone->apex)) {
@@ -326,9 +322,12 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
                 "skipping", adapi_str, zone->name,
                 (unsigned) ldns_rr_get_type(rr));
             return ODS_STATUS_UNCHANGED;
+        } else if (zone->signconf->max_zone_ttl) {
+            /* Convert MaxZoneTTL */
+            tmp = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
         }
     }
-    /* //MaxZoneTTL. Possibly overrides //SOA/TTL and //Keys/TTL. */
+    /* //MaxZoneTTL. Only set for RRtype != SOA && RRtype != DNSKEY */
     if (tmp && tmp < ldns_rr_ttl(rr)) {
        ldns_rr_set_ttl(rr, tmp);
     }

@@ -254,12 +254,14 @@ zone_publish_dnskeys(zone_type* zone)
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
     }
     /* MaxZoneTTL */
+/*
     if (zone->signconf->max_zone_ttl) {
         maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
         if (maxttl < ttl) {
             ttl = maxttl;
         }
     }
+*/
     /* publish keys */
     for (i=0; i < zone->signconf->keys->count; i++) {
         if (!zone->signconf->keys->keys[i].publish) {
