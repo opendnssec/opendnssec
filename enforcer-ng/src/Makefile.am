@@ -88,6 +88,8 @@ ods_enforcerd_SOURCES = \
 	keystate/zone_list_task.cpp keystate/zone_list_task.h \
 	keystate/zone_export_cmd.cpp keystate/zone_export_cmd.h \
 	keystate/zone_export_task.cpp keystate/zone_export_task.h \
+	keystate/zone_add_cmd.cpp keystate/zone_add_cmd.h \
+	keystate/zone_add_task.cpp keystate/zone_add_task.h \
 	keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
 	keystate/keystate_list_task.cpp keystate/keystate_list_task.h \
 	keystate/keystate_export_cmd.cpp keystate/keystate_export_cmd.h \

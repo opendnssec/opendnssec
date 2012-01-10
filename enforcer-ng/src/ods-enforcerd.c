@@ -46,6 +46,7 @@
 #include "policy/policy_list_cmd.h"
 #include "keystate/zone_list_cmd.h"
 #include "keystate/zone_export_cmd.h"
+#include "keystate/zone_add_cmd.h"
 
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/keystate_export_cmd.h"
@@ -129,6 +130,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_policy_list_cmd,
     help_zone_list_cmd,
     help_zone_export_cmd,
+	help_zone_add_cmd,
 
     help_keystate_list_cmd,
     help_keystate_export_cmd,
@@ -165,6 +167,7 @@ enforcer_commands[] = {
     handled_policy_list_cmd,
     handled_zone_list_cmd,
     handled_zone_export_cmd,
+	handled_zone_add_cmd,
 
     handled_keystate_list_cmd,
     handled_keystate_export_cmd,
