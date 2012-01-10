@@ -103,6 +103,7 @@ module KASPAuditor
     # Run the auditor.
     def run
       conf_file = @conf_file
+      @zone_name = "" if (!@zone_name)
       @zone_name.chomp(".")
       if (!conf_file)
         KASPAuditor.exit("No configuration file specified", 1)

@@ -1122,6 +1122,7 @@ module KASPAuditor
       if (pri.to_i < @ret_val)
         @ret_val = pri.to_i
       end
+      msg = "#{@zone_name} : #{msg}"
       return if (@num_output_lines >= 100)
       @num_output_lines += 1
       if (@num_output_lines == 100)
