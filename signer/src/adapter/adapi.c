@@ -329,6 +329,8 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
     }
     /* //MaxZoneTTL. Only set for RRtype != SOA && RRtype != DNSKEY */
     if (tmp && tmp < ldns_rr_ttl(rr)) {
+       log_rrset(ldns_rr_owner(rr), ldns_rr_get_type(rr),
+           "capping ttl %u to MaxZoneTTL %u for rrset", LOG_WARNING);
        ldns_rr_set_ttl(rr, tmp);
     }
 
