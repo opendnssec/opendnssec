@@ -2,6 +2,7 @@ $Id$
 
 OpenDNSSEC 1.3
 
+* Auditor: Include the zone name in the log messages.
 * ods-ksmutil: Suppress database connection information when no -v flag is
   given.
 * ods-enforcerd: Stop multiple instances of the enforcer running by checking
@@ -20,6 +21,7 @@ Bugfixes:
 * Bugfix OPENDNSSEC-192: Signer crashed on deleting NSEC3 for a domain that
   becomes opt-out.
 * Bugfix OPENDNSSEC-193: auditor crashed with certain empty non-terminals.
+
 
 OpenDNSSEC 1.3.4 - 2011-12-09
 
