@@ -29,6 +29,8 @@
 //  protobuf-orm
 //
 
+#include "config.h"
+
 #include "pb-orm-log.h"
 #include "pb-orm-connect.h"
 #include "pb-orm-database.h"
@@ -43,7 +45,7 @@ bool OrmConnectMySQL(const std::string &host,
 					 const std::string &encoding,
 					 OrmConn &handle)
 {
-#ifdef USE_CLIENT_LIB_DBI
+#ifdef ENFORCER_DATABASE_DBI
 	DB::OrmConnT *conn = DB::DBI::MySQL::NewOrmConnT();
 	if (!conn) {
 		OrmLogError("unable to allocate connection, out of memory");
@@ -78,9 +80,9 @@ bool OrmConnectSQLite3(const std::string &dbdir,
 					   const std::string &dbname,
 					   OrmConn &handle)
 {
-#ifdef USE_CLIENT_LIB_DBI
+#ifdef ENFORCER_DATABASE_DBI
 	DB::OrmConnT *conn = DB::DBI::SQLite3::NewOrmConnT();
-#elif USE_CLIENT_LIB_SQLITE3
+#elif ENFORCER_DATABASE_SQLITE3
 	DB::OrmConnT *conn = DB::SQLite3::NewOrmConnT();
 #else
 #error no database client library selected

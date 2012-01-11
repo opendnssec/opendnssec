@@ -32,13 +32,15 @@
 #ifndef pb_orm_initialize_h
 #define pb_orm_initialize_h
 
+#include "config.h"
+
 #include "pb-orm-common.h"
 
-#ifdef USE_CLIENT_LIB_DBI
+#ifdef ENFORCER_DATABASE_DBI
 
 bool OrmInitialize(const std::string &driverdir);
 
-#elif USE_CLIENT_LIB_SQLITE3
+#elif ENFORCER_DATABASE_SQLITE3
 
 bool OrmInitialize();
 

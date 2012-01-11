@@ -31,7 +31,7 @@
 
 #include "pb-orm-initialize.h"
 
-#ifdef USE_CLIENT_LIB_DBI
+#ifdef ENFORCER_DATABASE_DBI
 
 #include "pb-orm-database-dbi.h"
 
@@ -40,7 +40,7 @@ bool OrmInitialize(const std::string &driverdir)
 	return DB::DBI::initialize(driverdir);
 }
 
-#elif USE_CLIENT_LIB_SQLITE3
+#elif ENFORCER_DATABASE_SQLITE3
 
 #include "pb-orm-database-sqlite3.h"
 

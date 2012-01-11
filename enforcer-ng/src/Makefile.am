@@ -35,7 +35,8 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/protobuf-orm \
 	@XML2_INCLUDES@ \
 	@LDNS_INCLUDES@ \
-	@PROTOBUF_INCLUDES@
+	@PROTOBUF_INCLUDES@ \
+	@DB_INCLUDES@
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
@@ -139,7 +140,12 @@ ods_enforcerd_SOURCES = \
 	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h
 
 ods_enforcerd_LDADD=		$(LIBHSM)
-ods_enforcerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @PROTOBUF_LIBS@
+ods_enforcerd_LDADD+=		@LDNS_LIBS@ \
+				@XML2_LIBS@ \
+				@PTHREAD_LIBS@ \
+				@RT_LIBS@ \
+				@PROTOBUF_LIBS@ \
+				@DB_LIBS@
 
 ods_enforcer_SOURCES=		ods-enforcer.c \
 				shared/allocator.c shared/allocator.h \

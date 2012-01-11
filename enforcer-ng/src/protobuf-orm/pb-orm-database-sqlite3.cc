@@ -31,7 +31,7 @@
 
 #include "pb-orm-database-sqlite3.h"
 
-#if USE_CLIENT_LIB_SQLITE3
+#if ENFORCER_DATABASE_SQLITE3
 
 #include <stdlib.h>
 #include <time.h>
@@ -797,4 +797,4 @@ namespace DB {
 
 } // namespace DB
 
-#endif // USE_CLIENT_LIB_SQLITE3
+#endif // ENFORCER_DATABASE_SQLITE3

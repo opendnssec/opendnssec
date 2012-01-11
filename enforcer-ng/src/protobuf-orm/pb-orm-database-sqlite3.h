@@ -32,9 +32,11 @@
 #ifndef pb_orm_database_sqlite3_h
 #define pb_orm_database_sqlite3_h
 
+#include "config.h"
+
 #include "pb-orm-database.h"
 
-#ifdef USE_CLIENT_LIB_SQLITE3
+#ifdef ENFORCER_DATABASE_SQLITE3
 
 namespace DB {
 	
@@ -49,6 +51,6 @@ namespace DB {
 	
 } // namespace DB
 
-#endif // USE_CLIENT_LIB_SQLITE3
+#endif // ENFORCER_DATABASE_SQLITE3
 
 #endif

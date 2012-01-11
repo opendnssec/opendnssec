@@ -31,7 +31,7 @@
 
 #include "pb-orm-database-dbi.h"
 
-#ifdef USE_CLIENT_LIB_DBI
+#ifdef ENFORCER_DATABASE_DBI
 
 #include "pb-orm-str.h"
 #include "pb-orm-log.h"
@@ -739,4 +739,4 @@ namespace DB {
 
 } // namespace DB
 
-#endif // USE_CLIENT_LIB_DBI
+#endif // ENFORCER_DATABASE_DBI

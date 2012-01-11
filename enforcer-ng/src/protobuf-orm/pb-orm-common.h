@@ -34,6 +34,7 @@
 #ifndef pb_orm_common_h
 #define pb_orm_common_h
 
+#include "config.h"
 
 //////////////////////////
 // PROTOBUF
@@ -49,19 +50,15 @@ namespace pb = ::google::protobuf;
 // DATABASE
 //////////////////////////
 
-// Select the type of the database client library to use.
-//#define USE_CLIENT_LIB_DBI 1		// uses libdbi (has errors in sqlite3 driver)
-#define USE_CLIENT_LIB_SQLITE3 1	// use SQLite3 lib directly (bypassing libdbi)
-
 // Select the actual database driver to use with libdbi
-#ifdef USE_CLIENT_LIB_DBI
+#ifdef ENFORCER_DATABASE_DBI
 #define LIBDBI_DBD_DIR "/usr/local/lib/dbd"
 //	#define USE_DB_SQLITE3 1
 #define USE_DB_MYSQL 1
 #endif
 
 // Correctly define the database driver when using the sqlite3 client library
-#ifdef USE_CLIENT_LIB_SQLITE3
+#ifdef ENFORCER_DATABASE_SQLITE3
 #define USE_DB_SQLITE3 1 // only SQLite3 can be used as DB in this case
 #endif
 

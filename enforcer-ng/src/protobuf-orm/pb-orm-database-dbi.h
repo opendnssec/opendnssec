@@ -32,9 +32,11 @@
 #ifndef pb_orm_database_dbi_h
 #define pb_orm_database_dbi_h
 
+#include "config.h"
+
 #include "pb-orm-database.h"
 
-#ifdef USE_CLIENT_LIB_DBI
+#ifdef ENFORCER_DATABASE_DBI
 
 namespace DB {
 
@@ -59,6 +61,6 @@ namespace DB {
 	
 }
 
-#endif // USE_CLIENT_LIB_DBI
+#endif // ENFORCER_DATABASE_DBI
 
 #endif
