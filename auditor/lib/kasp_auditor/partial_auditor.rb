@@ -242,7 +242,7 @@ module KASPAuditor
       next_name = nil
       last_name = nil
       last_line = nil
-      zone_name = @soa.name.to_s.downcase
+      @zone_name = @soa.name.to_s.downcase
       first_name = nil
       IO.foreach(@nsec_temp_file) {|line|
         # @TODO@ Do we need to parse the record to get the next owner name?
@@ -262,7 +262,7 @@ module KASPAuditor
         else
           first_name = line.split()[0]
         end
-        next_name = get_next(line) + ".#{zone_name}."
+        next_name = get_next(line) + ".#{@zone_name}."
         last_name = line.split()[0]
         last_line = line
       }
@@ -931,6 +931,7 @@ module KASPAuditor
       if (pri.to_i < @ret_val)
         @ret_val = pri.to_i
       end
+      msg = "#{@zone_name} : #{msg}"
       return if (@num_output_lines >= 100)
       @num_output_lines += 1
       if (@num_output_lines == 100)

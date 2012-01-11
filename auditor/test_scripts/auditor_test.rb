@@ -329,7 +329,7 @@ class AuditorTest < Test::Unit::TestCase
       # - @TODO@ extra next_hashed on one NSEC3
       "NSEC3 record left after folowing closed loop : ht35pgoisfecot5i7fratgsu2m4k23lu.tjeb.nl",
 
-      "3: New KSK DNSKEY has incorrect algorithm (was RSASHA1-NSEC3-SHA1) or alg_length (was 2048)"
+      "New KSK DNSKEY has incorrect algorithm (was RSASHA1-NSEC3-SHA1) or alg_length (was 2048)"
     ]
     success = check_syslog(r, expected_strings)
     assert(success, "NSEC3 bad file not audited correctly")
