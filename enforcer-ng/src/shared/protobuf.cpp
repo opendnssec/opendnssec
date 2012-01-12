@@ -1,11 +1,3 @@
-//
-//  protobuf.cpp
-//  enforcer
-//
-//  Created by René Post on 12/29/11.
-//  Copyright (c) 2011 xpt Software & Consulting B.V. All rights reserved.
-//
-
 #include "protobuf.h"
 #include "shared/log.h"
 #include "shared/file.h"
