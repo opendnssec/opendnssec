@@ -461,21 +461,39 @@ void characters(void * ctx, const xmlChar * ch, int len)
 	std::string value(start,stop+1);
 
 	Context &context = *((Context *)ctx);
-
-	if (! context.field) {
-		std::string path = context.paths.back();
-		printf("ERROR: No field for '%s' !\n",path.c_str());
+	if (context.field) {
+		if (context.field->options().HasExtension(xml)) {
+			const xmloption xmlopt = context.field->options().GetExtension(xml);
+			::google::protobuf::Message* msg = context.stack.back();
+			if (!assign_xml_value_to_protobuf_field(value,xmlopt.type(),msg,context.field))
+				printf("ERROR: Unable to assign xml element text to protobuf field !\n");
+		} else {
+			// should never happen, because the field is assigned based on matching xml.path option
+			printf("ERROR: field has no xml option specified !\n");
+		}
 		return;
 	}
-	
-	if (context.field->options().HasExtension(xml)) {
-		const xmloption xmlopt = context.field->options().GetExtension(xml);
-		::google::protobuf::Message* msg = context.stack.back();
-		if (!assign_xml_value_to_protobuf_field(value,xmlopt.type(),msg,context.field))
-			printf("ERROR: Unable to assign xml element text to protobuf field !\n");
-	} else {
-		// should never happen, because the field is assigned based on matching xml.path option
-		printf("ERROR: field has no xml option specified !\n");
+		
+	// find a field with xmlopt.path that contains 'text()'
+	bool bAssignedField = false;
+	::google::protobuf::Message* msg = context.stack.back();
+	const ::google::protobuf::Descriptor *descriptor = msg->GetDescriptor();
+	for (int i=0; i<descriptor->field_count(); ++i) {
+		const ::google::protobuf::FieldDescriptor *field = descriptor->field(i);
+		if (field->options().HasExtension(xml)) {
+			const xmloption xmlopt = field->options().GetExtension(xml);
+			if (xmlopt.path() == "text()") {
+				if (!assign_xml_value_to_protobuf_field(value, xmlopt.type(), msg, field))
+					printf("ERROR: Unable to assign xml element text to protobuf field !\n");
+				else
+					bAssignedField = true;
+			}
+		}
+	}
+
+	if (!bAssignedField) {
+		std::string path = context.paths.back();
+		printf("ERROR: No field for '%s' !\n",path.c_str());
 	}
 }
 

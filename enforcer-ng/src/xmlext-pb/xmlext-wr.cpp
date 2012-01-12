@@ -184,9 +184,12 @@ recurse_write(
     std::set<const ::google::protobuf::FieldDescriptor*> processed_fields;
     std::vector<const ::google::protobuf::FieldDescriptor*>::const_iterator it;
     for (it=fields.begin(); it != fields.end(); ++it) {
-        
+
         const ::google::protobuf::FieldDescriptor *field = *it;
         if (!field) continue;
+        
+		//printf("FIELD: %s\n",field->name().c_str());
+			   
 
         // skip fields of the message that already have been processed
         if (processed_fields.find(field) != processed_fields.end()) continue;
@@ -196,6 +199,8 @@ recurse_write(
         
         std::string indent(level,'\t');
         const xmloption xmlopt = field->options().GetExtension(xml);
+
+		//printf("	XPATH: %s\n",xmlopt.path().c_str());
         
         // skip fields that represent xml attributes when processing the 
         // field list to expand fields into xml elements.
@@ -369,7 +374,10 @@ recurse_write(
                            attributes.c_str());
                     break;
                 default:
-                    fprintf(fw,"%s<%s>",indent.c_str(),elem.c_str());
+					if (elem == "text()")
+						fprintf(fw,"%s",indent.c_str());
+					else
+						fprintf(fw,"%s<%s>",indent.c_str(),elem.c_str());
             }
             const char *fmt;
             switch (field->type()) {
@@ -461,7 +469,10 @@ recurse_write(
             if (field->type() 
                 != ::google::protobuf::FieldDescriptor::TYPE_BOOL)
             {
-                fprintf(fw,"</%s>\n",elem.c_str());
+				if (elem == "text()")
+					fprintf(fw,"\n");
+				else
+					fprintf(fw,"</%s>\n",elem.c_str());
             }
         }
         
@@ -478,7 +489,7 @@ write_msg(FILE *fw, const ::google::protobuf::Message *msg)
     recurse_write(fw,msg,fields,0);
 }
 
-bool write_pb_message_to_xml_file(google::protobuf::Message *document, 
+bool write_pb_message_to_xml_file(const google::protobuf::Message *document, 
                                   const char *xmlfilepath)
 {
     FILE *fw = ods_fopen(xmlfilepath,NULL,"w");
@@ -488,8 +499,8 @@ bool write_pb_message_to_xml_file(google::protobuf::Message *document,
     return true;
 }
 
-bool write_pb_message_to_xml_fd(google::protobuf::Message *document, 
-                                  int fd)
+bool write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
+								int fd)
 {
     if (fd<0) {
         ods_log_error("[%s] write_pb_message_to_xml_fd: invalid fd: %d",

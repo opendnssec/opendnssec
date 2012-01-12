@@ -14,10 +14,10 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 
-bool write_pb_message_to_xml_file(google::protobuf::Message *document, 
+bool write_pb_message_to_xml_file(const google::protobuf::Message *document, 
                                   const char *xmlfilepath);
 
-bool write_pb_message_to_xml_fd(google::protobuf::Message *document, 
-                                  int fd);
+bool write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
+								int fd);
 
 #endif
