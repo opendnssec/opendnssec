@@ -9,7 +9,6 @@ BUILT_SOURCES = \
 	$(srcdir)/parser/conf.pb.cc $(srcdir)/parser/conf.pb.h \
 	$(srcdir)/policy/kasp.pb.cc $(srcdir)/policy/kasp.pb.h \
 	$(srcdir)/signconf/signconf.pb.cc $(srcdir)/signconf/signconf.pb.h \
-	$(srcdir)/zone/zonelist.pb.cc $(srcdir)/zone/zonelist.pb.h \
 	$(srcdir)/protobuf-orm/orm.pb.cc $(srcdir)/protobuf-orm/orm.pb.h
 
 EXTRA_DIST = \
@@ -19,8 +18,7 @@ EXTRA_DIST = \
 	$(srcdir)/parser/conf.proto \
 	$(srcdir)/policy/kasp.proto \
 	$(srcdir)/signconf/signconf.proto \
-	$(srcdir)/zone/zonelist.proto \
-	$(srcdir)/protobuf-orm/zonelist.proto
+	$(srcdir)/protobuf-orm/orm.proto
 
 CLEANFILES = $(BUILT_SOURCES)
 
@@ -91,6 +89,8 @@ ods_enforcerd_SOURCES = \
 	keystate/zone_export_task.cpp keystate/zone_export_task.h \
 	keystate/zone_add_cmd.cpp keystate/zone_add_cmd.h \
 	keystate/zone_add_task.cpp keystate/zone_add_task.h \
+	keystate/zone_del_cmd.cpp keystate/zone_del_cmd.h \
+	keystate/zone_del_task.cpp keystate/zone_del_task.h \
 	keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
 	keystate/keystate_list_task.cpp keystate/keystate_list_task.h \
 	keystate/keystate_export_cmd.cpp keystate/keystate_export_cmd.h \

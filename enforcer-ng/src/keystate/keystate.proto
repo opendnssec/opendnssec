@@ -26,6 +26,8 @@ message EnforcerZone {
     optional bool roll_ksk_now = 10 [default = false, (xml).path="rollKskNow"]; // ignored if ManualRollover not in Policy
     optional bool roll_zsk_now = 11 [default = false, (xml).path="rollZskNow"]; // ignored if ManualRollover not in Policy
     optional bool roll_csk_now = 12 [default = false, (xml).path="rollCskNow"]; // ignored if ManualRollover not in Policy
+	
+	optional Adapters adapters = 13 [(xml).path="Adapters"];
 } 
 
 message KeyData {
@@ -78,4 +80,46 @@ enum dsatparent {
     seen = 3;
     retract = 4;
     retracted = 5;
+}
+
+message ZoneListDocument {
+	// root element in zonelist.xml config file
+	required ZoneList zonelist = 1 [(xml).path="ZoneList"]; 
+}
+
+message ZoneList {
+	repeated ZoneData zones = 1 [(xml).path="Zone"];
+}
+
+message ZoneData {
+	// Name of zone
+	required string name = 1 [(xml).path="@name"];
+	
+	// What policy applies to this zone?
+	// (matches symbolic name of policy in in kasp.xml)
+	optional string policy = 2 [(xml).path="Policy", default="default"];
+	
+	// What file containts the signer configuration for this zone?
+	required string signer_configuration = 3 [(xml).path="SignerConfiguration"];
+	
+	required Adapters adapters = 4 [(xml).path="Adapters"];
+}
+
+message Adapters {
+	required Adapter input = 1 [(xml).path="Input"];
+	required Adapter output = 2 [(xml).path="Output"];
+}
+
+message Adapter {
+	// Other adapter
+	optional Other other = 1 [(xml).path="Adapter"];
+	// File adapter
+	optional string file = 3 [(xml).path="File"];
+}
+
+message Other {
+	// Adapter type
+	optional string type = 1 [(xml).path="@type", default="File"];
+	// Configuration file
+	optional string config = 2 [(xml).path="text()"];
 }

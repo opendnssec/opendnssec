@@ -6,7 +6,6 @@
 #include <map>
 
 #include "policy/kasp.pb.h"
-#include "zone/zonelist.pb.h"
 #include "keystate/keystate.pb.h"
 
 #include "enforcer/enforcerdata.h"

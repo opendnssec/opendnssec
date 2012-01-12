@@ -5,9 +5,9 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 
-#include "zone/zonelist.pb.h"
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
+#include "xmlext-pb/xmlext-wr.h"
 
 #include <memory>
 #include <fcntl.h>
@@ -19,10 +19,10 @@ static const char *module_str = "update_keyzones_task";
 
 static bool
 load_zonelist_xml(int sockfd, const char * zonelistfile,
-				  std::auto_ptr< ::ods::zonelist::ZoneListDocument >&doc)
+				  std::auto_ptr< ::ods::keystate::ZoneListDocument >&doc)
 {
 	// Create a zonefile and load it with zones from the xml zonelist.xml
-	doc.reset(new ::ods::zonelist::ZoneListDocument);
+	doc.reset(new ::ods::keystate::ZoneListDocument);
 	if (doc.get() == NULL) {
 		ods_log_error_and_printf(sockfd,module_str,
 								 "out of memory allocating ZoneListDocument");
@@ -41,7 +41,7 @@ load_zonelist_xml(int sockfd, const char * zonelistfile,
 		return false;
 	}
 		
-	const ::ods::zonelist::ZoneList  &zonelist = doc->zonelist();
+	const ::ods::keystate::ZoneList  &zonelist = doc->zonelist();
 	if (zonelist.zones_size() <= 0) {
 		ods_log_error_and_printf(sockfd,module_str,
 								 "no zones found in zonelist");
@@ -64,7 +64,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
-    std::auto_ptr< ::ods::zonelist::ZoneListDocument > zonelistDoc;
+    std::auto_ptr< ::ods::keystate::ZoneListDocument > zonelistDoc;
 	if (!load_zonelist_xml(sockfd, config->zonelist_filename, zonelistDoc))
 		return; // errors have already been reported.
 
@@ -76,9 +76,13 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 		
     // Go through the list of zones from the zonelist to determine if we need
     // to insert new zones to the keystates.
+	std::map<std::string, bool> zoneimported;
+	
     for (int i=0; i<zonelistDoc->zonelist().zones_size(); ++i) {
-        const ::ods::zonelist::ZoneData &zl_zone = 
+        const ::ods::keystate::ZoneData &zl_zone = 
             zonelistDoc->zonelist().zones(i);
+		
+		zoneimported[zl_zone.name()] = true;
 		
 		{	OrmTransactionRW transaction(conn);
 			if (!transaction.started()) {
@@ -107,29 +111,56 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 			
 				// if OrmFirst succeeds, a zone with the queried name is 
 				// already present
-				if (OrmFirst(rows))
-					continue; // skip existing zones
+				if (OrmFirst(rows)) {
+					
+					// Get the zone from the database 
+					OrmContextRef context;
+					if (!OrmGetMessage(rows, ks_zone, true, context))
+					{
+						ods_log_error_and_printf(sockfd, module_str,
+												 "zone retrieval failed");
+						return;
+					}
+						
+					// query no longer needed, so lets drop it.
+					rows.release();
 
-				//TODO: FEATURE: update zone fields with information from zonelist.
+					// Update the zone with information from the zonelist entry
+					ks_zone.set_name(zl_zone.name());
+					ks_zone.set_policy(zl_zone.policy());
+					ks_zone.set_signconf_path(zl_zone.signer_configuration());
+					ks_zone.mutable_adapters()->CopyFrom(zl_zone.adapters());
+					
+					// If anything changed, update the zone
+					if (!OrmMessageUpdate(context))
+					{
+						ods_log_error_and_printf(sockfd, module_str,
+												 "zone update failed");
+						return;
+					}
 
-				// query no longer needed, so lets drop it.
-				rows.release();
-				
-				// setup information the enforcer will need.
-				ks_zone.set_name( zl_zone.name() );
-				ks_zone.set_policy( zl_zone.policy() );
-				ks_zone.set_signconf_path( zl_zone.signer_configuration() );
-							
-				// enforcer needs to trigger signer configuration writing.
-				ks_zone.set_signconf_needs_writing( false );
-				
-				pb::uint64 zoneid;
-				if (!OrmMessageInsert(conn, ks_zone, zoneid)) {
-					ods_log_error_and_printf(sockfd, module_str,
-									"inserting zone into the database failed");
-					return;
+				} else {
+
+					// query no longer needed, so lets drop it.
+					rows.release();
+					
+					// setup information the enforcer will need.
+					ks_zone.set_name( zl_zone.name() );
+					ks_zone.set_policy( zl_zone.policy() );
+					ks_zone.set_signconf_path( zl_zone.signer_configuration() );
+					ks_zone.mutable_adapters()->CopyFrom(zl_zone.adapters());
+								
+					// enforcer needs to trigger signer configuration writing.
+					ks_zone.set_signconf_needs_writing( false );
+					
+					pb::uint64 zoneid;
+					if (!OrmMessageInsert(conn, ks_zone, zoneid)) {
+						ods_log_error_and_printf(sockfd, module_str,
+										"inserting zone into the database failed");
+						return;
+					}
 				}
-				
+					
 				if (!transaction.commit()) {
 					ods_log_error_and_printf(sockfd, module_str,
 									"committing zone to the database failed");

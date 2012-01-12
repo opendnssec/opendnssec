@@ -5,7 +5,6 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 
-#include "zone/zonelist.pb.h"
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
