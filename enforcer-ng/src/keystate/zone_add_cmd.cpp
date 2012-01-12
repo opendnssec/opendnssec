@@ -22,17 +22,36 @@ help_zone_add_cmd(int sockfd)
 			   "  --policy <policy>\n"
 			   "                (aka -p) name of the policy\n"
 			   "  --signconf <path>\n"
-			   "                (aka -s) signer configuration path\n"
+			   "                (aka -s) signer configuration file\n"
+			   "  --infile <path>\n"
+			   "                (aka -if) file input adapter file\n"
+			   "  --outfile <path>\n"
+			   "                (aka -of) file  output adapter file\n"
+			   "  --intype <type>\n"
+			   "                (aka -it) input adapter type\n"
+			   "  --outtype <type>\n"
+			   "                (aka -ot) output adapter type\n"
+			   "  --inconf <path>\n"
+			   "                (aka -ic) input adapter config file\n"
+			   "  --outconf <path>\n"
+			   "                (aka -oc) output adapter config file\n"
+
         );
 }
 
 bool get_arguments(int sockfd, const char *cmd,
 				   std::string &out_zone,
 				   std::string &out_policy,
-				   std::string &out_signconf)
+				   std::string &out_signconf,
+				   std::string &out_infile,
+				   std::string &out_outfile,
+				   std::string &out_intype,
+				   std::string &out_outtype,
+				   std::string &out_inconf,
+				   std::string &out_outconf)
 {
 	char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
+    const char *argv[16];
     const int NARGV = sizeof(argv)/sizeof(char*);
     int argc;
     
@@ -50,9 +69,22 @@ bool get_arguments(int sockfd, const char *cmd,
     const char *zone = NULL;
     const char *policy = NULL;
 	const char *signconf = NULL;
+	const char *infile = NULL;
+	const char *outfile = NULL;
+	const char *intype = NULL;
+	const char *outtype = NULL;
+	const char *inconf = NULL;
+	const char *outconf = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
     (void)ods_find_arg_and_param(&argc,argv,"policy","p",&policy);
     (void)ods_find_arg_and_param(&argc,argv,"signconf","s",&signconf);
+    (void)ods_find_arg_and_param(&argc,argv,"infile","if",&infile);
+    (void)ods_find_arg_and_param(&argc,argv,"outfile","of",&outfile);
+    (void)ods_find_arg_and_param(&argc,argv,"intype","it",&signconf);
+    (void)ods_find_arg_and_param(&argc,argv,"outtype","ot",&signconf);
+    (void)ods_find_arg_and_param(&argc,argv,"inconf","ic",&signconf);
+    (void)ods_find_arg_and_param(&argc,argv,"outconf","oc",&signconf);
+
     if (argc) {
 		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
         return false;
@@ -75,7 +107,38 @@ bool get_arguments(int sockfd, const char *cmd,
         return false;
     }
 	out_signconf = signconf;
-
+	if (!infile && !intype) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "expected option --infile or --intype");
+        return false;
+	}
+	if (infile)
+		out_infile = infile;
+	if (intype)
+		out_intype = intype;
+	if (!outfile && !outtype) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "expected option --outfile or --outtype");
+        return false;
+	}
+	if (outfile)
+		out_outfile = outfile;
+	if (outtype)
+		out_outtype = outtype;
+	if (intype && !inconf) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "expected option --inconf");
+        return false;
+	}
+	if (inconf)
+		out_inconf = inconf;
+	if (outtype && !outconf) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "expected option --outconf");
+        return false;
+	}
+	if (outconf)
+		out_outconf = outconf;
 	return true;
 }
 
@@ -91,8 +154,10 @@ handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-	std::string zone,policy,signconf;
-    if (!get_arguments(sockfd, cmd, zone,policy, signconf))
+	std::string zone,policy,signconf,infile,outfile,intype,outtype,inconf,outconf;
+	if (!get_arguments(sockfd,cmd,zone,policy,signconf,infile,outfile,
+					   intype,outtype,inconf,outconf)
+		)
 		return 1;
 	
     time_t tstart = time(NULL);
@@ -100,7 +165,14 @@ handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
     perform_zone_add(sockfd,engine->config,
 					 zone.c_str(),
 					 policy.c_str(),
-					 signconf.c_str());
+					 signconf.c_str(),
+					 infile.c_str(),
+					 outfile.c_str(),
+					 intype.c_str(),
+					 outtype.c_str(),
+					 inconf.c_str(),
+					 outconf.c_str()
+					 );
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 

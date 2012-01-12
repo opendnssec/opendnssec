@@ -21,7 +21,13 @@ perform_zone_add(int sockfd,
 				 engineconfig_type *config,
 				 const char *zone,
 				 const char *policy,
-				 const char *signerconf)
+				 const char *signerconf,
+				 const char *ad_input_file,
+				 const char *ad_output_file,
+				 const char *ad_input_type,
+				 const char *ad_input_config,
+				 const char *ad_output_type,
+				 const char *ad_output_config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -71,6 +77,24 @@ perform_zone_add(int sockfd,
 			ks_zone.set_name( zone );
 			ks_zone.set_policy( policy );
 			ks_zone.set_signconf_path( signerconf );
+			if (*ad_input_file) {
+				ks_zone.mutable_adapters()->mutable_input()->set_file(ad_input_file);
+			}
+			if (*ad_output_file) {
+				ks_zone.mutable_adapters()->mutable_output()->set_file(ad_output_file);
+			}
+			if (*ad_input_type) {
+				::ods::keystate::Other *other =
+				  ks_zone.mutable_adapters()->mutable_input()->mutable_other();
+				other->set_type(ad_input_type);
+				other->set_config(ad_input_config);
+			}
+			if (*ad_output_type) {
+				::ods::keystate::Other *other =
+				ks_zone.mutable_adapters()->mutable_output()->mutable_other();
+				other->set_type(ad_output_type);
+				other->set_config(ad_output_config);
+			}
 						
 			// enforcer needs to trigger signer configuration writing.
 			ks_zone.set_signconf_needs_writing( false );
