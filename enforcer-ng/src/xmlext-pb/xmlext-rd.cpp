@@ -157,6 +157,10 @@ static bool assign_xml_duration_value_to_protobuf_field(const std::string &value
 	if (duration) {
 		durationtime = duration2time(duration);
 		duration_cleanup(duration);
+		if (durationtime == 0) {
+			printf("ERROR: '%s' not a valid duration !\n",value.c_str());
+			return false;
+		}
 	} else {
 		printf("ERROR: '%s' not a valid duration !\n",value.c_str());
 		return false;
@@ -372,9 +376,8 @@ void startElementNs(void * ctx, const xmlChar * localname, const xmlChar * prefi
 			const ::google::protobuf::FieldDescriptor *field = descriptor->field(f);
 			const xmloption xmlopt = field->options().GetExtension(xml);
 			if (xmlopt.path() == path) {
-				
 #if 0
-				printf( "ASSIGN %s/@%s=%s\n", messagename.c_str(), field->name().c_str(),xmlopt.path().c_str());
+				printf( "ASSIGN %s::%s=%s\n", messagename.c_str(), field->name().c_str(),xmlopt.path().c_str());
 #endif
 				if (bFieldMatchedToElement) {
 					printf("ERROR: Matched multiple fields to the same element, please modify the proto file !\n");
@@ -382,8 +385,7 @@ void startElementNs(void * ctx, const xmlChar * localname, const xmlChar * prefi
 					return;
 				}
 				bFieldMatchedToElement = true;
-				
-				
+
 				// Value is assigned during characters callback
 				// Only for xml.type of element is a 1 assigned to the field to indicate presence of the element.
 				
