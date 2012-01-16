@@ -60,10 +60,12 @@ start = element Configuration {
 	element Common {
 		# Configuration parameters for logging
 		element Logging {
+			element Verbosity { xsd:nonNegativeInteger }?,
+			 
 			element Syslog {
 				# syslog facility
 				element Facility { syslogFacility }
-			}
+			}?
 		}?,
 
 		# Location to find the KASP file

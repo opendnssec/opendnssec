@@ -484,6 +484,22 @@ parse_conf_use_syslog(const char* cfgfile)
     return 0;
 }
 
+int
+parse_conf_verbosity(const char* cfgfile)
+{
+	int verbosity = ODS_SE_VERBOSITY;
+    const char* str = parse_conf_string(cfgfile,
+        "//Configuration/Common/Logging/Verbosity",
+        0);
+    if (str) {
+        if (strlen(str) > 0) {
+        	verbosity = atoi(str);
+        }
+        free((void*)str);
+    }
+    return verbosity;
+}
+
 
 int
 parse_conf_worker_threads(const char* cfgfile)
