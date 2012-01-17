@@ -95,11 +95,22 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     
     lock_basic_lock(&engine->taskq->schedule_lock);
     /* [LOCK] schedule */
+
+    /* current work */
+    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        task = engine->workers[i]->task;
+        if (task) {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Working with [%s] %s\n",
+                task_what2str(task->what), task_who2str(task->who));
+            ods_writen(sockfd, buf, strlen(buf));
+        }
+    }
+
     /* how many tasks */
     now = time_now();
     strtime = ctime_r(&now,ctimebuf);
     (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "I have %i tasks scheduled.\nIt is now %s",
+                   "\nI have %i tasks scheduled.\nIt is now %s",
                    (int) engine->taskq->tasks->count,
                    strtime?strtime:"(null)\n");
     ods_writen(sockfd, buf, strlen(buf));
