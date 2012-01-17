@@ -427,14 +427,14 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
     }
 }
 
-static task_type * 
+static task_type *
 hsmkey_gen_task_perform(task_type *task)
 {
-	// by default pre-generate keys for all zones to last for a year.
-	time_t year = 365 * 24 * 3600;
-    perform_hsmkey_gen(-1, (engineconfig_type *)task->context, 0, year);
-    task_cleanup(task);
-    return NULL;
+	engineconfig_type *config = (engineconfig_type *)task->context;
+	time_t duration = config->automatic_keygen_duration;
+	perform_hsmkey_gen(-1, config, 0, duration);
+	task_cleanup(task);
+	return NULL;
 }
 
 task_type *
