@@ -60,7 +60,10 @@ start = element KASP {
 			element Jitter { xsd:duration },
 
 			# how much should we predate the signature inception time?
-			element InceptionOffset { xsd:duration }
+			element InceptionOffset { xsd:duration },
+
+			# Maximum TTL that may be used in a zone.
+			maxzonettl?
 		},
 
 		# use NSEC or NSEC3?
@@ -118,9 +121,6 @@ start = element KASP {
 		element Zone {
 			# Expected propagation delay in child publication
 			propagationdelay,
-
-			# Maximum TTL that may be used in a zone.
-			maxzonettl?,
 
 			# Expected zone SOA parameters
 			element SOA {
