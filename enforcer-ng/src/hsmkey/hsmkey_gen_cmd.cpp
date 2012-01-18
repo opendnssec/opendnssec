@@ -37,7 +37,7 @@ get_period(int sockfd,
 		   time_t &period)
 {
 	char buf[ODS_SE_MAXLINE];
-    const char *argv[1];
+    const char *argv[8];
     const int NARGV = sizeof(argv)/sizeof(char*);    
     int argc;
 	
