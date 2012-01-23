@@ -1027,8 +1027,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
 
         /* is there a signature with this algorithm already? */
         if (rrset_signed_with_algorithm(rrset, key->algorithm)) {
-            ods_log_deeebug("skipping key %s for signing: RRset[%i] "
-                "already has signature with same algorithm", key->locator);
+            ods_log_deeebug("[%s] skipping key %s for signing: RRset[%i] "
+                "already has signature with same algorithm", rrset_str,
+                key->locator, rrset->rr_type);
             key = key->next;
             continue;
         }
