@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.3.5
+OpenDNSSEC 1.3.5 -  2012-01-23
 
 * Auditor: Include the zone name in the log messages.
 * ldns 1.6.12 is required for bugfixes.
