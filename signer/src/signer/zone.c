@@ -373,7 +373,7 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
     signconf_type* signconf = NULL;
     ldns_rr_list* del = NULL;
     char* datestamp = NULL;
-    uint32_t ustamp = 0;
+    uint32_t ustamp;
     task_id denial_what;
     task_id keys_what;
     task_id what;
@@ -604,8 +604,6 @@ ods_status
 zone_prepare_nsec3(zone_type* zone, int recover)
 {
     ldns_rr* nsec3params_rr = NULL;
-    domain_type* apex = NULL;
-    rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
 
     if (!zone) {
@@ -679,32 +677,9 @@ zone_prepare_nsec3(zone_type* zone, int recover)
         nsec3params_cleanup(zone->nsec3params);
         zone->nsec3params = NULL;
         ldns_rr_free(nsec3params_rr);
-    } else if (!recover) {
-        /* add ok, wipe out previous nsec3params */
-        apex = zonedata_lookup_domain(zone->zonedata, zone->dname);
-        if (!apex) {
-            ods_log_crit("[%s] unable to delete previous NSEC3PARAM RR "
-            "from zone %s: apex undefined", zone_str, zone->name);
-            nsec3params_cleanup(zone->nsec3params);
-            zone->nsec3params = NULL;
-            zonedata_rollback(zone->zonedata);
-            return ODS_STATUS_ASSERT_ERR;
-        }
-        ods_log_assert(apex);
-
-        rrset = domain_lookup_rrset(apex, LDNS_RR_TYPE_NSEC3PARAMS);
-        if (rrset) {
-            status = rrset_wipe_out(rrset);
-            if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to wipe out previous "
-                    "NSEC3PARAM RR from zone %s", zone_str, zone->name);
-                nsec3params_cleanup(zone->nsec3params);
-                zone->nsec3params = NULL;
-                rrset_rollback(rrset);
-                return status;
-            }
-        }
     }
+    /* previous nsec3params is already withdrawn during load signconf */
+
     return status;
 }
 
