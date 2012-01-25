@@ -32,51 +32,51 @@ start = element EnforcerState {
 }
 
 
-% create table zones(
-%   id            integer primary key autoincrement,    -- id
-%   name          varchar(300) not null ,  -- name of the parameter
-%   policy_id     mediumint not null,
-%   signconf      varchar(4096),  -- where is the signconf
-%   input         varchar(4096),  -- where is the input
-%   output        varchar(4096),  -- where is the output
-%   in_type       varchar(512),   -- input adapter type
-%   out_type      varchar(512),   -- output adapter type
-%   
-%   foreign key (policy_id) references policies (id)
-% );
+# create table zones(
+#   id            integer primary key autoincrement,    -- id
+#   name          varchar(300) not null ,  -- name of the parameter
+#   policy_id     mediumint not null,
+#   signconf      varchar(4096),  -- where is the signconf
+#   input         varchar(4096),  -- where is the input
+#   output        varchar(4096),  -- where is the output
+#   in_type       varchar(512),   -- input adapter type
+#   out_type      varchar(512),   -- output adapter type
+#   
+#   foreign key (policy_id) references policies (id)
+# );
 
 zone = element Zone {
 	element Keys { key+ },
 	element NSEC3 {
 		element Salt { xsd:string },
 
-		% when was the Salt generated
+		# when was the Salt generated
 		element Generated { xsd:dateTime }?
 	}?
 }
 
 
-% create table dnsseckeys (
-%   id            integer primary key autoincrement,  -- unique id of the key
-%   keypair_id    smallint,
-%   zone_id        mediumint,
-%   keytype       smallint not null,             -- zsk or ksk (use code in dnskey record)
-%   state         tinyint,                      -- state of the key (defines valid fields)
-%   publish       varchar(64) null default null,  -- time when key published into the zone
-%   ready         varchar(64) null default null,  -- time when the key is ready for use
-%   active        varchar(64) null default null,  -- time when the key was made active
-%   retire        varchar(64) null default null,  -- time when the key retires
-%   dead          varchar(64) null default null,  -- time when key is slated for removal
-% 
-% 
-%   foreign key (zone_id) references zones (id),
-%   foreign key (keypair_id) references keypairs (id)
-% );
+# create table dnsseckeys (
+#   id            integer primary key autoincrement,  -- unique id of the key
+#   keypair_id    smallint,
+#   zone_id        mediumint,
+#   keytype       smallint not null,             -- zsk or ksk (use code in dnskey record)
+#   state         tinyint,                      -- state of the key (defines valid fields)
+#   publish       varchar(64) null default null,  -- time when key published into the zone
+#   ready         varchar(64) null default null,  -- time when the key is ready for use
+#   active        varchar(64) null default null,  -- time when the key was made active
+#   retire        varchar(64) null default null,  -- time when the key retires
+#   dead          varchar(64) null default null,  -- time when key is slated for removal
+# 
+# 
+#   foreign key (zone_id) references zones (id),
+#   foreign key (keypair_id) references keypairs (id)
+# );
 
 key = element Key {
 	attribute id { xsd:string },
 
-	% reference to KeyPair@id
+	# reference to KeyPair@id
 	element KeyPair { xsd:string },
 
 	element Type { "KSK" | "ZSK" | "CSK" },
@@ -89,23 +89,23 @@ key = element Key {
 }
 
 
-% create table keypairs(
-%   id     integer primary key autoincrement,
-%   HSMkey_id  varchar(255) not null,
-%   algorithm     tinyint not null,             -- algorithm code
-%   size          smallint,
-%   securitymodule_id          tinyint,                      -- where the key is stored
-%   generate      varchar(64) null default null,  -- time key inserted into database
-%   policy_id        mediumint,
-%   compromisedflag tinyint,
-%   publickey     varchar(1024),                -- public key data
-%   pre_backup    varchar(64) null default null,  -- time when backup was started
-%   backup        varchar(64) null default null,  -- time when backup was finished
-%   fixedDate     tinyint default 0,            -- Set to 1 to stop dates from being set according to the policy timings        
-%   
-%   foreign key (securitymodule_id) references securitymodules (id),
-%   foreign key (policy_id) references policies (id)
-% );
+# create table keypairs(
+#   id     integer primary key autoincrement,
+#   HSMkey_id  varchar(255) not null,
+#   algorithm     tinyint not null,             -- algorithm code
+#   size          smallint,
+#   securitymodule_id          tinyint,                      -- where the key is stored
+#   generate      varchar(64) null default null,  -- time key inserted into database
+#   policy_id        mediumint,
+#   compromisedflag tinyint,
+#   publickey     varchar(1024),                -- public key data
+#   pre_backup    varchar(64) null default null,  -- time when backup was started
+#   backup        varchar(64) null default null,  -- time when backup was finished
+#   fixedDate     tinyint default 0,            -- Set to 1 to stop dates from being set according to the policy timings        
+#   
+#   foreign key (securitymodule_id) references securitymodules (id),
+#   foreign key (policy_id) references policies (id)
+# );
 
 keypair = element KeyPair {
 	attribute id { xsd:string },
@@ -113,19 +113,19 @@ keypair = element KeyPair {
 	element Algorithm { xsd:nonNegativeInteger },
 	element Size { xsd:nonNegativeInteger },
 
-	% where to locate the key; HSM and CKA_ID
+	# where to locate the key; HSM and CKA_ID
 	element Repository { xsd:string },
 	element Identifier { xsd:string },
 
-	% under what policy was the key pair generated (if applicable)
+	# under what policy was the key pair generated (if applicable)
 	element Policy { xsd:string }?,
 
-	% when was the key originally generated
+	# when was the key originally generated
 	element Generated { xsd:dateTime }?,
 	
-	% when was the key last backed up
+	# when was the key last backed up
 	element LastBackup { xsd:dateTime }?,
 
-	% is the key compromised?
+	# is the key compromised?
 	element Compromised { empty }?
 }
