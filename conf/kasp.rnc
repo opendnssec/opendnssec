@@ -172,7 +172,9 @@ nsec3 = element NSEC3 {
 anysoa = ttl, element Minimum { xsd:duration }
 
 # Generic key definition
-anykey = element Algorithm {
+anykey =
+	element RolloverType { xsd:string }?,
+	element Algorithm {
 		attribute length { xsd:positiveInteger }?,
 		xsd:nonNegativeInteger { maxInclusive = "255" }
 	},
