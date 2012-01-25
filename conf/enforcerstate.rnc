@@ -84,6 +84,7 @@ key = element Key {
 	element KeyPairId { xsd:string },
 
 	element Type { "KSK" | "ZSK" | "CSK" },
+	element Standby { empty }?,
 
 	element Publish { xsd:dateTime | empty }?,
 	element Ready { xsd:dateTime | empty }?,
