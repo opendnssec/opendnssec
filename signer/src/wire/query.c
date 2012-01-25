@@ -102,6 +102,8 @@ query_reset(query_type* q, size_t maxlen, int is_tcp)
     /* domain, opcode, cname count, delegation, compression, temp */
     q->axfr_is_done = 0;
     q->axfr_fd = NULL;
+    q->serial = 0;
+    q->startpos = 0;
     return;
 }
 
@@ -354,6 +356,48 @@ send_notify_ok:
 
 
 /**
+ * IXFR.
+ *
+ */
+static query_state
+query_process_ixfr(query_type* q)
+{
+    uint16_t count = 0;
+    uint16_t rrcount = 0;
+    ods_log_assert(q);
+    ods_log_assert(q->buffer);
+    ods_log_assert(buffer_pkt_qdcount(q->buffer) == 1);
+    /* skip header and question section */
+    buffer_skip(q->buffer, BUFFER_PKT_HEADER_SIZE);
+    if (!buffer_skip_rr(q->buffer, 1)) {
+        ods_log_error("[%s] dropped packet: zone %s received bad ixfr "
+            "request (bad question section)", query_str, q->zone->name);
+        return QUERY_DISCARDED;
+    }
+    /* answer section is empty */
+    ods_log_assert(buffer_pkt_ancount(q->buffer) == 0);
+    /* examine auth section */
+    q->startpos = buffer_position(q->buffer);
+    count = buffer_pkt_nscount(q->buffer);
+    if (count) {
+        if (!buffer_skip_dname(q->buffer) ||
+            !query_parse_soa(q->buffer, &(q->serial))) {
+            ods_log_error("[%s] dropped packet: zone %s received bad ixfr "
+                "request (bad soa in auth section)", query_str, q->zone->name);
+            return QUERY_DISCARDED;
+        }
+        ods_log_debug("[%s] found ixfr request zone %s serial=%u", query_str,
+            q->zone->name, q->serial);
+        return QUERY_PROCESSED;
+    }
+    ods_log_debug("[%s] ixfr request zone %s has no auth section", query_str,
+        q->zone->name);
+    q->serial = 0;
+    return QUERY_PROCESSED;
+}
+
+
+/**
  * Add RRset to response.
  *
  */
@@ -559,15 +603,20 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
     if (!acl_find(dnsout->provide_xfr, &q->addr, q->tsig_rr)) {
         return query_refused(q);
     }
-    /* prepare */
-    query_prepare(q);
     /* ixfr? */
     if (qtype == LDNS_RR_TYPE_IXFR) {
+        if (query_process_ixfr(q) != QUERY_PROCESSED) {
+            buffer_pkt_set_flags(q->buffer, 0);
+            return query_formerr(q);
+        }
+        query_prepare(q);
         ods_log_assert(q->zone->name);
-        ods_log_debug("[%s] incoming ixfr request for zone %s",
-            query_str, q->zone->name);
+        ods_log_debug("[%s] incoming ixfr request serial=%u for zone %s",
+            query_str, q->serial, q->zone->name);
         return ixfr(q, engine);
     }
+
+    query_prepare(q);
     /* axfr? */
     if (qtype == LDNS_RR_TYPE_AXFR) {
         ods_log_assert(q->zone->name);
