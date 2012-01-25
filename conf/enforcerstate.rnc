@@ -46,7 +46,11 @@ start = element EnforcerState {
 # );
 
 zone = element Zone {
+	# Name of zone
+	attribute name { xsd:string },
+
 	element Keys { key+ },
+
 	element NSEC3 {
 		element Salt { xsd:string },
 
@@ -77,15 +81,15 @@ key = element Key {
 	attribute id { xsd:string },
 
 	# reference to KeyPair@id
-	element KeyPair { xsd:string },
+	element KeyPairId { xsd:string },
 
 	element Type { "KSK" | "ZSK" | "CSK" },
 
-	element Publish { xsd:dateTime | empty },
-	element Ready { xsd:dateTime | empty },
-	element Active { xsd:dateTime | empty },
-	element Retire { xsd:dateTime | empty },
-	element Dead { xsd:dateTime | empty }
+	element Publish { xsd:dateTime | empty }?,
+	element Ready { xsd:dateTime | empty }?,
+	element Active { xsd:dateTime | empty }?,
+	element Retire { xsd:dateTime | empty }?,
+	element Dead { xsd:dateTime | empty }?
 }
 
 
@@ -115,7 +119,7 @@ keypair = element KeyPair {
 
 	# where to locate the key; HSM and CKA_ID
 	element Repository { xsd:string },
-	element Identifier { xsd:string },
+	element Locator { xsd:string },
 
 	# under what policy was the key pair generated (if applicable)
 	element Policy { xsd:string }?,

@@ -2,9 +2,9 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-RNC =	addns.rnc conf.rnc kasp.rnc zonelist.rnc signconf.rnc
-RNG =	addns.rng conf.rng kasp.rng zonelist.rng signconf.rng
-XML =	addns.xml conf.xml kasp.xml zonelist.xml signconf.xml
+RNC =	addns.rnc conf.rnc kasp.rnc zonelist.rnc signconf.rnc enforcerstate.rnc
+RNG =	addns.rng conf.rng kasp.rng zonelist.rng signconf.rng enforcerstate.rng
+XML =	addns.xml conf.xml kasp.xml zonelist.xml signconf.xml enforcerstate.xml
 XSL=	kasp2html.xsl
 
 TRANG=	$(srcdir)/trang/trang.jar
