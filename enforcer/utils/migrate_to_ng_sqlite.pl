@@ -29,20 +29,20 @@ my %sm;
 my %policy;
 
 use vars (
-    q!$opt_d!,      # Database file fo convert
-    q!$opt_f!,      # Force commit if view has changed
+	q!$opt_d!,      # Database file fo convert
+	q!$opt_f!,      # Force commit if view has changed
 );
 
 getopts('d:f')
-    or die "Please supply a database file to work on with the -d flag";
+	or die "Please supply a database file to work on with the -d flag";
 
 if (!$opt_d) {
-    print STDERR "Please supply a database file to work on with the -d flag\n";
-    exit 1;
+	print STDERR "Please supply a database file to work on with the -d flag\n";
+	exit 1;
 }
 
 open  my $OUT, '>', "enforcerstate.xml"
-    or die  "$0 : failed to open  output file 'enforcerstate.xml' : $!\n";
+	or die  "$0 : failed to open  output file 'enforcerstate.xml' : $!\n";
 
 my $date = localtime;
 print $OUT "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
@@ -52,7 +52,7 @@ print $OUT "<EnforcerState>\n";
 ###
 # Make sure that we can connect to this database
 my $dbh = DBI->connect("dbi:SQLite:dbname=$opt_d","","")
-    or die "Couldn't connect: $!";
+	or die "Couldn't connect: $!";
 
 ###
 # Prepare a keys statement that we will need later
@@ -71,13 +71,14 @@ while (my @row = $sm_sth->fetchrow_array) {
 
 ###
 # Create a hashmap of the policy info we need
+my $ID=0; my $NAME=1; my $SALT=2; my $SALT_STAMP=3; my $NSEC=4;
 my $policy_sth = $dbh->prepare("select p.id, name, salt, salt_stamp, pp.value from policies p, parameters_policies pp where p.id = pp.policy_id and pp.parameter_id = 9")
 	or  die  "Couldn't prepare policy_sth $!";
 $policy_sth->execute();
 while (my @row = $policy_sth->fetchrow_array) {
+	$row[$SALT_STAMP] =~ s/ /T/ if $row[$SALT_STAMP];
 	@{ $policy { $row[0] }} = @row;
 }
-my $ID=0; my $NAME=1; my $SALT=2; my $SALT_STAMP=3; my $NSEC=4;
 
 ###
 # Let's go to work. Loop over zones
@@ -101,11 +102,26 @@ while (my @row = $zone_sth->fetchrow_array) {
 
 		print $OUT "          </Standby>\n" if $key[$STATE] > 6;
 
-		print $OUT "          <Publish>$key[$PUBLISH]</Publish>\n" if $key[$PUBLISH];
-		print $OUT "          <Ready>$key[$READY]</Ready>\n" if $key[$READY];
-		print $OUT "          <Active>$key[$ACTIVE]</Active>\n" if $key[$ACTIVE];
-		print $OUT "          <Retire>$key[$RETIRE]</Retire>\n" if $key[$RETIRE];
-		print $OUT "          <Dead>$key[$DEAD]</Dead>\n" if $key[$DEAD];
+		if ($key[$PUBLISH]) {
+			$key[$PUBLISH] =~ s/ /T/;
+			print $OUT "          <Publish>$key[$PUBLISH]</Publish>\n";
+		}
+		if ($key[$READY]) {
+			$key[$READY] =~ s/ /T/;
+			print $OUT "          <Ready>$key[$READY]</Ready>\n";
+		}
+		if ($key[$ACTIVE]) {
+			$key[$ACTIVE] =~ s/ /T/;
+			print $OUT "          <Active>$key[$ACTIVE]</Active>\n";
+		}
+		if ($key[$RETIRE]) {
+			$key[$RETIRE] =~ s/ /T/;
+			print $OUT "          <Retire>$key[$RETIRE]</Retire>\n";
+		}
+		if ($key[$DEAD]) {
+			$key[$DEAD] =~ s/ /T/;
+			print $OUT "          <Dead>$key[$DEAD]</Dead>\n";
+		}
 
 		print $OUT "        </Key>\n";
 	}
@@ -131,18 +147,22 @@ my $ALGORITHM=1; my $SIZE=2; my $SM_ID=3; my $HSMKEY_ID=4; my $POLICY_ID=5; my $
 
 print $OUT "  <KeyPairs>\n";
 while (my @row = $keypair_sth->fetchrow_array) {
-print $OUT "    <KeyPair id=\"$row[$ID]\">\n";
+	print $OUT "    <KeyPair id=\"$row[$ID]\">\n";
 
-print $OUT "      <Algorithm>$row[$ALGORITHM]</Algorithm>\n";
-print $OUT "      <Size>$row[$SIZE]</Size>\n";
-print $OUT "      <Repository>$sm{ $row[$SM_ID] }</Repository>\n";
-print $OUT "      <Locator>$row[$HSMKEY_ID]</Locator>\n";
-print $OUT "      <Policy>${ $policy{ $row[$POLICY_ID] }}[$NAME]</Policy>\n";
-print $OUT "      <Generated>$row[$GENERATE]</Generated>\n";
-print $OUT "      <LastBackup>$row[$BACKUP]</LastBackup>\n" if $row[$BACKUP];
-print $OUT "      </Compromised>\n" if $row[$COMPROMISED];
+	print $OUT "      <Algorithm>$row[$ALGORITHM]</Algorithm>\n";
+	print $OUT "      <Size>$row[$SIZE]</Size>\n";
+	print $OUT "      <Repository>$sm{ $row[$SM_ID] }</Repository>\n";
+	print $OUT "      <Locator>$row[$HSMKEY_ID]</Locator>\n";
+	print $OUT "      <Policy>${ $policy{ $row[$POLICY_ID] }}[$NAME]</Policy>\n";
+	$row[$GENERATE] =~ s/ /T/;
+	print $OUT "      <Generated>$row[$GENERATE]</Generated>\n";
+	if ($row[$BACKUP]) {
+		$row[$BACKUP] =~ s/ /T/;
+		print $OUT "      <LastBackup>$row[$BACKUP]</LastBackup>\n";
+	}
+	print $OUT "      </Compromised>\n" if $row[$COMPROMISED];
 
-print $OUT "    </KeyPair>\n";
+	print $OUT "    </KeyPair>\n";
 }
 print $OUT "  </KeyPairs>\n";
 
