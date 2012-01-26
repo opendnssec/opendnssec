@@ -765,7 +765,7 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
     rrsigs = rrset->rrsigs;
     while (rrsigs) {
         if (!rrsigs->rr) {
-            ods_log_warning("[%s] signature set has no RRSIG record: "
+            ods_log_debug("[%s] signature set has no RRSIG record: "
                 "drop signatures for RRset[%i]", rrset_str, rrset->rr_type);
             rrsigs_cleanup(rrset->rrsigs);
             rrset->rrsigs = NULL;
