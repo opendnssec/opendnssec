@@ -17,8 +17,8 @@ noinst_DATA = ${XML} ${XSL}
 
 dist_data_DATA = ${RNG} ${RNC} ${XSL}
 
-CLEANFILES =+		*.xml
-DISTCLEANFILES =+	*.rng
+CLEANFILES =+		${XML}
+DISTCLEANFILES =+	${RNG}
 
 SUFFIXES = .rng .rnc .xml
 
