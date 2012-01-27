@@ -1,5 +1,12 @@
 $Id$
 
+OpenDNSSEC 1.3.6 -
+
+Bugfixes:
+* Bugfix OPENDNSSEC-56: ods-ksmutil had the wrong option for config file in
+  the help usage text.
+
+
 OpenDNSSEC 1.3.5 -  2012-01-23
 
 * Auditor: Include the zone name in the log messages.

@@ -189,7 +189,7 @@ usage_zonelist ()
 usage_zone ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] zone \n\n",
+            "usage: %s [-c <config> | --config <config>] zone \n\n",
 	    progname);
     usage_zoneadd ();
     usage_zonedel ();
@@ -236,7 +236,7 @@ usage_policypurge ()
 usage_policy ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] \n\n",
+            "usage: %s [-c <config> | --config <config>] \n\n",
 	    progname);
     usage_policyexport ();
     usage_policyimport ();
@@ -340,7 +340,7 @@ usage_keydsseen ()
 usage_key ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] \n\n",
+            "usage: %s [-c <config> | --config <config>] \n\n",
 	    progname);
     usage_keylist ();
     usage_keyexport ();
@@ -396,7 +396,7 @@ usage_zonelist2 ()
 usage ()
 {
     fprintf(stderr,
-            "usage: %s [-f config] command [options]\n\n",
+            "usage: %s [-c <config> | --config <config>] command [options]\n\n",
 	    progname);
 
     usage_general ();
