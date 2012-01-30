@@ -37,6 +37,7 @@
 #include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
+#include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
@@ -425,6 +426,11 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->zonedata->internal_serial = internal_serial;
         zone->zonedata->outbound_serial = outbound_serial;
 
+        /**
+         * The function zone_publish_dnskeys() uses hsm_create_context().
+         * We should check the hsm connection here.
+         */
+        lhsm_check_connection(cmdc->engine->config->cfg_filename, NULL);
         status = zone_publish_dnskeys(zone, 1);
         if (status == ODS_STATUS_OK) {
             status = zone_prepare_nsec3(zone, 1);

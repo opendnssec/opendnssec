@@ -538,6 +538,7 @@ zone_publish_dnskeys(zone_type* zone, int recover)
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
     }
 
+    /* check connection here? */
     ctx = hsm_create_context();
     if (ctx == NULL) {
         ods_log_error("[%s] unable to publish dnskeys for zone %s: error "
@@ -928,6 +929,11 @@ zone_recover(zone_type* zone)
         zone->task = (void*) task;
         zone->signconf->last_modified = lastmod;
 
+        /**
+         * The function zone_publish_dnskeys() uses hsm_create_context().
+         * We don't have to check the hsm connection here, zone_recover()
+         * is part of engine_start() and is ran only once.
+         */
         status = zone_publish_dnskeys(zone, 1);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;

@@ -37,6 +37,7 @@
 #include "shared/allocator.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
+#include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
@@ -188,6 +189,11 @@ worker_perform_task(worker_type* worker)
             }
 
             if (status == ODS_STATUS_OK) {
+                /**
+                * The function zone_publish_dnskeys() uses hsm_create_context().
+                * We should check the hsm connection here.
+                */
+                lhsm_check_connection(engine->config->cfg_filename, NULL);
                 status = zone_publish_dnskeys(zone, 0);
             }
             if (status == ODS_STATUS_OK) {
@@ -591,20 +597,24 @@ worker_drudge(worker_type* worker)
     ods_status status = ODS_STATUS_OK;
     worker_type* chief = NULL;
     hsm_ctx_t* ctx = NULL;
+    engine_type* engine = NULL;
 
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_DRUDGER);
 
     ctx = hsm_create_context();
-    if (ctx == NULL) {
-        ods_log_error("[%s[%i]] unable to drudge: error "
-            "creating libhsm context", worker2str(worker->type),
-            worker->thread_num);
+    if (!ctx) {
+        ods_log_error("[%s[%i]] error creating libhsm context",
+            worker2str(worker->type), worker->thread_num);
     }
+    engine = (engine_type*) worker->engine;
 
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
+        /* check the hsm connection, reopen if necessary */
+        lhsm_check_context(&ctx);
+
         chief = NULL;
         zone = NULL;
         task = NULL;
@@ -662,6 +672,7 @@ worker_drudge(worker_type* worker)
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
+
             worker_wait(&worker->engine->signq->q_lock,
                 &worker->engine->signq->q_threshold);
         }
@@ -672,10 +683,10 @@ worker_drudge(worker_type* worker)
             worker2str(worker->type), worker->thread_num, chief->thread_num);
          worker_wakeup(chief);
     }
-
     /* cleanup open HSM sessions */
-    hsm_destroy_context(ctx);
-    ctx = NULL;
+    if (ctx) {
+        hsm_destroy_context(ctx);
+    }
     return;
 }
 
