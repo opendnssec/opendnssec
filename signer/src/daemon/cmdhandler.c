@@ -430,7 +430,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
          * The function zone_publish_dnskeys() uses hsm_create_context().
          * We should check the hsm connection here.
          */
-        lhsm_check_connection(cmdc->engine->config->cfg_filename, NULL);
+        lhsm_check_connection((void*)cmdc->engine);
         status = zone_publish_dnskeys(zone, 1);
         if (status == ODS_STATUS_OK) {
             status = zone_prepare_nsec3(zone, 1);
@@ -442,14 +442,14 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             status = zonedata_commit(zone->zonedata);
         } else {
             ods_log_warning("[%s] unable to restore NSEC3PARAM RRset for "
-                " zone %s d1reloading signconf", cmdh_str, zone->name);
+                " zone %s, reloading signconf", cmdh_str, zone->name);
         }
 
         task = (task_type*) zone->task;
         task->what = TASK_READ;
         if (status != ODS_STATUS_OK) {
             ods_log_warning("[%s] unable to restore DNSKEY/NSEC3PARAM RRset "
-                " for zone %s d1reloading signconf", cmdh_str, zone->name);
+                " for zone %s, reloading signconf", cmdh_str, zone->name);
             task->what = TASK_SIGNCONF;
         }
         /* [UNLOCK] zone */

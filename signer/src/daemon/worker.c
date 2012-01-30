@@ -190,10 +190,10 @@ worker_perform_task(worker_type* worker)
 
             if (status == ODS_STATUS_OK) {
                 /**
-                * The function zone_publish_dnskeys() uses hsm_create_context().
-                * We should check the hsm connection here.
-                */
-                lhsm_check_connection(engine->config->cfg_filename, NULL);
+                 * The function zone_publish_dnskeys() uses hsm_create_context().
+                 * We should check the hsm connection here.
+                 */
+                lhsm_check_connection((void*)engine);
                 status = zone_publish_dnskeys(zone, 0);
             }
             if (status == ODS_STATUS_OK) {
@@ -288,14 +288,14 @@ worker_perform_task(worker_type* worker)
                     zone->stats->sig_time = 0;
                     lock_basic_unlock(&zone->stats->stats_lock);
                 }
-
+                /* check the HSM connection before queuing sign operations */
+                lhsm_check_connection((void*)engine);
                 /* queue menial, hard signing work */
                 status = zonedata_queue(zone->zonedata, engine->signq, worker);
                 ods_log_debug("[%s[%i]] wait until drudgers are finished "
-                    " signing zone %s, %u signatures queued",
+                    "signing zone %s, %u signatures queued",
                     worker2str(worker->type), worker->thread_num,
                     task_who2str(task->who), worker->jobs_appointed);
-
                 /* sleep until work is done */
                 if (!worker->need_to_exit) {
                     worker_sleep_unless(worker, 0);
@@ -328,7 +328,6 @@ worker_perform_task(worker_type* worker)
                 worker->jobs_appointed = 0;
                 worker->jobs_completed = 0;
                 worker->jobs_failed = 0;
-
                 /* stop timer */
                 end = time(NULL);
                 if (status == ODS_STATUS_OK && zone->stats) {
@@ -580,6 +579,8 @@ worker_work(worker_type* worker)
             worker_sleep(worker, timeout);
         }
     }
+    /* stop worker, wipe queue */
+    fifoq_wipe(worker->engine->signq);
     return;
 }
 
@@ -592,7 +593,6 @@ static void
 worker_drudge(worker_type* worker)
 {
     zone_type* zone = NULL;
-    task_type* task = NULL;
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
     worker_type* chief = NULL;
@@ -602,22 +602,21 @@ worker_drudge(worker_type* worker)
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_DRUDGER);
 
+    engine = (engine_type*) worker->engine;
+
+    ods_log_debug("[%s[%i]] create hsm context",
+        worker2str(worker->type), worker->thread_num);
     ctx = hsm_create_context();
     if (!ctx) {
-        ods_log_error("[%s[%i]] error creating libhsm context",
+        ods_log_crit("[%s[%i]] error creating libhsm context",
             worker2str(worker->type), worker->thread_num);
     }
-    engine = (engine_type*) worker->engine;
 
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
-        /* check the hsm connection, reopen if necessary */
-        lhsm_check_context(&ctx);
-
         chief = NULL;
         zone = NULL;
-        task = NULL;
 
         lock_basic_lock(&worker->engine->signq->q_lock);
         /* [LOCK] schedule */
@@ -626,11 +625,8 @@ worker_drudge(worker_type* worker)
         lock_basic_unlock(&worker->engine->signq->q_lock);
         if (rrset) {
             /* set up the work */
-            if (chief) {
-                task = chief->task;
-            }
-            if (task) {
-                zone = task->zone;
+            if (chief && chief->task) {
+                zone = chief->task->zone;
             }
             if (!zone) {
                 ods_log_error("[%s[%i]] unable to drudge: no zone reference",
@@ -638,10 +634,8 @@ worker_drudge(worker_type* worker)
             }
             if (zone && ctx) {
                 ods_log_assert(rrset);
-                ods_log_assert(zone);
                 ods_log_assert(zone->dname);
                 ods_log_assert(zone->signconf);
-                ods_log_assert(ctx);
 
                 worker->clock_in = time(NULL);
                 status = rrset_sign(ctx, rrset, zone->dname, zone->signconf,
@@ -677,14 +671,18 @@ worker_drudge(worker_type* worker)
                 &worker->engine->signq->q_threshold);
         }
     }
-    /* wake up chief */
+    /* stop drudger */
+
     if (chief && chief->sleeping) {
+        /* wake up chief */
         ods_log_debug("[%s[%i]] wake up chief[%u], i am exiting",
             worker2str(worker->type), worker->thread_num, chief->thread_num);
          worker_wakeup(chief);
     }
-    /* cleanup open HSM sessions */
     if (ctx) {
+        /* cleanup open HSM sessions */
+        ods_log_debug("[%s[%i]] destroy hsm context",
+            worker2str(worker->type), worker->thread_num);
         hsm_destroy_context(ctx);
     }
     return;
