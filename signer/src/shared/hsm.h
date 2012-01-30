@@ -45,6 +45,17 @@
 #include <libhsm.h>
 #include <libhsmdns.h>
 
+/**
+ * Initialize HSM lock.
+ *
+ */
+void lhsm_init(void);
+
+/**
+ * Destroy HSM lock.
+ *
+ */
+void lhsm_destroy(void);
 
 /**
  * Check the HSM context, recreate if necessary.

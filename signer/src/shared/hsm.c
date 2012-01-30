@@ -36,11 +36,34 @@
 #include "shared/log.h"
 
 static const char* hsm_str = "hsm";
-
 static lock_basic_type hsm_lock;
 
 
-/*
+/**
+ * Initialize HSM lock.
+ *
+ */
+void
+lhsm_init(void)
+{
+    lock_basic_init(&hsm_lock);
+    return;
+}
+
+
+/**
+ * Destroy HSM lock.
+ *
+ */
+void
+lhsm_destroy(void)
+{
+    lock_basic_destroy(&hsm_lock);
+    return;
+}
+
+
+/**
  * Check the HSM context, recreate if necessary.
  *
  */
@@ -62,7 +85,7 @@ lhsm_check_context(hsm_ctx_t** ctx)
 }
 
 
-/*
+/**
  * Check the HSM connection, reopen if necessary.
  *
  */

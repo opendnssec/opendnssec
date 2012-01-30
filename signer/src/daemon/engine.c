@@ -657,6 +657,7 @@ engine_setup(engine_type* engine)
     sigaction(SIGTERM, &action, NULL);
 
     /* set up hsm */ /* LEAK */
+    lhsm_init();
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
     if (result != HSM_OK) {
         char* error =  hsm_get_error(NULL);
@@ -1112,6 +1113,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (close_hsm) {
         hsm_close();
     }
+    lhsm_destroy();
     if (engine->cmdhandler != NULL) {
         engine_stop_cmdhandler(engine);
     }
