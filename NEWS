@@ -1,11 +1,15 @@
 $Id$
 
-OpenDNSSEC 1.3.6 -
+OpenDNSSEC 1.3.6
+
+* OPENDNSSEC-33: Signer Engine: Check HSM connection before use, attempt to
+  reconnect if it is not valid.
 
 Bugfixes:
 * Bugfix OPENDNSSEC-56: ods-ksmutil had the wrong option for config file in
   the help usage text.
-
+* Bugfix OPENDNSSEC-209: Signer Engine: Make output file adapter atomic by
+  writing signed file to an intermediate file first.
 
 OpenDNSSEC 1.3.5 -  2012-01-23
 

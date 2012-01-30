@@ -430,6 +430,7 @@ ods_status
 adfile_write(struct zone_struct* zone, const char* filename)
 {
     FILE* fd = NULL;
+    char* tmpname = NULL;
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
 
@@ -449,13 +450,18 @@ adfile_write(struct zone_struct* zone, const char* filename)
     /* [end] sanity parameter checking */
 
     /* [start] write zone */
-    fd = ods_fopen(filename, NULL, "w");
+    tmpname = ods_build_path(filename, ".tmp", 0);
+    fd = ods_fopen(tmpname, NULL, "w");
     if (fd) {
         status = zone_print(fd, adzone);
         ods_fclose(fd);
     } else {
         status = ODS_STATUS_FOPEN_ERR;
     }
+    if (status == ODS_STATUS_OK) {
+        (void)rename((const char*) tmpname, filename);
+    }
+    free(tmpname);
     /* [end] write zone */
 
     return status;
