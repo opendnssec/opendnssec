@@ -32,9 +32,65 @@
  */
 
 #include "shared/hsm.h"
+#include "shared/locks.h"
 #include "shared/log.h"
 
 static const char* hsm_str = "hsm";
+
+static lock_basic_type hsm_lock;
+
+
+/*
+ * Check the HSM context, recreate if necessary.
+ *
+ */
+void
+lhsm_check_context(hsm_ctx_t** ctx)
+{
+    if (ctx && *ctx) {
+        if (hsm_check_context(*ctx) != HSM_OK) {
+            ods_log_warning("[%s] invalid hsm context, trying to recreate",
+                hsm_str);
+            hsm_destroy_context(*ctx);
+            *ctx = hsm_create_context();
+            if (!*ctx) {
+                ods_log_error("[%s] error creating libhsm context", hsm_str);
+            }
+        }
+    }
+    return;
+}
+
+
+/*
+ * Check the HSM connection, reopen if necessary.
+ *
+ */
+void
+lhsm_check_connection(const char* filename, hsm_ctx_t** ctx)
+{
+    lock_basic_lock(&hsm_lock);
+    if (hsm_check_context(NULL) != HSM_OK) {
+        int result = 0;
+        ods_log_warning("[%s] idle hsm connection closed down, trying to "
+            "reopen", hsm_str);
+        hsm_close();
+        result = hsm_open(filename, hsm_prompt_pin, NULL);
+        if (result != HSM_OK) {
+            char* error =  hsm_get_error(NULL);
+            if (error != NULL) {
+                ods_log_error("[%s] %s", hsm_str, error);
+                free(error);
+            }
+            ods_log_error("[%s] error reopening libhsm (errno %i)", hsm_str,
+                result);
+            /* exit? */
+        }
+        lhsm_check_context(ctx);
+    }
+    lock_basic_unlock(&hsm_lock);
+    return;
+}
 
 
 /**

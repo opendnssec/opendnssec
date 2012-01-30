@@ -45,6 +45,22 @@
 #include <libhsm.h>
 #include <libhsmdns.h>
 
+
+/**
+ * Check the HSM context, recreate if necessary.
+ * \param[out] ctx context
+ *
+ */
+void lhsm_check_context(hsm_ctx_t** ctx);
+
+/**
+ * Check the HSM connection, reopen if necessary.
+ * \param[out] ctx context, recreated if necessary.
+ * \param[in] filename the configuration filename
+ *
+ */
+void lhsm_check_connection(const char* filename, hsm_ctx_t** ctx);
+
 /**
  * Get key from one of the HSMs, store the DNSKEY and HSM key.
  * \param[in] ctx HSM context
