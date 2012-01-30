@@ -90,6 +90,20 @@ void engine_start(const char* cfgfile, int cmdline_verbosity,
     int daemonize, int info, int single_run);
 
 /**
+ * Start drudgers.
+ * \param[in] engine engine
+ *
+ */
+void engine_start_drudgers(engine_type* engine);
+
+/**
+ * Stop drudgers.
+ * \param[in] engine engine
+ *
+ */
+void engine_stop_drudgers(engine_type* engine);
+
+/**
  * Wake up workers.
  * \param[in] engine engine
  *

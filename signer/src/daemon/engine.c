@@ -41,6 +41,7 @@
 #include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
+#include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/privdrop.h"
@@ -308,7 +309,7 @@ engine_start_workers(engine_type* engine)
     }
     return;
 }
-static void
+void
 engine_start_drudgers(engine_type* engine)
 {
     size_t i = 0;
@@ -345,7 +346,7 @@ engine_stop_workers(engine_type* engine)
     }
     return;
 }
-static void
+void
 engine_stop_drudgers(engine_type* engine)
 {
     size_t i = 0;
@@ -657,16 +658,8 @@ engine_setup(engine_type* engine)
     sigaction(SIGTERM, &action, NULL);
 
     /* set up hsm */ /* LEAK */
-    lhsm_init();
-    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
+    result = lhsm_open(engine->config->cfg_filename);
     if (result != HSM_OK) {
-        char* error =  hsm_get_error(NULL);
-        if (error != NULL) {
-            ods_log_error("[%s] %s", engine_str, error);
-            free(error);
-        }
-        ods_log_error("[%s] error initializing libhsm (errno %i)",
-            engine_str, result);
         return ODS_STATUS_HSM_ERR;
     }
 
@@ -774,6 +767,8 @@ engine_run(engine_type* engine, int single_run)
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
+    ods_log_debug("[%s] reestablish libhsm", engine_str);
+    (void)lhsm_reopen(engine->config->cfg_filename);
     return;
 }
 
@@ -1113,7 +1108,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (close_hsm) {
         hsm_close();
     }
-    lhsm_destroy();
     if (engine->cmdhandler != NULL) {
         engine_stop_cmdhandler(engine);
     }

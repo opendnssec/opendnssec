@@ -46,31 +46,27 @@
 #include <libhsmdns.h>
 
 /**
- * Initialize HSM lock.
- *
- */
-void lhsm_init(void);
-
-/**
- * Destroy HSM lock.
- *
- */
-void lhsm_destroy(void);
-
-/**
- * Check the HSM context, recreate if necessary.
- * \param[out] ctx context
- *
- */
-void lhsm_check_context(hsm_ctx_t** ctx);
-
-/**
- * Check the HSM connection, reopen if necessary.
- * \param[out] ctx context, recreated if necessary.
+ * Open HSM.
  * \param[in] filename the configuration filename
+ * \return int hsm status
  *
  */
-void lhsm_check_connection(const char* filename, hsm_ctx_t** ctx);
+int lhsm_open(const char* filename);
+
+/**
+ * Reopen HSM.
+ * \param[in] filename the configuration filename
+ * \return int hsm status
+ *
+ */
+int lhsm_reopen(const char* filename);
+
+/**
+ * Check the HSM connection, reload engine if necessary.
+ * \param[in] engine signer engine.
+ *
+ */
+void lhsm_check_connection(void* engine);
 
 /**
  * Get key from one of the HSMs, store the DNSKEY and HSM key.

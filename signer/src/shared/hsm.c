@@ -31,6 +31,7 @@
  *
  */
 
+#include "daemon/engine.h"
 #include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
@@ -40,26 +41,44 @@ static lock_basic_type hsm_lock;
 
 
 /**
- * Initialize HSM lock.
+ * Open HSM.
  *
  */
-void
-lhsm_init(void)
+int
+lhsm_open(const char* filename)
 {
-    lock_basic_init(&hsm_lock);
-    return;
+    int result = hsm_open(filename, hsm_prompt_pin, NULL);
+    if (result != HSM_OK) {
+        char* error =  hsm_get_error(NULL);
+        if (error != NULL) {
+            ods_log_error("[%s] %s", hsm_str, error);
+            free(error);
+        } else {
+            ods_log_crit("[%s] error opening libhsm (errno %i)", hsm_str,
+                result);
+        }
+        /* exit? */
+    } else {
+        ods_log_info("[%s] libhsm connection opened succesfully", hsm_str);
+    }
+    return result;
 }
 
 
 /**
- * Destroy HSM lock.
+ * Reopen HSM.
  *
  */
-void
-lhsm_destroy(void)
+int
+lhsm_reopen(const char* filename)
 {
-    lock_basic_destroy(&hsm_lock);
-    return;
+    if (hsm_check_context(NULL) != HSM_OK) {
+        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
+            hsm_str);
+        hsm_close();
+        return lhsm_open(filename);
+    }
+    return HSM_OK;
 }
 
 
@@ -67,17 +86,17 @@ lhsm_destroy(void)
  * Check the HSM context, recreate if necessary.
  *
  */
-void
+static void
 lhsm_check_context(hsm_ctx_t** ctx)
 {
     if (ctx && *ctx) {
         if (hsm_check_context(*ctx) != HSM_OK) {
-            ods_log_warning("[%s] invalid hsm context, trying to recreate",
+            ods_log_warning("[%s] invalid libhsm context, trying to recreate",
                 hsm_str);
             hsm_destroy_context(*ctx);
             *ctx = hsm_create_context();
             if (!*ctx) {
-                ods_log_error("[%s] error creating libhsm context", hsm_str);
+                ods_log_crit("[%s] error creating libhsm context", hsm_str);
             }
         }
     }
@@ -86,32 +105,49 @@ lhsm_check_context(hsm_ctx_t** ctx)
 
 
 /**
- * Check the HSM connection, reopen if necessary.
+ * Clear key cache.
+ *
+ */
+static void
+lhsm_clear_key_cache(key_type* key)
+{
+    if (!key) {
+        return;
+    }
+    if (key->dnskey) {
+        ldns_rr_free(key->dnskey);
+        key->dnskey = NULL;
+    }
+    if (key->hsmkey) {
+        hsm_key_free(key->hsmkey);
+        key->hsmkey = NULL;
+    }
+    if (key->params) {
+        hsm_sign_params_free(key->params);
+        key->params = NULL;
+    }
+    return;
+}
+
+
+/**
+ * Check the HSM connection, reload engine if necessary.
  *
  */
 void
-lhsm_check_connection(const char* filename, hsm_ctx_t** ctx)
+lhsm_check_connection(void* engine)
 {
-    lock_basic_lock(&hsm_lock);
+    engine_type* e = (engine_type*) engine;
     if (hsm_check_context(NULL) != HSM_OK) {
-        int result = 0;
-        ods_log_warning("[%s] idle hsm connection closed down, trying to "
-            "reopen", hsm_str);
+        ods_log_warning("[%s] idle libshm connection, trying to reopen",
+            hsm_str);
+        engine_stop_drudgers(e);
         hsm_close();
-        result = hsm_open(filename, hsm_prompt_pin, NULL);
-        if (result != HSM_OK) {
-            char* error =  hsm_get_error(NULL);
-            if (error != NULL) {
-                ods_log_error("[%s] %s", hsm_str, error);
-                free(error);
-            }
-            ods_log_error("[%s] error reopening libhsm (errno %i)", hsm_str,
-                result);
-            /* exit? */
-        }
-        lhsm_check_context(ctx);
+        (void)lhsm_open(e->config->cfg_filename);
+        engine_start_drudgers((engine_type*) engine);
+    } else {
+        ods_log_info("[%s] libhsm connection ok", hsm_str);
     }
-    lock_basic_unlock(&hsm_lock);
     return;
 }
 
@@ -133,6 +169,8 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
     ods_log_assert(owner);
     ods_log_assert(key_id);
 
+lhsm_key_start:
+
     /* set parameters */
     if (!key_id->params) {
         key_id->params = hsm_sign_params_new();
@@ -146,6 +184,9 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
             if (error) {
                 ods_log_error("[%s] %s", hsm_str, error);
                 free((void*)error);
+            } else {
+                lhsm_clear_key_cache(key_id);
+                goto lhsm_key_start;
             }
             ods_log_error("[%s] unable to get key: create params for key %s "
                 "failed", hsm_str, key_id->locator?key_id->locator:"(null)");
@@ -162,6 +203,9 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
             free((void*)error);
+        } else {
+            lhsm_clear_key_cache(key_id);
+            goto lhsm_key_start;
         }
         /* could not find key */
         ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
@@ -178,6 +222,9 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
             free((void*)error);
+        } else {
+            lhsm_clear_key_cache(key_id);
+            goto lhsm_key_start;
         }
         ods_log_error("[%s] unable to get key: hsm failed to create dnskey",
             hsm_str);
@@ -186,6 +233,7 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
     key_id->params->keytag = ldns_calc_keytag(key_id->dnskey);
     return ODS_STATUS_OK;
 }
+
 
 /**
  * Get RRSIG from one of the HSMs, given a RRset and a key.
@@ -211,6 +259,8 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ods_log_assert(inception);
     ods_log_assert(expiration);
 
+lhsm_sign_start:
+
     if (!key_id->dnskey) {
         status = lhsm_get_key(ctx, owner, key_id);
         if (status != ODS_STATUS_OK) {
@@ -218,6 +268,9 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
             if (error) {
                 ods_log_error("[%s] %s", hsm_str, error);
                 free((void*)error);
+            } else {
+                lhsm_clear_key_cache(key_id);
+                goto lhsm_sign_start;
             }
             ods_log_error("[%s] unable to sign: get key failed", hsm_str);
             return NULL;
@@ -245,7 +298,11 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
             free((void*)error);
+        } else {
+            lhsm_clear_key_cache(key_id);
+            goto lhsm_sign_start;
         }
+        ods_log_crit("[%s] error signing rrset with libhsm", hsm_str);
     }
     return result;
 }
