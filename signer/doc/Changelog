@@ -1,4 +1,13 @@
-2 Jan 2012: Matthijs
+31 January 2012: Matthijs
+- OPENDNSSEC-209: Make File Output Adapter atomic
+
+25 January 2012: Matthijs
+- OPENDNSSEC-149: Implement IXFR as part of DNS Output Adapter
+
+6 January 2012: Matthijs
+- OPENDNSSEC-149: Remove auditor from signer
+
+2 January 2012: Matthijs
 - OPENDNSSEC-174: --config option not caught
 - Define PF_INET and PF_INET6 if undeclared
 

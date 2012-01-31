@@ -34,6 +34,8 @@ Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
 * Bugfix OPENDNSSEC-174: Configure the location for conf.xml with --config
   or -c when starting the signer.
+* Bugfix OPENDNSSEC-209: Signer Engine: Make output file adapter atomic by
+  writing signed file to an intermediate file first.
 * ods-ksmutil: "update kasp" now reflects changes in policy descriptions.
 * ods-ksmutil: Policy descriptions now have special characters quoted.
 * ods-ksmutil: Fix typo in policy export with NSEC3.
