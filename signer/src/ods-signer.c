@@ -315,22 +315,6 @@ interface_start(char* cmd)
         return;
     }
 
-    /* set stdin to non-blocking */
-    flags = fcntl(fileno(stdin), F_GETFL, 0);
-    if (flags < 0) {
-        ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
-            "failed: %s", cli_str, strerror(errno));
-        close(sockfd);
-        return;
-    }
-    flags |= O_NONBLOCK;
-    if (fcntl(fileno(stdin), F_SETFL, flags) < 0) {
-        ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
-            "failed: %s", cli_str, strerror(errno));
-        close(sockfd);
-        return;
-    }
-
     /* some sort of interface */
     if (!cmd) {
         fprintf(stderr, "cmd> ");
