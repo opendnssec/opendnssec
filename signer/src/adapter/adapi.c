@@ -329,9 +329,21 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
     }
     /* //MaxZoneTTL. Only set for RRtype != SOA && RRtype != DNSKEY */
     if (tmp && tmp < ldns_rr_ttl(rr)) {
-       log_rrset(ldns_rr_owner(rr), ldns_rr_get_type(rr),
-           "capping ttl %u to MaxZoneTTL %u for rrset", LOG_WARNING);
-       ldns_rr_set_ttl(rr, tmp);
+        char* str = ldns_rdf2str(ldns_rr_owner(rr));
+        if (str) {
+            size_t i = 0;
+            str[(strlen(str))-1] = '\0';
+            /* replace tabs with white space */
+            for (i=0; i < strlen(str); i++) {
+                if (str[i] == '\t') {
+                    str[i] = ' ';
+                }
+            }
+            ods_log_warning("[%s] capping ttl %u to MaxZoneTTL %u for rrset "
+                "<%s,%s>", adapi_str, ldns_rr_ttl(rr), tmp, str,
+                rrset_type2str(ldns_rr_get_type(rr)));
+        }
+        ldns_rr_set_ttl(rr, tmp);
     }
 
     /* TODO: DNAME and CNAME checks */
