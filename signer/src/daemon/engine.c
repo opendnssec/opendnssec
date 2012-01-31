@@ -683,9 +683,10 @@ set_notify_ns(zone_type* zone, const char* cmd)
  * Update DNS configuration for zone.
  *
  */
-static void
+static int
 dnsconfig_zone(engine_type* engine, zone_type* zone)
 {
+    int numdns = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->xfrhandler);
     ods_log_assert(engine->xfrhandler->netio);
@@ -707,6 +708,7 @@ dnsconfig_zone(engine_type* engine, zone_type* zone)
         } else if (!zone->xfrd->serial_disk_acquired) {
             xfrd_set_timer_now(zone->xfrd);
         }
+        numdns++;
     } else if (zone->xfrd) {
         netio_remove_handler(engine->xfrhandler->netio,
             &zone->xfrd->handler);
@@ -724,13 +726,14 @@ dnsconfig_zone(engine_type* engine, zone_type* zone)
             netio_add_handler(engine->xfrhandler->netio,
                 &zone->notify->handler);
         }
+        numdns++;
     } else if (zone->notify) {
         netio_remove_handler(engine->xfrhandler->netio,
             &zone->notify->handler);
         notify_cleanup(zone->notify);
         zone->notify = NULL;
     }
-    return;
+    return numdns;
 }
 
 
@@ -749,6 +752,7 @@ engine_update_zones(engine_type* engine)
     unsigned to_schedule = 0;
     unsigned to_reschedule = 0;
     unsigned wake_up = 0;
+    int warnings = 0;
     time_t now = 0;
 
     if (!engine || !engine->zonelist || !engine->zonelist->zones) {
@@ -814,7 +818,7 @@ engine_update_zones(engine_type* engine)
                 ods_status2str(status));
         }
         /* for dns adapters */
-        dnsconfig_zone(engine, zone);
+        warnings += dnsconfig_zone(engine, zone);
 
         if (zone->zl_status == ZONE_ZL_ADDED) {
             ods_log_assert(task);
@@ -842,6 +846,10 @@ engine_update_zones(engine_type* engine)
     if (engine->dnshandler) {
         dnshandler_fwd_notify(engine->dnshandler,
             (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
+    } else if (warnings) {
+        ods_log_warning("[%s] no dnshandler/listener configured, but zones "
+         "are configured with dns adapters: notify and zone transfer "
+         "requests will not work properly", engine_str);
     }
     if (wake_up) {
         engine_wakeup_workers(engine);
