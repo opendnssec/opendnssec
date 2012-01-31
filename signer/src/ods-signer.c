@@ -267,6 +267,8 @@ interface_start(char* cmd)
     struct sockaddr_un servaddr;
     const char* servsock_filename = ODS_SE_SOCKFILE;
 
+    ods_log_init(NULL, 0, 0);
+
     /* new socket */
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockfd <= 0) {
@@ -323,7 +325,6 @@ interface_start(char* cmd)
     }
 
     /* run */
-    ods_log_init(NULL, 0, 0);
     interface_run(stdin, sockfd, cmd);
     close(sockfd);
     return;
