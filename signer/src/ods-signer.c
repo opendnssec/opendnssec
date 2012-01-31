@@ -126,6 +126,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             ods_writen(sockfd, cmd, strlen(cmd));
             cmd_written = 1;
             stdineof = 1;
+            /* Clear the interactive mode / stdin fd from the set */
+            FD_CLR(fileno(fp), &rset);
             continue;
         }
 
