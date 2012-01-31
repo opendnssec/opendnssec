@@ -344,7 +344,7 @@ parse_addns_allow_notify(allocator_type* allocator, const char* filename,
     tsig_type* tsig)
 {
     return parse_addns_acl(allocator, filename, tsig,
-        "//Adapter/DNS/Inbound/AllowNotify/ACL"
+        "//Adapter/DNS/Inbound/AllowNotify/Peer"
         );
 }
 
@@ -358,7 +358,7 @@ parse_addns_provide_xfr(allocator_type* allocator, const char* filename,
     tsig_type* tsig)
 {
     return parse_addns_acl(allocator, filename, tsig,
-        "//Adapter/DNS/Outbound/ProvideTransfer/ACL"
+        "//Adapter/DNS/Outbound/ProvideTransfer/Peer"
         );
 }
 

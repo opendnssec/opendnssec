@@ -30,9 +30,9 @@
 			<!-- Allow NOTIFY messages from host -->
 			<AllowNotify>
 				<!-- EXAMPLE: allow notifies from 1.2.3.4 -->
-				<ACL>
+				<Peer>
 					<Prefix>1.2.3.4</Prefix>
-				</ACL>
+				</Peer>
 			</AllowNotify>
 		</Inbound>
 
@@ -40,10 +40,10 @@
 			<!-- Provide XFR to host -->
 			<ProvideTransfer>
 				<!-- EXAMPLE: provide XFR to 1.2.3.5 with key secret.example.com -->
-				<ACL>
+				<Peer>
 					<Prefix>1.2.3.5</Prefix>
 					<Key>secret.example.com</Key>
-				</ACL>
+				</Peer>
 			</ProvideTransfer>
 	
 			<!-- Send NOTIFY messages to host -->
