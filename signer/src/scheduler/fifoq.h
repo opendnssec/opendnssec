@@ -53,7 +53,7 @@
 #include <ldns/ldns.h>
 
 #define FIFOQ_MAX_COUNT 1000
-#define FIFOQ_TRIES_COUNT 1
+#define FIFOQ_TRIES_COUNT 100
 
 /**
  * FIFO Queue.
