@@ -139,14 +139,14 @@ lhsm_check_connection(void* engine)
 {
     engine_type* e = (engine_type*) engine;
     if (hsm_check_context(NULL) != HSM_OK) {
-        ods_log_warning("[%s] idle libshm connection, trying to reopen",
+        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
             hsm_str);
         engine_stop_drudgers(e);
         hsm_close();
         (void)lhsm_open(e->config->cfg_filename);
         engine_start_drudgers((engine_type*) engine);
     } else {
-        ods_log_info("[%s] libhsm connection ok", hsm_str);
+        ods_log_debug("[%s] libhsm connection ok", hsm_str);
     }
     return;
 }
