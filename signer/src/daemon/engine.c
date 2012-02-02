@@ -767,7 +767,6 @@ engine_run(engine_type* engine, int single_run)
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
-    ods_log_debug("[%s] reestablish libhsm", engine_str);
     (void)lhsm_reopen(engine->config->cfg_filename);
     return;
 }

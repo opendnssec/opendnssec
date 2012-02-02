@@ -765,7 +765,7 @@ void
 worker_wakeup(worker_type* worker)
 {
     ods_log_assert(worker);
-    if (worker && worker->sleeping && !worker->waiting) {
+    if (worker->sleeping) {
         ods_log_debug("[%s[%i]] wake up", worker2str(worker->type),
            worker->thread_num);
         lock_basic_lock(&worker->worker_lock);
