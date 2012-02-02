@@ -37,7 +37,6 @@
 #include "shared/log.h"
 
 static const char* hsm_str = "hsm";
-static lock_basic_type hsm_lock;
 
 
 /**
@@ -79,28 +78,6 @@ lhsm_reopen(const char* filename)
         return lhsm_open(filename);
     }
     return HSM_OK;
-}
-
-
-/**
- * Check the HSM context, recreate if necessary.
- *
- */
-static void
-lhsm_check_context(hsm_ctx_t** ctx)
-{
-    if (ctx && *ctx) {
-        if (hsm_check_context(*ctx) != HSM_OK) {
-            ods_log_warning("[%s] invalid libhsm context, trying to recreate",
-                hsm_str);
-            hsm_destroy_context(*ctx);
-            *ctx = hsm_create_context();
-            if (!*ctx) {
-                ods_log_crit("[%s] error creating libhsm context", hsm_str);
-            }
-        }
-    }
-    return;
 }
 
 
