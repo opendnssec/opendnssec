@@ -10,6 +10,8 @@ Bugfixes:
   the help usage text.
 * Bugfix OPENDNSSEC-209: Signer Engine: Make output file adapter atomic by
   writing signed file to an intermediate file first.
+* Signer Engine: Adjust some log messages.
+
 
 OpenDNSSEC 1.3.5 -  2012-01-23
 
