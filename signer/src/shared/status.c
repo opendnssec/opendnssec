@@ -54,6 +54,7 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_MALLOC_ERR, "Memory allocation error"},
     { ODS_STATUS_PARSE_ERR, "Parse error"},
     { ODS_STATUS_PRIVDROP_ERR, "Unable to drop privileges"},
+    { ODS_STATUS_RENAME_ERR, "Unable to rename file"},
     { ODS_STATUS_RNG_ERR, "RelaxNG error"},
     { ODS_STATUS_SETSID_ERR, "setsid() failed"},
     { ODS_STATUS_UNCHANGED, "Status unchanged"},
