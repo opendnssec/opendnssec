@@ -33,7 +33,6 @@
 
 #include "daemon/engine.h"
 #include "shared/hsm.h"
-#include "shared/locks.h"
 #include "shared/log.h"
 
 static const char* hsm_str = "hsm";
