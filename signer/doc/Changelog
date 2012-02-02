@@ -1,5 +1,6 @@
 2 February 2012: Matthijs
 - OPENDNSSEC-33: Signer check if HSM connection is still open
+- OPENDNSSEC-178: Make worker wait pushing on sign queue if queue is full
 
 31 January 2012: Matthijs
 - OPENDNSSEC-209: Make File Output Adapter atomic

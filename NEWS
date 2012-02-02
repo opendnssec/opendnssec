@@ -4,6 +4,8 @@ OpenDNSSEC trunk
 
 * Remove auditor
 * Signer Engine: Input and Output DNS Adapters.
+* OPENDNSSEC-178: Signer Engine: Instead of waiting an arbitrary amount of
+  time, let worker wait pushing sign operations until the queue is non-full.
 * Zonefetcher removed.
 * Enforcer: Key label logging upon deletion (#192 Sebastian Castro)
 * ods-ksmutil: Add warnings on "key export --ds" if no active or ready keys 
@@ -34,6 +36,8 @@ Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.
 * Bugfix OPENDNSSEC-174: Configure the location for conf.xml with --config
   or -c when starting the signer.
+* Bugfix OPENDNSSEC-207: Signer Engine: Fix communication from a process
+  not attached to a shell.
 * Bugfix OPENDNSSEC-209: Signer Engine: Make output file adapter atomic by
   writing signed file to an intermediate file first.
 * ods-ksmutil: "update kasp" now reflects changes in policy descriptions.

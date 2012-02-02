@@ -170,7 +170,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                             "from daemon.\n");
                     exit(1);
                 }
-                /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer 
+                /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer
                     manipulations below. */
                 if (strncmp(buf+n-SE_CLI_CMDLEN,"\ncmd> ",SE_CLI_CMDLEN) == 0) {
                     /* we have the full response */
