@@ -1,3 +1,6 @@
+2 February 2012: Matthijs
+- OPENDNSSEC-33: Signer check if HSM connection is still open
+
 31 January 2012: Matthijs
 - OPENDNSSEC-209: Make File Output Adapter atomic
 

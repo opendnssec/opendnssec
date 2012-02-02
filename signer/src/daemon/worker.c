@@ -35,6 +35,7 @@
 #include "daemon/worker.h"
 #include "shared/allocator.h"
 #include "shared/duration.h"
+#include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
@@ -337,6 +338,7 @@ worker_perform_task(worker_type* worker)
                     task_who2str(task));
                 status = ODS_STATUS_ERR;
             } else {
+                lhsm_check_connection((void*)engine);
                 status = tools_input(zone);
             }
             if (status == ODS_STATUS_OK) {
@@ -385,6 +387,8 @@ worker_perform_task(worker_type* worker)
                 zone->stats->sig_time = 0;
                 lock_basic_unlock(&zone->stats->stats_lock);
             }
+            /* check the HSM connection before queuing sign operations */
+            lhsm_check_connection((void*)engine);
             /* queue menial, hard signing work */
             worker_queue_zone(worker, engine->signq, zone);
             ods_log_deeebug("[%s[%i]] wait until drudgers are finished "
