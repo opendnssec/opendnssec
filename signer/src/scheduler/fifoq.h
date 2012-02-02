@@ -53,7 +53,7 @@
 #include <ldns/ldns.h>
 
 #define FIFOQ_MAX_COUNT 1000
-#define FIFOQ_TRIES_COUNT 100
+#define FIFOQ_TRIES_COUNT 1
 
 /**
  * FIFO Queue.
@@ -66,6 +66,7 @@ struct fifoq_struct {
     size_t count;
     lock_basic_type q_lock;
     cond_basic_type q_threshold;
+    cond_basic_type q_nonfull;
 };
 
 /**

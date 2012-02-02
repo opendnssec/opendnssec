@@ -784,13 +784,26 @@ worker_wakeup(worker_type* worker)
  *
  */
 void
-worker_wait(lock_basic_type* lock, cond_basic_type* condition)
+worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
+    time_t timeout)
 {
     lock_basic_lock(lock);
     /* [LOCK] worker */
-    lock_basic_sleep(condition, lock, 0);
+    lock_basic_sleep(condition, lock, timeout);
     /* [UNLOCK] worker */
     lock_basic_unlock(lock);
+    return;
+}
+
+
+/**
+ * Worker waiting.
+ *
+ */
+void
+worker_wait(lock_basic_type* lock, cond_basic_type* condition)
+{
+    worker_wait_timeout(lock, condition, 0);
     return;
 }
 

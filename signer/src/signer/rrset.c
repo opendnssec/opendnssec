@@ -1155,7 +1155,7 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
          * lets take a small break to not hog CPU.
          */
         if (status == ODS_STATUS_UNCHANGED && !tries) {
-            usleep(10000);
+            worker_wait_timeout(&q->q_lock, &q->q_nonfull, 60);
         }
     }
     if (status == ODS_STATUS_OK) {
