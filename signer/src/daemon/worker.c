@@ -173,7 +173,7 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
          * lets take a small break to not hog CPU.
          */
         if (status == ODS_STATUS_UNCHANGED && !tries) {
-            usleep(10000);
+            worker_wait_timeout(&q->q_lock, &q->q_nonfull, 60);
         }
     }
     ods_log_assert(status == ODS_STATUS_OK);
@@ -773,11 +773,24 @@ worker_wakeup(worker_type* worker)
  *
  */
 void
-worker_wait(lock_basic_type* lock, cond_basic_type* condition)
+worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
+    time_t timeout)
 {
     lock_basic_lock(lock);
-    lock_basic_sleep(condition, lock, 0);
+    lock_basic_sleep(condition, lock, timeout);
     lock_basic_unlock(lock);
+    return;
+}
+
+
+/**
+ * Worker waiting.
+ *
+ */
+void
+worker_wait(lock_basic_type* lock, cond_basic_type* condition)
+{
+    worker_wait_timeout(lock, condition, 0);
     return;
 }
 
