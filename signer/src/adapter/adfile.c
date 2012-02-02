@@ -382,7 +382,11 @@ adfile_write(void* zone, const char* filename)
         status = ODS_STATUS_FOPEN_ERR;
     }
     if (status == ODS_STATUS_OK) {
-        (void)rename((const char*) tmpname, filename);
+        if (rename((const char*) tmpname, filename) != 0) {
+            ods_log_error("[%s] unable to write file: failed to rename %s "
+                "to %s (%s)", adapter_str, tmpname, filename, strerror(errno));
+            status = ODS_STATUS_RENAME_ERR;
+        }
     }
     free(tmpname);
     /* [end] write zone */
