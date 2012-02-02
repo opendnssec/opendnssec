@@ -621,16 +621,13 @@ worker_drudge(worker_type* worker)
     ods_log_assert(worker->type == WORKER_DRUDGER);
 
     engine = (engine_type*) worker->engine;
-drudger_create_ctx:
+    ods_log_debug("[%s[%i]] create hsm context",
+        worker2str(worker->type), worker->thread_num);
     ctx = hsm_create_context();
-    if (ctx == NULL) {
-        ods_log_error("[%s[%i]] unable to drudge: error "
-            "creating libhsm context", worker2str(worker->type),
-            worker->thread_num);
-        worker_wait(&engine->signq->q_lock, &engine->signq->q_threshold);
-        goto drudger_create_ctx;
+    if (!ctx) {
+        ods_log_crit("[%s[%i]] error creating libhsm context",
+            worker2str(worker->type), worker->thread_num);
     }
-    ods_log_assert(ctx);
     while (worker->need_to_exit == 0) {
         ods_log_deeebug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
