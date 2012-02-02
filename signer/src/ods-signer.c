@@ -124,6 +124,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             se_writen(sockfd, cmd, strlen(cmd));
             cmd_written = 1;
             stdineof = 1;
+            /* Clear the interactive mode / stdin fd from the set */
+            FD_CLR(fileno(fp), &rset);
             continue;
         }
 
@@ -166,11 +168,10 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                             "from daemon.\n");
                     exit(1);
                 }
-                
-                /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer 
+
+                /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer
                     manipulations below. */
                 if (strncmp(buf+n-SE_CLI_CMDLEN,"\ncmd> ",SE_CLI_CMDLEN) == 0) {
-                
                     /* we have the full response */
                     n -= SE_CLI_CMDLEN;
                     buf[n] = '\0';
@@ -267,6 +268,8 @@ interface_start(char* cmd)
     struct sockaddr_un servaddr;
     const char* servsock_filename = ODS_SE_SOCKFILE;
 
+    se_log_init(NULL, 0, 0);
+
     /* new socket */
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockfd <= 0) {
@@ -317,29 +320,12 @@ interface_start(char* cmd)
         return;
     }
 
-    /* set stdin to non-blocking */
-    flags = fcntl(fileno(stdin), F_GETFL, 0);
-    if (flags < 0) {
-        se_log_error("Unable to start interface, fcntl(F_GETFL) "
-            "failed: %s", strerror(errno));
-        close(sockfd);
-        return;
-    }
-    flags |= O_NONBLOCK;
-    if (fcntl(fileno(stdin), F_SETFL, flags) < 0) {
-        se_log_error("Unable to start interface, fcntl(F_SETFL) "
-            "failed: %s", strerror(errno));
-        close(sockfd);
-        return;
-    }
-
     /* some sort of interface */
     if (!cmd) {
         fprintf(stderr, "cmd> ");
     }
 
     /* run */
-    se_log_init(NULL, 0, 0);
     interface_run(stdin, sockfd, cmd);
     close(sockfd);
     return;

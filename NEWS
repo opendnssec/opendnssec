@@ -1,5 +1,12 @@
 $Id$
 
+OpenDNSSEC 1.2.3
+
+Bugfixes:
+* Bugfix OPENDNSSEC-207: Signer Engine: Fix communication from a process
+  not attached to a shell.
+
+
 OpenDNSSEC 1.2.2 - 2011-08-11
 
 Bugfixes:
