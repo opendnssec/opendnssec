@@ -1466,14 +1466,16 @@ int do_purge(int interval, int policy_id)
             DdsConditionInt(&sql1, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
             DdsConditionInt(&sql1, "(state", DQS_COMPARE_NE, KSM_STATE_DEAD, 1);
 
-#ifdef USE_MYSQL
-            nchar = snprintf(buffer, sizeof(buffer),
-                    " or state = %d and DEAD > DATE_ADD('%s', INTERVAL -%d SECOND)) ", KSM_STATE_DEAD, rightnow, interval);
-#else
-            nchar = snprintf(buffer, sizeof(buffer),
-                    " or state = %d and DEAD > DATETIME('%s', '-%d SECONDS')) ", KSM_STATE_DEAD, rightnow, interval);
-#endif /* USE_MYSQL */
+			status = DbDateDiff(rightnow, interval, -1, buffer, KSM_SQL_SIZE);
+			if (status != 0) {
+				log_msg(NULL, LOG_ERR, "DbDateDiff failed\n");
+                DbStringFree(temp_loc);
+                DbFreeRow(row);
+                StrFree(rightnow);
+                return status;
+			}	
 
+            StrAppend(&sql1, " or state = 6 and DEAD > ");
             StrAppend(&sql1, buffer);
             DqsEnd(&sql1);
 

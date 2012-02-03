@@ -507,3 +507,59 @@ int DbQuoteString(DB_HANDLE handle, const char* in, char* buffer, size_t buflen)
 
 	return ( length <= buflen ) ? 0 : 1;
 }
+
+/*+
+ * DbDateDiff - Return SQL statement for a date plus or minus a delta
+ *
+ * Description:
+ * 		Return quoted version of the input string
+ *
+ * Arguments:
+ *
+ * 		const char* start
+ * 			Start date
+ *
+ * 		int delta
+ * 			Difference in seconds
+ *
+ * 		int sign
+ * 			-1 to subtract the delta, +1 to add
+ *
+ * 		char* buffer
+ * 			SQL string
+ *
+ * Returns:
+ * 		int
+ * 			Status return
+ *
+ * 				0		Success
+ * 				Other	Error code.  An error message will have been output.
+-*/
+
+int DbDateDiff(const char* start, int delta, int sign, char* buffer, size_t buflen)
+{
+	int nchar;
+
+    if (start == NULL) {
+        return MsgLog(DBS_INVARG, "NULL input string to DbDateDiff");
+    }
+
+	if (sign == 1) {
+		nchar = snprintf(buffer, buflen,
+				"DATE_ADD('%s', INTERVAL %d SECOND)", start, delta);
+	}
+	else if (sign == -1) {
+		nchar = snprintf(buffer, buflen,
+				"DATE_ADD('%s', INTERVAL -%d SECOND)", start, delta);
+	}
+	else {
+        return MsgLog(DBS_INVARG, "Invalid sign to DbDateDiff");
+    }
+
+	if (nchar >= buflen || nchar < 0) {
+		return 1;
+	}
+
+	return 0;
+
+}

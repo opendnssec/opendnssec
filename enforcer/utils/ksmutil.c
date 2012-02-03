@@ -7465,7 +7465,6 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
     int         status = 0;     /* Status return */
 
     char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
-    unsigned int    nchar;          /* Number of characters converted */
     
     KSM_PARCOLL         collection;     /* Collection of parameters for zone */
     int deltat;     /* Time interval */
@@ -7498,19 +7497,19 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
         /* Set the interval until Retire */
         deltat = collection.ksklife;
 
-#ifdef USE_MYSQL
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATE_ADD('%s', INTERVAL %d SECOND) ", datetime, deltat);
-#else
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
-#endif /* USE_MYSQL */
+		/* Generate the SQL to express this interval */
+		status = DbDateDiff(datetime, deltat, 1, buffer, KSM_SQL_SIZE);
+		if (status != 0) {
+			printf("DbDateDiff failed\n");
+			return status;
+		}
 
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_ACTIVE, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_ACTIVE), datetime, 1);
         StrAppend(&sql1, ", RETIRE = ");
         StrAppend(&sql1, buffer);
+        StrAppend(&sql1, " ");
 
         DusConditionInt(&sql1, "KEYPAIR_ID", DQS_COMPARE_EQ, keypair_id, 0);
         DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
@@ -7523,19 +7522,19 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
         deltat = collection.kskttl + collection.kskpropdelay + 
             collection.pub_safety;
 
-#ifdef USE_MYSQL
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATE_ADD('%s', INTERVAL %d SECOND) ", datetime, deltat);
-#else
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
-#endif /* USE_MYSQL */
+		/* Generate the SQL to express this interval */
+		status = DbDateDiff(datetime, deltat, 1, buffer, KSM_SQL_SIZE);
+		if (status != 0) {
+			printf("DbDateDiff failed\n");
+			return status;
+		}
 
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_DSPUBLISH, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_PUBLISH), datetime, 1);
         StrAppend(&sql1, ", READY = ");
         StrAppend(&sql1, buffer);
+        StrAppend(&sql1, " ");
 
         DusConditionInt(&sql1, "KEYPAIR_ID", DQS_COMPARE_EQ, keypair_id, 0);
         DusConditionInt(&sql1, "ZONE_ID", DQS_COMPARE_EQ, zone_id, 1);
@@ -7594,7 +7593,6 @@ int RetireOldKey(int zone_id, int policy_id, const char *datetime)
 
     char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
     char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
-    unsigned int    nchar;          /* Number of characters converted */
     
     KSM_PARCOLL         collection;     /* Collection of parameters for zone */
     int deltat;     /* Time interval */
@@ -7640,13 +7638,13 @@ int RetireOldKey(int zone_id, int policy_id, const char *datetime)
     /* work out what its deadtime should become */
     deltat = collection.dsttl + collection.kskpropdelay + collection.ret_safety;
 
-#ifdef USE_MYSQL
-    nchar = snprintf(buffer, sizeof(buffer),
-        "DATE_ADD('%s', INTERVAL %d SECOND) ", datetime, deltat);
-#else
-    nchar = snprintf(buffer, sizeof(buffer),
-        "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
-#endif /* USE_MYSQL */
+	/* Generate the SQL to express this interval */
+	status = DbDateDiff(datetime, deltat, 1, buffer, KSM_SQL_SIZE);
+	if (status != 0) {
+		printf("DbDateDiff failed\n");
+        DbRollback();
+		return status;
+	}
 
     sql2 = DusInit("dnsseckeys");
     DusSetInt(&sql2, "STATE", KSM_STATE_RETIRE, 0);
@@ -7774,7 +7772,6 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
     KSM_KEYDATA  data;      /* Data for this key */
 
     char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
-    unsigned int    nchar;          /* Number of characters converted */
     
     KSM_PARCOLL         collection;     /* Collection of parameters for zone */
     int deltat = 0;     /* Time interval */
@@ -7877,7 +7874,7 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
         /* Something went wrong */
 
         MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
-	StrFree(keyids);
+		StrFree(keyids);
         return status;
     }
 
@@ -7888,13 +7885,13 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
         /* Set the interval until Retire */
         deltat = collection.ksklife;
 
-#ifdef USE_MYSQL
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATE_ADD('%s', INTERVAL %d SECOND) ", datetime, deltat);
-#else
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
-#endif /* USE_MYSQL */
+		/* Generate the SQL to express this interval */
+		status = DbDateDiff(datetime, deltat, 1, buffer, KSM_SQL_SIZE);
+		if (status != 0) {
+			printf("DbDateDiff failed\n");
+			StrFree(keyids);
+			return status;
+		}
 
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_ACTIVE, 0);
@@ -7920,13 +7917,13 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
                 collection.ret_safety; /* Ipp */
         }
 
-#ifdef USE_MYSQL
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATE_ADD('%s', INTERVAL %d SECOND) ", datetime, deltat);
-#else
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
-#endif /* USE_MYSQL */
+		/* Generate the SQL to express this interval */
+		status = DbDateDiff(datetime, deltat, 1, buffer, KSM_SQL_SIZE);
+		if (status != 0) {
+			printf("DbDateDiff failed\n");
+			StrFree(keyids);
+			return status;
+		}
 
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_RETIRE, 0);
@@ -7945,13 +7942,13 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
         deltat = collection.kskttl + collection.kskpropdelay + 
             collection.pub_safety;
 
-#ifdef USE_MYSQL
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATE_ADD('%s', INTERVAL %d SECOND) ", datetime, deltat);
-#else
-        nchar = snprintf(buffer, sizeof(buffer),
-                "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
-#endif /* USE_MYSQL */
+		/* Generate the SQL to express this interval */
+		status = DbDateDiff(datetime, deltat, 1, buffer, KSM_SQL_SIZE);
+		if (status != 0) {
+			printf("DbDateDiff failed\n");
+			StrFree(keyids);
+			return status;
+		}
 
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_DSPUBLISH, 0);

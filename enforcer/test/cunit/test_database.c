@@ -389,6 +389,43 @@ static void TestDbRollback(void)
 	return;
 }
 
+static void TestDbDateDiff(void)
+{
+	char	buffer[128];
+	char	small_buffer[16];
+	char*	datetime = "2010-01-01 12:00:00";
+	int		deltat = 120;
+	int 	status = 0;
+
+	/* One with a positive difference */
+	status = DbDateDiff(datetime, deltat, 1, buffer, 128);
+
+	CU_ASSERT_EQUAL(status, 0);
+
+#ifdef USE_MYSQL
+	CU_ASSERT_STRING_EQUAL(buffer, "DATE_ADD('2010-01-01 12:00:00', INTERVAL 120 SECOND)");
+#else
+	CU_ASSERT_STRING_EQUAL(buffer, "DATETIME('2010-01-01 12:00:00', '+120 SECONDS')");
+#endif /* USE_MYSQL */
+
+	/* One with a negative difference */
+	status = DbDateDiff(datetime, deltat, -1, buffer, 128);
+
+	CU_ASSERT_EQUAL(status, 0);
+
+#ifdef USE_MYSQL
+	CU_ASSERT_STRING_EQUAL(buffer, "DATE_ADD('2010-01-01 12:00:00', INTERVAL -120 SECOND)");
+#else
+	CU_ASSERT_STRING_EQUAL(buffer, "DATETIME('2010-01-01 12:00:00', '-120 SECONDS')");
+#endif /* USE_MYSQL */
+
+	/* One that fails because the buffer is too small */
+	status = DbDateDiff(datetime, deltat, 1, small_buffer, 16);
+
+	CU_ASSERT_EQUAL(status, 1);
+
+	return;
+}
 
 /*+
  * TestDdb  - Create Test Suite
@@ -417,6 +454,7 @@ int TestDb(void)
         {"TestDbLastRowId",				TestDbLastRowId},
         {"TestDbCommit",				TestDbCommit},
         {"TestDbRollback",				TestDbRollback},
+        {"TestDbDateDiff",				TestDbDateDiff},
         {NULL,                  		NULL}
     };
 
