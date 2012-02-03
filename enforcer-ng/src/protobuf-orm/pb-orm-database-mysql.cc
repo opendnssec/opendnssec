@@ -25,59 +25,53 @@
  */
 
 //
-//  pb-orm-database-sqlite3.cc
+//  pb-orm-database-mysql.cc
 //  protobuf-orm
 //
 
-#include "pb-orm-database-sqlite3.h"
+#include "pb-orm-database-mysql.h"
 
-#if ENFORCER_DATABASE_SQLITE3
+#if ENFORCER_DATABASE_MYSQL
 
 #include <stdlib.h>
 #include <time.h>
 #include <map>
-#include <sqlite3.h>
+#include <utility>
+#include <mysql/mysql.h>
 #include <cstdio>
 
 #include "pb-orm-str.h"
 #include "pb-orm-log.h"
 #include "pb-orm-database-helper.h"
 
-#define HAVE_SILENT_BUSY_AND_LOCKED_ERRORS 1
-
 namespace DB {
 
-	bool SQLite3::initialize()
+	bool MySQL::initialize()
 	{
-		int err = sqlite3_initialize();
-		if (err != SQLITE_OK) {
-			OrmLogError("SQLITE3: sqlite3_initialize failed with error %d",err);
-			return false;
-		}
-
 		return true;
 	}
 
-	void SQLite3::shutdown()
+	void MySQL::shutdown()
 	{
-		sqlite3_shutdown();
 	}
 
-	namespace SQLite3 {
+	namespace MySQL {
 		
 		///////////////////////////
 		//
-		// SQLite3::OrmResultImpl
+		// MySQL::OrmResultImpl
 		//	declaration
 		//
 		///////////////////////////
 		
 		class OrmResultImpl : public ::DB::OrmResultImpl {
 		public:
-			sqlite3_stmt *stmt;
+			MYSQL_RES *result;
 			std::map<std::string, int> fields;
+			std::map<int, std::pair<const char *, size_t> > row;
 			
-			OrmResultImpl(sqlite3_stmt * stmt_);
+			OrmResultImpl(MYSQL_RES *result_);
+			OrmResultImpl(bool success);
 			virtual ~OrmResultImpl();
 			
 			virtual bool assigned();
@@ -115,89 +109,127 @@ namespace DB {
 			virtual const unsigned char *get_binary(const std::string &fieldname);
 			virtual size_t get_field_length(const std::string &fieldname);
 			
-		protected:
-			void check_and_report_errors();
+		private:
+			bool _fetch_row();
+			bool _success;
 		};
 		
 	}
 	
 	///////////////////////////
 	//
-	// SQLite3::OrmResultImpl
+	// MySQL::OrmResultImpl
 	//	implementation
 	//
 	///////////////////////////
 	
-	SQLite3::OrmResultImpl::OrmResultImpl(sqlite3_stmt * stmt_)
-	: stmt(stmt_)
+	MySQL::OrmResultImpl::OrmResultImpl(MYSQL_RES *result_)
+		: result(result_), _success(false)
+	{
+		if (result) {
+			MYSQL_FIELD *mysql_fields;
+			unsigned int i, num_fields;
+
+			if (!(mysql_fields = mysql_fetch_fields(result))) {
+				OrmLogError("Unable to fetch fields, destroying result");
+				mysql_free_result(result);
+				result = NULL;
+				return;
+			}
+
+			for (i=0, num_fields=mysql_num_fields(result); i<num_fields; i++) {
+				fields[mysql_fields[i].name] = i+1;
+			}
+
+			_success = true;
+		}
+	}
+
+	MySQL::OrmResultImpl::OrmResultImpl(bool success)
+		: result(NULL), _success(success)
 	{
 	}
 	
-	SQLite3::OrmResultImpl::~OrmResultImpl()
+	MySQL::OrmResultImpl::~OrmResultImpl()
 	{
-		if (stmt) {
-			sqlite3_finalize(stmt);
-			stmt = NULL;
+		if (result) {
+			mysql_free_result(result);
+			result = NULL;
 		}
 	}
 	
-	bool SQLite3::OrmResultImpl::assigned()
+	bool MySQL::OrmResultImpl::assigned()
 	{
-		return stmt != 0;
+		return result || _success;
 	}
 	
-	bool SQLite3::OrmResultImpl::failed()
+	bool MySQL::OrmResultImpl::failed()
 	{
-		if (!stmt)
-			return true;
-		sqlite3 *db = sqlite3_db_handle(stmt);
-		if (!db)
-			return true;
-		int error = sqlite3_errcode(db);
-		return error != SQLITE_OK && error != SQLITE_ROW && error != SQLITE_DONE;
+		return !_success;
 	}
 	
-	bool SQLite3::OrmResultImpl::get_numrows(unsigned long long &numrows)
+	bool MySQL::OrmResultImpl::get_numrows(unsigned long long &numrows)
 	{
-		if (!stmt) return false;
-		numrows = 0;
-		if (sqlite3_reset(stmt) != SQLITE_OK) {
-			
-			return false;
-		}
-		int step = sqlite3_step(stmt);
-		for ( ; step == SQLITE_ROW; step=sqlite3_step(stmt)) {
-			// do nothing...
-			// step returns SQLITE_ROW or SQLITE_DONE
-			++numrows;
-		}
-		return step==SQLITE_DONE;
-	}
-	
-	bool SQLite3::OrmResultImpl::first_row()
-	{
-		if (!stmt) return false;
-		// reset result set, check for errors and select the first row.
-		if (sqlite3_reset(stmt)!=SQLITE_OK || sqlite3_step(stmt)!=SQLITE_ROW)
+		if (!result)
 			return false;
 
-		// collect the field names from the result set and set them up for access.
-		fields.clear();
-		for (int i=0; i<sqlite3_data_count(stmt); ++i) {
-			// offset field index with 1 to allow 0 to be invalid index.
-			fields[sqlite3_column_name(stmt, i)] = 1+i;
-		}
-		
+		numrows = mysql_num_rows(result);
+
 		return true;
 	}
 	
-	bool SQLite3::OrmResultImpl::next_row()
+	bool MySQL::OrmResultImpl::_fetch_row()
 	{
-		if (!stmt) return false;
-		return sqlite3_step(stmt)==SQLITE_ROW;
+		if (!result)
+			return false;
+
+		MYSQL_ROW r;
+		unsigned long *l;
+		unsigned int i, num_fields;
+
+		if (!(r = mysql_fetch_row(result))) {
+			return false;
+		}
+
+		if (!(l = mysql_fetch_lengths(result))) {
+			return false;
+		}
+
+		row.clear();
+
+		for (i=0, num_fields = mysql_num_fields(result); i<num_fields; i++) {
+			row[i].first = r[i];
+			row[i].second = l[i];
+		}
+
+		return true;
+	}
+
+	bool MySQL::OrmResultImpl::first_row()
+	{
+		if (!result)
+			return false;
+
+		if (!mysql_num_rows(result))
+			return false;
+		
+		mysql_data_seek(result, 0);
+
+		return _fetch_row();
 	}
 	
-	unsigned int SQLite3::OrmResultImpl::get_field_idx(const std::string &fieldname)
+	bool MySQL::OrmResultImpl::next_row()
+	{
+		if (!result)
+			return false;
+
+		if (!mysql_num_rows(result))
+			return false;
+
+		return _fetch_row();
+	}
+	
+	unsigned int MySQL::OrmResultImpl::get_field_idx(const std::string &fieldname)
 	{
 		unsigned int fieldidx = fields[fieldname];
 		if (fieldidx == 0)
@@ -205,25 +237,27 @@ namespace DB {
 		return fieldidx;
 	}
 	
-	bool SQLite3::OrmResultImpl::field_is_null_idx(unsigned int fieldidx)
+	bool MySQL::OrmResultImpl::field_is_null_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return true;
 		}
-		int column_type = sqlite3_column_type(stmt, fieldidx-1);
-		return column_type == SQLITE_NULL;
+		return row[fieldidx-1].first == NULL;
 	}
 
-	time_t SQLite3::OrmResultImpl::get_datetime_idx(unsigned int fieldidx)
+	time_t MySQL::OrmResultImpl::get_datetime_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return ((time_t)-1);
 		}
+		if (!row[fieldidx-1].first) {
+			return ((time_t)-1);
+		}
 
-		const unsigned char *value = sqlite3_column_text(stmt, fieldidx-1);
-		int valuelen = sqlite3_column_bytes(stmt, fieldidx-1);
+		const char *value = row[fieldidx-1].first;
+		size_t valuelen = row[fieldidx-1].second;
 
 //		printf("datetime:%s\n",value);
 
@@ -232,7 +266,7 @@ namespace DB {
 		gm_tm.tm_isdst = 0; // Tell mktime not to take dst into account.
 		gm_tm.tm_year = 70; // 1970
 		gm_tm.tm_mday = 1; // 1th day of the month
-		const char *p = (const char *)value;
+		const char *p = value;
 		char *pnext;
 		bool bdateonly = true;
 		switch (valuelen) {
@@ -277,121 +311,130 @@ namespace DB {
 				return 0;
 		}
 
-		return pb_sqlite3_gmtime(&gm_tm);
+		return pb_mysql_gmtime(&gm_tm);
 	}
 	
-	unsigned char SQLite3::OrmResultImpl::get_uchar_idx(unsigned int fieldidx)
+	unsigned char MySQL::OrmResultImpl::get_uchar_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return 0;
 		}
-		int value = sqlite3_column_int(stmt, fieldidx-1);
-		check_and_report_errors();
-		return (unsigned char)value;
+		if (!row[fieldidx-1].first) {
+			return 0;
+		}
+		return (unsigned char)atoi(row[fieldidx-1].first);
 	}
 	
-	float SQLite3::OrmResultImpl::get_float_idx(unsigned int fieldidx)
+	float MySQL::OrmResultImpl::get_float_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return 0.0f;
 		}
-		double value = sqlite3_column_double(stmt, fieldidx-1);
-		check_and_report_errors();
-		return (float)value;
+		if (!row[fieldidx-1].first) {
+			return 0.0f;
+		}
+		return atof(row[fieldidx-1].first);
 	}
 	
-	double SQLite3::OrmResultImpl::get_double_idx(unsigned int fieldidx)
+	double MySQL::OrmResultImpl::get_double_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return 0.0;
 		}
-		double value = sqlite3_column_double(stmt, fieldidx-1);
-		check_and_report_errors();
-		return value;
+		if (!row[fieldidx-1].first) {
+			return 0.0;
+		}
+		return strtod(row[fieldidx-1].first, NULL);
 	}
 	
-	int SQLite3::OrmResultImpl::get_int_idx(unsigned int fieldidx)
+	int MySQL::OrmResultImpl::get_int_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return 0;
 		}
-		int value = sqlite3_column_int(stmt, fieldidx-1);
-		check_and_report_errors();
-		return value;
+		if (!row[fieldidx-1].first) {
+			return 0;
+		}
+		return atoi(row[fieldidx-1].first);
 	}
 	
-	long long SQLite3::OrmResultImpl::get_longlong_idx(unsigned int fieldidx)
+	long long MySQL::OrmResultImpl::get_longlong_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return 0;
 		}
-		sqlite3_int64 value = sqlite3_column_int64(stmt, fieldidx-1);
-		check_and_report_errors();
-		return value;
+		if (!row[fieldidx-1].first) {
+			return 0;
+		}
+		return atoll(row[fieldidx-1].first);
 	}
 	
-	unsigned long long SQLite3::OrmResultImpl::get_ulonglong_idx(unsigned int fieldidx)
+	unsigned long long MySQL::OrmResultImpl::get_ulonglong_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return 0;
 		}
-		sqlite3_int64 value = sqlite3_column_int64(stmt, fieldidx-1);
-		check_and_report_errors();
-		return (unsigned long long)value;
+		if (!row[fieldidx-1].first) {
+			return 0;
+		}
+		return strtoull(row[fieldidx-1].first, NULL, 10);
 	}
 	
-	unsigned int SQLite3::OrmResultImpl::get_uint_idx(unsigned int fieldidx)
+	unsigned int MySQL::OrmResultImpl::get_uint_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return 0;
 		}
-		int value = sqlite3_column_int(stmt, fieldidx-1);
-		check_and_report_errors();
-		return (unsigned int)value;
+		if (!row[fieldidx-1].first) {
+			return 0;
+		}
+		return (unsigned int)strtoul(row[fieldidx-1].first, NULL, 10);
 	}
 	
-	const char *SQLite3::OrmResultImpl::get_string_idx(unsigned int fieldidx)
+	const char *MySQL::OrmResultImpl::get_string_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return NULL;
 		}
-		const unsigned char *value = sqlite3_column_text(stmt,fieldidx-1);
-		check_and_report_errors();
-		return (const char *)value;
+		if (!row[fieldidx-1].first) {
+			return NULL;
+		}
+		return row[fieldidx-1].first;
 	}
 	
-	const unsigned char *SQLite3::OrmResultImpl::get_binary_idx(unsigned int fieldidx)
+	const unsigned char *MySQL::OrmResultImpl::get_binary_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return NULL;
 		}
-		const unsigned char *value =
-			(const unsigned char *)sqlite3_column_blob(stmt,fieldidx-1);
-		check_and_report_errors();
-		return value;
+		if (!row[fieldidx-1].first) {
+			return NULL;
+		}
+		return (const unsigned char *)row[fieldidx-1].first;
 	}
 	
-	size_t SQLite3::OrmResultImpl::get_field_length_idx(unsigned int fieldidx)
+	size_t MySQL::OrmResultImpl::get_field_length_idx(unsigned int fieldidx)
 	{
 		if (fieldidx == 0) {
 			OrmLogError("zero is an invalid field index");
 			return 0;
 		}
-		int value = sqlite3_column_bytes(stmt,fieldidx-1);
-		check_and_report_errors();
-		return (size_t)value;
+		if (!row[fieldidx-1].first) {
+			return 0;
+		}
+		return row[fieldidx-1].second;
 	}
 	
-	bool SQLite3::OrmResultImpl::field_is_null(const std::string &fieldname)
+	bool MySQL::OrmResultImpl::field_is_null(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -399,7 +442,7 @@ namespace DB {
 		return field_is_null_idx( fieldidx );
 	}
 	
-	time_t SQLite3::OrmResultImpl::get_datetime(const std::string &fieldname)
+	time_t MySQL::OrmResultImpl::get_datetime(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -407,7 +450,7 @@ namespace DB {
 		return get_datetime_idx(fieldidx);
 	}
 	
-	unsigned char SQLite3::OrmResultImpl::get_uchar(const std::string &fieldname)
+	unsigned char MySQL::OrmResultImpl::get_uchar(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -415,7 +458,7 @@ namespace DB {
 		return get_uchar_idx(fieldidx);
 	}
 	
-	float SQLite3::OrmResultImpl::get_float(const std::string &fieldname)
+	float MySQL::OrmResultImpl::get_float(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -423,7 +466,7 @@ namespace DB {
 		return get_float_idx(fieldidx);
 	}
 	
-	double SQLite3::OrmResultImpl::get_double(const std::string &fieldname)
+	double MySQL::OrmResultImpl::get_double(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -431,7 +474,7 @@ namespace DB {
 		return get_double_idx(fieldidx);
 	}
 	
-	int SQLite3::OrmResultImpl::get_int(const std::string &fieldname)
+	int MySQL::OrmResultImpl::get_int(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -439,7 +482,7 @@ namespace DB {
 		return get_int_idx(fieldidx);
 	}
 	
-	long long SQLite3::OrmResultImpl::get_longlong(const std::string &fieldname)
+	long long MySQL::OrmResultImpl::get_longlong(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -447,7 +490,7 @@ namespace DB {
 		return get_longlong_idx(fieldidx);
 	}
 	
-	unsigned long long SQLite3::OrmResultImpl::get_ulonglong(const std::string &fieldname)
+	unsigned long long MySQL::OrmResultImpl::get_ulonglong(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -455,7 +498,7 @@ namespace DB {
 		return get_ulonglong_idx(fieldidx);
 	}
 	
-	unsigned int SQLite3::OrmResultImpl::get_uint(const std::string &fieldname)
+	unsigned int MySQL::OrmResultImpl::get_uint(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -463,7 +506,7 @@ namespace DB {
 		return get_uint_idx(fieldidx);
 	}
 	
-	const char *SQLite3::OrmResultImpl::get_string(const std::string &fieldname)
+	const char *MySQL::OrmResultImpl::get_string(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -471,7 +514,7 @@ namespace DB {
 		return get_string_idx(fieldidx);
 	}
 	
-	const unsigned char *SQLite3::OrmResultImpl::get_binary(const std::string &fieldname)
+	const unsigned char *MySQL::OrmResultImpl::get_binary(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -479,7 +522,7 @@ namespace DB {
 		return get_binary_idx(fieldidx);
 	}
 	
-	size_t SQLite3::OrmResultImpl::get_field_length(const std::string &fieldname)
+	size_t MySQL::OrmResultImpl::get_field_length(const std::string &fieldname)
 	{
 		unsigned int fieldidx = get_field_idx(fieldname);
 		if (fieldidx == 0)
@@ -487,45 +530,20 @@ namespace DB {
 		return get_field_length_idx(fieldidx);
 	}
 
-	void SQLite3::OrmResultImpl::check_and_report_errors()
-	{
-		if (!stmt) {
-			OrmLogError("sqlite3_statement pointer is NULL");
-			return;
-		}
-
-		sqlite3 *db = sqlite3_db_handle(stmt);
-		if (!db) {
-			OrmLogError("sqlite3 pointer is NULL");
-			return;
-		}
-		
-		int rv = sqlite3_errcode(db);
-		if (rv == SQLITE_OK || rv == SQLITE_ROW || rv == SQLITE_DONE)
-			return;
-
-#ifdef HAVE_SILENT_BUSY_AND_LOCKED_ERRORS
-		// database table is either busy or locked
-		if (rv == SQLITE_BUSY || rv == SQLITE_LOCKED)
-			return;
-#endif
-
-		OrmLogError("SQLITE3: %s (%d)", sqlite3_errmsg(db), rv);
-	}
 
 	///////////////////////////
 	//
-	// SQLite3::OrmConnT
+	// MySQL::OrmConnT
 	//	declaration
 	//
 	///////////////////////////
 	
 	
-	namespace SQLite3 {
+	namespace MySQL {
 	
 		class OrmConnT : public DB::OrmConnT {
 		public:
-			sqlite3 *db;
+			MYSQL *db;
 
 			OrmConnT();
 			virtual ~OrmConnT();
@@ -557,6 +575,7 @@ namespace DB {
 														  const std::string &type);
 			
 		protected:
+			unsigned int _transaction_level;
 			std::map< std::string, std::string >_options;
 			std::map< std::string, int>_numoptions;
 			bool successful(int rv);
@@ -566,143 +585,246 @@ namespace DB {
 	
 	///////////////////////////
 	//
-	// SQLite3::OrmConnT
+	// MySQL::OrmConnT
 	//	implementation
 	//
 	///////////////////////////
 	
-	SQLite3::OrmConnT::OrmConnT() : db(NULL)
+	MySQL::OrmConnT::OrmConnT()
+		: db(NULL), _transaction_level(0)
 	{
 		_numoptions["timeout_ms"] = 15000; // 15 seconds
 	}
 	
-	SQLite3::OrmConnT::~OrmConnT()
+	MySQL::OrmConnT::~OrmConnT()
 	{
 		close();
 	}
 
-	void SQLite3::OrmConnT::set_option(const std::string &name,
+	void MySQL::OrmConnT::set_option(const std::string &name,
 									   const std::string &value)
 	{
 		_options[name] = value;
 	}
 	
-	void SQLite3::OrmConnT::set_option(const std::string &name,int value)
+	void MySQL::OrmConnT::set_option(const std::string &name,int value)
 	{
 		_numoptions[name] = value;
 	}
 
-	bool SQLite3::OrmConnT::connect()
+	bool MySQL::OrmConnT::connect()
 	{
-		std::string dbpath = _options["sqlite3_dbdir"];
-		std::string dbname = _options["dbname"];
-		OrmChain(dbpath, dbname, '/' );
-		int rv = sqlite3_open_v2(dbpath.c_str(),
-								 &db,
-								 SQLITE_OPEN_READWRITE
-								 | SQLITE_OPEN_CREATE
-								 | SQLITE_OPEN_FULLMUTEX,
-								 NULL);
-		if (!successful(rv))
+		if (!(db = mysql_init(NULL))) {
+			OrmLogError("Unable to initialize MYSQL struct");
 			return false;
+		}
+
+		std::string host = _options["host"];
+		std::string username = _options["username"];
+		std::string password = _options["password"];
+		int port = _numoptions["port"];
+		std::string dbname = _options["dbname"];
+		std::string encoding = _options["encoding"];
+		int timeout = _numoptions["timeout_ms"] / 1000;
+		my_bool reconnect = 1;
+
+		if (timeout < 1) {
+			OrmLogError("Timeout set to low, less then one second");
+			return false;
+		}
+
+		if (!mysql_real_connect(db, host.c_str(), username.c_str(), password.c_str(), dbname.c_str(), port, NULL, 0)) {
+			OrmLogError("Unable to connect to MySQL database: %s", mysql_error(db));
+			return false;
+		}
 		
-		rv = sqlite3_busy_timeout(db, _numoptions["timeout_ms"]);
-		if (!successful(rv)) {
+		if (mysql_autocommit(db, true)) {
+			OrmLogError("Unable to set MySQL autocommit to true: %s", mysql_error(db));
+			close();
+			return false;
+		}
+
+		if (mysql_options(db, MYSQL_OPT_CONNECT_TIMEOUT, &timeout)) {
+			OrmLogError("Unable to set MySQL connect timeout: %s", mysql_error(db));
+			close();
+			return false;
+		}
+
+		if (mysql_options(db, MYSQL_OPT_READ_TIMEOUT, &timeout)) {
+			OrmLogError("Unable to set MySQL read timeout: %s", mysql_error(db));
 			close();
 			return false;
 		}
 		
+		if (mysql_options(db, MYSQL_OPT_WRITE_TIMEOUT, &timeout)) {
+			OrmLogError("Unable to set MySQL write timeout: %s", mysql_error(db));
+			close();
+			return false;
+		}
+
+		if (mysql_options(db, MYSQL_OPT_RECONNECT, &reconnect)) {
+			OrmLogError("Unable to enable MySQL reconnect: %s", mysql_error(db));
+			close();
+			return false;
+		}
+
+		if (encoding == "UTF-8") {
+			encoding = "utf8";
+		}
+
+		if (mysql_set_character_set(db, encoding.c_str())) {
+			OrmLogError("Unable to set MySQL character set to %s: %s", encoding.c_str(), mysql_error(db));
+			close();
+			return false;
+		}
+
+		_options["encoding"] = encoding;
+
 		return true;
 	}
 	
-	void SQLite3::OrmConnT::close()
+	void MySQL::OrmConnT::close()
 	{
 		if (db) {
-			sqlite3_close(db);
+			mysql_close(db);
 			db = NULL;
 		}
 	}
 
-	bool SQLite3::OrmConnT::begin_transaction()
+	bool MySQL::OrmConnT::begin_transaction()
 	{
-		return query("BEGIN",5).assigned();
+		if (!_transaction_level) {
+			if (mysql_autocommit(db, false)) {
+				OrmLogError("Unable to set autocommit off");
+				return false;
+			}
+		}
+
+		_transaction_level++;
+
+		return true;
 	}
 
-	bool SQLite3::OrmConnT::begin_transaction_rw()
+	bool MySQL::OrmConnT::begin_transaction_rw()
 	{
-		return query("BEGIN IMMEDIATE",15).assigned();
+		return begin_transaction();
 	}
 	
-	bool SQLite3::OrmConnT::in_transaction()
+	bool MySQL::OrmConnT::in_transaction()
 	{
-		return sqlite3_get_autocommit(db)==0;
+		return (_transaction_level?true:false);
 	}
 
-	bool SQLite3::OrmConnT::commit_transaction()
+	bool MySQL::OrmConnT::commit_transaction()
 	{
-		return query("COMMIT",6).assigned();
+		if (!_transaction_level) {
+			OrmLogError("Not in transaction, can not commit");
+			return false;
+		}
+
+		if (mysql_commit(db)) {
+			OrmLogError("Unable to commit the transaction: %s", mysql_error(db));
+			return false;
+		}
+
+		_transaction_level--;
+
+		if (!_transaction_level) {
+			if (mysql_autocommit(db, true)) {
+				OrmLogError("Unable to set autocommit on");
+				return false;
+			}
+		}
+
+		return true;
 	}
 
-	bool SQLite3::OrmConnT::rollback_transaction()
+	bool MySQL::OrmConnT::rollback_transaction()
 	{
-		return query("ROLLBACK",8).assigned();
+		if (!_transaction_level) {
+			OrmLogError("Not in transaction, can not rollback");
+			return false;
+		}
+
+		if (mysql_rollback(db)) {
+			OrmLogError("Unable to rollback the transaction: %s", mysql_error(db));
+			return false;
+		}
+
+		_transaction_level = 0;
+
+		if (mysql_autocommit(db, true)) {
+			OrmLogError("Unable to set autocommit on");
+			return false;
+		}
+
+		return true;
 	}
 
-	OrmResultT SQLite3::OrmConnT::query(const char *statement, int len)
+	OrmResultT MySQL::OrmConnT::query(const char *statement, int len)
 	{
-		sqlite3_stmt *stmt = NULL;
+		MYSQL_RES *result = NULL;
 
-		int rv = sqlite3_prepare_v2(db,
-									statement,
-									(len<0) ? (int)-1 : (int)len+1,
-									&stmt,
-									NULL);
-		if (!successful(rv)) {
-			if (stmt)
-				sqlite3_finalize(stmt);
+		if (mysql_real_query(db, statement, len)) {
+			OrmLogError("Unable to execute statement: %s", mysql_error(db));
+			OrmLogError("%*s", len, statement);
 			return OrmResultT();
 		}
 		
-		if (!stmt) {
-			OrmLogError("expected sqlite3_prepare_v2 to return a compiled "
-						"statement, got NULL, out of memory ?");
-			return OrmResultT();
-		}
+		if (!(result = mysql_store_result(db))) {
+			if (!mysql_field_count(db)) {
+				return OrmResultT((OrmConn)this, new MySQL::OrmResultImpl(true));
+			}
 
-		int step = sqlite3_step(stmt);
-		if (!successful(step)) {
-			sqlite3_finalize(stmt);
+			OrmLogError("Unable to store result from statement: %s", mysql_error(db));
+			OrmLogError("%*s", len, statement);
 			return OrmResultT();
 		}
 	
-		return OrmResultT((OrmConn)this, new SQLite3::OrmResultImpl(stmt));
+		return OrmResultT((OrmConn)this, new MySQL::OrmResultImpl(result));
 	}
 		
-	bool SQLite3::OrmConnT::table_exists(const std::string &name)
+	bool MySQL::OrmConnT::table_exists(const std::string &name)
 	{
-		OrmResultT exists = queryf(
-			"SELECT name FROM sqlite_master WHERE type='table' AND name='%s';",
-									 name.c_str());
+		OrmResultT exists = queryf("SHOW TABLES LIKE '%s'", name.c_str());
+
 		if (exists.assigned())
 			return exists->first_row();
 		else
 			return false;
 	}
 	
-	bool SQLite3::OrmConnT::quote_string(const std::string &value,
+	bool MySQL::OrmConnT::quote_string(const std::string &value,
 										 std::string &dest)
 	{
-		char *strcopy = sqlite3_mprintf("%Q",value.c_str());
-		if (!strcopy) {
-			OrmLogError("unable to perform sqlite3_mprintf, out of memory ?");
-			return false;
+		char quoted[4097], *quotedp;
+		size_t len;
+
+		if (value.length() > 2048) {
+			quotedp = (char *)malloc((value.length() * 2) + 1);
+
+			if (mysql_real_escape_string(db, quotedp, value.c_str(), value.length())) {
+				dest = "'";
+				dest += quotedp;
+				dest += "'";
+				free(quotedp);
+				return true;
+			}
+			free(quotedp);
 		}
-		dest.assign(strcopy);
-		sqlite3_free((void*)strcopy);
-		return true;
+		else {
+			if (mysql_real_escape_string(db, quoted, value.c_str(), value.length())) {
+				dest = "'";
+				dest += quoted;
+				dest += "'";
+				return true;
+			}
+		}
+
+		return false;
 	}
 	
-	bool SQLite3::OrmConnT::quote_binary(const std::string &value, std::string &dest)
+	bool MySQL::OrmConnT::quote_binary(const std::string &value, std::string &dest)
 	{
 		size_t vsize = value.size();
 		
@@ -727,12 +849,12 @@ namespace DB {
 		return true;
 	}
 
-	unsigned long long SQLite3::OrmConnT::sequence_last()
+	unsigned long long MySQL::OrmConnT::sequence_last()
 	{
-		return sqlite3_last_insert_rowid(db);
+		return mysql_insert_id(db);
 	}
 
-	const char *SQLite3::OrmConnT::idfield()
+	const char *MySQL::OrmConnT::idfield()
 	{
 		// To get maximum performance on SQLite the form below is choosen deliberately.
 		// For example, we use INTEGER instead of INT or BIGINT and we don't use UNSIGNED.
@@ -740,63 +862,51 @@ namespace DB {
 		// ROWID column that is already there by default !
 		// So if you think you need to modify the primary key id below please 
 		// be aware of and investigate potential consequences.
-		return "id INTEGER PRIMARY KEY AUTOINCREMENT";
+		return "id INTEGER PRIMARY KEY AUTO_INCREMENT";
 	}
 
-	OrmResultT SQLite3::OrmConnT::CreateTableMessage(const std::string &name,
+	OrmResultT MySQL::OrmConnT::CreateTableMessage(const std::string &name,
 												  const std::string &fields)
 	{
 		std::string allfields(fields);
 		OrmChain(allfields,idfield(),',');
-		return queryf("CREATE TABLE %s (%s)",
+		return queryf("CREATE TABLE %s (%s) ENGINE=InnoDB CHARACTER SET '%s'",
 					  name.c_str(),
-					  allfields.c_str());
+					  allfields.c_str(),
+					  _options["encoding"].c_str());
 	}
 
-	OrmResultT SQLite3::OrmConnT::CreateTableRelation(const std::string &name)
+	OrmResultT MySQL::OrmConnT::CreateTableRelation(const std::string &name)
 	{
 		return queryf("CREATE TABLE %s (parent_id INTEGER,child_id INTEGER,"
-					  "PRIMARY KEY(parent_id,child_id))",
-					  name.c_str());
+					  "PRIMARY KEY(parent_id,child_id)) ENGINE=InnoDB CHARACTER SET '%s'",
+					  name.c_str(),
+					  _options["encoding"].c_str());
 	}
 
-	OrmResultT SQLite3::OrmConnT::CreateTableRepeatedValue(const std::string &name,
+	OrmResultT MySQL::OrmConnT::CreateTableRepeatedValue(const std::string &name,
 															 const std::string &type)
 	{
-		return queryf("CREATE TABLE %s (value %s,parent_id INTEGER,%s)",
+		return queryf("CREATE TABLE %s (value %s,parent_id INTEGER,%s) ENGINE=InnoDB CHARACTER SET '%s'",
 					  name.c_str(),
 					  type.c_str(),
-					  idfield());
-	}
-
-	bool SQLite3::OrmConnT::successful(int rv)
-	{
-		if (rv == SQLITE_OK || rv == SQLITE_ROW || rv == SQLITE_DONE)
-			return true;
-
-#ifdef HAVE_SILENT_BUSY_AND_LOCKED_ERRORS
-		// database table is either busy or locked
-		if (rv == SQLITE_BUSY || rv == SQLITE_LOCKED)
-			return false;
-#endif
-
-		OrmLogError("SQLITE3: %s (%d)", sqlite3_errmsg(db), rv);
-		return false;
+					  idfield(),
+					  _options["encoding"].c_str());
 	}
 
 	///////////////////////////
 	//
-	// SQLite3::NewOrmConnT
+	// MySQL::NewOrmConnT
 	//	definition
 	//
 	///////////////////////////
 
-	OrmConnT * SQLite3::NewOrmConnT()
+	OrmConnT * MySQL::NewOrmConnT()
 	{
-		return new SQLite3::OrmConnT();
+		return new MySQL::OrmConnT();
 	}
 
 
 } // namespace DB
 
-#endif // ENFORCER_DATABASE_SQLITE3
+#endif // ENFORCER_DATABASE_MYSQL

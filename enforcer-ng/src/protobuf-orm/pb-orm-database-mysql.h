@@ -25,42 +25,32 @@
  */
 
 //
-//  pb-orm-database-dbi.h
+//  pb-orm-database-mysql.h
 //  protobuf-orm
 //
 
-#ifndef pb_orm_database_dbi_h
-#define pb_orm_database_dbi_h
+#ifndef pb_orm_database_mysql_h
+#define pb_orm_database_mysql_h
 
 #include "config.h"
 
 #include "pb-orm-database.h"
 
-#ifdef ENFORCER_DATABASE_DBI
+#ifdef ENFORCER_DATABASE_MYSQL
 
 namespace DB {
-
-	namespace DBI {
+	
+	namespace MySQL {
 		
-		bool initialize(const std::string &driverdir);
+		bool initialize();
 		void shutdown();
 		
-		namespace MySQL {
-
-			OrmConnT * NewOrmConnT();
-
-		}
-
-		namespace SQLite3 {
-			
-			OrmConnT * NewOrmConnT();
-			
-		}
-
-	}
+		OrmConnT * NewOrmConnT();
+		
+	} // namespace MySQL
 	
-}
+} // namespace DB
 
-#endif // ENFORCER_DATABASE_DBI
+#endif // ENFORCER_DATABASE_MYSQL
 
 #endif

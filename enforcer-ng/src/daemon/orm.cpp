@@ -54,11 +54,7 @@ ods_orm_log_error(const char *format, va_list ap)
 void
 ods_orm_initialize()
 {
-#if USE_CLIENT_LIB_DBI
-	if (!OrmInitialize(LIBDBI_DBD_DIR))
-#else
 	if (!OrmInitialize()) 
-#endif
 		ods_log_error("[%s] ORM initialization failed",module_str);
 	else
 		OrmSetLogErrorHandler(ods_orm_log_error);
@@ -74,6 +70,11 @@ ods_orm_shutdown()
 static int
 ods_orm_connect_mysql(int sockfd, engineconfig_type *config, OrmConn *conn)
 {
+	if (!OrmDatastoreMySQL()) {
+		ods_log_error_and_printf(sockfd, module_str, "datastore MySQL is not available/builtin");
+		return 0;
+	}
+
 	std::string host(config->db_host ? config->db_host : "");
 	int port = config->db_port;
 	std::string username(config->db_username ? config->db_username : "");
@@ -95,6 +96,11 @@ ods_orm_connect_mysql(int sockfd, engineconfig_type *config, OrmConn *conn)
 static int
 ods_orm_connect_sqlite3(int sockfd, engineconfig_type *config, OrmConn *conn)
 {
+	if (!OrmDatastoreSQLite3()) {
+		ods_log_error_and_printf(sockfd, module_str, "datastore SQLite3 is not available/builtin");
+		return 0;
+	}
+
 	// Split the datastore path into separate directory and name
 	std::string dbdir(config->datastore);
 	size_t slashpos = dbdir.rfind('/');

@@ -30,8 +30,12 @@
  Stopwatch class used when profiling test cases by collecting timings
  *****************************************************************************/
 
+#include <string>
 #include <map>
 #include <iostream>
+#include <iomanip>
+#include <time.h>
+
 #include "timecollector.h"
 
 static std::map< std::string, double > static_timings_seconds;
@@ -55,7 +59,7 @@ void Stopwatch::stop()
 {
 	if (_start != 0) { 
 		double duration_ticks = clock() - _start;
-		double duration_msecs = duration_ticks / ((double)CLOCKS_PER_SEC / 1000.0);
+		double duration_msecs = duration_ticks / ((double)CLOCKS_PER_SEC / 1000000.0);
 		static_timings_seconds[_name] = duration_msecs;
 		_start = 0;
 	}
@@ -66,6 +70,6 @@ void PrintCollectedTimings()
 	std::cout << "Timings..." << std::endl;
 	std::map< std::string, double >::iterator it;
 	for (it = static_timings_seconds.begin(); it != static_timings_seconds.end(); ++it) {
-		std::cout << it->first << " " << it->second << " ms" << std::endl;
+		std::cout << it->first << " " << std::setprecision(12) << it->second << " us" << std::endl;
 	}
 }

@@ -48,5 +48,6 @@
 #include "pb-orm-read.h"
 #include "pb-orm-update.h"
 #include "pb-orm-delete.h"
+#include "pb-orm-datastore.h"
 
 #endif

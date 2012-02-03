@@ -62,7 +62,7 @@ message KeyData {
 //    optional bool ds_seen = 8 [default = false]; // parent says DS has been seen
 //    optional bool submit_to_parent = 9 [default = false]; // submit DS to parent
     optional bool introducing = 10 [default=true];
-    optional bool revoke = 11 [default = false, (orm).name="revoke_k"];
+    optional bool revoke = 11 [default = false, (orm.column).name="revoke_k"];
     optional bool standby = 12 [default = false];
     optional bool active_zsk = 13 [default = false];
     optional bool publish = 14 [default = false];

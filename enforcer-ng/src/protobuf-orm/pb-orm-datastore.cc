@@ -1,6 +1,9 @@
+/* $Id$ */
+
 /*
- * Created by Ren√© Post on 12/5/11.
- * Copyright (c) 2011 xpt Software & Consulting B.V. All rights reserved.
+ * Copyright (c) 2012 Jerry Lundström .SE (The Internet Infrastructure Foundation).
+ *
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,22 +27,28 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-//
-//  pb-orm-shutdown.cc
-//  protobuf-orm
-//
-
 #include "config.h"
 
-#include "pb-orm-shutdown.h"
-#include "pb-orm-database-sqlite3.h"
-#include "pb-orm-database-mysql.h"
-
-void OrmShutdown()
+/**
+ * Returns true if the MySQL datastore is available, otherwise false.
+ */
+bool OrmDatastoreMySQL()
 {
-#if ENFORCER_DATABASE_SQLITE3
- 	DB::SQLite3::shutdown();
-#elif ENFORCER_DATABASE_MYSQL
- 	DB::MySQL::shutdown();
+#if defined(ENFORCER_DATABASE_MYSQL)
+	return true;
+#else
+	return false;
+#endif
+}
+
+/**
+ * Returns true if the SQLite3 datastore is available, otherwise false.
+ */
+bool OrmDatastoreSQLite3()
+{
+#if defined(ENFORCER_DATABASE_SQLITE3)
+	return true;
+#else
+	return false;
 #endif
 }

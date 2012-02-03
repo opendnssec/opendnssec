@@ -32,9 +32,54 @@
  The main test executor for tests on the protocol buffers ORM extension.
  *****************************************************************************/
 
+#include "config.h"
+
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
+#include <cppunit/extensions/HelperMacros.h>
 #include "timecollector.h"
+
+#include "pbormtest.h"
+
+void __setup_conn(OrmConn &conn)
+{
+	if (OrmDatastoreSQLite3()) {
+		OrmConnectSQLite3("./", "sample_db", conn);
+		CPPUNIT_ASSERT_MESSAGE("OrmConnectSQLite3", conn);
+	}
+	else if(OrmDatastoreMySQL()) {
+		OrmConnectMySQL(ENFORCER_DB_HOST,
+				ENFORCER_DB_PORT,
+				ENFORCER_DB_USERNAME,
+				ENFORCER_DB_PASSWORD,
+				ENFORCER_DB_DATABASE,
+				"UTF-8",
+				conn);
+		CPPUNIT_ASSERT_MESSAGE("OrmConnectMySQL", conn);
+	}
+
+	CPPUNIT_ASSERT_MESSAGE("No database connection", conn);
+}
+
+void __setup_conn(OrmConnRef &conn)
+{
+	if (OrmDatastoreSQLite3()) {
+		OrmConnectSQLite3("./", "sample_db", conn);
+		CPPUNIT_ASSERT_MESSAGE("OrmConnectSQLite3", &conn);
+	}
+	else if(OrmDatastoreMySQL()) {
+		OrmConnectMySQL(ENFORCER_DB_HOST,
+				ENFORCER_DB_PORT,
+				ENFORCER_DB_USERNAME,
+				ENFORCER_DB_PASSWORD,
+				ENFORCER_DB_DATABASE,
+				"UTF-8",
+				conn);
+		CPPUNIT_ASSERT_MESSAGE("OrmConnectMySQL", &conn);
+	}
+
+	CPPUNIT_ASSERT_MESSAGE("No database connection", &conn);
+}
 
 int main(int argc, char* argv[])
 {
@@ -47,4 +92,3 @@ int main(int argc, char* argv[])
 	PrintCollectedTimings();
 	return 0;
 }
-

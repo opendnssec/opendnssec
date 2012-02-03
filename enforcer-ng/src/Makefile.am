@@ -24,6 +24,8 @@ CLEANFILES = $(BUILT_SOURCES)
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
+SUBDIRS = protobuf-orm/test
+
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
@@ -34,7 +36,7 @@ AM_CPPFLAGS = \
 	@XML2_INCLUDES@ \
 	@LDNS_INCLUDES@ \
 	@PROTOBUF_INCLUDES@ \
-	@DB_INCLUDES@
+	@ENFORCER_DB_INCLUDES@
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
@@ -123,10 +125,11 @@ ods_enforcerd_SOURCES = \
 	protobuf-orm/pb-orm-context.cc protobuf-orm/pb-orm-context.h \
 	protobuf-orm/pb-orm-create-table.cc protobuf-orm/pb-orm-create-table.h \
 	protobuf-orm/pb-orm-create.cc protobuf-orm/pb-orm-create.h \
-	protobuf-orm/pb-orm-database-dbi.cc protobuf-orm/pb-orm-database-dbi.h \
 	protobuf-orm/pb-orm-database-helper.cc protobuf-orm/pb-orm-database-helper.h \
 	protobuf-orm/pb-orm-database-sqlite3.cc protobuf-orm/pb-orm-database-sqlite3.h \
+	protobuf-orm/pb-orm-database-mysql.cc protobuf-orm/pb-orm-database-mysql.h \
 	protobuf-orm/pb-orm-database.cc protobuf-orm/pb-orm-database.h \
+	protobuf-orm/pb-orm-datastore.cc protobuf-orm/pb-orm-datastore.h \
 	protobuf-orm/pb-orm-delete.cc protobuf-orm/pb-orm-delete.h \
 	protobuf-orm/pb-orm-drop-table.cc protobuf-orm/pb-orm-drop-table.h \
 	protobuf-orm/pb-orm-enum.cc protobuf-orm/pb-orm-enum.h \
@@ -139,24 +142,28 @@ ods_enforcerd_SOURCES = \
 	protobuf-orm/pb-orm-update.cc protobuf-orm/pb-orm-update.h \
 	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h
 
-ods_enforcerd_LDADD=		$(LIBHSM)
-ods_enforcerd_LDADD+=		@LDNS_LIBS@ \
-				@XML2_LIBS@ \
-				@PTHREAD_LIBS@ \
-				@RT_LIBS@ \
-				@PROTOBUF_LIBS@ \
-				@DB_LIBS@
+ods_enforcerd_LDADD = \
+	$(LIBHSM) \
+	@LDNS_LIBS@ \
+	@XML2_LIBS@ \
+	@PTHREAD_LIBS@ \
+	@RT_LIBS@ \
+	@PROTOBUF_LIBS@ \
+	@ENFORCER_DB_LIBS@
 
-ods_enforcer_SOURCES=		ods-enforcer.c \
-				shared/allocator.c shared/allocator.h \
-				shared/duration.c shared/duration.h \
-				shared/file.c shared/file.h \
-				shared/log.c shared/log.h \
-				shared/util.c shared/util.h \
-				shared/str.c shared/str.h
+ods_enforcer_SOURCES = \
+	ods-enforcer.c \
+	shared/allocator.c shared/allocator.h \
+	shared/duration.c shared/duration.h \
+	shared/file.c shared/file.h \
+	shared/log.c shared/log.h \
+	shared/util.c shared/util.h \
+	shared/str.c shared/str.h
 
-ods_enforcer_LDADD=		$(LIBHSM)
-ods_enforcer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
+ods_enforcer_LDADD = \
+	$(LIBHSM) \
+	@LDNS_LIBS@ \
+	@XML2_LIBS@
 
 %.pb.cc %.pb.h: %.proto
-	$(PROTOC) $(AM_CPPFLAGS) --cpp_out=`dirname $@` -I=`dirname $@` `dirname $@`/`basename $@ .pb.cc`.proto
+	$(PROTOC) @PROTOBUF_INCLUDES@ -I$(srcdir)/xmlext-pb -I$(srcdir)/protobuf-orm --cpp_out=`dirname $@` -I=`dirname $@` `dirname $@`/`basename $@ .pb.cc`.proto

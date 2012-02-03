@@ -32,18 +32,14 @@
  Contains test cases to test with messages defined in the tree.proto file
  *****************************************************************************/
 
-
-#include <time.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
 #include <string>
+#include <ostream>
 
 #include "pb-orm-tree-tests.h"
+#include "timecollector.h"
+#include "pbormtest.h"
 
 #include "tree.pb.h"
-
-#include "timecollector.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TreeTests);
 
@@ -56,9 +52,9 @@ static bool treeInsert(OrmConn conn, int NUM_BRANCHES)
 	for (int b=0; b<NUM_BRANCHES; ++b) {
 		::pb_orm_test::Branch *branch = trunk->add_branches();
 		for (int l=0; l<10; ++l) {
-			std::string leaf;
-			str_format(leaf,"Leaf %d%d",b,l);
-			branch->add_leaves(leaf);
+			std::ostringstream leaf;
+			leaf << "Leaf " << b << l;
+			branch->add_leaves(leaf.str());
 		}
 	}
 	pb::uint64 treeid;
@@ -74,25 +70,13 @@ void TreeTests::setUp()
 
 	conn = NULL;
 
-#ifdef USE_CLIENT_LIB_DBI
-	OrmInitialize("/usr/local/lib/dbd");
-#elif USE_CLIENT_LIB_SQLITE3
 	OrmInitialize();
-#else
-#error no database client library selected
-#endif
-	
-#ifdef USE_DB_MYSQL	
-	if (!OrmConnectMySQL("localhost", "root", "", "sample_db", "UTF-8", conn))
-		return;
-#elif USE_DB_SQLITE3
-	if (!OrmConnectSQLite3("/Users/rene/sqlite3", "sample_db", conn))
-		return;
-#else
-#error no database type selected
-#endif
 
-	OrmCreateTable(conn,::pb_orm_test::Tree::descriptor());
+	__setup_conn(conn);
+
+	OrmDropTable(conn,::pb_orm_test::Tree::descriptor());
+
+	CPPUNIT_ASSERT(OrmCreateTable(conn,::pb_orm_test::Tree::descriptor()));
 }
 
 void TreeTests::tearDown()
@@ -100,7 +84,7 @@ void TreeTests::tearDown()
 	Stopwatch swatch("TreeTests::tearDown");
 
     if (conn) {
-		OrmDropTable(conn,::pb_orm_test::Tree::descriptor());
+    	CPPUNIT_ASSERT(OrmDropTable(conn,::pb_orm_test::Tree::descriptor()));
 		OrmConnClose(conn);
     }
     OrmShutdown();
@@ -202,7 +186,6 @@ void TreeTests::testTreeDelete()
 		CPPUNIT_ASSERT(OrmGetId(result,treeid));
 		OrmFreeResult(result);
 		
-		
 		CPPUNIT_ASSERT(trunkF!=NULL);
 		
 		pb::uint64 trunkid = 0;
@@ -228,9 +211,9 @@ void TreeTests::testTreeDelete()
 					OrmFreeResult(result);
 					
 					for (int i=0; i<10; ++i) {
-						std::string leaveText;
-						str_format(leaveText, "This is new leave %d !", i);
-						CPPUNIT_ASSERT(OrmFieldAddRepeatedString(conn, branchid, leavesF, leaveText.c_str(), leaveid));
+						std::ostringstream leaveText;
+						leaveText << "This is new leave " << i << " !";
+						CPPUNIT_ASSERT(OrmFieldAddRepeatedString(conn, branchid, leavesF, leaveText.str().c_str(), leaveid));
 					}
 					
 					
@@ -267,17 +250,17 @@ void TreeTests::testTreeCRUD()
 	// tree
 	// 
 	OrmResult tresult;
-	CPPUNIT_ASSERT(OrmMessageEnum(conn,tree,tresult));
+	CPPUNIT_ASSERT(OrmMessageEnum(conn, tree.descriptor(), tresult));
 	CPPUNIT_ASSERT(OrmFirst(tresult));
 	
 	OrmContext context; 
-	CPPUNIT_ASSERT(OrmGetMessage(tresult, tree,false,context));
+	CPPUNIT_ASSERT(OrmGetMessage(tresult, tree, false, context));
 	CPPUNIT_ASSERT(tree.version()==3);
 	CPPUNIT_ASSERT(tree.has_trunk());
 	pb::uint64 treeid;
 	CPPUNIT_ASSERT(OrmGetId(tresult,treeid));
 	OrmFreeResult(tresult);
-	CPPUNIT_ASSERT(OrmMessageFind(conn, tree, treeid));
+	CPPUNIT_ASSERT(OrmMessageFind(conn, tree.descriptor(), treeid));
 	
 	tree.mutable_trunk()->set_name("Central Theme");
 	tree.set_version(4);
@@ -337,7 +320,7 @@ void TreeTests::testTreeCRUD()
 		OrmTransaction trans(conn);
 		
 		// Delete a message from a table.
-		CPPUNIT_ASSERT(OrmMessageDelete(conn, tree, treeid));
+		CPPUNIT_ASSERT(OrmMessageDelete(conn, tree.descriptor(), treeid));
 		
 		trans.commit();
 	}
@@ -353,7 +336,7 @@ void TreeTests::testTreeReadRepeated()
 	OrmResult dbresult;
 	::pb_orm_test::Tree tree;
 	OrmContext dbcontext; 
-	CPPUNIT_ASSERT(OrmMessageEnum(conn,tree,dbresult));
+	CPPUNIT_ASSERT(OrmMessageEnum(conn, tree.descriptor(), dbresult));
 	CPPUNIT_ASSERT(OrmFirst(dbresult));
 	CPPUNIT_ASSERT(OrmGetMessage(dbresult,tree,true,dbcontext));
 	OrmFreeResult(dbresult);
@@ -387,7 +370,7 @@ void TreeTests::testTreeUpdateRepeated()
 		OrmContext dbcontext;
 		
 		// retrieve the message from the database and make some changes then update
-		CPPUNIT_ASSERT(OrmMessageEnum(conn,dbtree,dbresult));
+		CPPUNIT_ASSERT(OrmMessageEnum(conn, dbtree.descriptor(), dbresult));
 		CPPUNIT_ASSERT(OrmFirst(dbresult));
 		CPPUNIT_ASSERT(OrmGetMessage(dbresult,dbtree,true,dbcontext));
 		OrmFreeResult(dbresult);
@@ -411,9 +394,9 @@ void TreeTests::testTreeUpdateRepeated()
 		::pb_orm_test::Tree dbtree;
 		OrmResult dbresult;
 		
-		CPPUNIT_ASSERT(OrmMessageEnum(conn,tree,dbresult));
+		CPPUNIT_ASSERT(OrmMessageEnum(conn, tree.descriptor(), dbresult));
 		CPPUNIT_ASSERT(OrmFirst(dbresult));
-		CPPUNIT_ASSERT(OrmGetMessage(dbresult,dbtree,true));
+		CPPUNIT_ASSERT(OrmGetMessage(dbresult, dbtree, true));
 		OrmFreeResult(dbresult);
 	
 		CPPUNIT_ASSERT(dbtree.trunk().branches(3).name() == "branch number 3");
@@ -432,7 +415,7 @@ void TreeTests::testTreeUpdateRepeated()
 		OrmContext dbcontext;
 		
 		// retrieve the message from the database again and make more changes.
-		CPPUNIT_ASSERT(OrmMessageEnum(conn,dbtree,dbresult));
+		CPPUNIT_ASSERT(OrmMessageEnum(conn, dbtree.descriptor(), dbresult));
 		CPPUNIT_ASSERT(OrmFirst(dbresult));
 		CPPUNIT_ASSERT(OrmGetMessage(dbresult,dbtree,true,dbcontext));
 		OrmFreeResult(dbresult);
@@ -440,9 +423,9 @@ void TreeTests::testTreeUpdateRepeated()
 		dbtree.mutable_trunk()->add_branches()->add_leaves("hi there !");
 		
 		for (int i=0; i<dbtree.mutable_trunk()->branches_size(); ++i) {
-			std::string value;
-			str_format(value,"branch @ index %d",i);
-			dbtree.mutable_trunk()->mutable_branches(i)->set_name(value);
+			std::ostringstream value;
+			value << "branch @ index " << i;
+			dbtree.mutable_trunk()->mutable_branches(i)->set_name(value.str());
 		}
 		dbtree.mutable_trunk()->mutable_branches()->RemoveLast();
 		

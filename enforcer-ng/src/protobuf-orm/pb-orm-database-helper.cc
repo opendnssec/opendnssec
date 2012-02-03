@@ -81,3 +81,8 @@ time_t pb_sqlite3_gmtime(struct tm *tm)
 	// that adjustment by adding diff_time.
 	return mktime(tm) + diff_time;
 }
+
+time_t pb_mysql_gmtime(struct tm *tm)
+{
+	return pb_sqlite3_gmtime(tm);
+}

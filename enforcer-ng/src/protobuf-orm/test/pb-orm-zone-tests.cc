@@ -32,18 +32,11 @@
  Contains test cases to test with messages defined in the zone.proto file
  *****************************************************************************/
 
-
-#include <time.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string>
-#include <fcntl.h>
-
 #include "pb-orm-zone-tests.h"
+#include "timecollector.h"
+#include "pbormtest.h"
 
 #include "zone.pb.h"
-
-#include "timecollector.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ZoneTests);
 
@@ -52,25 +45,14 @@ void ZoneTests::setUp()
 	Stopwatch swatch("ZoneTests::setUp");
 
 	conn = NULL;
-#ifdef USE_CLIENT_LIB_DBI
-	OrmInitialize("/usr/local/lib/dbd");
-#elif USE_CLIENT_LIB_SQLITE3
-	OrmInitialize();
-#else
-#error no database client library selected
-#endif
-	
-#ifdef USE_DB_MYSQL	
-	if (!OrmConnectMySQL("localhost", "root", "", "sample_db", "UTF-8", conn))
-		return;
-#elif USE_DB_SQLITE3
-	if (!OrmConnectSQLite3("/Users/rene/sqlite3", "sample_db", conn))
-		return;
-#else
-#error no database type selected
-#endif
 
-	OrmCreateTable(conn,::pb_orm_test::EnforcerZone::descriptor());
+	OrmInitialize();
+
+	__setup_conn(conn);
+
+	OrmDropTable(conn,::pb_orm_test::EnforcerZone::descriptor());
+
+	CPPUNIT_ASSERT(OrmCreateTable(conn,::pb_orm_test::EnforcerZone::descriptor()));
 }
 
 void ZoneTests::tearDown()
@@ -78,7 +60,7 @@ void ZoneTests::tearDown()
 	Stopwatch swatch("ZoneTests::tearDown");
 
     if (conn) {
-		OrmDropTable(conn,::pb_orm_test::EnforcerZone::descriptor());
+    	CPPUNIT_ASSERT(OrmDropTable(conn,::pb_orm_test::EnforcerZone::descriptor()));
 		OrmConnClose(conn);
     }
     OrmShutdown();

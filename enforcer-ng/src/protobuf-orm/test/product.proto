@@ -32,5 +32,5 @@ message Product {
 		
 	optional uint64 inception = 1;
 	optional string payload = 2;
-	optional uint64 index = 3 [(orm).name = "consumer" ]; // index is reserved SQL word
+	optional uint64 index = 3 [(orm.column).name = "consumer" ]; // index is reserved SQL word
 }

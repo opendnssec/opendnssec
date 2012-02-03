@@ -273,6 +273,7 @@ AC_CONFIG_FILES([
 	enforcer-ng/Makefile
 	enforcer-ng/src/Makefile
 	enforcer-ng/man/Makefile
+	enforcer-ng/src/protobuf-orm/test/Makefile
 	enforcer-ng/man/ods-enforcer.8
 	enforcer-ng/man/ods-enforcerd.8
 	libhsm/Makefile

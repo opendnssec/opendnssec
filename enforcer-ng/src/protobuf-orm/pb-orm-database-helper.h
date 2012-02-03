@@ -37,5 +37,6 @@
 #include "pb-orm-common.h"
 
 time_t pb_sqlite3_gmtime(struct tm *tm);
+time_t pb_mysql_gmtime(struct tm *tm);
 
 #endif

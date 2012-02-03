@@ -46,22 +46,6 @@
 namespace pb = ::google::protobuf;
 
 
-//////////////////////////
-// DATABASE
-//////////////////////////
-
-// Select the actual database driver to use with libdbi
-#ifdef ENFORCER_DATABASE_DBI
-#define LIBDBI_DBD_DIR "/usr/local/lib/dbd"
-//	#define USE_DB_SQLITE3 1
-#define USE_DB_MYSQL 1
-#endif
-
-// Correctly define the database driver when using the sqlite3 client library
-#ifdef ENFORCER_DATABASE_SQLITE3
-#define USE_DB_SQLITE3 1 // only SQLite3 can be used as DB in this case
-#endif
-
 // Issue 119: Protocol Buffer TYPE_BOOL collides with MacOS macro TYPE_BOOL
 #ifdef TYPE_BOOL
 #undef TYPE_BOOL

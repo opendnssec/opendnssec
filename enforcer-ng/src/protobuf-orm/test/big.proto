@@ -66,10 +66,10 @@ message BigMessage {
 	
 	optional Point p1 = 17;
 	
-	optional int64 f_datetime = 18 [(orm).type=DATETIME,(orm).default="2011-12-31 13:59:59"];
-	optional int64 f_date = 19 [(orm).type=DATE, (orm).default="2011-12-31"];
-	optional int64 f_time = 20 [(orm).type=TIME, (orm).default="13:59:59"];
-	optional uint32 f_year = 21 [default=2011]; // [(orm).type=YEAR, (orm).default="2011"] doesn't work with SQLite3 DB when accessed via libdbi ;
+	optional int64 f_datetime = 18 [(orm.column).type=DATETIME,(orm.column).default="2011-12-31 13:59:59"];
+	optional int64 f_date = 19 [(orm.column).type=DATE, (orm.column).default="2011-12-31"];
+	optional int64 f_time = 20 [(orm.column).type=TIME, (orm.column).default="13:59:59"];
+	optional uint32 f_year = 21 [default=2011]; // [(orm.column).type=YEAR, (orm.column).default="2011"] doesn't work with SQLite3 DB when accessed via libdbi ;
 
 	optional Point p2 = 22;
 	
@@ -104,10 +104,10 @@ message BigMessageRepeated {
 	
 	repeated Point f_points = 17;
 
-	repeated int64 f_datetimes = 18 [(orm).type=DATETIME];
-	repeated int64 f_dates = 19 [(orm).type=DATE];
-	repeated int64 f_times = 20 [(orm).type=TIME];
-	repeated uint32 f_years = 21; // [(orm).type=YEAR] doesn't work with SQLite3 DB when accessed via libdbi
+	repeated int64 f_datetimes = 18 [(orm.column).type=DATETIME];
+	repeated int64 f_dates = 19 [(orm.column).type=DATE];
+	repeated int64 f_times = 20 [(orm.column).type=TIME];
+	repeated uint32 f_years = 21; // [(orm.column).type=YEAR] doesn't work with SQLite3 DB when accessed via libdbi
 
 	repeated int64 f_leave_empty = 22;
 }

@@ -29,24 +29,24 @@
 //  protobuf-orm
 //
 
+#include "config.h"
+
 #include "pb-orm-initialize.h"
-
-#ifdef ENFORCER_DATABASE_DBI
-
-#include "pb-orm-database-dbi.h"
-
-bool OrmInitialize(const std::string &driverdir)
-{
-	return DB::DBI::initialize(driverdir);
-}
-
-#elif ENFORCER_DATABASE_SQLITE3
-
 #include "pb-orm-database-sqlite3.h"
+#include "pb-orm-database-mysql.h"
 
 bool OrmInitialize()
 {
-	return DB::SQLite3::initialize();
-}
-
+#if ENFORCER_DATABASE_SQLITE3
+ 	if(!DB::SQLite3::initialize()) {
+ 		// TODO log error
+ 		return false;
+ 	}
+#elif ENFORCER_DATABASE_MYSQL
+ 	if(!DB::MySQL::initialize()) {
+ 		// TODO log error
+ 		return false;
+ 	}
 #endif
+ 	return true;
+}

@@ -34,56 +34,31 @@
  synchronize via the database using multiple threads.
  *****************************************************************************/
 
-
-#include <time.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <string>
-#include <fcntl.h>
+#include <pthread.h>
+#include <sys/time.h>
 
 #include "pb-orm-producer-tests.h"
+#include "timecollector.h"
+#include "pbormtest.h"
 
 #include "product.pb.h"
 
-#include "timecollector.h"
-
 CPPUNIT_TEST_SUITE_REGISTRATION(ProducerTests);
-
-static void pb_orm_initialize()
-{
-#ifdef USE_CLIENT_LIB_DBI
-	OrmInitialize("/usr/local/lib/dbd");
-#elif USE_CLIENT_LIB_SQLITE3
-	OrmInitialize();
-#else
-#error no database client library selected
-#endif
-	
-//	OrmSetLogErrorHandler(NULL);
-}
-
-static bool pb_orm_connect(OrmConn &conn)
-{
-	conn = NULL;
-#ifdef USE_DB_MYSQL	
-	if (!OrmConnectMySQL("localhost", "root", "", "sample_db", "UTF-8", conn))
-		return false;
-#elif USE_DB_SQLITE3
-	if (!OrmConnectSQLite3("/Users/rene/sqlite3", "sample_db", conn))
-		return false;
-#else
-#error no database type selected
-#endif
-	return true;
-}
 
 void ProducerTests::setUp()
 {
 	Stopwatch swatch("ProducerTests::setUp");
-	pb_orm_initialize();
-	if (pb_orm_connect(conn)) {
-		OrmCreateTable(conn,::pb_orm_test::Product::descriptor());
-	}
+
+	conn = NULL;
+
+	OrmInitialize();
+
+	__setup_conn(conn);
+
+	OrmDropTable(conn,::pb_orm_test::Product::descriptor());
+
+	CPPUNIT_ASSERT(OrmCreateTable(conn,::pb_orm_test::Product::descriptor()));
 }
 
 void ProducerTests::tearDown()
@@ -91,13 +66,13 @@ void ProducerTests::tearDown()
 	Stopwatch swatch("ProducerTests::tearDown");
 
     if (conn) {
-		OrmDropTable(conn,::pb_orm_test::Product::descriptor());
+    	CPPUNIT_ASSERT(OrmDropTable(conn,::pb_orm_test::Product::descriptor()));
 		OrmConnClose(conn);
     }
     OrmShutdown();
 }
 
-const size_t NUM_CONSUMERS = 32;
+const size_t NUM_CONSUMERS = 4;
 const size_t NUM_TO_CONSUME = 50;
 const size_t NUM_TO_PRODUCE = NUM_CONSUMERS * NUM_TO_CONSUME;
 
@@ -106,19 +81,25 @@ const size_t SPINLOCK_CONSUMER = NUM_TO_CONSUME;
 const size_t SPINLOCK_PRODUCER = NUM_TO_PRODUCE;
 const size_t SPINLOCK_COMMIT = 1;
 
+int NUM_RUNNING = 0;
+pthread_mutex_t NUM_RUNNING_MUTEX = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t NUM_RUNNING_COND = PTHREAD_COND_INITIALIZER;
+
 static void *consumer(void *param)
 {
 	pb::uint64 index = (pb::uint64)param;
 	try {
 		OrmConnRef conn;
-		CPPUNIT_ASSERT(pb_orm_connect(conn));
 		
+		__setup_conn(conn);
+
 		pb::uint32 loopcount = 0;
 		for (int eat=0; eat<NUM_TO_CONSUME; ) {
 			// terminate the loop after looping a large number of times.
 			CPPUNIT_ASSERT(loopcount < SPINLOCK_CONSUMER);
 			++loopcount;
 			
+			double start = clock();
 			OrmTransactionRW transaction(conn);
 			if (!transaction.started())
 				continue;
@@ -128,7 +109,7 @@ static void *consumer(void *param)
 				// objects are released before a transaction rollback is performed.
 				::pb_orm_test::Product product;
 				OrmResultRef rows;
-				if (!(OrmMessageEnumWhere(conn, product, rows, "inception IS NULL")))
+				if (!(OrmMessageEnumWhere(conn, product.descriptor(), rows, "inception IS NULL")))
 					continue;
 				
 				if ( OrmFirst(rows) ) {
@@ -150,7 +131,7 @@ static void *consumer(void *param)
 							for (int j=1; j<SPINLOCK_COMMIT+1; ++j) {
 								if (transaction.commit()) {
 									++eat; // managed to consume 1
-//									printf("\nCONSUMER TRANSACTION %d SUCCESS AFTER %d TRIES",eat,j);
+									//printf("CONSUMER TRANSACTION %d SUCCESS AFTER %d TRIES IN %.0f us\n", eat, j, (clock() - start) / (CLOCKS_PER_SEC / 1000000));
 									break;
 								}
 							}
@@ -164,9 +145,15 @@ static void *consumer(void *param)
 		}
 		
 	} catch (CppUnit::Exception e) {
-		printf("ERROR: %s\n",e.what());
+		std::string str = "Exception in consumer: ";
+		str += e.what();
+		CPPUNIT_FAIL(str.c_str());
+		NUM_RUNNING--;
+		pthread_cond_signal(&NUM_RUNNING_COND);
 		return NULL;
 	}
+	NUM_RUNNING--;
+	pthread_cond_signal(&NUM_RUNNING_COND);
 	return THREAD_OK;
 }
 
@@ -174,7 +161,8 @@ static void *producer(void *param)
 {
 	try {
 		OrmConnRef conn;
-		CPPUNIT_ASSERT(pb_orm_connect(conn));
+
+		__setup_conn(conn);
 
 		::pb_orm_test::Product product;
 		product.set_payload("payload !");
@@ -184,6 +172,7 @@ static void *producer(void *param)
 			CPPUNIT_ASSERT(loopcount < SPINLOCK_PRODUCER);
 			++loopcount;
 
+			double start = clock();
 			OrmTransactionRW transaction(conn);
 			if (transaction.started()) {
 				pb::uint64 productid;
@@ -192,8 +181,8 @@ static void *producer(void *param)
 					// commit in a spinlock
 					for (int j=1; j<SPINLOCK_COMMIT+1; ++j) { 
 						if (transaction.commit()) {
+							//printf("PRODUCER TRANSACTION %d SUCCESS AFTER %d TRIES IN %.0f us\n", i, j, (clock() - start) / (CLOCKS_PER_SEC / 1000000));
 							++i;
-//							printf("\nPRODUCER TRANSACTION %d SUCCESS AFTER %d TRIES",i,j);
 							break;
 						}
 					}
@@ -202,9 +191,15 @@ static void *producer(void *param)
 		}
 
 	} catch (CppUnit::Exception e) {
-//		printf("ERROR: %s\n",e.what());
+		std::string str = "Exception in consumer: ";
+		str += e.what();
+		CPPUNIT_FAIL(str.c_str());
+		NUM_RUNNING--;
+		pthread_cond_signal(&NUM_RUNNING_COND);
 		return NULL;
 	}
+	NUM_RUNNING--;
+	pthread_cond_signal(&NUM_RUNNING_COND);
 	return THREAD_OK;
 }
 
@@ -215,6 +210,17 @@ void ProducerTests::testProducerTransactions()
 	pthread_t prod, cons[NUM_CONSUMERS];
 	void *prod_status = NULL;
 	void *cons_status[NUM_CONSUMERS] = {NULL};
+	struct timeval tv;
+	struct timespec ts;
+
+	//printf("\n");
+
+	NUM_RUNNING = 1 + NUM_CONSUMERS;
+
+	if (pthread_mutex_lock(&NUM_RUNNING_MUTEX)) {
+		CPPUNIT_FAIL("Unable to lock mutex for cond");
+		return;
+	}
 
 	// start the producer
 	pthread_create(&prod, NULL, producer, NULL);
@@ -222,6 +228,22 @@ void ProducerTests::testProducerTransactions()
 	// start multiple consumers
 	for (int i=0; i<GOOGLE_ARRAYSIZE(cons); ++i) {
 		pthread_create(&cons[i], NULL, consumer, (void*)i);
+	}
+
+	// wait for threads to finish or timeout
+	gettimeofday(&tv, NULL);
+	ts.tv_sec = tv.tv_sec + 60;
+	ts.tv_nsec = 0;
+	while (NUM_RUNNING > 0) {
+		if (pthread_cond_timedwait(&NUM_RUNNING_COND, &NUM_RUNNING_MUTEX, &ts)) {
+			// timed out or failed, cancel all thread and report error
+			pthread_cancel(prod);
+			for (int i=0; i<GOOGLE_ARRAYSIZE(cons); ++i) {
+				pthread_cancel(cons[i]);
+			}
+
+			CPPUNIT_FAIL("Timed out or error waiting for producer/consumer to finish");
+		}
 	}
 
 	// collect results from producers and consumers

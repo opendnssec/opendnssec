@@ -34,8 +34,8 @@
 #include "pb-orm-log.h"
 #include "pb-orm-connect.h"
 #include "pb-orm-database.h"
-#include "pb-orm-database-dbi.h"
 #include "pb-orm-database-sqlite3.h"
+#include "pb-orm-database-mysql.h"
 
 bool OrmConnectMySQL(const std::string &host,
 					 int port,
@@ -45,13 +45,13 @@ bool OrmConnectMySQL(const std::string &host,
 					 const std::string &encoding,
 					 OrmConn &handle)
 {
-#ifdef ENFORCER_DATABASE_DBI
-	DB::OrmConnT *conn = DB::DBI::MySQL::NewOrmConnT();
+#if defined(ENFORCER_DATABASE_MYSQL)
+	DB::OrmConnT *conn = DB::MySQL::NewOrmConnT();
 	if (!conn) {
 		OrmLogError("unable to allocate connection, out of memory");
 		return false;
 	}
-	
+
 	if (host.size() > 0)
 		conn->set_option("host", host);
 	if (username.size() > 0)
@@ -59,7 +59,7 @@ bool OrmConnectMySQL(const std::string &host,
 	if (password.size() > 0)
 		conn->set_option("password", password);
 	if (port)
-		conn->set_option("port",port);
+		conn->set_option("port", port);
 	if (dbname.size() > 0)
 		conn->set_option("dbname", dbname);
 	if (encoding.size() > 0)
@@ -80,13 +80,9 @@ bool OrmConnectSQLite3(const std::string &dbdir,
 					   const std::string &dbname,
 					   OrmConn &handle)
 {
-#ifdef ENFORCER_DATABASE_DBI
-	DB::OrmConnT *conn = DB::DBI::SQLite3::NewOrmConnT();
-#elif ENFORCER_DATABASE_SQLITE3
+#if defined(ENFORCER_DATABASE_SQLITE3)
 	DB::OrmConnT *conn = DB::SQLite3::NewOrmConnT();
-#else
-#error no database client library selected
-#endif
+
 	if (!conn) {
 		OrmLogError("unable to allocate connection, out of memory");
 		return false;
@@ -98,7 +94,7 @@ bool OrmConnectSQLite3(const std::string &dbdir,
 		conn->set_option("dbname", dbname);
 	
 	// allow busy timeout of transactions of 15 seconds.
-	conn->set_option("sqlite3_timeout", 15000);
+	conn->set_option("timeout_ms", 15000);
 
 	if (!conn->connect()) {
 		delete conn;
@@ -106,6 +102,9 @@ bool OrmConnectSQLite3(const std::string &dbdir,
 	}
 	handle = conn->handle();
 	return true;
+#else
+	return false;
+#endif
 }
 
 void OrmConnClose(OrmConn handle)

@@ -33,7 +33,8 @@
 #ifndef protobuf_orm_timecollector_h
 #define protobuf_orm_timecollector_h
 
-#include "time.h"
+#include <string>
+#include <time.h>
 
 // A stopwatch object automatically starts and stops.
 // Use restart() and stop() explicitly to make timeing even more accurate.

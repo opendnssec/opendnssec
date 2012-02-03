@@ -32,54 +32,40 @@
  Contains test cases to test with messages defined in the zone.proto file
  *****************************************************************************/
 
-
 #include <time.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string>
-#include <fcntl.h>
 
 #include "pb-orm-big-tests.h"
+#include "timecollector.h"
+#include "pbormtest.h"
 
 #include "big.pb.h"
-
-#include "timecollector.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(BigTests);
 
 void BigTests::setUp()
 {
 	Stopwatch swatch("BigTests::setUp");
+
 	conn = NULL;
 
-#ifdef USE_CLIENT_LIB_DBI
-	OrmInitialize("/usr/local/lib/dbd");
-#elif USE_CLIENT_LIB_SQLITE3
 	OrmInitialize();
-#else
-#error no database client library selected
-#endif
 
-#ifdef USE_DB_MYSQL	
-	if (!OrmConnectMySQL("localhost", "root", "", "sample_db", "UTF-8", conn))
-		return;
-#elif USE_DB_SQLITE3
-	if (!OrmConnectSQLite3("/Users/rene/sqlite3", "sample_db", conn))
-		return;
-#else
-#error no database type selected
-#endif
+	__setup_conn(conn);
 
-	OrmCreateTable(conn,::pb_orm_test::BigMessage::descriptor());
-	OrmCreateTable(conn,::pb_orm_test::BigMessageRepeated::descriptor());
+	OrmDropTable(conn,::pb_orm_test::BigMessageRepeated::descriptor());
+	OrmDropTable(conn,::pb_orm_test::BigMessage::descriptor());
+
+	CPPUNIT_ASSERT(OrmCreateTable(conn,::pb_orm_test::BigMessage::descriptor()));
+	CPPUNIT_ASSERT(OrmCreateTable(conn,::pb_orm_test::BigMessageRepeated::descriptor()));
 }
 
 void BigTests::tearDown()
 {
 	Stopwatch swatch("BigTests::tearDown");
+
     if (conn) {
-		OrmDropTable(conn,::pb_orm_test::BigMessageRepeated::descriptor());
-		OrmDropTable(conn,::pb_orm_test::BigMessage::descriptor());
+    	CPPUNIT_ASSERT(OrmDropTable(conn,::pb_orm_test::BigMessageRepeated::descriptor()));
+    	CPPUNIT_ASSERT(OrmDropTable(conn,::pb_orm_test::BigMessage::descriptor()));
 		OrmConnClose(conn);
     }
     OrmShutdown();
@@ -183,10 +169,10 @@ void BigTests::testMessageCRUD()
 	::pb_orm_test::BigMessage msg;
 	
 	pb::uint64 msgid;
-	CPPUNIT_ASSERT(OrmMessageInsert(conn,msg,msgid));
+	CPPUNIT_ASSERT(OrmMessageInsert(conn, msg, msgid));
 	
 	// We now should have exactly 1 message in the table
-	CPPUNIT_ASSERT(OrmMessageFind(conn, msg, msgid));
+	CPPUNIT_ASSERT(OrmMessageFind(conn, msg.descriptor(), msgid));
 	
 	// Read a message from a table.
 	OrmContext context;
@@ -210,10 +196,10 @@ void BigTests::testMessageCRUD()
 	CPPUNIT_ASSERT_MESSAGE("Expected field to be cleared",!msg.has_f_fixed32());
 	
 	// Delete a message from a table.
-	CPPUNIT_ASSERT(OrmMessageDelete(conn, msg, msgid));
+	CPPUNIT_ASSERT(OrmMessageDelete(conn, msg.descriptor(), msgid));
 	
 	// Message should no longer be present in the table.
-	CPPUNIT_ASSERT(!OrmMessageFind(conn, msg, msgid));
+	CPPUNIT_ASSERT(!OrmMessageFind(conn, msg.descriptor(), msgid));
 	
 	// Update a message in a table, should succeed but affect no rows in the db.
 	CPPUNIT_ASSERT(OrmMessageUpdate(context));
@@ -301,7 +287,7 @@ void BigTests::testMessageUpdate()
 	
 	// check that the p1 record was really removed from the db
 	pb_orm_test::Point dummy;
-	CPPUNIT_ASSERT(!OrmMessageFind(conn, dummy, p1_id));
+	CPPUNIT_ASSERT(!OrmMessageFind(conn, dummy.descriptor(), p1_id));
 	
 	// PRESENT IN: MESSAGE NO, DB NO
 	// verify that after updateing the message is still not present int the db
@@ -320,7 +306,7 @@ void BigTests::testMessageUpdate()
 		OrmFreeResult(result);
 
 	// finally delete the all message from the db.
-	CPPUNIT_ASSERT(OrmMessageDelete(conn, all, allid));
+	CPPUNIT_ASSERT(OrmMessageDelete(conn, all.descriptor(), allid));
 }
 
 void BigTests::testDateTime()
@@ -370,10 +356,10 @@ void BigTests::testDateTime()
 	CPPUNIT_ASSERT(refduration == dbduration);
 	
 	// Delete a message from a table.
-	CPPUNIT_ASSERT(OrmMessageDelete(conn, msg, msgid));
+	CPPUNIT_ASSERT(OrmMessageDelete(conn, msg.descriptor(), msgid));
 	
 	// Message should no longer be present in the table.
-	CPPUNIT_ASSERT(!OrmMessageFind(conn, msg, msgid));
+	CPPUNIT_ASSERT(!OrmMessageFind(conn, msg.descriptor(), msgid));
 	
 	// Update a message in a table, should not affect any records as the record is gone.
 	CPPUNIT_ASSERT(OrmMessageUpdate(context));
