@@ -1477,6 +1477,7 @@ int do_purge(int interval, int policy_id)
 
             StrAppend(&sql1, " or state = 6 and DEAD > ");
             StrAppend(&sql1, buffer);
+            StrAppend(&sql1, ")");
             DqsEnd(&sql1);
 
             status = DbIntQuery(DbHandle(), &count, sql1);
