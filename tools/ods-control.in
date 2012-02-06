@@ -81,7 +81,7 @@ case "$1" in
 	'start')
 		if [ -r "$enforcer_pid_file" ]; then
 			echo "Enforcer is already running"
-			RETVAL=-1
+			RETVAL=1
 		else
 			echo "Starting enforcer..."
 			"$sbindir/ods-enforcerd"
