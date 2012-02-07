@@ -39,14 +39,12 @@ case "$DISTRIBUTION" in
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-database-backend=sqlite3 \
 				--with-dbname=opendnssec-build-test \
-				--disable-auditor \
 				--enable-timeshift &&
 			$MAKE &&
 			$MAKE check &&
 			$MAKE install &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
 			cp "conf/kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml.build" &&
-			cp "conf/zonefetch.xml" "$INSTALL_ROOT/etc/opendnssec/zonefetch.xml.build" &&
 			cp "conf/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml.build"
 		) &&
 		build_ok=1
@@ -60,7 +58,6 @@ case "$DISTRIBUTION" in
 				--with-cunit=/usr/pkg \
 				--with-database-backend=sqlite3 \
 				--with-dbname=opendnssec-build-test \
-				--disable-auditor \
 				--enable-timeshift \
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
@@ -68,7 +65,6 @@ case "$DISTRIBUTION" in
 			$MAKE install &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
 			cp "conf/kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml.build" &&
-			cp "conf/zonefetch.xml" "$INSTALL_ROOT/etc/opendnssec/zonefetch.xml.build" &&
 			cp "conf/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml.build"
 		) &&
 		build_ok=1
@@ -81,14 +77,12 @@ case "$DISTRIBUTION" in
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-database-backend=sqlite3 \
 				--with-dbname=opendnssec-build-test \
-				--disable-auditor \
 				--enable-timeshift &&
 			$MAKE &&
 			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
 			$MAKE install &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
 			cp "conf/kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml.build" &&
-			cp "conf/zonefetch.xml" "$INSTALL_ROOT/etc/opendnssec/zonefetch.xml.build" &&
 			cp "conf/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml.build"
 		) &&
 		build_ok=1
