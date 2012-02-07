@@ -72,7 +72,7 @@ pbormtest_LDFLAGS = 	-no-install `cppunit-config --libs` \
 						@ENFORCER_DB_LIBS@
 
 %.pb.cc %.pb.h: %.proto
-	$(PROTOC) @PROTOBUF_INCLUDES@ -I$(srcdir)/../../xmlext-pb -I$(srcdir)/../../protobuf-orm --cpp_out=`dirname $@` -I=`dirname $@` `dirname $@`/`basename $@ .pb.cc`.proto
+	$(PROTOC) @PROTOBUF_INCLUDES@ -I$(srcdir)/../../xmlext-pb -I$(srcdir)/../../protobuf-orm --cpp_out=`dirname $@` -I=`dirname $<` $<
 
 check: regress-pb-orm
 
