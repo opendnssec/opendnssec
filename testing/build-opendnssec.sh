@@ -44,9 +44,9 @@ case "$DISTRIBUTION" in
 			$MAKE &&
 			$MAKE check &&
 			$MAKE install &&
+			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
 			cp "conf/kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml.build" &&
-			cp "conf/zonefetch.xml" "$INSTALL_ROOT/etc/opendnssec/zonefetch.xml.build" &&
 			cp "conf/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml.build"
 		) &&
 		build_ok=1
@@ -66,9 +66,9 @@ case "$DISTRIBUTION" in
 			$MAKE &&
 			$MAKE check &&
 			$MAKE install &&
+			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
 			cp "conf/kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml.build" &&
-			cp "conf/zonefetch.xml" "$INSTALL_ROOT/etc/opendnssec/zonefetch.xml.build" &&
 			cp "conf/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml.build"
 		) &&
 		build_ok=1
@@ -85,10 +85,11 @@ case "$DISTRIBUTION" in
 				--enable-timeshift &&
 			$MAKE &&
 			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
+			(cd enforcer-ng && $MAKE check) &&
 			$MAKE install &&
+			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
 			cp "conf/kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml.build" &&
-			cp "conf/zonefetch.xml" "$INSTALL_ROOT/etc/opendnssec/zonefetch.xml.build" &&
 			cp "conf/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml.build"
 		) &&
 		build_ok=1
