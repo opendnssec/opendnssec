@@ -8797,7 +8797,7 @@ int ListDS(int zone_id) {
 	}
 
 	StrAppend(&sql,
-			"select name, kv.policy_id, location, algorithm from keydata_view kv, zones z where keytype = 257 and state in (3,7) and zone_id = z.id ");
+			"select name, kv.policy_id, location, algorithm from KEYDATA_VIEW kv, zones z where keytype = 257 and state in (3,7) and zone_id = z.id ");
 	if (zone_id != -1) {
 		StrAppend(&sql, "and zone_id = ");
 		snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
