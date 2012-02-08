@@ -8827,7 +8827,7 @@ int ListDS(int zone_id) {
                 return status;
             }
 
-			printf("\n*** Found DS RECORD involved with rollover:\n");
+			printf("\n*** Found DNSKEY RECORD involved with rollover:\n");
 
             sign_params = hsm_sign_params_new();
             sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, temp_zone);
@@ -8854,7 +8854,7 @@ int ListDS(int zone_id) {
 
 			/* Print it */
             printf("%s", ds_buffer);
-			printf("\nOnce this DS record is seen in DNS you can issue the ds-seen command for zone %s with the cka_id %s\n", temp_zone, temp_location);
+			printf("\nOnce the DS record for this DNSKEY is seen in DNS you can issue the ds-seen command for zone %s with the cka_id %s\n", temp_zone, temp_location);
 
             StrFree(ds_buffer);
 
