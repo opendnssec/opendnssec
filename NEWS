@@ -31,6 +31,8 @@ OpenDNSSEC trunk
   pidfile will need to be specified with the -P flag.
 * ods-ksmutil: "key delete" added. It allows keys that are not currently in use to be 
   deleted from the database and HSM.
+* ods-ksmutil: "rollover list -v" now includes more information on the KSKs waiting for
+  the ds-seen command. (OPENDNSSEC-35)
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.

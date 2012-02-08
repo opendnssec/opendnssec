@@ -622,7 +622,7 @@ int KsmCheckHSMkeyID(int repo_id, const char* cka_id, int *exists);
 int KsmListBackups(int repo_id, int verbose_flag);
 int KsmListRepos();
 int KsmListPolicies();
-int KsmListRollovers(int zone_id);
+int KsmListRollovers(int zone_id, int* ds_count);
 int KsmCheckNextRollover(int keytype, int zone_id, char** datetime);
 
 #ifdef __cplusplus

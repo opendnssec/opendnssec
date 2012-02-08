@@ -368,7 +368,7 @@ int KsmListPolicies()
  *                          other on fail
  */
 
-int KsmListRollovers(int zone_id)
+int KsmListRollovers(int zone_id, int* ds_count)
 {
     char*       sql = NULL;     /* SQL query */
     int         status = 0;     /* Status return */
@@ -380,6 +380,7 @@ int KsmListRollovers(int zone_id)
     int         temp_type = 0;      /* place to store key type returned */
     char*       temp_date = NULL;   /* place to store date returned */
     int         temp_state = 0;     /* place to store key state returned */
+	int			local_count = 0;	/* how many ds-seen required */
 
     /* Select rows */
     StrAppend(&sql, "select z.name, k.keytype, k.retire, k.state from zones z, KEYDATA_VIEW k where z.id = k.zone_id and k.state in (3,4,7) ");
@@ -409,6 +410,7 @@ int KsmListRollovers(int zone_id)
 			} 
 			else if (temp_type == KSM_TYPE_KSK) {
 				printf("%-31s %-13s %s\n", temp_zone, "KSK", "waiting for ds-seen");
+				local_count++;
 			}
             
             status = DbFetchRow(result, &row);
@@ -427,6 +429,8 @@ int KsmListRollovers(int zone_id)
     DbFreeRow(row);
     DbStringFree(temp_zone);
     DbStringFree(temp_date);
+
+	*ds_count = local_count;
 
     return status;
 }
@@ -486,3 +490,4 @@ int KsmCheckNextRollover(int keytype, int zone_id, char** datetime)
 
     return status;
 }
+

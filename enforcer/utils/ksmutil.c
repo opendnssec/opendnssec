@@ -2250,6 +2250,7 @@ cmd_backup (const char* qualifier)
 cmd_listrolls ()
 {
     int status = 0;
+	int ds_count = 0;
 
     int qualifier_id = -1;      /* ID of qualifer (if given) */
 
@@ -2282,7 +2283,7 @@ cmd_listrolls ()
 
     printf("Rollovers:\n");
 
-    status = KsmListRollovers(qualifier_id);
+    status = KsmListRollovers(qualifier_id, &ds_count);
 
     if (status != 0) {
         printf("Error: failed to list rollovers\n");
@@ -2291,6 +2292,19 @@ cmd_listrolls ()
     }
 
     printf("\n");
+
+	/* If verbose flag set and some keys waiting for ds-seen then print some
+	 * helpful information for the user */
+	if (verbose_flag && ds_count > 0) {
+
+		status = ListDS(qualifier_id);
+
+		if (status != 0) {
+			printf("Error: failed to list DS records\n");
+			db_disconnect(lock_fd);
+			return status;
+		}
+	}
 
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
@@ -8732,5 +8746,128 @@ int extract_signconf(const char* zonelist_filename, const char* o_zone, char** s
 		}
 	}
 	
+	return status;
+}
+
+/*+
+ * ListDS - List DS records currently involved with rollovers
+ *
+ *
+ * Arguments:
+ *
+ *      int zone_id
+ *          -1 for all zones
+ *
+ * Returns:
+ *      int
+ *          Status return.  0 on success.
+ *                          other on fail
+ */
+
+int ListDS(int zone_id) {
+
+	int 		status = 0;
+	char* 		sql = NULL;
+    char        stringval[KSM_INT_STR_SIZE];  /* For Integer to String conversion */
+    DB_RESULT	result;         /* Result of the query */
+    DB_ROW      row = NULL;     /* Row data */
+
+    char*       temp_zone = NULL;   	/* place to store zone name returned */
+    int         temp_policy = 0;    	/* place to store policy id returned */
+    char*       temp_location = NULL;   /* place to store location returned */
+    int         temp_algo = 0;     		/* place to store algorithm returned */
+	
+	int 		rrttl = -1;				/* TTL to put into DS record */
+	int 		param_id = -1; 			/* unused */
+
+	/* Key information */
+    hsm_key_t *key = NULL;
+    ldns_rr *dnskey_rr = NULL;
+    hsm_sign_params_t *sign_params = NULL;
+	int			i = 0;
+
+	/* Output strings */
+    char*   ds_buffer = NULL;   /* Contents of DS records */
+
+	/* connect to the HSM */
+	status = hsm_open(config, hsm_prompt_pin, NULL);
+	if (status) {
+		hsm_print_error(NULL);
+		return(1);
+	}
+
+	StrAppend(&sql,
+			"select name, kv.policy_id, location, algorithm from keydata_view kv, zones z where keytype = 257 and state in (3,7) and zone_id = z.id ");
+	if (zone_id != -1) {
+		StrAppend(&sql, "and zone_id = ");
+		snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
+		StrAppend(&sql, stringval);
+	}
+	StrAppend(&sql, " order by zone_id");
+
+	DusEnd(&sql);
+
+	status = DbExecuteSql(DbHandle(), sql, &result);
+
+	if (status == 0) {
+		status = DbFetchRow(result, &row);
+        while (status == 0) {
+            /* Got a row, print it */
+            DbString(row, 0, &temp_zone);
+            DbInt(row, 1, &temp_policy);
+            DbString(row, 2, &temp_location);
+            DbInt(row, 3, &temp_algo);
+
+			/* Code to output the DNSKEY record  (stolen from hsmutil) */
+			key = hsm_find_key_by_id(NULL, temp_location);
+
+            if (!key) {
+                printf("Key %s in DB but not repository.", temp_location);
+                StrFree(sql);
+                return status;
+            }
+
+			printf("\n*** Found DS RECORD involved with rollover:\n");
+
+            sign_params = hsm_sign_params_new();
+            sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, temp_zone);
+            sign_params->algorithm = temp_algo;
+            sign_params->flags = LDNS_KEY_ZONE_KEY;
+            sign_params->flags += LDNS_KEY_SEP_KEY;
+            dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+
+			/* Use this to get the TTL parameter value */
+			status = KsmParameterValue(KSM_PAR_KSKTTL_STRING, KSM_PAR_KSKTTL_CAT, &rrttl, temp_policy, &param_id);
+			if (status == 0) {
+				ldns_rr_set_ttl(dnskey_rr, rrttl);
+			}
+
+            ds_buffer = ldns_rr2str(dnskey_rr);
+            ldns_rr_free(dnskey_rr);
+
+            /* Replace tab with white-space */
+            for (i = 0; ds_buffer[i]; ++i) {
+                if (ds_buffer[i] == '\t') {
+                    ds_buffer[i] = ' ';
+                }
+            }
+
+			/* Print it */
+            printf("%s", ds_buffer);
+			printf("\nOnce this DS record is seen in DNS you can issue the ds-seen command for zone %s with the cka_id %s\n", temp_zone, temp_location);
+
+            StrFree(ds_buffer);
+
+            hsm_sign_params_free(sign_params);
+            hsm_key_free(key);
+
+            status = DbFetchRow(result, &row);
+		}
+		/* Convert EOF status to success */
+        if (status == -1) {
+            status = 0;
+        }
+	}
+
 	return status;
 }
