@@ -56,9 +56,9 @@ my $dbh = DBI->connect("dbi:SQLite:dbname=$opt_d","","")
 
 ###
 # Prepare a keys statement that we will need later
-my $keys_sth = $dbh->prepare("select id, keypair_id, keytype, state, publish, ready, active, retire, dead from dnsseckeys where zone_id = ?")
+my $keys_sth = $dbh->prepare("select dk.id, keypair_id, keytype, state, publish, ready, active, retire, dead, fixedDate from dnsseckeys dk, keypairs kp where dk.keypair_id = kp.id and zone_id = ?")
 	or die  "Couldn't prepare keys_sth $!";
-my $KEYPAIR_ID=1; my $KEYTYPE=2; my $STATE=3; my $PUBLISH=4; my $READY=5; my $ACTIVE=6; my $RETIRE=7; my $DEAD=8;
+my $KEYPAIR_ID=1; my $KEYTYPE=2; my $STATE=3; my $PUBLISH=4; my $READY=5; my $ACTIVE=6; my $RETIRE=7; my $DEAD=8; my $FIXED_DATE = 9;
 
 ###
 # Create hashmap of securitymodules table
@@ -106,19 +106,19 @@ while (my @row = $zone_sth->fetchrow_array) {
 			$key[$PUBLISH] =~ s/ /T/;
 			print $OUT "          <Publish>$key[$PUBLISH]</Publish>\n";
 		}
-		if ($key[$READY]) {
+		if ($key[$READY] && $key[$STATE] > 2) {
 			$key[$READY] =~ s/ /T/;
 			print $OUT "          <Ready>$key[$READY]</Ready>\n";
 		}
-		if ($key[$ACTIVE]) {
+		if ($key[$ACTIVE] && $key[$STATE] > 3) {
 			$key[$ACTIVE] =~ s/ /T/;
 			print $OUT "          <Active>$key[$ACTIVE]</Active>\n";
 		}
-		if ($key[$RETIRE]) {
+		if ($key[$RETIRE] && ($key[$STATE] > 4 || $key[$FIXED_DATE] == 1)) {
 			$key[$RETIRE] =~ s/ /T/;
 			print $OUT "          <Retire>$key[$RETIRE]</Retire>\n";
 		}
-		if ($key[$DEAD]) {
+		if ($key[$DEAD] && $key[$STATE] > 5) {
 			$key[$DEAD] =~ s/ /T/;
 			print $OUT "          <Dead>$key[$DEAD]</Dead>\n";
 		}
