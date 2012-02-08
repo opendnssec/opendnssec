@@ -491,6 +491,8 @@ response_encode(query_type* q, response_type* r)
     buffer_pkt_set_ancount(q->buffer, counts[LDNS_SECTION_ANSWER]);
     buffer_pkt_set_nscount(q->buffer, counts[LDNS_SECTION_AUTHORITY]);
     buffer_pkt_set_arcount(q->buffer, counts[LDNS_SECTION_ADDITIONAL]);
+    buffer_pkt_set_qr(q->buffer);
+    buffer_pkt_set_aa(q->buffer);
     return;
 }
 
