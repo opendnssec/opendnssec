@@ -33,7 +33,7 @@ append_path ()
 {
 	if [ -d "$1" ]; then
 		if [ -n "$PATH" ]; then
-			echo "$PATH" | grep -q -- "$1" 2>/dev/null && return;
+			echo "$PATH" | $GREP -q -- "$1" 2>/dev/null && return;
 			PATH="$PATH:$1"
 		else
 			PATH="$1"
@@ -46,7 +46,7 @@ prepend_path ()
 {
 	if [ -d "$1" ]; then
 		if [ -n "$PATH" ]; then
-			echo "$PATH" | grep -q -- "$1" 2>/dev/null && return;
+			echo "$PATH" | $GREP -q -- "$1" 2>/dev/null && return;
 			PATH="$1:$PATH"
 		else
 			PATH="$1"
@@ -59,7 +59,7 @@ append_cflags ()
 {
 	if [ -n "$1" ]; then
 		if [ -n "$CFLAGS" ]; then
-			echo "$CFLAGS" | grep -q -- "$1" 2>/dev/null && return;
+			echo "$CFLAGS" | $GREP -q -- "$1" 2>/dev/null && return;
 			CFLAGS="$CFLAGS $1"
 		else
 			CFLAGS="$1"
@@ -72,7 +72,7 @@ append_cppflags ()
 {
 	if [ -n "$1" ]; then
 		if [ -n "$CPPFLAGS" ]; then
-			echo "$CPPFLAGS" | grep -q -- "$1" 2>/dev/null && return;
+			echo "$CPPFLAGS" | $GREP -q -- "$1" 2>/dev/null && return;
 			CPPFLAGS="$CPPFLAGS $1"
 		else
 			CPPFLAGS="$1"
@@ -85,7 +85,7 @@ append_ldflags ()
 {
 	if [ -n "$1" ]; then
 		if [ -n "$LDFLAGS" ]; then
-			echo "$LDFLAGS" | grep -q -- "$1" 2>/dev/null && return;
+			echo "$LDFLAGS" | $GREP -q -- "$1" 2>/dev/null && return;
 			LDFLAGS="$LDFLAGS $1"
 		else
 			LDFLAGS="$1"
@@ -98,7 +98,7 @@ append_ld_library_path ()
 {
 	if [ -d "$1" ]; then
 		if [ -n "$LD_LIBRARY_PATH" ]; then
-			echo "$LD_LIBRARY_PATH" | grep -q -- "$1" 2>/dev/null && return;
+			echo "$LD_LIBRARY_PATH" | $GREP -q -- "$1" 2>/dev/null && return;
 			LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$1"
 		else
 			LD_LIBRARY_PATH="$1"
@@ -424,6 +424,22 @@ find_tail ()
 	return 0
 }
 
+find_grep ()
+{
+	local grep
+	local program
+
+	for program in ggrep grep; do
+		grep=`find_program "$program"`
+		if [ -n "$grep" ]; then
+			export GREP="$grep"
+			return
+		fi
+	done
+
+	return 1
+}
+
 setup_install_root ()
 {
 	if [ -n "$INSTALL_ROOT" ]; then
@@ -478,32 +494,32 @@ detect_distribution ()
 	DISTRIBUTION="UNKNOWN"
 	
 	if [ -e "/etc/debian_version" ]; then
-		if uname -a 2>/dev/null | grep -q -i ubuntu 2>/dev/null; then
+		if uname -a 2>/dev/null | $GREP -q -i ubuntu 2>/dev/null; then
 			DISTRIBUTION="ubuntu"
 		else
 			DISTRIBUTION="debian"
 		fi
 	elif [ -e "/etc/redhat-release" ]; then
-		if grep -q -i centos /etc/redhat-release 2>/dev/null; then
+		if $GREP -q -i centos /etc/redhat-release 2>/dev/null; then
 			DISTRIBUTION="centos"
-		elif grep -q -i fedora /etc/redhat-release 2>/dev/null; then
+		elif $GREP -q -i fedora /etc/redhat-release 2>/dev/null; then
 			DISTRIBUTION="fedora"
-		elif grep -q -i "scientific linux" /etc/redhat-release 2>/dev/null; then
+		elif $GREP -q -i "scientific linux" /etc/redhat-release 2>/dev/null; then
 			DISTRIBUTION="sl"
 		else
 			DISTRIBUTION="redhat"
 		fi
 	elif [ -e "/etc/os-release" ]; then
-		if grep -q -i opensuse /etc/os-release 2>/dev/null; then
+		if $GREP -q -i opensuse /etc/os-release 2>/dev/null; then
 			DISTRIBUTION="opensuse"
 		fi
-	elif uname -a 2>/dev/null | grep -q -i freebsd 2>/dev/null; then
+	elif uname -a 2>/dev/null | $GREP -q -i freebsd 2>/dev/null; then
 		DISTRIBUTION="freebsd"
-	elif uname -a 2>/dev/null | grep -q -i sunos 2>/dev/null; then
+	elif uname -a 2>/dev/null | $GREP -q -i sunos 2>/dev/null; then
 		DISTRIBUTION="sunos"
-	elif uname -a 2>/dev/null | grep -q -i openbsd 2>/dev/null; then
+	elif uname -a 2>/dev/null | $GREP -q -i openbsd 2>/dev/null; then
 		DISTRIBUTION="openbsd"
-	elif uname -a 2>/dev/null | grep -q -i netbsd 2>/dev/null; then
+	elif uname -a 2>/dev/null | $GREP -q -i netbsd 2>/dev/null; then
 		DISTRIBUTION="netbsd"
 	fi
 
@@ -517,6 +533,7 @@ init ()
 	unset PRE_TEST
 	unset POST_TEST
 	
+	find_grep || exit 1
 	detect_distribution
 	find_jenkins_workspace_root || exit 1
 	setup_install_root || exit 1
@@ -568,7 +585,7 @@ start_build ()
 	
 	local name_tag="$1"
 	
-	if [ -e "$INSTALL_ROOT/.$name_tag.ok"]; then
+	if [ -e "$INSTALL_ROOT/.$name_tag.ok" ]; then
 		if ! rm "$INSTALL_ROOT/.$name_tag.ok" 2>/dev/null; then
 			echo "start_build: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok !" >&2
 			exit 1
@@ -667,7 +684,7 @@ start_test ()
 			if ln -s "$WORKSPACE_ROOT/.testing.$$" "$WORKSPACE_ROOT/.testing" 2>/dev/null; then
 				build_tag=`cat "$WORKSPACE_ROOT/.testing" 2>/dev/null`
 				if [ "$build_tag" = "$BUILD_TAG $$" ]; then
-					if [ -e "$INSTALL_ROOT/.$name_tag.ok.test"]; then
+					if [ -e "$INSTALL_ROOT/.$name_tag.ok.test" ]; then
 						if ! rm "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null; then
 							echo "start_test: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok.test !" >&2
 							exit 1
@@ -941,7 +958,7 @@ log_grep ()
 	fi
 
 	echo "log_grep: greping in $name for: $grep_string"
-	grep -q "$grep_string" $log_files 2>/dev/null
+	$GREP -q -- "$grep_string" $log_files 2>/dev/null
 }
 
 log_cleanup ()
@@ -996,7 +1013,7 @@ run_tests ()
 		return 1
 	fi
 		
-	ls -1 2>/dev/null | grep '^[0-9]*' | grep -v '\.off$' 2>/dev/null >"_tests.$BUILD_TAG"
+	ls -1 2>/dev/null | $GREP '^[0-9]*' | $GREP -v '\.off$' 2>/dev/null >"_tests.$BUILD_TAG"
 	while read entry; do
 		if [ -d "$entry" -a -f "$entry/test.sh" -a ! -f "$entry/off" ]; then
 			test[0]="$entry"
@@ -1211,7 +1228,7 @@ syslog_waitfor ()
 
 	echo "syslog_waitfor: waiting for syslog to containm (timeout $timeout): $grep_string"
 	while true; do
-		if grep -q "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null; then
+		if $GREP -q -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null; then
 			return 0
 		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
@@ -1243,7 +1260,7 @@ syslog_grep ()
 	fi
 
 	echo "syslog_grep: greping syslog for: $grep_string"
-	if ! grep -q "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null; then
+	if ! $GREP -q -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null; then
 		return 1
 	fi
 }
