@@ -906,14 +906,86 @@ log_this ()
 	local log_stdout="_log.$BUILD_TAG.$name.stdout"
 	local log_stderr_pid="_log_pid.$BUILD_TAG.$name.stderr"
 	local log_stdout_pid="_log_pid.$BUILD_TAG.$name.stdout"
-	local stderr_pid
-	local stdout_pid
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop=$(( time_start + 2 ))
+	local time_now
 		
 	shift
 	echo "log_this: logging $name for command: $*"
 	$* 2> >(bash -c 'echo $PPID' > "$log_stderr_pid" 2>/dev/null && $TEE -a "$log_stderr" && rm -f "$log_stderr_pid") \
 		> >(bash -c 'echo $PPID' > "$log_stdout_pid" 2>/dev/null && $TEE -a "$log_stdout" && rm -f "$log_stdout_pid")
 
+	# Let the tee processes have a chance to end or output to file before continuing
+	while true; do
+		if [ ! -e "$log_stderr_pid" -a ! -e "$log_stdout_pid" ]; then
+			break
+		fi
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break;
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "log_force_stop: Invalid timestamp from date!" >&2
+			return 1
+		fi
+		sleep 1
+	done
+
+	return 0
+}
+
+log_force_stop ()
+{
+	if [ -z "$1" ]; then
+		echo "usage: log_force_stop <log name> [grace period in seconds]" >&2
+		exit 1
+	fi
+
+	local name="$1"
+	local grace="$2"
+	local log_stderr_pid="_log_pid.$BUILD_TAG.$name.stderr"
+	local log_stdout_pid="_log_pid.$BUILD_TAG.$name.stdout"
+	local stderr_pid
+	local stdout_pid
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop=$(( time_start + 5 ))
+	local time_now
+
+	if [ -n "$grace" -a "$grace" -gt 0 ] 2>/dev/null; then
+		time_stop=$(( time_start + grace ))
+	fi
+
+	while true; do
+		if [ ! -e "$log_stderr_pid" -a ! -e "$log_stdout_pid" ]; then
+			break
+		fi
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break;
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "log_force_stop: Invalid timestamp from date!" >&2
+			return 1
+		fi
+		sleep 1
+	done
+
+	if [ -e "$log_stderr_pid" ]; then
+		stderr_pid=`cat "$log_stderr_pid"`
+		if [ "$stderr_pid" -gt 0 ]; then
+			kill -TERM "$stderr_pid" 2>/dev/null
+		fi
+		rm -f "$log_stderr_pid"
+	fi
+
+	if [ -e "$log_stdout_pid" ]; then
+		stdout_pid=`cat "$log_stdout_pid"`
+		if [ "$stdout_pid" -gt 0 ]; then
+			kill -TERM "$stdout_pid" 2>/dev/null
+		fi
+		rm -f "$log_stdout_pid"
+	fi
+	
 	return 0
 }
 
