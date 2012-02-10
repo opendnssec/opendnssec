@@ -908,30 +908,11 @@ log_this ()
 	local log_stdout_pid="_log_pid.$BUILD_TAG.$name.stdout"
 	local stderr_pid
 	local stdout_pid
-	local time_start=`$DATE '+%s' 2>/dev/null`
-	local time_stop=$(( time_start + 60 ))
-	local time_now
 		
 	shift
 	echo "log_this: logging $name for command: $*"
 	$* 2> >(bash -c 'echo $PPID' > "$log_stderr_pid" 2>/dev/null && $TEE -a "$log_stderr" && rm -f "$log_stderr_pid") \
 		> >(bash -c 'echo $PPID' > "$log_stdout_pid" 2>/dev/null && $TEE -a "$log_stdout" && rm -f "$log_stdout_pid")
-
-	while true; do
-		if [ ! -e "$log_stderr_pid" -a ! -e "$log_stdout_pid" ]; then
-			break
-		fi
-		time_now=`$DATE '+%s' 2>/dev/null`
-		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
-			echo "log_this: timed out waiting for programs logging output to end!" >&2
-			return 1
-		fi
-		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
-			echo "syslog_waitfor: Invalid timestamp from date!" >&2
-			return 1
-		fi
-		sleep 1
-	done
 
 	return 0
 }
