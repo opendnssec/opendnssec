@@ -111,7 +111,7 @@ find_jenkins_workspace_root ()
 {
 	if [ -z "$WORKSPACE" -o ! -d "$WORKSPACE" ]; then
 		echo "find_jenkins_workspace_root: Unable to find workspace root since no WORKSPACE has been defined" >&2
-		return -1
+		return 1
 	fi
 
 	local workspace="$WORKSPACE"
@@ -120,20 +120,20 @@ find_jenkins_workspace_root ()
 	
 	while [ "$max_iter" -gt 0 ]; do
 		# check if the last dir on the path is workspace
-		currdir=`echo "$workspace" | sed 's%.*/%%'`
+		currdir=`echo "$workspace" | sed 's%.*/%%' 2>/dev/null`
 		if [ "$currdir" = "workspace" ]; then
 			break
 		fi
 		
 		# remove the last dir on the path
-		workspace=`echo "$workspace" | sed 's%/[^/]*$%%'`
+		workspace=`echo "$workspace" | sed 's%/[^/]*$%%' 2>/dev/null`
 		
 		max_iter=$(( max_iter - 1))
 	done
 
 	if [ -n "$workspace" -a "$max_iter" -gt 0 ]; then
 		WORKSPACE_ROOT="$workspace"
-		return
+		return 0
 	fi
 
 	echo "find_jenkins_workspace_root: Failed to find workspace root in WORKSPACE=$WORKSPACE" >&2
@@ -146,7 +146,7 @@ find_program ()
 		local path=`which "$1" 2>/dev/null`
 		if [ -n "$path" -a -x "$path" ]; then
 			echo "$path"
-			return
+			return 0
 		fi
 	fi
 	
@@ -169,7 +169,7 @@ find_make ()
 		make=`find_program "$program"`
 		if [ -n "$make" ]; then
 			export MAKE="$make"
-			return
+			return 0
 		fi
 	done
 	
@@ -185,7 +185,7 @@ find_m4 ()
 		m4=`find_program "$program"`
 		if [ -n "$m4" ]; then
 			export M4="$m4"
-			return
+			return 0
 		fi
 	done
 	
@@ -207,7 +207,7 @@ find_md5sum ()
 		    	;;
 		    esac
 			export MD5SUM
-			return
+			return 0
 		fi
 	done
 
@@ -232,7 +232,7 @@ find_sha1sum ()
     			;;
     		esac
     		export SHA1SUM
-    		return
+    		return 0
     	fi
     done
 
@@ -257,7 +257,7 @@ find_sha256sum ()
     			;;
     		esac
 			export SHA256SUM
-			return
+			return 0
 		fi
 	done
 
@@ -273,7 +273,7 @@ find_wget ()
 		wget=`find_program "$program"`
 		if [ -n "$wget" ]; then
 			export WGET="$wget"
-			return
+			return 0
 		fi
 	done
 
@@ -296,7 +296,7 @@ find_ccache ()
 					break
 				fi
 			done
-			return
+			return 0
 		fi
 	done
 
@@ -312,7 +312,7 @@ find_cc ()
 		cc=`find_program "$program"`
 		if [ -n "$cc" ]; then
 			export CC="$cc"
-			return
+			return 0
 		fi
 	done
 
@@ -328,7 +328,7 @@ find_cxx ()
 		cxx=`find_program "$program"`
 		if [ -n "$cxx" ]; then
 			export CXX="$cxx"
-			return
+			return 0
 		fi
 	done
 
@@ -344,7 +344,7 @@ find_tee ()
 		tee=`find_program "$program"`
 		if [ -n "$tee" ]; then
 			export TEE="$tee"
-			return
+			return 0
 		fi
 	done
 
@@ -361,9 +361,9 @@ find_date ()
 		date=`find_program "$program"`
 		if [ -n "$date" ]; then
 			time_now=`$date '+%s' 2>/dev/null`
-			if [ "$time_now" -gt 0 ]; then
+			if [ -n "$time_now" -a "$time_now" -gt 0 ] 2>/dev/null; then
 				export DATE="$date"
-				return
+				return 0
 			fi
 		fi
 	done
@@ -421,21 +421,21 @@ find_tail ()
 	export TAIL="$tail"
 	export TAIL_FOLLOW="$tail_follow"
 
-	return
+	return 0
 }
 
 setup_install_root ()
 {
 	if [ -n "$INSTALL_ROOT" ]; then
 		if [ -d "$INSTALL_ROOT" ]; then
-			return
+			return 0
 		else
 			return 1
 		fi
 	fi
 
 	if [ ! -d "$WORKSPACE_ROOT/root" ]; then
-		if ! mkdir "$WORKSPACE_ROOT/root"; then
+		if ! mkdir "$WORKSPACE_ROOT/root" 2>/dev/null; then
 			echo "setup_install_root: Unable to create INSTALL_ROOT at $WORKSPACE_ROOT/root" >&2
 			return 1
 		fi
@@ -443,7 +443,7 @@ setup_install_root ()
 	
 	if [ -n "$INSTALL_TAG" ]; then
 		if [ ! -d "$WORKSPACE_ROOT/root/$INSTALL_TAG" ]; then
-			if ! mkdir -p "$WORKSPACE_ROOT/root/$INSTALL_TAG"; then
+			if ! mkdir -p "$WORKSPACE_ROOT/root/$INSTALL_TAG" 2>/dev/null; then
 				echo "setup_install_root: Unable to create INSTALL_ROOT at $WORKSPACE_ROOT/root/$INSTALL_TAG" >&2
 				return 1
 			fi
@@ -466,7 +466,7 @@ setup_install_root ()
 			append_cppflags "-I$INSTALL_ROOT/include"
 		fi
 		
-		return
+		return 0
 	fi
 	
 	echo "setup_install_root: INSTALL_TAG or INSTALL_ROOT is not set, need to know in where to build/test" >&2
@@ -512,7 +512,10 @@ detect_distribution ()
 
 init ()
 {
-	export _CLEANUP_TEST=""
+	unset _CLEANUP_TEST
+	unset _SYSLOG_TRACE_PID
+	unset PRE_TEST
+	unset POST_TEST
 	
 	detect_distribution
 	find_jenkins_workspace_root || exit 1
@@ -546,10 +549,10 @@ check_if_built ()
 	local name_tag="$1"
 	
 	if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build"`
+		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" >/dev/null`
 		
-		if [ "x$SVN_REVISION" == "x$build_svn_rev" ]; then
-			return
+		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+			return 0
 		fi
 	fi
 	
@@ -565,7 +568,12 @@ start_build ()
 	
 	local name_tag="$1"
 	
-	rm -f "$INSTALL_ROOT/.$name_tag.ok"
+	if [ -e "$INSTALL_ROOT/.$name_tag.ok"]; then
+		if ! rm "$INSTALL_ROOT/.$name_tag.ok" 2>/dev/null; then
+			echo "start_build: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok !" >&2
+			exit 1
+		fi
+	fi
 
 	echo "start_build: Starting build for $name_tag on $DISTRIBUTION"	
 }
@@ -590,16 +598,20 @@ set_build_ok ()
 	fi
 
 	echo "$SVN_REVISION" > "$INSTALL_ROOT/.$name_tag.build"
-	touch "$INSTALL_ROOT/.$name_tag.ok"
 
 	if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build"`
+		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
 		
 		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
-			return
+			if ! touch "$INSTALL_ROOT/.$name_tag.ok" 2>/dev/null; then
+				echo "set_build_ok: Can't tag build ok $INSTALL_ROOT/.$name_tag.ok !" >&2
+				return 1
+			fi
+			return 0
 		fi
 	fi
 	
+	echo "set_build_ok: Was not able to tag build ok!" >&2
 	return 1
 }
 
@@ -618,10 +630,10 @@ check_if_tested ()
 	local name_tag="$1"
 	
 	if [ -f "$INSTALL_ROOT/.$name_tag.test" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test"`
+		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
 		
-		if [ "x$SVN_REVISION" == "x$build_svn_rev" ]; then
-			return
+		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+			return 0
 		fi
 	fi
 	
@@ -655,9 +667,14 @@ start_test ()
 			if ln -s "$WORKSPACE_ROOT/.testing.$$" "$WORKSPACE_ROOT/.testing" 2>/dev/null; then
 				build_tag=`cat "$WORKSPACE_ROOT/.testing" 2>/dev/null`
 				if [ "$build_tag" = "$BUILD_TAG $$" ]; then
-					rm -f "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null
+					if [ -e "$INSTALL_ROOT/.$name_tag.ok.test"]; then
+						if ! rm "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null; then
+							echo "start_test: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok.test !" >&2
+							exit 1
+						fi
+					fi
 					export _CLEANUP_TEST=1
-					return
+					return 0
 				fi
 			fi
 		fi
@@ -667,8 +684,12 @@ start_test ()
 		fi
 		
 		time_now=`$DATE '+%s' 2>/dev/null`
-		if [ "$time_now" -ge "$time_stop" ]; then
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
 			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "start_test: Invalid timestamp from date!" >&2
+			exit 1
 		fi
 		sleep 2
 	done
@@ -725,16 +746,20 @@ set_test_ok ()
 	fi
 
 	echo "$SVN_REVISION" > "$INSTALL_ROOT/.$name_tag.test"
-	touch "$INSTALL_ROOT/.$name_tag.ok.test"
 
 	if [ -f "$INSTALL_ROOT/.$name_tag.test" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test"`
+		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
 		
 		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
-			return
+			if ! touch "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null; then
+				echo "set_test_ok: Can't tag test ok $INSTALL_ROOT/.$name_tag.ok.test !" >&2
+				return 1
+			fi
+			return 0
 		fi
 	fi
 	
+	echo "set_test_ok: Was not able to tag build ok!" >&2
 	return 1
 }
 
@@ -758,7 +783,7 @@ require ()
 		exit 1
 	fi
 	
-	local require_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build"`
+	local require_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
 
 	if [ -z "$require_svn_rev" ]; then
 		echo "require: There is no build version for $name_tag!" >&2
@@ -770,7 +795,7 @@ require ()
 
 check_hash ()
 {
-    if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
 		echo "usage: check_hash <filename> <type> <hash>" >&2
 		exit 1
 	fi
@@ -783,17 +808,17 @@ check_hash ()
 	if [ -f "$filename" ]; then
 		case "$type" in
 			md5)
-	    	file_hash=`$MD5SUM "$filename" | awk '{print $1}'`
+	    	file_hash=`$MD5SUM "$filename" 2>/dev/null | awk '{print $1}'`
 	    	;;
 			sha1)
-			file_hash=`$SHA1SUM "$filename" | awk '{print $1}'`
+			file_hash=`$SHA1SUM "$filename" 2>/dev/null | awk '{print $1}'`
 			;;
 			sha256)
-			file_hash=`$SHA256SUM "$filename" | awk '{print $1}'`
+			file_hash=`$SHA256SUM "$filename" 2>/dev/null | awk '{print $1}'`
 			;;
 		esac
 		if [ -n "$file_hash" -a "$hash" = "$file_hash" ]; then
-			return
+			return 0
 		fi
 	fi
 	
@@ -810,11 +835,11 @@ fetch_src ()
 	local url="$1"
 	local filename="$2"
 	local type="$3"
-    local hash="$4"
+	local hash="$4"
 	local path_filename
 	
 	if [ ! -d "$WORKSPACE_ROOT/cache" ]; then
-		if ! mkdir -p "$WORKSPACE_ROOT/cache"; then
+		if ! mkdir -p "$WORKSPACE_ROOT/cache" 2>/dev/null; then
 			echo "fetch_src: Unable to create cache directory $WORKSPACE_ROOT/cache!" >&2
 			exit 1
 		fi
@@ -825,15 +850,19 @@ fetch_src ()
 	if [ -f "$path_filename" ]; then
 		if check_hash "$path_filename" "$type" "$hash"; then
 			echo "$path_filename"
-			return
+			return 0
 		fi
-		if ! rm -f "$path_filename"; then
+		if ! rm "$path_filename" 2>/dev/null; then
 			echo "fetch_src: Unable to remove old invalid file $path_filename!" >&2
 			exit 1
 		fi
 	fi
 
-	$WGET -O "$path_filename" "$url"
+	if ! $WGET -O "$path_filename" "$url" 2>/dev/null; then
+		echo "fetch_src: wget failed!" >&2
+		rm -f "$path_filename" 2>/dev/null
+		exit 1
+	fi
 	
 	if [ ! -f "$path_filename" ]; then
 		echo "fetch_src: File at $url not found at $path_filename!" >&2
@@ -858,34 +887,16 @@ log_this ()
 	local name="$1"
 	local log_stderr="_log.$BUILD_TAG.$name.stderr"
 	local log_stdout="_log.$BUILD_TAG.$name.stdout"
-	local log_stderr_pid="_log.$BUILD_TAG.$name.stderr.pid"
-	local log_stdout_pid="_log.$BUILD_TAG.$name.stdout.pid"
+	local log_stderr_pid="_log_pid.$BUILD_TAG.$name.stderr"
+	local log_stdout_pid="_log_pid.$BUILD_TAG.$name.stdout"
 	local stderr_pid
 	local stdout_pid
 	
 	shift
 	echo "log_this: logging $name for command: $*"
-	$* 2> >(echo $(bash -c 'echo $PPID') > "$log_stderr_pid" && $TEE -a "$log_stderr" && rm -f "$log_stderr_pid") \
-		> >(echo $(bash -c 'echo $PPID') > "$log_stdout_pid" && $TEE -a "$log_stdout" && rm -f "$log_stdout_pid")
-	
-	if [ -e "$log_stderr_pid" ]; then
-		stderr_pid=`cat "$log_stderr_pid"`
-		
-		if [ "$stderr_pid" -gt 0 ]; then
-			kill -TERM "$stderr_pid" 2>/dev/null
-		fi
-		rm -f "$log_stderr_pid"
-	fi
-			
-	if [ -e "$log_stdout_pid" ]; then
-		stdout_pid=`cat "$log_stdout_pid"`
-		
-		if [ "$stdout_pid" -gt 0 ]; then
-			kill -TERM "$stdout_pid" 2>/dev/null
-		fi
-		rm -f "$log_stdout_pid"
-	fi
-	
+	$* 2> >(bash -c 'echo $PPID' > "$log_stderr_pid" 2>/dev/null && $TEE -a "$log_stderr" && rm -f "$log_stderr_pid") \
+		> >(bash -c 'echo $PPID' > "$log_stdout_pid" 2>/dev/null && $TEE -a "$log_stdout" && rm -f "$log_stdout_pid")
+
 	return 0
 }
 
@@ -935,13 +946,25 @@ log_grep ()
 
 log_cleanup ()
 {
-	rm -f "_log.$BUILD_TAG*" 2>/dev/null
+	local pid_file
+	local pid
+
+	ls _log_pid* 2>/dev/null | while read pid_file; do
+		pid=`cat $pid_file 2>/dev/null`
+
+		if [ -n "$pid" -a "$pid" -gt 0 ]; then
+			kill -TERM "$pid" 2>/dev/null
+			rm -f "$pid_file" 2>/dev/null
+		fi
+	done
+
+	rm -f "_log.$BUILD_TAG"* 2>/dev/null
 }
 
 run_tests ()
 {
 	if [ -z "$1" ]; then
-		echo "usage: run_tests <test directory>" >&2
+		echo "usage: run_tests <tests directory>" >&2
 		exit 1
 	fi
 	
@@ -954,6 +977,7 @@ run_tests ()
 	local test_status
 	local test_failed=0
 	local pwd=`pwd`
+	local pwd2
 
 	if [ -n "$PRE_TEST" ]; then
 		if ! declare -F "$PRE_TEST" >/dev/null 2>/dev/null; then
@@ -987,12 +1011,13 @@ run_tests ()
 		return 1
 	fi
 
-	echo "Running tests..."	
+	echo "Running tests ..."	
 	while [ "$test_iter" -lt "$test_num" ]; do
 		test_path="${test[test_iter]}"
 		test_iter=$(( test_iter + 1 ))
 		echo -n "$test_iter/$test_num	$test_path ... "
-		cd "$test_path" &&
+		pwd2=`pwd`
+		cd "$test_path" 2>/dev/null &&
 		if [ -n "$PRE_TEST" ]; then
 			$PRE_TEST "$test_path"
 		fi &&
@@ -1011,13 +1036,85 @@ run_tests ()
 			test_failed=$(( test_failed + 1 ))
 			echo "failed!"
 		fi
+
+		if ! cd "$pwd2" 2>/dev/null; then
+			echo "run_tests: unable to change back to test directory $pwd2 after running a test!" >&2
+			test_failed=1
+			break
+		fi
 	done
 
-	cd "$pwd"
+	if ! cd "$pwd" 2>/dev/null; then
+		echo "run_tests: unable to change back to directory $pwd after running tests!" >&2
+		return 1
+	fi
 	
 	if [ "$test_failed" -gt 0 ]; then
 		return 1
 	fi
+}
+
+run_test ()
+{
+        if [ -z "$1" -o -z "$2" ]; then
+                echo "usage: run_test <test name> <test directory>" >&2
+                exit 1
+        fi
+
+        local test_name="$1"
+	local test_dir="$2"
+	local test_status
+	local pwd=`pwd`
+
+        if [ -n "$PRE_TEST" ]; then
+                if ! declare -F "$PRE_TEST" >/dev/null 2>/dev/null; then
+                        unset PRE_TEST
+                fi
+        fi
+
+        if [ -n "$POST_TEST" ]; then
+                if ! declare -F "$POST_TEST" >/dev/null 2>/dev/null; then
+                        unset POST_TEST
+                fi
+        fi
+
+	if [ ! -e "$test_dir/test.sh" ]; then
+		echo "run_test: no test.sh in test $test_name ($test_dir)!" >&2
+		return 1
+	fi
+
+        if ! cd "$test_dir" 2>/dev/null; then
+                echo "run_test: unable to change to test $test_name directory $test_dir!" >&2
+                return 1
+        fi
+
+        echo "Running test $test_name ..." 
+        if [ -n "$PRE_TEST" ]; then
+        	$PRE_TEST "$test_name"
+        fi &&
+        syslog_trace &&
+        source ./test.sh
+        test_status="$?"
+        syslog_stop
+        if [ -n "$POST_TEST" ]; then
+               $POST_TEST "$test_name" "$test_status"
+        fi
+        if [ "$test_status" -eq 0 ]; then
+		echo "ok"
+		log_cleanup
+		syslog_cleanup
+        else
+		echo "failed!"
+        fi
+
+        if ! cd "$pwd" 2>/dev/null; then
+                echo "run_test: unable to change back to directory $pwd after running test $test_name!" >&2
+                return 1
+        fi
+
+        if [ "$test_status" -ne 0 ]; then
+                return 1
+        fi
 }
 
 syslog_trace ()
@@ -1049,7 +1146,7 @@ syslog_trace ()
 			;;
 	esac
 	
-	if [ -z "$_SYSLOG_TRACE_PID" -o ! "$_SYSLOG_TRACE_PID" -gt 0 ]; then
+	if [ -z "$_SYSLOG_TRACE_PID" -o ! "$_SYSLOG_TRACE_PID" -gt 0 ] 2>/dev/null; then
 		echo "syslog_trace: Unable to start trace of syslog!" >&2
 		exit 1
 	fi
@@ -1115,11 +1212,15 @@ syslog_waitfor ()
 	echo "syslog_waitfor: waiting for syslog to containm (timeout $timeout): $grep_string"
 	while true; do
 		if grep -q "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null; then
-			return
+			return 0
 		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
-		if [ -z "$_SYSLOG_TRACE_PID" -o "$time_now" -ge "$time_stop" ]; then
+		if [ -z "$_SYSLOG_TRACE_PID" -o "$time_now" -ge "$time_stop" ] 2>/dev/null; then
 			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "syslog_waitfor: Invalid timestamp from date!" >&2
+			exit 1
 		fi
 		sleep 2
 	done
