@@ -1149,14 +1149,14 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
         tries++;
         lock_basic_lock(&q->q_lock);
         status = fifoq_push(q, (void*) rrset, worker, &tries);
-        lock_basic_unlock(&q->q_lock);
         /**
          * If tries are 0 they we have tries FIFOQ_TRIES_COUNT times,
          * lets take a small break to not hog CPU.
          */
-        if (status == ODS_STATUS_UNCHANGED && !tries) {
-            worker_wait_timeout(&q->q_lock, &q->q_nonfull, 60);
+        if (status == ODS_STATUS_UNCHANGED) {
+            worker_wait_timeout_locked(&q->q_lock, &q->q_nonfull, 60);
         }
+        lock_basic_unlock(&q->q_lock);
     }
     if (status == ODS_STATUS_OK) {
         lock_basic_lock(&worker->worker_lock);

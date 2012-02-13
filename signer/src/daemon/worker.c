@@ -797,6 +797,19 @@ worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
 
 
 /**
+ * Worker waiting on an already locked cond
+ *
+ */
+void
+worker_wait_timeout_locked(lock_basic_type* lock, cond_basic_type* condition,
+    time_t timeout)
+{
+    lock_basic_sleep(condition, lock, timeout);
+    return;
+}
+
+
+/**
  * Worker waiting.
  *
  */

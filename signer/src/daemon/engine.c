@@ -338,6 +338,7 @@ engine_stop_workers(engine_type* engine)
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
+    worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
