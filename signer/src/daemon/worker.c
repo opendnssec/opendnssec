@@ -164,17 +164,18 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
         tries++;
         lock_basic_lock(&q->q_lock);
         status = fifoq_push(q, (void*) rrset, worker, &tries);
-        lock_basic_unlock(&q->q_lock);
         if (worker->need_to_exit) {
+            lock_basic_unlock(&q->q_lock);
             return;
         }
         /**
          * If tries are 0 they we have tries FIFOQ_TRIES_COUNT times,
          * lets take a small break to not hog CPU.
          */
-        if (status == ODS_STATUS_UNCHANGED && !tries) {
-            worker_wait_timeout(&q->q_lock, &q->q_nonfull, 60);
+        if (status == ODS_STATUS_UNCHANGED) {
+            worker_wait_timeout_locked(&q->q_lock, &q->q_nonfull, 60);
         }
+        lock_basic_unlock(&q->q_lock);
     }
     ods_log_assert(status == ODS_STATUS_OK);
     lock_basic_lock(&worker->worker_lock);
@@ -779,6 +780,19 @@ worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
     lock_basic_lock(lock);
     lock_basic_sleep(condition, lock, timeout);
     lock_basic_unlock(lock);
+    return;
+}
+
+
+/**
+ * Worker waiting on an already locked cond
+ *
+ */
+void
+worker_wait_timeout_locked(lock_basic_type* lock, cond_basic_type* condition,
+    time_t timeout)
+{
+    lock_basic_sleep(condition, lock, timeout);
     return;
 }
 
