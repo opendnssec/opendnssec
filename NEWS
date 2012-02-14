@@ -5,17 +5,18 @@ OpenDNSSEC 1.3.6
 * OPENDNSSEC-33: Signer Engine: Check HSM connection before use, attempt to
   reconnect if it is not valid.
 * OPENDNSSEC-178: Signer Engine: Instead of waiting an arbitrary amount of
-  time, let worker wait pushing sign operations until the queue is non-full.
+  time, let worker wait with pushing sign operations until the queue is
+  non-full.
 * Signer Engine: Adjust some log messages.
 
 Bugfixes:
-* Bugfix OPENDNSSEC-56: ods-ksmutil had the wrong option for config file in
-  the help usage text.
-* Bugfix OPENDNSSEC-207: Signer Engine: Fix communication from a process
-  not attached to a shell.
-* Bugfix OPENDNSSEC-209: Signer Engine: Make output file adapter atomic by
-  writing signed file to an intermediate file first.
-* Bugfix: Wrong exit status in ods-control if Enforcer was already running.
+* ods-control: Wrong exit status if Enforcer was already running.
+* OPENDNSSEC-56: ods-ksmutil had the wrong option for config file in the
+  help usage text.
+* OPENDNSSEC-207: Signer Engine: Fix communication from a process not
+  attached to a shell.
+* OPENDNSSEC-209: Signer Engine: Make output file adapter atomic by writing
+  signed file to an intermediate file first.
 
 
 OpenDNSSEC 1.3.5 - 2012-01-23
