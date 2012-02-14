@@ -229,7 +229,7 @@ main (int argc, char *argv[])
         r32 = hsm_random32(ctx);
         printf("random 32: %u\n", r32);
         r64 = hsm_random64(ctx);
-        printf("random 64: %llu\n", r64);
+        printf("random 64: %llu\n", (long long unsigned int)r64);
     }
 
     /*
