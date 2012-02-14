@@ -127,6 +127,10 @@ denial_create_nsec3_nxt(ldns_rdf* nxt)
         next_owner_string[strlen(next_owner_string)-1] = '\0';
     }
     status = ldns_str2rdf_b32_ext(&next_owner_rdf, next_owner_string);
+    if (status != LDNS_STATUS_OK) {
+        ods_log_alert("[%s] unable to create NSEC3 Next: "
+            "ldns_str2rdf_b32_ext() failed", denial_str);
+    }
     free((void*)next_owner_string);
     ldns_rdf_deep_free(next_owner_label);
     return next_owner_rdf;

@@ -239,9 +239,12 @@ nsec3params_salt2str(nsec3params_type* nsec3params)
     }
     if (ldns_buffer_status(buffer) == LDNS_STATUS_OK) {
         str = ldns_buffer2str(buffer);
-    } else {
+    } else if (written) {
         ods_log_error("[%s] unable to convert nsec3 salt to string: %s",
             nsec3_str, ldns_get_errorstr_by_id(ldns_buffer_status(buffer)));
+    } else {
+        ods_log_error("[%s] unable to convert nsec3 salt to string: zero "
+            "bytes written", nsec3_str);
     }
     ldns_buffer_free(buffer);
     return (const char*) str;

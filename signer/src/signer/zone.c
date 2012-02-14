@@ -138,7 +138,6 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
     ods_status status = ODS_STATUS_OK;
     signconf_type* signconf = NULL;
     char* datestamp = NULL;
-    uint32_t ustamp = 0;
 
     if (!zone || !zone->name || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
@@ -157,7 +156,7 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
                 "status ok but no signconf stored", zone_str, zone->name);
             return ODS_STATUS_ASSERT_ERR;
         }
-        ustamp = time_datestamp(signconf->last_modified, "%Y-%m-%d %T",
+        (void)time_datestamp(signconf->last_modified, "%Y-%m-%d %T",
             &datestamp);
         ods_log_debug("[%s] zone %s signconf file %s is modified since %s",
             zone_str, zone->name, zone->signconf_filename,
@@ -165,7 +164,7 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
         free((void*)datestamp);
         *new_signconf = signconf;
     } else if (status == ODS_STATUS_UNCHANGED) {
-        ustamp = time_datestamp(zone->signconf->last_modified,
+        (void)time_datestamp(zone->signconf->last_modified,
             "%Y-%m-%d %T", &datestamp);
         ods_log_verbose("[%s] zone %s signconf file %s is unchanged since "
             "%s", zone_str, zone->name, zone->signconf_filename,
@@ -429,7 +428,6 @@ zone_update_serial(zone_type* zone)
     rr_type* soa = NULL;
     ldns_rr* rr = NULL;
     ldns_rdf* soa_rdata = NULL;
-    uint32_t tmp = 0;
 
     ods_log_assert(zone);
     ods_log_assert(zone->apex);
@@ -452,7 +450,6 @@ zone_update_serial(zone_type* zone)
             "clone soa rr", zone_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    tmp = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
     status = namedb_update_serial(zone->db, zone->signconf->soa_serial,
         zone->db->inbserial);
     if (status != ODS_STATUS_OK) {

@@ -577,6 +577,11 @@ worker_work(worker_type* worker)
             worker->task = NULL;
             worker->working_with = TASK_NONE;
             status = schedule_task(engine->taskq, zone->task, 1);
+            if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s[%i]] unable to schedule task for zone %s: "
+                "%s", worker2str(worker->type), worker->thread_num,
+                zone->name, ods_status2str(status));
+            }
             lock_basic_unlock(&engine->taskq->schedule_lock);
             lock_basic_unlock(&zone->zone_lock);
             timeout = 1;

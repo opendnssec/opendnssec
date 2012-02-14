@@ -616,7 +616,7 @@ addns_read(void* zone)
  *
  */
 ods_status
-addns_write(void* zone, const char* filename)
+addns_write(void* zone)
 {
     FILE* fd = NULL;
     char* atmpfile = NULL;

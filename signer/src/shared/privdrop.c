@@ -91,6 +91,10 @@ privuid(const char* username)
         }
         /* Lookup the user id in /etc/passwd */
         s = getpwnam_r(username, &pwd, buf, bufsize, &result); /* LEAK */
+        if (s) {
+            ods_log_error("[%s] unable to get user id for %s: %s",
+                privdrop_str, username, strerror(s));
+        }
         if (result != NULL) {
             uid = pwd.pw_uid;
         }
@@ -130,6 +134,10 @@ privgid(const char *groupname)
         }
         /* Lookup the group id in /etc/group */
         s = getgrnam_r(groupname, &grp, buf, bufsize, &result); /* LEAK */
+        if (s) {
+            ods_log_error("[%s] unable to get group id for %s: %s",
+                privdrop_str, groupname, strerror(s));
+        }
         if (result != NULL) {
             gid = grp.gr_gid;
         }

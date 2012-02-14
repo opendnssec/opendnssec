@@ -960,8 +960,10 @@ namedb_examine(namedb_type* db)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
+/*
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
+*/
 
     if (!db || !db->domains) {
        /* no db, no error */
@@ -996,8 +998,10 @@ namedb_examine(namedb_type* db)
                 return ODS_STATUS_CONFLICT_ERR;
             }
         }
+/*
         dstatus = domain_is_occluded(domain);
         delegpt = domain_is_delegpt(domain);
+*/
         /* Thou shall not have occluded data in your zone file */
         node = ldns_rbtree_next(node);
     }

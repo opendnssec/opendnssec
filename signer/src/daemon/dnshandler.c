@@ -113,9 +113,6 @@ dnshandler_start(dnshandler_type* dnshandler)
     engine_type* engine = NULL;
     netio_handler_type* tcp_accept_handlers = NULL;
     ods_status status = ODS_STATUS_OK;
-    struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
 
     ods_log_assert(dnshandler);
     ods_log_assert(dnshandler->engine);
@@ -276,6 +273,10 @@ dnshandler_handle_xfr(netio_type* ATTR_UNUSED(netio),
     ods_log_assert(event_types & NETIO_EVENT_READ);
     ods_log_debug("[%s] read forwarded xfr packet", dnsh_str);
     received = read(dnshandler->xfrhandler.fd, &buf, MAX_PACKET_SIZE);
+    if (received == -1) {
+        ods_log_debug("[%s] unable to forward xfr packet: %s", dnsh_str,
+            strerror(errno));
+    }
     return;
 }
 

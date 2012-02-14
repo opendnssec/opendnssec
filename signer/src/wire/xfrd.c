@@ -58,7 +58,7 @@ static socklen_t xfrd_acl_sockaddr(acl_type* acl, unsigned int port,
 
 static void xfrd_write_soa(xfrd_type* xfrd, buffer_type* buffer);
 static int xfrd_parse_soa(xfrd_type* xfrd, buffer_type* buffer,
-    unsigned rdata_only, unsigned update, ldns_rr_class k, uint32_t t,
+    unsigned rdata_only, unsigned update, uint32_t t,
     uint32_t* serial);
 static int xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer,
     uint16_t count, int* done);
@@ -601,10 +601,9 @@ xfrd_update_soa(xfrd_type* xfrd, buffer_type* buffer, uint32_t ttl,
  */
 static int
 xfrd_parse_soa(xfrd_type* xfrd, buffer_type* buffer, unsigned rdata_only,
-    unsigned update, ldns_rr_class k, uint32_t t, uint32_t* soa_serial)
+    unsigned update, uint32_t t, uint32_t* soa_serial)
 {
     ldns_rr_type type = LDNS_RR_TYPE_SOA;
-    ldns_rr_class klass = k;
     uint16_t mname_pos = 0;
     uint16_t rname_pos = 0;
     uint16_t pos = 0;
@@ -630,7 +629,7 @@ xfrd_parse_soa(xfrd_type* xfrd, buffer_type* buffer, unsigned rdata_only,
                 xfrd_str, (unsigned) type);
             return 0;
         }
-        klass = (ldns_rr_class) buffer_read_u16(buffer);
+        (void)buffer_read_u16(buffer); /* class */
         ttl = buffer_read_u32(buffer);
         /* rdata length */
         if (!buffer_available(buffer, buffer_read_u16(buffer))) {
@@ -680,12 +679,10 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
     int* done)
 {
     ldns_rr_type type = 0;
-    ldns_rr_class klass = 0;
     uint16_t rrlen = 0;
     uint32_t ttl = 0;
     uint32_t serial = 0;
     size_t i = 0;
-    size_t pos = 0;
     ods_log_assert(xfrd);
     ods_log_assert(buffer);
     ods_log_assert(done);
@@ -696,16 +693,16 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
          if (!buffer_available(buffer, 10)) {
              return 0;
          }
-         pos = buffer_position(buffer);
+         (void)buffer_position(buffer);
          type = (ldns_rr_type) buffer_read_u16(buffer);
-         klass = (ldns_rr_class) buffer_read_u16(buffer);
+         (void)buffer_read_u16(buffer); /* class */
          ttl = buffer_read_u32(buffer);
          rrlen = buffer_read_u16(buffer);
          if (!buffer_available(buffer, rrlen)) {
              return 0;
          }
          if (type == LDNS_RR_TYPE_SOA) {
-             if (!xfrd_parse_soa(xfrd, buffer, 1, 0, klass, ttl, &serial)) {
+             if (!xfrd_parse_soa(xfrd, buffer, 1, 0, ttl, &serial)) {
                  return 0;
              }
              if (xfrd->msg_rr_count == 1 && serial != xfrd->msg_new_serial) {
@@ -822,7 +819,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
     if (xfrd->msg_rr_count == 0) {
         /* parse the first RR, see if it is a SOA */
         if (!buffer_skip_dname(buffer) ||
-            !xfrd_parse_soa(xfrd, buffer, 0, 1, 0, 0, &serial)) {
+            !xfrd_parse_soa(xfrd, buffer, 0, 1, 0, &serial)) {
             ods_log_error("[%s] bad packet: zone %s received bad xfr "
                 "packet from %s (bad soa)", xfrd_str, zone->name,
                 xfrd->master->address);

@@ -209,10 +209,7 @@ static int
 query_parse_soa(buffer_type* buffer, uint32_t* serial)
 {
     ldns_rr_type type = 0;
-    ldns_rr_class klass = 0;
-    uint32_t tmp = 0;
     ods_log_assert(buffer);
-
     if (!buffer_available(buffer, 10)) {
         ods_log_error("[%s] bad notify: packet too short", query_str);
         return 0;
@@ -223,8 +220,8 @@ query_parse_soa(buffer_type* buffer, uint32_t* serial)
             query_str, type);
         return 0;
     }
-    klass = (ldns_rr_class) buffer_read_u16(buffer);
-    tmp = buffer_read_u32(buffer);
+    (void)buffer_read_u16(buffer);
+    (void)buffer_read_u32(buffer);
     /* rdata length */
     if (!buffer_available(buffer, buffer_read_u16(buffer))) {
         ods_log_error("[%s] bad notify: soa missing rdlength", query_str);
@@ -260,7 +257,6 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     uint16_t rrcount = 0;
     uint32_t serial = 0;
     size_t limit = 0;
-    size_t curpos = 0;
     char address[128];
     if (!e || !q || !q->zone) {
         return QUERY_DISCARDED;
@@ -300,7 +296,6 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
         return query_refused(q);
     }
     limit = buffer_limit(q->buffer);
-    curpos = buffer_position(q->buffer);
     ods_log_assert(q->zone->xfrd);
     /* skip header and question section */
     buffer_skip(q->buffer, BUFFER_PKT_HEADER_SIZE);
@@ -363,7 +358,6 @@ static query_state
 query_process_ixfr(query_type* q)
 {
     uint16_t count = 0;
-    uint16_t rrcount = 0;
     ods_log_assert(q);
     ods_log_assert(q->buffer);
     ods_log_assert(buffer_pkt_qdcount(q->buffer) == 1);

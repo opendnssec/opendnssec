@@ -165,14 +165,13 @@ ods_status
 adapter_read(void* zone)
 {
     zone_type* adzone = (zone_type*) zone;
-    ods_status status = ODS_STATUS_OK;
     if (!adzone || !adzone->adinbound) {
         ods_log_error("[%s] unable to read zone: no input adapter",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone->adinbound->configstr);
-    switch(adzone->adinbound->type) {
+    switch (adzone->adinbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] read zone %s from file input adapter %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
@@ -214,7 +213,7 @@ adapter_write(void* zone)
             return adfile_write(zone, adzone->adoutbound->configstr);
             break;
         case ADAPTER_DNS:
-            return addns_write(zone, adzone->adoutbound->configstr);
+            return addns_write(zone);
             break;
         default:
             ods_log_error("[%s] unable to write zone %s to adapter: unknown "

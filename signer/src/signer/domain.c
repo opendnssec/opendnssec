@@ -399,7 +399,6 @@ domain_ent2unsignedns(domain_type* domain)
 {
     ldns_rbnode_t* n = LDNS_RBTREE_NULL;
     domain_type* d = NULL;
-    ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
 
     ods_log_assert(domain);
     if (domain->rrsets) {
@@ -412,7 +411,6 @@ domain_ent2unsignedns(domain_type* domain)
             break;
         }
         if (d->rrsets) {
-            dstatus = domain_is_delegpt(d);
             if (domain_is_delegpt(d) == LDNS_RR_TYPE_NS) {
                 /* domain has unsigned delegation */
                 return 1;

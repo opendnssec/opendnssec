@@ -748,8 +748,6 @@ engine_update_zones(engine_type* engine)
     zone_type* delzone = NULL;
     task_type* task = NULL;
     ods_status status = ODS_STATUS_OK;
-    unsigned to_schedule = 0;
-    unsigned to_reschedule = 0;
     unsigned wake_up = 0;
     int warnings = 0;
     time_t now = 0;
@@ -765,8 +763,6 @@ engine_update_zones(engine_type* engine)
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
         task = NULL; /* reset task */
-        to_schedule = 0;
-        to_reschedule = 0;
 
         if (zone->zl_status == ZONE_ZL_REMOVED) {
             node = ldns_rbtree_next(node);

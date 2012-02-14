@@ -268,6 +268,10 @@ ods_file_lastmodified(const char* file)
     ods_log_assert(file);
     if ((fd = ods_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
+        if (ret == -1) {
+            ods_log_error("[%s] unable to stat file %s: %s", file_str,
+                file, strerror(errno));
+        }
         ods_fclose(fd);
         return buf.st_mtime;
     }
