@@ -14,7 +14,7 @@ ods_pre_test ()
 		fi
 	fi
 
-	for	file in conf.xml kasp.xml zonelist.xml; do
+	for	file in addns.xml conf.xml kasp.xml zonelist.xml; do
 		if [ -e "$file" ]; then
 			if ! cp "$file" "$INSTALL_ROOT/etc/opendnssec/$file" 2>/dev/null; then
 				echo "pre_test: unable to copy/install test specific $file to $INSTALL_ROOT/etc/opendnssec/$file" >&2
@@ -40,7 +40,7 @@ ods_reset_env ()
 	echo "y" | ods-ksmutil setup &&
 	log_this softhsm-init-token softhsm --init-token --slot 0 --label OpenDNSSEC --pin 1234 --so-pin 1234 ||
 	return 1
-	
+
 	if ! log_grep softhsm-init-token stdout "The token has been initialized."; then
 		return 1
 	fi
