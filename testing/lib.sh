@@ -403,14 +403,14 @@ find_tail ()
 		sl | \
 		opensuse | \
 		sunos )
-			tail_follow="$tail --follow=name"
+			tail_follow="$tail --follow=name -n 0"
 			;;
 		freebsd | \
 		netbsd )
-			tail_follow="$tail -f -F"
+			tail_follow="$tail -f -F -n 0"
 			;;
 		openbsd )
-			tail_follow="$tail -f"
+			tail_follow="$tail -f -n 0"
 			;;
 	esac
 
@@ -493,13 +493,13 @@ detect_distribution ()
 {
 	DISTRIBUTION="UNKNOWN"
 	
-	if [ -e "/etc/debian_version" ]; then
+	if [ -f "/etc/debian_version" ]; then
 		if uname -a 2>/dev/null | $GREP -q -i ubuntu 2>/dev/null; then
 			DISTRIBUTION="ubuntu"
 		else
 			DISTRIBUTION="debian"
 		fi
-	elif [ -e "/etc/redhat-release" ]; then
+	elif [ -f "/etc/redhat-release" ]; then
 		if $GREP -q -i centos /etc/redhat-release 2>/dev/null; then
 			DISTRIBUTION="centos"
 		elif $GREP -q -i fedora /etc/redhat-release 2>/dev/null; then
@@ -509,7 +509,7 @@ detect_distribution ()
 		else
 			DISTRIBUTION="redhat"
 		fi
-	elif [ -e "/etc/os-release" ]; then
+	elif [ -f "/etc/os-release" ]; then
 		if $GREP -q -i opensuse /etc/os-release 2>/dev/null; then
 			DISTRIBUTION="opensuse"
 		fi
@@ -585,7 +585,7 @@ start_build ()
 	
 	local name_tag="$1"
 	
-	if [ -e "$INSTALL_ROOT/.$name_tag.ok" ]; then
+	if [ -f "$INSTALL_ROOT/.$name_tag.ok" ]; then
 		if ! rm "$INSTALL_ROOT/.$name_tag.ok" 2>/dev/null; then
 			echo "start_build: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok !" >&2
 			exit 1
@@ -680,11 +680,11 @@ start_test ()
 	fi
 	
 	while true; do
-		if [ ! -e "$WORKSPACE_ROOT/.testing" ]; then
+		if [ ! -f "$WORKSPACE_ROOT/.testing" ]; then
 			if ln -s "$WORKSPACE_ROOT/.testing.$$" "$WORKSPACE_ROOT/.testing" 2>/dev/null; then
 				build_tag=`cat "$WORKSPACE_ROOT/.testing" 2>/dev/null`
 				if [ "$build_tag" = "$BUILD_TAG $$" ]; then
-					if [ -e "$INSTALL_ROOT/.$name_tag.ok.test" ]; then
+					if [ -f "$INSTALL_ROOT/.$name_tag.ok.test" ]; then
 						if ! rm "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null; then
 							echo "start_test: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok.test !" >&2
 							exit 1
@@ -720,7 +720,7 @@ stop_test ()
 {
 	local build_tag
 	
-	if [ ! -e "$WORKSPACE_ROOT/.testing" ]; then
+	if [ ! -f "$WORKSPACE_ROOT/.testing" ]; then
 		echo "stop_test: Called without a test lock file, this should not happen!" >&2
 		return 1
 	fi
@@ -917,7 +917,7 @@ log_this ()
 
 	# Let the tee processes have a chance to end or output to file before continuing
 	while true; do
-		if [ ! -e "$log_stderr_pid" -a ! -e "$log_stdout_pid" ]; then
+		if [ ! -f "$log_stderr_pid" -a ! -f "$log_stdout_pid" ]; then
 			break
 		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
@@ -956,7 +956,7 @@ log_force_stop ()
 	fi
 
 	while true; do
-		if [ ! -e "$log_stderr_pid" -a ! -e "$log_stdout_pid" ]; then
+		if [ ! -f "$log_stderr_pid" -a ! -f "$log_stdout_pid" ]; then
 			break
 		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
@@ -970,7 +970,7 @@ log_force_stop ()
 		sleep 1
 	done
 
-	if [ -e "$log_stderr_pid" ]; then
+	if [ -f "$log_stderr_pid" ]; then
 		stderr_pid=`cat "$log_stderr_pid"`
 		if [ "$stderr_pid" -gt 0 ]; then
 			kill -TERM "$stderr_pid" 2>/dev/null
@@ -978,7 +978,7 @@ log_force_stop ()
 		rm -f "$log_stderr_pid"
 	fi
 
-	if [ -e "$log_stdout_pid" ]; then
+	if [ -f "$log_stdout_pid" ]; then
 		stdout_pid=`cat "$log_stdout_pid"`
 		if [ "$stdout_pid" -gt 0 ]; then
 			kill -TERM "$stdout_pid" 2>/dev/null
@@ -992,7 +992,7 @@ log_force_stop ()
 log_grep ()
 {
 	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
-		echo "usage: log_grep <logfile> <stdout|stderr|both> <grep string ...>" >&2
+		echo "usage: log_grep <log name> <stdout|stderr|both> <grep string ...>" >&2
 		exit 1
 	fi
 
@@ -1048,6 +1048,20 @@ log_cleanup ()
 	done
 
 	rm -f "_log.$BUILD_TAG"* 2>/dev/null
+}
+
+log_remove ()
+{
+	if [ -z "$1" ]; then
+		echo "usage: log_remove <log name>" >&2
+		exit 1
+	fi
+
+	local name="$1"
+	local log_stderr="_log.$BUILD_TAG.$name.stderr"
+	local log_stdout="_log.$BUILD_TAG.$name.stdout"
+	
+	rm -f "$log_stderr" "$log_stdout" 2>/dev/null
 }
 
 run_tests ()
@@ -1167,7 +1181,7 @@ run_test ()
                 fi
         fi
 
-	if [ ! -e "$test_dir/test.sh" ]; then
+	if [ ! -f "$test_dir/test.sh" ]; then
 		echo "run_test: no test.sh in test $test_name ($test_dir)!" >&2
 		return 1
 	fi
@@ -1340,4 +1354,46 @@ syslog_grep ()
 syslog_cleanup ()
 {
 	rm -f "_syslog.$BUILD_TAG" 2>/dev/null
+}
+
+apply_parameter ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+		echo "usage: apply_parameter <parameter tag> <parameter value> <files ... >" >&2
+		echo "   ex: apply_parameter \"INSTALL_ROOT\" \"\$INSTALL_ROOT\" conf.xml" >&2
+		exit 1
+	fi
+	
+	local parameter_tag="$1"
+	local parameter_value="$2"
+	shift 2
+	local files="$*"
+	local file
+	
+	if echo "$parameter_tag" | grep -q "@" 2>/dev/null; then
+		echo "apply_parameter: parameter tag contains '@', it must not" >&2
+		return 1
+	fi
+	
+	for file in $files; do
+		if [ ! -f "$file" ]; then
+			echo "apply_parameter: File $file not found" >&2
+			return 1
+		fi
+		if [ -f "$file.$$" ]; then
+			echo "apply_parameter: Temporary file $file.$$ exists but it should not" >&2
+			return 1
+		fi
+	done
+	
+	for file in $files; do
+		sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" > "$file.$$" 2>/dev/null &&
+		mv "$file.$$" "$file" 2>/dev/null ||
+		{
+			echo "apply_parameter: Unable to apply parameter $parameter_tag value $parameter_value to file $file" >&2
+			return 1
+		}
+	done
+	
+	return 0
 }
