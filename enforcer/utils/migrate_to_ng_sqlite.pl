@@ -127,10 +127,10 @@ while (my @row = $zone_sth->fetchrow_array) {
 	}
 	print $OUT "      </Keys>\n";
 
-	if (${ $policy{$row[0]} }[$NSEC] == 3) {
+	if (${ $policy{$row[2]} }[$NSEC] == 3) {
 		print $OUT "\n      <NSEC3>\n";
-		print $OUT "        <Salt>${ $policy{$row[0]} }[$SALT]</Salt>\n";
-		print $OUT "        <Generated>${ $policy{$row[0]} }[$SALT_STAMP]</Generated>\n";
+		print $OUT "        <Salt>${ $policy{$row[2]} }[$SALT]</Salt>\n";
+		print $OUT "        <Generated>${ $policy{$row[2]} }[$SALT_STAMP]</Generated>\n";
 		print $OUT "      </NSEC3>\n";
 	}
 
