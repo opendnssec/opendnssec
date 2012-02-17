@@ -1088,7 +1088,7 @@ run_tests ()
 	ls -1 2>/dev/null | $GREP '^[0-9]*' | $GREP -v '\.off$' 2>/dev/null >"_tests.$BUILD_TAG"
 	while read entry; do
 		if [ -d "$entry" -a -f "$entry/test.sh" -a ! -f "$entry/off" ]; then
-			test[0]="$entry"
+			test[test_num]="$entry"
 			test_num=$(( test_num + 1 ))
 		fi
 	done <"_tests.$BUILD_TAG"
@@ -1298,7 +1298,7 @@ syslog_waitfor ()
 	
 	time_stop=$(( time_start + timeout ))
 
-	echo "syslog_waitfor: waiting for syslog to containm (timeout $timeout): $grep_string"
+	echo "syslog_waitfor: waiting for syslog to contain (timeout $timeout): $grep_string"
 	while true; do
 		if $GREP -q -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null; then
 			return 0
