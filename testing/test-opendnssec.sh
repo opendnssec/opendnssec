@@ -11,6 +11,7 @@ PRE_TEST=ods_pre_test
 POST_TEST=ods_post_test
 test_ok=0
 (
+	ods_find_softhsm_module &&
 	run_tests test-cases.d
 ) &&
 test_ok=1
