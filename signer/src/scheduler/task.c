@@ -83,56 +83,6 @@ task_create(task_id what, time_t when, void* zone)
 
 
 /**
- * Recover a task from backup.
- *
- */
-task_type*
-task_recover_from_backup(const char* filename, void* zone)
-{
-    task_type* task = NULL;
-    FILE* fd = NULL;
-    const char* who = NULL;
-    int what = 0;
-    time_t when = 0;
-    int flush = 0;
-    time_t backoff = 0;
-
-    ods_log_assert(zone);
-    fd = ods_fopen(filename, NULL, "r");
-    if (fd) {
-        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
-            !backup_read_check_str(fd, ";who:") ||
-            !backup_read_str(fd, &who) ||
-            !backup_read_check_str(fd, ";what:") ||
-            !backup_read_int(fd, &what) ||
-            !backup_read_check_str(fd, ";when:") ||
-            !backup_read_time_t(fd, &when) ||
-            !backup_read_check_str(fd, ";flush:") ||
-            !backup_read_int(fd, &flush) ||
-            !backup_read_check_str(fd, ";backoff:") ||
-            !backup_read_time_t(fd, &backoff) ||
-            !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
-        {
-            ods_log_error("[%s] unable to recover task from file %s: file corrupted",
-                task_str, filename?filename:"(null)");
-            task = NULL;
-        } else {
-            task = task_create((task_id) what, when, (void*) zone);
-            task->flush = flush;
-            task->backoff = backoff;
-        }
-        free((void*)who);
-        ods_fclose(fd);
-        return task;
-    }
-
-    ods_log_debug("[%s] unable to recover task from file %s: no such file or directory",
-        task_str, filename?filename:"(null)");
-    return NULL;
-}
-
-
-/**
  * Backup task.
  *
  */

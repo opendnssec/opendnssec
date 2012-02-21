@@ -154,64 +154,6 @@ nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
 
 
 /**
- * Recover NSEC3 parameters from backup.
- *
- */
-nsec3params_type*
-nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr)
-{
-    const char* salt = NULL;
-    uint8_t algorithm = 0;
-    uint8_t flags = 0;
-    uint16_t iterations = 0;
-    ldns_rr* nsec3params_rr = NULL;
-    nsec3params_type* nsec3params = NULL;
-    uint8_t salt_len; /* calculate salt len */
-    uint8_t* salt_data; /* calculate salt data */
-
-    ods_log_assert(fd);
-
-    if (!backup_read_str(fd, &salt) ||
-        !backup_read_uint8_t(fd, &algorithm) ||
-        !backup_read_uint8_t(fd, &flags) ||
-        !backup_read_uint16_t(fd, &iterations) ||
-        ldns_rr_new_frm_fp(&nsec3params_rr, fd, NULL, NULL, NULL)
-            != LDNS_STATUS_OK ||
-        !backup_read_check_str(fd, ";END"))
-    {
-        ods_log_error("[%s] nsec3params part in backup file is corrupted", nsec3_str);
-        if (nsec3params_rr) {
-            ldns_rr_free(nsec3params_rr);
-            nsec3params_rr = NULL;
-        }
-        if (salt) {
-            free((void*) salt);
-            salt = NULL;
-        }
-        return NULL;
-    }
-
-    nsec3params = (nsec3params_type*) malloc(sizeof(nsec3params_type));
-    nsec3params->algorithm = algorithm; /* algorithm identifier */
-    nsec3params->flags = flags; /* flags */
-    nsec3params->iterations = iterations; /* iterations */
-    /* construct the salt from the string */
-    if (nsec3params_create_salt(salt, &salt_len, &salt_data) != 0) {
-        free((void*)nsec3params);
-        free((void*)salt);
-        ldns_rr_free(nsec3params_rr);
-        return NULL;
-    }
-    free((void*) salt);
-    nsec3params->salt_len = salt_len; /* salt length */
-    nsec3params->salt_data = salt_data; /* salt data */
-    *rr = nsec3params_rr;
-    nsec3params->rr = nsec3params_rr;
-    return nsec3params;
-}
-
-
-/**
  * Convert salt to string.
  *
  */

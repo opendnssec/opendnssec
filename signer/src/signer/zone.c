@@ -733,7 +733,7 @@ zone_backup(zone_type* zone)
     free((void*)filename);
 
     if (fd) {
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V2);
         /** Backup zone */
         fprintf(fd, ";;Zone: name %s class %i ttl %u inbound %u internal "
             "%u outbound %u\n",
@@ -764,7 +764,7 @@ zone_backup(zone_type* zone)
         /** Backup domains and stuff */
         namedb_backup(fd, zone->db);
         /** Done */
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V2);
         ods_fclose(fd);
     } else {
         return ODS_STATUS_FOPEN_ERR;
@@ -819,7 +819,7 @@ zone_recover(zone_type* zone)
     free((void*)filename);
     if (fd) {
         /* start recovery */
-        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
+        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V2) ||
             /* zone part */
             !backup_read_check_str(fd, ";;Zone:") ||
             !backup_read_check_str(fd, "name") ||
@@ -968,7 +968,7 @@ zone_recover(zone_type* zone)
         zone->db->inbserial = inbound;
         zone->db->intserial = internal;
         zone->db->outserial = outbound;
-        status = namedb_recover(zone->db, fd);
+        status = namedb_recover(zone->db, fd, ODS_SE_FILE_MAGIC_V2);
         if (status != ODS_STATUS_OK) {
             zone->task = NULL;
             goto recover_error;

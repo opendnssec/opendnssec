@@ -98,14 +98,6 @@ ods_status signconf_update(signconf_type** signconf, const char* scfile,
     time_t last_modified);
 
 /**
- * Read signer configuration from backup.
- * \param[in] filename file name
- * \return signconf_type* signer configuration
- *
- */
-signconf_type* signconf_recover_from_backup(const char* filename);
-
-/**
  * Backup signer configuration.
  * \param[in] fd file descriptor
  * \param[in] sc signer configuration settings

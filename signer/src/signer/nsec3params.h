@@ -100,15 +100,6 @@ void nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
     uint16_t iter, const char* salt, ldns_rr* rr);
 
 /**
- * Recover NSEC3 parameters from backup.
- * \param[in] fd file descriptor of key backup file
- * \param[out] rr the NSEC3PARAMS resource record
- * \return nsec3params_type* the recovered nsec3params
- *
- */
-nsec3params_type* nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr);
-
-/**
  * Convert salt to string.
  * \param[in] nsec3params NSEC3 parameters
  * \return const char* str salt in string format

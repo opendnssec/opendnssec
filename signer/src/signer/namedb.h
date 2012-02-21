@@ -224,9 +224,11 @@ void namedb_backup(FILE* fd, namedb_type* db);
  * Recover namedb from backup.
  * \param[in] db namedb
  * \param[in] fd backup file descriptor
+ * \param[in] magic magic string
  * \return ods_status status
  *
  */
-ods_status namedb_recover(namedb_type* db, FILE* fd);
+ods_status namedb_recover(namedb_type* db, FILE* fd,
+    const char* magic);
 
 #endif /* SIGNER_NAMEDB_H */

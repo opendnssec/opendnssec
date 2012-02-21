@@ -168,7 +168,7 @@ namedb_create(void* zone)
  *
  */
 ods_status
-namedb_recover(namedb_type* db, FILE* fd)
+namedb_recover(namedb_type* db, FILE* fd, const char* magic)
 {
     const char* token = NULL;
     const char* owner = NULL;
@@ -241,7 +241,7 @@ namedb_recover(namedb_type* db, FILE* fd)
         token = NULL;
     }
 
-    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
+    if (!backup_read_check_str(fd, magic)) {
         ods_log_error("[%s] magic in backup corrupted", db_str);
         goto recover_domain_error;
     }
