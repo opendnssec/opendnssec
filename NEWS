@@ -1,6 +1,12 @@
 $Id$
 
-OpenDNSSEC 1.3.6 - 2012-02-16
+OpenDNSSEC 1.3.7
+
+* OPENDNSSEC-215: Signer Engine: Always recover serial from backup,
+  even if it is corrupted, preventing unnecessary serial decrementals.
+
+
+OpenDNSSEC 1.3.6 - 2012-02-17
 
 * OPENDNSSEC-33: Signer Engine: Check HSM connection before use, attempt to
   reconnect if it is not valid.

@@ -1050,6 +1050,11 @@ recover_error:
     zonedata_cleanup(zone->zonedata);
     zone->zonedata = zonedata_create(zone->allocator);
     ods_log_assert(zone->zonedata);
+    /* do keep serial information */
+    zone->zonedata->inbound_serial = inbound;
+    zone->zonedata->internal_serial = internal;
+    zone->zonedata->outbound_serial = outbound;
+    zone->zonedata->initialized = 1;
 
     if (zone->stats) {
        lock_basic_lock(&zone->stats->stats_lock);
