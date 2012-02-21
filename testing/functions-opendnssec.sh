@@ -4,7 +4,7 @@ ods_pre_test ()
 {
 	ods_nuke_env &&
 	ods_setup_conf &&
-	ods_reset_env &&
+	ods_setup_zone &&
 	return 0
 	
 	return 1
@@ -53,44 +53,108 @@ ods_nuke_env ()
 
 ods_setup_conf ()
 {
-	if [ -f softhsm.conf ]; then
-		if ! cp softhsm.conf "$INSTALL_ROOT/etc/softhsm.conf" 2>/dev/null; then
-			echo "pre_test: unable to copy/install test specific softhsm.conf to $INSTALL_ROOT/etc/softhsm.conf" >&2
+	local conf="$1"
+	local file="$2"
+	local conf_file
+	
+	if [ -n "$conf" ]; then
+		case "$conf" in
+			softhsm.conf | addns.xml | conf.xml | kasp.xml | zonelist.xml )
+				break
+				;;
+			* )
+				echo "ods_setup_conf: Unknown conf file specified: $conf" >&2
+				return 1
+				;;
+		esac
+	fi
+	
+	if [ -n "$file" -a ! -f "$file" ]; then
+		echo "ods_setup_conf: Conf file $file does not exist" >&2
+		return 1
+	fi
+
+	# Conf files under /etc	
+	for conf_file in softhsm.conf; do
+		if [ -n "$conf" -a "$conf" != "$conf_file" ]; then
+			continue
+		fi
+
+		if [ -n "$file" ]; then
+			if ! cp -- "$file" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+				echo "ods_setup_conf: unable to copy/install test specific $file to $INSTALL_ROOT/etc/$conf_file" >&2
+				return 1
+			fi
+		elif [ -f "$conf_file" ]; then
+			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+				echo "ods_setup_conf: unable to copy/install test specific $conf_file to $INSTALL_ROOT/etc/$conf_file" >&2
+				return 1
+			fi
+		else
+			if ! cp -- "$INSTALL_ROOT/etc/$conf_file.build" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+				echo "ods_setup_conf: unable to copy/install build default $INSTALL_ROOT/etc/$conf_file.build to $INSTALL_ROOT/etc/$conf_file" >&2
+				return 1
+			fi
+		fi
+		
+		apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/$conf_file" ||
+		return 1
+	done
+
+	# Conf files under /etc/opendnssec
+	for conf_file in addns.xml conf.xml kasp.xml zonelist.xml; do
+		if [ -n "$conf" -a "$conf" != "$conf_file" ]; then
+			continue
+		fi
+		
+		if [ -n "$file" ]; then
+			if ! cp -- "$file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+				echo "ods_setup_conf: unable to copy/install test specific $file to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
+				return 1
+			fi
+		elif [ -f "$conf_file" ]; then
+			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+				echo "ods_setup_conf: unable to copy/install test specific $conf_file to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
+				return 1
+			fi
+		else
+			if ! cp -- "$INSTALL_ROOT/etc/opendnssec/$conf_file.build" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+				echo "ods_setup_conf: unable to copy/install build default $INSTALL_ROOT/etc/opendnssec/$conf_file.build to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
+				return 1
+			fi
+		fi
+		
+		apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/opendnssec/$conf_file" &&
+		apply_parameter "SOFTHSM_MODULE" "$SOFTHSM_MODULE" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ||
+		return 1
+	done
+	
+	return 0
+}
+
+ods_setup_zone ()
+{
+	local zone="$1"
+	
+	if [ -n "$zone" -a ! -f "$zone" ]; then
+		echo "ods_setup_zone: Zone file $zone does not exist" >&2
+		return 1
+	fi
+	
+	if [ -n "$zone" ]; then
+		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
+			echo "ods_setup_conf: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 			return 1
 		fi
 		
-		apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/softhsm.conf" ||
-		return 1
-	else
-		if ! cp "$INSTALL_ROOT/etc/softhsm.conf.build" "$INSTALL_ROOT/etc/softhsm.conf" 2>/dev/null; then
-			echo "pre_test: unable to copy/install build default $INSTALL_ROOT/etc/softhsm.conf.build to $INSTALL_ROOT/etc/softhsm.conf" >&2
-			return 1
-		fi
+		return 0
 	fi
-
-	for file in addns.xml conf.xml kasp.xml zonelist.xml; do
-		if [ -f "$file" ]; then
-			if ! cp "$file" "$INSTALL_ROOT/etc/opendnssec/$file" 2>/dev/null; then
-				echo "pre_test: unable to copy/install test specific $file to $INSTALL_ROOT/etc/opendnssec/$file" >&2
-				return 1
-			fi
-			
-			apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/opendnssec/$file" &&
-			apply_parameter "SOFTHSM_MODULE" "$SOFTHSM_MODULE" "$INSTALL_ROOT/etc/opendnssec/$file" ||
-			return 1
-		else
-			if ! cp "$INSTALL_ROOT/etc/opendnssec/$file.build" "$INSTALL_ROOT/etc/opendnssec/$file" 2>/dev/null; then
-				echo "pre_test: unable to copy/install build default $INSTALL_ROOT/etc/opendnssec/$file.build to $INSTALL_ROOT/etc/opendnssec/$file" >&2
-				return 1
-			fi
-		fi
-	done
 	
 	if [ -d unsigned ]; then
-		ls -1 unsigned/ | while read file; do
-			if [ -f "unsigned/$file" ]; then
-				if ! cp -f "unsigned/$file" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
-					echo "pre_test: unable to copy/install zone file $file to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
+		ls -1 unsigned/ | while read zone; do
+			if [ -f "unsigned/$zone" ]; then
+				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
+					echo "ods_setup_conf: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 					return 1
 				fi
 			fi
@@ -104,8 +168,8 @@ ods_reset_env ()
 {
 	echo "ods_reset_env: resetting opendnssec environment"
 	
-	echo "y" | ods-ksmutil setup &&
 	ods_softhsm_init_token 0 &&
+	echo "y" | ods-ksmutil setup &&
 	return 0
 	
 	return 1
@@ -178,7 +242,7 @@ ods_softhsm_init_token ()
 
 ods_find_softhsm_module ()
 {
-	local dir
+	local path
 	
 	for path in lib64/softhsm lib/softhsm lib64 lib; do
 		if [ -f "$INSTALL_ROOT/$path/libsofthsm.so" ]; then

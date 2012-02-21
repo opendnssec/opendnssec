@@ -4,7 +4,7 @@
 <Configuration>
 	<RepositoryList>
 		<Repository name="SoftHSM">
-			<Module>@SOFTHSM_MODULE@</Module>
+			<Module>@INSTALL_ROOT@/var/libsofthsm.so</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
 		</Repository>
