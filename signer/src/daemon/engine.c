@@ -866,9 +866,9 @@ engine_recover(engine_type* engine)
     ods_status result = ODS_STATUS_UNCHANGED;
 
     if (!engine || !engine->zonelist || !engine->zonelist->zones) {
-        ods_log_error("[%s] cannot update zones: no engine or zonelist",
+        ods_log_error("[%s] cannot recover zones: no engine or zonelist",
             engine_str);
-        return ODS_STATUS_OK; /* will trigger update zones */
+        return ODS_STATUS_ERR; /* no need to update zones */
     }
     ods_log_assert(engine);
     ods_log_assert(engine->zonelist);
@@ -904,7 +904,7 @@ engine_recover(engine_type* engine)
                 zone->task = NULL;
                 result = ODS_STATUS_OK; /* will trigger update zones */
             } else {
-                ods_log_verbose("[%s] recovered zone %s", engine_str,
+                ods_log_debug("[%s] recovered zone %s", engine_str,
                     zone->name);
                 /* recovery done */
                 zone->zl_status = ZONE_ZL_OK;

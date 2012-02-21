@@ -852,8 +852,9 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
         }
         if (xfrd->serial_disk_acquired &&
             !util_serial_gt(serial, xfrd->serial_disk)) {
-            ods_log_debug("[%s] zone %s ignoring old serial %u from %s",
-                xfrd_str, zone->name, serial, xfrd->master->address);
+            ods_log_debug("[%s] zone %s ignoring old serial %u from %s "
+                "(have %u)", xfrd_str, zone->name, serial,
+                xfrd->master->address, xfrd->serial_disk);
             lock_basic_unlock(&xfrd->serial_lock);
             return XFRD_PKT_BAD;
         }

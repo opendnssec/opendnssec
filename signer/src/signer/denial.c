@@ -270,9 +270,8 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
                 denial->rrset = rrset_create(denial->zone, LDNS_RR_TYPE_NSEC);
             }
             if (!denial->rrset) {
-                ods_log_alert("[%s] unable to nsecify: rrset_create() failed",
+                ods_fatal_exit("[%s] unable to nsecify: rrset_create() failed",
                     denial_str);
-                exit(1);
             }
         }
         ods_log_assert(denial->rrset);
@@ -280,9 +279,8 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
         nsec_rr = denial_create_nsec(denial, nxt, zone->default_ttl,
             zone->klass, zone->signconf->nsec3params);
         if (!nsec_rr) {
-            ods_log_alert("[%s] unable to nsecify: denial_create_nsec() "
+            ods_fatal_exit("[%s] unable to nsecify: denial_create_nsec() "
                 "failed", denial_str);
-            exit(1);
         }
         record = rrset_add_rr(denial->rrset, nsec_rr);
         ods_log_assert(record);
