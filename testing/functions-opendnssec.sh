@@ -60,7 +60,6 @@ ods_setup_conf ()
 	if [ -n "$conf" ]; then
 		case "$conf" in
 			softhsm.conf | conf.xml | kasp.xml | zonefetch.xml | zonelist.xml )
-				break
 				;;
 			* )
 				echo "ods_setup_conf: Unknown conf file specified: $conf" >&2
@@ -177,8 +176,13 @@ ods_reset_env ()
 
 ods_kill ()
 {
+	if ! pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+		return 0
+	fi
+	
 	echo "ods_kill: Killing OpenDNSSEC"
-	ods-control stop
+	try_run 15 ods-control stop
+	
 	if pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
 		sleep 2
 		pkill -QUIT '(ods-enforcerd|ods-signerd)' 2>/dev/null
