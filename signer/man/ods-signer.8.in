@@ -1,4 +1,4 @@
-.TH "ods-signer" "8" "October 2010" "OpenDNSSEC" "OpenDNSSEC ods-signer"
+.TH "ods-signer" "22" "February 2012" "OpenDNSSEC" "OpenDNSSEC ods-signer"
 .\" $Id: ods-signer.8.in 3709 2010-08-10 13:03:45Z rb $
 .SH "NAME"
 .B ods\-signer 
@@ -7,33 +7,36 @@
 .SH "SYNOPSIS"
 .B ods\-signer
 .RB [ \-h ]
-.I start
-|
-.I stop
-|
-.I reload
-|
-.I queue
+.I clear 
+.IR <zone> 
 |
 .I flush
 |
-.I zones
+.I queue
 |
-.I verbosity
-.IR <number>
+.I reload
 |
-.I update
-|
-.I update
-.IR <zone>
+.I running
 |
 .I sign 
 .IR <zone>
 |
 .I sign \-\-all 
 |
-.I clear 
-.IR <zone> 
+.I start
+|
+.I stop
+|
+.I update
+.RB [ \-\-all ]
+|
+.I update
+.IR <zone>
+|
+.I verbosity
+.IR <number>
+|
+.I zones
 .LP
 .SH "DESCRIPTION"
 ods\-signer is part of the OpenDNSSEC software. With this tool, you can send
@@ -52,7 +55,7 @@ Show this help.
 will log all the problems via stderr.
 .SH "SEE ALSO"
 .LP
-ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
 ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), 
 ods\-signerd(8), ods\-timing(5), opendnssec(7),
 .B http://www.opendnssec.org/

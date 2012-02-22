@@ -1,8 +1,19 @@
+14 February 2012: Matthijs
+- Fix build warnings
+
+8 February 2012: Matthijs
+- Set AA bit on responses
+
+7 February 2012: Matthijs
+- OPENDNSSEC-212: pselect compatability code
+
 2 February 2012: Matthijs
 - OPENDNSSEC-33: Signer check if HSM connection is still open
 - OPENDNSSEC-178: Make worker wait pushing on sign queue if queue is full
 
 31 January 2012: Matthijs
+- OPENDNSSEC-204: Warn on missing Listener
+- OPENDNSSEC-207: Fix bug in signer command channel and stdin
 - OPENDNSSEC-209: Make File Output Adapter atomic
 
 25 January 2012: Matthijs

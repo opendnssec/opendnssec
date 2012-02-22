@@ -20,28 +20,30 @@ As part of the OpenDNSSEC project, the task of the signer engine is to
 schedule signing operation on DNS zones. Taking input from the KASP, it
 will automatically sign zones and keep their signatures up-to-date.
 
-In this version, it can do file-to-file signing or AXFR-to-file signing.
-When a zone has changed, the engine can run a specified command, for
-instance to signal an actual DNS server that it should reload its zones.
+Until version 1.3, OpenDNSSEC could only handle file-to-file signing. 
+With the Zonefetcher enabled, AXFR-to-file signing was possible. Version
+1.4 and up can handle unsigned zones in file, AXFR and IXFR format, as well
+as output signed zones as file, AXFR and IXFR. When a zone has changed,
+the engine can run a specified command, for instance to signal an actual
+DNS server that it should reload its zones (useful for file output).
 
-The current signer engine consists of two parts; The actual scheduler,
-including a set of workers to do zone manipulation, and a zone fetcher that
-takse care of AXFR.
+The signer engine has a scheduler, including a set of workers to do zone
+manipulation, and zone in- and output is handled by different types of
+adapters. 
 
-The scheduler is written in c is run as a daemon. When a zone needs to be
+The signer is written in c is run as a daemon. When a zone needs to be
 sorted or (re)signed, the workers will report for duty and perform the job.
 It uses a worker/task-queue design, where the worker threads will suspend
 until there is something to do. 
-
-The zone fetcher is started by the scheduler if a zone fetch configuration
-is configured. The zone fetcher will do AXFR requests for all zones upon
-startup and upon receiving a valid NOTIFY message. 
 
 -------------------------------------------------------------------
 DEPENDENCIES
 -------------------------------------------------------------------
 
-The signer depends on the ldns library http://www.NLnetLabs.nl/projects/ldns
+The signer depends on the ldns library:
+
+	 http://www.NLnetLabs.nl/projects/ldns
+
 and can only be used in conjuction with a PKCS#11 library (a software
 version of which, softHSM, is supplied with the OpenDNSSEC).
 
@@ -49,7 +51,8 @@ version of which, softHSM, is supplied with the OpenDNSSEC).
 INSTALLATION
 -------------------------------------------------------------------
 
-To build and install the signer engine, the following steps are needed:
+The signer is installed as part of the OpenDNSSEC install. To build and
+install the signer engine separately, the following steps are needed:
 
 From the base directory <opendnssec>/signer
 
@@ -58,8 +61,7 @@ autoreconf --install
 make
 make install
 
-This will build the C-based tools, and set up the tools and engine to
-use the options provided with configure:
+The options provided with configure:
 
 --with-ldns=<dir> The base directory (prefix) of your ldns installation,
                   if it isn't in your standard path.
@@ -95,6 +97,7 @@ update <zone>   update this zone signer configurations.
 update [--all]  update zone list and all signer configurations.
 start           start the engine.
 reload          reload the engine.
+running		test if the engine is running.
 stop            stop the engine.
 verbosity <nr>  set verbosity.
 
@@ -112,7 +115,7 @@ You can run the engine by calling <prefix>/sbin/ods-signer start
 
 If everything is ok, you should see the following output:
 $ ./ods-signer start
-OpenDNSSEC signer engine version 1.2.0
+OpenDNSSEC signer engine version 1.4.0
 $
 
 The engine has daemonized itself and should be running. You can
@@ -159,6 +162,7 @@ The rest of the values can be left to their defaults.
 The elements and their exact meanings are described here:
 http://www.opendnssec.se/browser/trunk/conf/opendnssec/conf.rnc
 
+
 zonelist.xml
 ------------
 
@@ -174,40 +178,42 @@ This file will specify the specific zone configuration, and its
 in- and output-files.
 
 
-zonefetch.xml
+addns.xml
 ------------
 
-You can tell the engine where and how to get the zones from the master
-servers with
-<prefix>/etc/zonefetch.xml
+If you use AXFR or IXFR as zone input/output, you can tell the engine
+where and how to get the zones from the master servers with
+<prefix>/etc/addns.xml
+This can be configured on a per-zone basis in the zonelist.xml file.
+
 An example zone list file can be found at
-http://www.opendnssec.se/browser/trunk/conf/opendnssec/zonefetch.xml
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/addns.xml
 
 The elements and their exact meanings are described here:
-http://www.opendnssec.se/browser/trunk/conf/opendnssec/zonefetch.rnc
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/addns.rnc
 
-This file will specify the interface to listen NOTIFY messages on, 
+This file will specify the interface to listen NOTIFY messages on,
 the master servers that are allowed to send NOTIFY messages and to
 contact for zone transfers and optionally, the TSIG credentials.
-
-
-zone configuration
-------------------
-
-At the location pointed to in your zonelist.xml, you should create
-a signer configuration xml file. An example can be found at:
-http://www.opendnssec.se/browser/trunk/conf/opendnssec/signconf.xml
-
-The elements and their exact meanings are described here:
-http://www.opendnssec.se/browser/trunk/conf/opendnssec/signconf.rnc
 
 
 zone file
 ---------
 
-Finally, you will need to give the engine an actual zone file to
-work on. You will have already specified the location of this file
-in the zonelist.xml file above.
+If you use files as input, you obviously will need to give the engine an
+actual zone file to work on. You will have already specified the location of
+this file in the zonelist.xml file above.
+
+
+zone configuration
+------------------
+
+Finally, at the location pointed to in your zonelist.xml, you should create
+a signer configuration xml file. An example can be found at:
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/signconf.xml
+
+The elements and their exact meanings are described here:
+http://www.opendnssec.se/browser/trunk/conf/opendnssec/signconf.rnc
 
 
 Diagnostics
@@ -218,7 +224,6 @@ The signer prints statistics about the signed zones into the logs.
 [STATS] opendnssec.org RR[count=32 time=1(sec)]
                        NSEC[count=32 time=1(sec)]
                        RRSIG[new=1 reused=31 time=1(sec) avg=1(sig/sec)]
-                       AUDIT[time=2(sec)]
                        TOTAL[time=5(sec)]
 
 RR[count] is the number of records read in the unsigned zone. It is zero if
@@ -235,8 +240,6 @@ but are fresh enough that they may be remained in the zone.
 RRSIG[time] is the time it took to gather all the new and reused signatures.
 RRSIG[avg] is the average number of created signatures per second.
 
-AUDIT[time] is the time it took for the ods-auditor to run.
-
 TOTAL[time] is the total time it took for the signer engine to sign the 
 latest version of the zone.
 
@@ -244,8 +247,8 @@ latest version of the zone.
 -------------------------------------------------------------------
 DNS FILE ADAPTERS
 -------------------------------------------------------------------
-You can use DNS adapters instead of File adapters. Put something 
-like this in your zonelist.xml:
+As mentioned above, you can use DNS adapters instead of File adapters.
+Put something like this in your zonelist.xml:
 
 <Zone name="example.com">
 	...
