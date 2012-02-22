@@ -108,13 +108,6 @@ acl_type* acl_find(acl_type* acl, struct sockaddr_storage* addr,
 int addr2ip(struct sockaddr_storage addr, char* ip, size_t len);
 
 /**
- * Log ACL.
- * \param[in] acl ACL
- *
- */
-void acl_log(acl_type* acl);
-
-/**
  * Clean up ACL.
  * \param[in] acl ACL
  * \param[in] allocator memory allocator

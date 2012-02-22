@@ -456,21 +456,6 @@ acl_find(acl_type* acl, struct sockaddr_storage* addr, tsig_rr_type* trr)
 
 
 /**
- * Log ACL.
- *
- */
-void
-acl_log(acl_type* acl)
-{
-    if (!acl) {
-        return;
-    }
-    ods_log_deeebug("[%s] ACL todo", acl_str);
-    return;
-}
-
-
-/**
  * Clean up ACL.
  *
  */
