@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 #
-# Configure and sign with one repository (SoftHSM)
+# Use a Tokenlabel with 30 characters
 
 ods_reset_env &&
+
+ods_softhsm_init_token "1" "ABCDEFGHIJKLMNOPQRSTVWXYZ12345" "4321" "4321" &&
 
 log_this ods-control-enforcer-start ods-control enforcer start &&
 syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
@@ -13,7 +15,7 @@ syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
-log_this ods-control-start ods-control stop &&
+log_this ods-control-stop ods-control stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 return 0

@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- conf.xml template for test purposes [07-01-2011] -->
 
 <Configuration>
 	<RepositoryList>
 		<Repository name="SoftHSM">
-			<Module>@INSTALL_ROOT@/var/libsofthsm.so</Module>
+			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
-			<PIN>1234</PIN>
+			<PIN></PIN>
 		</Repository>
 	</RepositoryList>
 	<Common>
@@ -22,6 +21,6 @@
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
-		<WorkerThreads>4</WorkerThreads>
+		<WorkerThreads>8</WorkerThreads>
 	</Signer>
 </Configuration>

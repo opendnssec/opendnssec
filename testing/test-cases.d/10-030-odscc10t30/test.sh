@@ -4,7 +4,7 @@
 
 ods_reset_env &&
 
-log_this ods-control-start ods-control start &&
+! log_this ods-control-start ods-control start &&
 syslog_waitfor 2 'ods-enforcerd: .*PKCS#11 module load failed' &&
 syslog_grep 'ods-signerd: .*\[hsm\].*PKCS#11 module load failed' &&
 return 0
