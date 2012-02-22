@@ -118,7 +118,7 @@ find_jenkins_workspace_root ()
 	local max_iter=20
 	local currdir
 	
-	while [ "$max_iter" -gt 0 ]; do
+	while [ "$max_iter" -gt 0 ] 2>/dev/null; do
 		# check if the last dir on the path is workspace
 		currdir=`echo "$workspace" | sed 's%.*/%%' 2>/dev/null`
 		if [ "$currdir" = "workspace" ]; then
@@ -131,7 +131,7 @@ find_jenkins_workspace_root ()
 		max_iter=$(( max_iter - 1))
 	done
 
-	if [ -n "$workspace" -a "$max_iter" -gt 0 ]; then
+	if [ -n "$workspace" -a "$max_iter" -gt 0 ] 2>/dev/null; then
 		WORKSPACE_ROOT="$workspace"
 		return 0
 	fi
@@ -904,34 +904,76 @@ log_this ()
 	local name="$1"
 	local log_stderr="_log.$BUILD_TAG.$name.stderr"
 	local log_stdout="_log.$BUILD_TAG.$name.stdout"
-	local log_stderr_pid="_log_pid.$BUILD_TAG.$name.stderr"
-	local log_stdout_pid="_log_pid.$BUILD_TAG.$name.stdout"
-	local time_start=`$DATE '+%s' 2>/dev/null`
-	local time_stop=$(( time_start + 2 ))
-	local time_now
-		
 	shift
+	
 	echo "log_this: logging $name for command: $*"
-	$* 2> >(bash -c 'echo $PPID' > "$log_stderr_pid" 2>/dev/null && $TEE -a "$log_stderr" && rm -f "$log_stderr_pid") \
-		> >(bash -c 'echo $PPID' > "$log_stdout_pid" 2>/dev/null && $TEE -a "$log_stdout" && rm -f "$log_stdout_pid")
+	$* 2>>"$log_stderr" >>"$log_stdout"
+}
 
-	# Let the tee processes have a chance to end or output to file before continuing
+log_this_timeout ()
+{
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: log_this_timeout <log name> <timeout in seconds> <command ... >" >&2
+		exit 1
+	fi
+	
+	local name="$1"
+	local log_stderr="_log.$BUILD_TAG.$name.stderr"
+	local log_stdout="_log.$BUILD_TAG.$name.stdout"
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local timeout="$2"
+	local pid
+	shift 2
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "log_this_timeout: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "log_this_timeout: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "log_this_timeout: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	echo "log_this_timeout: logging $name with timeout $timeout for command: $*"
+	( $* 2>>"$log_stderr" >>"$log_stdout" ) &
+	pid="$!"
+	
+	if [ -z "$pid" -o "$pid" -le 0 ] 2>/dev/null; then
+		echo "log_this_timeout: No pid from backgrounded program?" >&2
+		return 1
+	fi
+	
 	while true; do
-		if [ ! -f "$log_stderr_pid" -a ! -f "$log_stdout_pid" ]; then
-			break
-		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
 		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
-			break;
+			break
 		fi
 		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
-			echo "log_force_stop: Invalid timestamp from date!" >&2
-			return 1
+			echo "log_this_timeout: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		if ! kill -0 "$pid" 2>/dev/null; then
+			wait "$pid"
+			return "$?"
 		fi
 		sleep 1
 	done
 
-	return 0
+	kill -TERM "$pid"
+	if kill -0 "$pid" 2>/dev/null; then
+		kill -KILL "$pid"
+	fi	
+	return 1
 }
 
 log_force_stop ()
@@ -972,7 +1014,7 @@ log_force_stop ()
 
 	if [ -f "$log_stderr_pid" ]; then
 		stderr_pid=`cat "$log_stderr_pid"`
-		if [ "$stderr_pid" -gt 0 ]; then
+		if [ "$stderr_pid" -gt 0 ] 2>/dev/null; then
 			kill -TERM "$stderr_pid" 2>/dev/null
 		fi
 		rm -f "$log_stderr_pid"
@@ -980,7 +1022,7 @@ log_force_stop ()
 
 	if [ -f "$log_stdout_pid" ]; then
 		stdout_pid=`cat "$log_stdout_pid"`
-		if [ "$stdout_pid" -gt 0 ]; then
+		if [ "$stdout_pid" -gt 0 ] 2>/dev/null; then
 			kill -TERM "$stdout_pid" 2>/dev/null
 		fi
 		rm -f "$log_stdout_pid"
@@ -1041,7 +1083,7 @@ log_cleanup ()
 	ls _log_pid* 2>/dev/null | while read pid_file; do
 		pid=`cat $pid_file 2>/dev/null`
 
-		if [ -n "$pid" -a "$pid" -gt 0 ]; then
+		if [ -n "$pid" -a "$pid" -gt 0 ] 2>/dev/null; then
 			kill -TERM "$pid" 2>/dev/null
 			rm -f "$pid_file" 2>/dev/null
 		fi
@@ -1108,14 +1150,14 @@ run_tests ()
 	done <"_tests.$BUILD_TAG"
 	rm -f "_tests.$BUILD_TAG" 2>/dev/null
 	
-	if [ "$test_num" -le 0 ]; then
+	if [ "$test_num" -le 0 ] 2>/dev/null; then
 		echo "run_tests: no tests found!" >&2
 		cd "$pwd"
 		return 1
 	fi
 
 	echo "Running tests ..."	
-	while [ "$test_iter" -lt "$test_num" ]; do
+	while [ "$test_iter" -lt "$test_num" ] 2>/dev/null; do
 		test_path="${test[test_iter]}"
 		test_iter=$(( test_iter + 1 ))
 		echo -n "$test_iter/$test_num	$test_path ... "
@@ -1125,13 +1167,13 @@ run_tests ()
 			$PRE_TEST "$test_path"
 		fi &&
 		syslog_trace &&
-		source ./test.sh
+		( source ./test.sh )
 		test_status="$?"
 		syslog_stop
 		if [ -n "$POST_TEST" ]; then
 			$POST_TEST "$test_path" "$test_status"
 		fi
-		if [ "$test_status" -eq 0 ]; then
+		if [ "$test_status" -eq 0 ] 2>/dev/null; then
 			echo "ok"
 			log_cleanup
 			syslog_cleanup
@@ -1152,72 +1194,72 @@ run_tests ()
 		return 1
 	fi
 	
-	if [ "$test_failed" -gt 0 ]; then
+	if [ "$test_failed" -gt 0 ] 2>/dev/null; then
 		return 1
 	fi
 }
 
 run_test ()
 {
-        if [ -z "$1" -o -z "$2" ]; then
-                echo "usage: run_test <test name> <test directory>" >&2
-                exit 1
-        fi
-
-        local test_name="$1"
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: run_test <test name> <test directory>" >&2
+		exit 1
+	fi
+	
+	local test_name="$1"
 	local test_dir="$2"
 	local test_status
 	local pwd=`pwd`
 
-        if [ -n "$PRE_TEST" ]; then
-                if ! declare -F "$PRE_TEST" >/dev/null 2>/dev/null; then
-                        unset PRE_TEST
-                fi
-        fi
+	if [ -n "$PRE_TEST" ]; then
+		if ! declare -F "$PRE_TEST" >/dev/null 2>/dev/null; then
+			unset PRE_TEST
+		fi
+	fi
 
-        if [ -n "$POST_TEST" ]; then
-                if ! declare -F "$POST_TEST" >/dev/null 2>/dev/null; then
-                        unset POST_TEST
-                fi
-        fi
+	if [ -n "$POST_TEST" ]; then
+		if ! declare -F "$POST_TEST" >/dev/null 2>/dev/null; then
+			unset POST_TEST
+		fi
+	fi
 
 	if [ ! -f "$test_dir/test.sh" ]; then
 		echo "run_test: no test.sh in test $test_name ($test_dir)!" >&2
 		return 1
 	fi
 
-        if ! cd "$test_dir" 2>/dev/null; then
-                echo "run_test: unable to change to test $test_name directory $test_dir!" >&2
-                return 1
-        fi
+	if ! cd "$test_dir" 2>/dev/null; then
+		echo "run_test: unable to change to test $test_name directory $test_dir!" >&2
+		return 1
+	fi
 
-        echo "Running test $test_name ..." 
-        if [ -n "$PRE_TEST" ]; then
-        	$PRE_TEST "$test_name"
-        fi &&
-        syslog_trace &&
-        source ./test.sh
-        test_status="$?"
-        syslog_stop
-        if [ -n "$POST_TEST" ]; then
-               $POST_TEST "$test_name" "$test_status"
-        fi
-        if [ "$test_status" -eq 0 ]; then
+	echo "Running test $test_name ..." 
+	if [ -n "$PRE_TEST" ]; then
+		$PRE_TEST "$test_name"
+	fi &&
+	syslog_trace &&
+	( source ./test.sh )
+	test_status="$?"
+	syslog_stop
+	if [ -n "$POST_TEST" ]; then
+		$POST_TEST "$test_name" "$test_status"
+	fi
+	if [ "$test_status" -eq 0 ] 2>/dev/null; then
 		echo "ok"
 		log_cleanup
 		syslog_cleanup
-        else
+	else
 		echo "failed!"
-        fi
+	fi
 
-        if ! cd "$pwd" 2>/dev/null; then
-                echo "run_test: unable to change back to directory $pwd after running test $test_name!" >&2
-                return 1
-        fi
-
-        if [ "$test_status" -ne 0 ]; then
-                return 1
-        fi
+	if ! cd "$pwd" 2>/dev/null; then
+		echo "run_test: unable to change back to directory $pwd after running test $test_name!" >&2
+		return 1
+	fi
+	
+	if [ "$test_status" -ne 0 ] 2>/dev/null; then
+		return 1
+	fi
 }
 
 syslog_trace ()
@@ -1295,17 +1337,17 @@ syslog_waitfor ()
 		exit 1
 	fi
 	
-	if [ ! "$time_start" -gt 0 ]; then
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
 		echo "syslog_waitfor: Unable to get start time!" >&2
 		exit 1
 	fi
 	
-	if [ ! "$timeout" -gt 0 ]; then
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
 		echo "syslog_waitfor: Wrong timeout value or 0!" >&2
 		exit 1
 	fi
 	
-	if [ "$timeout" -gt 3600 ]; then
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
 		echo "syslog_waitfor: Too long timeout used, can't be over 3600 seconds!" >&2
 		exit 1
 	fi
@@ -1396,4 +1438,66 @@ apply_parameter ()
 	done
 	
 	return 0
+}
+
+try_run ()
+{
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: try_run <timeout in seconds> <command ... >" >&2
+		exit 1
+	fi
+	
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local timeout="$1"
+	local pid
+	shift
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "try_run: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "try_run: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "try_run: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	( $* ) &
+	pid="$!"
+	
+	if [ -z "$pid" -o "$pid" -le 0 ] 2>/dev/null; then
+		echo "try_run: No pid from backgrounded program?" >&2
+		return 1
+	fi
+	
+	while true; do
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "try_run: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		if ! kill -0 "$pid" 2>/dev/null; then
+			wait "$pid"
+			return "$?"
+		fi
+		sleep 1
+	done
+
+	kill -TERM "$pid"
+	if kill -0 "$pid" 2>/dev/null; then
+		kill -KILL "$pid"
+	fi	
+	return 1
 }
