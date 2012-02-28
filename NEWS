@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC trunk
+OpenDNSSEC 1.4.0a1
 
 * Auditor: The Auditor has been removed.
 * Enforcer: Key label logging upon deletion (#192 Sebastian Castro)
@@ -31,6 +31,9 @@ OpenDNSSEC trunk
   the ds-seen command. (OPENDNSSEC-35)
 * Signer Engine: Input and Output DNS Adapters.
 * Signer Engine: Zonefetcher has been removed.
+
+Known issues:
+* Signer Engine: The backup files do not work correctly in this alpha release.
 
 Bugfixes:
 * Bugfix #246: Less confusing text for XML validation in ods-kaspcheck.

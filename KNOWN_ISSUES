@@ -1,8 +1,8 @@
 $Id$
 
-OpenDNSSEC 1.3.0 - Known Restrictions
+OpenDNSSEC 1.4.0a1 - Known Restrictions
 
-The following are the known problems and/or restrictions of release 1.3.0 of
+The following are the known problems and/or restrictions of release 1.4.0a1 of
 OpenDNSSEC.
 
 
@@ -50,16 +50,6 @@ scripts like these that they log enough information for the user to tell
 independently if they failed.
 
 
-Auditor does not handle $INCLUDE statements
--------------------------------------------
-
-The $INCLUDE statement can be used in the unsigned zone to include data from
-other zone files. The problem is that the included files are not copied to 
-the working directory of the signer. We can thus not guarantee that the Audit 
-operation is atomic. After the signer reads in the zone and before the audit, 
-the include files could have been edited.
-
-
 Maximum number of HSMs
 ----------------------
 
@@ -73,3 +63,11 @@ Quotation marks in strings
 Enforcer does not remove/handle any quotation marks in the imported strings.
 This will create a problem when importing the information from e.g. the policy
 description field into the Enforcer database.
+
+
+Backup files redesign
+---------------------
+
+The backup files for the signer are being redesigned for version 1.4.0. In this
+first alpha release, the backup files are not read in correctly and will
+be considered corrupted.
