@@ -347,6 +347,8 @@ cmd_dnskey (int argc, char *argv[])
 
     if (!key) {
         printf("Key not found: %s\n", id);
+        free(name);
+        free(id);
         return -1;
     }
 
@@ -361,6 +363,8 @@ cmd_dnskey (int argc, char *argv[])
     hsm_sign_params_free(sign_params);
     ldns_rr_free(dnskey_rr);
     hsm_key_free(key);
+    free(name);
+    free(id);
 
     return 0;
 }
