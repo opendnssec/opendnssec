@@ -320,6 +320,27 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
     return CKR_OK;
 }
 
+static void
+hsm_remove_leading_zeroes(CK_BYTE_PTR data, CK_ULONG *len)
+{
+    CK_BYTE_PTR p = data;
+    CK_ULONG l;
+
+    if (data == NULL || len == NULL) return;
+
+    l = *len;
+
+    while ((unsigned short int)(*p) == 0 && l > 1) {
+        p++;
+        l--;
+    }
+
+    if (p != data) {
+        memmove(data, p, l);
+        *len = l;
+    }
+}
+
 static int
 hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
                             CK_FUNCTION_LIST_PTR pkcs11_functions,
@@ -1326,6 +1347,10 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
         free(template[1].pValue);
         return NULL;
     }
+
+    // Remove leading zeroes
+    hsm_remove_leading_zeroes(public_exponent, &public_exponent_len);
+    hsm_remove_leading_zeroes(modulus, &modulus_len);
 
     data_size = public_exponent_len + modulus_len + 1;
     if (public_exponent_len <= 256) {

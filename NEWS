@@ -3,9 +3,18 @@ $Id$
 OpenDNSSEC 1.2.3
 
 Bugfixes:
-* Bugfix OPENDNSSEC-207: Signer Engine: Fix communication from a process
-  not attached to a shell.
-* Bugfix: Wrong exit status in ods-control if Enforcer was already running.
+* ods-control: Wrong exit status in ods-control if Enforcer was already
+  running.
+* OPENDNSSEC-207: Signer Engine: Fix communication from a process not
+  attached to a shell.
+* SUPPORT-21: HSM SCA 6000 in combination with OpenCryptoki can return RSA key
+  material with leading zeroes. DNSSEC does not allow leading zeroes in key
+  data. You are affected by this bug if your DNSKEY RDATA e.g. begins with 
+  "BAABA". Normal keys begin with e.g. "AwEAA". OpenDNSSEC will now sanitize
+  incoming data before adding it to the DNSKEY. Do not upgrade to this version
+  if you are affected by the bug. You first need to go unsigned, then do the
+  upgrade, and finally sign your zone again. SoftHSM and other HSM:s will not
+  produce data with leading zeroes and the bug will thus not affect you.  
 
 
 OpenDNSSEC 1.2.2 - 2011-08-11
