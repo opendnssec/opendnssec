@@ -136,6 +136,7 @@ ods_status
 lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
 {
     char *error = NULL;
+    int retries = 0;
 
     if (!owner || !key_id) {
         ods_log_error("[%s] unable to get key: missing required elements",
@@ -160,8 +161,9 @@ lhsm_key_start:
             if (error) {
                 ods_log_error("[%s] %s", hsm_str, error);
                 free((void*)error);
-            } else {
+            } else if (!retries) {
                 lhsm_clear_key_cache(key_id);
+                retries++;
                 goto lhsm_key_start;
             }
             ods_log_error("[%s] unable to get key: create params for key %s "
@@ -179,8 +181,9 @@ lhsm_key_start:
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
             free((void*)error);
-        } else {
+        } else if (!retries) {
             lhsm_clear_key_cache(key_id);
+            retries++;
             goto lhsm_key_start;
         }
         /* could not find key */
@@ -198,8 +201,9 @@ lhsm_key_start:
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
             free((void*)error);
-        } else {
+        } else if (!retries) {
             lhsm_clear_key_cache(key_id);
+            retries++;
             goto lhsm_key_start;
         }
         ods_log_error("[%s] unable to get key: hsm failed to create dnskey",
@@ -223,6 +227,7 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     char* error = NULL;
     ldns_rr* result = NULL;
     hsm_sign_params_t* params = NULL;
+    int retries = 0;
 
     if (!owner || !key_id || !rrset || !inception || !expiration) {
         ods_log_error("[%s] unable to sign: missing required elements",
@@ -244,8 +249,9 @@ lhsm_sign_start:
             if (error) {
                 ods_log_error("[%s] %s", hsm_str, error);
                 free((void*)error);
-            } else {
+            } else if (!retries) {
                 lhsm_clear_key_cache(key_id);
+                retries++;
                 goto lhsm_sign_start;
             }
             ods_log_error("[%s] unable to sign: get key failed", hsm_str);
@@ -274,8 +280,9 @@ lhsm_sign_start:
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
             free((void*)error);
-        } else {
+        } else if (!retries) {
             lhsm_clear_key_cache(key_id);
+            retries++;
             goto lhsm_sign_start;
         }
         ods_log_crit("[%s] error signing rrset with libhsm", hsm_str);
