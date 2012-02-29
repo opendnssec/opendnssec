@@ -1,3 +1,6 @@
+29 February 2012: Matthijs
+- OPENDNSSEC-218: Prevent loop when backup files and HSM are not in sync.
+
 14 February 2012: Matthijs
 - Fix build warnings
 
