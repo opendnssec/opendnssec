@@ -17,6 +17,7 @@ Bugfixes:
   if you are affected by the bug. You first need to go unsigned, then do the
   upgrade, and finally sign your zone again. SoftHSM and other HSM:s will not
   produce data with leading zeroes and the bug will thus not affect you.
+* OPEDNSSEC-225: Fix problem with pid found when not existing.
 
 
 OpenDNSSEC 1.3.6 - 2012-02-17

@@ -384,13 +384,14 @@ writepid (DAEMONCONFIG *config)
             return -1;
         }
     }
-
-    if (S_ISREG(stat_ret.st_mode)) {
-        /* The file exists already */
-		log_msg(config, LOG_ERR, "pidfile %s already exists. If no ods-enforcerd process is running, a previous instance didn't shutdown cleanly, please remove this file and try again.",
-                    config->pidfile);
-		exit(1);
-    } 
+	else {
+		if (S_ISREG(stat_ret.st_mode)) {
+			/* The file exists already */
+			log_msg(config, LOG_ERR, "pidfile %s already exists. If no ods-enforcerd process is running, a previous instance didn't shutdown cleanly, please remove this file and try again.",
+						config->pidfile);
+			exit(1);
+		}
+	}
 
 	/* All good, carry on */
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) config->pid);
