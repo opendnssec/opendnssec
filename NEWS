@@ -43,6 +43,7 @@ Bugfixes:
 * ods-ksmutil: "update kasp" now reflects changes in policy descriptions.
 * ods-ksmutil: Policy descriptions now have special characters quoted.
 * ods-ksmutil: Fix typo in policy export with NSEC3.
+* OPEDNSSEC-225: Fix problem with pid found when not existing.
 
 
 OpenDNSSEC 1.3.6 - 2012-02-17
