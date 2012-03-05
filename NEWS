@@ -7,8 +7,10 @@ OpenDNSSEC 1.3.7
 
 Bugfixes:
 * ods-hsmutil: Fixed a small memory leak when printing a DNSKEY.
+* OPENDNSSEC-216: Signer Engine: Fix duplicate NSEC3PARAM bug.
 * OPENDNSSEC-218: Signer Engine: Prevent endless loop in case the locators
   in the signer backup files and the HSM are out of sync.
+* OPEDNSSEC-225: Fix problem with pid found when not existing.
 * SUPPORT-21: HSM SCA 6000 in combination with OpenCryptoki can return RSA key
   material with leading zeroes. DNSSEC does not allow leading zeroes in key
   data. You are affected by this bug if your DNSKEY RDATA e.g. begins with
@@ -17,7 +19,6 @@ Bugfixes:
   if you are affected by the bug. You first need to go unsigned, then do the
   upgrade, and finally sign your zone again. SoftHSM and other HSM:s will not
   produce data with leading zeroes and the bug will thus not affect you.
-* OPEDNSSEC-225: Fix problem with pid found when not existing.
 
 
 OpenDNSSEC 1.3.6 - 2012-02-17

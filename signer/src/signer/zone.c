@@ -606,6 +606,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
 {
     ldns_rr* nsec3params_rr = NULL;
     ods_status status = ODS_STATUS_OK;
+    int doe_rollover = 0;
 
     if (!zone) {
         ods_log_error("[%s] unable to prepare NSEC3: no zone", zone_str);
@@ -632,6 +633,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
             (uint8_t) zone->signconf->nsec3_optout,
             (uint16_t) zone->signconf->nsec3_iterations,
             zone->signconf->nsec3_salt);
+        doe_rollover = 1;
     }
     if (!zone->nsec3params) {
         ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
@@ -643,7 +645,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
     if (recover) {
         nsec3params_rr = ldns_rr_clone(zone->nsec3params->rr);
         status = zone_add_rr(zone, nsec3params_rr, 0);
-    } else {
+    } else if (doe_rollover) {
         nsec3params_rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
         if (!nsec3params_rr) {
             ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
