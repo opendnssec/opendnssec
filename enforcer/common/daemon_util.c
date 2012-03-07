@@ -430,7 +430,7 @@ writepid (DAEMONCONFIG *config)
                         "If no ods-enforcerd process is running, a previous "
                         "instance didn't shutdown cleanly, please remove this "
                         "file and try again.", config->pidfile, oldpid);
-                    return -1;
+                    exit(1);
                 } else {
                     log_msg(config, LOG_WARNING, "pidfile %s already exists, "
                         "but no process with pid %u is running. "
