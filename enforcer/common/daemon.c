@@ -234,7 +234,7 @@ main(int argc, char *argv[]){
     if (writepid(&config) == -1) {
         log_msg(&config, LOG_ERR, "cannot write the pidfile %s: %s",
                 config.pidfile, strerror(errno));
-							exit(1);
+        exit(1);
     }
 
     atexit(exit_function);
