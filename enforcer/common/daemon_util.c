@@ -367,33 +367,81 @@ write_data(DAEMONCONFIG *config, FILE *file, const void *data, size_t size)
     }
 }
 
+    static pid_t
+readpid(const char *file)
+{
+    int fd;
+    pid_t pid;
+    char pidbuf[32];
+    char *t;
+    int l;
+
+    if ((fd = open(file, O_RDONLY)) == -1) {
+        return -1;
+    }
+    if (((l = read(fd, pidbuf, sizeof(pidbuf)))) == -1) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    /* Empty pidfile means no pidfile... */
+    if (l == 0) {
+        errno = ENOENT;
+        return -1;
+    }
+    pid = strtol(pidbuf, &t, 10);
+
+    if (*t && *t != '\n') {
+        return -1;
+    }
+    return pid;
+}
+
     int
 writepid (DAEMONCONFIG *config)
 {
     FILE * fd;
     char pidbuf[32];
-	struct stat stat_ret;
+    struct stat stat_ret;
+    pid_t oldpid;
 
-	/* If the file exists then either we didn't shutdown cleanly or an enforcer is 
-	 * already running; in either case shutdown */
-	if (stat(config->pidfile, &stat_ret) != 0) {
+    /* If the file exists then either we didn't shutdown cleanly or an enforcer is
+     * already running; in either case shutdown */
+    if (stat(config->pidfile, &stat_ret) != 0) {
 
-		if (errno != ENOENT) {
-			log_msg(config, LOG_ERR, "cannot stat pidfile %s: %s",
-					config->pidfile, strerror(errno));                                      
-			return -1;                                                                      
-		}                                                                                   
-	}
-	else {
-		if (S_ISREG(stat_ret.st_mode)) {
-			/* The file exists already */
-			log_msg(config, LOG_ERR, "pidfile %s already exists. If no ods-enforcerd process is running, a previous instance didn't shutdown cleanly, please remove this file and try again.",
-					config->pidfile);
-			exit(1);
-		}
-	}
+        if (errno != ENOENT) {
+            log_msg(config, LOG_ERR, "cannot stat pidfile %s: %s",
+                    config->pidfile, strerror(errno));
+            return -1;
+        }
+    } else {
+        if (S_ISREG(stat_ret.st_mode)) {
+            /* The file exists already */
+            if ((oldpid = readpid(config->pidfile)) == -1) {
+                /* consider stale pidfile */
+                if (errno != ENOENT) {
+                    log_msg(config, LOG_ERR, "cannot read pidfile %s: %s",
+                        config->pidfile, strerror(errno));
+                }
+            } else {
+                if (kill(oldpid, 0) == 0 || errno == EPERM) {
+                    log_msg(config, LOG_ERR, "pidfile %s already exists, "
+                        "a process with pid %u is already running. "
+                        "If no ods-enforcerd process is running, a previous "
+                        "instance didn't shutdown cleanly, please remove this "
+                        "file and try again.", config->pidfile, oldpid);
+                    exit(1);
+                } else {
+                    log_msg(config, LOG_WARNING, "pidfile %s already exists, "
+                        "but no process with pid %u is running. "
+                        "A previous instance didn't shutdown cleanly, this "
+                        "pidfile is stale.", config->pidfile, oldpid);
+                }
+            }
+        }
+    }
 
-	/* All good, carry on */
+    /* All good, carry on */
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) config->pid);
 
     if ((fd = fopen(config->pidfile, "w")) ==  NULL ) {
