@@ -106,10 +106,6 @@ start = element Configuration {
 		# DEFAULT: $(localstatedir)/opendnssec/tmp
 		element WorkingDirectory { xsd:string }?,
 
-		# Location of the signer tools
-		# DEFAULT: $(libexecdir)/opendnssec
-		element ToolsDirectory { xsd:string }?,
-
 		# Number of Worker Threads
 		# DEFAULT: 4
 		element WorkerThreads { xsd:positiveInteger }?,
