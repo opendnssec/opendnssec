@@ -77,26 +77,26 @@ cmdhandler_handle_cmd_help(int sockfd)
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "Commands:\n"
-        "zones           show the currently known zones.\n"
-        "sign <zone>     read zone and schedule for immediate (re-)sign.\n"
-        "sign --all      read all zones and schedule all for immediate "
+        "zones           Show the currently known zones.\n"
+        "sign <zone>     Read zone and schedule for immediate (re-)sign.\n"
+        "sign --all      Read all zones and schedule all for immediate "
                          "(re-)sign.\n"
-        "clear <zone>    delete the internal storage of this zone.\n"
+        "clear <zone>    Delete the internal storage of this zone.\n"
         "                All signatures will be regenerated on the next "
                          "re-sign.\n"
-        "queue           show the current task queue.\n"
+        "queue           Show the current task queue.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "flush           execute all scheduled tasks immediately.\n"
-        "update <zone>   update this zone signer configurations.\n"
-        "update [--all]  update zone list and all signer configurations.\n"
-        "start           start the engine.\n"
-        "running         check if the engine is running.\n"
-        "reload          reload the engine.\n"
-        "stop            stop the engine.\n"
-        "verbosity <nr>  set verbosity.\n"
+        "flush           Execute all scheduled tasks immediately.\n"
+        "update <zone>   Update this zone signer configurations.\n"
+        "update [--all]  Update zone list and all signer configurations.\n"
+        "start           Start the engine.\n"
+        "running         Check if the engine is running.\n"
+        "reload          Reload the engine.\n"
+        "stop            Stop the engine.\n"
+        "verbosity <nr>  Set verbosity.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
     return;
