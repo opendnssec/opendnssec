@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A703E3BB150F5974008DC018 /* pb-orm-database-mysql.cc in Sources */ = {isa = PBXBuildFile; fileRef = A703E3B7150F5974008DC018 /* pb-orm-database-mysql.cc */; };
+		A703E3BC150F5974008DC018 /* pb-orm-datastore.cc in Sources */ = {isa = PBXBuildFile; fileRef = A703E3B9150F5974008DC018 /* pb-orm-datastore.cc */; };
 		A70EA75F13549A1D00D929CC /* xmlext-wr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A70EA75E13549A1D00D929CC /* xmlext-wr.cpp */; };
 		A71B7E9A1484D7910084A251 /* signconf.proto in Sources */ = {isa = PBXBuildFile; fileRef = A7497484134FD05E00205543 /* signconf.proto */; };
 		A71B7E9B1484D7A20084A251 /* keystate.proto in Sources */ = {isa = PBXBuildFile; fileRef = A74EB43D135249DB001F9E1B /* keystate.proto */; };
@@ -78,7 +80,6 @@
 		A7BAA575149937D400C7DD2B /* pb-orm-context.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7BAA534149937D400C7DD2B /* pb-orm-context.cc */; };
 		A7BAA576149937D400C7DD2B /* pb-orm-create-table.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7BAA536149937D400C7DD2B /* pb-orm-create-table.cc */; };
 		A7BAA577149937D400C7DD2B /* pb-orm-create.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7BAA538149937D400C7DD2B /* pb-orm-create.cc */; };
-		A7BAA578149937D400C7DD2B /* pb-orm-database-dbi.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7BAA53A149937D400C7DD2B /* pb-orm-database-dbi.cc */; };
 		A7BAA579149937D400C7DD2B /* pb-orm-database-helper.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7BAA53C149937D400C7DD2B /* pb-orm-database-helper.cc */; };
 		A7BAA57A149937D400C7DD2B /* pb-orm-database-sqlite3.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7BAA53E149937D400C7DD2B /* pb-orm-database-sqlite3.cc */; };
 		A7BAA57B149937D400C7DD2B /* pb-orm-database.cc in Sources */ = {isa = PBXBuildFile; fileRef = A7BAA540149937D400C7DD2B /* pb-orm-database.cc */; };
@@ -129,6 +130,10 @@
 /* End PBXBuildRule section */
 
 /* Begin PBXFileReference section */
+		A703E3B7150F5974008DC018 /* pb-orm-database-mysql.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "pb-orm-database-mysql.cc"; sourceTree = "<group>"; };
+		A703E3B8150F5974008DC018 /* pb-orm-database-mysql.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "pb-orm-database-mysql.h"; sourceTree = "<group>"; };
+		A703E3B9150F5974008DC018 /* pb-orm-datastore.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "pb-orm-datastore.cc"; sourceTree = "<group>"; };
+		A703E3BA150F5974008DC018 /* pb-orm-datastore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "pb-orm-datastore.h"; sourceTree = "<group>"; };
 		A70EA75D13549A0400D929CC /* xmlext-wr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "xmlext-wr.h"; sourceTree = "<group>"; };
 		A70EA75E13549A1D00D929CC /* xmlext-wr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "xmlext-wr.cpp"; sourceTree = "<group>"; };
 		A71D098F136C42E100D8F205 /* hsmkey_list_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hsmkey_list_cmd.cpp; sourceTree = "<group>"; };
@@ -266,8 +271,6 @@
 		A7BAA537149937D400C7DD2B /* pb-orm-create-table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "pb-orm-create-table.h"; sourceTree = "<group>"; };
 		A7BAA538149937D400C7DD2B /* pb-orm-create.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "pb-orm-create.cc"; sourceTree = "<group>"; };
 		A7BAA539149937D400C7DD2B /* pb-orm-create.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "pb-orm-create.h"; sourceTree = "<group>"; };
-		A7BAA53A149937D400C7DD2B /* pb-orm-database-dbi.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "pb-orm-database-dbi.cc"; sourceTree = "<group>"; };
-		A7BAA53B149937D400C7DD2B /* pb-orm-database-dbi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "pb-orm-database-dbi.h"; sourceTree = "<group>"; };
 		A7BAA53C149937D400C7DD2B /* pb-orm-database-helper.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "pb-orm-database-helper.cc"; sourceTree = "<group>"; };
 		A7BAA53D149937D400C7DD2B /* pb-orm-database-helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "pb-orm-database-helper.h"; sourceTree = "<group>"; };
 		A7BAA53E149937D400C7DD2B /* pb-orm-database-sqlite3.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "pb-orm-database-sqlite3.cc"; sourceTree = "<group>"; };
@@ -616,6 +619,10 @@
 		A7BAA52F149937D300C7DD2B /* protobuf-orm */ = {
 			isa = PBXGroup;
 			children = (
+				A703E3B7150F5974008DC018 /* pb-orm-database-mysql.cc */,
+				A703E3B8150F5974008DC018 /* pb-orm-database-mysql.h */,
+				A703E3B9150F5974008DC018 /* pb-orm-datastore.cc */,
+				A703E3BA150F5974008DC018 /* pb-orm-datastore.h */,
 				A7BAA530149937D400C7DD2B /* orm.proto */,
 				A7BAA531149937D400C7DD2B /* pb-orm-common.h */,
 				A7BAA532149937D400C7DD2B /* pb-orm-connect.cc */,
@@ -626,8 +633,6 @@
 				A7BAA537149937D400C7DD2B /* pb-orm-create-table.h */,
 				A7BAA538149937D400C7DD2B /* pb-orm-create.cc */,
 				A7BAA539149937D400C7DD2B /* pb-orm-create.h */,
-				A7BAA53A149937D400C7DD2B /* pb-orm-database-dbi.cc */,
-				A7BAA53B149937D400C7DD2B /* pb-orm-database-dbi.h */,
 				A7BAA53C149937D400C7DD2B /* pb-orm-database-helper.cc */,
 				A7BAA53D149937D400C7DD2B /* pb-orm-database-helper.h */,
 				A7BAA53E149937D400C7DD2B /* pb-orm-database-sqlite3.cc */,
@@ -725,7 +730,7 @@
 		A731849C13144EB0007DB701 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0420;
+				LastUpgradeCheck = 0430;
 			};
 			buildConfigurationList = A731849F13144EB0007DB701 /* Build configuration list for PBXProject "enforcer" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -827,7 +832,6 @@
 				A7BAA575149937D400C7DD2B /* pb-orm-context.cc in Sources */,
 				A7BAA576149937D400C7DD2B /* pb-orm-create-table.cc in Sources */,
 				A7BAA577149937D400C7DD2B /* pb-orm-create.cc in Sources */,
-				A7BAA578149937D400C7DD2B /* pb-orm-database-dbi.cc in Sources */,
 				A7BAA579149937D400C7DD2B /* pb-orm-database-helper.cc in Sources */,
 				A7BAA57A149937D400C7DD2B /* pb-orm-database-sqlite3.cc in Sources */,
 				A7BAA57B149937D400C7DD2B /* pb-orm-database.cc in Sources */,
@@ -850,6 +854,8 @@
 				A7D33D0514BBB81D00E39D22 /* zone_add_task.cpp in Sources */,
 				A7D33D0B14BC4FEB00E39D22 /* zone_del_cmd.cpp in Sources */,
 				A7D33D0C14BC4FEB00E39D22 /* zone_del_task.cpp in Sources */,
+				A703E3BB150F5974008DC018 /* pb-orm-database-mysql.cc in Sources */,
+				A703E3BC150F5974008DC018 /* pb-orm-datastore.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
