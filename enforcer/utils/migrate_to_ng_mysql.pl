@@ -1,9 +1,9 @@
 #!/usr/bin/perl 
 #===============================================================================
 #
-#         FILE: migrate_to_ng_sqlite.pl
+#         FILE: migrate_to_ng_mysql.pl
 #
-#        USAGE: ./migrate_to_ng_sqlite.pl -d <DB file> 
+#        USAGE: ./migrate_to_ng_mysql.pl  
 #
 #  DESCRIPTION: export state from a kasp.db file to xml.
 #
@@ -22,22 +22,46 @@ use strict;
 use warnings;
 
 use DBI;
-use DBD::SQLite;
+use DBD::mysql;
 use Getopt::Std     qw(getopts);
 
 my %sm;
 my %policy;
 
 use vars (
-	q!$opt_d!,      # Database file fo convert
+    q!$opt_d!,      # Database to convert
+    q!$opt_p!,      # Database password
+    q!$opt_u!,      # Database user
+    q!$opt_h!,      # Database host
+    q!$opt_P!,      # Database port
 );
 
-getopts('d:')
-	or die "Please supply a database file to work on with the -d flag";
+getopts('d:p:u:h:P:')
+    or die "USAGE:  ./migrate_keyshare_mysql.pl -d <DB> -u <USER> -p <PASSWORD> [-h <HOST>] [-P <PORT>]";
 
+# We need at least d, u and p
 if (!$opt_d) {
-	print STDERR "Please supply a database file to work on with the -d flag\n";
-	exit 1;
+    print STDERR "Please supply a database file to work on with the -d flag\nUSAGE:  ./migrate_keyshare_mysql.pl -d <DB> -u <USER> -p <PASSWORD>";
+    exit 1;
+}
+if (!$opt_u) {
+    print STDERR "Please supply a database user with the -u flag\nUSAGE:  ./migrate_keyshare_mysql.pl -d <DB> -u <USER> -p <PASSWORD>";
+    exit 1;
+}
+if (!$opt_p) {
+    print STDERR "Please supply a database password with the -p flag\nUSAGE:  ./migrate_keyshare_mysql.pl -d <DB> -u <USER> -p <PASSWORD>";
+    exit 1;
+}
+
+# Some defaults for h and P
+my $host = 'localhost';
+my $port = '3306';
+
+if ($opt_h) {
+	$host = $opt_h;
+}
+if ($opt_P) {
+	$port = $opt_P;
 }
 
 open  my $OUT, '>', "enforcerstate.xml"
@@ -50,7 +74,7 @@ print $OUT "<EnforcerState>\n";
 
 ###
 # Make sure that we can connect to this database
-my $dbh = DBI->connect("dbi:SQLite:dbname=$opt_d","","")
+my $dbh = DBI->connect("dbi:mysql:$opt_d:$host:$port",$opt_u,$opt_p)
 	or die "Couldn't connect: $!";
 
 ###
