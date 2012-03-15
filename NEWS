@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.4.0a1 - 2012-03-13
+OpenDNSSEC 1.4.0a1 - 2012-03-15
 
 * Auditor: The Auditor has been removed.
 * Enforcer: Key label logging upon deletion (#192 Sebastian Castro)
