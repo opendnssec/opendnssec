@@ -101,9 +101,10 @@ ods_status signconf_update(signconf_type** signconf, const char* scfile,
  * Backup signer configuration.
  * \param[in] fd file descriptor
  * \param[in] sc signer configuration settings
+ * \param[in] version version string
  *
  */
-void signconf_backup(FILE* fd, signconf_type* sc);
+void signconf_backup(FILE* fd, signconf_type* sc, const char* version);
 
 /**
  * Check signer configuration.

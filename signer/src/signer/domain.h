@@ -185,22 +185,12 @@ void domain_print(FILE* fd, domain_type* domain);
 void domain_cleanup(domain_type* domain);
 
 /**
- * Recover domain from backup.
- * \param[in] domain domain
- * \param[in] fd backup file descriptor
- * \param[in] dstatus domain status
- * \return ods_status status
- *
- */
-ods_status domain_recover(domain_type* domain, FILE* fd,
-    int dstatus);
-
-/**
  * Backup domain.
  * \param[in] fd file descriptor
  * \param[in] domain domain
+ * \param[in] sigs do RRSIGS if true, otherwise do RRset
  *
  */
-void domain_backup(FILE* fd, domain_type* domain);
+void domain_backup2(FILE* fd, domain_type* domain, int sigs);
 
 #endif /* SIGNER_DOMAIN_H */

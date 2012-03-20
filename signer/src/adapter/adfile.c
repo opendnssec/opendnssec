@@ -72,7 +72,7 @@ adfile_read_line:
     if (ttl) {
         new_ttl = *ttl;
     }
-    len = adutil_readline_frm_file(fd, line, l);
+    len = adutil_readline_frm_file(fd, line, l, 0);
     adutil_rtrim_line(line, &len);
     if (len >= 0) {
         switch (line[0]) {
@@ -172,7 +172,7 @@ adfile_read_rr:
                         adapter_str, l&&*l?*l:0,
                         ldns_get_errorstr_by_id(*status), line);
                     while (len >= 0) {
-                        len = adutil_readline_frm_file(fd, line, l);
+                        len = adutil_readline_frm_file(fd, line, l, 0);
                     }
                     if (rr) {
                         ldns_rr_free(rr);
@@ -248,7 +248,7 @@ adfile_read_file(FILE* fd, zone_type* zone)
               ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
         }
         /* add to the database */
-        result = adapi_add_rr(zone, rr);
+        result = adapi_add_rr(zone, rr, 0);
         if (result == ODS_STATUS_UNCHANGED) {
             ods_log_debug("[%s] skipping RR at line %i (duplicate): %s",
                 adapter_str, l, line);
@@ -313,34 +313,6 @@ adfile_read(void* zone)
     ods_fclose(fd);
     if (status == ODS_STATUS_OK) {
         adapi_trans_full(zone);
-    }
-    return status;
-}
-
-
-/**
- * Read zone from backup file.
- *
- */
-ods_status
-adbackup_read(void* zone, const char* filename)
-{
-    FILE* fd = NULL;
-    zone_type* adzone = (zone_type*) zone;
-    ods_status status = ODS_STATUS_OK;
-
-    if (!adzone || !filename) {
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    fd = ods_fopen(filename, NULL, "r");
-    if (!fd) {
-        return ODS_STATUS_FOPEN_ERR;
-    }
-    status = adfile_read_file(fd, adzone);
-    ods_fclose(fd);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to recover file: %s", adapter_str,
-            ods_status2str(status));
     }
     return status;
 }

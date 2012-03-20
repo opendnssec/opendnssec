@@ -715,224 +715,148 @@ zone_cleanup(zone_type* zone)
 
 
 /**
- * Backup zone.
- *
- */
-ods_status
-zone_backup(zone_type* zone)
-{
-    char* filename = NULL;
-    FILE* fd = NULL;
-
-    ods_log_assert(zone);
-    ods_log_assert(zone->db);
-    ods_log_assert(zone->signconf);
-
-    filename = ods_build_path(zone->name, ".backup", 0);
-    fd = ods_fopen(filename, NULL, "w");
-    free((void*)filename);
-
-    if (fd) {
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V2);
-        /** Backup zone */
-        fprintf(fd, ";;Zone: name %s class %i ttl %u inbound %u internal "
-            "%u outbound %u\n",
-            zone->name?zone->name:"(null)",
-            (int) zone->klass,
-            (unsigned) zone->default_ttl,
-            (unsigned) zone->db->inbserial,
-            (unsigned) zone->db->intserial,
-            (unsigned) zone->db->outserial);
-        /** Backup task */
-        if (zone->task) {
-            task_backup(fd, (task_type*) zone->task);
-        }
-        /** Backup signconf */
-        signconf_backup(fd, zone->signconf);
-        fprintf(fd, ";;\n");
-        /** Backup NSEC3 parameters */
-        if (zone->signconf->nsec3params) {
-            nsec3params_backup(fd,
-                zone->signconf->nsec3_algo,
-                zone->signconf->nsec3_optout,
-                zone->signconf->nsec3_iterations,
-                zone->signconf->nsec3_salt,
-                zone->signconf->nsec3params->rr);
-        }
-        /** Backup keylist */
-        keylist_backup(fd, zone->signconf->keys);
-        /** Backup domains and stuff */
-        namedb_backup(fd, zone->db);
-        /** Done */
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V2);
-        ods_fclose(fd);
-    } else {
-        return ODS_STATUS_FOPEN_ERR;
-    }
-    return ODS_STATUS_OK;
-}
-
-
-/**
  * Recover zone from backup.
  *
  */
 ods_status
-zone_recover(zone_type* zone)
+zone_recover2(zone_type* zone)
 {
     char* filename = NULL;
     FILE* fd = NULL;
     const char* token = NULL;
+    time_t when = 0;
+    task_type* task = NULL;
     ods_status status = ODS_STATUS_OK;
     /* zone part */
     int klass = 0;
-    uint32_t ttl = 0;
-    uint32_t inbound = 0;
-    uint32_t internal = 0;
-    uint32_t outbound = 0;
-    /* task part */
-    task_type* task = NULL;
-    time_t when = 0;
-    time_t backoff = 0;
-    int what = 0;
-    int interrupt = 0;
-    int halted = 0;
-    int flush = 0;
+    uint32_t inbound = 0, internal = 0, outbound = 0;
     /* signconf part */
     time_t lastmod = 0;
-    int audit = 0;
     /* nsec3params part */
     const char* salt = NULL;
-    ldns_rr* nsec3params_rr = NULL;
-    nsec3params_type* nsec3params = NULL;
-    /* keys part */
-    key_type* key = NULL;
-    /* namedb part */
-    int fetch = 0;
 
     ods_log_assert(zone);
+    ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->db);
 
-    filename = ods_build_path(zone->name, ".backup", 0);
+    filename = ods_build_path(zone->name, ".backup2", 0);
     fd = ods_fopen(filename, NULL, "r");
-    free((void*)filename);
     if (fd) {
         /* start recovery */
-        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V2) ||
-            /* zone part */
-            !backup_read_check_str(fd, ";;Zone:") ||
-            !backup_read_check_str(fd, "name") ||
-            !backup_read_check_str(fd, zone->name) ||
-            !backup_read_check_str(fd, "class") ||
-            !backup_read_int(fd, &klass) ||
-            !backup_read_check_str(fd, "ttl") ||
-            !backup_read_uint32_t(fd, &ttl) ||
-            !backup_read_check_str(fd, "inbound") ||
-            !backup_read_uint32_t(fd, &inbound) ||
-            !backup_read_check_str(fd, "internal") ||
-            !backup_read_uint32_t(fd, &internal) ||
-            !backup_read_check_str(fd, "outbound") ||
-            !backup_read_uint32_t(fd, &outbound) ||
-            /* task part */
-            !backup_read_check_str(fd, ";;Task:") ||
-            !backup_read_check_str(fd, "when") ||
-            !backup_read_time_t(fd, &when) ||
-            !backup_read_check_str(fd, "what") ||
-            !backup_read_int(fd, &what) ||
-            !backup_read_check_str(fd, "interrupt") ||
-            !backup_read_int(fd, &interrupt) ||
-            !backup_read_check_str(fd, "halted") ||
-            !backup_read_int(fd, &halted) ||
-            !backup_read_check_str(fd, "backoff") ||
-            !backup_read_time_t(fd, &backoff) ||
-            !backup_read_check_str(fd, "flush") ||
-            !backup_read_int(fd, &flush) ||
-            /* signconf part */
-            !backup_read_check_str(fd, ";;Signconf:") ||
-            !backup_read_check_str(fd, "lastmod") ||
-            !backup_read_time_t(fd, &lastmod) ||
-            !backup_read_check_str(fd, "resign") ||
-            !backup_read_duration(fd,
-                &zone->signconf->sig_resign_interval) ||
-            !backup_read_check_str(fd, "refresh") ||
-            !backup_read_duration(fd,
-                &zone->signconf->sig_refresh_interval) ||
-            !backup_read_check_str(fd, "valid") ||
-            !backup_read_duration(fd,
-                &zone->signconf->sig_validity_default) ||
-            !backup_read_check_str(fd, "denial") ||
-            !backup_read_duration(fd,
-                &zone->signconf->sig_validity_denial) ||
-            !backup_read_check_str(fd, "jitter") ||
-            !backup_read_duration(fd, &zone->signconf->sig_jitter) ||
-            !backup_read_check_str(fd, "offset") ||
-            !backup_read_duration(fd,
-                &zone->signconf->sig_inception_offset) ||
-            !backup_read_check_str(fd, "nsec") ||
-            !backup_read_rr_type(fd, &zone->signconf->nsec_type) ||
-            !backup_read_check_str(fd, "dnskeyttl") ||
-            !backup_read_duration(fd, &zone->signconf->dnskey_ttl) ||
-            !backup_read_check_str(fd, "soattl") ||
-            !backup_read_duration(fd, &zone->signconf->soa_ttl) ||
-            !backup_read_check_str(fd, "soamin") ||
-            !backup_read_duration(fd, &zone->signconf->soa_min) ||
-            !backup_read_check_str(fd, "serial") ||
-            !backup_read_str(fd, &zone->signconf->soa_serial) ||
-            !backup_read_check_str(fd, "audit") ||
-            !backup_read_int(fd, &audit) ||
-            !backup_read_check_str(fd, ";;")) {
-            goto recover_error;
+        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V3)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read magic "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        if (!backup_read_check_str(fd, ";;Time:") |
+            !backup_read_time_t(fd, &when)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read time "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        /* zone stuff */
+        if (!backup_read_check_str(fd, ";;Zone:") |
+            !backup_read_check_str(fd, "name") |
+            !backup_read_check_str(fd, zone->name)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read name "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        if (!backup_read_check_str(fd, "class") |
+            !backup_read_int(fd, &klass)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read class "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        if (!backup_read_check_str(fd, "inbound") |
+            !backup_read_uint32_t(fd, &inbound) |
+            !backup_read_check_str(fd, "internal") |
+            !backup_read_uint32_t(fd, &internal) |
+            !backup_read_check_str(fd, "outbound") |
+            !backup_read_uint32_t(fd, &outbound)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read serial "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        zone->klass = (ldns_rr_class) klass;
+        zone->db->inbserial = inbound;
+        zone->db->intserial = internal;
+        zone->db->outserial = outbound;
+        /* signconf part */
+        if (!backup_read_check_str(fd, ";;Signconf:") |
+            !backup_read_check_str(fd, "lastmod") |
+            !backup_read_time_t(fd, &lastmod) |
+            !backup_read_check_str(fd, "maxzonettl") |
+            !backup_read_check_str(fd, "0") |
+            !backup_read_check_str(fd, "resign") |
+            !backup_read_duration(fd, &zone->signconf->sig_resign_interval) |
+            !backup_read_check_str(fd, "refresh") |
+            !backup_read_duration(fd, &zone->signconf->sig_refresh_interval) |
+            !backup_read_check_str(fd, "valid") |
+            !backup_read_duration(fd, &zone->signconf->sig_validity_default) |
+            !backup_read_check_str(fd, "denial") |
+            !backup_read_duration(fd,&zone->signconf->sig_validity_denial) |
+            !backup_read_check_str(fd, "jitter") |
+            !backup_read_duration(fd, &zone->signconf->sig_jitter) |
+            !backup_read_check_str(fd, "offset") |
+            !backup_read_duration(fd, &zone->signconf->sig_inception_offset) |
+            !backup_read_check_str(fd, "nsec") |
+            !backup_read_rr_type(fd, &zone->signconf->nsec_type) |
+            !backup_read_check_str(fd, "dnskeyttl") |
+            !backup_read_duration(fd, &zone->signconf->dnskey_ttl) |
+            !backup_read_check_str(fd, "soattl") |
+            !backup_read_duration(fd, &zone->signconf->soa_ttl) |
+            !backup_read_check_str(fd, "soamin") |
+            !backup_read_duration(fd, &zone->signconf->soa_min) |
+            !backup_read_check_str(fd, "serial") |
+            !backup_read_str(fd, &zone->signconf->soa_serial)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read signconf "
+                "error", zone_str, zone->name);
+            goto recover_error2;
         }
         /* nsec3params part */
         if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
-             if (!backup_read_check_str(fd, ";;Nsec3parameters:") ||
-                 !backup_read_check_str(fd, "salt") ||
-                 !backup_read_str(fd, &salt) ||
-                 !backup_read_check_str(fd, "algorithm") ||
-                 !backup_read_uint32_t(fd, &zone->signconf->nsec3_algo) ||
-                 !backup_read_check_str(fd, "optout") ||
-                 !backup_read_int(fd, &zone->signconf->nsec3_optout) ||
-                 !backup_read_check_str(fd, "iterations") ||
-                 !backup_read_uint32_t(fd,
-                     &zone->signconf->nsec3_iterations) ||
-                 ldns_rr_new_frm_fp(&nsec3params_rr, fd, NULL, NULL, NULL) ||
-                 !backup_read_check_str(fd, ";;Nsec3done") ||
-                 !backup_read_check_str(fd, ";;")) {
-                 goto recover_error;
+            if (!backup_read_check_str(fd, ";;Nsec3parameters:") |
+                !backup_read_check_str(fd, "salt") |
+                !backup_read_str(fd, &salt) |
+                !backup_read_check_str(fd, "algorithm") |
+                !backup_read_uint32_t(fd, &zone->signconf->nsec3_algo) |
+                !backup_read_check_str(fd, "optout") |
+                !backup_read_int(fd, &zone->signconf->nsec3_optout) |
+                !backup_read_check_str(fd, "iterations") |
+                !backup_read_uint32_t(fd, &zone->signconf->nsec3_iterations)) {
+                ods_log_error("[%s] corrupted backup file zone %s: read "
+                    "nsec3parameters error", zone_str, zone->name);
+                goto recover_error2;
             }
-        }
-        zone->signconf->nsec3_salt = allocator_strdup(
-            zone->signconf->allocator, salt);
-        free((void*) salt);
-        salt = NULL;
-        if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            nsec3params = nsec3params_create((void*) zone->signconf,
-                zone->signconf->nsec3_algo,
-                zone->signconf->nsec3_optout,
-                zone->signconf->nsec3_iterations,
-                zone->signconf->nsec3_salt);
-            if (!nsec3params) {
-                goto recover_error;
-            }
-            nsec3params->rr = nsec3params_rr;
-            zone->signconf->nsec3params = nsec3params;
+            zone->signconf->nsec3_salt = allocator_strdup(
+                zone->signconf->allocator, salt);
+            free((void*) salt);
+            salt = NULL;
         }
         zone->signconf->last_modified = lastmod;
-        status = zone_publish_nsec3param(zone);
-        if (status != ODS_STATUS_OK) {
-            zone->task = NULL;
-            goto recover_error;
+        zone->signconf->nsec3params = nsec3params_create(
+            (void*) zone->signconf,
+            (uint8_t) zone->signconf->nsec3_algo,
+            (uint8_t) zone->signconf->nsec3_optout,
+            (uint16_t) zone->signconf->nsec3_iterations,
+            zone->signconf->nsec3_salt);
+        if (!zone->signconf->nsec3params) {
+            ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                "create nsec3param", zone_str, zone->name);
+            goto recover_error2;
         }
+        zone->default_ttl = (uint32_t) duration2time(zone->signconf->soa_min);
         /* keys part */
         zone->signconf->keys = keylist_create((void*) zone->signconf);
         while (backup_read_str(fd, &token)) {
             if (ods_strcmp(token, ";;Key:") == 0) {
-                key = key_recover(fd, zone->signconf->keys);
-                if (!key) {
-                    goto recover_error;
+                if (!key_recover2(fd, zone->signconf->keys)) {
+                    ods_log_error("[%s] corrupted backup file zone %s: read "
+                        "key error", zone_str, zone->name);
+                    goto recover_error2;
                 }
-                key = NULL;
             } else if (ods_strcmp(token, ";;") == 0) {
                 /* keylist done */
                 free((void*) token);
@@ -940,120 +864,148 @@ zone_recover(zone_type* zone)
                 break;
             } else {
                 /* keylist corrupted */
-                goto recover_error;
+                goto recover_error2;
             }
             free((void*) token);
             token = NULL;
         }
+        /* publish dnskeys */
         status = zone_publish_dnskeys(zone);
         if (status != ODS_STATUS_OK) {
-            goto recover_error;
+            ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                "publish dnskeys (%s)", zone_str, zone->name,
+                ods_status2str(status));
+            goto recover_error2;
+        }
+        /* publish nsec3param */
+        status = zone_publish_nsec3param(zone);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                "publish nsec3param (%s)", zone_str, zone->name,
+                ods_status2str(status));
+            goto recover_error2;
+        }
+        /* publish other records */
+        status = backup_read_namedb(fd, zone);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                "read resource records (%s)", zone_str, zone->name,
+                ods_status2str(status));
+            goto recover_error2;
         }
         /* task */
-        task = task_create((task_id) what, when, (void*) zone);
+        task = task_create(TASK_SIGN, when, (void*) zone);
         if (!task) {
-            goto recover_error;
+            ods_log_error("[%s] failed to restore zone %s: unable to "
+                "create task", zone_str, zone->name);
+            goto recover_error2;
         }
         zone->task = (void*) task;
-        /* namedb part */
-        filename = ods_build_path(zone->name, ".inbound", 0);
-        status = adbackup_read(zone, filename);
         free((void*)filename);
-        if (status != ODS_STATUS_OK) {
-            zone->task = NULL;
-            goto recover_error;
-        }
-        zone->klass = (ldns_rr_class) klass;
-        zone->default_ttl = ttl;
-        zone->db->inbserial = inbound;
-        zone->db->intserial = internal;
-        zone->db->outserial = outbound;
-        status = namedb_recover(zone->db, fd, ODS_SE_FILE_MAGIC_V2);
-        if (status != ODS_STATUS_OK) {
-            zone->task = NULL;
-            goto recover_error;
-        }
         ods_fclose(fd);
-
-        /* all ok */
-        namedb_diff(zone->db, 0);
+        /* journal */
         zone->db->is_initialized = 1;
+        filename = ods_build_path(zone->name, ".ixfr", 0);
+        fd = ods_fopen(filename, NULL, "r");
+        if (fd) {
+            status = backup_read_ixfr(fd, zone);
+            if (status != ODS_STATUS_OK) {
+                ods_log_warning("[%s] corrupted journal file zone %s, "
+                    "skipping (%s)", zone_str, zone->name,
+                    ods_status2str(status));
+                ixfr_cleanup(zone->ixfr);
+                zone->ixfr = ixfr_create((void*)zone);
+            }
+        }
+        /* all ok */
         ixfr_purge(zone->ixfr);
+        free((void*)filename);
+        ods_fclose(fd);
         if (zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
             lock_basic_unlock(&zone->stats->stats_lock);
         }
         return ODS_STATUS_OK;
-    } else {
-        /* backwards compatible backup recovery (serial) */
-        filename = ods_build_path(zone->name, ".state", 0);
-        fd = ods_fopen(filename, NULL, "r");
-        free((void*)filename);
-        if (fd) {
-            if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V1) ||
-                !backup_read_check_str(fd, ";name:") ||
-                !backup_read_check_str(fd, zone->name) ||
-                !backup_read_check_str(fd, ";class:") ||
-                !backup_read_int(fd, &klass) ||
-                !backup_read_check_str(fd, ";fetch:") ||
-                !backup_read_int(fd, &fetch) ||
-                !backup_read_check_str(fd, ";default_ttl:") ||
-                !backup_read_uint32_t(fd, &ttl) ||
-                !backup_read_check_str(fd, ";inbserial:") ||
-                !backup_read_uint32_t(fd, &inbound) ||
-                !backup_read_check_str(fd, ";intserial:") ||
-                !backup_read_uint32_t(fd, &internal) ||
-                !backup_read_check_str(fd, ";outserial:") ||
-                !backup_read_uint32_t(fd, &outbound) ||
-                !backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V1))
-            {
-                goto recover_error;
-            }
-            zone->klass = (ldns_rr_class) klass;
-            zone->default_ttl = ttl;
-            zone->db->inbserial = inbound;
-            zone->db->intserial = internal;
-            zone->db->outserial = outbound;
-            /* all ok */
-            namedb_diff(zone->db, 0);
-            zone->db->is_initialized = 1;
-            if (zone->stats) {
-                lock_basic_lock(&zone->stats->stats_lock);
-                stats_clear(zone->stats);
-                lock_basic_unlock(&zone->stats->stats_lock);
-            }
-            return ODS_STATUS_UNCHANGED;
-        }
-        ods_fclose(fd);
     }
-
     return ODS_STATUS_UNCHANGED;
 
-recover_error:
-    ods_log_error("[%s] unable to recover zone %s: corrupted file",
-        zone_str, zone->name);
+recover_error2:
+    free((void*)filename);
     ods_fclose(fd);
-
     /* signconf cleanup */
     free((void*)salt);
     salt = NULL;
     signconf_cleanup(zone->signconf);
     zone->signconf = signconf_create();
     ods_log_assert(zone->signconf);
-    /* task cleanup */
-    task_cleanup(task);
-    task = NULL;
     /* namedb cleanup */
-    namedb_rollback(zone->db);
     namedb_cleanup(zone->db);
     zone->db = namedb_create((void*)zone);
     ods_log_assert(zone->db);
-
+    /* stats reset */
     if (zone->stats) {
        lock_basic_lock(&zone->stats->stats_lock);
        stats_clear(zone->stats);
        lock_basic_unlock(&zone->stats->stats_lock);
     }
     return ODS_STATUS_ERR;
+}
+
+
+/**
+ * Backup zone.
+ *
+ */
+ods_status
+zone_backup2(zone_type* zone)
+{
+    char* filename = NULL;
+    FILE* fd = NULL;
+    task_type* task = NULL;
+
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
+    ods_log_assert(zone->db);
+    ods_log_assert(zone->signconf);
+    ods_log_assert(zone->task);
+
+    filename = ods_build_path(zone->name, ".backup2", 0);
+    fd = ods_fopen(filename, NULL, "w");
+    free((void*)filename);
+
+    if (fd) {
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
+        task = (task_type*) zone->task;
+        fprintf(fd, ";;Time: %u\n", (size_t) task->when);
+        /** Backup zone */
+        fprintf(fd, ";;Zone: name %s class %i inbound %u internal %u "
+            "outbound %u\n", zone->name, (int) zone->klass,
+            (unsigned) zone->db->inbserial,
+            (unsigned) zone->db->intserial,
+            (unsigned) zone->db->outserial);
+        /** Backup signconf */
+        signconf_backup(fd, zone->signconf, ODS_SE_FILE_MAGIC_V3);
+        /** Backup NSEC3 parameters */
+        if (zone->signconf->nsec3params) {
+            nsec3params_backup(fd,
+                zone->signconf->nsec3_algo,
+                zone->signconf->nsec3_optout,
+                zone->signconf->nsec3_iterations,
+                zone->signconf->nsec3_salt,
+                zone->signconf->nsec3params->rr,
+                ODS_SE_FILE_MAGIC_V3);
+        }
+        /** Backup keylist */
+        keylist_backup(fd, zone->signconf->keys, ODS_SE_FILE_MAGIC_V3);
+        fprintf(fd, ";;\n");
+        /** Backup domains and stuff */
+        namedb_backup2(fd, zone->db);
+        /** Done */
+        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
+        ods_fclose(fd);
+    } else {
+        return ODS_STATUS_FOPEN_ERR;
+    }
+    return ODS_STATUS_OK;
 }

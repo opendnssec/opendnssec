@@ -54,10 +54,12 @@ ldns_rr* adutil_lookup_soa_rr(FILE* fd);
  * \param[in] fd file descriptor of zonefile
  * \param[out] line the one line
  * \param[out] l keeps track of line numbers
+ * \param[in] keep_comments if true, keep comments
  * \return int number of characters read
  *
  */
-int adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l);
+int adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
+    int keep_comments);
 
 /*
  * Trim trailing whitespace.

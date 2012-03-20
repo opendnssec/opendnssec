@@ -219,12 +219,17 @@ signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
  *
  */
 void
-signconf_backup(FILE* fd, signconf_type* sc)
+signconf_backup(FILE* fd, signconf_type* sc, const char* version)
 {
     if (!fd || !sc) {
         return;
     }
     fprintf(fd, ";;Signconf: lastmod %u ", (unsigned) sc->last_modified);
+    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) &&
+        strcmp(version, ODS_SE_FILE_MAGIC_V1)) {
+        /* version 3 and up */
+        fprintf(fd, "maxzonettl 0 "); /* prepare for enforcer ng */
+    }
     signconf_backup_duration(fd, "resign", sc->sig_resign_interval);
     signconf_backup_duration(fd, "refresh", sc->sig_refresh_interval);
     signconf_backup_duration(fd, "valid", sc->sig_validity_default);
@@ -236,7 +241,9 @@ signconf_backup(FILE* fd, signconf_type* sc)
     signconf_backup_duration(fd, "soattl", sc->soa_ttl);
     signconf_backup_duration(fd, "soamin", sc->soa_min);
     fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
-    fprintf(fd, "audit 0\n");
+    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
+        fprintf(fd, "audit 0\n");
+    }
     return;
 }
 

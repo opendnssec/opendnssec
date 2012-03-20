@@ -495,7 +495,7 @@ worker_perform_task(worker_type* worker)
     }
     /* backup the last successful run */
     if (backup) {
-        status = zone_backup(zone);
+        status = zone_backup2(zone);
         if (status != ODS_STATUS_OK) {
             ods_log_warning("[%s[%i]] unable to backup zone %s: %s",
             worker2str(worker->type), worker->thread_num,

@@ -55,15 +55,6 @@
 ods_status adfile_read(void* zone);
 
 /**
- * Read zone from backup file.
- * \param[in] zone zone reference
- * \param[in] filename read from this specific file
- * \return ods_status status
- *
- */
-ods_status adbackup_read(void* zone, const char* filename);
-
-/**
  * Write zone to output file adapter.
  * \param[in] zone zone reference
  * \param[in] filename write to this specific file

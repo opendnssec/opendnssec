@@ -71,7 +71,7 @@ addns_read_line:
     if (ttl) {
         new_ttl = *ttl;
     }
-    len = adutil_readline_frm_file(fd, line, l);
+    len = adutil_readline_frm_file(fd, line, l, 0);
     adutil_rtrim_line(line, &len);
     if (len >= 0) {
         switch (line[0]) {
@@ -104,7 +104,7 @@ addns_read_line:
                         adapter_str, l&&*l?*l:0,
                         ldns_get_errorstr_by_id(*status), line);
                     while (len >= 0) {
-                        len = adutil_readline_frm_file(fd, line, l);
+                        len = adutil_readline_frm_file(fd, line, l, 0);
                     }
                     if (rr) {
                         ldns_rr_free(rr);
@@ -280,13 +280,13 @@ addns_read_file(FILE* fd, zone_type* zone)
         if (!is_axfr && del_mode) {
             ods_log_debug("[%s] delete RR #%i at line %i: %s",
                 adapter_str, rr_count, l, line);
-            result = adapi_del_rr(zone, rr);
+            result = adapi_del_rr(zone, rr, 0);
             ldns_rr_free(rr);
             rr = NULL;
         } else {
             ods_log_debug("[%s] add RR #%i at line %i: %s",
                 adapter_str, rr_count, l, line);
-            result = adapi_add_rr(zone, rr);
+            result = adapi_add_rr(zone, rr, 0);
         }
         if (result == ODS_STATUS_UNCHANGED) {
             ods_log_debug("[%s] skipping RR at line %i (%s): %s",

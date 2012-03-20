@@ -881,7 +881,7 @@ engine_recover(engine_type* engine)
         zone = (zone_type*) node->data;
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
-        status = zone_recover(zone);
+        status = zone_recover2(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
             ods_log_assert(zone->db);

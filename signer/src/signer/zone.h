@@ -228,13 +228,13 @@ void zone_cleanup(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_backup(zone_type* zone);
+ods_status zone_backup2(zone_type* zone);
 
 /**
  * Recover zone from backup.
  * \param[in] zone corresponding zone
  *
  */
-ods_status zone_recover(zone_type* zone);
+ods_status zone_recover2(zone_type* zone);
 
 #endif /* SIGNER_ZONE_H */

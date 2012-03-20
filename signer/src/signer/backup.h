@@ -37,6 +37,7 @@
 #include "config.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/status.h"
 
 #include <ldns/ldns.h>
 
@@ -61,7 +62,7 @@ int backup_read_check_str(FILE* in, const char* str);
  * Read a string from backup file.
  * \param[in] in input file descriptor
  * \param[out] string storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_str(FILE* in, const char** str);
@@ -70,7 +71,7 @@ int backup_read_str(FILE* in, const char** str);
  * Read time from backup file.
  * \param[in] in input file descriptor
  * \param[out] v time_t storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_time_t(FILE* in, time_t* v);
@@ -79,7 +80,7 @@ int backup_read_time_t(FILE* in, time_t* v);
  * Read duration from backup file.
  * \param[in] in input file descriptor
  * \param[out] v duration storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_duration(FILE* in, duration_type** v);
@@ -88,7 +89,7 @@ int backup_read_duration(FILE* in, duration_type** v);
  * Read rr type from backup file.
  * \param[in] in input file descriptor
  * \param[out] v rr type storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_rr_type(FILE* in, ldns_rr_type* v);
@@ -97,7 +98,7 @@ int backup_read_rr_type(FILE* in, ldns_rr_type* v);
  * Read integer from backup file.
  * \param[in] in input file descriptor
  * \param[out] v integer storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_int(FILE* in, int* v);
@@ -106,7 +107,7 @@ int backup_read_int(FILE* in, int* v);
  * Read size type from backup file.
  * \param[in] in input file descriptor
  * \param[out] v integer storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_size_t(FILE* in, size_t* v);
@@ -115,7 +116,7 @@ int backup_read_size_t(FILE* in, size_t* v);
  * Read 8bit unsigned integer from backup file.
  * \param[in] in input file descriptor
  * \param[out] v uint8_t storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_uint8_t(FILE* in, uint8_t* v);
@@ -124,7 +125,7 @@ int backup_read_uint8_t(FILE* in, uint8_t* v);
  * Read 16bit unsigned integer from backup file.
  * \param[in] in input file descriptor
  * \param[out] v uint16_t storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_uint16_t(FILE* in, uint16_t* v);
@@ -133,9 +134,27 @@ int backup_read_uint16_t(FILE* in, uint16_t* v);
  * Read 32bit unsigned integer from backup file.
  * \param[in] in input file descriptor
  * \param[out] v uint32_t storage
- * \return 1 on success, 0 otherwise
+ * \return int 1 on success, 0 otherwise
  *
  */
 int backup_read_uint32_t(FILE* in, uint32_t* v);
+
+/**
+ * Read namedb from backup file.
+ * \param[in] in input file descriptor
+ * \param[in] zone zone reference
+ * \return ods_status status
+ *
+ */
+ods_status backup_read_namedb(FILE* in, void* zone);
+
+/**
+ * Read ixfr journal from file.
+ * \param[in] in input file descriptor
+ * \param[in] zone zone reference
+ * \return ods_status status
+ *
+ */
+ods_status backup_read_ixfr(FILE* in, void* zone);
 
 #endif /* SIGNER_BACKUP_H */
