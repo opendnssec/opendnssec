@@ -961,8 +961,11 @@ ods_status
 zone_backup2(zone_type* zone)
 {
     char* filename = NULL;
+    char* tmpfile = NULL;
     FILE* fd = NULL;
     task_type* task = NULL;
+    int ret = 0;
+    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -970,9 +973,9 @@ zone_backup2(zone_type* zone)
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->task);
 
+    tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0);
     filename = ods_build_path(zone->name, ".backup2", 0);
-    fd = ods_fopen(filename, NULL, "w");
-    free((void*)filename);
+    fd = ods_fopen(tmpfile, NULL, "w");
 
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
@@ -1004,8 +1007,17 @@ zone_backup2(zone_type* zone)
         /** Done */
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
         ods_fclose(fd);
+        ret = rename(tmpfile, filename);
+        if (ret != 0) {
+            ods_log_error("[%s] unable to rename zone %s backup %s to %s: %s",
+                zone_str, zone->name, tmpfile, filename, strerror(errno));
+            status = ODS_STATUS_RENAME_ERR;
+        }
     } else {
-        return ODS_STATUS_FOPEN_ERR;
+        status = ODS_STATUS_FOPEN_ERR;
     }
-    return ODS_STATUS_OK;
+
+    free((void*) tmpfile);
+    free((void*) filename);
+    return status;
 }
