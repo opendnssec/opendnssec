@@ -98,6 +98,14 @@ acl_type* acl_find(acl_type* acl, struct sockaddr_storage* addr,
     tsig_rr_type* tsig);
 
 /**
+ * Parse family from address.
+ * \param[in] a address in string format
+ * \return int address family
+ *
+ */
+int acl_parse_family(const char* a);
+
+/**
  * Address storage to IP string.
  * \param[in] addr socket address storage
  * \param[out] ip ip address

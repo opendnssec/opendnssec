@@ -68,10 +68,11 @@ listener_create(allocator_type* allocator)
  *
  */
 interface_type*
-listener_push(listener_type* listener, char* ipv4, char* ipv6, char* port)
+listener_push(listener_type* listener, char* address, int family, char* port)
 {
     interface_type* ifs_old = NULL;
     ods_log_assert(listener);
+    ods_log_assert(address);
     ifs_old = listener->interfaces;
     listener->interfaces = (interface_type*) allocator_alloc(
         listener->allocator, (listener->count + 1) * sizeof(interface_type));
@@ -86,15 +87,10 @@ listener_push(listener_type* listener, char* ipv4, char* ipv6, char* port)
     }
     allocator_deallocate(listener->allocator, (void*) ifs_old);
     listener->count++;
-    if (ipv4) {
-        listener->interfaces[listener->count -1].address =
-            allocator_strdup(listener->allocator, ipv4);
-        listener->interfaces[listener->count -1].family = AF_INET;
-    } else if (ipv6) {
-        listener->interfaces[listener->count -1].address =
-            allocator_strdup(listener->allocator, ipv6);
-        listener->interfaces[listener->count -1].family = AF_INET6;
-    }
+    listener->interfaces[listener->count -1].address =
+        allocator_strdup(listener->allocator, address);
+    listener->interfaces[listener->count -1].family = family;
+
     if (port) {
         listener->interfaces[listener->count -1].port =
             allocator_strdup(listener->allocator, port);

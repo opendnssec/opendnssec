@@ -1,5 +1,6 @@
 20 March 2012: Matthijs
 - OPENDNSSEC-164: A new way to backup
+- OPENDNSSEC-226: Listener should be configured with Address, not IPv{4,6}.
 
 29 February 2012: Matthijs
 - OPENDNSSEC-218: Prevent loop when backup files and HSM are not in sync.
