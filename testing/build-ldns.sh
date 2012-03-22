@@ -21,6 +21,7 @@ case "$DISTRIBUTION" in
 	ubuntu | \
 	debian | \
 	opensuse | \
+	suse | \
 	freebsd | \
 	sunos | \
 	openbsd )

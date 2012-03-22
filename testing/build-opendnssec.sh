@@ -31,7 +31,8 @@ case "$DISTRIBUTION" in
 	debian | \
 	openbsd | \
 	sunos | \
-	opensuse )
+	opensuse | \
+	suse )
 		(
 			sh autogen.sh &&
 			mkdir -p build &&
