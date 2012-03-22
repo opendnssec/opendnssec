@@ -516,7 +516,7 @@ detect_distribution ()
 			DISTRIBUTION="opensuse"
 		fi
 	elif [ -f "/etc/SuSE-release" ]; then
-		if $GREP -q -i "suse linux enterprise" 2>/dev/null; then
+		if $GREP -q -i "suse linux enterprise" /etc/SuSE-release 2>/dev/null; then
 			DISTRIBUTION="suse"
 		fi
 	elif uname -a 2>/dev/null | $GREP -q -i freebsd 2>/dev/null; then
