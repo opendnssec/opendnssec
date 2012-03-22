@@ -13,6 +13,7 @@ exit ()
 			centos | \
 			sl | \
 			opensuse | \
+			suse | \
 			freebsd | \
 			netbsd | \
 			openbsd | \
@@ -402,6 +403,7 @@ find_tail ()
 		centos | \
 		sl | \
 		opensuse | \
+		suse | \
 		sunos )
 			tail_follow="$tail --follow=name -n 0"
 			;;
@@ -451,7 +453,7 @@ setup_install_root ()
 	fi
 
 	if [ ! -d "$WORKSPACE_ROOT/root" ]; then
-		if ! mkdir "$WORKSPACE_ROOT/root" 2>/dev/null; then
+		if ! mkdir -p "$WORKSPACE_ROOT/root" 2>/dev/null; then
 			echo "setup_install_root: Unable to create INSTALL_ROOT at $WORKSPACE_ROOT/root" >&2
 			return 1
 		fi
@@ -512,6 +514,10 @@ detect_distribution ()
 	elif [ -f "/etc/os-release" ]; then
 		if $GREP -q -i opensuse /etc/os-release 2>/dev/null; then
 			DISTRIBUTION="opensuse"
+		fi
+	elif [ -f "/etc/SuSE-release" ]; then
+		if $GREP -q -i "suse linux enterprise" 2>/dev/null; then
+			DISTRIBUTION="suse"
 		fi
 	elif uname -a 2>/dev/null | $GREP -q -i freebsd 2>/dev/null; then
 		DISTRIBUTION="freebsd"
@@ -1279,6 +1285,7 @@ syslog_trace ()
 		centos | \
 		sl | \
 		opensuse | \
+		suse | \
 		freebsd | \
 		netbsd | \
 		openbsd )
