@@ -40,3 +40,5 @@ ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
 ods_kaspcheck_LDADD += @XML2_LIBS@
 
 EXTRA_DIST = $(srcdir)/migrate_*.pl
+EXTRA_DIST += $(srcdir)/migrate_adapters_1.*
+
