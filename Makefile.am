@@ -21,7 +21,8 @@ if ENABLE_EPPCLIENT
 SUBDIRS += plugins/eppclient
 endif
 
-EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \
+EXTRA_DIST =	$(srcdir)/LICENSE \
+		$(srcdir)/KNOWN_ISSUES \
 		$(srcdir)/MIGRATION \
 		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
