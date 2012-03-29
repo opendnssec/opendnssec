@@ -4,6 +4,7 @@ OpenDNSSEC 1.4.0
 
 * OPENDNSSEC-226: Change in conf.xml: Configure the DNS listener IP address
   with /Listener/Interface/Address instead of /Listener/Interface/IPv{4,6}.
+* Enforcer: Add indexes for foreign keys. (sqlite only, MySQL already has them.)
 
 
 OpenDNSSEC 1.4.0a1 - 2012-03-15
