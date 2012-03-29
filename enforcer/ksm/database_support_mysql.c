@@ -556,7 +556,7 @@ int DbDateDiff(const char* start, int delta, int sign, char* buffer, size_t bufl
         return MsgLog(DBS_INVARG, "Invalid sign to DbDateDiff");
     }
 
-	if (nchar >= buflen || nchar < 0) {
+	if (nchar >= (int) buflen || nchar < 0) {
 		return 1;
 	}
 

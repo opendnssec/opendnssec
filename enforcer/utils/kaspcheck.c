@@ -153,8 +153,8 @@ int check_conf(char** kasp) {
     xmlChar *xexpr;
 	char* temp_char = NULL;
 
-	KC_REPO* repo;
-	int* repo_mods; /* To see if we have looked at this module before */
+	KC_REPO* repo = NULL;
+	int* repo_mods = NULL; /* To see if we have looked at this module before */
 
 	const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/conf.rng";
 	const char* zonerngfilename = OPENDNSSEC_SCHEMA_DIR "/zonelist.rng";

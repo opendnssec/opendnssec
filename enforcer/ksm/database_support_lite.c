@@ -503,7 +503,7 @@ int DbLastRowId(DB_HANDLE handle, DB_ID* id)
 int DbQuoteString(DB_HANDLE handle, const char* in, char* buffer, size_t buflen)
 {
 
-	char*	data = NULL;	/* Data from sqlite quote fn. */
+	(void) handle;
 
     if (in == NULL) {
         return MsgLog(DBS_INVARG, "NULL input string to DbQuoteString");
@@ -562,7 +562,7 @@ int DbDateDiff(const char* start, int delta, int sign, char* buffer, size_t bufl
         return MsgLog(DBS_INVARG, "Invalid sign to DbDateDiff");
     }
 
-	if (nchar >= buflen || nchar < 0) {
+	if (nchar >= (int)buflen || nchar < 0) {
 		return 1;
 	}
 

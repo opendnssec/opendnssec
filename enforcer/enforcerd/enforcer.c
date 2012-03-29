@@ -1421,7 +1421,6 @@ int do_purge(int interval, int policy_id)
     DB_ROW      row = NULL;     /* Row data */
 
     char            buffer[KSM_SQL_SIZE];    /* Long enough for any statement */
-    unsigned int    nchar;          /* Number of characters converted */
 
     int         temp_id = -1;       /* place to store the key id returned */
     char*       temp_loc = NULL;    /* place to store location returned */
