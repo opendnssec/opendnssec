@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Configure an Incorrect PIN, expect failure
+# Use correct PIN plus one additional character, expect failure
 
 ods_reset_env &&
 

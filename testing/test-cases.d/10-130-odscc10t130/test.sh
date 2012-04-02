@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 #
-# "Configure 4 repositories and sign using 2 of these different repositories"
+# Use a Repository Capacity of 100000 and expect success
 
 ods_reset_env &&
-
-ods_softhsm_init_token 1 "OpenDNSSEC2" "1111" "1111" &&
-ods_softhsm_init_token 2 "OpenDNSSEC3" "2222" "2222" &&
-ods_softhsm_init_token 3 "OpenDNSSEC4" "3333" "3333" &&
 
 log_this ods-control-enforcer-start ods-control enforcer start &&
 syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
@@ -17,9 +13,9 @@ syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
-log_this ods-control-start ods-control stop &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
+log_this ods-control-stop ods-control stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
+syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 return 0
 
 ods_kill
