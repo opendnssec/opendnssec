@@ -1,5 +1,11 @@
 $Id$
 
+OpenDNSSEC 1.3.8
+
+* OPENDNSSEC-228: Make 'ods-signer update' reload signconfs even if zonelist
+  has not changed. 
+
+
 OpenDNSSEC 1.3.7 - 2012-03-13
 
 * OPENDNSSEC-215: Signer Engine: Always recover serial from backup,

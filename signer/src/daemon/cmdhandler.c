@@ -180,6 +180,9 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
                 "\n");
             ods_writen(sockfd, buf, strlen(buf));
+
+            engine_update_zones(cmdc->engine);
+            ods_log_debug("[%s] signer configurations updated", cmdh_str);
         } else if (zl_changed == ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list updated: %i "
             "removed, %i added, %i updated.\n",
@@ -208,7 +211,8 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         /* [LOCK] zonelist */
         zone = zonelist_lookup_zone_by_name(cmdc->engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
-        /* If this zone is just added, don't update (it might not have a task yet) */
+        /* If this zone is just added, don't update (it might not have a
+         * task yet) */
         if (zone && zone->just_added) {
             zone = NULL;
         }

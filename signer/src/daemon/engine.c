@@ -884,7 +884,7 @@ engine_update_zones(engine_type* engine)
             /* zone fetcher enabled? */
             zone->fetch = (engine->config->zonefetch_filename != NULL);
             lock_basic_unlock(&zone->zone_lock);
-        } else if (zone->just_updated) {
+        } else { /* always try to update signconf */
             lock_basic_lock(&zone->zone_lock);
             ods_log_assert(zone->task);
             zone->just_updated = 0;
