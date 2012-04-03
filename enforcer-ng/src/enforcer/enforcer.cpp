@@ -185,28 +185,57 @@ exists(KeyDataList &key_list, KeyData &key,
 	const bool require_same_algorithm, const bool pretend_update, 
 	const STATE mask[4])
 {
-		for (int i = 0; i < key_list.numKeys(); i++) {
-			KeyData &k = key_list.key(i);
-			if (require_same_algorithm && k.algorithm() != key.algorithm())
-				continue;
-			/** Do we need to substitute a state of this key with 
-			 * next_state? */
-			bool sub_key = pretend_update && &key == &k;
-			bool match = true;
-			for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
-				/** Do we need to substitute the state of THIS record? */
-				bool sub_rec = sub_key && record == r;
-				if (mask[r] == NOCARE) continue;
-				/** Use actual state or next state */
-				STATE state = (sub_rec?next_state:getState(k, r));
-				/** no match in this record, try next key */
-				if (mask[r] != state) {
-					match = false;
-					break;
-				}
+	for (int i = 0; i < key_list.numKeys(); i++) {
+		KeyData &k = key_list.key(i);
+		if (require_same_algorithm && k.algorithm() != key.algorithm())
+			continue;
+		/** Do we need to substitute a state of this key with 
+		 * next_state? */
+		bool sub_key = pretend_update && &key == &k;
+		bool match = true;
+		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
+			/** Do we need to substitute the state of THIS record? */
+			bool sub_rec = sub_key && record == r;
+			if (mask[r] == NOCARE) continue;
+			/** Use actual state or next state */
+			STATE state = (sub_rec?next_state:getState(k, r));
+			/** no match in this record, try next key */
+			if (mask[r] != state) {
+				match = false;
+				break;
 			}
-			if (match) return true;
 		}
+		if (match) return true;
+	}
+	return false;
+}
+
+/**
+ * Simpler exists function without another key,record as reference.
+ * 
+ * @param key_list, list to search in.
+ * @param mask, The states to look for in a key. respectively DS, 
+ * 			DNSKEY, RRSIG DNSKEY and RRSIG state. NOCARE for a record
+ * 			if any will do.
+ * @return True IFF exist such key.
+ * */
+bool
+exists_anon(KeyDataList &key_list, const STATE mask[4])
+{
+	for (int i = 0; i < key_list.numKeys(); i++) {
+		KeyData &k = key_list.key(i);
+		bool match = true;
+		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
+			/** Do we need to substitute the state of THIS record? */
+			if (mask[r] == NOCARE) continue;
+			/** no match in this record, try next key */
+			if (mask[r] != getState(k, r)) {
+				match = false;
+				break;
+			}
+		}
+		if (match) return true;
+	}
 	return false;
 }
 
@@ -570,6 +599,8 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	const Policy *policy = zone.policy();
 	const char *scmd = "updateZone";
 	ods_log_verbose("[%s] %s", module_str, scmd);
+	int ttl;
+	const STATE omnkey[] =  {NOCARE, OMN, NOCARE, NOCARE};
 
 	/** This code keeps track of TTL changes. If in the past a large
 	 * TTL is used, our keys *may* need to transition extra 
@@ -577,8 +608,17 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	 * When this date passes we may start using the policies TTL. */
 	if (zone.ttlEnddateDs() <= now)
 		zone.setTtlEnddateDs(addtime(now, policy->parent().ttlds()));
-	if (zone.ttlEnddateDk() <= now)
-		zone.setTtlEnddateDk(addtime(now, policy->keys().ttl()));
+	if (zone.ttlEnddateDk() <= now) {
+		if (!exists_anon(key_list, omnkey)) {
+			/** If no DNSKEY is currently published we must take
+			 * negative caching into account. */
+			ttl = max(policy->keys().ttl(), min(policy->zone().ttl(), 
+				policy->zone().min()));
+		} else {
+			ttl = policy->keys().ttl();
+		}
+		zone.setTtlEnddateDk(addtime(now, ttl));
+	}
 	if (zone.ttlEnddateRs() <= now)
 		zone.setTtlEnddateRs(addtime(now, 
 				max(policy->signatures().valdenial(), 
@@ -629,10 +669,10 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 					continue;
 				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
 					module_str, scmd);
-
+				
 				time_t returntime_key = minTransitionTime(zone, record, 
 					next_state, getRecord(key, record).lastChange(), 
-					getRecord(key, record).ttl());
+					getZoneTTL(zone, record, now));
 
 				/** If this is an RRSIG and next state is omnipresent
 				 * and the DNSKEY is omnipresent, wait an additional 
