@@ -364,6 +364,7 @@ backup_read_namedb(FILE* in, void* zone)
         return ODS_STATUS_ERR;
     }
     /* read RRs */
+    ods_log_debug("[%s] read RRs %s", backup_str, z->name);
     while ((rr = backup_read_rr(in, z, line, &orig, &prev, &status, &l))
         != NULL) {
         /* check status */
@@ -399,6 +400,7 @@ backup_read_namedb(FILE* in, void* zone)
     namedb_diff(z->db, 0);
 
     /* read NSEC(3)s */
+    ods_log_debug("[%s] read NSEC(3)s %s", backup_str, z->name);
     l = 0;
     while ((rr = backup_read_rr(in, z, line, &orig, &prev, &status, &l))
         != NULL) {
@@ -438,6 +440,7 @@ backup_read_namedb(FILE* in, void* zone)
     }
 
     /* read RRSIGs */
+    ods_log_debug("[%s] read RRSIGs %s", backup_str, z->name);
     l = 0;
     while ((rr = backup_read_rr(in, z, line, &orig, &prev, &status, &l))
         != NULL) {

@@ -740,7 +740,7 @@ zone_recover2(zone_type* zone)
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->db);
 
-    filename = ods_build_path(zone->name, ".backup2", 0);
+    filename = ods_build_path(zone->name, ".backup2", 0, 1);
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
         /* start recovery */
@@ -834,19 +834,19 @@ zone_recover2(zone_type* zone)
                 zone->signconf->allocator, salt);
             free((void*) salt);
             salt = NULL;
+            zone->signconf->nsec3params = nsec3params_create(
+                (void*) zone->signconf,
+                (uint8_t) zone->signconf->nsec3_algo,
+                (uint8_t) zone->signconf->nsec3_optout,
+                (uint16_t) zone->signconf->nsec3_iterations,
+                zone->signconf->nsec3_salt);
+            if (!zone->signconf->nsec3params) {
+                ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                    "create nsec3param", zone_str, zone->name);
+                goto recover_error2;
+            }
         }
         zone->signconf->last_modified = lastmod;
-        zone->signconf->nsec3params = nsec3params_create(
-            (void*) zone->signconf,
-            (uint8_t) zone->signconf->nsec3_algo,
-            (uint8_t) zone->signconf->nsec3_optout,
-            (uint16_t) zone->signconf->nsec3_iterations,
-            zone->signconf->nsec3_salt);
-        if (!zone->signconf->nsec3params) {
-            ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                "create nsec3param", zone_str, zone->name);
-            goto recover_error2;
-        }
         zone->default_ttl = (uint32_t) duration2time(zone->signconf->soa_min);
         /* keys part */
         zone->signconf->keys = keylist_create((void*) zone->signconf);
@@ -905,7 +905,7 @@ zone_recover2(zone_type* zone)
         ods_fclose(fd);
         /* journal */
         zone->db->is_initialized = 1;
-        filename = ods_build_path(zone->name, ".ixfr", 0);
+        filename = ods_build_path(zone->name, ".ixfr", 0, 1);
         fd = ods_fopen(filename, NULL, "r");
         if (fd) {
             status = backup_read_ixfr(fd, zone);
@@ -973,8 +973,8 @@ zone_backup2(zone_type* zone)
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->task);
 
-    tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0);
-    filename = ods_build_path(zone->name, ".backup2", 0);
+    tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
+    filename = ods_build_path(zone->name, ".backup2", 0, 1);
     fd = ods_fopen(tmpfile, NULL, "w");
 
     if (fd) {

@@ -1,6 +1,9 @@
 3 April 2012: Matthijs
 - OPENDNSSEC-228: Make 'ods-signer update' reload signconfs even if zonelist
   has not changed. 
+- OPENDNSSEC-231: Allow for Classless IN-ADDR.ARPA names (RFC 2317).
+
+ods-signer broken for reverse classless delegations
 
 20 March 2012: Matthijs
 - OPENDNSSEC-164: A new way to backup

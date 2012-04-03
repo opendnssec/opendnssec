@@ -500,7 +500,7 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
         return;
     }
     ods_log_assert(pkt);
-    xfrfile = ods_build_path(zone->name, ".xfrd", 0);
+    xfrfile = ods_build_path(zone->name, ".xfrd", 0, 1);
     lock_basic_lock(&xfrd->rw_lock);
     lock_basic_lock(&xfrd->serial_lock);
     xfrd->serial_disk_acquired = 0;

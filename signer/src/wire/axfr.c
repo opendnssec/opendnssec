@@ -86,7 +86,7 @@ axfr(query_type* q, engine_type* engine)
     ods_log_assert(q->zone->name);
     if (q->axfr_fd == NULL) {
         /* start axfr */
-        xfrfile = ods_build_path(q->zone->name, ".axfr", 0);
+        xfrfile = ods_build_path(q->zone->name, ".axfr", 0, 1);
         q->axfr_fd = ods_fopen(xfrfile, NULL, "r");
         if (!q->axfr_fd) {
             ods_log_error("[%s] unable to open axfr file %s for zone %s",
@@ -271,7 +271,7 @@ ixfr(query_type* q, engine_type* engine)
     ods_log_assert(q->zone->name);
     if (q->axfr_fd == NULL) {
         /* start ixfr */
-        xfrfile = ods_build_path(q->zone->name, ".ixfr", 0);
+        xfrfile = ods_build_path(q->zone->name, ".ixfr", 0, 1);
         q->axfr_fd = ods_fopen(xfrfile, NULL, "r");
         if (!q->axfr_fd) {
             ods_log_error("[%s] unable to open ixfr file %s for zone %s",
