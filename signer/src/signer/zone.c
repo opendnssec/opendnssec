@@ -702,7 +702,7 @@ zone_backup(zone_type* zone)
     ods_log_assert(zone->zonedata);
     ods_log_assert(zone->signconf);
 
-    filename = ods_build_path(zone->name, ".backup", 0);
+    filename = ods_build_path(zone->name, ".backup", 0, 1);
     fd = ods_fopen(filename, NULL, "w");
     free((void*)filename);
 
@@ -787,7 +787,7 @@ zone_recover(zone_type* zone)
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->zonedata);
 
-    filename = ods_build_path(zone->name, ".backup", 0);
+    filename = ods_build_path(zone->name, ".backup", 0, 1);
     fd = ods_fopen(filename, NULL, "r");
     free((void*)filename);
     if (fd) {
@@ -898,7 +898,7 @@ zone_recover(zone_type* zone)
             token = NULL;
         }
         /* zonedata part */
-        filename = ods_build_path(zone->name, ".inbound", 0);
+        filename = ods_build_path(zone->name, ".inbound", 0, 1);
         status = adbackup_read(zone, filename);
         free((void*)filename);
         if (status != ODS_STATUS_OK) {
@@ -980,7 +980,7 @@ zone_recover(zone_type* zone)
         return ODS_STATUS_OK;
     } else {
         /* backwards compatible backup recovery (serial) */
-        filename = ods_build_path(zone->name, ".state", 0);
+        filename = ods_build_path(zone->name, ".state", 0, 1);
         fd = ods_fopen(filename, NULL, "r");
         free((void*)filename);
         if (fd) {

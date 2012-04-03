@@ -81,10 +81,12 @@ int ods_skip_whitespace(FILE* fd, unsigned int* line_nr);
  * \param[in] file filename without extension
  * \param[in] suffix extension.
  * \param[in] dir directory or not
+ * \param[in] no_slash no forward slashes and such characters allowed
  * \return char* concatenation of file and suffix
  *
  */
-char* ods_build_path(const char* file, const char* suffix, int dir);
+char* ods_build_path(const char* file, const char* suffix, int dir,
+    int no_slash);
 
 /**
  * Open a file.

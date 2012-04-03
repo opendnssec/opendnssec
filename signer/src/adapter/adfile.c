@@ -450,7 +450,7 @@ adfile_write(struct zone_struct* zone, const char* filename)
     /* [end] sanity parameter checking */
 
     /* [start] write zone */
-    tmpname = ods_build_path(filename, ".tmp", 0);
+    tmpname = ods_build_path(filename, ".tmp", 0, 0);
     fd = ods_fopen(tmpname, NULL, "w");
     if (fd) {
         status = zone_print(fd, adzone);

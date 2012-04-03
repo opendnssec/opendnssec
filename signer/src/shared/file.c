@@ -121,7 +121,7 @@ ods_skip_whitespace(FILE* fd, unsigned int* line_nr)
  *
  */
 char*
-ods_build_path(const char* file, const char* suffix, int dir)
+ods_build_path(const char* file, const char* suffix, int dir, int no_slash)
 {
     size_t len_file = 0;
     size_t len_suffix = 0;
@@ -147,6 +147,21 @@ ods_build_path(const char* file, const char* suffix, int dir)
 
             strncpy(openf, file, len_file);
             openf[len_file] = '\0';
+            if (no_slash) {
+                size_t i = 0;
+                for (i=0; i<len_file; i++) {
+                    switch (openf[i]) {
+                        case '/':
+                        case ' ':
+                        /* more? */
+                            openf[i] = '-';
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
             if (suffix) {
                 strncat(openf, suffix, len_suffix);
             }

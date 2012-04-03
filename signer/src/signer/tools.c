@@ -83,9 +83,9 @@ tools_input(zone_type* zone)
             ods_log_verbose("[%s] fetch zone %s", tools_str,
                 zone->name?zone->name:"(null)");
             tmpname = ods_build_path(
-                zone->adinbound->configstr, ".axfr", 0);
+                zone->adinbound->configstr, ".axfr", 0, 0);
             lockname = ods_build_path(
-                zone->adinbound->configstr, ".lock", 0);
+                zone->adinbound->configstr, ".lock", 0, 0);
 
 lock_fetch:
             if (access(lockname, F_OK) == 0) {
@@ -130,15 +130,14 @@ lock_fetch:
             "%s", tools_str, zone->name?zone->name:"(null)",
             ods_status2str(status));
     } else {
-        tmpname = ods_build_path(zone->name, ".inbound", 0);
+        tmpname = ods_build_path(zone->name, ".inbound", 0, 1);
         status = ods_file_copy(zone->adinbound->configstr, tmpname);
-        free((void*)tmpname);
-        tmpname = NULL;
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to copy zone input file %s: %s",
-                tools_str, zone->name?zone->name:"(null)",
-                ods_status2str(status));
+                tools_str, tmpname, ods_status2str(status));
         }
+        free((void*)tmpname);
+        tmpname = NULL;
     }
 
     if (status == ODS_STATUS_OK) {
@@ -286,12 +285,12 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
     }
 
     if (zone->signconf->audit) {
-        inbound = ods_build_path(zone->name, ".inbound", 0);
-        finalized = ods_build_path(zone->name, ".finalized", 0);
+        inbound = ods_build_path(zone->name, ".inbound", 0, 1);
+        finalized = ods_build_path(zone->name, ".finalized", 0, 1);
         status = adfile_write(zone, finalized);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] audit zone %s failed: unable to write zone",
-                tools_str, zone->name?zone->name:"(null)");
+                tools_str, finalized);
             free((void*)inbound);
             free((void*)finalized);
             return status;
