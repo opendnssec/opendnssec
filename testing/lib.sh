@@ -1081,6 +1081,58 @@ log_grep ()
 	$GREP -q -- "$grep_string" $log_files 2>/dev/null
 }
 
+log_grep_count ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$3" ]; then
+		echo "usage: log_grep_count <log name> <stdout|stderr|both> <count> <grep string ...>" >&2
+		exit 1
+	fi
+
+	local name="$1"
+	local log_stderr="_log.$BUILD_TAG.$name.stderr"
+	local log_stdout="_log.$BUILD_TAG.$name.stdout"
+	local type="$2"
+	local grep_string="$3"
+	local count="$4"
+	local log_files
+	local count_found
+	
+	case "$type" in
+		stdout)
+		if [ ! -f "$log_stdout" ]; then
+			return 1
+		fi
+		log_files="$log_stdout"
+		;;
+		stderr)
+		if [ ! -f "$log_stderr" ]; then
+			return 1
+		fi
+		log_files="$log_stderr"
+		;;
+		both)
+		if [ ! -f "$log_stdout" -a ! -f "$log_stderr" ]; then
+			return 1
+		fi
+		log_files="$log_stdout $log_stderr"
+		;;
+	esac
+	
+	if [ -z "$log_files" ]; then
+		echo "log_grep_count: Wrong type of log file specified, should be stdout, stderr or both!" >&2
+		exit 1
+	fi
+
+	echo "log_grep_count: greping in $name, should find $count of: $grep_string"
+	count_found=`$GREP -- "$grep_string" $log_files 2>/dev/null | wc -l 2>/dev/null`
+	
+	if [ "$count_found" -eq "$count" ] 2>/dev/null; then
+		return 0
+	fi
+	
+	return 1
+}
+
 log_cleanup ()
 {
 	local pid_file
@@ -1380,6 +1432,64 @@ syslog_waitfor ()
 	return 1
 }
 
+syslog_waitfor_count ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+		echo "usage: syslog_waitfor_count <timeout in seconds> <count> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local timeout="$1"
+	local count="$2"
+	local grep_string="$3"
+	local count_found
+		
+	if [ ! -f "_syslog.$BUILD_TAG" ]; then
+		echo "syslog_waitfor_count: No syslog file to grep from!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "syslog_waitfor_count: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "syslog_waitfor_count: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "syslog_waitfor_count: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	echo "syslog_waitfor_count: waiting for syslog to contain $count counts of (timeout $timeout): $grep_string"
+	while true; do
+		count_found=`$GREP -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null | wc -l 2>/dev/null`
+		if [ "$count_found" -eq "$count" ] 2>/dev/null; then
+			return 0
+		fi
+
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ -z "$_SYSLOG_TRACE_PID" -o "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "syslog_waitfor_count: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		sleep 2
+	done
+	
+	return 1
+}
+
 syslog_grep ()
 {
 	if [ -z "$1" ]; then
@@ -1395,9 +1505,33 @@ syslog_grep ()
 	fi
 
 	echo "syslog_grep: greping syslog for: $grep_string"
-	if ! $GREP -q -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null; then
-		return 1
+	$GREP -q -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null
+}
+
+syslog_grep_count ()
+{
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: syslog_grep_count <count> <grep string ...>" >&2
+		exit 1
 	fi
+	
+	local count="$1"
+	local grep_string="$2"
+	local count_found
+	
+	if [ ! -f "_syslog.$BUILD_TAG" ]; then
+		echo "syslog_grep_count: No syslog file to grep from!" >&2
+		exit 1
+	fi
+
+	echo "syslog_grep_count: greping syslog, should find $count of: $grep_string"
+	count_found=`$GREP -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null | wc -l 2>/dev/null`
+	
+	if [ "$count_found" -eq "$count" ] 2>/dev/null; then
+		return 0
+	fi
+	
+	return 1
 }
 
 syslog_cleanup ()
