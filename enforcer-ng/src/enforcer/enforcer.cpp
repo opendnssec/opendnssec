@@ -674,14 +674,11 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 					next_state, getRecord(key, record).lastChange(), 
 					getZoneTTL(zone, record, now));
 
-				/** If this is an RRSIG and next state is omnipresent
-				 * and the DNSKEY is omnipresent, wait an additional 
-				 * signature lifetime to allow for 'smooth' key 
-				 * rollover. */
-				if ((record == RS && next_state == OMN && 
-						getState(key, DK) == OMN) ||
-						(record == DK && next_state == HID && 
-						getState(key, RS) == HID)) {
+				/** If this is an RRSIG and the DNSKEY is omnipresent
+				 * and next state is a certain state, wait an additional 
+				 * signature lifetime to allow for 'smooth rollover'. */
+				if  (record == RS && getState(key, DK) == OMN &&
+						(next_state == OMN || next_state == HID) ) {
 					/** jitter and valdefault default to 0 */
 					returntime_key = addtime(returntime_key, 
 							policy->signatures().jitter() + 
