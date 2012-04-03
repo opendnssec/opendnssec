@@ -549,7 +549,8 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 			break;
 		case RS:
 			endDate = zone.ttlEnddateRs();
-			recordTTL = max(policy->signatures().valdenial(), 
+			recordTTL = max(min(policy->zone().ttl(),
+							policy->zone().min()), 
 							policy->signatures().max_zone_ttl());
 			break;				  
 		default: 
@@ -621,7 +622,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	}
 	if (zone.ttlEnddateRs() <= now)
 		zone.setTtlEnddateRs(addtime(now, 
-				max(policy->signatures().valdenial(), 
+				max(min(policy->zone().ttl(), policy->zone().min()), 
 					policy->signatures().max_zone_ttl()))); 
 
 	/** Keep looping till there are no state changes.
