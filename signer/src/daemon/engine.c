@@ -823,7 +823,7 @@ engine_update_zones(engine_type* engine)
             lock_basic_lock(&engine->taskq->schedule_lock);
             status = schedule_task(engine->taskq, task, 0);
             lock_basic_unlock(&engine->taskq->schedule_lock);
-        } else if (zone->zl_status == ZONE_ZL_UPDATED) {
+        } else { /* always try to update signconf */
             lock_basic_lock(&zone->zone_lock);
             status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
             lock_basic_unlock(&zone->zone_lock);
