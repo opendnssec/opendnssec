@@ -651,6 +651,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
             ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
                 "to create NSEC3PARAM RR", zone_str, zone->name);
             nsec3params_cleanup(zone->nsec3params);
+            zone->nsec3params = NULL;
             return ODS_STATUS_MALLOC_ERR;
         }
         ods_log_assert(nsec3params_rr);

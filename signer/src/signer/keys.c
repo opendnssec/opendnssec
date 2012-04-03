@@ -253,7 +253,7 @@ key_log(key_type* key, const char* name)
     if (!key) {
         return;
     }
-    ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
+    ods_log_verbose("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
         "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
         key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
     return;

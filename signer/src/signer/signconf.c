@@ -755,7 +755,7 @@ signconf_log(signconf_type* sc, const char* name)
             (int) sc->audit);
 
         if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            ods_log_debug("[%s] zone %s nsec3: OPTOUT[%i] ALGORITHM[%u] "
+            ods_log_info("[%s] zone %s nsec3: OPTOUT[%i] ALGORITHM[%u] "
                 "ITERATIONS[%u] SALT[%s]", sc_str, name, sc->nsec3_optout,
                 sc->nsec3_algo, sc->nsec3_iterations,
                 sc->nsec3_salt?sc->nsec3_salt:"(null)");
