@@ -555,6 +555,8 @@ init ()
 	find_tee || exit 1
 	find_date || exit 1
 	find_tail || exit 1
+	
+	return 0
 }
 
 check_if_built ()
@@ -598,7 +600,8 @@ start_build ()
 		fi
 	fi
 
-	echo "start_build: Starting build for $name_tag on $DISTRIBUTION"	
+	echo "start_build: Starting build for $name_tag on $DISTRIBUTION"
+	return 0
 }
 
 set_build_ok ()
@@ -671,82 +674,93 @@ start_test ()
 	fi
 	
 	local name_tag="$1"
-	local time_start=`$DATE '+%s' 2>/dev/null`
-	local timeout=3600
-	local time_stop=$(( time_start + timeout ))
-	local time_now
-	local build_tag
-	
-	echo "$BUILD_TAG $$" > "$WORKSPACE_ROOT/.testing.$$"
-	build_tag=`cat "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null`
-	if [ "$build_tag" != "$BUILD_TAG $$" ]; then
-		echo "start_test: Unable to add test lock!" >&2
-		rm -f "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null
-		return 1
-	fi
-	
-	while true; do
-		if [ ! -f "$WORKSPACE_ROOT/.testing" ]; then
-			if ln -s "$WORKSPACE_ROOT/.testing.$$" "$WORKSPACE_ROOT/.testing" 2>/dev/null; then
-				build_tag=`cat "$WORKSPACE_ROOT/.testing" 2>/dev/null`
-				if [ "$build_tag" = "$BUILD_TAG $$" ]; then
-					if [ -f "$INSTALL_ROOT/.$name_tag.ok.test" ]; then
-						if ! rm "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null; then
-							echo "start_test: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok.test !" >&2
-							exit 1
-						fi
-					fi
-					export _CLEANUP_TEST=1
-					return 0
-				fi
-			fi
-		fi
+#	local time_start=`$DATE '+%s' 2>/dev/null`
+#	local timeout=3600
+#	local time_stop=$(( time_start + timeout ))
+#	local time_now
+#	local build_tag
+#	
+#	echo "$BUILD_TAG $$" > "$WORKSPACE_ROOT/.testing.$$"
+#	build_tag=`cat "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null`
+#	if [ "$build_tag" != "$BUILD_TAG $$" ]; then
+#		echo "start_test: Unable to add test lock!" >&2
+#		rm -f "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null
+#		return 1
+#	fi
+#	
+#	while true; do
+#		if [ ! -f "$WORKSPACE_ROOT/.testing" ]; then
+#			if ln -s "$WORKSPACE_ROOT/.testing.$$" "$WORKSPACE_ROOT/.testing" 2>/dev/null; then
+#				build_tag=`cat "$WORKSPACE_ROOT/.testing" 2>/dev/null`
+#				if [ "$build_tag" = "$BUILD_TAG $$" ]; then
+#					if [ -f "$INSTALL_ROOT/.$name_tag.ok.test" ]; then
+#						if ! rm "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null; then
+#							echo "start_test: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok.test !" >&2
+#							exit 1
+#						fi
+#					fi
+#					export _CLEANUP_TEST=1
+#					return 0
+#				fi
+#			fi
+#		fi
+#
+#		if [ -z "$time_now" ]; then
+#			echo "start_test: waiting for other tests to finish (timeout $timeout)"
+#		fi
+#		
+#		time_now=`$DATE '+%s' 2>/dev/null`
+#		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+#			break
+#		fi
+#		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+#			echo "start_test: Invalid timestamp from date!" >&2
+#			exit 1
+#		fi
+#		sleep 2
+#	done
+#	
+#	echo "start_test: Unable to get test lock, timeout" >&2
+#	rm -f "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null
+#	exit 1
 
-		if [ -z "$time_now" ]; then
-			echo "start_test: waiting for other tests to finish (timeout $timeout)"
-		fi
-		
-		time_now=`$DATE '+%s' 2>/dev/null`
-		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
-			break
-		fi
-		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
-			echo "start_test: Invalid timestamp from date!" >&2
+	if [ -f "$INSTALL_ROOT/.$name_tag.ok.test" ]; then
+		if ! rm "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null; then
+			echo "start_test: can't remove old ok file $INSTALL_ROOT/.$name_tag.ok.test !" >&2
 			exit 1
 		fi
-		sleep 2
-	done
+	fi
 	
-	echo "start_test: Unable to get test lock, timeout" >&2
-	rm -f "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null
-	exit 1
+	echo "start_test: Starting test for $name_tag on $DISTRIBUTION"
+	return 0
 }
 
 stop_test ()
 {
-	local build_tag
-	
-	if [ ! -f "$WORKSPACE_ROOT/.testing" ]; then
-		echo "stop_test: Called without a test lock file, this should not happen!" >&2
-		return 1
-	fi
-	
-	build_tag=`cat "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null`
-	if [ "$build_tag" != "$BUILD_TAG $$" ]; then
-		echo "stop_test: Our test lock does not exist or is not our own!" >&2
-		return 1
-	fi
-	
-	build_tag=`cat "$WORKSPACE_ROOT/.testing" 2>/dev/null`
-	if [ "$build_tag" != "$BUILD_TAG $$" ]; then
-		echo "stop_test: Content of test lock changed during test!" >&2
-		rm -f "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null
-		return 1
-	fi
-	
-	rm -f "$WORKSPACE_ROOT/.testing" 2>/dev/null
-	rm -f "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null
-	export _CLEANUP_TEST=""
+#	local build_tag
+#	
+#	if [ ! -f "$WORKSPACE_ROOT/.testing" ]; then
+#		echo "stop_test: Called without a test lock file, this should not happen!" >&2
+#		return 1
+#	fi
+#	
+#	build_tag=`cat "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null`
+#	if [ "$build_tag" != "$BUILD_TAG $$" ]; then
+#		echo "stop_test: Our test lock does not exist or is not our own!" >&2
+#		return 1
+#	fi
+#	
+#	build_tag=`cat "$WORKSPACE_ROOT/.testing" 2>/dev/null`
+#	if [ "$build_tag" != "$BUILD_TAG $$" ]; then
+#		echo "stop_test: Content of test lock changed during test!" >&2
+#		rm -f "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null
+#		return 1
+#	fi
+#	
+#	rm -f "$WORKSPACE_ROOT/.testing" 2>/dev/null
+#	rm -f "$WORKSPACE_ROOT/.testing.$$" 2>/dev/null
+#	export _CLEANUP_TEST=""
+	return 0
 }
 
 set_test_ok ()
