@@ -7,6 +7,7 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 rm -rf "$INSTALL_ROOT/var/opendnssec/tmp" &&
+rm -rf "$INSTALL_ROOT/var/opendnssec/temp" &&
 mkdir "$INSTALL_ROOT/var/opendnssec/temp" &&
 
 ods_reset_env &&
@@ -31,4 +32,6 @@ mkdir "$INSTALL_ROOT/var/opendnssec/tmp" &&
 return 0
 
 ods_kill
+rm -rf "$INSTALL_ROOT/var/opendnssec/temp"
+mkdir "$INSTALL_ROOT/var/opendnssec/tmp"
 return 1
