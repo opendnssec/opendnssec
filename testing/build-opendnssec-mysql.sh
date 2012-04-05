@@ -30,7 +30,6 @@ case "$DISTRIBUTION" in
 	ubuntu | \
 	debian | \
 	openbsd | \
-	sunos | \
 	opensuse | \
 	suse )
 		(
@@ -38,6 +37,32 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
+				--with-database-backend=mysql \
+				--with-dbname=build \
+				--with-dbhost=localhost \
+				--with-dbuser=build \
+				--with-dbpass=build \
+				--disable-auditor \
+				--enable-timeshift &&
+			$MAKE &&
+			$MAKE check &&
+			$MAKE install &&
+			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
+			cp "conf/kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml.build" &&
+			cp "conf/zonefetch.xml" "$INSTALL_ROOT/etc/opendnssec/zonefetch.xml.build" &&
+			cp "conf/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml.build" &&
+			sed 's%<Datastore><SQLite>.*</SQLite></Datastore>%<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>%g' "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" > "$INSTALL_ROOT/etc/opendnssec/conf.xml.build.$$" &&
+			mv "$INSTALL_ROOT/etc/opendnssec/conf.xml.build.$$" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build"
+		) &&
+		build_ok=1
+		;;
+	sunos )
+		(
+			sh autogen.sh &&
+			mkdir -p build &&
+			cd build &&
+			../configure --prefix="$INSTALL_ROOT" \
+				--with-mysql=/usr/mysql/5.1 \
 				--with-database-backend=mysql \
 				--with-dbname=build \
 				--with-dbhost=localhost \
