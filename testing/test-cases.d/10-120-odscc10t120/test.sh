@@ -2,6 +2,10 @@
 #
 # Use a Repository Capacity of 4 and expect success
 
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 
 log_this ods-control-enforcer-start ods-control enforcer start &&

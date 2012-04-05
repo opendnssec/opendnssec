@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #
+# NOTE NOTE NOTE - Test system today runs under a normal user, this test needs to be changed or allowed root access to test setuid functionallity
+#
 # Use privileges test: test for enforcer and kasp.db and check if enforcers runs without errors
 
 ods_reset_env &&

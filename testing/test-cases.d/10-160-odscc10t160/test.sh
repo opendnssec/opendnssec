@@ -2,6 +2,10 @@
 #
 # "RequireBackup turned on, backup keys, and sign zone"
 
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 
 log_this ods-control-enforcer-start ods-control enforcer start &&

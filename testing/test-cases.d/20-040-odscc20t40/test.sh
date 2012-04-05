@@ -2,9 +2,17 @@
 #
 # Change the zonelist.xml location and change ZoneListFile in conf.xml accordingly
 
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 
-ods_setup_conf conf.xml conf2.xml &&
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf2-mysql.xml
+else
+	ods_setup_conf conf.xml conf2.xml
+fi &&
 mv -- "$INSTALL_ROOT/etc/opendnssec/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist2.xml" &&
 
 log_this ods-control-start ods-control start &&

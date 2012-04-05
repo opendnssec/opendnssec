@@ -2,6 +2,10 @@
 #
 # Change the Interval to 4 seconds and check if the enforcer runs 4 times
 
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 
 log_this ods-control-start ods-control start &&

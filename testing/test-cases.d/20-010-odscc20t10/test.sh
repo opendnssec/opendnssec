@@ -2,6 +2,10 @@
 #
 # Set logging to a different channel and check if only the new channel receives ODS logging
 
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 
 log_this ods-control-start ods-control start &&

@@ -2,6 +2,10 @@
 #
 # "Configure 4 repositories and sign using 2 of these different repositories"
 
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 
 ods_softhsm_init_token 1 "OpenDNSSEC2" "1111" "1111" &&

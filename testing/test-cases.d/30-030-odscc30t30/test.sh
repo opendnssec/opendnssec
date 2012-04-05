@@ -2,6 +2,10 @@
 #
 # Change the kasp.db location and change Datastore in conf.xml accordingly
 
+if [ -n "$HAVE_MYSQL" ]; then
+	return 0
+fi &&
+
 ods_reset_env &&
 
 ods_setup_conf conf.xml conf2.xml &&
