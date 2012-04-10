@@ -2,6 +2,10 @@
 #
 # Use a Tokenlabel with 1 character
 
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 
 ods_softhsm_init_token "1" "O" "4321" "4321" &&

@@ -4,7 +4,7 @@
 <Configuration>
 	<RepositoryList>
 		<Repository name="SoftHSM">
-			<Module>@SOFTHSM_MODULE@</Module>
+			<Module></Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
 		</Repository>
@@ -22,6 +22,6 @@
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
-		<WorkerThreads>8</WorkerThreads>
+		<WorkerThreads>4</WorkerThreads>
 	</Signer>
 </Configuration>

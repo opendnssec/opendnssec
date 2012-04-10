@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- conf.xml template for test purposes [07-01-2011] -->
 
 <Configuration>
 	<RepositoryList>
 		<Repository name="SoftHSM">
-			<Module>@INSTALL_ROOT@/var/libsofthsm.so</Module>
+			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
 		</Repository>
@@ -18,10 +17,10 @@
 	</Common>
 	<Enforcer>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
-		<Interval>PT3600S</Interval>
+		<Interval>PT4S</Interval>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
-		<WorkerThreads>8</WorkerThreads>
+		<WorkerThreads>4</WorkerThreads>
 	</Signer>
 </Configuration>

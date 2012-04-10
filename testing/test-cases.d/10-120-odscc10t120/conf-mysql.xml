@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- conf.xml template for test purposes [07-01-2011] -->
 
 <Configuration>
 	<RepositoryList>
 		<Repository name="SoftHSM">
-			<Module></Module>
+			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
-			<PIN>1234</PIN>
+			<PIN>1234</PIN>		
+			<Capacity>4</Capacity>
 		</Repository>
 	</RepositoryList>
 	<Common>
@@ -17,11 +17,11 @@
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
-		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
+		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
 		<Interval>PT3600S</Interval>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
-		<WorkerThreads>8</WorkerThreads>
+		<WorkerThreads>4</WorkerThreads>
 	</Signer>
 </Configuration>
