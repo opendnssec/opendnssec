@@ -151,10 +151,11 @@ rrset_recover(rrset_type* rrset, ldns_rr* rrsig, const char* locator,
 {
     ods_status status = ODS_STATUS_OK;
 
-    ods_log_assert(rrset);
-    ods_log_assert(rrsig);
-    ods_log_assert(locator);
-    ods_log_assert(flags);
+    if (!rrset || !rrsig || !locator || !flags) {
+        ods_log_error("[%s] unable to recover RRSIG: missing parameters",
+            rrset_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
 
     if (!rrset->rrsigs) {
         rrset->rrsigs = rrsigs_create();
@@ -162,7 +163,7 @@ rrset_recover(rrset_type* rrset, ldns_rr* rrsig, const char* locator,
 
     status = rrsigs_add_sig(rrset->rrsigs, rrsig, locator, flags);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to recover RRSIG", rrset_str);
+        ods_log_error("[%s] unable to recover RRSIG: failed to add", rrset_str);
         log_rr(rrsig, "+RRSIG", 1);
     } else {
         rrset->rrsig_count += 1;
