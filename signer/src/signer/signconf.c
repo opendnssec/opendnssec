@@ -178,6 +178,9 @@ signconf_update(signconf_type** signconf, const char* scfile,
     /* is the file updated? */
     st_mtime = ods_file_lastmodified(scfile);
     if (st_mtime <= last_modified) {
+        ods_log_deeebug("[%s] file %s not modified since (file %u, "
+            "mem %u)", sc_str, (unsigned) st_mtime,
+            (unsigned) last_modified);
         return ODS_STATUS_UNCHANGED;
     }
 
