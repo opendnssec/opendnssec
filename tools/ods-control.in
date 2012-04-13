@@ -50,7 +50,7 @@ case "$1" in
 	case "$2" in
 
 	'start')
-		echo "Starting signer..."
+		echo "Starting signer engine..."
 		"$sbindir/ods-signer" start
 		i=0
 		while [ ! -r "$signer_pid_file" ]; do
@@ -148,16 +148,13 @@ case "$1" in
 
 'start')
 	"$0" enforcer start
-
-	echo "Starting signer engine..."
 	"$0" signer start
 
 	;;
 
 'stop')
 	"$0" enforcer stop
-
-	echo "Stopping signer engine.."
+	echo "Stopping signer engine..."
 	"$sbindir/ods-signer" stop
 	;;
 
