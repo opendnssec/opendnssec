@@ -21,8 +21,8 @@
 			<Resign>PT2H</Resign>
 			<Refresh>P3D</Refresh>
 			<Validity>
-				<Default>P7D</Default>
-				<Denial>P7D</Denial>
+				<Default>P14D</Default>
+				<Denial>P14D</Denial>
 			</Validity>
 			<Jitter>PT12H</Jitter>
 			<InceptionOffset>PT3600S</InceptionOffset>
@@ -58,7 +58,7 @@
 			<!-- Parameters for ZSK only -->
 			<ZSK>
 				<Algorithm length="1024">8</Algorithm>
-				<Lifetime>P30D</Lifetime>
+				<Lifetime>P90D</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<!-- <ManualRollover/> -->
 			</ZSK>
