@@ -23,7 +23,7 @@ else
 	ods_setup_conf conf.xml conf.xml
 fi &&
 
-log_this ods-control-start ods-control start &&
+! log_this ods-control-start ods-control start &&
 syslog_waitfor 60 'ods-enforcerd: .*Error validating file' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 
