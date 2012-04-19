@@ -23,15 +23,16 @@ else
 	ods_setup_conf conf.xml conf.xml
 fi &&
 
-log_this ods-control-start ods-control start &&
-syslog_waitfor 60 'ods-enforcerd: .*Error validating file' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
+! log_this ods-control-start ods-control enforcer start &&
+syslog_waitfor 10 'ods-enforcerd: .*Error validating file' &&
+syslog_waitfor 10 'ods-enforcerd: .*Error validating value' &&
+syslog_waitfor 10 'ods-enforcerd: .*Element Facility failed to validate content' &&
+! pgrep 'ods-enforcerd' >/dev/null 2>/dev/null &&
 
-syslog_grep 'ods-enforcerd: .*Error validating value' &&
-syslog_grep 'ods-enforcerd: .*Element Facility failed to validate content' &&
+! log_this ods-control-signer-start ods-control signer start &&
+# signer does not log anything to syslog if invalid config
+! pgrep 'ods-signerd' >/dev/null 2>/dev/null &&
 
-log_this ods-control-stop ods-control stop &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 return 0
 
 ods_kill
