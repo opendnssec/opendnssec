@@ -308,7 +308,6 @@ static char*
 replace_space_with_nul(char* str)
 {
     int i = 0;
-    size_t n = 0;
     if (!str) {
         return NULL;
     }
@@ -317,10 +316,9 @@ replace_space_with_nul(char* str)
         --i;
         if (str[i] == ' ') {
             str[i] = '\0';
-            n = i;
         }
     }
-    return strndup(str, n);
+    return strdup(str);
 }
 
 
