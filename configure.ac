@@ -209,6 +209,7 @@ AC_ARG_ENABLE(auditor,
 if test "x${enable_auditor}" = "xyes"; then
 	AM_PROG_RUBY
 	AC_CONFIG_SUBDIRS([ auditor ])
+	AC_DEFINE([HAVE_AUDITOR], 1, [Define this to enable auditor support.])
 fi
 AM_CONDITIONAL([ENABLE_AUDITOR], [test "${enable_auditor}" = "yes"])
 

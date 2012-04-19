@@ -254,13 +254,15 @@ tools_nsecify(zone_type* zone)
 ods_status
 tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
 {
+    ods_status status = ODS_STATUS_OK;
+#ifdef HAVE_AUDITOR
     char* inbound = NULL;
     char* finalized = NULL;
     char str[SYSTEM_MAXLEN];
-    ods_status status = ODS_STATUS_OK;
     int error = 0;
     time_t start = 0;
     time_t end = 0;
+
     if (!zone) {
         ods_log_error("[%s] unable to audit zone: no zone", tools_str);
         return ODS_STATUS_ASSERT_ERR;
@@ -273,6 +275,7 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->signconf);
+
 
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
@@ -331,6 +334,11 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             lock_basic_unlock(&zone->stats->stats_lock);
         }
     }
+#else
+    ods_log_error("[%s] unable to audit zone %s: ods-auditor not installed",
+        tools_str, zone->name?zone->name:"(null)");
+    status = ODS_STATUS_ERR;
+#endif
     return status;
 }
 
