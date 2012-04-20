@@ -1,0 +1,3 @@
+# $Id$
+#
+0:@OPENDNSSEC_LOCALSTATE_DIR@/softhsm.db

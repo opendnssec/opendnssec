@@ -1,0 +1,16 @@
+; $Id$
+
+; Examples from RFC3597 - Handling of Unknown DNS Resource Record (RR) Types
+
+@                       IN      SOA             ns1 postmaster.unknown.rr.org. (
+                                                1            ; serial number
+                                                3600         ; refresh   [1h]
+                                                600          ; retry     [10m]
+                                                86400        ; expire    [1d]
+                                                3600 )       ; min TTL   [1h]
+ns1			IN	NS		e
+a			CLASS32		TYPE731		\# 6 abcd (
+								ef 01 23 45 )
+b			HS		TYPE62347	\# 0
+e			IN		A		\# 4 0A000001
+e			CLASS1		TYPE1		10.0.0.2
