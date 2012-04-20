@@ -450,6 +450,8 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
 
            new_task = TASK_NSECIFY;
        }
+   } else if (duration_compare(a->soa_min, b->soa_min)) {
+       new_task = TASK_NSECIFY;
    }
    return new_task;
 }
