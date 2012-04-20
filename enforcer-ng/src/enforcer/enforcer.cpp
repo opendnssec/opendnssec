@@ -163,6 +163,92 @@ getDesiredState(const bool introducing, const STATE state)
 	return jmp[introducing][(int)state];
 }
 
+//~ /**
+ //~ * Test if a key exist with certain states.
+ //~ * 
+ //~ * @param key_list, list to search in.
+ //~ * @param key, key to compare with
+ //~ * @param record, record of said key to compare with
+ //~ * @param next_state, desired state of said record. Required if 
+ //~ * 			pretend_update is set.
+ //~ * @param require_same_algorithm, search for keys with the same
+ //~ * 			algorithm as input key, else any algorithm.
+ //~ * @param pretend_update, pretend record of key is in state next_state.
+ //~ * @param mask, The states to look for in a key. respectively DS, 
+ //~ * 			DNSKEY, RRSIG DNSKEY and RRSIG state. NOCARE for a record
+ //~ * 			if any will do.
+ //~ * @return True IFF exist such key.
+ //~ * */
+//~ bool
+//~ exists(KeyDataList &key_list, KeyData &key, 
+	//~ const RECORD record, const STATE next_state, 
+	//~ const bool require_same_algorithm, const bool pretend_update, 
+	//~ const STATE mask[4])
+//~ {
+	//~ for (int i = 0; i < key_list.numKeys(); i++) {
+		//~ KeyData &k = key_list.key(i);
+		//~ if (require_same_algorithm && k.algorithm() != key.algorithm())
+			//~ continue;
+		//~ /** Do we need to substitute a state of this key with 
+		 //~ * next_state? */
+		//~ bool sub_key = pretend_update && &key == &k;
+		//~ bool match = true;
+		//~ for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
+			//~ /** Do we need to substitute the state of THIS record? */
+			//~ bool sub_rec = sub_key && record == r;
+			//~ if (mask[r] == NOCARE) continue;
+			//~ /** Use actual state or next state */
+			//~ STATE state = (sub_rec?next_state:getState(k, r));
+			//~ /** no match in this record, try next key */
+			//~ if (mask[r] != state) {
+				//~ match = false;
+				//~ break;
+			//~ }
+		//~ }
+		//~ if (match) return true;
+	//~ }
+	//~ return false;
+//~ }
+
+/**
+ * Test a key exist for certain states.
+ * 
+ * @param k, key to evaluate.
+ * @param key, key to compare with
+ * @param record, record of said key to compare with
+ * @param next_state, desired state of said record. Required if 
+ * 			pretend_update is set.
+ * @param require_same_algorithm, search for keys with the same
+ * 			algorithm as input key, else any algorithm.
+ * @param pretend_update, pretend record of key is in state next_state.
+ * @param mask, The states to look for in a key. respectively DS, 
+ * 			DNSKEY, RRSIG DNSKEY and RRSIG state. NOCARE for a record
+ * 			if any will do.
+ * @return True IFF exist such key.
+ * */
+bool
+match(KeyData &k, KeyData &key, 
+	const RECORD record, const STATE next_state, 
+	const bool require_same_algorithm, const bool pretend_update, 
+	const STATE mask[4])
+{
+	if (require_same_algorithm && k.algorithm() != key.algorithm())
+		return false;
+	/** Do we need to substitute a state of this key with 
+	 * next_state? */
+	bool sub_key = pretend_update && &key == &k;
+	for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
+		/** Do we need to substitute the state of THIS record? */
+		bool sub_rec = sub_key && record == r;
+		if (mask[r] == NOCARE) continue;
+		/** Use actual state or next state */
+		STATE state = (sub_rec?next_state:getState(k, r));
+		/** no match in this record */
+		if (mask[r] != state) return false;
+	}
+	return true;
+}
+
 /**
  * Test if a key exist with certain states.
  * 
@@ -181,34 +267,61 @@ getDesiredState(const bool introducing, const STATE state)
  * */
 bool
 exists(KeyDataList &key_list, KeyData &key, 
-	const RECORD record,const STATE next_state, 
+	const RECORD record, const STATE next_state, 
 	const bool require_same_algorithm, const bool pretend_update, 
 	const STATE mask[4])
 {
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
-		if (require_same_algorithm && k.algorithm() != key.algorithm())
-			continue;
-		/** Do we need to substitute a state of this key with 
-		 * next_state? */
-		bool sub_key = pretend_update && &key == &k;
-		bool match = true;
-		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
-			/** Do we need to substitute the state of THIS record? */
-			bool sub_rec = sub_key && record == r;
-			if (mask[r] == NOCARE) continue;
-			/** Use actual state or next state */
-			STATE state = (sub_rec?next_state:getState(k, r));
-			/** no match in this record, try next key */
-			if (mask[r] != state) {
-				match = false;
-				break;
-			}
-		}
-		if (match) return true;
+		if (match(k, key, record, next_state, require_same_algorithm, 
+				pretend_update, mask))
+			return true;
 	}
 	return false;
 }
+
+//~ //Test if x is successor of y.
+//~ //TODO pretend update. Pretend key new depends on succ
+//~ bool
+//~ successor(KeyData &k_succ, KeyData &k_pred, const RECORD record) 
+//~ {
+	//~ if (!dependentsEmpty(k_pred, record) return false; //TODO
+	//~ if (depends(k_pred, k_succ, record)) return true; //TODO
+	//~ keys_depending_on_succ = dependents(k_succ, record); //TODO
+	//~ for (k_dep in keys_depending_on_succ) { //TODO
+		//~ if (&k_dep == &k_succ) continue;
+		//~ if (state(k_dep)!=state(k_pred)) continue; //TODO, make fine grained. depending on record
+		//~ if (!successor(k_dep, k_pred, record)) continue;
+		//~ return true;
+	//~ }
+	//~ return false;
+//~ }
+
+//Seek 
+//~ bool
+//~ exists_with_successor(KeyDataList &key_list, KeyData &key, 
+	//~ const RECORD record, const STATE next_state, 
+	//~ const bool require_same_algorithm, const bool pretend_update, 
+	//~ const STATE mask_pred[4], const STATE mask_succ[4])
+//~ {
+	//~ //Seek potential successor keys
+	//~ for (int i = 0; i < key_list.numKeys(); i++) {
+		//~ KeyData &k_succ = key_list.key(i);
+		//~ if (!match(k_succ, key, record, next_state, 
+				//~ require_same_algorithm, pretend_update, mask_succ))
+			//~ continue;
+		//~ for (int j = 0; j < key_list.numKeys(); j++) {
+			//~ KeyData &k_pred = key_list.key(j);
+			//~ if (!match(k_pred, key, record, next_state, 
+					//~ require_same_algorithm, pretend_update, mask_pred))
+				//~ continue;
+			//~ //we have a candidate predeccessor
+			//~ if (successor(k_succ, k_pred, record)) return true;
+		//~ }
+	//~ }
+	//~ return false;
+//~ }
+
 
 /**
  * Simpler exists function without another key,record as reference.
@@ -343,11 +456,13 @@ rule2(KeyDataList &key_list, KeyData &key, const RECORD record,
 		
 		exists(key_list, key, record, next_state, true, pretend_update, mask_ds_i) &&
 		exists(key_list, key, record, next_state, true, pretend_update, mask_ds_o) ||
+		//TODO exists DS_chain()
 		
 		(exists(key_list, key, record, next_state, true, pretend_update, mask_k_i1) ||
 		 exists(key_list, key, record, next_state, true, pretend_update, mask_k_i2) )&&
 		(exists(key_list, key, record, next_state, true, pretend_update, mask_k_o1) ||
 		 exists(key_list, key, record, next_state, true, pretend_update, mask_k_o2) ) ||
+		//TODO exists DNSKEY_chain()
 
 		unsignedOk(key_list, key, record, next_state, pretend_update, mask_unsg, DS);
 }
@@ -382,9 +497,11 @@ rule3(KeyDataList &key_list, KeyData &key, const RECORD record,
 		
 		exists(key_list, key, record, next_state, true, pretend_update, mask_keyi) &&
 		exists(key_list, key, record, next_state, true, pretend_update, mask_keyo) ||
+		//TODO exists DNSKEY_chain()
 		
 		exists(key_list, key, record, next_state, true, pretend_update, mask_sigi) &&
 		exists(key_list, key, record, next_state, true, pretend_update, mask_sigo) ||
+		//TODO exists RRSIG_chain()
 
 		unsignedOk(key_list, key, record, next_state, pretend_update, mask_unsg, DK);
 }
@@ -581,6 +698,60 @@ setState(EnforcerZone &zone, KeyData &key, const RECORD record, const STATE stat
 	zone.setSignerConfNeedsWriting(true);
 }
 
+//TODO: make findSuccessor function so we can play pretendsies.
+
+void
+markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, 
+	const RECORD record, const STATE next_state)
+{
+	const char *scmd = "markSuccessors";
+	
+	/** Find out if this key can be in a successor relation */
+	if (next_state != UNR) return;
+	switch(record) {
+		case DS: /** intentional fall-through */
+		case RS: 
+			if (getState(key, DK) != OMN) return;
+			break;
+		case RD:
+			return;
+		case DK: 
+			if ((getState(key, DS) != OMN) && 
+					(getState(key, RS) != OMN))
+				return;
+			break;
+		default: 
+			ods_fatal_exit("[%s] %s Unknown record type (%d), "
+				"fault of programmer. Abort.",
+				module_str, scmd, (int)record);
+	}
+	
+	/** Which keys can be potential successors? */
+	for (int i = 0; i < key_list.numKeys(); i++) {
+		KeyData &key_i = key_list.key(i);
+		/** must at least have record introducing */
+		if (getState(key_i, record) != RUM) continue;
+		switch(record) {
+			case DS: /** intentional fall-through */
+			case RS: 
+				if (getState(key_i, DK) != OMN) continue;
+				break;
+			case DK: 
+				if (!( (getState(key, DS) == OMN) && 
+						(getState(key_i, DS) == OMN) ||
+						(getState(key, DK) == OMN) && 
+						(getState(key_i, DK) == OMN) ))
+					return;
+				break;
+			default: 
+				ods_fatal_exit("[%s] %s Unknown record type (%d), "
+					"fault of programmer. Abort.",
+					module_str, scmd, (int)record);
+		}
+		//TODO: register: key depends on key_i for record
+	}
+}
+
 /**
  * Try to push each key for this zone to a next state. If one changes
  * visit the rest again. Loop stops when no changes can be made without
@@ -596,6 +767,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	time_t returntime_zone = -1;
 	time_t returntime_key;
 	bool change;
+	KeyDependencyList &dep_list = zone.keyDependencyList();
 	KeyDataList &key_list = zone.keyDataList();
 	const Policy *policy = zone.policy();
 	const char *scmd = "updateZone";
@@ -739,6 +911,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 
 				/** We've passed all tests! Make the transition */
 				setState(zone, key, record, next_state, now);
+				markSuccessors(dep_list, key_list, key, record, next_state);
 				change = true;
 			}
 		}
@@ -1154,6 +1327,7 @@ removeDeadKeys(KeyDataList &key_list, const time_t now, const int purgetime)
 			if (now >= keyTime) {
 				ods_log_info("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
 				key_list.delKey(i);
+				// TODO also remove relations
 			} else {
 				minTime(keyTime, firstPurge);
 			}

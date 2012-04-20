@@ -223,6 +223,22 @@ void KeyDataPB::setDsAtParent(DsAtParent value)
     }
 }
 
+KeyDependencyPB::KeyDependencyPB( ::ods::keystate::KeyDependency *keydependency )
+:   _keydependency(keydependency)
+{
+}
+
+KeyDependencyListPB::KeyDependencyListPB(::ods::keystate::EnforcerZone *zone)
+: _zone(zone)
+{
+	//fill _deps
+    for (int k=0; k<_zone->dependencies_size(); ++k) {
+        ::ods::keystate::KeyDependency *keydep = _zone->mutable_dependencies(k);
+        KeyDependencyPB dep( keydep );
+        _deps.push_back(dep);
+    }
+}
+
 // KeyDataListPB
 
 KeyDataListPB::KeyDataListPB(::ods::keystate::EnforcerZone *zone)
@@ -287,7 +303,7 @@ void KeyDataListPB::delKey(int index)
 
 EnforcerZonePB::EnforcerZonePB(::ods::keystate::EnforcerZone *zone, 
                                      const ::ods::kasp::Policy &policy) 
-: _zone(zone), _keyDataList(_zone)
+: _zone(zone), _keyDataList(_zone), _keyDependencyList(_zone)
 {
 	_policy.CopyFrom(policy);
 }
@@ -300,6 +316,11 @@ const std::string &EnforcerZonePB::name()
 const ::ods::kasp::Policy *EnforcerZonePB::policy()
 {
     return &_policy;
+}
+
+KeyDependencyList &EnforcerZonePB::keyDependencyList()
+{
+    return _keyDependencyList;
 }
 
 KeyDataList &EnforcerZonePB::keyDataList()

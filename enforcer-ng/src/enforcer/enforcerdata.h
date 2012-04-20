@@ -239,6 +239,17 @@ public:
     virtual void delKey(int index) = 0;
 };
 
+class KeyDependency {
+public:
+  //match x dep this for y
+  //match this dep x for y
+};
+
+class KeyDependencyList {
+public:
+	
+};
+
 class EnforcerZone {
 public:
     virtual const std::string &name() = 0;
@@ -246,6 +257,9 @@ public:
     /* Get access to the policy for associated with this zone */
     virtual const ::ods::kasp::Policy *policy() = 0;
 
+    /* Get access to the list of KeyDependency entries for this zone. */
+    virtual KeyDependencyList &keyDependencyList() = 0;
+    
     /* Get access to the list of KeyData entries for this zone. */
     virtual KeyDataList &keyDataList() = 0;
 

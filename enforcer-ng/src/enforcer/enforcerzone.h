@@ -122,12 +122,28 @@ public:
     virtual void delKey(int index);
 };
 
+class KeyDependencyPB : public KeyDependency {
+private:
+    ::ods::keystate::KeyDependency *_keydependency;
+public:
+    KeyDependencyPB( ::ods::keystate::KeyDependency *keydependency );
+};
+
+class KeyDependencyListPB : public KeyDependencyList {
+private:
+    std::vector<KeyDependencyPB> _deps;
+    ::ods::keystate::EnforcerZone *_zone;
+public:
+    KeyDependencyListPB( ::ods::keystate::EnforcerZone *zone );
+};
+
 class EnforcerZonePB : public EnforcerZone {
 private:
     ::ods::keystate::EnforcerZone *_zone;
     ::ods::kasp::Policy _policy;
 
     KeyDataListPB _keyDataList;
+    KeyDependencyListPB _keyDependencyList;
 public:
     EnforcerZonePB(::ods::keystate::EnforcerZone *zone, const ::ods::kasp::Policy &policy);
 
@@ -136,6 +152,9 @@ public:
     
     /* Get access to the policy for associated with this zone */
     virtual const ::ods::kasp::Policy *policy();
+    
+    /* Get access to the list of KeyDependency entries for this zone. */
+    virtual KeyDependencyList &keyDependencyList();
     
     /* Get access to the list of KeyData entries for this zone. */
     virtual KeyDataList &keyDataList();

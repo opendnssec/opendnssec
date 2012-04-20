@@ -59,7 +59,20 @@ message EnforcerZone {
     optional bool roll_csk_now = 12 [default = false, (xml).path="rollCskNow"]; // ignored if ManualRollover not in Policy
 	
 	optional Adapters adapters = 13 [(xml).path="Adapters"];
+	repeated KeyDependency dependencies = 14;
 } 
+
+enum rrtype {
+	ds = 1;
+	dnskey = 2;
+	rrsig = 3;
+}
+
+message KeyDependency {
+	required uint64 from_key = 1;
+	required uint64 to_key = 2;
+	required rrtype rrtype = 3;
+}
 
 message KeyData {
     required string locator = 1 [(xml).path="Locator"];
