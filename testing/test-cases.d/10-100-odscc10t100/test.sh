@@ -12,6 +12,11 @@ log_grep ods-ksmutil-setup stderr "Type positiveInteger doesn't allow value '0'"
 ! log_this ods-control-enforcer-start ods-control enforcer start &&
 syslog_waitfor 10 "ods-enforcerd: .*Type positiveInteger doesn't allow value '0'" &&
 ! pgrep 'ods-enforcerd' >/dev/null 2>/dev/null &&
+
+! log_this ods-control-signer-start ods-control signer start &&
+# signer does not log anything to syslog if reading conf.xml
+! pgrep 'ods-signerd' >/dev/null 2>/dev/null &&
+
 return 0
 
 ods_kill
