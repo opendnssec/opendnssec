@@ -37,6 +37,7 @@
 #include "policy/kasp.pb.h"
 
 enum KeyRole { KSK=1, ZSK, CSK };
+enum RECORD {REC_MIN, DS = REC_MIN, DK, RD, RS, REC_MAX};
 enum DsAtParent { 
     DS_UNSUBMITTED = 0,
     DS_SUBMIT,
@@ -241,13 +242,24 @@ public:
 
 class KeyDependency {
 public:
-  //match x dep this for y
-  //match this dep x for y
+	//~ virtual bool dependsOn(::google::protobuf::uint64 key, RECORD record) = 0;
+	//~ virtual bool dependedBy(::google::protobuf::uint64 key, RECORD record) = 0;
 };
 
 class KeyDependencyList {
 public:
-	
+	virtual KeyDependency &addNewDependency(
+			::google::protobuf::uint64 from_key, 
+			::google::protobuf::uint64 to_key, RECORD record) = 0;
+	//~ virtual KeyDependency &addNNewDependency(
+			//~ KeyData from_key, 
+			//~ KeyData to_key, RECORD record) = 0;
+	/* Delete all dependencies to and from this key for recordtype */
+	virtual void delDependency( ::google::protobuf::uint64 key, RECORD record) = 0;
+	/* Does from_key depend on to_key? */
+	virtual bool dependsOn(
+			::google::protobuf::uint64 from_key, 
+			::google::protobuf::uint64 to_key, RECORD record) = 0;
 };
 
 class EnforcerZone {

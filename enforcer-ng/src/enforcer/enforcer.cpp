@@ -49,6 +49,7 @@
 #include "enforcer/enforcerdata.h"
 #include "policy/kasp.pb.h"
 #include "hsmkey/hsmkey.pb.h"
+//~ #include "pb-orm-read.h"
 
 #include "shared/duration.h"
 #include "shared/log.h"
@@ -63,7 +64,6 @@ static const char *module_str = "enforcer";
 enum STATE {HID, RUM, OMN, UNR, NOCARE}; 
 static const char* STATENAMES[] = {"HID", "RUM", "OMN", "UNR"};
 #undef DS /* DS is defined somewhere on SunOS 5.10 and breaks this enum */
-enum RECORD {REC_MIN, DS = REC_MIN, DK, RD, RS, REC_MAX};
 /* trick to loop over our RECORD enum */
 RECORD& operator++(RECORD& r){return r = (r >= REC_MAX?REC_MAX:RECORD(r+1));}
 static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
@@ -749,6 +749,9 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key,
 					module_str, scmd, (int)record);
 		}
 		//TODO: register: key depends on key_i for record
+		//~ ::google::protobuf::uint64 id;
+		//~ OrmGetId(key, id);
+		//~ dep_list.addNewDependency(id, id, record);
 	}
 }
 

@@ -62,16 +62,10 @@ message EnforcerZone {
 	repeated KeyDependency dependencies = 14;
 } 
 
-enum rrtype {
-	ds = 1;
-	dnskey = 2;
-	rrsig = 3;
-}
-
 message KeyDependency {
 	required uint64 from_key = 1;
 	required uint64 to_key = 2;
-	required rrtype rrtype = 3;
+	required uint32 rrtype = 3;
 }
 
 message KeyData {
