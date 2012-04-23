@@ -115,11 +115,12 @@ case "$1" in
 					i=`expr $i + 1`
 					if [ $i -ge 5 ]; then
 						RETVAL=1
-						echo "Could not start enforcer"
+						echo "Could not stop enforcer"
 						break
 					fi
 				done
 			fi
+			rm -f "$enforcer_pid_file"
 		else
 			echo "Cannot find PID file"
 			RETVAL=1
@@ -148,8 +149,14 @@ case "$1" in
 
 'start')
 	"$0" enforcer start
+	RETVAL=$?
+	if [ $RETVAL != 0 ]
+	then
+		exit $RETVAL
+	fi
 	"$0" signer start
-
+	RETVAL=$?
+	exit $RETVAL
 	;;
 
 'stop')
