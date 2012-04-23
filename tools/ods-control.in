@@ -120,7 +120,6 @@ case "$1" in
 					fi
 				done
 			fi
-			rm -f "$enforcer_pid_file"
 		else
 			echo "Cannot find PID file"
 			RETVAL=1
