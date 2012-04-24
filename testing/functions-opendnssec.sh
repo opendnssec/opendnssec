@@ -176,29 +176,29 @@ ods_reset_env ()
 
 ods_kill ()
 {
-	if ! pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+	if ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
 		return 0
 	fi
 	
 	echo "ods_kill: Killing OpenDNSSEC"
 	try_run 15 ods-control stop
 	
-	if pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+	if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
 		sleep 2
 		pkill -QUIT '(ods-enforcerd|ods-signerd)' 2>/dev/null
-		if pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+		if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
 			sleep 2
 			pkill -TERM '(ods-enforcerd|ods-signerd)' 2>/dev/null
-			if pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+			if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
 				sleep 2
 				pkill -KILL '(ods-enforcerd|ods-signerd)' 2>/dev/null
-				pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
+				pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
 				sleep 2
 			fi
 		fi
 	fi
 	
-	if pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+	if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
 		echo "ods_kill: Tried to kill ods-enforcerd and ods-signerd but some are still alive!" >&2
 		return 1
 	fi
