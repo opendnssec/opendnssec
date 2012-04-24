@@ -2,16 +2,21 @@
 #
 # Configure no module location and expect failure
 
-if [ -n "$HAVE_MYSQL" ]; then
-	ods_setup_conf conf.xml conf-mysql.xml
-fi &&
-
 ods_reset_env &&
 
-! log_this ods-control-start ods-control start &&
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql-no-module.xml
+else
+	ods_setup_conf conf.xml conf-no-module.xml
+fi &&
+
+! log_this_timeout ods-control-enforcer-start 30 ods-control enforcer start &&
 syslog_waitfor 10 'ods-enforcerd: .*PKCS#11 module load failed' &&
+
+! log_this_timeout ods-control-signer-start 30 ods-control signer start &&
 syslog_waitfor 10 'ods-signerd: .*\[hsm\].*PKCS#11 module load failed' &&
-! pgrep '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
+
+! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
 return 0
 
 ods_kill
