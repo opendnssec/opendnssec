@@ -990,6 +990,7 @@ log_this_timeout ()
 	done
 
 	kill -TERM "$pid"
+	sleep 1
 	if kill -0 "$pid" 2>/dev/null; then
 		kill -KILL "$pid"
 	fi	
@@ -1232,7 +1233,7 @@ run_tests ()
 	while [ "$test_iter" -lt "$test_num" ] 2>/dev/null; do
 		test_path="${test[test_iter]}"
 		test_iter=$(( test_iter + 1 ))
-		echo -n "$test_iter/$test_num	$test_path ... "
+		echo "##### $test_iter/$test_num $test_path ... "
 		pwd2=`pwd`
 		cd "$test_path" 2>/dev/null &&
 		if [ -n "$PRE_TEST" ]; then
@@ -1246,12 +1247,12 @@ run_tests ()
 			$POST_TEST "$test_path" "$test_status"
 		fi
 		if [ "$test_status" -eq 0 ] 2>/dev/null; then
-			echo "ok"
+			echo "##### $test_iter/$test_num $test_path ... OK"
 			log_cleanup
 			syslog_cleanup
 		else
 			test_failed=$(( test_failed + 1 ))
-			echo "failed!"
+			echo "##### $test_iter/$test_num $test_path ... FAILED!"
 		fi
 
 		if ! cd "$pwd2" 2>/dev/null; then
@@ -1305,7 +1306,7 @@ run_test ()
 		return 1
 	fi
 
-	echo "Running test $test_name ..." 
+	echo "##### Running test $test_name ..." 
 	if [ -n "$PRE_TEST" ]; then
 		$PRE_TEST "$test_name"
 	fi &&
@@ -1317,11 +1318,11 @@ run_test ()
 		$POST_TEST "$test_name" "$test_status"
 	fi
 	if [ "$test_status" -eq 0 ] 2>/dev/null; then
-		echo "ok"
+		echo "##### Test $test_name ... OK" 
 		log_cleanup
 		syslog_cleanup
 	else
-		echo "failed!"
+		echo "##### Test $test_name ... FAILED!" 
 	fi
 
 	if ! cd "$pwd" 2>/dev/null; then
@@ -1651,6 +1652,7 @@ try_run ()
 	done
 
 	kill -TERM "$pid"
+	sleep 1
 	if kill -0 "$pid" 2>/dev/null; then
 		kill -KILL "$pid"
 	fi	
