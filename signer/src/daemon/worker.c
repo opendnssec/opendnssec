@@ -174,8 +174,8 @@ worker_perform_task(worker_type* worker)
                     ods_log_debug("[%s[%i]] no signconf.xml for zone %s yet",
                         worker2str(worker->type), worker->thread_num,
                         task_who2str(task->who));
+                    status = ODS_STATUS_ERR;
                 }
-                status = ODS_STATUS_ERR;
             }
 
             /* what to do next */
@@ -516,7 +516,6 @@ worker_work(worker_type* worker)
 {
     time_t now, timeout = 1;
     zone_type* zone = NULL;
-    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_WORKER);
@@ -551,7 +550,7 @@ worker_work(worker_type* worker)
             /* [LOCK] zone, schedule */
             worker->task = NULL;
             worker->working_with = TASK_NONE;
-            status = schedule_task(worker->engine->taskq, zone->task, 1);
+            (void) schedule_task(worker->engine->taskq, zone->task, 1);
             /* [UNLOCK] zone, schedule */
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);
             lock_basic_unlock(&zone->zone_lock);
@@ -597,12 +596,9 @@ worker_drudge(worker_type* worker)
     ods_status status = ODS_STATUS_OK;
     worker_type* chief = NULL;
     hsm_ctx_t* ctx = NULL;
-    engine_type* engine = NULL;
 
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_DRUDGER);
-
-    engine = (engine_type*) worker->engine;
 
     ods_log_debug("[%s[%i]] create hsm context",
         worker2str(worker->type), worker->thread_num);
