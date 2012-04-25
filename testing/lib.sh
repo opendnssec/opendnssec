@@ -1341,12 +1341,13 @@ syslog_trace ()
 		echo "syslog_trace: Syslog trace already running (pid $_SYSLOG_TRACE_PID)!" >&2
 		exit 1
 	fi
+
+	local syslog_file
 	
 	case "$DISTRIBUTION" in
 		debian | \
 		ubuntu )
-			$TAIL_FOLLOW /var/log/syslog >"_syslog.$BUILD_TAG" 2>/dev/null &
-			_SYSLOG_TRACE_PID="$!"
+			syslog_file="/var/log/syslog"
 			;;
 		redhat | \
 		centos | \
@@ -1356,17 +1357,34 @@ syslog_trace ()
 		freebsd | \
 		netbsd | \
 		openbsd )
-			$TAIL_FOLLOW /var/log/messages >"_syslog.$BUILD_TAG" 2>/dev/null &
-			_SYSLOG_TRACE_PID="$!"
+			syslog_file="/var/log/messages"
 			;;
 		sunos )
-			$TAIL_FOLLOW /var/adm/messages >"_syslog.$BUILD_TAG" 2>/dev/null &
-			_SYSLOG_TRACE_PID="$!"
+			syslog_file="/var/adm/messages"
 			;;
 	esac
+
+	if [ -z "$syslog_file" ]; then
+		echo "syslog_trace: Unable to start trace of syslog: no syslog file set" >&2
+		exit 1
+	fi
+
+	if [ ! -r "$syslog_file" ]; then
+		echo "syslog_trace: Unable to start trace of syslog: no access to $syslog_file" >&2
+		exit 1
+	fi
+
+	$TAIL_FOLLOW "$syslog_file" >"_syslog.$BUILD_TAG" 2>/dev/null &
+	_SYSLOG_TRACE_PID="$!"
 	
 	if [ -z "$_SYSLOG_TRACE_PID" -o ! "$_SYSLOG_TRACE_PID" -gt 0 ] 2>/dev/null; then
 		echo "syslog_trace: Unable to start trace of syslog!" >&2
+		exit 1
+	fi
+
+	if ! kill -0 "$_SYSLOG_TRACE_PID" 2>/dev/null >/dev/null; then
+		wait "$_SYSLOG_TRACE_PID"
+		echo "syslog_trace: Unable to start trace of syslog: exited with status $?"
 		exit 1
 	fi
 	
