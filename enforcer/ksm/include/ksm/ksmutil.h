@@ -103,7 +103,7 @@ int keyRoll(int zone_id, int policy_id, int key_type);
 int get_policy_name_from_id(KSM_ZONE *zone);
 int append_zone(xmlDocPtr doc, KSM_ZONE *zone);
 int ShellQuoteString(const char* string, char* buffer, size_t buflen);
-int extract_signconf(const char* zonelist_filename, const char* o_zone, char** signconf);
+int rename_signconf(const char* zonelist_filename, const char* o_zone);
 int ListDS(int zone_id);
 
 #ifdef __cplusplus
