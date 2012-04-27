@@ -1080,8 +1080,6 @@ cmd_delzone ()
 
     char* zonelist_filename = NULL;
     char* backup_filename = NULL;
-    char* signconf = NULL;
-    char* moved_signconf = NULL;
     /* The settings that we need for the zone */
     int zone_id = -1;
     int policy_id = -1;
@@ -1156,28 +1154,14 @@ cmd_delzone ()
             return(1);
         }
 
-		/* Extract the Signconf path so we can move it */
-		status = extract_signconf(zonelist_filename, o_zone, &signconf);
+		/* rename the Signconf file so that if the zone is readded the old 
+		 * file will not be used */
+		status = rename_signconf(zonelist_filename, o_zone);
 		if (status != 0) {
             StrFree(zonelist_filename);
             db_disconnect(lock_fd);
             return(status);
         }
-		StrAppend(&moved_signconf, signconf);
-		StrAppend(&moved_signconf, ".ZONE_DELETED");
-		/* Do the move */
-		status = rename(signconf, moved_signconf);
-        if (status != 0 && status != -1)
-        {
-            /* cope with initial condition of files not existing */
-            printf("Could not rename: %s -> %s", signconf, moved_signconf);
-            StrFree(zonelist_filename);
-            StrFree(signconf);
-            StrFree(moved_signconf);
-            return(1);
-        }
-		StrFree(signconf);
-		StrFree(moved_signconf);
 
         /* Backup the current zonelist */
         StrAppend(&backup_filename, zonelist_filename);
@@ -8357,8 +8341,10 @@ int ShellQuoteString(const char* string, char* buffer, size_t buflen)
 	return ( (j <= buflen) ? 0 : 1);
 }
 
-int extract_signconf(const char* zonelist_filename, const char* o_zone, char** signconf) {
+int rename_signconf(const char* zonelist_filename, const char* o_zone) {
 	int status = 0;
+	char* signconf = NULL;
+	char* moved_signconf = NULL;
 	char* zone_name = NULL;
 	int i = 0;
 	
@@ -8396,20 +8382,37 @@ int extract_signconf(const char* zonelist_filename, const char* o_zone, char** s
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             zone_name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
 
-			if (strlen(zone_name) == strlen(o_zone) &&
-					strncmp(zone_name, o_zone, strlen(zone_name)) == 0) {
+			if (all_flag || (strlen(zone_name) == strlen(o_zone) &&
+					strncmp(zone_name, o_zone, strlen(zone_name)) == 0)) {
 				
 				while (curNode) {
 
 					if (xmlStrEqual(curNode->name, (const xmlChar *)"SignerConfiguration")) {
-						StrAppend(signconf, (char *) xmlNodeGetContent(curNode));
+						StrAppend(&signconf, (char *) xmlNodeGetContent(curNode));
+						StrAppend(&moved_signconf, signconf);
+						StrAppend(&moved_signconf, ".ZONE_DELETED");
+						/* Do the move */
+						status = rename(signconf, moved_signconf);
+						if (status != 0 && errno != ENOENT)
+						{
+							/* cope with initial condition of files not existing */
+							printf("Could not rename: %s -> %s", signconf, moved_signconf);
+							StrFree(signconf);
+							StrFree(moved_signconf);
+							return(1);
+						}
+						StrFree(signconf);
+						StrFree(moved_signconf);
+
 						break;
 					}
 
 					curNode = curNode->next;
 				}
 
-				break;
+				if (!all_flag) {
+					break;
+				}
 			}
 		}
 	}
