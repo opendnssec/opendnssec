@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008-2009 Nominet UK. All rights reserved.
+ * Copyright (c) 2012 Nominet UK. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -119,14 +119,20 @@ int check_rng(const char *filename, const char *rngfilename) {
 		/* Maybe the file doesn't exist? */
 		check_file(rngfilename, "RNG file");
 
-        return(1);
+        xmlFreeDoc(doc);
+        
+		return(1);
     }
 
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
     if (rngpctx == NULL) {
         dual_log("ERROR: unable to create XML RelaxNGs parser context\n");
-        return(1);
+
+        xmlFreeDoc(doc);
+        xmlFreeDoc(rngdoc);
+        
+		return(1);
     }
 
 	xmlRelaxNGSetParserErrors(rngpctx,
@@ -138,6 +144,11 @@ int check_rng(const char *filename, const char *rngfilename) {
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
         dual_log("ERROR: unable to parse a schema definition resource\n");
+
+		xmlRelaxNGFreeParserCtxt(rngpctx);
+		xmlFreeDoc(doc);
+		xmlFreeDoc(rngdoc);
+
         return(1);
     }
 
@@ -145,7 +156,13 @@ int check_rng(const char *filename, const char *rngfilename) {
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
         dual_log("ERROR: unable to create RelaxNGs validation context based on the schema\n");
-        return(1);
+
+		xmlRelaxNGFree(schema);
+		xmlRelaxNGFreeParserCtxt(rngpctx);
+		xmlFreeDoc(doc);
+		xmlFreeDoc(rngdoc);
+        
+		return(1);
     }
 
 	xmlRelaxNGSetValidErrors(rngctx,
@@ -156,11 +173,18 @@ int check_rng(const char *filename, const char *rngfilename) {
     /* Validate a document tree in memory. */
     if (xmlRelaxNGValidateDoc(rngctx,doc) != 0) {
         dual_log("ERROR: %s fails to validate\n", filename);
+
+		xmlRelaxNGFreeValidCtxt(rngctx);
+		xmlRelaxNGFree(schema);
+		xmlRelaxNGFreeParserCtxt(rngpctx);
+		xmlFreeDoc(doc);
+		xmlFreeDoc(rngdoc);
+
         return(1);
     }
 
-	xmlRelaxNGFree(schema);
     xmlRelaxNGFreeValidCtxt(rngctx);
+	xmlRelaxNGFree(schema);
     xmlRelaxNGFreeParserCtxt(rngpctx);
     xmlFreeDoc(doc);
     xmlFreeDoc(rngdoc);
@@ -178,6 +202,9 @@ int check_file(const char *filename, const char *log_string) {
 					filename, strerror(errno));
 			return 1;
 		}
+
+		dual_log("ERROR: %s (%s) does not exist\n", log_string, filename);
+		return 1;
 	}
 
     if (S_ISREG(stat_ret.st_mode)) {
@@ -288,6 +315,7 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
 
         StrFree(temp_char);
     }
+    xmlXPathFreeObject(xpath_obj);
 
 	/* User if specified */
 	xpath_obj = xmlXPathEvalExpression(user_xexpr, xpath_ctx);
@@ -306,6 +334,8 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
 
         StrFree(temp_char);
     }
+
+    xmlXPathFreeObject(xpath_obj);
 
 	return status;
 }
@@ -365,6 +395,8 @@ int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_
 		StrFree(temp_char);
 	}
 
+    xmlXPathFreeObject(xpath_obj);
+
 	return status;
 }
 
@@ -406,10 +438,12 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				if (xmlStrEqual(childNode->name, (const xmlChar *)"Resign")) {
 					temp_char = (char *) xmlNodeGetContent(childNode);
 					status += check_time_def(temp_char, my_policy, "Signatures/Resign", kasp, &resign);
+					StrFree(temp_char);
 				}
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Refresh")) {
 					temp_char = (char *) xmlNodeGetContent(childNode);
 					status += check_time_def(temp_char, my_policy, "Signatures/Refresh", kasp, &refresh);
+					StrFree(temp_char);
 				}
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Validity")) {
 					childNode2 = childNode->children;
@@ -417,10 +451,12 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Default")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
 							status += check_time_def(temp_char, my_policy, "Signatures/Validity/Default", kasp, &defalt);
+							StrFree(temp_char);
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Denial")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
 							status += check_time_def(temp_char, my_policy, "Signatures/Validity/Denial", kasp, &denial);
+							StrFree(temp_char);
 						}
 						childNode2 = childNode2->next;
 					}
@@ -428,10 +464,12 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"Jitter")) {
 					temp_char = (char *) xmlNodeGetContent(childNode);
 					status += check_time_def(temp_char, my_policy, "Signatures/Jitter", kasp, &jitter);
+					StrFree(temp_char);
 				}
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"InceptionOffset")) {
 					temp_char = (char *) xmlNodeGetContent(childNode);
 					status += check_time_def(temp_char, my_policy, "Signatures/InceptionOffset", kasp, &inception);
+					StrFree(temp_char);
 				}
 
 				childNode = childNode->next;
@@ -452,6 +490,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Resalt")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
 							status += check_time_def(temp_char, my_policy, "Denial/NSEC3/Resalt", kasp, &resalt);
+							StrFree(temp_char);
 						}
 
 						childNode2 = childNode2->next;
@@ -468,14 +507,17 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				if (xmlStrEqual(childNode->name, (const xmlChar *)"TTL")) {
 					temp_char = (char *) xmlNodeGetContent(childNode);
 					status += check_time_def(temp_char, my_policy, "Keys/TTL", kasp, &ttl);
+					StrFree(temp_char);
 				}
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"RetireSafety")) {
 					temp_char = (char *) xmlNodeGetContent(childNode);
 					status += check_time_def(temp_char, my_policy, "Keys/RetireSafety", kasp, &retire);
+					StrFree(temp_char);
 				}
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"PublishSafety")) {
 					temp_char = (char *) xmlNodeGetContent(childNode);
 					status += check_time_def(temp_char, my_policy, "Keys/PublishSafety", kasp, &publish);
+					StrFree(temp_char);
 				}
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"KSK")) {
 					childNode2 = childNode->children;
@@ -484,13 +526,16 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
 							StrStrtoi(temp_char, &ksk_algo);
+							StrFree(temp_char);
 
 							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
 							StrStrtoi(temp_char, &ksk_length);
+							StrFree(temp_char);
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
 							status += check_time_def(temp_char, my_policy, "Keys/KSK Lifetime", kasp, &ksk_life);
+							StrFree(temp_char);
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
 							ksk_repo = (char *) xmlNodeGetContent(childNode2);
@@ -506,14 +551,17 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
 							StrStrtoi(temp_char, &zsk_algo);
+							StrFree(temp_char);
 
 							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
 							StrStrtoi(temp_char, &zsk_length);
+							StrFree(temp_char);
 
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
 							status += check_time_def(temp_char, my_policy, "Keys/ZSK Lifetime", kasp, &zsk_life);
+							StrFree(temp_char);
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
 							zsk_repo = (char *) xmlNodeGetContent(childNode2);
@@ -634,14 +682,14 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	if (nsec == 1) {
 	}
 	else if (nsec == 3) {
-		if (ksk_algo != 6 && ksk_algo != 7 && ksk_algo != 8 && ksk_algo != 10) {
+		if (ksk_algo <= 5) {
 			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"KSK NSEC3 in %s - should be 6,7,8 or 10.\n", policy_name, ksk_algo, kasp);
+					"KSK NSEC3 in %s.\n", policy_name, ksk_algo, kasp);
 			status++;
 		}
-		if (zsk_algo != 6 && zsk_algo != 7 && zsk_algo != 8 && zsk_algo != 10) {
+		if (zsk_algo <= 5) {
 			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"ZSK NSEC3 in %s - should be 6,7,8 or 10.\n", policy_name, zsk_algo, kasp);
+					"ZSK NSEC3 in %s.\n", policy_name, zsk_algo, kasp);
 			status++;
 		}
 
@@ -741,6 +789,10 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				jitter, denial, policy_name, kasp);
 		status++;
 	}
+
+	StrFree(ksk_repo);
+	StrFree(zsk_repo);
+	StrFree(serial);
 
 	return status;
 }

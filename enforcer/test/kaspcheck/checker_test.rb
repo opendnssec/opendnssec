@@ -4,9 +4,9 @@ class CheckerTest < Test::Unit::TestCase
   def test_good_config
     stderr = run_checker("ods-kaspcheck -c kaspcheck_good/conf.xml")
     assert(check_output(stderr, [
-			"INFO: kaspcheck_good/conf.xml validates",
-			"INFO: kaspcheck_good/zonelist.xml validates",
-			"INFO: kaspcheck_good/kasp.xml validates",
+			"INFO: The XML in kaspcheck_good/conf.xml is valid",
+			"INFO: The XML in kaspcheck_good/zonelist.xml is valid",
+			"INFO: The XML in kaspcheck_good/kasp.xml is valid",
 	]))
   end
 
@@ -52,10 +52,10 @@ class CheckerTest < Test::Unit::TestCase
     stderr = run_checker("ods-kaspcheck -c kaspcheck_bad/invalid_conf.xml")
     assert(check_output(stderr, [
 
-		  "INFO: kaspcheck_bad/invalid_conf.xml validates",
-		  "INFO: kaspcheck_bad/zonelist.xml validates",
+		  "INFO: The XML in kaspcheck_bad/invalid_conf.xml is valid",
+		  "INFO: The XML in kaspcheck_bad/zonelist.xml is valid",
 		  "ERROR: WorkingDirectory (kaspcheck_bad/nope/not/here) does not exist",
-		  "INFO: kaspcheck_bad/invalid_kasp.xml validates",
+		  "INFO: The XML in kaspcheck_bad/invalid_kasp.xml is valid",
 
           # KASP errors
         ]))
@@ -65,9 +65,9 @@ class CheckerTest < Test::Unit::TestCase
     stderr = run_checker("ods-kaspcheck -c kaspcheck_bad/conf.xml")
     # Fill in expected error strings here
     assert(check_output(stderr, [
-		  "INFO: kaspcheck_bad/conf.xml validates",
-		  "INFO: kaspcheck_bad/zonelist.xml validates",
-		  "INFO: kaspcheck_bad/kasp.xml validates",
+		  "INFO: The XML in kaspcheck_bad/conf.xml is valid",
+		  "INFO: The XML in kaspcheck_bad/zonelist.xml is valid",
+		  "INFO: The XML in kaspcheck_bad/kasp.xml is valid",
 
           # General Checks
           # --------------
@@ -124,7 +124,7 @@ class CheckerTest < Test::Unit::TestCase
           "WARNING: Keys/RetireSafety (1 seconds) is less than 0.1 * TTL (3600 seconds) for registry policy in kaspcheck_bad/kasp.xml",
 
           # The algorithm should be checked to ensure it is consistent with the NSEC/NSEC3 choice for the zone.
-          "ERROR: In policy registry, incompatible algorithm (5) used for ZSK NSEC3 in kaspcheck_bad/kasp.xml - should be 6,7,8 or 10",
+          "ERROR: In policy registry, incompatible algorithm (5) used for ZSK NSEC3 in kaspcheck_bad/kasp.xml.",
 
           # If datecounter is used for serial, then no more than 99 signings should be done per day (there are only two digits to play with in the version number).
           "ERROR: In kaspcheck_bad/kasp.xml, policy registry, serial type datecounter used but 720 re-signs requested. No more than 99 re-signs per day should be used with datecounter as only 2 digits are allocated for the version number",

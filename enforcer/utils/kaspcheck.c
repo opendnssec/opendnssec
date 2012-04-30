@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008-2009 Nominet UK. All rights reserved.
+ * Copyright (c) 2012 Nominet UK. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,6 +79,7 @@ int main (int argc, char *argv[])
 	int status = 0; /* Will be non-zero on error (NOT warning) */
     int ch;
 	int option_index = 0;
+	int i = 0;
 	static struct option long_options[] =
     {
         {"config",  required_argument, 0, 'c'},
@@ -131,6 +132,16 @@ int main (int argc, char *argv[])
 	if (verbose) {
 		dual_log("DEBUG: finished %d\n", status);
 	}
+
+	xmlCleanupParser();
+
+	for (i = 0; i < repo_count; i++) {
+		StrFree(repo_list[i]);
+	}
+	StrFree(repo_list);
+	StrFree(config);
+	StrFree(kasp);
+
 	return status;
 }
 
@@ -216,6 +227,7 @@ int check_conf(char** kasp) {
             }
         }
     }
+    xmlXPathFreeObject(xpath_obj);
 
 	/* Now we have all the information we need do the checks */
 	for (i = 0; i < repo_count; i++) {
@@ -264,6 +276,7 @@ int check_conf(char** kasp) {
 		StrAppend(kasp, temp_char);
 		StrFree(temp_char);
 	}
+    xmlXPathFreeObject(xpath_obj);
 
 	/* Check that the  Zonelist file is well-formed */
 	xexpr = (xmlChar *)"//Configuration/Common/ZoneListFile";
@@ -281,6 +294,7 @@ int check_conf(char** kasp) {
 		status += 1;
 	}
 
+    xmlXPathFreeObject(xpath_obj);
 	StrFree(temp_char);
 
 	/* ENFORCER section */
@@ -336,16 +350,16 @@ int check_conf(char** kasp) {
 		status += temp_status;
 	}
 		
-	/* Check ToolsDirectory exists (only if set, no default) */
-	temp_status = check_path_from_xpath(xpath_ctx, "ToolsDirectory",
-			(xmlChar *)"//Configuration/Signer/ToolsDirectory");
-	if (temp_status > 0) {
-		status += temp_status;
-	}
-
-    xmlXPathFreeObject(xpath_obj);
     xmlXPathFreeContext(xpath_ctx);
     xmlFreeDoc(doc);
+
+	for (i = 0; i < repo_count; i++) {
+		free(repo[i].name);
+		free(repo[i].module);
+		free(repo[i].TokenLabel);
+	}
+	free(repo);
+	free(repo_mods);
 
 	return status;
 }
@@ -441,6 +455,15 @@ int check_kasp() {
 
 		 status += check_policy(curNode, policy_names[i], repo_list, repo_count, kasp);
 	}
+
+	for (i = 0; i < policy_count; i++) {
+		free(policy_names[i]);
+	}
+	free(policy_names);
+
+    xmlXPathFreeObject(xpath_obj);
+	xmlXPathFreeContext(xpath_ctx);
+	xmlFreeDoc(doc);
 
 	return status;
 }
