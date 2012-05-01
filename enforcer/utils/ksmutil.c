@@ -1415,6 +1415,8 @@ cmd_exportkeys ()
     size_t  nchar;          /* Number of characters written */
     char    buffer[256];    /* For constructing part of the command */
 
+	int done_something = 0; /* Have we exported any keys? */
+
     /* See what arguments we were passed (if any) otherwise set the defaults */
     /* Check keystate, can be state or keytype */
     if (o_keystate != NULL) {
@@ -1578,6 +1580,8 @@ cmd_exportkeys ()
                 ldns_rr_print(stdout, ds_sha256_rr);
             }
 
+			done_something = 1;
+
             hsm_sign_params_free(sign_params);
             hsm_key_free(key);
             status = KsmKey(result, &data);
@@ -1590,6 +1594,15 @@ cmd_exportkeys ()
 
         KsmKeyEnd(result);
     }
+
+	/* If we did nothing then explain why not */
+	if (!done_something) {
+		if (state_id != -1) {
+			printf("No keys in %s state to export.\n", KsmKeywordStateValueToName(state_id) );
+		} else {
+			printf("No keys in READY state or higher to export.\n");
+		}
+	}
 
     /* TODO when the above is working then replicate it twice for the case where keytype == -1 */
 
