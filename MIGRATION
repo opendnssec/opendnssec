@@ -3,6 +3,18 @@ $Id$
 This file gives you instructions on how to migrate from one version of
 OpenDNSSEC to another.
 
+*** Adding indexes to kasp (sqlite3 only) ***
+
+  This is not really a migration as it is not required, but it improves performance
+  (at the cost of a slight increase in database file size).
+  
+  sqlite3 databases created prior to the 1.3.8 release will not have indexes on 
+  foreign keys. This can be fixed by running the following command:
+
+	sqlite3 [PATH_TO_KASP_DB] < enforcer/utils/add_indexes.sqlite3
+
+
+
 *** Migrating from v1.2 to v1.3 ***
 
   There are no migration scripts to run to make this transition.

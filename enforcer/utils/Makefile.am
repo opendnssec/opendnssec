@@ -35,3 +35,4 @@ ods_ksmutil_LDADD = $(LIBKSM) $(LIBHSM) $(LIBCOMPAT)
 ods_ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@
 
 EXTRA_DIST = $(srcdir)/migrate_*.pl
+EXTRA_DIST += $(srcdir)/add_indexes.sqlite3
