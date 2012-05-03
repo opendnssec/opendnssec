@@ -76,6 +76,7 @@ xfrhandler_create(allocator_type* allocator)
     xfrh->current_time = 0;
     xfrh->got_time = 0;
     xfrh->need_to_exit = 0;
+    xfrh->started = 0;
     /* notify */
     xfrh->notify_waiting_first = NULL;
     xfrh->notify_waiting_last = NULL;
@@ -174,7 +175,7 @@ xfrhandler_time(xfrhandler_type* xfrhandler)
 void
 xfrhandler_signal(xfrhandler_type* xfrhandler)
 {
-    if (xfrhandler) {
+    if (xfrhandler && xfrhandler->started) {
         ods_thread_kill(xfrhandler->thread_id, SIGHUP);
     }
     return;

@@ -270,6 +270,11 @@ engine_start_xfrhandler(engine_type* engine)
     engine->xfrhandler->engine = engine;
     ods_thread_create(&engine->xfrhandler->thread_id,
         xfrhandler_thread_start, engine->xfrhandler);
+    /* This might be the wrong place to mark the xfrhandler started but
+     * if its isn't done here we might try to shutdown and stop it before
+     * it has marked itself started
+     */
+    engine->xfrhandler->started = 1;
     return;
 }
 static void

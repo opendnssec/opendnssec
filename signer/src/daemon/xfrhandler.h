@@ -69,6 +69,7 @@ struct xfrhandler_struct {
     netio_handler_type dnshandler;
     unsigned got_time : 1;
     unsigned need_to_exit : 1;
+    unsigned started : 1;
 };
 
 /**
