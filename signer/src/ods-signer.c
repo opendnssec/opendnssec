@@ -206,8 +206,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 /* written+ret < n : means partial write, requires us to loop... */
             }
             if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
-                fprintf(stderr, "\n");
-                return 1;
+                fprintf(stdout, "\n");
+                return 0;
             }
         }
 
