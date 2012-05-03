@@ -53,31 +53,35 @@ case "$1" in
 	'start')
 		echo "Starting signer engine..."
 		"$sbindir/ods-signer" start
-		i=0
-		while [ ! -r "$signer_pid_file" ]; do
-			sleep 1
-			i=`expr $i + 1`
-			if [ $i -ge 5 ]; then
-				RETVAL=1
-				echo "Could not start signer"
-				exit $RETVAL
-			fi
-		done
-		i=0
-		while [ ! -r "$signer_socket_file" ]; do
-			sleep 1
-			i=`expr $i + 1`
-			if [ $i -ge 5 ]; then
-				RETVAL=1
-				echo "Could not start signer"
-				exit $RETVAL
-			fi
-		done
-		sleep 1
-
-		"$sbindir/ods-signer" running
+		
 		RETVAL=$?
+		if [ $RETVAL = 0 ]; then
+			i=0
+			while [ ! -r "$signer_pid_file" ]; do
+				sleep 1
+				i=`expr $i + 1`
+				if [ $i -ge 5 ]; then
+					RETVAL=1
+					echo "Could not start signer"
+					exit $RETVAL
+				fi
+			done
+			i=0
+			while [ ! -r "$signer_socket_file" ]; do
+				sleep 1
+				i=`expr $i + 1`
+				if [ $i -ge 5 ]; then
+					RETVAL=1
+					echo "Could not start signer"
+					exit $RETVAL
+				fi
+			done
+			sleep 1
 
+			"$sbindir/ods-signer" running
+			RETVAL=$?
+		fi
+		
 		exit $RETVAL
 		;;
 	*)
