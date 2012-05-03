@@ -102,7 +102,6 @@ server_main(DAEMONCONFIG *config)
     policy = KsmPolicyAlloc();
     if (policy == NULL) {
         log_msg(config, LOG_ERR, "Malloc for policy struct failed");
-        unlink(config->pidfile);
         exit(1);
     }
     kaspSetPolicyDefaults(policy, NULL);
@@ -111,7 +110,6 @@ server_main(DAEMONCONFIG *config)
     status = ReadConfig(config , 0);
     if (status != 0) {
         log_msg(config, LOG_ERR, "Error reading config");
-        unlink(config->pidfile);
         exit(1);
     }
 
@@ -151,12 +149,25 @@ server_main(DAEMONCONFIG *config)
                         log_msg(config, LOG_ERR, "hsm_open() result: %d", result);
                 }
             }
-            unlink(config->pidfile);
             exit(1);
         }
         log_msg(config, LOG_INFO, "HSM opened successfully.");
         ctx = hsm_create_context();
     /*}*/
+
+    log_msg(config, LOG_INFO, "Checking database connection...");
+    if (kaspTryConnect(config, &dbhandle)) {
+        log_msg(config, LOG_ERR, "Database connection failed");
+        exit(1);
+    }
+    log_msg(config, LOG_INFO, "Database connection ok.");
+
+    /* Create pidfile as late as possible to report start up error */
+	if (writepid(config) == -1) {
+		log_msg(config, LOG_ERR, "cannot write the pidfile %s: %s",
+			config->pidfile, strerror(errno));
+		exit(1);
+	}
 
     while (1) {
 
