@@ -32,6 +32,7 @@ bindir="@OPENDNSSEC_BIN_DIR@"
 sbindir="@OPENDNSSEC_SBIN_DIR@"
 enforcer_pid_file="@OPENDNSSEC_ENFORCER_PIDFILE@"
 signer_pid_file="@OPENDNSSEC_SIGNER_PIDFILE@"
+signer_socket_file="@OPENDNSSEC_SIGNER_SOCKET@"
 
 
 case "$1" in
@@ -62,6 +63,17 @@ case "$1" in
 				exit $RETVAL
 			fi
 		done
+		i=0
+		while [ ! -r "$signer_socket_file" ]; do
+			sleep 1
+			i=`expr $i + 1`
+			if [ $i -ge 5 ]; then
+				RETVAL=1
+				echo "Could not start signer"
+				exit $RETVAL
+			fi
+		done
+		sleep 1
 
 		"$sbindir/ods-signer" running
 		RETVAL=$?
