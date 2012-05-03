@@ -287,7 +287,10 @@ engine_stop_xfrhandler(engine_type* engine)
     engine->xfrhandler->need_to_exit = 1;
     xfrhandler_signal(engine->xfrhandler);
     ods_log_debug("[%s] join xfrhandler", engine_str);
-    ods_thread_join(engine->xfrhandler->thread_id);
+    if (engine->xfrhandler->started) {
+    	ods_thread_join(engine->xfrhandler->thread_id);
+    	engine->xfrhandler->started = 0;
+    }
     engine->xfrhandler->engine = NULL;
     return;
 }
