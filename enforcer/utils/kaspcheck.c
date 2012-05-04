@@ -80,6 +80,7 @@ int main (int argc, char *argv[])
     int ch;
 	int option_index = 0;
 	int i = 0;
+	int free_config = 0;
 	static struct option long_options[] =
     {
         {"config",  required_argument, 0, 'c'},
@@ -102,6 +103,7 @@ int main (int argc, char *argv[])
         switch (ch) {
             case 'c':
 				config = StrStrdup(optarg);
+				free_config = 1;
                 break;
 			case 'h':
 				usage();
@@ -139,7 +141,9 @@ int main (int argc, char *argv[])
 		StrFree(repo_list[i]);
 	}
 	StrFree(repo_list);
-	StrFree(config);
+	if (free_config) {
+		StrFree(config);
+	}
 	StrFree(kasp);
 
 	return status;
