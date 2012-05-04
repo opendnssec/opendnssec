@@ -69,6 +69,12 @@ AC_TYPE_SIZE_T
 AC_TYPE_UID_T
 AC_TYPE_UINT16_T
 
+# pthread
+ACX_PTHREAD
+LIBS="$PTHREAD_LIBS $LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+CC="$PTHREAD_CC"
+
 # checks for library functions
 AC_CHECK_FUNCS([arc4random arc4random_uniform])
 AC_CHECK_FUNCS([dup2 endpwent select strerror strtol])
@@ -142,12 +148,6 @@ ACX_LIBXML2
 ACX_LDNS(1,6,12)
 ACX_PKCS11_MODULES
 ACX_RT
-
-# pthread
-ACX_PTHREAD
-LIBS="$PTHREAD_LIBS $LIBS"
-CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-CC="$PTHREAD_CC"
 
 # libhsm
 ACX_DLOPEN
