@@ -137,6 +137,20 @@ kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle)
 }
 
 /*
+* Try and connect to the DB
+*/
+int
+kaspTryConnect(DAEMONCONFIG* config, DB_HANDLE	*handle)
+{
+    /* Note that all these XML derived strings are unsigned chars */
+	if (DbConnect(handle, (char *)config->schema, (char *)config->host, (char *)config->password, (char *)config->user, (char *)config->port) != 0) {
+		return 1;
+    }
+
+	return 0;
+}
+
+/*
 * Disconnect from the DB
 */
 void

@@ -228,16 +228,9 @@ main(int argc, char *argv[]){
 
     config.uid = geteuid();
     config.gid = getegid();
+	config.pid = getpid();
 
-    /* write the pidfile */
-    config.pid = getpid();
-    if (writepid(&config) == -1) {
-        log_msg(&config, LOG_ERR, "cannot write the pidfile %s: %s",
-                config.pidfile, strerror(errno));
-        exit(1);
-    }
-
-    atexit(exit_function);
+	atexit(exit_function);
 
     log_msg(&config, LOG_NOTICE, "%s started (version %s), pid %d", PACKAGE_NAME, PACKAGE_VERSION, 
             (int) config.pid);

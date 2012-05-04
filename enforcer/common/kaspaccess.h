@@ -37,6 +37,7 @@
 int kaspReadConfig(DAEMONCONFIG* config);
 void kaspSetPolicyDefaults(KSM_POLICY *policy, char *name);
 void kaspConnect(DAEMONCONFIG* config, DB_HANDLE	*handle);
+int kaspTryConnect(DAEMONCONFIG* config, DB_HANDLE	*handle);
 void kaspDisconnect(DB_HANDLE	*handle);
 int kaspReadPolicy(KSM_POLICY* policy);
 
