@@ -163,53 +163,6 @@ getDesiredState(const bool introducing, const STATE state)
 	return jmp[introducing][(int)state];
 }
 
-//~ /**
- //~ * Test if a key exist with certain states.
- //~ * 
- //~ * @param key_list, list to search in.
- //~ * @param key, key to compare with
- //~ * @param record, record of said key to compare with
- //~ * @param next_state, desired state of said record. Required if 
- //~ * 			pretend_update is set.
- //~ * @param require_same_algorithm, search for keys with the same
- //~ * 			algorithm as input key, else any algorithm.
- //~ * @param pretend_update, pretend record of key is in state next_state.
- //~ * @param mask, The states to look for in a key. respectively DS, 
- //~ * 			DNSKEY, RRSIG DNSKEY and RRSIG state. NOCARE for a record
- //~ * 			if any will do.
- //~ * @return True IFF exist such key.
- //~ * */
-//~ bool
-//~ exists(KeyDataList &key_list, KeyData &key, 
-	//~ const RECORD record, const STATE next_state, 
-	//~ const bool require_same_algorithm, const bool pretend_update, 
-	//~ const STATE mask[4])
-//~ {
-	//~ for (int i = 0; i < key_list.numKeys(); i++) {
-		//~ KeyData &k = key_list.key(i);
-		//~ if (require_same_algorithm && k.algorithm() != key.algorithm())
-			//~ continue;
-		//~ /** Do we need to substitute a state of this key with 
-		 //~ * next_state? */
-		//~ bool sub_key = pretend_update && &key == &k;
-		//~ bool match = true;
-		//~ for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
-			//~ /** Do we need to substitute the state of THIS record? */
-			//~ bool sub_rec = sub_key && record == r;
-			//~ if (mask[r] == NOCARE) continue;
-			//~ /** Use actual state or next state */
-			//~ STATE state = (sub_rec?next_state:getState(k, r));
-			//~ /** no match in this record, try next key */
-			//~ if (mask[r] != state) {
-				//~ match = false;
-				//~ break;
-			//~ }
-		//~ }
-		//~ if (match) return true;
-	//~ }
-	//~ return false;
-//~ }
-
 /**
  * Test a key exist for certain states.
  * 
@@ -280,47 +233,89 @@ exists(KeyDataList &key_list, KeyData &key,
 	return false;
 }
 
-//~ //Test if x is successor of y.
-//~ //TODO pretend update. Pretend key new depends on succ
-//~ bool
-//~ successor(KeyData &k_succ, KeyData &k_pred, const RECORD record) 
-//~ {
-	//~ if (!dependentsEmpty(k_pred, record) return false; //TODO
-	//~ if (depends(k_pred, k_succ, record)) return true; //TODO
-	//~ keys_depending_on_succ = dependents(k_succ, record); //TODO
-	//~ for (k_dep in keys_depending_on_succ) { //TODO
-		//~ if (&k_dep == &k_succ) continue;
-		//~ if (state(k_dep)!=state(k_pred)) continue; //TODO, make fine grained. depending on record
-		//~ if (!successor(k_dep, k_pred, record)) continue;
-		//~ return true;
-	//~ }
-	//~ return false;
-//~ }
+/** Looks up KeyData from locator string.
+ * TODO: find a better approach, can we trick protobuf to cross
+ * reference? */
+KeyData *
+stringToKeyData(KeyDataList &key_list, const string &locator)
+{
+	for (int i = 0; i < key_list.numKeys(); i++) {
+		if (locator.compare(key_list.key(i).locator())) {
+			return &key_list.key(i);
+		}
+	}
+	return NULL;
+}
+
+/** True if a path from k_succ to k_pred exists */
+bool
+successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_succ, 
+		const string &k_pred, const RECORD record,
+		KeyData &key, const bool pretend_update) 
+{
+	/** trivial cases */
+	for (int i = 0; i < dep_list.numDeps(); i++) {
+		KeyDependency &dep = dep_list.dep(i);
+		if (dep.rrType() != record ||
+				!dep.fromKey().compare( k_pred )) continue;
+		
+		/** dep.toKey() is candidate
+		 * Direct relation */
+		if ( dep_list.dep(i).toKey().compare( k_succ.locator() ) ) 
+			return true;
+		/** No direct relation, so state must match */
+		KeyData *toKey = stringToKeyData(key_list, dep_list.dep(i).toKey());
+		//TODO, make fine grained. depending on record
+		if (getState(k_succ, DS) != getState(*toKey, DS)) continue;
+		if (getState(k_succ, DK) != getState(*toKey, DK)) continue;
+		if (getState(k_succ, RS) != getState(*toKey, RS)) continue;
+		/** state maches, can be build a chain? */
+		if (successor_rec(key_list, dep_list, k_succ, dep.toKey(), record, key, pretend_update)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/** True if k_succ is a successor of k_pred */
+bool
+successor(KeyDataList &key_list, KeyDependencyList &dep_list, 
+		KeyData &k_succ, KeyData &k_pred, const RECORD record, 
+		KeyData &key, const bool pretend_update) 
+{
+	/** Nothing may depend on our predecessor */
+	for (int i = 0; i < dep_list.numDeps(); i++) {
+		if ( dep_list.dep(i).toKey().compare( k_pred.locator() ) ) 
+			return false;
+	}
+	return successor_rec(key_list, dep_list, k_succ, k_pred.locator(), record, key, pretend_update);
+}
 
 //Seek 
-//~ bool
-//~ exists_with_successor(KeyDataList &key_list, KeyData &key, 
-	//~ const RECORD record, const STATE next_state, 
-	//~ const bool require_same_algorithm, const bool pretend_update, 
-	//~ const STATE mask_pred[4], const STATE mask_succ[4])
-//~ {
-	//~ //Seek potential successor keys
-	//~ for (int i = 0; i < key_list.numKeys(); i++) {
-		//~ KeyData &k_succ = key_list.key(i);
-		//~ if (!match(k_succ, key, record, next_state, 
-				//~ require_same_algorithm, pretend_update, mask_succ))
-			//~ continue;
-		//~ for (int j = 0; j < key_list.numKeys(); j++) {
-			//~ KeyData &k_pred = key_list.key(j);
-			//~ if (!match(k_pred, key, record, next_state, 
-					//~ require_same_algorithm, pretend_update, mask_pred))
-				//~ continue;
-			//~ //we have a candidate predeccessor
-			//~ if (successor(k_succ, k_pred, record)) return true;
-		//~ }
-	//~ }
-	//~ return false;
-//~ }
+bool
+exists_with_successor(KeyDependencyList &dep_list, 
+	KeyDataList &key_list, KeyData &key, 
+	const RECORD record, const STATE next_state, 
+	const bool require_same_algorithm, const bool pretend_update, 
+	const STATE mask_pred[4], const STATE mask_succ[4])
+{
+	//Seek potential successor keys
+	for (int i = 0; i < key_list.numKeys(); i++) {
+		KeyData &k_succ = key_list.key(i);
+		if (!match(k_succ, key, record, next_state, 
+				require_same_algorithm, pretend_update, mask_succ))
+			continue;
+		for (int j = 0; j < key_list.numKeys(); j++) {
+			KeyData &k_pred = key_list.key(j);
+			if (!match(k_pred, key, record, next_state, 
+					require_same_algorithm, pretend_update, mask_pred))
+				continue;
+			//we have a candidate predeccessor
+			if (successor(key_list, dep_list, k_succ, k_pred, record, key, pretend_update)) return true;
+		}
+	}
+	return false;
+}
 
 
 /**
@@ -413,7 +408,7 @@ unsignedOk(KeyDataList &key_list, KeyData &key, const RECORD record,
  * @return True IFF a introducing DS exists.
  * */
 bool
-rule1(KeyDataList &key_list, KeyData &key, const RECORD record, 
+rule1(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RECORD record, 
 	const STATE next_state, const bool pretend_update)
 {
 	const STATE mask_triv[] =  {OMN, NOCARE, NOCARE, NOCARE};
@@ -436,7 +431,7 @@ rule1(KeyDataList &key_list, KeyData &key, const RECORD record,
  * @return True IFF one of requirements is met.
  * */
 bool
-rule2(KeyDataList &key_list, KeyData &key, const RECORD record, 
+rule2(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RECORD record, 
 	const STATE next_state, const bool pretend_update)
 {
 	const STATE mask_unsg[] =  {HID, OMN, OMN, NOCARE};
@@ -479,7 +474,7 @@ rule2(KeyDataList &key_list, KeyData &key, const RECORD record,
  * @return True IFF one of requirements is met.
  * */
 bool
-rule3(KeyDataList &key_list, KeyData &key, const RECORD record, 
+rule3(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RECORD record, 
 	const STATE next_state, const bool pretend_update)
 {
 	const STATE mask_triv[] =  {NOCARE, OMN, NOCARE, OMN};
@@ -520,17 +515,17 @@ rule3(KeyDataList &key_list, KeyData &key, const RECORD record,
  * @return True if transition is okay DNSSEC-wise.
  * */
 bool
-dnssecApproval(KeyDataList &key_list, KeyData &key, const RECORD record, 
+dnssecApproval(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RECORD record, 
 	const STATE next_state, bool allow_unsigned)
 {
 	return 
 		(allow_unsigned ||
-		 !rule1(key_list, key, record, next_state, false) ||
-		  rule1(key_list, key, record, next_state, true ) ) &&
-		(!rule2(key_list, key, record, next_state, false) ||
-		  rule2(key_list, key, record, next_state, true ) ) &&
-		(!rule3(key_list, key, record, next_state, false) ||
-		  rule3(key_list, key, record, next_state, true ) );
+		 !rule1(dep_list, key_list, key, record, next_state, false) ||
+		  rule1(dep_list, key_list, key, record, next_state, true ) ) &&
+		(!rule2(dep_list, key_list, key, record, next_state, false) ||
+		  rule2(dep_list, key_list, key, record, next_state, true ) ) &&
+		(!rule3(dep_list, key_list, key, record, next_state, false) ||
+		  rule3(dep_list, key_list, key, record, next_state, true ) );
 }
 
 /**
@@ -698,60 +693,70 @@ setState(EnforcerZone &zone, KeyData &key, const RECORD record, const STATE stat
 	zone.setSignerConfNeedsWriting(true);
 }
 
-//TODO: make findSuccessor function so we can play pretendsies.
 
-void
-markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, 
-	const RECORD record, const STATE next_state)
+/** Find out if this key can be in a successor relation */
+bool
+isSuccessable(KeyData &key, const RECORD record, const STATE next_state)
 {
-	const char *scmd = "markSuccessors";
+	const char *scmd = "isSuccessable";
 	
-	/** Find out if this key can be in a successor relation */
-	if (next_state != UNR) return;
+	if (next_state != UNR) return false;
 	switch(record) {
 		case DS: /** intentional fall-through */
 		case RS: 
-			if (getState(key, DK) != OMN) return;
+			if (getState(key, DK) != OMN) return false;
 			break;
 		case RD:
-			return;
+			return false;
 		case DK: 
 			if ((getState(key, DS) != OMN) && 
 					(getState(key, RS) != OMN))
-				return;
+				return false;
 			break;
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
 				"fault of programmer. Abort.",
 				module_str, scmd, (int)record);
 	}
-	
+	return true;
+}
+
+bool
+isPotentialSuccessor(KeyData &pred_key, const RECORD record, KeyData &succ_key)
+{
+	const char *scmd = "isPotentialSuccessor";
+	/** must at least have record introducing */
+	if (getState(succ_key, record) != RUM) return false;
+	switch(record) {
+		case DS: /** intentional fall-through */
+		case RS: 
+			return getState(succ_key, DK) == OMN;
+		case DK: 
+			return (getState(pred_key, DS) == OMN) && 
+					(getState(succ_key, DS) == OMN) ||
+					(getState(pred_key, RS) == OMN) && 
+					(getState(succ_key, RS) == OMN) ;
+		default: 
+			ods_fatal_exit("[%s] %s Unknown record type (%d), "
+				"fault of programmer. Abort.",
+				module_str, scmd, (int)record);
+			return false;
+	}
+
+}
+
+void
+markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, 
+	KeyData &key, const RECORD record, const STATE next_state)
+{
+	const char *scmd = "markSuccessors";
+	if (!isSuccessable(key, record, next_state)) return;
 	/** Which keys can be potential successors? */
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &key_i = key_list.key(i);
-		/** must at least have record introducing */
-		if (getState(key_i, record) != RUM) continue;
-		switch(record) {
-			case DS: /** intentional fall-through */
-			case RS: 
-				if (getState(key_i, DK) != OMN) continue;
-				break;
-			case DK: 
-				if (!( (getState(key, DS) == OMN) && 
-						(getState(key_i, DS) == OMN) ||
-						(getState(key, DK) == OMN) && 
-						(getState(key_i, DK) == OMN) ))
-					return;
-				break;
-			default: 
-				ods_fatal_exit("[%s] %s Unknown record type (%d), "
-					"fault of programmer. Abort.",
-					module_str, scmd, (int)record);
-		}
-		//TODO: register: key depends on key_i for record
-		//~ ::google::protobuf::uint64 id;
-		//~ OrmGetId(key, id);
-		//~ dep_list.addNewDependency(id, id, record);
+		if (isPotentialSuccessor(key, record, key_i))
+			/** register: key depends on key_i for record */
+			dep_list.addNewDependency(&key, &key_i, record);
 	}
 }
 
@@ -841,7 +846,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 					module_str, scmd);
 				
 				/** Would be invalid DNSSEC state */
-				if (!dnssecApproval(key_list, key, record, next_state, allow_unsigned))
+				if (!dnssecApproval(dep_list, key_list, key, record, next_state, allow_unsigned))
 					continue;
 				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
 					module_str, scmd);

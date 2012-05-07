@@ -63,8 +63,8 @@ message EnforcerZone {
 } 
 
 message KeyDependency {
-	required uint64 from_key = 1;
-	required uint64 to_key = 2;
+	required string from_key = 1;
+	required string to_key = 2;
 	required uint32 rrtype = 3;
 }
 

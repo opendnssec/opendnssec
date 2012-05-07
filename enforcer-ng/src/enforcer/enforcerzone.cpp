@@ -228,23 +228,14 @@ KeyDependencyPB::KeyDependencyPB( ::ods::keystate::KeyDependency *keydependency)
 {
 }
 
-//~ bool KeyDependencyPB::dependsOn(::google::protobuf::uint64 key, RECORD record)
-//~ {
-	//~ return (_keydependency->to_key() == key && _keydependency->rrtype() == record);
-//~ }
-//~ bool KeyDependencyPB::dependedBy(::google::protobuf::uint64 key, RECORD record)
-//~ {
-	//~ return (_keydependency->from_key() == key && _keydependency->rrtype() == record);
-//~ }
-
-void KeyDependencyPB::setToKey(::google::protobuf::uint64 key)
+void KeyDependencyPB::setToKey(KeyData *key)
 {
-	_keydependency->set_to_key(key);
+	_keydependency->set_to_key(key->locator());
 }
 
-void KeyDependencyPB::setFromKey(::google::protobuf::uint64 key)
+void KeyDependencyPB::setFromKey(KeyData *key)
 {
-	_keydependency->set_from_key(key);
+	_keydependency->set_from_key(key->locator());
 }
 
 void KeyDependencyPB::setRRType(RECORD record)
@@ -252,6 +243,18 @@ void KeyDependencyPB::setRRType(RECORD record)
 	_keydependency->set_rrtype(record);
 }
 
+const std::string &KeyDependencyPB::toKey()
+{
+	return _keydependency->to_key();
+}
+const std::string &KeyDependencyPB::fromKey()
+{
+	return _keydependency->from_key();
+}
+RECORD KeyDependencyPB::rrType()
+{
+	return (RECORD)_keydependency->rrtype();
+}
 
 KeyDependencyListPB::KeyDependencyListPB(::ods::keystate::EnforcerZone *zone)
 : _zone(zone)
@@ -264,24 +267,18 @@ KeyDependencyListPB::KeyDependencyListPB(::ods::keystate::EnforcerZone *zone)
     }
 }
 
-/* keys depending on key */
-KeyDependencyListPB::KeyDependencyListPB(::ods::keystate::EnforcerZone *zone, 
-		::google::protobuf::uint64 key, RECORD record)
-: _zone(zone)
+int KeyDependencyListPB::numDeps()
 {
-	//fill _deps
-    for (int k=0; k<_zone->dependencies_size(); ++k) {
-        ::ods::keystate::KeyDependency *keydep = _zone->mutable_dependencies(k);
-        if (keydep->from_key() == key && keydep->rrtype() == record) {
-			KeyDependencyPB dep( keydep );
-			_deps.push_back(dep);
-		}
-    }
+	return _deps.size();
+}
+KeyDependency &KeyDependencyListPB::dep(int index)
+{
+	return _deps[index];
 }
 
 KeyDependency &KeyDependencyListPB::addNewDependency(
-		::google::protobuf::uint64 from_key, 
-		::google::protobuf::uint64 to_key, RECORD record)
+		KeyData *from_key, 
+		KeyData *to_key, RECORD record)
 {
 	KeyDependencyPB dep( _zone->add_dependencies());
 	dep.setFromKey(from_key);
@@ -291,28 +288,12 @@ KeyDependency &KeyDependencyListPB::addNewDependency(
 	return _deps.back();
 }
 
-//~ KeyDependency &KeyDependencyListPB::addNNewDependency(
-		//~ KeyDataPB from_key, 
-		//~ KeyDataPB to_key, RECORD record)
-//~ {
-	//~ KeyDependencyPB dep( _zone->add_dependencies());
-	//~ ::google::protobuf::uint64 id;
-	//~ OrmGetId(from_key, id);
-	//~ 
-	//~ dep.setFromKey(from_key);
-	//~ dep.setToKey(to_key);
-	//~ dep.setRRType(record);
-	//~ _deps.push_back(dep);
-	//~ return _deps.back();
-//~ }
-
-void KeyDependencyListPB::delDependency( ::google::protobuf::uint64 key, 
-		RECORD record)
+void KeyDependencyListPB::delDependency( KeyData *key, RECORD record)
 {
 	for (int k=0; k<_zone->dependencies_size(); ++k) {
 		if (_zone->mutable_dependencies(k)->rrtype() == record &&
-				(_zone->mutable_dependencies(k)->to_key() == key ||
-				_zone->mutable_dependencies(k)->from_key() == key))
+				(_zone->mutable_dependencies(k)->to_key().compare(key->locator())||
+				_zone->mutable_dependencies(k)->from_key().compare(key->locator())))
 		{
 			::google::protobuf::RepeatedPtrField< ::ods::keystate::KeyDependency > *
 				pmutable_dependencies = _zone->mutable_dependencies();
@@ -321,19 +302,6 @@ void KeyDependencyListPB::delDependency( ::google::protobuf::uint64 key,
 			break;
 		}
 	}
-}
-
-bool KeyDependencyListPB::dependsOn(
-			::google::protobuf::uint64 from_key, 
-			::google::protobuf::uint64 to_key, RECORD record)
-{
-	for (int k=0; k<_zone->dependencies_size(); ++k) {
-		if (_zone->mutable_dependencies(k)->rrtype() == record &&
-				_zone->mutable_dependencies(k)->to_key() == to_key &&
-				_zone->mutable_dependencies(k)->from_key() == from_key)
-			return true;
-	}
-	return false;
 }
 
 // KeyDataListPB

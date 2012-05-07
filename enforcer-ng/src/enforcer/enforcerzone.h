@@ -127,12 +127,13 @@ private:
     ::ods::keystate::KeyDependency *_keydependency;
 public:
     KeyDependencyPB( ::ods::keystate::KeyDependency *keydependency);
-    //~ virtual bool dependsOn(::google::protobuf::uint64 key, RECORD record);
-    //~ virtual bool dependedBy(::google::protobuf::uint64 key, RECORD record);
     
-    virtual void setToKey(::google::protobuf::uint64 key);
-    virtual void setFromKey(::google::protobuf::uint64 key);
+    virtual void setToKey(KeyData *key);
+    virtual void setFromKey(KeyData *key);
     virtual void setRRType(RECORD record);
+    virtual const std::string &toKey();
+    virtual const std::string &fromKey();
+    virtual RECORD rrType();
 };
 
 class KeyDependencyListPB : public KeyDependencyList {
@@ -140,21 +141,15 @@ private:
     std::vector<KeyDependencyPB> _deps;
     ::ods::keystate::EnforcerZone *_zone;
 public:
+    virtual int numDeps();
+    virtual KeyDependency &dep(int index);
+	/** List of all key dependencies in this zone */
     KeyDependencyListPB( ::ods::keystate::EnforcerZone *zone );
-    /* construct list of keys that depend on key */
-    KeyDependencyListPB( ::ods::keystate::EnforcerZone *zone, ::google::protobuf::uint64 key, RECORD record );
+    
     virtual KeyDependency &addNewDependency(
-			::google::protobuf::uint64 from_key, 
-			::google::protobuf::uint64 to_key, RECORD record);
-    //~ virtual KeyDependency &addNNewDependency(
-			//~ KeyDataPB from_key, 
-			//~ KeyDataPB to_key, RECORD record);
-    virtual void delDependency( ::google::protobuf::uint64 key, 
-			RECORD record);
-	virtual bool dependsOn(
-			::google::protobuf::uint64 from_key, 
-			::google::protobuf::uint64 to_key, RECORD record);
-
+			KeyData *from_key, 
+			KeyData *to_key, RECORD record);
+    virtual void delDependency( KeyData *key, RECORD record);
 };
 
 class EnforcerZonePB : public EnforcerZone {

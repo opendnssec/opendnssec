@@ -242,24 +242,20 @@ public:
 
 class KeyDependency {
 public:
-	//~ virtual bool dependsOn(::google::protobuf::uint64 key, RECORD record) = 0;
-	//~ virtual bool dependedBy(::google::protobuf::uint64 key, RECORD record) = 0;
+    virtual const std::string &toKey() = 0;
+    virtual const std::string &fromKey() = 0;
+    virtual RECORD rrType() = 0;
 };
 
 class KeyDependencyList {
 public:
+    virtual int numDeps() = 0;
+    virtual KeyDependency &dep(int index) = 0;
 	virtual KeyDependency &addNewDependency(
-			::google::protobuf::uint64 from_key, 
-			::google::protobuf::uint64 to_key, RECORD record) = 0;
-	//~ virtual KeyDependency &addNNewDependency(
-			//~ KeyData from_key, 
-			//~ KeyData to_key, RECORD record) = 0;
+			KeyData *from_key, 
+			KeyData *to_key, RECORD record) = 0;
 	/* Delete all dependencies to and from this key for recordtype */
-	virtual void delDependency( ::google::protobuf::uint64 key, RECORD record) = 0;
-	/* Does from_key depend on to_key? */
-	virtual bool dependsOn(
-			::google::protobuf::uint64 from_key, 
-			::google::protobuf::uint64 to_key, RECORD record) = 0;
+	virtual void delDependency( KeyData *key, RECORD record) = 0;
 };
 
 class EnforcerZone {
