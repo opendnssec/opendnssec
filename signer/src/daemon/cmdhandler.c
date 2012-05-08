@@ -178,7 +178,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         if (zl_changed == ODS_STATUS_UNCHANGED) {
             lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
-                "\n");
+                "Signer configurations updated.\n");
             ods_writen(sockfd, buf, strlen(buf));
 
             engine_update_zones(cmdc->engine);
