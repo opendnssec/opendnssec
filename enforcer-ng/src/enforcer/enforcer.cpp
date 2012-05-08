@@ -247,6 +247,30 @@ stringToKeyData(KeyDataList &key_list, const string &locator)
 	return NULL;
 }
 
+bool
+isPotentialSuccessor(KeyData &pred_key, const RECORD record, KeyData &succ_key)
+{
+	const char *scmd = "isPotentialSuccessor";
+	/** must at least have record introducing */
+	if (getState(succ_key, record) != RUM) return false;
+	if (pred_key.algorithm() != succ_key.algorithm()) return false;
+	switch(record) {
+		case DS: /** intentional fall-through */
+		case RS: 
+			return getState(succ_key, DK) == OMN;
+		case DK: 
+			return (getState(pred_key, DS) == OMN) && 
+					(getState(succ_key, DS) == OMN) ||
+					(getState(pred_key, RS) == OMN) && 
+					(getState(succ_key, RS) == OMN) ;
+		default: 
+			ods_fatal_exit("[%s] %s Unknown record type (%d), "
+				"fault of programmer. Abort.",
+				module_str, scmd, (int)record);
+			return false;
+	}
+}
+
 /** True if a path from k_succ to k_pred exists */
 bool
 successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_succ, 
@@ -274,6 +298,20 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 			return true;
 		}
 	}
+	/** no definitive answer yet, maybe if we pretend the update has
+	 * happened? */
+	if (pretend_update) {
+		for (int i = 0; i < key_list.numKeys(); i++) {
+			if (isPotentialSuccessor(key_list.key(i), record, k_succ)) {
+				if (getState(k_succ, DS) != getState(key_list.key(i), DS)) continue;
+				if (getState(k_succ, DK) != getState(key_list.key(i), DK)) continue;
+				if (getState(k_succ, RS) != getState(key_list.key(i), RS)) continue;
+				if (successor_rec(key_list, dep_list, k_succ, key_list.key(i).locator(), record, key, pretend_update)) {
+					return true;
+				}
+			}
+		}
+	}
 	return false;
 }
 
@@ -287,6 +325,14 @@ successor(KeyDataList &key_list, KeyDependencyList &dep_list,
 	for (int i = 0; i < dep_list.numDeps(); i++) {
 		if ( dep_list.dep(i).toKey().compare( k_pred.locator() ) ) 
 			return false;
+	}
+	if (pretend_update) {
+		//get potential sucessors of predecessor, if any return false
+		for (int i = 0; i < key_list.numKeys(); i++) {
+			if (isPotentialSuccessor(k_pred, record, key_list.key(i))) {
+				return false;
+			}
+		}
 	}
 	return successor_rec(key_list, dep_list, k_succ, k_pred.locator(), record, key, pretend_update);
 }
@@ -449,15 +495,13 @@ rule2(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RE
 	return
 		exists(key_list, key, record, next_state, true, pretend_update, mask_triv) ||
 		
-		exists(key_list, key, record, next_state, true, pretend_update, mask_ds_i) &&
-		exists(key_list, key, record, next_state, true, pretend_update, mask_ds_o) ||
-		//TODO exists DS_chain()
+		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_ds_o, mask_ds_i) ||
+
+		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_k_o1, mask_k_i1) ||
+		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_k_o1, mask_k_i2) ||
+		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_k_o2, mask_k_i1) ||
+		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_k_o2, mask_k_i2) ||
 		
-		(exists(key_list, key, record, next_state, true, pretend_update, mask_k_i1) ||
-		 exists(key_list, key, record, next_state, true, pretend_update, mask_k_i2) )&&
-		(exists(key_list, key, record, next_state, true, pretend_update, mask_k_o1) ||
-		 exists(key_list, key, record, next_state, true, pretend_update, mask_k_o2) ) ||
-		//TODO exists DNSKEY_chain()
 
 		unsignedOk(key_list, key, record, next_state, pretend_update, mask_unsg, DS);
 }
@@ -490,13 +534,9 @@ rule3(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RE
 	return
 		exists(key_list, key, record, next_state, true, pretend_update, mask_triv) ||
 		
-		exists(key_list, key, record, next_state, true, pretend_update, mask_keyi) &&
-		exists(key_list, key, record, next_state, true, pretend_update, mask_keyo) ||
-		//TODO exists DNSKEY_chain()
+		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_keyo, mask_keyi) ||
 		
-		exists(key_list, key, record, next_state, true, pretend_update, mask_sigi) &&
-		exists(key_list, key, record, next_state, true, pretend_update, mask_sigo) ||
-		//TODO exists RRSIG_chain()
+		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_sigo, mask_sigi) ||
 
 		unsignedOk(key_list, key, record, next_state, pretend_update, mask_unsg, DK);
 }
@@ -721,29 +761,7 @@ isSuccessable(KeyData &key, const RECORD record, const STATE next_state)
 	return true;
 }
 
-bool
-isPotentialSuccessor(KeyData &pred_key, const RECORD record, KeyData &succ_key)
-{
-	const char *scmd = "isPotentialSuccessor";
-	/** must at least have record introducing */
-	if (getState(succ_key, record) != RUM) return false;
-	switch(record) {
-		case DS: /** intentional fall-through */
-		case RS: 
-			return getState(succ_key, DK) == OMN;
-		case DK: 
-			return (getState(pred_key, DS) == OMN) && 
-					(getState(succ_key, DS) == OMN) ||
-					(getState(pred_key, RS) == OMN) && 
-					(getState(succ_key, RS) == OMN) ;
-		default: 
-			ods_fatal_exit("[%s] %s Unknown record type (%d), "
-				"fault of programmer. Abort.",
-				module_str, scmd, (int)record);
-			return false;
-	}
 
-}
 
 void
 markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, 
@@ -1310,10 +1328,13 @@ updatePolicy(EnforcerZone &zone, const time_t now,
  * \return time_t Next key purgable. 
  * */
 time_t
-removeDeadKeys(KeyDataList &key_list, const time_t now, const int purgetime)
+removeDeadKeys(KeyDataList &key_list, const time_t now, 
+	const int purgetime, EnforcerZone &zone)
 {
 	const char *scmd = "removeDeadKeys";
 	time_t firstPurge = -1;
+	
+	KeyDependencyList &key_dep = zone.keyDependencyList();
 	
 	for (int i = key_list.numKeys()-1; i >= 0; i--) {
 		KeyData &key = key_list.key(i);
@@ -1335,7 +1356,7 @@ removeDeadKeys(KeyDataList &key_list, const time_t now, const int purgetime)
 			if (now >= keyTime) {
 				ods_log_info("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
 				key_list.delKey(i);
-				// TODO also remove relations
+				key_dep.delDependency( &key );
 			} else {
 				minTime(keyTime, firstPurge);
 			}
@@ -1365,7 +1386,7 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 
 	/** Only purge old keys if the configuration says so. */
 	if (policy->keys().has_purge())
-		purge_return_time = removeDeadKeys(key_list, now, policy->keys().purge());
+		purge_return_time = removeDeadKeys(key_list, now, policy->keys().purge(), zone);
 
 	/** Always set these flags. Normally this needs to be done _only_
 	 * when signerConfNeedsWriting() is set. However a previous

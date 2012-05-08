@@ -150,6 +150,7 @@ public:
 			KeyData *from_key, 
 			KeyData *to_key, RECORD record);
     virtual void delDependency( KeyData *key, RECORD record);
+    virtual void delDependency( KeyData *key);
 };
 
 class EnforcerZonePB : public EnforcerZone {

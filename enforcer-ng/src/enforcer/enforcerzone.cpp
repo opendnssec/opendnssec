@@ -304,6 +304,20 @@ void KeyDependencyListPB::delDependency( KeyData *key, RECORD record)
 	}
 }
 
+void KeyDependencyListPB::delDependency( KeyData *key)
+{
+	for (int k=0; k<_zone->dependencies_size(); ++k) {
+		if ( (_zone->mutable_dependencies(k)->to_key().compare(key->locator())||
+				_zone->mutable_dependencies(k)->from_key().compare(key->locator())))
+		{
+			::google::protobuf::RepeatedPtrField< ::ods::keystate::KeyDependency > *
+				pmutable_dependencies = _zone->mutable_dependencies();
+			pmutable_dependencies->SwapElements(k,_zone->dependencies_size()-1);
+			pmutable_dependencies->RemoveLast();
+		}
+	}
+}
+
 // KeyDataListPB
 
 KeyDataListPB::KeyDataListPB(::ods::keystate::EnforcerZone *zone)

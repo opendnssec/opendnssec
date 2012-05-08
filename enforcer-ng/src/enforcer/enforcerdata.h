@@ -256,6 +256,7 @@ public:
 			KeyData *to_key, RECORD record) = 0;
 	/* Delete all dependencies to and from this key for recordtype */
 	virtual void delDependency( KeyData *key, RECORD record) = 0;
+	virtual void delDependency( KeyData *key) = 0;
 };
 
 class EnforcerZone {
