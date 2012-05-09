@@ -276,7 +276,6 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
     }
     ods_log_assert(zone->signconf);
 
-
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         if (zone->stats->sort_done == 0 &&
