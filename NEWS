@@ -6,10 +6,10 @@ OpenDNSSEC 1.3.8
   even if zonelist has not changed. 
 * OPENDNSSEC-231: Signer Engine: Allow for Classless IN-ADDR.ARPA names
   (RFC 2317).
-* OPENDNSSEC-246: Signer Engine: Warn if <Audit/> is in signer configuration,
-  but ods-auditor is not installed
 * OPENDNSSEC-234: Enforcer: Add indexes for foreign keys in kasp DB. (sqlite
   only, MySQL already has them.)
+* OPENDNSSEC-246: Signer Engine: Warn if <Audit/> is in signer configuration,
+  but ods-auditor is not installed
 * OPENDNSSEC-249: Enforcer: ods-ksmutil: If key export finds nothing to do
   then say so rather than display nothing which might be misinterpreted.
 
