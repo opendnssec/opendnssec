@@ -37,6 +37,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
+#include "wire/acl.h"
 
 #include <libxml/xpath.h>
 #include <libxml/relaxng.h>
@@ -146,8 +147,7 @@ parse_conf_listener(allocator_type* allocator, const char* cfgfile)
     listener_type* listener = NULL;
     interface_type* interface = NULL;
     int i = 0;
-    char* ipv4 = NULL;
-    char* ipv6 = NULL;
+    char* address = NULL;
     char* port = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
@@ -188,40 +188,37 @@ parse_conf_listener(allocator_type* allocator, const char* cfgfile)
     ods_log_assert(listener);
     if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
-            ipv4 = NULL;
-            ipv6 = NULL;
+            address = NULL;
             port = NULL;
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"IPv4")) {
-                    ipv4 = (char *) xmlNodeGetContent(curNode);
-                } else if (xmlStrEqual(curNode->name, (const xmlChar *)"IPv6")) {
-                    ipv6 = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"Address")) {
+                    address = (char *) xmlNodeGetContent(curNode);
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Port")) {
                     port = (char *) xmlNodeGetContent(curNode);
                 }
                 curNode = curNode->next;
             }
-            if (ipv4 || ipv6) {
-                interface = listener_push(listener, ipv4, ipv6, port);
+            if (address) {
+                interface = listener_push(listener, address,
+                    acl_parse_family(address), port);
             } else {
-                interface = listener_push(listener, NULL, "", port);
+                interface = listener_push(listener, "", AF_INET, port);
                 if (interface) {
-                    interface = listener_push(listener, "", NULL, port);
+                    interface = listener_push(listener, "", AF_INET6, port);
                 }
             }
             if (!interface) {
-               ods_log_error("[%s] unable to add %s%s:%s interface: "
-                   "listener_push() failed", parser_str, ipv4?ipv4:"",
-                   ipv6?ipv6:"", port?port:"");
+               ods_log_error("[%s] unable to add %s:%s interface: "
+                   "listener_push() failed", parser_str, address?address:"",
+                   port?port:"");
             } else {
-               ods_log_debug("[%s] added %s%s:%s interface to listener",
-                   parser_str, ipv4?ipv4:"", ipv6?ipv6:"", port?port:"");
+               ods_log_debug("[%s] added %s:%s interface to listener",
+                   parser_str, address?address:"", port?port:"");
             }
             free((void*)port);
-            free((void*)ipv4);
-            free((void*)ipv6);
+            free((void*)address);
         }
     }
     xmlXPathFreeObject(xpathObj);
@@ -490,6 +487,22 @@ parse_conf_use_syslog(const char* cfgfile)
         return 1;
     }
     return 0;
+}
+
+int
+parse_conf_verbosity(const char* cfgfile)
+{
+	int verbosity = ODS_SE_VERBOSITY;
+    const char* str = parse_conf_string(cfgfile,
+        "//Configuration/Common/Logging/Verbosity",
+        0);
+    if (str) {
+        if (strlen(str) > 0) {
+        	verbosity = atoi(str);
+        }
+        free((void*)str);
+    }
+    return verbosity;
 }
 
 

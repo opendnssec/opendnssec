@@ -96,7 +96,13 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
         ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
-        ecfg->verbosity = cmdline_verbosity;
+        /* If any verbosity has been specified at cmd line we will use that */
+        if (cmdline_verbosity > 0) {
+        	ecfg->verbosity = cmdline_verbosity;
+        }
+        else {
+        	ecfg->verbosity = parse_conf_verbosity(cfgfile);
+        }
         ecfg->interfaces = parse_conf_listener(allocator, cfgfile);
         /* done */
         ods_fclose(cfgfd);

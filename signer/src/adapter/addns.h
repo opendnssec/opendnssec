@@ -133,11 +133,10 @@ ods_status addns_read(void* zone);
 /**
  * Write zone to DNS output adapter.
  * \param[in] zone zone reference
- * \param[in] str configuration string
  * \return ods_status status
  *
  */
-ods_status addns_write(void* zone, const char* filename);
+ods_status addns_write(void* zone);
 
 /**
  * Clean up DNS input adapter.

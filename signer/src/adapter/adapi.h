@@ -98,19 +98,21 @@ void adapi_trans_diff(zone_type* zone);
  * Add RR.
  * \param[in] zone zone
  * \param[in] rr RR
+ * \param[in] backup from backup
  * \return ods_status status
  *
  */
-ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr);
+ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup);
 
 /**
  * Delete RR.
  * \param[in] zone zone
  * \param[in] rr RR
+ * \param[in] backup from backup
  * \return ods_status status
  *
  */
-ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr);
+ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup);
 
 /**
  * Print zonefile.

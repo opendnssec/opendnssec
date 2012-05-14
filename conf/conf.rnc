@@ -60,10 +60,12 @@ start = element Configuration {
 	element Common {
 		# Configuration parameters for logging
 		element Logging {
+			element Verbosity { xsd:nonNegativeInteger }?,
+			 
 			element Syslog {
 				# syslog facility
 				element Facility { syslogFacility }
-			}
+			}?
 		}?,
 
 		# Location to find the KASP file
@@ -130,10 +132,6 @@ start = element Configuration {
 		# DEFAULT: $(localstatedir)/opendnssec/tmp
 		element WorkingDirectory { xsd:string }?,
 
-		# Location of the signer tools
-		# DEFAULT: $(libexecdir)/opendnssec
-		element ToolsDirectory { xsd:string }?,
-
 		# Number of Worker Threads
 		# DEFAULT: 4
 		element WorkerThreads { xsd:positiveInteger }?,
@@ -151,15 +149,6 @@ start = element Configuration {
 		# '%zone' in the string will be replaced by the zone name
 		# '%zonefile' in the string will be replaced by the zone file
 		element NotifyCommand { xsd:string }?
-	}?,
-
-	element Auditor {
-		# User & group to drop privs to
-		privs?,
-
-		# Location to store intermediate audit information
-		# DEFAULT: $(localstatedir)/opendnssec/tmp
-		element WorkingDirectory { xsd:string }?
 	}?
 }
 
@@ -199,12 +188,8 @@ mysql = element MySQL {
 
 sqlite = element SQLite { xsd:string }
 
-interface = element Interface {
-	localAddress
-}
+interface = element Interface {	address?, port? }
 
-ipv4 = element IPv4 { xsd:string }
-ipv6 = element IPv6 { xsd:string }
-port = element Port { xsd:positiveInteger { maxInclusive = "65535" } }
+address = element Address { xsd:string } # e.g., 192.0.2.1 or 2001:DB8::1
+port    = element Port { xsd:positiveInteger { maxInclusive = "65535" } }
 
-localAddress = (ipv4 | ipv6)?, port?

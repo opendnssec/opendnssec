@@ -102,7 +102,7 @@ acl_parse_range_subnet(char* p, void* addr, int maxbits)
  * Parse family from address.
  *
  */
-static int
+int
 acl_parse_family(const char* a)
 {
    /* see if addr is ipv6 or ipv4 -- by : and . */
@@ -452,21 +452,6 @@ acl_find(acl_type* acl, struct sockaddr_storage* addr, tsig_rr_type* trr)
         find = find->next;
     }
     return NULL;
-}
-
-
-/**
- * Log ACL.
- *
- */
-void
-acl_log(acl_type* acl)
-{
-    if (!acl) {
-        return;
-    }
-    ods_log_deeebug("[%s] ACL todo", acl_str);
-    return;
 }
 
 

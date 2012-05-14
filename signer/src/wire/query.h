@@ -81,6 +81,7 @@ struct query_struct {
     /* AXFR IXFR */
     FILE* axfr_fd;
     uint32_t serial;
+    size_t startpos;
     /* Bits */
     unsigned axfr_is_done : 1;
     unsigned tsig_prepare_it : 1;

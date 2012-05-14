@@ -76,6 +76,7 @@ xfrhandler_create(allocator_type* allocator)
     xfrh->current_time = 0;
     xfrh->got_time = 0;
     xfrh->need_to_exit = 0;
+    xfrh->started = 0;
     /* notify */
     xfrh->notify_waiting_first = NULL;
     xfrh->notify_waiting_last = NULL;
@@ -118,17 +119,11 @@ xfrhandler_create(allocator_type* allocator)
 void
 xfrhandler_start(xfrhandler_type* xfrhandler)
 {
-    engine_type* engine = NULL;
-/*
-    xfrd_zone_t* zone;
-    int i;
-*/
     ods_log_assert(xfrhandler);
     ods_log_assert(xfrhandler->engine);
     ods_log_debug("[%s] start", xfrh_str);
     /* setup */
     xfrhandler->start_time = time_now();
-    engine = (engine_type*) xfrhandler->engine;
     /* handlers */
     netio_add_handler(xfrhandler->netio, &xfrhandler->dnshandler);
     /* service */
@@ -180,7 +175,7 @@ xfrhandler_time(xfrhandler_type* xfrhandler)
 void
 xfrhandler_signal(xfrhandler_type* xfrhandler)
 {
-    if (xfrhandler) {
+    if (xfrhandler && xfrhandler->started) {
         ods_thread_kill(xfrhandler->thread_id, SIGHUP);
     }
     return;
@@ -205,6 +200,10 @@ xfrhandler_handle_dns(netio_type* ATTR_UNUSED(netio),
     ods_log_assert(event_types & NETIO_EVENT_READ);
     ods_log_debug("[%s] read forwarded dns packet", xfrh_str);
     received = read(xfrhandler->dnshandler.fd, &buf, MAX_PACKET_SIZE);
+    if (received == -1) {
+        ods_log_error("[%s] unable to forward dns packet: %s", xfrh_str,
+            strerror(errno));
+    }
     return;
 }
 

@@ -97,13 +97,13 @@ listener_type* listener_create(allocator_type* allocator);
 /**
  * Push an interface to the listener.
  * \param[in] listener listener
- * \param[in] ipv4 IPv4 address or NULL
- * \param[in] ipv6 IPv6 address or NULL
+ * \param[in] address IP address
+ * \param[in] family address family
  * \param[in] port port or NULL
  * \return interface_type* added interface
  *
  */
-interface_type* listener_push(listener_type* list, char* ipv4, char* ipv6,
+interface_type* listener_push(listener_type* list, char* address, int family,
     char* port);
 
 /**

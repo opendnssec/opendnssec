@@ -120,18 +120,6 @@ const char* rrset_type2str(ldns_rr_type type);
 rrset_type* rrset_create(void* zoneptr, ldns_rr_type type);
 
 /**
- * Recover RRSIG from backup.
- * \param[in] rrset RRset
- * \param[in] rrsig RRSIG
- * \param[in] locator key locator
- * \param[in] flags key flags
- * \return ods_status status
- *
- */
-ods_status rrset_recover(rrset_type* rrset, ldns_rr* rrsig,
-    const char* locator, uint32_t flags);
-
-/**
  * Lookup RR in RRset.
  * \param[in] rrset RRset
  * \param[in] rr RR
@@ -225,6 +213,6 @@ void rrset_cleanup(rrset_type* rrset);
  * \param[in] rrset RRset
  *
  */
-void rrset_backup(FILE* fd, rrset_type* rrset);
+void rrset_backup2(FILE* fd, rrset_type* rrset);
 
 #endif /* SIGNER_RRSET_H */

@@ -78,7 +78,6 @@ struct signconf_struct {
     duration_type* max_zone_ttl;
     const char* filename;
     time_t last_modified;
-    int audit;
 };
 
 /**
@@ -100,20 +99,13 @@ ods_status signconf_update(signconf_type** signconf, const char* scfile,
     time_t last_modified);
 
 /**
- * Read signer configuration from backup.
- * \param[in] filename file name
- * \return signconf_type* signer configuration
- *
- */
-signconf_type* signconf_recover_from_backup(const char* filename);
-
-/**
  * Backup signer configuration.
  * \param[in] fd file descriptor
  * \param[in] sc signer configuration settings
+ * \param[in] version version string
  *
  */
-void signconf_backup(FILE* fd, signconf_type* sc);
+void signconf_backup(FILE* fd, signconf_type* sc, const char* version);
 
 /**
  * Check signer configuration.

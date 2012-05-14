@@ -55,7 +55,7 @@ adutil_lookup_soa_rr(FILE* fd)
     unsigned int l = 0;
 
     while (line_len >= 0) {
-        line_len = adutil_readline_frm_file(fd, (char*) line, &l);
+        line_len = adutil_readline_frm_file(fd, (char*) line, &l, 0);
         adutil_rtrim_line(line, &line_len);
 
         if (line_len > 0) {
@@ -81,7 +81,8 @@ adutil_lookup_soa_rr(FILE* fd)
  *
  */
 int
-adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l)
+adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
+    int keep_comments)
 {
     int i = 0;
     int li = 0;
@@ -149,7 +150,7 @@ adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l)
             if (in_string) {
                 line[li] = c;
                 li++;
-            } else if (lc != '\\') {
+            } else if (lc != '\\' && !keep_comments) {
                 comments = 1;
             } else {
                 line[li] = c;

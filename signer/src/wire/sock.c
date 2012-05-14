@@ -655,7 +655,6 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
         data->query->tcplen);
     /* we have a complete query, process it. */
     buffer_flip(data->query->buffer);
-    buffer_pkt_print(stdout, data->query->buffer);
     qstate = query_process(data->query, data->engine);
     if (qstate == QUERY_DISCARDED) {
         cleanup_tcp_handler(netio, handler);
@@ -666,7 +665,6 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
     query_add_tsig(data->query);
     /* switch to tcp write handler. */
     buffer_flip(data->query->buffer);
-    buffer_pkt_print(stdout, data->query->buffer);
     data->query->tcplen = buffer_remaining(data->query->buffer);
     data->bytes_transmitted = 0;
     ods_log_debug("[%s] TCP_READ: clear buffer: tcplen %u",

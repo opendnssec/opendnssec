@@ -281,7 +281,7 @@ adapi_process_dnskey(zone_type* zone, ldns_rr* rr)
  *
  */
 static ods_status
-adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
+adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
 {
     ods_status status = ODS_STATUS_OK;
     uint32_t tmp = 0;
@@ -317,7 +317,7 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
             return ODS_STATUS_UNCHANGED;
         } else if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_DNSKEY) {
             adapi_process_dnskey(zone, rr);
-        } else if (util_is_dnssec_rr(rr)) {
+        } else if (util_is_dnssec_rr(rr) && !backup) {
             ods_log_warning("[%s] zone %s contains dnssec data (type=%u), "
                 "skipping", adapi_str, zone->name,
                 (unsigned) ldns_rr_get_type(rr));
@@ -364,9 +364,9 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add)
  *
  */
 ods_status
-adapi_add_rr(zone_type* zone, ldns_rr* rr)
+adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup)
 {
-    return adapi_process_rr(zone, rr, 1);
+    return adapi_process_rr(zone, rr, 1, backup);
 }
 
 
@@ -375,9 +375,9 @@ adapi_add_rr(zone_type* zone, ldns_rr* rr)
  *
  */
 ods_status
-adapi_del_rr(zone_type* zone, ldns_rr* rr)
+adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup)
 {
-    return adapi_process_rr(zone, rr, 0);
+    return adapi_process_rr(zone, rr, 0, backup);
 }
 
 

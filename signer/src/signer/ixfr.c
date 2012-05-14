@@ -240,8 +240,8 @@ ixfr_print(FILE* fd, ixfr_type* ixfr)
         return;
     }
     ods_log_debug("[%s] print ixfr", ixfr_str);
-
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
+        ods_log_deeebug("[%s] print ixfr part #%d", ixfr_str, i);
         part_print(fd, ixfr->part[i]);
     }
     return;

@@ -77,6 +77,14 @@ void denial_diff(denial_type* denial);
 /**
  * Add NSEC(3) to the Denial of Existence data point.
  * \param[in] denial Denial of Existence data point
+ * \param[in] rr NSEC(3) resource record
+ *
+ */
+void denial_add_rr(denial_type* denial, ldns_rr* rr);
+
+/**
+ * Nsecify Denial of Existence data point.
+ * \param[in] denial Denial of Existence data point
  * \param[in] nxt next Denial of Existence data point
  * \param[out] num_added number of RRs added
  *

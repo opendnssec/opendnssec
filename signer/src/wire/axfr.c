@@ -35,6 +35,7 @@
 #include "adapter/addns.h"
 #include "adapter/adutil.h"
 #include "shared/file.h"
+#include "shared/util.h"
 #include "wire/axfr.h"
 #include "wire/buffer.h"
 #include "wire/query.h"
@@ -85,7 +86,7 @@ axfr(query_type* q, engine_type* engine)
     ods_log_assert(q->zone->name);
     if (q->axfr_fd == NULL) {
         /* start axfr */
-        xfrfile = ods_build_path(q->zone->name, ".axfr", 0);
+        xfrfile = ods_build_path(q->zone->name, ".axfr", 0, 1);
         q->axfr_fd = ods_fopen(xfrfile, NULL, "r");
         if (!q->axfr_fd) {
             ods_log_error("[%s] unable to open axfr file %s for zone %s",
@@ -246,6 +247,9 @@ ixfr(query_type* q, engine_type* engine)
     unsigned l = 0;
     long fpos = 0;
     size_t bufpos = 0;
+    uint32_t new_serial = 0;
+    unsigned del_mode = 0;
+    unsigned soa_found = 0;
     ods_log_assert(q);
     ods_log_assert(q->buffer);
     ods_log_assert(engine);
@@ -267,7 +271,7 @@ ixfr(query_type* q, engine_type* engine)
     ods_log_assert(q->zone->name);
     if (q->axfr_fd == NULL) {
         /* start ixfr */
-        xfrfile = ods_build_path(q->zone->name, ".ixfr", 0);
+        xfrfile = ods_build_path(q->zone->name, ".ixfr", 0, 1);
         q->axfr_fd = ods_fopen(xfrfile, NULL, "r");
         if (!q->axfr_fd) {
             ods_log_error("[%s] unable to open ixfr file %s for zone %s",
@@ -301,7 +305,11 @@ ixfr(query_type* q, engine_type* engine)
             buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
             return QUERY_PROCESSED;
         }
+        /* newest serial */
+        new_serial = ldns_rdf2native_int32(
+            ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
         /* does it fit? */
+        buffer_set_position(q->buffer, q->startpos);
         if (buffer_write_rr(q->buffer, rr)) {
             ods_log_debug("[%s] set soa in ixfr zone %s", axfr_str,
                 q->zone->name);
@@ -318,6 +326,9 @@ ixfr(query_type* q, engine_type* engine)
             buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
             return QUERY_PROCESSED;
         }
+        if (util_serial_gt(q->serial, new_serial)) {
+            goto axfr_fallback;
+        }
     } else if (q->tcp) {
         /* subsequent ixfr packets */
         ods_log_debug("[%s] subsequent ixfr packet zone %s", axfr_str,
@@ -331,6 +342,7 @@ ixfr(query_type* q, engine_type* engine)
     fpos = ftell(q->axfr_fd);
     while ((rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl,
         &status, &l)) != NULL) {
+        ods_log_deeebug("[%s] read rr at line %d", axfr_str, l);
         if (status != LDNS_STATUS_OK) {
             ldns_rr_free(rr);
             rr = NULL;
@@ -338,18 +350,34 @@ ixfr(query_type* q, engine_type* engine)
                 axfr_str, l, ldns_get_errorstr_by_id(status), line);
             goto axfr_fallback;
         }
+        if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+            del_mode = !del_mode;
+        }
+        if (!soa_found) {
+            if (del_mode && ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA &&
+                q->serial == ldns_rdf2native_int32(
+                ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL))) {
+                soa_found = 1;
+            } else {
+                ods_log_deeebug("[%s] soa not found for rr at line %d",
+                    axfr_str, l);
+                continue;
+            }
+        }
         /* does it fit? */
         if (buffer_write_rr(q->buffer, rr)) {
+            ods_log_deeebug("[%s] add rr at line %d", axfr_str, l);
             fpos = ftell(q->axfr_fd);
             buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
             total_added++;
             ldns_rr_free(rr);
             rr = NULL;
         } else {
+            ods_log_deeebug("[%s] rr at line %d does not fit", axfr_str, l);
             ldns_rr_free(rr);
             rr = NULL;
             if (fseek(q->axfr_fd, fpos, SEEK_SET) != 0) {
-                ods_log_error("[%s] unable to reset file position in axfr "
+                ods_log_error("[%s] unable to reset file position in ixfr "
                     "file: fseek() failed (%s)", axfr_str, strerror(errno));
                 buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
                 return QUERY_PROCESSED;
@@ -359,6 +387,9 @@ ixfr(query_type* q, engine_type* engine)
                 goto axfr_fallback;
             }
         }
+    }
+    if (!soa_found) {
+        goto axfr_fallback;
     }
     ods_log_debug("[%s] ixfr zone %s is done", axfr_str, q->zone->name);
     q->tsig_sign_it = 1; /* sign last packet */
@@ -380,6 +411,7 @@ return_ixfr:
     return QUERY_IXFR;
 
 axfr_fallback:
+    buffer_set_position(q->buffer, q->startpos);
     if (q->tcp) {
         ods_log_info("[%s] axfr fallback zone %s", axfr_str, q->zone->name);
         if (q->axfr_fd) {

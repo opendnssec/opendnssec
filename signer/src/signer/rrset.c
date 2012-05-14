@@ -205,30 +205,6 @@ rrset_create(void* zoneptr, ldns_rr_type type)
 
 
 /**
- * Recover RRSIG from backup.
- *
- */
-ods_status
-rrset_recover(rrset_type* rrset, ldns_rr* rrsig, const char* locator,
-    uint32_t flags)
-{
-    rrsig_type* sig = NULL;
-    ods_log_assert(rrset);
-    ods_log_assert(rrsig);
-    ods_log_assert(locator);
-    ods_log_assert(flags);
-    sig = rrset_add_rrsig(rrset, rrsig, locator, flags);
-    if (!sig) {
-        ods_log_error("[%s] unable to recover RRSIG", rrset_str);
-        log_rr(rrsig, "+RRSIG", LOG_ERR);
-        return ODS_STATUS_ERR;
-    }
-    rrset->needs_signing = 0;
-    return ODS_STATUS_OK;
-}
-
-
-/**
  * Lookup RR in RRset.
  *
  */
@@ -860,16 +836,22 @@ rrset_cleanup(rrset_type* rrset)
  *
  */
 void
-rrset_backup(FILE* fd, rrset_type* rrset)
+rrset_backup2(FILE* fd, rrset_type* rrset)
 {
+    char* str = NULL;
     uint16_t i = 0;
     if (!rrset || !fd) {
         return;
     }
     for (i=0; i < rrset->rrsig_count; i++) {
-        fprintf(fd, ";;RRSIG %s %u\n", rrset->rrsigs[i].key_locator,
-            rrset->rrsigs[i].key_flags);
-        ldns_rr_print(fd, rrset->rrsigs[i].rr);
+        str = ldns_rr2str(rrset->rrsigs[i].rr);
+        if (!str) {
+            continue;
+        }
+        str[(strlen(str))-1] = '\0';
+        fprintf(fd, "%s; {locator %s flags %u}\n", str,
+            rrset->rrsigs[i].key_locator, rrset->rrsigs[i].key_flags);
+        free((void*)str);
     }
     return;
 }

@@ -76,15 +76,6 @@ struct task_struct {
 task_type* task_create(task_id what, time_t when, void* zone);
 
 /**
- * Recover a task from backup.
- * \param[in] filename where the task backup is stored
- * \param[in] zone zone reference
- * \return task_type* created task
- *
- */
-task_type* task_recover_from_backup(const char* filename, void* zone);
-
-/**
  * Backup task.
  * \param[in] fd file descriptor
  * \param[in] task task

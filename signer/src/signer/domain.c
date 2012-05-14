@@ -399,7 +399,6 @@ domain_ent2unsignedns(domain_type* domain)
 {
     ldns_rbnode_t* n = LDNS_RBTREE_NULL;
     domain_type* d = NULL;
-    ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
 
     ods_log_assert(domain);
     if (domain->rrsets) {
@@ -412,7 +411,6 @@ domain_ent2unsignedns(domain_type* domain)
             break;
         }
         if (d->rrsets) {
-            dstatus = domain_is_delegpt(d);
             if (domain_is_delegpt(d) == LDNS_RR_TYPE_NS) {
                 /* domain has unsigned delegation */
                 return 1;
@@ -574,201 +572,38 @@ domain_cleanup(domain_type* domain)
 
 
 /**
- * Recover domain from backup.
- *
- */
-ods_status
-domain_recover(domain_type* domain, FILE* fd, int dstatus)
-{
-    const char* token = NULL;
-    const char* locator = NULL;
-    uint32_t flags = 0;
-    ldns_rr* rr = NULL;
-    rrset_type* rrset = NULL;
-    denial_type* denial = NULL;
-    ldns_status lstatus = LDNS_STATUS_OK;
-    ldns_rr_type type_covered = LDNS_RR_TYPE_FIRST;
-
-    ods_log_assert(domain);
-    ods_log_assert(fd);
-
-    if (dstatus == 1) {
-        domain->is_apex = 1;
-    }
-
-    while (backup_read_str(fd, &token)) {
-        if (ods_strcmp(token, ";;RRSIG") == 0) {
-            /* recover signature */
-            if (!backup_read_str(fd, &locator) ||
-                !backup_read_uint32_t(fd, &flags)) {
-                ods_log_error("[%s] signature in backup corrupted",
-                    dname_str);
-                goto recover_dname_error;
-            }
-            /* expect signature */
-            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-            if (lstatus != LDNS_STATUS_OK) {
-                ods_log_error("[%s] missing signature in backup", dname_str);
-                ods_log_error("[%s] ldns status: %s", dname_str,
-                    ldns_get_errorstr_by_id(lstatus));
-                goto recover_dname_error;
-            }
-            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
-                ods_log_error("[%s] expecting signature in backup", dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-
-            type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rr));
-            rrset = domain_lookup_rrset(domain, type_covered);
-            if (!rrset) {
-                ods_log_error("[%s] signature type %i not covered",
-                    dname_str, type_covered);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            ods_log_assert(rrset);
-            if (rrset_recover(rrset, rr, locator, flags) != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to recover signature", dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            /* signature done */
-            locator = NULL;
-            rr = NULL;
-        } else if (ods_strcmp(token, ";;Denial") == 0) {
-            /* expect nsec(3) record */
-            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-            if (lstatus != LDNS_STATUS_OK) {
-                ods_log_error("[%s] missing denial in backup", dname_str);
-                goto recover_dname_error;
-            }
-            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC &&
-                ldns_rr_get_type(rr) != LDNS_RR_TYPE_NSEC3) {
-                ods_log_error("[%s] expecting denial in backup", dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-
-            /* recover denial structure */
-            ods_log_assert(!domain->denial);
-            denial = denial_create(domain->zone,
-                ldns_rdf_clone(ldns_rr_owner(rr)));
-            ods_log_assert(denial);
-            denial->domain = (void*) domain; /* back reference */
-            domain->denial = (void*) denial;
-            /* add the NSEC(3) rr */
-            if (!denial->rrset) {
-                denial->rrset = rrset_create(domain->zone,
-                    ldns_rr_get_type(rr));
-            }
-            ods_log_assert(denial->rrset);
-
-            if (!rrset_add_rr(denial->rrset, rr)) {
-                ods_log_error("[%s] unable to recover denial", dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            rrset_diff(denial->rrset, 0);
-            /* denial done */
-            rr = NULL;
-
-            /* recover signature */
-            if (!backup_read_check_str(fd, ";;RRSIG") ||
-                !backup_read_str(fd, &locator) ||
-                !backup_read_uint32_t(fd, &flags)) {
-                ods_log_error("[%s] signature in backup corrupted (denial)",
-                    dname_str);
-                goto recover_dname_error;
-            }
-            /* expect signature */
-            lstatus = ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL);
-            if (lstatus != LDNS_STATUS_OK) {
-                ods_log_error("[%s] missing signature in backup (denial)",
-                    dname_str);
-                ods_log_error("[%s] ldns status: %s", dname_str,
-                    ldns_get_errorstr_by_id(lstatus));
-                goto recover_dname_error;
-            }
-            if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_RRSIG) {
-                ods_log_error("[%s] expecting signature in backup (denial)",
-                    dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            if (!denial->rrset) {
-                ods_log_error("[%s] signature type not covered (denial)",
-                    dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            ods_log_assert(denial->rrset);
-            if (rrset_recover(denial->rrset, rr, locator, flags) !=
-                ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to recover signature (denial)",
-                    dname_str);
-                ldns_rr_free(rr);
-                goto recover_dname_error;
-            }
-            /* signature done */
-            locator = NULL;
-            rr = NULL;
-        } else if (ods_strcmp(token, ";;Domaindone") == 0) {
-            /* domain done */
-            free((void*) token);
-            token = NULL;
-            locator = NULL;
-            break;
-        } else {
-            /* domain corrupted */
-            goto recover_dname_error;
-        }
-        /* done, next token */
-        free((void*) token);
-        token = NULL;
-        locator = NULL;
-    }
-
-    return ODS_STATUS_OK;
-
-recover_dname_error:
-    free((void*) token);
-    token = NULL;
-
-    free((void*) locator);
-    locator = NULL;
-    return ODS_STATUS_ERR;
-}
-
-
-/**
  * Backup domain.
  *
  */
 void
-domain_backup(FILE* fd, domain_type* domain)
+domain_backup2(FILE* fd, domain_type* domain, int sigs)
 {
-    char* str = NULL;
     rrset_type* rrset = NULL;
-    denial_type* denial = NULL;
     if (!domain || !fd) {
         return;
     }
-    str = ldns_rdf2str(domain->dname);
-    fprintf(fd, ";;Domain: name %s status %i\n", str, (int) domain->is_apex);
+    /* if SOA, print soa first */
+    if (domain->is_apex) {
+        rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
+        if (rrset) {
+            if (sigs) {
+                rrset_backup2(fd, rrset);
+            } else {
+                rrset_print(fd, rrset, 1);
+            }
+        }
+    }
     rrset = domain->rrsets;
     while (rrset) {
-        rrset_backup(fd, rrset);
-        rrset = rrset->next;;
+        /* skip SOA RRset */
+        if (rrset->rrtype != LDNS_RR_TYPE_SOA) {
+            if (sigs) {
+                rrset_backup2(fd, rrset);
+            } else {
+                rrset_print(fd, rrset, 1);
+            }
+        }
+        rrset = rrset->next;
     }
-    free((void*)str);
-    /* denial of existence */
-    denial = (denial_type*) domain->denial;
-    if (denial) {
-        fprintf(fd, ";;Denial\n");
-        rrset_print(fd, denial->rrset, 1);
-        rrset_backup(fd, denial->rrset);
-    }
-    fprintf(fd, ";;Domaindone\n");
     return;
 }

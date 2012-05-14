@@ -83,7 +83,7 @@ and its parent, so this has to be done manually, or scripted around
 OpenDNSSEC.
 .SH "SEE ALSO"
 .LP
-ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
 ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(8),
 ods\-signerd(8), ods\-timing(5),
 .B http://www.opendnssec.org/

@@ -92,7 +92,6 @@ uint32_t parse_sc_nsec3_iterations(const char* cfgfile);
  *
  */
 int parse_sc_nsec3_optout(const char* cfgfile);
-int parse_sc_audit(const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.

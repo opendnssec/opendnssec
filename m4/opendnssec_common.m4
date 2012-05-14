@@ -60,7 +60,6 @@ AC_DEFINE_UNQUOTED(OPENDNSSEC_FETCH_PIDFILE,    "$OPENDNSSEC_FETCH_PIDFILE", [Pa
 # signer specific
 OPENDNSSEC_SIGNER_SOCKET=$OPENDNSSEC_PID_DIR/engine.sock
 OPENDNSSEC_SIGNER_ENGINE=$OPENDNSSEC_SBIN_DIR/ods-signerd
-OPENDNSSEC_SIGNER_AUDITOR=$OPENDNSSEC_BIN_DIR/ods-auditor
 OPENDNSSEC_SIGNER_CLI=$OPENDNSSEC_SBIN_DIR/ods-signer
 OPENDNSSEC_SIGNER_WORKINGDIR=$OPENDNSSEC_STATE_DIR/tmp
 
@@ -78,20 +77,16 @@ AC_DEFINE_UNQUOTED(ODS_SE_SOCKFILE,      ["$OPENDNSSEC_SIGNER_SOCKET"],      [Pa
 AC_DEFINE_UNQUOTED(ODS_SE_WORKDIR,       ["$OPENDNSSEC_SIGNER_WORKINGDIR"],  [Path to the OpenDNSSEC signer engine working directory])
 AC_DEFINE_UNQUOTED(ODS_SE_CFGFILE,       ["$OPENDNSSEC_CONFIG_FILE"],        [Path to the OpenDNSSEC config file])
 AC_DEFINE_UNQUOTED(ODS_SE_RNGDIR,        ["$OPENDNSSEC_SCHEMA_DIR"],         [Path to the OpenDNSSEC data files])
-AC_DEFINE_UNQUOTED(ODS_SE_ENGINE,        ["$OPENDNSSEC_SIGNER_ENGINE -vvv"], [Path to the OpenDNSSEC signer engine binary])
+AC_DEFINE_UNQUOTED(ODS_SE_ENGINE,        ["$OPENDNSSEC_SIGNER_ENGINE"],      [Path to the OpenDNSSEC signer engine binary])
 AC_DEFINE_UNQUOTED(ODS_SE_CLI,           ["$OPENDNSSEC_SIGNER_CLI"],         [Path to the OpenDNSSEC signer client binary])
-AC_DEFINE_UNQUOTED(ODS_SE_AUDITOR,       ["$OPENDNSSEC_SIGNER_AUDITOR"],     [Path to the OpenDNSSEC auditor binary])
 AC_DEFINE_UNQUOTED(ODS_SE_MAXLINE,       [1024],                             [Maximum line length that the OpenDNSSEC signer client can handle])
 AC_DEFINE_UNQUOTED(ODS_SE_MAX_BACKOFF,   [3600],                             [Number of seconds the OpenDNSSEC signer engine should backoff when a task failed])
 AC_DEFINE_UNQUOTED(ODS_SE_WORKERTHREADS, [4],                                [Default number of worker threads for the OpenDNSSEC signer engine])
 AC_DEFINE_UNQUOTED(ODS_SE_STOP_RESPONSE, ["Engine shut down."],              [Shutdown message for the OpenDNSSEC signer client])
-AC_DEFINE_UNQUOTED(ODS_SE_FILE_MAGIC,    [";ODSSE2"],                        [File magic for storing backups from the OpenDNSSEC signer engine])
+AC_DEFINE_UNQUOTED(ODS_SE_FILE_MAGIC_V3, [";OpenDNSSEC-backup-v3"],          [File magic for storing backups from the OpenDNSSEC signer engine])
+AC_DEFINE_UNQUOTED(ODS_SE_FILE_MAGIC_V2, [";ODSSE2"],                        [File magic for storing backups from the OpenDNSSEC signer engine])
 AC_DEFINE_UNQUOTED(ODS_SE_FILE_MAGIC_V1, [";ODSSE1"],                        [File magic for storing backups from the OpenDNSSEC signer engine])
-
-# auditor specific
-OPENDNSSEC_AUDITOR_KASPCHECK=$OPENDNSSEC_BIN_DIR/ods-kaspcheck
-
-AC_DEFINE_UNQUOTED(ODS_AU_KASPCHECK,  ["$OPENDNSSEC_AUDITOR_KASPCHECK"],    [Path to the OpenDNSSEC kaspcheck binary])
+AC_DEFINE_UNQUOTED(ODS_SE_VERBOSITY,     [3],                                [Default verbosity])
 
 # enforcer specific
 OPENDNSSEC_ENFORCER_ENGINE=$OPENDNSSEC_SBIN_DIR/ods-enforcerd
@@ -104,5 +99,10 @@ AC_SUBST([OPENDNSSEC_ENFORCER_SOCKETFILE])
 AC_DEFINE_UNQUOTED(OPENDNSSEC_ENFORCER_SOCKETFILE, "$OPENDNSSEC_ENFORCER_SOCKETFILE", [Path to the OpenDNSSEC enforcer socket])
 AC_DEFINE_UNQUOTED(OPENDNSSEC_ENFORCER_WORKINGDIR, "$OPENDNSSEC_ENFORCER_WORKINGDIR", [Path to the OpenDNSSEC enforcer engine working directory])
 AC_DEFINE(OPENDNSSEC_ENFORCER_WORKERTHREADS, 4, [Number of worker threads for the enforcer])
+OPENDNSSEC_ENFORCER_KASPCHECK=$OPENDNSSEC_BIN_DIR/ods-kaspcheck
+
+AC_DEFINE_UNQUOTED(ODS_EN_CONTROL,    ["$OPENDNSSEC_ENFORCER_CONTROL enforcer "],    [Path to the OpenDNSSEC ods-control binary])
+AC_DEFINE_UNQUOTED(ODS_EN_KASPCHECK,  ["$OPENDNSSEC_ENFORCER_KASPCHECK"],            [Path to the OpenDNSSEC kaspcheck binary])
+AC_DEFINE_UNQUOTED(ODS_EN_FILE_MAGIC, [";ODSSE2"],                        [File magic for storing backups from the OpenDNSSEC enforcer])
 
 ])

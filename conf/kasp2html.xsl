@@ -312,9 +312,6 @@
 		 </table>
 	</xsl:template>
 
-	<xsl:template match="Audit">
-	</xsl:template>
-
 	<xsl:template match="Keys/*/Algorithm">
 		<xsl:choose>
 			<xsl:when test=". = 0">

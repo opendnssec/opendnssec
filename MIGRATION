@@ -3,6 +3,34 @@ $Id$
 This file gives you instructions on how to migrate from one version of
 OpenDNSSEC to another.
 
+*** Migrating trunk ***
+
+  r5914 has some kasp database changes to allow for an update to the zonelist.xml schema. 
+  This means that if you want to use this version or any after it with a database created 
+  earlier you will need to do one of 2 things...
+
+  1) wipe and recreate your kasp database (run ods-ksmutl setup) which will lose all of 
+     your current state.
+  
+  If you need to keep your key information then,
+
+  2) run the sql statements given in:
+
+     enforcer/utils/migrate_adapters_1.mysql
+  or
+     enforcer/utils/migrate_adapters_1.sqlite3
+
+  against your existing database.
+
+  These changes allow flexibility in the input and output adapters.
+
+
+*** Migrating from v1.2 to v1.3 ***
+ 
+  There are no migration scripts to run to make this transition.
+
+
+
 
 *** Migrating from v1.1 to v1.2 ***
 

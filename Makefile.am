@@ -21,15 +21,12 @@ if ENABLE_ENFORCERNG
 SUBDIRS += enforcer-ng
 endif
 
-if ENABLE_AUDITOR
-SUBDIRS += auditor
-endif
-
 if ENABLE_EPPCLIENT
 SUBDIRS += plugins/eppclient
 endif
 
-EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \
+EXTRA_DIST =	$(srcdir)/LICENSE \
+		$(srcdir)/KNOWN_ISSUES \
 		$(srcdir)/MIGRATION \
 		$(srcdir)/README.enforcer_testers \
 		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
@@ -53,6 +50,4 @@ endif
 if ENABLE_SIGNER
 	(cd signer; $(MAKE) doxygen)
 endif
-if ENABLE_AUDITOR
-	(cd auditor; $(MAKE) rdoc)
-endif
+

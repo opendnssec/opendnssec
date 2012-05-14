@@ -38,6 +38,7 @@
 #include "shared/allocator.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/privdrop.h"
@@ -269,6 +270,11 @@ engine_start_xfrhandler(engine_type* engine)
     engine->xfrhandler->engine = engine;
     ods_thread_create(&engine->xfrhandler->thread_id,
         xfrhandler_thread_start, engine->xfrhandler);
+    /* This might be the wrong place to mark the xfrhandler started but
+     * if its isn't done here we might try to shutdown and stop it before
+     * it has marked itself started
+     */
+    engine->xfrhandler->started = 1;
     return;
 }
 static void
@@ -281,7 +287,10 @@ engine_stop_xfrhandler(engine_type* engine)
     engine->xfrhandler->need_to_exit = 1;
     xfrhandler_signal(engine->xfrhandler);
     ods_log_debug("[%s] join xfrhandler", engine_str);
-    ods_thread_join(engine->xfrhandler->thread_id);
+    if (engine->xfrhandler->started) {
+    	ods_thread_join(engine->xfrhandler->thread_id);
+    	engine->xfrhandler->started = 0;
+    }
     engine->xfrhandler->engine = NULL;
     return;
 }
@@ -380,7 +389,7 @@ engine_start_workers(engine_type* engine)
     }
     return;
 }
-static void
+void
 engine_start_drudgers(engine_type* engine)
 {
     size_t i = 0;
@@ -407,6 +416,7 @@ engine_stop_workers(engine_type* engine)
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
+    worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
@@ -415,7 +425,7 @@ engine_stop_workers(engine_type* engine)
     }
     return;
 }
-static void
+void
 engine_stop_drudgers(engine_type* engine)
 {
     size_t i = 0;
@@ -544,12 +554,8 @@ engine_setup(engine_type* engine)
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
     /* set up hsm */ /* LEAK */
-    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
+    result = lhsm_open(engine->config->cfg_filename);
     if (result != HSM_OK) {
-        char *error =  hsm_get_error(NULL);
-        ods_log_error("[%s] setup: error initializing libhsm errno=%i (%s)",
-            engine_str, result, error?error:"NULL");
-        free((void*)error);
         return ODS_STATUS_HSM_ERR;
     }
     /* create workers/drudgers */
@@ -649,6 +655,7 @@ engine_run(engine_type* engine, int single_run)
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
+    (void)lhsm_reopen(engine->config->cfg_filename);
     return;
 }
 
@@ -683,9 +690,10 @@ set_notify_ns(zone_type* zone, const char* cmd)
  * Update DNS configuration for zone.
  *
  */
-static void
+static int
 dnsconfig_zone(engine_type* engine, zone_type* zone)
 {
+    int numdns = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->xfrhandler);
     ods_log_assert(engine->xfrhandler->netio);
@@ -707,6 +715,7 @@ dnsconfig_zone(engine_type* engine, zone_type* zone)
         } else if (!zone->xfrd->serial_disk_acquired) {
             xfrd_set_timer_now(zone->xfrd);
         }
+        numdns++;
     } else if (zone->xfrd) {
         netio_remove_handler(engine->xfrhandler->netio,
             &zone->xfrd->handler);
@@ -724,13 +733,14 @@ dnsconfig_zone(engine_type* engine, zone_type* zone)
             netio_add_handler(engine->xfrhandler->netio,
                 &zone->notify->handler);
         }
+        numdns++;
     } else if (zone->notify) {
         netio_remove_handler(engine->xfrhandler->netio,
             &zone->notify->handler);
         notify_cleanup(zone->notify);
         zone->notify = NULL;
     }
-    return;
+    return numdns;
 }
 
 
@@ -746,9 +756,8 @@ engine_update_zones(engine_type* engine)
     zone_type* delzone = NULL;
     task_type* task = NULL;
     ods_status status = ODS_STATUS_OK;
-    unsigned to_schedule = 0;
-    unsigned to_reschedule = 0;
     unsigned wake_up = 0;
+    int warnings = 0;
     time_t now = 0;
 
     if (!engine || !engine->zonelist || !engine->zonelist->zones) {
@@ -762,8 +771,6 @@ engine_update_zones(engine_type* engine)
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
         task = NULL; /* reset task */
-        to_schedule = 0;
-        to_reschedule = 0;
 
         if (zone->zl_status == ZONE_ZL_REMOVED) {
             node = ldns_rbtree_next(node);
@@ -814,7 +821,7 @@ engine_update_zones(engine_type* engine)
                 ods_status2str(status));
         }
         /* for dns adapters */
-        dnsconfig_zone(engine, zone);
+        warnings += dnsconfig_zone(engine, zone);
 
         if (zone->zl_status == ZONE_ZL_ADDED) {
             ods_log_assert(task);
@@ -824,7 +831,7 @@ engine_update_zones(engine_type* engine)
             lock_basic_lock(&engine->taskq->schedule_lock);
             status = schedule_task(engine->taskq, task, 0);
             lock_basic_unlock(&engine->taskq->schedule_lock);
-        } else if (zone->zl_status == ZONE_ZL_UPDATED) {
+        } else { /* always try to update signconf */
             lock_basic_lock(&zone->zone_lock);
             status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
             lock_basic_unlock(&zone->zone_lock);
@@ -842,6 +849,10 @@ engine_update_zones(engine_type* engine)
     if (engine->dnshandler) {
         dnshandler_fwd_notify(engine->dnshandler,
             (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
+    } else if (warnings) {
+        ods_log_warning("[%s] no dnshandler/listener configured, but zones "
+         "are configured with dns adapters: notify and zone transfer "
+         "requests will not work properly", engine_str);
     }
     if (wake_up) {
         engine_wakeup_workers(engine);
@@ -863,9 +874,9 @@ engine_recover(engine_type* engine)
     ods_status result = ODS_STATUS_UNCHANGED;
 
     if (!engine || !engine->zonelist || !engine->zonelist->zones) {
-        ods_log_error("[%s] cannot update zones: no engine or zonelist",
+        ods_log_error("[%s] cannot recover zones: no engine or zonelist",
             engine_str);
-        return ODS_STATUS_OK; /* will trigger update zones */
+        return ODS_STATUS_ERR; /* no need to update zones */
     }
     ods_log_assert(engine);
     ods_log_assert(engine->zonelist);
@@ -878,7 +889,7 @@ engine_recover(engine_type* engine)
         zone = (zone_type*) node->data;
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
-        status = zone_recover(zone);
+        status = zone_recover2(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
             ods_log_assert(zone->db);
@@ -901,7 +912,7 @@ engine_recover(engine_type* engine)
                 zone->task = NULL;
                 result = ODS_STATUS_OK; /* will trigger update zones */
             } else {
-                ods_log_verbose("[%s] recovered zone %s", engine_str,
+                ods_log_debug("[%s] recovered zone %s", engine_str,
                     zone->name);
                 /* recovery done */
                 zone->zl_status = ZONE_ZL_OK;

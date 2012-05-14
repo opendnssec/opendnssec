@@ -77,26 +77,26 @@ cmdhandler_handle_cmd_help(int sockfd)
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "Commands:\n"
-        "zones           show the currently known zones.\n"
-        "sign <zone>     read zone and schedule for immediate (re-)sign.\n"
-        "sign --all      read all zones and schedule all for immediate "
+        "zones           Show the currently known zones.\n"
+        "sign <zone>     Read zone and schedule for immediate (re-)sign.\n"
+        "sign --all      Read all zones and schedule all for immediate "
                          "(re-)sign.\n"
-        "clear <zone>    delete the internal storage of this zone.\n"
+        "clear <zone>    Delete the internal storage of this zone.\n"
         "                All signatures will be regenerated on the next "
                          "re-sign.\n"
-        "queue           show the current task queue.\n"
+        "queue           Show the current task queue.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "flush           execute all scheduled tasks immediately.\n"
-        "update <zone>   update this zone signer configurations.\n"
-        "update [--all]  update zone list and all signer configurations.\n"
-        "start           start the engine.\n"
-        "running         check if the engine is running.\n"
-        "reload          reload the engine.\n"
-        "stop            stop the engine.\n"
-        "verbosity <nr>  set verbosity.\n"
+        "flush           Execute all scheduled tasks immediately.\n"
+        "update <zone>   Update this zone signer configurations.\n"
+        "update [--all]  Update zone list and all signer configurations.\n"
+        "start           Start the engine.\n"
+        "running         Check if the engine is running.\n"
+        "reload          Reload the engine.\n"
+        "stop            Stop the engine.\n"
+        "verbosity <nr>  Set verbosity.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
     return;
@@ -168,7 +168,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             engine->config->zonelist_filename);
         if (zl_changed == ODS_STATUS_UNCHANGED) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
-                "\n");
+                " Signer configurations updated.\n");
             ods_writen(sockfd, buf, strlen(buf));
         } else if (zl_changed == ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list updated: %i "
@@ -196,7 +196,8 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         lock_basic_lock(&engine->zonelist->zl_lock);
         zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
-        /* If this zone is just added, don't update (it might not have a task yet) */
+        /* If this zone is just added, don't update (it might not have a
+         * task yet) */
         if (zone && zone->zl_status == ZONE_ZL_ADDED) {
             zone = NULL;
         }
@@ -307,7 +308,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 static void
 unlink_backup_file(const char* filename, const char* extension)
 {
-    char* tmpname = ods_build_path(filename, extension, 0);
+    char* tmpname = ods_build_path(filename, extension, 0, 1);
     ods_log_debug("[%s] unlink file %s", cmdh_str, tmpname);
     unlink(tmpname);
     free((void*)tmpname);

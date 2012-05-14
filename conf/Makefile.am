@@ -2,12 +2,13 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-RNC =	addns.rnc conf.rnc kasp.rnc zonelist.rnc signconf.rnc
-RNG =	addns.rng conf.rng kasp.rng zonelist.rng signconf.rng
-XML =	addns.xml conf.xml kasp.xml zonelist.xml signconf.xml
+RNC =	addns.rnc conf.rnc kasp.rnc zonelist.rnc signconf.rnc enforcerstate.rnc
+RNG =	addns.rng conf.rng kasp.rng zonelist.rng signconf.rng enforcerstate.rng
+XML =	addns.xml conf.xml kasp.xml zonelist.xml signconf.xml enforcerstate.xml
 XSL=	kasp2html.xsl
 
-TRANG=	$(srcdir)/trang/trang.jar
+TRANG=		$(srcdir)/trang/trang.jar
+TRANG_URL	"https://code.google.com/p/jing-trang/"
 
 sysconfdir = @sysconfdir@/opendnssec
 datadir = @datadir@/opendnssec
@@ -16,11 +17,16 @@ noinst_DATA = ${XML} ${XSL}
 
 dist_data_DATA = ${RNG} ${RNC} ${XSL}
 
-CLEANFILES =+		*.xml
-DISTCLEANFILES =+	*.rng
+CLEANFILES =+		${XML}
+DISTCLEANFILES =+	${RNG}
 
 SUFFIXES = .rng .rnc .xml
 
+
+$(TRANG):
+	@echo You need to manually fetch trang.jar from ${TRANG_URL}
+	@echo and copy trang.jar to ${TRANG} before rebuilding
+	@echo the RelaxNG schemas.
 
 .rnc.rng:
 	@test -x "${JAVA}" || \

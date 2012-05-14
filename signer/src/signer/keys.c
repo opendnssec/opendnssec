@@ -131,9 +131,8 @@ keylist_push(keylist_type* kl, const char* locator,
     kl->keys = (key_type*) allocator_alloc(sc->allocator,
         (kl->count + 1) * sizeof(key_type));
     if (!kl->keys) {
-        ods_log_error("[%s] unable to add key: allocator_alloc() failed",
+        ods_fatal_exit("[%s] unable to add key: allocator_alloc() failed",
             key_str);
-        exit(1);
     }
     if (keys_old) {
         memcpy(kl->keys, keys_old, (kl->count) * sizeof(key_type));
@@ -281,7 +280,7 @@ keylist_cleanup(keylist_type* kl)
  *
  */
 static void
-key_backup(FILE* fd, key_type* key)
+key_backup(FILE* fd, key_type* key, const char* version)
 {
     if (!fd || !key) {
         return;
@@ -289,10 +288,12 @@ key_backup(FILE* fd, key_type* key)
     fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i "
         "zsk %i\n", key->locator, (unsigned) key->algorithm,
         (unsigned) key->flags, key->publish, key->ksk, key->zsk);
-    if (key->dnskey) {
-        ldns_rr_print(fd, key->dnskey);
+    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
+        if (key->dnskey) {
+            ldns_rr_print(fd, key->dnskey);
+        }
+        fprintf(fd, ";;Keydone\n");
     }
-    fprintf(fd, ";;Keydone\n");
     return;
 }
 
@@ -302,16 +303,14 @@ key_backup(FILE* fd, key_type* key)
  *
  */
 key_type*
-key_recover(FILE* fd, keylist_type* kl)
+key_recover2(FILE* fd, keylist_type* kl)
 {
-    key_type* key = NULL;
     const char* locator = NULL;
     uint8_t algorithm = 0;
     uint32_t flags = 0;
     int publish = 0;
     int ksk = 0;
     int zsk = 0;
-    ldns_rr* rr = NULL;
 
     ods_log_assert(fd);
 
@@ -327,42 +326,14 @@ key_recover(FILE* fd, keylist_type* kl)
         !backup_read_int(fd, &ksk) ||
         !backup_read_check_str(fd, "zsk") ||
         !backup_read_int(fd, &zsk)) {
-
-        ods_log_error("[%s] key in backup corrupted", key_str);
         if (locator) {
            free((void*)locator);
            locator = NULL;
-        }
-        return NULL;
-    }
-
-    if (publish &&
-        ldns_rr_new_frm_fp(&rr, fd, NULL, NULL, NULL) != LDNS_STATUS_OK) {
-        ods_log_error("[%s] key in backup is published, but no rr found",
-            key_str);
-        if (locator) {
-           free((void*)locator);
-           locator = NULL;
-        }
-        return NULL;
-    }
-
-    if (!backup_read_check_str(fd, ";;Keydone")) {
-        ods_log_error("[%s] key in backup corrupted", key_str);
-        if (locator) {
-           free((void*)locator);
-           locator = NULL;
-        }
-        if (rr) {
-            ldns_rr_free(rr);
-            rr = NULL;
         }
         return NULL;
     }
     /* key ok */
-    key = keylist_push(kl, locator, algorithm, flags, publish, ksk, zsk);
-    ldns_rr_free(rr);
-    return key;
+    return keylist_push(kl, locator, algorithm, flags, publish, ksk, zsk);
 }
 
 
@@ -371,15 +342,14 @@ key_recover(FILE* fd, keylist_type* kl)
  *
  */
 void
-keylist_backup(FILE* fd, keylist_type* kl)
+keylist_backup(FILE* fd, keylist_type* kl, const char* version)
 {
     uint16_t i = 0;
     if (!fd || !kl || kl->count <= 0) {
         return;
     }
     for (i=0; i < kl->count; i++) {
-        key_backup(fd, &kl->keys[i]);
+        key_backup(fd, &kl->keys[i], version);
     }
-    fprintf(fd, ";;\n");
     return;
 }

@@ -169,7 +169,7 @@ task_recover_from_backup(const char* filename, void* context)
     ods_log_assert(context);
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
-        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC) ||
+        if (!backup_read_check_str(fd, ODS_EN_FILE_MAGIC) ||
             !backup_read_check_str(fd, ";who:") ||
             !backup_read_str(fd, &who) ||
             !backup_read_check_str(fd, ";what:") ||
@@ -182,7 +182,7 @@ task_recover_from_backup(const char* filename, void* context)
             !backup_read_time_t(fd, &backoff) ||
             !backup_read_check_str(fd, ";how:") ||
             !backup_read_str(fd, &long_name) ||
-            !backup_read_check_str(fd, ODS_SE_FILE_MAGIC))
+            !backup_read_check_str(fd, ODS_EN_FILE_MAGIC))
         {
             ods_log_error("[%s] unable to recover task from file %s: file corrupted",
                 task_str, filename?filename:"(null)");
@@ -233,14 +233,14 @@ task_backup(task_type* task)
     }
 
     if (fd) {
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "%s\n", ODS_EN_FILE_MAGIC);
         fprintf(fd, ";who: %s\n", task->who);
         fprintf(fd, ";what: %i\n", (int) task->what);
         fprintf(fd, ";when: %u\n", (uint32_t) task->when);
         fprintf(fd, ";flush: %i\n", task->flush);
         fprintf(fd, ";backoff: %u\n", (uint32_t) task->backoff);
         /* TODO: backup the how perform function */
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC);
+        fprintf(fd, "%s\n", ODS_EN_FILE_MAGIC);
         ods_fclose(fd);
     } else {
         ods_log_warning("[%s] cannot backup task for context %s: cannot open file "

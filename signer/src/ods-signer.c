@@ -87,7 +87,7 @@ max(int a, int b)
  * Interface.
  *
  */
-static void
+static int
 interface_run(FILE* fp, int sockfd, char* cmd)
 {
     int maxfdp1 = 0;
@@ -126,12 +126,14 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             ods_writen(sockfd, cmd, strlen(cmd));
             cmd_written = 1;
             stdineof = 1;
+            /* Clear the interactive mode / stdin fd from the set */
+            FD_CLR(fileno(fp), &rset);
             continue;
         }
 
         if (cmd && cmd_written && cmd_response) {
             /* normal termination */
-            return;
+            return 0;
         }
 
         if (FD_ISSET(sockfd, &rset)) {
@@ -146,17 +148,17 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (n < 0) {
                     /* error occurred */
                     fprintf(stderr, "error: %s\n", strerror(errno));
-                    exit(1);
+                    return 1;
                 } else {
                     /* n==0 */
                     if (stdineof == 1) {
                         /* normal termination */
-                        return;
+                        return 0;
                     } else {
                         /* weird termination */
                         fprintf(stderr, "signer engine terminated "
                                 "prematurely\n");
-                        exit(1);
+                        return 1;
                     }
                 }
             }
@@ -166,9 +168,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                     /* not enough data received */
                     fprintf(stderr, "not enough response data received "
                             "from daemon.\n");
-                    exit(1);
+                    return 1;
                 }
-                /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer 
+                /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer
                     manipulations below. */
                 if (strncmp(buf+n-SE_CLI_CMDLEN,"\ncmd> ",SE_CLI_CMDLEN) == 0) {
                     /* we have the full response */
@@ -204,8 +206,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 /* written+ret < n : means partial write, requires us to loop... */
             }
             if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
-                fprintf(stderr, "\n");
-                return;
+                fprintf(stdout, "\n");
+                return 0;
             }
         }
 
@@ -219,7 +221,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (ret != 0) {
                     fprintf(stderr, "shutdown failed: %s\n",
                         strerror(errno));
-                    exit(1);
+                    return 1;
                 }
                 FD_CLR(fileno(fp), &rset);
                 continue;
@@ -237,7 +239,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 if (ret != 0) {
                     fprintf(stderr, "shutdown failed: %s\n",
                         strerror(errno));
-                    exit(1);
+                    return 1;
                 }
                 FD_CLR(fileno(fp), &rset);
                 continue;
@@ -246,8 +248,10 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             buf[ODS_SE_MAXLINE-1] = '\0';
             if (strncmp(buf, "exit", 4) == 0 ||
                 strncmp(buf, "quit", 4) == 0) {
-                return;
+                return 0;
             }
+            ods_str_trim(buf);
+            n = strlen(buf);
             ods_writen(sockfd, buf, n);
         }
     }
@@ -258,19 +262,21 @@ interface_run(FILE* fp, int sockfd, char* cmd)
  * Start interface
  *
  */
-static void
+static int
 interface_start(char* cmd)
 {
     int sockfd, ret, flags;
     struct sockaddr_un servaddr;
     const char* servsock_filename = ODS_SE_SOCKFILE;
 
+    ods_log_init(NULL, 0, 0);
+
     /* new socket */
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd <= 0) {
+    if (sockfd < 0) {
         fprintf(stderr, "Unable to connect to engine. "
             "socket() failed: %s\n", strerror(errno));
-        exit(1);
+        return 1;
     }
 
     /* no suprises */
@@ -284,8 +290,7 @@ interface_start(char* cmd)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            ret = system(ODS_SE_ENGINE);
-            return;
+            return system(ODS_SE_ENGINE);
         }
 
         if (cmd && ods_strcmp(cmd, "running\n") == 0) {
@@ -296,7 +301,7 @@ interface_start(char* cmd)
         }
 
         close(sockfd);
-        exit(1);
+        return 1;
     }
 
     /* set socket to non-blocking */
@@ -305,30 +310,14 @@ interface_start(char* cmd)
         ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
             "failed: %s", cli_str, strerror(errno));
         close(sockfd);
-        return;
+        return 1;
     }
     flags |= O_NONBLOCK;
     if (fcntl(sockfd, F_SETFL, flags) < 0) {
         ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
             "failed: %s", cli_str, strerror(errno));
         close(sockfd);
-        return;
-    }
-
-    /* set stdin to non-blocking */
-    flags = fcntl(fileno(stdin), F_GETFL, 0);
-    if (flags < 0) {
-        ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
-            "failed: %s", cli_str, strerror(errno));
-        close(sockfd);
-        return;
-    }
-    flags |= O_NONBLOCK;
-    if (fcntl(fileno(stdin), F_SETFL, flags) < 0) {
-        ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
-            "failed: %s", cli_str, strerror(errno));
-        close(sockfd);
-        return;
+        return 1;
     }
 
     /* some sort of interface */
@@ -337,10 +326,9 @@ interface_start(char* cmd)
     }
 
     /* run */
-    ods_log_init(NULL, 0, 0);
-    interface_run(stdin, sockfd, cmd);
+    ret = interface_run(stdin, sockfd, cmd);
     close(sockfd);
-    return;
+    return ret;
 }
 
 
@@ -355,6 +343,7 @@ main(int argc, char* argv[])
     int options_size = 0;
     const char* options[4];
     char* cmd = NULL;
+    int ret = 0;
     allocator_type* clialloc = allocator_create(malloc, free);
     if (!clialloc) {
         fprintf(stderr,"error, malloc failed for client\n");
@@ -390,14 +379,16 @@ main(int argc, char* argv[])
     /* main stuff */
     if (cmd && ods_strcmp(cmd, "-h\n") == 0) {
         usage(stdout);
+        ret = 1;
     } else if (cmd && ods_strcmp(cmd, "--help\n") == 0) {
         usage(stdout);
+        ret = 1;
     } else {
-        interface_start(cmd);
+        ret = interface_start(cmd);
     }
 
     /* done */
     allocator_deallocate(clialloc, (void*) cmd);
     allocator_cleanup(clialloc);
-    return 0;
+    return ret;
 }

@@ -61,6 +61,7 @@ fifoq_create(allocator_type* allocator)
     fifoq_wipe(fifoq);
     lock_basic_init(&fifoq->q_lock);
     lock_basic_set(&fifoq->q_threshold);
+    lock_basic_set(&fifoq->q_nonfull);
     return fifoq;
 }
 
@@ -101,7 +102,10 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
         q->owner[i] = q->owner[i+1];
     }
     q->count -= 1;
-    ods_log_deeebug("[%s] popped item, count=%u", fifoq_str, q->count);
+    if (q->count <= (size_t) FIFOQ_MAX_COUNT * 0.1) {
+        /* notify waiting workers that they can start queuing again */
+        lock_basic_broadcast(&q->q_nonfull);
+    }
     return pop;
 }
 
@@ -113,31 +117,26 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
 ods_status
 fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
 {
-    size_t count = 0;
     if (!q || !item || !worker) {
         return ODS_STATUS_ASSERT_ERR;
     }
     if (q->count >= FIFOQ_MAX_COUNT) {
-        ods_log_deeebug("[%s] unable to push item: max cap reached",
-            fifoq_str);
         /* #262 if drudgers remain on hold, do additional broadcast */
         if (*tries > FIFOQ_TRIES_COUNT) {
             lock_basic_broadcast(&q->q_threshold);
-            ods_log_debug("[%s] max cap reached, but drudgers seem to be "
-                "on hold, notify drudgers again", fifoq_str);
+            ods_log_debug("[%s] queue full, notify drudgers again", fifoq_str);
             /* reset tries */
             *tries = 0;
         }
         return ODS_STATUS_UNCHANGED;
     }
-    count = q->count;
     q->blob[q->count] = item;
     q->owner[q->count] = worker;
     q->count += 1;
-    if (count == 0 && q->count == 1) {
-        lock_basic_broadcast(&q->q_threshold);
+    if (q->count == 1) {
         ods_log_deeebug("[%s] threshold %u reached, notify drudgers",
             fifoq_str, q->count);
+        lock_basic_broadcast(&q->q_threshold);
     }
     return ODS_STATUS_OK;
 }
@@ -152,15 +151,18 @@ fifoq_cleanup(fifoq_type* q)
 {
     allocator_type* allocator;
     lock_basic_type q_lock;
-    cond_basic_type q_cond;
+    cond_basic_type q_threshold;
+    cond_basic_type q_nonfull;
     if (!q) {
         return;
     }
     allocator = q->allocator;
     q_lock = q->q_lock;
-    q_cond = q->q_threshold;
+    q_threshold = q->q_threshold;
+    q_nonfull = q->q_nonfull;
     allocator_deallocate(allocator, (void*) q);
-    lock_basic_off(&q_cond);
+    lock_basic_off(&q_threshold);
+    lock_basic_off(&q_nonfull);
     lock_basic_destroy(&q_lock);
     return;
 }

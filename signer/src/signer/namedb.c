@@ -164,101 +164,6 @@ namedb_create(void* zone)
 
 
 /**
- * Recover namedb from backup.
- *
- */
-ods_status
-namedb_recover(namedb_type* db, FILE* fd)
-{
-    const char* token = NULL;
-    const char* owner = NULL;
-    int dstatus = 0;
-    ods_status status = ODS_STATUS_OK;
-    domain_type* domain = NULL;
-    ldns_rdf* rdf = NULL;
-    ldns_rbnode_t* denial_node = LDNS_RBTREE_NULL;
-    denial_type* denial = NULL;
-
-    ods_log_assert(db);
-    ods_log_assert(fd);
-
-    while (backup_read_str(fd, &token)) {
-        /* domain part */
-        if (ods_strcmp(token, ";;Domain:") == 0) {
-            if (!backup_read_check_str(fd, "name") ||
-                !backup_read_str(fd, &owner) ||
-                !backup_read_check_str(fd, "status") ||
-                !backup_read_int(fd, &dstatus)) {
-                ods_log_error("[%s] domain in backup corrupted", db_str);
-                goto recover_domain_error;
-            }
-            /* ok, look up domain */
-            rdf = ldns_dname_new_frm_str(owner);
-            if (rdf) {
-                domain = namedb_lookup_domain(db, rdf);
-                ldns_rdf_deep_free(rdf);
-                rdf = NULL;
-            }
-            if (!domain) {
-                ods_log_error("[%s] domain in backup, but not in namedb",
-                    db_str);
-                goto recover_domain_error;
-            }
-            /* lookup success */
-            status = domain_recover(domain, fd, dstatus);
-            if (status != ODS_STATUS_OK) {
-                log_dname(domain->dname, "unable to recover domain", LOG_ERR);
-                goto recover_domain_error;
-            }
-            if (domain->denial) {
-                denial = (void*) domain->denial;
-                denial_node = denial2node(denial);
-                /* insert */
-                if (!ldns_rbtree_insert(db->denials, denial_node)) {
-                    log_dname(denial->dname, "unable to recover denial", LOG_ERR);
-                    free((void*)denial_node);
-                    goto recover_domain_error;
-                }
-                denial->node = denial_node;
-                denial_node = NULL;
-            }
-
-            /* done, next domain */
-            free((void*) owner);
-            owner = NULL;
-            domain = NULL;
-        } else if (ods_strcmp(token, ";;") == 0) {
-            /* done with all zone data */
-            free((void*) token);
-            token = NULL;
-            return ODS_STATUS_OK;
-        } else {
-            /* domain corrupted */
-            ods_log_error("[%s] domain in backup corrupted", db_str);
-            goto recover_domain_error;
-        }
-        free((void*) token);
-        token = NULL;
-    }
-
-    if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC)) {
-        ods_log_error("[%s] magic in backup corrupted", db_str);
-        goto recover_domain_error;
-    }
-    return ODS_STATUS_OK;
-
-recover_domain_error:
-    free((void*) owner);
-    owner = NULL;
-
-    free((void*) token);
-    token = NULL;
-
-    return ODS_STATUS_ERR;
-}
-
-
-/**
  * Internal lookup domain function.
  *
  */
@@ -960,8 +865,10 @@ namedb_examine(namedb_type* db)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
+/*
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
+*/
 
     if (!db || !db->domains) {
        /* no db, no error */
@@ -996,8 +903,10 @@ namedb_examine(namedb_type* db)
                 return ODS_STATUS_CONFLICT_ERR;
             }
         }
+/*
         dstatus = domain_is_occluded(domain);
         delegpt = domain_is_delegpt(domain);
+*/
         /* Thou shall not have occluded data in your zone file */
         node = ldns_rbtree_next(node);
     }
@@ -1181,19 +1090,45 @@ namedb_cleanup(namedb_type* db)
  *
  */
 void
-namedb_backup(FILE* fd, namedb_type* db)
+namedb_backup2(FILE* fd, namedb_type* db)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
+    denial_type* denial = NULL;
     if (!fd || !db) {
         return;
     }
     node = ldns_rbtree_first(db->domains);
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        domain_backup(fd, domain);
+        domain_backup2(fd, domain, 0);
         node = ldns_rbtree_next(node);
     }
-    fprintf(fd, ";;\n");
+    fprintf(fd, ";\n");
+    node = ldns_rbtree_first(db->denials);
+    while (node && node != LDNS_RBTREE_NULL) {
+        denial = (denial_type*) node->data;
+        if (denial->rrset) {
+            rrset_print(fd, denial->rrset, 1);
+        }
+        node = ldns_rbtree_next(node);
+    }
+    fprintf(fd, ";\n");
+    /* signatures */
+    node = ldns_rbtree_first(db->domains);
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        domain_backup2(fd, domain, 1);
+        node = ldns_rbtree_next(node);
+    }
+    node = ldns_rbtree_first(db->denials);
+    while (node && node != LDNS_RBTREE_NULL) {
+        denial = (denial_type*) node->data;
+        if (denial->rrset) {
+            rrset_backup2(fd, denial->rrset);
+        }
+        node = ldns_rbtree_next(node);
+    }
+    fprintf(fd, ";\n");
     return;
 }

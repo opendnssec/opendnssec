@@ -89,7 +89,6 @@ signconf_create(void)
     /* Other useful information */
     sc->max_zone_ttl = NULL;
     sc->last_modified = 0;
-    sc->audit = 0;
     return sc;
 }
 
@@ -147,7 +146,6 @@ signconf_read(signconf_type* signconf, const char* scfile)
         signconf->soa_serial = parse_sc_soa_serial(signconf->allocator,
             scfile);
         signconf->max_zone_ttl = parse_sc_max_zone_ttl(scfile);
-        signconf->audit = parse_sc_audit(scfile);
         ods_fclose(fd);
         return ODS_STATUS_OK;
     }
@@ -204,72 +202,6 @@ signconf_update(signconf_type** signconf, const char* scfile,
 
 
 /**
- * Read a signer configuration from backup.
- *
- */
-signconf_type*
-signconf_recover_from_backup(const char* filename)
-{
-    signconf_type* signconf = NULL;
-    const char* zonename = NULL;
-    FILE* scfd = NULL;
-    if (!filename) {
-        return NULL;
-    }
-    scfd = ods_fopen(filename, NULL, "r");
-    if (scfd) {
-        signconf = signconf_create();
-        if (!backup_read_check_str(scfd, ODS_SE_FILE_MAGIC) ||
-            !backup_read_check_str(scfd, ";name:") ||
-            !backup_read_str(scfd, &zonename) ||
-            !backup_read_check_str(scfd, ";filename:") ||
-            !backup_read_str(scfd, &signconf->filename) ||
-            !backup_read_check_str(scfd, ";last_modified:") ||
-            !backup_read_time_t(scfd, &signconf->last_modified) ||
-            !backup_read_check_str(scfd, ";sig_resign_interval:") ||
-            !backup_read_duration(scfd, &signconf->sig_resign_interval) ||
-            !backup_read_check_str(scfd, ";sig_refresh_interval:") ||
-            !backup_read_duration(scfd, &signconf->sig_refresh_interval) ||
-            !backup_read_check_str(scfd, ";sig_validity_default:") ||
-            !backup_read_duration(scfd, &signconf->sig_validity_default) ||
-            !backup_read_check_str(scfd, ";sig_validity_denial:") ||
-            !backup_read_duration(scfd, &signconf->sig_validity_denial) ||
-            !backup_read_check_str(scfd, ";sig_jitter:") ||
-            !backup_read_duration(scfd, &signconf->sig_jitter) ||
-            !backup_read_check_str(scfd, ";sig_inception_offset:") ||
-            !backup_read_duration(scfd, &signconf->sig_inception_offset) ||
-            !backup_read_check_str(scfd, ";nsec_type:") ||
-            !backup_read_rr_type(scfd, &signconf->nsec_type) ||
-            !backup_read_check_str(scfd, ";dnskey_ttl:") ||
-            !backup_read_duration(scfd, &signconf->dnskey_ttl) ||
-            !backup_read_check_str(scfd, ";soa_ttl:") ||
-            !backup_read_duration(scfd, &signconf->soa_ttl) ||
-            !backup_read_check_str(scfd, ";soa_min:") ||
-            !backup_read_duration(scfd, &signconf->soa_min) ||
-            !backup_read_check_str(scfd, ";soa_serial:") ||
-            !backup_read_str(scfd, &signconf->soa_serial) ||
-            !backup_read_check_str(scfd, ";audit:") ||
-            !backup_read_int(scfd, &signconf->audit) ||
-            !backup_read_check_str(scfd, ODS_SE_FILE_MAGIC))
-        {
-            ods_log_error("[%s] unable to recover signconf backup file %s: corrupt "
-                "backup file ", sc_str, filename?filename:"(null)");
-            signconf_cleanup(signconf);
-            signconf = NULL;
-        }
-        if (zonename) {
-            free((void*) zonename);
-        }
-        ods_fclose(scfd);
-        return signconf;
-    }
-    ods_log_debug("[%s] unable to recover signconf backup file %s", sc_str,
-        filename);
-    return NULL;
-}
-
-
-/**
  * Backup duration.
  *
  */
@@ -289,12 +221,17 @@ signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
  *
  */
 void
-signconf_backup(FILE* fd, signconf_type* sc)
+signconf_backup(FILE* fd, signconf_type* sc, const char* version)
 {
     if (!fd || !sc) {
         return;
     }
     fprintf(fd, ";;Signconf: lastmod %u ", (unsigned) sc->last_modified);
+    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) &&
+        strcmp(version, ODS_SE_FILE_MAGIC_V1)) {
+        /* version 3 and up */
+        fprintf(fd, "maxzonettl 0 "); /* prepare for enforcer ng */
+    }
     signconf_backup_duration(fd, "resign", sc->sig_resign_interval);
     signconf_backup_duration(fd, "refresh", sc->sig_refresh_interval);
     signconf_backup_duration(fd, "valid", sc->sig_validity_default);
@@ -306,7 +243,9 @@ signconf_backup(FILE* fd, signconf_type* sc)
     signconf_backup_duration(fd, "soattl", sc->soa_ttl);
     signconf_backup_duration(fd, "soamin", sc->soa_min);
     fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
-    fprintf(fd, "audit %i\n", sc->audit);
+    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
+        fprintf(fd, "audit 0\n");
+    }
     return;
 }
 
@@ -441,6 +380,8 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
 
            new_task = TASK_NSECIFY;
        }
+   } else if (duration_compare(a->soa_min, b->soa_min)) {
+       new_task = TASK_NSECIFY;
    }
    return new_task;
 }
@@ -526,11 +467,6 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
             sc->soa_serial?sc->soa_serial:"(null)");
         fprintf(out, "\t\t</SOA>\n");
         fprintf(out, "\n");
-        /* Audit */
-        if (sc->audit) {
-            fprintf(out, "\t\t<Audit />\n");
-            fprintf(out, "\n");
-        }
         fprintf(out, "\t</Zone>\n");
         fprintf(out, "</SignerConfiguration>\n");
     }
@@ -568,11 +504,10 @@ signconf_log(signconf_type* sc, const char* name)
         /* signconf */
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
             "VALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
-            "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s] AUDIT[%i]",
+            "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
             sc_str, name?name:"(null)", resign, refresh, validity, denial,
             jitter, offset, (int) sc->nsec_type, dnskeyttl, soattl,
-            soamin, sc->soa_serial?sc->soa_serial:"(null)",
-            (int) sc->audit);
+            soamin, sc->soa_serial?sc->soa_serial:"(null)");
         /* nsec3 parameters */
         if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
             ods_log_debug("[%s] zone %s nsec3: OPTOUT[%i] ALGORITHM[%u] "

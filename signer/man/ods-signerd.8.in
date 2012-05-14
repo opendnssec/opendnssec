@@ -1,4 +1,4 @@
-.TH "ods-signerd" "8" "February 2010" "OpenDNSSEC" "OpenDNSSEC ods-signerd"
+.TH "ods-signerd" "22" "February 2012" "OpenDNSSEC" "OpenDNSSEC ods-signerd"
 .\" $Id: ods-signerd.8.in 2785 2010-02-02 16:45:00Z rb $
 .SH "NAME"
 .LP
@@ -7,7 +7,7 @@
 .SH "SYNOPSIS"
 .LP
 .B ods\-signerd
-.RB [ \-1 ] 
+.RB [ \-1 ]
 .RB [ \-c 
 .IR FILE ]
 .RB [ \-d ] 
@@ -52,7 +52,7 @@ Show version and exit.
 will log all the problems via standard syslog(8).
 .SH "SEE ALSO"
 .LP
-ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
 ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(8),
 ods\-timing(5), opendnssec(7),
 .B http://www.opendnssec.org/

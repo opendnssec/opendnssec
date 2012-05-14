@@ -94,19 +94,11 @@ nsec3params_type* nsec3params_create(void* sc, uint8_t algo, uint8_t flags,
  * \param[in] iter number of iterations
  * \param[in] salt salt
  * \param[in] rr NSEC3PARAM RR
+ * \param[in] version version string
  *
  */
 void nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
-    uint16_t iter, const char* salt, ldns_rr* rr);
-
-/**
- * Recover NSEC3 parameters from backup.
- * \param[in] fd file descriptor of key backup file
- * \param[out] rr the NSEC3PARAMS resource record
- * \return nsec3params_type* the recovered nsec3params
- *
- */
-nsec3params_type* nsec3params_recover_from_backup(FILE* fd, ldns_rr** rr);
+    uint16_t iter, const char* salt, ldns_rr* rr, const char* version);
 
 /**
  * Convert salt to string.

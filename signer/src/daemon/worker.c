@@ -35,6 +35,7 @@
 #include "daemon/worker.h"
 #include "shared/allocator.h"
 #include "shared/duration.h"
+#include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
@@ -163,17 +164,18 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
         tries++;
         lock_basic_lock(&q->q_lock);
         status = fifoq_push(q, (void*) rrset, worker, &tries);
-        lock_basic_unlock(&q->q_lock);
         if (worker->need_to_exit) {
+            lock_basic_unlock(&q->q_lock);
             return;
         }
         /**
          * If tries are 0 they we have tries FIFOQ_TRIES_COUNT times,
          * lets take a small break to not hog CPU.
          */
-        if (status == ODS_STATUS_UNCHANGED && !tries) {
-            usleep(10000);
+        if (status == ODS_STATUS_UNCHANGED) {
+            worker_wait_timeout_locked(&q->q_lock, &q->q_nonfull, 60);
         }
+        lock_basic_unlock(&q->q_lock);
     }
     ods_log_assert(status == ODS_STATUS_OK);
     lock_basic_lock(&worker->worker_lock);
@@ -337,6 +339,7 @@ worker_perform_task(worker_type* worker)
                     task_who2str(task));
                 status = ODS_STATUS_ERR;
             } else {
+                lhsm_check_connection((void*)engine);
                 status = tools_input(zone);
             }
             if (status == ODS_STATUS_OK) {
@@ -385,6 +388,8 @@ worker_perform_task(worker_type* worker)
                 zone->stats->sig_time = 0;
                 lock_basic_unlock(&zone->stats->stats_lock);
             }
+            /* check the HSM connection before queuing sign operations */
+            lhsm_check_connection((void*)engine);
             /* queue menial, hard signing work */
             worker_queue_zone(worker, engine->signq, zone);
             ods_log_deeebug("[%s[%i]] wait until drudgers are finished "
@@ -490,7 +495,7 @@ worker_perform_task(worker_type* worker)
     }
     /* backup the last successful run */
     if (backup) {
-        status = zone_backup(zone);
+        status = zone_backup2(zone);
         if (status != ODS_STATUS_OK) {
             ods_log_warning("[%s[%i]] unable to backup zone %s: %s",
             worker2str(worker->type), worker->thread_num,
@@ -572,6 +577,11 @@ worker_work(worker_type* worker)
             worker->task = NULL;
             worker->working_with = TASK_NONE;
             status = schedule_task(engine->taskq, zone->task, 1);
+            if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s[%i]] unable to schedule task for zone %s: "
+                "%s", worker2str(worker->type), worker->thread_num,
+                zone->name, ods_status2str(status));
+            }
             lock_basic_unlock(&engine->taskq->schedule_lock);
             lock_basic_unlock(&zone->zone_lock);
             timeout = 1;
@@ -617,16 +627,13 @@ worker_drudge(worker_type* worker)
     ods_log_assert(worker->type == WORKER_DRUDGER);
 
     engine = (engine_type*) worker->engine;
-drudger_create_ctx:
+    ods_log_debug("[%s[%i]] create hsm context",
+        worker2str(worker->type), worker->thread_num);
     ctx = hsm_create_context();
-    if (ctx == NULL) {
-        ods_log_error("[%s[%i]] unable to drudge: error "
-            "creating libhsm context", worker2str(worker->type),
-            worker->thread_num);
-        worker_wait(&engine->signq->q_lock, &engine->signq->q_threshold);
-        goto drudger_create_ctx;
+    if (!ctx) {
+        ods_log_crit("[%s[%i]] error creating libhsm context",
+            worker2str(worker->type), worker->thread_num);
     }
-    ods_log_assert(ctx);
     while (worker->need_to_exit == 0) {
         ods_log_deeebug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
@@ -772,11 +779,37 @@ worker_wakeup(worker_type* worker)
  *
  */
 void
-worker_wait(lock_basic_type* lock, cond_basic_type* condition)
+worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
+    time_t timeout)
 {
     lock_basic_lock(lock);
-    lock_basic_sleep(condition, lock, 0);
+    lock_basic_sleep(condition, lock, timeout);
     lock_basic_unlock(lock);
+    return;
+}
+
+
+/**
+ * Worker waiting on an already locked cond
+ *
+ */
+void
+worker_wait_timeout_locked(lock_basic_type* lock, cond_basic_type* condition,
+    time_t timeout)
+{
+    lock_basic_sleep(condition, lock, timeout);
+    return;
+}
+
+
+/**
+ * Worker waiting.
+ *
+ */
+void
+worker_wait(lock_basic_type* lock, cond_basic_type* condition)
+{
+    worker_wait_timeout(lock, condition, 0);
     return;
 }
 

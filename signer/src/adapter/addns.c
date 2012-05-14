@@ -71,7 +71,7 @@ addns_read_line:
     if (ttl) {
         new_ttl = *ttl;
     }
-    len = adutil_readline_frm_file(fd, line, l);
+    len = adutil_readline_frm_file(fd, line, l, 0);
     adutil_rtrim_line(line, &len);
     if (len >= 0) {
         switch (line[0]) {
@@ -104,7 +104,7 @@ addns_read_line:
                         adapter_str, l&&*l?*l:0,
                         ldns_get_errorstr_by_id(*status), line);
                     while (len >= 0) {
-                        len = adutil_readline_frm_file(fd, line, l);
+                        len = adutil_readline_frm_file(fd, line, l, 0);
                     }
                     if (rr) {
                         ldns_rr_free(rr);
@@ -280,13 +280,13 @@ addns_read_file(FILE* fd, zone_type* zone)
         if (!is_axfr && del_mode) {
             ods_log_debug("[%s] delete RR #%i at line %i: %s",
                 adapter_str, rr_count, l, line);
-            result = adapi_del_rr(zone, rr);
+            result = adapi_del_rr(zone, rr, 0);
             ldns_rr_free(rr);
             rr = NULL;
         } else {
             ods_log_debug("[%s] add RR #%i at line %i: %s",
                 adapter_str, rr_count, l, line);
-            result = adapi_add_rr(zone, rr);
+            result = adapi_add_rr(zone, rr, 0);
         }
         if (result == ODS_STATUS_UNCHANGED) {
             ods_log_debug("[%s] skipping RR at line %i (%s): %s",
@@ -591,7 +591,7 @@ addns_read(void* zone)
     }
 
     lock_basic_lock(&z->xfrd->rw_lock);
-    xfrfile = ods_build_path(z->name, ".xfrd", 0);
+    xfrfile = ods_build_path(z->name, ".xfrd", 0, 1);
     fd = ods_fopen(xfrfile, NULL, "r");
     free((void*) xfrfile);
     if (!fd) {
@@ -616,7 +616,7 @@ addns_read(void* zone)
  *
  */
 ods_status
-addns_write(void* zone, const char* filename)
+addns_write(void* zone)
 {
     FILE* fd = NULL;
     char* atmpfile = NULL;
@@ -630,7 +630,7 @@ addns_write(void* zone, const char* filename)
     ods_log_assert(z->adoutbound);
     ods_log_assert(z->adoutbound->type == ADAPTER_DNS);
 
-    atmpfile = ods_build_path(z->name, ".axfr.tmp", 0);
+    atmpfile = ods_build_path(z->name, ".axfr.tmp", 0, 1);
     fd = ods_fopen(atmpfile, NULL, "w");
     if (!fd) {
         free((void*) atmpfile);
@@ -640,7 +640,7 @@ addns_write(void* zone, const char* filename)
     ods_fclose(fd);
 
     if (z->db->is_initialized) {
-        itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0);
+        itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0, 1);
         fd = ods_fopen(itmpfile, NULL, "w");
         if (!fd) {
             free((void*) atmpfile);
@@ -652,7 +652,7 @@ addns_write(void* zone, const char* filename)
     }
 
     /* lock and move */
-    axfrfile = ods_build_path(z->name, ".axfr", 0);
+    axfrfile = ods_build_path(z->name, ".axfr", 0, 1);
     lock_basic_lock(&z->xfr_lock);
     ret = rename(atmpfile, axfrfile);
     if (ret != 0) {
@@ -668,7 +668,7 @@ addns_write(void* zone, const char* filename)
     free((void*) axfrfile);
 
     if (z->db->is_initialized) {
-        ixfrfile = ods_build_path(z->name, ".ixfr", 0);
+        ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
         ret = rename(itmpfile, ixfrfile);
         if (ret != 0) {
             ods_log_error("[%s] unable to rename file %s to %s: %s",

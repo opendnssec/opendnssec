@@ -22,22 +22,12 @@ DEPENDENCIES
 
   OpenDNSSEC depends on  a number of external packages:
 
-  - libmxl2 (including xmllint)
+  - libxml2 (including xmllint)
   - LDNS
   - SQLite3
 
   To run OpenDNSSEC, one must have at least one crypto module providing a
   PKCS#11 library, e.g. SoftHSM (http://www.opendnssec.org/softHSM)
-
-  The Auditor has some additional dependencies:
-
-  - Ruby
-  - rubygems
-    * syslog
-    * openssl
-    * dnsruby
-    * xsd/datatypes
-    * rexml/document
 
   When building from the subversion repository, the following dependencies
   are also needed:
