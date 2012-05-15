@@ -96,7 +96,6 @@ query_reset(query_type* q, size_t maxlen, int is_tcp)
     q->tsig_update_it = 1;
     q->tsig_sign_it = 1;
     q->tcp = is_tcp;
-    q->tcplen = 0;
     /* qname, qtype, qclass */
     q->zone = NULL;
     /* domain, opcode, cname count, delegation, compression, temp */
@@ -785,6 +784,76 @@ query_add_tsig(query_type* q)
         }
     }
     return;
+}
+
+
+/**
+ * Check if query does not overflow.
+ *
+ */
+static int
+query_overflow(query_type *q)
+{
+    ods_log_assert(q);
+    ods_log_assert(q->buffer);
+    return buffer_position(q->buffer) > (q->maxlen - q->reserved_space);
+}
+
+
+/**
+ * Add RR to query.
+ *
+ */
+int
+query_add_rr(query_type* q, ldns_rr* rr)
+{
+    size_t i = 0;
+    size_t tc_mark = 0;
+    size_t rdlength_pos = 0;
+    uint16_t rdlength = 0;
+
+    ods_log_assert(q);
+    ods_log_assert(q->buffer);
+    ods_log_assert(rr);
+
+    /* set truncation mark, in case rr does not fit */
+    tc_mark = buffer_position(q->buffer);
+    /* owner type class ttl */
+    if (!buffer_available(q->buffer, ldns_rdf_size(ldns_rr_owner(rr)))) {
+        goto query_add_rr_tc;
+    }
+    buffer_write_rdf(q->buffer, ldns_rr_owner(rr));
+    if (!buffer_available(q->buffer, sizeof(uint16_t) + sizeof(uint16_t) +
+        sizeof(uint32_t) + sizeof(rdlength))) {
+        goto query_add_rr_tc;
+    }
+    buffer_write_u16(q->buffer, (uint16_t) ldns_rr_get_type(rr));
+    buffer_write_u16(q->buffer, (uint16_t) ldns_rr_get_class(rr));
+    buffer_write_u32(q->buffer, (uint32_t) ldns_rr_ttl(rr));
+    /* skip rdlength */
+    rdlength_pos = buffer_position(q->buffer);
+    buffer_skip(q->buffer, sizeof(rdlength));
+    /* write rdata */
+    for (i=0; i < ldns_rr_rd_count(rr); i++) {
+        if (!buffer_available(q->buffer, ldns_rdf_size(ldns_rr_rdf(rr, i)))) {
+            goto query_add_rr_tc;
+        }
+        buffer_write_rdf(q->buffer, ldns_rr_rdf(rr, i));
+    }
+
+    if (!query_overflow(q)) {
+        /* write rdlength */
+        rdlength = buffer_position(q->buffer) - rdlength_pos - sizeof(rdlength);
+        buffer_write_u16_at(q->buffer, rdlength_pos, rdlength);
+        /* position updated by buffer_write() */
+        return 1;
+    }
+
+query_add_rr_tc:
+    buffer_set_position(q->buffer, tc_mark);
+    ods_log_assert(!query_overflow(q));
+    return 0;
+
 }
 
 

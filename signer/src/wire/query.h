@@ -140,6 +140,15 @@ void query_reset(query_type* q, size_t maxlen, int is_tcp);
 void query_add_tsig(query_type* q);
 
 /**
+ * Add RR to query.
+ * \param[in] q query
+ * \param[in] rr RR
+ * \return int 1 if ok, 0 if overflow.
+ *
+ */
+int query_add_rr(query_type* q, ldns_rr* rr);
+
+/**
  * Cleanup query.
  * \param[in] q query
  *

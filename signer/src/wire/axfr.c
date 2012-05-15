@@ -66,8 +66,12 @@ axfr(query_type* q, engine_type* engine)
     size_t bufpos = 0;
     ods_log_assert(q);
     ods_log_assert(q->buffer);
+    ods_log_assert(q->zone);
+    ods_log_assert(q->zone->name);
     ods_log_assert(engine);
     if (q->axfr_is_done) {
+        ods_log_debug("[%s] zone transfer %s completed", axfr_str,
+            q->zone->name);
         return QUERY_PROCESSED;
     }
     if (q->maxlen > AXFR_MAX_MESSAGE_LEN) {
@@ -82,8 +86,6 @@ axfr(query_type* q, engine_type* engine)
         q->tsig_sign_it = 0;
     }
     ods_log_assert(q->tsig_rr);
-    ods_log_assert(q->zone);
-    ods_log_assert(q->zone->name);
     if (q->axfr_fd == NULL) {
         /* start axfr */
         xfrfile = ods_build_path(q->zone->name, ".axfr", 0, 1);
@@ -124,7 +126,7 @@ axfr(query_type* q, engine_type* engine)
             return QUERY_PROCESSED;
         }
         /* does it fit? */
-        if (buffer_write_rr(q->buffer, rr)) {
+        if (query_add_rr(q, rr)) {
             ods_log_debug("[%s] set soa in axfr zone %s", axfr_str,
                 q->zone->name);
             buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
@@ -166,7 +168,7 @@ axfr(query_type* q, engine_type* engine)
             return QUERY_PROCESSED;
         }
         /* does it fit? */
-        if (buffer_write_rr(q->buffer, rr)) {
+        if (query_add_rr(q, rr)) {
             ods_log_deeebug("[%s] add rr at line %d", axfr_str, l);
             fpos = ftell(q->axfr_fd);
             buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
@@ -213,6 +215,9 @@ return_axfr:
         }
         return QUERY_AXFR;
     }
+    ods_log_error("[%s] zone transfer %s not tcp", axfr_str,
+            q->zone->name);
+
 udp_overflow:
     /* UDP Overflow */
     ods_log_info("[%s] axfr udp overflow zone %s", axfr_str, q->zone->name);
@@ -224,6 +229,8 @@ udp_overflow:
     if (q->tsig_rr->status == TSIG_OK) {
         q->tsig_sign_it = 1;
     }
+    ods_log_debug("[%s] zone transfer %s udp overflow", axfr_str,
+        q->zone->name);
     return QUERY_PROCESSED;
 
 }
@@ -310,7 +317,7 @@ ixfr(query_type* q, engine_type* engine)
             ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
         /* does it fit? */
         buffer_set_position(q->buffer, q->startpos);
-        if (buffer_write_rr(q->buffer, rr)) {
+        if (query_add_rr(q, rr)) {
             ods_log_debug("[%s] set soa in ixfr zone %s", axfr_str,
                 q->zone->name);
             buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
@@ -365,7 +372,7 @@ ixfr(query_type* q, engine_type* engine)
             }
         }
         /* does it fit? */
-        if (buffer_write_rr(q->buffer, rr)) {
+        if (query_add_rr(q, rr)) {
             ods_log_deeebug("[%s] add rr at line %d", axfr_str, l);
             fpos = ftell(q->axfr_fd);
             buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);

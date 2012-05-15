@@ -4,9 +4,13 @@ OpenDNSSEC 1.4.0
 
 * OPENDNSSEC-226: Change in conf.xml: Configure the DNS listener IP address
   with /Listener/Interface/Address instead of /Listener/Interface/IPv{4,6}.
-* Enforcer: Add indexes for foreign keys. (sqlite only, MySQL already has them.)
 * OPENDNSSEC-249: ods-ksmutil: If key export finds nothing to do then say so
   rather than display nothing which might be misinterpreted.
+* Enforcer: Add indexes for foreign keys. (sqlite only, MySQL already has them.)
+
+Bugfixes:
+* Signer Engine: Fix assertion failure for outbound AXFR for large zones.
+
 
 OpenDNSSEC 1.4.0a1 - 2012-03-15
 

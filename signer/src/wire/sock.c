@@ -573,8 +573,6 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
         ods_log_debug("[%s] TCP_READ: reset query", sock_str);
         query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
     }
-    ods_log_debug("[%s] TCP_READ: bytes transmitted %u", sock_str,
-        data->bytes_transmitted);
     /* check if we received the leading packet length bytes yet. */
     if (data->bytes_transmitted < sizeof(uint16_t)) {
         received = read(handler->fd,
@@ -599,7 +597,7 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
                 sock_str, data->bytes_transmitted, received);
          if (data->bytes_transmitted < sizeof(uint16_t)) {
              /* not done with the tcplen yet, wait for more. */
-             ods_log_debug("[%s] TCP_WRITE: bytes transmitted %u, while ",
+             ods_log_debug("[%s] TCP_READ: bytes transmitted %u, while ",
                 "sizeof uint16_t %u", sock_str, data->bytes_transmitted,
                 sizeof(uint16_t));
              return;
@@ -661,14 +659,15 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
         return;
     }
     ods_log_debug("[%s] query processed qstate=%d", sock_str, qstate);
+    data->qstate = qstate;
     /* tsig */
     query_add_tsig(data->query);
     /* switch to tcp write handler. */
     buffer_flip(data->query->buffer);
     data->query->tcplen = buffer_remaining(data->query->buffer);
+    ods_log_debug("[%s] TCP_READ: new tcplen %u", sock_str,
+        data->query->tcplen);
     data->bytes_transmitted = 0;
-    ods_log_debug("[%s] TCP_READ: clear buffer: tcplen %u",
-        sock_str, data->query->tcplen);
     handler->timeout->tv_sec = XFRD_TCP_TIMEOUT;
     handler->timeout->tv_nsec = 0L;
     timespec_add(handler->timeout, netio_current_time(netio));
@@ -695,6 +694,7 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
         return;
     }
     ods_log_assert(event_types & NETIO_EVENT_WRITE);
+
     if (data->bytes_transmitted < sizeof(q->tcplen)) {
         uint16_t n_tcplen = htons(q->tcplen);
         sent = write(handler->fd,
@@ -744,6 +744,7 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
         cleanup_tcp_handler(netio, handler);
         return;
     }
+
     buffer_skip(q->buffer, sent);
     data->bytes_transmitted += sent;
     if (data->bytes_transmitted < q->tcplen + sizeof(q->tcplen)) {
@@ -753,6 +754,7 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
            q->tcplen, sizeof(q->tcplen));
         return;
     }
+
     ods_log_debug("[%s] TCP_WRITE: bytes transmitted %u",
         sock_str, data->bytes_transmitted);
     ods_log_debug("[%s] TCP_WRITE: tcplen %u", sock_str, q->tcplen);
