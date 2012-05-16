@@ -437,6 +437,8 @@ zone_update_serial(zone_type* zone)
 
     if (zone->db->serial_updated) {
         /* already done, unmark and return ok */
+        ods_log_debug("[%s] zone %s soa serial already up to date",
+            zone_str, zone->name);
         zone->db->serial_updated = 0;
         return ODS_STATUS_OK;
     }
@@ -905,6 +907,7 @@ zone_recover2(zone_type* zone)
         ods_fclose(fd);
         /* journal */
         zone->db->is_initialized = 1;
+
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
         fd = ods_fopen(filename, NULL, "r");
         if (fd) {
@@ -915,11 +918,10 @@ zone_recover2(zone_type* zone)
                     ods_status2str(status));
                 ixfr_cleanup(zone->ixfr);
                 zone->ixfr = ixfr_create((void*)zone);
-                ixfr_purge(zone->ixfr);
             }
-        } else {
-            ixfr_purge(zone->ixfr);
         }
+        ixfr_purge(zone->ixfr);
+
         /* all ok */
         free((void*)filename);
         ods_fclose(fd);

@@ -193,7 +193,7 @@ adapi_trans_diff(zone_type* zone)
  *
  */
 static ods_status
-adapi_process_soa(zone_type* zone, ldns_rr* rr, int add)
+adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
 {
     uint32_t tmp = 0;
     ldns_rdf* soa_rdata = NULL;
@@ -251,7 +251,9 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add)
             "soa serial rdata", adapi_str, add?"add":"delete", zone->name);
         return ODS_STATUS_ERR;
     }
-    zone->db->serial_updated = 1;
+    if (!backup) {
+        zone->db->serial_updated = 1;
+    }
     return ODS_STATUS_OK;
 }
 
@@ -302,7 +304,7 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
                 "invalid owner name", adapi_str, add?"add":"delete");
             return ODS_STATUS_ERR;
         }
-        status = adapi_process_soa(zone, rr, add);
+        status = adapi_process_soa(zone, rr, add, backup);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to %s rr: failed to process soa "
                 "record", adapi_str, add?"add":"delete");
