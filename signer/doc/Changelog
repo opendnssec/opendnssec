@@ -1,3 +1,12 @@
+16 May 2012: Matthijs
+- Fix crash when deleting denial node without RRset (may happen in policies
+  with NSEC3/ Optout).
+- Purge one time less: fixes assertion error when writing out IXFR file.
+
+15 May 2012: Matthijs
+- Fix assertion error in wire/sock.c when doing outbound axfr for large
+  zones.
+
 20 April 2012: Matthijs
 - OPENDNSSEC-247: TTL on NSEC(3) was not updated on SOA Minimum change.
 

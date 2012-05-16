@@ -10,6 +10,10 @@ OpenDNSSEC 1.4.0
 
 Bugfixes:
 * Signer Engine: Fix assertion failure for outbound AXFR for large zones.
+* Signer Engine: Fix crash in corner cases when signing zone with NSEC3 and
+  Opt-out.
+* Signer Engine: Fix assertion error on reading IXFR with 1 or 2 parts from
+  backup.
 
 
 OpenDNSSEC 1.4.0a1 - 2012-03-15

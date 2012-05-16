@@ -915,10 +915,12 @@ zone_recover2(zone_type* zone)
                     ods_status2str(status));
                 ixfr_cleanup(zone->ixfr);
                 zone->ixfr = ixfr_create((void*)zone);
+                ixfr_purge(zone->ixfr);
             }
+        } else {
+            ixfr_purge(zone->ixfr);
         }
         /* all ok */
-        ixfr_purge(zone->ixfr);
         free((void*)filename);
         ods_fclose(fd);
         if (zone->stats) {
