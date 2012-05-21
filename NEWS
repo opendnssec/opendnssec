@@ -7,6 +7,8 @@ OpenDNSSEC 1.4.0
 * OPENDNSSEC-249: ods-ksmutil: If key export finds nothing to do then say so
   rather than display nothing which might be misinterpreted.
 * Enforcer: Add indexes for foreign keys. (sqlite only, MySQL already has them.)
+* Signer Engine: Add EDNS support, so that zone transfers requests with OPT RRs
+  are allowed.
 
 Bugfixes:
 * Signer Engine: Fix assertion failure for outbound AXFR for large zones.

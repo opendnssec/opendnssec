@@ -1,3 +1,7 @@
+21 May 2012: Matthijs
+- Add EDNS support: Bind9 sends zone transfer and soa requests with EDNS, 
+  OpenDNSSEC did not expect OPT RRs.
+
 16 May 2012: Matthijs
 - Fix crash when deleting denial node without RRset (may happen in policies
   with NSEC3/ Optout).
