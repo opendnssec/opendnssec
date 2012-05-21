@@ -263,7 +263,7 @@ ixfr_purge(ixfr_type* ixfr)
     zone = (zone_type*) ixfr->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->allocator);
-    ods_log_verbose("[%s] purge ixfr for zone %s", ixfr_str, zone->name);
+    ods_log_debug("[%s] purge ixfr for zone %s", ixfr_str, zone->name);
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         if (i == (IXFR_MAX_PARTS - 1)) {
             part_cleanup(zone->allocator, ixfr->part[i]);
