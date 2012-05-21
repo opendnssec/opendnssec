@@ -38,6 +38,7 @@
 #include "shared/util.h"
 #include "wire/axfr.h"
 #include "wire/buffer.h"
+#include "wire/edns.h"
 #include "wire/query.h"
 #include "wire/sock.h"
 
@@ -148,6 +149,7 @@ axfr(query_type* q, engine_type* engine)
         /* subsequent axfr packets */
         ods_log_debug("[%s] subsequent axfr packet zone %s", axfr_str,
             q->zone->name);
+        q->edns_rr->status = EDNS_NOT_PRESENT;
         buffer_set_limit(q->buffer, BUFFER_PKT_HEADER_SIZE);
         buffer_pkt_set_qdcount(q->buffer, 0);
         query_prepare(q);

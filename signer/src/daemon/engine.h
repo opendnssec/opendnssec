@@ -45,6 +45,7 @@
 #include "shared/allocator.h"
 #include "shared/locks.h"
 #include "signer/zonelist.h"
+#include "wire/edns.h"
 
 #include <signal.h>
 
@@ -64,6 +65,7 @@ struct engine_struct {
     cmdhandler_type* cmdhandler;
     dnshandler_type* dnshandler;
     xfrhandler_type* xfrhandler;
+    edns_data_type edns;
     int cmdhandler_done;
 
     pid_t pid;

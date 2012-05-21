@@ -418,7 +418,7 @@ sock_handle_udp(netio_type* ATTR_UNUSED(netio), netio_handler_type* handler,
     qstate = query_process(q, data->engine);
     if (qstate != QUERY_DISCARDED) {
         ods_log_debug("[%s] query processed qstate=%d", sock_str, qstate);
-        query_add_tsig(q);
+        query_add_optional(q, data->engine);
         buffer_flip(q->buffer);
         send_udp(data, q);
     }
@@ -660,8 +660,8 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
     }
     ods_log_debug("[%s] query processed qstate=%d", sock_str, qstate);
     data->qstate = qstate;
-    /* tsig */
-    query_add_tsig(data->query);
+    /* edns, tsig */
+    query_add_optional(data->query, data->engine);
     /* switch to tcp write handler. */
     buffer_flip(data->query->buffer);
     data->query->tcplen = buffer_remaining(data->query->buffer);
@@ -770,8 +770,8 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
             data->qstate = axfr(q, data->engine);
         }
         if (data->qstate != QUERY_PROCESSED) {
-            /* tsig */
-            query_add_tsig(q);
+            /* edns, tsig */
+            query_add_optional(q, data->engine);
             buffer_flip(q->buffer);
             q->tcplen = buffer_remaining(q->buffer);
             data->bytes_transmitted = 0;

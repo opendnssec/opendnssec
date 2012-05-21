@@ -38,6 +38,7 @@
 #include "shared/allocator.h"
 #include "signer/zone.h"
 #include "wire/buffer.h"
+#include "wire/edns.h"
 #include "wire/tsig.h"
 
 #define UDP_MAX_MESSAGE_LEN 512
@@ -58,7 +59,7 @@ typedef enum query_enum query_state;
  */
 typedef struct query_struct query_type;
 struct query_struct {
-    /* Memory allocaotr */
+    /* Memory allocator */
     allocator_type* allocator;
     /* Query from addres */
     struct sockaddr_storage addr;
@@ -68,6 +69,8 @@ struct query_struct {
     size_t reserved_space;
     /* TSIG */
     tsig_rr_type* tsig_rr;
+    /* EDNS */
+    edns_rr_type* edns_rr;
     /* TCP */
     int tcp;
     uint16_t tcplen;
@@ -133,11 +136,12 @@ query_state query_process(query_type* q, void* engine);
 void query_reset(query_type* q, size_t maxlen, int is_tcp);
 
 /**
- * Add TSIG to query.
+ * Add optional RRs to query.
  * \param[in] q query
+ * \param[in] engine signer engine
  *
  */
-void query_add_tsig(query_type* q);
+void query_add_optional(query_type* q, void* engine);
 
 /**
  * Add RR to query.

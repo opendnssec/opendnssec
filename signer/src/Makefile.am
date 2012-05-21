@@ -63,6 +63,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				wire/acl.c wire/acl.h \
 				wire/axfr.c wire/axfr.h \
 				wire/buffer.c wire/buffer.h \
+				wire/edns.c wire/edns.h \
 				wire/listener.c wire/listener.h \
 				wire/netio.c wire/netio.h \
 				wire/notify.c wire/notify.h \
