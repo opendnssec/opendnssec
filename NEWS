@@ -6,17 +6,18 @@ OpenDNSSEC 1.4.0
   with /Listener/Interface/Address instead of /Listener/Interface/IPv{4,6}.
 * OPENDNSSEC-249: ods-ksmutil: If key export finds nothing to do then say so
   rather than display nothing which might be misinterpreted.
+* OPENDNSSEC-262: Signer Engine: Make DNS Adapter ACL optional.
+* OPENDNSSEC-263: Signer Engine: Added EDNS0 support, so that zone transfers
+  and SOA requests with OPT RRs are possible.
 * Enforcer: Add indexes for foreign keys. (sqlite only, MySQL already has them.)
-* Signer Engine: Add EDNS support, so that zone transfers requests with OPT RRs
-  are allowed.
 
 Bugfixes:
-* Signer Engine: Fix assertion failure for outbound AXFR for large zones.
-* Signer Engine: Fix crash in corner cases when signing zone with NSEC3 and
-  Opt-out.
-* Signer Engine: Fix assertion error on reading IXFR with 1 or 2 parts from
+* OPENDNSSEC-259: Signer Engine: Fix assertion failure for outbound AXFR for
+  large zones.
+* OPENDNSSEC-264: Signer Engine: Fix assertion error on reading IXFR from
   backup.
-
+* OPENDNSSEC-265: Signer Engine: Fix crash in corner cases when signing zone
+  with NSEC3 and Opt-out.
 
 OpenDNSSEC 1.4.0a1 - 2012-03-15
 
