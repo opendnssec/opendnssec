@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.4.0a2
+OpenDNSSEC 1.4.0a2 - 2012-05-24
 
 * OPENDNSSEC-226: Change in conf.xml: Configure the DNS listener IP address
   with /Listener/Interface/Address instead of /Listener/Interface/IPv{4,6}.
