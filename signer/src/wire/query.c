@@ -216,30 +216,29 @@ query_parse_soa(buffer_type* buffer, uint32_t* serial)
     ldns_rr_type type = 0;
     ods_log_assert(buffer);
     if (!buffer_available(buffer, 10)) {
-        ods_log_error("[%s] bad notify: packet too short", query_str);
+        ods_log_error("[%s] bad soa: packet too short", query_str);
         return 0;
     }
     type = (ldns_rr_type) buffer_read_u16(buffer);
     if (type != LDNS_RR_TYPE_SOA) {
-        ods_log_error("[%s] bad notify: rr in answer section is not soa (%d)",
-            query_str, type);
+        ods_log_error("[%s] bad soa: rr is not soa (%d)", query_str, type);
         return 0;
     }
     (void)buffer_read_u16(buffer);
     (void)buffer_read_u32(buffer);
     /* rdata length */
     if (!buffer_available(buffer, buffer_read_u16(buffer))) {
-        ods_log_error("[%s] bad notify: soa missing rdlength", query_str);
+        ods_log_error("[%s] bad soa: missing rdlength", query_str);
         return 0;
     }
     /* MNAME */
     if (!buffer_skip_dname(buffer)) {
-        ods_log_error("[%s] bad notify: soa missing mname", query_str);
+        ods_log_error("[%s] bad soa: missing mname", query_str);
         return 0;
     }
     /* RNAME */
     if (!buffer_skip_dname(buffer)) {
-        ods_log_error("[%s] bad notify: soa missing rname", query_str);
+        ods_log_error("[%s] bad soa: missing rname", query_str);
         return 0;
     }
     if (serial) {
@@ -261,7 +260,7 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     uint16_t count = 0;
     uint16_t rrcount = 0;
     uint32_t serial = 0;
-    size_t limit = 0;
+    size_t pos = 0;
     char address[128];
     if (!e || !q || !q->zone) {
         return QUERY_DISCARDED;
@@ -300,7 +299,6 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
         }
         return query_refused(q);
     }
-    limit = buffer_limit(q->buffer);
     ods_log_assert(q->zone->xfrd);
     /* skip header and question section */
     buffer_skip(q->buffer, BUFFER_PKT_HEADER_SIZE);
@@ -312,6 +310,8 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
             return QUERY_DISCARDED;
         }
     }
+    pos = buffer_position(q->buffer);
+
     /* examine answer section */
     count = buffer_pkt_ancount(q->buffer);
     if (count) {
@@ -349,8 +349,12 @@ send_notify_ok:
     buffer_pkt_set_qr(q->buffer);
     buffer_pkt_set_aa(q->buffer);
     buffer_pkt_set_ancount(q->buffer, 0);
-    buffer_clear(q->buffer);
-    buffer_set_position(q->buffer, limit);
+
+    buffer_clear(q->buffer); /* lim = pos, pos = 0; */
+    buffer_set_position(q->buffer, pos);
+    buffer_set_limit(q->buffer, buffer_capacity(q->buffer));
+    q->reserved_space = edns_rr_reserved_space(q->edns_rr);
+    q->reserved_space += tsig_rr_reserved_space(q->tsig_rr);
     return QUERY_PROCESSED;
 }
 
@@ -895,6 +899,7 @@ query_add_optional(query_type* q, void* engine)
             case EDNS_NOT_PRESENT:
                 break;
             case EDNS_OK:
+                ods_log_debug("[%s] add edns opt ok", query_str);
                 if (q->edns_rr->dnssec_ok) {
                     edns->ok[7] = 0x80;
                 } else {
@@ -907,6 +912,7 @@ query_add_optional(query_type* q, void* engine)
                     buffer_pkt_arcount(q->buffer) + 1);
                 break;
             case EDNS_ERROR:
+                ods_log_debug("[%s] add edns opt err", query_str);
                 if (q->edns_rr->dnssec_ok) {
                     edns->ok[7] = 0x80;
                 } else {
@@ -927,14 +933,17 @@ query_add_optional(query_type* q, void* engine)
         return;
     }
     if (q->tsig_rr->status != TSIG_NOT_PRESENT) {
+
          if (q->tsig_rr->status == TSIG_ERROR ||
              q->tsig_rr->error_code != LDNS_RCODE_NOERROR) {
+             ods_log_debug("[%s] add tsig err", query_str);
              tsig_rr_error(q->tsig_rr);
              tsig_rr_append(q->tsig_rr, q->buffer);
              buffer_pkt_set_arcount(q->buffer,
                  buffer_pkt_arcount(q->buffer)+1);
          } else if (q->tsig_rr->status == TSIG_OK &&
              q->tsig_rr->error_code == LDNS_RCODE_NOERROR) {
+             ods_log_debug("[%s] add tsig ok", query_str);
              if (q->tsig_prepare_it)
                  tsig_rr_prepare(q->tsig_rr);
              if (q->tsig_update_it)

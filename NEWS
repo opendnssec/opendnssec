@@ -18,6 +18,8 @@ Bugfixes:
   backup.
 * OPENDNSSEC-265: Signer Engine: Fix crash in corner cases when signing zone
   with NSEC3 and Opt-out.
+* OPENDNSSEC-267: Signer Engine: Sign NOTIFY OK response with TSIG, if present
+  in the query and ACL.
 
 
 OpenDNSSEC 1.4.0a1 - 2012-03-15
