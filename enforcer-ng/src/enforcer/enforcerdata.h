@@ -37,6 +37,7 @@
 #include "policy/kasp.pb.h"
 
 enum KeyRole { KSK=1, ZSK, CSK };
+#undef DS /* DS is defined somewhere on SunOS 5.10 and breaks this enum */
 enum RECORD {REC_MIN, DS = REC_MIN, DK, RD, RS, REC_MAX};
 enum DsAtParent { 
     DS_UNSUBMITTED = 0,

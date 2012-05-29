@@ -63,7 +63,6 @@ static const char *module_str = "enforcer";
 /* be careful changing this, might mess up database*/
 enum STATE {HID, RUM, OMN, UNR, NOCARE}; 
 static const char* STATENAMES[] = {"HID", "RUM", "OMN", "UNR"};
-#undef DS /* DS is defined somewhere on SunOS 5.10 and breaks this enum */
 /* trick to loop over our RECORD enum */
 RECORD& operator++(RECORD& r){return r = (r >= REC_MAX?REC_MAX:RECORD(r+1));}
 static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
@@ -71,6 +70,13 @@ static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 
 /** When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
+
+struct FutureKey {
+	KeyData *key;
+	RECORD record;
+	STATE next_state;
+	bool pretend_update;
+};
 
 /**
  * Stores the minimum of parm1 and parm2 in parm2.
@@ -135,11 +141,16 @@ getRecord(KeyData &key, const RECORD record)
  * \return state of record.
  * */
 inline STATE
-getState(KeyData &key, const RECORD record)
+getState(KeyData &key, const RECORD record, 
+	const struct FutureKey *future_key)
 {
-	return (STATE)getRecord(key, record).state();
+	if (future_key && future_key->pretend_update 
+		&& &key == future_key->key 
+		&& record == future_key->record)
+		return future_key->next_state;
+	else
+		return (STATE)getRecord(key, record).state();
 }
-
 /**
  * Given goal and state, what will be the next state?
  * 
@@ -180,24 +191,19 @@ getDesiredState(const bool introducing, const STATE state)
  * @return True IFF exist such key.
  * */
 bool
-match(KeyData &k, KeyData &key, 
-	const RECORD record, const STATE next_state, 
-	const bool require_same_algorithm, const bool pretend_update, 
-	const STATE mask[4])
+match(KeyData &k, const struct FutureKey *future_key,
+	const bool require_same_algorithm, const STATE mask[4])
 {
-	if (require_same_algorithm && k.algorithm() != key.algorithm())
+	if (require_same_algorithm && 
+		k.algorithm() != future_key->key->algorithm())
 		return false;
 	/** Do we need to substitute a state of this key with 
 	 * next_state? */
-	bool sub_key = pretend_update && &key == &k;
 	for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
 		/** Do we need to substitute the state of THIS record? */
-		bool sub_rec = sub_key && record == r;
 		if (mask[r] == NOCARE) continue;
-		/** Use actual state or next state */
-		STATE state = (sub_rec?next_state:getState(k, r));
 		/** no match in this record */
-		if (mask[r] != state) return false;
+		if (mask[r] != getState(k, r, future_key)) return false;
 	}
 	return true;
 }
@@ -219,15 +225,12 @@ match(KeyData &k, KeyData &key,
  * @return True IFF exist such key.
  * */
 bool
-exists(KeyDataList &key_list, KeyData &key, 
-	const RECORD record, const STATE next_state, 
-	const bool require_same_algorithm, const bool pretend_update, 
-	const STATE mask[4])
+exists(KeyDataList &key_list, const struct FutureKey *future_key,
+	const bool require_same_algorithm, const STATE mask[4])
 {
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
-		if (match(k, key, record, next_state, require_same_algorithm, 
-				pretend_update, mask))
+		if (match(k, future_key, require_same_algorithm, mask))
 			return true;
 	}
 	return false;
@@ -240,7 +243,7 @@ KeyData *
 stringToKeyData(KeyDataList &key_list, const string &locator)
 {
 	for (int i = 0; i < key_list.numKeys(); i++) {
-		if (locator.compare(key_list.key(i).locator())) {
+		if (locator.compare(key_list.key(i).locator()) == 0) {
 			return &key_list.key(i);
 		}
 	}
@@ -248,25 +251,25 @@ stringToKeyData(KeyDataList &key_list, const string &locator)
 }
 
 bool
-isPotentialSuccessor(KeyData &pred_key, const RECORD record, KeyData &succ_key)
+isPotentialSuccessor(KeyData &pred_key, const struct FutureKey *future_key, KeyData &succ_key, const RECORD succRelRec)
 {
 	const char *scmd = "isPotentialSuccessor";
 	/** must at least have record introducing */
-	if (getState(succ_key, record) != RUM) return false;
+	if (getState(succ_key, succRelRec, future_key) != RUM) return false;
 	if (pred_key.algorithm() != succ_key.algorithm()) return false;
-	switch(record) {
+	switch(future_key->record) {
 		case DS: /** intentional fall-through */
 		case RS: 
-			return getState(succ_key, DK) == OMN;
+			return getState(succ_key, DK, future_key) == OMN;
 		case DK: 
-			return (getState(pred_key, DS) == OMN) && 
-					(getState(succ_key, DS) == OMN) ||
-					(getState(pred_key, RS) == OMN) && 
-					(getState(succ_key, RS) == OMN) ;
+			return  (getState(pred_key, DS, future_key) == OMN) && 
+					(getState(succ_key, DS, future_key) == OMN) ||
+					(getState(pred_key, RS, future_key) == OMN) && 
+					(getState(succ_key, RS, future_key) == OMN) ;
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
 				"fault of programmer. Abort.",
-				module_str, scmd, (int)record);
+				module_str, scmd, (int)future_key->record);
 			return false;
 	}
 }
@@ -274,39 +277,52 @@ isPotentialSuccessor(KeyData &pred_key, const RECORD record, KeyData &succ_key)
 /** True if a path from k_succ to k_pred exists */
 bool
 successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_succ, 
-		const string &k_pred, const RECORD record,
-		KeyData &key, const bool pretend_update) 
+		const string &k_pred,
+		struct FutureKey *future_key, const RECORD succRelRec) 
 {
-	/** trivial cases */
+	/** trivial case where there is a direct relation in the present */
 	for (int i = 0; i < dep_list.numDeps(); i++) {
 		KeyDependency &dep = dep_list.dep(i);
-		if (dep.rrType() != record ||
-				!dep.fromKey().compare( k_pred )) continue;
-		
-		/** dep.toKey() is candidate
-		 * Direct relation */
-		if ( dep_list.dep(i).toKey().compare( k_succ.locator() ) ) 
+		if (dep.rrType() == succRelRec &&
+			dep.fromKey().compare( k_pred ) == 0 &&
+			dep_list.dep(i).toKey().compare( k_succ.locator() ) == 0 ) 
 			return true;
-		/** No direct relation, so state must match */
-		KeyData *toKey = stringToKeyData(key_list, dep_list.dep(i).toKey());
+	}
+	/** trivial case where there is a direct relation in the future */
+	if (future_key->pretend_update && 
+		future_key->key->locator().compare(k_pred) == 0 && 
+		isPotentialSuccessor(*future_key->key, future_key, k_succ, succRelRec))
+		return true;
+
+	/** There is no direct relation. Check for indirect where X depends
+	 * on S and X in same state as P and X successor of P*/
+	for (int i = 0; i < dep_list.numDeps(); i++) {
+		KeyDependency &dep = dep_list.dep(i);
+		if (dep.rrType() != succRelRec ||
+				dep.toKey().compare( k_succ.locator()) != 0) continue;
+		//fromKey() is candidate now, must be in same state as k_pred
+		KeyData *fromKey = stringToKeyData(key_list, dep.fromKey());
+		KeyData *prKey = stringToKeyData(key_list, k_pred);
 		//TODO, make fine grained. depending on record
-		if (getState(k_succ, DS) != getState(*toKey, DS)) continue;
-		if (getState(k_succ, DK) != getState(*toKey, DK)) continue;
-		if (getState(k_succ, RS) != getState(*toKey, RS)) continue;
+		if (getState(*prKey, DS, future_key) != getState(*fromKey, DS, future_key)) continue;
+		if (getState(*prKey, DK, future_key) != getState(*fromKey, DK, future_key)) continue;
+		if (getState(*prKey, RS, future_key) != getState(*fromKey, RS, future_key)) continue;
 		/** state maches, can be build a chain? */
-		if (successor_rec(key_list, dep_list, k_succ, dep.toKey(), record, key, pretend_update)) {
+		if (successor_rec(key_list, dep_list, *fromKey, k_pred, future_key, succRelRec)) {
 			return true;
 		}
 	}
-	/** no definitive answer yet, maybe if we pretend the update has
-	 * happened? */
-	if (pretend_update) {
+	/** There is no direct relation. Check for indirect where X depends
+	 * on S and X in same state as P and X successor of P*/
+	 //for all X, is S succ of X?
+	if (future_key->pretend_update) {
 		for (int i = 0; i < key_list.numKeys(); i++) {
-			if (isPotentialSuccessor(key_list.key(i), record, k_succ)) {
-				if (getState(k_succ, DS) != getState(key_list.key(i), DS)) continue;
-				if (getState(k_succ, DK) != getState(key_list.key(i), DK)) continue;
-				if (getState(k_succ, RS) != getState(key_list.key(i), RS)) continue;
-				if (successor_rec(key_list, dep_list, k_succ, key_list.key(i).locator(), record, key, pretend_update)) {
+			if (isPotentialSuccessor(key_list.key(i), future_key, k_succ, succRelRec)) {
+				KeyData *prKey = stringToKeyData(key_list, k_pred);
+				if (getState(*prKey, DS, future_key) != getState(key_list.key(i), DS, NULL)) continue;
+				if (getState(*prKey, DK, future_key) != getState(key_list.key(i), DK, NULL)) continue;
+				if (getState(*prKey, RS, future_key) != getState(key_list.key(i), RS, NULL)) continue;
+				if (successor_rec(key_list, dep_list, k_succ, key_list.key(i).locator(), future_key, succRelRec)) {
 					return true;
 				}
 			}
@@ -315,49 +331,48 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 	return false;
 }
 
+/** X is a successor of Y if:
+ * 		- Exists no Z depending on Y and
+ * 		- (Y depends on X or
+ * 		- Exist a Z where
+ * 			- Z in same state as Y and
+ * 			- Z depends on X */
 /** True if k_succ is a successor of k_pred */
 bool
 successor(KeyDataList &key_list, KeyDependencyList &dep_list, 
-		KeyData &k_succ, KeyData &k_pred, const RECORD record, 
-		KeyData &key, const bool pretend_update) 
+		KeyData &k_succ, KeyData &k_pred,
+		struct FutureKey *future_key, const RECORD succRelRec) 
 {
 	/** Nothing may depend on our predecessor */
-	for (int i = 0; i < dep_list.numDeps(); i++) {
-		if ( dep_list.dep(i).toKey().compare( k_pred.locator() ) ) 
+	for (int i = 0; i < dep_list.numDeps(); i++)
+		if ( dep_list.dep(i).toKey().compare( k_pred.locator() ) == 0)
 			return false;
-	}
-	if (pretend_update) {
-		//get potential sucessors of predecessor, if any return false
-		for (int i = 0; i < key_list.numKeys(); i++) {
-			if (isPotentialSuccessor(k_pred, record, key_list.key(i))) {
-				return false;
-			}
-		}
-	}
-	return successor_rec(key_list, dep_list, k_succ, k_pred.locator(), record, key, pretend_update);
+	return successor_rec(key_list, dep_list, k_succ, k_pred.locator(), 
+		future_key, succRelRec);
 }
 
 //Seek 
 bool
 exists_with_successor(KeyDependencyList &dep_list, 
-	KeyDataList &key_list, KeyData &key, 
-	const RECORD record, const STATE next_state, 
-	const bool require_same_algorithm, const bool pretend_update, 
-	const STATE mask_pred[4], const STATE mask_succ[4])
+	KeyDataList &key_list, struct FutureKey *future_key,
+	const bool require_same_algorithm, const STATE mask_pred[4], 
+	const STATE mask_succ[4], const RECORD succRelRec)
 {
 	//Seek potential successor keys
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k_succ = key_list.key(i);
-		if (!match(k_succ, key, record, next_state, 
-				require_same_algorithm, pretend_update, mask_succ))
+		/** Do we have a key matching mask_succ? */
+		if (!match(k_succ, future_key, 
+				require_same_algorithm, mask_succ)) {
 			continue;
+		}
 		for (int j = 0; j < key_list.numKeys(); j++) {
 			KeyData &k_pred = key_list.key(j);
-			if (!match(k_pred, key, record, next_state, 
-					require_same_algorithm, pretend_update, mask_pred))
+			/** Do we have a key matching mask_pred? */
+			if (!match(k_pred, future_key, require_same_algorithm, mask_pred))
 				continue;
-			//we have a candidate predeccessor
-			if (successor(key_list, dep_list, k_succ, k_pred, record, key, pretend_update)) return true;
+			if (successor(key_list, dep_list, k_succ, k_pred, future_key, succRelRec))
+				return true;
 		}
 	}
 	return false;
@@ -383,7 +398,7 @@ exists_anon(KeyDataList &key_list, const STATE mask[4])
 			/** Do we need to substitute the state of THIS record? */
 			if (mask[r] == NOCARE) continue;
 			/** no match in this record, try next key */
-			if (mask[r] != getState(k, r)) {
+			if (mask[r] != getState(k, r, NULL)) {
 				match = false;
 				break;
 			}
@@ -410,33 +425,21 @@ exists_anon(KeyDataList &key_list, const STATE mask[4])
  * @return True IFF all keys are securely insecure.
  * */
 bool
-unsignedOk(KeyDataList &key_list, KeyData &key, const RECORD record, 
-	const STATE next_state, const bool pretend_update, 
+unsignedOk(KeyDataList &key_list, const struct FutureKey *future_key, 
 	const STATE mask[4], const RECORD mustHID)
 {
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
-		if (k.algorithm() != key.algorithm()) continue;
-		bool substitute = pretend_update && &key == &k;
+		if (k.algorithm() != future_key->key->algorithm()) continue;
 		
 		STATE cmp_msk[4];
-		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
-			/** all records should satisfy mask */
-			if (r != mustHID) 
-				cmp_msk[r] = mask[r];
-			/** except mustHid, which should be hidden.
-			 * MustHid=record=r: pretend update */
-			else if (substitute && record==r)
-				cmp_msk[r] = next_state;
-			else
-				cmp_msk[r] = getState(k, r);
-		}
+		for (RECORD r = REC_MIN; r < REC_MAX; ++r)
+			cmp_msk[r] = (r == mustHID)?getState(k, r, future_key):mask[r];
 		/** If state is hidden this key is okay. */
-		if (cmp_msk[mustHID] == HID || cmp_msk[mustHID] == NOCARE) 
+		if (cmp_msk[mustHID] == HID || cmp_msk[mustHID] == NOCARE)
 			continue;
 		/** Otherwise, we must test mask */
-		if (!exists(key_list, key, record, next_state, true, 
-			pretend_update, cmp_msk))
+		if (!exists(key_list, future_key, true, cmp_msk))
 			return false;
 	}
 	return true;
@@ -454,15 +457,16 @@ unsignedOk(KeyDataList &key_list, KeyData &key, const RECORD record,
  * @return True IFF a introducing DS exists.
  * */
 bool
-rule1(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RECORD record, 
-	const STATE next_state, const bool pretend_update)
+rule1(KeyDependencyList &dep_list, KeyDataList &key_list, 
+	struct FutureKey *future_key, bool pretend_update)
 {
 	const STATE mask_triv[] =  {OMN, NOCARE, NOCARE, NOCARE};
 	const STATE mask_dsin[] =  {RUM, NOCARE, NOCARE, NOCARE};
 	
+	future_key->pretend_update = pretend_update;
 	return  
-		exists(key_list, key, record, next_state, false, pretend_update, mask_triv) ||
-		exists(key_list, key, record, next_state, false, pretend_update, mask_dsin);
+		exists(key_list, future_key, false, mask_triv) ||
+		exists(key_list, future_key, false, mask_dsin);
 }
 
 /** 
@@ -477,8 +481,8 @@ rule1(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RE
  * @return True IFF one of requirements is met.
  * */
 bool
-rule2(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RECORD record, 
-	const STATE next_state, const bool pretend_update)
+rule2(KeyDependencyList &dep_list, KeyDataList &key_list, 
+	struct FutureKey *future_key, bool pretend_update)
 {
 	const STATE mask_unsg[] =  {HID, OMN, OMN, NOCARE};
 	const STATE mask_triv[] =  {OMN, OMN, OMN, NOCARE};
@@ -489,21 +493,21 @@ rule2(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RE
 	const STATE mask_k_o1[] =  {OMN, UNR, UNR, NOCARE};
 	const STATE mask_k_o2[] =  {OMN, UNR, OMN, NOCARE};
 
+	future_key->pretend_update = pretend_update;
 	/** for performance the lighter, more-likely-to-be-true test are
 	 * performed first. */
 	
 	return
-		exists(key_list, key, record, next_state, true, pretend_update, mask_triv) ||
+		exists(key_list, future_key, true, mask_triv) ||
 		
-		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_ds_o, mask_ds_i) ||
+		exists_with_successor(dep_list, key_list, future_key, true, mask_ds_o, mask_ds_i, DS) ||
 
-		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_k_o1, mask_k_i1) ||
-		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_k_o1, mask_k_i2) ||
-		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_k_o2, mask_k_i1) ||
-		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_k_o2, mask_k_i2) ||
+		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o1, mask_k_i1, DK) ||
+		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o1, mask_k_i2, DK) ||
+		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i1, DK) ||
+		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i2, DK) ||
 		
-
-		unsignedOk(key_list, key, record, next_state, pretend_update, mask_unsg, DS);
+		unsignedOk(key_list, future_key, mask_unsg, DS);
 }
 
 /** 
@@ -518,8 +522,8 @@ rule2(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RE
  * @return True IFF one of requirements is met.
  * */
 bool
-rule3(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RECORD record, 
-	const STATE next_state, const bool pretend_update)
+rule3(KeyDependencyList &dep_list, KeyDataList &key_list, 
+	struct FutureKey *future_key, bool pretend_update)
 {
 	const STATE mask_triv[] =  {NOCARE, OMN, NOCARE, OMN};
 	const STATE mask_keyi[] =  {NOCARE, RUM, NOCARE, OMN};
@@ -528,17 +532,14 @@ rule3(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RE
 	const STATE mask_sigo[] =  {NOCARE, OMN, NOCARE, UNR};
 	const STATE mask_unsg[] =  {NOCARE, HID, NOCARE, OMN};
 
+	future_key->pretend_update = pretend_update;
 	/** for performance the lighter, more-likely-to-be-true test are
 	 * performed first. */
-
 	return
-		exists(key_list, key, record, next_state, true, pretend_update, mask_triv) ||
-		
-		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_keyo, mask_keyi) ||
-		
-		exists_with_successor(dep_list, key_list, key, record, next_state, true, pretend_update, mask_sigo, mask_sigi) ||
-
-		unsignedOk(key_list, key, record, next_state, pretend_update, mask_unsg, DK);
+		exists(key_list, future_key, true, mask_triv) ||
+		exists_with_successor(dep_list, key_list, future_key, true, mask_keyo, mask_keyi, DK) ||
+		exists_with_successor(dep_list, key_list, future_key, true, mask_sigo, mask_sigi, RS) ||
+		unsignedOk(key_list, future_key, mask_unsg, DK);
 }
 
 /**
@@ -555,17 +556,17 @@ rule3(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RE
  * @return True if transition is okay DNSSEC-wise.
  * */
 bool
-dnssecApproval(KeyDependencyList &dep_list, KeyDataList &key_list, KeyData &key, const RECORD record, 
-	const STATE next_state, bool allow_unsigned)
+dnssecApproval(KeyDependencyList &dep_list, KeyDataList &key_list, 
+	struct FutureKey *future_key, bool allow_unsigned)
 {
 	return 
 		(allow_unsigned ||
-		 !rule1(dep_list, key_list, key, record, next_state, false) ||
-		  rule1(dep_list, key_list, key, record, next_state, true ) ) &&
-		(!rule2(dep_list, key_list, key, record, next_state, false) ||
-		  rule2(dep_list, key_list, key, record, next_state, true ) ) &&
-		(!rule3(dep_list, key_list, key, record, next_state, false) ||
-		  rule3(dep_list, key_list, key, record, next_state, true ) );
+		 !rule1(dep_list, key_list, future_key, false) ||
+		  rule1(dep_list, key_list, future_key, true ) ) &&
+		(!rule2(dep_list, key_list, future_key, false) ||
+		  rule2(dep_list, key_list, future_key, true ) ) &&
+		(!rule3(dep_list, key_list, future_key, false) ||
+		  rule3(dep_list, key_list, future_key, true ) );
 }
 
 /**
@@ -626,52 +627,51 @@ minTransitionTime(EnforcerZone &zone, const RECORD record,
  * \return True iff policy allows transition of record to state.
  * */
 bool
-policyApproval(KeyDataList &key_list, KeyData &key, const RECORD record, const STATE next_state)
+policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 {
 	const char *scmd = "policyApproval";
 	
 	/** once the record is introduced the policy has no influence. */
-	if (next_state != RUM) return true;
+	if (future_key->next_state != RUM) return true;
 	
 	const STATE mask_sig[] =  {NOCARE, OMN, NOCARE, OMN};
 	const STATE mask_dnskey[] =  {OMN, OMN, OMN, NOCARE};
 	
-	switch(record) {
+	switch(future_key->record) {
 		case DS:
 			/** If we want to minimize the DS transitions make sure
 			 * the DNSKEY is fully propagated. */
-			return !key.keyStateDS().minimize() || 
-				getState(key, DK) == OMN;
+			return !future_key->key->keyStateDS().minimize() || 
+				getState(*future_key->key, DK, NULL) == OMN;
 		case DK:
 			/** 1) there are no restrictions */
-			if (!key.keyStateDNSKEY().minimize()) return true;
+			if (!future_key->key->keyStateDNSKEY().minimize()) return true;
 			/** 2) If minimize, signatures must ALWAYS be propagated 
 			 * for CSK and ZSK */
-			if (getState(key, RS) != OMN && getState(key, RS) != NOCARE)
+			if (getState(*future_key->key, RS, NULL) != OMN && 
+				getState(*future_key->key, RS, NULL) != NOCARE)
 				return false;
 			/** 3) wait till DS is introduced */
-			if (getState(key, DS) == OMN) return true;
+			if (getState(*future_key->key, DS, NULL) == OMN) return true;
 			/** 4) Except, we might be doing algorithm rollover.
 			 * if no other good KSK available, ignore minimize flag*/
-			return !exists(key_list, key, DK,NOCARE, 
-				true, false, mask_dnskey);
+			return !exists(key_list, future_key, true, mask_dnskey);
 		case RD:
 			/** The only time not to introduce RRSIG DNSKEY is when the
 			 * DNSKEY is still hidden. */
-			return getState(key, DK) != HID;
+			return getState(*future_key->key, DK, NULL) != HID;
 		case RS:
 			/** 1) there are no restrictions */
-			if (!key.keyStateRRSIG().minimize()) return true;
+			if (!future_key->key->keyStateRRSIG().minimize()) return true;
 			/** 2) wait till DNSKEY is introduced */
-			if (getState(key, DK) == OMN) return true;
+			if (getState(*future_key->key, DK, NULL) == OMN) return true;
 			/** 3) Except, we might be doing algorithm rollover
 			 * if no other good ZSK available, ignore minimize flag */
-			return !exists(key_list, key, RS,NOCARE, 
-				true, false, mask_sig);
+			return !exists(key_list, future_key, true, mask_sig);
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
 				"fault of programmer. Abort.",
-				module_str, scmd, (int)record);
+				module_str, scmd, (int)future_key->record);
 	}
 }
 
@@ -723,40 +723,40 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
  * @param now, the current time.
  * */
 void
-setState(EnforcerZone &zone, KeyData &key, const RECORD record, const STATE state, 
+setState(EnforcerZone &zone, const struct FutureKey *future_key, 
 	const time_t now)
 {
-	KeyState &ks = getRecord(key, record);
-	ks.setState(state);
+	KeyState &ks = getRecord(*future_key->key, future_key->record);
+	ks.setState(future_key->next_state);
 	ks.setLastChange(now);
-	ks.setTtl(getZoneTTL(zone, record, now));
+	ks.setTtl(getZoneTTL(zone, future_key->record, now));
 	zone.setSignerConfNeedsWriting(true);
 }
 
 
 /** Find out if this key can be in a successor relation */
 bool
-isSuccessable(KeyData &key, const RECORD record, const STATE next_state)
+isSuccessable(const struct FutureKey *future_key)
 {
 	const char *scmd = "isSuccessable";
 	
-	if (next_state != UNR) return false;
-	switch(record) {
+	if (future_key->next_state != UNR) return false;
+	switch(future_key->record) {
 		case DS: /** intentional fall-through */
 		case RS: 
-			if (getState(key, DK) != OMN) return false;
+			if (getState(*future_key->key, DK, NULL) != OMN) return false;
 			break;
 		case RD:
 			return false;
 		case DK: 
-			if ((getState(key, DS) != OMN) && 
-					(getState(key, RS) != OMN))
+			if ((getState(*future_key->key, DS, NULL) != OMN) && 
+					(getState(*future_key->key, RS, NULL) != OMN))
 				return false;
 			break;
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
 				"fault of programmer. Abort.",
-				module_str, scmd, (int)record);
+				module_str, scmd, (int)future_key->record);
 	}
 	return true;
 }
@@ -765,16 +765,16 @@ isSuccessable(KeyData &key, const RECORD record, const STATE next_state)
 
 void
 markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, 
-	KeyData &key, const RECORD record, const STATE next_state)
+	struct FutureKey *future_key)
 {
 	const char *scmd = "markSuccessors";
-	if (!isSuccessable(key, record, next_state)) return;
+	if (!isSuccessable(future_key)) return;
 	/** Which keys can be potential successors? */
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &key_i = key_list.key(i);
-		if (isPotentialSuccessor(key, record, key_i))
-			/** register: key depends on key_i for record */
-			dep_list.addNewDependency(&key, &key_i, record);
+		//TODO: do this for any record type?
+		if (isPotentialSuccessor(*future_key->key, future_key, key_i, future_key->record)) 
+			dep_list.addNewDependency(future_key->key, &key_i, future_key->record);
 	}
 }
 
@@ -800,6 +800,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	ods_log_verbose("[%s] %s", module_str, scmd);
 	int ttl;
 	const STATE omnkey[] =  {NOCARE, OMN, NOCARE, NOCARE};
+	struct FutureKey future_key;
 
 	/** This code keeps track of TTL changes. If in the past a large
 	 * TTL is used, our keys *may* need to transition extra 
@@ -840,10 +841,15 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 			 *  - fatal exit (because we suspect db corruption)
 			 *  - flip one of the bits, log, continue
 			 **/
-
+			
+			future_key.key = &key;
+			
 			for (RECORD record = REC_MIN; record < REC_MAX; ++record) {
-				STATE state = getState(key, record);
+				STATE state = getState(key, record, NULL);
 				STATE next_state = getDesiredState(key.introducing(), state);
+				
+				future_key.record = record;
+				future_key.next_state = next_state;
 				
 				/** record is stable */
 				if (state == next_state) continue;
@@ -857,14 +863,14 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 				ods_log_verbose("[%s] %s May %s transition to %s?", 
 					module_str, scmd, RECORDAMES[(int)record], 
 					STATENAMES[(int)next_state]);
-
+				
 				/** Policy prevents transition */
-				if (!policyApproval(key_list, key, record, next_state)) continue;
+				if (!policyApproval(key_list, &future_key)) continue;
 				ods_log_verbose("[%s] %s Policy says we can (1/3)", 
 					module_str, scmd);
 				
 				/** Would be invalid DNSSEC state */
-				if (!dnssecApproval(dep_list, key_list, key, record, next_state, allow_unsigned))
+				if (!dnssecApproval(dep_list, key_list, &future_key, allow_unsigned))
 					continue;
 				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
 					module_str, scmd);
@@ -876,7 +882,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 				/** If this is an RRSIG and the DNSKEY is omnipresent
 				 * and next state is a certain state, wait an additional 
 				 * signature lifetime to allow for 'smooth rollover'. */
-				if  (record == RS && getState(key, DK) == OMN &&
+				if  (record == RS && getState(key, DK, NULL) == OMN &&
 						(next_state == OMN || next_state == HID) ) {
 					/** jitter and valdefault default to 0 */
 					returntime_key = addtime(returntime_key, 
@@ -936,8 +942,8 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 				}
 
 				/** We've passed all tests! Make the transition */
-				setState(zone, key, record, next_state, now);
-				markSuccessors(dep_list, key_list, key, record, next_state);
+				setState(zone, &future_key, now);
+				markSuccessors(dep_list, key_list, &future_key);
 				change = true;
 			}
 		}
@@ -1088,7 +1094,7 @@ existsPolicyForKey(HsmKeyFactory &keyfactory, const KeyList &policyKeys,
 		keyProperties(policyKeys, i, key.role(), &p_bits, &p_alg, 
 			&p_life, p_rep, &p_man, &p_rolltype); 
 		if (p_bits == hsmkey->bits() && p_alg == key.algorithm() &&
-			!p_rep.compare(hsmkey->repository()) )
+			p_rep.compare(hsmkey->repository()) == 0 )
 			return true;
 	}
 	ods_log_verbose("[%s] %s not found such config", module_str, scmd);
@@ -1116,7 +1122,7 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const KeyList &policyKeys,
 		if (keyfactory.GetHsmKeyByLocator(k.locator(), &hsmkey) &&
 			k.role() == role &&
 			p_bits == hsmkey->bits() && p_alg == k.algorithm() &&
-			!p_rep.compare(hsmkey->repository())  &&
+			p_rep.compare(hsmkey->repository()) == 0  &&
 			(!(*key) || k.inception() > (*key)->inception()) )
 			*key = &k;
 	}
@@ -1268,11 +1274,16 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			new_key.setLocator( newkey_hsmkey->locator() );
 
 			new_key.setDsAtParent(DS_UNSUBMITTED);
-			
-			setState(zone, new_key, DS, (role&KSK?HID:NOCARE), now);
-			setState(zone, new_key, DK, HID, now);
-			setState(zone, new_key, RD, (role&KSK?HID:NOCARE), now);
-			setState(zone, new_key, RS, (role&ZSK?HID:NOCARE), now);
+			struct FutureKey fkey;
+			fkey.key = &new_key;
+			fkey.record = DS; fkey.next_state = (role&KSK?HID:NOCARE);
+			setState(zone, &fkey, now);
+			fkey.record = DK; fkey.next_state = HID;
+			setState(zone, &fkey, now);
+			fkey.record = RD; fkey.next_state = (role&KSK?HID:NOCARE);
+			setState(zone, &fkey, now);
+			fkey.record = RS; fkey.next_state = (role&ZSK?HID:NOCARE);
+			setState(zone, &fkey, now);
 			
 			new_key.setIntroducing(true);
 
@@ -1292,7 +1303,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				/* compare key material */
 				if (!keyfactory.GetHsmKeyByLocator(key.locator(), &key_hsmkey) ||
 					key_hsmkey->bits() != newkey_hsmkey->bits() || 
-					newkey_hsmkey->repository().compare(key_hsmkey->repository()))
+					newkey_hsmkey->repository().compare(key_hsmkey->repository()) != 0)
 						continue;
 				/* key and new_key have the same properties, so they are
 				 * generated from the same configuration. */
@@ -1343,8 +1354,8 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 		time_t keyTime = -1;
 		bool keyPurgable = true;
 		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
-			if (getState(key, r) == NOCARE) continue;
-			if (getState(key, r) != HID) {
+			if (getState(key, r, NULL) == NOCARE) continue;
+			if (getState(key, r, NULL) != HID) {
 				keyPurgable = false;
 				break;
 			}
@@ -1394,9 +1405,9 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 	 * */
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
-		k.setPublish(getState(k, DK) == OMN || getState(k, DK) == RUM);
-		k.setActiveKSK(getState(k, RD) == OMN || getState(k, RD) == RUM);
-		k.setActiveZSK(getState(k, RS) == OMN || getState(k, RS) == RUM);
+		k.setPublish(getState(k, DK, NULL) == OMN || getState(k, DK, NULL) == RUM);
+		k.setActiveKSK(getState(k, RD, NULL) == OMN || getState(k, RD, NULL) == RUM);
+		k.setActiveZSK(getState(k, RS, NULL) == OMN || getState(k, RS, NULL) == RUM);
 	}
 
 	minTime(policy_return_time, zone_return_time);
