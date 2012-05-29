@@ -1,5 +1,12 @@
 $Id$
 
+OpenDNSSEC 1.3.9
+
+Bugfixes:
+
+* SUPPORT-27: ods-ksmutil: simplify zone delete so that it only marks keys as dead
+  (rather than actually removing them). Leave the key removal to purge jobs.
+
 OpenDNSSEC 1.3.8 - 2012-05-09
 
 * OPENDNSSEC-228: Signer Engine: Make 'ods-signer update' reload signconfs

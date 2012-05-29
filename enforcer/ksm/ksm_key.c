@@ -970,7 +970,7 @@ int KsmMarkKeysAsDead(int zone_id)
         while (status == 0) {
 
             /* Kill the Key */
-			status = KsmKillKey(data.keypair_id);
+			status = KsmKillKey(data.keypair_id, zone_id);
 			if (status == 0) {
 				status = KsmKey(result, &data);
 			}
@@ -997,13 +997,15 @@ int KsmMarkKeysAsDead(int zone_id)
  * Arguments:
  *      int keypair_id
  *          Which key to process
+ *      int zone_id
+ *          Which zone to process
  *
  * Returns:
  *      int
  *          Status return.  0=> Success, non-zero => error.
 -*/
 
-int KsmKillKey(int keypair_id)
+int KsmKillKey(int keypair_id, int zone_id)
 {
     int         status = 0;         /* Status return */
     char*       sql = NULL;         /* SQL Statement */
@@ -1020,6 +1022,9 @@ int KsmKillKey(int keypair_id)
     DusSetInt(&sql, "STATE", KSM_STATE_DEAD, set++);
     DusSetString(&sql, "DEAD", now, set++);
     DusConditionInt(&sql, "KEYPAIR_ID", DQS_COMPARE_EQ, keypair_id, 0);
+	if (zone_id != -1) {
+        DqsConditionInt(&sql, "zone_id", DQS_COMPARE_EQ, zone_id, 1);
+    }
     DusEnd(&sql);
 
     /* Execute the statement */
