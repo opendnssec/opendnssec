@@ -3,6 +3,8 @@
  *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
+ * Taken from NSD3 and adjusted for OpenDNSSEC, NLnet Labs.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -324,7 +326,7 @@ tsig_rr_reset(tsig_rr_type* trr, tsig_algo_type* algo, tsig_key_type* key)
  * Parse TSIG RR.
  *
  */
-static int
+int
 tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
 {
     uint16_t dname_len = 0;
@@ -725,7 +727,7 @@ tsig_rr_append(tsig_rr_type* trr, buffer_type* buffer)
  *
  */
 size_t
-tsig_rr_reserved_space(tsig_rr_type *trr)
+tsig_rr_reserved_space(tsig_rr_type* trr)
 {
     if (!trr || trr->status == TSIG_NOT_PRESENT) {
         return 0;

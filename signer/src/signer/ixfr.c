@@ -175,7 +175,7 @@ ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
     ods_log_assert(ixfr->part[0]);
     ods_log_assert(ixfr->part[0]->min);
     if (!ldns_rr_list_push_rr(ixfr->part[0]->min, rr)) {
-        ods_log_error("[%s] unable to +RR: ldns_rr_list_pus_rr() failed",
+        ods_log_error("[%s] unable to -RR: ldns_rr_list_pus_rr() failed",
             ixfr_str);
         exit(1);
     }
@@ -263,7 +263,7 @@ ixfr_purge(ixfr_type* ixfr)
     zone = (zone_type*) ixfr->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->allocator);
-    ods_log_verbose("[%s] purge ixfr for zone %s", ixfr_str, zone->name);
+    ods_log_debug("[%s] purge ixfr for zone %s", ixfr_str, zone->name);
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         if (i == (IXFR_MAX_PARTS - 1)) {
             part_cleanup(zone->allocator, ixfr->part[i]);

@@ -1,6 +1,7 @@
 $Id$
 
 OpenDNSSEC EnforcerNG branch alpha2
+
 * Support for RollOverType in kasp.xml
 * Fixed concurrency related crashes.
 * Automatically retract never submitted DS records.
@@ -10,13 +11,27 @@ OpenDNSSEC EnforcerNG branch alpha2
 * CSK is now configurable.
 * Remove some scheduling when waiting for user input.
 
-OpenDNSSEC 1.4.0
+OpenDNSSEC 1.4.0a2 - 2012-05-24
 
 * OPENDNSSEC-226: Change in conf.xml: Configure the DNS listener IP address
   with /Listener/Interface/Address instead of /Listener/Interface/IPv{4,6}.
-* Enforcer: Add indexes for foreign keys. (sqlite only, MySQL already has them.)
 * OPENDNSSEC-249: ods-ksmutil: If key export finds nothing to do then say so
   rather than display nothing which might be misinterpreted.
+* OPENDNSSEC-262: Signer Engine: Make DNS Adapter ACL optional.
+* OPENDNSSEC-263: Signer Engine: Added EDNS0 support, so that zone transfers
+  and SOA requests with OPT RRs are possible.
+* Enforcer: Add indexes for foreign keys. (sqlite only, MySQL already has them.)
+
+Bugfixes:
+* OPENDNSSEC-259: Signer Engine: Fix assertion failure for outbound AXFR for
+  large zones.
+* OPENDNSSEC-264: Signer Engine: Fix assertion error on reading IXFR from
+  backup.
+* OPENDNSSEC-265: Signer Engine: Fix crash in corner cases when signing zone
+  with NSEC3 and Opt-out.
+* OPENDNSSEC-267: Signer Engine: Sign NOTIFY OK response with TSIG, if present
+  in the query and ACL.
+
 
 OpenDNSSEC 1.4.0a1 - 2012-03-15
 

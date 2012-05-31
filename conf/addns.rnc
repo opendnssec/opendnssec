@@ -37,13 +37,13 @@ dns = element DNS {
 	element Inbound {
 		element RequestTransfer { remote* },
 		element AllowNotify { peer* }
-	},
+	}?,
 
 	# outbound zone transfer settings
 	element Outbound {
 		element ProvideTransfer { peer* },
 		element Notify { remote* }
-	}
+	}?
 }
 
 # TSIG secret

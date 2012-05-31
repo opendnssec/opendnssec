@@ -3,6 +3,8 @@
  *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
+ * Taken from NSD3 and adjusted for OpenDNSSEC, NLnet Labs.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -222,6 +224,15 @@ void tsig_rr_reset(tsig_rr_type* trr, tsig_algo_type* algo, tsig_key_type* key);
  *
  */
 int tsig_rr_find(tsig_rr_type* trr, buffer_type* buffer);
+
+/**
+ * Parse TSIG RR.
+ * \param[in] trr tsig rr
+ * \param[in] buffer packet buffer
+ * \return int 1 if not TSIG RRm or TSIG RR and valid, 0 otherwise.
+ *
+ */
+int tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer);
 
 /**
  * Lookup TSIG RR.

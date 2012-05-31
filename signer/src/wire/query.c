@@ -72,6 +72,11 @@ query_create(void)
         query_cleanup(q);
         return NULL;
     }
+    q->edns_rr = edns_rr_create(allocator);
+    if (!q->edns_rr) {
+        query_cleanup(q);
+        return NULL;
+    }
     query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
     return q;
 }
@@ -92,11 +97,11 @@ query_reset(query_type* q, size_t maxlen, int is_tcp)
     q->reserved_space = 0;
     buffer_clear(q->buffer);
     tsig_rr_reset(q->tsig_rr, NULL, NULL);
+    edns_rr_reset(q->edns_rr);
     q->tsig_prepare_it = 1;
     q->tsig_update_it = 1;
     q->tsig_sign_it = 1;
     q->tcp = is_tcp;
-    q->tcplen = 0;
     /* qname, qtype, qclass */
     q->zone = NULL;
     /* domain, opcode, cname count, delegation, compression, temp */
@@ -211,30 +216,29 @@ query_parse_soa(buffer_type* buffer, uint32_t* serial)
     ldns_rr_type type = 0;
     ods_log_assert(buffer);
     if (!buffer_available(buffer, 10)) {
-        ods_log_error("[%s] bad notify: packet too short", query_str);
+        ods_log_error("[%s] bad soa: packet too short", query_str);
         return 0;
     }
     type = (ldns_rr_type) buffer_read_u16(buffer);
     if (type != LDNS_RR_TYPE_SOA) {
-        ods_log_error("[%s] bad notify: rr in answer section is not soa (%d)",
-            query_str, type);
+        ods_log_error("[%s] bad soa: rr is not soa (%d)", query_str, type);
         return 0;
     }
     (void)buffer_read_u16(buffer);
     (void)buffer_read_u32(buffer);
     /* rdata length */
     if (!buffer_available(buffer, buffer_read_u16(buffer))) {
-        ods_log_error("[%s] bad notify: soa missing rdlength", query_str);
+        ods_log_error("[%s] bad soa: missing rdlength", query_str);
         return 0;
     }
     /* MNAME */
     if (!buffer_skip_dname(buffer)) {
-        ods_log_error("[%s] bad notify: soa missing mname", query_str);
+        ods_log_error("[%s] bad soa: missing mname", query_str);
         return 0;
     }
     /* RNAME */
     if (!buffer_skip_dname(buffer)) {
-        ods_log_error("[%s] bad notify: soa missing rname", query_str);
+        ods_log_error("[%s] bad soa: missing rname", query_str);
         return 0;
     }
     if (serial) {
@@ -256,7 +260,7 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     uint16_t count = 0;
     uint16_t rrcount = 0;
     uint32_t serial = 0;
-    size_t limit = 0;
+    size_t pos = 0;
     char address[128];
     if (!e || !q || !q->zone) {
         return QUERY_DISCARDED;
@@ -295,7 +299,6 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
         }
         return query_refused(q);
     }
-    limit = buffer_limit(q->buffer);
     ods_log_assert(q->zone->xfrd);
     /* skip header and question section */
     buffer_skip(q->buffer, BUFFER_PKT_HEADER_SIZE);
@@ -307,6 +310,8 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
             return QUERY_DISCARDED;
         }
     }
+    pos = buffer_position(q->buffer);
+
     /* examine answer section */
     count = buffer_pkt_ancount(q->buffer);
     if (count) {
@@ -344,8 +349,12 @@ send_notify_ok:
     buffer_pkt_set_qr(q->buffer);
     buffer_pkt_set_aa(q->buffer);
     buffer_pkt_set_ancount(q->buffer, 0);
-    buffer_clear(q->buffer);
-    buffer_set_position(q->buffer, limit);
+
+    buffer_clear(q->buffer); /* lim = pos, pos = 0; */
+    buffer_set_position(q->buffer, pos);
+    buffer_set_limit(q->buffer, buffer_capacity(q->buffer));
+    q->reserved_space = edns_rr_reserved_space(q->edns_rr);
+    q->reserved_space += tsig_rr_reserved_space(q->tsig_rr);
     return QUERY_PROCESSED;
 }
 
@@ -558,7 +567,8 @@ query_prepare(query_type* q)
     buffer_clear(q->buffer);
     buffer_set_position(q->buffer, limit);
     buffer_set_limit(q->buffer, buffer_capacity(q->buffer));
-    q->reserved_space = tsig_rr_reserved_space(q->tsig_rr);
+    q->reserved_space = edns_rr_reserved_space(q->edns_rr);
+    q->reserved_space += tsig_rr_reserved_space(q->tsig_rr);
     return;
 }
 
@@ -672,6 +682,100 @@ query_process_tsig(query_type* q)
 
 
 /**
+ * Process EDNS OPT RR.
+ *
+ */
+static ldns_pkt_rcode
+query_process_edns(query_type* q)
+{
+    if (!q || !q->edns_rr) {
+        return LDNS_RCODE_SERVFAIL;
+    }
+    if (q->edns_rr->status == EDNS_ERROR) {
+        /* The only error is VERSION not implemented */
+        return LDNS_RCODE_FORMERR;
+    }
+    if (q->edns_rr->status == EDNS_OK) {
+        /* Only care about UDP size larger than normal... */
+        if (!q->tcp && q->edns_rr->maxlen > UDP_MAX_MESSAGE_LEN) {
+            if (q->edns_rr->maxlen < EDNS_MAX_MESSAGE_LEN) {
+                q->maxlen = q->edns_rr->maxlen;
+            } else {
+                q->maxlen = EDNS_MAX_MESSAGE_LEN;
+            }
+        }
+        /* Strip the OPT resource record off... */
+        buffer_set_position(q->buffer, q->edns_rr->position);
+        buffer_set_limit(q->buffer, q->edns_rr->position);
+        buffer_pkt_set_arcount(q->buffer, buffer_pkt_arcount(q->buffer) - 1);
+    }
+    return LDNS_RCODE_NOERROR;
+}
+
+
+/**
+ * Find TSIG RR.
+ *
+ */
+static int
+query_find_tsig(query_type* q)
+{
+    size_t saved_pos = 0;
+    size_t rrcount = 0;
+    size_t i = 0;
+
+    ods_log_assert(q);
+    ods_log_assert(q->tsig_rr);
+    ods_log_assert(q->buffer);
+    if (buffer_pkt_arcount(q->buffer) == 0) {
+        q->tsig_rr->status = TSIG_NOT_PRESENT;
+        return 1;
+    }
+    saved_pos = buffer_position(q->buffer);
+    rrcount = buffer_pkt_qdcount(q->buffer) + buffer_pkt_ancount(q->buffer) +
+        buffer_pkt_nscount(q->buffer);
+    buffer_set_position(q->buffer, BUFFER_PKT_HEADER_SIZE);
+    for (i=0; i < rrcount; i++) {
+        if (!buffer_skip_rr(q->buffer, i < buffer_pkt_qdcount(q->buffer))) {
+             buffer_set_position(q->buffer, saved_pos);
+             return 0;
+        }
+    }
+
+    rrcount = buffer_pkt_arcount(q->buffer);
+    ods_log_assert(rrcount != 0);
+    if (!tsig_rr_parse(q->tsig_rr, q->buffer)) {
+        ods_log_debug("[%s] got bad tsig", query_str);
+        return 0;
+    }
+    if (q->tsig_rr->status != TSIG_NOT_PRESENT) {
+        --rrcount;
+    }
+    if (rrcount) {
+        if (edns_rr_parse(q->edns_rr, q->buffer)) {
+            --rrcount;
+        }
+    }
+    if (rrcount && q->tsig_rr->status == TSIG_NOT_PRESENT) {
+        /* see if tsig is after the edns record */
+        if (!tsig_rr_parse(q->tsig_rr, q->buffer)) {
+            ods_log_debug("[%s] got bad tsig", query_str);
+            return 0;
+        }
+        if (q->tsig_rr->status != TSIG_NOT_PRESENT) {
+            --rrcount;
+        }
+    }
+    if (rrcount > 0) {
+        ods_log_debug("[%s] too many additional rrs", query_str);
+        return 0;
+    }
+    buffer_set_position(q->buffer, saved_pos);
+    return 1;
+}
+
+
+/**
  * Process query.
  *
  */
@@ -716,6 +820,8 @@ query_process(query_type* q, void* engine)
         ldns_rr_get_class(rr));
     /* don't answer for zones that are just added */
     if (q->zone && q->zone->zl_status == ZONE_ZL_ADDED) {
+        ods_log_warning("[%s] zone %s just added, don't answer for now",
+            query_str, q->zone->name);
         q->zone = NULL;
     }
     lock_basic_unlock(&e->zonelist->zl_lock);
@@ -724,16 +830,25 @@ query_process(query_type* q, void* engine)
         return query_servfail(q);
     }
     /* see if it is tsig signed */
-    if (!tsig_rr_find(q->tsig_rr, q->buffer)) {
-        ods_log_debug("[%s] got bad tsig", query_str);
+    if (!query_find_tsig(q)) {
         return query_formerr(q);
     }
-    /* process tsig */
+    /* else: valid tsig, or no tsig present */
     ods_log_debug("[%s] tsig %s", query_str, tsig_strerror(q->tsig_rr->status));
     rcode = query_process_tsig(q);
     if (rcode != LDNS_RCODE_NOERROR) {
         return query_error(q, rcode);
     }
+    /* process edns */
+    rcode = query_process_edns(q);
+    if (rcode != LDNS_RCODE_NOERROR) {
+        /* We should not return FORMERR, but BADVERS (=16).
+         * BADVERS is created with Ext. RCODE, followed by RCODE.
+         * Ext. RCODE is set to 1, RCODE must be 0 (getting 0x10 = 16).
+         * Thus RCODE = NOERROR = NSD_RC_OK. */
+        return query_error(q, LDNS_RCODE_NOERROR);
+    }
+
     /* handle incoming request */
     opcode = ldns_pkt_get_opcode(pkt);
     qtype = ldns_rr_get_type(rr);
@@ -753,24 +868,82 @@ query_process(query_type* q, void* engine)
 
 
 /**
- * Add TSIG to query.
+ * Check if query does not overflow.
+ *
+ */
+static int
+query_overflow(query_type* q)
+{
+    ods_log_assert(q);
+    ods_log_assert(q->buffer);
+    return buffer_position(q->buffer) > (q->maxlen - q->reserved_space);
+}
+
+
+/**
+ * Add optional RRs to query.
  *
  */
 void
-query_add_tsig(query_type* q)
+query_add_optional(query_type* q, void* engine)
 {
-    if (!q || !q->tsig_rr) {
+    engine_type* e = (engine_type*) engine;
+    edns_data_type* edns = NULL;
+    if (!q || !e) {
+        return;
+    }
+    /** First EDNS */
+    if (q->edns_rr) {
+        edns = &e->edns;
+        switch (q->edns_rr->status) {
+            case EDNS_NOT_PRESENT:
+                break;
+            case EDNS_OK:
+                ods_log_debug("[%s] add edns opt ok", query_str);
+                if (q->edns_rr->dnssec_ok) {
+                    edns->ok[7] = 0x80;
+                } else {
+                    edns->ok[7] = 0x00;
+                }
+                buffer_write(q->buffer, edns->ok, OPT_LEN);
+                /* fill with NULLs */
+                buffer_write(q->buffer, edns->rdata_none, OPT_RDATA);
+                buffer_pkt_set_arcount(q->buffer,
+                    buffer_pkt_arcount(q->buffer) + 1);
+                break;
+            case EDNS_ERROR:
+                ods_log_debug("[%s] add edns opt err", query_str);
+                if (q->edns_rr->dnssec_ok) {
+                    edns->ok[7] = 0x80;
+                } else {
+                    edns->ok[7] = 0x00;
+                }
+                buffer_write(q->buffer, edns->error, OPT_LEN);
+                buffer_write(q->buffer, edns->rdata_none, OPT_RDATA);
+                buffer_pkt_set_arcount(q->buffer,
+                    buffer_pkt_arcount(q->buffer) + 1);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /** Then TSIG */
+    if (!q->tsig_rr) {
         return;
     }
     if (q->tsig_rr->status != TSIG_NOT_PRESENT) {
+
          if (q->tsig_rr->status == TSIG_ERROR ||
              q->tsig_rr->error_code != LDNS_RCODE_NOERROR) {
+             ods_log_debug("[%s] add tsig err", query_str);
              tsig_rr_error(q->tsig_rr);
              tsig_rr_append(q->tsig_rr, q->buffer);
              buffer_pkt_set_arcount(q->buffer,
                  buffer_pkt_arcount(q->buffer)+1);
          } else if (q->tsig_rr->status == TSIG_OK &&
              q->tsig_rr->error_code == LDNS_RCODE_NOERROR) {
+             ods_log_debug("[%s] add tsig ok", query_str);
              if (q->tsig_prepare_it)
                  tsig_rr_prepare(q->tsig_rr);
              if (q->tsig_update_it)
@@ -785,6 +958,63 @@ query_add_tsig(query_type* q)
         }
     }
     return;
+}
+
+
+/**
+ * Add RR to query.
+ *
+ */
+int
+query_add_rr(query_type* q, ldns_rr* rr)
+{
+    size_t i = 0;
+    size_t tc_mark = 0;
+    size_t rdlength_pos = 0;
+    uint16_t rdlength = 0;
+
+    ods_log_assert(q);
+    ods_log_assert(q->buffer);
+    ods_log_assert(rr);
+
+    /* set truncation mark, in case rr does not fit */
+    tc_mark = buffer_position(q->buffer);
+    /* owner type class ttl */
+    if (!buffer_available(q->buffer, ldns_rdf_size(ldns_rr_owner(rr)))) {
+        goto query_add_rr_tc;
+    }
+    buffer_write_rdf(q->buffer, ldns_rr_owner(rr));
+    if (!buffer_available(q->buffer, sizeof(uint16_t) + sizeof(uint16_t) +
+        sizeof(uint32_t) + sizeof(rdlength))) {
+        goto query_add_rr_tc;
+    }
+    buffer_write_u16(q->buffer, (uint16_t) ldns_rr_get_type(rr));
+    buffer_write_u16(q->buffer, (uint16_t) ldns_rr_get_class(rr));
+    buffer_write_u32(q->buffer, (uint32_t) ldns_rr_ttl(rr));
+    /* skip rdlength */
+    rdlength_pos = buffer_position(q->buffer);
+    buffer_skip(q->buffer, sizeof(rdlength));
+    /* write rdata */
+    for (i=0; i < ldns_rr_rd_count(rr); i++) {
+        if (!buffer_available(q->buffer, ldns_rdf_size(ldns_rr_rdf(rr, i)))) {
+            goto query_add_rr_tc;
+        }
+        buffer_write_rdf(q->buffer, ldns_rr_rdf(rr, i));
+    }
+
+    if (!query_overflow(q)) {
+        /* write rdlength */
+        rdlength = buffer_position(q->buffer) - rdlength_pos - sizeof(rdlength);
+        buffer_write_u16_at(q->buffer, rdlength_pos, rdlength);
+        /* position updated by buffer_write() */
+        return 1;
+    }
+
+query_add_rr_tc:
+    buffer_set_position(q->buffer, tc_mark);
+    ods_log_assert(!query_overflow(q));
+    return 0;
+
 }
 
 

@@ -481,6 +481,9 @@ engine_setup(engine_type* engine)
     if (!engine || !engine->config) {
         return ODS_STATUS_ASSERT_ERR;
     }
+    /* set edns */
+    edns_init(&engine->edns, EDNS_MAX_MESSAGE_LEN);
+
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->allocator,
         engine->config->clisock_filename);
