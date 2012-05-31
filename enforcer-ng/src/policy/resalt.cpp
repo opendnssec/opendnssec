@@ -36,8 +36,8 @@
 #ifdef __APPLE__
 #undef _ANSI_SOURCE
 #define _DARWIN_C_SOURCE 1
-#include <stdlib.h>
 #endif
+#include <stdlib.h>
 
 #include "resalt.h"
 
