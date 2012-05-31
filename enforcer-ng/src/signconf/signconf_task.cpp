@@ -216,6 +216,7 @@ void
 perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	int signer_flag = 1;  /* Is the signer responding? (1 == yes) */
     
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
@@ -272,8 +273,27 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 												 "updating zone %s in the "
 												 "database failed",
 												 zone.name().c_str());
-					} else
+					} else {
 						bZonesUpdated = true;
+						
+						if (signer_flag) {
+							/* call the signer engine to tell it that something changed */
+							/* TODO for beta version connect straight to the socket
+							   should we make a blocking call on this?
+							   should we call it here or after we have written all of the files?
+							   have timeout if call is blocking */
+							char signer_command[512];
+							strcpy(signer_command, SIGNER_CLI_UPDATE);
+							strcat(signer_command, " ");
+							strcat(signer_command, zone.name().c_str());
+							if (system(signer_command) != 0)
+							{
+								ods_log_error("Could not call signer engine");
+								ods_log_info("Will continue: call 'ods-signer update' to manually update zones");
+								signer_flag = 0;
+							}
+						}
+					}
 				}
 			}
 			// We have finished processing the zones...
