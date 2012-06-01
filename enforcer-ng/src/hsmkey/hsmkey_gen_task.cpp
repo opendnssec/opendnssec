@@ -451,7 +451,8 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
 									 kasp.policies(i).name().c_str());
 			continue;
 		}
-		/** if ShareKeys set count to 1*/
+		/** if ShareKeys set, don't multiply nr of pregenerated keys
+		 * with the number of zones using this policy. */
 		if (count > 0 && kasp.policies(i).keys().zones_share_keys())
 			count = 1;
 		generate_ksks(sockfd, conn, kasp.policies(i), duration, count);
