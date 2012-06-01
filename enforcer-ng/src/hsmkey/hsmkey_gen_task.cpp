@@ -451,7 +451,9 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
 									 kasp.policies(i).name().c_str());
 			continue;
 		}
-				
+		/** if ShareKeys set count to 1*/
+		if (count > 0 && kasp.policies(i).keys().zones_share_keys())
+			count = 1;
 		generate_ksks(sockfd, conn, kasp.policies(i), duration, count);
 		generate_zsks(sockfd, conn, kasp.policies(i), duration, count);
 		generate_csks(sockfd, conn, kasp.policies(i), duration, count);
