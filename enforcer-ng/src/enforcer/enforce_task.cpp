@@ -188,7 +188,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, engine->config, conn)) {
 		ods_log_error("[%s] retrying in 30 minutes", module_str);
-		return reschedule_enforce(task,t_now + 30*60, "next zone");
+		return reschedule_enforce(task, t_now + 30*60, "next zone");
 	}
 
 	std::auto_ptr< HsmKeyFactoryCallbacks > hsmKeyFactoryCallbacks(
@@ -243,7 +243,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 				} else {
 					
 					EnforcerZonePB enfZone(&enfzone, policy);
-					time_t t_next = update(enfZone, time_now(), keyfactory);
+					time_t t_next = update(enfZone, t_now, keyfactory);
 					
 					if (enfZone.signerConfNeedsWriting())
 						bSignerConfNeedsWriting = true;
