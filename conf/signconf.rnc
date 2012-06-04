@@ -77,7 +77,7 @@ zone = element Zone {
 				
 				# deactivate this key (i.e. do not recycle any signatures)
 				element Deactivate { empty }?
-			}+
+			}*
 		},
 
 		# What parameters to use for the SOA record
