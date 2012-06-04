@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "shared/util.h"
 #include "signer/ixfr.h"
 #include "signer/rrset.h"
 #include "signer/zone.h"
@@ -199,7 +200,7 @@ part_rr_list_print_nonsoa(FILE* fd, ldns_rr_list* list)
     }
     for (i = 0; i < ldns_rr_list_rr_count(list); i++) {
         if (ldns_rr_get_type(ldns_rr_list_rr(list, i)) != LDNS_RR_TYPE_SOA) {
-            ldns_rr_print(fd, ldns_rr_list_rr(list, i));
+            (void)util_rr_print(fd, ldns_rr_list_rr(list, i));
         }
     }
     return;
@@ -220,9 +221,9 @@ part_print(FILE* fd, part_type* part)
     ods_log_assert(part->plus);
     ods_log_assert(part->soamin);
     ods_log_assert(part->soaplus);
-    ldns_rr_print(fd, part->soamin);
+    (void)util_rr_print(fd, part->soamin);
     part_rr_list_print_nonsoa(fd, part->min);
-    ldns_rr_print(fd, part->soaplus);
+    (void)util_rr_print(fd, part->soaplus);
     part_rr_list_print_nonsoa(fd, part->plus);
     return;
 }

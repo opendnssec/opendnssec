@@ -754,7 +754,7 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
     }
     for (i=0; i < rrset->rr_count; i++) {
         if (rrset->rrs[i].exists) {
-            ldns_rr_print(fd, rrset->rrs[i].rr);
+            (void)util_rr_print(fd, rrset->rrs[i].rr);
             if (rrset->rrtype == LDNS_RR_TYPE_CNAME ||
                 rrset->rrtype == LDNS_RR_TYPE_DNAME) {
                 /* singleton types */
@@ -766,7 +766,7 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
         return;
     }
     for (i=0; i < rrset->rrsig_count; i++) {
-        ldns_rr_print(fd, rrset->rrsigs[i].rr);
+        (void)util_rr_print(fd, rrset->rrsigs[i].rr);
     }
     return;
 }

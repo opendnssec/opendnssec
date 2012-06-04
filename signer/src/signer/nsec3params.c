@@ -33,6 +33,7 @@
 
 #include "shared/allocator.h"
 #include "shared/log.h"
+#include "shared/util.h"
 #include "signer/backup.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
@@ -146,7 +147,7 @@ nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
         (unsigned) flags, (unsigned) iter);
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
         if (rr) {
-            ldns_rr_print(fd, rr);
+            (void)ldns_rr_print(fd, rr);
         }
         fprintf(fd, ";;Nsec3done\n");
         fprintf(fd, ";;\n");

@@ -282,6 +282,44 @@ util_write_pidfile(const char* pidfile, pid_t pid)
 
 
 /**
+ * Print an LDNS RR, check status.
+ *
+ */
+ods_status
+util_rr_print(FILE* fd, const ldns_rr* rr)
+{
+    char* result = NULL;
+    ldns_buffer* tmp_buffer = NULL;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!fd || !rr) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
+
+    tmp_buffer = ldns_buffer_new(LDNS_MAX_PACKETLEN);
+    if (!tmp_buffer) {
+            return ODS_STATUS_MALLOC_ERR;
+    }
+    if (ldns_rr2buffer_str_fmt(tmp_buffer, NULL, rr)
+                    == LDNS_STATUS_OK) {
+            /* export and return string, destroy rest */
+            result = ldns_buffer2str(tmp_buffer);
+            if (result) {
+                fprintf(fd, "%s", result);
+                status = ODS_STATUS_OK;
+                LDNS_FREE(result);
+            } else {
+                fprintf(fd, "; Unable to convert rr to string\n");
+                status = ODS_STATUS_FWRITE_ERR;
+            }
+    } else {
+            status = ODS_STATUS_FWRITE_ERR;
+    }
+    ldns_buffer_free(tmp_buffer);
+    return status;
+}
+
+/**
  * Calculates the size needed to store the result of b64_pton.
  *
  */
