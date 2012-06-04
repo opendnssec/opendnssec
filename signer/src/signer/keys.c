@@ -291,7 +291,7 @@ key_backup(FILE* fd, key_type* key, const char* version)
         (unsigned) key->flags, key->publish, key->ksk, key->zsk);
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
         if (key->dnskey) {
-            (void)ldns_rr_print(fd, key->dnskey);
+            (void)util_rr_print(fd, key->dnskey);
         }
         fprintf(fd, ";;Keydone\n");
     }
