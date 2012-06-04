@@ -150,6 +150,20 @@ tsig_handler_init(allocator_type* allocator)
 
 
 /**
+ * Clean up TSIG handler.
+ *
+ */
+void
+tsig_handler_cleanup(void)
+{
+#ifdef HAVE_SSL
+    tsig_handler_openssl_finalize();
+#endif
+    return;
+}
+
+
+/**
  * Create new TSIG key.
  *
  */

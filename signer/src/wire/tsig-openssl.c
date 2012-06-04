@@ -39,12 +39,22 @@
 #include "wire/tsig-openssl.h"
 
 static const char* tsig_str = "tsig-ssl";
+/** allocator */
+static allocator_type* tsig_allocator = NULL;
+/** helper funcgtions */
 static void *create_context(allocator_type* allocator);
 static void init_context(void *context,
                          tsig_algo_type *algorithm,
                          tsig_key_type *key);
 static void update(void *context, const void *data, size_t size);
 static void final(void *context, uint8_t *digest, size_t *size);
+
+typedef struct tsig_cleanup_table_struct tsig_cleanup_table_type;
+struct tsig_cleanup_table_struct {
+    tsig_cleanup_table_type* next;
+    void* cleanup;
+};
+static tsig_cleanup_table_type* tsig_cleanup_table = NULL;
 
 
 /**
@@ -93,6 +103,8 @@ tsig_openssl_init_algorithm(allocator_type* allocator,
 ods_status
 tsig_handler_openssl_init(allocator_type* allocator)
 {
+    tsig_cleanup_table = NULL;
+    tsig_allocator = allocator;
     OpenSSL_add_all_digests();
     ods_log_debug("[%s] add md5", tsig_str);
     if (!tsig_openssl_init_algorithm(allocator, "md5", "hmac-md5",
@@ -125,12 +137,30 @@ cleanup_context(void *data)
     return;
 }
 
+static void
+context_add_cleanup(void* context)
+{
+    tsig_cleanup_table_type* entry = NULL;
+    if (!context) {
+        return;
+    }
+    entry = (tsig_cleanup_table_type *) allocator_alloc(tsig_allocator,
+        sizeof(tsig_cleanup_table_type));
+    if (entry) {
+        entry->cleanup = context;
+        entry->next = tsig_cleanup_table;
+        tsig_cleanup_table = entry;
+    }
+    return;
+}
+
 static void*
 create_context(allocator_type* allocator)
 {
     HMAC_CTX* context = (HMAC_CTX*) allocator_alloc(allocator,
         sizeof(HMAC_CTX));
     HMAC_CTX_init(context);
+    context_add_cleanup(context);
     return context;
 }
 
@@ -169,6 +199,12 @@ final(void* context, uint8_t* digest, size_t* size)
 void
 tsig_handler_openssl_finalize(void)
 {
+    tsig_cleanup_table_type* entry = tsig_cleanup_table;
+
+    while (entry) {
+        cleanup_context(entry->cleanup);
+        entry = entry->next;
+    }
     EVP_cleanup();
     return;
 }

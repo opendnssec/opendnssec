@@ -157,6 +157,12 @@ struct tsig_rr_struct {
 ods_status tsig_handler_init(allocator_type* allocator);
 
 /**
+ * Clean up TSIG handler.
+ *
+ */
+void tsig_handler_cleanup(void);
+
+/**
  * Add key to TSIG handler.
  * \param[in] key tsig key
  *
