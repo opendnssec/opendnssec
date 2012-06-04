@@ -115,19 +115,19 @@ generate_keypairs(int sockfd,
 	// nothing todo !
 	if (ngen<=0) {
 		ods_printf(sockfd,
-				   "no %s keys of %d bits needed.\n",
+				   "no %s keys of %d bits needed for policy '%s'.\n",
 				   ::ods::hsmkey::keyrole_Name(role).c_str(),
-				   nbits);
+				   nbits, policy_name);
 		return true;
 	}
 	
     bool bkeysgenerated_and_stored = false;
     
     ods_printf(sockfd,
-			   "generating %d %ss of %d bits.\n",
+			   "generating %d %ss of %d bits for policy '%s'.\n",
 			   ngen,
 			   ::ods::hsmkey::keyrole_Name(role).c_str(),
-			   nbits);
+			   nbits, policy_name);
     
     // Generate additional keys until certain minimum number is 
     // available.
