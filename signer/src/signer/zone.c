@@ -984,7 +984,7 @@ zone_backup2(zone_type* zone)
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
         task = (task_type*) zone->task;
-        fprintf(fd, ";;Time: %u\n", (size_t) task->when);
+        fprintf(fd, ";;Time: %u\n", (unsigned) task->when);
         /** Backup zone */
         fprintf(fd, ";;Zone: name %s class %i inbound %u internal %u "
             "outbound %u\n", zone->name, (int) zone->klass,

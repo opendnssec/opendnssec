@@ -448,6 +448,7 @@ mktime_from_utc(const struct tm *tm)
  * Convert time in string format into seconds.
  *
  */
+#ifdef ENFORCER_TIMESHIFT
 static time_t
 timeshift2time(const char *time)
 {
@@ -461,6 +462,7 @@ timeshift2time(const char *time)
 	}
         return timeshift;
 }
+#endif
 
 
 /**
