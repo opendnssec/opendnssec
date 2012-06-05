@@ -34,6 +34,11 @@
  *
  */
 
+/* Activate vfwscanf, vswscanf, vwscanf, and wcstof on NetBSD */
+#ifndef __USE_ISOC99
+#define __USE_ISOC99 1
+#endif
+
 #include "orm.h"
 #include "shared/log.h"
 #include "shared/file.h"

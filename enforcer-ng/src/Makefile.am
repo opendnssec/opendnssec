@@ -38,9 +38,6 @@ AM_CPPFLAGS = \
 	@PROTOBUF_INCLUDES@ \
 	@ENFORCER_DB_INCLUDES@
 
-# Activate vfwscanf, vswscanf, vwscanf, and wcstof on NetBSD
-AM_CFLAGS =     -std=c99
-
 enforcerdir =	@libdir@/opendnssec/enforcer
 
 sbin_PROGRAMS =	ods-enforcerd ods-enforcer
