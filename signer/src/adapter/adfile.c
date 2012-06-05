@@ -347,9 +347,8 @@ adfile_write(void* zone, const char* filename)
     tmpname = ods_build_path(filename, ".tmp", 0, 0);
     fd = ods_fopen(tmpname, NULL, "w");
     if (fd) {
-        adapi_printzone(fd, adzone);
+        status = adapi_printzone(fd, adzone);
         ods_fclose(fd);
-        status = ODS_STATUS_OK;
     } else {
         status = ODS_STATUS_FOPEN_ERR;
     }

@@ -487,7 +487,7 @@ domain_is_occluded(domain_type* domain)
  *
  */
 void
-domain_print(FILE* fd, domain_type* domain)
+domain_print(FILE* fd, domain_type* domain, ods_status* status)
 {
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     char* str = NULL;
@@ -495,6 +495,9 @@ domain_print(FILE* fd, domain_type* domain)
     rrset_type* soa_rrset = NULL;
     rrset_type* cname_rrset = NULL;
     if (!domain || !fd) {
+        if (status) {
+            *status = ODS_STATUS_ASSERT_ERR;
+        }
         return;
     }
     /* empty non-terminal? */
@@ -503,19 +506,22 @@ domain_print(FILE* fd, domain_type* domain)
         fprintf(fd, ";;Empty non-terminal %s\n", str);
         free((void*)str);
         /* Denial of Existence */
-        denial_print(fd, (denial_type*) domain->denial);
+        denial_print(fd, (denial_type*) domain->denial, status);
         return;
     }
     /* no other data may accompany a CNAME */
     cname_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
     if (cname_rrset) {
-        rrset_print(fd, cname_rrset, 0);
+        rrset_print(fd, cname_rrset, 0, status);
     } else {
         /* if SOA, print soa first */
         if (domain->is_apex) {
             soa_rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
             if (soa_rrset) {
-                rrset_print(fd, soa_rrset, 0);
+                rrset_print(fd, soa_rrset, 0, status);
+                if (status && *status != ODS_STATUS_OK) {
+                    return;
+                }
             }
         }
         /* print other RRsets */
@@ -528,7 +534,7 @@ domain_print(FILE* fd, domain_type* domain)
                     /* Glue */
                     if (rrset->rrtype == LDNS_RR_TYPE_A ||
                         rrset->rrtype == LDNS_RR_TYPE_AAAA) {
-                        rrset_print(fd, rrset, 0);
+                        rrset_print(fd, rrset, 0, status);
                     }
                 } else if (dstatus == LDNS_RR_TYPE_SOA) {
                     /* Authoritative or delegation */
@@ -538,16 +544,20 @@ domain_print(FILE* fd, domain_type* domain)
                         rrset->rrtype == LDNS_RR_TYPE_AAAA ||
                         rrset->rrtype == LDNS_RR_TYPE_NS ||
                         rrset->rrtype == LDNS_RR_TYPE_DS) {
-                        rrset_print(fd, rrset, 0);
+                        rrset_print(fd, rrset, 0, status);
                     }
                 }
                 /* Occluded */
             }
+            if (status && *status != ODS_STATUS_OK) {
+                return;
+            }
+
             rrset = rrset->next;
         }
     }
     /* Denial of Existence */
-    denial_print(fd, (denial_type*) domain->denial);
+    denial_print(fd, (denial_type*) domain->denial, status);
     return;
 }
 
@@ -589,7 +599,7 @@ domain_backup2(FILE* fd, domain_type* domain, int sigs)
             if (sigs) {
                 rrset_backup2(fd, rrset);
             } else {
-                rrset_print(fd, rrset, 1);
+                rrset_print(fd, rrset, 1, NULL);
             }
         }
     }
@@ -600,7 +610,7 @@ domain_backup2(FILE* fd, domain_type* domain, int sigs)
             if (sigs) {
                 rrset_backup2(fd, rrset);
             } else {
-                rrset_print(fd, rrset, 1);
+                rrset_print(fd, rrset, 1, NULL);
             }
         }
         rrset = rrset->next;

@@ -625,6 +625,7 @@ addns_write(void* zone)
     char* ixfrfile = NULL;
     zone_type* z = (zone_type*) zone;
     int ret = 0;
+    ods_status status = ODS_STATUS_OK;
     ods_log_assert(z);
     ods_log_assert(z->name);
     ods_log_assert(z->adoutbound);
@@ -636,8 +637,11 @@ addns_write(void* zone)
         free((void*) atmpfile);
         return ODS_STATUS_FOPEN_ERR;
     }
-    adapi_printaxfr(fd, z);
+    status = adapi_printaxfr(fd, z);
     ods_fclose(fd);
+    if (status != ODS_STATUS_OK) {
+        return status;
+    }
 
     if (z->db->is_initialized) {
         itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0, 1);
@@ -647,7 +651,10 @@ addns_write(void* zone)
             free((void*) itmpfile);
             return ODS_STATUS_FOPEN_ERR;
         }
-        adapi_printixfr(fd, z);
+        status = adapi_printixfr(fd, z);
+        if (status != ODS_STATUS_OK) {
+            return status;
+        }
         ods_fclose(fd);
     }
 

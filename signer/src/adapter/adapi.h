@@ -118,24 +118,27 @@ ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup);
  * Print zonefile.
  * \param[in] fd file descriptor
  * \param[in] zone zone
+ * \return ods_status status
  *
  */
-void adapi_printzone(FILE* fd, zone_type* zone);
+ods_status adapi_printzone(FILE* fd, zone_type* zone);
 
 /**
  * Print axfr.
  * \param[in] fd file descriptor
  * \param[in] zone zone
+ * \return ods_status status
  *
  */
-void adapi_printaxfr(FILE* fd, zone_type* zone);
+ods_status adapi_printaxfr(FILE* fd, zone_type* zone);
 
 /**
  * Print ixfr.
  * \param[in] fd file descriptor
  * \param[in] zone zone
+ * \return ods_status status
  *
  */
-void adapi_printixfr(FILE* fd, zone_type* zone);
+ods_status adapi_printixfr(FILE* fd, zone_type* zone);
 
 #endif /* ADAPTER_ADAPI_H */

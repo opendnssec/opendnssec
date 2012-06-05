@@ -320,13 +320,16 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
  *
  */
 void
-denial_print(FILE* fd, denial_type* denial)
+denial_print(FILE* fd, denial_type* denial, ods_status* status)
 {
     if (!denial || !fd) {
+        if (status) {
+            *status = ODS_STATUS_ASSERT_ERR;
+        }
         return;
     }
     if (denial->rrset) {
-        rrset_print(fd, denial->rrset, 0);
+        rrset_print(fd, denial->rrset, 0, status);
     }
     return;
 }

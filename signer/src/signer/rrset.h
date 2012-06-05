@@ -196,9 +196,11 @@ ods_status rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime);
  * \param[in] fd file descriptor
  * \param[in] rrset RRset to be printed
  * \param[in] skip_rrsigs if true, don't print RRSIG records
+ * \param[out] status status
  *
  */
-void rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs);
+void rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
+    ods_status* status);
 
 /**
  * Clean up RRset.

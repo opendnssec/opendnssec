@@ -746,27 +746,41 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
  *
  */
 void
-rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs)
+rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
+    ods_status* status)
 {
     uint16_t i = 0;
+    ods_status result = ODS_STATUS_OK;
+
     if (!rrset || !fd) {
+        if (status) {
+            *status = ODS_STATUS_ASSERT_ERR;
+        }
         return;
     }
     for (i=0; i < rrset->rr_count; i++) {
         if (rrset->rrs[i].exists) {
-            (void)util_rr_print(fd, rrset->rrs[i].rr);
+            result = util_rr_print(fd, rrset->rrs[i].rr);
             if (rrset->rrtype == LDNS_RR_TYPE_CNAME ||
                 rrset->rrtype == LDNS_RR_TYPE_DNAME) {
                 /* singleton types */
                 break;
             }
+            if (result != ODS_STATUS_OK) {
+                break;
+            }
         }
     }
-    if (skip_rrsigs || !rrset->rrsig_count) {
-        return;
+    if (! (skip_rrsigs || !rrset->rrsig_count)) {
+        for (i=0; i < rrset->rrsig_count; i++) {
+            result = util_rr_print(fd, rrset->rrsigs[i].rr);
+            if (result != ODS_STATUS_OK) {
+                break;
+            }
+        }
     }
-    for (i=0; i < rrset->rrsig_count; i++) {
-        (void)util_rr_print(fd, rrset->rrsigs[i].rr);
+    if (status) {
+        *status = result;
     }
     return;
 }
