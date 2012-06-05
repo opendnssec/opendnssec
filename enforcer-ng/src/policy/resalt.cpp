@@ -37,6 +37,10 @@
 #undef _ANSI_SOURCE
 #define _DARWIN_C_SOURCE 1
 #endif
+
+/* Make arc4random visable on FreeBSD and NetBSD */
+#define __BSD_VISIBLE 1
+
 #include <stdlib.h>
 
 #include "resalt.h"
