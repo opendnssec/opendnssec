@@ -38,8 +38,10 @@
 #define _DARWIN_C_SOURCE 1
 #endif
 
-/* Make arc4random visable on FreeBSD and NetBSD */
+/* Make arc4random visible on FreeBSD and NetBSD */
+#ifndef __BSD_VISIBLE
 #define __BSD_VISIBLE 1
+#endif
 
 #include <stdlib.h>
 
