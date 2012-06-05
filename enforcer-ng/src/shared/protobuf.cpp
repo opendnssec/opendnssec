@@ -29,6 +29,7 @@
  *
  */
 
+#include "config.h"
 #include "protobuf.h"
 #include "shared/log.h"
 #include "shared/file.h"

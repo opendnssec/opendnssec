@@ -129,8 +129,11 @@ case "$host" in
 *-*-darwin*)
     AC_DEFINE(SETEUID_BREAKS_SETUID, 1,
 	    [Define if your platform breaks doing a seteuid before a setuid])
-	AC_DEFINE(BROKEN_SETREUID, 1, [Define if your setreuid() is broken])
-	AC_DEFINE(BROKEN_SETREGID, 1, [Define if your setregid() is broken])
+    AC_DEFINE(BROKEN_SETREUID, 1, [Define if your setreuid() is broken])
+    AC_DEFINE(BROKEN_SETREGID, 1, [Define if your setregid() is broken])
+    ;;
+*-*-netbsd*)
+    AC_DEFINE(_NETBSD_SOURCE, 1, [Enable functions on BSD])
     ;;
 esac
 

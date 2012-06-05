@@ -34,11 +34,7 @@
  *
  */
 
-/* Activate vfwscanf, vswscanf, vwscanf, and wcstof on NetBSD */
-#ifndef _NETBSD_SOURCE
-#define _NETBSD_SOURCE 1
-#endif
-
+#include "config.h"
 #include "orm.h"
 #include "shared/log.h"
 #include "shared/file.h"
