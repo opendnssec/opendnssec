@@ -506,6 +506,7 @@ int KsmParameterPubSafety(KSM_PARCOLL* collection);
 int KsmParameterRetSafety(KSM_PARCOLL* collection);
 int KsmParameterInitialPublicationInterval(KSM_PARCOLL* collection);
 int KsmParameterCollection(KSM_PARCOLL* data, int policy_id);
+void KsmParameterCollectionCache(int enable);
 
 /* ksm_keyword */
 
