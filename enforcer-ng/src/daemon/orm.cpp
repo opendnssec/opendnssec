@@ -130,7 +130,7 @@ ods_orm_connect_sqlite3(int sockfd, engineconfig_type *config, OrmConn *conn)
 int
 ods_orm_connect(int sockfd, engineconfig_type *config, OrmConn *conn)
 {
-	if (config->db_host)
+	if (config->db_username)
 		return ods_orm_connect_mysql(sockfd,config,conn);
 	else
 		return ods_orm_connect_sqlite3(sockfd,config,conn);
