@@ -382,6 +382,21 @@ int KsmCollectionInit(KSM_PARCOLL* data)
  *                  output.
 -*/
 
+static KSM_PARCOLL __parcoll_cache;
+static int __parcoll_cache_policy_id;
+static int __parcoll_cached = 0;
+static int __parcoll_cache_enabled = 0;
+
+void KsmParameterCollectionCache(int enable) {
+    if (enable && !__parcoll_cache_enabled) {
+        __parcoll_cache_enabled = 1;
+        __parcoll_cached = 0;
+    }
+    else if (!enable && __parcoll_cache_enabled) {
+        __parcoll_cache_enabled = 0;
+    }
+}
+
 int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
 {
     int status = 0;
@@ -390,6 +405,11 @@ int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
     /* check the arguments */
     if (data == NULL) {
         return MsgLog(KSM_INVARG, "NULL data");
+    }
+
+    if (__parcoll_cache_enabled && __parcoll_cached && __parcoll_cache_policy_id == policy_id) {
+        memcpy(data, &__parcoll_cache, sizeof(KSM_PARCOLL));
+        return 0;
     }
 
     status = KsmParameterValue(KSM_PAR_CLOCKSKEW_STRING, KSM_PAR_CLOCKSKEW_CAT, &(data->clockskew), policy_id, &param_id);
@@ -457,6 +477,12 @@ int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
         /* Not set, use our default */
         data->kskroll = KSM_ROLL_DEFAULT;
     /*}*/
+
+    if (__parcoll_cache_enabled) {
+        memcpy(&__parcoll_cache, data, sizeof(KSM_PARCOLL));
+        __parcoll_cache_policy_id = policy_id;
+        __parcoll_cached = 1;
+    }
 
     return 0;
 }

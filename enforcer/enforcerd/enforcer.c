@@ -246,7 +246,9 @@ server_main(DAEMONCONFIG *config)
         }
 
         /* Communicate zones to the signer */
+        KsmParameterCollectionCache(1); /* Enable caching of policy parameters while in do_communication() */
         do_communication(config, policy);
+        KsmParameterCollectionCache(0);
         
         DbFreeResult(handle);
 
