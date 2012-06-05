@@ -60,6 +60,10 @@ AC_DEFUN([ACX_ENFORCER_DATABASE],[
 
 		AX_LIB_MYSQL(5.0.0)
 
+		if test "$found_mysql" != "yes"; then
+			AC_MSG_ERROR([MySQL is missing.])
+		fi
+
 		ENFORCER_DB_INCLUDES=$MYSQL_CFLAGS
 		ENFORCER_DB_LIBS=$MYSQL_LDFLAGS
 
