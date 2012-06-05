@@ -35,8 +35,8 @@
  */
 
 /* Activate vfwscanf, vswscanf, vwscanf, and wcstof on NetBSD */
-#ifndef __USE_ISOC99
-#define __USE_ISOC99 1
+#ifndef _NETBSD_SOURCE
+#define _NETBSD_SOURCE 1
 #endif
 
 #include "orm.h"
