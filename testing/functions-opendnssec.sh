@@ -37,7 +37,7 @@ ods_post_test ()
 ods_reset_env ()
 {
 	echo "ods_reset_env: resetting opendnssec environment"
-	echo "y" | ods-ksmutil setup &&
+	echo "y" | ods-enforcer setup &&
 	log_this softhsm-init-token softhsm --init-token --slot 0 --label OpenDNSSEC --pin 1234 --so-pin 1234 ||
 	return 1
 	
