@@ -168,7 +168,7 @@ ods_reset_env ()
 	echo "ods_reset_env: resetting opendnssec environment"
 	
 	ods_softhsm_init_token 0 &&
-	echo "y" | log_this "ods-ksmutil-setup" ods-ksmutil setup &&
+	echo "y" | log_this "ods-enforcer-setup" ods-enforcer setup &&
 	return 0
 	
 	return 1
