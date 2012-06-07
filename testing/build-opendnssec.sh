@@ -19,7 +19,7 @@ case "$DISTRIBUTION" in
 		append_cflags "-std=c99"
 		;;
 	opensuse )
-		append_ldflags "-lncurses"
+		append_ldflags "-lncurses -lpthread"
 		;;
 esac
 case "$DISTRIBUTION" in
