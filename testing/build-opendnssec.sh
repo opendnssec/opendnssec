@@ -19,7 +19,7 @@ case "$DISTRIBUTION" in
 		append_cflags "-std=c99"
 		;;
 	opensuse )
-		append_ldflags "-lncurses -lpthread"
+		append_ldflags "-lncurses"
 		;;
 esac
 case "$DISTRIBUTION" in
@@ -40,7 +40,6 @@ case "$DISTRIBUTION" in
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-database-backend=sqlite3 \
 				--with-dbname=opendnssec-build-test \
-				--disable-auditor \
 				--enable-timeshift &&
 			$MAKE &&
 			$MAKE check &&
@@ -61,7 +60,6 @@ case "$DISTRIBUTION" in
 				--with-cunit=/usr/pkg \
 				--with-database-backend=sqlite3 \
 				--with-dbname=opendnssec-build-test \
-				--disable-auditor \
 				--enable-timeshift \
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
@@ -82,7 +80,6 @@ case "$DISTRIBUTION" in
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-database-backend=sqlite3 \
 				--with-dbname=opendnssec-build-test \
-				--disable-auditor \
 				--enable-timeshift &&
 			$MAKE &&
 			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
