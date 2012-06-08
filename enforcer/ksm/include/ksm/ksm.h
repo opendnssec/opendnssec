@@ -140,7 +140,7 @@ int KsmKeyCountQueue(int keytype, int* count, int zone_id);
 int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int interval, const char* datetime, int *count, int keytype);
 int KsmKeyGetUnallocated(int policy_id, int sm, int bits, int algorithm, int zone_id, int share_keys, int *keypair_id);
 int KsmMarkKeysAsDead(int zone_id);
-int KsmKillKey(int keypair_id);
+int KsmKillKey(int keypair_id, int zone_id);
 
 /* delete */
 

@@ -1,5 +1,11 @@
 $Id$
 
+Bugfixes:
+
+* SUPPORT-27: ods-ksmutil: simplify zone delete so that it only marks keys 
+  as dead (rather than actually removing them). Leave the key removal to purge
+  jobs.
+
 OpenDNSSEC 1.4.0a2 - 2012-05-24
 
 * OPENDNSSEC-226: Change in conf.xml: Configure the DNS listener IP address
