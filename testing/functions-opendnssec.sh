@@ -17,7 +17,7 @@ ods_post_test ()
 
 ods_nuke_env ()
 {
-	local kasp_files=`ls "$INSTALL_ROOT/var/opendnssec/kasp*db*" 2>/dev/null`
+	local kasp_files=`cd "$INSTALL_ROOT/var/opendnssec/" && ls kasp*db* 2>/dev/null`
 	local tmp_files=`ls "$INSTALL_ROOT/var/opendnssec/tmp/" 2>/dev/null`
 	local unsigned_files=`ls "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null`
 	local signed_files=`ls "$INSTALL_ROOT/var/opendnssec/signed/" 2>/dev/null`
