@@ -1,5 +1,27 @@
 $Id$
 
+OpenDNSSEC EnforcerNG branch alpha3 - 2012-06-11
+
+* OPENDNSSEC-271, Signer configurations w/o keys are now accepted.
+* Limit number of pregenerated keys when using <SharedKeys>.
+* OPENDNSSEC-206, Notify Signer on generating new signer configuration.
+* OPENDNSSEC-224, Fix rolling simultaneous keys. (e.g. emergency roll)
+* OPENDNSSEC-185, Used wrong value for negative caching.
+* OPENDNSSEC-183, If no DNSKEYs use negative TTL as TTL(DNSKEY).
+* MySQL database backend implemented.
+* SQLite database backend implemented.
+* New directive <MaxZoneTTL> to make safe assumptions about zonefile.
+* New zone add command, allow specifying adapters.
+* New zone del command, use --force for still signed zones.
+* Handle cases where negative cache > positive cache.
+* Pre-generate keys on the HSM.
+* Take resign interval into account when signer does smooth rollover.
+
+Known Issues:
+* Lacking documentation.
+* No migration tools.
+* Key material not always reused when using <SharedKeys>.
+
 OpenDNSSEC EnforcerNG branch alpha2
 
 * Support for RollOverType in kasp.xml
