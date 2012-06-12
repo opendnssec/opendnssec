@@ -1,9 +1,0 @@
-diff -urN ldns-1.6.12.orig/doc/doxyparse.pl ldns-1.6.12/doc/doxyparse.pl
---- ldns-1.6.12.orig/doc/doxyparse.pl	2012-01-20 10:26:45.000000000 +0100
-+++ ldns-1.6.12/doc/doxyparse.pl	2012-01-20 10:26:58.000000000 +0100
-@@ -1,4 +1,4 @@
--#!/usr/bin/perl
-+#!/usr/bin/env perl
- 
- # Doxygen is usefull for html documentation, but sucks 
- # in making manual pages. Still tool also parses the .h
