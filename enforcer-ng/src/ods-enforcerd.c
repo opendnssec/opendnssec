@@ -67,8 +67,6 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 #define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
 #define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
@@ -199,7 +197,7 @@ enforcer_commands[] = {
 int
 main(int argc, char* argv[])
 {
-    int c, fd;
+    int c;
     int options_index = 0;
     int info = 0;
     int single_run = 0;
@@ -260,14 +258,6 @@ main(int argc, char* argv[])
     if (argc != 0) {
         usage(stderr);
         exit(2);
-    }
-
-    /* Do not output anything if daemonized */
-    if (daemonize && (fd = open("/dev/null", O_RDWR, 0)) != -1) {
-        (void)dup2(fd, STDIN_FILENO);
-        (void)dup2(fd, STDOUT_FILENO);
-        (void)dup2(fd, STDERR_FILENO);
-        if (fd > 2) (void)close(fd);
     }
 
 #ifdef ENFORCER_TIMESHIFT

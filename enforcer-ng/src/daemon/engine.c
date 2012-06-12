@@ -63,6 +63,7 @@
 #include <sys/un.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 static const char* engine_str = "engine";
 
@@ -401,6 +402,7 @@ engine_setup_and_return_status(engine_type* engine)
 {
     struct sigaction action;
     int result = 0;
+    int fd;
 
     ods_log_debug("[%s] enforcer setup", engine_str);
     if (!engine || !engine->config) {
@@ -446,6 +448,12 @@ engine_setup_and_return_status(engine_type* engine)
                     engine_str, strerror(errno));
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
+                if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+                    (void)dup2(fd, STDIN_FILENO);
+                    (void)dup2(fd, STDOUT_FILENO);
+                    (void)dup2(fd, STDERR_FILENO);
+                    if (fd > 2) (void)close(fd);
+                }
                 break;
             default: /* parent */
                 engine_cleanup(engine);
@@ -674,9 +682,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     tzset(); /* for portability */
 
     /* initialize protobuf and protobuf-orm */
-	ods_protobuf_initialize();
-	ods_orm_initialize();
-	
+    ods_protobuf_initialize();
+    ods_orm_initialize();
+    
     return engine;
 }
 
@@ -688,8 +696,8 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 void
 engine_stop(engine_type *engine)
 {
-	ods_orm_shutdown();
-	ods_protobuf_shutdown();
+    ods_orm_shutdown();
+    ods_protobuf_shutdown();
 
     if (engine && engine->config) {
         if (engine->config->pid_filename) {
