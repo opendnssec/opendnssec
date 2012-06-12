@@ -1,37 +1,58 @@
 $Id$
 
-OpenDNSSEC EnforcerNG branch alpha3 - 2012-06-11
+OpenDNSSEC EnforcerNG branch alpha3 - 2012-06-12
 
-* OPENDNSSEC-271, Signer configurations w/o keys are now accepted.
-* Limit number of pregenerated keys when using <SharedKeys>.
-* OPENDNSSEC-206, Notify Signer on generating new signer configuration.
-* OPENDNSSEC-224, Fix rolling simultaneous keys. (e.g. emergency roll)
-* OPENDNSSEC-185, Used wrong value for negative caching.
-* OPENDNSSEC-183, If no DNSKEYs use negative TTL as TTL(DNSKEY).
-* MySQL database backend implemented.
-* SQLite database backend implemented.
-* New directive <MaxZoneTTL> to make safe assumptions about zonefile.
-* New zone add command, allow specifying adapters.
-* New zone del command, use --force for still signed zones.
-* Handle cases where negative cache > positive cache.
-* Pre-generate keys on the HSM.
-* Take resign interval into account when signer does smooth rollover.
+* Enforcer: Limit number of pregenerated keys when using <SharedKeys>.
+* Enforcer: MySQL database backend implemented.
+* Enforcer: New directive <MaxZoneTTL> to make safe assumptions about
+  zonefile.
+* Enforcer: New zone add command, allow specifying adapters.
+* Enforcer: New zone del command, use --force for still signed zones.
+* Enforcer: Pre-generate keys on the HSM.
+* Enforcer: SQLite database backend implemented.
+
+Bugfixes:
+* OPENDNSSEC-183: Enforcer: If no DNSKEYs use negative TTL as TTL(DNSKEY).
+* OPENDNSSEC-185: Enforcer: Used wrong value for negative caching.
+* OPENDNSSEC-206: Enforcer: Notify Signer on generating new signer
+  configuration.
+* OPENDNSSEC-224: Enforcer: Fix rolling simultaneous keys.
+  (e.g. emergency roll)
+* OPENDNSSEC-271: Enforcer: Signer configurations w/o keys are now accepted.
+* Enforcer: Handle cases where negative cache > positive cache.
+* Enforcer: Take resign interval into account when signer does smooth
+  rollover.
 
 Known Issues:
-* Lacking documentation.
-* No migration tools.
-* Key material not always reused when using <SharedKeys>.
+* Enforcer: Key material not always reused when using <SharedKeys>.
+* Enforcer: Lacking documentation.
+* Enforcer: No migration tools.
 
-OpenDNSSEC EnforcerNG branch alpha2
 
-* Support for RollOverType in kasp.xml
-* Fixed concurrency related crashes.
-* Automatically retract never submitted DS records.
-* Schedule the purging of keys.
-* Automatic introduce keys marked as manual, like other enforcer.
-* Do not allow lifetime of key to be shorter than TTL.
-* CSK is now configurable.
-* Remove some scheduling when waiting for user input.
+OpenDNSSEC EnforcerNG branch alpha2 - 2011-10-18
+
+* Enforcer: Automatic introduce keys marked as manual, like other enforcer.
+* Enforcer: Automatically retract never submitted DS records.
+* Enforcer: CSK is now configurable.
+* Enforcer: Do not allow lifetime of key to be shorter than TTL.
+* Enforcer: Support for RollOverType in kasp.xml
+
+Bugfixes:
+* Enforcer: Fixed concurrency related crashes.
+* Enforcer: Remove some scheduling when waiting for user input.
+* Enforcer: Schedule the purging of keys.
+
+
+OpenDNSSEC EnforcerNG branch alpha1 - 2011-09-23
+
+HIGH-LEVEL DESIGN GOALS:
+* Support for a large number of zones. The enforcer should reasonably be
+  useable with many zones. Think order of magnitude 50.000 concurrent zones.
+* Allow for future rollover strategies. Provide a generic framework to
+  implement other kinds of rollovers in the future.
+* Drop in replacement. Should replace the current enforcer but keep the same
+  interface and provide migration scripts from earlier installs.
+
 
 OpenDNSSEC 1.4.0a2 - 2012-05-24
 
