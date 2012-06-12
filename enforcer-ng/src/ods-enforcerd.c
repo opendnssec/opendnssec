@@ -262,6 +262,14 @@ main(int argc, char* argv[])
         exit(2);
     }
 
+    /* Do not output anything if daemonized */
+    if (daemonize && (fd = open("/dev/null", O_RDWR, 0)) != -1) {
+        (void)dup2(fd, STDIN_FILENO);
+        (void)dup2(fd, STDOUT_FILENO);
+        (void)dup2(fd, STDERR_FILENO);
+        if (fd > 2) (void)close(fd);
+    }
+
 #ifdef ENFORCER_TIMESHIFT
     if (getenv("ENFORCER_TIMESHIFT")) {
         fprintf(stdout, "WARNING: timeshift %s detected, running once only\n",
@@ -271,14 +279,6 @@ main(int argc, char* argv[])
         fprintf(stdout, "DEBUG: timeshift mode enabled, but not set.\n");
     }
 #endif /* ENFORCER_TIMESHIFT */
-
-    /* Do not output anything if daemonized */
-    if (daemonize && (fd = open("/dev/null", O_RDWR, 0)) != -1) {
-        (void)dup2(fd, STDIN_FILENO);
-        (void)dup2(fd, STDOUT_FILENO);
-        (void)dup2(fd, STDERR_FILENO);
-        if (fd > 2) (void)close(fd);
-    }
 
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", PACKAGE_VERSION);
