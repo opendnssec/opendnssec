@@ -67,7 +67,8 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <unistd.h>
+#include <fcntl.h>
 
 #define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
 #define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
@@ -131,8 +132,8 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_policy_list_cmd,
     help_zone_list_cmd,
     help_zone_export_cmd,
-	help_zone_add_cmd,
-	help_zone_del_cmd,
+    help_zone_add_cmd,
+    help_zone_del_cmd,
 
     help_keystate_list_cmd,
     help_keystate_export_cmd,
@@ -169,8 +170,8 @@ enforcer_commands[] = {
     handled_policy_list_cmd,
     handled_zone_list_cmd,
     handled_zone_export_cmd,
-	handled_zone_add_cmd,
-	handled_zone_del_cmd,
+    handled_zone_add_cmd,
+    handled_zone_del_cmd,
 
     handled_keystate_list_cmd,
     handled_keystate_export_cmd,
@@ -198,7 +199,7 @@ enforcer_commands[] = {
 int
 main(int argc, char* argv[])
 {
-    int c;
+    int c, fd;
     int options_index = 0;
     int info = 0;
     int single_run = 0;
@@ -270,6 +271,14 @@ main(int argc, char* argv[])
         fprintf(stdout, "DEBUG: timeshift mode enabled, but not set.\n");
     }
 #endif /* ENFORCER_TIMESHIFT */
+
+    /* Do not output anything if daemonized */
+    if (daemonize && (fd = open("/dev/null", O_RDWR, 0)) != -1) {
+        (void)dup2(fd, STDIN_FILENO);
+        (void)dup2(fd, STDOUT_FILENO);
+        (void)dup2(fd, STDERR_FILENO);
+        if (fd > 2) (void)close(fd);
+    }
 
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", PACKAGE_VERSION);
