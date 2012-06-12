@@ -24,23 +24,11 @@ case "$DISTRIBUTION" in
 	suse | \
 	freebsd | \
 	sunos | \
-	openbsd )
-		(
-			gunzip -c "$LDNS_SRC" | tar xf - &&
-			cd "$LDNS" &&
-			./configure --prefix="$INSTALL_ROOT" \
-				--disable-gost \
-				--disable-ecdsa &&
-			$MAKE &&
-			$MAKE install
-		) &&
-		build_ok=1
-		;;
+	openbsd | \
 	netbsd )
 		(
 			gunzip -c "$LDNS_SRC" | tar xf - &&
 			cd "$LDNS" &&
-			patch -p1 < ../ldns-1.6.12-doxyparse.pl-netbsd.patch &&
 			./configure --prefix="$INSTALL_ROOT" \
 				--disable-gost \
 				--disable-ecdsa &&
