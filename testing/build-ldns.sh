@@ -29,7 +29,8 @@ case "$DISTRIBUTION" in
 			gunzip -c "$LDNS_SRC" | tar xf - &&
 			cd "$LDNS" &&
 			./configure --prefix="$INSTALL_ROOT" \
-				--disable-gost &&
+				--disable-gost \
+				--disable-ecdsa &&
 			$MAKE &&
 			$MAKE install
 		) &&
@@ -41,7 +42,8 @@ case "$DISTRIBUTION" in
 			cd "$LDNS" &&
 			patch -p1 < ../ldns-1.6.12-doxyparse.pl-netbsd.patch &&
 			./configure --prefix="$INSTALL_ROOT" \
-				--disable-gost &&
+				--disable-gost \
+				--disable-ecdsa &&
 			$MAKE &&
 			$MAKE install
 		) &&
