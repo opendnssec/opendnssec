@@ -182,9 +182,31 @@ ods_reset_env ()
 	echo "ods_reset_env: resetting opendnssec environment"
 	
 	ods_softhsm_init_token 0 &&
-	echo "y" | log_this "ods-enforcer-setup" ods-enforcer setup &&
 	return 0
 	
+	return 1
+}
+
+ods_setup_env ()
+{
+	if ! pgrep -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null; then
+		echo "ods_setup_env: Unable to setup environment, ods-enforcerd needs to be running" >&2
+		return 1
+	fi
+
+	echo "ods_setup_env: setting up opendnssec environment"
+	
+	log_this_timeout 30 ods-enforcer-setup ods-enforcer setup &&
+	log_grep ods-enforcer-setup 'setup completed in' &&
+	! log_grep ods-enforcer-setup 'failed' &&
+	! log_grep ods-enforcer-setup 'error starting a database transaction' &&
+	! log_grep ods-enforcer-setup 'could not' &&
+	! log_grep ods-enforcer-setup 'missing required fields' &&
+	! log_grep ods-enforcer-setup 'out of memory' &&
+	echo "ods_setup_env: setup complete" &&
+	return 0
+	
+	echo "ods_setup_env: setup failed!" >&2
 	return 1
 }
 
