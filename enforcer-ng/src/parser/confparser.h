@@ -116,6 +116,7 @@ const char* parse_conf_db_password(allocator_type* allocator,
 
 /** Common */
 int parse_conf_use_syslog(const char* cfgfile);
+int parse_conf_verbosity(const char* cfgfile);
 
 /** Enforcer specific */
 int parse_conf_worker_threads(const char* cfgfile);
