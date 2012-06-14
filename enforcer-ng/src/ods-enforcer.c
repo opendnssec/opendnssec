@@ -154,7 +154,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                     /* n==0 */
                     if (stdineof == 1) {
                         /* normal termination */
-                        return;
+                        return 0;
                     } else {
                         /* weird termination */
                         fprintf(stderr, "enforcer engine terminated "
