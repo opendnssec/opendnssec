@@ -1242,7 +1242,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime || 
 					role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
 				ods_log_crit("[%s] %s Key lifetime unreasonably short "
-					"with respect to TTL. Will not insert key!",
+					"with respect to TTL and MaxZoneTTL. Will not insert key!",
 					module_str, scmd);
 				continue;
 			}
