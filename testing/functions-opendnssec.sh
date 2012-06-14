@@ -196,7 +196,7 @@ ods_setup_env ()
 
 	echo "ods_setup_env: setting up opendnssec environment"
 	
-	log_this_timeout 30 ods-enforcer-setup ods-enforcer setup &&
+	log_this_timeout ods-enforcer-setup 30 ods-enforcer setup &&
 	log_grep ods-enforcer-setup 'setup completed in' &&
 	! log_grep ods-enforcer-setup 'failed' &&
 	! log_grep ods-enforcer-setup 'error starting a database transaction' &&
