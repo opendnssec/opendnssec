@@ -197,12 +197,12 @@ ods_setup_env ()
 	echo "ods_setup_env: setting up opendnssec environment"
 	
 	log_this_timeout ods-enforcer-setup 30 ods-enforcer setup &&
-	log_grep ods-enforcer-setup 'setup completed in' &&
-	! log_grep ods-enforcer-setup 'failed' &&
-	! log_grep ods-enforcer-setup 'error starting a database transaction' &&
-	! log_grep ods-enforcer-setup 'could not' &&
-	! log_grep ods-enforcer-setup 'missing required fields' &&
-	! log_grep ods-enforcer-setup 'out of memory' &&
+	log_grep ods-enforcer-setup stdout 'setup completed in' &&
+	! log_grep ods-enforcer-setup stdout 'failed' &&
+	! log_grep ods-enforcer-setup stdout 'error starting a database transaction' &&
+	! log_grep ods-enforcer-setup stdout 'could not' &&
+	! log_grep ods-enforcer-setup stdout 'missing required fields' &&
+	! log_grep ods-enforcer-setup stdout 'out of memory' &&
 	echo "ods_setup_env: setup complete" &&
 	return 0
 	
