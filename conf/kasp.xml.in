@@ -26,6 +26,7 @@
 			</Validity>
 			<Jitter>PT12H</Jitter>
 			<InceptionOffset>PT3600S</InceptionOffset>
+			<MaxZoneTTL>PT1D</MaxZoneTTL>
 		</Signatures>
 
 		<Denial>
@@ -98,6 +99,7 @@
 			</Validity>
 			<Jitter>PT1M</Jitter>
 			<InceptionOffset>PT3600S</InceptionOffset>
+			<MaxZoneTTL>PT300S</MaxZoneTTL>
 		</Signatures>
 
 		<Denial>
