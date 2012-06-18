@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC EnforcerNG branch alpha3 - 2012-06-12
+OpenDNSSEC 2.0.0a3 (EnforcerNG branch) - 2012-06-18
 
 * Enforcer: Limit number of pregenerated keys when using <SharedKeys>.
 * Enforcer: MySQL database backend implemented.
