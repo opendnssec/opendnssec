@@ -134,7 +134,7 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 				return;
 			}
 				
-			// insert the policy we erad from the kasp.xml file.
+			// insert the policy we read from the kasp.xml file.
 			pb::uint64 policyid;
 			if (!OrmMessageInsert(conn, policy, policyid)) {
 				ods_log_error_and_printf(sockfd, module_str,

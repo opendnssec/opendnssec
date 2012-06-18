@@ -53,6 +53,13 @@ HIGH-LEVEL DESIGN GOALS:
 * Drop in replacement. Should replace the current enforcer but keep the same
   interface and provide migration scripts from earlier installs.
 
+Trunk
+
+Bugfixes:
+
+* SUPPORT-27: ods-ksmutil: simplify zone delete so that it only marks keys 
+  as dead (rather than actually removing them). Leave the key removal to purge
+  jobs.
 
 OpenDNSSEC 1.4.0a2 - 2012-05-24
 

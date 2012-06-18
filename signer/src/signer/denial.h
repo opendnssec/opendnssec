@@ -95,9 +95,10 @@ void denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added);
  * Print Denial of Existence data point.
  * \param[in] fd file descriptor
  * \param[in] denial denial of existence data point
+ * \param[out] status status
  *
  */
-void denial_print(FILE* fd, denial_type* denial);
+void denial_print(FILE* fd, denial_type* denial, ods_status* status);
 
 /**
  * Cleanup Denial of Existence data point.

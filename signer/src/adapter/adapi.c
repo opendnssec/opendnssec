@@ -387,14 +387,15 @@ adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup)
  * Print zone.
  *
  */
-void
+ods_status
 adapi_printzone(FILE* fd, zone_type* zone)
 {
+    ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db) {
-        return;
+        return ODS_STATUS_ASSERT_ERR;
     }
-    namedb_export(fd, zone->db);
-    return;
+    namedb_export(fd, zone->db, &status);
+    return status;
 }
 
 
@@ -402,18 +403,21 @@ adapi_printzone(FILE* fd, zone_type* zone)
  * Print axfr.
  *
  */
-void
+ods_status
 adapi_printaxfr(FILE* fd, zone_type* zone)
 {
     rrset_type* rrset = NULL;
+    ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db) {
-        return;
+        return ODS_STATUS_ASSERT_ERR;
     }
-    namedb_export(fd, zone->db);
-    rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
-    ods_log_assert(rrset);
-    rrset_print(fd, rrset, 1);
-    return;
+    namedb_export(fd, zone->db, &status);
+    if (status == ODS_STATUS_OK) {
+        rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
+        ods_log_assert(rrset);
+        rrset_print(fd, rrset, 1, &status);
+    }
+    return status;
 }
 
 
@@ -421,21 +425,25 @@ adapi_printaxfr(FILE* fd, zone_type* zone)
  * Print ixfr.
  *
  */
-void
+ods_status
 adapi_printixfr(FILE* fd, zone_type* zone)
 {
     rrset_type* rrset = NULL;
+    ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db || !zone->ixfr) {
-        return;
+        return ODS_STATUS_ASSERT_ERR;
     }
     if (!zone->db->is_initialized) {
         /* no ixfr yet */
-        return;
+        return ODS_STATUS_OK;
     }
     rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
     ods_log_assert(rrset);
-    rrset_print(fd, rrset, 1);
+    rrset_print(fd, rrset, 1, &status);
+    if (status != ODS_STATUS_OK) {
+        return status;
+    }
     ixfr_print(fd, zone->ixfr);
-    rrset_print(fd, rrset, 1);
-    return;
+    rrset_print(fd, rrset, 1, &status);
+    return status;
 }

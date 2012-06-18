@@ -967,21 +967,29 @@ namedb_wipe_denial(namedb_type* db)
  *
  */
 void
-namedb_export(FILE* fd, namedb_type* db)
+namedb_export(FILE* fd, namedb_type* db, ods_status* status)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
     if (!fd || !db || !db->domains) {
+        if (status) {
+            *status = ODS_STATUS_ASSERT_ERR;
+        }
         return;
     }
     node = ldns_rbtree_first(db->domains);
     if (!node || node == LDNS_RBTREE_NULL) {
         fprintf(fd, "; empty zone\n");
+        if (status) {
+            *status = ODS_STATUS_OK;
+        }
         return;
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        domain_print(fd, domain);
+        if (domain) {
+            domain_print(fd, domain, status);
+        }
         node = ldns_rbtree_next(node);
     }
     return;
@@ -1109,7 +1117,7 @@ namedb_backup2(FILE* fd, namedb_type* db)
     while (node && node != LDNS_RBTREE_NULL) {
         denial = (denial_type*) node->data;
         if (denial->rrset) {
-            rrset_print(fd, denial->rrset, 1);
+            rrset_print(fd, denial->rrset, 1, NULL);
         }
         node = ldns_rbtree_next(node);
     }

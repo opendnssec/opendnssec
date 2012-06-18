@@ -1040,6 +1040,7 @@ earlyexit:
             (void)unlink(engine->config->clisock_filename);
         }
     }
+    tsig_handler_cleanup();
     engine_cleanup(engine);
     engine = NULL;
     ods_log_close();

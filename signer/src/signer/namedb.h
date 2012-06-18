@@ -186,9 +186,10 @@ void namedb_nsecify(namedb_type* db, uint32_t* num_added);
  * Export db to file.
  * \param[in] fd file descriptor
  * \param[in] namedb namedb
+ * \param[out] status status
  *
  */
-void namedb_export(FILE* fd, namedb_type* db);
+void namedb_export(FILE* fd, namedb_type* db, ods_status* status);
 
 /**
  * Wipe out all NSEC(3) RRsets.

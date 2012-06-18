@@ -173,9 +173,10 @@ ldns_rr_type domain_is_occluded(domain_type* domain);
  * Print domain.
  * \param[in] fd file descriptor
  * \param[in] domain domain
+ * \param[out] status status
  *
  */
-void domain_print(FILE* fd, domain_type* domain);
+void domain_print(FILE* fd, domain_type* domain, ods_status* status);
 
 /**
  * Clean up domain.

@@ -78,14 +78,14 @@ adfile_read_line:
         switch (line[0]) {
             /* directive */
             case '$':
-                if (strncmp(line, "$ORIGIN", 7) == 0 && isspace(line[7])) {
+                if (strncmp(line, "$ORIGIN", 7) == 0 && isspace((int)line[7])) {
                     /* copy from ldns */
                     if (*orig) {
                         ldns_rdf_deep_free(*orig);
                         *orig = NULL;
                     }
                     offset = 8;
-                    while (isspace(line[offset])) {
+                    while (isspace((int)line[offset])) {
                         offset++;
                     }
                     tmp = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME,
@@ -100,10 +100,10 @@ adfile_read_line:
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 } else if (strncmp(line, "$TTL", 4) == 0 &&
-                    isspace(line[4])) {
+                    isspace((int)line[4])) {
                     /* override default ttl */
                     offset = 5;
-                    while (isspace(line[offset])) {
+                    while (isspace((int)line[offset])) {
                         offset++;
                     }
                     if (ttl) {
@@ -113,10 +113,10 @@ adfile_read_line:
                     goto adfile_read_line; /* perhaps next line is rr */
                     break;
                 } else if (strncmp(line, "$INCLUDE", 8) == 0 &&
-                    isspace(line[8])) {
+                    isspace((int)line[8])) {
                     /* dive into this file */
                     offset = 9;
-                    while (isspace(line[offset])) {
+                    while (isspace((int)line[offset])) {
                         offset++;
                     }
                     fd_include = ods_fopen(line + offset, NULL, "r");
@@ -347,9 +347,8 @@ adfile_write(void* zone, const char* filename)
     tmpname = ods_build_path(filename, ".tmp", 0, 0);
     fd = ods_fopen(tmpname, NULL, "w");
     if (fd) {
-        adapi_printzone(fd, adzone);
+        status = adapi_printzone(fd, adzone);
         ods_fclose(fd);
-        status = ODS_STATUS_OK;
     } else {
         status = ODS_STATUS_FOPEN_ERR;
     }
