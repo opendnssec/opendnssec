@@ -266,11 +266,12 @@ isPotentialSuccessor(KeyData &pred_key, const struct FutureKey *future_key, KeyD
 					(getState(succ_key, DS, future_key) == OMN) ||
 					(getState(pred_key, RS, future_key) == OMN) && 
 					(getState(succ_key, RS, future_key) == OMN) ;
+		case RD:
+			return false;
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
 				"fault of programmer. Abort.",
 				module_str, scmd, (int)future_key->record);
-			return false;
 	}
 }
 
@@ -288,12 +289,13 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 			dep_list.dep(i).toKey().compare( k_succ.locator() ) == 0 ) 
 			return true;
 	}
+
 	/** trivial case where there is a direct relation in the future */
 	if (future_key->pretend_update && 
 		future_key->key->locator().compare(k_pred) == 0 && 
 		isPotentialSuccessor(*future_key->key, future_key, k_succ, succRelRec))
 		return true;
-
+	KeyData *prKey = stringToKeyData(key_list, k_pred);
 	/** There is no direct relation. Check for indirect where X depends
 	 * on S and X in same state as P and X successor of P*/
 	for (int i = 0; i < dep_list.numDeps(); i++) {
@@ -302,7 +304,6 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 				dep.toKey().compare( k_succ.locator()) != 0) continue;
 		//fromKey() is candidate now, must be in same state as k_pred
 		KeyData *fromKey = stringToKeyData(key_list, dep.fromKey());
-		KeyData *prKey = stringToKeyData(key_list, k_pred);
 		//TODO, make fine grained. depending on record
 		if (getState(*prKey, DS, future_key) != getState(*fromKey, DS, future_key)) continue;
 		if (getState(*prKey, DK, future_key) != getState(*fromKey, DK, future_key)) continue;
@@ -317,8 +318,8 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 	 //for all X, is S succ of X?
 	if (future_key->pretend_update) {
 		for (int i = 0; i < key_list.numKeys(); i++) {
+			if (key_list.key(i).locator().compare(k_pred) == 0) continue; 
 			if (isPotentialSuccessor(key_list.key(i), future_key, k_succ, succRelRec)) {
-				KeyData *prKey = stringToKeyData(key_list, k_pred);
 				if (getState(*prKey, DS, future_key) != getState(key_list.key(i), DS, NULL)) continue;
 				if (getState(*prKey, DK, future_key) != getState(key_list.key(i), DK, NULL)) continue;
 				if (getState(*prKey, RS, future_key) != getState(key_list.key(i), RS, NULL)) continue;
