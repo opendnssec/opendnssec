@@ -29,7 +29,7 @@ pbormtest_SOURCES =		big.pb.cc big.pb.h \
 						product.pb.cc product.pb.h \
 						tree.pb.cc tree.pb.h \
 						zone.pb.cc zone.pb.h \
-						pbormtest.cc \
+						pbormtest.cc pbormtest.h \
 						timecollector.cc timecollector.h \
 						pb-orm-big-tests.cc pb-orm-big-tests.h \
 						pb-orm-tree-tests.cc pb-orm-tree-tests.h \
