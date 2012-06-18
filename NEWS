@@ -1,5 +1,8 @@
 $Id$
 
+OpenDNSSEC 2.0.0a4 (EnforcerNG branch) 
+
+
 OpenDNSSEC 2.0.0a3 (EnforcerNG branch) - 2012-06-18
 
 * Enforcer: Limit number of pregenerated keys when using <SharedKeys>.
