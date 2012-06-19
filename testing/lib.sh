@@ -574,7 +574,7 @@ check_if_built ()
 	local name_tag="$1"
 	
 	if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" >/dev/null`
+		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
 		
 		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
 			return 0
