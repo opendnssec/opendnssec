@@ -74,6 +74,20 @@
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 
+/**
+ * Use _r() functions on platforms that have. They are thread safe versions of
+ * the normal syslog functions. Platforms without _r() usually have thread safe
+ * normal functions.
+ */
+#if defined(HAVE_SYSLOG_R) && defined(HAVE_OPENLOG_R) && defined(HAVE_CLOSELOG_R) && defined(HAVE_VSYSLOG_R)
+struct syslog_data sdata = SYSLOG_DATA_INIT;
+#else
+#undef HAVE_SYSLOG_R
+#undef HAVE_OPENLOG_R
+#undef HAVE_CLOSELOG_R
+#undef HAVE_VSYSLOG_R
+#endif
+
     int
 getPermsForDrop(DAEMONCONFIG* config)
 {
@@ -212,7 +226,11 @@ getPermsForDrop(DAEMONCONFIG* config)
     if (config->username != NULL) {
         /* Lookup the user id in /etc/passwd */
         if ((pwd = getpwnam(config->username)) == NULL) {
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "user '%s' does not exist. exiting...\n", config->username);
+#else
             syslog(LOG_ERR, "user '%s' does not exist. exiting...\n", config->username);
+#endif
             exit(1);
         } else {
             config->uid = pwd->pw_uid;
@@ -222,7 +240,11 @@ getPermsForDrop(DAEMONCONFIG* config)
     if (config->groupname) {
         /* Lookup the group id in /etc/groups */
         if ((grp = getgrnam(config->groupname)) == NULL) {
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "group '%s' does not exist. exiting...\n", config->groupname);
+#else
             syslog(LOG_ERR, "group '%s' does not exist. exiting...\n", config->groupname);
+#endif
             exit(1);
         } else {
             config->gid = grp->gr_gid;
@@ -244,14 +266,26 @@ getPermsForDrop(DAEMONCONFIG* config)
 /* Set up logging as per default (facility may be switched based on config file) */
 void log_init(int facility, const char *program_name)
 {
+#ifdef HAVE_OPENLOG_R
+	openlog_r(program_name, 0, facility, &sdata);
+#else
 	openlog(program_name, 0, facility);
+#endif
 }
 
 /* Switch log to new facility */
 void log_switch(int facility, const char *facility_name, const char *program_name, int verbose)
 {
+#ifdef HAVE_CLOSELOG_R
+    closelog_r(&sdata);
+#else
     closelog();
+#endif
+#ifdef HAVE_OPENLOG_R
+	openlog_r(program_name, 0, facility, &sdata);
+#else
 	openlog(program_name, 0, facility);
+#endif
     if (verbose) {
         log_msg(NULL, LOG_INFO, "Switched log facility to: %s", facility_name);
     }
@@ -265,7 +299,11 @@ log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
     va_list args;
     if (config && config->debug) priority = LOG_ERR;
     va_start(args, format);
+#ifdef HAVE_VSYSLOG_R
+    vsyslog_r(priority, &sdata, format, args);
+#else
     vsyslog(priority, format, args);
+#endif
     va_end(args);
 }
 
@@ -276,19 +314,39 @@ log_msg(DAEMONCONFIG *config, int priority, const char *format, ...)
 ksm_log_msg(const char *format)
 {
     if (strncmp(format, "ERROR:", 6) == 0) {
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_ERR, &sdata, "%s", format);
+#else
         syslog(LOG_ERR, "%s", format);
+#endif
     }
     else if (strncmp(format, "INFO:", 5) == 0) {
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_INFO, &sdata, "%s", format);
+#else
         syslog(LOG_INFO, "%s", format);
+#endif
     }
     else if (strncmp(format, "WARNING:", 8) == 0) {
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_WARNING, &sdata, "%s", format);
+#else
         syslog(LOG_WARNING, "%s", format);
+#endif
     }
     else if (strncmp(format, "DEBUG:", 6) == 0) {
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_DEBUG, &sdata, "%s", format);
+#else
         syslog(LOG_DEBUG, "%s", format);
+#endif
     }
     else {
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_ERR, &sdata, "%s", format);
+#else
         syslog(LOG_ERR, "%s", format);
+#endif
     }
 }
 
@@ -302,7 +360,11 @@ log_xml_error(void *ignore, const char *format, ...)
 
     /* If the variable arg list is bad then random errors can occur */ 
     va_start(args, format);
+#ifdef HAVE_VSYSLOG_R
+    vsyslog_r(LOG_ERR, &sdata, format, args);
+#else
     vsyslog(LOG_ERR, format, args);
+#endif
     va_end(args);
 }
 
@@ -316,7 +378,11 @@ log_xml_warn(void *ignore, const char *format, ...)
 
     /* If the variable arg list is bad then random errors can occur */ 
     va_start(args, format);
+#ifdef HAVE_VSYSLOG_R
+    vsyslog_r(LOG_INFO, &sdata, format, args);
+#else
     vsyslog(LOG_INFO, format, args);
+#endif
     va_end(args);
 }
 

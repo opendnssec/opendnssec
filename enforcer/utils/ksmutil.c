@@ -126,6 +126,19 @@ static int hsm_flag = 1;
 
 static int restart_enforcerd(void);
 
+/**
+ * Use _r() functions on platforms that have. They are thread safe versions of
+ * the normal syslog functions. Platforms without _r() usually have thread safe
+ * normal functions.
+ */
+#if defined(HAVE_SYSLOG_R) && defined(HAVE_OPENLOG_R) && defined(HAVE_CLOSELOG_R)
+struct syslog_data sdata = SYSLOG_DATA_INIT;
+#else
+#undef HAVE_SYSLOG_R
+#undef HAVE_OPENLOG_R
+#undef HAVE_CLOSELOG_R
+#endif
+
     void
 usage_general ()
 {
@@ -2837,9 +2850,21 @@ cmd_dsseen()
         printf("%s\n", logmsg);
         
         /* send the msg to syslog */
+#ifdef HAVE_OPENLOG_R
+        openlog_r("ods-ksmutil", 0, DEFAULT_LOG_FACILITY, &sdata);
+#else
         openlog("ods-ksmutil", 0, DEFAULT_LOG_FACILITY);
+#endif
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_INFO, &sdata, "%s", logmsg);
+#else
         syslog(LOG_INFO, "%s", logmsg);
+#endif
+#ifdef HAVE_CLOSELOG_R
+        closelog_r(&sdata);
+#else
         closelog();
+#endif
         
     }
 

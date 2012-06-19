@@ -43,6 +43,7 @@
 
 #include "config.h"
 #include "privdrop.h"
+#include "daemon_util.h"
 
 
 int
@@ -68,7 +69,11 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     if (username) {
         /* Lookup the user id in /etc/passwd */
         if ((pwd = getpwnam(username)) == NULL) {
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "user '%s' does not exist. exiting...\n", username);
+#else
             syslog(LOG_ERR, "user '%s' does not exist. exiting...\n", username);
+#endif
             exit(1);
         } else {
 	    uid = pwd->pw_uid;
@@ -80,7 +85,11 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     if (groupname) {
         /* Lookup the group id in /etc/groups */
         if ((grp = getgrnam(groupname)) == NULL) {
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "group '%s' does not exist. exiting...\n", groupname);
+#else
             syslog(LOG_ERR, "group '%s' does not exist. exiting...\n", groupname);
+#endif
             exit(1);
         } else {
             gid = grp->gr_gid;
@@ -91,7 +100,11 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     /* Change root if requested */
     if (newroot) {
        if (chroot(newroot) != 0 || chdir("/") != 0) {
-            syslog(LOG_ERR, "chroot to '%s' failed. exiting...\n", newroot);
+#ifdef HAVE_SYSLOG_R
+           syslog_r(LOG_ERR, &sdata, "chroot to '%s' failed. exiting...\n", newroot);
+#else
+           syslog(LOG_ERR, "chroot to '%s' failed. exiting...\n", newroot);
+#endif
             exit(1);
        }
     }
@@ -99,14 +112,22 @@ privdrop(const char *username, const char *groupname, const char *newroot)
     /* Do Additional groups first */
     if (username != NULL && !olduid) {
         if (initgroups(username, gid) < 0) {
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "initgroups failed: %s: %.100s", username, strerror(errno));
+#else
             syslog(LOG_ERR, "initgroups failed: %s: %.100s", username, strerror(errno));
+#endif
             exit(1);
         }
 
         ngroups_max = sysconf(_SC_NGROUPS_MAX) + 1;
         final_groups = (gid_t *)malloc(ngroups_max *sizeof(gid_t));
         if (final_groups == NULL) {
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "Malloc for group struct failed");
+#else
             syslog(LOG_ERR, "Malloc for group struct failed");
+#endif
             exit(1);
         }
 
@@ -131,20 +152,34 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #else
         status = setegid(gid);
         if (status != 0) {
-           syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n",
-               groupname, (unsigned long) gid);
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "unable to drop group privileges: %s (%lu). exiting...\n",
+                groupname, (unsigned long) gid);
+#else
+            syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n",
+                groupname, (unsigned long) gid);
+#endif
            exit(1);
         }
         status = setgid(gid);
 #endif
 
         if (status != 0) {
-           syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n",
-               groupname, (unsigned long) gid);
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "unable to drop group privileges: %s (%lu). exiting...\n",
+                groupname, (unsigned long) gid);
+#else
+            syslog(LOG_ERR, "unable to drop group privileges: %s (%lu). exiting...\n",
+                groupname, (unsigned long) gid);
+#endif
            exit(1);
            return -1;
         } else {
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "group set to: %s (%lu)\n", groupname, (unsigned long) gid);
+#else
             syslog(LOG_ERR, "group set to: %s (%lu)\n", groupname, (unsigned long) gid);
+#endif
         }
     }
 
@@ -160,8 +195,13 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 # ifndef SETEUID_BREAKS_SETUID
         status = seteuid(uid);
         if (status != 0) {
-           syslog(LOG_ERR, "unable to drop user privileges (seteuid): %s (%lu). exiting...\n",
-               username, (unsigned long) uid);
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "unable to drop user privileges (seteuid): %s (%lu). exiting...\n",
+                username, (unsigned long) uid);
+#else
+            syslog(LOG_ERR, "unable to drop user privileges (seteuid): %s (%lu). exiting...\n",
+                username, (unsigned long) uid);
+#endif
            exit(1);
         }
 # endif  /* SETEUID_BREAKS_SETUID */
@@ -170,12 +210,21 @@ privdrop(const char *username, const char *groupname, const char *newroot)
 #endif
 
         if (status != 0) {
-           syslog(LOG_ERR, "unable to drop user privileges: %s (%lu). exiting...\n",
-               username, (unsigned long) uid);
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "unable to drop user privileges: %s (%lu). exiting...\n",
+                username, (unsigned long) uid);
+#else
+            syslog(LOG_ERR, "unable to drop user privileges: %s (%lu). exiting...\n",
+                username, (unsigned long) uid);
+#endif
            exit(1);
            return -1;
         } else {
+#ifdef HAVE_SYSLOG_R
+            syslog_r(LOG_ERR, &sdata, "user set to: %s (%lu)\n", username, (unsigned long) uid);
+#else
             syslog(LOG_ERR, "user set to: %s (%lu)\n", username, (unsigned long) uid);
+#endif
         }
     }
 
