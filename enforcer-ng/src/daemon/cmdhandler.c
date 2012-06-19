@@ -301,7 +301,7 @@ int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n
     
     (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
     ods_writen(sockfd, buf, strlen(buf));
-    return 1;
+    return 2;
 }
 
 
@@ -390,7 +390,11 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_
 }
 
 
-static void
+/**
+ * Perform command
+ * \return int Returns 1 if the command stopped the enforcer, otherwise 0.
+ */
+static int
 cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssize_t n)
 {
     handled_xxxx_cmd_type *handled_cmd = NULL;
@@ -406,34 +410,39 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssiz
         handled_unknown_cmd /* unknown command allways matches, so last entry */
     };
     unsigned int cmdidx;
+    int ret;
 
     ods_log_verbose("received command %s[%i]", cmd, n);
     
     /* enumerate the list of external commands and break from the 
      * loop when one of the handled_xxx_cmd entries inidicates the 
-     * command was handled by returning 1
+     * command was handled by returning 1 or 2 if enforcer is stopped
      */
     for (handled_cmd=engine->commands; handled_cmd && *handled_cmd;
          ++handled_cmd) 
     {
-        if ((*handled_cmd)(sockfd,engine,cmd,n)) break;
+        if ((ret = (*handled_cmd)(sockfd,engine,cmd,n))) break;
     }
     
     /* if the command was not handled, try the internal list of commands */
     if (handled_cmd==NULL || *handled_cmd==NULL) {
         /* enumerate the list of internal commands and break from the loop
          * when one of the handled_xxx_cmd entries inidicates the command 
-         * was handled by returning 1
+         * was handled by returning 1 or 2 if enforcer is stopped
          */
         for (cmdidx=0; 
              cmdidx<sizeof(internal_handled_cmds)/sizeof(handled_xxxx_cmd_type);
              ++cmdidx)
         {
-            if (internal_handled_cmds[cmdidx](sockfd,engine,cmd,n)) break;
+            if ((ret = internal_handled_cmds[cmdidx](sockfd,engine,cmd,n))) break;
         }
     }
     
     ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
+
+    if (ret == 2)
+    	return 1;
+    return 0;
 }
 
 /**
@@ -460,7 +469,12 @@ again:
             return;
         }
         
-        cmdhandler_perform_command(sockfd,cmdc->engine,buf,n);
+        if (cmdhandler_perform_command(sockfd,cmdc->engine,buf,n)) {
+        	/**
+        	 * Command stopped enforcer, exit nicly
+        	 */
+        	return;
+        }
         
         (void)snprintf(buf, SE_CMDH_CMDLEN, "\ncmd> ");
         ods_writen(sockfd, buf, strlen(buf));
