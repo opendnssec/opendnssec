@@ -3,6 +3,10 @@ $Id$
 
 OpenDNSSEC 1.3.10
 
+Bugfixes:
+* SUPPORT-30: RRSIGs are left in the signed zone when authoritative RRsets
+  become glue [OPENDNSSEC-282].
+
 
 OpenDNSSEC 1.3.9 - 2012-06-15
 
