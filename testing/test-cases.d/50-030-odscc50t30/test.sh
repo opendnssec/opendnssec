@@ -13,7 +13,9 @@ mkdir "$INSTALL_ROOT/var/opendnssec/temp" &&
 ods_reset_env &&
 
 log_this_timeout ods-control-enforcer-start 30 ods-control enforcer start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
+syslog_waitfor 60 'ods-enforcerd: .*\[engine\] enforcer started' &&
+
+ods_setup_env &&
 
 log_this_timeout ods-control-signer-start 30 ods-control signer start &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
@@ -22,7 +24,7 @@ syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 log_this_timeout ods-control-start 30 ods-control stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
+syslog_waitfor 60 'ods-enforcerd: .*\[engine\] enforcer shutdown' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 
 ! test -d "$INSTALL_ROOT/var/opendnssec/tmp" &&
