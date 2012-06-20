@@ -135,8 +135,14 @@ case "$1" in
 
 'start')
 	"$0" enforcer start
-
+	RETVAL=$?
+	if [ $RETVAL != 0 ]
+	then
+		exit $RETVAL
+	fi
 	"$0" signer start
+	RETVAL=$?
+	exit $RETVAL
 	;;
 
 'stop')
