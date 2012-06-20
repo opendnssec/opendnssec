@@ -1,3 +1,9 @@
+20 June 2012: Matthijs
+- OPENDNSSEC-282/SUPPORT-30: Cleanup RRSIGs for RRsets that become glue
+
+4 June 2012: Matthijs
+- SUPPORT-28: Fix build warnings on NetBSD (thanks Fredrik Pettai).
+
 24 May 2012: Matthijs
 - OPENDNSSEC-267: Sign NOTIFY OK response with TSIG.
 
