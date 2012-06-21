@@ -752,7 +752,7 @@ dnsconfig_zone(engine_type* engine, zone_type* zone)
  *
  */
 void
-engine_update_zones(engine_type* engine)
+engine_update_zones(engine_type* engine, ods_status zl_changed)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
@@ -834,7 +834,8 @@ engine_update_zones(engine_type* engine)
             lock_basic_lock(&engine->taskq->schedule_lock);
             status = schedule_task(engine->taskq, task, 0);
             lock_basic_unlock(&engine->taskq->schedule_lock);
-        } else { /* always try to update signconf */
+        } else if (zl_changed == ODS_STATUS_OK) {
+            /* always try to update signconf */
             lock_basic_lock(&zone->zone_lock);
             status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
             lock_basic_unlock(&zone->zone_lock);
@@ -1017,7 +1018,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         }
         if (zl_changed == ODS_STATUS_OK ||
             zl_changed == ODS_STATUS_UNCHANGED) {
-            engine_update_zones(engine);
+            engine_update_zones(engine, zl_changed);
         }
         engine_run(engine, single_run);
     }

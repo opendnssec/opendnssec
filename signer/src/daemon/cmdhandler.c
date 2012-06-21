@@ -188,7 +188,11 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             engine->zonelist->just_added = 0;
             engine->zonelist->just_updated = 0;
             lock_basic_unlock(&engine->zonelist->zl_lock);
-            engine_update_zones(engine);
+            /**
+              * Always update the signconf for zones, even if zonelist has
+              * not changed: ODS_STATUS_OK.
+              */
+            engine_update_zones(engine, ODS_STATUS_OK);
         }
         return;
     } else {

@@ -118,9 +118,10 @@ void engine_wakeup_workers(engine_type* engine);
 /**
  * Update zones.
  * \param[in] engine engine
+ * \param[in] zl_changed whether the zonelist has changed or not
  *
  */
-void engine_update_zones(engine_type* engine);
+void engine_update_zones(engine_type* engine, ods_status zl_changed);
 
 /**
  * Clean up engine.

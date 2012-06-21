@@ -393,7 +393,7 @@ worker_perform_task(worker_type* worker)
             /* queue menial, hard signing work */
             worker_queue_zone(worker, engine->signq, zone);
             ods_log_deeebug("[%s[%i]] wait until drudgers are finished "
-                " signing zone %s, %u signatures queued",
+                "signing zone %s, %u signatures queued",
                 worker2str(worker->type), worker->thread_num,
                 task_who2str(task), worker->jobs_appointed);
             /* sleep until work is done */
@@ -585,6 +585,13 @@ worker_work(worker_type* worker)
             lock_basic_unlock(&engine->taskq->schedule_lock);
             lock_basic_unlock(&zone->zone_lock);
             timeout = 1;
+            /** Do we need to tell the engine that we require a reload? */
+            lock_basic_lock(&engine->signal_lock);
+            if (engine->need_to_reload) {
+                lock_basic_alarm(&engine->signal_cond);
+            }
+            lock_basic_unlock(&engine->signal_lock);
+
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
@@ -627,50 +634,54 @@ worker_drudge(worker_type* worker)
     ods_log_assert(worker->type == WORKER_DRUDGER);
 
     engine = (engine_type*) worker->engine;
-    ods_log_debug("[%s[%i]] create hsm context",
-        worker2str(worker->type), worker->thread_num);
-    ctx = hsm_create_context();
-    if (!ctx) {
-        ods_log_crit("[%s[%i]] error creating libhsm context",
-            worker2str(worker->type), worker->thread_num);
-    }
     while (worker->need_to_exit == 0) {
         ods_log_deeebug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
         superior = NULL;
         zone = NULL;
         task = NULL;
-
         lock_basic_lock(&engine->signq->q_lock);
         rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         lock_basic_unlock(&engine->signq->q_lock);
         if (rrset) {
             ods_log_assert(superior);
-            lock_basic_lock(&superior->worker_lock);
-            task = superior->task;
-            ods_log_assert(task);
-            zone = task->zone;
-            lock_basic_unlock(&superior->worker_lock);
-
-            ods_log_assert(zone);
-            ods_log_assert(zone->apex);
-            ods_log_assert(zone->signconf);
-            worker->clock_in = time(NULL);
-            status = rrset_sign(ctx, rrset, superior->clock_in);
-            lock_basic_lock(&superior->worker_lock);
-            if (status == ODS_STATUS_OK) {
-                superior->jobs_completed++;
-            } else {
-                superior->jobs_failed++;
+            if (!ctx) {
+                ods_log_debug("[%s[%i]] create hsm context",
+                    worker2str(worker->type), worker->thread_num);
+                ctx = hsm_create_context();
             }
-            lock_basic_unlock(&superior->worker_lock);
+            if (!ctx) {
+                ods_log_crit("[%s[%i]] error creating libhsm context",
+                    worker2str(worker->type), worker->thread_num);
+                engine->need_to_reload = 1;
+                superior->jobs_failed++;
+            } else {
+                ods_log_assert(ctx);
+                lock_basic_lock(&superior->worker_lock);
+                task = superior->task;
+                ods_log_assert(task);
+                zone = task->zone;
+                lock_basic_unlock(&superior->worker_lock);
+                ods_log_assert(zone);
+                ods_log_assert(zone->apex);
+                ods_log_assert(zone->signconf);
+                worker->clock_in = time(NULL);
+                status = rrset_sign(ctx, rrset, superior->clock_in);
+                lock_basic_lock(&superior->worker_lock);
+                if (status == ODS_STATUS_OK) {
+                    superior->jobs_completed++;
+                } else {
+                    superior->jobs_failed++;
+                }
+                lock_basic_unlock(&superior->worker_lock);
+            }
             if (worker_fulfilled(superior) && superior->sleeping) {
-                ods_log_deeebug("[%s[%i]] wake up superior[%u], work is done",
-                    worker2str(worker->type), worker->thread_num,
+                ods_log_deeebug("[%s[%i]] wake up superior[%u], work is "
+                    "done", worker2str(worker->type), worker->thread_num,
                     superior->thread_num);
                 worker_wakeup(superior);
-                superior = NULL;
             }
+            superior = NULL;
             rrset = NULL;
         } else {
             ods_log_deeebug("[%s[%i]] nothing to do", worker2str(worker->type),
@@ -685,8 +696,9 @@ worker_drudge(worker_type* worker)
          worker_wakeup(superior);
     }
     /* cleanup open HSM sessions */
-    hsm_destroy_context(ctx);
-    ctx = NULL;
+    if (ctx) {
+        hsm_destroy_context(ctx);
+    }
     return;
 }
 
