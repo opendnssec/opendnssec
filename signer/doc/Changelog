@@ -1,3 +1,6 @@
+21 June 2012: Matthijs
+- OPENDNSSEC-255: Defense mechanism for writing out mangled RRSIGs.
+
 20 June 2012: Matthijs
 - OPENDNSSEC-282/SUPPORT-30: Cleanup RRSIGs for RRsets that become glue
 

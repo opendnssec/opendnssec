@@ -658,6 +658,16 @@ addns_write(void* zone)
         ods_fclose(fd);
     }
 
+    if (status == ODS_STATUS_OK) {
+        if (z->adoutbound->error) {
+            ods_log_error("[%s] unable to write zone %s axfr: one or "
+                "more RR print failed", adapter_str, z->name);
+            /* clear error */
+            z->adoutbound->error = 0;
+            return ODS_STATUS_FWRITE_ERR;
+        }
+    }
+
     /* lock and move */
     axfrfile = ods_build_path(z->name, ".axfr", 0, 1);
     lock_basic_lock(&z->xfr_lock);

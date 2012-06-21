@@ -191,19 +191,22 @@ ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
  * Print all RRs in list, except SOA RRs.
  *
  */
-static void
+static int
 part_rr_list_print_nonsoa(FILE* fd, ldns_rr_list* list)
 {
     size_t i = 0;
+    int error = 0;
     if (!list || !fd) {
-        return;
+        return 1;
     }
     for (i = 0; i < ldns_rr_list_rr_count(list); i++) {
         if (ldns_rr_get_type(ldns_rr_list_rr(list, i)) != LDNS_RR_TYPE_SOA) {
-            (void)util_rr_print(fd, ldns_rr_list_rr(list, i));
+            if (util_rr_print(fd, ldns_rr_list_rr(list, i)) != ODS_STATUS_OK) {
+                error = 1;
+            }
         }
     }
-    return;
+    return error;
 }
 
 
@@ -212,19 +215,37 @@ part_rr_list_print_nonsoa(FILE* fd, ldns_rr_list* list)
  *
  */
 static void
-part_print(FILE* fd, part_type* part)
+part_print(FILE* fd, ixfr_type* ixfr, size_t i)
 {
-    if (!part || !fd) {
+    zone_type* zone = NULL;
+    part_type* part = NULL;
+    int error = 0;
+    if (!ixfr || !fd) {
+        return;
+    }
+    zone = (zone_type*) ixfr->zone;
+    part = ixfr->part[i];
+    if (!part) {
         return;
     }
     ods_log_assert(part->min);
     ods_log_assert(part->plus);
     ods_log_assert(part->soamin);
     ods_log_assert(part->soaplus);
-    (void)util_rr_print(fd, part->soamin);
-    part_rr_list_print_nonsoa(fd, part->min);
-    (void)util_rr_print(fd, part->soaplus);
-    part_rr_list_print_nonsoa(fd, part->plus);
+    if (util_rr_print(fd, part->soamin) != ODS_STATUS_OK) {
+        zone->adoutbound->error = 1;
+    }
+    error = part_rr_list_print_nonsoa(fd, part->min);
+    if (error) {
+        zone->adoutbound->error = 1;
+    }
+    if (util_rr_print(fd, part->soaplus) != ODS_STATUS_OK) {
+        zone->adoutbound->error = 1;
+    }
+    error = part_rr_list_print_nonsoa(fd, part->plus);
+    if (error) {
+        zone->adoutbound->error = 1;
+    }
     return;
 }
 
@@ -243,7 +264,7 @@ ixfr_print(FILE* fd, ixfr_type* ixfr)
     ods_log_debug("[%s] print ixfr", ixfr_str);
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         ods_log_deeebug("[%s] print ixfr part #%d", ixfr_str, i);
-        part_print(fd, ixfr->part[i]);
+        part_print(fd, ixfr, i);
     }
     return;
 }

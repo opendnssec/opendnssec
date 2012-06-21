@@ -62,6 +62,7 @@ struct adapter_struct {
     const char* configstr;
     void* config;
     unsigned inbound : 1;
+    unsigned error : 1;
 };
 
 /**
