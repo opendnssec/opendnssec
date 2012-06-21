@@ -1,7 +1,9 @@
 21 June 2012: Matthijs
 - OPENDNSSEC-255: Defense mechanism for writing out mangled RRSIGs.
 - OPENDNSSEC-260: if hsm_create_context() fails, reload so that hsm_reopen()
-  will be called
+  will be called.
+- OPENDNSSEC-261: <Peer/> element does not require <Prefix/>, so that you
+  can have an ACL based on a TSIG <Key/> only.
 
 20 June 2012: Matthijs
 - OPENDNSSEC-282/SUPPORT-30: Cleanup RRSIGs for RRsets that become glue
