@@ -440,12 +440,21 @@ engine_setup_and_return_status(engine_type* engine)
         return ODS_STATUS_PRIVDROP_ERR;
     }
 
+    /* set up hsm */ /* LEAK */
+    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
+    if (result != HSM_OK) {
+        ods_log_error("[%s] error initializing libhsm (errno %i)",
+            engine_str, result);
+        return ODS_STATUS_HSM_ERR;
+    }
+
     /* daemonize */
     if (engine->daemonize) {
-        switch ((engine->pid = fork())) {
+        switch (fork()) {
             case -1: /* error */
                 ods_log_error("[%s] unable to fork daemon: %s",
                     engine_str, strerror(errno));
+                hsm_close();
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
                 if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
@@ -466,6 +475,7 @@ engine_setup_and_return_status(engine_type* engine)
         if (setsid() == -1) {
             ods_log_error("[%s] unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
+            hsm_close();
             return ODS_STATUS_SETSID_ERR;
         }
     }
@@ -480,14 +490,6 @@ engine_setup_and_return_status(engine_type* engine)
     action.sa_flags = 0;
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
-
-    /* set up hsm */ /* LEAK */
-    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
-    if (result != HSM_OK) {
-        ods_log_error("[%s] error initializing libhsm (errno %i)",
-            engine_str, result);
-        return ODS_STATUS_HSM_ERR;
-    }
 
     /* create workers */
     engine_create_workers(engine);
