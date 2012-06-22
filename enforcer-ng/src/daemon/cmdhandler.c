@@ -304,6 +304,24 @@ int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n
     return 2;
 }
 
+/**
+ * Handle the 'start' command.
+ *
+ */
+int handled_start_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+    char buf[ODS_SE_MAXLINE];
+    if (n != 5 || strncmp(cmd, "start", n) != 0) return 0;
+    ods_log_debug("[%s] start command", module_str);
+    
+    ods_log_assert(engine);
+    
+    (void)snprintf(buf, ODS_SE_MAXLINE-2, ODS_EN_START_RESPONSE);
+    (void)snprintf(buf+strlen(buf), 2, "\n "); /*last char is stripped*/
+    ods_writen(sockfd, buf, strlen(buf));
+    return 1;
+}
+
 
 /**
  * Handle the 'verbosity' command.
@@ -404,6 +422,7 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssiz
         handled_flush_cmd,
         handled_running_cmd,
         handled_reload_cmd,
+        handled_start_cmd,
         handled_stop_cmd,
         handled_verbosity_cmd,
         handled_help_cmd,
