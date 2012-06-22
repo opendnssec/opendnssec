@@ -57,6 +57,8 @@ log_rr(ldns_rr* rr, const char* pre, int level)
     }
     str = ldns_rr2str(rr);
     if (!str) {
+        ods_log_error("[%s] %s: Error converting RR to string", rrset_str,
+            pre?pre:"");
         return;
     }
     str[(strlen(str))-1] = '\0';
@@ -484,7 +486,7 @@ rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
     for (i=0; i < rrset->rrsig_count; i++) {
         drop_sig = 0;
         /* 0. Skip delegation, glue and occluded RRsets */
-        if (dstatus != LDNS_RR_TYPE_SOA && (delegpt != LDNS_RR_TYPE_SOA &&
+        if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA &&
             rrset->rrtype != LDNS_RR_TYPE_DS)) {
             drop_sig = 1;
             goto recycle_drop_sig;
@@ -691,15 +693,17 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     rrset->needs_signing = 0;
     /* Skip delegation, glue and occluded RRsets */
     if (dstatus != LDNS_RR_TYPE_SOA) {
-        ods_log_deeebug("[%s] skip signing RRset[%i]: occluded RRset",
-            rrset_str, rrset->rrtype);
+        log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
+            "skip signing occluded RRset", LOG_DEEEBUG);
         return ODS_STATUS_OK;
     }
     if (delegpt != LDNS_RR_TYPE_SOA && rrset->rrtype != LDNS_RR_TYPE_DS) {
-        ods_log_deeebug("[%s] skip signing RRset[%i]: delegation RRset",
-            rrset_str, rrset->rrtype);
+        log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
+            "skip signing delegation RRset", LOG_DEEEBUG);
         return ODS_STATUS_OK;
     }
+    log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
+        "sign RRset", LOG_DEEEBUG);
     ods_log_assert(dstatus == LDNS_RR_TYPE_SOA ||
         (delegpt == LDNS_RR_TYPE_SOA || rrset->rrtype == LDNS_RR_TYPE_DS));
     /* Transmogrify rrset */
@@ -793,6 +797,10 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
                 break;
             }
             if (result != ODS_STATUS_OK) {
+                zone_type* zone = (zone_type*) rrset->zone;
+                log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
+                    "error printing RRset", LOG_CRIT);
+                zone->adoutbound->error = 1;
                 break;
             }
         }
@@ -801,6 +809,10 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
         for (i=0; i < rrset->rrsig_count; i++) {
             result = util_rr_print(fd, rrset->rrsigs[i].rr);
             if (result != ODS_STATUS_OK) {
+                zone_type* zone = (zone_type*) rrset->zone;
+                log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
+                    "error printing RRset", LOG_CRIT);
+                zone->adoutbound->error = 1;
                 break;
             }
         }

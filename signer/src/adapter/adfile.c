@@ -349,9 +349,20 @@ adfile_write(void* zone, const char* filename)
     if (fd) {
         status = adapi_printzone(fd, adzone);
         ods_fclose(fd);
+        if (status == ODS_STATUS_OK) {
+            if (adzone->adoutbound->error) {
+                ods_log_error("[%s] unable to write zone %s file %s: one or "
+                    "more RR print failed", adapter_str, adzone->name,
+                    filename);
+                /* clear error */
+                adzone->adoutbound->error = 0;
+                status = ODS_STATUS_FWRITE_ERR;
+            }
+        }
     } else {
         status = ODS_STATUS_FOPEN_ERR;
     }
+
     if (status == ODS_STATUS_OK) {
         if (rename((const char*) tmpname, filename) != 0) {
             ods_log_error("[%s] unable to write file: failed to rename %s "
