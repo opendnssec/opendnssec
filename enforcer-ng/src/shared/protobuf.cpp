@@ -76,4 +76,5 @@ ods_protobuf_shutdown()
 {
 	::google::protobuf::SetLogHandler(static_loghandler);
 	static_loghandler = NULL;
+	google::protobuf::ShutdownProtobufLibrary();
 }
