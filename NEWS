@@ -13,6 +13,10 @@ OpenDNSSEC 1.4.0a2 - 2012-05-24
 
 * OPENDNSSEC-226: Change in conf.xml: Configure the DNS listener IP address
   with /Listener/Interface/Address instead of /Listener/Interface/IPv{4,6}.
+* OPENDNSSEC-228: Signer Engine: Make 'ods-signer update' reload signconfs
+  even if zonelist has not changed.
+* OPENDNSSEC-231: Signer Engine: Allow for Classless IN-ADDR.ARPA names
+  (RFC 2317).
 * OPENDNSSEC-249: ods-ksmutil: If key export finds nothing to do then say so
   rather than display nothing which might be misinterpreted.
 * OPENDNSSEC-262: Signer Engine: Make DNS Adapter ACL optional.
@@ -21,6 +25,10 @@ OpenDNSSEC 1.4.0a2 - 2012-05-24
 * Enforcer: Add indexes for foreign keys. (sqlite only, MySQL already has them.)
 
 Bugfixes:
+* OPENDNSSEC-247: Signer Engine: TTL on NSEC(3) was not updated on SOA
+  Minimum change.
+* OPENDNSSEC-252: Signer Engine: Mark xfrhandler started, so that we don't
+  try to join a non-existing thread on exit.
 * OPENDNSSEC-259: Signer Engine: Fix assertion failure for outbound AXFR for
   large zones.
 * OPENDNSSEC-264: Signer Engine: Fix assertion error on reading IXFR from
