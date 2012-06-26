@@ -3,7 +3,7 @@ $Id$
 This file gives you instructions on how to migrate from one version of
 OpenDNSSEC to another.
 
-*** Migrating trunk ***
+*** Migrating from 1.3 to trunk/1.4 ***
 
   r5914 has some kasp database changes to allow for an update to the zonelist.xml schema. 
   This means that if you want to use this version or any after it with a database created 
