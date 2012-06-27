@@ -350,7 +350,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         outserial = zone->db->outserial;
         namedb_cleanup(zone->db);
         zone->db = NULL;
-        zone->db = namedb_create(zone->allocator);
+        zone->db = namedb_create((void*)zone);
         zone->db->is_initialized = 1;
         zone->db->inbserial = inbserial;
         zone->db->intserial = intserial;
