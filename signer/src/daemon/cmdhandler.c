@@ -339,6 +339,8 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     engine = (engine_type*) cmdc->engine;
     unlink_backup_file(tbd, ".inbound");
     unlink_backup_file(tbd, ".backup");
+    unlink_backup_file(tbd, ".axfr");
+    unlink_backup_file(tbd, ".ixfr");
     lock_basic_lock(&engine->zonelist->zl_lock);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
         LDNS_RR_CLASS_IN);
@@ -349,15 +351,25 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         intserial = zone->db->intserial;
         outserial = zone->db->outserial;
         namedb_cleanup(zone->db);
-        zone->db = NULL;
+        ixfr_cleanup(zone->ixfr);
+        signconf_cleanup(zone->signconf);
+
         zone->db = namedb_create((void*)zone);
-        zone->db->is_initialized = 1;
+        zone->ixfr = ixfr_create((void*)zone);
+        zone->signconf = signconf_create();
+
+        if (!zone->signconf || !zone->ixfr || !zone->db) {
+            ods_fatal_exit("[%s] unable to clear zone %s: failed to recreate"
+            "signconf, ixfr of db structure (out of memory?)", cmdh_str, tbd);
+            return;
+        }
+        /* restore serial management */
         zone->db->inbserial = inbserial;
         zone->db->intserial = intserial;
         zone->db->outserial = outserial;
 
         task = (task_type*) zone->task;
-        task->what = TASK_READ;
+        task->what = TASK_SIGNCONF;
         lock_basic_unlock(&zone->zone_lock);
 
         (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
