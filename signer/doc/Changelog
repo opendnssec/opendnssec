@@ -1,3 +1,6 @@
+27 June 2012: Matthijs
+- OPENDNSSEC-289: Fix ods-signer clear command exits prematurely.
+
 21 June 2012: Matthijs
 - OPENDNSSEC-255: Defense mechanism for writing out mangled RRSIGs.
 - OPENDNSSEC-260: if hsm_create_context() fails, reload so that hsm_reopen()
