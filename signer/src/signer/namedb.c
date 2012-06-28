@@ -882,7 +882,8 @@ namedb_examine(namedb_type* db)
         rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
         if (rrset) {
             /* Thou shall not have other data next to CNAME */
-            if (domain_count_rrset_is_added(domain) > 1) {
+            if (domain_count_rrset_is_added(domain) > 1 &&
+                rrset_count_rr_is_added(rrset) > 0) {
                 log_rrset(domain->dname, rrset->rrtype,
                     "CNAME and other data at the same name", LOG_ERR);
                 return ODS_STATUS_CONFLICT_ERR;

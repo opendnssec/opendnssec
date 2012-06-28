@@ -9,6 +9,8 @@ Bugfixes:
   prematurely [OPENDNSSEC-289].
 * SUPPORT-30: Signer Engine: RRSIGs are left in the signed zone when
   authoritative RRsets become glue [OPENDNSSEC-282].
+* OPENDNSSEC-290: Signer Engine: Fix false conflict when changing CNAME into 
+  other RRtype.
 
 
 OpenDNSSEC 1.4.0a2 - 2012-05-24

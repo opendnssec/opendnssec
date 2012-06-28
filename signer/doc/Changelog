@@ -1,5 +1,8 @@
+28 June 2012: Matthijs
+- OPENDNSSEC-290: Fix false conflict detected when changing CNAME into A.
+
 27 June 2012: Matthijs
-- OPENDNSSEC-289: Fix ods-signer clear command exits prematurely.
+- SUPPORT-29/ OPENDNSSEC-289: Fix ods-signer clear command exits prematurely.
 
 21 June 2012: Matthijs
 - OPENDNSSEC-255: Defense mechanism for writing out mangled RRSIGs.
