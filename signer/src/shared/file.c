@@ -204,6 +204,9 @@ ods_fopen(const char* file, const char* dir, const char* mode)
     if (len_total > 0) {
         openf = (char*) malloc(sizeof(char)*(len_total + 1));
         if (!openf) {
+            ods_log_error("[%s] unable to open file %s%s%s for %s: malloc() "
+                "failed", file_str, (dir?dir:""), (dir?"/":""),
+                (file?file:"(null)"), ods_file_mode2str(mode));
             return NULL;
         }
         if (dir) {
@@ -294,6 +297,9 @@ ods_file_lastmodified(const char* file)
             return 0;
         }
         return buf.st_mtime;
+    } else {
+        ods_log_error("[%s] unable to stat file %s: ods_fopen() failed",
+            file_str, file, strerror(errno));
     }
     return 0;
 }
