@@ -288,6 +288,11 @@ ods_file_lastmodified(const char* file)
     if ((fd = ods_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
         ods_fclose(fd);
+        if (ret == -1) {
+            ods_log_error("[%s] unable to stat file %s: %s",
+                    file_str, file, strerror(errno));
+            return 0;
+        }
         return buf.st_mtime;
     }
     return 0;
