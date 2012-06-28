@@ -5,10 +5,10 @@ Bugfixes:
 * SUPPORT-27: ods-ksmutil: simplify zone delete so that it only marks keys 
   as dead (rather than actually removing them). Leave the key removal to purge
   jobs.
+* SUPPORT-29: Signer Engine: Fix ods-signer clear <zone> command exits
+  prematurely [OPENDNSSEC-289].
 * SUPPORT-30: Signer Engine: RRSIGs are left in the signed zone when
   authoritative RRsets become glue [OPENDNSSEC-282].
-* OPENDNSSEC-289: Signer Engine: Fix ods-signer clear <zone> command exits
-  prematurely.
 
 
 OpenDNSSEC 1.4.0a2 - 2012-05-24
