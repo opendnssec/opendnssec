@@ -201,6 +201,28 @@ engine_config_print(FILE* out, engineconfig_type* config)
             }
             fprintf(out, "\t\t</Privileges>\n");
         }
+        if (config->interfaces) {
+             size_t i = 0;
+             interface_type* interface = config->interfaces->interfaces;
+
+             fprintf(out, "\t\t<Listener>\n");
+
+             for (i=0; i < config->interfaces->count; i++) {
+                 fprintf(out, "\t\t\t<Interface>");
+                 if (config->interfaces->interfaces[i].address) {
+                     fprintf(out, "<Address>%s</Address>",
+                         config->interfaces->interfaces[i].address);
+                 }
+                 if (config->interfaces->interfaces[i].port) {
+                     fprintf(out, "<Port>%s</Port>",
+                         config->interfaces->interfaces[i].port);
+                 }
+                 fprintf(out, "<Interface>\n");
+             }
+             fprintf(out, "\t\t</Listener>\n");
+
+        }
+
         fprintf(out, "\t\t<WorkingDirectory>%s</WorkingDirectory>\n",
             config->working_dir);
         fprintf(out, "\t\t<WorkerThreads>%i</WorkerThreads>\n",
