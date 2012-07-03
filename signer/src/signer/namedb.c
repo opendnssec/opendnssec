@@ -974,6 +974,8 @@ namedb_export(FILE* fd, namedb_type* db, ods_status* status)
     domain_type* domain = NULL;
     if (!fd || !db || !db->domains) {
         if (status) {
+            ods_log_error("[%s] unable to export namedb: file descriptor "
+                "or name database missing", db_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
         return;

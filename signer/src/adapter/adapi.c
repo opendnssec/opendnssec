@@ -370,6 +370,8 @@ adapi_printzone(FILE* fd, zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db) {
+        ods_log_error("[%s] unable to print zone: file descriptor, zone or "
+            "name database missing", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     namedb_export(fd, zone->db, &status);
@@ -387,6 +389,8 @@ adapi_printaxfr(FILE* fd, zone_type* zone)
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db) {
+        ods_log_error("[%s] unable to print axfr: file descriptor, zone or "
+            "name database missing", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     namedb_export(fd, zone->db, &status);
@@ -409,6 +413,8 @@ adapi_printixfr(FILE* fd, zone_type* zone)
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db || !zone->ixfr) {
+        ods_log_error("[%s] unable to print ixfr: file descriptor, zone or "
+            "name database missing", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     if (!zone->db->is_initialized) {

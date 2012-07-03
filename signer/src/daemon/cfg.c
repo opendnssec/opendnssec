@@ -203,8 +203,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
         }
         if (config->interfaces) {
              size_t i = 0;
-             interface_type* interface = config->interfaces->interfaces;
-
              fprintf(out, "\t\t<Listener>\n");
 
              for (i=0; i < config->interfaces->count; i++) {

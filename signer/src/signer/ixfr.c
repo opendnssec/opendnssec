@@ -144,7 +144,7 @@ ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
     ods_log_assert(ixfr->part[0]);
     ods_log_assert(ixfr->part[0]->plus);
     if (!ldns_rr_list_push_rr(ixfr->part[0]->plus, rr)) {
-        ods_log_error("[%s] unable to +RR: ldns_rr_list_pus_rr() failed",
+        ods_log_error("[%s] unable to +RR: ldns_rr_list_push_rr() failed",
             ixfr_str);
         exit(1);
     }
@@ -176,7 +176,7 @@ ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
     ods_log_assert(ixfr->part[0]);
     ods_log_assert(ixfr->part[0]->min);
     if (!ldns_rr_list_push_rr(ixfr->part[0]->min, rr)) {
-        ods_log_error("[%s] unable to -RR: ldns_rr_list_pus_rr() failed",
+        ods_log_error("[%s] unable to -RR: ldns_rr_list_push_rr() failed",
             ixfr_str);
         exit(1);
     }
