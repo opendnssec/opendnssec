@@ -35,6 +35,7 @@
 #define SIGNER_IXFR_H
 
 #include "config.h"
+#include "shared/locks.h"
 
 #include <ldns/ldns.h>
 
@@ -60,6 +61,7 @@ typedef struct ixfr_struct ixfr_type;
 struct ixfr_struct {
     void* zone;
     part_type* part[IXFR_MAX_PARTS];
+    lock_basic_type ixfr_lock;
 };
 
 /**

@@ -942,7 +942,9 @@ namedb_wipe_denial(namedb_type* db)
             for (i=0; i < denial->rrset->rr_count; i++) {
                 if (denial->rrset->rrs[i].exists) {
                     /* ixfr -RR */
+                    lock_basic_lock(&zone->ixfr->ixfr_lock);
                     ixfr_del_rr(zone->ixfr, denial->rrset->rrs[i].rr);
+                    lock_basic_unlock(&zone->ixfr->ixfr_lock);
                 }
                 denial->rrset->rrs[i].exists = 0;
                 rrset_del_rr(denial->rrset, i);
@@ -950,7 +952,9 @@ namedb_wipe_denial(namedb_type* db)
             }
             for (i=0; i < denial->rrset->rrsig_count; i++) {
                 /* ixfr -RRSIG */
+                lock_basic_lock(&zone->ixfr->ixfr_lock);
                 ixfr_del_rr(zone->ixfr, denial->rrset->rrsigs[i].rr);
+                lock_basic_unlock(&zone->ixfr->ixfr_lock);
                 rrset_del_rrsig(denial->rrset, i);
                 i--;
             }

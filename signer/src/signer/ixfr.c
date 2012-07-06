@@ -119,6 +119,7 @@ ixfr_create(void* zone)
         xfr->part[i] = NULL;
     }
     xfr->zone = zone;
+    lock_basic_init(&xfr->ixfr_lock);
     return xfr;
 }
 
@@ -314,13 +315,16 @@ ixfr_cleanup(ixfr_type* ixfr)
 {
     int i = 0;
     zone_type* z = NULL;
+    lock_basic_type ixfr_lock;
     if (!ixfr) {
         return;
     }
     z = (zone_type*) ixfr->zone;
+    ixfr_lock = ixfr->ixfr_lock;
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         part_cleanup(z->allocator, ixfr->part[i]);
     }
     allocator_deallocate(z->allocator, (void*) ixfr);
+    lock_basic_destroy(&ixfr_lock);
     return;
 }

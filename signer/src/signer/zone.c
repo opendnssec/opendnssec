@@ -694,7 +694,7 @@ zone_cleanup(zone_type* zone)
     }
     allocator = zone->allocator;
     zone_lock = zone->zone_lock;
-    xfr_lock = zone->zone_lock;
+    xfr_lock = zone->xfr_lock;
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
@@ -920,7 +920,9 @@ zone_recover2(zone_type* zone)
                 zone->ixfr = ixfr_create((void*)zone);
             }
         }
+        lock_basic_lock(&zone->ixfr->ixfr_lock);
         ixfr_purge(zone->ixfr);
+        lock_basic_unlock(&zone->ixfr->ixfr_lock);
 
         /* all ok */
         free((void*)filename);

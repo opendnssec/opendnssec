@@ -427,7 +427,9 @@ adapi_printixfr(FILE* fd, zone_type* zone)
     if (status != ODS_STATUS_OK) {
         return status;
     }
+    lock_basic_lock(&zone->ixfr->ixfr_lock);
     ixfr_print(fd, zone->ixfr);
+    lock_basic_unlock(&zone->ixfr->ixfr_lock);
     rrset_print(fd, rrset, 1, &status);
     return status;
 }

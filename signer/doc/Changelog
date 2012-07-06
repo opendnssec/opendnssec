@@ -1,3 +1,7 @@
+6 Juli 2012: Matthijs
+- OPENDNSSEC-269: Fix crash in ldns_rr_list_push_rr() due to missing lock
+  in ixfr structure.
+
 28 June 2012: Matthijs
 - OPENDNSSEC-290: Fix false conflict detected when changing CNAME into A.
 
