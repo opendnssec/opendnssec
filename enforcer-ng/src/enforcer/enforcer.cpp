@@ -653,7 +653,9 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 				getState(*future_key->key, RS, NULL) != NOCARE)
 				return false;
 			/** 3) wait till DS is introduced */
-			if (getState(*future_key->key, DS, NULL) == OMN) return true;
+			if (getState(*future_key->key, DS, NULL) == OMN ||
+				getState(*future_key->key, DS, NULL) == NOCARE)
+				return true;
 			/** 4) Except, we might be doing algorithm rollover.
 			 * if no other good KSK available, ignore minimize flag*/
 			return !exists(key_list, future_key, true, mask_dnskey);
