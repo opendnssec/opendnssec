@@ -138,6 +138,7 @@ dnskey_from_id(std::string &dnskey,
                 break;
             }
             default:
+                ods_log_error("[%s] Can't hash algorithm %d.", module_str, algorithm);
                 keytag = 0;
         }
     }
@@ -254,8 +255,8 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 						kd->set_keytag(keytag);
 					}
 				} else
-					LOG_AND_RETURN_1("unable to find key with id %s",
-									 key.locator().c_str());
+					LOG_AND_RETURN_2("unable to find key with id %s or can't hash algorithm %d",
+						key.locator().c_str(), key.algorithm());
 			}
     
 			if (bSubmitChanged || bRetractChanged || bKeytagChanged) {
