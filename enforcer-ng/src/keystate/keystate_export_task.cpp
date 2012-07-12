@@ -10,10 +10,10 @@
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
+ *	notice, this list of conditions and the following disclaimer in the
+ *	documentation and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -52,106 +52,106 @@ static const char *module_str = "keystate_export_task";
 
 static uint16_t 
 dnskey_from_id(std::string &dnskey,
-               const char *id,
-               ::ods::keystate::keyrole role,
-               const char *zone,
-               int algorithm,
-               int bDS,
-               uint32_t ttl)
+				const char *id,
+				::ods::keystate::keyrole role,
+				const char *zone,
+				int algorithm,
+				int bDS,
+				uint32_t ttl)
 {
-    hsm_key_t *key;
-    hsm_sign_params_t *sign_params;
-    ldns_rr *dnskey_rr;
-    ldns_algorithm algo = (ldns_algorithm)algorithm;
-    
-    /* Code to output the DNSKEY record  (stolen from hsmutil) */
-    hsm_ctx_t *hsm_ctx = hsm_create_context();
-    if (!hsm_ctx) {
-        ods_log_error("[%s] Could not connect to HSM", module_str);
-        return false;
-    }
-    key = hsm_find_key_by_id(hsm_ctx, id);
-    
-    if (!key) {
-        // printf("Key %s in DB but not repository\n", id);
-        hsm_destroy_context(hsm_ctx);
-        return 0;
-    }
-    
-    /*
-     * Sign params only need to be kept around 
-     * for the hsm_get_dnskey() call.
-     */
-    sign_params = hsm_sign_params_new();
-    sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
-    sign_params->algorithm = algo;
-    sign_params->flags = LDNS_KEY_ZONE_KEY;
-    if (role == ::ods::keystate::KSK)
-        sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
-    /* Get the DNSKEY record */
-    dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
-    hsm_sign_params_free(sign_params);
-    /* Calculate the keytag for this key, we return it. */
-    uint16_t keytag = ldns_calc_keytag(dnskey_rr);
-    /* Override the TTL in the dnskey rr */
-    if (ttl)
-        ldns_rr_set_ttl(dnskey_rr, ttl);
-    
-    char *rrstr;
-    if (!bDS) {
+	hsm_key_t *key;
+	hsm_sign_params_t *sign_params;
+	ldns_rr *dnskey_rr;
+	ldns_algorithm algo = (ldns_algorithm)algorithm;
+	
+	/* Code to output the DNSKEY record  (stolen from hsmutil) */
+	hsm_ctx_t *hsm_ctx = hsm_create_context();
+	if (!hsm_ctx) {
+		ods_log_error("[%s] Could not connect to HSM", module_str);
+		return false;
+	}
+	key = hsm_find_key_by_id(hsm_ctx, id);
+	
+	if (!key) {
+		// printf("Key %s in DB but not repository\n", id);
+		hsm_destroy_context(hsm_ctx);
+		return 0;
+	}
+	
+	/*
+	 * Sign params only need to be kept around 
+	 * for the hsm_get_dnskey() call.
+	 */
+	sign_params = hsm_sign_params_new();
+	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
+	sign_params->algorithm = algo;
+	sign_params->flags = LDNS_KEY_ZONE_KEY;
+	if (role == ::ods::keystate::KSK)
+		sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
+	/* Get the DNSKEY record */
+	dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
+	hsm_sign_params_free(sign_params);
+	/* Calculate the keytag for this key, we return it. */
+	uint16_t keytag = ldns_calc_keytag(dnskey_rr);
+	/* Override the TTL in the dnskey rr */
+	if (ttl)
+		ldns_rr_set_ttl(dnskey_rr, ttl);
+	
+	char *rrstr;
+	if (!bDS) {
 #if 0
-        ldns_rr_print(stdout, dnskey_rr);
+		ldns_rr_print(stdout, dnskey_rr);
 #endif
-        rrstr = ldns_rr2str(dnskey_rr);
-        dnskey = rrstr;
-        LDNS_FREE(rrstr);
-    } else {
-    
-        switch (algo) {
-            case LDNS_RSASHA1: // 5
-            {
-                /* DS record (SHA1) */
-                ldns_rr *ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
+		rrstr = ldns_rr2str(dnskey_rr);
+		dnskey = rrstr;
+		LDNS_FREE(rrstr);
+	} else {
+	
+		switch (algo) {
+			case LDNS_RSASHA1: // 5
+			{
+				/* DS record (SHA1) */
+				ldns_rr *ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
 #if 0
-                ldns_rr_print(stdout, ds_sha1_rr);
+				ldns_rr_print(stdout, ds_sha1_rr);
 #endif
-                rrstr = ldns_rr2str(ds_sha1_rr);
-                dnskey = rrstr;
-                LDNS_FREE(rrstr);
+				rrstr = ldns_rr2str(ds_sha1_rr);
+				dnskey = rrstr;
+				LDNS_FREE(rrstr);
 
-                ldns_rr_free(ds_sha1_rr);
-                break;
-            }
-            case LDNS_RSASHA256: // 8 - RFC 5702
-            {
-        
-                /* DS record (SHA256) */
-                ldns_rr *ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
+				ldns_rr_free(ds_sha1_rr);
+				break;
+			}
+			case LDNS_RSASHA256: // 8 - RFC 5702
+			{
+		
+				/* DS record (SHA256) */
+				ldns_rr *ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
 #if 0
-                ldns_rr_print(stdout, ds_sha256_rr);
+				ldns_rr_print(stdout, ds_sha256_rr);
 #endif
-                rrstr = ldns_rr2str(ds_sha256_rr);
-                dnskey = rrstr;
-                LDNS_FREE(rrstr);
+				rrstr = ldns_rr2str(ds_sha256_rr);
+				dnskey = rrstr;
+				LDNS_FREE(rrstr);
 
-                ldns_rr_free(ds_sha256_rr);
-                break;
-            }
-            default:
-                ods_log_error("[%s] Can't hash algorithm %d.", module_str, algorithm);
-                keytag = 0;
-        }
-    }
-    ldns_rr_free(dnskey_rr);
-    hsm_key_free(key);
-    hsm_destroy_context(hsm_ctx);
-    
-    return keytag;
+				ldns_rr_free(ds_sha256_rr);
+				break;
+			}
+			default:
+				ods_log_error("[%s] Can't hash algorithm %d.", module_str, algorithm);
+				keytag = 0;
+		}
+	}
+	ldns_rr_free(dnskey_rr);
+	hsm_key_free(key);
+	hsm_destroy_context(hsm_ctx);
+	
+	return keytag;
 }
 
 static bool
 load_kasp_policy(OrmConn conn,const std::string &name,
-				 ::ods::kasp::Policy &policy)
+				::ods::kasp::Policy &policy)
 {
 	std::string qname;
 	if (!OrmQuoteStringValue(conn, name, qname))
@@ -170,7 +170,7 @@ load_kasp_policy(OrmConn conn,const std::string &name,
 
 void 
 perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
-                        int bds)
+						int bds)
 {
 	#define LOG_AND_RETURN(errmsg) do { ods_log_error_and_printf(\
 		sockfd,module_str,errmsg); return; } while (0)
@@ -178,7 +178,7 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 		sockfd,module_str,errmsg,param); return; } while (0)
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
-    
+	
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
 		return; // error already reported.
@@ -258,14 +258,13 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 					LOG_AND_RETURN_2("unable to find key with id %s or can't hash algorithm %d",
 						key.locator().c_str(), key.algorithm());
 			}
-    
+	
 			if (bSubmitChanged || bRetractChanged || bKeytagChanged) {
 				// Update the zone recursively in the database as keystates
 				// have been changed because of the export
 				
 				if (!OrmMessageUpdate(context))
 					LOG_AND_RETURN("updating zone in the database failed");
-				
 				
 				if (!transaction.commit())
 					LOG_AND_RETURN("committing zone to the database failed");
