@@ -176,6 +176,8 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 		sockfd,module_str,errmsg); return; } while (0)
 	#define LOG_AND_RETURN_1(errmsg,param) do { ods_log_error_and_printf(\
 		sockfd,module_str,errmsg,param); return; } while (0)
+	#define LOG_AND_RETURN_2(errmsg,param,param2) do { ods_log_error_and_printf(\
+		sockfd,module_str,errmsg,param,param2); return; } while (0)
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	
