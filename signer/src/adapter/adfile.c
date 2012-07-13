@@ -333,7 +333,7 @@ adfile_write(void* zone, const char* filename)
     ods_status status = ODS_STATUS_OK;
 
     /* [start] sanity parameter checking */
-    if (!adzone || !adzone->outbound) {
+    if (!adzone || !adzone->adoutbound) {
         ods_log_error("[%s] unable to write file: no output adapter",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
