@@ -442,7 +442,7 @@ static task_type *
 keystate_ds_submit_task_perform(task_type *task)
 {
     perform_keystate_ds_submit(-1,(engineconfig_type *)task->context,NULL,NULL,
-                               1);
+                               0);
     task_cleanup(task);
     return NULL;
 }
