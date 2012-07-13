@@ -767,6 +767,8 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
     ods_status result = ODS_STATUS_OK;
 
     if (!rrset || !fd) {
+        ods_log_crit("[%s] unable to print RRset: rrset or fd missing",
+            rrset_str);
         if (status) {
             *status = ODS_STATUS_ASSERT_ERR;
         }

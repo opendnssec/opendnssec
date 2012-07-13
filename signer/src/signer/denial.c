@@ -324,6 +324,8 @@ denial_print(FILE* fd, denial_type* denial, ods_status* status)
 {
     if (!denial || !fd) {
         if (status) {
+            ods_log_crit("[%s] unable to print denial: denial of fd missing",
+                denial_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
         return;

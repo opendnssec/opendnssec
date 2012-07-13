@@ -496,6 +496,8 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
     rrset_type* cname_rrset = NULL;
     if (!domain || !fd) {
         if (status) {
+            ods_log_crit("[%s] unable to print domain: domain or fd missing",
+                dname_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
         return;
@@ -550,6 +552,8 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
                 /* Occluded */
             }
             if (status && *status != ODS_STATUS_OK) {
+                ods_log_crit("[%s] failed to print one or more RRsets: %s",
+                    dname_str, ods_status2str(*status));
                 return;
             }
 
