@@ -303,6 +303,8 @@ adfile_read(void* zone)
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
     if (!adzone || !adzone->adinbound || !adzone->adinbound->configstr) {
+        ods_log_error("[%s] unable to read file: no input adapter",
+            adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     fd = ods_fopen(adzone->adinbound->configstr, NULL, "r");
@@ -331,15 +333,15 @@ adfile_write(void* zone, const char* filename)
     ods_status status = ODS_STATUS_OK;
 
     /* [start] sanity parameter checking */
-    if (!adzone) {
-        ods_log_error("[%s] unable to write file: no zone (or no "
-            "name given)", adapter_str);
+    if (!adzone || !adzone->outbound) {
+        ods_log_error("[%s] unable to write file: no output adapter",
+            adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     if (!filename) {
         ods_log_error("[%s] unable to write file: no filename given",
             adapter_str);
-        return ODS_STATUS_ERR;
+        return ODS_STATUS_ASSERT_ERR;
     }
     /* [end] sanity parameter checking */
 

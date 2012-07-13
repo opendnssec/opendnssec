@@ -853,7 +853,7 @@ query_process(query_type* q, void* engine)
     opcode = ldns_pkt_get_opcode(pkt);
     qtype = ldns_rr_get_type(rr);
     ldns_pkt_free(pkt);
-    switch(opcode) {
+    switch (opcode) {
         case LDNS_PACKET_NOTIFY:
             return query_process_notify(q, qtype, engine);
         case LDNS_PACKET_QUERY:
