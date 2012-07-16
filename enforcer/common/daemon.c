@@ -97,10 +97,15 @@ sig_handler (int sig)
     }
 }
 
+int daemon_our_pidfile = 0;
+
 void
 exit_function(void)
 {
-    unlink(config.pidfile);
+	/* Only unlink pidfile if its our pidfile */
+	if (daemon_our_pidfile) {
+		unlink(config.pidfile);
+	}
 }
 
 int

@@ -527,6 +527,8 @@ writepid (DAEMONCONFIG *config)
         return -1;
     }
 
+    /* Mark this our pidfile so exit_function unlink's it */
+    daemon_our_pidfile = 1;
     return 0;
 }
 
