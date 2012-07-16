@@ -6,6 +6,7 @@ OpenDNSSEC 1.3.10
 Bugfixes:
 * SUPPORT-30: RRSIGs are left in the signed zone when authoritative RRsets
   become glue [OPENDNSSEC-282].
+* OPENDNSSEC-298: Only unlink existing pidfile on exit if we wrote it.
 
 
 OpenDNSSEC 1.3.9 - 2012-06-15
