@@ -259,7 +259,6 @@ AC_CONFIG_FILES([
 	conf/kasp.xml
 	conf/signconf.xml
 	conf/zonelist.xml
-	contrib/Makefile
 	enforcer/Makefile
 	enforcer/common/Makefile
 	enforcer/enforcerd/Makefile
