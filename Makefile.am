@@ -11,7 +11,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = common libhsm conf tools contrib
+SUBDIRS = common libhsm conf tools
 
 if ENABLE_SIGNER
 SUBDIRS += signer

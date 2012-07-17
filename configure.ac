@@ -264,7 +264,6 @@ AC_CONFIG_FILES([
 	conf/kasp.xml
 	conf/signconf.xml
 	conf/zonelist.xml
-	contrib/Makefile
 	enforcer-ng/Makefile
 	enforcer-ng/src/Makefile
 	enforcer-ng/man/Makefile
