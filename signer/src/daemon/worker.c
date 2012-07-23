@@ -247,13 +247,13 @@ worker_check_jobs(worker_type* worker, task_type* task) {
     ods_log_assert(worker);
     ods_log_assert(task);
     if (worker->jobs_failed) {
-        ods_log_error("[%s[%i]] sign zone %s failed: %u of %u signatures "
-            "failed", worker2str(worker->type), worker->thread_num,
-            task_who2str(task), worker->jobs_failed, worker->jobs_appointed);
+        ods_log_error("[%s[%i]] sign zone %s failed: %u RRsets failed",
+            worker2str(worker->type), worker->thread_num,
+            task_who2str(task), worker->jobs_failed);
         return ODS_STATUS_ERR;
     } else if (worker->jobs_completed != worker->jobs_appointed) {
-        ods_log_error("[%s[%i]] sign zone %s failed: %u of %u signatures "
-            "completed", worker2str(worker->type), worker->thread_num,
+        ods_log_error("[%s[%i]] sign zone %s failed: processed %u of %u "
+            "RRsets", worker2str(worker->type), worker->thread_num,
             task_who2str(task), worker->jobs_completed,
             worker->jobs_appointed);
         return ODS_STATUS_ERR;
@@ -262,7 +262,7 @@ worker_check_jobs(worker_type* worker, task_type* task) {
             worker2str(worker->type), worker->thread_num, task_who2str(task));
         return ODS_STATUS_ERR;
     } else {
-        ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u signatures "
+        ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u RRsets "
             "succeeded", worker2str(worker->type), worker->thread_num,
             task_who2str(task), worker->jobs_completed,
             worker->jobs_appointed);
