@@ -1,3 +1,7 @@
+23 Juli 2012: Matthijs
+- OPENDNSSEC-304: Check pidfile on startup, complain and exit if pidfile
+  exists and corresponding process is running.
+
 6 Juli 2012: Matthijs
 - OPENDNSSEC-269: Fix crash in ldns_rr_list_push_rr() due to missing lock
   in ixfr structure.
