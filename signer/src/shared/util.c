@@ -36,8 +36,13 @@
 #include "shared/log.h"
 #include "shared/util.h"
 
-#include <time.h>
+#include <fcntl.h>
 #include <ldns/ldns.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
 
 static const char* util_str = "util";
 
@@ -235,6 +240,41 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
 
 
 /**
+ * Read process id from file.
+ *
+ */
+static pid_t
+util_read_pidfile(const char* file)
+{
+    int fd;
+    pid_t pid;
+    char pidbuf[32];
+    char *t;
+    int l;
+
+    if ((fd = open(file, O_RDONLY)) == -1) {
+        return -1;
+    }
+    if (((l = read(fd, pidbuf, sizeof(pidbuf)))) == -1) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    /* Empty pidfile means no pidfile... */
+    if (l == 0) {
+        errno = ENOENT;
+        return -1;
+    }
+    pid = strtol(pidbuf, &t, 10);
+
+    if (*t && *t != '\n') {
+        return -1;
+    }
+    return pid;
+}
+
+
+/**
  * Write process id to file.
  *
  */
@@ -243,10 +283,51 @@ util_write_pidfile(const char* pidfile, pid_t pid)
 {
     FILE* fd;
     char pidbuf[32];
+    struct stat stat_ret;
+    pid_t oldpid;
     size_t result = 0, size = 0;
 
     ods_log_assert(pidfile);
     ods_log_assert(pid);
+
+    /**
+     * If the file exists then either we didn't shutdown cleanly or
+     * a signer daemon is already running: in either case shutdown.
+     */
+    if (stat(pidfile, &stat_ret) != 0) {
+        if (errno != ENOENT) {
+            ods_log_error("[%s] cannot stat pidfile %s: %s", util_str, pidfile,
+                strerror(errno));
+            return -1;
+        } /* else: file does not exist: carry on */
+    } else {
+          if (S_ISREG(stat_ret.st_mode)) {
+            /** The pidfile exists already */
+            if ((oldpid = util_read_pidfile(pidfile)) == -1) {
+                /** Consider stale pidfile */
+                if (errno != ENOENT) {
+                    ods_log_error("[%s] cannot read pidfile %s: %s", util_str,
+                        pidfile, strerror(errno));
+                }
+            } else {
+                if (kill(oldpid, 0) == 0 || errno == EPERM) {
+                    ods_log_error("[%s] pidfile %s already exists, "
+                        "a process with pid %u is already running. "
+                        "If no ods-signerd process is running, a previous "
+                        "instance didn't shutdown cleanly, please remove this "
+                        "file and try again.", util_str, pidfile, oldpid);
+                    exit(1);
+                } else {
+                    /** Consider state pidfile */
+                    ods_log_warning("[%s] pidfile %s already exists, "
+                        "but no process with pid %u is running. "
+                        "A previous instance didn't shutdown cleanly, this "
+                        "pidfile is stale.", util_str, pidfile, oldpid);
+                }
+            }
+        }
+    }
+    /** All good, carry on */
     ods_log_debug("[%s] writing pid %lu to pidfile %s", util_str,
         (unsigned long) pid, pidfile);
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
