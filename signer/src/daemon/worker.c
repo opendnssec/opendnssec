@@ -301,14 +301,14 @@ worker_perform_task(worker_type* worker)
                     worker_sleep_unless(worker, 0);
                 }
                 if (worker->jobs_failed) {
-                    ods_log_error("[%s[%i]] sign zone %s failed: %u of %u "
-                        "signatures failed", worker2str(worker->type),
+                    ods_log_error("[%s[%i]] sign zone %s failed: %u "
+                        "RRsets failed", worker2str(worker->type),
                         worker->thread_num, task_who2str(task->who),
-                        worker->jobs_failed, worker->jobs_appointed);
+                        worker->jobs_failed);
                     status = ODS_STATUS_ERR;
                 } else if (!worker_fulfilled(worker)) {
-                    ods_log_error("[%s[%i]] sign zone %s failed: %u of %u "
-                        "signatures completed", worker2str(worker->type),
+                    ods_log_error("[%s[%i]] sign zone %s failed: processed "
+                        "%u of %u RRsets", worker2str(worker->type),
                         worker->thread_num, task_who2str(task->who),
                         worker->jobs_completed, worker->jobs_appointed);
                     status = ODS_STATUS_ERR;
@@ -319,7 +319,7 @@ worker_perform_task(worker_type* worker)
                     status = ODS_STATUS_ERR;
                 } else {
                     ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u "
-                        "signatures succeeded", worker2str(worker->type),
+                        "RRsets succeeded", worker2str(worker->type),
                         worker->thread_num, task_who2str(task->who),
                         worker->jobs_completed, worker->jobs_appointed);
                     ods_log_assert(worker->jobs_appointed ==
