@@ -1,3 +1,7 @@
+24 Juli 2012: Matthijs
+- Fix assertion error when printing signed zone with empty non-terminals
+  and NSEC.
+
 23 Juli 2012: Matthijs
 - OPENDNSSEC-304: Check pidfile on startup, complain and exit if pidfile
   exists and corresponding process is running.

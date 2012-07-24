@@ -14,6 +14,7 @@ Bugfixes:
 * OPENDNSSEC-298: Enforcer: Only unlink existing pidfile on exit if we wrote it.
 * OPENDNSSEC-304: Signer Engine: Check pidfile on startup, if pidfile exists
   and corresponding process is running, then complain and exit.
+* Fix assertion error when printing signed zone with empty non-terminals and NSEC.
 
 
 OpenDNSSEC 1.4.0a2 - 2012-05-24
