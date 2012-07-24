@@ -508,7 +508,9 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
         fprintf(fd, ";;Empty non-terminal %s\n", str);
         free((void*)str);
         /* Denial of Existence */
-        denial_print(fd, (denial_type*) domain->denial, status);
+        if (domain->denial) {
+            denial_print(fd, (denial_type*) domain->denial, status);
+        }
         return;
     }
     /* no other data may accompany a CNAME */
@@ -561,7 +563,9 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
         }
     }
     /* Denial of Existence */
-    denial_print(fd, (denial_type*) domain->denial, status);
+    if (domain->denial) {
+        denial_print(fd, (denial_type*) domain->denial, status);
+    }
     return;
 }
 
