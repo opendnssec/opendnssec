@@ -4060,6 +4060,7 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
 {
     struct flock fl;
     struct timeval tv;
+	int retry = 0;
 
     if (lock_fd == NULL) {
         printf("%s could not be opened\n", lock_filename);
@@ -4072,6 +4073,10 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
     fl.l_pid = getpid();
 
     while (fcntl(fileno(lock_fd), F_SETLK, &fl) == -1) {
+		if (retry >= 6) {
+			printf("couldn't get lock on %s; %s\n", lock_filename, strerror(errno));
+			return 1;
+		}
         if (errno == EACCES || errno == EAGAIN) {
             printf("%s already locked, sleep\n", lock_filename);
 
@@ -4079,6 +4084,8 @@ int get_lite_lock(char *lock_filename, FILE* lock_fd)
             tv.tv_sec = 10;
             tv.tv_usec = 0;
             select(0, NULL, NULL, NULL, &tv);
+
+			retry++;
 
         } else {
             printf("couldn't get lock on %s; %s\n", lock_filename, strerror(errno));
