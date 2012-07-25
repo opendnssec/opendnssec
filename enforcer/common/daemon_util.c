@@ -728,6 +728,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/conf.rng";
 
     char* temp_char = NULL;
+    char* str = NULL; /* used to split DSSub command */
 
     FILE *file;
 
@@ -911,6 +912,15 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             StrFree(config->DSSubmitCmd);
         }
         config->DSSubmitCmd = (char *)xmlXPathCastToString(xpathObj);
+
+		/* If the string ends " --cka_id" strip that off and set flag */
+		str = strstr(config->DSSubmitCmd, " --cka_id");
+		if (str) {
+			config->DSSubCKA_ID = 1;
+			*str = 0;
+		} else {
+			config->DSSubCKA_ID = 0;
+		}
 
         if (verbose) {
             log_msg(config, LOG_INFO, "Using command: %s to submit DS records", config->DSSubmitCmd);

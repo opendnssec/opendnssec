@@ -749,7 +749,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 }
 
                 /* turn this zone and policy into a file */
-                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd);
+                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd, config->DSSubCKA_ID);
                 if (status2 == -2) {
                     log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -830,7 +830,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
  *  returns 0 on success and -1 if something went wrong
  *                           -2 if the RequestKeys call failed
  */
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd)
+int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID)
 {
     int status = 0;
     int status2 = 0;
@@ -1133,7 +1133,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     /* If the DS set changed then log/do something about it */
     if (NewDS == 1) {
         log_msg(NULL, LOG_INFO, "DSChanged");
-        status = NewDSSet(zone_id, zone_name, DSSubmitCmd);
+        status = NewDSSet(zone_id, zone_name, DSSubmitCmd, DSSubCKA_ID);
     }
 
     StrFree(old_filename);
@@ -1586,7 +1586,7 @@ int do_purge(int interval, int policy_id)
     return status;
 }
 
-int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
+int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd, int DSSubCKA_ID) {
     int     where = 0;		/* for the SELECT statement */
     char*   sql = NULL;     /* SQL statement (when verifying) */
     char*   sql2 = NULL;    /* SQL statement (if getting DS) */
@@ -1829,6 +1829,14 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd) {
                 }
             }
             StrAppend(&ds_buffer, temp_char);
+
+			/* Add the CKA_ID if asked */
+			if (DSSubCKA_ID) {
+				StrAppend(&ds_buffer, "; {cka_id = ");
+				StrAppend(&ds_buffer, data3.location);
+				StrAppend(&ds_buffer, "}");
+			}
+
             StrFree(temp_char);
 
 /*            StrAppend(&ds_buffer, "\n;KSK DS record (SHA1):\n");

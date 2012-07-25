@@ -1,5 +1,7 @@
 $Id$
 
+* OPENDNSSEC-258: Optionally include cka_id in output to DelegationSignerSubmitCommand.
+
 Bugfixes:
 
 * SUPPORT-27: ods-ksmutil: simplify zone delete so that it only marks keys 

@@ -220,6 +220,7 @@ int check_file_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, 
 	int status = 0;
 	xmlXPathObjectPtr xpath_obj;
 	char* temp_char = NULL;
+	char* str = NULL;
 
 	xpath_obj = xmlXPathEvalExpression(file_xexpr, xpath_ctx);
 	if(xpath_obj == NULL) {
@@ -228,6 +229,12 @@ int check_file_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, 
 	}
     if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
 		temp_char = (char*) xmlXPathCastToString(xpath_obj);
+
+		/* strip off any trailing characters (needed for DSSub with cks_id) */
+		str = strrchr(temp_char, ' ');
+		if (str) {
+			*str = 0;
+		}
 
 		status = check_file(temp_char, log_string);
 

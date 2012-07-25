@@ -114,6 +114,7 @@ typedef struct
     int manualKeyGeneration;
     int rolloverNotify;
     char* DSSubmitCmd;
+    int DSSubCKA_ID;
 
     int log_user; /* log facility (or default of LOG_DAEMON) */
 
