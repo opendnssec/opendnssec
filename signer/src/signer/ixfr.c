@@ -145,9 +145,8 @@ ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
     ods_log_assert(ixfr->part[0]);
     ods_log_assert(ixfr->part[0]->plus);
     if (!ldns_rr_list_push_rr(ixfr->part[0]->plus, rr)) {
-        ods_log_error("[%s] unable to +RR: ldns_rr_list_push_rr() failed",
+        ods_fatal_exit("[%s] fatal unable to +RR: ldns_rr_list_push_rr() failed",
             ixfr_str);
-        exit(1);
     }
     if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
         ixfr->part[0]->soaplus = rr;
@@ -177,9 +176,8 @@ ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
     ods_log_assert(ixfr->part[0]);
     ods_log_assert(ixfr->part[0]->min);
     if (!ldns_rr_list_push_rr(ixfr->part[0]->min, rr)) {
-        ods_log_error("[%s] unable to -RR: ldns_rr_list_push_rr() failed",
+        ods_fatal_exit("[%s] fatal unable to -RR: ldns_rr_list_push_rr() failed",
             ixfr_str);
-        exit(1);
     }
     if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
         ixfr->part[0]->soamin = rr;
@@ -298,9 +296,8 @@ ixfr_purge(ixfr_type* ixfr)
     }
     ixfr->part[0] = part_create(zone->allocator);
     if (!ixfr->part[0]) {
-        ods_log_error("[%s] unable to purge ixfr for zone %s: "
+        ods_fatal_exit("[%s] fatal unable to purge ixfr for zone %s: "
             "part_create() failed", ixfr_str, zone->name);
-        exit(1);
     }
     return;
 }

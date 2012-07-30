@@ -274,9 +274,8 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     rrset->rrs = (rr_type*) allocator_alloc(zone->allocator,
         (rrset->rr_count + 1) * sizeof(rr_type));
     if (!rrset->rrs) {
-        ods_log_error("[%s] unable to add RR: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to add RR: allocator_alloc() failed",
             rrset_str);
-        exit(1);
     }
     if (rrs_old) {
         memcpy(rrset->rrs, rrs_old, (rrset->rr_count) * sizeof(rr_type));
@@ -320,9 +319,8 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     rrset->rrs = (rr_type*) allocator_alloc(zone->allocator,
         (rrset->rr_count - 1) * sizeof(rr_type));
     if(!rrset->rrs) {
-        ods_log_error("[%s] unable to delete RR: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to delete RR: allocator_alloc() failed",
             rrset_str);
-        exit(1);
     }
     if (rrs_orig) {
         memcpy(rrset->rrs, rrs_orig, (rrset->rr_count -1) * sizeof(rr_type));
@@ -404,9 +402,8 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     rrset->rrsigs = (rrsig_type*) allocator_alloc(zone->allocator,
         (rrset->rrsig_count + 1) * sizeof(rrsig_type));
     if (!rrset->rrsigs) {
-        ods_log_error("[%s] unable to add RRSIG: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to add RRSIG: allocator_alloc() failed",
             rrset_str);
-        exit(1);
     }
     if (rrsigs_old) {
         memcpy(rrset->rrsigs, rrsigs_old,
@@ -447,9 +444,8 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     rrset->rrsigs = (rrsig_type*) allocator_alloc(zone->allocator,
         (rrset->rrsig_count - 1) * sizeof(rrsig_type));
     if(!rrset->rrsigs) {
-        ods_log_error("[%s] unable to delete RRSIG: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to delete RRSIG: allocator_alloc() failed",
             rrset_str);
-        exit(1);
     }
     if (rrsigs_orig) {
         memcpy(rrset->rrsigs, rrsigs_orig,
