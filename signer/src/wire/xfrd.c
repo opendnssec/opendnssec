@@ -838,9 +838,9 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
                     /* not notified or anything, so stop asking around */
                     xfrd->round_num = -1; /* next try start a new round */
                     xfrd_set_timer_refresh(xfrd);
-                    lock_basic_unlock(&xfrd->serial_lock);
                     ods_log_debug("[%s] zone %s wait refresh time", xfrd_str,
                        zone->name);
+                    lock_basic_unlock(&xfrd->serial_lock);
                     return XFRD_PKT_NEWLEASE;
                 }
                 /* try next master */
@@ -1217,6 +1217,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
         return;
     }
     if (ret == 0) {
+        ods_log_debug("[%s] tcp read returns 0: not ready yet", xfrd_str);
         return;
     }
     /* completed msg */
@@ -1224,6 +1225,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
     ret = xfrd_handle_packet(xfrd, tcp->packet);
     switch (ret) {
         case XFRD_PKT_MORE:
+            ods_log_debug("[%s] tcp read: more to come", xfrd_str);
             tcp_conn_ready(tcp);
             break;
         case XFRD_PKT_XFR:

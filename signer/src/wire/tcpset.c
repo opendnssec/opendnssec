@@ -122,6 +122,7 @@ tcp_conn_read(tcp_conn_type* tcp)
         if (received == -1) {
             if (errno == EAGAIN || errno == EINTR) {
                 /* read would block, try later */
+                ods_log_debug("[%s] read would block, try later", tcp_str);
                 return 0;
             } else {
                 if (errno != ECONNRESET) {
@@ -137,11 +138,13 @@ tcp_conn_read(tcp_conn_type* tcp)
         tcp->total_bytes += received;
         if (tcp->total_bytes < sizeof(tcp->msglen)) {
             /* not complete yet, try later */
+            ods_log_debug("[%s] not complete yet, try later", tcp_str);
             return 0;
         }
         ods_log_assert(tcp->total_bytes == sizeof(tcp->msglen));
         tcp->msglen = ntohs(tcp->msglen);
         if (tcp->msglen > buffer_capacity(tcp->packet)) {
+            /* packet to big, drop connection */
             ods_log_error("[%s] packet too big, dropping connection", tcp_str);
             return 0;
         }
@@ -154,6 +157,7 @@ tcp_conn_read(tcp_conn_type* tcp)
     if (received == -1) {
         if (errno == EAGAIN || errno == EINTR) {
             /* read would block, try later */
+            ods_log_debug("[%s] read would block, try later", tcp_str);
             return 0;
         } else {
             if (errno != ECONNRESET) {
@@ -170,6 +174,7 @@ tcp_conn_read(tcp_conn_type* tcp)
     buffer_skip(tcp->packet, received);
     if (buffer_remaining(tcp->packet) > 0) {
         /* not complete yet, wait for more */
+        ods_log_debug("[%s] not complete yet, wait for more", tcp_str);
         return 0;
     }
     /* completed */
