@@ -1,6 +1,7 @@
 2 August 2012: Matthijs
 - Better error message when reading large zone file (OPENDNSSEC-261)
 - Explicit shutdown to ods-signer client to prevent hanging clients
+- Added warning messages when serial unixtime or datecounter cannot be used.
 
 30 July 2012: Matthijs
 - Make random_id() more random.

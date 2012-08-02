@@ -207,11 +207,17 @@ namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
     if (ods_strcmp(format, "unixtime") == 0) {
         soa = (uint32_t) time_now();
         if (!util_serial_gt(soa, prev)) {
+            ods_log_warning("[%s] unable to use unixtime as serial: %u "
+                "does not increase %u. Serial set to %u", db_str, soa, prev,
+                (prev+1));
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "datecounter") == 0) {
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
         if (!util_serial_gt(soa, prev)) {
+            ods_log_warning("[%s] unable to use datecounter as serial: %u "
+                "does not increase %u. Serial set to %u", db_str, soa, prev,
+                (prev+1));
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "counter") == 0) {
