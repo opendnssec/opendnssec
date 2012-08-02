@@ -6,11 +6,15 @@ OpenDNSSEC 1.3.10
 Bugfixes:
 * SUPPORT-30: RRSIGs are left in the signed zone when authoritative RRsets
   become glue [OPENDNSSEC-282].
+* OPENDNSSEC-261: Ldns fails to parse RR that seems syntactically correct.
+  Was due to memory allocation issues. Provided better log message.
 * OPENDNSSEC-298: Only unlink existing pidfile on exit if we wrote it.
 * OPENDNSSEC-303: Return if open/parse of zonelist.xml fails in ksmutil.c
   update_zones() and cmd_listzone().
 * OPENDNSSEC-304: Signer Engine: Check pidfile on startup, if pidfile exists
   and corresponding process is running, then complain and exit.
+* Signer seems to hang on a ods-signer command. Shutdown client explicitly
+  with shutdown().
    
 
 OpenDNSSEC 1.3.9 - 2012-06-15
