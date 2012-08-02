@@ -85,8 +85,12 @@ ods_fgetc(FILE* fd, unsigned int* line_nr)
     ods_log_assert(line_nr);
 
     c = fgetc(fd);
-	if (c == '\n') {
+    if (c == '\n') {
         (*line_nr)++;
+    }
+    if (c == EOF && errno != 0) {
+        ods_log_crit("[%s] fgetc() failed, enough memory? (%s)",
+            file_str, strerror(errno));
     }
     return c;
 }

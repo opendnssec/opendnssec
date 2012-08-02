@@ -731,6 +731,7 @@ cmdhandler_accept_client(void* arg)
     ods_log_debug("[%s] accept client %i", cmdh_str, cmdc->client_fd);
     cmdhandler_handle_cmd(cmdc);
     if (cmdc->client_fd) {
+        shutdown(cmdc->client_fd, SHUT_RDWR);
         close(cmdc->client_fd);
     }
     free(cmdc);

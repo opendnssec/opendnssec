@@ -398,10 +398,10 @@ worker_perform_task(worker_type* worker)
                 task_who2str(task), worker->jobs_appointed);
             /* sleep until work is done */
             worker_sleep_unless(worker, 0);
-            status = worker_check_jobs(worker, task);
-            worker_clear_jobs(worker);
             /* stop timer */
             end = time(NULL);
+            status = worker_check_jobs(worker, task);
+            worker_clear_jobs(worker);
             if (status == ODS_STATUS_OK && zone->stats) {
                 lock_basic_lock(&zone->stats->stats_lock);
                 zone->stats->sig_time = (end-start);
