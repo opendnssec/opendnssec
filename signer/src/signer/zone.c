@@ -92,6 +92,7 @@ zone_create(char* name, ldns_rr_class klass)
     zone->apex = ldns_dname_new_frm_str(name);
     /* check zone->apex? */
     zone->notify_ns = NULL;
+    zone->notify_args = NULL;
     zone->policy_name = NULL;
     zone->signconf_filename = NULL;
     zone->adinbound = NULL;
@@ -704,7 +705,7 @@ zone_cleanup(zone_type* zone)
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
-    allocator_deallocate(allocator, (void*) zone->notify_ns);
+    allocator_deallocate(allocator, (void*) zone->notify_args);
     allocator_deallocate(allocator, (void*) zone->policy_name);
     allocator_deallocate(allocator, (void*) zone->signconf_filename);
     allocator_deallocate(allocator, (void*) zone->name);

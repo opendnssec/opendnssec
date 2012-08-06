@@ -186,4 +186,12 @@ void ods_chown(const char* file, uid_t uid, gid_t gid, int getdir);
  */
 void ods_str_trim(char* str);
 
+/**
+ * Add a string to a list of strings. Taken from ods-enforcer.
+ * \param[out] list string list
+ * \param[in] str string to add
+ *
+ */
+void ods_str_list_add(char*** list, char* str);
+
 #endif /* SHARED_FILE_H */

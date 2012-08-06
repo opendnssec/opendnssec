@@ -72,6 +72,7 @@ struct zone_struct {
     uint32_t default_ttl; /* ttl */
     /* from conf.xml */
     const char* notify_ns; /* master name server reload command */
+    char** notify_args; /* reload command arguments */
     /* from zonelist.xml */
     const char* name; /* string format zone name */
     const char* policy_name; /* policy identifier */

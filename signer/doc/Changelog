@@ -1,3 +1,6 @@
+6 August 2012: Matthijs
+- Replace system() function call with execvp().
+
 2 August 2012: Matthijs
 - Better error message when reading large zone file (OPENDNSSEC-261)
 - Explicit shutdown to ods-signer client to prevent hanging clients

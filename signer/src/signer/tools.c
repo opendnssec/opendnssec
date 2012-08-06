@@ -39,6 +39,9 @@
 #include "signer/tools.h"
 #include "signer/zone.h"
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
 static const char* tools_str = "tools";
 
 
@@ -156,8 +159,6 @@ ods_status
 tools_output(zone_type* zone, engine_type* engine)
 {
     ods_status status = ODS_STATUS_OK;
-    char str[SYSTEM_MAXLEN];
-    int error = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_assert(zone);
@@ -195,14 +196,32 @@ tools_output(zone_type* zone, engine_type* engine)
     lock_basic_unlock(&zone->ixfr->ixfr_lock);
     /* kick the nameserver */
     if (zone->notify_ns) {
+        int status;
+        pid_t pid;
         ods_log_verbose("[%s] notify nameserver: %s", tools_str,
             zone->notify_ns);
-        snprintf(str, SYSTEM_MAXLEN, "%s > /dev/null",
-            zone->notify_ns);
-        error = system(str);
-        if (error) {
-           ods_log_error("[%s] failed to notify nameserver", tools_str);
-           status = ODS_STATUS_ERR;
+	/** fork */
+        switch ((pid = fork())) {
+            case -1: /* error */
+                ods_log_error("[%s] notify nameserver failed: unable to fork "
+                    "(%s)", tools_str, strerror(errno));
+                return ODS_STATUS_FORK_ERR;
+            case 0: /* child */
+                /** execv */
+                execvp(zone->notify_ns, zone->notify_args);
+                /** error */
+                ods_log_error("[%s] notify nameserver failed: execv() failed "
+                    "(%s)", tools_str, strerror(errno));
+                exit(1);
+                break;
+            default: /* parent */
+                ods_log_debug("[%s] notify nameserver process forked",
+                    tools_str);
+                /** wait for completion  */
+                while (wait(&status) != pid) {
+                    ;
+                }
+                break;
         }
     }
     if (engine->dnshandler) {

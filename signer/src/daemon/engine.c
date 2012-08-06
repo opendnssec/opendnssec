@@ -672,6 +672,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
 {
     const char* str = NULL;
     const char* str2 = NULL;
+    char* token = NULL;
     ods_log_assert(cmd);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -683,8 +684,20 @@ set_notify_ns(zone_type* zone, const char* cmd)
     }
     str2 = ods_replace(str, "%zone", zone->name);
     free((void*)str);
-    zone->notify_ns = (const char*) str2;
+
     ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
+    ods_str_trim((char*) str2);
+    str = str2;
+    if (*str) {
+        token = NULL;
+        while ((token = strtok((char*) str, " "))) {
+            if (*token) {
+                ods_str_list_add(&zone->notify_args, token);
+            }
+            str = NULL;
+        }
+    }
+    zone->notify_ns = zone->notify_args[0];
     return;
 }
 

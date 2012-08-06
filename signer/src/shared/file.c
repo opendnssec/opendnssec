@@ -562,3 +562,43 @@ ods_str_trim(char* str)
     *str = '\0';
     return;
 }
+
+
+/**
+ * Add a string to a list of strings. Taken from ods-enforcer.
+ *
+ */
+void
+ods_str_list_add(char*** list, char* str)
+{
+    char** old = NULL;
+    size_t count = 0;
+
+    if (*list) {
+        for (count=0; (*list)[count]; ++count) {
+            ;
+        }
+        old = *list;
+
+        *list = (char**) calloc(sizeof(char*), count+2);
+        if (!*list) {
+            ods_fatal_exit("[%s] fatal ods_str_list_add(): calloc() failed",
+                file_str);
+        }
+        if (old) {
+            memcpy(*list, old, count * sizeof(char*));
+        }
+        free(old);
+        (*list)[count] = str;
+        (*list)[count+1] = NULL;
+    } else {
+        /** List is NULL, allocate new */
+        *list = calloc(sizeof(char*), 2);
+        if (!*list) {
+            ods_fatal_exit("[%s] fatal ods_str_list_add(): calloc() failed",
+                file_str);
+        }
+        (*list)[0] = str;
+    }
+    return;
+}
