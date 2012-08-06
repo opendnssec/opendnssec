@@ -41,6 +41,7 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 static const char* tools_str = "tools";
 
@@ -152,6 +153,21 @@ tools_input(zone_type* zone)
 
 
 /**
+ * Close file descriptors.
+ *
+ */
+static void
+ods_closeall(int fd)
+{
+    int fdlimit = sysconf(_SC_OPEN_MAX);
+    while (fd < fdlimit) {
+        close(fd++);
+    }
+    return;
+}
+
+
+/**
  * Write zone to output adapter.
  *
  */
@@ -207,6 +223,8 @@ tools_output(zone_type* zone, engine_type* engine)
                     "(%s)", tools_str, strerror(errno));
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
+                /** close fds */
+		ods_closeall(0);
                 /** execv */
                 execvp(zone->notify_ns, zone->notify_args);
                 /** error */
