@@ -591,7 +591,9 @@ worker_work(worker_type* worker)
 static void
 worker_drudge(worker_type* worker)
 {
+    engine_type* engine = NULL;
     zone_type* zone = NULL;
+    task_type* task = NULL;
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
     worker_type* chief = NULL;
@@ -600,19 +602,13 @@ worker_drudge(worker_type* worker)
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_DRUDGER);
 
-    ods_log_debug("[%s[%i]] create hsm context",
-        worker2str(worker->type), worker->thread_num);
-    ctx = hsm_create_context();
-    if (!ctx) {
-        ods_log_crit("[%s[%i]] error creating libhsm context",
-            worker2str(worker->type), worker->thread_num);
-    }
-
+    engine = (engine_type*) worker->engine;
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
         chief = NULL;
         zone = NULL;
+        task = NULL;
 
         lock_basic_lock(&worker->engine->signq->q_lock);
         /* [LOCK] schedule */
@@ -620,45 +616,43 @@ worker_drudge(worker_type* worker)
         /* [UNLOCK] schedule */
         lock_basic_unlock(&worker->engine->signq->q_lock);
         if (rrset) {
-            /* set up the work */
-            if (chief && chief->task) {
-                zone = chief->task->zone;
-            }
-            if (!zone) {
-                ods_log_error("[%s[%i]] unable to drudge: no zone reference",
+            ods_log_assert(chief);
+            ods_log_debug("[%s[%i]] create hsm context",
+                worker2str(worker->type), worker->thread_num);
+            ctx = hsm_create_context();
+            if (!ctx) {
+                ods_log_crit("[%s[%i]] error creating libhsm context",
                     worker2str(worker->type), worker->thread_num);
-            }
-            if (zone && ctx) {
-                ods_log_assert(rrset);
-                ods_log_assert(zone->dname);
+                engine->need_to_reload = 1;
+                chief->jobs_failed++;
+            } else {
+                ods_log_assert(ctx);
+                lock_basic_lock(&chief->worker_lock);
+                task = chief->task;
+                ods_log_assert(task);
+                zone = task->zone;
+                lock_basic_unlock(&chief->worker_lock);
+                ods_log_assert(zone);
                 ods_log_assert(zone->signconf);
+                ods_log_assert(rrset);
 
                 worker->clock_in = time(NULL);
                 status = rrset_sign(ctx, rrset, zone->dname, zone->signconf,
                     chief->clock_in, zone->stats);
-            } else {
-                status = ODS_STATUS_ASSERT_ERR;
-            }
-
-            if (chief) {
                 lock_basic_lock(&chief->worker_lock);
                 if (status == ODS_STATUS_OK) {
                     chief->jobs_completed += 1;
                 } else {
                     chief->jobs_failed += 1;
-                    /* destroy context? */
                 }
                 lock_basic_unlock(&chief->worker_lock);
-
-                if (worker_fulfilled(chief) && chief->sleeping) {
-                    ods_log_debug("[%s[%i]] wake up chief[%u], work is done",
-                        worker2str(worker->type), worker->thread_num,
-                        chief->thread_num);
-                    worker_wakeup(chief);
-                    chief = NULL;
-                }
             }
-            rrset = NULL;
+            if (worker_fulfilled(chief) && chief->sleeping) {
+                ods_log_debug("[%s[%i]] wake up chief[%u], work is done",
+                    worker2str(worker->type), worker->thread_num,
+                    chief->thread_num);
+                worker_wakeup(chief);
+            }
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
