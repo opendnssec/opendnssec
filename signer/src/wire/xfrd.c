@@ -957,18 +957,28 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
     xfrd_commit_packet(xfrd);
     /* next time */
     lock_basic_lock(&xfrd->serial_lock);
+
+    ods_log_debug("[%s] zone %s notify acquired %u, serial on disk %u, "
+        "notify serial %u", xfrd_str, zone->name,
+        xfrd->serial_notify_acquired, xfrd->serial_disk,
+        xfrd->serial_notify);
+
     if (xfrd->serial_notify_acquired &&
-        util_serial_gt(xfrd->serial_disk, xfrd->serial_notify)) {
+        !util_serial_gt(xfrd->serial_notify, xfrd->serial_disk)) {
+        ods_log_debug("[%s] zone %s reset notify acquired", xfrd_str,
+            zone->name);
         xfrd->serial_notify_acquired = 0;
     }
     if (!xfrd->serial_notify_acquired) {
-         xfrd->round_num = -1; /* next try start anew */
-         xfrd_set_timer_refresh(xfrd);
-         lock_basic_unlock(&xfrd->serial_lock);
-         return XFRD_PKT_XFR;
+        ods_log_debug("[%s] zone %s xfr done", xfrd_str, zone->name);
+        xfrd->round_num = -1; /* next try start anew */
+        xfrd_set_timer_refresh(xfrd);
+        lock_basic_unlock(&xfrd->serial_lock);
+        return XFRD_PKT_XFR;
     }
     lock_basic_unlock(&xfrd->serial_lock);
     /* try to get an even newer serial */
+    ods_log_debug("[%s] zone %s get newer serial", xfrd_str, zone->name);
     return XFRD_PKT_BAD;
 }
 
