@@ -619,7 +619,9 @@ worker_drudge(worker_type* worker)
             ods_log_assert(chief);
             ods_log_debug("[%s[%i]] create hsm context",
                 worker2str(worker->type), worker->thread_num);
-            ctx = hsm_create_context();
+            if (!ctx) {
+                ctx = hsm_create_context();
+            }
             if (!ctx) {
                 ods_log_crit("[%s[%i]] error creating libhsm context",
                     worker2str(worker->type), worker->thread_num);
