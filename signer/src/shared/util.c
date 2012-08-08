@@ -278,21 +278,14 @@ util_read_pidfile(const char* file)
 
 
 /**
- * Write process id to file.
+ * Check process id file.
  *
  */
 int
-util_write_pidfile(const char* pidfile, pid_t pid)
+util_check_pidfile(const char* pidfile)
 {
-    FILE* fd;
-    char pidbuf[32];
-    struct stat stat_ret;
     pid_t oldpid;
-    size_t result = 0, size = 0;
-
-    ods_log_assert(pidfile);
-    ods_log_assert(pid);
-
+    struct stat stat_ret;
     /**
      * If the file exists then either we didn't shutdown cleanly or
      * a signer daemon is already running: in either case shutdown.
@@ -301,7 +294,6 @@ util_write_pidfile(const char* pidfile, pid_t pid)
         if (errno != ENOENT) {
             ods_log_error("[%s] cannot stat pidfile %s: %s", util_str, pidfile,
                 strerror(errno));
-            return -1;
         } /* else: file does not exist: carry on */
     } else {
           if (S_ISREG(stat_ret.st_mode)) {
@@ -319,7 +311,7 @@ util_write_pidfile(const char* pidfile, pid_t pid)
                         "If no ods-signerd process is running, a previous "
                         "instance didn't shutdown cleanly, please remove this "
                         "file and try again.", util_str, pidfile, oldpid);
-                    exit(1);
+                    return 0;
                 } else {
                     /** Consider state pidfile */
                     ods_log_warning("[%s] pidfile %s already exists, "
@@ -331,6 +323,24 @@ util_write_pidfile(const char* pidfile, pid_t pid)
         }
     }
     /** All good, carry on */
+    return 1;
+}
+
+
+/**
+ * Write process id to file.
+ *
+ */
+int
+util_write_pidfile(const char* pidfile, pid_t pid)
+{
+    FILE* fd;
+    char pidbuf[32];
+    size_t result = 0, size = 0;
+
+    ods_log_assert(pidfile);
+    ods_log_assert(pid);
+
     ods_log_debug("[%s] writing pid %lu to pidfile %s", util_str,
         (unsigned long) pid, pidfile);
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
