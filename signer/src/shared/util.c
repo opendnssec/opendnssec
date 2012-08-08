@@ -307,7 +307,7 @@ util_check_pidfile(const char* pidfile)
                 }
             } else {
                 if (kill(oldpid, 0) == 0 || errno == EPERM) {
-                    ods_log_error("[%s] pidfile %s already exists, "
+                    ods_log_crit("[%s] pidfile %s already exists, "
                         "a process with pid %u is already running. "
                         "If no ods-signerd process is running, a previous "
                         "instance didn't shutdown cleanly, please remove this "
