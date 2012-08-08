@@ -88,6 +88,14 @@ ldns_status util_dnssec_rrs_compare(ldns_rr* rr1, ldns_rr* rr2, int* cmp);
 ldns_status util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr);
 
 /**
+ * Check process id file.
+ * \param[in] pidfile pid filename
+ * \return int status (0 if process id in pidfile is running)
+ *
+ */
+int util_check_pidfile(const char* pidfile);
+
+/**
  * Write process id to file.
  * \param[in] pidfile pid filename
  * \param[in] pid process id

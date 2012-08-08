@@ -1049,11 +1049,13 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         engine_config_print(stdout, engine->config); /* for debugging */
         goto earlyexit;
     }
-
+    /* check pidfile */
+    if (!util_check_pidfile(engine->config->pid_filename)) {
+        exit(1);
+    }
     /* open log */
     ods_log_init(engine->config->log_filename, engine->config->use_syslog,
        engine->config->verbosity);
-
     /* setup */
     tzset(); /* for portability */
     status = engine_setup(engine);
