@@ -37,6 +37,7 @@
 		</Privileges>
 		<Datastore><SQLite>/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
+		<AutomaticKeyGenerationPeriod>PT1H</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	
 	<!--
