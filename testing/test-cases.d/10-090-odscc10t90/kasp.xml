@@ -2,21 +2,21 @@
 
 <KASP>
 	<Policy name="default">
-		<Description>default fast test policy</Description>
+		<Description>A default policy that will amaze you and your friends</Description>
 		<Signatures>
-			<Resign>PT3M</Resign>
-			<Refresh>PT15M</Refresh>
+			<Resign>PT2H</Resign>
+			<Refresh>P3D</Refresh>
 			<Validity>
-				<Default>PT1H</Default>
-				<Denial>PT1H</Denial>
+				<Default>P14D</Default>
+				<Denial>P14D</Denial>
 			</Validity>
-			<Jitter>PT1M</Jitter>
-			<InceptionOffset>PT1M</InceptionOffset>
+			<Jitter>PT12H</Jitter>
+			<InceptionOffset>PT3600S</InceptionOffset>
+			<MaxZoneTTL>PT1D</MaxZoneTTL>
 		</Signatures>
 		<Denial>
 			<NSEC3>
-				<OptOut/>
-				<Resalt>P10D</Resalt>
+				<Resalt>P100D</Resalt>
 				<Hash>
 					<Algorithm>1</Algorithm>
 					<Iterations>5</Iterations>
@@ -25,39 +25,37 @@
 			</NSEC3>
 		</Denial>
 		<Keys>
-			<TTL>PT10M</TTL>
-			<RetireSafety>PT10M</RetireSafety>
-			<PublishSafety>PT10M</PublishSafety>
-			<Purge>P1D</Purge>
+			<TTL>PT3600S</TTL>
+			<RetireSafety>PT3600S</RetireSafety>
+			<PublishSafety>PT3600S</PublishSafety>
+			<Purge>P14D</Purge>
 			<KSK>
-				<Algorithm length="2048">7</Algorithm>
-				<Lifetime>P3D</Lifetime>
+				<Algorithm length="2048">8</Algorithm>
+				<Lifetime>P1Y</Lifetime>
 				<Repository>SoftHSM</Repository>
-				<Standby>0</Standby>
 			</KSK>
 			<ZSK>
-				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>PT12H</Lifetime>
+				<Algorithm length="1024">8</Algorithm>
+				<Lifetime>P90D</Lifetime>
 				<Repository>SoftHSM</Repository>
-				<Standby>0</Standby>
 			</ZSK>
 		</Keys>
 		<Zone>
-			<PropagationDelay>PT30M</PropagationDelay>
+			<PropagationDelay>PT43200S</PropagationDelay>
 			<SOA>
-				<TTL>PT10M</TTL>
-				<Minimum>PT5M</Minimum>
+				<TTL>PT3600S</TTL>
+				<Minimum>PT3600S</Minimum>
 				<Serial>unixtime</Serial>
 			</SOA>
 		</Zone>
 		<Parent>
-			<PropagationDelay>PT20M</PropagationDelay>
+			<PropagationDelay>PT9999S</PropagationDelay>
 			<DS>
-				<TTL>PT10M</TTL>
+				<TTL>PT3600S</TTL>
 			</DS>
 			<SOA>
-				<TTL>PT5H</TTL>
-				<Minimum>PT2H</Minimum>
+				<TTL>PT172800S</TTL>
+				<Minimum>PT10800S</Minimum>
 			</SOA>
 		</Parent>
 	</Policy>
