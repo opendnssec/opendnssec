@@ -71,6 +71,7 @@
 			</Validity>
 			<Jitter>PT2M</Jitter>
 			<InceptionOffset>PT2M</InceptionOffset>
+			<MaxZoneTTL>P1D</MaxZoneTTL>
 		</Signatures>
 		<Denial>
 			<NSEC3>

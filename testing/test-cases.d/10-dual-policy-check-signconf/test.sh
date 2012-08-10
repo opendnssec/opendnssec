@@ -12,6 +12,8 @@ log_this_timeout ods-control-enforcer-start 30 ods-control enforcer start &&
 syslog_waitfor 60 'ods-enforcerd: .*\[engine\] enforcer started' &&
 
 ods_setup_env &&
+syslog_waitfor 15 'ods-enforcerd: .*\[enforcer\] update Zone: ods' &&
+syslog_waitfor 15 'ods-enforcerd: .*\[enforcer\] update Zone: ods2' &&
 
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
 $GREP -q -- "<Resign>PT180S</Resign>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
