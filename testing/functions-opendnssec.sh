@@ -323,10 +323,8 @@ ods_ldns_testns ()
 {
 	local log_stdout="_log.$BUILD_TAG.ldns-testns.stdout"
 
-	echo "ods_ldns_testns: start ldns-testns"
+	#echo "ods_ldns_testns: start ldns-testns $1 $2"
 	ldns-testns -p $1 $2 > "$log_stdout" &
-	echo "ods_ldns_testns: wait for server to come up"
-	wait_up "$log_stdout" 30 "Listening on port"
-	echo "ods_ldns_testns: ldns-testns up and running"
+	wait_up "$log_stdout" "Listening on port"
 	return 0
 }
