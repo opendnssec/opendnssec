@@ -156,7 +156,7 @@ ods_setup_zone ()
 	
 	if [ -n "$zone" ]; then
 		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
-			echo "ods_setup_conf: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
+			echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 			return 1
 		fi
 		
@@ -167,7 +167,7 @@ ods_setup_zone ()
 		ls -1 unsigned/ | while read zone; do
 			if [ -f "unsigned/$zone" ]; then
 				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
-					echo "ods_setup_conf: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
+					echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 					return 1
 				fi
 			fi
@@ -270,4 +270,63 @@ ods_find_softhsm_module ()
 	done
 	
 	return 1
+}
+
+# function to get a number of random port numbers (taken from NSD tpkg test set).
+# $1: number of random ports.
+# RND_PORT is returned as the starting port number
+ods_get_random_port () {
+	local plist
+	local cont
+	local collisions
+	local i
+	local MAXCOLLISION=1000
+	cont=1
+	collisions=0
+	while test "$cont" = 1; do
+		#netstat -n -A ip -A ip6 -a | sed -e "s/^.*:\([0-9]*\) .*$/\1/"
+		RND_PORT=$(( $RANDOM + 5354 ))
+		# depending on uname try to check for collisions in port numbers
+		case "`uname`" in
+		linux|Linux)
+			plist=`netstat -n -A ip -A ip6 -a | sed -e 's/^.*:\([0-9]*\) .*$/\1/'`
+		;;
+		FreeBSD|freebsd|NetBSD|netbsd|OpenBSD|openbsd)
+			plist=`netstat -n -a | grep "^[ut][dc]p[46] " | sed -e 's/^.*\.\([0-9]*\) .*$/\1/'`
+		;;
+		Solaris|SunOS)
+			plist=`netstat -n -a | sed -e 's/^.*\.\([0-9]*\) .*$/\1/' | grep '^[0-9]*$'`
+		;;
+		*)
+			plist=""
+		;;
+		esac
+
+		cont=0
+		for (( i=0 ; i < $1 ; i++ )); do
+			if echo "$plist" | grep '^'`expr $i + $RND_PORT`'$' >/dev/null 2>&1; then
+				cont=1;
+				collisions=`expr $collisions + 1`
+			fi
+		done
+		if test $collisions = $MAXCOLLISION; then
+			echo "ods_get_random_port: Too many collisions getting random port number" >&2
+			exit 1
+                fi
+        done
+	return 0
+}
+
+
+# Start ldns-testns, $1: port, $2: datafile
+ods_ldns_testns ()
+{
+	local log_stdout="_log.$BUILD_TAG.ldns-testns.stdout"
+
+	echo "ods_ldns_testns: start ldns-testns"
+	ldns-testns -p $1 $2 > "$log_stdout" &
+	echo "ods_ldns_testns: wait for server to come up"
+	wait_up "$log_stdout" 30 "Listening on port"
+	echo "ods_ldns_testns: ldns-testns up and running"
+	return 0
 }

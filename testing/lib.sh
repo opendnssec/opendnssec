@@ -1673,6 +1673,29 @@ try_run ()
 	sleep 1
 	if kill -0 "$pid" 2>/dev/null; then
 		kill -KILL "$pid"
-	fi	
+	fi
 	return 1
+}
+
+# wait for server to go up, $1: logfilename, $2: seconds to wait, $3: string to wait for
+wait_up ()
+{
+	local WAIT_THRES=30
+	local MAX_UP_TRY=120
+	local try
+	for (( try=0 ; try <= $MAX_UP_TRY ; try=`expr $try + 1` )) ; do
+		if test -f $1 && fgrep "$3" $1 >/dev/null; then
+			echo "wait_up: Done on try $try"
+			break;
+		fi
+		if test $try -eq $MAX_UP_TRY; then
+			echo "wait_up: Server in $1 did not go up"
+			cat $1
+			exit 1
+		fi
+		if test $try -ge $WAIT_THRES; then
+			sleep 1
+		fi
+	done
+	return 0
 }
