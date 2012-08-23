@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- $Id: addnsconf.xml.in 2735 2010-01-28 14:11:27Z matthijs $ -->
+
+<Adapter>
+ 	<DNS>
+		<TSIG>
+			<Name>secret.example.com</Name>
+			<Algorithm>hmac-sha256</Algorithm>
+			<Secret>sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=</Secret>
+		</TSIG>
+
+		<Outbound>
+			<ProvideTransfer>
+				<Peer>
+					<Prefix>127.0.0.1</Prefix>
+				</Peer>
+				<Peer>
+					<Prefix>::1</Prefix>
+				</Peer>
+			</ProvideTransfer>
+
+			<Notify>
+				<Remote>
+					<Address>127.0.0.1</Address>
+					<Port>@SLAVE_PORT@</Port>
+				</Remote>
+			</Notify>
+		</Outbound>
+	</DNS>
+</Adapter>
