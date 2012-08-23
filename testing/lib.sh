@@ -1673,7 +1673,7 @@ try_run ()
 	sleep 1
 	if kill -0 "$pid" 2>/dev/null; then
 		kill -KILL "$pid"
-	fi
+	fi	
 	return 1
 }
 
