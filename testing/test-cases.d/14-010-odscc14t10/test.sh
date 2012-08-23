@@ -32,6 +32,7 @@ syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 
 ## Check signed zone file [when we decide on auditor tool]
+test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 ## Stop
 log_this_timeout ods-control-stop 30 ods-control stop
