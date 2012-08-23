@@ -1633,8 +1633,9 @@ xfrd_make_request(xfrd_type* xfrd)
         xfrd->master->ixfr_disabled = 0;
     }
     /* perform xfr request */
-    ods_log_debug("[%s] zone %s make request round %d master %s",
-        xfrd_str, zone->name, xfrd->round_num, xfrd->master->address);
+    ods_log_debug("[%s] zone %s make request round %d master %s:%u",
+        xfrd_str, zone->name, xfrd->round_num, xfrd->master->address,
+	xfrd->master->port);
     if (xfrd->serial_xfr_acquired && !xfrd->master->ixfr_disabled) {
         xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_UDP_TIMEOUT);
         xfrd_udp_obtain(xfrd);
