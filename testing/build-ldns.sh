@@ -30,6 +30,8 @@ case "$DISTRIBUTION" in
 			gunzip -c "$LDNS_SRC" | tar xf - &&
 			cd "$LDNS" &&
 			./configure --prefix="$INSTALL_ROOT" \
+				--with-drill \
+				--with-examples \
 				--disable-gost \
 				--disable-ecdsa &&
 			$MAKE &&
