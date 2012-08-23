@@ -188,37 +188,62 @@ ods_reset_env ()
 	return 1
 }
 
-ods_kill ()
+process_kill ()
 {
-	if ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
-		return 0
-	fi
-	
-	echo "ods_kill: Killing OpenDNSSEC"
-	try_run 15 ods-control stop
-	
-	if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+	if pgrep -u `id -u` $1 >/dev/null 2>/dev/null; then
 		sleep 2
-		pkill -QUIT '(ods-enforcerd|ods-signerd)' 2>/dev/null
-		if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+		pkill -QUIT $1 2>/dev/null
+		if pgrep -u `id -u` $1 >/dev/null 2>/dev/null; then
 			sleep 2
-			pkill -TERM '(ods-enforcerd|ods-signerd)' 2>/dev/null
-			if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+			pkill -TERM $1 2>/dev/null
+			if pgrep -u `id -u` $1 >/dev/null 2>/dev/null; then
 				sleep 2
-				pkill -KILL '(ods-enforcerd|ods-signerd)' 2>/dev/null
-				pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
+				pkill -KILL $1 2>/dev/null
+				pgrep -u `id -u` $1 >/dev/null 2>/dev/null &&
 				sleep 2
 			fi
 		fi
 	fi
-	
-	if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
-		echo "ods_kill: Tried to kill ods-enforcerd and ods-signerd but some are still alive!" >&2
+
+	if pgrep -u `id -u` $1 >/dev/null 2>/dev/null; then
+		echo "process_kill: Tried to kill $1 some are still alive!" >&2
 		return 1
 	fi
-	
+
 	return 0
 }
+
+
+ods_kill ()
+{
+	local process='(ods-enforcerd|ods-signerd)'
+
+	if ! pgrep -u `id -u` $process >/dev/null 2>/dev/null; then
+		return 0
+	fi
+
+	echo "ods_kill: Killing OpenDNSSEC"
+	try_run 15 ods-control stop
+
+	process_kill $process && return 0
+	echo "ods_kill: Killing OpenDNSSEC failed"
+	return 1
+}
+
+
+ods_ldns_testns_kill ()
+{
+	local process='(ldns-testns)'
+
+	if ! pgrep -u `id -u` $process >/dev/null 2>/dev/null; then
+		return 0
+	fi
+
+	process_kill $process && return 0
+	echo "ods_ldns_testns_kill: Killing ldns-testns failed"
+	return 1
+}
+
 
 ods_softhsm_init_token ()
 {
@@ -323,8 +348,8 @@ ods_ldns_testns ()
 {
 	local log_stdout="_log.$BUILD_TAG.ldns-testns.stdout"
 
-	#echo "ods_ldns_testns: start ldns-testns $1 $2"
-	ldns-testns -p $1 $2 > "$log_stdout" &
+	echo "ods_ldns_testns: start ldns-testns $1 $2"
+	ldns-testns -v -p $1 $2 > "$log_stdout" 2>&1 &
 	wait_up "$log_stdout" "Listening on port"
 	return 0
 }

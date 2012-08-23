@@ -1683,7 +1683,7 @@ wait_up ()
 	local WAIT_THRES=30
 	local MAX_UP_TRY=120
 	local try
-	#echo "wait_up: logfile $1 string $2"
+	echo "wait_up: logfile $1 string $2"
 	for (( try=0 ; try <= $MAX_UP_TRY ; try=`expr $try + 1` )) ; do
 		if test -f $1 && fgrep "$2" $1 >/dev/null; then
 			echo "wait_up: Done on try $try"
