@@ -1,5 +1,14 @@
 $Id$
 
+OpenDNSSEC 1.4.0a4
+
+Bugfixes:
+
+* OPENDNSSEC-255: OpenDNSSEC 1.4.0a1 writes out mangled RRSIG record
+
+
+OpenDNSSEC 1.4.0a3 - 2012-08-08
+
 * OPENDNSSEC-258: Optionally include cka_id in output to DelegationSignerSubmitCommand.
 
 Bugfixes:
