@@ -28,7 +28,7 @@ syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 ## Stop
-log_this_timeout ods-control-stop 30 ods-control stop
+log_this_timeout ods-control-stop 30 ods-control stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 ods_ldns_testns_kill &&
