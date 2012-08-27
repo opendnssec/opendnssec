@@ -1159,8 +1159,8 @@ log_waitfor ()
 	local log_stderr="_log.$BUILD_TAG.$name.stderr"
 	local log_stdout="_log.$BUILD_TAG.$name.stdout"
 	local type="$2"
-	local grep_string="$3"
-	local timeout="$4"
+	local timeout="$3"
+	local grep_string="$4"
 	local time_start=`$DATE '+%s' 2>/dev/null`
 	local time_stop
 	local time_now
