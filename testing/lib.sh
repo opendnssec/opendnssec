@@ -925,7 +925,9 @@ log_this ()
 	local log_stderr="_log.$BUILD_TAG.$name.stderr"
 	local log_stdout="_log.$BUILD_TAG.$name.stdout"
 	shift
-	
+
+	touch "$log_stderr" "$log_stdout"
+		
 	echo "log_this: logging $name for command: $*"
 	$* 2>>"$log_stderr" >>"$log_stdout"
 }
@@ -964,6 +966,8 @@ log_this_timeout ()
 	
 	time_stop=$(( time_start + timeout ))
 
+	touch "$log_stderr" "$log_stdout"
+	
 	echo "log_this_timeout: logging $name with timeout $timeout for command: $*"
 	( $* 2>>"$log_stderr" >>"$log_stdout" ) &
 	pid="$!"
