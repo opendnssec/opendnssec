@@ -1148,6 +1148,86 @@ log_grep_count ()
 	return 1
 }
 
+log_waitfor ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$3" ]; then
+		echo "usage: log_waitfor <log name> <stdout|stderr|both> <timeout in seconds> <grep string ...>" >&2
+		exit 1
+	fi
+
+	local name="$1"
+	local log_stderr="_log.$BUILD_TAG.$name.stderr"
+	local log_stdout="_log.$BUILD_TAG.$name.stdout"
+	local type="$2"
+	local grep_string="$3"
+	local timeout="$4"
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local log_files
+
+	case "$type" in
+		stdout)
+		if [ ! -f "$log_stdout" ]; then
+			return 1
+		fi
+		log_files="$log_stdout"
+		;;
+		stderr)
+		if [ ! -f "$log_stderr" ]; then
+			return 1
+		fi
+		log_files="$log_stderr"
+		;;
+		both)
+		if [ ! -f "$log_stdout" -a ! -f "$log_stderr" ]; then
+			return 1
+		fi
+		log_files="$log_stdout $log_stderr"
+		;;
+	esac
+	
+	if [ -z "$log_files" ]; then
+		echo "log_waitfor: Wrong type of log file specified, should be stdout, stderr or both!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "log_waitfor: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "log_waitfor: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "log_waitfor: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	echo "log_waitfor: waiting for log $name to contain (timeout $timeout): $grep_string"
+	while true; do
+		if $GREP -q -- "$grep_string" $log_files 2>/dev/null; then
+			return 0
+		fi
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "log_waitfor: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		sleep 2
+	done
+	
+	return 1
+}
+
 log_cleanup ()
 {
 	local pid_file
@@ -1677,26 +1757,162 @@ try_run ()
 	return 1
 }
 
-# wait for server to go up, $1: logfilename, $2: string to wait for
-wait_up ()
+waitfor_this ()
 {
-	local WAIT_THRES=30
-	local MAX_UP_TRY=120
-	local try
-	echo "wait_up: logfile $1 string $2"
-	for (( try=0 ; try <= $MAX_UP_TRY ; try=`expr $try + 1` )) ; do
-		if test -f $1 && fgrep "$2" $1 >/dev/null; then
-			echo "wait_up: Done on try $try"
-			break;
+	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+		echo "usage: waitfor_this <file to grep> <timeout in seconds> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local file="$1"
+	local timeout="$2"
+	local grep_string="$3"
+		
+	if [ ! -f "$file" ]; then
+		echo "waitfor_this: No file to grep from!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "waitfor_this: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "waitfor_this: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "waitfor_this: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	echo "waitfor_this: waiting for $file to contain (timeout $timeout): $grep_string"
+	while true; do
+		if $GREP -q -- "$grep_string" "$file" 2>/dev/null; then
+			return 0
 		fi
-		if test $try -eq $MAX_UP_TRY; then
-			#echo "wait_up: Server in $1 did not go up"
-			cat $1
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "waitfor_this: Invalid timestamp from date!" >&2
 			exit 1
 		fi
-		if test $try -ge $WAIT_THRES; then
-			sleep 1
-		fi
+		sleep 2
 	done
-	return 0
+	
+	return 1
+}
+
+waitfor_count_this ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$4" ]; then
+		echo "usage: waitfor_count_this <file to grep> <timeout in seconds> <count> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local file="$1"
+	local timeout="$2"
+	local count="$3"
+	local grep_string="$4"
+	local count_found
+		
+	if [ ! -f "$file" ]; then
+		echo "waitfor_count_this: No file to grep from!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "waitfor_count_this: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "waitfor_count_this: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "waitfor_count_this: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	echo "waitfor_count_this: waiting for $file to contain $count counts of (timeout $timeout): $grep_string"
+	while true; do
+		count_found=`$GREP -- "$grep_string" "$file" 2>/dev/null | wc -l 2>/dev/null`
+		if [ "$count_found" -eq "$count" ] 2>/dev/null; then
+			return 0
+		fi
+
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "waitfor_count_this: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		sleep 2
+	done
+	
+	return 1
+}
+
+grep_this ()
+{
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: grep_this <file to grep> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local file="$1"
+	local grep_string="$2"
+	
+	if [ ! -f "$file" ]; then
+		echo "grep_this: No file to grep from!" >&2
+		exit 1
+	fi
+
+	echo "grep_this: greping in $file for: $grep_string"
+	$GREP -q -- "$grep_string" "$file" 2>/dev/null
+}
+
+grep_count_this ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+		echo "usage: grep_count_this <file to grep> <count> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local file="$1"
+	local count="$2"
+	local grep_string="$3"
+	local count_found
+	
+	if [ ! -f "$file" ]; then
+		echo "grep_count_this: No file to grep from!" >&2
+		exit 1
+	fi
+
+	echo "grep_count_this: greping in $file, should find $count of: $grep_string"
+	count_found=`$GREP -- "$grep_string" "$file" 2>/dev/null | wc -l 2>/dev/null`
+	
+	if [ "$count_found" -eq "$count" ] 2>/dev/null; then
+		return 0
+	fi
+	
+	return 1
 }
