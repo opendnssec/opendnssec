@@ -188,62 +188,66 @@ ods_reset_env ()
 	return 1
 }
 
-process_kill ()
+ods_process_kill ()
 {
-	if pgrep -u `id -u` $1 >/dev/null 2>/dev/null; then
+	if [ -z "$1" ]; then
+		echo "usage: ods_process_kill <pgrep syntax>" >&2
+		exit 1
+	fi
+	
+	local process="$1"
+	
+	if pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
 		sleep 2
-		pkill -QUIT $1 2>/dev/null
-		if pgrep -u `id -u` $1 >/dev/null 2>/dev/null; then
+		pkill -QUIT "$process" 2>/dev/null
+		if pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
 			sleep 2
-			pkill -TERM $1 2>/dev/null
-			if pgrep -u `id -u` $1 >/dev/null 2>/dev/null; then
+			pkill -TERM "$process" 2>/dev/null
+			if pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
 				sleep 2
-				pkill -KILL $1 2>/dev/null
-				pgrep -u `id -u` $1 >/dev/null 2>/dev/null &&
+				pkill -KILL "$process" 2>/dev/null
+				pgrep -u `id -u` "$process" >/dev/null 2>/dev/null &&
 				sleep 2
 			fi
 		fi
 	fi
 
-	if pgrep -u `id -u` $1 >/dev/null 2>/dev/null; then
-		echo "process_kill: Tried to kill $1 some are still alive!" >&2
+	if pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
+		echo "process_kill: Tried to kill $process some are still alive!" >&2
 		return 1
 	fi
 
 	return 0
 }
 
-
 ods_kill ()
 {
 	local process='(ods-enforcerd|ods-signerd)'
 
-	if ! pgrep -u `id -u` $process >/dev/null 2>/dev/null; then
+	if ! pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
 		return 0
 	fi
 
 	echo "ods_kill: Killing OpenDNSSEC"
 	try_run 15 ods-control stop
 
-	process_kill $process && return 0
+	ods_process_kill "$process" && return 0
 	echo "ods_kill: Killing OpenDNSSEC failed"
 	return 1
 }
-
 
 ods_ldns_testns_kill ()
 {
 	local process='(ldns-testns)'
 
-	if ! pgrep -u `id -u` $process >/dev/null 2>/dev/null; then
+	if ! pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
 		return 0
 	fi
 
-	process_kill $process && return 0
+	ods_process_kill "$process" && return 0
 	echo "ods_ldns_testns_kill: Killing ldns-testns failed"
 	return 1
 }
-
 
 ods_softhsm_init_token ()
 {
@@ -297,59 +301,24 @@ ods_find_softhsm_module ()
 	return 1
 }
 
-# function to get a number of random port numbers (taken from NSD tpkg test set).
-# $1: number of random ports.
-# RND_PORT is returned as the starting port number
-ods_get_random_port () {
-	local plist
-	local cont
-	local collisions
-	local i
-	local MAXCOLLISION=1000
-	cont=1
-	collisions=0
-	while test "$cont" = 1; do
-		#netstat -n -A ip -A ip6 -a | sed -e "s/^.*:\([0-9]*\) .*$/\1/"
-		RND_PORT=$(( $RANDOM + 5354 ))
-		# depending on uname try to check for collisions in port numbers
-		case "`uname`" in
-		linux|Linux)
-			plist=`netstat -n -A ip -A ip6 -a | sed -e 's/^.*:\([0-9]*\) .*$/\1/'`
-		;;
-		FreeBSD|freebsd|NetBSD|netbsd|OpenBSD|openbsd)
-			plist=`netstat -n -a | grep "^[ut][dc]p[46] " | sed -e 's/^.*\.\([0-9]*\) .*$/\1/'`
-		;;
-		Solaris|SunOS)
-			plist=`netstat -n -a | sed -e 's/^.*\.\([0-9]*\) .*$/\1/' | grep '^[0-9]*$'`
-		;;
-		*)
-			plist=""
-		;;
-		esac
-
-		cont=0
-		for (( i=0 ; i < $1 ; i++ )); do
-			if echo "$plist" | grep '^'`expr $i + $RND_PORT`'$' >/dev/null 2>&1; then
-				cont=1;
-				collisions=`expr $collisions + 1`
-			fi
-		done
-		if test $collisions = $MAXCOLLISION; then
-			echo "ods_get_random_port: Too many collisions getting random port number" >&2
-			exit 1
-                fi
-        done
-	return 0
-}
-
-
-# Start ldns-testns, $1: port, $2: datafile
 ods_ldns_testns ()
 {
-	local log_stdout="_log.$BUILD_TAG.ldns-testns.stdout"
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: ods_ldns_testns <port> <data file>" >&2
+		exit 1
+	fi
+	
+	local port="$1"
+	local datafile="$2"
 
-	echo "ods_ldns_testns: start ldns-testns $1 $2"
-	ldns-testns -v -p $1 $2 > "$log_stdout" 2>&1 &
-	wait_up "$log_stdout" "Listening on port"
-	return 0
+	echo "ods_ldns_testns: starting ldns-testns port $port data file $datafile"
+	log_this ldns-testns ldns-testns -v -p "$port" "$datafile" &
+	
+	if log_waitfor ldns-testns stdout 5 "Listening on port"; then
+		return 0
+	fi
+
+	echo "ods_ldns_testns: unable to start ldns-testns"
+	ods_ldns_testns_kill
+	return 1
 }
