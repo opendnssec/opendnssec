@@ -7,21 +7,14 @@
 ## It requires a checker tool like wdiff or ldns-verify-zone to review
 ## the result (possibly with an known good file).
 
-## Configuration set up
-ods_get_random_port 2 &&
-LISTENER_PORT=$RND_PORT &&
-MASTER_PORT=$(($LISTENER_PORT + 1)) &&
-cp conf.xml.in conf.xml &&
-cp addns.xml.in addns.xml &&
-apply_parameter "LISTENER_PORT" "$LISTENER_PORT" conf.xml &&
-apply_parameter "MASTER_PORT" "$MASTER_PORT" addns.xml &&
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
 
-# Have to reset up the conf, because we apply special parameters
-ods_setup_conf &&
 ods_reset_env &&
 
 ## Start master name server
-ods_ldns_testns $MASTER_PORT ods.datafile &&
+ods_ldns_testns 15353 ods.datafile &&
 
 ## Start OpenDNSSEC
 log_this_timeout ods-control-start 30 ods-control start &&

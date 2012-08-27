@@ -14,7 +14,7 @@
 			<RequestTransfer>
 				<Remote>
 					<Address>127.0.0.1</Address>
-					<Port>@MASTER_PORT@</Port>
+					<Port>15353</Port>
 				</Remote>
 			</RequestTransfer>
 
