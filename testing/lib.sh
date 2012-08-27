@@ -914,6 +914,20 @@ fetch_src ()
 	echo "$path_filename"
 }
 
+log_init ()
+{
+	if [ -z "$1" ]; then
+		echo "usage: log_this <log name>" >&2
+		exit 1
+	fi
+	
+	local name="$1"
+	local log_stderr="_log.$BUILD_TAG.$name.stderr"
+	local log_stdout="_log.$BUILD_TAG.$name.stdout"
+
+	touch "$log_stderr" "$log_stdout"
+}
+
 log_this ()
 {
 	if [ -z "$1" -o -z "$2" ]; then
@@ -925,7 +939,9 @@ log_this ()
 	local log_stderr="_log.$BUILD_TAG.$name.stderr"
 	local log_stdout="_log.$BUILD_TAG.$name.stdout"
 	shift
-	
+
+	touch "$log_stderr" "$log_stdout"
+		
 	echo "log_this: logging $name for command: $*"
 	$* 2>>"$log_stderr" >>"$log_stdout"
 }
@@ -964,6 +980,8 @@ log_this_timeout ()
 	
 	time_stop=$(( time_start + timeout ))
 
+	touch "$log_stderr" "$log_stdout"
+	
 	echo "log_this_timeout: logging $name with timeout $timeout for command: $*"
 	( $* 2>>"$log_stderr" >>"$log_stdout" ) &
 	pid="$!"
