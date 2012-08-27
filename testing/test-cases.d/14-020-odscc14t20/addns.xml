@@ -23,7 +23,7 @@
 			<Notify>
 				<Remote>
 					<Address>127.0.0.1</Address>
-					<Port>@SLAVE_PORT@</Port>
+					<Port>15353</Port>
 				</Remote>
 			</Notify>
 		</Outbound>

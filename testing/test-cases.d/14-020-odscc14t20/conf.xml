@@ -24,7 +24,7 @@
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
 		<Listener>
-			<Interface><Port>@LISTENER_PORT@</Port></Interface>
+			<Interface><Port>15354</Port></Interface>
 		</Listener>
 	</Signer>
 </Configuration>
