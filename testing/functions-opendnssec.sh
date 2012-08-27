@@ -311,6 +311,8 @@ ods_ldns_testns ()
 	local port="$1"
 	local datafile="$2"
 
+	log_init ldns-testns
+	
 	echo "ods_ldns_testns: starting ldns-testns port $port data file $datafile"
 	log_this ldns-testns ldns-testns -v -p "$port" "$datafile" &
 	
