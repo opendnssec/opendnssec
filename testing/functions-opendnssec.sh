@@ -210,36 +210,65 @@ ods_setup_env ()
 	return 1
 }
 
-ods_kill ()
+ods_process_kill ()
 {
-	if ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
-		return 0
+	if [ -z "$1" ]; then
+		echo "usage: ods_process_kill <pgrep syntax>" >&2
+		exit 1
 	fi
 	
-	echo "ods_kill: Killing OpenDNSSEC"
-	try_run 15 ods-control stop
+	local process="$1"
 	
-	if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+	if pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
 		sleep 2
-		pkill -QUIT '(ods-enforcerd|ods-signerd)' 2>/dev/null
-		if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+		pkill -QUIT "$process" 2>/dev/null
+		if pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
 			sleep 2
-			pkill -TERM '(ods-enforcerd|ods-signerd)' 2>/dev/null
-			if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+			pkill -TERM "$process" 2>/dev/null
+			if pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
 				sleep 2
-				pkill -KILL '(ods-enforcerd|ods-signerd)' 2>/dev/null
-				pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
+				pkill -KILL "$process" 2>/dev/null
+				pgrep -u `id -u` "$process" >/dev/null 2>/dev/null &&
 				sleep 2
 			fi
 		fi
 	fi
-	
-	if pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
-		echo "ods_kill: Tried to kill ods-enforcerd and ods-signerd but some are still alive!" >&2
+
+	if pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
+		echo "process_kill: Tried to kill $process some are still alive!" >&2
 		return 1
 	fi
-	
+
 	return 0
+}
+
+ods_kill ()
+{
+	local process='(ods-enforcerd|ods-signerd)'
+
+	if ! pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
+		return 0
+	fi
+
+	echo "ods_kill: Killing OpenDNSSEC"
+	try_run 15 ods-control stop
+
+	ods_process_kill "$process" && return 0
+	echo "ods_kill: Killing OpenDNSSEC failed"
+	return 1
+}
+
+ods_ldns_testns_kill ()
+{
+	local process='(ldns-testns)'
+
+	if ! pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
+		return 0
+	fi
+
+	ods_process_kill "$process" && return 0
+	echo "ods_ldns_testns_kill: Killing ldns-testns failed"
+	return 1
 }
 
 ods_softhsm_init_token ()
@@ -291,5 +320,29 @@ ods_find_softhsm_module ()
 		fi
 	done
 	
+	return 1
+}
+
+ods_ldns_testns ()
+{
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: ods_ldns_testns <port> <data file>" >&2
+		exit 1
+	fi
+	
+	local port="$1"
+	local datafile="$2"
+
+	log_init ldns-testns
+	
+	echo "ods_ldns_testns: starting ldns-testns port $port data file $datafile"
+	log_this ldns-testns ldns-testns -v -p "$port" "$datafile" &
+	
+	if log_waitfor ldns-testns stdout 5 "Listening on port"; then
+		return 0
+	fi
+
+	echo "ods_ldns_testns: unable to start ldns-testns"
+	ods_ldns_testns_kill
 	return 1
 }
