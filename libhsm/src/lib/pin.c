@@ -192,12 +192,12 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
         memset(pin, '\0', HSM_MAX_PIN_LENGTH+1);
     }
 
-    /* Unlock the semaphore */
-    sem_post(pin_semaphore);
-
     /* Detach from the shared memory */
     shmdt(pins);
     pins = NULL;
+
+    /* Unlock the semaphore */
+    sem_post(pin_semaphore);
 
     /* Close semaphore */
     sem_close(pin_semaphore);
@@ -313,57 +313,45 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
     /* Zeroize PIN buffer */
     memset(pin, '\0', HSM_MAX_PIN_LENGTH+1);
 
-    /* Zeroize bad PIN in shared memory */
-    /* This scenario will happen if the user stops the deamons, change pin,
-       and starts the daemons. Both daemons will run this code, but that
-       does no harm. There is a theoretical problem, the user might have
-       logged in with ods-hsmutil between the HSM_PIN_FIRST and HSM_PIN_RETRY.
-       Thus forcing the user to login again. This is not likely, but we also
-       like to minimize the number of failed login attempts. */
-    if (mode == HSM_PIN_RETRY && pins[index] != '\0') {
-        memset(&pins[index], '\0', HSM_MAX_PIN_LENGTH+1);
-    }
-
-    /* Unlock the semaphore */
-    if (sem_post(pin_semaphore) != 0) {
+    /* Check if there is no PIN */
+    if (pins[index] == '\0') {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+                          "No PIN in shared memory. "
+                          "Please login with \"ods-hsmutil login\"");
         shmdt(pins);
         pins = NULL;
+        sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
         return NULL;
     }
 
-    /* Wait until we have a PIN. User must use "ods-hsmutil login" or similar */
-    while (pin[0] == '\0') {
-        sleep(1);
-
-        /* Check if we have no PIN in the cache */
-        if (pins[index] == '\0') continue;
-
-        /* Lock the semaphore */
-        if (sem_wait(pin_semaphore) != 0) {
-            shmdt(pins);
-            pins = NULL;
-            sem_close(pin_semaphore);
-            pin_semaphore = NULL;
-            return NULL;
-        }
-
-        /* Check if the PIN is in the cache */
-        if (pins[index] != '\0') {
-            size = strlen(&pins[index]);
-            if (size > HSM_MAX_PIN_LENGTH) size = HSM_MAX_PIN_LENGTH;
-            memcpy(pin, &pins[index], size);
-            pin[size] = '\0';
-        }
+    /* Zeroize bad PIN in shared memory */
+    if (mode == HSM_PIN_RETRY) {
+        memset(&pins[index], '\0', HSM_MAX_PIN_LENGTH+1);
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+                          "Removed bad PIN in shared memory. "
+                          "Please login again with \"ods-hsmutil login\"");
+        shmdt(pins);
+        pins = NULL;
+        sem_post(pin_semaphore);
+        sem_close(pin_semaphore);
+        pin_semaphore = NULL;
+        return NULL;
     }
 
-    /* Unlock the semaphore */
-    sem_post(pin_semaphore);
+    /* Get the PIN */
+    size = strlen(&pins[index]);
+    if (size > HSM_MAX_PIN_LENGTH) size = HSM_MAX_PIN_LENGTH;
+    memcpy(pin, &pins[index], size);
+    pin[size] = '\0';
 
     /* Detach from the shared memory */
     shmdt(pins);
     pins = NULL;
+
+    /* Unlock the semaphore */
+    sem_post(pin_semaphore);
 
     /* Close semaphore */
     sem_close(pin_semaphore);
