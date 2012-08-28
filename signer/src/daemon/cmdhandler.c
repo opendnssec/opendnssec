@@ -759,7 +759,7 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     /* new socket */
     ods_log_debug("[%s] create socket %s", cmdh_str, filename);
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (listenfd <= 0) {
+    if (listenfd < 0) {
         ods_log_error("[%s] unable to create cmdhandler: "
             "socket() failed (%s)", cmdh_str, strerror(errno));
         return NULL;

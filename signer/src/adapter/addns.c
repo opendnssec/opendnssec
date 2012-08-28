@@ -640,6 +640,7 @@ addns_write(void* zone)
     status = adapi_printaxfr(fd, z);
     ods_fclose(fd);
     if (status != ODS_STATUS_OK) {
+        free((void*) atmpfile);
         return status;
     }
 
@@ -652,10 +653,12 @@ addns_write(void* zone)
             return ODS_STATUS_FOPEN_ERR;
         }
         status = adapi_printixfr(fd, z);
+        ods_fclose(fd);
         if (status != ODS_STATUS_OK) {
+            free((void*) atmpfile);
+            free((void*) itmpfile);
             return status;
         }
-        ods_fclose(fd);
     }
 
     if (status == ODS_STATUS_OK) {
@@ -664,6 +667,8 @@ addns_write(void* zone)
                 "more RR print failed", adapter_str, z->name);
             /* clear error */
             z->adoutbound->error = 0;
+            free((void*) atmpfile);
+            free((void*) itmpfile);
             return ODS_STATUS_FWRITE_ERR;
         }
     }
@@ -681,8 +686,8 @@ addns_write(void* zone)
         free((void*) itmpfile);
         return ODS_STATUS_RENAME_ERR;
     }
-    free((void*) atmpfile);
     free((void*) axfrfile);
+    free((void*) atmpfile);
 
     if (z->db->is_initialized) {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
@@ -695,9 +700,9 @@ addns_write(void* zone)
             free((void*) ixfrfile);
             return ODS_STATUS_RENAME_ERR;
         }
-        free((void*) itmpfile);
         free((void*) ixfrfile);
     }
+    free((void*) itmpfile);
     lock_basic_unlock(&z->xfr_lock);
 
     dnsout_send_notify(zone);

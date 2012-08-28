@@ -135,6 +135,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
             if (!signconf->nsec3params) {
                 ods_log_error("[%s] unable to read signconf %s: "
                     "nsec3params_create() failed", sc_str, scfile);
+                ods_fclose(fd);
                 return ODS_STATUS_MALLOC_ERR;
             }
         }
