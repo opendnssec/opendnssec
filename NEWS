@@ -2,6 +2,9 @@ $Id$
 
 OpenDNSSEC 1.4.0a4
 
+* OPENDNSSEC-130: The PIN is now optional in conf.xml. The PIN can be entered using
+  "ods-hsmutil login" and is stored in shared memory.
+
 Bugfixes:
 
 * OPENDNSSEC-255: OpenDNSSEC 1.4.0a1 writes out mangled RRSIG record
