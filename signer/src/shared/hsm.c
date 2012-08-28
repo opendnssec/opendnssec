@@ -45,7 +45,7 @@ static const char* hsm_str = "hsm";
 int
 lhsm_open(const char* filename)
 {
-    int result = hsm_open(filename, hsm_block_pin);
+    int result = hsm_open(filename, hsm_check_pin);
     if (result != HSM_OK) {
         char* error =  hsm_get_error(NULL);
         if (error != NULL) {

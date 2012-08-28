@@ -161,7 +161,7 @@ char *
 hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode);
 
 
-/*! Function that waits until there is a PIN in the shared memory and returns it.
+/*! Function that will check if there is a PIN in the shared memory and returns it.
 
 \param id Used for identifying the repository. Will have a value between zero and
           HSM_MAX_SESSIONS.
@@ -170,7 +170,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode);
 \return The string the user enters
 */
 char *
-hsm_block_pin(unsigned int id, const char *repository, unsigned int mode);
+hsm_check_pin(unsigned int id, const char *repository, unsigned int mode);
 
 
 /*! Close HSM library

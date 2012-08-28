@@ -207,7 +207,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
 }
 
 char *
-hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
+hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
 {
     /* Shared memory */
     int shmid;
@@ -236,7 +236,7 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
     /* Create/get the semaphore */
     pin_semaphore = sem_open(SEM_NAME, O_CREAT, SHM_PERM, 1);
     if (pin_semaphore == SEM_FAILED) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
                           "Could not access the named semaphore");
         return NULL;
     }
@@ -254,7 +254,7 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
     if (shmid == -1) {
         shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
         if (shmid == -1) {
-            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
                               "Could not access the shared memory. May need to reset "
                               "it by running the command \"ipcrm -M 0x0d50d5ec\"");
             sem_post(pin_semaphore);
@@ -276,7 +276,7 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Check the size of the memory segment */
     if (buf.shm_segsz != shm_size) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
                             "Bad memory size. Please reset the shared memory "
                             "by running the command \"ipcrm -M 0x0d50d5ec\"");
         sem_post(pin_semaphore);
@@ -287,7 +287,7 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Check permission to avoid an attack */
     if (buf.shm_perm.mode != (SHM_PERM) || buf.shm_perm.cgid != getegid()) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
                             "Bad permissions on the shared memory");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
@@ -315,7 +315,7 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Check if there is no PIN */
     if (pins[index] == '\0') {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
                           "No PIN in shared memory. "
                           "Please login with \"ods-hsmutil login\"");
         shmdt(pins);
@@ -329,7 +329,7 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
     /* Zeroize bad PIN in shared memory */
     if (mode == HSM_PIN_RETRY) {
         memset(&pins[index], '\0', HSM_MAX_PIN_LENGTH+1);
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
                           "Removed bad PIN in shared memory. "
                           "Please login again with \"ods-hsmutil login\"");
         shmdt(pins);
