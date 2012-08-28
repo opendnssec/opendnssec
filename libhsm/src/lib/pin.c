@@ -54,6 +54,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     int shmid;
     int created = 0;
     struct shmid_ds buf;
+    size_t shm_size;
     char *pins = NULL;
     sem_t *pin_semaphore = NULL;
     int index = id * (HSM_MAX_PIN_LENGTH + 1);
@@ -80,9 +81,10 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     }
 
     /* Create/get the shared memory */
-    shmid = shmget(SHM_KEY, sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1), IPC_CREAT|IPC_EXCL|SHM_PERM);
+    shm_size = sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1);
+    shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|IPC_EXCL|SHM_PERM);
     if (shmid == -1) {
-        shmid = shmget(SHM_KEY, sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1), IPC_CREAT|SHM_PERM);
+        shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
         if (shmid == -1) {
             sem_post(pin_semaphore);
             sem_close(pin_semaphore);
@@ -95,6 +97,14 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Get information about the shared memory */
     if (shmctl(shmid, IPC_STAT, &buf) != 0) {
+        sem_post(pin_semaphore);
+        sem_close(pin_semaphore);
+        pin_semaphore = NULL;
+        return NULL;
+    }
+
+    /* Check the size of the memory segment */
+    if (buf.shm_segsz != shm_size) {
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
@@ -183,6 +193,7 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
     int shmid;
     int created = 0;
     struct shmid_ds buf;
+    size_t shm_size;
     char *pins = NULL;
     sem_t *pin_semaphore = NULL;
     int index = id * (HSM_MAX_PIN_LENGTH + 1);
@@ -214,9 +225,10 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
     }
 
     /* Create/get the shared memory */
-    shmid = shmget(SHM_KEY, sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1), IPC_CREAT|IPC_EXCL|SHM_PERM);
+    shm_size = sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1);
+    shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|IPC_EXCL|SHM_PERM);
     if (shmid == -1) {
-        shmid = shmget(SHM_KEY, sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1), IPC_CREAT|SHM_PERM);
+        shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
         if (shmid == -1) {
             sem_post(pin_semaphore);
             sem_close(pin_semaphore);
@@ -229,6 +241,14 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Get information about the shared memory */
     if (shmctl(shmid, IPC_STAT, &buf) != 0) {
+        sem_post(pin_semaphore);
+        sem_close(pin_semaphore);
+        pin_semaphore = NULL;
+        return NULL;
+    }
+
+    /* Check the size of the memory segment */
+    if (buf.shm_segsz != shm_size) {
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
