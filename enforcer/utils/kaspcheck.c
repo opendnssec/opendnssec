@@ -279,8 +279,9 @@ int check_conf(char** kasp) {
 		temp_char = (char*) xmlXPathCastToString(xpath_obj);
 		StrAppend(kasp, temp_char);
 		StrFree(temp_char);
+		xmlXPathFreeObject(xpath_obj);
 	}
-    xmlXPathFreeObject(xpath_obj);
+    
 
 	/* Check that the  Zonelist file is well-formed */
 	xexpr = (xmlChar *)"//Configuration/Common/ZoneListFile";
