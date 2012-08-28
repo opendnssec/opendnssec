@@ -32,12 +32,16 @@
 
 #include <stdint.h>
 
-#define HSM_MAX_SESSIONS 100
-/* 
- * Note that currently the MySQL kasp schema limits the number of HSMs to 
+/* Note that currently the MySQL kasp schema limits the number of HSMs to
  * 127; so to increase it beyond that requires some database changes similar
  * to when keypairs(id) was increased, see svn r4465.
+ *
+ * Note that this constant also determines the size of the shared PIN memory.
+ * Increasing this size requires any existing memory to be removed and should
+ * be part of a migration script.
  */
+#define HSM_MAX_SESSIONS 100
+
 #define HSM_MAX_ALGONAME 16
 
 #define HSM_ERROR_MSGSIZE 512
@@ -46,6 +50,10 @@
  * maximum? */
 #define HSM_MAX_SIGNATURE_LENGTH 512
 
+/* Note that this constant also determines the size of the shared PIN memory.
+ * Increasing this size requires any existing memory to be removed and should
+ * be part of a migration script.
+ */
 #define HSM_MAX_PIN_LENGTH 255
 
 /*! Return codes for some of the functions */
