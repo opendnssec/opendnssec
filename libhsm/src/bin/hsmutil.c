@@ -59,6 +59,7 @@ usage ()
        "usage: %s [-c config] [-vV] command [options]\n",
         progname);
 
+    fprintf(stderr,"  login\n");
     fprintf(stderr,"  list [repository]\n");
     fprintf(stderr,"  generate <repository> rsa <keysize>\n");
     fprintf(stderr,"  remove <id>\n");
@@ -69,6 +70,14 @@ usage ()
 #if 0
     fprintf(stderr,"  debug\n");
 #endif
+}
+
+int
+cmd_login ()
+{
+    printf("The tokens are now logged in.\n");
+
+    return 0;
 }
 
 int
@@ -443,7 +452,7 @@ main (int argc, char *argv[])
         exit(1);
     }
 
-    result = hsm_open(config, hsm_prompt_pin, NULL);
+    result = hsm_open(config, hsm_prompt_pin);
     if (result) {
         hsm_print_error(NULL);
         exit(-1);
@@ -451,7 +460,11 @@ main (int argc, char *argv[])
 
     openlog("hsmutil", LOG_PID, LOG_USER);
 
-    if (!strcasecmp(argv[0], "list")) {
+    if (!strcasecmp(argv[0], "login")) {
+        argc --;
+        argv ++;
+        result = cmd_login();
+    } else if (!strcasecmp(argv[0], "list")) {
         argc --;
         argv ++;
         result = cmd_list(argc, argv);
