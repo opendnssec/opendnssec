@@ -1714,7 +1714,7 @@ apply_parameter ()
 
 sed_inplace ()
 {
-	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+	if [ -z "$1" -o -z "$2" ]; then
 		echo "usage: sed_inplace <expression> <files ... >" >&2
 		exit 1
 	fi
