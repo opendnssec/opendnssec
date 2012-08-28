@@ -23,13 +23,13 @@ else
 	ods_setup_conf conf.xml conf.xml
 fi &&
 
-! log_this_timeout ods-control-start 30 ods-control enforcer start &&
+! log_this_timeout ods-control-start 60 ods-control enforcer start &&
 syslog_waitfor 10 'ods-enforcerd: .*Error validating file' &&
 syslog_waitfor 10 'ods-enforcerd: .*Error validating value' &&
 syslog_waitfor 10 'ods-enforcerd: .*Element Facility failed to validate content' &&
 ! pgrep -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null &&
 
-! log_this_timeout ods-control-signer-start 30 ods-control signer start &&
+! log_this_timeout ods-control-signer-start 60 ods-control signer start &&
 # signer does not log anything to syslog if invalid config
 ! pgrep -u `id -u` 'ods-signerd' >/dev/null 2>/dev/null &&
 

@@ -17,7 +17,7 @@ ods_reset_env &&
 ods_ldns_testns 15353 ods.datafile &&
 
 ## Start OpenDNSSEC
-log_this_timeout ods-control-start 30 ods-control start &&
+log_this_timeout ods-control-start 60 ods-control start &&
 syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 
@@ -28,7 +28,7 @@ syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 ## Stop
-log_this_timeout ods-control-stop 30 ods-control stop &&
+log_this_timeout ods-control-stop 60 ods-control stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 ods_ldns_testns_kill &&

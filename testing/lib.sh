@@ -1712,6 +1712,41 @@ apply_parameter ()
 	return 0
 }
 
+sed_inplace ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+		echo "usage: sed_inplace <expression> <files ... >" >&2
+		exit 1
+	fi
+	
+	local expression="$1"
+	shift 1
+	local files="$*"
+	local file
+	
+	for file in $files; do
+		if [ ! -f "$file" ]; then
+			echo "sed_inplace: File $file not found" >&2
+			return 1
+		fi
+		if [ -f "$file.$$" ]; then
+			echo "sed_inplace: Temporary file $file.$$ exists but it should not" >&2
+			return 1
+		fi
+	done
+	
+	for file in $files; do
+		sed "$expression" "$file" > "$file.$$" 2>/dev/null &&
+		mv "$file.$$" "$file" 2>/dev/null ||
+		{
+			echo "sed_inplace: Unable to sed inplace file $file" >&2
+			return 1
+		}
+	done
+	
+	return 0
+}
+
 try_run ()
 {
 	if [ -z "$1" -o -z "$2" ]; then

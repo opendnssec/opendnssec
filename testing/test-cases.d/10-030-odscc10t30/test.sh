@@ -10,10 +10,10 @@ else
 	ods_setup_conf conf.xml conf-no-module.xml
 fi &&
 
-! log_this_timeout ods-control-enforcer-start 30 ods-control enforcer start &&
+! log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
 syslog_waitfor 10 'ods-enforcerd: .*PKCS#11 module load failed' &&
 
-! log_this_timeout ods-control-signer-start 30 ods-control signer start &&
+! log_this_timeout ods-control-signer-start 60 ods-control signer start &&
 syslog_waitfor 10 'ods-signerd: .*\[hsm\].*PKCS#11 module load failed' &&
 
 ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&

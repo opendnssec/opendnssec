@@ -7,7 +7,7 @@
 ods_reset_env &&
 echo 'Privileges have been adjusted in the conf.xml. User opendnssec is specified, which exists on the unix system.' &&
 echo 'Stop the ODS-Enforcer and ODS-Signer' &&
-log_this_timeout ods-control-start 30 ods-control stop &&
+log_this_timeout ods-control-start 60 ods-control stop &&
 echo 'Clear the tmp and signed folder with the next 2 commands.' &&
 echo 'Purge the keys in the SoftHSM repositories.' &&
 echo 'Change the configuration with predefined xml config files.' &&
@@ -15,7 +15,7 @@ echo '' &&
 echo 'Update all the configs.' &&
 ods_reset_env &&
 echo 'Start the ODS-Enforcer and ODS-Signer' &&
-log_this_timeout ods-control-start 30 ods-control start &&
+log_this_timeout ods-control-start 60 ods-control start &&
 echo 'The Enforcer should start up succesfully when restarting ODS with the new conf.xml.' &&
 syslog_grep 'enforcer started' &&
 syslog_grep '' &&

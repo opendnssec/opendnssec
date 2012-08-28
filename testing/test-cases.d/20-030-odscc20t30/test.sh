@@ -15,11 +15,11 @@ else
 fi &&
 mv -- "$INSTALL_ROOT/etc/opendnssec/kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp2.xml" &&
 
-log_this_timeout ods-control-start 30 ods-control start &&
+log_this_timeout ods-control-start 60 ods-control start &&
 syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 
-log_this_timeout ods-control-stop 30 ods-control stop &&
+log_this_timeout ods-control-stop 60 ods-control stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 return 0
