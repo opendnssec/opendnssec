@@ -825,7 +825,7 @@ namedb_rollback(namedb_type* db)
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
         domain_rollback(domain);
-        domain = namedb_del_denial_trigger(db, domain, 1);
+        (void) namedb_del_denial_trigger(db, domain, 1);
     }
     return;
 }

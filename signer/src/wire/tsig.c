@@ -798,7 +798,7 @@ tsig_strerror(tsig_status status)
         case TSIG_ERROR:
             return "error";
         default:
-            return "unknown";
+            break;
     }
     return "unknown";
 }

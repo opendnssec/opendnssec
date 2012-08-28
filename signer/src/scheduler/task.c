@@ -165,7 +165,6 @@ task_what2str(task_id what)
             return "[write]";
             break;
         default:
-            return "[???]";
             break;
     }
     return "[???]";

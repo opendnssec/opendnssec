@@ -861,7 +861,7 @@ query_process(query_type* q, void* engine)
         case LDNS_PACKET_UPDATE:
             return query_process_update(q);
         default:
-            return query_notimpl(q);
+            break;
     }
     return query_notimpl(q);
 }
