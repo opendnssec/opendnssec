@@ -52,7 +52,7 @@
 #define HSM_TOKEN_LABEL_LENGTH 32
 
 /*! Global (initial) context */
-static hsm_ctx_t *_hsm_ctx;
+hsm_ctx_t *_hsm_ctx;
 
 /*! General PKCS11 helper functions */
 static char *
@@ -208,7 +208,7 @@ the given strings.
 \param action   action for which the error occured
 \param message  error message format string
 */
-static void
+void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...)
 {
@@ -2068,6 +2068,9 @@ hsm_open(const char *config,
                                                           repository,
                                                           HSM_PIN_RETRY);
                             }
+
+                            if (module_pin == NULL) break;
+
                             result = hsm_attach(repository,
                                                 token_label,
                                                 module_path,
@@ -2078,9 +2081,7 @@ hsm_open(const char *config,
                                              repository,
                                              HSM_PIN_SAVE);
                             }
-                            if (module_pin != NULL) {
-                                memset(module_pin, 0, strlen(module_pin));
-                            }
+                            memset(module_pin, 0, strlen(module_pin));
                             tries++;
                         }
                     } else {

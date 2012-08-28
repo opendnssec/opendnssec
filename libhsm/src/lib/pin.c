@@ -39,6 +39,14 @@
 
 #include "libhsm.h"
 
+/*! Global (initial) context */
+extern hsm_ctx_t *_hsm_ctx;
+
+/* Function from libhsm.c */
+void
+hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
+                 const char *message, ...);
+
 /* Constants */
 #define SHM_KEY (key_t)0x0d50d5ec
 #define SEM_NAME "/ods_libhsm_pin"
@@ -71,7 +79,11 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Create/get the semaphore */
     pin_semaphore = sem_open(SEM_NAME, O_CREAT, SHM_PERM, 1);
-    if (pin_semaphore == SEM_FAILED) return NULL;
+    if (pin_semaphore == SEM_FAILED) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
+                          "Could not access the named semaphore");
+        return NULL;
+    }
 
     /* Lock the semaphore */
     if (sem_wait(pin_semaphore) != 0) {
@@ -86,6 +98,9 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     if (shmid == -1) {
         shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
         if (shmid == -1) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
+                              "Could not access the shared memory. May need to reset "
+                              "it by running the command \"ipcrm -M 0x0d50d5ec\"");
             sem_post(pin_semaphore);
             sem_close(pin_semaphore);
             pin_semaphore = NULL;
@@ -105,6 +120,9 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Check the size of the memory segment */
     if (buf.shm_segsz != shm_size) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
+                            "Bad memory size. Please reset the shared memory "
+                            "by running the command \"ipcrm -M 0x0d50d5ec\"");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
@@ -113,6 +131,8 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Check permission to avoid an attack */
     if (buf.shm_perm.mode != (SHM_PERM) || buf.shm_perm.cgid != getegid()) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
+                            "Bad permissions on the shared memory");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
@@ -215,7 +235,11 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Create/get the semaphore */
     pin_semaphore = sem_open(SEM_NAME, O_CREAT, SHM_PERM, 1);
-    if (pin_semaphore == SEM_FAILED) return NULL;
+    if (pin_semaphore == SEM_FAILED) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+                          "Could not access the named semaphore");
+        return NULL;
+    }
 
     /* Lock the semaphore */
     if (sem_wait(pin_semaphore) != 0) {
@@ -230,6 +254,9 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
     if (shmid == -1) {
         shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
         if (shmid == -1) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+                              "Could not access the shared memory. May need to reset "
+                              "it by running the command \"ipcrm -M 0x0d50d5ec\"");
             sem_post(pin_semaphore);
             sem_close(pin_semaphore);
             pin_semaphore = NULL;
@@ -249,6 +276,9 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Check the size of the memory segment */
     if (buf.shm_segsz != shm_size) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+                            "Bad memory size. Please reset the shared memory "
+                            "by running the command \"ipcrm -M 0x0d50d5ec\"");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
@@ -257,6 +287,8 @@ hsm_block_pin(unsigned int id, const char *repository, unsigned int mode)
 
     /* Check permission to avoid an attack */
     if (buf.shm_perm.mode != (SHM_PERM) || buf.shm_perm.cgid != getegid()) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_block_pin()",
+                            "Bad permissions on the shared memory");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
