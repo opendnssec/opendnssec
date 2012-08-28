@@ -178,6 +178,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                     buf[n] = '\0';
                     cmd_response = 1;
                 }
+            } else {
+                /* always null terminate string */
+                buf[n] = '\0';
             }
 
             /* n > 0 : when we get to this line... */

@@ -322,9 +322,7 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
         ods_fatal_exit("[%s] fatal unable to delete RR: allocator_alloc() failed",
             rrset_str);
     }
-    if (rrs_orig) {
-        memcpy(rrset->rrs, rrs_orig, (rrset->rr_count -1) * sizeof(rr_type));
-    }
+    memcpy(rrset->rrs, rrs_orig, (rrset->rr_count -1) * sizeof(rr_type));
     allocator_deallocate(zone->allocator, (void*) rrs_orig);
     rrset->rr_count--;
     rrset->needs_signing = 1;
@@ -447,10 +445,8 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
         ods_fatal_exit("[%s] fatal unable to delete RRSIG: allocator_alloc() failed",
             rrset_str);
     }
-    if (rrsigs_orig) {
-        memcpy(rrset->rrsigs, rrsigs_orig,
-            (rrset->rrsig_count -1) * sizeof(rrsig_type));
-    }
+    memcpy(rrset->rrsigs, rrsigs_orig,
+        (rrset->rrsig_count -1) * sizeof(rrsig_type));
     allocator_deallocate(zone->allocator, (void*) rrsigs_orig);
     rrset->rrsig_count--;
     return;
