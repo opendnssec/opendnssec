@@ -2,13 +2,17 @@ $Id$
 
 OpenDNSSEC 1.4.0a4
 
+* OPENDNSSEC-297: Multi-threaded option available for the enforcer to improve
+  performance. 
 * OPENDNSSEC-130: The PIN is now optional in conf.xml. The PIN can be entered using
   "ods-hsmutil login" and is stored in shared memory. The daemons will not start
   until this has been done by the user.
 
 Bugfixes:
 
-* OPENDNSSEC-255: OpenDNSSEC 1.4.0a1 writes out mangled RRSIG record
+* OPENDNSSEC-255: OpenDNSSEC 1.4.0a1 writes out mangled RRSIG record.
+* OPENDNSSEC-261: Ldns fails to parse RR that seems syntactically correct.
+* OPENDNSSEC-269: Crash when multiple threads access ixfr struct. 
 
 
 OpenDNSSEC 1.4.0a3 - 2012-08-08
