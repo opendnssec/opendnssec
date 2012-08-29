@@ -2,6 +2,8 @@
 
 ods_reset_env &&
 
+return 1
+
 log_this_timeout ods-control-start 60 ods-control start &&
 syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&

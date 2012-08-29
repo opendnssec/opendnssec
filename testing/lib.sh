@@ -1294,6 +1294,7 @@ run_tests ()
 	local test_failed=0
 	local pwd=`pwd`
 	local pwd2
+	local retry
 
 	if [ -n "$PRE_TEST" ]; then
 		if ! declare -F "$PRE_TEST" >/dev/null 2>/dev/null; then
@@ -1305,6 +1306,14 @@ run_tests ()
 		if ! declare -F "$POST_TEST" >/dev/null 2>/dev/null; then
 			unset POST_TEST
 		fi
+	fi
+	
+	if [ -n "$RETRY_TEST" ]; then
+		if [ ! "$RETRY_TEST" -gt 0 ] 2>/dev/null; then
+			RETRY_TEST=0
+		fi
+	else
+		RETRY_TEST=0
 	fi
 
 	if ! cd "$test_dir" 2>/dev/null; then
@@ -1329,28 +1338,36 @@ run_tests ()
 
 	echo "Running tests ..."	
 	while [ "$test_iter" -lt "$test_num" ] 2>/dev/null; do
+		retry=0
 		test_path="${test[test_iter]}"
 		test_iter=$(( test_iter + 1 ))
-		echo "##### $test_iter/$test_num $test_path ... "
+		echo "##### `date` $test_iter/$test_num $test_path ... "
 		pwd2=`pwd`
 		cd "$test_path" 2>/dev/null &&
 		if [ -n "$PRE_TEST" ]; then
 			$PRE_TEST "$test_path"
 		fi &&
 		syslog_trace &&
-		( source ./test.sh )
-		test_status="$?"
+		while [ "$retry" -lt "$RETRY_TEST" ] 2>/dev/null; do
+			( source ./test.sh )
+			test_status="$?"
+			if [ "$test_status" -eq 0 ] 2>/dev/null; then
+				break
+			fi
+			retry=$(( retry + 1 ))
+			echo "##### `date` $test_iter/$test_num $test_path ... RETRY $retry"
+		done
 		syslog_stop
 		if [ -n "$POST_TEST" ]; then
 			$POST_TEST "$test_path" "$test_status"
 		fi
 		if [ "$test_status" -eq 0 ] 2>/dev/null; then
-			echo "##### $test_iter/$test_num $test_path ... OK"
+			echo "##### `date` $test_iter/$test_num $test_path ... OK"
 			log_cleanup
 			syslog_cleanup
 		else
 			test_failed=$(( test_failed + 1 ))
-			echo "##### $test_iter/$test_num $test_path ... FAILED!"
+			echo "##### `date` $test_iter/$test_num $test_path ... FAILED!"
 		fi
 
 		if ! cd "$pwd2" 2>/dev/null; then
