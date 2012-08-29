@@ -964,7 +964,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     while (cmdhandler->need_to_exit == 0) {
         clilen = sizeof(cliaddr);
         FD_SET(cmdhandler->listen_fd, &rset);
-        ret = select(ODS_SE_MAX_HANDLERS+1, &rset, NULL, NULL, NULL);
+        ret = select(cmdhandler->listen_fd+1, &rset, NULL, NULL, NULL);
         if (ret < 0) {
             if (errno != EINTR && errno != EWOULDBLOCK) {
                 ods_log_warning("[%s] select() error: %s", cmdh_str,
