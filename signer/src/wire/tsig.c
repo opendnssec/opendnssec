@@ -156,9 +156,30 @@ tsig_handler_init(allocator_type* allocator)
 void
 tsig_handler_cleanup(void)
 {
+    tsig_algo_table_type* aentry = NULL, *anext = NULL;
+    tsig_key_table_type* kentry = NULL, *knext = NULL;
 #ifdef HAVE_SSL
     tsig_handler_openssl_finalize();
 #endif
+
+    aentry = tsig_algo_table;
+    while (aentry) {
+        anext = aentry->next;
+        ldns_rdf_deep_free(aentry->algorithm->wf_name);
+        allocator_deallocate(tsig_allocator, (void*)aentry->algorithm);
+        allocator_deallocate(tsig_allocator, (void*)aentry);
+        aentry = anext;
+    }
+
+    kentry = tsig_key_table;
+    while (kentry) {
+        knext = kentry->next;
+        ldns_rdf_deep_free(kentry->key->dname);
+        allocator_deallocate(tsig_allocator, (void*)kentry->key->data);
+        allocator_deallocate(tsig_allocator, (void*)kentry->key);
+        allocator_deallocate(tsig_allocator, (void*)kentry);
+        kentry = knext;
+    }
     return;
 }
 

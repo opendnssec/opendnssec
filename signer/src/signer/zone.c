@@ -706,10 +706,7 @@ zone_cleanup(zone_type* zone)
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
-    if (zone->notify_command) {
-        free((void*)zone->notify_command);
-        zone->notify_command = NULL;
-    }
+    allocator_deallocate(allocator, (void*) zone->notify_command);
     allocator_deallocate(allocator, (void*) zone->notify_args);
     allocator_deallocate(allocator, (void*) zone->policy_name);
     allocator_deallocate(allocator, (void*) zone->signconf_filename);
