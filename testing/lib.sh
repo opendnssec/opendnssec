@@ -1349,13 +1349,15 @@ run_tests ()
 		fi &&
 		syslog_trace &&
 		while [ "$retry" -le "$RETRY_TEST" ] 2>/dev/null; do
+			if [ "$retry" -gt 0 ] 2>/dev/null; then
+				echo "##### `date` $test_iter/$test_num $test_path ... RETRY $retry"
+			fi
 			( source ./test.sh )
 			test_status="$?"
 			if [ "$test_status" -eq 0 ] 2>/dev/null; then
 				break
 			fi
 			retry=$(( retry + 1 ))
-			echo "##### `date` $test_iter/$test_num $test_path ... RETRY $retry"
 		done
 		syslog_stop
 		if [ -n "$POST_TEST" ]; then
