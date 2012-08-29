@@ -9,6 +9,7 @@ start_test opendnssec
 
 PRE_TEST=ods_pre_test
 POST_TEST=ods_post_test
+RETRY_TEST=1
 test_ok=0
 (
 	ods_find_softhsm_module &&
