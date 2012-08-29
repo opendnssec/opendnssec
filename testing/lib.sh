@@ -1348,7 +1348,7 @@ run_tests ()
 			$PRE_TEST "$test_path"
 		fi &&
 		syslog_trace &&
-		while [ "$retry" -lt "$RETRY_TEST" ] 2>/dev/null; do
+		while [ "$retry" -le "$RETRY_TEST" ] 2>/dev/null; do
 			( source ./test.sh )
 			test_status="$?"
 			if [ "$test_status" -eq 0 ] 2>/dev/null; then
