@@ -91,6 +91,7 @@ zone_create(char* name, ldns_rr_class klass)
     zone->default_ttl = 3600; /* TODO: configure --default-ttl option? */
     zone->apex = ldns_dname_new_frm_str(name);
     /* check zone->apex? */
+    zone->notify_command = NULL;
     zone->notify_ns = NULL;
     zone->notify_args = NULL;
     zone->policy_name = NULL;
@@ -705,6 +706,10 @@ zone_cleanup(zone_type* zone)
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
+    if (zone->notify_command) {
+        free((void*)zone->notify_command);
+        zone->notify_command = NULL;
+    }
     allocator_deallocate(allocator, (void*) zone->notify_args);
     allocator_deallocate(allocator, (void*) zone->policy_name);
     allocator_deallocate(allocator, (void*) zone->signconf_filename);

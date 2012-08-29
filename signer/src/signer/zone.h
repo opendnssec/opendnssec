@@ -71,6 +71,7 @@ struct zone_struct {
     ldns_rr_class klass; /* class */
     uint32_t default_ttl; /* ttl */
     /* from conf.xml */
+    char *notify_command; /* placeholder for the whole notify command */
     const char* notify_ns; /* master name server reload command */
     char** notify_args; /* reload command arguments */
     /* from zonelist.xml */

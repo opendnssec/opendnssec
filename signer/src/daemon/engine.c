@@ -697,7 +697,10 @@ set_notify_ns(zone_type* zone, const char* cmd)
             str = NULL;
         }
     }
-    free((void*)str2);
+    if (zone->notify_command) {
+        free((void*)zone->notify_command);
+    }
+    zone->notify_command = str2;
     zone->notify_ns = zone->notify_args[0];
     return;
 }
