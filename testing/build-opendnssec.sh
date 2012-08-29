@@ -43,6 +43,7 @@ case "$DISTRIBUTION" in
 				--enable-timeshift &&
 			$MAKE &&
 			$MAKE check &&
+			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
@@ -64,6 +65,7 @@ case "$DISTRIBUTION" in
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
 			$MAKE check &&
+			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
@@ -84,6 +86,7 @@ case "$DISTRIBUTION" in
 			$MAKE &&
 			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
 			(cd enforcer-ng && $MAKE check) &&
+			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
