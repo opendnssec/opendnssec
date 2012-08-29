@@ -7,6 +7,7 @@ OpenDNSSEC 1.4.0a4
 * OPENDNSSEC-130: The PIN is now optional in conf.xml. The PIN can be entered using
   "ods-hsmutil login" and is stored in shared memory. The daemons will not start
   until this has been done by the user.
+* OPENDNSSEC-281: Commandhandler sometimes unresponsive.
 
 Bugfixes:
 
