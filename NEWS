@@ -7,13 +7,13 @@ OpenDNSSEC 1.4.0a4
 * OPENDNSSEC-130: The PIN is now optional in conf.xml. The PIN can be entered using
   "ods-hsmutil login" and is stored in shared memory. The daemons will not start
   until this has been done by the user.
-* OPENDNSSEC-281: Commandhandler sometimes unresponsive.
 
 Bugfixes:
 
 * OPENDNSSEC-255: OpenDNSSEC 1.4.0a1 writes out mangled RRSIG record.
 * OPENDNSSEC-261: Ldns fails to parse RR that seems syntactically correct.
 * OPENDNSSEC-269: Crash when multiple threads access ixfr struct. 
+* OPENDNSSEC-281: Commandhandler sometimes unresponsive.
 
 
 OpenDNSSEC 1.4.0a3 - 2012-08-08
