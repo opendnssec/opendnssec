@@ -1316,6 +1316,14 @@ run_tests ()
 		RETRY_TEST=0
 	fi
 
+	if [ -n "$RETRY_SLEEP" ]; then
+		if [ ! "$RETRY_SLEEP" -ge 0 ] 2>/dev/null; then
+			RETRY_SLEEP=10
+		fi
+	else
+		RETRY_SLEEP=10
+	fi
+
 	if ! cd "$test_dir" 2>/dev/null; then
 		echo "run_tests: unable to change to test directory $test_dir!" >&2
 		return 1
@@ -1350,7 +1358,8 @@ run_tests ()
 		syslog_trace &&
 		while [ "$retry" -le "$RETRY_TEST" ] 2>/dev/null; do
 			if [ "$retry" -gt 0 ] 2>/dev/null; then
-				echo "##### `date` $test_iter/$test_num $test_path ... RETRY $retry"
+				echo "##### `date` $test_iter/$test_num $test_path ... RETRY $retry in $RETRY_SLEEP seconds"
+				sleep "$RETRY_SLEEP"
 			fi
 			( source ./test.sh )
 			test_status="$?"
