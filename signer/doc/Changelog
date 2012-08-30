@@ -1,3 +1,14 @@
+28 August 2012: Matthijs
+- Fix resource leaks and code ineffeciences.
+
+9 August 2012: Matthijs
+- More sophisticated wait() on execvp().
+
+8 August 2012: Matthijs
+- OPENDNSSEC-304: Split check pidfile and write pidfile. So that we can exit
+more early. Also, doing it early, the error will end up in stderr. Is nicer
+than in syslog.
+
 7 August 2012: Matthijs
 - Fix serial check, so that signer does not retry fetch a newer zone if
   serial on disk and serial in memory are equal.
