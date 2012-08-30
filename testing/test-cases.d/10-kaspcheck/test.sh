@@ -20,10 +20,11 @@ log_grep ods-kaspcheck-run-not-there stdout 'ERROR: No location for kasp.xml set
 
 # 3) Test for RNG validation errors: bad form
 ! log_this ods-kaspcheck-run-bad-form ods-kaspcheck ods-kaspcheck -c kaspcheck_bad/bad_form_conf.xml -k kaspcheck_bad/bad_form_kasp.xml &&
-log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:15: element InvalidNode: Relax-NG validity error : Did not expect element InvalidNode there" &&
+# NOTE: the Relax-NG validity error strings are modified from the full output for solaris compatibility
+#log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:15: element InvalidNode: Relax-NG validity error : Did not expect element InvalidNode there" &&
+log_grep ods-kaspcheck-run-bad-form stderr "Did not expect element InvalidNode there" &&
 log_grep ods-kaspcheck-run-bad-form stdout "ERROR: kaspcheck_bad/bad_form_conf.xml fails to validate" &&
 # If repository specifies capacity, it should be greater than 0
-# NOTE: the Relax-NG validity error strings are modified from the full output for solaris compatibility
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:11: element Capacity: Relax-NG validity error : Error validating datatype positiveInteger" &&
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:11: element Capacity: Relax-NG validity error : Element Capacity failed to validate content" &&
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:11: element Capacity: Relax-NG validity error : Type positiveInteger doesn't allow value '0'" &&
