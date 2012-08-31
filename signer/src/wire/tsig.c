@@ -174,8 +174,6 @@ tsig_handler_cleanup(void)
     kentry = tsig_key_table;
     while (kentry) {
         knext = kentry->next;
-        ldns_rdf_deep_free(kentry->key->dname);
-        allocator_deallocate(tsig_allocator, (void*)kentry->key->data);
         allocator_deallocate(tsig_allocator, (void*)kentry->key);
         allocator_deallocate(tsig_allocator, (void*)kentry);
         kentry = knext;
