@@ -8432,6 +8432,6 @@ int rename_signconf(const char* zonelist_filename, const char* o_zone) {
 		}
 	}
 	
-	return status;
+	return 0;
 }
 
