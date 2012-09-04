@@ -16,9 +16,9 @@
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
+        <WorkerThreads>4</WorkerThreads>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
-        <WorkerThreads>4</WorkerThreads>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
