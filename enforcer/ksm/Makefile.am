@@ -20,7 +20,7 @@ libksm_a_SOURCES = \
 	ksm_key.c ksm_key_delete.c ksm_keyword.c ksm_list.c ksm_parameter.c \
 	ksm_parameter_value.c ksm_policy.c ksm_policy_value.c ksm_purge.c \
 	ksm_request.c ksm_time.c ksm_update.c ksm_version.c ksm_zone.c \
-	memory.c message.c string_util.c string_util2.c
+	memory.c message.c string_util.c string_util2.c database_threads.c
 
 if USE_MYSQL
 libksm_a_SOURCES += \

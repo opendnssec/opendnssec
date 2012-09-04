@@ -29,6 +29,8 @@
 #ifndef KSM_DATABASE_H
 #define KSM_DATABASE_H
 
+#include "config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -100,6 +102,18 @@ struct db_row {							/* Row structure */
 typedef	struct db_row*	DB_ROW;
 
 #endif
+
+#ifdef KSM_DB_USE_THREADS
+int DbThreadSetup(void);
+
+DB_HANDLE DbThreadGetHandle(void);
+int DbThreadSetHandle(DB_HANDLE handle);
+int DbThreadRemoveHandle(void);
+
+int DbThreadGetInTransaction(void);
+int DbThreadSetInTransaction(int in_transaction);
+int DbThreadRemoveInTransaction(void);
+#endif /* KSM_DB_USE_THREADS */
 
 /* Initialization and rundown */
 

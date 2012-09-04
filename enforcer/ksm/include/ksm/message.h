@@ -36,6 +36,8 @@
  *      Definitions of the message utility functions and data structures.
 -*/
 
+#include "config.h"
+
 #include <stdarg.h>
 
 #include <ksm/system_includes.h>
@@ -67,6 +69,13 @@ void MsgSetOutput(int code, MSG_OUTPUT_FUNCTION output);
 int MsgLog(int status, ...);
 int MsgLogAp(int status, va_list ap);
 void MsgRundown(void);
+
+#ifdef KSM_DB_USE_THREADS
+int MsgThreadSetup(void);
+
+char *MsgThreadGetPrefix(void);
+int MsgThreadSetPrefix(char *prefix);
+#endif /* KSM_DB_USE_THREADS */
 
 
 #ifdef __cplusplus
