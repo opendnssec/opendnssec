@@ -133,6 +133,14 @@ case "$host" in
     ;;
 esac
 
+# check for the sockaddr_un.sun_len member
+AC_CHECK_MEMBER([struct sockaddr_un.sun_len],
+    [AC_DEFINE(HAVE_SOCKADDR_SUN_LEN,1,[Have the sockaddr_un.sun_len member.])],
+    [],
+    [ #include <sys/types.h>
+      #include <sys/un.h>
+    ])
+
 # timeshift
 AC_ARG_ENABLE(timeshift,
 	AC_HELP_STRING([--enable-timeshift], [Enable timeshift debug]),

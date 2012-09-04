@@ -786,6 +786,9 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sun_family = AF_UNIX;
     strncpy(servaddr.sun_path, filename, sizeof(servaddr.sun_path) - 1);
+#ifdef HAVE_SOCKADDR_SUN_LEN
+    servaddr.sun_len = strlen(servaddr.sun_path);
+#endif
     /* bind and listen... */
     ret = bind(listenfd, (const struct sockaddr*) &servaddr,
         SUN_LEN(&servaddr));
