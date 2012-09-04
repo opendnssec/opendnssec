@@ -35,14 +35,14 @@ dns = element DNS {
 
 	# inbound zone transfer settings
 	element Inbound {
-		element RequestTransfer { remote* },
-		element AllowNotify { peer* }
+		element RequestTransfer { remote+ }?,
+		element AllowNotify { peer+ }?
 	}?,
 
 	# outbound zone transfer settings
 	element Outbound {
-		element ProvideTransfer { peer* },
-		element Notify { remote* }
+		element ProvideTransfer { peer+ }?,
+		element Notify { remote+ }?
 	}?
 }
 
