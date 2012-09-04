@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ZoneList>
+	<Zone name="ods">
+		<Policy>default</Policy>
+		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<File>@INSTALL_ROOT@/var/opendnssec/unsigned/ods</File>
+			</Input>
+			<Output>
+				<File>@INSTALL_ROOT@/var/opendnssec/signed/ods</File>
+			</Output>
+		</Adapters>
+	</Zone>
+    <Zone name="ods2">
+        <Policy>default2</Policy>
+        <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods2.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>@INSTALL_ROOT@/var/opendnssec/unsigned/ods2</File>
+            </Input>
+            <Output>
+                <File>@INSTALL_ROOT@/var/opendnssec/signed/ods2</File>
+            </Output>
+        </Adapters>
+    </Zone>
+    <Zone name="ods3">
+        <Policy>shared</Policy>
+        <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods3.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>@INSTALL_ROOT@/var/opendnssec/unsigned/ods3</File>
+            </Input>
+            <Output>
+                <File>@INSTALL_ROOT@/var/opendnssec/signed/ods3</File>
+            </Output>
+        </Adapters>
+    </Zone>
+    <Zone name="ods4">
+        <Policy>shared</Policy>
+        <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods4.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>@INSTALL_ROOT@/var/opendnssec/unsigned/ods4</File>
+            </Input>
+            <Output>
+                <File>@INSTALL_ROOT@/var/opendnssec/signed/ods4</File>
+            </Output>
+        </Adapters>
+    </Zone>
+</ZoneList>
