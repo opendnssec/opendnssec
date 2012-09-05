@@ -47,6 +47,7 @@
 #include <sys/stat.h>
 #ifdef ENFORCER_USE_WORKERS
 #include <pthread.h>
+#include <signal.h>
 #endif
 
 #include <libxml/xmlreader.h>
@@ -94,6 +95,9 @@ struct _enforcer_worker_queue {
 	pthread_cond_t cond;
 	int closed;
 };
+static pthread_mutex_t _enforcer_worker_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t _enforcer_worker_startup_cond = PTHREAD_COND_INITIALIZER;
+
 static struct _enforcer_worker *_enforcer_worker = NULL;
 
 static struct _enforcer_worker_queue _enforcer_worker_havework_queue = { NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0 };
@@ -254,21 +258,52 @@ enforcer_worker(void *arg)
     DB_HANDLE handle;
     struct _enforcer_worker_work *work = NULL;
     char prefix[1024];
+    sigset_t mask;
+
+    /* Block all signals to this thread so they go to the main thread */
+    sigfillset(&mask);
+    if (pthread_sigmask(SIG_BLOCK, &mask, NULL)) {
+        log_msg(worker->config, LOG_ERR, "Unable to block all signals to enforcer worker thread, this can have unexpected behavior so I will exit!");
+        _enforcer_worker_exit = 1;
+    }
 
     snprintf(prefix, 1024, "[worker[%d]]: ", worker->id);
     MsgThreadSetPrefix(prefix);
 
     if (DbConnect(&handle, (char *)worker->config->schema, (char *)worker->config->host, (char *)worker->config->password, (char *)worker->config->user, (char *)worker->config->port) != 0) {
     	log_msg(worker->config, LOG_ERR, "Unable to connect to database");
-    	return NULL;
+        _enforcer_worker_exit = 1;
     }
 
     policy = KsmPolicyAlloc();
     if (policy == NULL) {
         log_msg(worker->config, LOG_ERR, "Malloc for policy struct failed");
         DbDisconnect(handle);
+        _enforcer_worker_exit = 1;
+    }
+
+    /* Signal enforcer_start_workers we are up even if there was an error */
+    if (pthread_mutex_lock(&_enforcer_worker_startup_mutex)) {
+        log_msg(worker->config, LOG_ERR, "Error locking startup mutex");
         return NULL;
     }
+
+    if (pthread_cond_signal(&_enforcer_worker_startup_cond)) {
+        pthread_mutex_unlock(&_enforcer_worker_startup_mutex);
+        log_msg(worker->config, LOG_ERR, "Error signaling startup cond");
+        return NULL;
+    }
+
+    if (pthread_mutex_unlock(&_enforcer_worker_startup_mutex)) {
+        log_msg(worker->config, LOG_ERR, "Error unlocking startup mutex");
+        return NULL;
+    }
+
+    /* exit if there was a problem starting */
+    if (_enforcer_worker_exit) {
+        return NULL;
+    }
+
     kaspSetPolicyDefaults(policy, NULL);
 
 	log_msg(worker->config, LOG_INFO, "started");
@@ -398,7 +433,24 @@ enforcer_start_workers(DAEMONCONFIG *config)
 {
 #ifdef USE_MYSQL
 	int i;
-	if (_enforcer_worker) {
+    struct timespec ts;
+
+#ifndef HAVE_CLOCK_GETTIME
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL)) {
+        return -11;
+    }
+    ts.tv_sec = tv.tv_sec;
+    ts.tv_nsec = (tv.tv_usec/1000);
+#else /* HAVE_CLOCK_GETTIME */
+    if (clock_gettime(CLOCK_REALTIME, &ts)) {
+        return -11;
+    }
+#endif /* !HAVE_CLOCK_GETTIME */
+
+    ts.tv_sec += 5;
+
+    if (_enforcer_worker) {
 		log_msg(config, LOG_ERR, "enforcer workers already started?");
 		return -1;
 	}
@@ -413,7 +465,11 @@ enforcer_start_workers(DAEMONCONFIG *config)
 		return -2;
 	}
 
-	log_msg(config, LOG_INFO, "starting enforcer workers");
+    if (pthread_mutex_lock(&_enforcer_worker_startup_mutex)) {
+        return -10;
+    }
+
+    log_msg(config, LOG_INFO, "starting enforcer workers");
 
 	for (i=0; i<config->enforcer_workers; i++) {
 		_enforcer_worker[i].id = i + 1;
@@ -422,6 +478,26 @@ enforcer_start_workers(DAEMONCONFIG *config)
 			return -3;
 		}
 	}
+
+	/* wait for all threads to have started up and then check if there was a error */
+	i = 0;
+	while (i < config->enforcer_workers) {
+        if (pthread_cond_timedwait(&_enforcer_worker_startup_cond, &_enforcer_worker_startup_mutex, &ts)) {
+            _enforcer_worker_exit = 1;
+            break;
+        }
+        i++;
+	}
+
+    if (pthread_mutex_unlock(&_enforcer_worker_startup_mutex)) {
+        return -12;
+    }
+
+    /* if some thread had problem or not all threads started, return error */
+	if (_enforcer_worker_exit || i != config->enforcer_workers) {
+        return -13;
+	}
+
 #else
 	(void) config;
 #endif /* USE_MYSQL */
