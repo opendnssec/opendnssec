@@ -75,6 +75,7 @@ int MsgThreadSetup(void);
 
 char *MsgThreadGetPrefix(void);
 int MsgThreadSetPrefix(char *prefix);
+int MsgThreadRemovePrefix(void);
 #endif /* KSM_DB_USE_THREADS */
 
 
