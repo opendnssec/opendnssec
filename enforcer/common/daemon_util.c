@@ -901,7 +901,12 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         config->enforcer_workers = (int)xmlXPathCastToNumber(xpathObj);
     }
     if (verbose) {
+#ifdef USE_MYSQL
         log_msg(config, LOG_INFO, "Using %d enforcer workers", config->enforcer_workers);
+#else
+        log_msg(config, LOG_INFO, "Wrong database backend for enforcer workers, forcing single thread operation");
+        config->enforcer_workers = 1;
+#endif
     }
     xmlXPathFreeObject(xpathObj);
 #endif
