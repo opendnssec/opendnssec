@@ -49,7 +49,6 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy);
 
 #ifdef ENFORCER_USE_WORKERS
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID, int* NewDS);
-int do_communication_workers(DAEMONCONFIG *config, KSM_POLICY* policy);
 #else
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID);
 #endif

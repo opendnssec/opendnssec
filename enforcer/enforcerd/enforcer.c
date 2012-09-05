@@ -99,6 +99,9 @@ static struct _enforcer_worker *_enforcer_worker = NULL;
 static struct _enforcer_worker_queue _enforcer_worker_havework_queue = { NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0 };
 static struct _enforcer_worker_queue _enforcer_worker_workdone_queue = { NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0 };
 
+static int do_communication_workers(DAEMONCONFIG *config);
+
+
 pthread_mutex_t _enforcer_worker_shared_keys_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
@@ -167,9 +170,18 @@ enforcer_worker_work_timed_dequeue(struct _enforcer_worker_queue *queue, struct 
 	struct timespec ts;
 	int err;
 
+#ifndef HAVE_CLOCK_GETTIME
+	struct timeval tv;
+	if (gettimeofday(&tv, NULL)) {
+		return -4;
+	}
+	ts.tv_sec = tv.tv_sec;
+	ts.tv_nsec = (tv.tv_usec/1000);
+#else /* HAVE_CLOCK_GETTIME */
 	if (clock_gettime(CLOCK_REALTIME, &ts)) {
 		return -4;
 	}
+#endif /* !HAVE_CLOCK_GETTIME */
 
 	ts.tv_sec += seconds;
 
@@ -381,12 +393,11 @@ enforcer_worker(void *arg)
 /*
  * Start the enforcer workers
  */
-int
+static int
 enforcer_start_workers(DAEMONCONFIG *config)
 {
 #ifdef USE_MYSQL
-    int i;
-
+	int i;
 	if (_enforcer_worker) {
 		log_msg(config, LOG_ERR, "enforcer workers already started?");
 		return -1;
@@ -411,14 +422,17 @@ enforcer_start_workers(DAEMONCONFIG *config)
 			return -3;
 		}
 	}
-#endif
+#else
+	(void) config;
+#endif /* USE_MYSQL */
 	return 0;
 }
+
 
 /*
  * Stop the enforcer workers
  */
-int
+static int
 enforcer_stop_workers(DAEMONCONFIG *config)
 {
 	int i;
@@ -650,7 +664,7 @@ server_main(DAEMONCONFIG *config)
             do_communication(config, policy);
         }
         else {
-            do_communication_workers(config, policy);
+            do_communication_workers(config);
         }
 #else
         do_communication(config, policy);
@@ -1255,7 +1269,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
  * do_communication with enforcer workers
  */
 #ifdef ENFORCER_USE_WORKERS
-int do_communication_workers(DAEMONCONFIG *config, KSM_POLICY* policy)
+static int do_communication_workers(DAEMONCONFIG *config)
 {
     int status = 0;
     int status2 = 0;
