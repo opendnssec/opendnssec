@@ -11,7 +11,9 @@ ods_reset_env &&
 
 log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
 syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
-syslog_waitfor 60 'ods-enforcerd: .*\[worker\[4\]\]: started' &&
+if [ -n "$HAVE_MYSQL" ]; then
+	syslog_waitfor 60 'ods-enforcerd: .*\[worker\[4\]\]: started'
+fi &&
 
 log_this_timeout ods-control-signer-start 60 ods-control signer start &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
