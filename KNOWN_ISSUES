@@ -1,8 +1,8 @@
 $Id$
 
-OpenDNSSEC 1.4.0a1 - Known Restrictions
+OpenDNSSEC 1.4.0b1 - Known Restrictions
 
-The following are the known problems and/or restrictions of release 1.4.0a1 of
+The following are the known problems and/or restrictions of release 1.4.0b1 of
 OpenDNSSEC.
 
 
@@ -64,10 +64,3 @@ Enforcer does not remove/handle any quotation marks in the imported strings.
 This will create a problem when importing the information from e.g. the policy
 description field into the Enforcer database.
 
-
-Backup files redesign
----------------------
-
-The backup files for the signer are being redesigned for version 1.4.0. In this
-first alpha release, the backup files are not read in correctly and will
-be considered corrupted.

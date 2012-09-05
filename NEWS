@@ -1,12 +1,12 @@
 $Id$
 
-OpenDNSSEC 1.4.0a4
+OpenDNSSEC 1.4.0b1
 
 * OPENDNSSEC-130: The PIN is now optional in conf.xml. The PIN can be entered using
   "ods-hsmutil login" and is stored in shared memory. The daemons will not start
   until this has been done by the user.
 * OPENDNSSEC-297: Multi-threaded option available for the enforcer to improve
-  performance. 
+  performance (MySQL only). 
 * OPENDNSSEC-320: The <ProvideTransfer>, <Notify>, <AllowNotify> and
   <RequestTransfer> elements are now optional, but if provided they require
   one or more <Peer> or <Remote> elements.
