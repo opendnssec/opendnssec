@@ -340,8 +340,6 @@ static void
 xfrd_tsig_sign(xfrd_type* xfrd, buffer_type* buffer)
 {
     tsig_algo_type* algo = NULL;
-    char* key_name = NULL;
-    char* algo_name = NULL;
     if (!xfrd || !xfrd->tsig_rr || !xfrd->master || !xfrd->master->tsig ||
         !xfrd->master->tsig->key || !buffer) {
         return; /* no tsig configured */
