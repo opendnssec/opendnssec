@@ -1361,6 +1361,9 @@ run_tests ()
 				echo "##### `date` $test_iter/$test_num $test_path ... RETRY $retry in $RETRY_SLEEP seconds"
 				sleep "$RETRY_SLEEP"
 			fi
+			if [ -n "$PRE_TEST" ]; then
+				$PRE_TEST "$test_path"
+			fi &&
 			( source ./test.sh )
 			test_status="$?"
 			if [ "$test_status" -eq 0 ] 2>/dev/null; then
