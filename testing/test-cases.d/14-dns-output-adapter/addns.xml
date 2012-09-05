@@ -23,7 +23,7 @@
 			<Notify>
 				<Remote>
 					<Address>127.0.0.1</Address>
-					<Port>15353</Port>
+					<Port>13535</Port> <!-- unused port -->
 				</Remote>
 			</Notify>
 		</Outbound>

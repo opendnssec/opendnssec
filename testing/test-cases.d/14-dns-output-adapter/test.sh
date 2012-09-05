@@ -24,8 +24,8 @@ syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
-## Check if NOTIFY is send and accepted
-log_waitfor ldns-testns stdout 5 'comparepkt: match!'
+## Retry NOTIFY
+syslog_waitfor 120 'ods-signerd: .*\[notify\] notify max retry for zone ods, 127\.0\.0\.1 unreachable' &&
 
 ## Check signed zone file [when we decide on auditor tool]
 

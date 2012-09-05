@@ -433,7 +433,7 @@ notify_send(notify_type* notify)
             zone->name, notify->secondary->address);
         return;
     }
-    ods_log_debug("[%s] notify retry %u for zone %s sent to %s", notify_str,
+    ods_log_verbose("[%s] notify retry %u for zone %s sent to %s", notify_str,
         notify->retry, zone->name, notify->secondary->address);
     return;
 }
@@ -487,7 +487,7 @@ notify_handle_zone(netio_type* ATTR_UNUSED(netio),
         ods_log_assert(notify->secondary->address);
         notify->retry++;
         if (notify->retry > NOTIFY_MAX_RETRY) {
-            ods_log_debug("[%s] notify max retry for zone %s, %s unreachable",
+            ods_log_verbose("[%s] notify max retry for zone %s, %s unreachable",
                 notify_str, zone->name, notify->secondary->address);
             notify_next(notify);
         } else {
