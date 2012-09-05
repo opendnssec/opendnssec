@@ -650,8 +650,8 @@ server_main(DAEMONCONFIG *config)
 	}
 
 #ifdef ENFORCER_USE_WORKERS
-	if (enforcer_start_workers(config)) {
-		log_msg(config, LOG_ERR, "could not start workers");
+	if ((status = enforcer_start_workers(config))) {
+		log_msg(config, LOG_ERR, "could not start workers (error %d)", status);
 		exit(1);
 	}
 #endif
