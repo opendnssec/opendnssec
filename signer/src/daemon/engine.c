@@ -1045,9 +1045,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         ods_log_verbose("[%s] close hsm", engine_str);
         hsm_close();
     }
-    engine_stop_xfrhandler(engine);
-    engine_stop_dnshandler(engine);
-    engine_stop_cmdhandler(engine);
+    if (!engine->cmdhandler_done) {
+        engine_stop_xfrhandler(engine);
+        engine_stop_dnshandler(engine);
+        engine_stop_cmdhandler(engine);
+    }
 
 earlyexit:
     if (engine && engine->config) {
