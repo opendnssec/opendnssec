@@ -1,3 +1,13 @@
+5 September 2012: Matthijs
+- OPENDNSSEC-318: Don't stop dns and xfr handlers if these threads have not
+  yet been started.
+- OPENDNSSEC-319: Fix TSIG segfault on signer shutdown.
+
+4 September 2012: Matthijs
+- OPENDNSSEC-320: The <ProvideTransfer>, <Notify>, <AllowNotify> and
+  <RequestTransfer> elements are now optional, but if provided they require
+  one or more <Peer> or <Remote> elements.
+
 28 August 2012: Matthijs
 - Fix resource leaks and code ineffeciences.
 
