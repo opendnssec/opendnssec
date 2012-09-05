@@ -261,7 +261,6 @@ engine_config_cleanup(engineconfig_type* config)
     allocator_deallocate(allocator, (void*) config->zonelist_filename);
     allocator_deallocate(allocator, (void*) config->log_filename);
     allocator_deallocate(allocator, (void*) config->pid_filename);
-    allocator_deallocate(allocator, (void*) config->notify_command);
     allocator_deallocate(allocator, (void*) config->clisock_filename);
     allocator_deallocate(allocator, (void*) config->working_dir);
     allocator_deallocate(allocator, (void*) config->username);

@@ -38,6 +38,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/util.h"
+#include "signer/domain.h"
 #include "signer/zone.h"
 #include "wire/tcpset.h"
 #include "wire/xfrd.h"
@@ -339,6 +340,8 @@ static void
 xfrd_tsig_sign(xfrd_type* xfrd, buffer_type* buffer)
 {
     tsig_algo_type* algo = NULL;
+    char* key_name = NULL;
+    char* algo_name = NULL;
     if (!xfrd || !xfrd->tsig_rr || !xfrd->master || !xfrd->master->tsig ||
         !xfrd->master->tsig->key || !buffer) {
         return; /* no tsig configured */
@@ -354,9 +357,9 @@ xfrd_tsig_sign(xfrd_type* xfrd, buffer_type* buffer)
     xfrd->tsig_rr->original_query_id = buffer_pkt_id(buffer);
     xfrd->tsig_rr->algo_name = ldns_rdf_clone(xfrd->tsig_rr->algo->wf_name);
     xfrd->tsig_rr->key_name = ldns_rdf_clone(xfrd->tsig_rr->key->dname);
-    ods_log_debug("[%s] tsig sign query with %s %s", xfrd_str,
-        ldns_rdf2str(xfrd->tsig_rr->key_name),
-        ldns_rdf2str(xfrd->tsig_rr->algo_name));
+    log_dname(xfrd->tsig_rr->key_name, "tsig sign query with key ", LOG_DEBUG);
+    log_dname(xfrd->tsig_rr->algo_name, "tsig sign query with algorithm ",
+        LOG_DEBUG);
     tsig_rr_prepare(xfrd->tsig_rr);
     tsig_rr_update(xfrd->tsig_rr, buffer, buffer_position(buffer));
     tsig_rr_sign(xfrd->tsig_rr);

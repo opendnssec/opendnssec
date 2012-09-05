@@ -174,6 +174,8 @@ tsig_handler_cleanup(void)
     kentry = tsig_key_table;
     while (kentry) {
         knext = kentry->next;
+        ldns_rdf_deep_free(kentry->key->dname);
+        allocator_deallocate(tsig_allocator, (void*)kentry->key->data);
         allocator_deallocate(tsig_allocator, (void*)kentry->key);
         allocator_deallocate(tsig_allocator, (void*)kentry);
         kentry = knext;
@@ -864,22 +866,6 @@ tsig_rr_cleanup(tsig_rr_type* trr)
 
 
 /**
- * Clean up TSIG key.
- *
- */
-static void
-tsig_key_cleanup(tsig_key_type* key, allocator_type* allocator)
-{
-    if (!key || !allocator) {
-        return;
-    }
-    ldns_rdf_deep_free(key->dname);
-    allocator_deallocate(allocator, (void*) key->data);
-    return;
-}
-
-
-/**
  * Clean up TSIG.
  *
  */
@@ -890,7 +876,6 @@ tsig_cleanup(tsig_type* tsig, allocator_type* allocator)
         return;
     }
     tsig_cleanup(tsig->next, allocator);
-    tsig_key_cleanup(tsig->key, allocator);
     allocator_deallocate(allocator, (void*) tsig->name);
     allocator_deallocate(allocator, (void*) tsig->algorithm);
     allocator_deallocate(allocator, (void*) tsig->secret);

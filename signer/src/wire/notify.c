@@ -34,6 +34,7 @@
 #include "config.h"
 #include "adapter/addns.h"
 #include "daemon/xfrhandler.h"
+#include "signer/domain.h"
 #include "signer/zone.h"
 #include "wire/notify.h"
 #include "wire/xfrd.h"
@@ -374,9 +375,10 @@ notify_tsig_sign(notify_type* notify, buffer_type* buffer)
     notify->tsig_rr->algo_name =
         ldns_rdf_clone(notify->tsig_rr->algo->wf_name);
     notify->tsig_rr->key_name = ldns_rdf_clone(notify->tsig_rr->key->dname);
-    ods_log_debug("[%s] tsig sign notify with %s %s", notify_str,
-        ldns_rdf2str(notify->tsig_rr->key_name),
-        ldns_rdf2str(notify->tsig_rr->algo_name));
+    log_dname(notify->tsig_rr->key_name, "tsig sign notify with key %s",
+        LOG_DEBUG);
+    log_dname(notify->tsig_rr->algo_name, "tsig sign notify with algorithm %s",
+        LOG_DEBUG);
     tsig_rr_prepare(notify->tsig_rr);
     tsig_rr_update(notify->tsig_rr, buffer, buffer_position(buffer));
     tsig_rr_sign(notify->tsig_rr);
