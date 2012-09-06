@@ -97,6 +97,7 @@ struct _enforcer_worker_queue {
 };
 static pthread_mutex_t _enforcer_worker_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t _enforcer_worker_startup_cond = PTHREAD_COND_INITIALIZER;
+static int _enforcer_worker_startup_count = 0;
 
 static struct _enforcer_worker *_enforcer_worker = NULL;
 
@@ -288,6 +289,7 @@ enforcer_worker(void *arg)
         return NULL;
     }
 
+    _enforcer_worker_startup_count++;
     if (pthread_cond_signal(&_enforcer_worker_startup_cond)) {
         pthread_mutex_unlock(&_enforcer_worker_startup_mutex);
         log_msg(worker->config, LOG_ERR, "Error signaling startup cond");
@@ -468,10 +470,11 @@ enforcer_start_workers(DAEMONCONFIG *config)
     if (pthread_mutex_lock(&_enforcer_worker_startup_mutex)) {
         return -10;
     }
+    _enforcer_worker_startup_count = 0;
 
     log_msg(config, LOG_INFO, "starting enforcer workers");
 
-	for (i=0; i<config->enforcer_workers; i++) {
+    for (i=0; i<config->enforcer_workers; i++) {
 		_enforcer_worker[i].id = i + 1;
 		_enforcer_worker[i].config = config;
 		if (pthread_create(&(_enforcer_worker[i].thread), NULL, enforcer_worker, (void*)&(_enforcer_worker[i]))) {
@@ -480,13 +483,11 @@ enforcer_start_workers(DAEMONCONFIG *config)
 	}
 
 	/* wait for all threads to have started up and then check if there was a error */
-	i = 0;
-	while (i < config->enforcer_workers) {
+	while (_enforcer_worker_startup_count < config->enforcer_workers) {
         if (pthread_cond_timedwait(&_enforcer_worker_startup_cond, &_enforcer_worker_startup_mutex, &ts)) {
             _enforcer_worker_exit = 1;
             break;
         }
-        i++;
 	}
 
     if (pthread_mutex_unlock(&_enforcer_worker_startup_mutex)) {
@@ -494,8 +495,11 @@ enforcer_start_workers(DAEMONCONFIG *config)
     }
 
     /* if some thread had problem or not all threads started, return error */
-	if (_enforcer_worker_exit || i != config->enforcer_workers) {
+	if (_enforcer_worker_exit) {
         return -13;
+	}
+	if (_enforcer_worker_startup_count != config->enforcer_workers) {
+		return -14;
 	}
 
 #else
