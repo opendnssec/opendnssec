@@ -318,7 +318,7 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
     }
 
     /* Retrieve the function list */
-    (pGetFunctionList)((CK_FUNCTION_LIST_PTR)(&module->sym));
+    (pGetFunctionList)((CK_FUNCTION_LIST_PTR_PTR)(&module->sym));
     return CKR_OK;
 }
 
