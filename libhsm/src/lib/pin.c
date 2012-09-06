@@ -63,6 +63,8 @@ prompt_pass(char *prompt)
     static char pass[HSM_MAX_PIN_LENGTH+1];
     struct termios oldt, newt;
 
+    if (prompt == NULL) return NULL;
+
     printf("%s", prompt);
 
     /* Turn echoing off */
@@ -78,7 +80,7 @@ prompt_pass(char *prompt)
         c = fgetc(stdin);
         pass[i] = c;
         i++;
-    } while (c != EOF && c != '\n' && c != '\r');
+    } while (c != EOF && c != '\n' && c != '\r' && i < HSM_MAX_PIN_LENGTH+1);
     pass[i-1] = '\0';
 
     /* Restore echoing */
