@@ -2,25 +2,29 @@ $Id$
 
 OpenDNSSEC 1.4.0b1
 
-* OPENDNSSEC-130: The PIN is now optional in conf.xml. The PIN can be entered using
-  "ods-hsmutil login" and is stored in shared memory. The daemons will not start
-  until this has been done by the user.
-* OPENDNSSEC-297: Multi-threaded option available for the enforcer to improve
-  performance (MySQL only). 
-* OPENDNSSEC-320: The <ProvideTransfer>, <Notify>, <AllowNotify> and
-  <RequestTransfer> elements are now optional, but if provided they require
+* OPENDNSSEC-130: libhsm: The PIN is now optional in conf.xml. The PIN can be
+  entered using "ods-hsmutil login" and is stored in shared memory. The daemons
+  will not start until this has been done by the user.
+* OPENDNSSEC-297: Enforcer: Multi-threaded option available for the enforcer to
+  improve performance (MySQL only). 
+* OPENDNSSEC-320: Signer Engine: The <ProvideTransfer>, <Notify>, <AllowNotify>
+  and <RequestTransfer> elements are now optional, but if provided they require
   one or more <Peer> or <Remote> elements.
 
 Bugfixes:
-
-* OPENDNSSEC-255: OpenDNSSEC 1.4.0a1 writes out mangled RRSIG record.
-* OPENDNSSEC-261: Ldns fails to parse RR that seems syntactically correct.
-* OPENDNSSEC-269: Crash when multiple threads access ixfr struct. 
+* OPENDNSSEC-255: Signer Engine: OpenDNSSEC 1.4.0a1 writes out mangled RRSIG
+  record.
+* OPENDNSSEC-261: Signer Engine: Ldns fails to parse RR that seems syntactically
+  correct.
+* OPENDNSSEC-269: Signer Engine: Crash when multiple threads access ixfr struct. 
 * OPENDNSSEC-281: Commandhandler sometimes unresponsive.
-* OPENDNSSEC-318: Don't stop dns and xfr handlers if these threads have not
-  yet been started.
-* OPENDNSSEC-319: Fix TSIG segfault on signer shutdown.
-* OPENDNSSEC-325: Don't include RRSIG records when DO bit is not set.
+* OPENDNSSEC-318: Signer Engine: Don't stop dns and xfr handlers if these
+  threads have not yet been started.
+* OPENDNSSEC-319: Signer Engine: Fix TSIG segfault on signer shutdown.
+* OPENDNSSEC-325: Signer Engine: Don't include RRSIG records when DO bit is not
+  set.
+* OPENDNSSEC-326: Signer Engine: Stop serving a zone that could not be
+  transferred from master and has been expired.
 
 
 OpenDNSSEC 1.4.0a3 - 2012-08-08
@@ -28,7 +32,6 @@ OpenDNSSEC 1.4.0a3 - 2012-08-08
 * OPENDNSSEC-258: Optionally include cka_id in output to DelegationSignerSubmitCommand.
 
 Bugfixes:
-
 * SUPPORT-27: ods-ksmutil: simplify zone delete so that it only marks keys 
   as dead (rather than actually removing them). Leave the key removal to purge
   jobs.

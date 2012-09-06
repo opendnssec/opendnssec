@@ -47,6 +47,7 @@
 #include <ldns/ldns.h>
 
 #define SE_SOA_RDATA_SERIAL  2
+#define SE_SOA_RDATA_EXPIRE 5
 #define SE_SOA_RDATA_MINIMUM 6
 
 /* copycode: This define is taken from BIND9 */

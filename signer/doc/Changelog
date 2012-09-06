@@ -1,5 +1,7 @@
 6 September 2012: Matthijs
 - OPENDNSSEC-325: Don't include RRSIG records when DO bit is not set.
+- OPENDNSSEC-326: Stop serving a zone that could not be transferred from master
+  and has been expired.
 
 5 September 2012: Matthijs
 - OPENDNSSEC-318: Don't stop dns and xfr handlers if these threads have not
