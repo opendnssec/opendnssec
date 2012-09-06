@@ -1693,7 +1693,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     if (file == NULL)
     {
         /* error */
-        log_msg(NULL, LOG_ERR, "Could not open: %s", temp_filename);
+        log_msg(NULL, LOG_ERR, "Could not open: %s (%s)", temp_filename,
+		strerror(errno));
         MemFree(datetime);
         StrFree(temp_filename);
         StrFree(old_filename);

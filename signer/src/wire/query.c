@@ -449,8 +449,7 @@ response_encode_rr(query_type* q, ldns_rr* rr, ldns_pkt_section section)
  *
  */
 static uint16_t
-response_encode_rrset(query_type* q, rrset_type* rrset,
-    ldns_pkt_section section)
+response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section)
 {
     uint16_t i = 0;
     uint16_t added = 0;
@@ -461,8 +460,10 @@ response_encode_rrset(query_type* q, rrset_type* rrset,
     for (i = 0; i < rrset->rr_count; i++) {
         added += response_encode_rr(q, rrset->rrs[i].rr, section);
     }
-    for (i = 0; i < rrset->rrsig_count; i++) {
-        added += response_encode_rr(q, rrset->rrsigs[i].rr, section);
+    if (q->edns_rr && q->edns_rr->dnssec_ok) {
+        for (i = 0; i < rrset->rrsig_count; i++) {
+            added += response_encode_rr(q, rrset->rrsigs[i].rr, section);
+        }
     }
     /* truncation? */
     return added;

@@ -20,6 +20,7 @@ Bugfixes:
 * OPENDNSSEC-318: Don't stop dns and xfr handlers if these threads have not
   yet been started.
 * OPENDNSSEC-319: Fix TSIG segfault on signer shutdown.
+* OPENDNSSEC-325: Don't include RRSIG records when DO bit is not set.
 
 
 OpenDNSSEC 1.4.0a3 - 2012-08-08
