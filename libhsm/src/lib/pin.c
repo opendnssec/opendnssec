@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <termios.h>
 
 #include "libhsm.h"
 
@@ -54,6 +55,40 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
 
 /* Remember PIN that we can save */
 static char pin[HSM_MAX_PIN_LENGTH+1];
+
+char *
+prompt_pass(char *prompt)
+{
+    int c, i = 0;
+    static char pass[HSM_MAX_PIN_LENGTH+1];
+    struct termios oldt, newt;
+
+    printf("%s", prompt);
+
+    /* Turn echoing off */
+    if (isatty(fileno(stdin))) {
+        if (tcgetattr(fileno(stdin), &oldt) != 0) return NULL;
+        newt = oldt;
+        newt.c_lflag &= ~ECHO;
+        if (tcsetattr(fileno(stdin), TCSAFLUSH, &newt) != 0) return NULL;
+    }
+
+    /* Get the password */
+    do {
+        c = fgetc(stdin);
+        pass[i] = c;
+        i++;
+    } while (c != EOF && c != '\n' && c != '\r');
+    pass[i-1] = '\0';
+
+    /* Restore echoing */
+    if (isatty(fileno(stdin))) {
+        tcsetattr(fileno(stdin), TCSAFLUSH, &oldt);
+    }
+    printf("\n");
+
+    return pass;
+}
 
 char *
 hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
@@ -168,12 +203,22 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
               memset(&pins[index], '\0', HSM_MAX_PIN_LENGTH+1);
             }
 
+            /* Unlock the semaphore if someone would do Ctrl+C */
+            sem_post(pin_semaphore);
+
+            /* Get PIN */
             snprintf(prompt, 64, "Enter PIN for token %s: ", repository);
-#ifdef HAVE_GETPASSPHRASE
-            prompt_pin = getpassphrase(prompt);
-#else
-            prompt_pin = getpass(prompt);
-#endif
+            prompt_pin = prompt_pass(prompt);
+            if (prompt_pin == NULL) {
+                shmdt(pins);
+                pins = NULL;
+                sem_close(pin_semaphore);
+                pin_semaphore = NULL;
+                return NULL;
+            }
+
+            /* Lock the semaphore */
+            sem_wait(pin_semaphore);
 
             /* Remember PIN */
             size = strlen(prompt_pin);
@@ -181,7 +226,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
             memset(pin, '\0', HSM_MAX_PIN_LENGTH+1);
             memcpy(pin, prompt_pin, size);
 
-            /* Zeroize the getpass PIN */
+            /* Zeroize the prompt_pass PIN */
             memset(prompt_pin, '\0', strlen(prompt_pin));
         }
     } else {
