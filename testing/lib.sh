@@ -1230,10 +1230,12 @@ log_waitfor ()
 	echo "log_waitfor: waiting for log $name to contain (timeout $timeout): $grep_string"
 	while true; do
 		if $GREP -q -- "$grep_string" $log_files 2>/dev/null; then
+			echo "log_waitfor: log $name contains (timeout $timeout): $grep_string"
 			return 0
 		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
 		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			echo "log_waitfor: log $name timeout has passed (timeout $timeout): $grep_string"
 			break
 		fi
 		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
@@ -1242,7 +1244,7 @@ log_waitfor ()
 		fi
 		sleep 2
 	done
-	
+	echo "log_waitfor: log $name does not contain (timeout $timeout): $grep_string"
 	return 1
 }
 
