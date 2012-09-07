@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 
 ## Test basic Output DNS Adapter
-## It requires setting up a zone in OpenDNSSEC with Output DNS Adapter,
-## non-default zonelist.xml, non-default conf.xml, additional addns.xml.
-## It requires setting up a secondary name server (ldns-testns) to accept the notifies.
-## It requires drill or dig to fetch the axfr.
-## It requires a checker tool like wdiff or ldns-verify-zone to review
-## the result (possibly with an known good file).
+## Start OpenDNSsEC, see if the zone gets signed and see if NOTIFY
+## messages are send and accepted.
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -25,7 +21,7 @@ syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 ## Check if NOTIFY is send and accepted
-log_waitfor ldns-testns stdout 5 'comparepkt: match!'
+log_waitfor ldns-testns stdout 5 'comparepkt: match!' &&
 
 ## Check signed zone file [when we decide on auditor tool]
 

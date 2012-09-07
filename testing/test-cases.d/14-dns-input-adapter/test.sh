@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 
 ## Test basic Input DNS Adapter
-## It requires setting up a zone in OpenDNSSEC with Input DNS Adapter,
-## non-default zonelist.xml, non-default conf.xml, additional addns.xml.
-## It requires setting up a primary name server (ldns-testns).
-## It requires a checker tool like wdiff or ldns-verify-zone to review
-## the result (possibly with an known good file).
+## Start OpenDNSSEC and see if zone gets transferred and signed.
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
