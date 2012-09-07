@@ -223,7 +223,7 @@ namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "counter") == 0) {
-        soa = serial;
+        soa = serial + 1;
         if (db->is_initialized && !util_serial_gt(soa, prev)) {
             soa = prev + 1;
         }
