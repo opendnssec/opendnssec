@@ -131,11 +131,11 @@ DbThreadGetInTransaction(void)
     int* ptr;
 
     if (DbThreadSetup()) {
-        return NULL;
+        return -1;
     }
 
     if ((ptr = pthread_getspecific(_key_db_in_transaction)) == NULL) {
-        return NULL;
+        return 0;
     }
 
     return *ptr;

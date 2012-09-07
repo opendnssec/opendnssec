@@ -472,7 +472,7 @@ int DbBeginTransaction(void)
     int __nested_transactions = DbThreadGetInTransaction();
 
     if (__nested_transactions < 0) {
-        __nested_transactions = 0;
+    	return -1;
     }
 
     if (__nested_transactions <= 0) {
@@ -509,7 +509,7 @@ int DbCommit(void)
     int __nested_transactions = DbThreadGetInTransaction();
 
     if (__nested_transactions < 0) {
-        __nested_transactions = 0;
+    	return -1;
     }
 
     __nested_transactions--;
