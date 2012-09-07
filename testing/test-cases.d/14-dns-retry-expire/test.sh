@@ -41,10 +41,10 @@ syslog_waitfor 5 'ods-signerd: .*\[xfrd] zone ods sets timer timeout retry 5' &&
 
 ## See if we can transfer the signed zone
 log_this_timeout drill 10 drill -p 15354 @127.0.0.1 axfr ods &&
-log_waitfor drill stdout 5 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*30.*5.*120.*3600' &&
+log_waitfor drill stdout 5 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*30.*5.*31.*3600' &&
 
 ## See if it stops serving zone transfer after the SOA EXPIRE interval
-sleep 120 &&
+sleep 35 &&
 log_this_timeout drill 10 drill -p 15354 @127.0.0.1 axfr ods &&
 log_waitfor drill stderr 5 'Error in AXFR: SERVFAIL' &&
 

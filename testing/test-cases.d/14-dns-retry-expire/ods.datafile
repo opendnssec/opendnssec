@@ -11,7 +11,7 @@ SECTION QUESTION
 ods. IN AXFR
 SECTION ANSWER
 
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 30 5 120 300
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 30 5 31 300
 ods. 600 IN MX 10 mail.ods.
 ods. 600 IN NS ns1.ods.
 ods. 600 IN NS ns2.ods.
@@ -274,7 +274,7 @@ label34.ods. 3600 IN NS ns5.label34.ods.
 ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 30 5 120 300
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 30 5 31 300
 
 SECTION AUTHORITY
 SECTION ADDITIONAL
