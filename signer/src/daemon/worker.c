@@ -642,6 +642,12 @@ worker_drudge(worker_type* worker)
         task = NULL;
         lock_basic_lock(&engine->signq->q_lock);
         rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
+        if (!rrset) {
+            ods_log_deeebug("[%s[%i]] nothing to do", worker2str(worker->type),
+                worker->thread_num);
+            worker_wait_timeout_locked(&engine->signq->q_lock, &engine->signq->q_threshold, 0);
+            rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
+        }
         lock_basic_unlock(&engine->signq->q_lock);
         if (rrset) {
             ods_log_assert(superior);
@@ -683,10 +689,6 @@ worker_drudge(worker_type* worker)
             }
             superior = NULL;
             rrset = NULL;
-        } else {
-            ods_log_deeebug("[%s[%i]] nothing to do", worker2str(worker->type),
-                worker->thread_num);
-            worker_wait(&engine->signq->q_lock, &engine->signq->q_threshold);
         }
     }
     /* wake up superior */

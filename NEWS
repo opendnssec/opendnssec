@@ -2,6 +2,10 @@ $Id$
 
 OpenDNSSEC 1.4.0b2
 
+Bugfixes:
+* Fixed locking and notification on the drudge work queue, signals could be missed
+  so that drudgers would stall when there was work to be done.
+
 
 OpenDNSSEC 1.4.0b1 - 2012-09-06
 
