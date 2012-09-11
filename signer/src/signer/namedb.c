@@ -353,7 +353,7 @@ namedb_add_domain(namedb_type* db, ldns_rdf* dname)
     domain = (domain_type*) new_node->data;
     domain->node = new_node;
     domain->is_new = 1;
-    log_dname(domain->dname, "+DOMAIN", LOG_DEBUG);
+    log_dname(domain->dname, "+DOMAIN", LOG_DEEEBUG);
     return domain;
 }
 
@@ -383,7 +383,7 @@ namedb_del_domain(namedb_type* db, domain_type* domain)
         ods_log_assert(!domain->denial);
         free((void*)node);
         domain->node = NULL;
-        log_dname(domain->dname, "-DOMAIN", LOG_DEBUG);
+        log_dname(domain->dname, "-DOMAIN", LOG_DEEEBUG);
         return domain;
     }
     ods_log_error("[%s] unable to delete domain: not found", db_str);
@@ -728,7 +728,7 @@ namedb_add_denial(namedb_type* db, ldns_rdf* dname, nsec3params_type* n3p)
     pdenial = (denial_type*) pnode->data;
     ods_log_assert(pdenial);
     pdenial->nxt_changed = 1;
-    log_dname(denial->dname, "+DENIAL", LOG_DEBUG);
+    log_dname(denial->dname, "+DENIAL", LOG_DEEEBUG);
     return denial;
 }
 
@@ -771,7 +771,7 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
     free((void*)node);
     denial->domain = NULL;
     denial->node = NULL;
-    log_dname(denial->dname, "-DENIAL", LOG_DEBUG);
+    log_dname(denial->dname, "-DENIAL", LOG_DEEEBUG);
     return denial;
 }
 

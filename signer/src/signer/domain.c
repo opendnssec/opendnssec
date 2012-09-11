@@ -204,7 +204,7 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
         *p = rrset;
         rrset->next = NULL;
     }
-    log_rrset(domain->dname, rrset->rrtype, "+RRSET", LOG_DEBUG);
+    log_rrset(domain->dname, rrset->rrtype, "+RRSET", LOG_DEEEBUG);
     rrset->domain = (void*) domain;
     if (domain->denial) {
         denial = (denial_type*) domain->denial;
@@ -236,7 +236,7 @@ domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
         domain->rrsets = cur->next;
         cur->domain = NULL;
         cur->next = NULL;
-        log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEBUG);
+        log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEEEBUG);
         if (domain->denial) {
             denial = (denial_type*) domain->denial;
             denial->bitmap_changed = 1;
@@ -259,7 +259,7 @@ domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
             cur = cur->next;
             cur->domain = NULL;
             cur->next = NULL;
-            log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEBUG);
+            log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEEEBUG);
             if (domain->denial) {
                 denial = (denial_type*) domain->denial;
                 denial->bitmap_changed = 1;
@@ -304,7 +304,7 @@ domain_diff(domain_type* domain, unsigned is_ixfr)
                 prev_rrset->next = rrset->next;
             }
             rrset->next = NULL;
-            log_rrset(domain->dname, rrset->rrtype, "-RRSET", LOG_DEBUG);
+            log_rrset(domain->dname, rrset->rrtype, "-RRSET", LOG_DEEEBUG);
             rrset_cleanup(rrset);
             if (!prev_rrset) {
                 rrset = domain->rrsets;
@@ -368,7 +368,7 @@ domain_rollback(domain_type* domain)
                 prev_rrset->next = rrset->next;
             }
             rrset->next = NULL;
-            log_rrset(domain->dname, rrset->rrtype, "-RRSET", LOG_DEBUG);
+            log_rrset(domain->dname, rrset->rrtype, "-RRSET", LOG_DEEEBUG);
             rrset_cleanup(rrset);
             if (!prev_rrset) {
                 rrset = domain->rrsets;

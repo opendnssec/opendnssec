@@ -288,7 +288,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     rrset->rrs[rrset->rr_count - 1].is_added = 1;
     rrset->rrs[rrset->rr_count - 1].is_removed = 0;
     rrset->needs_signing = 1;
-    log_rr(rr, "+RR", LOG_DEBUG);
+    log_rr(rr, "+RR", LOG_DEEEBUG);
     return &rrset->rrs[rrset->rr_count -1];
 }
 
@@ -307,7 +307,7 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     ods_log_assert(rrnum < rrset->rr_count);
 
     zone = (zone_type*) rrset->zone;
-    log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEBUG);
+    log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEEEBUG);
     rrset->rrs[rrnum].owner = NULL;
     rrset->rrs[rrnum].rr = NULL;
     while (rrnum < rrset->rr_count-1) {
@@ -413,7 +413,7 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     rrset->rrsigs[rrset->rrsig_count - 1].rr = rr;
     rrset->rrsigs[rrset->rrsig_count - 1].key_locator = locator;
     rrset->rrsigs[rrset->rrsig_count - 1].key_flags = flags;
-    log_rr(rr, "+RRSIG", LOG_DEBUG);
+    log_rr(rr, "+RRSIG", LOG_DEEEBUG);
     return &rrset->rrsigs[rrset->rrsig_count -1];
 }
 
@@ -430,7 +430,7 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     ods_log_assert(rrset);
     ods_log_assert(rrnum < rrset->rrsig_count);
     zone = (zone_type*) rrset->zone;
-    log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEBUG);
+    log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEEEBUG);
     rrset->rrsigs[rrnum].owner = NULL;
     rrset->rrsigs[rrnum].rr = NULL;
     while (rrnum < rrset->rrsig_count-1) {
@@ -662,12 +662,12 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     /* Skip delegation, glue and occluded RRsets */
     if (dstatus != LDNS_RR_TYPE_SOA) {
         log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
-            "skip signing occluded RRset", LOG_DEEEBUG);
+            "skip signing occluded RRset", LOG_DEBUG);
         return ODS_STATUS_OK;
     }
     if (delegpt != LDNS_RR_TYPE_SOA && rrset->rrtype != LDNS_RR_TYPE_DS) {
         log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
-            "skip signing delegation RRset", LOG_DEEEBUG);
+            "skip signing delegation RRset", LOG_DEBUG);
         return ODS_STATUS_OK;
     }
     log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
