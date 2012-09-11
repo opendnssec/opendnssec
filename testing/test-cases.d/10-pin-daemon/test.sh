@@ -11,7 +11,7 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 # Make sure the PIN is cleared from shared memory
-log_this clear-pin "ipcrm -M 0x0d50d5ec"
+log_this clear-pin "ipcrm -M 0x0d50d5ec" &&
 
 ! log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
 syslog_waitfor 10 'ods-enforcerd: .*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
