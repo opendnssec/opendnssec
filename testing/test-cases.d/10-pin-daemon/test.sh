@@ -4,11 +4,11 @@
 # Configure no PIN while PIN is needed, expect failure
 # Then login and start everything successfully
 
-ods_reset_env &&
-
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
+
+ods_reset_env &&
 
 # Make sure the PIN is cleared from shared memory
 log_this clear-pin "ipcrm -M 0x0d50d5ec" &&
