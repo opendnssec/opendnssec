@@ -1,5 +1,5 @@
 $ORIGIN ods.
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 1200 180 1209600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 9000 4500 1209600 3600
 ods. 600 IN MX 10 mail.ods.
 ods. 600 IN NS ns1.ods.
 ods. 600 IN NS ns2.ods.
