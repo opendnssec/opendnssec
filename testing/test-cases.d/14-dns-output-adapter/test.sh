@@ -25,7 +25,6 @@ syslog_waitfor 120 'ods-signerd: .*\[notify\] notify max retry for zone ods, 127
 
 ## See if we can transfer the signed zone
 log_this_timeout axfr 10 drill -p 15354 @127.0.0.1 axfr ods &&
-log_waitfor axfr stdout 5 'ods\..*IN.*AXFR' &&
 log_waitfor axfr stdout 5 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 log_waitfor axfr stdout 5 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
 ## See if we send overflow UDP if does not fit.
