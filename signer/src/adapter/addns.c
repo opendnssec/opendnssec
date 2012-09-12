@@ -548,7 +548,7 @@ dnsout_send_notify(void* zone)
     zone_type* z = (zone_type*) zone;
     rrset_type* rrset = NULL;
     ldns_rr* soa = NULL;
-    if (!z || !z->notify) {
+    if (!z->notify) {
         ods_log_error("[%s] unable to send notify for zone %s: no notify "
            "handler", adapter_str, z->name);
         return;

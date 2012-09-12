@@ -368,7 +368,6 @@ namedb_del_domain(namedb_type* db, domain_type* domain)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     if (!domain || !db || !db->domains) {
         ods_log_error("[%s] unable to delete domain: !db || !domain", db_str);
-        log_dname(domain->dname, "ERR -DOMAIN", LOG_ERR);
         return NULL;
     }
     if (domain->rrsets || domain->denial) {
