@@ -257,6 +257,7 @@ engine_config_cleanup(engineconfig_type* config)
     }
     allocator = config->allocator;
     listener_cleanup(config->interfaces);
+    allocator_deallocate(allocator, (void*) config->notify_command);
     allocator_deallocate(allocator, (void*) config->cfg_filename);
     allocator_deallocate(allocator, (void*) config->zonelist_filename);
     allocator_deallocate(allocator, (void*) config->log_filename);
