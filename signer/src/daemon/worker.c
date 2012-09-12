@@ -39,7 +39,6 @@
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
-#include "shared/util.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
 
@@ -128,8 +127,12 @@ worker_working_with(worker_type* worker, task_id with, task_id next,
 static int
 worker_fulfilled(worker_type* worker)
 {
-    return (worker->jobs_completed + worker->jobs_failed) ==
+    int ret = 0;
+    lock_basic_lock(&worker->worker_lock);
+    ret = (worker->jobs_completed + worker->jobs_failed) ==
         worker->jobs_appointed;
+    lock_basic_unlock(&worker->worker_lock);
+    return ret;
 }
 
 
@@ -141,9 +144,11 @@ static void
 worker_clear_jobs(worker_type* worker)
 {
     ods_log_assert(worker);
+    lock_basic_lock(&worker->worker_lock);
     worker->jobs_appointed = 0;
     worker->jobs_completed = 0;
     worker->jobs_failed = 0;
+    lock_basic_unlock(&worker->worker_lock);
     return;
 }
 
@@ -246,20 +251,24 @@ static ods_status
 worker_check_jobs(worker_type* worker, task_type* task) {
     ods_log_assert(worker);
     ods_log_assert(task);
+    lock_basic_lock(&worker->worker_lock);
     if (worker->jobs_failed) {
         ods_log_error("[%s[%i]] sign zone %s failed: %u RRsets failed",
             worker2str(worker->type), worker->thread_num,
             task_who2str(task), worker->jobs_failed);
+        lock_basic_unlock(&worker->worker_lock);
         return ODS_STATUS_ERR;
     } else if (worker->jobs_completed != worker->jobs_appointed) {
         ods_log_error("[%s[%i]] sign zone %s failed: processed %u of %u "
             "RRsets", worker2str(worker->type), worker->thread_num,
             task_who2str(task), worker->jobs_completed,
             worker->jobs_appointed);
+        lock_basic_unlock(&worker->worker_lock);
         return ODS_STATUS_ERR;
     } else if (worker->need_to_exit) {
         ods_log_debug("[%s[%i]] sign zone %s failed: worker needs to exit",
             worker2str(worker->type), worker->thread_num, task_who2str(task));
+        lock_basic_unlock(&worker->worker_lock);
         return ODS_STATUS_ERR;
     } else {
         ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u RRsets "
@@ -268,6 +277,7 @@ worker_check_jobs(worker_type* worker, task_type* task) {
             worker->jobs_appointed);
         ods_log_assert(worker->jobs_appointed == worker->jobs_completed);
     }
+    lock_basic_unlock(&worker->worker_lock);
     return ODS_STATUS_OK;
 }
 
@@ -393,9 +403,8 @@ worker_perform_task(worker_type* worker)
             /* queue menial, hard signing work */
             worker_queue_zone(worker, engine->signq, zone);
             ods_log_deeebug("[%s[%i]] wait until drudgers are finished "
-                "signing zone %s, %u signatures queued",
-                worker2str(worker->type), worker->thread_num,
-                task_who2str(task), worker->jobs_appointed);
+                "signing zone %s", worker2str(worker->type), worker->thread_num,
+                task_who2str(task));
             /* sleep until work is done */
             worker_sleep_unless(worker, 0);
             /* stop timer */
@@ -660,7 +669,9 @@ worker_drudge(worker_type* worker)
                 ods_log_crit("[%s[%i]] error creating libhsm context",
                     worker2str(worker->type), worker->thread_num);
                 engine->need_to_reload = 1;
+                lock_basic_lock(&superior->worker_lock);
                 superior->jobs_failed++;
+                lock_basic_unlock(&superior->worker_lock);
             } else {
                 ods_log_assert(ctx);
                 lock_basic_lock(&superior->worker_lock);

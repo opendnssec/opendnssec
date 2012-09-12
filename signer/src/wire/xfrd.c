@@ -124,12 +124,14 @@ xfrd_create(void* xfrhandler, void* zone)
     xfrd->master_num = 0;
     xfrd->next_master = -1;
     xfrd->master = NULL;
+    lock_basic_lock(&xfrd->serial_lock);
     xfrd->serial_xfr = 0;
     xfrd->serial_disk = 0;
     xfrd->serial_notify = 0;
     xfrd->serial_xfr_acquired = 0;
     xfrd->serial_disk_acquired = 0;
     xfrd->serial_notify_acquired = 0;
+    lock_basic_unlock(&xfrd->serial_lock);
     xfrd->query_id = 0;
     xfrd->msg_seq_nr = 0;
     xfrd->msg_rr_count = 0;
@@ -718,6 +720,7 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
                      lock_basic_unlock(&xfrd->serial_lock);
                      return 0; /* bad start serial in IXFR */
                  }
+                 lock_basic_unlock(&xfrd->serial_lock);
                  xfrd->msg_old_serial = serial;
              } else if (serial == xfrd->msg_new_serial) {
                  /* saw another SOA of new serial. */
