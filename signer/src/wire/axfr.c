@@ -107,6 +107,13 @@ axfr(query_type* q, engine_type* engine)
 
         /* add SOA RR */
         fpos = ftell(q->axfr_fd);
+        if (fpos < 0) {
+            ods_log_error("[%s] unable to read axfr for zone %s: "
+                "ftell() failed (%s)", axfr_str, q->zone->name,
+                strerror(errno));
+            buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+            return QUERY_PROCESSED;
+        }
         rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl, &status,
             &l);
         if (!rr) {
@@ -172,6 +179,15 @@ axfr(query_type* q, engine_type* engine)
     }
     /* add as many records as fit */
     fpos = ftell(q->axfr_fd);
+    if (fpos < 0) {
+        ods_log_error("[%s] unable to read axfr for zone %s: "
+            "ftell() failed (%s)", axfr_str, q->zone->name,
+            strerror(errno));
+        buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+        ods_fclose(q->axfr_fd);
+        q->axfr_fd = NULL;
+        return QUERY_PROCESSED;
+    }
     while ((rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl,
         &status, &l)) != NULL) {
         ods_log_deeebug("[%s] read rr at line %d", axfr_str, l);
@@ -188,11 +204,20 @@ axfr(query_type* q, engine_type* engine)
         /* does it fit? */
         if (query_add_rr(q, rr)) {
             ods_log_deeebug("[%s] add rr at line %d", axfr_str, l);
-            fpos = ftell(q->axfr_fd);
-            buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
-            total_added++;
             ldns_rr_free(rr);
             rr = NULL;
+            fpos = ftell(q->axfr_fd);
+            if (fpos < 0) {
+                ods_log_error("[%s] unable to read axfr for zone %s: "
+                    "ftell() failed (%s)", axfr_str, q->zone->name,
+                    strerror(errno));
+                buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+                ods_fclose(q->axfr_fd);
+                q->axfr_fd = NULL;
+                return QUERY_PROCESSED;
+            }
+            buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
+            total_added++;
         } else {
             ods_log_deeebug("[%s] rr at line %d does not fit", axfr_str, l);
             ldns_rr_free(rr);
@@ -315,6 +340,13 @@ ixfr(query_type* q, engine_type* engine)
 
         /* add SOA RR */
         fpos = ftell(q->axfr_fd);
+        if (fpos < 0) {
+            ods_log_error("[%s] unable to read ixfr for zone %s: ftell() "
+                "failed (%s)", axfr_str, q->zone->name, strerror(errno));
+            ods_log_info("[%s] axfr fallback zone %s", axfr_str,
+                q->zone->name);
+            return axfr(q, engine);
+        }
         rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl, &status,
             &l);
         if (!rr) {
@@ -381,6 +413,13 @@ ixfr(query_type* q, engine_type* engine)
 
     /* add as many records as fit */
     fpos = ftell(q->axfr_fd);
+    if (fpos < 0) {
+        ods_log_error("[%s] unable to read ixfr for zone %s: ftell() failed "
+            "(%s)", axfr_str, q->zone->name, strerror(errno));
+        ods_log_info("[%s] axfr fallback zone %s", axfr_str,
+            q->zone->name);
+        return axfr(q, engine);
+    }
     while ((rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl,
         &status, &l)) != NULL) {
         ods_log_deeebug("[%s] read rr at line %d", axfr_str, l);
@@ -408,11 +447,18 @@ ixfr(query_type* q, engine_type* engine)
         /* does it fit? */
         if (query_add_rr(q, rr)) {
             ods_log_deeebug("[%s] add rr at line %d", axfr_str, l);
-            fpos = ftell(q->axfr_fd);
-            buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
-            total_added++;
             ldns_rr_free(rr);
             rr = NULL;
+            fpos = ftell(q->axfr_fd);
+            if (fpos < 0) {
+                ods_log_error("[%s] unable to read ixfr for zone %s: ftell() "
+                    "failed (%s)", axfr_str, q->zone->name, strerror(errno));
+                ods_log_info("[%s] axfr fallback zone %s", axfr_str,
+                    q->zone->name);
+                return axfr(q, engine);
+            }
+            buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
+            total_added++;
         } else {
             ods_log_deeebug("[%s] rr at line %d does not fit", axfr_str, l);
             ldns_rr_free(rr);
