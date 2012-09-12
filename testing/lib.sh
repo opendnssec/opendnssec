@@ -1245,6 +1245,7 @@ log_waitfor ()
 		sleep 2
 	done
 	echo "log_waitfor: log $name does not contain (timeout $timeout): $grep_string"
+	cat $log_files
 	return 1
 }
 
