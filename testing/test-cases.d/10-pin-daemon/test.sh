@@ -13,6 +13,11 @@ ods_reset_env &&
 # Make sure the PIN is cleared from shared memory
 log_this clear-pin "ipcrm -M 0x0d50d5ec" &&
 
+# Make sure the login fails 
+log_this ods-hsmutil-login echo "Logging in wrong PIN...." &&
+! echo "123" | ods-hsmutil login &&
+log_this ods-hsmutil-login echo "Login failed." &&
+
 ! log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
 syslog_waitfor 10 'ods-enforcerd: .*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
 
@@ -21,7 +26,7 @@ syslog_waitfor 10 'ods-signerd: .*\[hsm\].*hsm_check_pin(): No PIN in shared mem
 
 ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
 
-# Now login and expect succes
+# Now login and expect success
 
 # Problems using a pipe in the log_this command so doing it directly for now...
 log_this ods-hsmutil-login echo "Logging in with PIN...." &&
