@@ -35,7 +35,6 @@
 #include "parser/signconfparser.h"
 #include "shared/duration.h"
 #include "shared/log.h"
-#include "signer/signconf.h"
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>

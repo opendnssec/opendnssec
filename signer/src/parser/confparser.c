@@ -34,7 +34,6 @@
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
 #include "shared/allocator.h"
-#include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "wire/acl.h"

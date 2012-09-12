@@ -35,7 +35,6 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/log.h"
-#include "signer/backup.h"
 #include "shared/status.h"
 #include "signer/signconf.h"
 

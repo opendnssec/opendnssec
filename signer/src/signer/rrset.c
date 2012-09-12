@@ -659,6 +659,10 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     }
     reusedsigs = rrset_recycle(rrset, signtime, dstatus, delegpt);
     rrset->needs_signing = 0;
+
+    ods_log_assert(rrset->rrs);
+    ods_log_assert(rrset->rrs[0].rr);
+
     /* Skip delegation, glue and occluded RRsets */
     if (dstatus != LDNS_RR_TYPE_SOA) {
         log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
@@ -670,6 +674,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             "skip signing delegation RRset", LOG_DEBUG);
         return ODS_STATUS_OK;
     }
+
     log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
         "sign RRset", LOG_DEEEBUG);
     ods_log_assert(dstatus == LDNS_RR_TYPE_SOA ||

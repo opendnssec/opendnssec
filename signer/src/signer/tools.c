@@ -34,7 +34,6 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "adapter/adapter.h"
-#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
