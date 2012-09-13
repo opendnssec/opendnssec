@@ -3,6 +3,8 @@ $Id$
 
 OpenDNSSEC 1.3.11
 
+* OPENDNSSEC-330: NSEC3PARAM TTL should be set to zero.
+
 Bugfixes:
 * OPENDNSSEC-306: Cant delete zone until Enforcer made signerconf.
 * OPENDNSSEC-281: Commandhandler sometimes unresponsive.
