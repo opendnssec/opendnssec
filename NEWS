@@ -2,6 +2,8 @@ $Id$
 
 OpenDNSSEC 1.4.0b2
 
+* OPENDNSSEC-330: NSEC3PARAM TTL should be set to zero.
+
 Bugfixes:
 * Fixed locking and notification on the drudge work queue, signals could be missed
   so that drudgers would stall when there was work to be done.

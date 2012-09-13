@@ -1,3 +1,9 @@
+13 September 2012: Matthijs
+- OPENDNSSEC-330: NSEC3PARAM TTL should be set to zero.
+
+12 September 2012: Matthijs
+- Code review Ondrej Sury.
+
 6 September 2012: Matthijs
 - OPENDNSSEC-325: Don't include RRSIG records when DO bit is not set.
 - OPENDNSSEC-326: Stop serving a zone that could not be transferred from master
