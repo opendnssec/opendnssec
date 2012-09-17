@@ -167,7 +167,9 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     }
 
     /* Check permission to avoid an attack */
-    if (buf.shm_perm.mode != (SHM_PERM) || buf.shm_perm.gid != getegid()) {
+    if ((buf.shm_perm.mode & (SHM_PERM)) != (SHM_PERM) ||
+        buf.shm_perm.gid != getegid())
+    {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
                             "Bad permissions on the shared memory");
         sem_post(pin_semaphore);
@@ -333,7 +335,9 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
     }
 
     /* Check permission to avoid an attack */
-    if (buf.shm_perm.mode != (SHM_PERM) || buf.shm_perm.gid != getegid()) {
+    if ((buf.shm_perm.mode & (SHM_PERM)) != (SHM_PERM) ||
+        buf.shm_perm.gid != getegid())
+    {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
                             "Bad permissions on the shared memory");
         sem_post(pin_semaphore);
