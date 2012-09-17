@@ -37,6 +37,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <termios.h>
+#include <errno.h>
 
 #include "libhsm.h"
 
@@ -118,7 +119,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     pin_semaphore = sem_open(SEM_NAME, O_CREAT, SHM_PERM, 1);
     if (pin_semaphore == SEM_FAILED) {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
-                          "Could not access the named semaphore");
+                          "Could not access the named semaphore: %s", strerror(errno));
         return NULL;
     }
 
@@ -136,8 +137,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
         shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
         if (shmid == -1) {
             hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
-                              "Could not access the shared memory. May need to reset "
-                              "it by running the command \"ipcrm -M 0x0d50d5ec\"");
+                              "Could not access the shared memory: %s", strerror(errno));
             sem_post(pin_semaphore);
             sem_close(pin_semaphore);
             pin_semaphore = NULL;
@@ -158,8 +158,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     /* Check the size of the memory segment */
     if (buf.shm_segsz != shm_size) {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
-                            "Bad memory size. Please reset the shared memory "
-                            "by running the command \"ipcrm -M 0x0d50d5ec\"");
+                            "Bad memory size, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
@@ -171,7 +170,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
         buf.shm_perm.gid != getegid())
     {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
-                            "Bad permissions on the shared memory");
+                            "Bad permissions on the shared memory, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
@@ -286,7 +285,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
     pin_semaphore = sem_open(SEM_NAME, O_CREAT, SHM_PERM, 1);
     if (pin_semaphore == SEM_FAILED) {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
-                          "Could not access the named semaphore");
+                          "Could not access the named semaphore: %s", strerror(errno));
         return NULL;
     }
 
@@ -304,8 +303,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
         shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
         if (shmid == -1) {
             hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
-                              "Could not access the shared memory. May need to reset "
-                              "it by running the command \"ipcrm -M 0x0d50d5ec\"");
+                              "Could not access the shared memory: %s", strerror(errno));
             sem_post(pin_semaphore);
             sem_close(pin_semaphore);
             pin_semaphore = NULL;
@@ -326,8 +324,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
     /* Check the size of the memory segment */
     if (buf.shm_segsz != shm_size) {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
-                            "Bad memory size. Please reset the shared memory "
-                            "by running the command \"ipcrm -M 0x0d50d5ec\"");
+                            "Bad memory size, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
@@ -339,7 +336,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
         buf.shm_perm.gid != getegid())
     {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
-                            "Bad permissions on the shared memory");
+                            "Bad permissions on the shared memory, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
         sem_post(pin_semaphore);
         sem_close(pin_semaphore);
         pin_semaphore = NULL;
