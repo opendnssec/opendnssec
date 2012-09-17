@@ -17,6 +17,7 @@ ods_reset_env &&
 
 # Make sure the login fails 
 ! echo "123" | log_this ods-hsmutil-login-fail ods-hsmutil login &&
+log_grep ods-hsmutil-login-fail stderr 'hsm_session_init(): Incorrect PIN for repository SoftHSM' &&
 
 ! log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
 syslog_waitfor 10 'ods-enforcerd: .*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
@@ -28,6 +29,7 @@ syslog_waitfor 10 'ods-signerd: .*\[hsm\].*hsm_check_pin(): No PIN in shared mem
 
 # Now login and expect success
 echo "1234" | log_this ods-hsmutil-login ods-hsmutil login && 
+log_grep ods-hsmutil-login stdout 'The tokens are now logged in.' &&
 
 log_this_timeout ods-control-start 60 ods-control start &&
 syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
