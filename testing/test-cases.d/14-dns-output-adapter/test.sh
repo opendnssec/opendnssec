@@ -36,6 +36,9 @@ log_waitfor ixfr stdout 5 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*
 ! (log_waitfor ixfr stdout 5 'ods\..*600.*IN.*MX.*10.*mail\.ods\.') &&
 
 ## See if we fallback to AXFR if IXFR not available.
+
+ods-signer verbosity 6 &&
+
 log_this_timeout ixfr-tcp 10 drill -t -p 15354 @127.0.0.1 ixfr ods &&
 log_waitfor ixfr-tcp stdout 5 'ods\..*IN.*IXFR' &&
 log_waitfor ixfr-tcp stdout 5 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
