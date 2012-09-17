@@ -50,7 +50,7 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
 
 /* Constants */
 #define SHM_KEY (key_t)0x0d50d5ec
-#define SEM_NAME "/ods_libhsm_pin"
+#define SEM_NAME "/ods_libhsm"
 #define SHM_PERM S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP
 
 /* Remember PIN that we can save */
