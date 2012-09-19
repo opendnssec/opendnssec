@@ -904,7 +904,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
 #ifdef USE_MYSQL
         log_msg(config, LOG_INFO, "Using %d enforcer workers", config->enforcer_workers);
 #else
-        log_msg(config, LOG_INFO, "Wrong database backend for enforcer workers, forcing single thread operation");
+        log_msg(config, LOG_INFO, "Using 1 enforcer worker (multiple enforcer workers not supported with this database backend).");
         config->enforcer_workers = 1;
 #endif
     }
