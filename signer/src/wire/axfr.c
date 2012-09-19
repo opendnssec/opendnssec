@@ -150,7 +150,6 @@ axfr(query_type* q, engine_type* engine)
             }
         }
         /* does it fit? */
-        buffer_set_position(q->buffer, q->startpos);
         if (query_add_rr(q, rr)) {
             ods_log_debug("[%s] set soa in axfr zone %s", axfr_str,
                 q->zone->name);
@@ -331,6 +330,7 @@ ixfr(query_type* q, engine_type* engine)
             ods_log_info("[%s] axfr fallback zone %s", axfr_str,
                 q->zone->name);
             free((void*)xfrfile);
+            buffer_set_position(q->buffer, q->startpos);
             return axfr(q, engine);
         }
         free((void*)xfrfile);
@@ -348,6 +348,7 @@ ixfr(query_type* q, engine_type* engine)
                 q->zone->name);
             ods_fclose(q->axfr_fd);
             q->axfr_fd = NULL;
+            buffer_set_position(q->buffer, q->startpos);
             return axfr(q, engine);
         }
         rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl, &status,
@@ -423,6 +424,7 @@ ixfr(query_type* q, engine_type* engine)
             q->zone->name);
         ods_fclose(q->axfr_fd);
         q->axfr_fd = NULL;
+        buffer_set_position(q->buffer, q->startpos);
         return axfr(q, engine);
     }
     while ((rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl,
@@ -462,6 +464,7 @@ ixfr(query_type* q, engine_type* engine)
                     q->zone->name);
                 ods_fclose(q->axfr_fd);
                 q->axfr_fd = NULL;
+                buffer_set_position(q->buffer, q->startpos);
                 return axfr(q, engine);
             }
             buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
@@ -511,6 +514,7 @@ axfr_fallback:
             ods_fclose(q->axfr_fd);
             q->axfr_fd = NULL;
         }
+        buffer_set_position(q->buffer, q->startpos);
         return axfr(q, engine);
     }
     /* UDP Overflow */
