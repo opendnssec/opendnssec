@@ -51,7 +51,7 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
 
 /* Constants */
 #define SHM_KEY (key_t)0x0d50d5ec
-#define SEM_KEY (key_t)0x0d51d5ec
+#define SEM_KEY (key_t)0x0d50d5ec
 #define SHM_PERM S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP
 #define SEM_PERM S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP
 
