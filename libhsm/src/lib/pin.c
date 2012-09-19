@@ -30,8 +30,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <sys/shm.h>
+#include <sys/sem.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
@@ -51,8 +51,9 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
 
 /* Constants */
 #define SHM_KEY (key_t)0x0d50d5ec
-#define SEM_NAME "/ods_libhsm"
+#define SEM_KEY (key_t)0x0d51d5ec
 #define SHM_PERM S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP
+#define SEM_PERM S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP
 
 /* Remember PIN that we can save */
 static char pin[HSM_MAX_PIN_LENGTH+1];
@@ -93,16 +94,145 @@ prompt_pass(char *prompt)
     return pass;
 }
 
+int
+hsm_sem_open()
+{
+    int semid;
+    struct semid_ds buf;
+
+    /* From man page for semctl */
+    union semun {
+        int              val;    /* Value for SETVAL */
+        struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
+        unsigned short  *array;  /* Array for GETALL, SETALL */
+        struct seminfo  *__buf;  /* Buffer for IPC_INFO
+                                    (Linux-specific) */
+    };
+    union semun arg;
+
+    /* Create/get the semaphore */
+    semid = semget(SEM_KEY, 1, IPC_CREAT|IPC_EXCL|SEM_PERM);
+    if (semid == -1) {
+        semid = semget(SEM_KEY, 1, IPC_CREAT|SEM_PERM);
+        if (semid == -1) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_sem_open()",
+                              "Could not access the semaphore: %s", strerror(errno));
+            return -1;
+        }
+    } else {
+        /* Set value to 1 if we created it */
+        arg.val = 1;
+        if (semctl(semid, 0, SETVAL, arg) == -1) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_sem_open()",
+                              "Could not set value on the semaphore: %s", strerror(errno));
+            return -1;
+        }
+    }
+
+    /* Get information about the semaphore */
+    arg.buf = &buf;
+    if (semctl(semid, 0, IPC_STAT, arg) != 0) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_sem_open()",
+                          "Could not stat the semaphore: %s", strerror(errno));
+        return -1;
+    }
+
+    /* Check permission to avoid an attack */
+    if ((buf.sem_perm.mode & (SEM_PERM)) != (SEM_PERM) ||
+        buf.sem_perm.gid != getegid())
+    {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_sem_open()",
+                            "Bad permissions on the semaphore, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
+        return -1;
+    }
+
+    return semid;
+}
+
+int
+hsm_sem_wait(int semid)
+{
+    struct sembuf sb = { 0, -1, 0 };
+
+    if (semop(semid, &sb, 1) == -1) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_sem_wait()",
+                          "Could not lock the semaphore: %s", strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+hsm_sem_post(int semid)
+{
+    struct sembuf sb = { 0, 1, 0 };
+
+    if (semop(semid, &sb, 1) == -1) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_sem_post()",
+                          "Could not unlock the semaphore: %s", strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+hsm_shm_open()
+{
+    int shmid;
+    size_t shmsize;
+    struct shmid_ds buf;
+
+    /* Create/get the shared memory */
+    shmsize = sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1);
+    shmid = shmget(SHM_KEY, shmsize, IPC_CREAT|IPC_EXCL|SHM_PERM);
+    if (shmid == -1) {
+        shmid = shmget(SHM_KEY, shmsize, IPC_CREAT|SHM_PERM);
+        if (shmid == -1) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_shm_open()",
+                              "Could not access the shared memory: %s", strerror(errno));
+            return -1;
+        }
+    } else {
+        /* Zeroize if we created the memory area */
+
+        /* The data should be set to zero according to man page */
+    }
+
+    /* Get information about the shared memory */
+    if (shmctl(shmid, IPC_STAT, &buf) != 0) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_shm_open()",
+                          "Could not stat the semaphore: %s", strerror(errno));
+        return -1;
+    }
+
+    /* Check the size of the memory segment */
+    if (buf.shm_segsz != shmsize) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_shm_open()",
+                            "Bad memory size, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
+        return -1;
+    }
+
+    /* Check permission to avoid an attack */
+    if ((buf.shm_perm.mode & (SHM_PERM)) != (SHM_PERM) ||
+        buf.shm_perm.gid != getegid())
+    {
+        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_shm_open()",
+                            "Bad permissions on the shared memory, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
+        return -1;
+    }
+
+    return shmid;
+}
+
 char *
 hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
 {
     /* Shared memory */
     int shmid;
-    int created = 0;
-    struct shmid_ds buf;
-    size_t shm_size;
+    int semid;
     char *pins = NULL;
-    sem_t *pin_semaphore = NULL;
     int index = id * (HSM_MAX_PIN_LENGTH + 1);
 
     /* PIN from getpass */
@@ -116,64 +246,16 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     if (mode != HSM_PIN_FIRST && mode != HSM_PIN_RETRY && mode != HSM_PIN_SAVE) return NULL;
 
     /* Create/get the semaphore */
-    pin_semaphore = sem_open(SEM_NAME, O_CREAT, SHM_PERM, 1);
-    if (pin_semaphore == SEM_FAILED) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
-                          "Could not access the named semaphore: %s", strerror(errno));
-        return NULL;
-    }
+    semid = hsm_sem_open();
+    if (semid == -1) return NULL;
 
     /* Lock the semaphore */
-    if (sem_wait(pin_semaphore) != 0) {
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
-        return NULL;
-    }
+    if (hsm_sem_wait(semid) != 0) return NULL;
 
     /* Create/get the shared memory */
-    shm_size = sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1);
-    shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|IPC_EXCL|SHM_PERM);
+    shmid = hsm_shm_open();
     if (shmid == -1) {
-        shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
-        if (shmid == -1) {
-            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
-                              "Could not access the shared memory: %s", strerror(errno));
-            sem_post(pin_semaphore);
-            sem_close(pin_semaphore);
-            pin_semaphore = NULL;
-            return NULL;
-        }
-    } else {
-        created = 1;
-    }
-
-    /* Get information about the shared memory */
-    if (shmctl(shmid, IPC_STAT, &buf) != 0) {
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
-        return NULL;
-    }
-
-    /* Check the size of the memory segment */
-    if (buf.shm_segsz != shm_size) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
-                            "Bad memory size, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
-        return NULL;
-    }
-
-    /* Check permission to avoid an attack */
-    if ((buf.shm_perm.mode & (SHM_PERM)) != (SHM_PERM) ||
-        buf.shm_perm.gid != getegid())
-    {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_prompt_pin()",
-                            "Bad permissions on the shared memory, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
+        hsm_sem_post(semid);
         return NULL;
     }
 
@@ -181,15 +263,8 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     pins = (char *)shmat(shmid, NULL, 0);
     if (pins == (char *)-1) {
         pins = NULL;
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
+        hsm_sem_post(semid);
         return NULL;
-    }
-
-    /* Zeroize if we created the memory area */
-    if (created == 1) {
-        memset(pins, '\0', sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1));
     }
 
     /* Get the PIN */
@@ -207,7 +282,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
             }
 
             /* Unlock the semaphore if someone would do Ctrl+C */
-            sem_post(pin_semaphore);
+            hsm_sem_post(semid);
 
             /* Get PIN */
             snprintf(prompt, 64, "Enter PIN for token %s: ", repository);
@@ -215,13 +290,11 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
             if (prompt_pin == NULL) {
                 shmdt(pins);
                 pins = NULL;
-                sem_close(pin_semaphore);
-                pin_semaphore = NULL;
                 return NULL;
             }
 
             /* Lock the semaphore */
-            sem_wait(pin_semaphore);
+            hsm_sem_wait(semid);
 
             /* Remember PIN */
             size = strlen(prompt_pin);
@@ -245,11 +318,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode)
     pins = NULL;
 
     /* Unlock the semaphore */
-    sem_post(pin_semaphore);
-
-    /* Close semaphore */
-    sem_close(pin_semaphore);
-    pin_semaphore = NULL;
+    hsm_sem_post(semid);
 
     return pin;
 }
@@ -259,11 +328,8 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
 {
     /* Shared memory */
     int shmid;
-    int created = 0;
-    struct shmid_ds buf;
-    size_t shm_size;
+    int semid;
     char *pins = NULL;
-    sem_t *pin_semaphore = NULL;
     int index = id * (HSM_MAX_PIN_LENGTH + 1);
 
     unsigned int size = 0;
@@ -282,64 +348,16 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
     }
 
     /* Create/get the semaphore */
-    pin_semaphore = sem_open(SEM_NAME, O_CREAT, SHM_PERM, 1);
-    if (pin_semaphore == SEM_FAILED) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
-                          "Could not access the named semaphore: %s", strerror(errno));
-        return NULL;
-    }
+    semid = hsm_sem_open();
+    if (semid == -1) return NULL;
 
     /* Lock the semaphore */
-    if (sem_wait(pin_semaphore) != 0) {
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
-        return NULL;
-    }
+    if (hsm_sem_wait(semid) != 0) return NULL;
 
     /* Create/get the shared memory */
-    shm_size = sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1);
-    shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|IPC_EXCL|SHM_PERM);
+    shmid = hsm_shm_open();
     if (shmid == -1) {
-        shmid = shmget(SHM_KEY, shm_size, IPC_CREAT|SHM_PERM);
-        if (shmid == -1) {
-            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
-                              "Could not access the shared memory: %s", strerror(errno));
-            sem_post(pin_semaphore);
-            sem_close(pin_semaphore);
-            pin_semaphore = NULL;
-            return NULL;
-        }
-    } else {
-        created = 1;
-    }
-
-    /* Get information about the shared memory */
-    if (shmctl(shmid, IPC_STAT, &buf) != 0) {
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
-        return NULL;
-    }
-
-    /* Check the size of the memory segment */
-    if (buf.shm_segsz != shm_size) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
-                            "Bad memory size, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
-        return NULL;
-    }
-
-    /* Check permission to avoid an attack */
-    if ((buf.shm_perm.mode & (SHM_PERM)) != (SHM_PERM) ||
-        buf.shm_perm.gid != getegid())
-    {
-        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_check_pin()",
-                            "Bad permissions on the shared memory, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
+        hsm_sem_post(semid);
         return NULL;
     }
 
@@ -347,15 +365,8 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
     pins = (char *)shmat(shmid, NULL, 0);
     if (pins == (char *)-1) {
         pins = NULL;
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
+        hsm_sem_post(semid);
         return NULL;
-    }
-
-    /* Zeroize if we created the memory area */
-    if (created == 1) {
-        memset(pins, '\0', sizeof(char)*HSM_MAX_SESSIONS*(HSM_MAX_PIN_LENGTH+1));
     }
 
     /* Zeroize PIN buffer */
@@ -368,9 +379,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
                           "Please login with \"ods-hsmutil login\"");
         shmdt(pins);
         pins = NULL;
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
+        hsm_sem_post(semid);
         return NULL;
     }
 
@@ -382,9 +391,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
                           "Please login again with \"ods-hsmutil login\"");
         shmdt(pins);
         pins = NULL;
-        sem_post(pin_semaphore);
-        sem_close(pin_semaphore);
-        pin_semaphore = NULL;
+        hsm_sem_post(semid);
         return NULL;
     }
 
@@ -399,11 +406,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
     pins = NULL;
 
     /* Unlock the semaphore */
-    sem_post(pin_semaphore);
-
-    /* Close semaphore */
-    sem_close(pin_semaphore);
-    pin_semaphore = NULL;
+    hsm_sem_post(semid);
 
     return pin;
 }
