@@ -556,7 +556,6 @@ engine_setup(engine_type* engine)
     action.sa_flags = 0;
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGHUP, &action, NULL);
-    sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
     sigaction(SIGILL, &action, NULL);
     sigaction(SIGUSR1, &action, NULL);
