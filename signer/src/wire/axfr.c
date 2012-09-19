@@ -150,6 +150,7 @@ axfr(query_type* q, engine_type* engine)
             }
         }
         /* does it fit? */
+        buffer_set_position(q->buffer, q->startpos);
         if (query_add_rr(q, rr)) {
             ods_log_debug("[%s] set soa in axfr zone %s", axfr_str,
                 q->zone->name);
@@ -504,7 +505,6 @@ return_ixfr:
     return QUERY_IXFR;
 
 axfr_fallback:
-    buffer_set_position(q->buffer, q->startpos);
     if (q->tcp) {
         ods_log_info("[%s] axfr fallback zone %s", axfr_str, q->zone->name);
         if (q->axfr_fd) {
