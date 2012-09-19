@@ -301,9 +301,11 @@ ixfr(query_type* q, engine_type* engine)
     uint32_t new_serial = 0;
     unsigned del_mode = 0;
     unsigned soa_found = 0;
+    ods_log_assert(engine);
     ods_log_assert(q);
     ods_log_assert(q->buffer);
-    ods_log_assert(engine);
+    ods_log_assert(q->zone);
+    ods_log_assert(q->zone->name);
     if (q->axfr_is_done) {
         return QUERY_PROCESSED;
     }
@@ -318,8 +320,6 @@ ixfr(query_type* q, engine_type* engine)
         q->tsig_sign_it = 0;
     }
     ods_log_assert(q->tsig_rr);
-    ods_log_assert(q->zone);
-    ods_log_assert(q->zone->name);
     if (q->axfr_fd == NULL) {
         /* start IXFR */
         xfrfile = ods_build_path(q->zone->name, ".ixfr", 0, 1);
@@ -345,6 +345,8 @@ ixfr(query_type* q, engine_type* engine)
                 "failed (%s)", axfr_str, q->zone->name, strerror(errno));
             ods_log_info("[%s] axfr fallback zone %s", axfr_str,
                 q->zone->name);
+            ods_fclose(q->axfr_fd);
+            q->axfr_fd = NULL;
             return axfr(q, engine);
         }
         rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl, &status,
@@ -418,6 +420,8 @@ ixfr(query_type* q, engine_type* engine)
             "(%s)", axfr_str, q->zone->name, strerror(errno));
         ods_log_info("[%s] axfr fallback zone %s", axfr_str,
             q->zone->name);
+        ods_fclose(q->axfr_fd);
+        q->axfr_fd = NULL;
         return axfr(q, engine);
     }
     while ((rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl,
@@ -455,6 +459,8 @@ ixfr(query_type* q, engine_type* engine)
                     "failed (%s)", axfr_str, q->zone->name, strerror(errno));
                 ods_log_info("[%s] axfr fallback zone %s", axfr_str,
                     q->zone->name);
+                ods_fclose(q->axfr_fd);
+                q->axfr_fd = NULL;
                 return axfr(q, engine);
             }
             buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);

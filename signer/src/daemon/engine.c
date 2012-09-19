@@ -554,8 +554,16 @@ engine_setup(engine_type* engine)
     action.sa_handler = signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
+    sigaction(SIGTERM, &action, NULL);
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGILL, &action, NULL);
+    sigaction(SIGUSR1, &action, NULL);
+    sigaction(SIGALRM, &action, NULL);
+    sigaction(SIGCHLD, &action, NULL);
+    action.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &action, NULL);
     /* set up hsm */ /* LEAK */
     result = lhsm_open(engine->config->cfg_filename);
     if (result != HSM_OK) {
