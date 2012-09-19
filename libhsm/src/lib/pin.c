@@ -55,6 +55,15 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
 #define SHM_PERM S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP
 #define SEM_PERM S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP
 
+#ifndef HAVE_UNION_SEMUN
+/* From man page for semctl */
+union semun {
+    int              val;    /* Value for SETVAL */
+    struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
+    unsigned short  *array;  /* Array for GETALL, SETALL */
+};
+#endif
+
 /* Remember PIN that we can save */
 static char pin[HSM_MAX_PIN_LENGTH+1];
 
@@ -99,15 +108,6 @@ hsm_sem_open()
 {
     int semid;
     struct semid_ds buf;
-
-    /* From man page for semctl */
-    union semun {
-        int              val;    /* Value for SETVAL */
-        struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
-        unsigned short  *array;  /* Array for GETALL, SETALL */
-        struct seminfo  *__buf;  /* Buffer for IPC_INFO
-                                    (Linux-specific) */
-    };
     union semun arg;
 
     /* Create/get the semaphore */

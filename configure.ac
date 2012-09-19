@@ -68,6 +68,20 @@ AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T
 AC_TYPE_UINT16_T
+AC_MSG_CHECKING(for union semun)
+AC_TRY_COMPILE([#include <sys/types.h>
+                #include <sys/ipc.h>
+                #include <sys/sem.h>],
+               [union semun arg;],
+               [have_union_semun=1],
+               [have_union_semun=0]
+)
+if test $have_union_semun = 1; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(HAVE_UNION_SEMUN, 1, [union semun is defined])
+else
+  AC_MSG_RESULT(no)
+fi
 
 # pthread
 ACX_PTHREAD
