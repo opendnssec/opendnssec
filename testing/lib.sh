@@ -573,11 +573,17 @@ check_if_built ()
 	
 	local name_tag="$1"
 	
-	if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
+	if [ -f "$WORKSPACE/.$name_tag.build" ]; then
+		local build_svn_rev=`cat "$WORKSPACE/.$name_tag.build" 2>/dev/null`
 		
 		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
-			return 0
+			if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
+				local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
+				
+				if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+					return 0
+				fi
+			fi
 		fi
 	fi
 	
@@ -655,11 +661,17 @@ check_if_tested ()
 	
 	local name_tag="$1"
 	
-	if [ -f "$INSTALL_ROOT/.$name_tag.test" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
+	if [ -f "$WORKSPACE/.$name_tag.test" ]; then
+		local build_svn_rev=`cat "$WORKSPACE/.$name_tag.test" 2>/dev/null`
 		
 		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
-			return 0
+			if [ -f "$INSTALL_ROOT/.$name_tag.test" ]; then
+				local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
+				
+				if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+					return 0
+				fi
+			fi
 		fi
 	fi
 	
@@ -1230,12 +1242,10 @@ log_waitfor ()
 	echo "log_waitfor: waiting for log $name to contain (timeout $timeout): $grep_string"
 	while true; do
 		if $GREP -q -- "$grep_string" $log_files 2>/dev/null; then
-			echo "log_waitfor: log $name contains (timeout $timeout): $grep_string"
 			return 0
 		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
 		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
-			echo "log_waitfor: log $name timeout has passed (timeout $timeout): $grep_string"
 			break
 		fi
 		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
@@ -1244,8 +1254,6 @@ log_waitfor ()
 		fi
 		sleep 2
 	done
-	echo "log_waitfor: log $name does not contain (timeout $timeout): $grep_string"
-	cat $log_files
 	return 1
 }
 
