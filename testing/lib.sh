@@ -573,11 +573,17 @@ check_if_built ()
 	
 	local name_tag="$1"
 	
-	if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
+	if [ -f "$WORKSPACE/.$name_tag.build" ]; then
+		local build_svn_rev=`cat "$WORKSPACE/.$name_tag.build" 2>/dev/null`
 		
 		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
-			return 0
+			if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
+				local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
+				
+				if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+					return 0
+				fi
+			fi
 		fi
 	fi
 	
@@ -655,11 +661,17 @@ check_if_tested ()
 	
 	local name_tag="$1"
 	
-	if [ -f "$INSTALL_ROOT/.$name_tag.test" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
+	if [ -f "$WORKSPACE/.$name_tag.test" ]; then
+		local build_svn_rev=`cat "$WORKSPACE/.$name_tag.test" 2>/dev/null`
 		
 		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
-			return 0
+			if [ -f "$INSTALL_ROOT/.$name_tag.test" ]; then
+				local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
+				
+				if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+					return 0
+				fi
+			fi
 		fi
 	fi
 	
