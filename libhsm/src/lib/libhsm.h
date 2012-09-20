@@ -173,6 +173,16 @@ char *
 hsm_check_pin(unsigned int id, const char *repository, unsigned int mode);
 
 
+/*! Logout
+
+    Function that will logout the user by deleting the shared memory and
+    semaphore. Any authenticated process will still be able to interact
+    with the HSM.
+*/
+int
+hsm_logout_pin();
+
+
 /*! Close HSM library
 
     Log out and detach from all configured HSMs

@@ -2,6 +2,8 @@ $Id$
 
 OpenDNSSEC 1.4.0b2
 
+* OPENDNSSEC-315: "ods-hsmutil logout" will delete any credentials in the
+  shared memory.
 * OPENDNSSEC-330: NSEC3PARAM TTL should be set to zero.
 
 Bugfixes:

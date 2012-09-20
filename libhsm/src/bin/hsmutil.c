@@ -60,6 +60,7 @@ usage ()
         progname);
 
     fprintf(stderr,"  login\n");
+    fprintf(stderr,"  logout\n");
     fprintf(stderr,"  list [repository]\n");
     fprintf(stderr,"  generate <repository> rsa <keysize>\n");
     fprintf(stderr,"  remove <id>\n");
@@ -76,6 +77,20 @@ int
 cmd_login ()
 {
     printf("The tokens are now logged in.\n");
+
+    return 0;
+}
+
+int
+cmd_logout ()
+{
+    if (hsm_logout_pin() != HSM_OK) {
+        printf("Failed to erase the credentials.\n");
+        hsm_print_error(NULL);
+        return 1;
+    }
+
+    printf("The credentials has been erased.\n");
 
     return 0;
 }
@@ -450,6 +465,12 @@ main (int argc, char *argv[])
     if (!argc) {
         usage();
         exit(1);
+    }
+
+
+    if (!strcasecmp(argv[0], "logout")) {
+        if (config) free(config);
+        exit(cmd_logout());
     }
 
     result = hsm_open(config, hsm_prompt_pin);

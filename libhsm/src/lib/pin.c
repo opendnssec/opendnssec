@@ -410,3 +410,49 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode)
 
     return pin;
 }
+
+int
+hsm_logout_pin()
+{
+    int semid;
+    int shmid;
+    union semun arg;
+    struct shmid_ds buf;
+
+    /* Get the semaphore */
+    semid = semget(SEM_KEY, 1, 0);
+    if (semid == -1) {
+        if (errno != ENOENT) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_logout_pin()",
+                              "Could not access the semaphore: %s", strerror(errno));
+            return HSM_ERROR;
+        }
+    } else {
+        /* Remove the semaphore */
+        if (semctl(semid, 0, IPC_RMID, arg) != 0) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_logout_pin()",
+                              "Could not delete the semaphore: %s", strerror(errno));
+            return HSM_ERROR;
+        }
+    }
+
+    /* Get the shared memory */
+    shmid = shmget(SHM_KEY, 0, 0);
+    if (shmid == -1) {
+        if (errno != ENOENT) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_logout_pin()",
+                              "Could not access the shared memory: %s", strerror(errno));
+            return HSM_ERROR;
+        }
+    } else {
+        /* Remove the shared memory */
+        if (shmctl(shmid, IPC_RMID, &buf) != 0) {
+            hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_logout_pin()",
+                              "Could not stat the semaphore: %s", strerror(errno));
+            return HSM_ERROR;
+        }
+    }
+
+    return HSM_OK;
+}
+
