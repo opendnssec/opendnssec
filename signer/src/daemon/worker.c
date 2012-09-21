@@ -513,6 +513,9 @@ worker_perform_task(worker_type* worker)
     return;
 
 task_perform_fail:
+    ods_log_crit("[%s[%i]] CRITICAL: failed to sign zone %s: %s",
+        worker2str(worker->type), worker->thread_num,
+        ods_status2str(status));
     /* in case of failure, also mark zone processed (for single run usage) */
     zone->db->is_processed = 1;
     if (task->backoff) {
