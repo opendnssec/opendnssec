@@ -37,7 +37,7 @@ log_grep ixfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.
 
 ## See if we fallback to AXFR if IXFR not available.
 
-log_this_timeout ixfr-tcp 10 dig +tcp -t ixfr=0 -p 15354 @127.0.0.1 ods &&
+log_this_timeout ixfr-tcp 10 drill -t -p 15354 @127.0.0.1 ixfr ods &&
 log_grep ixfr-tcp stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 log_grep ixfr-tcp stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
 
