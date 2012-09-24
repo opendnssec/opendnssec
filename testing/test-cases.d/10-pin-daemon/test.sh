@@ -5,9 +5,7 @@
 # Then login and start everything successfully
 
 # Make sure the PIN is cleared from shared memory
-# try key as hex and int, ignore results
-log_this clear-pin-hex ipcrm -M 0x0d50d5ec
-log_this clear-pin-int ipcrm -M 223401452
+log_this clear-pin ods-hsmutil logout
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
