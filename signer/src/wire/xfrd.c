@@ -1018,6 +1018,8 @@ xfrd_tcp_write(xfrd_type* xfrd, tcp_set_type* set)
             error = errno; /* on solaris errno is error */
         }
         if (error == EINPROGRESS || error == EWOULDBLOCK) {
+            ods_log_debug("[%s] zone %s zero write, write again later (%s)",
+                xfrd_str, strerror(error));
             return; /* try again later */
         }
         if (error != 0) {
@@ -1037,9 +1039,11 @@ xfrd_tcp_write(xfrd_type* xfrd, tcp_set_type* set)
         return;
     }
     if (ret == 0) {
+        ods_log_debug("[%s] zone %s zero write, write again later");
         return; /* write again later */
     }
     /* done writing, get ready for reading */
+    ods_log_debug("[%s] zone %s done writing, get ready for reading");
     tcp->is_reading = 1;
     tcp_conn_ready(tcp);
     xfrd->handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
@@ -1235,6 +1239,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
         return;
     }
     /* completed msg */
+    ods_log_debug("[%s] completed message", xfrd_str);
     buffer_flip(tcp->packet);
     ret = xfrd_handle_packet(xfrd, tcp->packet);
     switch (ret) {
