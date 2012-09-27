@@ -372,6 +372,12 @@ enforcer_worker(void *arg)
 	    if (status != 0) {
             log_msg(worker->config, LOG_ERR, "Error starting transaction for zone %s", work->zone_name);
 	        work->status = status;
+            if (policy->shared_keys) {
+                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
+                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
+                    continue;
+                }
+            }
 	        continue;
 	    }
 
@@ -380,6 +386,12 @@ enforcer_worker(void *arg)
 			log_msg(worker->config, LOG_ERR, "Error allocating zsks to zone %s", work->zone_name);
 			work->status = status;
 			DbRollback();
+            if (policy->shared_keys) {
+                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
+                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
+                    continue;
+                }
+            }
 			continue;
 		}
 		status = allocateKeysToZone(policy, KSM_TYPE_KSK, work->zone_id, worker->config->interval, work->zone_name, worker->config->manualKeyGeneration, policy->ksk->rollover_scheme);
@@ -387,16 +399,13 @@ enforcer_worker(void *arg)
 			log_msg(worker->config, LOG_ERR, "Error allocating ksks to zone %s", work->zone_name);
 			work->status = status;
             DbRollback();
+            if (policy->shared_keys) {
+                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
+                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
+                    continue;
+                }
+            }
 			continue;
-		}
-
-		if (policy->shared_keys) {
-			if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
-				log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
-				work->status = -1;
-	            DbRollback();
-				continue;
-			}
 		}
 
         /* turn this zone and policy into a file */
@@ -405,15 +414,35 @@ enforcer_worker(void *arg)
             log_msg(worker->config, LOG_ERR, "Signconf not written for %s", work->zone_name);
 			work->status = status;
             DbRollback();
+            if (policy->shared_keys) {
+                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
+                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
+                    continue;
+                }
+            }
             continue;
         }
         else if (status != 0) {
             log_msg(worker->config, LOG_ERR, "Error writing signconf for %s", work->zone_name);
 			work->status = status;
             DbRollback();
+            if (policy->shared_keys) {
+                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
+                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
+                    continue;
+                }
+            }
             continue;
         }
         DbCommit();
+
+        if (policy->shared_keys) {
+            if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
+                log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
+                work->status = -1;
+                continue;
+            }
+        }
 
 		/*log_msg(worker->config, LOG_INFO, "work done for %s", work->zone_name);*/
 	}
