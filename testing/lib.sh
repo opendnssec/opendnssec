@@ -1288,6 +1288,25 @@ log_remove ()
 	rm -f "$log_stderr" "$log_stdout" 2>/dev/null
 }
 
+log_save_try ()
+{
+	if [ -z "$1" ]; then
+		echo "usage: log_save_try <try>" >&2
+		exit 1
+	fi
+	
+	local try="$1"
+	local log_file
+	
+	ls "_log.$BUILD_TAG"* 2>/dev/null | while read log_file; do
+		if ! mv "$log_file" "$log_file-try-$try" 2>/dev/null; then
+			echo "log_save_try: Unable to save log file $log_file to $log_file-try-$try"
+			return 1
+		fi
+	done
+	return 0
+}
+
 run_tests ()
 {
 	if [ -z "$1" ]; then
@@ -1363,15 +1382,20 @@ run_tests ()
 		echo "##### `date` $test_iter/$test_num $test_path ... "
 		pwd2=`pwd`
 		cd "$test_path" 2>/dev/null &&
-		if [ -n "$PRE_TEST" ]; then
-			$PRE_TEST "$test_path"
-		fi &&
-		syslog_trace &&
 		while [ "$retry" -le "$RETRY_TEST" ] 2>/dev/null; do
 			if [ "$retry" -gt 0 ] 2>/dev/null; then
+				syslog_stop &&
+				log_save_try "$retry" &&
+				syslog_save_try "$retry" ||
+				{
+					echo "##### `date` $test_iter/$test_num $test_path ... Unable to retry"
+					test_status=1
+					break
+				}
 				echo "##### `date` $test_iter/$test_num $test_path ... RETRY $retry in $RETRY_SLEEP seconds"
 				sleep "$RETRY_SLEEP"
 			fi
+			syslog_trace &&
 			if [ -n "$PRE_TEST" ]; then
 				$PRE_TEST "$test_path"
 			fi &&
@@ -1710,6 +1734,22 @@ syslog_grep_count ()
 syslog_cleanup ()
 {
 	rm -f "_syslog.$BUILD_TAG" 2>/dev/null
+}
+
+syslog_save_try ()
+{
+	if [ -z "$1" ]; then
+		echo "usage: syslog_save_try <try>" >&2
+		exit 1
+	fi
+	
+	local try="$1"
+
+	if ! mv "_syslog.$BUILD_TAG" "_syslog.$BUILD_TAG-try-$try" 2>/dev/null; then
+		echo "syslog_save_try: Unable to save syslog file _syslog.$BUILD_TAG to _syslog.$BUILD_TAG-try-$try"
+		return 1
+	fi
+	return 0
 }
 
 apply_parameter ()
