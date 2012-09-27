@@ -1733,7 +1733,7 @@ syslog_grep_count ()
 
 syslog_cleanup ()
 {
-	rm -f "_syslog.$BUILD_TAG" 2>/dev/null
+	rm -f "_syslog.$BUILD_TAG"* 2>/dev/null
 }
 
 syslog_save_try ()
