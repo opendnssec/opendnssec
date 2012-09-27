@@ -707,7 +707,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             continue;
         }
         /* Additional rules for signatures */
-        if (rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
+        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY &&
+	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
             continue;
         }
 
