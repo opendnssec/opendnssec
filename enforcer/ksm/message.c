@@ -458,6 +458,9 @@ MsgThreadSetup(void)
 
         if (!_msg_setup) {
             if (pthread_key_create(&_key_msg_prefix, NULL)) {
+                if (pthread_mutex_unlock(&_msg_setup_mutex)) {
+                    return -3;
+                }
                 return -2;
             }
             _msg_setup = 1;

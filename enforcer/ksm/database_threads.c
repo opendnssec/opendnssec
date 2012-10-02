@@ -50,9 +50,15 @@ DbThreadSetup(void)
 
 		if (!_db_setup) {
 			if (pthread_key_create(&_key_db_handle, NULL)) {
+		        if (pthread_mutex_unlock(&_db_setup_mutex)) {
+		            return -3;
+		        }
 				return -2;
 			}
             if (pthread_key_create(&_key_db_in_transaction, NULL)) {
+                if (pthread_mutex_unlock(&_db_setup_mutex)) {
+                    return -3;
+                }
                 return -2;
             }
 			_db_setup = 1;
