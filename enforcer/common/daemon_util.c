@@ -388,6 +388,7 @@ log_xml_error(void *ignore, const char *format, ...)
     if ((prefix = MsgThreadGetPrefix())) {
         char buffer[4096];
 
+        va_start(args, format);
         vsnprintf(buffer, 4096, format, args);
         va_end(args);
 
@@ -427,6 +428,7 @@ log_xml_warn(void *ignore, const char *format, ...)
     if ((prefix = MsgThreadGetPrefix())) {
         char buffer[4096];
 
+        va_start(args, format);
         vsnprintf(buffer, 4096, format, args);
         va_end(args);
 
