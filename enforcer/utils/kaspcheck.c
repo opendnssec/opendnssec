@@ -274,6 +274,15 @@ int check_conf(char** kasp) {
 		if(xpath_obj == NULL) {
 			xmlXPathFreeContext(xpath_ctx);
 			xmlFreeDoc(doc);
+
+			for (i = 0; i < repo_count; i++) {
+				free(repo[i].name);
+				free(repo[i].module);
+				free(repo[i].TokenLabel);
+			}
+			free(repo);
+			free(repo_mods);
+
 			return -1;
 		}
 		temp_char = (char*) xmlXPathCastToString(xpath_obj);
@@ -289,6 +298,15 @@ int check_conf(char** kasp) {
 	if(xpath_obj == NULL) {
 		xmlXPathFreeContext(xpath_ctx);
 		xmlFreeDoc(doc);
+
+		for (i = 0; i < repo_count; i++) {
+			free(repo[i].name);
+			free(repo[i].module);
+			free(repo[i].TokenLabel);
+		}
+		free(repo);
+		free(repo_mods);
+
 		return -1;
 	}
 	temp_char = (char*) xmlXPathCastToString(xpath_obj);

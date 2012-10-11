@@ -286,6 +286,7 @@ enforcer_worker(void *arg)
     /* Signal enforcer_start_workers we are up even if there was an error */
     if (pthread_mutex_lock(&_enforcer_worker_startup_mutex)) {
         log_msg(worker->config, LOG_ERR, "Error locking startup mutex");
+		KsmPolicyFree(policy);
         return NULL;
     }
 
@@ -293,16 +294,19 @@ enforcer_worker(void *arg)
     if (pthread_cond_signal(&_enforcer_worker_startup_cond)) {
         pthread_mutex_unlock(&_enforcer_worker_startup_mutex);
         log_msg(worker->config, LOG_ERR, "Error signaling startup cond");
+		KsmPolicyFree(policy);
         return NULL;
     }
 
     if (pthread_mutex_unlock(&_enforcer_worker_startup_mutex)) {
         log_msg(worker->config, LOG_ERR, "Error unlocking startup mutex");
+		KsmPolicyFree(policy);
         return NULL;
     }
 
     /* exit if there was a problem starting */
     if (_enforcer_worker_exit) {
+		KsmPolicyFree(policy);
         return NULL;
     }
 
@@ -1347,8 +1351,8 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                             if (roll_time <= config->rolloverNotify) {
                                 log_msg(config, LOG_INFO, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
                             }
-                            StrFree(ksk_expected);
                         }
+						StrFree(ksk_expected);
                     }
                     StrFree(datetime);
                 }
@@ -1634,8 +1638,8 @@ static int do_communication_workers(DAEMONCONFIG *config)
                         if (roll_time <= config->rolloverNotify) {
                             log_msg(config, LOG_INFO, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
                         }
-                        StrFree(ksk_expected);
                     }
+					StrFree(ksk_expected);
                 }
                 StrFree(datetime);
             }

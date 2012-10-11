@@ -653,13 +653,18 @@ int make_directory(DAEMONCONFIG* config, const char* path) {
 
     *slash = 0;
 
-    stat(parent, &stat_ret);
+    if (stat(parent, &stat_ret) != 0) {
+		if (errno != ENOENT) {
+			log_msg(NULL, LOG_ERR, "cannot stat %s: %s\n",
+					parent, strerror(errno));
+			return 1;
+		}
+	}
 
-    if (!S_ISDIR(stat_ret.st_mode)) {
+	if (!S_ISDIR(stat_ret.st_mode)) {
+		make_directory(config, parent);
+	}
 
-        make_directory(config, parent);
-
-    }
 
     StrFree(parent);
 

@@ -712,15 +712,17 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	/* If datecounter is used for serial, then no more than 99 signings 
 	 * should be done per day (there are only two digits to play with in the 
 	 * version number). */
-	if (strncmp(serial, "datecounter", 11) == 0) {
-		resigns_per_day = (60 * 60 * 24) / resign;
-		if (resigns_per_day > 99) {
-			dual_log("ERROR: In %s, policy %s, serial type datecounter used "
-					"but %d re-signs requested. No more than 99 re-signs per "
-					"day should be used with datecounter as only 2 digits are "
-					"allocated for the version number.\n", 
-					kasp, policy_name, resigns_per_day);
-			status++;
+	if (serial != NULL && strncmp(serial, "datecounter", 11) == 0) {
+		if (resign != 0) {
+			resigns_per_day = (60 * 60 * 24) / resign;
+			if (resigns_per_day > 99) {
+				dual_log("ERROR: In %s, policy %s, serial type datecounter used "
+						"but %d re-signs requested. No more than 99 re-signs per "
+						"day should be used with datecounter as only 2 digits are "
+						"allocated for the version number.\n", 
+						kasp, policy_name, resigns_per_day);
+				status++;
+			}
 		}
 	}
 
@@ -752,26 +754,30 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 
 	/* Check that repositories listed in the KSK and ZSK sections are defined
 	 * in conf.xml. */
-	for (i = 0; i < repo_count; i++) {
-		if (strcmp(ksk_repo, repo_list[i]) == 0) {
-			break;
+	if (ksk_repo != NULL) {
+		for (i = 0; i < repo_count; i++) {
+			if (strcmp(ksk_repo, repo_list[i]) == 0) {
+				break;
+			}
 		}
-	}
-	if (i >= repo_count) {
-		dual_log("ERROR: Unknown repository (%s) defined for KSK in "
-				"%s policy in %s\n", ksk_repo, policy_name, kasp);
-		status++;
+		if (i >= repo_count) {
+			dual_log("ERROR: Unknown repository (%s) defined for KSK in "
+					"%s policy in %s\n", ksk_repo, policy_name, kasp);
+			status++;
+		}
 	}
 
-	for (i = 0; i < repo_count; i++) {
-		if (strcmp(zsk_repo, repo_list[i]) == 0) {
-			break;
+	if (zsk_repo != NULL) {
+		for (i = 0; i < repo_count; i++) {
+			if (strcmp(zsk_repo, repo_list[i]) == 0) {
+				break;
+			}
 		}
-	}
-	if (i >= repo_count) {
-		dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
-				"%s policy\n", zsk_repo, policy_name);
-		status++;
+		if (i >= repo_count) {
+			dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
+					"%s policy\n", zsk_repo, policy_name);
+			status++;
+		}
 	}
 	
 	/* Warn if for any zone, the KSK lifetime is less than the ZSK lifetime. */
