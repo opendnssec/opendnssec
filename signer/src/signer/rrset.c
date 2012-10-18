@@ -696,12 +696,12 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
          &inception, &expiration);
     /* Walk keys */
     for (i=0; i < zone->signconf->keys->count; i++) {
-        /* ZSKs don't sign DNSKEY RRset */
+        /* If not ZSK don't sign other RRsets */
         if (!zone->signconf->keys->keys[i].zsk &&
             rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
             continue;
         }
-        /* KSKs only sign DNSKEY RRset */
+        /* If not KSK don't sign DNSKEY RRset */
         if (!zone->signconf->keys->keys[i].ksk &&
             rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             continue;
