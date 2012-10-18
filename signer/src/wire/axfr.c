@@ -60,7 +60,7 @@ axfr(query_type* q, engine_type* engine)
     ldns_rdf* orig = NULL;
     uint16_t total_added = 0;
     uint32_t ttl = 0;
-    uint32_t expire = 0;
+    time_t expire = 0;
     ldns_status status = LDNS_STATUS_OK;
     char line[SE_ADFILE_MAXLINE];
     unsigned l = 0;
@@ -292,7 +292,7 @@ ixfr(query_type* q, engine_type* engine)
     ldns_rdf* orig = NULL;
     uint16_t total_added = 0;
     uint32_t ttl = 0;
-    uint32_t expire = 0;
+    time_t expire = 0;
     ldns_status status = LDNS_STATUS_OK;
     char line[SE_ADFILE_MAXLINE];
     unsigned l = 0;
