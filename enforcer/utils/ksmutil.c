@@ -396,7 +396,9 @@ usage_backup ()
             "  backup list\n"
             "\t--repository <repository>                aka -r\n"
             "  backup done\n"
-            "\t--repository <repository>                aka -r\n");
+            "\t--repository <repository>                aka -r\n"
+            "\t--force\n"
+			"\t[NOTE: backup done is deprecated]\n");
 }
 
     void
@@ -2126,6 +2128,8 @@ cmd_backup (const char* qualifier)
 
     int repo_id = -1;
 
+	int user_certain;           /* Continue ? */
+
     /* Database connection details */
     DB_HANDLE	dbhandle;
     FILE* lock_fd = NULL;   /* This is the lock file descriptor for a SQLite DB */
@@ -2137,6 +2141,22 @@ cmd_backup (const char* qualifier)
         printf("Couldn't turn \"now\" into a date, quitting...\n");
         exit(1);
     }
+
+	/* Warn about deprecation if we are doing the one-step backup */
+	if ( strncmp(qualifier, "DONE", 4) == 0 ) {
+		printf("*WARNING* One-step backups are deprecated in favour of a two-step process; see the documentation on key management for the explanation.\n");
+
+		/* Allow force flag to override the question for scripts */
+		if (force_flag == 0) {
+			printf("Do you wish to continue? [y/N] ");
+
+			user_certain = getchar();
+			if (user_certain != 'y' && user_certain != 'Y') {
+				printf("Okay, quitting...\n");
+				exit(0);
+			}
+		}
+	}
 
     /* try to connect to the database */
     status = db_connect(&dbhandle, &lock_fd, 1);

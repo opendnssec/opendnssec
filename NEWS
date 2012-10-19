@@ -1,5 +1,7 @@
 $Id$
 
+* ods-ksmutil: Deprecate the one-step key backup command
+
 OpenDNSSEC 1.4.0b2
 
 * OPENDNSSEC-315: "ods-hsmutil logout" will delete any credentials in the

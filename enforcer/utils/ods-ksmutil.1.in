@@ -302,10 +302,11 @@ to the state where they are generated, but not yet available for service
 by OpenDNSSEC.  After fixing this problem, a new attempt to backup the 
 keys can be made. 
 .TP
-.B backup done \-\-repository|\-r name
+.B backup done \-\-repository|\-r name [\-\-force]
+*DEPRECATED*
+
 Indicate that a backup of the given repository has been done, all non-backed up keys will now be marked as backed up.
 The \-\-repository option specifies what repository to list.
-This is a necessary step for repositories that have the RequireBackup flag set.
 
 Note that the KASP Enforcer may take the initiative to generate keys after
 the backup has started and before the backup is done.  This single-phase 
