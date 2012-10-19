@@ -73,6 +73,11 @@ log_grep ods-ksmutil-key-list3 stdout 'test.keep                       ZSK      
 ! log_grep ods-ksmutil-key-list3 stdout 'test.delete                     KSK           publish' &&
 ! log_grep ods-ksmutil-key-list3 stdout 'test.delete                     ZSK           active' &&
 
+# Finally, delete the remaining zones
+echo "y" | log_this ods-ksmutil-zone-del ods-ksmutil zone delete --all &&
+# Check the zone is _not_ there
+log_this ods-ksmutil-zone-list4 ods-ksmutil zone list &&
+log_grep ods-ksmutil-zone-list4 stdout 'No zones in DB or zonelist.' &&
 
 log_this_timeout ods-control-enforcer-stop 60 ods-control enforcer stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
