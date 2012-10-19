@@ -194,9 +194,8 @@ dnshandler_start(dnshandler_type* dnshandler)
     }
     /* service */
     while (dnshandler->need_to_exit == 0) {
-        ods_log_debug("[%s] netio dispatch", dnsh_str);
+        ods_log_deeebug("[%s] netio dispatch", dnsh_str);
         if (netio_dispatch(dnshandler->netio, NULL, NULL) == -1) {
-            ods_log_debug("[%s] netio dispatch failed", dnsh_str);
             if (errno != EINTR) {
                 ods_log_error("[%s] unable to dispatch netio: %s", dnsh_str,
                     strerror(errno));

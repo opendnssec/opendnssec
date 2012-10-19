@@ -440,18 +440,37 @@ xfrd_tsig_process(xfrd_type* xfrd, buffer_type* buffer)
 static void
 xfrd_commit_packet(xfrd_type* xfrd)
 {
-    zone_type* zone = (zone_type*) xfrd->zone;
+    zone_type* zone = NULL;
+    char* xfrfile = NULL;
+    FILE* fd = NULL;
+    ods_log_assert(xfrd);
+    zone = (zone_type*) xfrd->zone;
+    xfrfile = ods_build_path(zone->name, ".xfrd", 0, 1);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
-    ods_log_assert(xfrd);
-    /* update soa serial management */
     lock_basic_lock(&zone->zone_lock);
     lock_basic_lock(&xfrd->rw_lock);
     lock_basic_lock(&xfrd->serial_lock);
+    /* mark end packet */
+    fd = ods_fopen(xfrfile, NULL, "a");
+    free((void*)xfrfile);
+    if (fd) {
+        fprintf(fd, ";;ENDPACKET\n");
+        ods_fclose(fd);
+    } else {
+        lock_basic_unlock(&zone->zone_lock);
+        lock_basic_unlock(&xfrd->rw_lock);
+        lock_basic_unlock(&xfrd->serial_lock);
+        ods_log_crit("[%s] unable to commit xfr zone %s: ods_fopen() failed "
+            "(%s)", xfrd_str, zone->name, strerror(errno));
+        return;
+    }
+    /* update soa serial management */
     xfrd->serial_disk = xfrd->msg_new_serial;
     xfrd->serial_disk_acquired = xfrd_time(xfrd);
     xfrd->soa.serial = xfrd->serial_disk;
-    if (xfrd->serial_disk_acquired > xfrd->serial_xfr_acquired) {
+    if (util_serial_gt(xfrd->serial_disk, xfrd->serial_xfr) &&
+            xfrd->serial_disk_acquired > xfrd->serial_xfr_acquired) {
         /* reschedule task */
         int ret = 0;
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
@@ -497,7 +516,7 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
     ods_log_assert(zone->name);
     status = ldns_wire2pkt(&pkt, buffer_begin(buffer), buffer_limit(buffer));
     if (status != LDNS_STATUS_OK) {
-        ods_log_crit("[%s] unable to store zone %s xfr: ldns_wire2pkt() "
+        ods_log_crit("[%s] unable to dump packet zone %s: ldns_wire2pkt() "
             "failed (%s)", xfrd_str, zone->name,
             ldns_get_errorstr_by_id(status));
         return;
@@ -508,20 +527,21 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
     lock_basic_lock(&xfrd->serial_lock);
     xfrd->serial_disk_acquired = 0;
     lock_basic_unlock(&xfrd->serial_lock);
-    if (xfrd->msg_seq_nr) {
-        fd = ods_fopen(xfrfile, NULL, "a");
-    } else {
-        fd = ods_fopen(xfrfile, NULL, "w");
-    }
+
+    fd = ods_fopen(xfrfile, NULL, "a");
     free((void*) xfrfile);
     if (!fd) {
-        ods_log_crit("[%s] unable to store zone %s xfr: ods_fopen() failed "
-            "for (%s)", xfrd_str, zone->name, strerror(errno));
-    } else {
-        ods_log_assert(fd);
-        ldns_rr_list_print(fd, ldns_pkt_answer(pkt));
-        ods_fclose(fd);
+        ods_log_crit("[%s] unable to dump packet zone %s: ods_fopen() failed "
+            "(%s)", xfrd_str, zone->name, strerror(errno));
+        lock_basic_unlock(&xfrd->rw_lock);
+        return;
     }
+    ods_log_assert(fd);
+    if (xfrd->msg_seq_nr == 0) {
+        fprintf(fd, ";;BEGINPACKET\n");
+    }
+    ldns_rr_list_print(fd, ldns_pkt_answer(pkt));
+    ods_fclose(fd);
     lock_basic_unlock(&xfrd->rw_lock);
     ldns_pkt_free(pkt);
     return;
@@ -837,7 +857,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
                  xfrd->master->address);
             xfrd->serial_disk_acquired = xfrd_time(xfrd);
             if (xfrd->serial_xfr == serial) {
-                xfrd->serial_xfr_acquired = xfrd_time(xfrd);
+                xfrd->serial_xfr_acquired = xfrd->serial_disk_acquired;
                 if (!xfrd->serial_notify_acquired) {
                     /* not notified or anything, so stop asking around */
                     xfrd->round_num = -1; /* next try start a new round */
@@ -1230,23 +1250,18 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
     tcp = set->tcp_conn[xfrd->tcp_conn];
     ret = tcp_conn_read(tcp);
     if (ret == -1) {
-        ods_log_debug("[%s] tcp read returns -1: release connection",
-            xfrd_str);
         xfrd_set_timer_now(xfrd);
         xfrd_tcp_release(xfrd, set);
         return;
     }
     if (ret == 0) {
-        ods_log_debug("[%s] tcp read returns 0: not ready yet", xfrd_str);
         return;
     }
     /* completed msg */
-    ods_log_debug("[%s] completed message", xfrd_str);
     buffer_flip(tcp->packet);
     ret = xfrd_handle_packet(xfrd, tcp->packet);
     switch (ret) {
         case XFRD_PKT_MORE:
-            ods_log_debug("[%s] tcp read: more to come", xfrd_str);
             tcp_conn_ready(tcp);
             break;
         case XFRD_PKT_XFR:
@@ -1686,19 +1701,19 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
         ods_log_assert(xfrhandler);
         if (event_types & NETIO_EVENT_READ) {
-           ods_log_debug("[%s] zone %s event tcp read", xfrd_str, zone->name);
+           ods_log_deeebug("[%s] zone %s event tcp read", xfrd_str, zone->name);
            xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_TCP_TIMEOUT);
            xfrd_tcp_read(xfrd, xfrhandler->tcp_set);
            return;
         } else if (event_types & NETIO_EVENT_WRITE) {
-           ods_log_debug("[%s] zone %s event tcp write", xfrd_str,
+           ods_log_deeebug("[%s] zone %s event tcp write", xfrd_str,
                zone->name);
            xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_TCP_TIMEOUT);
            xfrd_tcp_write(xfrd, xfrhandler->tcp_set);
            return;
         } else if (event_types & NETIO_EVENT_TIMEOUT) {
            /* tcp connection timed out. Stop it. */
-           ods_log_debug("[%s] zone %s event tcp timeout", xfrd_str,
+           ods_log_deeebug("[%s] zone %s event tcp timeout", xfrd_str,
                zone->name);
            xfrd_tcp_release(xfrd, xfrhandler->tcp_set);
            /* continue to retry; as if a timeout happened */
@@ -1708,7 +1723,7 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 
     if (event_types & NETIO_EVENT_READ) {
         /* busy in udp transaction */
-        ods_log_debug("[%s] zone %s event udp read", xfrd_str,
+        ods_log_deeebug("[%s] zone %s event udp read", xfrd_str,
             zone->name);
         xfrd_set_timer_now(xfrd);
         xfrd_udp_read(xfrd);
@@ -1716,19 +1731,19 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
     }
 
     /* timeout */
-    ods_log_debug("[%s] zone %s timeout", xfrd_str, zone->name);
+    ods_log_deeebug("[%s] zone %s timeout", xfrd_str, zone->name);
     if (handler->fd != -1) {
         ods_log_assert(xfrd->tcp_conn == -1);
         xfrd_udp_release(xfrd);
     }
     if (xfrd->tcp_waiting) {
-        ods_log_debug("[%s] zone %s skips retry: tcp connections full",
+        ods_log_deeebug("[%s] zone %s skips retry: tcp connections full",
             xfrd_str, zone->name);
         xfrd_unset_timer(xfrd);
         return;
     }
     if (xfrd->udp_waiting) {
-        ods_log_debug("[%s] zone %s skips retry: udp connections full",
+        ods_log_deeebug("[%s] zone %s skips retry: udp connections full",
             xfrd_str, zone->name);
         xfrd_unset_timer(xfrd);
         return;

@@ -192,7 +192,7 @@ ods_fopen(const char* file, const char* dir, const char* mode)
     char* openf = NULL;
 
     ods_log_assert(mode);
-    ods_log_debug("[%s] open file %s%s file=%s mode=%s", file_str,
+    ods_log_deeebug("[%s] open file %s%s file=%s mode=%s", file_str,
         (dir?"dir=":""), (dir?dir:""), (file?file:"(null)"),
         ods_file_mode2str(mode));
 

@@ -122,26 +122,21 @@ tcp_conn_read(tcp_conn_type* tcp)
         if (received == -1) {
             if (errno == EAGAIN || errno == EINTR) {
                 /* read would block, try later */
-                ods_log_debug("[%s] readlen would block, try later", tcp_str);
                 return 0;
             } else {
                 if (errno != ECONNRESET) {
                     ods_log_error("[%s] error read() sz: %s", tcp_str,
                         strerror(errno));
                 }
-                ods_log_debug("[%s] readlen failed (%s)", tcp_str,
-                    strerror(errno));
                 return -1;
             }
         } else if (received == 0) {
             /* EOF */
-            ods_log_debug("[%s] readlen EOF", tcp_str);
             return -1;
         }
         tcp->total_bytes += received;
         if (tcp->total_bytes < sizeof(tcp->msglen)) {
             /* not complete yet, try later */
-            ods_log_debug("[%s] not complete yet, try later", tcp_str);
             return 0;
         }
         ods_log_assert(tcp->total_bytes == sizeof(tcp->msglen));
@@ -160,32 +155,26 @@ tcp_conn_read(tcp_conn_type* tcp)
     if (received == -1) {
         if (errno == EAGAIN || errno == EINTR) {
             /* read would block, try later */
-            ods_log_debug("[%s] read would block, try later", tcp_str);
             return 0;
         } else {
             if (errno != ECONNRESET) {
                 ods_log_error("[%s] error read(): %s", tcp_str,
                     strerror(errno));
             }
-            ods_log_debug("[%s] read failed (%s)", tcp_str,
-                strerror(errno));
             return -1;
         }
     } else if (received == 0) {
         /* EOF */
-        ods_log_debug("[%s] read EOF", tcp_str);
         return -1;
     }
     tcp->total_bytes += received;
     buffer_skip(tcp->packet, received);
     if (buffer_remaining(tcp->packet) > 0) {
         /* not complete yet, wait for more */
-        ods_log_debug("[%s] not complete yet, wait for more", tcp_str);
         return 0;
     }
     /* completed */
     ods_log_assert(buffer_position(tcp->packet) == tcp->msglen);
-    ods_log_debug("[%s] read completed", tcp_str);
     return 1;
 }
 
@@ -207,20 +196,14 @@ tcp_conn_write(tcp_conn_type* tcp)
         if (sent == -1) {
             if (errno == EAGAIN || errno == EINTR) {
                 /* write would block, try later */
-                ods_log_debug("[%s] writelen would block, try later (%s)",
-                    tcp_str, strerror(errno));
                 return 0;
             } else {
-                ods_log_debug("[%s] writelen failed (%s)",
-                    tcp_str, strerror(errno));
                 return -1;
             }
         }
         tcp->total_bytes += sent;
         if (tcp->total_bytes < sizeof(tcp->msglen)) {
             /* incomplete write, resume later */
-            ods_log_debug("[%s] incomplete writelen, resume later (%u < %u)",
-                tcp_str, tcp->total_bytes, sizeof(tcp->msglen));
             return 0;
         }
         ods_log_assert(tcp->total_bytes == sizeof(tcp->msglen));
@@ -231,12 +214,8 @@ tcp_conn_write(tcp_conn_type* tcp)
     if (sent == -1) {
         if (errno == EAGAIN || errno == EINTR) {
             /* write would block, try later */
-            ods_log_debug("[%s] write would block, try later (%s)",
-                tcp_str, strerror(errno));
             return 0;
         } else {
-            ods_log_debug("[%s] write failed (%s)",
-                tcp_str, strerror(errno));
             return -1;
         }
     }
@@ -244,12 +223,9 @@ tcp_conn_write(tcp_conn_type* tcp)
     tcp->total_bytes += sent;
     if (tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen)) {
         /* more to write when socket becomes writable again */
-        ods_log_debug("[%s] incomplete write, resume later (%u < %u + %u)",
-            tcp_str, tcp->total_bytes, tcp->msglen, sizeof(tcp->msglen));
         return 0;
     }
     ods_log_assert(tcp->total_bytes == tcp->msglen + sizeof(tcp->msglen));
-    ods_log_debug("[%s] write completed", tcp_str);
     return 1;
 }
 

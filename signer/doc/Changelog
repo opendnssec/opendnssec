@@ -1,5 +1,12 @@
+19 Oktober 2012: Matthijs
+- Fix issue where IXFRs are coming too fast and some are lost.
+
+19 September 2012: Matthijs
+- Catch signals, instead of crashing.
+
 13 September 2012: Matthijs
 - OPENDNSSEC-330: NSEC3PARAM TTL should be set to zero.
+- Allow multiple KSKs
 
 12 September 2012: Matthijs
 - Code review Ondrej Sury.

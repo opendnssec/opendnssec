@@ -130,10 +130,10 @@ xfrhandler_start(xfrhandler_type* xfrhandler)
     while (xfrhandler->need_to_exit == 0) {
         /* dispatch may block for a longer period, so current is gone */
         xfrhandler->got_time = 0;
-        ods_log_debug("[%s] netio dispatch", xfrh_str);
+        ods_log_deeebug("[%s] netio dispatch", xfrh_str);
         if (netio_dispatch(xfrhandler->netio, NULL, NULL) == -1) {
             if (errno != EINTR) {
-                ods_log_error("[%s] netio_dispatch failed: %s", xfrh_str,
+                ods_log_error("[%s] unable to dispatch netio: %s", xfrh_str,
                     strerror(errno));
             }
         }

@@ -38,9 +38,11 @@
 
 ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_OK, "All OK" },
-    { ODS_STATUS_ASSERT_ERR, "Assertion error"},
+    { ODS_STATUS_EOF, "End of file" },
     { ODS_STATUS_NOTIMPL, "Not implemented"},
+    { ODS_STATUS_UPTODATE, "Up to date"},
 
+    { ODS_STATUS_ASSERT_ERR, "Assertion error"},
     { ODS_STATUS_CFG_ERR, "Configuration error"},
     { ODS_STATUS_CHDIR_ERR, "Change directory failed"},
     { ODS_STATUS_CHROOT_ERR, "Change root failed"},
@@ -56,6 +58,7 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_INSECURE, "Insecure"},
     { ODS_STATUS_MALLOC_ERR, "Memory allocation error"},
     { ODS_STATUS_RENAME_ERR, "Unable to rename file"},
+    { ODS_STATUS_UNLINK_ERR, "Unable to unlink file"},
 
     { ODS_STATUS_SOCK_BIND, "Unable to bind socket"},
     { ODS_STATUS_SOCK_FCNTL_NONBLOCK, "Unable to set socket to nonblocking"},

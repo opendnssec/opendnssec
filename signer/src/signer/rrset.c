@@ -666,12 +666,12 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     /* Skip delegation, glue and occluded RRsets */
     if (dstatus != LDNS_RR_TYPE_SOA) {
         log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
-            "skip signing occluded RRset", LOG_DEBUG);
+            "skip signing occluded RRset", LOG_DEEEBUG);
         return ODS_STATUS_OK;
     }
     if (delegpt != LDNS_RR_TYPE_SOA && rrset->rrtype != LDNS_RR_TYPE_DS) {
         log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
-            "skip signing delegation RRset", LOG_DEBUG);
+            "skip signing delegation RRset", LOG_DEEEBUG);
         return ODS_STATUS_OK;
     }
 
