@@ -219,7 +219,7 @@ module KASPAuditor
         end
       elsif (@config.denial.nsec3) # && ((@first_nsec.type == Dnsruby::Types::NSEC3)))
         # Now check that the last nsec3 points to the first nsec3
-        if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s == @first_nsec.name.to_s))
+        if (@first_nsec && (get_next_nsec3_name(@last_nsec).to_s.downcase == @first_nsec.name.to_s.downcase))
         else
           # An unknown NSEC3 could be between the last and first
           if (@unknown_nsecs[get_next_nsec3_name(@last_nsec).to_s+"."] &&
@@ -583,7 +583,7 @@ module KASPAuditor
       end
       #      end
       # Check that the NSEC3PARAMs are the same as those defined in the Config
-      if (l_rr.salt != @config.denial.nsec3.hash.salt)
+      if (l_rr.salt.downcase != @config.denial.nsec3.hash.salt.downcase)
         log(LOG_ERR, "NSEC3PARAM has wrong salt : should be #{@config.denial.nsec3.hash.salt} but was #{(l_rr.salt)}")
       end
       if (l_rr.iterations != @config.denial.nsec3.hash.iterations)
@@ -607,7 +607,7 @@ module KASPAuditor
         @first_nsec3 = l_rr # Store so we have something to work with
       end
       # Check that the parameters are the same as those defined in the config
-      if (l_rr.salt != @config.denial.nsec3.hash.salt)
+      if (l_rr.salt.downcase != @config.denial.nsec3.hash.salt.downcase)
         log(LOG_ERR, "NSEC3 has wrong salt : should be #{@config.denial.nsec3.hash.salt} but was #{l_rr.salt}")
       end
       if (l_rr.iterations != @config.denial.nsec3.hash.iterations)

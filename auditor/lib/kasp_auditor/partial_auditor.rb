@@ -758,7 +758,7 @@ module KASPAuditor
       check_nsec_ttl(split[1], line, "NSEC3")
       # Check that the parameters are the same as those defined in the config
       salt = split[7]
-      if (salt != @config.denial.nsec3.hash.salt)
+      if (salt.downcase != @config.denial.nsec3.hash.salt.downcase)
         log(LOG_ERR, "NSEC3 has wrong salt : should be #{@config.denial.nsec3.hash.salt} but was #{salt}")
       end
       iterations = split[6].to_i
@@ -815,7 +815,7 @@ module KASPAuditor
       end
       #      end
       # Check that the NSEC3PARAMs are the same as those defined in the Config
-      if (rr.salt != @config.denial.nsec3.hash.salt)
+      if (rr.salt.downcase != @config.denial.nsec3.hash.salt.downcase)
         log(LOG_ERR, "NSEC3PARAM has wrong salt : should be #{@config.denial.nsec3.hash.salt} but was #{(rr.salt)}")
       end
       if (rr.iterations != @config.denial.nsec3.hash.iterations)

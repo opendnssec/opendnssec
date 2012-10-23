@@ -1,5 +1,6 @@
 $Id$
 
+* OPENDNSSEC-342: Auditor comparisons made case-insensitive
 
 OpenDNSSEC 1.3.11
 
