@@ -127,8 +127,7 @@ create table dnsseckeys (
   dead          timestamp null default null,  # time when key is slated for removal
 
   constraint primary key (id),
-  constraint foreign key (zone_id) references zones (id),
-  constraint foreign key (keypair_id) references keypairs (id)
+  constraint dnsseckeys_keypairs_id foreign key (keypair_id) references keypairs (id)
 )ENGINE=InnoDB;
 
 # parameters_policies - join table to hold the values of parameters

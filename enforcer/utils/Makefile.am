@@ -42,3 +42,4 @@ ods_kaspcheck_LDADD += @XML2_LIBS@
 EXTRA_DIST = $(srcdir)/migrate_*.pl
 EXTRA_DIST += $(srcdir)/migrate_adapters_1.*
 EXTRA_DIST += $(srcdir)/convert_database.pl
+EXTRA_DIST += $(srcdir)/migrate_zone_delete.mysql
