@@ -1,6 +1,7 @@
 $Id$
 
 * ods-ksmutil: Deprecate the one-step key backup command
+* OPENDNSSEC-299: ods-ksmutil <enter> now includes policy import
 * OPENDNSSEC-338: ods-ksmutil: fix zone delete on MySQL (broken by SUPPORT-27)
 * OPENDNSSEC-345: ods-ksmutil: use ods-control to HUP the enforcerd process
 
