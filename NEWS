@@ -1,6 +1,7 @@
 $Id$
 
 * OPENDNSSEC-299: ods-ksmutil <enter> now includes policy import
+* OPENDNSSEC-300: ods-ksmutil policy purge documented with a warning
 * OPENDNSSEC-342: Auditor comparisons made case-insensitive
 
 OpenDNSSEC 1.3.11
