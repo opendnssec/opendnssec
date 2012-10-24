@@ -126,17 +126,6 @@ AC_REPLACE_FUNCS(b64_ntop)
 ACX_BROKEN_SETRES
 AC_CHECK_STRPTIME
 
-# find out how to restart named processes
-AC_PATH_PROG(PKILL, pkill)
-AC_PATH_PROG(KILLALL, killall)
-if test -n "$PKILL" -a -x "$PKILL"; then
-  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "$PKILL -HUP ods-enforcerd", [Command to restart a named process])
-elif test -n "$KILLALL" -a -x "$KILLALL"; then
-  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "$KILLALL -HUP ods-enforcerd", [Command to restart a named process])
-else
-  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "/bin/false", [Command to restart a named process])
-fi
-
 # check for some target-specific stuff
 case "$host" in
 *-*-darwin*)

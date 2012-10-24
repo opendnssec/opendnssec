@@ -1,6 +1,7 @@
 $Id$
 
 * ods-ksmutil: Deprecate the one-step key backup command
+* OPENDNSSEC-345: ods-ksmutil: use ods-control to HUP the enforcerd process
 
 OpenDNSSEC 1.4.0b2
 

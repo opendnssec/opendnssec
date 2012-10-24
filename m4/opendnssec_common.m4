@@ -93,6 +93,7 @@ OPENDNSSEC_ENFORCER_CONTROL=$OPENDNSSEC_SBIN_DIR/ods-control
 OPENDNSSEC_ENFORCER_KASPCHECK=$OPENDNSSEC_BIN_DIR/ods-kaspcheck
 
 AC_DEFINE_UNQUOTED(ODS_EN_CONTROL,    ["$OPENDNSSEC_ENFORCER_CONTROL enforcer "],    [Path to the OpenDNSSEC ods-control binary])
+AC_DEFINE_UNQUOTED(ODS_EN_NOTIFY,    ["$OPENDNSSEC_ENFORCER_CONTROL enforcer notify"],    [Command to send a SIGHUP to the ods-enforcerd process])
 AC_DEFINE_UNQUOTED(ODS_EN_KASPCHECK,  ["$OPENDNSSEC_ENFORCER_KASPCHECK"],            [Path to the OpenDNSSEC kaspcheck binary])
 
 # multithread enforcer specific
