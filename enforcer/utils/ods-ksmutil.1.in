@@ -26,7 +26,7 @@
 .B ods-ksmutil rollover list
 .RB ...
 .br
-.B ods-ksmutil policy export|import
+.B ods-ksmutil policy export|import|purge
 .RB ...
 .br
 .B ods-ksmutil repository list
@@ -267,6 +267,12 @@ Export a policy from the database in the same format as the kasp.xml file.
 .TP
 .B policy import
 Update the database with the contents of kasp.xml; identical to "update kasp".
+.TP
+.B policy purge
+* Experimental *
+
+Remove any policies which have no zones associated with them.
+Note that this command has only been tested in a lab environment and so caution is recommended. 
 .SH "REPOSITORY AND BACKUP SUBCOMMANDS"
 .LP
 .TP
