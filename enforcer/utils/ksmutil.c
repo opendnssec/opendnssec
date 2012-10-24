@@ -421,6 +421,7 @@ usage ()
     usage_zonelist ();
     usage_repo ();
     usage_policyexport ();
+    usage_policyimport ();
     usage_policylist ();
     usage_policypurge ();
     usage_keylist ();
