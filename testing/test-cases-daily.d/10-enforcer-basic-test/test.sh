@@ -9,6 +9,11 @@
 # - check more logging in syslog
 # - write a script that will replace the locator in the signconf so we can do a full diff
 
+# Lets use parameters for the timing intervals so they are easy to change
+SHORT_TIMEOUT=10    # Timeout when checking log output
+LONG_TIMEOUT=20     # Timeout when waiting for enforcer run to have happened
+SLEEP_INTERVAL=50   # This should be just shorter than the enforcer run interval in conf.xml
+
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
@@ -17,11 +22,6 @@ ods_reset_env &&
 
 # Used only to create a gold while setting up the test
 # rm -rf gold && mkdir gold &&
-
-# Lets use parameters for the timing intervals so they are easy to change
-export SHORT_TIMEOUT=10    # Timeout when checking log output
-export LONG_TIMEOUT=20     # Timeout when waiting for enforcer run to have happened
-export SLEEP_INTERVAL=50   # This should be just shorter than the enforcer run interval in conf.xml
 
 ##################  SETUP ###########################
 # Add a zone
@@ -51,10 +51,10 @@ log_grep ods-ksmutil-check-0   stdout "KSK           publish" &&
 log_this ods-ksmutil-check-0   diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_0.xml &&
 
 # Get the key tags and issue the DS sub on the standby key. This will cause the enforcer to run again.
-export ZSK_CKA_ID_1=`grep -E "ZSK           active" _log..ods-ksmutil-check-0.stdout | awk '{print $9}'` &&
-export ZSK_CKA_ID_2=`grep -E "ZSK           publish" _log..ods-ksmutil-check-0.stdout | awk '{print $9}'` &&
-export KSK_CKA_ID_STANDBY=`grep -E "KSK           dssub"   _log..ods-ksmutil-check-0.stdout | awk '{print $10}'` &&
-export KSK_CKA_ID_1=`grep -E "KSK           publish" _log..ods-ksmutil-check-0.stdout | awk '{print $9}'` &&
+ZSK_CKA_ID_1=`log_grep ods-ksmutil-check-0 stdout "ZSK           active" | awk '{print $9}'` &&
+ZSK_CKA_ID_2=`log_grep ods-ksmutil-check-0 stdout "ZSK           publish" | awk '{print $9}'` &&
+KSK_CKA_ID_STANDBY=`log_grep ods-ksmutil-check-0 stdout "KSK           dssub" | awk '{print $10}'` &&
+KSK_CKA_ID_1=`log_grep ods-ksmutil-check-0 stdout "KSK           publish" | awk '{print $9}'` &&
 log_this ods-ksmutil-dsseen_standby   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_STANDBY &&
 
 # Check it was made standby
@@ -91,7 +91,7 @@ log_grep ods-ksmutil-check-2   stdout "ZSK           ready.*$ZSK_CKA_ID_2" &&
 log_grep ods-ksmutil-check-2   stdout "ZSK           publish" &&
 log_grep ods-ksmutil-check-2   stdout "KSK           dsready.*$KSK_CKA_ID_STANDBY" &&
 log_grep ods-ksmutil-check-2   stdout "KSK           active.*$KSK_CKA_ID_1" &&
-export ZSK_CKA_ID_3=`grep -E "ZSK           publish" _log..ods-ksmutil-check-2.stdout | awk '{print $9}'` &&
+ZSK_CKA_ID_3=`log_grep ods-ksmutil-check-2 stdout "ZSK           publish" | awk '{print $9}'` &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_2.xml &&  
 log_this ods-ksmutil-check-2 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_2.xml &&
 
@@ -120,7 +120,7 @@ log_grep ods-ksmutil-check-4   stdout "ZSK           ready.*$ZSK_CKA_ID_3" &&
 log_grep ods-ksmutil-check-4   stdout "KSK           dsready.*$KSK_CKA_ID_STANDBY" &&
 log_grep ods-ksmutil-check-4   stdout "KSK           active.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-4   stdout "KSK           publish" &&
-export KSK_CKA_ID_2=`grep -E "KSK           publish" _log..ods-ksmutil-check-4.stdout | awk '{print $9}'` &&
+KSK_CKA_ID_2=`log_grep ods-ksmutil-check-4 stdout "KSK           publish" | awk '{print $9}'` &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_4.xml &&
 log_this ods-ksmutil-check-4 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_4.xml &&
 
@@ -136,7 +136,7 @@ log_grep ods-ksmutil-check-5   stdout "ZSK           publish" &&
 log_grep ods-ksmutil-check-5   stdout "KSK           dsready.*$KSK_CKA_ID_STANDBY" &&
 log_grep ods-ksmutil-check-5   stdout "KSK           active.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-5   stdout "KSK           ready.*$KSK_CKA_ID_2" &&
-export ZSK_CKA_ID_4=`grep -E "ZSK           publish" _log..ods-ksmutil-check-5.stdout | awk '{print $9}'` &&
+ZSK_CKA_ID_4=`log_grep ods-ksmutil-check-5 stdout "ZSK           publish" | awk '{print $9}'` &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_5.xml &&
 log_this ods-ksmutil-check-5 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_5.xml &&
 
@@ -192,8 +192,8 @@ log_grep ods-ksmutil-check-8   stdout "ZSK           publish" &&
 log_grep ods-ksmutil-check-8   stdout "KSK           dsready.*$KSK_CKA_ID_STANDBY" &&
 log_grep ods-ksmutil-check-8   stdout "KSK           active.*$KSK_CKA_ID_2" &&
 log_grep ods-ksmutil-check-8   stdout "KSK           publish" &&
-export ZSK_CKA_ID_5=`grep -E "ZSK           publish" _log..ods-ksmutil-check-8.stdout | awk '{print $9}'` &&
-export KSK_CKA_ID_3=`grep -E "KSK           publish" _log..ods-ksmutil-check-8.stdout | awk '{print $9}'` &&
+ZSK_CKA_ID_5=`log_grep ods-ksmutil-check-8 stdout "ZSK           publish" | awk '{print $9}'` &&
+KSK_CKA_ID_3=`log_grep ods-ksmutil-check-8 stdout "KSK           publish" | awk '{print $9}'` &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_8.xml &&
 log_this ods-ksmutil-check-8 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_8.xml &&
 
