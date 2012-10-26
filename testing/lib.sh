@@ -1084,8 +1084,23 @@ log_force_stop ()
 
 log_grep ()
 {
+	local output=""
+	OPTIND=1
+	while getopts ":o" opt; do
+		case "$opt" in
+			o)
+				output=1
+				;;
+			\?)
+				echo "log_grep: Invalid option: -$OPTARG" >&2
+				exit 1
+				;;
+		esac
+	done
+	shift $((OPTIND-1))
+
 	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
-		echo "usage: log_grep <log name> <stdout|stderr|both> <grep string ...>" >&2
+		echo "usage: log_grep [-o] <log name> <stdout|stderr|both> <grep string ...>" >&2
 		exit 1
 	fi
 
@@ -1122,52 +1137,12 @@ log_grep ()
 		exit 1
 	fi
 
-	echo "log_grep: greping in $name for: $grep_string"
-	$GREP -q -- "$grep_string" $log_files 2>/dev/null
-}
-
-log_grep_with_output ()
-{
-	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
-		echo "usage: log_grep <log name> <stdout|stderr|both> <grep string ...>" >&2
-		exit 1
+	if [ -n "$output" ]; then
+		$GREP -- "$grep_string" $log_files 2>/dev/null
+	else
+		echo "log_grep: greping in $name for: $grep_string"
+		$GREP -q -- "$grep_string" $log_files 2>/dev/null
 	fi
-
-	local name="$1"
-	local log_stderr="_log.$BUILD_TAG.$name.stderr"
-	local log_stdout="_log.$BUILD_TAG.$name.stdout"
-	local type="$2"
-	local grep_string="$3"
-	local log_files
-	
-	case "$type" in
-		stdout)
-		if [ ! -f "$log_stdout" ]; then
-			return 1
-		fi
-		log_files="$log_stdout"
-		;;
-		stderr)
-		if [ ! -f "$log_stderr" ]; then
-			return 1
-		fi
-		log_files="$log_stderr"
-		;;
-		both)
-		if [ ! -f "$log_stdout" -a ! -f "$log_stderr" ]; then
-			return 1
-		fi
-		log_files="$log_stdout $log_stderr"
-		;;
-	esac
-	
-	if [ -z "$log_files" ]; then
-		echo "log_grep: Wrong type of log file specified, should be stdout, stderr or both!" >&2
-		exit 1
-	fi
-
-	echo "log_grep: greping in $name for: $grep_string"
-	$GREP -- "$grep_string" $log_files 2>/dev/null
 }
 
 log_grep_count ()
