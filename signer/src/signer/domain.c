@@ -533,32 +533,13 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
         while (rrset) {
             /* skip SOA RRset */
             if (rrset->rrtype != LDNS_RR_TYPE_SOA) {
-                dstatus = domain_is_occluded(domain);
-                if (dstatus == LDNS_RR_TYPE_A) {
-                    /* Glue */
-                    if (rrset->rrtype == LDNS_RR_TYPE_A ||
-                        rrset->rrtype == LDNS_RR_TYPE_AAAA) {
-                        rrset_print(fd, rrset, 0, status);
-                    }
-                } else if (dstatus == LDNS_RR_TYPE_SOA) {
-                    /* Authoritative or delegation */
-                    dstatus = domain_is_delegpt(domain);
-                    if (dstatus == LDNS_RR_TYPE_SOA ||
-                        rrset->rrtype == LDNS_RR_TYPE_A ||
-                        rrset->rrtype == LDNS_RR_TYPE_AAAA ||
-                        rrset->rrtype == LDNS_RR_TYPE_NS ||
-                        rrset->rrtype == LDNS_RR_TYPE_DS) {
-                        rrset_print(fd, rrset, 0, status);
-                    }
-                }
-                /* Occluded */
+                rrset_print(fd, rrset, 0, status);
             }
             if (status && *status != ODS_STATUS_OK) {
                 ods_log_crit("[%s] failed to print one or more RRsets: %s",
                     dname_str, ods_status2str(*status));
                 return;
             }
-
             rrset = rrset->next;
         }
     }

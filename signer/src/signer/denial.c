@@ -89,8 +89,18 @@ denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
     domain = (domain_type*) denial->domain;
     rrset = domain->rrsets;
     while (rrset) {
-        types[*types_count] = rrset->rrtype;
-        *types_count = *types_count + 1;
+        ldns_rr_type dstatus = domain_is_occluded(domain);
+        if (dstatus == LDNS_RR_TYPE_SOA) {
+            /* Authoritative or delegation */
+            dstatus = domain_is_delegpt(domain);
+            if (dstatus == LDNS_RR_TYPE_SOA ||
+                rrset->rrtype == LDNS_RR_TYPE_NS ||
+                rrset->rrtype == LDNS_RR_TYPE_DS) {
+
+                types[*types_count] = rrset->rrtype;
+                *types_count = *types_count + 1;
+            }
+        }
         rrset = rrset->next;
     }
     return;

@@ -11,11 +11,13 @@ OpenDNSSEC 1.4.0b2
 * OPENDNSSEC-315: "ods-hsmutil logout" will delete any credentials in the
   shared memory.
 * OPENDNSSEC-330: NSEC3PARAM TTL should be set to zero.
+* Allow multiple KSKs.
 
 Bugfixes:
 * Fixed locking and notification on the drudge work queue, signals could be missed
   so that drudgers would stall when there was work to be done.
 * Fixed PIN handling on OpenBSD.
+* SUPPORT-40: Keep occluded data in signed zone files/transfers.
 
 
 OpenDNSSEC 1.4.0b1 - 2012-09-06
