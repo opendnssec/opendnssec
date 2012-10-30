@@ -18,6 +18,8 @@ label4.ods. IN NS ns4.label4.ods.
 label4.ods. IN NS ns5.label4.ods.
 label4.ods. IN NS ns6.label4.ods.
 
+below.zonecut.label4.ods. IN NS ns.zonecut.label4.ods.
+
 ns1.label4.ods. IN A 192.0.2.1
 ns2.label4.ods. IN A 192.0.2.1
 ns3.label4.ods. IN A 192.0.2.1

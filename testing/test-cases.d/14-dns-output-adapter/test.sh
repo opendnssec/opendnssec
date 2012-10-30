@@ -31,6 +31,8 @@ log_grep soa stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*
 log_this_timeout axfr 10 drill -p 15354 @127.0.0.1 axfr ods &&
 log_grep axfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 log_grep axfr stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
+## Occluded names should be part of transfer
+log_grep axfr stdout 'below\.zonecut\.label4\.ods\..*600.*IN.*NS.*ns\.zonecut\.label4\.ods\.' &&
 ## See if we send overflow UDP if does not fit.
 log_this_timeout ixfr 10 drill -p 15354 @127.0.0.1 ixfr ods &&
 syslog_waitfor 10 'ods-signerd: .*\[axfr\] axfr fallback zone ods' &&
