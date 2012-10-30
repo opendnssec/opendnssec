@@ -29,11 +29,11 @@ ods-signer verbosity 5 &&
 ldns-notify -p 15354 -s 1001 -r 2 -z ods 127.0.0.1 &&
 
 ## Request IXFR/UDP
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods sending udp query id=.* qtype=IXFR to 127.0.0.1' &&
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods received error code NOTIMPL from 127.0.0.1' &&
+syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods sending udp query id=.* qtype=IXFR to 127\.0\.0\.1' &&
+syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods received error code NOTIMPL from 127\.0\.0\.1' &&
 
 ## Request AXFR/TCP
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request axfr to 127.0.0.1' &&
+syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request axfr to 127\.0\.0\.1' &&
 
 ## Stop
 log_this_timeout ods-control-stop 60 ods-control stop &&
