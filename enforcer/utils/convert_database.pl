@@ -34,6 +34,11 @@ use Getopt::Long ();
 use Pod::Usage ();
 use File::Basename ();
 
+# Try to require Term::ReadKey, ignore if it does not exist
+eval {
+    require Term::ReadKey;
+};
+
 my ($sth, $row);
 
 my $schema_path;
@@ -101,6 +106,32 @@ my (undef, $to_data_source) = DBI->parse_dsn($to);
 unless (defined $to_data_source and ($to_data_source eq 'mysql' or $to_data_source eq 'SQLite')) {
     print STDERR $0, ': Invalid data source used in --to DSN, only mysql or SQLite allowed (case sensitive).', "\n";
     exit(-1);
+}
+
+#
+# Prompt for --from-password if from DSN is MySQL and password not given
+#
+
+if (!defined $from_password and $from_data_source eq 'mysql') {
+    print 'Enter exporting database password (--from-password): ';
+
+    # Try Term::ReadKey
+    eval {
+        ReadMode('noecho');
+        $from_password = ReadLine(0);
+        ReadMode('echo');
+    };
+    
+    # Fallback if Term::ReadKey does not exist
+    if ($@) {
+        $from_password = <STDIN>;
+    }
+    
+    unless ($from_password) {
+        print STDERR $0, ': No password given for exporting database.', "\n";
+    }
+
+    $from_password =~ s/[\r\n]+$//o;
 }
 
 #
@@ -240,6 +271,32 @@ if ($to_data_source eq 'mysql') {
 }
 
 #
+# Prompt for --to-password if from DSN is MySQL and password not given
+#
+
+if (!defined $to_password and $to_data_source eq 'mysql') {
+    print 'Enter importing database password (--to-password): ';
+
+    # Try Term::ReadKey
+    eval {
+        ReadMode('noecho');
+        $to_password = ReadLine(0);
+        ReadMode('echo');
+    };
+    
+    # Fallback if Term::ReadKey does not exist
+    if ($@) {
+        $to_password = <STDIN>;
+    }
+    
+    unless ($to_password) {
+        print STDERR $0, ': No password given for importing database.', "\n";
+    }
+
+    $to_password =~ s/[\r\n]+$//o;
+}
+
+#
 # Connect to importing database
 #
 
@@ -271,7 +328,7 @@ if ($to_data_source eq 'mysql') {
         $line =~ s/\r//go;
         $sql .= $line;
         
-        if ($sql =~ /\);$/o) {
+        if ($sql =~ /\;$/o) {
             unless ($to_dbh->do($sql)) {
                 print STDERR $0, ': Unable to create importing database, statement "', $sql, '" failed: ', $to_dbh->errstr, "\n";
                 exit(-1);
@@ -281,9 +338,27 @@ if ($to_data_source eq 'mysql') {
     }
 }
 elsif ($to_data_source eq 'SQLite') {
-    unless ($to_dbh->do('source '.$schema_path.'/database_create.sqlite3')) {
-        print STDERR $0, ': Unable to create importing database, statement "source '.$schema_path.'/database_create.sqlite3" failed: ', $to_dbh->errstr, "\n";
+    unless (open(FILE, $schema_path.'/database_create.sqlite3')) {
+        print STDERR $0, ': ', "\n";
         exit(-1);
+    }
+    
+    my $sql = '';
+    while ((my $line = <FILE>)) {
+        if ($line =~ /^\s*--/o) {
+            next;
+        }
+        
+        $line =~ s/\r//go;
+        $sql .= $line;
+        
+        if ($sql =~ /\;$/o) {
+            unless ($to_dbh->do($sql)) {
+                print STDERR $0, ': Unable to create importing database, statement "', $sql, '" failed: ', $to_dbh->errstr, "\n";
+                exit(-1);
+            }
+            $sql = '';
+        }
     }
 }
 else {
