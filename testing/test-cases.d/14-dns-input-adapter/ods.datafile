@@ -11,7 +11,7 @@ SECTION QUESTION
 ods. IN AXFR
 SECTION ANSWER
 
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 1200 180 1209600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 20 5 3600 3600
 ods. 600 IN MX 10 mail.ods.
 ods. 600 IN NS ns1.ods.
 ods. 600 IN NS ns2.ods.
@@ -274,10 +274,139 @@ label34.ods. 3600 IN NS ns5.label34.ods.
 ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 1200 180 1209600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 20 5 3600 3600
 
 SECTION AUTHORITY
 SECTION ADDITIONAL
 ENTRY_END
 
 
+ENTRY_BEGIN
+MATCH opcode
+MATCH qtype
+MATCH qname
+MATCH UDP
+REPLY QUERY
+REPLY NOERROR
+REPLY QR AA
+ADJUST copy_id
+SECTION QUESTION
+ods. IN IXFR
+SECTION ANSWER
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+
+ENTRY_BEGIN
+MATCH opcode
+MATCH qtype
+MATCH qname
+MATCH TCP
+REPLY QUERY
+REPLY NOERROR
+REPLY QR AA
+ADJUST copy_id
+SECTION QUESTION
+ods. IN IXFR
+SECTION ANSWER
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
+; remove label34 (1000 -> 1001)
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 20 5 3600 3600
+label34.ods. 3600 IN NS ns1.label34.ods.
+ns1.label34.ods. 3600 IN A 192.0.2.1
+label34.ods. 3600 IN NS ns2.label34.ods.
+ns2.label34.ods. 3600 IN A 192.0.2.1
+label34.ods. 3600 IN NS ns3.label34.ods.
+ns3.label34.ods. 3600 IN A 192.0.2.1
+label34.ods. 3600 IN NS ns4.label34.ods.
+ns4.label34.ods. 3600 IN A 192.0.2.1
+label34.ods. 3600 IN NS ns5.label34.ods.
+ns5.label34.ods. 3600 IN A 192.0.2.1
+label34.ods. 3600 IN NS ns6.label34.ods.
+ns6.label34.ods. 3600 IN A 192.0.2.1
+; add label35 - label40 (1000 -> 1001)
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
+label35.ods. 3600 IN NS ns1.label35.ods.
+ns1.label35.ods. 3600 IN A 192.0.2.1
+label35.ods. 3600 IN NS ns2.label35.ods.
+ns2.label35.ods. 3600 IN A 192.0.2.1
+label35.ods. 3600 IN NS ns3.label35.ods.
+ns3.label35.ods. 3600 IN A 192.0.2.1
+label35.ods. 3600 IN NS ns4.label35.ods.
+ns4.label35.ods. 3600 IN A 192.0.2.1
+label35.ods. 3600 IN NS ns5.label35.ods.
+ns5.label35.ods. 3600 IN A 192.0.2.1
+label35.ods. 3600 IN NS ns6.label35.ods.
+ns6.label35.ods. 3600 IN A 192.0.2.1
+
+label36.ods. 3600 IN NS ns1.label36.ods.
+ns1.label36.ods. 3600 IN A 192.0.2.1
+label36.ods. 3600 IN NS ns2.label36.ods.
+ns2.label36.ods. 3600 IN A 192.0.2.1
+label36.ods. 3600 IN NS ns3.label36.ods.
+ns3.label36.ods. 3600 IN A 192.0.2.1
+label36.ods. 3600 IN NS ns4.label36.ods.
+ns4.label36.ods. 3600 IN A 192.0.2.1
+label36.ods. 3600 IN NS ns5.label36.ods.
+ns5.label36.ods. 3600 IN A 192.0.2.1
+label36.ods. 3600 IN NS ns6.label36.ods.
+ns6.label36.ods. 3600 IN A 192.0.2.1
+
+label37.ods. 3600 IN NS ns1.label37.ods.
+ns1.label37.ods. 3600 IN A 192.0.2.1
+label37.ods. 3600 IN NS ns2.label37.ods.
+ns2.label37.ods. 3600 IN A 192.0.2.1
+label37.ods. 3600 IN NS ns3.label37.ods.
+ns3.label37.ods. 3600 IN A 192.0.2.1
+label37.ods. 3600 IN NS ns4.label37.ods.
+ns4.label37.ods. 3600 IN A 192.0.2.1
+label37.ods. 3600 IN NS ns5.label37.ods.
+ns5.label37.ods. 3600 IN A 192.0.2.1
+label37.ods. 3600 IN NS ns6.label37.ods.
+ns6.label37.ods. 3600 IN A 192.0.2.1
+
+label38.ods. 3600 IN NS ns1.label38.ods.
+ns1.label38.ods. 3600 IN A 192.0.2.1
+label38.ods. 3600 IN NS ns2.label38.ods.
+ns2.label38.ods. 3600 IN A 192.0.2.1
+label38.ods. 3600 IN NS ns3.label38.ods.
+ns3.label38.ods. 3600 IN A 192.0.2.1
+label38.ods. 3600 IN NS ns4.label38.ods.
+ns4.label38.ods. 3600 IN A 192.0.2.1
+label38.ods. 3600 IN NS ns5.label38.ods.
+ns5.label38.ods. 3600 IN A 192.0.2.1
+label38.ods. 3600 IN NS ns6.label38.ods.
+ns6.label38.ods. 3600 IN A 192.0.2.1
+
+label39.ods. 3600 IN NS ns1.label39.ods.
+ns1.label39.ods. 3600 IN A 192.0.2.1
+label39.ods. 3600 IN NS ns2.label39.ods.
+ns2.label39.ods. 3600 IN A 192.0.2.1
+label39.ods. 3600 IN NS ns3.label39.ods.
+ns3.label39.ods. 3600 IN A 192.0.2.1
+label39.ods. 3600 IN NS ns4.label39.ods.
+ns4.label39.ods. 3600 IN A 192.0.2.1
+label39.ods. 3600 IN NS ns5.label39.ods.
+ns5.label39.ods. 3600 IN A 192.0.2.1
+label39.ods. 3600 IN NS ns6.label39.ods.
+ns6.label39.ods. 3600 IN A 192.0.2.1
+
+label40.ods. 3600 IN NS ns1.label40.ods.
+ns1.label40.ods. 3600 IN A 192.0.2.1
+label40.ods. 3600 IN NS ns2.label40.ods.
+ns2.label40.ods. 3600 IN A 192.0.2.1
+label40.ods. 3600 IN NS ns3.label40.ods.
+ns3.label40.ods. 3600 IN A 192.0.2.1
+label40.ods. 3600 IN NS ns4.label40.ods.
+ns4.label40.ods. 3600 IN A 192.0.2.1
+label40.ods. 3600 IN NS ns5.label40.ods.
+ns5.label40.ods. 3600 IN A 192.0.2.1
+label40.ods. 3600 IN NS ns6.label40.ods.
+ns6.label40.ods. 3600 IN A 192.0.2.1
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
+
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
