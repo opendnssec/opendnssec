@@ -43,7 +43,7 @@ log_grep ods-ksmutil-update stdout 'Notifying enforcer of new database...'
 syslog_waitfor 5 'HSM connection open' &&
 
 # ... and finish
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
+syslog_waitfor_count 60 2 'ods-enforcerd: .*Sleeping for' &&
 
 # Check the zone is there
 log_this ods-ksmutil-zone-list2 ods-ksmutil zone list &&
