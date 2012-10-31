@@ -3,6 +3,24 @@ $Id$
 This file gives you instructions on how to migrate from one version of
 OpenDNSSEC to another.
 
+*** Fix for MySQL zone delete issue ***
+
+  As reported in:
+    https://issues.opendnssec.org/browse/OPENDNSSEC-338
+
+  This effects MySQL databases created after 1.4.0a3 or 1.3.9 where zone deletion was changed.
+
+  If you wish to fix this without losing any existing information then run the sql statements
+  given in:
+
+    enforcer/utils/migrate_zone_delete.mysql
+
+  against your database.
+
+  Note that sqlite is not effected as we do not enforce any constraints.
+
+
+
 *** Adding indexes to kasp (sqlite3 only) ***
 
   This is not really a migration as it is not required, but it improves performance

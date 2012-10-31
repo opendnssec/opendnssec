@@ -114,8 +114,6 @@ create table dnsseckeys (
   retire        varchar(64) null default null,  -- time when the key retires
   dead          varchar(64) null default null,  -- time when key is slated for removal
 
-
-  foreign key (zone_id) references zones (id),
   foreign key (keypair_id) references keypairs (id)
 );
 

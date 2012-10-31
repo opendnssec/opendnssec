@@ -1,0 +1,5 @@
+# Migrate existing database for zone delete fix
+
+alter table dnsseckeys drop foreign key dnsseckeys_ibfk_1;
+
+
