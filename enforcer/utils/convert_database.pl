@@ -156,6 +156,20 @@ unless ($sth->execute and defined ($row = $sth->fetchrow_hashref) and defined ($
 $sth->finish;
 
 #
+# Check for supported database schema version
+#
+
+my $from_version_valid = 0;
+if ($from_version == 3) {
+    $from_version_valid = 1;
+}
+
+unless ($from_version_valid) {
+    print STDERR $0, ': Exporting database schema version is not supported for conversion.', "\n";
+    exit(-1);
+}
+
+#
 # Validate existing data depending on importing data source
 #
 
