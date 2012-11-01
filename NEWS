@@ -12,6 +12,7 @@ Bugfixes:
 * OPENDNSSEC-300: ods-ksmutil policy purge documented with a warning
 * OPENDNSSEC-338: ods-ksmutil: fix zone delete on MySQL (broken by SUPPORT-27)
 * OPENDNSSEC-342: Auditor comparisons made case-insensitive
+* OPENDNSSEC-345: ods-ksmutil: use ods-control to HUP the enforcerd process
 
 
 OpenDNSSEC 1.3.10 - 2012-08-10

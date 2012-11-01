@@ -7692,7 +7692,7 @@ static int restart_enforcerd()
 {
 	/* ToDo: This should really be rewritten so that it will read
 	   OPENDNSSEC_ENFORCER_PIDFILE and send a SIGHUP itself */
-	return system(RESTART_ENFORCERD_CMD);
+	return system(ODS_EN_NOTIFY);
 }
 
 /* 
