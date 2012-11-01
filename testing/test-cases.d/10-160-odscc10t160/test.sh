@@ -16,6 +16,7 @@ syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
 log_this ods-ksmutil-backup-prepare ods-ksmutil backup prepare &&
 log_this ods-ksmutil-backup-commit ods-ksmutil backup commit &&
 log_this ods-ksmutil-notify ods-ksmutil notify &&
+syslog_waitfor_count 60 2 'ods-enforcerd: .*Sleeping for' &&
 
 log_this_timeout ods-control-signer-start 60 ods-control signer start &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
