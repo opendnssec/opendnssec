@@ -18,6 +18,7 @@ test_ok=0
 test_ok=1
 
 stop_test
+finish
 
 if [ "$test_ok" -eq 1 ]; then
 	set_test_ok opendnssec || exit 1
