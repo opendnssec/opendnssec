@@ -99,6 +99,8 @@ case "$DISTRIBUTION" in
 		;;
 esac
 
+finish
+
 if [ "$build_ok" -eq 1 ]; then
 	set_build_ok opendnssec || exit 1
 	exit 0
