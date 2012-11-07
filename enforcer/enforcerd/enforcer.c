@@ -1293,7 +1293,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 {
                     int NewDS;
                     status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd, config->DSSubCKA_ID, &NewDS);
-                    if (status2 != 0) {
+                    if (status2 == 0) {
                         /* If the DS set changed then log/do something about it */
                         if (NewDS == 1) {
                             log_msg(config, LOG_INFO, "DSChanged");
@@ -1655,7 +1655,10 @@ static int do_communication_workers(DAEMONCONFIG *config)
         if (system(signer_command))
         {
             log_msg(NULL, LOG_ERR, "Could not call signer engine to update all zones");
-            log_msg(NULL, LOG_INFO, "Will continue: call 'ods-signer update --all' to manually update all zones");
+            log_msg(NULL, LOG_INFO, "Will continue: call '%s' to manually update all zones", signer_command);
+        }
+        else {
+            log_msg(NULL, LOG_INFO, "Called signer engine: %s", signer_command);
         }
 
         StrFree(signer_command);
@@ -1693,8 +1696,8 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                                round potentially different behaviour of rename over existing
                                file.) */
     int     gencnt;         /* Number of keys in generate state */
-#ifndef ENFORCER_USE_WORKERS
     char *signer_command;   /* how we will call the signer */
+#ifndef ENFORCER_USE_WORKERS
     int     NewDS = 0;      /* Did we change the DS Set in any way? */
 #endif
     char*   datetime = DtParseDateTimeString("now");
@@ -1954,7 +1957,6 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
             return -1;
         }
 
-#ifndef ENFORCER_USE_WORKERS
         if (*signer_flag == 1) {
             /* call the signer engine to tell it that something changed */
             /* TODO for beta version connect straight to the socket
@@ -1970,13 +1972,15 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
             if (status != 0)
             {
                 log_msg(NULL, LOG_ERR, "Could not call signer engine");
-                log_msg(NULL, LOG_INFO, "Will continue: call 'ods-signer update' to manually update zones");
+                log_msg(NULL, LOG_INFO, "Will continue: call '%s' to manually update the zone", signer_command);
                 *signer_flag = 0;
+            }
+            else {
+                log_msg(NULL, LOG_INFO, "Called signer engine: %s", signer_command);
             }
 
             StrFree(signer_command);
         }
-#endif
     }
     else {
         log_msg(NULL, LOG_INFO, "No change to: %s", current_filename);
