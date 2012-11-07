@@ -32,6 +32,7 @@
  */
 
 #include "config.h"
+#include "shared/file.h"
 #include "shared/hsm.h"
 #include "shared/log.h"
 #include "shared/util.h"
@@ -557,6 +558,26 @@ rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
 
 
 /**
+ * Is the RRset signed with this locator?
+ *
+ */
+static int
+rrset_siglocator(rrset_type* rrset, const char* locator)
+{
+    size_t i = 0;
+    if (!rrset) {
+        return 0;
+    }
+    for (i=0; i < rrset->rrsig_count; i++) {
+        if (!ods_strcmp(locator, rrset->rrsigs[i].key_locator)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+/**
  * Transmogrify the RRset to a RRlist.
  *
  */
@@ -707,6 +728,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             continue;
         }
         /* Additional rules for signatures */
+        if (rrset_siglocator(rrset, zone->signconf->keys->keys[i].locator)) {
+            continue;
+        }
         if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY &&
 	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
             continue;
