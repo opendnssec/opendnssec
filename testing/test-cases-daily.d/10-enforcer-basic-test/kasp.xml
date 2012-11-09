@@ -3,7 +3,6 @@
 <!-- $Id: c_kasp.xml.in 3876 2010-09-03 07:07:36Z jakob $ -->
 
 <KASP>
-<?xml version="1.0"?>
 <Policy name="Policy1">
 	<Description>
 			Policy1 in ODS wiki BasicTest outline
@@ -69,11 +68,10 @@
 </Policy>
 
 
-<?xml version="1.0"?>
 <Policy name="Policy2">
 	<Description>
-A default policy that will amaze you and your friends
-</Description>
+		A default policy that will amaze you and your friends
+	</Description>
 	<Signatures>
 		<Resign>PT6M</Resign>
 		<Refresh>PT7M</Refresh>
