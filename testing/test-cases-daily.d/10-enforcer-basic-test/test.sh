@@ -217,7 +217,7 @@ log_grep ods-ksmutil-check-9   stdout "KSK           ready.*$KSK_CKA_ID_3" &&
 log_this ods-ksmutil-check-9 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_9.xml &&
 
 # Issue ds_seen for KSK3
-sleep $TINY_INTERVAL &&
+sleep $TINY_TIMEOUT &&
 log_this ods-ksmutil-dsseen_3   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_3 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_CKA_ID_3 made active" &&
 syslog_waitfor_count $LONG_TIMEOUT 14 'ods-enforcerd: .*Sleeping for' &&
