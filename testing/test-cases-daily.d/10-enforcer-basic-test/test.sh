@@ -10,6 +10,7 @@
 # - write a script that will replace the locator in the signconf so we can do a full diff
 
 # Lets use parameters for the timing intervals so they are easy to change
+TINY_TIMEOUT=3      # Timeout for waiting between actions
 SHORT_TIMEOUT=10    # Timeout when checking log output
 LONG_TIMEOUT=20     # Timeout when waiting for enforcer run to have happened
 SLEEP_INTERVAL=50   # This should be just shorter than the enforcer run interval in conf.xml
@@ -77,6 +78,7 @@ log_grep ods-ksmutil-check-1   stdout "KSK           ready.*$KSK_CKA_ID_1" &&
 log_this ods-ksmutil-check-1 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_1.xml &&
 
 # Issue ds_seen for KSK1. This will cause the enforcer to run.
+sleep $TINY_INTERVAL &&
 log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_1 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_CKA_ID_1 made active" &&
 syslog_waitfor_count $LONG_TIMEOUT 4 'ods-enforcerd: .*Sleeping for' &&
@@ -141,6 +143,7 @@ ZSK_CKA_ID_4=`log_grep -o ods-ksmutil-check-5 stdout "ZSK           publish" | a
 log_this ods-ksmutil-check-5 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_5.xml &&
 
 # Issue ds_seen for KSK2
+sleep $TINY_INTERVAL &&
 log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_2 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_CKA_ID_2 made active" &&
 syslog_waitfor_count $LONG_TIMEOUT 9 'ods-enforcerd: .*Sleeping for' &&
@@ -162,7 +165,7 @@ log_grep ods-ksmutil-check-6   stdout "ZSK           retire.*$ZSK_CKA_ID_2" &&
 log_grep ods-ksmutil-check-6   stdout "ZSK           active.*$ZSK_CKA_ID_3" &&
 log_grep ods-ksmutil-check-6   stdout "ZSK           ready.*$ZSK_CKA_ID_4" &&
 log_grep ods-ksmutil-check-6   stdout "KSK           dsready.*$KSK_CKA_ID_STANDBY" &&
-! log_grep ods-ksmutil-check-6   stdout "KSK           retire.*$KSK_CKA_ID_1" &&
+log_grep ods-ksmutil-check-6   stdout "KSK           retire.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-6   stdout "KSK           active.*$KSK_CKA_ID_2" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_6.xml &&
 log_this ods-ksmutil-check-6 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_6.xml &&
@@ -176,6 +179,7 @@ log_this ods-ksmutil-check-7   date && log_this ods-ksmutil-check-7   ods-ksmuti
 log_grep ods-ksmutil-check-7   stdout "ZSK           active.*$ZSK_CKA_ID_3" &&
 log_grep ods-ksmutil-check-7   stdout "ZSK           ready.*$ZSK_CKA_ID_4" &&
 log_grep ods-ksmutil-check-7   stdout "KSK           dsready.*$KSK_CKA_ID_STANDBY" &&
+! log_grep ods-ksmutil-check-7   stdout "KSK           retire.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-7   stdout "KSK           active.*$KSK_CKA_ID_2" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_7.xml &&
 log_this ods-ksmutil-check-7 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_7.xml &&
@@ -213,6 +217,7 @@ log_grep ods-ksmutil-check-9   stdout "KSK           ready.*$KSK_CKA_ID_3" &&
 log_this ods-ksmutil-check-9 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_9.xml &&
 
 # Issue ds_seen for KSK3
+sleep $TINY_INTERVAL &&
 log_this ods-ksmutil-dsseen_3   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_3 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_CKA_ID_3 made active" &&
 syslog_waitfor_count $LONG_TIMEOUT 14 'ods-enforcerd: .*Sleeping for' &&
@@ -234,7 +239,7 @@ log_this ods-ksmutil-check-10   date && log_this ods-ksmutil-check-10   ods-ksmu
 log_grep ods-ksmutil-check-10   stdout "ZSK           active.*$ZSK_CKA_ID_4" &&
 log_grep ods-ksmutil-check-10   stdout "ZSK           ready.*$ZSK_CKA_ID_5" &&
 log_grep ods-ksmutil-check-10   stdout "KSK           dsready.*$KSK_CKA_ID_STANDBY" &&
-! log_grep ods-ksmutil-check-10  stdout "KSK           retire.*$KSK_CKA_ID_2" &&
+log_grep ods-ksmutil-check-10   stdout "KSK           retire.*$KSK_CKA_ID_2" &&
 log_grep ods-ksmutil-check-10   stdout "KSK           active.*$KSK_CKA_ID_3" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_10.xml &&
 log_this ods-ksmutil-check-10 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_10.xml &&
