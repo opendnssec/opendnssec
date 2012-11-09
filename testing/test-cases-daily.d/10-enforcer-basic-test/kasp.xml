@@ -25,7 +25,7 @@
 	<Keys>
 		<!-- Parameters for both KSK and ZSK -->
 		<TTL>PT20S</TTL>
-		<RetireSafety>PT0S</RetireSafety>
+		<RetireSafety>PT15S</RetireSafety>
 		<PublishSafety>PT1S</PublishSafety>
 		<Purge>PT3H</Purge>
 		<!-- Parameters for KSK only -->
