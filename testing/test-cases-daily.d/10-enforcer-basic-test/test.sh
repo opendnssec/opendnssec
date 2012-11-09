@@ -78,7 +78,7 @@ log_grep ods-ksmutil-check-1   stdout "KSK           ready.*$KSK_CKA_ID_1" &&
 log_this ods-ksmutil-check-1 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_1.xml &&
 
 # Issue ds_seen for KSK1. This will cause the enforcer to run.
-sleep $TINY_INTERVAL &&
+sleep $TINY_TIMEOUT &&
 log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_1 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_CKA_ID_1 made active" &&
 syslog_waitfor_count $LONG_TIMEOUT 4 'ods-enforcerd: .*Sleeping for' &&
@@ -143,7 +143,7 @@ ZSK_CKA_ID_4=`log_grep -o ods-ksmutil-check-5 stdout "ZSK           publish" | a
 log_this ods-ksmutil-check-5 diff -q -I '<Locator>'  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_5.xml &&
 
 # Issue ds_seen for KSK2
-sleep $TINY_INTERVAL &&
+sleep $TINY_TIMEOUT &&
 log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_2 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_CKA_ID_2 made active" &&
 syslog_waitfor_count $LONG_TIMEOUT 9 'ods-enforcerd: .*Sleeping for' &&
