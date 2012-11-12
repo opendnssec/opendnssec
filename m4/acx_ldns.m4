@@ -67,3 +67,26 @@ AC_DEFUN([ACX_LDNS],[
 	AC_SUBST(LDNS_INCLUDES)
 	AC_SUBST(LDNS_LIBS)
 ])
+
+AC_DEFUN([ACX_LDNS_NOT], [
+    AC_MSG_CHECKING([for ldns version not $1.$2.$3])
+    CHECK_LDNS_VERSION=m4_format(0x%02x%02x%02x, $1, $2, $3)
+    AC_RUN_IFELSE([
+        AC_LANG_SOURCE([[
+            #include <ldns/ldns.h>
+            int main()
+            {
+            #ifdef LDNS_REVISION
+                if (LDNS_REVISION != $CHECK_LDNS_VERSION)
+                    return 0;
+            #endif
+                return 1;
+            }
+        ]])
+    ],[
+        AC_MSG_RESULT([ok])
+    ],[
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR([ldns library found is version $1.$2.$3 has serious bugs, don't use!])
+    ],[])
+])
