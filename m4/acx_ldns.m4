@@ -87,6 +87,6 @@ AC_DEFUN([ACX_LDNS_NOT], [
         AC_MSG_RESULT([ok])
     ],[
         AC_MSG_RESULT([no])
-        AC_MSG_ERROR([ldns library found is version $1.$2.$3 has serious bugs, don't use!])
+        AC_MSG_ERROR([ldns version $1.$2.$3 is not compatible due to $4])
     ],[])
 ])
