@@ -31,8 +31,10 @@ log_grep soa stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*
 log_this_timeout axfr 10 drill -p 15354 @127.0.0.1 axfr ods &&
 log_grep axfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 log_grep axfr stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
+
 ## Occluded names should be part of transfer
 log_grep axfr stdout 'below\.zonecut\.label4\.ods\..*600.*IN.*NS.*ns\.zonecut\.label4\.ods\.' &&
+
 ## See if we send overflow UDP if does not fit.
 log_this_timeout ixfr 10 drill -p 15354 @127.0.0.1 ixfr ods &&
 syslog_waitfor 10 'ods-signerd: .*\[axfr\] axfr fallback zone ods' &&
@@ -45,6 +47,17 @@ log_grep ixfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.
 log_this_timeout ixfr-tcp 10 drill -t -p 15354 @127.0.0.1 ixfr ods &&
 log_grep ixfr-tcp stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 log_grep ixfr-tcp stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
+
+## Update zonefile to create journal
+cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
+ods-signer sign ods &&
+syslog_waitfor 10 'ods-signerd: .*\[STATS\] ods RR\[count=3 time*' &&
+
+## See if we can get an IXFR back
+log_this_timeout dig 10 dig -p 15354 @127.0.0.1 ixfr=1001 ods &&
+log_grep dig stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1002.*9000.*4500.*1209600.*3600' &&
+log_grep dig stdout 'label35\.ods\..*3600.*IN.*NS.*ns1\.label35\.ods\.' &&
+log_grep dig stdout 'ns1\.label35\.ods\..*3600.*IN.*A.*192\.0\.2\.1' &&
 
 ## Stop
 log_this_timeout ods-control-stop 60 ods-control stop &&
