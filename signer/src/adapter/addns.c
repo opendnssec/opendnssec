@@ -82,7 +82,12 @@ addns_read_line:
             case ';':
             case '\n':
                 if (ods_strcmp(";;ENDPACKET", line) == 0) {
-                    /* end of pkt */
+	                    /* end of pkt */
+                    *status = LDNS_STATUS_OK;
+                    return NULL;
+                }
+                if (ods_strcmp(";;BEGINPACKET", line) == 0) {
+                    /* begin packet but previous not ended, rollback */
                     *status = LDNS_STATUS_OK;
                     return NULL;
                 }
@@ -170,6 +175,11 @@ addns_read_pkt(FILE* fd, zone_type* zone)
         return ODS_STATUS_ERR;
     }
 
+begin_pkt:
+    rr_count = 0;
+    is_axfr = 0;
+    del_mode = 0;
+    soa_seen = 0;
     /* $ORIGIN <zone name> */
     dname = adapi_get_origin(zone);
     if (!dname) {
@@ -340,6 +350,18 @@ addns_read_pkt(FILE* fd, zone_type* zone)
         ldns_rdf_deep_free(prev);
         prev = NULL;
     }
+    /* check again */
+    if (ods_strcmp(";;BEGINPACKET", line) == 0) {
+        ods_log_warning("[%s] xfr zone %s on disk incomplete, rollback",
+            adapter_str, zone->name);
+        namedb_rollback(zone->db);
+        result = ODS_STATUS_OK;
+        goto begin_pkt;
+    } else {
+        ods_log_verbose("[%s] xfr zone %s on disk complete, commit to db",
+            adapter_str, zone->name);
+    }
+    /* otherwise ENDPACKET or EOF */
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RR at line %i (%s): %s",
             adapter_str, l, ldns_get_errorstr_by_id(status), line);
