@@ -1,5 +1,7 @@
 # $Id$
 
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 BUILT_SOURCES = \
@@ -144,6 +146,7 @@ ods_enforcerd_SOURCES = \
 
 ods_enforcerd_LDADD = \
 	$(LIBHSM) \
+    $(LIBCOMPAT) \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@PTHREAD_LIBS@ \
