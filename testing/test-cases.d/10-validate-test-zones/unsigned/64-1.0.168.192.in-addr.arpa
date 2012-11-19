@@ -1,0 +1,19 @@
+$TTL	86400 ; 24 hours could have been written as 24h or 1d
+$ORIGIN 64/1.0.168.192.IN-ADDR.ARPA.
+@  1D  IN	 SOA ns1.example.com.	mymail.example.com. (
+			      2002022401 ; serial
+			      3H ; refresh
+			      15 ; retry
+			      1w ; expire
+			      3h ; minimum
+			     )
+			
+ IN      NS      ns1.yournameserver.com.
+ IN      NS      ns2.yournameserver.com.
+							
+; server host definitions
+1      IN  PTR    ns1.example.com.
+2      IN  PTR    www.example.com.            
+; non server domain hosts
+3      IN  PTR    bill.example.com.  
+4      IN  PTR    fred.example.com.
