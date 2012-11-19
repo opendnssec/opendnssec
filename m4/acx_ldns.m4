@@ -99,9 +99,11 @@ AC_DEFUN([ACX_LDNS_NOT], [
 		AC_MSG_RESULT($LDNS_LIBS)
 	fi
 
-	tmp_CFLAGS=$CFLAGS
+	tmp_CPPFLAGS=$CPPFLAGS
+	tmp_LIBS=$LIBS
    
-	CFLAGS="$CFLAGS $LDNS_INCLUDES"
+	CPPFLAGS="$CPPFLAGS $LDNS_INCLUDES"
+	LIBS="$LIBS $LDNS_LIBS"
 
 	AC_MSG_CHECKING([for ldns version not $1.$2.$3])
 	CHECK_LDNS_VERSION=m4_format(0x%02x%02x%02x, $1, $2, $3)
@@ -124,5 +126,6 @@ AC_DEFUN([ACX_LDNS_NOT], [
 		AC_MSG_RESULT([no])
 		AC_MSG_ERROR([ldns version $1.$2.$3 is not compatible due to $4])
 	],[])
-	CFLAGS=$tmp_CFLAGS
+	CPPFLAGS=$tmp_CPPFLAGS
+	LIBS=$tmp_LIBS
 ])
