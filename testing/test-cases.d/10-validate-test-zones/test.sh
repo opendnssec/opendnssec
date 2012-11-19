@@ -59,7 +59,8 @@ log_this ods-update-policy ods_setup_conf kasp.xml &&
 log_this_timeout ods-update-policy 10 ods-ksmutil update kasp &&
 syslog_waitfor 60 'ods-enforcerd: .*Called signer engine:.*ods-signer update all.rr.org' &&
 $GREP -q -- "<Minimum>PT600S</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
-syslog_waitfor 60 'ods-signerd: .*zone all.rr.org set soa ttl to 600' &&
+# SAD -> MM: This is only logged when using SQLite...
+#syslog_waitfor 60 'ods-signerd: .*zone all.rr.org set soa ttl to 600' &&
 
 syslog_waitfor_count 60 3 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
