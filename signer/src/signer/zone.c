@@ -204,6 +204,10 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
              task->halted_when = task->when;
              task->interrupt = what;
          }
+         /** Only reschedule if what to do is lower than what was scheduled. */
+         if (task->what > what) {
+             task->what = what;
+         }
          task->what = what;
          task->when = time_now();
          status = schedule_task(taskq, task, 0);

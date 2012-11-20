@@ -170,9 +170,10 @@ void namedb_diff(namedb_type* db, unsigned is_ixfr);
 /**
  * Rollback differences in db.
  * \param[in] db namedb
+ * \param[in] keepsc keep RRs that did not came from the adapter.
  *
  */
-void namedb_rollback(namedb_type* db);
+void namedb_rollback(namedb_type* db, int keepsc);
 
 /**
  * Nsecify db.

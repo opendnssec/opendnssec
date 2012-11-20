@@ -86,6 +86,9 @@ domain_compare(const void* a, const void* b)
 {
     ldns_rdf* x = (ldns_rdf*)a;
     ldns_rdf* y = (ldns_rdf*)b;
+    ods_log_debug("[%s] domain_compare(): ldns_dname_compare(x, y)", db_str);
+    log_dname(x, "X", LOG_DEBUG);
+    log_dname(y, "Y", LOG_DEBUG);
     return ldns_dname_compare(x, y);
 }
 
@@ -272,6 +275,7 @@ namedb_domain_entize(namedb_type* db, domain_type* domain, ldns_rdf* apex)
         /* domain already has parent */
         return ODS_STATUS_OK;
     }
+
     while (domain && ldns_dname_is_subdomain(domain->dname, apex) &&
            ldns_dname_compare(domain->dname, apex) != 0) {
         /**
@@ -809,7 +813,7 @@ namedb_diff(namedb_type* db, unsigned is_ixfr)
  *
  */
 void
-namedb_rollback(namedb_type* db)
+namedb_rollback(namedb_type* db, int keepsc)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -823,7 +827,7 @@ namedb_rollback(namedb_type* db)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
-        domain_rollback(domain);
+        domain_rollback(domain, keepsc);
         (void) namedb_del_denial_trigger(db, domain, 1);
     }
     return;

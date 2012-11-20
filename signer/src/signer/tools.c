@@ -108,7 +108,7 @@ tools_input(zone_type* zone)
             ods_status2str(status));
         zone_rollback_dnskeys(zone);
         zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db);
+        namedb_rollback(zone->db, 0);
         return status;
     }
     /* Denial of Existence Rollover? */
@@ -119,7 +119,7 @@ tools_input(zone_type* zone)
             ods_status2str(status));
         zone_rollback_dnskeys(zone);
         zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db);
+        namedb_rollback(zone->db, 0);
         return status;
     }
 
@@ -138,7 +138,7 @@ tools_input(zone_type* zone)
             tools_str, zone->name, ods_status2str(status));
         zone_rollback_dnskeys(zone);
         zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db);
+        namedb_rollback(zone->db, 0);
     }
     end = time(NULL);
     if (status == ODS_STATUS_OK && zone->stats) {

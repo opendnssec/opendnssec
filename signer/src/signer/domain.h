@@ -135,9 +135,10 @@ void domain_diff(domain_type* domain, unsigned is_ixfr);
 /**
  * Rollback differences at domain.
  * \param[in] domain domain
+ * \param[in] keepsc keep RRs that did not came from the adapter
  *
  */
-void domain_rollback(domain_type* domain);
+void domain_rollback(domain_type* domain, int keepsc);
 
 /**
  * Check whether a domain is an empty non-terminal to an unsigned delegation.

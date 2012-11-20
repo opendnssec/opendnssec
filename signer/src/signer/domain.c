@@ -330,7 +330,7 @@ domain_diff(domain_type* domain, unsigned is_ixfr)
  *
  */
 void
-domain_rollback(domain_type* domain)
+domain_rollback(domain_type* domain, int keepsc)
 {
     denial_type* denial = NULL;
     rrset_type* rrset = NULL;
@@ -343,6 +343,15 @@ domain_rollback(domain_type* domain)
     }
     rrset = domain->rrsets;
     while (rrset) {
+        if (keepsc) {
+            /* skip rollback for NSEC3PARAM and DNSKEY RRset */
+            if (rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAM ||
+                rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+                prev_rrset = rrset;
+                rrset = rrset->next;
+                continue;
+            }
+        }
         /* walk rrs */
         for (i=0; i < rrset->rr_count; i++) {
             rrset->rrs[i].is_added = 0;
