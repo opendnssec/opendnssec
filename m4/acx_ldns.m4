@@ -69,10 +69,10 @@ AC_DEFUN([ACX_LDNS],[
 ])
 
 
-AC_DEFUN([ACX_LDNS_NOT], [
+AC_DEFUN([ACX_LDNS_NOT],[
 	AC_ARG_WITH(ldns, 
 		[AC_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])],
-		[
+        	[
 			LDNS_PATH="$withval"
 			AC_PATH_PROGS(LDNS_CONFIG, ldns-config, ldns-config, $LDNS_PATH/bin)
 		],[
@@ -100,14 +100,12 @@ AC_DEFUN([ACX_LDNS_NOT], [
 	fi
 
 	tmp_CPPFLAGS=$CPPFLAGS
-	tmp_LIBS=$LIBS
-   
+
 	CPPFLAGS="$CPPFLAGS $LDNS_INCLUDES"
-	LIBS="$LIBS $LDNS_LIBS"
 
 	AC_MSG_CHECKING([for ldns version not $1.$2.$3])
 	CHECK_LDNS_VERSION=m4_format(0x%02x%02x%02x, $1, $2, $3)
-
+	AC_LANG_PUSH([C])
 	AC_RUN_IFELSE([
 	AC_LANG_SOURCE([[
 		#include <ldns/ldns.h>
@@ -126,6 +124,7 @@ AC_DEFUN([ACX_LDNS_NOT], [
 		AC_MSG_RESULT([no])
 		AC_MSG_ERROR([ldns version $1.$2.$3 is not compatible due to $4])
 	],[])
+	AC_LANG_POP([C])
+
 	CPPFLAGS=$tmp_CPPFLAGS
-	LIBS=$tmp_LIBS
 ])
