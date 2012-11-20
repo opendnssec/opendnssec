@@ -86,9 +86,6 @@ domain_compare(const void* a, const void* b)
 {
     ldns_rdf* x = (ldns_rdf*)a;
     ldns_rdf* y = (ldns_rdf*)b;
-    ods_log_debug("[%s] domain_compare(): ldns_dname_compare(x, y)", db_str);
-    log_dname(x, "X", LOG_DEBUG);
-    log_dname(y, "Y", LOG_DEBUG);
     return ldns_dname_compare(x, y);
 }
 
