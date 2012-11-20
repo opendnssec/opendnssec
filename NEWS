@@ -3,6 +3,11 @@ $Id$
 
 OpenDNSSEC 1.3.12
 
+Bugfixes:
+* SUPPORT-42: ./configure fails on FreeBSD (or if ldns is not installed in a 
+  directory in the default search path of the complier).
+* OpenDNSSEC does not compile against ldns 1.6.16 on platforms that rely on
+  the OpenDNSSEC implementation of strlcpy/cat 
 
 OpenDNSSEC 1.3.11 - 2012-11-13
 
