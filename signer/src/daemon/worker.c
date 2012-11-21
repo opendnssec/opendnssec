@@ -653,7 +653,7 @@ worker_drudge(worker_type* worker)
         if (!rrset) {
             ods_log_deeebug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
-            worker_wait_timeout_locked(&engine->signq->q_lock, &engine->signq->q_threshold, 0);
+            worker_wait(&engine->signq->q_lock, &engine->signq->q_threshold);
             rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         }
         lock_basic_unlock(&engine->signq->q_lock);
