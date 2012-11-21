@@ -170,11 +170,11 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
             return;
         }
         /**
-         * If tries are 0 they we have tries FIFOQ_TRIES_COUNT times,
+         * If tries == 0, then we have tried FIFOQ_TRIES_COUNT times,
          * lets take a small break to not hog CPU.
          */
-        if (status == ODS_STATUS_UNCHANGED) {
-            worker_wait_timeout_locked(&q->q_lock, &q->q_nonfull, 60);
+        if (!tries && status == ODS_STATUS_UNCHANGED) {
+            worker_wait_timeout_locked(&q->q_lock, &q->q_nonfull, 5);
         }
         lock_basic_unlock(&q->q_lock);
     }
