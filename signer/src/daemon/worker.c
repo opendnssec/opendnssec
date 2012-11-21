@@ -653,7 +653,8 @@ worker_drudge(worker_type* worker)
         if (!rrset) {
             ods_log_deeebug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
-            worker_wait(&engine->signq->q_lock, &engine->signq->q_threshold);
+            worker_wait_locked(&engine->signq->q_lock,
+                &engine->signq->q_threshold);
             rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         }
         lock_basic_unlock(&engine->signq->q_lock);
@@ -814,7 +815,7 @@ worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
 
 
 /**
- * Worker waiting on an already locked cond
+ * Worker waiting on an already locked cond.
  *
  */
 void
@@ -834,6 +835,18 @@ void
 worker_wait(lock_basic_type* lock, cond_basic_type* condition)
 {
     worker_wait_timeout(lock, condition, 0);
+    return;
+}
+
+
+/**
+ * Worker waiting on an already locked cond.
+ *
+ */
+void
+worker_wait_locked(lock_basic_type* lock, cond_basic_type* condition)
+{
+    worker_wait_timeout_locked(lock, condition, 0);
     return;
 }
 
