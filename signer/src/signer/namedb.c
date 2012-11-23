@@ -603,7 +603,7 @@ namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
  * See if domains/denials can be deleted.
  *
  */
-static domain_type*
+static int
 namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
 {
     domain_type* parent = NULL;
@@ -611,6 +611,7 @@ namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
     unsigned is_deleted = 0;
     ods_log_assert(db);
     ods_log_assert(domain);
+    ods_log_assert(domain->dname);
     zone = (void*) domain->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
@@ -627,21 +628,17 @@ namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
                 }
             }
         }
+        parent = domain->parent;
         if (domain_can_be_deleted(domain)) {
             /* -DOMAIN */
-            parent = domain->parent;
             domain = namedb_del_domain(db, domain);
             domain_cleanup(domain);
             is_deleted = 1;
-            /* continue with parent */
-            domain = parent;
-        } else if (is_deleted) {
-            break;
-        } else {
-            return domain; /* domain was not deleted */
         }
+        /* continue with parent */
+        domain = parent;
     }
-    return NULL;
+    return is_deleted;
 }
 
 
@@ -788,16 +785,16 @@ namedb_diff(namedb_type* db, unsigned is_ixfr)
     if (!db || !db->domains) {
         return;
     }
-    node = ldns_rbtree_last(db->domains);
+    node = ldns_rbtree_first(db->domains);
     if (!node || node == LDNS_RBTREE_NULL) {
         return;
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        node = ldns_rbtree_previous(node);
+        node = ldns_rbtree_next(node);
         domain_diff(domain, is_ixfr);
-        domain = namedb_del_denial_trigger(db, domain, 0);
-        if (domain) {
+        if (!namedb_del_denial_trigger(db, domain, 0)) {
+            /* del_denial did not delete domain */
             namedb_add_denial_trigger(db, domain);
         }
     }
