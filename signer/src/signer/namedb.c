@@ -788,13 +788,13 @@ namedb_diff(namedb_type* db, unsigned is_ixfr)
     if (!db || !db->domains) {
         return;
     }
-    node = ldns_rbtree_first(db->domains);
+    node = ldns_rbtree_last(db->domains);
     if (!node || node == LDNS_RBTREE_NULL) {
         return;
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        node = ldns_rbtree_next(node);
+        node = ldns_rbtree_previous(node);
         domain_diff(domain, is_ixfr);
         domain = namedb_del_denial_trigger(db, domain, 0);
         if (domain) {

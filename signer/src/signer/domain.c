@@ -345,7 +345,7 @@ domain_rollback(domain_type* domain, int keepsc)
     while (rrset) {
         if (keepsc) {
             /* skip rollback for NSEC3PARAM and DNSKEY RRset */
-            if (rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAM ||
+            if (rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS ||
                 rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
                 prev_rrset = rrset;
                 rrset = rrset->next;
@@ -408,6 +408,7 @@ domain_ent2unsignedns(domain_type* domain)
 {
     ldns_rbnode_t* n = LDNS_RBTREE_NULL;
     domain_type* d = NULL;
+    int unsigned_delegpt = 1;
 
     ods_log_assert(domain);
     if (domain->rrsets) {
@@ -420,20 +421,15 @@ domain_ent2unsignedns(domain_type* domain)
             break;
         }
         if (d->rrsets) {
-            if (domain_is_delegpt(d) == LDNS_RR_TYPE_NS) {
-                /* domain has unsigned delegation */
-                return 1;
-            } else {
-                /* domain has authoritative data or signed delegation */
+            if (domain_is_delegpt(d) != LDNS_RR_TYPE_NS) {
+                /* domain has signed delegation/auth */
                 return 0;
             }
         }
         /* maybe there is data at the next domain */
         n = ldns_rbtree_next(n);
     }
-    ods_log_warning("[%s] encountered empty terminal that is treated as "
-        "non-terminal", dname_str);
-    return 0;
+    return unsigned_delegpt;
 }
 
 
