@@ -408,7 +408,6 @@ domain_ent2unsignedns(domain_type* domain)
 {
     ldns_rbnode_t* n = LDNS_RBTREE_NULL;
     domain_type* d = NULL;
-    int unsigned_delegpt = 1;
 
     ods_log_assert(domain);
     if (domain->rrsets) {
@@ -429,7 +428,7 @@ domain_ent2unsignedns(domain_type* domain)
         /* maybe there is data at the next domain */
         n = ldns_rbtree_next(n);
     }
-    return unsigned_delegpt;
+    return 1;
 }
 
 
