@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-## Stresstest OpenDNSSEC: Many notifies and no updates may go missing.
+#TEST: Stresstest OpenDNSSEC: Many notifies and no updates may go missing.
+
+#CATEGORY: signer-adapters-input_dns_many_updates
 
 # Start with some BIND9 config
 BIND9_TEST_ROOTDIR=`pwd`

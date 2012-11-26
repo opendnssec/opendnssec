@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-#
-# Use a Repository Capacity of 100000 and expect success
+
+#TEST: Use a Repository Capacity of 100000 and expect success
+
+#CATEGORY: general-repository-capacity_100000
+
+#TODO: Merge with 10-020 (many_repositories)?
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

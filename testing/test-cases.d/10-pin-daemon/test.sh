@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-#
-# Test of the PIN storage feature, new in 1.4
-# Configure no PIN while PIN is needed, expect failure
-# Then login and start everything successfully
+
+#TEST: Test of the PIN storage feature, new in 1.4
+#TEST: Configure no PIN while PIN is needed, expect failure
+#TEST: Then login and start everything successfully
+
+#CATEGORY: general-pin_deamon-basic_test
 
 # Make sure the PIN is cleared from shared memory
 log_this clear-pin ods-hsmutil logout

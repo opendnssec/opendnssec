@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-#
-# Test kaspcheck with different input files - some good, some bad
-# This test case only runs kaspcheck, it does not run ods.
+
+#TEST: Test kaspcheck with different input files - some good, some bad
+#TEST: This test case only runs kaspcheck, it does not run ods.
+
+#CATEGORY: general-kaspcheck-good_and_bad_xml
 
 ods_reset_env &&
 

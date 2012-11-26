@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-#
-# Use a different database name for database and check if enforcer fails to connect
+
+#TEST: Change the database name for database and check if enforcer fails to connect
+
+#CATEGORY: enforcer-conf-change_db_database_name
+
+#TODO: Merge with 40-010 (change_db_port)?
 
 if [ -z "$HAVE_MYSQL" ]; then
 	return 0

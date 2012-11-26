@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-#
-# Configure and sign with one repository (SoftHSM)
-# Use the test zones and check they all get sigend OK
-# Will eventually add validation into this to check the output
-# For now use it to check any signing bugs with explicit tests
+
+#TEST: Configure and sign with one repository (SoftHSM)
+#TEST: Use the test zones and check they all get sigend OK
+#TEST: Will eventually add validation into this to check the output
+#TEST: For now use it to check any signing bugs with explicit tests
+
+#CATEGORY: signer-zones-validate_test_zone_data
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -38,19 +40,18 @@ test -f "$INSTALL_ROOT/var/opendnssec/signed/64-1.0.168.192.in-addr.arpa" &&
 #########################################################################
 # Tests to cover signing specific bugs
 
-# SUPPORT-40. Double check that all records down to the forth level appear in the output
+#SUPPORT-40 - Double check that all records down to the forth level appear in the output
 $GREP -q -- "^test.example.com..*86400.*IN.*NS.*ns2.example.com." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 $GREP -q -- "^test1.test.example.com..*86400.*IN.*NS.*ns2.example.com." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 
-# OPENDSNSEC-290. Update the zone by changing a CNAME record to an A record. 
+#OPENDSNSEC-290 - Update the zone by changing a CNAME record to an A record. 
 ods_setup_zone test/all.rr.org &&
 log_this_timeout ods-update-zone 10 ods-signer sign all.rr.org &&
 
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
-# OPENDNSSEC-247. Update the SOA minimum in the policy and make sure the 
-# NSEC TTL changes.
+#OPENDNSSEC-247 - Update the SOA minimum in the policy and make sure the NSEC TTL changes.
 $GREP -q -- "<Minimum>PT300S</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
 $GREP -q -- "300.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 mv kasp.xml kasp.xml_orig &&

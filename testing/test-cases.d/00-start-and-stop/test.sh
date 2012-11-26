@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#TEST: Start and stop using ods-control and default conf files. Check the deamons behave.
+
+#CATEGORY: general-basic-start_and_stop
+
 ods_reset_env &&
 
 log_this_timeout ods-control-start 60 ods-control start &&

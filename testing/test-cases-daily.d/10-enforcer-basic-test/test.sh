@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 #
-# Test to track key rollovers in real time from the enforcer side only. This test tries to emulate
-# the enforcer cucumber tests from 1.3 but without time shift and so using a shorter
-# interval and key lifetime and fewer steps at the moment.
+#TEST: Test to track key rollovers in real time from the enforcer side only. 
+#TEST: Configured with very short key lifetimes and 1 min enforcer interval.
+#TEST: Checks the output of ods-ksmutil key list and the signconf.xml contents
+#TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
 
-# TODO: 
-# - increase number of steps?
-# - check more logging in syslog
-# - fix the compare script to directly compare the key ids in the signconf
+
+#CATEGORY: enforcer-rollovers-check_many_rollovers_test
+
+#TODO: - increase number of steps?
+#TODO: - check more logging in syslog
+#TODO: - fix the compare script to directly compare the key ids in the signconf
 
 # Lets use parameters for the timing intervals so they are easy to change
 SHORT_TIMEOUT=11    # Timeout when checking log output. DS lock out wait is 10 sec so use 11 for this

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-#
-# RequireBackup turned on and check if backup is required to use a key
+
+#TEST: RequireBackup turned on and check that non-backedup keys are not used if backup not done.
+
+#CATEGORY: general-repository-fail_require_backup
+
+#TODO: Remove as duplicates first part of 10-160 (require_backup)
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

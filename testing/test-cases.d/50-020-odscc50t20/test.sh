@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-#
-# NOTE NOTE NOTE - Test system today runs under a normal user, this test needs to be changed or allowed root access to test setuid functionallity
-#
-# Use privileges test:test for signer and /tmp and check if signer runs without errors
+
+#TEST: Use privileges test:test for signer and /tmp and check if signer runs without errors
+
+#TEST: NOTE NOTE NOTE - Test system today runs under a normal user, this test needs to be changed or allowed root access to test setuid functionallity
+
+#CATEGORY: signer-privileges-user_exists
 
 ods_reset_env &&
 echo 'Privileges have been adjusted for the signer in the conf.xml. User = ods; Group = ods. This user and group do not have acces to the correct folder.' &&

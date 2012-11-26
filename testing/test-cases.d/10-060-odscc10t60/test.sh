@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-#
-# Use a Tokenlabel with 30 characters
+
+#TEST: Use a Tokenlabel with 30 character, sign a single zone.
+
+#CATEGORY: general-repository-30_char_token
+
+#TODO: Merge with 10-020 (many_repositories)?
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

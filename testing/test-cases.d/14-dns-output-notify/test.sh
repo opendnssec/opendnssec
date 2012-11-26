@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
 ## Test basic Output DNS Adapter
-## Start OpenDNSsEC, see if the zone gets signed and see if NOTIFY
-## messages are send and accepted.
+## Start OpenDNSsEC, see if NOTIFY messages are send and accepted.
+
+#TEST: Test basic Input DNS Adapter
+#TEST: Start OpenDNSSEC and see if zone gets transferred and signed
+#TEST: and see if NOTIFY messages are sent and accepted.
+
+#CATEGORY: signer-adapters-output_dns_notify
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

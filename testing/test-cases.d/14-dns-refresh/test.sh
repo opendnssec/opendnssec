@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-## Test basic Input DNS Adapter
-## See if zone gets transferred and signed. See if we can transfer the
-## 
+#TEST: Test basic Input DNS Adapter
+#TEST: Start OpenDNSSEC and see if zone gets transferred and signed
+#TEST: and see if refresh is being done.
+
+#CATEGORY: signer-adapters-input_dns_refresh
 
 ## It requires setting up a zone in OpenDNSSEC with Input DNS Adapter,
 ## non-default zonelist.xml, non-default conf.xml, additional addns.xml.

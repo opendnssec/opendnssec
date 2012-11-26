@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-#
-# Change the zonelist.xml location and change ZoneListFile in conf.xml accordingly
+
+#TEST: Change the zonelist.xml location and change ZoneListFile in conf.xml accordingly
+
+#CATEGORY: general-common-change_zonelist_xml_location
+
+#TODO: Merge with 20-030 (change_kasp_xml_location)?
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
