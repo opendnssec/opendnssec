@@ -751,7 +751,7 @@ rrset_recycle(rrset_type* rrset, signconf_type* sc, time_t signtime)
     /* 1. If the RRset has changed, drop all signatures */
     /* 2. If Refresh is disabled, drop all signatures */
     if (rrset->needs_signing || refresh <= (uint32_t) signtime) {
-        ods_log_debug("[%s] drop signatures for RRset[%i]", rrset_str,
+        ods_log_deeebug("[%s] drop signatures for RRset[%i]", rrset_str,
             rrset->rr_type);
         if (rrset->rrsigs) {
             rrsigs_cleanup(rrset->rrsigs);
@@ -938,7 +938,7 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
             ((validity + offset + random_jitter) - jitter),
             ((validity + offset) + jitter));
     } else {
-        ods_log_debug("[%s] signature validity %u in range [%u - %u]",
+        ods_log_deeebug("[%s] signature validity %u in range [%u - %u]",
             rrset_str, ((validity + offset + random_jitter) - jitter),
             ((validity + offset) - jitter),
             ((validity + offset) + jitter));
