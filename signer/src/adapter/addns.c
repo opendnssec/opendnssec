@@ -379,9 +379,9 @@ begin_pkt:
     if (result == ODS_STATUS_OK || result == ODS_STATUS_UNCHANGED) {
         adapi_set_serial(zone, new_serial);
         if (is_axfr) {
-            adapi_trans_full(zone);
+            adapi_trans_full(zone, 1);
         } else {
-            adapi_trans_diff(zone);
+            adapi_trans_diff(zone, 1);
         }
         if (result == ODS_STATUS_UNCHANGED) {
             result = ODS_STATUS_OK;

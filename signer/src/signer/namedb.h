@@ -163,9 +163,10 @@ ods_status namedb_examine(namedb_type* db);
  * Apply differences in db.
  * \param[in] db namedb
  * \param[in] is_ixfr true if incremental change
+ * \param[in] more_coming more transactions possible
  *
  */
-void namedb_diff(namedb_type* db, unsigned is_ixfr);
+void namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming);
 
 /**
  * Rollback differences in db.
@@ -173,7 +174,7 @@ void namedb_diff(namedb_type* db, unsigned is_ixfr);
  * \param[in] keepsc keep RRs that did not came from the adapter.
  *
  */
-void namedb_rollback(namedb_type* db, int keepsc);
+void namedb_rollback(namedb_type* db, unsigned keepsc);
 
 /**
  * Nsecify db.

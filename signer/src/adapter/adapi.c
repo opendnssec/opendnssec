@@ -120,7 +120,7 @@ adapi_get_ttl(zone_type* zone)
  *
  */
 void
-adapi_trans_full(zone_type* zone)
+adapi_trans_full(zone_type* zone, unsigned more_coming)
 {
     time_t start = 0;
     time_t end = 0;
@@ -128,7 +128,7 @@ adapi_trans_full(zone_type* zone)
     if (!zone || !zone->db) {
         return;
     }
-    namedb_diff(zone->db, 0);
+    namedb_diff(zone->db, 0, more_coming);
 
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
@@ -158,7 +158,7 @@ adapi_trans_full(zone_type* zone)
  *
  */
 void
-adapi_trans_diff(zone_type* zone)
+adapi_trans_diff(zone_type* zone, unsigned more_coming)
 {
     time_t start = 0;
     time_t end = 0;
@@ -166,7 +166,7 @@ adapi_trans_diff(zone_type* zone)
     if (!zone || !zone->db) {
         return;
     }
-    namedb_diff(zone->db, 1);
+    namedb_diff(zone->db, 1, more_coming);
 
    if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);

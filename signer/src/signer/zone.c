@@ -208,7 +208,6 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
          if (task->what > what) {
              task->what = what;
          }
-         task->what = what;
          task->when = time_now();
          status = schedule_task(taskq, task, 0);
      } else {
@@ -375,7 +374,6 @@ zone_publish_nsec3param(zone_type* zone)
         zone->signconf->nsec3params->rr = rr;
     }
     ods_log_assert(zone->signconf->nsec3params->rr);
-
     status = zone_add_rr(zone, zone->signconf->nsec3params->rr, 0);
     if (status == ODS_STATUS_UNCHANGED) {
         /* rr already exists, adjust pointer */
@@ -482,7 +480,7 @@ zone_update_serial(zone_type* zone)
     }
     soa = rrset_add_rr(rrset, rr);
     ods_log_assert(soa);
-    rrset_diff(rrset, 0);
+    rrset_diff(rrset, 0, 0);
     zone->db->serial_updated = 0;
     return ODS_STATUS_OK;
 }
@@ -564,9 +562,10 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         }
         return ODS_STATUS_UNCHANGED;
     } else {
-       record = rrset_add_rr(rrset, rr);
-       ods_log_assert(record);
-       ods_log_assert(record->rr);
+        record = rrset_add_rr(rrset, rr);
+        ods_log_assert(record);
+        ods_log_assert(record->rr);
+        ods_log_assert(record->is_added);
     }
     /* update stats */
     if (do_stats && zone->stats) {
@@ -609,6 +608,7 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
             "RR not found", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
+
     record->is_removed = 1;
     record->is_added = 0; /* unset is_added */
     /* update stats */

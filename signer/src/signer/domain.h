@@ -128,9 +128,10 @@ rrset_type* domain_del_rrset(domain_type* domain, ldns_rr_type rrtype);
  * Apply differences at domain.
  * \param[in] domain domain
  * \param[in] is_ixfr true if incremental change
+ * \param[in] more_coming more transactions possible
  *
  */
-void domain_diff(domain_type* domain, unsigned is_ixfr);
+void domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming);
 
 /**
  * Rollback differences at domain.

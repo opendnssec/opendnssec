@@ -314,7 +314,7 @@ adfile_read(void* zone)
     status = adfile_read_file(fd, adzone);
     ods_fclose(fd);
     if (status == ODS_STATUS_OK) {
-        adapi_trans_full(zone);
+        adapi_trans_full(zone, 0);
     }
     return status;
 }

@@ -278,7 +278,7 @@ domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
  *
  */
 void
-domain_diff(domain_type* domain, unsigned is_ixfr)
+domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming)
 {
     denial_type* denial = NULL;
     rrset_type* rrset = NULL;
@@ -292,9 +292,9 @@ domain_diff(domain_type* domain, unsigned is_ixfr)
         if (rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS ||
             rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* always do full diff on NSEC3PARAMS | DNSKEY RRset */
-            rrset_diff(rrset, 0);
+            rrset_diff(rrset, 0, more_coming);
         } else {
-            rrset_diff(rrset, is_ixfr);
+            rrset_diff(rrset, is_ixfr, more_coming);
         }
         if (rrset->rr_count <= 0) {
             /* delete entire rrset */

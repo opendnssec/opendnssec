@@ -395,7 +395,7 @@ backup_read_namedb(FILE* in, void* zone)
         result = ODS_STATUS_ERR;
         goto backup_namedb_done;
     }
-    namedb_diff(z->db, 0);
+    namedb_diff(z->db, 0, 0);
 
     /* read NSEC(3)s */
     ods_log_debug("[%s] read NSEC(3)s %s", backup_str, z->name);

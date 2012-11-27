@@ -336,7 +336,7 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
  *
  */
 void
-rrset_diff(rrset_type* rrset, unsigned is_ixfr)
+rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
 {
     zone_type* zone = NULL;
     uint16_t i = 0;
@@ -355,6 +355,10 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr)
                 del_sigs = 1;
             }
             rrset->rrs[i].exists = 1;
+            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY ||
+                 rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS) && more_coming) {
+                continue;
+            }
             rrset->rrs[i].is_added = 0;
         } else if (!is_ixfr || rrset->rrs[i].is_removed) {
             if (rrset->rrs[i].exists) {

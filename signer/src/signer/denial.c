@@ -251,7 +251,7 @@ void
 denial_diff(denial_type* denial)
 {
     if (denial && denial->rrset) {
-        rrset_diff(denial->rrset, 0);
+        rrset_diff(denial->rrset, 0, 0);
     }
     return;
 }
