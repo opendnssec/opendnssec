@@ -29,38 +29,24 @@
  *
  */
 
-// This proto file is used to define the hsm key data that needs 
-// to be persisted for the enforcer 
+#ifndef _HSMKEY_BACKUP_CMD_H_
+#define _HSMKEY_BACKUP_CMD_H_
 
-package ods.hsmkey;
+#include "daemon/engine.h"
 
-import "xmlext.proto";
-import "orm.proto";
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// hsm key info from libhsm is used to initialize some of the values
-//  in a HsmKey object.
-// locator is hsm key info 'id'
-// bits is hsm key info 'keysize'ss
-// key_type is hsm key info 'algorithm_name'
+void help_backup_cmd(int sockfd);
 
-message HsmKey {
-    required string locator = 1;
-    optional bool candidate_for_sharing = 2 [default = false];
-    optional uint32 bits = 3 [default = 2048];
-    optional string policy = 4 [default = "default"]; // from kasp
-    optional uint32 algorithm = 5 [default = 1]; // from kasp
-    optional keyrole role = 6 [default = ZSK]; // from kasp
-    repeated string used_by_zones = 7; // maintainted by enforcer
-    optional uint32 inception = 8; // 'now' assigned on first use of key in any zone
-    optional bool revoke = 9 [default = false, (orm.column).name = "isrevoked"];
-    optional string key_type = 10; // key type name derived from name in PKCS#11 spec e.g. CKK_RSA becomes "RSA"
-    optional string repository = 11; // repository in which the key was found e.g. SoftHSM
-    optional bool backmeup = 12 [default=false];
-    optional bool backedup = 13 [default=false];
-} 
+int handled_backup_prepare_cmd(int sockfd, engine_type* engine, 
+		const char *cmd, ssize_t n);
+int handled_backup_commit_cmd(int sockfd, engine_type* engine, 
+		const char *cmd, ssize_t n);
 
-enum keyrole {
-    KSK = 1;
-    ZSK = 2;
-    CSK = 3;
+#ifdef __cplusplus
 }
+#endif
+
+#endif

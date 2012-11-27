@@ -62,6 +62,7 @@
 
 #include "hsmkey/hsmkey_gen_cmd.h"
 #include "hsmkey/hsmkey_list_cmd.h"
+#include "hsmkey/backup_hsmkeys_cmd.h"
 
 /* System libraries last */
 #include <getopt.h>
@@ -146,6 +147,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     
     help_hsmkey_gen_cmd,
     help_hsmkey_list_cmd,
+    help_backup_cmd,
     
     /* ! NULL TERMINATED ! */
     NULL
@@ -184,6 +186,8 @@ enforcer_commands[] = {
 
     handled_hsmkey_gen_cmd,
     handled_hsmkey_list_cmd,
+    handled_backup_prepare_cmd,
+    handled_backup_commit_cmd,
 
     /* ! NULL TERMINATED ! */
     NULL

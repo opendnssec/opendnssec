@@ -632,6 +632,13 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 {
 	const char *scmd = "policyApproval";
 	
+	//~ /** A record can only reach Omnipresent if properly backed up */
+	//~ HsmKey *hsmkey;
+	//~ if (!keyfactory.GetHsmKeyByLocator(future_key->key.locator(), 
+		//~ &hsmkey)) {
+		//~ /* fishy, this key has no key material! */
+	//~ }
+	
 	/** once the record is introduced the policy has no influence. */
 	if (future_key->next_state != RUM) return true;
 	
