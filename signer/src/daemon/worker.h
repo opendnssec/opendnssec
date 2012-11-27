@@ -120,7 +120,7 @@ void worker_wakeup(worker_type* worker);
 void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
 
 /**
- * Let worker wait.
+ * Let worker wait on an already locked cond.
  * \param[in] lock lock to use
  * \param[in] condition condition to be met
  *
@@ -128,7 +128,7 @@ void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
 void worker_wait_locked(lock_basic_type* lock, cond_basic_type* condition);
 
 /**
- * Let worker wait on an already locked cond.
+ * Let worker wait.
  * \param[in] lock lock to use
  * \param[in] condition condition to be met
  *

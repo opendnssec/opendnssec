@@ -142,9 +142,11 @@ static void
 worker_clear_jobs(worker_type* worker)
 {
     ods_log_assert(worker);
+    lock_basic_lock(&worker->worker_lock);
     worker->jobs_appointed = 0;
     worker->jobs_completed = 0;
     worker->jobs_failed = 0;
+    lock_basic_unlock(&worker->worker_lock);
     return;
 }
 
