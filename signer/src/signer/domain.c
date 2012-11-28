@@ -420,7 +420,8 @@ domain_ent2unsignedns(domain_type* domain)
             break;
         }
         if (d->rrsets) {
-            if (domain_is_delegpt(d) != LDNS_RR_TYPE_NS) {
+            if (domain_is_delegpt(d) != LDNS_RR_TYPE_NS &&
+                domain_is_occluded(d) == LDNS_RR_TYPE_SOA) {
                 /* domain has signed delegation/auth */
                 return 0;
             }
