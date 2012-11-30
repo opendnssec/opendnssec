@@ -793,6 +793,14 @@ namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming)
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
         domain_diff(domain, is_ixfr, more_coming);
+    }
+    node = ldns_rbtree_first(db->domains);
+    if (!node || node == LDNS_RBTREE_NULL) {
+        return;
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        node = ldns_rbtree_next(node);
         if (!namedb_del_denial_trigger(db, domain, 0)) {
             /* del_denial did not delete domain */
             namedb_add_denial_trigger(db, domain);
