@@ -73,3 +73,32 @@ Quotation marks in strings
 Enforcer does not remove/handle any quotation marks in the imported strings.
 This will create a problem when importing the information from e.g. the policy 
 description field into the Enforcer database.
+
+
+Statistics on signing speed not accurate (OPENDNSSEC-332)
+---------------------------------------------------------
+
+The statistics on number of signatures per second include the time to check
+if RRsets need a new signature. This results in a lower value of signatures
+per second when only few signatures need to be (re)created, because more time
+is spend on checking.
+
+
+Signer getting stuck (OPENDNSSEC-354)
+-------------------------------------
+
+The signer gets stuck about once a week, and then shows a queue like
+root@dnsmaxi:/# ods-signer queue
+
+It is now Mon Nov 26 10:14:38 2012
+I have 54 tasks scheduled.
+On Sun Nov 25 08:22:57 2012 I will [sign] zone A
+On Sun Nov 25 08:22:57 2012 I will [sign] zone B
+On Sun Nov 25 08:22:57 2012 I will [sign] zone C
+On Sun Nov 25 08:22:57 2012 I will [sign] zone D
+On Sun Nov 25 08:22:57 2012 I will [sign] zone E
+On Sun Nov 25 08:22:58 2012 I will [sign] zone F
+
+It suffices to restart the signer, and even an explicit "ods-signer sign X"
+seems to do the trick (X need not be A).
+
