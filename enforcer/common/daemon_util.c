@@ -202,10 +202,10 @@ getPermsForDrop(DAEMONCONFIG* config)
         temp_char = (char*) xmlXPathCastToString(xpathObj);
         StrAppend(&config->groupname, temp_char);
         StrFree(temp_char);
-        xmlXPathFreeObject(xpathObj);
     } else {
         config->groupname = NULL;
     }
+	xmlXPathFreeObject(xpathObj);
 
     /* Set the user to drop to if specified */
     xpathObj = xmlXPathEvalExpression(user_expr, xpathCtx);
@@ -219,10 +219,10 @@ getPermsForDrop(DAEMONCONFIG* config)
         temp_char = (char*) xmlXPathCastToString(xpathObj);
         StrAppend(&config->username, temp_char);
         StrFree(temp_char);
-        xmlXPathFreeObject(xpathObj);
     } else {
         config->username = NULL;
     }
+	xmlXPathFreeObject(xpathObj);
 
     /* Set uid and gid if required */
     if (config->username != NULL) {
@@ -254,7 +254,6 @@ getPermsForDrop(DAEMONCONFIG* config)
         endgrent();
     }
 
-    xmlXPathFreeContext(xpathCtx);
     xmlRelaxNGFree(schema);
     xmlRelaxNGFreeValidCtxt(rngctx);
     xmlRelaxNGFreeParserCtxt(rngpctx);
@@ -979,6 +978,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         if (status > 0) {
             log_msg(config, LOG_ERR, "Error: unable to convert RolloverNotification %s to seconds, error: %i", temp_char, status);
             StrFree(temp_char);
+			xmlXPathFreeObject(xpathObj);
             return status;
         }
         else if (status == -1) {
@@ -989,12 +989,12 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             log_msg(config, LOG_INFO, "Rollover Notification Interval: %i", config->rolloverNotify);
         }
         StrFree(temp_char);
-        xmlXPathFreeObject(xpathObj);
     }
     else {
         /* Tag RolloverNotification absent, set rolloverNotify to -1 */
         config->rolloverNotify = -1;
     }
+	xmlXPathFreeObject(xpathObj);
 
     /* Evaluate xpath expression for DelegationSignerSubmitCommand */
     xpathObj = xmlXPathEvalExpression(ds_expr, xpathCtx);
@@ -1023,13 +1023,13 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         if (verbose) {
             log_msg(config, LOG_INFO, "Using command: %s to submit DS records", config->DSSubmitCmd);
         }
-        xmlXPathFreeObject(xpathObj);
     } else {
         if (verbose) {
             log_msg(config, LOG_INFO, "No DS Submit command supplied");
         }
         config->DSSubmitCmd[0] = '\0';
     }
+	xmlXPathFreeObject(xpathObj);
 
     /* Evaluate xpath expression for SQLite file location */
 		
@@ -1160,7 +1160,6 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     /* Check that we found one or the other database */
     if(db_found == 0) {
         log_msg(config, LOG_ERR, "Error: unable to find complete database connection expression in %s", filename);
-        xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
     }
@@ -1168,7 +1167,6 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     /* Check that we found the right database type */
     if (db_found != DbFlavour()) {
         log_msg(config, LOG_ERR, "Error: Config file %s specifies database type %s but system is compiled to use %s", filename, (db_found==1) ? "MySQL" : "sqlite3", (db_found==2) ? "MySQL" : "sqlite3");
-        xmlXPathFreeContext(xpathCtx);
         xmlFreeDoc(doc);
         return(-1);
     }
@@ -1190,6 +1188,9 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         if (status > 0) {
             log_msg(config, LOG_ERR, "Error: unable to set log user: %s, error: %i", logFacilityName, status);
             StrFree(logFacilityName);
+			xmlXPathFreeObject(xpathObj);
+			xmlXPathFreeContext(xpathCtx);
+			xmlFreeDoc(doc);
             return status;
         }
         config->log_user = my_log_user;
@@ -1205,14 +1206,12 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
             log_msg(config, LOG_INFO, "Using default log user: %s", logFacilityName);
         }
     }
-
     xmlXPathFreeObject(xpathObj);
 
     log_switch(my_log_user, logFacilityName, config->program, verbose);
 
     /* Cleanup */
     /* TODO: some other frees are needed */
-    xmlXPathFreeContext(xpathCtx);
     xmlFreeDoc(doc);
     StrFree(logFacilityName);
     StrFree(filename);

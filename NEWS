@@ -27,6 +27,7 @@ Bugfixes:
   DNSKEY RRset.
 * Signer Engine: Rollback incompleted zone transfers on disk (could happen
   if a connection was reset during transfer).
+* OPENDNSSEC-349: Fix some memory leaks in the enforcer found by valgrind.
 
 
 OpenDNSSEC 1.4.0b1 - 2012-09-06
