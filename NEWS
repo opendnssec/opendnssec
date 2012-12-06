@@ -12,6 +12,8 @@ OpenDNSSEC 1.4.0b2
 * OPENDNSSEC-345: ods-ksmutil: use ods-control to HUP the enforcerd process
 * ods-ksmutil: Deprecate the one-step key backup command
 * Allow multiple KSKs.
+* OPENDNSSEC-292: Provide scripts to convert database between different 
+  supported formats
 
 Bugfixes:
 * SUPPORT-40: Signer Engine: Keep occluded data in signed zone files/transfers.
@@ -28,6 +30,7 @@ Bugfixes:
 * Signer Engine: Rollback incompleted zone transfers on disk (could happen
   if a connection was reset during transfer).
 * OPENDNSSEC-349: Fix some memory leaks in the enforcer found by valgrind.
+* Mulit-threaded enforcer: various minor fixes including deadlock problems.
 
 
 OpenDNSSEC 1.4.0b1 - 2012-09-06
