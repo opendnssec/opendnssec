@@ -632,13 +632,6 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 {
 	const char *scmd = "policyApproval";
 	
-	//~ /** A record can only reach Omnipresent if properly backed up */
-	//~ HsmKey *hsmkey;
-	//~ if (!keyfactory.GetHsmKeyByLocator(future_key->key.locator(), 
-		//~ &hsmkey)) {
-		//~ /* fishy, this key has no key material! */
-	//~ }
-	
 	/** once the record is introduced the policy has no influence. */
 	if (future_key->next_state != RUM) return true;
 	
@@ -798,7 +791,8 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @return first absolute time some record *could* be advanced.
  * */
 time_t
-updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
+updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
+	HsmKeyFactory &keyfactory)
 {
 	time_t returntime_zone = -1;
 	time_t returntime_key;
@@ -911,6 +905,28 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 
 				ods_log_verbose("[%s] %s Timing says we can (3/3) now: %d key: %d", 
 					module_str, scmd, now, returntime_key);
+
+				/** A record can only reach Omnipresent if properly backed up */
+				HsmKey *hsmkey;
+				if (next_state == OMN) {
+					if (!keyfactory.GetHsmKeyByLocator(key.locator(), 
+						&hsmkey)) {
+						/* fishy, this key has no key material! */
+						ods_fatal_exit("[%s] %s Key material associated with "
+								"key (%s) not found in database. Abort.",
+								module_str, scmd, key.locator().c_str());
+					} 
+					/* if backup required but not backed up: deny transition */
+					if (hsmkey->requirebackup() && !hsmkey->backedup()) {
+						ods_log_crit("[%s] %s Ready for transition "
+							"but key material not backed up yet (%s)", 
+							module_str, scmd, key.locator().c_str());
+						/* Try again in 60 seconds */
+						returntime_key = addtime(now, 60); 
+						minTime(returntime_key, returntime_zone);
+						continue;
+					}
+				}
 
 				/** If we are handling a DS we depend on the user or 
 				 * some other external process. We must communicate
@@ -1403,7 +1419,7 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 		ods_log_info(
 			"[%s] %s No keys configured, zone will become unsigned eventually",
 			module_str, scmd);
-	zone_return_time = updateZone(zone, now, allow_unsigned);
+	zone_return_time = updateZone(zone, now, allow_unsigned, keyfactory);
 
 	/** Only purge old keys if the configuration says so. */
 	if (policy->keys().has_purge())

@@ -90,6 +90,9 @@ public:
     virtual void setRevoke(bool value) = 0;
     
     virtual const std::string &repository() = 0;
+    
+    virtual bool backedup() = 0;
+    virtual bool requirebackup() = 0;
 	
 private:
 	HsmKey(const HsmKey &);

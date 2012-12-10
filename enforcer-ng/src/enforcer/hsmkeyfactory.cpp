@@ -201,6 +201,16 @@ const std::string &HsmKeyPB::repository()
     return _keyref->_key->repository();
 }
 
+bool HsmKeyPB::backedup()
+{
+    return _keyref->_key->backedup();
+}
+
+bool HsmKeyPB::requirebackup()
+{
+    return _keyref->_key->requirebackup();
+}
+
 //////////////////////////////
 // HsmKeyFactoryPB
 //////////////////////////////

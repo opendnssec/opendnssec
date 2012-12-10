@@ -57,6 +57,7 @@ message HsmKey {
     optional string repository = 11; // repository in which the key was found e.g. SoftHSM
     optional bool backmeup = 12 [default=false];
     optional bool backedup = 13 [default=false];
+    optional bool requirebackup = 14 [default=false];
 } 
 
 enum keyrole {
