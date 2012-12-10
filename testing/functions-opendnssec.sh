@@ -324,3 +324,117 @@ ods_ldns_testns ()
 	ods_ldns_testns_kill
 	return 1
 }
+
+
+# These functions depend on environment variables:
+# BIND9_NAMED_CONF
+# BIND9_NAMED_CONFDIR
+# BIND9_NAMED_PIDFILE
+# BIND9_NAMED_PORT
+# BIND9_NAMED_RNDC_PORT
+# BIND9_TEST_ROOTDIR
+
+ods_bind9_start ()
+{
+	USERNAME=matje
+
+	# check pidfile
+	if [ -e "$BIND9_NAMED_PIDFILE" ]; then
+		echo "ods_bind9_start: cannot start named, another process still running ($BIND9_NAMED_PIDFILE exists)"
+		exit 1
+	fi
+	# start named
+	echo "ods_bind9_start: starting named -p $BIND9_NAMED_PORT -c $BIND9_NAMED_CONF -u $USERNAME"
+	log_this named named -p $BIND9_NAMED_PORT -c $BIND9_NAMED_CONF -u $USERNAME
+	# log waitfor?
+
+	# display pid
+	if [ -e "$BIND9_NAMED_PIDFILE" ]; then
+		NAMED_PID=`cat $BIND9_NAMED_PIDFILE`
+		echo "ods_bind9_start: named started (pid=$NAMED_PID)"
+		return 0
+	fi
+	# failed
+	echo "ods_bind9_start: failed to start named"
+	exit 1
+}
+
+ods_bind9_stop ()
+{
+	# check pidfile
+	if [ ! -e "$BIND9_NAMED_PIDFILE" ]; then
+		echo "cannot stop BIND: ($NAMED_PIDFILE does not exist)"
+		exit 1
+	fi
+	# stop named
+	echo "ods_bind9_stop: running rndc stop"
+	rndc -p $BIND9_NAMED_RNDC_PORT -c $BIND9_NAMED_CONFDIR/rndc.conf stop
+	# wait for it to finish & flush zonefile
+	NAMED_PID=`cat $BIND9_NAMED_PIDFILE`
+	while ps -p $NAMED_PID > /dev/null 2>/dev/null; do sleep 1; done
+	echo "ods_bind9_stop: named stopped"
+	return 0
+}
+
+ods_bind9_info ()
+{
+	echo "test rootdir: $BIND9_TEST_ROOTDIR"
+	echo "named confdir: $BIND9_NAMED_CONFDIR"
+	echo "named rundir: $BIND9_NAMED_RUNDIR"
+	echo "named pidfile: $BIND9_NAMED_PIDFILE"
+	echo "named port: $BIND9_NAMED_PORT"
+	echo "named rndc port: $BIND9_NAMED_RNDC_PORT"
+	echo "named conf: $BIND9_NAMED_CONF"
+	return 0
+}
+
+ods_bind9_kill ()
+{
+	local process='(named)'
+
+	if ! pgrep -u `id -u` "$process" >/dev/null 2>/dev/null; then
+		return 0
+	fi
+
+	ods_process_kill "$process" && return 0
+	echo "ods_bind9_kill: Killing named failed"
+	return 1
+}
+
+ods_bind9_dynupdate ()
+{
+	local update_iter=0
+	local update_total=$1
+	local zone_name=$2
+	local update_file=$BIND9_TEST_ROOTDIR/update.txt
+	local log_file=$BIND9_TEST_ROOTDIR/update.log
+
+	# do updates
+	echo "ods_bind9_dynupdate: do $update_total updates in zone $zone_name"
+	while [ "$update_iter" -lt "$update_total" ] ; do
+		# write file
+		echo "rr_add test$update_iter.$zone_name 7200 NS ns1.test$update_iter.$zone_name" > $update_file
+		echo "rr_add ns1.test$update_iter.$zone_name 7200 A 1.2.3.4" >> $update_file
+		# call perl script
+		$BIND9_TEST_ROOTDIR/send_update.pl -z $zone_name -k $BIND9_NAMED_CONF -u $update_file -l $log_file >/dev/null 2>/dev/null
+	        # next update
+	        update_iter=$(( update_iter + 1 ))
+	done
+
+	# check updates
+	echo "ods_bind9_dynupdate: check $update_total updates in zone $zone_name"
+	update_iter=0
+	while [ "$update_iter" -lt "$update_total" ] ; do
+		if ! waitfor_this $INSTALL_ROOT/var/opendnssec/signed/ods 10 "test$update_iter\.$zone_name.*7200.*IN.*NS.*ns1\.test$update_iter\.$zone_name" >/dev/null 2>/dev/null; then
+			echo "ods_bind9_dynupdate: update failed, test$udpdate_iter.$zone_name NS not in signed zonefile" >&2
+			return 1
+		fi
+		if ! waitfor_this $INSTALL_ROOT/var/opendnssec/signed/ods 10 "ns1\.test$update_iter\.$zone_name.*7200.*IN.*A.*1\.2\.3\.4" >/dev/null 2>/dev/null; then
+			echo "ods_bind9_dynupdate: update failed, ns1.test$udpdate_iter.$zone_name A not in signed zonefile" >&2
+			return 1
+		fi
+	        # next update
+	        update_iter=$(( update_iter + 1 ))
+	done
+	return 0
+}
