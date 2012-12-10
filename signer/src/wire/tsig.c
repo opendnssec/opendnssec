@@ -467,7 +467,6 @@ tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
         trr->other_size, (const void*) buffer_current(buffer));
     buffer_skip(buffer, trr->other_size);
     trr->status = TSIG_OK;
-    trr->error_code = LDNS_RCODE_NOERROR;
     return 1;
 }
 
@@ -805,23 +804,54 @@ tsig_rr_error(tsig_rr_type* trr)
 
 
 /**
+ * Print TSIG status.
+ *
+ */
+const char*
+tsig_status2str(tsig_status status)
+{
+    switch (status) {
+        case TSIG_NOT_PRESENT:
+            return "NOT PRESENT";
+        case TSIG_OK:
+            return "OK";
+        case TSIG_ERROR:
+            return "ERROR";
+    }
+    return "UNKNOWN";
+}
+
+
+/**
  * Get human readable TSIG error code.
  *
  */
 const char*
-tsig_strerror(tsig_status status)
+tsig_strerror(uint16_t error)
 {
-    switch (status) {
-        case TSIG_NOT_PRESENT:
-            return "not present";
-        case TSIG_OK:
-            return "ok";
-        case TSIG_ERROR:
-            return "error";
+    static char message[1000];
+    switch (error) {
+        case 0:
+            return "No Error";
+            break;
+        case TSIG_ERROR_BADSIG:
+            return "Bad Signature";
+            break;
+        case TSIG_ERROR_BADKEY:
+            return "Bad Key";
+            break;
+        case TSIG_ERROR_BADTIME:
+            return "Bad Time";
+            break;
         default:
+            if (error < 16) {
+                /* DNS rcodes */
+                return (const char*) ldns_pkt_rcode2str(error);
+            }
+            snprintf(message, sizeof(message), "Unknown Error %d", error);
             break;
     }
-    return "unknown";
+    return message;
 }
 
 

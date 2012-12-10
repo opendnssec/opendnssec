@@ -396,9 +396,12 @@ xfrd_tsig_process(xfrd_type* xfrd, buffer_type* buffer)
         return 0;
     }
     if (xfrd->tsig_rr->status == TSIG_OK) {
-       have_tsig = 1;
-    }
-    if (have_tsig) {
+        have_tsig = 1;
+        if (xfrd->tsig_rr->error_code != LDNS_RCODE_NOERROR) {
+            ods_log_error("[%s] zone %s, from %s has tsig error (%s)",
+                xfrd_str, zone->name, xfrd->master->address,
+                tsig_strerror(xfrd->tsig_rr->error_code));
+        }
         /* strip the TSIG resource record off... */
         buffer_set_limit(buffer, xfrd->tsig_rr->position);
         buffer_pkt_set_arcount(buffer, buffer_pkt_arcount(buffer)-1);
@@ -795,17 +798,12 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
     }
     /* check rcode */
     if (buffer_pkt_rcode(buffer) != LDNS_RCODE_NOERROR) {
+        ods_log_error("[%s] bad packet: zone %s received error code %s from %s",
+            xfrd_str, zone->name, ldns_pkt_rcode2str(buffer_pkt_rcode(buffer)),
+            xfrd->master->address);
         if (buffer_pkt_rcode(buffer) == LDNS_RCODE_NOTIMPL) {
-            ods_log_error("[%s] zone %s received error code %s from %s",
-                xfrd_str, zone->name,
-                ldns_pkt_rcode2str(buffer_pkt_rcode(buffer)),
-                xfrd->master->address);
             return XFRD_PKT_NOTIMPL;
-        } else {
-            ods_log_error("[%s] bad packet: zone %s received error code %s "
-                "from %s", xfrd_str, zone->name,
-                ldns_pkt_rcode2str(buffer_pkt_rcode(buffer)),
-                xfrd->master->address);
+        } else if (buffer_pkt_rcode(buffer) != LDNS_RCODE_NOTAUTH) {
             return XFRD_PKT_BAD;
         }
     }

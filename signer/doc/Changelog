@@ -1,3 +1,6 @@
+10 December 2012: Matthijs
+- Better TSIG logging and documentation, return NOTAUTH on TSIG error.
+
 23 November 2012: Matthijs
 - Add and remove empty non-terminal NSEC3s when adding/removing signed
   delegation.
