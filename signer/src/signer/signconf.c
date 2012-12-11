@@ -242,8 +242,9 @@ signconf_backup(FILE* fd, signconf_type* sc, const char* version)
     signconf_backup_duration(fd, "soamin", sc->soa_min);
     fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
-        fprintf(fd, "audit 0\n");
+        fprintf(fd, "audit 0");
     }
+    fprintf(fd, "\n");
     return;
 }
 
