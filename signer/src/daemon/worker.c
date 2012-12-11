@@ -323,7 +323,7 @@ worker_perform_task(worker_type* worker)
                 }
             }
             if (status == ODS_STATUS_UNCHANGED) {
-                if (task->halted != TASK_NONE) {
+                if (task->halted != TASK_NONE && task->halted != TASK_SIGNCONF) {
                     goto task_perform_continue;
                 }
                 status = ODS_STATUS_OK;
