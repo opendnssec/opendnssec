@@ -163,23 +163,26 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
     ods_log_assert(worker);
     ods_log_assert(q);
     ods_log_assert(rrset);
+
+    lock_basic_lock(&q->q_lock);
+    status = fifoq_push(q, (void*) rrset, worker, &tries);
     while (status == ODS_STATUS_UNCHANGED) {
         tries++;
-        lock_basic_lock(&q->q_lock);
-        status = fifoq_push(q, (void*) rrset, worker, &tries);
         if (worker->need_to_exit) {
             lock_basic_unlock(&q->q_lock);
             return;
         }
         /**
-         * If tries == 0, then we have tried FIFOQ_TRIES_COUNT times,
-         * lets take a small break to not hog CPU.
+         * Apparently the queue is full. Lets take a small break to not hog CPU.
+         * The worker will release the signq lock while sleeping and will
+         * automatically grab the lock when the queue is nonfull.
+         * Queue is nonfull at 10% of the queue size.
          */
-        if (!tries && status == ODS_STATUS_UNCHANGED) {
-            worker_wait_timeout_locked(&q->q_lock, &q->q_nonfull, 5);
-        }
-        lock_basic_unlock(&q->q_lock);
+        lock_basic_sleep(&q->q_nonfull, &q->q_lock, 5);
+        status = fifoq_push(q, (void*) rrset, worker, &tries);
     }
+    lock_basic_unlock(&q->q_lock);
+
     ods_log_assert(status == ODS_STATUS_OK);
     lock_basic_lock(&worker->worker_lock);
     worker->jobs_appointed += 1;
@@ -647,19 +650,28 @@ worker_drudge(worker_type* worker)
     while (worker->need_to_exit == 0) {
         ods_log_deeebug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
+        /* initialize */
         superior = NULL;
         zone = NULL;
         task = NULL;
+        /* get item */
         lock_basic_lock(&engine->signq->q_lock);
         rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         if (!rrset) {
-            ods_log_deeebug("[%s[%i]] nothing to do", worker2str(worker->type),
-                worker->thread_num);
-            worker_wait_locked(&engine->signq->q_lock,
-                &engine->signq->q_threshold);
+            ods_log_deeebug("[%s[%i]] nothing to do, wait",
+                worker2str(worker->type), worker->thread_num);
+            /**
+             * Apparently the queue is empty. Wait until new work is queued.
+             * The drudger will release the signq lock while sleeping and
+             * will automatically grab the lock when the threshold is reached.
+             * Threshold is at 1 and MAX (after a number of tries).
+             */
+            lock_basic_sleep(&engine->signq->q_threshold,
+                &engine->signq->q_lock, 0);
             rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         }
         lock_basic_unlock(&engine->signq->q_lock);
+        /* do some work */
         if (rrset) {
             ods_log_assert(superior);
             if (!ctx) {
@@ -703,6 +715,7 @@ worker_drudge(worker_type* worker)
             superior = NULL;
             rrset = NULL;
         }
+        /* done work */
     }
     /* wake up superior */
     if (superior && superior->sleeping) {
@@ -817,19 +830,6 @@ worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
 
 
 /**
- * Worker waiting on an already locked cond.
- *
- */
-void
-worker_wait_timeout_locked(lock_basic_type* lock, cond_basic_type* condition,
-    time_t timeout)
-{
-    lock_basic_sleep(condition, lock, timeout);
-    return;
-}
-
-
-/**
  * Worker waiting.
  *
  */
@@ -837,18 +837,6 @@ void
 worker_wait(lock_basic_type* lock, cond_basic_type* condition)
 {
     worker_wait_timeout(lock, condition, 0);
-    return;
-}
-
-
-/**
- * Worker waiting on an already locked cond.
- *
- */
-void
-worker_wait_locked(lock_basic_type* lock, cond_basic_type* condition)
-{
-    worker_wait_timeout_locked(lock, condition, 0);
     return;
 }
 
