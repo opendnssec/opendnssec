@@ -3,20 +3,20 @@ $Id$
 
 OpenDNSSEC 1.4.0b2
 
+* OPENDNSSEC-292: Provide scripts to convert database between different 
+  supported formats
+* OPENDNSSEC-299: ods-ksmutil: ods-ksmutil <enter> now includes policy import
+* OPENDNSSEC-300: ods-ksmutil: policy purge documented with a warning
 * OPENDNSSEC-315: "ods-hsmutil logout" will delete any credentials in the
   shared memory.
 * OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL should be set to zero.
-* OPENDNSSEC-299: ods-ksmutil <enter> now includes policy import
-* OPENDNSSEC-300: ods-ksmutil policy purge documented with a warning
 * OPENDNSSEC-338: ods-ksmutil: fix zone delete on MySQL (broken by SUPPORT-27)
 * OPENDNSSEC-345: ods-ksmutil: use ods-control to HUP the enforcerd process
 * ods-ksmutil: Deprecate the one-step key backup command
-* Allow multiple KSKs.
-* OPENDNSSEC-292: Provide scripts to convert database between different 
-  supported formats
 
 Bugfixes:
 * SUPPORT-40: Signer Engine: Keep occluded data in signed zone files/transfers.
+* OPENDNSSEC-349: Enforcer: Fix some memory leaks in the enforcer found by valgrind.
 * OPENDNSSEC-353: Signer Engine: Add/remove NSEC3s for empty non-terminals between apex and
   delegation when DS is added/removed.
 * Signer Engine: Fixed locking and notification on the drudge work queue, signals could be missed
@@ -29,8 +29,7 @@ Bugfixes:
   DNSKEY RRset.
 * Signer Engine: Rollback incompleted zone transfers on disk (could happen
   if a connection was reset during transfer).
-* OPENDNSSEC-349: Fix some memory leaks in the enforcer found by valgrind.
-* Mulit-threaded enforcer: various minor fixes including deadlock problems.
+* Multi-threaded enforcer: various minor fixes including deadlock problems.
 
 
 OpenDNSSEC 1.4.0b1 - 2012-09-06
