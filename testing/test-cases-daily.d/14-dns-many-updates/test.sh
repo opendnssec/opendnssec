@@ -55,6 +55,7 @@ case "$DISTRIBUTION" in
 		rm -f $BIND9_NAMED_PIDFILE
 		ods_kill
 		return 1
+		;;
 esac
 
 # This test is only ran on redhat
