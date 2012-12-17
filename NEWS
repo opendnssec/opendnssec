@@ -1,7 +1,10 @@
 $Id$
 
 
-OpenDNSSEC 1.4.0b2
+OpenDNSSEC 1.4.0-trunk
+
+
+OpenDNSSEC 1.4.0b2 - 2012-12-17
 
 * OPENDNSSEC-292: Provide scripts to convert database between different 
   supported formats
