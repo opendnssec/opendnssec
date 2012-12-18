@@ -346,7 +346,7 @@ ods_bind9_start ()
 	fi
 
 	# check pidfile
-	if [ -e "$BIND9_NAMED_PIDFILE" ]; then
+	if [ -f "$BIND9_NAMED_PIDFILE" ]; then
 		echo "ods_bind9_start: cannot start named, another process still running ($BIND9_NAMED_PIDFILE exists)" >&2
 		return 1
 	fi
@@ -363,7 +363,7 @@ ods_bind9_start ()
 	fi
 
 	# display pid
-	if [ -e "$BIND9_NAMED_PIDFILE" ]; then
+	if [ -f "$BIND9_NAMED_PIDFILE" ]; then
 		named_pid=`cat "$BIND9_NAMED_PIDFILE"`
 		echo "ods_bind9_start: named started (pid=$named_pid)"
 		return 0
@@ -389,7 +389,7 @@ ods_bind9_stop ()
 	fi
 	
 	# check pidfile
-	if [ ! -e "$BIND9_NAMED_PIDFILE" ]; then
+	if [ ! -f "$BIND9_NAMED_PIDFILE" ]; then
 		echo "ods_bind9_stop: cannot stop named, pidfile $BIND9_NAMED_PIDFILE does not exist" >&2
 		return 1
 	fi
@@ -464,8 +464,10 @@ ods_bind9_kill ()
 ods_bind9_dynupdate ()
 {
 	local update_iter
-	local update_total="$1"
-	local zone_name="$2"
+	local update_iterrun
+	local update_perrun="$1"
+	local update_total="$2"
+	local zone_name="$3"
 	local update_file="$BIND9_TEST_ROOTDIR/update.txt"
 	local log_file="$BIND9_TEST_ROOTDIR/update.log"
 	local exit_code
@@ -477,40 +479,56 @@ ods_bind9_dynupdate ()
 
 	# do updates
 	echo "ods_bind9_dynupdate: do $update_total updates in zone $zone_name"
+	rm -rf "$update_file"
 	update_iter=0
-	while [ "$update_iter" -lt "$update_total" ] ; do
+	update_iterrun=0
+	while [ "$update_iter" -lt "$update_total" ] 2>/dev/null; do
 		# write file
-		echo "rr_add test$update_iter.$zone_name 7200 NS ns1.test$update_iter.$zone_name" > $update_file
-		echo "rr_add ns1.test$update_iter.$zone_name 7200 A 1.2.3.4" >> $update_file
+		echo "rr_add test$update_iter.$zone_name. 7200 NS ns1.test$update_iter.$zone_name." >> "$update_file"
+		echo "rr_add ns1.test$update_iter.$zone_name. 7200 A 1.2.3.4" >> "$update_file"
 		
-		# call perl script
-		"$BIND9_TEST_ROOTDIR/send_update.pl" -z "$zone_name" -k "$BIND9_NAMED_CONF" -u "$update_file" -l "$log_file" >/dev/null 2>/dev/null
-		exit_code="$?"
-				
-		if [ "$exit_code" -ne 0 ] 2>/dev/null; then
-			echo "ods_bind9_dynupdate: send_update.pl failed, exit code $exit_code" >&2
-			return 1
-		fi
-
 		# next update
 		update_iter=$(( update_iter + 1 ))
+		update_iterrun=$(( update_iterrun + 1 ))
+		
+		if [ "$update_iterrun" -ge "$update_perrun" ] 2>/dev/null; then
+			# call perl script
+			"$BIND9_TEST_ROOTDIR/send_update.pl" -z "$zone_name." -k "$BIND9_NAMED_CONF" -u "$update_file" -l "$log_file" >/dev/null 2>/dev/null
+			exit_code="$?"
+				
+			if [ "$exit_code" -ne 0 ] 2>/dev/null; then
+				echo "ods_bind9_dynupdate: send_update.pl failed, exit code $exit_code" >&2
+				return 1
+			fi
+			
+			update_iterrun=0
+			rm -rf "$update_file"
+		fi
 	done
 
 	# check updates
 	echo "ods_bind9_dynupdate: check $update_total updates in zone $zone_name"
+	
+	if [ ! -f "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" ]; then
+		echo "ods_bind9_dynupdate: zone file $zone_name not found under $INSTALL_ROOT/var/opendnssec/signed" >&2
+		return 1
+	fi
+	
 	update_iter=0
 	while [ "$update_iter" -lt "$update_total" ] ; do
-		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/ods" 10 "test$update_iter\.$zone_name.*7200.*IN.*NS.*ns1\.test$update_iter\.$zone_name" >/dev/null 2>/dev/null; then
-			echo "ods_bind9_dynupdate: update failed, test$udpdate_iter.$zone_name NS not in signed zonefile" >&2
+		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 10 "test$update_iter\.$zone_name\..*7200.*IN.*NS.*ns1\.test$update_iter\.$zone_name\." >/dev/null 2>/dev/null; then
+			echo "ods_bind9_dynupdate: update failed, test$udpdate_iter.$zone_name\. NS not in signed zonefile" >&2
 			return 1
 		fi
-		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/ods" 10 "ns1\.test$update_iter\.$zone_name.*7200.*IN.*A.*1\.2\.3\.4" >/dev/null 2>/dev/null; then
-			echo "ods_bind9_dynupdate: update failed, ns1.test$udpdate_iter.$zone_name A not in signed zonefile" >&2
+		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 10 "ns1\.test$update_iter\.$zone_name\..*7200.*IN.*A.*1\.2\.3\.4" >/dev/null 2>/dev/null; then
+			echo "ods_bind9_dynupdate: update failed, ns1.test$udpdate_iter.$zone_name\. A not in signed zonefile" >&2
 			return 1
 		fi
 
 		# next update
 		update_iter=$(( update_iter + 1 ))
 	done
+
+	rm -rf "$update_file" "$log_file"
 	return 0
 }

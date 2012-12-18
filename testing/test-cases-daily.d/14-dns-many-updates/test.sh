@@ -39,7 +39,7 @@ case "$DISTRIBUTION" in
 		syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 
 		## Send updates
-		ods_bind9_dynupdate 10000 ods. &&
+		ods_bind9_dynupdate 100 10000 ods &&
 
 		## Stop
 		log_this_timeout ods-control-stop 60 ods-control stop &&
