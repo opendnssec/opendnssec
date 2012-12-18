@@ -338,6 +338,7 @@ ods_bind9_start ()
 {
 	local username=jenkins
 	local named_pid
+	local exit_code
 	
 	if [ -z "$BIND9_NAMED_PIDFILE" -o -z "$BIND9_NAMED_PORT" -o -z "$BIND9_NAMED_CONF" ]; then
 		echo "ods_bind9_start: one or more required environment variables missing: BIND9_NAMED_PIDFILE BIND9_NAMED_PORT BIND9_NAMED_CONF" >&2
@@ -353,10 +354,11 @@ ods_bind9_start ()
 	# start named
 	echo "ods_bind9_start: starting named -p $BIND9_NAMED_PORT -c $BIND9_NAMED_CONF -u $username"
 	log_this named named -p "$BIND9_NAMED_PORT" -c "$BIND9_NAMED_CONF" -u "$username"
+	exit_code="$?"
 	# log waitfor?
 
-	if [ "$?" -ne 0 ] 2>/dev/null; then
-		echo "ods_bind9_start: failed to start named, exit code $?" >&2
+	if [ "$exit_code" -ne 0 ] 2>/dev/null; then
+		echo "ods_bind9_start: failed to start named, exit code $exit_code" >&2
 		return 1
 	fi
 
@@ -379,6 +381,7 @@ ods_bind9_stop ()
 	local time_stop
 	local time_now
 	local timeout=60
+	local exit_code
 		
 	if [ -z "$BIND9_NAMED_PIDFILE" -o -z "$BIND9_NAMED_RNDC_PORT" -o -z "$BIND9_NAMED_CONFDIR" ]; then
 		echo "ods_bind9_stop: one or more required environment variables missing: BIND9_NAMED_PIDFILE BIND9_NAMED_RNDC_PORT BIND9_NAMED_CONFDIR" >&2
@@ -401,9 +404,10 @@ ods_bind9_stop ()
 	# stop named
 	echo "ods_bind9_stop: running rndc stop"
 	rndc -p "$BIND9_NAMED_RNDC_PORT" -c "$BIND9_NAMED_CONFDIR/rndc.conf" stop
+	exit_code="$?"
 
-	if [ "$?" -ne 0 ] 2>/dev/null; then
-		echo "ods_bind9_stop: failed to stop named, rndc exit code $?" >&2
+	if [ "$exit_code" -ne 0 ] 2>/dev/null; then
+		echo "ods_bind9_stop: failed to stop named, rndc exit code $exit_code" >&2
 		return 1
 	fi
 	
@@ -464,6 +468,7 @@ ods_bind9_dynupdate ()
 	local zone_name="$2"
 	local update_file="$BIND9_TEST_ROOTDIR/update.txt"
 	local log_file="$BIND9_TEST_ROOTDIR/update.log"
+	local exit_code
 
 	if [ -z "$BIND9_TEST_ROOTDIR" -o -z "$BIND9_NAMED_CONF" ]; then
 		echo "ods_bind9_dynupdate: one or more required environment variables missing: BIND9_TEST_ROOTDIR BIND9_NAMED_CONF" >&2
@@ -480,9 +485,10 @@ ods_bind9_dynupdate ()
 		
 		# call perl script
 		"$BIND9_TEST_ROOTDIR/send_update.pl" -z "$zone_name" -k "$BIND9_NAMED_CONF" -u "$update_file" -l "$log_file" >/dev/null 2>/dev/null
-		
-		if [ "$?" -ne 0 ] 2>/dev/null; then
-			echo "ods_bind9_dynupdate: send_update.pl failed, exit code $?" >&2
+		exit_code="$?"
+				
+		if [ "$exit_code" -ne 0 ] 2>/dev/null; then
+			echo "ods_bind9_dynupdate: send_update.pl failed, exit code $exit_code" >&2
 			return 1
 		fi
 
