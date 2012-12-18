@@ -14,6 +14,12 @@ BIND9_NAMED_RNDC_PORT=10953
 BIND9_NAMED_CONF=$BIND9_NAMED_CONFDIR/named.conf
 
 case "$DISTRIBUTION" in
+	redhat )
+		append_path /usr/sbin
+		;;
+esac
+			
+case "$DISTRIBUTION" in
         redhat )
 
 		if [ -n "$HAVE_MYSQL" ]; then
