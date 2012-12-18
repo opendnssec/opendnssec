@@ -47,8 +47,6 @@ OpenDNSSEC to another.
   There are no migration scripts to run to make this transition.
 
 
-
-
 *** Migrating from v1.1 to v1.2 ***
 
   There is a kasp schema change from the 1.1 branch (or trunk if you built
@@ -70,8 +68,6 @@ OpenDNSSEC to another.
         backup of your database prior to running them.
 
 
-
-
 *** Migrating to a larger keypairs(id) field (MySQL ONLY) ***
 
   The version of the MySQL database that was created with v1.2 (and prior to
@@ -87,4 +83,28 @@ OpenDNSSEC to another.
   NOTES: Although this scripts have been tested it is recommended to make a
          backup of your database prior to running them.
 
-		 This issue only applies to MySQL backends.
+         This issue only applies to MySQL backends.
+
+
+*** Migrating between SQLite <=> MySQL (same OpenDNSSEC version) ***
+
+  convert_database.pl located in enforcer/utils can be used to convert
+  between SQLite and MySQL on the same OpenDNSSEC version. If you wish to
+  convert to another OpenDNSSEC version you need to migrate existing
+  database to that version first.
+
+  NOTE: You must create the MySQL database and database user manually
+        before converting to MySQL.
+
+  Convert from SQLite to MySQL example:
+  enforcer/utils/convert_database.pl \
+    --from dbi:SQLite:dbname=/var/opendnssec/kasp.db \
+    --to dbi:mysql:database=kasp;host=localhost \
+    --to-username <username> --to-password <password>
+
+  Convert from MySQL to SQLite example:
+  enforcer/utils/convert_database.pl \
+    --from dbi:mysql:database=kasp;host=localhost \
+    --from-username <username> --from-password <password> \
+    --to dbi:SQLite:dbname=/var/opendnssec/kasp.db
+
