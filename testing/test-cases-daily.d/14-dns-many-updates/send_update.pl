@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 
 # send_update.pl
 
@@ -9,7 +9,6 @@ use strict;
 use Getopt::Std     qw(getopts);
 use Net::DNS;
 use Net::DNS::SEC;
-use Readonly;
 
 
 use IO::Handle;
@@ -65,7 +64,6 @@ open(my $fh_updates, "<", $updates_file) or die "failed to open $updates_file";
 
 # check BIND is ready
 my $count_check_named = 0;
-Readonly my $RETRY => 60;
 CHECK_NAMED:
 {
 	# Set up a resolver object
