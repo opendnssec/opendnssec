@@ -23,6 +23,7 @@ ods_nuke_env ()
 	local signed_files=`ls "$INSTALL_ROOT/var/opendnssec/signed/" 2>/dev/null`
 	local signconf_files=`ls "$INSTALL_ROOT/var/opendnssec/signconf/" 2>/dev/null`
 	local softhsm_files=`ls "$INSTALL_ROOT/var/softhsm/" 2>/dev/null`
+	local softhsm_files2=`ls "$INSTALL_ROOT/var/lib/softhsm/" 2>/dev/null`
 	
 	if [ -n "$kasp_files" ]; then
 		(
@@ -58,6 +59,12 @@ ods_nuke_env ()
 		(
 			cd "$INSTALL_ROOT/var/softhsm/" &&
 			rm -f -- $softhsm_files 2>/dev/null
+		)
+	fi &&
+	if [ -n "$softhsm_files2" ]; then
+		(
+			cd "$INSTALL_ROOT/var/lib/softhsm/" &&
+			rm -f -- $softhsm_files2 2>/dev/null
 		)
 	fi &&
 	return 0
