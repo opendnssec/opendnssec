@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
-## Test basic Output DNS Adapter
-## Start OpenDNSsEC, see if the zone gets signed and see if NOTIFY
-## messages are send.
+#CATEGORY: signer-adaptors-empty-non-terminals
+
+#TEST:Test basic Output DNS Adapter
+#TEST: Start OpenDNSsEC, see if the zone gets signed and see if NOTIFY
+#TEST: messages are send. 
+
+#OPENDNSSEC-353: OpenDNSSEC does not add NSEC3s for empty non-terminals when DS below is added
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
