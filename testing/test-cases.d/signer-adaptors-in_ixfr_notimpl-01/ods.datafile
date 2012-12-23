@@ -1,0 +1,76 @@
+ENTRY_BEGIN
+MATCH opcode
+MATCH qtype
+MATCH qname
+MATCH TCP
+REPLY QUERY
+REPLY NOERROR
+REPLY QR AA
+ADJUST copy_id
+SECTION QUESTION
+ods. IN AXFR
+SECTION ANSWER
+
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 20 5 3600 3600
+ods. 600 IN MX 10 mail.ods.
+ods. 600 IN NS ns1.ods.
+ods. 600 IN NS ns2.ods.
+ods. 600 IN A 192.0.2.1
+mail.ods. 600 IN A 192.0.2.1
+ns1.ods. 600 IN A 192.0.2.1
+ns2.ods. 600 IN A 192.0.2.1
+label1.ods. IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label2.ods. IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label3.ods. IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label4.ods. IN NS ns1.label4.ods.
+label4.ods. IN NS ns2.label4.ods.
+label4.ods. IN NS ns3.label4.ods.
+label4.ods. IN NS ns4.label4.ods.
+label4.ods. IN NS ns5.label4.ods.
+label4.ods. IN NS ns6.label4.ods.
+ns1.label4.ods. IN A 192.0.2.1
+ns2.label4.ods. IN A 192.0.2.1
+ns3.label4.ods. IN A 192.0.2.1
+ns4.label4.ods. IN A 192.0.2.1
+ns5.label4.ods. IN A 192.0.2.1
+ns6.label4.ods. IN A 192.0.2.1
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 20 5 3600 3600
+
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+
+ENTRY_BEGIN
+MATCH opcode
+MATCH qtype
+MATCH qname
+MATCH UDP
+REPLY QUERY
+REPLY NOTIMPL
+REPLY QR AA
+ADJUST copy_id
+SECTION QUESTION
+ods. IN IXFR
+SECTION ANSWER
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+ENTRY_BEGIN
+MATCH opcode
+MATCH qtype
+MATCH qname
+MATCH TCP
+REPLY QUERY
+REPLY NOTIMPL
+REPLY QR AA
+ADJUST copy_id
+SECTION QUESTION
+ods. IN IXFR
+SECTION ANSWER
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+
