@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-#
-# Use correct PIN plus one additional character, expect failure
+
+#TEST: Use correct PIN plus one additional character while PIN is needed, expect failure
+
+#CATEGORY: general-repository-fail_incorrect_pin2
+
+#TODO: Merge with 10-080 (fail_incorrect_pin)?
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-#
-# Change the Interval to 4 seconds and check if the enforcer runs 4 times
+
+#TEST: Change the Interval to 4 seconds and check if the enforcer runs 4 times
+
+#CATEGORY: enforcer-conf-short_interval
+
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

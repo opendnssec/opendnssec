@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-#
-# Change port of database and check if enforcer fails to connect
+
+#TEST: Change port of database and check if enforcer fails to connect
+
+#CATEGORY: enforcer-conf-change_db_port
 
 if [ -z "$HAVE_MYSQL" ]; then
 	return 0

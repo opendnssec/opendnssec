@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-#
-# Use a Repository Capacity of 0 and expect failure
+
+#TEST: Use a Repository Capacity of 0 and expect failure
+
+#CATEGORY: general-repository-fail_capacity_0
+
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

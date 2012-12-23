@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-#
-# Test deletion of zones with keys
+
+#TEST: Test deletion of zones with keys.
+
+#CATEGORY: enforcer-zones-delete_zones_with_keys
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

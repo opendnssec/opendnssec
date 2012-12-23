@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-#
-# "Configure 4 repositories and sign using 2 of these different repositories"
+
+#TEST: Configure 4 repositories and sign a single zone using 2 of these different repositories. 
+
+#CATEGORY: general-repository-multiple_repositories
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

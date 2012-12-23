@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-#
-# Change WorkerThreads to 32 and check if 32 threads are used
+
+#TEST: Change WorkerThreads to 32 and check if 32 threads are used
+
+#CATEGORY: signer-conf-32_worker_threads
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

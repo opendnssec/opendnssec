@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-#
-# NOTE NOTE NOTE - Test system today runs under a normal user, this test needs to be changed or allowed root access to test setuid functionallity
-#
-# Use privileges test: test for enforcer in config only and check if enforcers fails to run
+
+#TEST: Use privileges test: test for enforcer in config only and check if enforcers fails to run
+
+#TEST: NOTE NOTE NOTE - Test system today runs under a normal user, this test needs to be changed or allowed root access to test setuid functionallity
+
+#CATEGORY: enforcer-privileges-user_doesnt_exist
 
 ods_reset_env &&
 echo 'Privileges have been adjusted in the conf.xml. User opendnssec1 is specified, which does not exist on the unix system.' &&
