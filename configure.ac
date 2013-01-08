@@ -218,35 +218,6 @@ AH_BOTTOM([
 ])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
-# plugins/eppclient
-AC_ARG_ENABLE(eppclient,
-	AC_HELP_STRING([--enable-eppclient],
-		[Enable eppclient build (default disabled)]),
-		[enable_eppclient="${enableval}"],
-		[enable_eppclient="no"])
-if test "x${enable_eppclient}" = "xyes"; then
-	AC_SEARCH_LIBS(nanosleep, rt posix4, AC_DEFINE(HAVE_NANOSLEEP, 1,
-		[Define if you have nanosleep]))
-
-	# ACX_LIBXML2
-	# ACX_LDNS(1,6,6)
-	ACX_LIBSQLITE3
-	LIBCURL_CHECK_CONFIG([yes], [7.18.2], [], [AC_MSG_ERROR(["libcurl not found"])])
-
-	EPPCLIENTD_CONF=$OPENDNSSEC_SYSCONF_DIR/eppclientd.conf
-	EPPCLIENTD_DB=$OPENDNSSEC_LOCALSTATE_DIR/eppclientd.sqlite
-	EPPCLIENTD_PID=$OPENDNSSEC_PID_DIR/eppclientd.pid
-	EPPCLIENTD_PIPE=$OPENDNSSEC_PID_DIR/eppclientd.pipe
-
-	AC_SUBST([EPPCLIENTD_CONF])
-	AC_SUBST([EPPCLIENTD_DB])
-	AC_SUBST([EPPCLIENTD_PID])
-	AC_SUBST([EPPCLIENTD_PIPE])
-
-	AC_DEFINE_UNQUOTED(EPPCLIENTD_CONF, "$EPPCLIENTD_CONF", [Path to the eppclientd.conf])
-fi
-AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
-
 # check for a green cucumber (but only if we can shift time)
 if test "x${enable_timeshift}" = "xyes"; then
 	AC_PATH_PROG(CUCUMBER, cucumber)
@@ -304,12 +275,6 @@ AC_CONFIG_FILES([
 	libhsm/checks/conf-opensc.xml
 	libhsm/checks/conf-ncipher.xml
 	libhsm/checks/conf-aepkeyper.xml
-	plugins/eppclient/Makefile
-	plugins/eppclient/src/Makefile
-	plugins/eppclient/src/eppclient.8
-	plugins/eppclient/src/eppclientd.8
-	plugins/eppclient/src/eppclientd.conf
-	plugins/eppclient/src/eppclientd.conf.5
 	signer/Makefile
 	signer/man/Makefile
 	signer/man/ods-signer.8
