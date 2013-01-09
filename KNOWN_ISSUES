@@ -1,9 +1,15 @@
 $Id$
 
-OpenDNSSEC 1.4.0b1 - Known Restrictions
+OpenDNSSEC 1.4.0rc1 - Known Restrictions
 
-The following are the known problems and/or restrictions of release 1.4.0b1 of
+The following are the known problems and/or restrictions of release 1.4.0rc1 of
 OpenDNSSEC.
+
+BUGS: 
+-----
+
+SUPPORT-44: ods-signerd has to be run as root to be able to bind the (notify) listener to e.g. port 53.
+OPENDNSSEC-332: Statistics on average sigs/sec not accurate
 
 
 Limitations on Number of Zones
