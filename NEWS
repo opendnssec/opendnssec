@@ -3,7 +3,12 @@ $Id$
 
 OpenDNSSEC 1.4.0-trunk
 
+
+
+OpenDNSSEC 1.4.0rc1 - 2013-01-10
+
 * OPENDNSSEC-359: Remove eppclient
+
 
 OpenDNSSEC 1.4.0b2 - 2012-12-17
 
