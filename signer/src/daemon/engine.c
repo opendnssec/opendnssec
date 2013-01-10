@@ -570,12 +570,12 @@ engine_setup(engine_type* engine)
     if (result != HSM_OK) {
         return ODS_STATUS_HSM_ERR;
     }
-    /* start cmd/xfr handlers */
-    engine_start_cmdhandler(engine);
-    engine_start_xfrhandler(engine);
     /* create workers/drudgers */
     engine_create_workers(engine);
     engine_create_drudgers(engine);
+    /* start cmd/xfr handlers */
+    engine_start_cmdhandler(engine);
+    engine_start_xfrhandler(engine);
     tsig_handler_init(engine->allocator);
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
