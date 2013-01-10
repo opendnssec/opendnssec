@@ -30,7 +30,6 @@ cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
 ods-signer sign ods &&
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 1002*' &&
 sleep 3 &&
-ods-signer verbosity 5 &&
 
 ## Check if empty non-terminal NSEC3s are added
 grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1002 9000 4500 1209600 3600" "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
