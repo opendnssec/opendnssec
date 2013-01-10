@@ -4,8 +4,6 @@
 #TEST: Configure no PIN while PIN is needed, expect failure
 #TEST: Then login and start everything successfully
 
-#CATEGORY: general-pin_deamon-basic_test
-
 # Make sure the PIN is cleared from shared memory
 log_this clear-pin ods-hsmutil logout
 

@@ -2,7 +2,6 @@
 
 #TEST: RequireBackup turned on and check that non-backedup keys are not used if backup not done. Then back the keys up and check the zone is signed OK.
 
-#CATEGORY: general-repository-keys-require_backup
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

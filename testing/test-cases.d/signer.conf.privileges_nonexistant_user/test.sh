@@ -4,7 +4,6 @@
 
 #TEST: NOTE NOTE NOTE - Test system today runs under a normal user, this test needs to be changed or allowed root access to test setuid functionallity
 
-#CATEGORY: signer-privileges-user_doesnt_exist
 
 ods_reset_env &&
 echo 'Privileges have been adjusted for the signer in the conf.xml. User = opendnssec; Group = opendnssec. This user and group do not have acces to the correct folder.' &&

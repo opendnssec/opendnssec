@@ -2,8 +2,6 @@
 
 #TEST: Start, sign a single zone with one repository, stop. 
 
-#CATEGORY: general-basic-start_sign_stop
-
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&

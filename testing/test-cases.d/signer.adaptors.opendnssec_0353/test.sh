@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-#CATEGORY: signer-adaptors-empty-non-terminals
-
 #TEST:Test basic Output DNS Adapter
 #TEST: Start OpenDNSsEC, see if the zone gets signed and see if NOTIFY
 #TEST: messages are send. 

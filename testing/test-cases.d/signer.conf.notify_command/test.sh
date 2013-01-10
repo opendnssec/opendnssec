@@ -2,7 +2,6 @@
 
 #TEST: Use a simple script as NotifyCommand and check if it is executed after signing
 
-#CATEGORY: signer-conf-notify_command
 
 cat >"$INSTALL_ROOT/var/opendnssec/tmp/test-notify-command.sh" 2>/dev/null <<"EOF"
 #!/usr/bin/env bash

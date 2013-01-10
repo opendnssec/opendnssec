@@ -2,8 +2,6 @@
 
 #TEST: Use a Repository Capacity of 4 and expect success
 
-#CATEGORY: general-repository-capacity_4
-
 #TODO: Merge with 10-020 (many_repositories)?
 
 if [ -n "$HAVE_MYSQL" ]; then

@@ -2,8 +2,6 @@
 
 #TEST: RequireBackup turned on and check that non-backedup keys are not used if backup not done.
 
-#CATEGORY: general-repository-fail_require_backup
-
 #TODO: Remove as duplicates first part of 10-160 (require_backup)
 
 if [ -n "$HAVE_MYSQL" ]; then

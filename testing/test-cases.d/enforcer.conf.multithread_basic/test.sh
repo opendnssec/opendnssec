@@ -3,8 +3,6 @@
 #TEST: Configure and sign 4 zones with one repository using multi-threaded Enforcer
 #TEST: and 3 different policies, 1 with shared keys and 2 without.
 
-#CATEGORY: enforcer-multi-threaded_basic_test
-
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&

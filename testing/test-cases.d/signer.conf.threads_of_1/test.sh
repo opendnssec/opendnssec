@@ -2,7 +2,6 @@
 
 #TEST: Change WorkerThreads to 1 and check if only 1 thread is used
 
-#CATEGORY: signer-conf-1_worker_thread
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

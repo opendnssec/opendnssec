@@ -5,9 +5,6 @@
 #TEST: Checks the output of ods-ksmutil key list and the signconf.xml contents
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
 
-
-#CATEGORY: enforcer-rollovers-check_many_rollovers_test
-
 #TODO: - increase number of steps?
 #TODO: - check more logging in syslog
 #TODO: - fix the compare script to directly compare the key ids in the signconf

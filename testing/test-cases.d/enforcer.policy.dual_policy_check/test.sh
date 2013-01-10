@@ -2,7 +2,6 @@
 
 #TEST: Test 2 zones on separate policies, check the signconfs look reasonable
 
-#CATEGORY: enforcer-policies-dual_policy_check_signconf
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

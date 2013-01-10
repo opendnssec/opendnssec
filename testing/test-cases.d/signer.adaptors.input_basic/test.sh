@@ -3,7 +3,6 @@
 #TEST: Test basic Input DNS Adapter
 #TEST: Start OpenDNSSEC and see if zone gets transferred and signed.
 
-#CATEGORY: signer-adapters-input_dns
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

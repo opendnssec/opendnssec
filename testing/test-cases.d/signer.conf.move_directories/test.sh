@@ -2,7 +2,6 @@
 
 #TEST: Change the /tmp location and change WorkingDirectory in conf.xml accordingly
 
-#CATEGORY: signer-conf-change_tmp_and_working_dir
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

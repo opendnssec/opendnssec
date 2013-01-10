@@ -2,7 +2,6 @@
 
 #TEST: Change the kasp.xml location and change PolicyFile in conf.xml accordingly
 
-#CATEGORY: general-common-change_kasp_xml_location
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

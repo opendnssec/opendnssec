@@ -2,7 +2,6 @@
 
 #TEST: Set logging to a invalid channel and expect failure.
 
-#CATEGORY: general-common-fail_invalid_logging_channel
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

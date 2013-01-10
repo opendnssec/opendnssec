@@ -2,8 +2,6 @@
 
 #TEST: Stresstest OpenDNSSEC: Many notifies and no updates may go missing.
 
-#CATEGORY: signer-adapters-input_dns_many_updates
-
 # Start with some BIND9 config
 BIND9_TEST_ROOTDIR=`pwd`
 BIND9_NAMED_CONFDIR=$BIND9_TEST_ROOTDIR/bind9

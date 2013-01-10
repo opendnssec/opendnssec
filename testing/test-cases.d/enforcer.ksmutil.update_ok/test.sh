@@ -2,8 +2,6 @@
 
 #TEST: Test that a ksmutil update call HUPs the enforcerd
 
-#CATEGORY: enforcer-ksmutil-update
-
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&

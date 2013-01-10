@@ -3,8 +3,6 @@
 #TEST: Test kaspcheck with different input files - some good, some bad
 #TEST: This test case only runs kaspcheck, it does not run ods.
 
-#CATEGORY: general-kaspcheck-good_and_bad_xml
-
 ods_reset_env &&
 
 # 1) Test with a good set of xml files

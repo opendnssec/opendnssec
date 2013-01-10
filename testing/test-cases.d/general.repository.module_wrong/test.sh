@@ -2,8 +2,6 @@
 
 #TEST: Configure wrong repository module location and expect failure 
 
-#CATEGORY: general-repository-fail_wrong_module
-
 #TODO: Merge with 10-030 (fail_no_module)?
 
 ods_reset_env &&

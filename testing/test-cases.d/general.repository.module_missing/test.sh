@@ -2,7 +2,6 @@
 
 #TEST: Configure no repository module location and expect failure 
 
-#CATEGORY: general-repository-fail_no_module
 
 ods_reset_env &&
 

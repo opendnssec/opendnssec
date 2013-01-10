@@ -2,8 +2,6 @@
 
 #TEST: Change the kasp.db location and change Datastore in conf.xml accordingly
 
-#CATEGORY: enforcer-conf-change_kasp_db_location
-
 if [ -n "$HAVE_MYSQL" ]; then
 	return 0
 fi &&

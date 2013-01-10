@@ -2,8 +2,6 @@
 
 #TEST: Set logging to a different channel and check if only the new channel receives ODS logging
 
-#CATEGORY: general-common-change_logging_channel
-
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&

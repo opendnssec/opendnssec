@@ -4,7 +4,6 @@
 #TEST: Start OpenDNSSEC and see if zone gets transferred and signed
 #TEST: and see if NOTIFY messages are sent. 
 
-#CATEGORY: signer-adapters-output_dns
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

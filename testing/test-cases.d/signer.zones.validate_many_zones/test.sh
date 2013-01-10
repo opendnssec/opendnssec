@@ -5,7 +5,6 @@
 #TEST: Will eventually add validation into this to check the output
 #TEST: For now use it to check any signing bugs with explicit tests
 
-#CATEGORY: signer-zones-validate_test_zone_data
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

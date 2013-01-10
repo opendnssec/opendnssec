@@ -2,8 +2,6 @@
 
 #TEST: Configure no PIN while PIN is needed, expect failure
 
-#CATEGORY: general-repository-fail_as_no_pin
-
 
 ods_reset_env &&
 

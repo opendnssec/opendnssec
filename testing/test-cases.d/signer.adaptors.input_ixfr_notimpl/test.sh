@@ -4,7 +4,6 @@
 #TEST: Start OpenDNSSEC and see if zone gets transferred and signed.
 #TEST: Check we can support NOTIMPL from nameserver
 
-#CATEGORY: signer-adapters-input_dns_notimpl
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml

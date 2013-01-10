@@ -4,8 +4,6 @@
 #TEST: Start OpenDNSSEC and see if zone gets transferred and signed
 #TEST: and then see what happens with retries fail and the expire time passes.
 
-#CATEGORY: signer-adapters-input_output_dns_retry_expire
-
 ## It requires setting up a zone in OpenDNSSEC with Input DNS Adapter,
 ## non-default zonelist.xml, non-default conf.xml, additional addns.xml.
 ## It requires setting up a primary name server (ldns-testns).
