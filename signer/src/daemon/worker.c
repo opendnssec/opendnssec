@@ -344,6 +344,7 @@ worker_perform_task(worker_type* worker)
             /* perform 'read input adapter' task */
             worker_working_with(worker, TASK_READ, TASK_SIGN,
                 "read", task_who2str(task), &what, &when);
+            task->what = TASK_READ;
             if (!zone->signconf->last_modified) {
                 ods_log_debug("[%s[%i]] no signconf.xml for zone %s yet",
                     worker2str(worker->type), worker->thread_num,
@@ -369,6 +370,7 @@ worker_perform_task(worker_type* worker)
             /* perform 'sign' task */
             worker_working_with(worker, TASK_SIGN, TASK_WRITE,
                 "sign", task_who2str(task), &what, &when);
+            task->what = TASK_SIGN;
             status = zone_update_serial(zone);
             if (status == ODS_STATUS_OK) {
                 if (task->interrupt > TASK_SIGNCONF) {
@@ -433,6 +435,7 @@ worker_perform_task(worker_type* worker)
             /* perform 'write to output adapter' task */
             worker_working_with(worker, TASK_WRITE, TASK_SIGN,
                 "write", task_who2str(task), &what, &when);
+            task->what = TASK_WRITE;
             status = tools_output(zone, engine);
             if (status == ODS_STATUS_OK) {
                 if (task->interrupt > TASK_SIGNCONF) {

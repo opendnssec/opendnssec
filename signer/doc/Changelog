@@ -125,8 +125,6 @@ than in syslog.
   has not changed. 
 - OPENDNSSEC-231: Allow for Classless IN-ADDR.ARPA names (RFC 2317).
 
-ods-signer broken for reverse classless delegations
-
 20 March 2012: Matthijs
 - OPENDNSSEC-164: A new way to backup
 - OPENDNSSEC-226: Listener should be configured with Address, not IPv{4,6}.

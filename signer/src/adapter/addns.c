@@ -666,7 +666,7 @@ addns_read(void* zone)
         z->xfrd->serial_disk_acquired <= z->xfrd->serial_xfr_acquired) {
         lock_basic_unlock(&z->xfrd->serial_lock);
         lock_basic_unlock(&z->xfrd->rw_lock);
-        return ODS_STATUS_UNCHANGED;
+        return ODS_STATUS_XFR_NOT_READY;
     }
     /* copy zone transfers */
     xfrfile = ods_build_path(z->name, ".xfrd", 0, 1);

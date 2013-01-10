@@ -78,6 +78,8 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_UNCHANGED, "Status unchanged"},
     { ODS_STATUS_WRITE_PIDFILE_ERR, "Unable to write process id to pidfile"},
     { ODS_STATUS_XML_ERR, "XML error"},
+
+    { ODS_STATUS_XFR_NOT_READY, "Incoming zone transfer not ready"},
     { 0, NULL }
 };
 
