@@ -37,6 +37,7 @@
 #include "config.h"
 #include "shared/allocator.h"
 #include "shared/locks.h"
+#include "shared/status.h"
 #include "wire/listener.h"
 #include "wire/netio.h"
 #include "wire/query.h"
@@ -69,6 +70,14 @@ struct dnshandler_struct {
  */
 dnshandler_type* dnshandler_create(allocator_type* allocator,
     listener_type* interfaces);
+
+/**
+ * Start dns handler listener.
+ * \param[in] dnshandler_type* dns handler
+ * \return ods_status status
+ *
+ */
+ods_status dnshandler_listen(dnshandler_type* dnshandler);
 
 /**
  * Start dns handler.

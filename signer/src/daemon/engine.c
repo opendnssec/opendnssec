@@ -473,6 +473,7 @@ engine_wakeup_workers(engine_type* engine)
 static ods_status
 engine_setup(engine_type* engine)
 {
+    ods_status status = ODS_STATUS_OK;
     struct sigaction action;
     int result = 0;
     int sockets[2] = {0,0};
@@ -502,9 +503,12 @@ engine_setup(engine_type* engine)
         }
         engine->xfrhandler->dnshandler.fd = sockets[0];
         engine->dnshandler->xfrhandler.fd = sockets[1];
-        engine_start_dnshandler(engine);
+        status = dnshandler_listen(engine->dnshandler);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] setup: unable to listen to sockets (%s)",
+                engine_str, ods_status2str(status));
+        }
     }
-    engine_start_xfrhandler(engine);
     /* privdrop */
     engine->uid = privuid(engine->config->username);
     engine->gid = privgid(engine->config->group);
@@ -573,8 +577,10 @@ engine_setup(engine_type* engine)
     /* create workers/drudgers */
     engine_create_workers(engine);
     engine_create_drudgers(engine);
-    /* start cmdhandler */
+    /* start cmd/dns/xfr handlers */
     engine_start_cmdhandler(engine);
+    engine_start_dnshandler(engine);
+    engine_start_xfrhandler(engine);
     tsig_handler_init(engine->allocator);
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
