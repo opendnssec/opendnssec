@@ -502,9 +502,9 @@ engine_setup(engine_type* engine)
         }
         engine->xfrhandler->dnshandler.fd = sockets[0];
         engine->dnshandler->xfrhandler.fd = sockets[1];
+        engine_start_dnshandler(engine);
     }
-    /* start dns handler */
-    engine_start_dnshandler(engine);
+    engine_start_xfrhandler(engine);
     /* privdrop */
     engine->uid = privuid(engine->config->username);
     engine->gid = privgid(engine->config->group);
@@ -573,9 +573,8 @@ engine_setup(engine_type* engine)
     /* create workers/drudgers */
     engine_create_workers(engine);
     engine_create_drudgers(engine);
-    /* start cmd/xfr handlers */
+    /* start cmdhandler */
     engine_start_cmdhandler(engine);
-    engine_start_xfrhandler(engine);
     tsig_handler_init(engine->allocator);
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
