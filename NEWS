@@ -3,7 +3,12 @@ $Id$
 
 OpenDNSSEC 1.4.0-trunk
 
-* OPENDNSSEC-350: Better log message when IXFR is not ready for reading.
+* OPENDNSSEC-350: Signer Engine: Better log message when IXFR is not ready for
+  reading.
+
+Bugfixes:
+* SUPPORT-44: Signer Engine: Drop privileges after binding to socket
+  [OPENDNSSEC-364].
 
 
 OpenDNSSEC 1.4.0rc1 - 2013-01-10
@@ -26,11 +31,14 @@ OpenDNSSEC 1.4.0b2 - 2012-12-17
 
 Bugfixes:
 * SUPPORT-40: Signer Engine: Keep occluded data in signed zone files/transfers.
-* OPENDNSSEC-349: Enforcer: Fix some memory leaks in the enforcer found by valgrind.
-* OPENDNSSEC-353: Signer Engine: Add/remove NSEC3s for empty non-terminals between apex and
+* OPENDNSSEC-349: Enforcer: Fix some memory leaks in the enforcer found by
+  valgrind.
+* OPENDNSSEC-353: Signer Engine: Add/remove NSEC3s for empty non-terminals
+  between apex and
   delegation when DS is added/removed.
-* Signer Engine: Fixed locking and notification on the drudge work queue, signals could be missed
-  so that drudgers would stall when there was work to be done.
+* Signer Engine: Fixed locking and notification on the drudge work queue,
+  signals could be missed so that drudgers would stall when there was work to
+  be done.
 * libhsm: Fixed PIN handling on OpenBSD.
 * Enforcer: If enabled enforcer workers and configured number of workers is 1,
   make sure that enforcer runs the signer update command after signer
@@ -56,22 +64,24 @@ OpenDNSSEC 1.4.0b1 - 2012-09-06
 Bugfixes:
 * OPENDNSSEC-255: Signer Engine: OpenDNSSEC 1.4.0a1 writes out mangled RRSIG
   record.
-* OPENDNSSEC-261: Signer Engine: Ldns fails to parse RR that seems syntactically
-  correct.
-* OPENDNSSEC-269: Signer Engine: Crash when multiple threads access ixfr struct. 
+* OPENDNSSEC-261: Signer Engine: Ldns fails to parse RR that seems
+  syntactically correct.
+* OPENDNSSEC-269: Signer Engine: Crash when multiple threads access ixfr
+  struct. 
 * OPENDNSSEC-281: Commandhandler sometimes unresponsive.
 * OPENDNSSEC-318: Signer Engine: Don't stop dns and xfr handlers if these
   threads have not yet been started.
 * OPENDNSSEC-319: Signer Engine: Fix TSIG segfault on signer shutdown.
-* OPENDNSSEC-325: Signer Engine: Don't include RRSIG records when DO bit is not
-  set.
+* OPENDNSSEC-325: Signer Engine: Don't include RRSIG records when DO bit is
+  not set.
 * OPENDNSSEC-326: Signer Engine: Stop serving a zone that could not be
   transferred from master and has been expired.
 
 
 OpenDNSSEC 1.4.0a3 - 2012-08-08
 
-* OPENDNSSEC-258: Optionally include cka_id in output to DelegationSignerSubmitCommand.
+* OPENDNSSEC-258: Optionally include cka_id in output to
+  DelegationSignerSubmitCommand.
 
 Bugfixes:
 * SUPPORT-27: ods-ksmutil: simplify zone delete so that it only marks keys 
@@ -88,7 +98,8 @@ Bugfixes:
 * OPENDNSSEC-304: Signer Engine: Check pidfile on startup, if pidfile exists
   and corresponding process is running, then complain and exit.
 * OPENDNSSEC-306: Can't delete zone until Enforcer made signconf.
-* Fix assertion error when printing signed zone with empty non-terminals and NSEC.
+* Fix assertion error when printing signed zone with empty non-terminals and
+  NSEC.
 * Make setting QUERY ID in XFR requests more random.
 
 
@@ -290,12 +301,12 @@ Bugfixes:
 * Auditor: Fix 'ZSK in use too long' message to handle new signer behaviour.
 * Bugfix #255: RHEL6 patch to contrib/opendnssec.spec. (Rick van Rein)
 * Bugfix #256: Make sure argument in "ods-control signer" is not stripped off.
-* Bugfix #259: ods-ksmutil: Prevent MySQL username or password being interpreted
-  by the shell when running "ods-ksmutil setup".
+* Bugfix #259: ods-ksmutil: Prevent MySQL username or password being
+  interpreted by the shell when running "ods-ksmutil setup".
 * Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
 * Enforcer: Unsigned comparison resulting in wrong error message.
-* ods-ksmutil: fixed issue where first ds-seen command run on a zone would work,
-  but return an error code and not send a HUP to the enforcerd.
+* ods-ksmutil: fixed issue where first ds-seen command run on a zone would
+  work, but return an error code and not send a HUP to the enforcerd.
 * Signer Engine: A threading issue occasionally puts the default validity
   on NSEC(3) RRs and the denial validity on other RRs.
 * Signer Engine: An update command could interrupt the signing process and the
@@ -311,7 +322,8 @@ OpenDNSSEC 1.3.0 - 2011-07-12
 * Enforcer: Change message about KSK retirement to make it less confusing.
 
 Bugfixes:
-* ods-control: If the Enforcer did not close down, you entered an infinite loop.
+* ods-control: If the Enforcer did not close down, you entered an infinite
+  loop.
 * Signer Engine: Fix log message typos.
 * Signer Engine: Fix crash where ods-signer update
 * Signer Engine: Also replace DNSKEYs if <DNSKEY><TTL> has changed in policy.
@@ -371,7 +383,8 @@ OpenDNSSEC 1.3.0b1 - 2011-03-23
 * Enforcer: Stop import of policy if it is not consistent.
 * ods-signer: The queue command will now also show what tasks the workers
   are working on.
-* Signer Engine: Just warn if occluded zone data was found, don't stop signing process.
+* Signer Engine: Just warn if occluded zone data was found, don't stop signing
+  process.
 * Signer Engine: Simpler serial maintenance, reduces the number of conflicts.
   Less chance to hit a 'cannot update: serial too small' error message.
 * Signer Engine: Simpler NSEC(3) maintenance.
@@ -717,8 +730,8 @@ Bugfixes:
 * ods-ksmutil: update zonelist correctly links keys to new zones if key sharing 
   is turned on.
 * Bugreport #59: Problem starting ods-signer on a 64-bit machine
-* ods-ksmutil: update zonelist command now correctly adds and deletes zones (and
-  sorts out their keys).
+* ods-ksmutil: update zonelist command now correctly adds and deletes zones
+  (and sorts out their keys).
 
 OpenDNSSEC 1.0.0b8 - 2009-11-23
 
