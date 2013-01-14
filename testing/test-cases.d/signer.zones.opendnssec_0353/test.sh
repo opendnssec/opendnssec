@@ -29,7 +29,7 @@ grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1001 9000 4500 1209600 3600" "$I
 cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
 ods-signer sign ods &&
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 1002*' &&
-sleep 3 &&
+sleep 10 &&
 
 ## Check if empty non-terminal NSEC3s are added
 grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1002 9000 4500 1209600 3600" "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
@@ -40,7 +40,7 @@ grep "j48lenn1anop230egquckffan2n0qbkn.ods." "$INSTALL_ROOT/var/opendnssec/signe
 cp -- ./unsigned/ods.3 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
 ods-signer sign ods &&
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 1003*' &&
-sleep 3 &&
+sleep 10 &&
 
 ## Check if empty non-terminal NSEC3s are removed
 grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1003 9000 4500 1209600 3600" "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
