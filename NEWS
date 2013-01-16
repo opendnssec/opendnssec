@@ -9,6 +9,8 @@ OpenDNSSEC 1.4.0-trunk
 Bugfixes:
 * SUPPORT-44: Signer Engine: Drop privileges after binding to socket
   [OPENDNSSEC-364].
+* Signer Engine: XFR not ready should not be a fatal status for task read
+  (thanks Ville Mattila).
 
 
 OpenDNSSEC 1.4.0rc1 - 2013-01-10

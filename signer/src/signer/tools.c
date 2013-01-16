@@ -133,7 +133,7 @@ tools_input(zone_type* zone)
     /* Input Adapter */
     start = time(NULL);
     status = adapter_read((void*)zone);
-    if (status != ODS_STATUS_OK) {
+    if (status != ODS_STATUS_OK && status != ODS_STATUS_UNCHANGED) {
         ods_log_error("[%s] unable to read zone %s: adapter failed (%s)",
             tools_str, zone->name, ods_status2str(status));
         zone_rollback_dnskeys(zone);

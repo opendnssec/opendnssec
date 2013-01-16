@@ -359,6 +359,11 @@ worker_perform_task(worker_type* worker)
                     task->interrupt = TASK_NONE;
                     task->halted = TASK_NONE;
                 }
+            } else if (status == ODS_STATUS_UNCHANGED) {
+                ods_log_verbose("[%s[%i]] zone %s unsigned data not changed, "
+                    "continue", worker2str(worker->type), worker->thread_num,
+                    task_who2str(task));
+                status = ODS_STATUS_OK;
             } else {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
@@ -521,9 +526,12 @@ worker_perform_task(worker_type* worker)
     return;
 
 task_perform_fail:
-    ods_log_crit("[%s[%i]] CRITICAL: failed to sign zone %s: %s",
-        worker2str(worker->type), worker->thread_num,
-        task_who2str(task), ods_status2str(status));
+    if (status != ODS_STATUS_XFR_NOT_READY) {
+        /* other statuses is critical, and we know it is not ODS_STATUS_OK */
+        ods_log_crit("[%s[%i]] CRITICAL: failed to sign zone %s: %s",
+            worker2str(worker->type), worker->thread_num,
+            task_who2str(task), ods_status2str(status));
+    }
     /* in case of failure, also mark zone processed (for single run usage) */
     zone->db->is_processed = 1;
     if (task->backoff) {
