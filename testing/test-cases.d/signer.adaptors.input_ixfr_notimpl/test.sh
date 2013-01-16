@@ -3,7 +3,7 @@
 #TEST: Test basic Input DNS Adapter
 #TEST: Start OpenDNSSEC and see if zone gets transferred and signed.
 #TEST: Check we can support NOTIMPL from nameserver
-
+#OPENDNSSEC-366: After key rollover, signer is failing task read and blocks signing
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -36,6 +36,10 @@ syslog_waitfor 10 'ods-signerd: .*\[xfrd\] bad packet: zone ods received error c
 
 ## Request AXFR/TCP
 syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request axfr to 127\.0\.0\.1' &&
+
+## Do a ods-signer sign ("key rollover"), and don't fail reading because of missing xfr.
+ods-signer sign ods &&
+syslog_waitfor 10 'ods-signerd: .*\[worker\[.*\]\] zone ods unsigned data not changed, continue' &&
 
 ## Stop
 log_this_timeout ods-control-stop 60 ods-control stop &&
