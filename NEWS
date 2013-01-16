@@ -11,6 +11,7 @@ Bugfixes:
   [OPENDNSSEC-364].
 * Signer Engine: XFR not ready should not be a fatal status for task read
   (thanks Ville Mattila).
+* OPENDNSSEC-365: Enforcer: Nasty bug where KSKs could get prematurely retired.
 
 
 OpenDNSSEC 1.4.0rc1 - 2013-01-10

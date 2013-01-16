@@ -1291,7 +1291,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 /* turn this zone and policy into a file */
 #ifdef ENFORCER_USE_WORKERS
                 {
-                    int NewDS;
+                    int NewDS = 0;
                     status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd, config->DSSubCKA_ID, &NewDS);
                     if (status2 == 0) {
                         /* If the DS set changed then log/do something about it */
