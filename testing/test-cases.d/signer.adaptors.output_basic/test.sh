@@ -11,7 +11,7 @@ fi &&
 
 ods_reset_env &&
 
-## Start master name server
+## Start secondary name server
 ods_ldns_testns 15353 ods.datafile &&
 
 ## Start OpenDNSSEC
