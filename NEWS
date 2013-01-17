@@ -1,7 +1,11 @@
 $Id$
 
-OpenDNSSEC 1.3.x
-* ...
+OpenDNSSEC 1.3.13
+
+Bugfixes:
+* OPENDNSSEC-242: Signer Engine: Could get stuck on load signconf while
+  signconf was not changed.
+
 
 OpenDNSSEC 1.3.12 - 2012-12-03
 
