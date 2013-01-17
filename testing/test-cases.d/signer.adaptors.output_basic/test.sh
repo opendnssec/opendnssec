@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-#TEST: Test basic Input DNS Adapter
+#TEST: Test basic Output DNS Adapter
 #TEST: Start OpenDNSSEC and see if zone gets transferred and signed
-#TEST: and see if NOTIFY messages are sent. 
+#TEST: and see if NOTIFY messages are sent.
 
 
 if [ -n "$HAVE_MYSQL" ]; then
