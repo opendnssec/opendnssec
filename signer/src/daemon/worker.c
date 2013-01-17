@@ -300,6 +300,7 @@ worker_perform_task(worker_type* worker)
                 if (!worker->need_to_exit) {
                     worker_sleep_unless(worker, 0);
                 }
+                lock_basic_lock(&worker->worker_lock);
                 if (worker->jobs_failed) {
                     ods_log_error("[%s[%i]] sign zone %s failed: %u "
                         "RRsets failed", worker2str(worker->type),
@@ -328,6 +329,7 @@ worker_perform_task(worker_type* worker)
                 worker->jobs_appointed = 0;
                 worker->jobs_completed = 0;
                 worker->jobs_failed = 0;
+                lock_basic_unlock(&worker->worker_lock);
                 /* stop timer */
                 end = time(NULL);
                 if (status == ODS_STATUS_OK && zone->stats) {
@@ -613,6 +615,13 @@ worker_drudge(worker_type* worker)
         lock_basic_lock(&worker->engine->signq->q_lock);
         /* [LOCK] schedule */
         rrset = (rrset_type*) fifoq_pop(worker->engine->signq, &chief);
+        if (!rrset) {
+            ods_log_deeebug("[%s[%i]] nothing to do", worker2str(worker->type),
+                worker->thread_num);
+            worker_wait_locked(&engine->signq->q_lock,
+                &engine->signq->q_threshold);
+            rrset = (rrset_type*) fifoq_pop(engine->signq, &chief);
+        }
         /* [UNLOCK] schedule */
         lock_basic_unlock(&worker->engine->signq->q_lock);
         if (rrset) {
@@ -655,12 +664,6 @@ worker_drudge(worker_type* worker)
                     chief->thread_num);
                 worker_wakeup(chief);
             }
-        } else {
-            ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
-                worker->thread_num);
-
-            worker_wait(&worker->engine->signq->q_lock,
-                &worker->engine->signq->q_threshold);
         }
     }
     /* stop drudger */
@@ -809,6 +812,18 @@ void
 worker_wait(lock_basic_type* lock, cond_basic_type* condition)
 {
     worker_wait_timeout(lock, condition, 0);
+    return;
+}
+
+
+/**
+ * Worker waiting on an already locked cond.
+ *
+ */
+void
+worker_wait_locked(lock_basic_type* lock, cond_basic_type* condition)
+{
+    worker_wait_timeout_locked(lock, condition, 0);
     return;
 }
 

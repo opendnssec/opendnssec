@@ -265,7 +265,7 @@ util_read_pidfile(const char* file)
         errno = ENOENT;
         return -1;
     }
-    pid = strtol(pidbuf, &t, 10);
+    pid = (pid_t) strtol(pidbuf, &t, 10);
 
     if (*t && *t != '\n') {
         return -1;
