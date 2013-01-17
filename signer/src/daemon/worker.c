@@ -181,7 +181,7 @@ worker_perform_task(worker_type* worker)
             /* what to do next */
             when = time_now();
             if (status == ODS_STATUS_UNCHANGED) {
-                if (task->halted != TASK_NONE) {
+                if (task->halted != TASK_NONE && task->halted != TASK_SIGNCONF) {
                     goto task_perform_continue;
                 } else {
                     status = ODS_STATUS_OK;
