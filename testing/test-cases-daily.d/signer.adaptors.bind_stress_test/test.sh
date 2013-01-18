@@ -16,7 +16,7 @@ case "$DISTRIBUTION" in
 		append_path /usr/sbin
 		;;
 esac
-			
+
 case "$DISTRIBUTION" in
         redhat )
 
