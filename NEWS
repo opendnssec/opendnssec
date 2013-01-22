@@ -5,6 +5,8 @@ OpenDNSSEC 1.4.0-trunk
 
 * OPENDNSSEC-350: Signer Engine: Better log message when IXFR is not ready for
   reading.
+* OPENDNSSEC-367: ods-ksmutil: Require user confirmation if the alogrithm for
+  a key is changed in a policy (as this rollover is not handled cleanly)
 
 Bugfixes:
 * SUPPORT-44: Signer Engine: Drop privileges after binding to socket

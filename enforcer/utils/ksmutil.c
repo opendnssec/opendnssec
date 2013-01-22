@@ -4413,6 +4413,11 @@ int update_policies(char* kasp_filename)
 
     KSM_POLICY *policy;
 
+	/* Some stuff for the algorithm change check */
+	int value = 0;
+	int algo_change = 0;
+	int user_certain;
+
     /* Some files, the xml and rng */
     const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/kasp.rng";
     char* kaspcheck_cmd = NULL;
@@ -4513,6 +4518,125 @@ int update_policies(char* kasp_filename)
     }
 
     if (xpathObj->nodesetval) {
+
+		/* 
+		 * We will loop through twice, the first time to check on any algorithm
+		 * changes (which are not advised)
+		 */
+		for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) { /* foreach policy */
+
+            curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            policy_name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
+            if (strlen(policy_name) == 0) {
+                /* error */
+                printf("Error extracting policy name from %s\n", kasp_filename);
+                break;
+            }
+
+			/* 
+			 * Only carry on if this is an existing policy
+			 */
+			SetPolicyDefaults(policy, policy_name);
+			status = KsmPolicyExists(policy_name);
+			if (status == 0) {
+				/* Policy exists */
+				status = KsmPolicyRead(policy);
+				if(status != 0) {
+					printf("Error: unable to read policy %s; skipping\n", policy_name);
+					break;
+				}
+
+				while (curNode) {
+					if (xmlStrEqual(curNode->name, (const xmlChar *)"Keys")) {
+						childNode = curNode->children;
+						while (childNode){
+							if (xmlStrEqual(childNode->name, (const xmlChar *)"KSK")) {
+								childNode2 = childNode->children;
+								while (childNode2){
+									if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
+										/* Compare with existing */
+										value = 0;
+										status = StrStrtoi((char *)xmlNodeGetContent(childNode2), &value);
+										if (status != 0) {
+											printf("Error extracting KSK algorithm for policy %s, exiting...", policy_name);
+											return status;
+										}
+										if (value != policy->ksk->algorithm) {
+											/* Changed */
+											if (!algo_change) {
+												printf("\n\nAlgorithm change attempted... details:\n");
+												algo_change = 1;
+											}
+											printf("Policy: %s, KSK algorithm changed from %d to %d.\n", policy_name, policy->ksk->algorithm, value);
+										}
+										
+									}
+									childNode2 = childNode2->next;
+								}
+
+							} /* End of KSK */
+							/* ZSK */
+							else if (xmlStrEqual(childNode->name, (const xmlChar *)"ZSK")) {
+								childNode2 = childNode->children;
+								while (childNode2){
+									if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
+										/* Compare with existing */
+										value = 0;
+										status = StrStrtoi((char *)xmlNodeGetContent(childNode2), &value);
+										if (status != 0) {
+											printf("Error extracting ZSK algorithm for policy %s, exiting...", policy_name);
+											return status;
+										}
+										if (value != policy->zsk->algorithm) {
+											/* Changed */
+											if (!algo_change) {
+												printf("\n\nAlgorithm change attempted... details:\n");
+												algo_change = 1;
+											}
+											printf("Policy: %s, ZSK algorithm changed from %d to %d.\n", policy_name, policy->zsk->algorithm, value);
+										}
+
+									}
+									childNode2 = childNode2->next;
+								}
+
+							} /* End of ZSK */
+
+							childNode = childNode->next;
+						}
+					}
+					curNode = curNode->next;
+				}
+			}
+			/* Free up some stuff that we don't need any more */
+            StrFree(policy_name);
+
+		} /* End of <Policy> */
+
+		/*
+		 * Did we see any changes? If so then warn and confirm before continuing
+		 */
+		
+		if (algo_change == 1 && force_flag == 0) {
+			printf("*WARNING* This will change the algorithms used as noted above. Algorithm rollover is _not_ supported by OpenDNSSEC and zones may break. Are you sure? [y/N] ");
+
+			user_certain = getchar();
+			if (user_certain != 'y' && user_certain != 'Y') {
+				printf("\nOkay, quitting...\n");
+				xmlXPathFreeContext(xpathCtx);
+				xmlFreeDoc(doc);
+				KsmPolicyFree(policy);
+
+				exit(0);
+			}
+
+			/* Newline for the output */
+			printf("\n");
+		}
+
+		/*
+		 * Then loop through to actually make the updates
+		 */
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
