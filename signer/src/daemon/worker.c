@@ -581,6 +581,7 @@ worker_work(worker_type* worker)
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
+        now = time_now();
         lock_basic_lock(&engine->taskq->schedule_lock);
         worker->task = schedule_pop_task(engine->taskq);
         if (worker->task) {
@@ -621,7 +622,6 @@ worker_work(worker_type* worker)
                 worker->thread_num);
             worker->task = schedule_get_first_task(engine->taskq);
             lock_basic_unlock(&engine->taskq->schedule_lock);
-            now = time_now();
             if (worker->task && !engine->taskq->loading) {
                 timeout = (worker->task->when - now);
             } else {
