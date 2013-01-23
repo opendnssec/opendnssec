@@ -4417,6 +4417,9 @@ int update_policies(char* kasp_filename)
 	int value = 0;
 	int algo_change = 0;
 	int user_certain;
+	char* changes_made = NULL;
+	int size = -1;
+	char tmp_change[KSM_MSG_LENGTH];
 
     /* Some files, the xml and rng */
     const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/kasp.rng";
@@ -4565,9 +4568,18 @@ int update_policies(char* kasp_filename)
 											/* Changed */
 											if (!algo_change) {
 												printf("\n\nAlgorithm change attempted... details:\n");
+												StrAppend(&changes_made, "Algorithm changes made, details:");
 												algo_change = 1;
 											}
-											printf("Policy: %s, KSK algorithm changed from %d to %d.\n", policy_name, policy->ksk->algorithm, value);
+											size = snprintf(tmp_change, KSM_MSG_LENGTH, "Policy: %s, KSK algorithm changed from %d to %d.", policy_name, policy->ksk->algorithm, value);
+											/* Check overflow */
+											if (size < 0 || size >= KSM_MSG_LENGTH) {
+												printf("Error constructing log message for policy %s, exiting...", policy_name);
+												return -1;
+											}
+											printf("%s\n", tmp_change);
+											StrAppend(&changes_made, "  ");
+											StrAppend(&changes_made, tmp_change);
 										}
 										
 									}
@@ -4591,9 +4603,18 @@ int update_policies(char* kasp_filename)
 											/* Changed */
 											if (!algo_change) {
 												printf("\n\nAlgorithm change attempted... details:\n");
+												StrAppend(&changes_made, "Algorithm changes made, details:");
 												algo_change = 1;
 											}
-											printf("Policy: %s, ZSK algorithm changed from %d to %d.\n", policy_name, policy->zsk->algorithm, value);
+												size = snprintf(tmp_change, KSM_MSG_LENGTH, "Policy: %s, KSK algorithm changed from %d to %d.", policy_name, policy->ksk->algorithm, value);
+											/* Check overflow */
+											if (size < 0 || size >= KSM_MSG_LENGTH) {
+												printf("Error constructing log message for policy %s, exiting...", policy_name);
+												return -1;
+											}
+											printf("%s\n", tmp_change);
+											StrAppend(&changes_made, "  ");
+											StrAppend(&changes_made, tmp_change);
 										}
 
 									}
@@ -4632,6 +4653,26 @@ int update_policies(char* kasp_filename)
 
 			/* Newline for the output */
 			printf("\n");
+
+			/*
+			 * Log this change to syslog for posterity
+			 */
+#ifdef HAVE_OPENLOG_R
+        openlog_r("ods-ksmutil", 0, DEFAULT_LOG_FACILITY, &sdata);
+#else
+        openlog("ods-ksmutil", 0, DEFAULT_LOG_FACILITY);
+#endif
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_INFO, &sdata, "%s", changes_made);
+#else
+        syslog(LOG_INFO, "%s", changes_made);
+#endif
+#ifdef HAVE_CLOSELOG_R
+        closelog_r(&sdata);
+#else
+        closelog();
+#endif
+
 		}
 
 		/*
