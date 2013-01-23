@@ -479,11 +479,11 @@ task_perform_fail:
 
     if (task->backoff) {
         task->backoff *= 2;
-        if (task->backoff > ODS_SE_MAX_BACKOFF) {
-            task->backoff = ODS_SE_MAX_BACKOFF;
-        }
     } else {
         task->backoff = 60;
+    }
+    if (task->backoff > ODS_SE_MAX_BACKOFF) {
+        task->backoff = ODS_SE_MAX_BACKOFF;
     }
     ods_log_info("[%s[%i]] backoff task %s for zone %s with %u seconds",
         worker2str(worker->type), worker->thread_num,
@@ -572,9 +572,9 @@ worker_work(worker_type* worker)
                 timeout = (worker->task->when - now);
             } else {
                 timeout *= 2;
-                if (timeout > ODS_SE_MAX_BACKOFF) {
-                    timeout = ODS_SE_MAX_BACKOFF;
-                }
+            }
+            if (timeout > ODS_SE_MAX_BACKOFF) {
+                timeout = ODS_SE_MAX_BACKOFF;
             }
             worker->task = NULL;
             worker_sleep(worker, timeout);
