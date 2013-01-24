@@ -335,6 +335,13 @@ schedule_pop_task(schedule_type* schedule)
                 pop->who?pop->who:"(null)");
         }
         return unschedule_task(schedule, pop);
+    } else if (pop) {
+        ods_log_debug("[%s] not popping task for zone %s: not ready (when %u "
+              "< now %u, flush=%u)", schedule_str, pop->who?pop->who:"(null)",
+              pop->when, now, pop->flush);
+    } else {
+        ods_log_debug("[%s] not popping task for zone %s: no task",
+              schedule_str, pop->who?pop->who:"(null)");
     }
     return NULL;
 }
