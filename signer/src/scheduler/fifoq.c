@@ -131,16 +131,9 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
 ods_status
 fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
 {
-    if (!item) {
-        ods_log_error("[%s] unable to push item: no item", fifoq_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(item);
-    if (!q) {
-        ods_log_error("[%s] unable to push item: no queue", fifoq_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
     ods_log_assert(q);
+    ods_log_assert(item);
+    ods_log_assert(worker);
 
     if (q->count >= FIFOQ_MAX_COUNT) {
         /* #262 if drudgers remain on hold, do additional broadcast */

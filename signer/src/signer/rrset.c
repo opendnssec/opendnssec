@@ -1146,26 +1146,29 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
     }
     ods_log_assert(q);
 
-    while (status == ODS_STATUS_UNCHANGED && !worker->need_to_exit) {
+    lock_basic_lock(&q->q_lock);
+    status = fifoq_push(q, (void*) rrset, worker, &tries);
+    while (status == ODS_STATUS_UNCHANGED) {
         tries++;
-        lock_basic_lock(&q->q_lock);
-        status = fifoq_push(q, (void*) rrset, worker, &tries);
-        /**
-         * If tries are 0 they we have tries FIFOQ_TRIES_COUNT times,
-         * lets take a small break to not hog CPU.
-         */
-        if (status == ODS_STATUS_UNCHANGED) {
-            worker_wait_timeout_locked(&q->q_lock, &q->q_nonfull, 60);
+        if (worker->need_to_exit) {
+            lock_basic_unlock(&q->q_lock);
+            return;
         }
-        lock_basic_unlock(&q->q_lock);
+        /**
+         * Apparently the queue is full. Lets take a small break to not hog CPU.
+         * The worker will release the signq lock while sleeping and will
+         * automatically grab the lock when the queue is nonfull.
+         * Queue is nonfull at 10% of the queue size.
+         */
+        lock_basic_sleep(&q->q_nonfull, &q->q_lock, 5);
+        status = fifoq_push(q, (void*) rrset, worker, &tries);
     }
-    if (status == ODS_STATUS_OK) {
-        lock_basic_lock(&worker->worker_lock);
-        /* [LOCK] worker */
-        worker->jobs_appointed += 1;
-        /* [UNLOCK] worker */
-        lock_basic_unlock(&worker->worker_lock);
-    }
+    lock_basic_unlock(&q->q_lock);
+
+    ods_log_assert(status == ODS_STATUS_OK);
+    lock_basic_lock(&worker->worker_lock);
+    worker->jobs_appointed += 1;
+    lock_basic_unlock(&worker->worker_lock);
     return status;
 }
 
