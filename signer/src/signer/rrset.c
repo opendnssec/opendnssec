@@ -1152,7 +1152,7 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
         tries++;
         if (worker->need_to_exit) {
             lock_basic_unlock(&q->q_lock);
-            return;
+            return ODS_STATUS_UNCHANGED;
         }
         /**
          * Apparently the queue is full. Lets take a small break to not hog CPU.
