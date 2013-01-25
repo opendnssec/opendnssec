@@ -1,7 +1,7 @@
 $Id$
 
 
-OpenDNSSEC 1.4.0-trunk
+OpenDNSSEC 1.4.0rc2 - 2013-01-25
 
 * OPENDNSSEC-350: Signer Engine: Better log message when IXFR is not ready for
   reading.
