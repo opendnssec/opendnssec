@@ -15,6 +15,13 @@ ods_post_test ()
 	true
 }
 
+ods_interrupt_test ()
+{
+    ods_kill
+    ods_ldns_testns_kill
+    ods_bind9_kill
+}
+
 ods_nuke_env ()
 {
 	local kasp_files=`cd "$INSTALL_ROOT/var/opendnssec/" && ls kasp*db* 2>/dev/null`
