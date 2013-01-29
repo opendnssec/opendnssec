@@ -494,7 +494,6 @@ domain_is_occluded(domain_type* domain)
 void
 domain_print(FILE* fd, domain_type* domain, ods_status* status)
 {
-    ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     char* str = NULL;
     rrset_type* rrset = NULL;
     rrset_type* soa_rrset = NULL;
