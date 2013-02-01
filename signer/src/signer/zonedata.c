@@ -690,7 +690,6 @@ zonedata_commit(zonedata_type* zd)
     domain_type* domain = NULL;
     domain_type* nxtdomain = NULL;
     ods_status status = ODS_STATUS_OK;
-    size_t oldnum = 0;
 
     if (!zd || !zd->domains) {
         return ODS_STATUS_OK;
@@ -700,7 +699,6 @@ zonedata_commit(zonedata_type* zd)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        oldnum = domain_count_rrset(domain);
         status = domain_commit(domain);
         if (status != ODS_STATUS_OK) {
             return status;
@@ -1181,6 +1179,12 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
 }
 
 
+static uint32_t
+max(uint32_t a, uint32_t b)
+{
+    return (a<b?b:a);
+}
+
 /**
  * Update the serial.
  *
@@ -1195,7 +1199,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     ods_log_assert(zd);
     ods_log_assert(sc);
 
-    prev = zd->outbound_serial;
+    prev = max(zd->outbound_serial, zd->inbound_serial);
     ods_log_debug("[%s] update serial: in=%u internal=%u out=%u now=%u",
         zd_str, zd->inbound_serial, zd->internal_serial, zd->outbound_serial,
         (uint32_t) time_now());
@@ -1236,6 +1240,7 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
             soa = prev + 1;
         }
     } else if (strncmp(sc->soa_serial, "keep", 4) == 0) {
+        prev = zd->outbound_serial;
         soa = zd->inbound_serial;
         if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
             ods_log_error("[%s] cannot keep SOA SERIAL from input zone "

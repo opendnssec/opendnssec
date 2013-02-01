@@ -3,6 +3,8 @@ $Id$
 OpenDNSSEC 1.3.13
 
 Bugfixes:
+* OPENDNSSEC-388: Signer Engine: Internal serial should take into account
+  the inbound serial.
 * OPENDNSSEC-242: Signer Engine: Could get stuck on load signconf while
   signconf was not changed.
 * Signer Engine: Fixed locking and notification on the drudge work queue,
