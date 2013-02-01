@@ -1,0 +1,51 @@
+<SignerConfiguration>
+	<Zone name="ods3">
+		<Signatures>
+			<Resign>PT30S</Resign>
+			<Refresh>PT120S</Refresh>
+			<Validity>
+				<Default>PT180S</Default>
+				<Denial>PT180S</Denial>
+			</Validity>
+			<Jitter>PT20S</Jitter>
+			<InceptionOffset>PT10S</InceptionOffset>
+		</Signatures>
+
+		<Denial>
+			<NSEC />
+		</Denial>
+
+		<Keys>
+			<TTL>PT20S</TTL>
+			<Key>
+				<Flags>257</Flags>
+				<Algorithm>5</Algorithm>
+				<Locator>7755444921b55b5133fa64dfd0d7a626</Locator>
+				<KSK />
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>5</Algorithm>
+				<Locator>a40f18519cf25df220d2ef342cf90d59</Locator>
+				<ZSK />
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>5</Algorithm>
+				<Locator>e86c4e93387118676cfd9a5a1f28387a</Locator>
+				<Publish />
+			</Key>
+
+		</Keys>
+
+		<SOA>
+			<TTL>PT0S</TTL>
+			<Minimum>PT0S</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+	</Zone>
+</SignerConfiguration>
