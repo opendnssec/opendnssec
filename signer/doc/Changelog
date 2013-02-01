@@ -1,8 +1,18 @@
-16 January 2012: Matthijs
+1 February 2013: Matthijs
+- OPENDNSSEC-388: Internal serial should take into account inbound
+  serial.
+
+29 January 2013: Matthijs
+- Fix build warning
+
+23 January 2013: Matthijs
+- Always check for max backoff before working sleep/setting task time.
+
+16 January 2013: Matthijs
 - Signer should not fail read task if there is no new xfr (thanks
   Ville Mattila)
 
-10 January 2012: Matthijs
+10 January 2013: Matthijs
 - OPENDNSSEC-350: Improve logging when there are problems with inbound xfr
 - SUPPORT-44: bind() to sockets before privdrop
 

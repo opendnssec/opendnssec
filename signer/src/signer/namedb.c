@@ -182,12 +182,20 @@ namedb_domain_search(ldns_rbtree_t* tree, ldns_rdf* dname)
 }
 
 
+static uint32_t
+max(uint32_t a, uint32_t b)
+{
+    return (a<b?b:a);
+}
+
+
 /**
  * Determine new SOA SERIAL.
  *
  */
 ods_status
-namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
+namedb_update_serial(namedb_type* db, const char* format,
+    uint32_t inbound_serial)
 {
     uint32_t soa = 0;
     uint32_t prev = 0;
@@ -195,9 +203,9 @@ namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
     if (!db || !format) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    prev = db->outserial;
+    prev = max(db->outserial, inbound_serial);
     if (!db->is_initialized) {
-        prev = serial;
+        prev = inbound_serial;
     }
     ods_log_debug("[%s] update serial: format=%s "
         "in=%u internal=%u out=%u now=%u",
@@ -207,9 +215,11 @@ namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
     if (ods_strcmp(format, "unixtime") == 0) {
         soa = (uint32_t) time_now();
         if (!util_serial_gt(soa, prev)) {
-            ods_log_warning("[%s] unable to use unixtime as serial: %u "
-                "does not increase %u. Serial set to %u", db_str, soa, prev,
-                (prev+1));
+            if (!db->is_initialized) {
+                ods_log_warning("[%s] unable to use unixtime as serial: %u "
+                    "does not increase %u. Serial set to %u", db_str, soa, prev,
+                    (prev+1));
+            }
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "datecounter") == 0) {
@@ -223,12 +233,13 @@ namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "counter") == 0) {
-        soa = serial + 1;
+        soa = inbound_serial + 1;
         if (db->is_initialized && !util_serial_gt(soa, prev)) {
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "keep") == 0) {
-        soa = serial;
+        prev = db->outserial;
+        soa = inbound_serial;
         if (db->is_initialized && !util_serial_gt(soa, prev)) {
             ods_log_error("[%s] cannot keep SOA SERIAL from input zone "
                 " (%u): previous output SOA SERIAL is %u", db_str, soa, prev);

@@ -3,6 +3,10 @@ $Id$
 
 OpenDNSSEC 1.4.0-trunk
 
+Bugfixes:
+* OPENDNSSEC-388: Signer Engine: Internal serial should take into account
+  the inbound serial.
+
 
 OpenDNSSEC 1.4.0rc2 - 2013-01-25
 
