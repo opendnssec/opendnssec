@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-#TEST: Test to track key rollovers when the enforcer is configured to be multi-threaded
-#TEST: in real time from the enforcer side only. 
+#TEST: Test to track key rollovers when many zones are configured on many policies
+#TEST: in real time. 
 #TEST: Configured with very short key lifetimes and 1 min enforcer interval.
 #TEST: Checks just the signconf.xml contents and a that the zone is signed
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
@@ -101,28 +101,30 @@ check_zones_at_timestep_Y 1 &&
 
 # Issue ds_seen for KSK1. This will cause the enforcer to run.
 log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods1 --cka_id $KSK_ODS1_1 &&
-log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods2 --cka_id $KSK_ODS2_1 &&
-log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods3 --cka_id $KSK_ODS3_1 &&
-log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods4 --cka_id $KSK_ODS4_1 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS1_1 made active" &&
-syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS2_1 made active" &&
-syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS3_1 made active" &&
-syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS4_1 made active" &&
-
 syslog_waitfor_count $LONG_TIMEOUT 3 'ods-enforcerd: .*Sleeping for' &&
+log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods2 --cka_id $KSK_ODS2_1 &&
+syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS2_1 made active" &&
+syslog_waitfor_count $LONG_TIMEOUT 4 'ods-enforcerd: .*Sleeping for' &&
+log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods3 --cka_id $KSK_ODS3_1 &&
+syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS3_1 made active" &&
+syslog_waitfor_count $LONG_TIMEOUT 5 'ods-enforcerd: .*Sleeping for' &&
+log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods4 --cka_id $KSK_ODS4_1 &&
+syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS4_1 made active" &&
+syslog_waitfor_count $LONG_TIMEOUT 6 'ods-enforcerd: .*Sleeping for' &&
 
 # WAIT for the enforcer to run
-sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 4 'ods-enforcerd: .*Sleeping for' &&
+sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 7 'ods-enforcerd: .*Sleeping for' &&
 ##################  STEP 2 ###########################
 check_zones_at_timestep_Y 2 &&
 
 # Wait for the enforcer to run
-sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 5 'ods-enforcerd: .*Sleeping for' &&
+sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 8 'ods-enforcerd: .*Sleeping for' &&
 # ##################  STEP 3 ###########################
 check_zones_at_timestep_Y 3 &&
 
 # Wait for the enforcer to run
-sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 6 'ods-enforcerd: .*Sleeping for' &&
+sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 9 'ods-enforcerd: .*Sleeping for' &&
 # ##################  STEP 4 ###########################
 # Expect a new KSK to be published
 log_this ods-ksmutil-check-4   date && log_this ods-ksmutil-check-4   ods-ksmutil key list --all --verbose &&
@@ -134,23 +136,26 @@ KSK_ODS4_2=`log_grep -o ods-ksmutil-check-4 stdout "ods4.*KSK           publish"
 check_zones_at_timestep_Y 4 &&
 
 # Wait for the enforcer to run.
-sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 7 'ods-enforcerd: .*Sleeping for' &&
+sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 10 'ods-enforcerd: .*Sleeping for' &&
 # ##################  STEP 5 ###########################
 check_zones_at_timestep_Y 5 &&
 
 # Issue ds_seen for KSK2
 log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods1 --cka_id $KSK_ODS1_2 &&
-log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods2 --cka_id $KSK_ODS2_2 &&
-log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods3 --cka_id $KSK_ODS3_2 &&
-log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods4 --cka_id $KSK_ODS4_2 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS1_2 made active" &&
+syslog_waitfor_count $LONG_TIMEOUT 11 'ods-enforcerd: .*Sleeping for' &&
+log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods2 --cka_id $KSK_ODS2_2 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS2_2 made active" &&
+syslog_waitfor_count $LONG_TIMEOUT 12 'ods-enforcerd: .*Sleeping for' &&
+log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods3 --cka_id $KSK_ODS3_2 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS3_2 made active" &&
+syslog_waitfor_count $LONG_TIMEOUT 13 'ods-enforcerd: .*Sleeping for' &&
+log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods4 --cka_id $KSK_ODS4_2 &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_ODS4_2 made active" &&
-syslog_waitfor_count $LONG_TIMEOUT 8 'ods-enforcerd: .*Sleeping for' &&
+syslog_waitfor_count $LONG_TIMEOUT 14 'ods-enforcerd: .*Sleeping for' &&
 
 # Wait for the enforcer to run.
-sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 9 'ods-enforcerd: .*Sleeping for' &&
+sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 15 'ods-enforcerd: .*Sleeping for' &&
 # ##################  STEP 6 ###########################
 check_zones_at_timestep_Y 6 &&
  
@@ -167,4 +172,5 @@ echo "************ERROR******************"
 echo
 ods_kill
 return 1
+
 
