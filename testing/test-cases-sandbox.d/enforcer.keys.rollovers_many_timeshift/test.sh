@@ -41,8 +41,8 @@ log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 
 # Make sure TIMESHIFT worked:
-syslog_grep "ods-enforcerd: Timeshift mode detected, running once only!" &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:00" &&
+syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:00" &&
 
 # Check that we have 2 keys per zone
 log_this ods-ksmutil-key-list0 ods-ksmutil key list &&
@@ -71,11 +71,11 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:03:40' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:03:40" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:03:40" &&
 
 # We should be ready for a ds-seen on ods1 but not ods2 (not ready until 12:15)
-syslog_grep "ods-enforcerd: Once the new DS records are seen in DNS please issue the ds-seen command for zone ods1 with the following cka_ids, $KSK_CKA_ID_1" &&
-! syslog_grep "ods-enforcerd: Once the new DS records are seen in DNS please issue the ds-seen command for zone ods2 with the following cka_ids" &&
+syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods1 with the following cka_ids, $KSK_CKA_ID_1" &&
+! syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods2 with the following cka_ids" &&
 
 # Key list should show KSK in ready state
 # Check that we have 2 keys per zone
@@ -116,10 +116,10 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:10' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:10" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:10" &&
 
 # We should be still not expect a ds-seen on ods2 (not ready until 12:15)
-! syslog_grep "ods-enforcerd: Once the new DS records are seen in DNS please issue the ds-seen command for zone ods2 with the following cka_ids" &&
+! syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods2 with the following cka_ids" &&
 
 # Key list should reflect this new key
 # Check that we have 2/3 keys per zone
@@ -143,7 +143,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:14:30' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:14:30" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:14:30" &&
 
 # Key list should show KSK in ready state
 # Check that we have 2 keys per zone
@@ -160,7 +160,7 @@ log_grep ods-ksmutil-key-list3_1 stdout 'ods2                            ZSK    
 ! log_grep ods-ksmutil-key-list3_1 stdout 'ods2                            ZSK           retire' &&
 
 # We should be ready for a ds-seen on ods2
-syslog_grep "ods-enforcerd: Once the new DS records are seen in DNS please issue the ds-seen command for zone ods2 with the following cka_ids, $KSK_CKA_ID_2" &&
+syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods2 with the following cka_ids, $KSK_CKA_ID_2" &&
 
 # Run the ds-seen on ods2 and check the output (enforcer won't HUP as it isn't running)
 log_this ods-ksmutil-dsseen_ods3   ods-ksmutil key ds-seen --zone ods2 --cka_id $KSK_CKA_ID_2 &&
@@ -190,7 +190,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:21' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:21" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:21" &&
 
 # Key list should reflect this new key
 # Check that we have 3 keys per zone
@@ -215,7 +215,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:24:30' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:24:30" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:24:30" &&
 
 # Key list should reflect ready key
 # Check that we have 3 keys per zone
@@ -241,7 +241,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:24:40' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:24:40" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:24:40" &&
 
 # Key list should reflect both ready keys
 # Check that we have 3 keys per zone
@@ -266,7 +266,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:25' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:25" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:25" &&
 
 # Key list should reflect these rolls
 # Check that we have 3 keys per zone
@@ -289,7 +289,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:30' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:30" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:30" &&
 
 # Key list should reflect these rolls
 # Check that we have 3 keys per zone
@@ -318,10 +318,10 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:33:40' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:33:40" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:33:40" &&
 
 # We should be ready for a ds-seen on ods1 but not ods2 (not ready until 12:15)
-syslog_grep "ods-enforcerd: Once the new DS records are seen in DNS please issue the ds-seen command for zone ods1 with the following cka_ids, $KSK_CKA_ID_3" &&
+syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods1 with the following cka_ids, $KSK_CKA_ID_3" &&
 
 # Key list should show KSK in ready state
 log_this ods-ksmutil-key-list9_1 ods-ksmutil key list &&
@@ -363,7 +363,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:35:30' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:35:30" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:35:30" &&
 
 # Key list should reflect this new key
 # Check that we have 4 keys per zone
@@ -387,7 +387,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 12:38:50' &&
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start 60 ods-enforcerd -1 &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_grep "ods-enforcerd: DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:38:50" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:38:50" &&
 
 # Key list
 # Check that we have 3 keys per zone
