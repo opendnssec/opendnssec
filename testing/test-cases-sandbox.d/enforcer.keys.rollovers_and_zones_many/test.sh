@@ -157,6 +157,8 @@ syslog_waitfor_count $LONG_TIMEOUT 14 'ods-enforcerd: .*Sleeping for' &&
 # Wait for the enforcer to run.
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 15 'ods-enforcerd: .*Sleeping for' &&
 # ##################  STEP 6 ###########################
+# Add an extra enforcer run before the last check as otherwise the timing it too close to a ZSK rollover to be sure
+sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 16 'ods-enforcerd: .*Sleeping for' &&
 check_zones_at_timestep_Y 6 &&
  
 # ##################  SHUTDOWN ###########################
