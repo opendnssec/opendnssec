@@ -29,6 +29,11 @@ compare_files_ignore_locator () {
         diff $file1_tmp $file2_tmp
 }
 
+case "$DISTRIBUTION" in
+	freebsd )
+		return 0
+		;;
+esac
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
