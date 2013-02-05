@@ -961,6 +961,7 @@ namedb_wipe_denial(namedb_type* db)
         while (node && node != LDNS_RBTREE_NULL) {
             denial = (denial_type*) node->data;
             if (!denial->rrset) {
+                node = ldns_rbtree_next(node);
                 continue;
             }
             for (i=0; i < denial->rrset->rr_count; i++) {
