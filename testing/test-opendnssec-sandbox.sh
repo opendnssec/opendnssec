@@ -10,7 +10,7 @@ start_test sandbox
 PRE_TEST=ods_pre_test
 POST_TEST=ods_post_test
 INTERRUPT_TEST=ods_interrupt_test
-RETRY_TEST=1
+RETRY_TEST=0
 test_ok=0
 (
 	ods_find_softhsm_module &&
