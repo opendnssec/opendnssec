@@ -1,3 +1,7 @@
+5 February 2013: Matthijs
+- Fix deadlock when in corner case denial node has no RRset.
+- OPENDNSSEC-389 / SUPPORT-50 / SUPPORT-51
+
 1 February 2013: Matthijs
 - OPENDNSSEC-388: Internal serial should take into account inbound
   serial.
