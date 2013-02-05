@@ -376,18 +376,17 @@ begin_pkt:
         }
     }
     /* input zone ok, set inbound serial and apply differences */
-    if (result == ODS_STATUS_OK || result == ODS_STATUS_UNCHANGED) {
+    if (result == ODS_STATUS_OK) {
         adapi_set_serial(zone, new_serial);
         if (is_axfr) {
             adapi_trans_full(zone, 1);
         } else {
             adapi_trans_diff(zone, 1);
         }
-        if (result == ODS_STATUS_UNCHANGED) {
-            result = ODS_STATUS_OK;
-        }
     }
     if (result == ODS_STATUS_UPTODATE) {
+        /* do a transaction for DNSKEY and NSEC3PARAM */
+        adapi_trans_diff(zone, 1);
         result = ODS_STATUS_OK;
     }
     return result;
@@ -669,6 +668,8 @@ addns_read(void* zone)
         if (!z->xfrd->serial_disk_acquired) {
             return ODS_STATUS_XFR_NOT_READY;
         }
+        /* do a transaction for DNSKEY and NSEC3PARAM */
+        adapi_trans_diff(z, 0);
         return ODS_STATUS_UNCHANGED;
     }
     /* copy zone transfers */
