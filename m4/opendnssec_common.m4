@@ -96,9 +96,4 @@ AC_DEFINE_UNQUOTED(ODS_EN_CONTROL,    ["$OPENDNSSEC_ENFORCER_CONTROL enforcer "]
 AC_DEFINE_UNQUOTED(ODS_EN_NOTIFY,    ["$OPENDNSSEC_ENFORCER_CONTROL enforcer notify"],    [Command to send a SIGHUP to the ods-enforcerd process])
 AC_DEFINE_UNQUOTED(ODS_EN_KASPCHECK,  ["$OPENDNSSEC_ENFORCER_KASPCHECK"],            [Path to the OpenDNSSEC kaspcheck binary])
 
-# multithread enforcer specific
-AC_DEFINE_UNQUOTED(ENFORCER_USE_WORKERS, 1, [use enforcer workers])
-AC_DEFINE_UNQUOTED(ENFORCER_WORKER_THREADS, [1], [Default number of worker threads for the OpenDNSSEC enforcer engine])
-AC_DEFINE_UNQUOTED(KSM_DB_USE_THREADS, 1, [use per thread ksm db connection])
-
 ])

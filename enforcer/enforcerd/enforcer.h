@@ -36,8 +36,6 @@
  * The bit that makes the daemon do something useful
  */
 
-#include "config.h"
-
 #include "ksm/ksm.h"
 #include "libhsm.h"
 
@@ -47,11 +45,7 @@ void server_main(DAEMONCONFIG *config);
 int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx);
 int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy);
 
-#ifdef ENFORCER_USE_WORKERS
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID, int* NewDS);
-#else
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID);
-#endif
 int commKeyConfig(void* context, KSM_KEYDATA* key_data);
 int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen, int rollover_scheme);
 int read_zonelist_filename(const char* filename, char** zone_list_filename);

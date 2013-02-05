@@ -415,35 +415,10 @@ void DbStringFree(char* string)
  *              NONE
 -*/
 
-#ifndef KSM_DB_USE_THREADS
-static int __nested_transactions = 0;
-#endif
-
 int DbBeginTransaction(void)
 {
     const char* sql = "start transaction";
-#ifdef KSM_DB_USE_THREADS
-    int __nested_transactions = DbThreadGetInTransaction();
-
-    if (__nested_transactions < 0) {
-    	return -1;
-    }
-
-    if (__nested_transactions <= 0) {
-        __nested_transactions++;
-        DbThreadSetInTransaction(__nested_transactions);
-        return DbExecuteSqlNoResult(DbHandle(), sql);
-    }
-    __nested_transactions++;
-    DbThreadSetInTransaction(__nested_transactions);
-#else
-    if (__nested_transactions <= 0) {
-        __nested_transactions++;
-        return DbExecuteSqlNoResult(DbHandle(), sql);
-    }
-    __nested_transactions++;
-#endif
-    return 0;
+	return DbExecuteSqlNoResult(DbHandle(), sql);
 }
 
 /*+
@@ -459,22 +434,7 @@ int DbBeginTransaction(void)
 int DbCommit(void)
 {
     const char* sql = "commit";
-#ifdef KSM_DB_USE_THREADS
-    int __nested_transactions = DbThreadGetInTransaction();
-
-    if (__nested_transactions < 0) {
-    	return -1;
-    }
-
-    __nested_transactions--;
-    DbThreadSetInTransaction(__nested_transactions);
-#else
-    __nested_transactions--;
-#endif
-    if (__nested_transactions <= 0) {
-        return DbExecuteSqlNoResult(DbHandle(), sql);
-    }
-    return 0;
+	return DbExecuteSqlNoResult(DbHandle(), sql);
 }
 
 /*+
@@ -490,10 +450,5 @@ int DbCommit(void)
 int DbRollback(void)
 {
     const char* sql = "rollback";
-#ifdef KSM_DB_USE_THREADS
-    DbThreadSetInTransaction(0);
-#else
-    __nested_transactions = 0;
-#endif
     return DbExecuteSqlNoResult(DbHandle(), sql);
 }

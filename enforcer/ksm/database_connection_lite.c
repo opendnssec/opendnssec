@@ -43,9 +43,7 @@
 #include "ksm/dbsdef.h"
 #include "ksm/message.h"
 
-#ifndef KSM_DB_USE_THREADS
 static sqlite3* m_dbhandle = NULL;  /* Non-NULL if connected */
-#endif
 
 
 /*+
@@ -108,13 +106,9 @@ int DbConnect(DB_HANDLE* dbhandle, const char* database, ...)
         status = MsgLog(DBS_CONNFAIL, sqlite3_errmsg(connection));
     }
 
-#ifdef KSM_DB_USE_THREADS
-    DbThreadSetHandle(connection);
-#else
 	/* Store the returned handle for retrieval by DbHandle() */
 
 	m_dbhandle = connection;
-#endif
 
 	/* ... and pass back to the caller via the argument list */
 
@@ -159,18 +153,12 @@ int DbDisconnect(DB_HANDLE dbhandle)
 {
     int status = 0;     /* Return status */
 
-    if (dbhandle) {
-#ifdef KSM_DB_USE_THREADS
-    	if (DbThreadGetHandle() == dbhandle) {
-    		DbThreadRemoveHandle();
-    	}
-#else
+	if (dbhandle) {
 		if (dbhandle == m_dbhandle) {
 			m_dbhandle = NULL;
 		}
-#endif
-        sqlite3_close((sqlite3*) dbhandle);
-    }
+		sqlite3_close((sqlite3*) dbhandle);
+	}
     else {
         status = MsgLog(DBS_NOTCONN);
     }
@@ -247,9 +235,5 @@ int DbCheckConnected(DB_HANDLE dbhandle)
 
 DB_HANDLE DbHandle(void)
 {
-#ifdef KSM_DB_USE_THREADS
-	return DbThreadGetHandle();
-#else
     return (DB_HANDLE) m_dbhandle;
-#endif
 }

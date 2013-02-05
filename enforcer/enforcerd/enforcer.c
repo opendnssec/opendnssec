@@ -35,20 +35,12 @@
 
 #include "config.h"
 
-#ifndef KSM_DB_USE_THREADS
-#undef ENFORCER_USE_WORKERS
-#endif
-
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <sys/stat.h>
-#ifdef ENFORCER_USE_WORKERS
-#include <pthread.h>
-#include <signal.h>
-#endif
 
 #include <libxml/xmlreader.h>
 #include <libxml/xpath.h>
@@ -60,522 +52,13 @@
 
 #include "ksm/ksm.h"
 #include "ksm/memory.h"
-#include "ksm/database.h"
 #include "ksm/string_util.h"
 #include "ksm/string_util2.h"
 #include "ksm/datetime.h"
 #include "ksm/db_fields.h"
-#include "ksm/message.h"
 
 #include "libhsm.h"
 #include "libhsmdns.h"
-
-#ifdef ENFORCER_USE_WORKERS
-static int _enforcer_worker_exit = 0;
-static int _enforcer_workers_online = 0;
-struct _enforcer_worker {
-	int				id;
-	pthread_t		thread;
-	DAEMONCONFIG*	config;
-};
-struct _enforcer_worker_work;
-struct _enforcer_worker_work {
-	struct _enforcer_worker_work* next;
-	char*			policy_name;
-	int				zone_id;
-	char*			zone_name;
-	int				status;
-	int				NewDS;
-	char*			filename;
-	int				signer_flag;
-};
-struct _enforcer_worker_queue {
-	struct _enforcer_worker_work* work;
-	pthread_mutex_t mutex;
-	pthread_cond_t cond;
-	int closed;
-};
-static pthread_mutex_t _enforcer_worker_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t _enforcer_worker_startup_cond = PTHREAD_COND_INITIALIZER;
-static int _enforcer_worker_startup_count = 0;
-
-static struct _enforcer_worker *_enforcer_worker = NULL;
-
-static struct _enforcer_worker_queue _enforcer_worker_havework_queue = { NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0 };
-static struct _enforcer_worker_queue _enforcer_worker_workdone_queue = { NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0 };
-
-static int do_communication_workers(DAEMONCONFIG *config);
-
-
-pthread_mutex_t _enforcer_worker_shared_keys_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-/*
- * Enqueue work to the enforcer workers, called from the main process.
- */
-int
-enforcer_worker_work_enqueue(struct _enforcer_worker_queue *queue, struct _enforcer_worker_work *work)
-{
-	if (pthread_mutex_lock(&(queue->mutex))) {
-		return -1;
-	}
-
-	if (pthread_cond_signal(&(queue->cond))) {
-		pthread_mutex_unlock(&(queue->mutex));
-		return -2;
-	}
-
-	work->next = queue->work;
-	queue->work = work;
-
-	if (pthread_mutex_unlock(&(queue->mutex))) {
-		return -3;
-	}
-
-	return 0;
-}
-
-/*
- * Dequeue work for the enforcer worker, called from the workers.
- */
-int
-enforcer_worker_work_dequeue(struct _enforcer_worker_queue *queue, struct _enforcer_worker_work **work)
-{
-	if (pthread_mutex_lock(&(queue->mutex))) {
-		return -1;
-	}
-
-	while (!queue->work) {
-		if (pthread_cond_wait(&(queue->cond), &(queue->mutex))) {
-			pthread_mutex_unlock(&(queue->mutex));
-			return -2;
-		}
-		if (queue->closed) {
-			*work = NULL;
-			pthread_mutex_unlock(&(queue->mutex));
-			return 0;
-		}
-	}
-
-	*work = queue->work;
-	queue->work = (*work)->next;
-
-	if (pthread_mutex_unlock(&(queue->mutex))) {
-		return -3;
-	}
-
-	return 0;
-}
-
-/*
- * Dequeue work for the enforcer worker with a timeout, called from the workers.
- */
-int
-enforcer_worker_work_timed_dequeue(struct _enforcer_worker_queue *queue, struct _enforcer_worker_work **work, time_t seconds)
-{
-	struct timespec ts;
-	int err;
-
-#ifndef HAVE_CLOCK_GETTIME
-	struct timeval tv;
-	if (gettimeofday(&tv, NULL)) {
-		return -4;
-	}
-	ts.tv_sec = tv.tv_sec;
-	ts.tv_nsec = (tv.tv_usec/1000);
-#else /* HAVE_CLOCK_GETTIME */
-	if (clock_gettime(CLOCK_REALTIME, &ts)) {
-		return -4;
-	}
-#endif /* !HAVE_CLOCK_GETTIME */
-
-	ts.tv_sec += seconds;
-
-	if (pthread_mutex_lock(&(queue->mutex))) {
-		return -1;
-	}
-
-	while (!queue->work) {
-		if ((err = pthread_cond_timedwait(&(queue->cond), &(queue->mutex), &ts))) {
-			if (err == ETIMEDOUT) {
-				*work = NULL;
-				pthread_mutex_unlock(&(queue->mutex));
-				return 0;
-			}
-			pthread_mutex_unlock(&(queue->mutex));
-			return -2;
-		}
-		if (queue->closed) {
-			*work = NULL;
-			pthread_mutex_unlock(&(queue->mutex));
-			return 0;
-		}
-	}
-
-	*work = queue->work;
-	queue->work = (*work)->next;
-
-	if (pthread_mutex_unlock(&(queue->mutex))) {
-		return -3;
-	}
-
-	return 0;
-}
-
-/*
- * Close the queue and signal everyone waiting for work that it has been closed
- * down.
- */
-int
-enforcer_worker_work_closequeue(struct _enforcer_worker_queue *queue)
-{
-	if (pthread_mutex_lock(&(queue->mutex))) {
-		return -1;
-	}
-
-	queue->closed = 1;
-
-	if (pthread_cond_broadcast(&(queue->cond))) {
-		pthread_mutex_unlock(&(queue->mutex));
-		return -2;
-	}
-
-	if (pthread_mutex_unlock(&(queue->mutex))) {
-		return -3;
-	}
-
-	return 0;
-}
-
-/*
- * The enforcer worker, get a work from the queue and processes it until its
- * time to exit or the queue is closed.
- */
-static void *
-enforcer_worker(void *arg)
-{
-	struct _enforcer_worker *worker = (struct _enforcer_worker *)arg;
-    KSM_POLICY *policy;
-    int status;
-    DB_HANDLE handle;
-    struct _enforcer_worker_work *work = NULL;
-    char prefix[1024];
-    sigset_t mask;
-
-    /* Block all signals to this thread so they go to the main thread */
-    sigfillset(&mask);
-    if (pthread_sigmask(SIG_BLOCK, &mask, NULL)) {
-        log_msg(worker->config, LOG_ERR, "Unable to block all signals to enforcer worker thread, this can have unexpected behavior so I will exit!");
-        _enforcer_worker_exit = 1;
-    }
-
-    snprintf(prefix, 1024, "[worker[%d]]: ", worker->id);
-    MsgThreadSetPrefix(prefix);
-
-    if (DbConnect(&handle, (char *)worker->config->schema, (char *)worker->config->host, (char *)worker->config->password, (char *)worker->config->user, (char *)worker->config->port) != 0) {
-    	log_msg(worker->config, LOG_ERR, "Unable to connect to database");
-        _enforcer_worker_exit = 1;
-    }
-
-    policy = KsmPolicyAlloc();
-    if (policy == NULL) {
-        log_msg(worker->config, LOG_ERR, "Malloc for policy struct failed");
-        DbDisconnect(handle);
-        _enforcer_worker_exit = 1;
-    }
-
-    /* Signal enforcer_start_workers we are up even if there was an error */
-    if (pthread_mutex_lock(&_enforcer_worker_startup_mutex)) {
-        log_msg(worker->config, LOG_ERR, "Error locking startup mutex");
-		KsmPolicyFree(policy);
-        return NULL;
-    }
-
-    _enforcer_worker_startup_count++;
-    if (pthread_cond_signal(&_enforcer_worker_startup_cond)) {
-        pthread_mutex_unlock(&_enforcer_worker_startup_mutex);
-        log_msg(worker->config, LOG_ERR, "Error signaling startup cond");
-		KsmPolicyFree(policy);
-        return NULL;
-    }
-
-    if (pthread_mutex_unlock(&_enforcer_worker_startup_mutex)) {
-        log_msg(worker->config, LOG_ERR, "Error unlocking startup mutex");
-		KsmPolicyFree(policy);
-        return NULL;
-    }
-
-    /* exit if there was a problem starting */
-    if (_enforcer_worker_exit) {
-		KsmPolicyFree(policy);
-        return NULL;
-    }
-
-    kaspSetPolicyDefaults(policy, NULL);
-
-	log_msg(worker->config, LOG_INFO, "started");
-
-	_enforcer_workers_online++;
-	while (!_enforcer_worker_exit) {
-	    snprintf(prefix, 1024, "[worker[%d]]: ", worker->id);
-
-	    if (work) {
-			if (enforcer_worker_work_enqueue(&_enforcer_worker_workdone_queue, work)) {
-				log_msg(worker->config, LOG_ERR, "failed to enqueue work");
-				break;
-			}
-			work = NULL;
-		}
-
-		if (enforcer_worker_work_dequeue(&_enforcer_worker_havework_queue, &work)) {
-			log_msg(worker->config, LOG_ERR, "failed to dequeue work");
-			break;
-		}
-		if (!work) {
-			log_msg(worker->config, LOG_INFO, "no more work, exiting");
-			break;
-		}
-
-		if (strcmp(work->policy_name, policy->name) != 0) {
-
-			/* Read new Policy */
-			kaspSetPolicyDefaults(policy, work->policy_name);
-
-			status = KsmPolicyRead(policy);
-			if (status != 0) {
-				/* Don't return? try to parse the rest of the zones? */
-				log_msg(worker->config, LOG_ERR, "Error reading policy");
-				work->status = status;
-				continue;
-			}
-			log_msg(worker->config, LOG_INFO, "Policy %s found in DB.", policy->name);
-
-		} /* else */
-		  /* Policy is same as previous zone, do not re-read */
-
-	    snprintf(prefix, 1024, "[worker[%d]] %s: ", worker->id, work->zone_name);
-
-		/* Get zone ID from name (or skip if it doesn't exist) */
-		status = KsmZoneIdFromName(work->zone_name, &work->zone_id);
-		if (status != 0 || work->zone_id == -1)
-		{
-			/* error */
-			log_msg(NULL, LOG_ERR, "Error looking up zone \"%s\" in database (please make sure that the zonelist file is up to date)", work->zone_name);
-			work->status = status;
-			continue;
-		}
-
-		if (policy->shared_keys) {
-			if (pthread_mutex_lock(&_enforcer_worker_shared_keys_mutex)) {
-				log_msg(worker->config, LOG_ERR, "Error getting shared keys lock for zone %s", work->zone_name);
-				work->status = -1;
-				continue;
-			}
-		}
-
-	    status = DbBeginTransaction();
-	    if (status != 0) {
-            log_msg(worker->config, LOG_ERR, "Error starting transaction for zone %s", work->zone_name);
-	        work->status = status;
-            if (policy->shared_keys) {
-                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
-                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
-                    continue;
-                }
-            }
-	        continue;
-	    }
-
-		status = allocateKeysToZone(policy, KSM_TYPE_ZSK, work->zone_id, worker->config->interval, work->zone_name, worker->config->manualKeyGeneration, 0);
-		if (status != 0) {
-			log_msg(worker->config, LOG_ERR, "Error allocating zsks to zone %s", work->zone_name);
-			work->status = status;
-			DbRollback();
-            if (policy->shared_keys) {
-                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
-                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
-                    continue;
-                }
-            }
-			continue;
-		}
-		status = allocateKeysToZone(policy, KSM_TYPE_KSK, work->zone_id, worker->config->interval, work->zone_name, worker->config->manualKeyGeneration, policy->ksk->rollover_scheme);
-		if (status != 0) {
-			log_msg(worker->config, LOG_ERR, "Error allocating ksks to zone %s", work->zone_name);
-			work->status = status;
-            DbRollback();
-            if (policy->shared_keys) {
-                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
-                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
-                    continue;
-                }
-            }
-			continue;
-		}
-
-        /* turn this zone and policy into a file */
-        status = commGenSignConf(work->zone_name, work->zone_id, work->filename, policy, &work->signer_flag, worker->config->interval, worker->config->manualKeyGeneration, worker->config->DSSubmitCmd, worker->config->DSSubCKA_ID, &work->NewDS);
-        if (status == -2) {
-            log_msg(worker->config, LOG_ERR, "Signconf not written for %s", work->zone_name);
-			work->status = status;
-            DbRollback();
-            if (policy->shared_keys) {
-                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
-                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
-                    continue;
-                }
-            }
-            continue;
-        }
-        else if (status != 0) {
-            log_msg(worker->config, LOG_ERR, "Error writing signconf for %s", work->zone_name);
-			work->status = status;
-            DbRollback();
-            if (policy->shared_keys) {
-                if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
-                    log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
-                    continue;
-                }
-            }
-            continue;
-        }
-        DbCommit();
-
-        if (policy->shared_keys) {
-            if (pthread_mutex_unlock(&_enforcer_worker_shared_keys_mutex)) {
-                log_msg(worker->config, LOG_ERR, "Error releasing shared keys lock for zone %s", work->zone_name);
-                work->status = -1;
-                continue;
-            }
-        }
-
-		/*log_msg(worker->config, LOG_INFO, "work done for %s", work->zone_name);*/
-	}
-	_enforcer_workers_online--;
-
-    KsmPolicyFree(policy);
-
-	log_msg(worker->config, LOG_INFO, "stopped");
-
-    DbDisconnect(handle);
-	return NULL;
-}
-
-/*
- * Start the enforcer workers
- */
-static int
-enforcer_start_workers(DAEMONCONFIG *config)
-{
-#ifdef USE_MYSQL
-	int i;
-    struct timespec ts;
-
-#ifndef HAVE_CLOCK_GETTIME
-    struct timeval tv;
-    if (gettimeofday(&tv, NULL)) {
-        return -11;
-    }
-    ts.tv_sec = tv.tv_sec;
-    ts.tv_nsec = (tv.tv_usec/1000);
-#else /* HAVE_CLOCK_GETTIME */
-    if (clock_gettime(CLOCK_REALTIME, &ts)) {
-        return -11;
-    }
-#endif /* !HAVE_CLOCK_GETTIME */
-
-    ts.tv_sec += 5;
-
-    if (_enforcer_worker) {
-		log_msg(config, LOG_ERR, "enforcer workers already started?");
-		return -1;
-	}
-
-	/* Don't start enforcer workers unless there is 2 threads or more configured */
-	if (config->enforcer_workers < 2) {
-	    return 0;
-	}
-
-	if ((_enforcer_worker = MemCalloc(config->enforcer_workers, sizeof(struct _enforcer_worker))) == NULL) {
-		log_msg(config, LOG_ERR, "unable to allocate memory for enforcer workers");
-		return -2;
-	}
-
-    if (pthread_mutex_lock(&_enforcer_worker_startup_mutex)) {
-        return -10;
-    }
-    _enforcer_worker_startup_count = 0;
-
-    log_msg(config, LOG_INFO, "starting enforcer workers");
-
-    for (i=0; i<config->enforcer_workers; i++) {
-		_enforcer_worker[i].id = i + 1;
-		_enforcer_worker[i].config = config;
-		if (pthread_create(&(_enforcer_worker[i].thread), NULL, enforcer_worker, (void*)&(_enforcer_worker[i]))) {
-			return -3;
-		}
-	}
-
-	/* wait for all threads to have started up and then check if there was a error */
-	while (_enforcer_worker_startup_count < config->enforcer_workers) {
-        if (pthread_cond_timedwait(&_enforcer_worker_startup_cond, &_enforcer_worker_startup_mutex, &ts)) {
-            _enforcer_worker_exit = 1;
-            break;
-        }
-	}
-
-    if (pthread_mutex_unlock(&_enforcer_worker_startup_mutex)) {
-        return -12;
-    }
-
-    /* if some thread had problem or not all threads started, return error */
-	if (_enforcer_worker_exit) {
-        return -13;
-	}
-	if (_enforcer_worker_startup_count != config->enforcer_workers) {
-		return -14;
-	}
-
-#else
-	(void) config;
-#endif /* USE_MYSQL */
-	return 0;
-}
-
-
-/*
- * Stop the enforcer workers
- */
-static int
-enforcer_stop_workers(DAEMONCONFIG *config)
-{
-	int i;
-
-    /* Don't stop enforcer workers unless there is 2 threads or more configured */
-    if (config->enforcer_workers < 2) {
-        return 0;
-    }
-
-    if (!_enforcer_worker) {
-		log_msg(config, LOG_ERR, "enforcer workers not started?");
-		return -1;
-	}
-
-	_enforcer_worker_exit = 1;
-	enforcer_worker_work_closequeue(&_enforcer_worker_havework_queue);
-	enforcer_worker_work_closequeue(&_enforcer_worker_workdone_queue);
-
-	log_msg(config, LOG_INFO, "stopping enforcer workers");
-
-	for (i=0; i<config->enforcer_workers; i++) {
-		if (pthread_join(_enforcer_worker[i].thread, NULL)) {
-			return -1;
-		}
-	}
-
-	MemFree(_enforcer_worker);
-	return 0;
-}
-#endif /* ENFORCER_USE_WORKERS */
 
 int
 server_init(DAEMONCONFIG *config)
@@ -686,13 +169,6 @@ server_main(DAEMONCONFIG *config)
 		exit(1);
 	}
 
-#ifdef ENFORCER_USE_WORKERS
-	if ((status = enforcer_start_workers(config))) {
-		log_msg(config, LOG_ERR, "could not start workers (error %d)", status);
-		exit(1);
-	}
-#endif
-
     while (1) {
 
         /* Read the config file */
@@ -772,17 +248,8 @@ server_main(DAEMONCONFIG *config)
 
         /* Communicate zones to the signer */
         KsmParameterCollectionCache(1); /* Enable caching of policy parameters while in do_communication() */
-#ifdef ENFORCER_USE_WORKERS
-        if (config->enforcer_workers < 2) {
-            do_communication(config, policy);
-        }
-        else {
-            do_communication_workers(config);
-        }
-#else
-        do_communication(config, policy);
-#endif
-        KsmParameterCollectionCache(0);
+		do_communication(config, policy);
+		KsmParameterCollectionCache(0);
         
         DbFreeResult(handle);
 
@@ -838,12 +305,6 @@ server_main(DAEMONCONFIG *config)
 		   we can not (after trying to reconnect) */
 		check_hsm_connection(&ctx, config);
     }
-
-#ifdef ENFORCER_USE_WORKERS
-	if (enforcer_stop_workers(config)) {
-		log_msg(config, LOG_ERR, "could not stop workers?");
-	}
-#endif
 
     /*
      * Destroy HSM context
@@ -1289,21 +750,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
                 }
 
                 /* turn this zone and policy into a file */
-#ifdef ENFORCER_USE_WORKERS
-                {
-                    int NewDS = 0;
-                    status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd, config->DSSubCKA_ID, &NewDS);
-                    if (status2 == 0) {
-                        /* If the DS set changed then log/do something about it */
-                        if (NewDS == 1) {
-                            log_msg(config, LOG_INFO, "DSChanged");
-                            status = NewDSSet(zone_id, zone_name, config->DSSubmitCmd, config->DSSubCKA_ID);
-                        }
-                    }
-                }
-#else
                 status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd, config->DSSubCKA_ID);
-#endif
                 if (status2 == -2) {
                     log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -1379,311 +826,12 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy)
 }
 
 /*
- * do_communication with enforcer workers
- */
-#ifdef ENFORCER_USE_WORKERS
-static int do_communication_workers(DAEMONCONFIG *config)
-{
-    int status = 0;
-    int status2 = 0;
-
-    xmlTextReaderPtr reader = NULL;
-    xmlDocPtr doc = NULL;
-    xmlXPathContextPtr xpathCtx = NULL;
-    xmlXPathObjectPtr xpathObj = NULL;
-
-    int ret = 0; /* status of the XML parsing */
-    char* zonelist_filename = NULL;
-    char* zone_name;
-    char* current_policy;
-    char* current_filename;
-    char *tag_name = NULL;
-    int zone_id = -1;
-    char* ksk_expected = NULL;  /* When is the next ksk rollover expected? */
-    char* signer_command;
-    struct _enforcer_worker_work *work = NULL;
-    int num_work = 0;
-    char prefix[1024];
-
-    xmlChar *name_expr = (unsigned char*) "name";
-    xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
-    xmlChar *filename_expr = (unsigned char*) "//Zone/SignerConfiguration";
-
-    char* temp_char = NULL;
-
-    /* Stuff to see if we need to log an "impending rollover" warning */
-    char* datetime = NULL;
-    int roll_time = 0;
-
-    /* Let's find our zonelist from the conf.xml */
-    if (config->configfile != NULL) {
-        status = read_zonelist_filename(config->configfile, &zonelist_filename);
-    } else {
-        status = read_zonelist_filename(OPENDNSSEC_CONFIG_FILE, &zonelist_filename);
-    }
-
-    if (status != 0) {
-        log_msg(NULL, LOG_ERR, "couldn't read zonelist filename");
-        unlink(config->pidfile);
-        exit(1);
-    }
-
-    /* In case zonelist is huge use the XmlTextReader API so that we don't hold the whole file in memory */
-    reader = xmlNewTextReaderFilename(zonelist_filename);
-    if (reader != NULL) {
-        ret = xmlTextReaderRead(reader);
-        while (ret == 1) {
-            MsgThreadRemovePrefix();
-            tag_name = (char*) xmlTextReaderLocalName(reader);
-            /* Found <Zone> */
-            if (strncmp(tag_name, "Zone", 4) == 0
-                    && strncmp(tag_name, "ZoneList", 8) != 0
-                    && xmlTextReaderNodeType(reader) == 1) {
-                /* Get the zone name (TODO what if this is null?) */
-                zone_name = NULL;
-                temp_char = (char*) xmlTextReaderGetAttribute(reader, name_expr);
-                StrAppend(&zone_name, temp_char);
-                StrFree(temp_char);
-                /* Make sure that we got something */
-                if (zone_name == NULL) {
-                    /* error */
-                    log_msg(NULL, LOG_ERR, "Error extracting zone name from %s", zonelist_filename);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    StrFree(tag_name);
-                    continue;
-                }
-
-                log_msg(config, LOG_INFO, "Zone %s found.", zone_name);
-                snprintf(prefix, sizeof(prefix), "[main] %s: ", zone_name);
-                MsgThreadSetPrefix(prefix);
-
-                /* Expand this node and get the rest of the info with XPath */
-                xmlTextReaderExpand(reader);
-                doc = xmlTextReaderCurrentDoc(reader);
-                if (doc == NULL) {
-                    log_msg(config, LOG_ERR, "Error: can not read zone \"%s\"; skipping", zone_name);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    StrFree(tag_name);
-                    StrFree(zone_name);
-                    continue;
-                }
-
-                /* TODO should we validate here? Or should we validate the whole document? */
-
-                xpathCtx = xmlXPathNewContext(doc);
-                if(xpathCtx == NULL) {
-                    log_msg(config, LOG_ERR,"Error: can not create XPath context for \"%s\"; skipping zone", zone_name);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    StrFree(tag_name);
-                    StrFree(zone_name);
-                    continue;
-                }
-
-                /* Extract the Policy name and signer configuration filename for this zone */
-                /* Evaluate xpath expression for policy */
-                xpathObj = xmlXPathEvalExpression(policy_expr, xpathCtx);
-                if(xpathObj == NULL) {
-                    log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone", policy_expr);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    StrFree(tag_name);
-                    StrFree(zone_name);
-                    continue;
-                }
-                current_policy = NULL;
-                temp_char = (char*) xmlXPathCastToString(xpathObj);
-                StrAppend(&current_policy, temp_char);
-                StrFree(temp_char);
-                log_msg(config, LOG_INFO, "Policy for %s set to %s.", zone_name, current_policy);
-                xmlXPathFreeObject(xpathObj);
-
-                /* Evaluate xpath expression for signer configuration filename */
-                xpathObj = xmlXPathEvalExpression(filename_expr, xpathCtx);
-                xmlXPathFreeContext(xpathCtx);
-
-                if(xpathObj == NULL) {
-                    log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s; skipping zone", filename_expr);
-                    /* Don't return? try to parse the rest of the zones? */
-                    ret = xmlTextReaderRead(reader);
-                    StrFree(tag_name);
-                    StrFree(zone_name);
-                    continue;
-                }
-                current_filename = NULL;
-                temp_char = (char*)xmlXPathCastToString(xpathObj);
-                StrAppend(&current_filename, temp_char);
-                StrFree(temp_char);
-                log_msg(config, LOG_INFO, "Config will be output to %s.", current_filename);
-                xmlXPathFreeObject(xpathObj);
-                /* TODO should we check that we have not written to this file in this run?*/
-                /* Make sure that enough keys are allocated to this zone */
-
-                if (!_enforcer_workers_online) {
-                    log_msg(config, LOG_ERR, "No enforcer workers online to process %s", zone_name);
-                    ret = xmlTextReaderRead(reader);
-                    StrFree(tag_name);
-                    StrFree(zone_name);
-                    StrFree(current_policy);
-                    StrFree(current_filename);
-                    continue;
-                }
-
-                if ((work = MemMalloc(sizeof(struct _enforcer_worker_work))) == NULL) {
-                    log_msg(config, LOG_ERR, "Unable to allocate enforcer worker work");
-                    ret = xmlTextReaderRead(reader);
-                    StrFree(tag_name);
-                    StrFree(zone_name);
-                    StrFree(current_policy);
-                    StrFree(current_filename);
-                    continue;
-                }
-
-                work->policy_name = current_policy;
-                work->zone_name = zone_name;
-                work->status = 0;
-                work->NewDS = 0;
-                work->filename = current_filename;
-                work->signer_flag = 0;
-
-                if (enforcer_worker_work_enqueue(&_enforcer_worker_havework_queue, work)) {
-                    log_msg(config, LOG_ERR, "Unable to enqueue enforcer worker work");
-                    ret = xmlTextReaderRead(reader);
-                    StrFree(tag_name);
-                    StrFree(work->zone_name);
-                    StrFree(work->policy_name);
-                    StrFree(work->filename);
-                    MemFree(work);
-                    continue;
-                }
-
-                work = NULL;
-                num_work++;
-            }
-            /* Read the next line */
-            ret = xmlTextReaderRead(reader);
-            StrFree(tag_name);
-        }
-        xmlFreeTextReader(reader);
-        if (ret != 0) {
-            log_msg(config, LOG_ERR, "%s : failed to parse", zonelist_filename);
-        }
-        MsgThreadRemovePrefix();
-
-        status2 = 0;
-        while (num_work) {
-            MsgThreadRemovePrefix();
-            if (enforcer_worker_work_timed_dequeue(&_enforcer_worker_workdone_queue, &work, 30)) {
-                log_msg(config, LOG_ERR, "Unable to dequeue enforcer worker work");
-                status2 = 1;
-                break;
-            }
-            if (!work) {
-                log_msg(config, LOG_ERR, "No work returned by enforcer workers?");
-                status2 = 1;
-                break;
-            }
-            num_work--;
-
-            if (work->status) {
-                StrFree(work->zone_name);
-                StrFree(work->policy_name);
-                StrFree(work->filename);
-                MemFree(work);
-                continue;
-            }
-
-            snprintf(prefix, sizeof(prefix), "[main] %s: ", work->zone_name);
-            MsgThreadSetPrefix(prefix);
-
-            /* If the DS set changed then log/do something about it */
-            if (work->NewDS == 1) {
-                log_msg(config, LOG_INFO, "DSChanged");
-                NewDSSet(work->zone_id, work->zone_name, config->DSSubmitCmd, config->DSSubCKA_ID);
-            }
-
-            zone_id = work->zone_id;
-            zone_name = work->zone_name;
-            StrFree(work->policy_name);
-            StrFree(work->filename);
-            MemFree(work);
-
-            /* See if we need to send a warning about an impending rollover */
-            if (config->rolloverNotify != -1) {
-                datetime = DtParseDateTimeString("now");
-
-                /* Check datetime in case it came back NULL */
-                if (datetime == NULL) {
-                    log_msg(config, LOG_ERR, "Couldn't turn \"now\" into a date, skipping zone %s", zone_name);
-                    StrFree(zone_name);
-                    continue;
-                }
-
-                /* First the KSK */
-                status2 = KsmCheckNextRollover(KSM_TYPE_KSK, zone_id, &ksk_expected);
-                if (status2 == -1) {
-                    log_msg(config, LOG_INFO, "No active KSKs yet for zone %s, can't check for impending rollover", zone_name);
-                }
-                else if (status2 != 0) {
-                    log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
-                    /* TODO should we quit or continue? */
-                } else {
-                    status2 = DtDateDiff(ksk_expected, datetime, &roll_time);
-                    if (status2 != 0) {
-                        log_msg(config, LOG_ERR, "Error checking for impending rollover for %s", zone_name);
-                    } else {
-
-                        if (roll_time <= config->rolloverNotify) {
-                            log_msg(config, LOG_INFO, "Rollover of KSK expected at %s for %s", ksk_expected, zone_name);
-                        }
-                    }
-					StrFree(ksk_expected);
-                }
-                StrFree(datetime);
-            }
-            StrFree(zone_name);
-        }
-
-        MsgThreadRemovePrefix();
-
-        signer_command = NULL;
-        StrAppend(&signer_command, SIGNER_CLI_UPDATE);
-        StrAppend(&signer_command, " --all");
-
-        if (system(signer_command))
-        {
-            log_msg(NULL, LOG_ERR, "Could not call signer engine to update all zones");
-            log_msg(NULL, LOG_INFO, "Will continue: call '%s' to manually update all zones", signer_command);
-        }
-        else {
-            log_msg(NULL, LOG_INFO, "Called signer engine: %s", signer_command);
-        }
-
-        StrFree(signer_command);
-    } else {
-        log_msg(config, LOG_ERR, "Unable to open %s", zonelist_filename);
-    }
-
-    xmlFreeDoc(doc);
-    StrFree(zonelist_filename);
-
-    return status;
-}
-#endif
-
-/*
  *  generate the configuration file for the signer
 
  *  returns 0 on success and -1 if something went wrong
  *                           -2 if the RequestKeys call failed
  */
-#ifdef ENFORCER_USE_WORKERS
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID, int* NewDS)
-#else
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID)
-#endif
 {
     int status = 0;
     int status2 = 0;
@@ -1697,9 +845,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
                                file.) */
     int     gencnt;         /* Number of keys in generate state */
     char *signer_command;   /* how we will call the signer */
-#ifndef ENFORCER_USE_WORKERS
     int     NewDS = 0;      /* Did we change the DS Set in any way? */
-#endif
     char*   datetime = DtParseDateTimeString("now");
 
     /* Check datetime in case it came back NULL */
@@ -1784,11 +930,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     fprintf(file, "\t\t\t<TTL>PT%dS</TTL>\n", policy->ksk->ttl);
 
     /* get new keys _only_ if we don't have them from before */
-#ifdef ENFORCER_USE_WORKERS
-    status = KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id, run_interval, NewDS);
-#else
     status = KsmRequestKeys(0, 0, datetime, commKeyConfig, file, policy->id, zone_id, run_interval, &NewDS);
-#endif
     if (status != 0) {
         /* 
          * Something went wrong (it should have been logged) stop this zone.
@@ -1993,13 +1135,11 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
         }
     }
 
-#ifndef ENFORCER_USE_WORKERS
     /* If the DS set changed then log/do something about it */
     if (NewDS == 1) {
         log_msg(NULL, LOG_INFO, "DSChanged");
         status = NewDSSet(zone_id, zone_name, DSSubmitCmd, DSSubCKA_ID);
     }
-#endif
 
     StrFree(old_filename);
     StrFree(temp_filename);

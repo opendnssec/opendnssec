@@ -44,6 +44,7 @@
 			<Group>opendnssec</Group>
 		</Privileges>
 -->
+<!-- NOTE: Enforcer worker threads are not used; this option is ignored -->
 <!--
 		<WorkerThreads>4</WorkerThreads>
 -->

@@ -51,15 +51,6 @@
 MSG_CODEBLOCK*  m_codeblock = NULL;
 int m_numblocks = 0;        /* Count of code blocks */
 
-#ifdef KSM_DB_USE_THREADS
-
-#include <pthread.h>
-
-static int _msg_setup = 0;
-pthread_mutex_t _msg_setup_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_key_t _key_msg_prefix;
-#endif
-
 
 /*+
  * MsgInit - Initialize Message Processing
@@ -402,21 +393,7 @@ int MsgLogAp(int status, va_list ap)
     /* If a function is available, use it to output the error */
 
     if (output) {
-#ifdef KSM_DB_USE_THREADS
-        char *prefix;
-        if ((prefix = MsgThreadGetPrefix())) {
-            char buffer2[4096];
-
-            snprintf(buffer2, 4096, "%s%s", prefix, buffer);
-
-            (*output)(buffer2);
-        }
-        else {
-            (*output)(buffer);
-        }
-#else
         (*output)(buffer);
-#endif
     }
 
     return status;
@@ -447,89 +424,3 @@ void MsgRundown(void)
 }
 
 
-#ifdef KSM_DB_USE_THREADS
-int
-MsgThreadSetup(void)
-{
-    if (!_msg_setup) {
-        if (pthread_mutex_lock(&_msg_setup_mutex)) {
-            return -1;
-        }
-
-        if (!_msg_setup) {
-            if (pthread_key_create(&_key_msg_prefix, NULL)) {
-                if (pthread_mutex_unlock(&_msg_setup_mutex)) {
-                    return -3;
-                }
-                return -2;
-            }
-            _msg_setup = 1;
-        }
-
-        if (pthread_mutex_unlock(&_msg_setup_mutex)) {
-            return -3;
-        }
-    }
-
-    return 0;
-}
-
-char *
-MsgThreadGetPrefix(void)
-{
-    char** ptr;
-
-    if (MsgThreadSetup()) {
-        return NULL;
-    }
-
-    if ((ptr = pthread_getspecific(_key_msg_prefix)) == NULL) {
-        return NULL;
-    }
-
-    return *ptr;
-}
-
-int
-MsgThreadSetPrefix(char *prefix)
-{
-    char** ptr;
-
-    if (MsgThreadSetup()) {
-        return -1;
-    }
-
-    if ((ptr = pthread_getspecific(_key_msg_prefix)) == NULL) {
-        if ((ptr = MemMalloc(sizeof(char*))) == NULL) {
-            return -2;
-        }
-
-        if (pthread_setspecific(_key_msg_prefix, ptr)) {
-            MemFree(ptr);
-            return -3;
-        }
-    }
-
-    *ptr = prefix;
-
-    return 0;
-}
-
-int
-MsgThreadRemovePrefix(void)
-{
-    char** ptr;
-
-    if (MsgThreadSetup()) {
-        return -1;
-    }
-
-    ptr = pthread_getspecific(_key_msg_prefix);
-
-    if (ptr) {
-        *ptr = NULL;
-    }
-
-    return 0;
-}
-#endif
