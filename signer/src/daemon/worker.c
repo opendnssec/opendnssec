@@ -354,16 +354,18 @@ worker_perform_task(worker_type* worker)
                 lhsm_check_connection((void*)engine);
                 status = tools_input(zone);
             }
+
+            if (status == ODS_STATUS_UNCHANGED) {
+                ods_log_verbose("[%s[%i]] zone %s unsigned data not changed, "
+                    "continue", worker2str(worker->type), worker->thread_num,
+                    task_who2str(task));
+                status = ODS_STATUS_OK;
+            }
             if (status == ODS_STATUS_OK) {
                 if (task->interrupt > TASK_SIGNCONF) {
                     task->interrupt = TASK_NONE;
                     task->halted = TASK_NONE;
                 }
-            } else if (status == ODS_STATUS_UNCHANGED) {
-                ods_log_verbose("[%s[%i]] zone %s unsigned data not changed, "
-                    "continue", worker2str(worker->type), worker->thread_num,
-                    task_who2str(task));
-                status = ODS_STATUS_OK;
             } else {
                 if (task->halted == TASK_NONE) {
                     goto task_perform_fail;
