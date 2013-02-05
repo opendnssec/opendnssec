@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-#TEST: Configure and sign 4 zones with one repository using multi-threaded Enforcer
+#TEST: Configure and sign 4 zones with one repository using multi-threaded Enforcer 
 #TEST: and 3 different policies, 1 with shared keys and 2 without.
+#TEST: NOTE; since rollback this now tests the config option is not being read
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -11,9 +12,9 @@ ods_reset_env &&
 
 log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
 syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
-if [ -n "$HAVE_MYSQL" ]; then
-	syslog_waitfor 60 'ods-enforcerd: .*\[worker\[4\]\]: started'
-fi &&
+#if [ -n "$HAVE_MYSQL" ]; then
+#	syslog_waitfor 60 'ods-enforcerd: .*\[worker\[4\]\]: started'
+#fi &&
 
 log_this_timeout ods-control-signer-start 60 ods-control signer start &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
