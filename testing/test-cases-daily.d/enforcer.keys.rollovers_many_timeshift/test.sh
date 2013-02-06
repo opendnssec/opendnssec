@@ -411,6 +411,159 @@ log_grep ods-ksmutil-key-list11 stdout 'ods2                            ZSK     
 ! log_grep ods-ksmutil-key-list11 stdout 'ods2                            KSK           retire' &&
 
 
+## Next event is ZSK for ods1 -> dead 12:42:40
+##################  STEP 12: Time = 42min40 ###########################
+export ENFORCER_TIMESHIFT='01-01-2010 12:42:40' &&
+
+# Run the enforcer
+log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
+syslog_waitfor_count $ENFORCER_WAIT 13 'ods-enforcerd: .*all done' &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:42:40" &&
+
+# Key list
+# Check that we have 2/4 keys per zone
+log_this ods-ksmutil-key-list12 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list12 stdout 'ods1                            KSK           active    2010-01-01 13:03:40' &&
+log_grep ods-ksmutil-key-list12 stdout 'ods1                            ZSK           active    2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list12 stdout 'ods2                            KSK           active    2010-01-01 12:59:30' &&
+log_grep ods-ksmutil-key-list12 stdout 'ods2                            ZSK           active    2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list12 stdout 'ods2                            ZSK           retire    2010-01-01 12:44:30' &&
+log_grep ods-ksmutil-key-list12 stdout 'ods2                            ZSK           publish   2010-01-01 12:50:00' &&
+# No retired KSKs or ZSK on ods1
+! log_grep ods-ksmutil-key-list12 stdout 'ods1                            KSK           retire' &&
+! log_grep ods-ksmutil-key-list12 stdout 'ods1                            ZSK           retire' &&
+! log_grep ods-ksmutil-key-list12 stdout 'ods2                            KSK           retire' &&
+
+
+## Next event is ZSK for ods2 -> dead 12:44:30 (plus KSK prepublish for ods2)
+##################  STEP 13: Time = 44min30 ###########################
+export ENFORCER_TIMESHIFT='01-01-2010 12:44:30' &&
+
+# Run the enforcer
+log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
+syslog_waitfor_count $ENFORCER_WAIT 14 'ods-enforcerd: .*all done' &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:44:30" &&
+
+# Key list
+# Check that we have 2/4 keys per zone
+log_this ods-ksmutil-key-list13 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list13 stdout 'ods1                            KSK           active    2010-01-01 13:03:40' &&
+log_grep ods-ksmutil-key-list13 stdout 'ods1                            ZSK           active    2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list13 stdout 'ods2                            KSK           active    2010-01-01 12:59:30' &&
+log_grep ods-ksmutil-key-list13 stdout 'ods2                            ZSK           active    2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list13 stdout 'ods2                            ZSK           publish   2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list13 stdout 'ods2                            KSK           publish   2010-01-01 12:59:00' &&
+# No retired Keys
+! log_grep ods-ksmutil-key-list13 stdout 'ods1                            KSK           retire' &&
+! log_grep ods-ksmutil-key-list13 stdout 'ods1                            ZSK           retire' &&
+! log_grep ods-ksmutil-key-list13 stdout 'ods2                            KSK           retire' &&
+! log_grep ods-ksmutil-key-list13 stdout 'ods2                            ZSK           retire' &&
+
+
+## Next event is prepublish of ZSK for ods1 12:46:20
+##################  STEP 14: Time = 46min20 ###########################
+export ENFORCER_TIMESHIFT='01-01-2010 12:46:20' &&
+
+# Run the enforcer
+log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
+syslog_waitfor_count $ENFORCER_WAIT 15 'ods-enforcerd: .*all done' &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:46:20" &&
+
+# Key list
+# Check that we have 3/4 keys per zone
+log_this ods-ksmutil-key-list14 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list14 stdout 'ods1                            KSK           active    2010-01-01 13:03:40' &&
+log_grep ods-ksmutil-key-list14 stdout 'ods1                            ZSK           active    2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list14 stdout 'ods1                            ZSK           publish   2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list14 stdout 'ods2                            KSK           active    2010-01-01 12:59:30' &&
+log_grep ods-ksmutil-key-list14 stdout 'ods2                            ZSK           active    2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list14 stdout 'ods2                            ZSK           publish   2010-01-01 12:50:00' &&
+log_grep ods-ksmutil-key-list14 stdout 'ods2                            KSK           publish   2010-01-01 12:59:00' &&
+# No retired Keys
+! log_grep ods-ksmutil-key-list14 stdout 'ods1                            KSK           retire' &&
+! log_grep ods-ksmutil-key-list14 stdout 'ods1                            ZSK           retire' &&
+! log_grep ods-ksmutil-key-list14 stdout 'ods2                            KSK           retire' &&
+! log_grep ods-ksmutil-key-list14 stdout 'ods2                            ZSK           retire' &&
+
+
+
+## Next event is ZSK roll for both zones 12:50:00
+##################  STEP 15: Time = 50min ###########################
+export ENFORCER_TIMESHIFT='01-01-2010 12:50' &&
+
+# Run the enforcer
+log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
+syslog_waitfor_count $ENFORCER_WAIT 16 'ods-enforcerd: .*all done' &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:50" &&
+
+# Key list
+# Check that we have 3/4 keys per zone
+log_this ods-ksmutil-key-list15 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list15 stdout 'ods1                            KSK           active    2010-01-01 13:03:40' &&
+log_grep ods-ksmutil-key-list15 stdout 'ods1                            ZSK           retire    2010-01-01 13:07:40' &&
+log_grep ods-ksmutil-key-list15 stdout 'ods1                            ZSK           active    2010-01-01 13:15:00' &&
+log_grep ods-ksmutil-key-list15 stdout 'ods2                            KSK           active    2010-01-01 12:59:30' &&
+log_grep ods-ksmutil-key-list15 stdout 'ods2                            ZSK           retire    2010-01-01 13:09:30' &&
+log_grep ods-ksmutil-key-list15 stdout 'ods2                            ZSK           active    2010-01-01 13:15:00' &&
+log_grep ods-ksmutil-key-list15 stdout 'ods2                            KSK           publish   2010-01-01 12:59:00' &&
+# No retired KSKs
+! log_grep ods-ksmutil-key-list15 stdout 'ods1                            KSK           retire' &&
+! log_grep ods-ksmutil-key-list15 stdout 'ods2                            KSK           retire' &&
+
+
+
+## Next event is KSK for ods2 -> ready 12:59:00 will also prepublish a KSK for ods1
+##################  STEP 16: Time = 59min ###########################
+# Grab the CKA_ID of the KSK
+log_this ods-ksmutil-cka_id16 ods-ksmutil key list --all --verbose &&
+KSK_CKA_ID_4=`log_grep -o ods-ksmutil-cka_id16 stdout "ods2                            KSK           publish" | awk '{print $9}'` &&
+
+export ENFORCER_TIMESHIFT='01-01-2010 12:59' &&
+
+# Run the enforcer
+log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
+syslog_waitfor_count $ENFORCER_WAIT 17 'ods-enforcerd: .*all done' &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:59" &&
+
+# Key list
+# Check that we have 4 keys per zone
+log_this ods-ksmutil-key-list16_1 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list16_1 stdout 'ods1                            KSK           active    2010-01-01 13:03:40' &&
+log_grep ods-ksmutil-key-list16_1 stdout 'ods1                            ZSK           retire    2010-01-01 13:07:40' &&
+log_grep ods-ksmutil-key-list16_1 stdout 'ods1                            ZSK           active    2010-01-01 13:15:00' &&
+log_grep ods-ksmutil-key-list16_1 stdout 'ods1                            KSK           publish   2010-01-01 13:02:40' &&
+log_grep ods-ksmutil-key-list16_1 stdout 'ods2                            KSK           active    2010-01-01 12:59:30' &&
+log_grep ods-ksmutil-key-list16_1 stdout 'ods2                            ZSK           retire    2010-01-01 13:09:30' &&
+log_grep ods-ksmutil-key-list16_1 stdout 'ods2                            ZSK           active    2010-01-01 13:15:00' &&
+log_grep ods-ksmutil-key-list16_1 stdout 'ods2                            KSK           ready     waiting for ds-seen' &&
+# No retired KSKs
+! log_grep ods-ksmutil-key-list16_1 stdout 'ods1                            KSK           retire' &&
+! log_grep ods-ksmutil-key-list16_1 stdout 'ods2                            KSK           retire' &&
+
+# We should be ready for a ds-seen on ods2
+syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods2 with the following cka_ids, $KSK_CKA_ID_4" &&
+
+# Run the ds-seen on ods2 and check the output (enforcer won't HUP as it isn't running)
+log_this ods-ksmutil-dsseen_ods16   ods-ksmutil key ds-seen --zone ods2 --cka_id $KSK_CKA_ID_4 &&
+log_grep ods-ksmutil-dsseen_ods16 stdout "Cannot find PID file" &&
+log_grep ods-ksmutil-dsseen_ods16 stdout "Found key with CKA_ID $KSK_CKA_ID_4" &&
+log_grep ods-ksmutil-dsseen_ods16 stdout "Key $KSK_CKA_ID_4 made active" &&
+
+# Key list should reflect this
+# Check that we have 4 keys per zone
+log_this ods-ksmutil-key-list16_2 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list16_2 stdout 'ods1                            KSK           active    2010-01-01 13:03:40' &&
+log_grep ods-ksmutil-key-list16_2 stdout 'ods1                            ZSK           retire    2010-01-01 13:07:40' &&
+log_grep ods-ksmutil-key-list16_2 stdout 'ods1                            ZSK           active    2010-01-01 13:15:00' &&
+log_grep ods-ksmutil-key-list16_2 stdout 'ods1                            KSK           publish   2010-01-01 13:02:40' &&
+log_grep ods-ksmutil-key-list16_2 stdout 'ods2                            KSK           active    2010-01-01 13:44:00' &&
+log_grep ods-ksmutil-key-list16_2 stdout 'ods2                            ZSK           retire    2010-01-01 13:09:30' &&
+log_grep ods-ksmutil-key-list16_2 stdout 'ods2                            ZSK           active    2010-01-01 13:15:00' &&
+log_grep ods-ksmutil-key-list16_2 stdout 'ods2                            KSK           retire    2010-01-01 13:04:30' &&
+# No retired KSKs on ods1
+! log_grep ods-ksmutil-key-list16_2 stdout 'ods1                            KSK           retire' &&
+
+
 return 0
 
 echo
