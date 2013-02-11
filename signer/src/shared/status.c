@@ -80,6 +80,12 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_XML_ERR, "XML error"},
 
     { ODS_STATUS_XFR_NOT_READY, "Incoming zone transfer not ready"},
+    { ODS_STATUS_SKIPDNAME, "Failed to skip domain name"},
+    { ODS_STATUS_BUFAVAIL, "Insufficient space available in buffer"},
+    { ODS_STATUS_PARSESOA, "Failed to parse SOA RR"},
+    { ODS_STATUS_REQAXFR, "Got IXFR, but AXFR required"},
+    { ODS_STATUS_INSERIAL, "Serial mismatch"},
+
     { 0, NULL }
 };
 

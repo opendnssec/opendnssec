@@ -37,6 +37,7 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "shared/status.h"
 #include "shared/util.h"
 #include "signer/domain.h"
 #include "signer/zone.h"
@@ -61,7 +62,7 @@ static void xfrd_write_soa(xfrd_type* xfrd, buffer_type* buffer);
 static int xfrd_parse_soa(xfrd_type* xfrd, buffer_type* buffer,
     unsigned rdata_only, unsigned update, uint32_t t,
     uint32_t* serial);
-static int xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer,
+static ods_status xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer,
     uint16_t count, int* done);
 static xfrd_pkt_status xfrd_parse_packet(xfrd_type* xfrd,
     buffer_type* buffer);
@@ -700,7 +701,7 @@ xfrd_parse_soa(xfrd_type* xfrd, buffer_type* buffer, unsigned rdata_only,
  * Parse RRs in packet.
  *
  */
-static int
+static ods_status
 xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
     int* done)
 {
@@ -714,10 +715,10 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
     ods_log_assert(done);
     for (i=0; i < count; ++i, ++xfrd->msg_rr_count) {
          if (!buffer_skip_dname(buffer)) {
-             return 0;
+             return ODS_STATUS_SKIPDNAME;
          }
          if (!buffer_available(buffer, 10)) {
-             return 0;
+             return ODS_STATUS_BUFAVAIL;
          }
          (void)buffer_position(buffer);
          type = (ldns_rr_type) buffer_read_u16(buffer);
@@ -725,11 +726,11 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
          ttl = buffer_read_u32(buffer);
          rrlen = buffer_read_u16(buffer);
          if (!buffer_available(buffer, rrlen)) {
-             return 0;
+             return ODS_STATUS_BUFAVAIL;
          }
          if (type == LDNS_RR_TYPE_SOA) {
              if (!xfrd_parse_soa(xfrd, buffer, 1, 0, ttl, &serial)) {
-                 return 0;
+                 return ODS_STATUS_PARSESOA;
              }
              if (xfrd->msg_rr_count == 1 && serial != xfrd->msg_new_serial) {
                  /* 2nd RR is SOA with different serial, this is an IXFR */
@@ -737,11 +738,13 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
                  lock_basic_lock(&xfrd->serial_lock);
                  if (!xfrd->serial_disk_acquired) {
                      lock_basic_unlock(&xfrd->serial_lock);
-                     return 0; /* got IXFR but need AXFR */
+                     /* got IXFR but need AXFR */
+                     return ODS_STATUS_REQAXFR;
                  }
                  if (serial != xfrd->serial_disk) {
                      lock_basic_unlock(&xfrd->serial_lock);
-                     return 0; /* bad start serial in IXFR */
+                     /* bad start serial in IXFR */
+                     return ODS_STATUS_INSERIAL;
                  }
                  lock_basic_unlock(&xfrd->serial_lock);
                  xfrd->msg_old_serial = serial;
@@ -757,7 +760,7 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
              buffer_skip(buffer, rrlen);
          }
     }
-    return 1;
+    return ODS_STATUS_OK;
 }
 
 
@@ -775,6 +778,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
     uint16_t rrcount = 0;
     uint32_t serial = 0;
     int done = 0;
+    ods_status status = ODS_STATUS_OK;
     ods_log_assert(buffer);
     ods_log_assert(xfrd);
     ods_log_assert(xfrd->master);
@@ -909,14 +913,17 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
             "retry tcp", xfrd_str, zone->name, xfrd->master->address);
         return XFRD_PKT_TC;
     }
-    if (!xfrd_parse_rrs(xfrd, buffer, ancount_todo, &done)) {
+    status = xfrd_parse_rrs(xfrd, buffer, ancount_todo, &done);
+    if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] bad packet: zone %s received bad xfr packet "
-            "(bad rr)", xfrd_str, zone->name, xfrd->master->address);
+            "(%s)", xfrd_str, zone->name, xfrd->master->address,
+            ods_status2str(status));
         return XFRD_PKT_BAD;
     }
     if (xfrd->tcp_conn == -1 && !done) {
         ods_log_error("[%s] bad packet: zone %s received bad xfr packet "
-            "(bad rr)", xfrd_str, zone->name, xfrd->master->address);
+            "(xfr over udp incomplete)", xfrd_str, zone->name,
+            xfrd->master->address);
         return XFRD_PKT_BAD;
     }
     if (!done) {

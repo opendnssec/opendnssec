@@ -79,7 +79,12 @@ enum ods_enum_status {
     ODS_STATUS_WRITE_PIDFILE_ERR,
     ODS_STATUS_XML_ERR,
 
-    ODS_STATUS_XFR_NOT_READY
+    ODS_STATUS_XFR_NOT_READY,
+    ODS_STATUS_SKIPDNAME,
+    ODS_STATUS_BUFAVAIL,
+    ODS_STATUS_PARSESOA,
+    ODS_STATUS_REQAXFR,
+    ODS_STATUS_INSERIAL
 };
 typedef enum ods_enum_status ods_status;
 
