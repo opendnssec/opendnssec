@@ -1,6 +1,9 @@
 $Id$
 
-OpenDNSSEC 1.3.13
+OpenDNSSEC 1.3.13rc2
+
+
+OpenDNSSEC 1.3.13rc1 - 2013-02-12
 
 Bugfixes:
 * OPENDNSSEC-388: Signer Engine: Internal serial should take into account
