@@ -3,15 +3,18 @@ $Id$
 
 OpenDNSSEC 1.4.0-trunk
 
+Note: This release is marked as a beta release due to OPENDNSSEC-387, which is a non-trivial change. 
+
+* OPENDNSSEC-387: Rollback of multi-threaded enforcer. Due to key allocation 
+  issues the usefulness of the threaded enforcer is outweighed by the code
+  complications. The option still remains in conf.xml for compatibility with
+  existing use; but it will now be silently ignored.
+
 Bugfixes:
 * OPENDNSSEC-388: Signer Engine: Internal serial should take into account
   the inbound serial.
 * SUPPORT-50/51: Signer Engine: Inbound DNS Adapter incorrectly updates 
   NSEC3PARAM and DNSKEY RRset [OPENDNSSEC-389]
-* OPENDNSSEC-387: Rollback of multi-threaded enforcer. Due to key allocation 
-  issues the usefulness of the threaded enforcer is outweighed by the code
-  complications. The option still remains in conf.xml for compatibility with
-  existing use; but it will now be silently ignored.
 
 
 OpenDNSSEC 1.4.0rc2 - 2013-01-25
