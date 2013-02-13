@@ -1489,6 +1489,8 @@ int do_purge(int interval, int policy_id)
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
                 StrFree(rightnow);
+				DusFree(sql);
+				DqsFree(sql1);
                 return status;
 			}	
 
@@ -1505,6 +1507,7 @@ int do_purge(int interval, int policy_id)
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
                 StrFree(rightnow);
+				DusFree(sql);
                 return status;
             }
 
@@ -1514,7 +1517,7 @@ int do_purge(int interval, int policy_id)
                 /* Delete from dnsseckeys */
                 sql2 = DdsInit("dnsseckeys");
                 DdsConditionInt(&sql2, "keypair_id", DQS_COMPARE_EQ, temp_id, 0);
-                DdsEnd(&sql);
+                DdsEnd(&sql2);
 
                 status = DbExecuteSqlNoResult(DbHandle(), sql2);
                 DdsFree(sql2);
@@ -1524,6 +1527,7 @@ int do_purge(int interval, int policy_id)
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
                     StrFree(rightnow);
+					DusFree(sql);
                     return status;
                 }
 
@@ -1540,6 +1544,7 @@ int do_purge(int interval, int policy_id)
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
                     StrFree(rightnow);
+					DusFree(sql);
                     return status;
                 }
 
@@ -1551,6 +1556,7 @@ int do_purge(int interval, int policy_id)
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
                     StrFree(rightnow);
+					DusFree(sql);
                     return -1;
                 }
 
@@ -1565,6 +1571,7 @@ int do_purge(int interval, int policy_id)
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
                     StrFree(rightnow);
+					DusFree(sql);
                     return -1;
                 }
             }
@@ -1884,6 +1891,7 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd, int DS
 			fp = popen(DSSubmitCmd, "w");
 			if (fp == NULL) {
 				log_msg(NULL, LOG_ERR, "Failed to run command: %s: %s", DSSubmitCmd, strerror(errno));
+				StrFree(insql);
 				return -1;
 			}
 			bytes_written = fprintf(fp, "%s", ds_buffer);
@@ -1894,6 +1902,9 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd, int DS
 
 			if (pclose(fp) == -1) {
 				log_msg(NULL, LOG_ERR, "Failed to close %s: %s", DSSubmitCmd, strerror(errno));
+				StrFree(ds_buffer);
+				StrFree(ds_seen_buffer);
+				StrFree(insql);
 				return -1;
 			}
 		}

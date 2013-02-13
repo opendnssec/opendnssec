@@ -947,6 +947,10 @@ KSM_POLICY *KsmPolicyAlloc()
         KSM_POLICY *policy;
     
         policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+		if (policy == NULL) {
+			return NULL;
+		}
+
         policy->description = (char *)calloc(KSM_POLICY_DESC_LENGTH, sizeof(char));
         policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
         policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));

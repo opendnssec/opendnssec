@@ -985,6 +985,7 @@ int KsmMarkKeysAsDead(int zone_id)
         KsmKeyEnd(result);
     }
 
+	DqsFree(sql);
     return 0;
 }
 

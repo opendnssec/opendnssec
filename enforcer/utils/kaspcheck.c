@@ -212,6 +212,11 @@ int check_conf(char** kasp) {
 		repo_mods = (int*)malloc(sizeof(int) * repo_count);
 		repo_list = (char**)malloc(sizeof(char*) * repo_count);
 
+		if (repo == NULL || repo_mods == NULL || repo_list == NULL) {
+			dual_log("ERROR: malloc for repo information failed\n");
+			exit(1);
+		}
+
         for (i = 0; i < repo_count; i++) {
 			repo_mods[i] = 0;
                  
@@ -448,6 +453,10 @@ int check_kasp() {
 		policy_count = xpath_obj->nodesetval->nodeNr;
 
 		policy_names = (char**)malloc(sizeof(char*) * policy_count);
+		if (policy_names == NULL) {
+			dual_log("ERROR: Malloc for policy names failed\n");
+			exit(1);
+		}
 
 		for (i = 0; i < policy_count; i++) {
 

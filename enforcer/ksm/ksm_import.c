@@ -306,6 +306,8 @@ int KsmImportZone(const char* zone_name, int policy_id, int fail_if_exists, int 
         return -1;
     }
 
+	StrFree(zone_name_td);
+
     return status;
 }
 

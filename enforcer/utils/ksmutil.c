@@ -1133,6 +1133,9 @@ cmd_addzone ()
         printf("Imported zone: %s\n", o_zone);
     }
 
+	StrFree(sig_conf_name);
+	StrFree(input_name);
+	StrFree(output_name);
 
     return 0;
 }
@@ -1756,6 +1759,11 @@ cmd_exportpolicy ()
 
     /* Make some space for the policy */ 
     policy = (KSM_POLICY *)malloc(sizeof(KSM_POLICY));
+	if (policy == NULL) {
+        fprintf(stderr, "Malloc for policy struct failed\n");
+        exit(1);
+    }
+
     policy->signer = (KSM_SIGNER_POLICY *)malloc(sizeof(KSM_SIGNER_POLICY));
     policy->signature = (KSM_SIGNATURE_POLICY *)malloc(sizeof(KSM_SIGNATURE_POLICY));
     policy->zone = (KSM_ZONE_POLICY *)malloc(sizeof(KSM_ZONE_POLICY));
@@ -3310,6 +3318,7 @@ cmd_dbbackup ()
         StrFree(dbschema);
         StrFree(user);
         StrFree(password);
+		StrFree(lock_filename);
         return(1);
     }
     StrFree(lock_filename);
@@ -4031,6 +4040,7 @@ db_connect(DB_HANDLE *dbhandle, FILE** lock_fd, int backup)
                 StrFree(dbschema);
                 StrFree(user);
                 StrFree(password);
+				StrFree(lock_filename);
                 return(1);
             }
             StrFree(lock_filename);
@@ -4606,7 +4616,7 @@ int update_policies(char* kasp_filename)
 												StrAppend(&changes_made, "Algorithm changes made, details:");
 												algo_change = 1;
 											}
-												size = snprintf(tmp_change, KSM_MSG_LENGTH, "Policy: %s, KSK algorithm changed from %d to %d.", policy_name, policy->ksk->algorithm, value);
+												size = snprintf(tmp_change, KSM_MSG_LENGTH, "Policy: %s, ZSK algorithm changed from %d to %d.", policy_name, policy->zsk->algorithm, value);
 											/* Check overflow */
 											if (size < 0 || size >= KSM_MSG_LENGTH) {
 												printf("Error constructing log message for policy %s, exiting...", policy_name);
@@ -5141,7 +5151,7 @@ int update_zones(char* zone_list_filename)
 			if (strlen(zone_name) == 0) {
                 /* error */
                 printf("Error extracting zone name from %s\n", zone_list_filename);
-                break;
+                return(1);
             }
 
 			/* 
@@ -5315,6 +5325,7 @@ int update_zones(char* zone_list_filename)
                     DbFreeRow(row);
                     DbStringFree(zone_name);
                     StrFree(zone_ids);
+					DusFree(sql);
                     return(status);
                 }
                 status = KsmParameter(result2, &shared);
@@ -5322,6 +5333,7 @@ int update_zones(char* zone_list_filename)
                     DbFreeRow(row);
                     DbStringFree(zone_name);
                     StrFree(zone_ids);
+					DusFree(sql);
                     return(status);
                 }
                 KsmParameterEnd(result2);
@@ -5339,6 +5351,7 @@ int update_zones(char* zone_list_filename)
                     if (status != 0) {
                         printf("Error: failed to mark keys as dead in database\n");
                         StrFree(zone_ids);
+						DusFree(sql);
                         return(status);
                     }
                 }
@@ -6625,6 +6638,7 @@ int PurgeKeys(int zone_id, int policy_id)
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
+				DusFree(sql);
                 return status;
             }
 
@@ -6645,6 +6659,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+					DusFree(sql);
                     return status;
                 }
 
@@ -6660,6 +6675,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+					DusFree(sql);
                     return status;
                 }
 
@@ -6670,6 +6686,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     printf("Key not found: %s\n", temp_loc);
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+					DusFree(sql);
                     return -1;
                 }
 
@@ -6683,6 +6700,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     printf("Key remove failed: %s\n", temp_loc);
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+					DusFree(sql);
                     return -1;
                 }
             }
@@ -7018,6 +7036,11 @@ int cmd_genkeys()
 	/* If there is no work to do exit here */
 	if (new_ksks == 0 && new_zsks == 0) {
 		printf("No keys to create, quitting...\n");
+    
+		if (ctx) {
+			hsm_destroy_context(ctx);
+		}
+
 		hsm_close();
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
@@ -8216,13 +8239,14 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
     }
     else {
         printf("Moving to keystate %s not implemented yet\n", KsmKeywordStateValueToName(keystate));
-	StrFree(keyids);
+		StrFree(keyids);
         return -1;
     }
 
     status = DbExecuteSqlNoResult(DbHandle(), sql1);
     DusFree(sql1);
 
+    StrFree(insql);
     StrFree(keyids);
     
     /* Report any errors */
@@ -8780,6 +8804,9 @@ int keyRoll(int zone_id, int policy_id, int key_type)
                     printf("Couldn't construct SQL to promote standby key\n");
 					StrFree(datetime);
 					DbFreeRow(row);
+					DqsFree(sql);
+					DqsFree(insql1);
+					DqsFree(insql2);
                     return -1;
                 }
 
@@ -8790,6 +8817,9 @@ int keyRoll(int zone_id, int policy_id, int key_type)
                     printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
 					StrFree(datetime);
 					DbFreeRow(row);
+					DqsFree(sql);
+					DqsFree(insql1);
+					DqsFree(insql2);
                     return status;
                 }
             }
@@ -8913,9 +8943,11 @@ int ShellQuoteString(const char* string, char* buffer, size_t buflen)
     size_t i;           /* Loop counter */
     size_t j = 0;       /* Counter for new string */
 	
-	size_t len = strlen(string);
+	size_t len = 0;
 
     if (string) {
+		len = strlen(string);
+
         for (i = 0; i < len; ++i) {
             if (string[i] == '\'') {
                 buffer[j++] = '\'';
