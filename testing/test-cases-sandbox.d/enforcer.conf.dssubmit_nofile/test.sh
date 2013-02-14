@@ -58,8 +58,10 @@ syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT 
 syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods with the following cka_ids, $KSK_CKA_ID" &&
 
 # Check syslog for the command failing
-syslog_grep "ods-enforcerd: .*Cannot stat file /home/sion/work/opendnssec/workspace/root/local-test/var/opendnssec/tmp/wrong_dssub.pl: No such file or directory" &&
+syslog_grep "ods-enforcerd: .*Cannot stat file $INSTALL_ROOT/var/opendnssec/tmp/wrong_dssub.pl: No such file or directory" &&
+
 # Check that no dssub.out file exists
+echo "Testing dssub.out doesn't exist" &&
 ! test -f "$INSTALL_ROOT/var/opendnssec/tmp/dssub.out" &&
 
 return 0
