@@ -30,7 +30,7 @@ syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:00" &&
 
 # Check that we are trying to use the correct (non-exec) command:
-syslog_grep " ods-enforcerd: .*Using command: /home/sion/work/opendnssec/workspace/root/local-test/var/opendnssec/tmp/dssub.pl to submit DS records" &&
+syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/tmp/dssub.pl to submit DS records" &&
 
 # Check that we have 2 keys
 log_this ods-ksmutil-key-list1 ods-ksmutil key list &&
