@@ -15,93 +15,31 @@ SHORT_TIMEOUT=11    # Timeout when checking log output. DS lock out wait is 10 s
 LONG_TIMEOUT=20     # Timeout when waiting for enforcer run to have happened
 SLEEP_INTERVAL=50   # This should be just shorter than the enforcer run interval in conf.xml
 
-compare_gold_vs_base_signconf() {
-	
-		local all_locators
-		local unique_locators
-        
-        for test_dir in gold base; do
-                if [ -d "$test_dir" ]; then
-	                    temp_dir="$test_dir"_temp
-						rm -rf $temp_dir
-						mkdir  $temp_dir
-						unset $"all_locators"
-						unset $"unique_locators"
-						
-                        if ! cd "$test_dir" 2>/dev/null; then
-                                echo "compare_gold_vs_base: unable to change to test directory $test_dir!" >&2
-                                continue
-                        fi      
-
-						files=( $(ls -1 2>/dev/null ) )
-                        if [ "${#files[@]}" -le 0 ] 2>/dev/null; then
-                                echo "compare_gold_vs_base: no files found!" >&2
-                            exit 1
-                        fi
-						
-						# fish out the key locators
-						for f in ${files[@]};do
-                            all_locators+=( $($GREP -- "<Locator>" $f | awk -F">" '{print $2}' | awk -F"<" '{print $1}' ) )							
-						done						
-						
-						# remove duplicates, retaining order
-						unique_locators=($(echo "${all_locators[@]}" | tr ' ' '\n' | nl | sort -u -k2 | sort -n | cut -f2-))
-
-						# create a replacement string for all the locators
-						index=0
-						replace_string="sed "
-						for i in ${unique_locators[@]}; do
-						   replace_string+=" -e 's#$i#$index#' "
-						   index=$(($index+1))
-						done				
-						
-						#apply to each of the files
-						for f in ${files[@]}; do
-							 eval $replace_string $f > ../$temp_dir/$f
-						done
-
-                        cd ..
-                fi
-        done
-
-		if ! diff gold_temp base_temp; then
-			return 1
-		fi
-		
-		rm -rf gold_temp
-		rm -rf base_temp
-		return 0		
-        
-}
-
 check_zone_X_at_timestep_Y () {
-	
-	 local signing_count=$(( $2 + 1 ))
-	
-     # Used only to create a gold while setting up the test
-	 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods$1.xml gold/ods_signconf_ods$1_$2.xml &&  
-	 cp $INSTALL_ROOT/var/opendnssec/signconf/ods$1.xml base/ods_signconf_ods$1_$2.xml &&	
-	 syslog_waitfor_count $LONG_TIMEOUT $signing_count "ods-signerd: .*\[STATS\] ods$1" &&
-	 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods$1" &&
-	 return 0
-	
-	 return 1
-	
+
+         local signing_count=$(( $2 + 1 ))
+
+         # Used only to create a gold while setting up the test
+         #cp $INSTALL_ROOT/var/opendnssec/signconf/ods$1.xml gold/ods_signconf_ods$1_$2.xml &&
+         
+         cp $INSTALL_ROOT/var/opendnssec/signconf/ods$1.xml base/ods_signconf_ods$1_$2.xml &&
+         syslog_waitfor_count $LONG_TIMEOUT $signing_count "ods-signerd: .*\[STATS\] ods$1" &&
+         test -f "$INSTALL_ROOT/var/opendnssec/signed/ods$1" 
+
 }
+
 
 check_zones_at_timestep_Y () {
 	
 	# Start signer for a single run
 	log_this_timeout ods-control-signer-start $SHORT_TIMEOUT  ods-signerd -1 &&
-	syslog_waitfor $SHORT_TIMEOUT  'ods-signerd: .*\[engine\] signer shutdown' &&	
+	syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&	
 	
 	for no in 1 2 3 4; do
 		if ! check_zone_X_at_timestep_Y $no $1; then 
 			return 1
 		fi
 	done	
-	
-	return 0
 		
 }
 
@@ -215,7 +153,7 @@ check_zones_at_timestep_Y 6 &&
 log_this_timeout ods-enforcer-stop 60 ods-control enforcer stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 
-log_this ods-compare-signconfs  compare_gold_vs_base_signconf &&
+log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
 
 rm -rf base &&
 
