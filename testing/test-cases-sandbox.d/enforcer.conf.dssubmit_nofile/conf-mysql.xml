@@ -6,7 +6,7 @@
 			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>		
-			<Capacity>10000</Capacity>
+			<Capacity>100000</Capacity>
 		</Repository>
 	</RepositoryList>
 	<Common>
@@ -18,7 +18,8 @@
 	</Common>
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
-		<Interval>PT1M</Interval>
+		<Interval>PT3600S</Interval>
+		<DelegationSignerSubmitCommand>@INSTALL_ROOT@/var/opendnssec/tmp/wrong_dssub.pl</DelegationSignerSubmitCommand>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
