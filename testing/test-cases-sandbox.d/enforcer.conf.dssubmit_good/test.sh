@@ -4,12 +4,13 @@
 #TEST: We use TIMESHIFT to get to the point where the KSK moves to the ready state
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
+ENFORCER_COUNT=2	# How many log lines we expect to see
 
-#case "$DISTRIBUTION" in
-#	freebsd )
-#		return 0
-#		;;
-#esac
+case "$DISTRIBUTION" in
+	freebsd )
+		ENFORCER_COUNT=4 # Double count because of "kernel" log lines
+		;;
+esac
 
 cp dssub.pl "$INSTALL_ROOT/var/opendnssec/tmp/" &&
 chmod 744 "$INSTALL_ROOT/var/opendnssec/tmp/dssub.pl" &&
@@ -48,7 +49,7 @@ export ENFORCER_TIMESHIFT='01-01-2010 14:00' &&
 
 # Run the enforcer
 log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 2 'ods-enforcerd: .*all done' &&
+syslog_waitfor_count $ENFORCER_WAIT $ENFORCER_COUNT 'ods-enforcerd: .*all done' &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 14:00" &&
 
 # We should be ready for a ds-seen on ods
