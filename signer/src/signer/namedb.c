@@ -355,6 +355,11 @@ namedb_add_domain(namedb_type* db, ldns_rdf* dname)
         return NULL;
     }
     new_node = domain2node(domain);
+    if (!new_node) {
+        ods_log_error("[%s] unable to add domain: domain2node() failed",
+            db_str);
+        return NULL;
+    }
     if (ldns_rbtree_insert(db->domains, new_node) == NULL) {
         ods_log_error("[%s] unable to add domain: already present", db_str);
         log_dname(domain->dname, "ERR +DOMAIN", LOG_ERR);
@@ -717,6 +722,11 @@ namedb_add_denial(namedb_type* db, ldns_rdf* dname, nsec3params_type* n3p)
         return NULL;
     }
     new_node = denial2node(denial);
+    if (!new_node) {
+        ods_log_error("[%s] unable to add denial: denial2node() failed",
+            db_str);
+        return NULL;
+    }
     if (!ldns_rbtree_insert(db->denials, new_node)) {
         ods_log_error("[%s] unable to add denial: already present", db_str);
         log_dname(denial->dname, "ERR +DENIAL", LOG_ERR);

@@ -696,22 +696,27 @@ set_notify_ns(zone_type* zone, const char* cmd)
         str = cmd;
     }
     str2 = ods_replace(str, "%zone", zone->name);
-    free((void*)str);
+    if (str2) {
+        free((void*)str);
 
-    ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
-    ods_str_trim((char*) str2);
-    str = str2;
-    if (*str) {
-        token = NULL;
-        while ((token = strtok((char*) str, " "))) {
-            if (*token) {
-                ods_str_list_add(&zone->notify_args, token);
+        ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
+        ods_str_trim((char*) str2);
+        str = str2;
+        if (*str) {
+            token = NULL;
+            while ((token = strtok((char*) str, " "))) {
+                if (*token) {
+                    ods_str_list_add(&zone->notify_args, token);
+                }
+                str = NULL;
             }
-            str = NULL;
         }
+        zone->notify_command = (char*) str2;
+        zone->notify_ns = zone->notify_args[0];
+    } else {
+        ods_log_error("[%s] unable to set notify ns: replace \%zone failed",
+            engine_str);
     }
-    zone->notify_command = (char*) str2;
-    zone->notify_ns = zone->notify_args[0];
     return;
 }
 

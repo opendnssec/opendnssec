@@ -234,24 +234,30 @@ parse_zonelist_zones(void* zlist, const char* zlfile)
             }
             /* That worked, now read out the contents... */
             new_zone = zone_create(zone_name, LDNS_RR_CLASS_IN);
-            new_zone->policy_name = parse_zonelist_element(xpathCtx,
-                policy_expr);
-            new_zone->signconf_filename = parse_zonelist_element(xpathCtx,
-                signconf_expr);
-            parse_zonelist_adapters(xpathCtx, new_zone);
-            if (!new_zone->policy_name || !new_zone->signconf_filename ||
-                !new_zone->adinbound || !new_zone->adoutbound) {
-                zone_cleanup(new_zone);
-                new_zone = NULL;
+            if (new_zone) {
+                new_zone->policy_name = parse_zonelist_element(xpathCtx,
+                    policy_expr);
+                new_zone->signconf_filename = parse_zonelist_element(xpathCtx,
+                    signconf_expr);
+                parse_zonelist_adapters(xpathCtx, new_zone);
+                if (!new_zone->policy_name || !new_zone->signconf_filename ||
+                    !new_zone->adinbound || !new_zone->adoutbound) {
+                    zone_cleanup(new_zone);
+                    new_zone = NULL;
+                    ods_log_crit("[%s] unable to create zone %s", parser_str,
+                        zone_name);
+                    error = 1;
+                } else if (zonelist_add_zone((zonelist_type*) zlist, new_zone)
+                    == NULL) {
+                    ods_log_crit("[%s] unable to add zone %s", parser_str,
+                        zone_name);
+                    zone_cleanup(new_zone);
+                    new_zone = NULL;
+                    error = 1;
+                }
+            } else {
                 ods_log_crit("[%s] unable to create zone %s", parser_str,
                     zone_name);
-                error = 1;
-            } else if (zonelist_add_zone((zonelist_type*) zlist, new_zone)
-                == NULL) {
-                ods_log_crit("[%s] unable to add zone %s", parser_str,
-                    zone_name);
-                zone_cleanup(new_zone);
-                new_zone = NULL;
                 error = 1;
             }
             xmlXPathFreeContext(xpathCtx);
