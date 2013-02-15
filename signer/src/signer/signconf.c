@@ -504,9 +504,12 @@ signconf_log(signconf_type* sc, const char* name)
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
             "VALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
-            sc_str, name?name:"(null)", resign, refresh, validity, denial,
-            jitter, offset, (int) sc->nsec_type, dnskeyttl, soattl,
-            soamin, sc->soa_serial?sc->soa_serial:"(null)");
+            sc_str, name?name:"(null)", resign?resign:"(null)",
+            refresh?refresh:"(null)", validity?validity:"(null)",
+            denial?denial:"(null)", jitter?jitter:"(null)",
+            offset?offset:"(null)", (int) sc->nsec_type,
+            dnskeyttl?dnskeyttl:"(null)", soattl?soattl:"(null)",
+            soamin?soamin:"(null)", sc->soa_serial?sc->soa_serial:"(null)");
         /* nsec3 parameters */
         if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
             ods_log_debug("[%s] zone %s nsec3: OPTOUT[%i] ALGORITHM[%u] "

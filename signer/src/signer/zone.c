@@ -750,6 +750,9 @@ zone_recover2(zone_type* zone)
     ods_log_assert(zone->db);
 
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
+    if (!filename) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
         /* start recovery */
@@ -916,7 +919,9 @@ zone_recover2(zone_type* zone)
         zone->db->is_initialized = 1;
 
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
-        fd = ods_fopen(filename, NULL, "r");
+        if (filename) {
+            fd = ods_fopen(filename, NULL, "r");
+        }
         if (fd) {
             status = backup_read_ixfr(fd, zone);
             if (status != ODS_STATUS_OK) {
@@ -988,8 +993,10 @@ zone_backup2(zone_type* zone)
 
     tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
+    if (!tmpfile || !filename) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(tmpfile, NULL, "w");
-
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
         task = (task_type*) zone->task;

@@ -347,6 +347,9 @@ adfile_write(void* zone, const char* filename)
 
     /* [start] write zone */
     tmpname = ods_build_path(filename, ".tmp", 0, 0);
+    if (!tmpname) {
+        retrun ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(tmpname, NULL, "w");
     if (fd) {
         status = adapi_printzone(fd, adzone);

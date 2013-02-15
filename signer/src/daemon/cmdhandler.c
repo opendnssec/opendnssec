@@ -313,9 +313,11 @@ static void
 unlink_backup_file(const char* filename, const char* extension)
 {
     char* tmpname = ods_build_path(filename, extension, 0, 1);
-    ods_log_debug("[%s] unlink file %s", cmdh_str, tmpname);
-    unlink(tmpname);
-    free((void*)tmpname);
+    if (tmpname) {
+        ods_log_debug("[%s] unlink file %s", cmdh_str, tmpname);
+        unlink(tmpname);
+        free((void*)tmpname);
+    }
     return;
 }
 

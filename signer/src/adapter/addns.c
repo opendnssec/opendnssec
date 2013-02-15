@@ -675,6 +675,10 @@ addns_read(void* zone)
     /* copy zone transfers */
     xfrfile = ods_build_path(z->name, ".xfrd", 0, 1);
     file = ods_build_path(z->name, ".xfrd.tmp", 0, 1);
+    if (!xfrfile || !file) {
+        ods_log_error("[%s] unable to build paths to xfrd files", adapter_str);
+        return ODS_STATUS_MALLOC_ERR;
+    }
     if (rename(xfrfile, file) != 0) {
         lock_basic_unlock(&z->xfrd->serial_lock);
         lock_basic_unlock(&z->xfrd->rw_lock);
@@ -735,6 +739,9 @@ addns_write(void* zone)
     ods_log_assert(z->adoutbound->type == ADAPTER_DNS);
 
     atmpfile = ods_build_path(z->name, ".axfr.tmp", 0, 1);
+    if (!atmpfile) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(atmpfile, NULL, "w");
     if (!fd) {
         free((void*) atmpfile);
@@ -749,6 +756,10 @@ addns_write(void* zone)
 
     if (z->db->is_initialized) {
         itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0, 1);
+        if (!itmpfile) {
+            free((void*) atmpfile);
+            return ODS_STATUS_MALLOC_ERR;
+        }
         fd = ods_fopen(itmpfile, NULL, "w");
         if (!fd) {
             free((void*) atmpfile);
@@ -778,6 +789,12 @@ addns_write(void* zone)
 
     /* lock and move */
     axfrfile = ods_build_path(z->name, ".axfr", 0, 1);
+    if (!axfrfile) {
+        free((void*) atmpfile);
+        free((void*) itmpfile);
+        return ODS_STATUS_MALLOC_ERR;
+    }
+
     lock_basic_lock(&z->xfr_lock);
     ret = rename(atmpfile, axfrfile);
     if (ret != 0) {
@@ -794,6 +811,12 @@ addns_write(void* zone)
 
     if (z->db->is_initialized) {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
+        if (!ixfrfile) {
+            free((void*) axfrfile);
+            free((void*) atmpfile);
+            free((void*) itmpfile);
+            return ODS_STATUS_MALLOC_ERR;
+        }
         ret = rename(itmpfile, ixfrfile);
         if (ret != 0) {
             ods_log_error("[%s] unable to rename file %s to %s: %s",

@@ -450,6 +450,11 @@ xfrd_commit_packet(xfrd_type* xfrd)
     ods_log_assert(xfrd);
     zone = (zone_type*) xfrd->zone;
     xfrfile = ods_build_path(zone->name, ".xfrd", 0, 1);
+    if (!xfrfile) {
+        ods_log_crit("[%s] unable to commit xfr zone %s: build path failed",
+            xfrd_str, zone->name);
+        return;
+    }
     ods_log_assert(zone);
     ods_log_assert(zone->name);
     lock_basic_lock(&zone->zone_lock);
@@ -527,6 +532,11 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
     }
     ods_log_assert(pkt);
     xfrfile = ods_build_path(zone->name, ".xfrd", 0, 1);
+    if (!xfrfile) {
+        ods_log_crit("[%s] unable to dump packet zone %s: build path failed",
+            xfrd_str, zone->name);
+        return;
+    }
     lock_basic_lock(&xfrd->rw_lock);
     lock_basic_lock(&xfrd->serial_lock);
     xfrd->serial_disk_acquired = 0;
