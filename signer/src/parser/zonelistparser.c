@@ -226,10 +226,6 @@ parse_zonelist_zones(void* zlist, const char* zlfile)
                 ret = xmlTextReaderRead(reader);
                 free((void*) zone_name);
                 free((void*) tag_name);
-                if (xpathCtx) {
-                    xmlXPathFreeContext(xpathCtx);
-                    xpathCtx = NULL;
-                }
                 continue;
             }
             /* That worked, now read out the contents... */
