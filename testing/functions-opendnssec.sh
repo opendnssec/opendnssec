@@ -292,7 +292,8 @@ ods_compare_gold_vs_base_signconf() {
 		# Method to compare a 'gold' directory containing signconfs with a 'base' directory
 		# generated during a test run. Assumes the directories are called 'gold' and 'base'
 		# and the script is called from the directory which holds both of them.
-		# It replaces the key CKS_IDS in the <Locator> tags with indexes to allow a diff. 
+		# It replaces the key CKS_IDS in the <Locator> tags with indexes to allow a diff.
+		# It also ignores the <Salt> tag contents
 		# See enforcer.keys.rollovers_and_zones_many for an example of how it is used. 
 		
 		local all_locators
@@ -335,7 +336,10 @@ ods_compare_gold_vs_base_signconf() {
 				for i in ${unique_locators[@]}; do
 				   replace_string+=" -e 's#$i#$index#' "
 				   index=$(($index+1))
-				done				
+				done
+				
+				# ignore the contents of the <Salt> tag
+				replace_string+=" -e 's#<Salt>.*#<Salt></Salt>#' "				
 				
 				#apply to each of the files
 				for f in ${files[@]}; do
