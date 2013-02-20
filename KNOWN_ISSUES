@@ -57,3 +57,13 @@ Enforcer does not remove/handle any quotation marks in the imported strings.
 This will create a problem when importing the information from e.g. the policy
 description field into the Enforcer database.
 
+Intermittent segmentation faults on FreeBSD 9 amd64
+-------------------------------------------------
+Segmentation faults in  _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
+have been intermittently seen when running regression tests on our FreeBSD
+test server (amd64, FreeBSD 9.0-RELEASE-p3). The segfaults have been seen to
+originate in the enforcer, the signer and SQLite on different occasions. These
+appear to be due to a bug in the FreeBSD malloc/pthread implementation and are
+not due to issues in the OpenDNSSEC code. 
+
+
