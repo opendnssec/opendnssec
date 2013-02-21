@@ -118,6 +118,7 @@ static int retire_flag = 1;
 static int verbose_flag = 0;
 static int xml_flag = 1;
 static int td_flag = 0;
+static int force_flag = 0;
 
 static int restart_enforcerd(void);
 
@@ -4229,6 +4230,14 @@ int update_policies(char* kasp_filename)
 
     KSM_POLICY *policy;
 
+	/* Some stuff for the algorithm change check */
+	int value = 0;
+	int algo_change = 0;
+	int user_certain;
+	char* changes_made = NULL;
+	int size = -1;
+	char tmp_change[KSM_MSG_LENGTH];
+
     /* Some files, the xml and rng */
     const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/kasp.rng";
     char* kaspcheck_cmd = NULL;
@@ -4329,6 +4338,163 @@ int update_policies(char* kasp_filename)
     }
 
     if (xpathObj->nodesetval) {
+
+		/* 
+		 * We will loop through twice, the first time to check on any algorithm
+		 * changes (which are not advised)
+		 */
+		for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) { /* foreach policy */
+
+            curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            policy_name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
+            if (strlen(policy_name) == 0) {
+                /* error */
+                printf("Error extracting policy name from %s\n", kasp_filename);
+                break;
+            }
+
+			/* 
+			 * Only carry on if this is an existing policy
+			 */
+			SetPolicyDefaults(policy, policy_name);
+			status = KsmPolicyExists(policy_name);
+			if (status == 0) {
+				/* Policy exists */
+				status = KsmPolicyRead(policy);
+				if(status != 0) {
+					printf("Error: unable to read policy %s; skipping\n", policy_name);
+					break;
+				}
+
+				while (curNode) {
+					if (xmlStrEqual(curNode->name, (const xmlChar *)"Keys")) {
+						childNode = curNode->children;
+						while (childNode){
+							if (xmlStrEqual(childNode->name, (const xmlChar *)"KSK")) {
+								childNode2 = childNode->children;
+								while (childNode2){
+									if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
+										/* Compare with existing */
+										value = 0;
+										status = StrStrtoi((char *)xmlNodeGetContent(childNode2), &value);
+										if (status != 0) {
+											printf("Error extracting KSK algorithm for policy %s, exiting...", policy_name);
+											return status;
+										}
+										if (value != policy->ksk->algorithm) {
+											/* Changed */
+											if (!algo_change) {
+												printf("\n\nAlgorithm change attempted... details:\n");
+												StrAppend(&changes_made, "Algorithm changes made, details:");
+												algo_change = 1;
+											}
+											size = snprintf(tmp_change, KSM_MSG_LENGTH, "Policy: %s, KSK algorithm changed from %d to %d.", policy_name, policy->ksk->algorithm, value);
+											/* Check overflow */
+											if (size < 0 || size >= KSM_MSG_LENGTH) {
+												printf("Error constructing log message for policy %s, exiting...", policy_name);
+												return -1;
+											}
+											printf("%s\n", tmp_change);
+											StrAppend(&changes_made, "  ");
+											StrAppend(&changes_made, tmp_change);
+										}
+										
+									}
+									childNode2 = childNode2->next;
+								}
+
+							} /* End of KSK */
+							/* ZSK */
+							else if (xmlStrEqual(childNode->name, (const xmlChar *)"ZSK")) {
+								childNode2 = childNode->children;
+								while (childNode2){
+									if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
+										/* Compare with existing */
+										value = 0;
+										status = StrStrtoi((char *)xmlNodeGetContent(childNode2), &value);
+										if (status != 0) {
+											printf("Error extracting ZSK algorithm for policy %s, exiting...", policy_name);
+											return status;
+										}
+										if (value != policy->zsk->algorithm) {
+											/* Changed */
+											if (!algo_change) {
+												printf("\n\nAlgorithm change attempted... details:\n");
+												StrAppend(&changes_made, "Algorithm changes made, details:");
+												algo_change = 1;
+											}
+												size = snprintf(tmp_change, KSM_MSG_LENGTH, "Policy: %s, ZSK algorithm changed from %d to %d.", policy_name, policy->zsk->algorithm, value);
+											/* Check overflow */
+											if (size < 0 || size >= KSM_MSG_LENGTH) {
+												printf("Error constructing log message for policy %s, exiting...", policy_name);
+												return -1;
+											}
+											printf("%s\n", tmp_change);
+											StrAppend(&changes_made, "  ");
+											StrAppend(&changes_made, tmp_change);
+										}
+
+									}
+									childNode2 = childNode2->next;
+								}
+
+							} /* End of ZSK */
+
+							childNode = childNode->next;
+						}
+					}
+					curNode = curNode->next;
+				}
+			}
+			/* Free up some stuff that we don't need any more */
+            StrFree(policy_name);
+
+		} /* End of <Policy> */
+
+		/*
+		 * Did we see any changes? If so then warn and confirm before continuing
+		 */
+		
+		if (algo_change == 1 && force_flag == 0) {
+			printf("*WARNING* This will change the algorithms used as noted above. Algorithm rollover is _not_ supported by OpenDNSSEC and zones may break. Are you sure? [y/N] ");
+
+			user_certain = getchar();
+			if (user_certain != 'y' && user_certain != 'Y') {
+				printf("\nOkay, quitting...\n");
+				xmlXPathFreeContext(xpathCtx);
+				xmlFreeDoc(doc);
+				KsmPolicyFree(policy);
+
+				exit(0);
+			}
+
+			/* Newline for the output */
+			printf("\n");
+
+			/*
+			 * Log this change to syslog for posterity
+			 */
+#ifdef HAVE_OPENLOG_R
+        openlog_r("ods-ksmutil", 0, DEFAULT_LOG_FACILITY, &sdata);
+#else
+        openlog("ods-ksmutil", 0, DEFAULT_LOG_FACILITY);
+#endif
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_INFO, &sdata, "%s", changes_made);
+#else
+        syslog(LOG_INFO, "%s", changes_made);
+#endif
+#ifdef HAVE_CLOSELOG_R
+        closelog_r(&sdata);
+#else
+        closelog();
+#endif
+
+		}
+
+		/*
+		 * Then loop through to actually make the updates
+		 */
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
