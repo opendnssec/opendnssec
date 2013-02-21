@@ -64,12 +64,23 @@ help_backup_commit_cmd(int sockfd)
 			"Limit to this repository.\n"
 		);
 }
+void
+help_backup_rollback_cmd(int sockfd)
+{
+	ods_printf(sockfd,
+		"backup rollback" "\t"
+			"Cancel a 'backup prepare' action.\n"
+		"  --repository <repository>""\n\t\t"
+			"Limit to this repository.\n"
+		);
+}
 
 void
 help_backup_cmd(int sockfd)
 {
 	help_backup_prepare_cmd(sockfd);
 	help_backup_commit_cmd(sockfd);
+	help_backup_rollback_cmd(sockfd);
 }
 
 int
@@ -137,6 +148,41 @@ handled_backup_commit_cmd(int sockfd, engine_type* engine,
 
 	time_t tstart = time(NULL);
 	perform_backup_commit(sockfd,engine->config, repository);
+	ods_printf(sockfd,"%s completed in %ld seconds.\n",
+		scmd,time(NULL)-tstart);
+	return 1;
+}
+
+int
+handled_backup_rollback_cmd(int sockfd, engine_type* engine, 
+		const char *cmd, ssize_t n)
+{
+	char buf[ODS_SE_MAXLINE];
+    const char *argv[8];
+    const int NARGV = sizeof(argv)/sizeof(char*);
+    int argc;
+	const char *repository = NULL;
+	const char *scmd = "backup rollback";
+	cmd = ods_check_command(cmd,n,scmd);
+	if (!cmd) return 0; // not handled
+
+	ods_log_debug("[%s] %s command", module_str, scmd);
+
+	// Use buf as an intermediate buffer for the command.
+	strncpy(buf,cmd,sizeof(buf));
+	buf[sizeof(buf)-1] = '\0';
+	// separate the arguments
+	argc = ods_str_explode(buf,NARGV,argv);
+	if (argc > NARGV) {
+		ods_log_warning("[%s] too many arguments for %s command",
+						module_str,scmd);
+		ods_printf(sockfd,"too many arguments\n");
+		return 1; // errors, but handled
+	}
+	(void)ods_find_arg_and_param(&argc,argv,"repository","r",&repository);
+
+	time_t tstart = time(NULL);
+	perform_backup_rollback(sockfd,engine->config, repository);
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",
 		scmd,time(NULL)-tstart);
 	return 1;

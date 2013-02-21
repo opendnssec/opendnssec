@@ -44,6 +44,8 @@ int handled_backup_prepare_cmd(int sockfd, engine_type* engine,
 		const char *cmd, ssize_t n);
 int handled_backup_commit_cmd(int sockfd, engine_type* engine, 
 		const char *cmd, ssize_t n);
+int handled_backup_rollback_cmd(int sockfd, engine_type* engine, 
+		const char *cmd, ssize_t n);
 
 #ifdef __cplusplus
 }

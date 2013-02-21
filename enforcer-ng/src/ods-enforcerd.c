@@ -188,6 +188,7 @@ enforcer_commands[] = {
     handled_hsmkey_list_cmd,
     handled_backup_prepare_cmd,
     handled_backup_commit_cmd,
+    handled_backup_rollback_cmd,
 
     /* ! NULL TERMINATED ! */
     NULL
