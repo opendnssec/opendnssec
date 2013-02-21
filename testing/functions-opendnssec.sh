@@ -298,7 +298,7 @@ ods_compare_gold_vs_base_signconf() {
 		
 		local all_locators
 		local unique_locators
-		local indexed_locators
+		local indexed_locators		
 
         for test_dir in gold base; do
                 if [ ! -d "$test_dir" ]; then
@@ -334,8 +334,8 @@ ods_compare_gold_vs_base_signconf() {
 				for f in ${all_locators[@]};do
 					indexed_locators+=($(echo $line_no"-"$f"_"))
 					line_no=$(($line_no+1))
-				done				
-				unique_locators=($(echo "${indexed_locators[@]}"  | tr -d ' ' | tr '_' '\n' | tr '-' ' ' | sort -u -k2 | sort -n | cut -f2 -d ' '))			
+				done								
+				unique_locators=($(echo "${indexed_locators[@]}"  | tr -d ' ' | tr '_' '\n' | tr '-' ' ' | sort -u -k2 -s | sort -n | cut -f2 -d ' '))						
 
 				# create a replacement string for all the locators
 				index=0
