@@ -7365,6 +7365,12 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
+		if (nchar >= sizeof(buffer)) {
+            status = -1;
+			printf("Error: failed to create SQL statement\n");
+            return status;
+        }
+
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_ACTIVE, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_ACTIVE), datetime, 1);
@@ -7389,6 +7395,12 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
         nchar = snprintf(buffer, sizeof(buffer),
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
+
+		if (nchar >= sizeof(buffer)) {
+            status = -1;
+			printf("Error: failed to create SQL statement\n");
+            return status;
+        }
 
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_DSPUBLISH, 0);
@@ -7506,6 +7518,12 @@ int RetireOldKey(int zone_id, int policy_id, const char *datetime)
     nchar = snprintf(buffer, sizeof(buffer),
         "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
+
+	if (nchar >= sizeof(buffer)) {
+		status = -1;
+		printf("Error: failed to create SQL statement\n");
+		return status;
+	}
 
     sql2 = DusInit("dnsseckeys");
     DusSetInt(&sql2, "STATE", KSM_STATE_RETIRE, 0);
@@ -7755,6 +7773,12 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
+		if (nchar >= sizeof(buffer)) {
+            status = -1;
+			printf("Error: failed to create SQL statement\n");
+            return status;
+        }
+
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_ACTIVE, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_ACTIVE), datetime, 1);
@@ -7787,6 +7811,12 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
 
+		if (nchar >= sizeof(buffer)) {
+            status = -1;
+			printf("Error: failed to create SQL statement\n");
+            return status;
+        }
+
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_RETIRE, 0);
         DusSetString(&sql1, KsmKeywordStateValueToName(KSM_STATE_RETIRE), datetime, 1);
@@ -7811,6 +7841,12 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
         nchar = snprintf(buffer, sizeof(buffer),
                 "DATETIME('%s', '+%d SECONDS') ", datetime, deltat);
 #endif /* USE_MYSQL */
+
+		if (nchar >= sizeof(buffer)) {
+            status = -1;
+			printf("Error: failed to create SQL statement\n");
+            return status;
+        }
 
         sql1 = DusInit("dnsseckeys");
         DusSetInt(&sql1, "STATE", KSM_STATE_DSPUBLISH, 0);

@@ -1493,6 +1493,14 @@ int do_purge(int interval, int policy_id)
                     " or state = %d and DEAD > DATETIME('%s', '-%d SECONDS')) ", KSM_STATE_DEAD, rightnow, interval);
 #endif /* USE_MYSQL */
 
+			if (nchar >= sizeof(buffer)) {
+				log_msg(NULL, LOG_ERR, "Error: failed to create SQL statement to purge keys\n");
+				DbStringFree(temp_loc);
+                DbFreeRow(row);
+                StrFree(rightnow);
+				return(-1);
+			}
+
             StrAppend(&sql1, buffer);
             DqsEnd(&sql1);
 
