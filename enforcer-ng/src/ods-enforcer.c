@@ -276,7 +276,7 @@ interface_start(char* cmd)
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockfd <= 0) {
         fprintf(stderr, "Unable to connect to engine. "
-            "socket() failed: %s\n", strerror(errno));
+            "socket() failed: %s (\"%s\")\n", strerror(errno), servsock_filename);
         return 1;
     }
 
@@ -297,8 +297,8 @@ interface_start(char* cmd)
         if (cmd && ods_strcmp(cmd, "running\n") == 0) {
             fprintf(stderr, "Engine not running.\n");
         } else {
-            fprintf(stderr, "Unable to connect to engine: "
-                "connect() failed: %s\n", strerror(errno));
+        fprintf(stderr, "Unable to connect to engine. "
+            "socket() failed: %s (\"%s\")\n", strerror(errno), servsock_filename);
         }
 
         close(sockfd);

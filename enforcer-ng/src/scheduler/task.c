@@ -67,7 +67,7 @@ static bool task_id_from_long_name(const char *long_name, task_id *pwhat)
 
 static const char *task_id_to_short_name(task_id id, const char *def)
 {
-    if (id >= TASK_DYNAMIC_FIRST && id-TASK_DYNAMIC_FIRST < ntaskreg) {
+    if (id >= TASK_DYNAMIC_FIRST && (signed)id-TASK_DYNAMIC_FIRST < ntaskreg) {
         return taskreg[id-TASK_DYNAMIC_FIRST].short_name;
     }
     return def;
@@ -75,7 +75,7 @@ static const char *task_id_to_short_name(task_id id, const char *def)
 
 static bool task_id_to_how(task_id id, how_type *phow)
 {
-    if (id >= TASK_DYNAMIC_FIRST && id-TASK_DYNAMIC_FIRST < ntaskreg) {
+    if (id >= TASK_DYNAMIC_FIRST && (signed)id-TASK_DYNAMIC_FIRST < ntaskreg) {
         *phow = taskreg[id-TASK_DYNAMIC_FIRST].how;
         return true;
     }

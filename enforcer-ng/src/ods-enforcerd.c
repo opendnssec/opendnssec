@@ -282,7 +282,10 @@ main(int argc, char* argv[])
         if ((engine = engine_start(cfgfile, cmdline_verbosity, daemonize, info))) {
             engine_setup(engine,enforcer_commands,enforcer_help);
             /* if setup fails we need a non-zero exit code */
-            if (engine->need_to_exit) exit(3);
+            if (engine->need_to_exit) {
+                fprintf(stdout, "Setup failed. Aborting.\n");
+                exit(3);
+            }
             engine_runloop(engine,autostart,single_run);
             engine_stop(engine);
         }
