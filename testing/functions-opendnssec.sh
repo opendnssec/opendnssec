@@ -298,7 +298,8 @@ ods_compare_gold_vs_base_signconf() {
 		
 		local all_locators
 		local unique_locators
-		local indexed_locators		
+		local indexed_locators	
+		local unique_sort_command
 
         for test_dir in gold base; do
                 if [ ! -d "$test_dir" ]; then
@@ -329,13 +330,23 @@ ods_compare_gold_vs_base_signconf() {
                         all_locators+=( $($GREP -- "<Locator>" $f | awk -F">" '{print $2}' | awk -F"<" '{print $1}' ) )							
 				done					
 				
-				# remove duplicates, retaining order (OpenBSD doesn't support nl so do this the long way)
+				# remove duplicates, retaining order (OpenBSD doesn't support nl utility add line numbers the long way)
 				line_no=0
 				for f in ${all_locators[@]};do
 					indexed_locators+=($(echo $line_no"-"$f"_"))
 					line_no=$(($line_no+1))
-				done								
-				unique_locators=($(echo "${indexed_locators[@]}"  | tr -d ' ' | tr '_' '\n' | tr '-' ' ' | sort -u -k2 -s | sort -n | cut -f2 -d ' '))						
+				done	
+				
+				# sort routine requires -s (stable sort) to give consistent results across all platforms. 
+				# However solaris doesn't support -s, but gives consistent result without it 
+				unique_sort_command="sort -u -k2 -s"
+				case "$DISTRIBUTION" in
+					sunos )
+						unique_sort_command="sort -u -k2"
+						;;
+				esac
+											
+				unique_locators=($(echo "${indexed_locators[@]}"  | tr -d ' ' | tr '_' '\n' | tr '-' ' ' | $unique_sort_command | sort -n | cut -f2 -d ' '))						
 
 				# create a replacement string for all the locators
 				index=0
