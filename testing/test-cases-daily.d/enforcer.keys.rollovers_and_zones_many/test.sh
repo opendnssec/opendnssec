@@ -9,57 +9,37 @@
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
 
 #TODO: - check more logging in syslog
-#TODO: - fix the compare script to directly compare the key ids in the signconf
 
 # Lets use parameters for the timing intervals so they are easy to change
 SHORT_TIMEOUT=11    # Timeout when checking log output. DS lock out wait is 10 sec so use 11 for this
 LONG_TIMEOUT=20     # Timeout when waiting for enforcer run to have happened
 SLEEP_INTERVAL=50   # This should be just shorter than the enforcer run interval in conf.xml
 
-compare_files_ignore_locator () {
-
-        if [ -z "$1" -o -z "$2" ]; then
-                echo "usage: compare_files_ignore_locator <file1> <file2> " >&2
-                exit 1
-        fi
-
-        local file1="$1"
-        local file2="$2"
-        local file1_tmp="tmp/file1.tmp"
-        local file2_tmp="tmp/file2.tmp"
-
-        sed 's#<Locator>.*#<Locator></Locator>#g' $file1 > $file1_tmp
-        sed 's#<Locator>.*#<Locator></Locator>#g' $file2 > $file2_tmp
-        diff $file1_tmp $file2_tmp
-}
-
 check_zone_X_at_timestep_Y () {
-	
-	 local signing_count=$(( $2 + 1 ))
-	
-	 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods$1.xml gold/ods_signconf_ods$1_$2.xml &&  	
-	 log_this ods-ksmutil-check-$2   compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods$1.xml gold/ods_signconf_ods$1_$2.xml &&	
-	 syslog_waitfor_count $LONG_TIMEOUT $signing_count "ods-signerd: .*\[STATS\] ods$1" &&
-	 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods$1" &&
-	 return 0
-	
-	 return 1
-	
+
+         local signing_count=$(( $2 + 1 ))
+
+         # Used only to create a gold while setting up the test
+         #cp $INSTALL_ROOT/var/opendnssec/signconf/ods$1.xml gold/ods_signconf_ods$1_$2.xml &&
+         
+         cp $INSTALL_ROOT/var/opendnssec/signconf/ods$1.xml base/ods_signconf_ods$1_$2.xml &&
+         syslog_waitfor_count $LONG_TIMEOUT $signing_count "ods-signerd: .*\[STATS\] ods$1" &&
+         test -f "$INSTALL_ROOT/var/opendnssec/signed/ods$1" 
+
 }
+
 
 check_zones_at_timestep_Y () {
 	
 	# Start signer for a single run
 	log_this_timeout ods-control-signer-start $SHORT_TIMEOUT  ods-signerd -1 &&
-	syslog_waitfor $SHORT_TIMEOUT  'ods-signerd: .*\[engine\] signer shutdown' &&	
+	syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&	
 	
 	for no in 1 2 3 4; do
 		if ! check_zone_X_at_timestep_Y $no $1; then 
 			return 1
 		fi
 	done	
-	
-	return 0
 		
 }
 
@@ -78,8 +58,8 @@ fi &&
 
 ods_reset_env &&
 
-rm -rf tmp &&
-mkdir  tmp &&
+rm -rf base &&
+mkdir  base &&
 
 # Used only to create a gold while setting up the test
 #rm -rf gold && mkdir gold &&
@@ -173,7 +153,9 @@ check_zones_at_timestep_Y 6 &&
 log_this_timeout ods-enforcer-stop 60 ods-control enforcer stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 
-rm -rf tmp &&
+log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
+
+rm -rf base &&
 
 return 0
 

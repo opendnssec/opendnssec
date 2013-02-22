@@ -10,6 +10,12 @@ fi &&
 
 ods_reset_env &&
 
+rm -rf base &&
+mkdir  base &&
+
+# Used only to create a gold while setting up the test
+#rm -rf gold && mkdir gold &&
+
 ##################  SETUP ###########################
 # Start enforcer (Zones already exist and we let it generate keys itself)
 log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
@@ -71,6 +77,15 @@ echo "Testing shared ZSKs" &&
 [ "$ZSK_CKA_ID_SHA_1" == "$ZSK_CKA_ID_SHA_2" ] &&
 [ "$ZSK_CKA_ID_SHA_1" == "$ZSK_CKA_ID_SHA_3" ] &&
 
+for zone in non-share1 non-share2 non-share3 share1 share2 share3; do
+	# Used only to create a gold while setting up the test
+	#cp $INSTALL_ROOT/var/opendnssec/signconf/$zone.xml gold/signconf_"$zone".xml        
+	cp $INSTALL_ROOT/var/opendnssec/signconf/$zone.xml base/signconf_"$zone".xml
+done &&
+
+# compare all the signconf files
+log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
+rm -rf base &&
 
 return 0
 

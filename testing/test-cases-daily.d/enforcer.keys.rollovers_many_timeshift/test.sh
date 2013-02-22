@@ -8,26 +8,19 @@
 
 #TODO: - increase number of steps?
 #TODO: - check more logging in syslog
-#TODO: - fix the compare script to directly compare the key ids in the signconf
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 
-compare_files_ignore_locator () {
-
-        if [ -z "$1" -o -z "$2" ]; then
-                echo "usage: compare_files_ignore_locator <file1> <file2> " >&2
-                exit 1
-        fi
-
-        local file1="$1"
-        local file2="$2"
-        local file1_tmp="tmp/file1.tmp"
-        local file2_tmp="tmp/file2.tmp"
-
-        sed 's#<Locator>.*#<Locator></Locator>#g' $file1 > $file1_tmp
-        sed 's#<Locator>.*#<Locator></Locator>#g' $file2 > $file2_tmp
-        diff $file1_tmp $file2_tmp
+cp_signconfs_at_timestep_Y () {
+	
+	for zone in 1 2; do
+        # Used only to create a gold while setting up the test
+        #cp $INSTALL_ROOT/var/opendnssec/signconf/ods$zone.xml gold/ods_signconf_ods"$zone"_"$1".xml        
+        cp $INSTALL_ROOT/var/opendnssec/signconf/ods$zone.xml base/ods_signconf_ods"$zone"_"$1".xml 		
+	done	
+		
 }
+
 
 case "$DISTRIBUTION" in
 	freebsd )
@@ -40,6 +33,12 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 ods_reset_env &&
+
+rm -rf base &&
+mkdir  base &&
+
+# Used only to create a gold while setting up the test
+#rm -rf gold && mkdir gold &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
@@ -65,6 +64,8 @@ log_grep ods-ksmutil-key-list0 stdout 'ods2                            ZSK      
 
 #TODO Check that no other keys were allocated
 # HOW???
+
+cp_signconfs_at_timestep_Y 0 &&
 
 # Grab the CKA_IDs of the 2 KSKs
 log_this ods-ksmutil-cka_id1 ods-ksmutil key list --all --verbose &&
@@ -116,6 +117,8 @@ log_grep ods-ksmutil-key-list1_2 stdout 'ods2                            ZSK    
 ! log_grep ods-ksmutil-key-list1_2 stdout 'ods2                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list1_2 stdout 'ods2                            ZSK           retire' &&
 
+cp_signconfs_at_timestep_Y 1 &&
+
 ## Next event is prepublish of ZSK for ods2 12:10
 ##################  STEP 2: Time = 10min ###########################
 export ENFORCER_TIMESHIFT='01-01-2010 12:10' &&
@@ -142,6 +145,7 @@ log_grep ods-ksmutil-key-list2 stdout 'ods2                            ZSK      
 ! log_grep ods-ksmutil-key-list2 stdout 'ods2                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list2 stdout 'ods2                            ZSK           retire' &&
 
+cp_signconfs_at_timestep_Y 2 &&
 
 ## Next event is KSK for ods2 -> ready at 12:14:30
 ##################  STEP 3: Time = 15min ###########################
@@ -189,6 +193,7 @@ log_grep ods-ksmutil-key-list3_2 stdout 'ods2                            ZSK    
 ! log_grep ods-ksmutil-key-list3_2 stdout 'ods2                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list3_2 stdout 'ods2                            ZSK           retire' &&
 
+cp_signconfs_at_timestep_Y 3 &&
 
 ## Next event is prepublish of ZSK for ods1 12:21
 ##################  STEP 4: Time = 21min ###########################
@@ -214,6 +219,7 @@ log_grep ods-ksmutil-key-list4 stdout 'ods2                            ZSK      
 ! log_grep ods-ksmutil-key-list4 stdout 'ods2                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list4 stdout 'ods2                            ZSK           retire' &&
 
+cp_signconfs_at_timestep_Y 4 &&
 
 ## Next event is ZSK ready for ods2 12:24:30
 ##################  STEP 5: Time = 24min30 ###########################
@@ -239,7 +245,7 @@ log_grep ods-ksmutil-key-list5 stdout 'ods2                            ZSK      
 ! log_grep ods-ksmutil-key-list5 stdout 'ods2                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list5 stdout 'ods2                            ZSK           retire' &&
 
-
+cp_signconfs_at_timestep_Y 5 &&
 
 ## Next event is ZSK ready for ods1 12:24:40
 ##################  STEP 6: Time = 24min40 ###########################
@@ -265,6 +271,7 @@ log_grep ods-ksmutil-key-list6 stdout 'ods2                            ZSK      
 ! log_grep ods-ksmutil-key-list6 stdout 'ods2                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list6 stdout 'ods2                            ZSK           retire' &&
 
+cp_signconfs_at_timestep_Y 6 &&
 
 ## Next event is ZSK roll for both zones 12:25
 ##################  STEP 7: Time = 25min ###########################
@@ -288,6 +295,7 @@ log_grep ods-ksmutil-key-list7 stdout 'ods2                            ZSK      
 ! log_grep ods-ksmutil-key-list7 stdout 'ods1                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list7 stdout 'ods2                            KSK           retire' &&
 
+cp_signconfs_at_timestep_Y 7 &&
 
 ## Next event is prepublish of KSK for ods1 12:30
 ##################  STEP 8: Time = 30min ###########################
@@ -312,7 +320,7 @@ log_grep ods-ksmutil-key-list8 stdout 'ods2                            ZSK      
 ! log_grep ods-ksmutil-key-list8 stdout 'ods1                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list8 stdout 'ods2                            KSK           retire' &&
 
-
+cp_signconfs_at_timestep_Y 8 &&
 
 ## Next event is KSK for ods1 -> ready (should be 12:33:40)
 ##################  STEP 9: Time = 33min40 ###########################
@@ -362,6 +370,7 @@ log_grep ods-ksmutil-key-list9_2 stdout 'ods2                            ZSK    
 ! log_grep ods-ksmutil-key-list9_2 stdout 'ods2                            KSK           retire' &&
 
 
+cp_signconfs_at_timestep_Y 9 &&
 
 ## Next event is prepublish of ZSK for ods2 12:35:30
 ##################  STEP 10: Time = 35min30 ###########################
@@ -386,6 +395,7 @@ log_grep ods-ksmutil-key-list10 stdout 'ods2                            ZSK     
 # Only ods2 KSK has no retired keys
 ! log_grep ods-ksmutil-key-list10 stdout 'ods2                            KSK           retire' &&
 
+cp_signconfs_at_timestep_Y 10 &&
 
 ## Next event is KSK for ods1 -> dead 12:38:50
 ##################  STEP 11: Time = 38min50 ###########################
@@ -410,6 +420,7 @@ log_grep ods-ksmutil-key-list11 stdout 'ods2                            ZSK     
 ! log_grep ods-ksmutil-key-list11 stdout 'ods1                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list11 stdout 'ods2                            KSK           retire' &&
 
+cp_signconfs_at_timestep_Y 11 &&
 
 ## Next event is ZSK for ods1 -> dead 12:42:40
 ##################  STEP 12: Time = 42min40 ###########################
@@ -434,6 +445,7 @@ log_grep ods-ksmutil-key-list12 stdout 'ods2                            ZSK     
 ! log_grep ods-ksmutil-key-list12 stdout 'ods1                            ZSK           retire' &&
 ! log_grep ods-ksmutil-key-list12 stdout 'ods2                            KSK           retire' &&
 
+cp_signconfs_at_timestep_Y 12 &&
 
 ## Next event is ZSK for ods2 -> dead 12:44:30 (plus KSK prepublish for ods2)
 ##################  STEP 13: Time = 44min30 ###########################
@@ -459,6 +471,7 @@ log_grep ods-ksmutil-key-list13 stdout 'ods2                            KSK     
 ! log_grep ods-ksmutil-key-list13 stdout 'ods2                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list13 stdout 'ods2                            ZSK           retire' &&
 
+cp_signconfs_at_timestep_Y 13 &&
 
 ## Next event is prepublish of ZSK for ods1 12:46:20
 ##################  STEP 14: Time = 46min20 ###########################
@@ -485,7 +498,7 @@ log_grep ods-ksmutil-key-list14 stdout 'ods2                            KSK     
 ! log_grep ods-ksmutil-key-list14 stdout 'ods2                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list14 stdout 'ods2                            ZSK           retire' &&
 
-
+cp_signconfs_at_timestep_Y 14 &&
 
 ## Next event is ZSK roll for both zones 12:50:00
 ##################  STEP 15: Time = 50min ###########################
@@ -510,7 +523,7 @@ log_grep ods-ksmutil-key-list15 stdout 'ods2                            KSK     
 ! log_grep ods-ksmutil-key-list15 stdout 'ods1                            KSK           retire' &&
 ! log_grep ods-ksmutil-key-list15 stdout 'ods2                            KSK           retire' &&
 
-
+cp_signconfs_at_timestep_Y 15 &&
 
 ## Next event is KSK for ods2 -> ready 12:59:00 will also prepublish a KSK for ods1
 ##################  STEP 16: Time = 59min ###########################
@@ -563,6 +576,11 @@ log_grep ods-ksmutil-key-list16_2 stdout 'ods2                            KSK   
 # No retired KSKs on ods1
 ! log_grep ods-ksmutil-key-list16_2 stdout 'ods1                            KSK           retire' &&
 
+cp_signconfs_at_timestep_Y 16 &&
+
+# compare all the signconf files
+log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
+rm -rf base &&
 
 return 0
 

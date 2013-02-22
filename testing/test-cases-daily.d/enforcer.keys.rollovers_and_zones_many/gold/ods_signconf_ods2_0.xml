@@ -20,7 +20,7 @@
 			<Key>
 				<Flags>257</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>86f98491e58d9431045890f279cb1603</Locator>
+				<Locator>41d44fa181d9bfc117ab0252e52e9139</Locator>
 				<KSK />
 				<Publish />
 			</Key>
@@ -28,7 +28,7 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>2943a8393bef56476f4db9ae434cf64b</Locator>
+				<Locator>83fdd3fab210e957cb924a2684434539</Locator>
 				<ZSK />
 				<Publish />
 			</Key>
@@ -36,7 +36,7 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>adfae3b5625f5ac2453a3d05bc307bac</Locator>
+				<Locator>e2d418697262831938e97cecc2e77465</Locator>
 				<Publish />
 			</Key>
 

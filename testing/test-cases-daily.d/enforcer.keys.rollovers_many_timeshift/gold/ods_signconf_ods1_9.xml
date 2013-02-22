@@ -1,14 +1,14 @@
 <SignerConfiguration>
-	<Zone name="ods3">
+	<Zone name="ods1">
 		<Signatures>
-			<Resign>PT30S</Resign>
-			<Refresh>PT120S</Refresh>
+			<Resign>PT300S</Resign>
+			<Refresh>PT360S</Refresh>
 			<Validity>
-				<Default>PT180S</Default>
-				<Denial>PT180S</Denial>
+				<Default>PT900S</Default>
+				<Denial>PT900S</Denial>
 			</Validity>
-			<Jitter>PT20S</Jitter>
-			<InceptionOffset>PT10S</InceptionOffset>
+			<Jitter>PT120S</Jitter>
+			<InceptionOffset>PT60S</InceptionOffset>
 		</Signatures>
 
 		<Denial>
@@ -16,11 +16,19 @@
 		</Denial>
 
 		<Keys>
-			<TTL>PT20S</TTL>
+			<TTL>PT60S</TTL>
 			<Key>
 				<Flags>257</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>42868b89d013e5bf9024a4b1e55d900a</Locator>
+				<Locator>d131fb842ede0bfcaac540c3f3baea90</Locator>
+				<KSK />
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>257</Flags>
+				<Algorithm>5</Algorithm>
+				<Locator>f1ee601e4a73465368724b97016e7423</Locator>
 				<KSK />
 				<Publish />
 			</Key>
@@ -28,22 +36,15 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>83aa2ffc0cb9be892022362a6d9820e8</Locator>
+				<Locator>a2a9e06340214a097b4c68dd3a822e27</Locator>
 				<Publish />
 			</Key>
 
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>c83a4a7ba48baf5ef559dda0b1644df0</Locator>
+				<Locator>999ce2c3b4e35a0c038881e396b1ada8</Locator>
 				<ZSK />
-				<Publish />
-			</Key>
-
-			<Key>
-				<Flags>256</Flags>
-				<Algorithm>5</Algorithm>
-				<Locator>815eae4d017f469c137a010d4279a3d4</Locator>
 				<Publish />
 			</Key>
 

@@ -20,7 +20,7 @@
 			<Key>
 				<Flags>257</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>9b002549396f4449b33c7462e8f98b9c</Locator>
+				<Locator>fe4172a35d7e3d79e83ef58298fae476</Locator>
 				<KSK />
 				<Publish />
 			</Key>
@@ -28,14 +28,14 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>8639d7444b842193db179fdbfe44f032</Locator>
+				<Locator>cf23b7ada63b361604326b593acf8b12</Locator>
 				<Publish />
 			</Key>
 
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>84a02d680d4068a0762975b725c68317</Locator>
+				<Locator>43a468d6a5a126458f7be1d9cd9008b5</Locator>
 				<ZSK />
 				<Publish />
 			</Key>
@@ -43,7 +43,7 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>33a33ebf1ced2e87b3ee61eba3f069c2</Locator>
+				<Locator>0a7191b0812ee0b7517c14cd58830fdc</Locator>
 				<Publish />
 			</Key>
 
