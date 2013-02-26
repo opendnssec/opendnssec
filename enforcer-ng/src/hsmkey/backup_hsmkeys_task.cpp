@@ -197,3 +197,54 @@ perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repos
 	}
 	ods_printf(sockfd,"info: keys unflagged for backed up: %d\n", keys_marked);
 }
+
+void 
+perform_backup_list(int sockfd, engineconfig_type *config, const char *repository)
+{
+	int keys_marked;
+	// check that we are using a compatible protobuf version.
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn)) return;
+
+	OrmTransaction transaction(conn);
+	if (!transaction.started()) {
+		ods_printf(sockfd,"error: database transaction failed\n");
+		return;
+	}
+
+	OrmResultRef rows;
+	if ((repository && !OrmMessageEnumWhere(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows, 
+			"repository='%s'", repository)) ||
+		(!repository && !OrmMessageEnum(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows)))
+	{
+		ods_printf(sockfd,"error: key enumeration failed\n");
+		return;
+	}
+	ods_printf(sockfd,"NOTIMPL\n");
+	return;
+	//~ OrmContextRef context;
+	//~ keys_marked = 0;
+	//~ for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		//~ ::ods::hsmkey::HsmKey key;
+		//~ if (OrmGetMessage(rows, key, true, context)) {
+			//~ if (key.backmeup()) {
+				//~ key.set_backmeup(false);
+				//~ keys_marked++;
+				//~ if (!OrmMessageUpdate(context)) {
+					//~ ods_log_error_and_printf(sockfd, module_str,
+						//~ "database record update failed");
+				//~ }
+			//~ }
+			//~ context.release();
+		//~ }
+	//~ }
+	rows.release();
+	if (!transaction.commit()) {
+		ods_printf(sockfd,"error committing transaction.");
+		return;
+	}
+	ods_printf(sockfd,"info: keys unflagged for backed up: %d\n", keys_marked);
+}

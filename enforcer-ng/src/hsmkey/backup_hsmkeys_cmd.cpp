@@ -44,62 +44,46 @@
 
 static const char *module_str = "backup_hsmkeys_cmd";
 
+
 void
-help_backup_prepare_cmd(int sockfd)
+help_backup_cmd(int sockfd)
 {
 	ods_printf(sockfd,
 		"backup prepare" "\t"
 			"Flag the keys found in all configured HSMs as to be backed up.\n"
 		"  --repository <repository>""\n\t\t"
-			"Limit to this repository.\n"
-		);
-}
-void
-help_backup_commit_cmd(int sockfd)
-{
+			"Limit to this repository.\n");
 	ods_printf(sockfd,
 		"backup commit" "\t"
 			"Mark flagged keys found in all configured HSMs as backed up.\n"
 		"  --repository <repository>""\n\t\t"
-			"Limit to this repository.\n"
-		);
-}
-void
-help_backup_rollback_cmd(int sockfd)
-{
+			"Limit to this repository.\n");
 	ods_printf(sockfd,
 		"backup rollback" "\t"
 			"Cancel a 'backup prepare' action.\n"
 		"  --repository <repository>""\n\t\t"
-			"Limit to this repository.\n"
-		);
+			"Limit to this repository.\n");
+	ods_printf(sockfd,
+		"backup list" "\t"
+			"Enumerate backup status of keys.\n"
+		"  --repository <repository>""\n\t\t"
+			"Limit to this repository.\n");
 }
 
-void
-help_backup_cmd(int sockfd)
-{
-	help_backup_prepare_cmd(sockfd);
-	help_backup_commit_cmd(sockfd);
-	help_backup_rollback_cmd(sockfd);
-}
-
-int
-handled_backup_prepare_cmd(int sockfd, engine_type* engine, 
-		const char *cmd, ssize_t n)
-{
+static int
+handled_backup_cmd(int sockfd, engine_type* engine, 
+		const char *scmd, ssize_t n, 
+		void task(int, engineconfig_type *, const char *)) {
 	char buf[ODS_SE_MAXLINE];
     const char *argv[8];
     const int NARGV = sizeof(argv)/sizeof(char*);
     int argc;
 	const char *repository = NULL;
-	const char *scmd = "backup prepare";
-	cmd = ods_check_command(cmd,n,scmd);
-	if (!cmd) return 0; // not handled
 
 	ods_log_debug("[%s] %s command", module_str, scmd);
 
 	// Use buf as an intermediate buffer for the command.
-	strncpy(buf,cmd,sizeof(buf));
+	strncpy(buf,scmd,sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
 	// separate the arguments
 	argc = ods_str_explode(buf,NARGV,argv);
@@ -112,79 +96,32 @@ handled_backup_prepare_cmd(int sockfd, engine_type* engine,
 	(void)ods_find_arg_and_param(&argc,argv,"repository","r",&repository);
 
 	time_t tstart = time(NULL);
-	perform_backup_prepare(sockfd,engine->config, repository);
+	task(sockfd,engine->config, repository);
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",
 		scmd,time(NULL)-tstart);
 	return 1;
 }
+
 
 int
-handled_backup_commit_cmd(int sockfd, engine_type* engine, 
+handled_backup_cmds(int sockfd, engine_type* engine, 
 		const char *cmd, ssize_t n)
 {
-	char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
-    const int NARGV = sizeof(argv)/sizeof(char*);
-    int argc;
-	const char *repository = NULL;
-	const char *scmd = "backup commit";
-	cmd = ods_check_command(cmd,n,scmd);
-	if (!cmd) return 0; // not handled
-
-	ods_log_debug("[%s] %s command", module_str, scmd);
-
-	// Use buf as an intermediate buffer for the command.
-	strncpy(buf,cmd,sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
-	// separate the arguments
-	argc = ods_str_explode(buf,NARGV,argv);
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-						module_str,scmd);
-		ods_printf(sockfd,"too many arguments\n");
-		return 1; // errors, but handled
+	int res;
+	       if (ods_check_command(cmd,n,"backup prepare")) {
+		res = handled_backup_cmd(sockfd, engine, 
+			cmd, n, &perform_backup_prepare);
+	} else if (ods_check_command(cmd,n,"backup commit")) {
+		res = handled_backup_cmd(sockfd, engine, 
+			cmd, n, &perform_backup_commit);
+	} else if (ods_check_command(cmd,n,"backup rollback")) {
+		res = handled_backup_cmd(sockfd, engine, 
+			cmd, n, &perform_backup_rollback);
+	} else if (ods_check_command(cmd,n,"backup list")) {
+		res = handled_backup_cmd(sockfd, engine, 
+			cmd, n, &perform_backup_list);
+	} else {
+		return 0;
 	}
-	(void)ods_find_arg_and_param(&argc,argv,"repository","r",&repository);
-
-	time_t tstart = time(NULL);
-	perform_backup_commit(sockfd,engine->config, repository);
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",
-		scmd,time(NULL)-tstart);
-	return 1;
+	return res;
 }
-
-int
-handled_backup_rollback_cmd(int sockfd, engine_type* engine, 
-		const char *cmd, ssize_t n)
-{
-	char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
-    const int NARGV = sizeof(argv)/sizeof(char*);
-    int argc;
-	const char *repository = NULL;
-	const char *scmd = "backup rollback";
-	cmd = ods_check_command(cmd,n,scmd);
-	if (!cmd) return 0; // not handled
-
-	ods_log_debug("[%s] %s command", module_str, scmd);
-
-	// Use buf as an intermediate buffer for the command.
-	strncpy(buf,cmd,sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
-	// separate the arguments
-	argc = ods_str_explode(buf,NARGV,argv);
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-						module_str,scmd);
-		ods_printf(sockfd,"too many arguments\n");
-		return 1; // errors, but handled
-	}
-	(void)ods_find_arg_and_param(&argc,argv,"repository","r",&repository);
-
-	time_t tstart = time(NULL);
-	perform_backup_rollback(sockfd,engine->config, repository);
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",
-		scmd,time(NULL)-tstart);
-	return 1;
-}
-
