@@ -110,7 +110,8 @@ generate_keypairs(int sockfd,
 				  const char *repository,
 				  const char *policy_name,
 				  ::google::protobuf::uint32 algorithm,
-				  ::ods::hsmkey::keyrole role)
+				  ::ods::hsmkey::keyrole role,
+				  struct engineconfig_repository* hsm)
 {
 	// nothing todo !
 	if (ngen<=0) {
@@ -152,6 +153,14 @@ generate_keypairs(int sockfd,
             key.set_algorithm(algorithm);
             key.set_role(role);
             key.set_key_type("RSA");
+
+            key.set_backedup(0);
+            key.set_backmeup(0);
+			while (hsm) {
+				if (strcmp(repository, hsm->name))
+					key.set_requirebackup(hsm->require_backup);
+				hsm = hsm->next;
+			}
 
 			{
 				// We do insertion of the generated key into the database here
@@ -243,7 +252,7 @@ count_unused_hsmkeys(OrmConn conn,
 
 static void
 generate_ksks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
-			  time_t duration, pb::uint64 nzones)
+			  time_t duration, pb::uint64 nzones, struct engineconfig_repository* hsm)
 {
 	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::KSK;
 	for (int k=0; k<policy.keys().ksk_size(); ++k) {
@@ -268,7 +277,7 @@ generate_ksks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 								   key.repository().c_str(),
 								   policy.name().c_str(),
 								   key.algorithm(),
-								   key_role))
+								   key_role, hsm))
 			{
 				ods_log_error_and_printf(sockfd,module_str,
 										 "generating KSKs failed");
@@ -279,7 +288,7 @@ generate_ksks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 
 static void
 generate_zsks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
-			  time_t duration, pb::uint64 nzones)
+			  time_t duration, pb::uint64 nzones, struct engineconfig_repository* hsm)
 {
 	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::ZSK;
 	for (int k=0; k<policy.keys().zsk_size(); ++k) {
@@ -304,7 +313,7 @@ generate_zsks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 								   key.repository().c_str(),
 								   policy.name().c_str(),
 								   key.algorithm(),
-								   key_role))
+								   key_role, hsm))
 			{
 				ods_log_error_and_printf(sockfd,module_str,
 										 "generating ZSKs failed");
@@ -315,7 +324,7 @@ generate_zsks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 
 static void
 generate_csks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
-			  time_t duration, pb::uint64 nzones)
+			  time_t duration, pb::uint64 nzones, struct engineconfig_repository* hsm)
 {
 	::ods::hsmkey::keyrole key_role = ::ods::hsmkey::CSK;
 	for (int k=0; k<policy.keys().csk_size(); ++k) {
@@ -340,7 +349,7 @@ generate_csks(int sockfd, OrmConn conn, const ::ods::kasp::Policy &policy,
 								   key.repository().c_str(),
 								   policy.name().c_str(),
 								   key.algorithm(),
-								   key_role))
+								   key_role, hsm))
 			{
 				ods_log_error_and_printf(sockfd,module_str,
 										 "generating CSKs failed");
@@ -455,9 +464,9 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
 		 * with the number of zones using this policy. */
 		if (count > 0 && kasp.policies(i).keys().zones_share_keys())
 			count = 1;
-		generate_ksks(sockfd, conn, kasp.policies(i), duration, count);
-		generate_zsks(sockfd, conn, kasp.policies(i), duration, count);
-		generate_csks(sockfd, conn, kasp.policies(i), duration, count);
+		generate_ksks(sockfd, conn, kasp.policies(i), duration, count, config->hsm);
+		generate_zsks(sockfd, conn, kasp.policies(i), duration, count, config->hsm);
+		generate_csks(sockfd, conn, kasp.policies(i), duration, count, config->hsm);
     }
 }
 

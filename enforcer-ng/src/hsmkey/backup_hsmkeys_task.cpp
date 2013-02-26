@@ -202,6 +202,7 @@ void
 perform_backup_list(int sockfd, engineconfig_type *config, const char *repository)
 {
 	int keys_marked;
+	struct engineconfig_repository* hsm;
 	// check that we are using a compatible protobuf version.
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
