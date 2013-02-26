@@ -546,3 +546,94 @@ ods_bind9_dynupdate ()
 	rm -rf "$update_file" "$log_file"
 	return 0
 }
+
+ods_compare_gold_vs_base_signconf() {
+	
+	
+		# Method to compare a 'gold' directory containing signconfs with a 'base' directory
+		# generated during a test run. Assumes the directories are called 'gold' and 'base'
+		# and the script is called from the directory which holds both of them.
+		# It replaces the key CKS_IDS in the <Locator> tags with indexes to allow a diff.
+		# It also ignores the <Salt> tag contents
+		# See enforcer.keys.rollovers_and_zones_many for an example of how it is used. 
+		
+		local all_locators
+		local unique_locators
+		local indexed_locators	
+		local unique_sort_command
+
+        for test_dir in gold base; do
+                if [ ! -d "$test_dir" ]; then
+                          echo "compare_gold_vs_base: directory $test_dir no found" >&2
+                          return 1
+                 fi
+	
+                temp_dir="$test_dir"_temp
+				rm -rf $temp_dir
+				mkdir  $temp_dir
+				unset $"all_locators"
+				unset $"unique_locators"
+				unset $"indexed_locators"
+				
+                if ! cd "$test_dir" 2>/dev/null; then
+                        echo "compare_gold_vs_base: unable to change to test directory $test_dir!" >&2
+                        return 1
+                fi      
+
+				files=( $(ls -1 2>/dev/null ) )
+                if [ "${#files[@]}" -le 0 ] 2>/dev/null; then
+                        echo "compare_gold_vs_base: no files found!" >&2
+                        return 1
+                fi
+				
+				# fish out the key locators
+				for f in ${files[@]};do
+                        all_locators+=( $($GREP -- "<Locator>" $f | awk -F">" '{print $2}' | awk -F"<" '{print $1}' ) )							
+				done					
+				
+				# remove duplicates, retaining order (OpenBSD doesn't support nl utility add line numbers the long way)
+				line_no=0
+				for f in ${all_locators[@]};do
+					indexed_locators+=($(echo $line_no"-"$f"_"))
+					line_no=$(($line_no+1))
+				done	
+				
+				# sort routine requires -s (stable sort) to give consistent results across all platforms. 
+				# However solaris doesn't support -s, but gives consistent result without it 
+				unique_sort_command="sort -u -k2 -s"
+				case "$DISTRIBUTION" in
+					sunos )
+						unique_sort_command="sort -u -k2"
+						;;
+				esac
+											
+				unique_locators=($(echo "${indexed_locators[@]}"  | tr -d ' ' | tr '_' '\n' | tr '-' ' ' | $unique_sort_command | sort -n | cut -f2 -d ' '))						
+
+				# create a replacement string for all the locators
+				index=0
+				replace_string="sed "
+				for i in ${unique_locators[@]}; do
+				   replace_string+=" -e 's#$i#$index#' "
+				   index=$(($index+1))
+				done
+				
+				# ignore the contents of the <Salt> tag
+				replace_string+=" -e 's#<Salt>.*#<Salt></Salt>#' "				
+				
+				#apply to each of the files
+				for f in ${files[@]}; do
+					 eval $replace_string $f > ../$temp_dir/$f
+				done
+
+                cd ..
+        done
+
+		if ! diff gold_temp base_temp; then
+			return 1
+		fi
+		
+		rm -rf gold_temp
+		rm -rf base_temp
+		return 0		
+        
+}

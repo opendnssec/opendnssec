@@ -17,7 +17,6 @@
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
-		<!--><WorkerThreads>4</WorkerThreads>-->
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
 		<Interval>PT1M</Interval>
 	</Enforcer>

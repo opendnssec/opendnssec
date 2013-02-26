@@ -7,29 +7,11 @@
 
 #TODO: - increase number of steps?
 #TODO: - check more logging in syslog
-#TODO: - fix the compare script to directly compare the key ids in the signconf
 
 # Lets use parameters for the timing intervals so they are easy to change
 SHORT_TIMEOUT=11    # Timeout when checking log output. DS lock out wait is 10 sec so use 11 for this
 LONG_TIMEOUT=20     # Timeout when waiting for enforcer run to have happened
 SLEEP_INTERVAL=50   # This should be just shorter than the enforcer run interval in conf.xml
-
-compare_files_ignore_locator () {
-
-        if [ -z "$1" -o -z "$2" ]; then
-                echo "usage: compare_files_ignore_locator <file1> <file2> " >&2
-                exit 1
-        fi
-
-        local file1="$1"
-        local file2="$2"
-        local file1_tmp="tmp/file1.tmp"
-        local file2_tmp="tmp/file2.tmp"
-
-        sed 's#<Locator>.*#<Locator></Locator>#g' $file1 > $file1_tmp
-        sed 's#<Locator>.*#<Locator></Locator>#g' $file2 > $file2_tmp
-        diff $file1_tmp $file2_tmp
-}
 
 
 if [ -n "$HAVE_MYSQL" ]; then
@@ -38,8 +20,8 @@ fi &&
 
 ods_reset_env &&
 
-rm -rf tmp
-mkdir  tmp
+rm -rf base &&
+mkdir  base &&
 
 # Used only to create a gold while setting up the test
 # rm -rf gold && mkdir gold &&
@@ -69,7 +51,7 @@ log_grep ods-ksmutil-check-0   stdout "ZSK           publish" &&
 log_grep ods-ksmutil-check-0   stdout "KSK           dssub" && 
 log_grep ods-ksmutil-check-0   stdout "KSK           publish" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_0.xml &&  
-log_this ods-ksmutil-check-0   compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_0.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_0.xml &&  
 
 # Get the key tags and issue the DS sub on the standby key. This will cause the enforcer to run again.
 ZSK_CKA_ID_1=`log_grep -o ods-ksmutil-check-0 stdout "ZSK           active" | awk '{print $9}'` &&
@@ -95,7 +77,7 @@ log_grep ods-ksmutil-check-1   stdout "ZSK           ready.*$ZSK_CKA_ID_2" &&
 log_grep ods-ksmutil-check-1   stdout "KSK           dspublish.*$KSK_CKA_ID_STANDBY" &&
 log_grep ods-ksmutil-check-1   stdout "KSK           ready.*$KSK_CKA_ID_1" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_1.xml &&
-log_this ods-ksmutil-check-1 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_1.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_1.xml &&
 
 # Issue ds_seen for KSK1. This will cause the enforcer to run.
 log_this ods-ksmutil-dsseen_1   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_1 &&
@@ -114,7 +96,7 @@ log_grep ods-ksmutil-check-2   stdout "KSK           dsready.*$KSK_CKA_ID_STANDB
 log_grep ods-ksmutil-check-2   stdout "KSK           active.*$KSK_CKA_ID_1" &&
 ZSK_CKA_ID_3=`log_grep -o ods-ksmutil-check-2 stdout "ZSK           publish" | awk '{print $9}'` &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_2.xml &&  
-log_this ods-ksmutil-check-2 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_2.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_2.xml && 
 
 # Wait for the enforcer to run
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 6 'ods-enforcerd: .*Sleeping for' &&
@@ -127,7 +109,7 @@ log_grep ods-ksmutil-check-3   stdout "ZSK           ready.*$ZSK_CKA_ID_3" &&
 log_grep ods-ksmutil-check-3   stdout "KSK           dsready.*$KSK_CKA_ID_STANDBY" &&
 log_grep ods-ksmutil-check-3   stdout "KSK           active.*$KSK_CKA_ID_1" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_3.xml &&
-log_this ods-ksmutil-check-3 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_3.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_3.xml &&
 
 # Wait for the enforcer to run
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 7 'ods-enforcerd: .*Sleeping for' &&
@@ -143,7 +125,7 @@ log_grep ods-ksmutil-check-4   stdout "KSK           active.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-4   stdout "KSK           publish" &&
 KSK_CKA_ID_2=`log_grep -o ods-ksmutil-check-4 stdout "KSK           publish" | awk '{print $9}'` &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_4.xml &&
-log_this ods-ksmutil-check-4 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_4.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_4.xml &&
 
 # Wait for the enforcer to run.
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 8 'ods-enforcerd: .*Sleeping for' &&
@@ -159,7 +141,7 @@ log_grep ods-ksmutil-check-5   stdout "KSK           active.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-5   stdout "KSK           ready.*$KSK_CKA_ID_2" &&
 ZSK_CKA_ID_4=`log_grep -o ods-ksmutil-check-5 stdout "ZSK           publish" | awk '{print $9}'` &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_5.xml &&
-log_this ods-ksmutil-check-5 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_5.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_5.xml &&
 
 # Issue ds_seen for KSK2
 log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_2 &&
@@ -172,7 +154,7 @@ log_grep ods-ksmutil-check-5_1   stdout "KSK           dsready.*$KSK_CKA_ID_STAN
 log_grep ods-ksmutil-check-5_1   stdout "KSK           retire.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-5_1   stdout "KSK           active.*$KSK_CKA_ID_2" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_5_1.xml &&
-log_this ods-ksmutil-check-5_1 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_5_1.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_5_1.xml &&
 
 # Wait for the enforcer to run
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 10 'ods-enforcerd: .*Sleeping for' &&
@@ -186,7 +168,7 @@ log_grep ods-ksmutil-check-6   stdout "KSK           dsready.*$KSK_CKA_ID_STANDB
 log_grep ods-ksmutil-check-6   stdout "KSK           retire.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-6   stdout "KSK           active.*$KSK_CKA_ID_2" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_6.xml &&
-log_this ods-ksmutil-check-6 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_6.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_6.xml &&
 
 # Wait for the enforcer to run
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 11 'ods-enforcerd: .*Sleeping for' &&
@@ -200,7 +182,7 @@ log_grep ods-ksmutil-check-7   stdout "KSK           dsready.*$KSK_CKA_ID_STANDB
 ! log_grep ods-ksmutil-check-7   stdout "KSK           retire.*$KSK_CKA_ID_1" &&
 log_grep ods-ksmutil-check-7   stdout "KSK           active.*$KSK_CKA_ID_2" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_7.xml &&
-log_this ods-ksmutil-check-7 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_7.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_7.xml &&
 
 # Wait for the enforcer to run
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 12 'ods-enforcerd: .*Sleeping for' &&
@@ -217,7 +199,7 @@ log_grep ods-ksmutil-check-8   stdout "KSK           publish" &&
 ZSK_CKA_ID_5=`log_grep -o ods-ksmutil-check-8 stdout "ZSK           publish" | awk '{print $9}'` &&
 KSK_CKA_ID_3=`log_grep -o ods-ksmutil-check-8 stdout "KSK           publish" | awk '{print $9}'` &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_8.xml &&
-log_this ods-ksmutil-check-8 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_8.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_8.xml &&
 
 # Wait for the enforcer to run
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 13 'ods-enforcerd: .*Sleeping for' &&
@@ -232,7 +214,7 @@ log_grep ods-ksmutil-check-9   stdout "KSK           dsready.*$KSK_CKA_ID_STANDB
 log_grep ods-ksmutil-check-9   stdout "KSK           active.*$KSK_CKA_ID_2" &&
 log_grep ods-ksmutil-check-9   stdout "KSK           ready.*$KSK_CKA_ID_3" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_9.xml &&
-log_this ods-ksmutil-check-9 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_9.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_9.xml &&
 
 # Issue ds_seen for KSK3
 log_this ods-ksmutil-dsseen_3   ods-ksmutil key ds-seen --zone ods --cka_id $KSK_CKA_ID_3 &&
@@ -245,7 +227,7 @@ log_grep ods-ksmutil-check-9_1   stdout "KSK           dsready.*$KSK_CKA_ID_STAN
 log_grep ods-ksmutil-check-9_1   stdout "KSK           retire.*$KSK_CKA_ID_2" &&
 log_grep ods-ksmutil-check-9_1   stdout "KSK           active.*$KSK_CKA_ID_3" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_9_1.xml &&
-log_this ods-ksmutil-check-9_1 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_9_1.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_9_1.xml &&
 
 # Wait for the enforcer to run
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 15 'ods-enforcerd: .*Sleeping for' &&
@@ -259,13 +241,15 @@ log_grep ods-ksmutil-check-10   stdout "KSK           dsready.*$KSK_CKA_ID_STAND
 log_grep ods-ksmutil-check-10   stdout "KSK           retire.*$KSK_CKA_ID_2" &&
 log_grep ods-ksmutil-check-10   stdout "KSK           active.*$KSK_CKA_ID_3" &&
 #cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_10.xml &&
-log_this ods-ksmutil-check-10 compare_files_ignore_locator  $INSTALL_ROOT/var/opendnssec/signconf/ods.xml gold/ods_signconf_10.xml &&
+cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_10.xml &&
  
 # ##################  SHUTDOWN ###########################
 log_this_timeout ods-control-enforcer-stop $SHORT_TIMEOUT    ods-control enforcer stop &&
 syslog_waitfor $SHORT_TIMEOUT   'ods-enforcerd: .*all done' &&
 
-rm -rf tmp
+log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
+
+rm -rf base &&
 
 return 0
 

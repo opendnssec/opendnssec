@@ -20,15 +20,7 @@
 			<Key>
 				<Flags>257</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>ba4256b14599a0e706102651f73dc48f</Locator>
-				<KSK />
-				<Publish />
-			</Key>
-
-			<Key>
-				<Flags>257</Flags>
-				<Algorithm>5</Algorithm>
-				<Locator>d8ab6c59465d91c7e9c193a186f76d83</Locator>
+				<Locator>b35b7fa43509666f0faceba5fa55e8a5</Locator>
 				<KSK />
 				<Publish />
 			</Key>
@@ -36,14 +28,14 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>967a843c06782e32757b9b8728432fcc</Locator>
+				<Locator>e2d418697262831938e97cecc2e77465</Locator>
 				<Publish />
 			</Key>
 
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>05ef9eae98dc9cbeaf831e839bd594f8</Locator>
+				<Locator>89ae1cd0d83ae18a3995b8bc0b96acc4</Locator>
 				<ZSK />
 				<Publish />
 			</Key>
@@ -51,14 +43,7 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>5</Algorithm>
-				<Locator>6f14c9c2120d7927a7e56bc2d26a0a31</Locator>
-				<Publish />
-			</Key>
-
-			<Key>
-				<Flags>256</Flags>
-				<Algorithm>5</Algorithm>
-				<Locator>48dc11e0b8a03d8a4869981a90be404d</Locator>
+				<Locator>30a9f73dac8265c504a93302cf8fabcb</Locator>
 				<Publish />
 			</Key>
 

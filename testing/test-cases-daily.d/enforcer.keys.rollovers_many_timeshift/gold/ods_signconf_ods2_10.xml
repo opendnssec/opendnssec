@@ -1,0 +1,64 @@
+<SignerConfiguration>
+	<Zone name="ods2">
+		<Signatures>
+			<Resign>PT420S</Resign>
+			<Refresh>PT480S</Refresh>
+			<Validity>
+				<Default>PT900S</Default>
+				<Denial>PT960S</Denial>
+			</Validity>
+			<Jitter>PT120S</Jitter>
+			<InceptionOffset>PT60S</InceptionOffset>
+		</Signatures>
+
+		<Denial>
+			<NSEC3>
+				<Hash>
+					<Algorithm>1</Algorithm>
+					<Iterations>5</Iterations>
+					<Salt>3bcbec4d219a779c</Salt>
+				</Hash>
+			</NSEC3>
+		</Denial>
+
+		<Keys>
+			<TTL>PT600S</TTL>
+			<Key>
+				<Flags>257</Flags>
+				<Algorithm>7</Algorithm>
+				<Locator>1d70ccbf343c3c5726f1cb7a67d189fc</Locator>
+				<KSK />
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>7</Algorithm>
+				<Locator>e9eec6b62ba9f5b6695783da8a32d11d</Locator>
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>7</Algorithm>
+				<Locator>ebc87c92e99788e0286cad1c01218527</Locator>
+				<ZSK />
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>7</Algorithm>
+				<Locator>1289d6f3e309f67a85d5614d969750ee</Locator>
+				<Publish />
+			</Key>
+
+		</Keys>
+
+		<SOA>
+			<TTL>PT0S</TTL>
+			<Minimum>PT0S</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+	</Zone>
+</SignerConfiguration>
