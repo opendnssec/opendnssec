@@ -45,6 +45,12 @@
 extern "C" {
 #endif
 
+struct engineconfig_repository {
+	struct engineconfig_repository* next;
+	char* name;
+	int require_backup;
+};
+
 /**
  * Engine configuration.
  *
@@ -75,6 +81,7 @@ struct engineconfig_struct {
     int verbosity;
 	int db_port; /* Datastore/MySQL/Host/@Port */
 	time_t automatic_keygen_duration;
+	struct engineconfig_repository* hsm;
 };
 
 /**

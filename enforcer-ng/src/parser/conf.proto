@@ -9,6 +9,7 @@ message ConfDocument {
 message Configuration {
 	optional Common common = 1 [(xml).path="Common"]; // This is the configuration that is shared among the components of OpenDNSSEC
 	optional Enforcer enforcer = 2 [(xml).path="Enforcer"]; // Parameters relating to enforcer operation read from the overall configuration conf.xml
+	optional RepositoryList repositorylist = 3 [(xml).path="RepositoryList"];
 }
 
 message Common {
@@ -17,7 +18,16 @@ message Common {
 	optional string zoneListFile = 3 [(xml).path="ZoneListFile"];
 	optional string zoneFetchFile = 4 [(xml).path="ZoneFetchFile"];
 }
-	
+
+message RepositoryList {
+	optional Repository repository = 1 [(xml).path="Repository"];
+}
+
+message Repository {
+	optional string name = 1 [(xml).path="@name"];
+	optional bool require_backup = 2 [(xml).path="RequireBackup"];
+}
+
 enum facility {
 	local0 = 1;
 	local1 = 2;

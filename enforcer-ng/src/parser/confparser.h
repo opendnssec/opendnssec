@@ -107,6 +107,7 @@ const char* parse_conf_db_username(allocator_type* allocator,
 const char* parse_conf_db_password(allocator_type* allocator,
 	const char* cfgfile);
 
+
 /**
  * Parse elements from the configuration file.
  * \param[in] cfgfile the configuration file name
@@ -123,7 +124,7 @@ int parse_conf_worker_threads(const char* cfgfile);
 int parse_conf_manual_keygen(const char* cfgfile);
 int parse_conf_db_port(const char *cfgfile);
 time_t parse_conf_automatic_keygen_period(const char* cfgfile);
-	
+struct engineconfig_repository* parse_conf_repositories(const char* cfgfile);
 #ifdef __cplusplus
 }
 #endif
