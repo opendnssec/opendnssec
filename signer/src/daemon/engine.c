@@ -416,6 +416,7 @@ engine_stop_workers(engine_type* engine)
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
+    ods_log_debug("[%s] notify workers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
@@ -436,6 +437,7 @@ engine_stop_drudgers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 1;
     }
+    ods_log_debug("[%s] notify drudgers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
