@@ -309,23 +309,6 @@ parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_zonefetch_filename(allocator_type* allocator, const char* cfgfile)
-{
-    const char* dup = NULL;
-    const char* str = parse_conf_string(
-        cfgfile,
-        "//Configuration/Common/ZoneFetchFile",
-        0);
-
-    if (str) {
-        dup = allocator_strdup(allocator, str);
-        free((void*)str);
-    }
-    return dup;
-}
-
-
-const char*
 parse_conf_log_filename(allocator_type* allocator, const char* cfgfile)
 {
     const char* dup = NULL;
