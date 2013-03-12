@@ -14,6 +14,14 @@ LDNS_SRC=`fetch_src "$LDNS_URL" "$LDNS_FILENAME" "$LDNS_HASH_TYPE" "$LDNS_HASH"`
 
 build_ok=0
 case "$DISTRIBUTION" in
+	sunos )
+		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
+			append_cflags  "-m64"
+			append_ldflags "-m64"
+		fi
+	;;
+esac
+case "$DISTRIBUTION" in
 	centos | \
 	redhat | \
 	fedora | \

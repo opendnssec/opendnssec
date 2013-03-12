@@ -13,7 +13,6 @@ case "$DISTRIBUTION" in
 		export AUTOCONF_VERSION="2.68"
 		export AUTOMAKE_VERSION="1.11"
 		;;
-	sunos | \
 	netbsd | \
 	freebsd )
 		append_cflags "-std=c99"
@@ -21,6 +20,15 @@ case "$DISTRIBUTION" in
 	opensuse )
 		append_ldflags "-lncurses"
 		;;
+	sunos )	
+		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
+			append_cflags "-std=gnu99"
+			append_cflags  "-m64"
+			append_ldflags "-m64"
+		else
+			append_cflags "-std=c99"
+		fi
+	    ;;		
 esac
 case "$DISTRIBUTION" in
 	centos | \
@@ -40,7 +48,7 @@ case "$DISTRIBUTION" in
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-database-backend=sqlite3 \
 				--with-dbname=opendnssec-build-test \
-				--enable-timeshift &&
+				--enable-timeshift &&			
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
