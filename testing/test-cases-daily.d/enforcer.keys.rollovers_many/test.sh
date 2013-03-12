@@ -4,8 +4,8 @@
 #TEST: Configured with very short key lifetimes and 1 min enforcer interval.
 #TEST: Checks the output of ods-ksmutil key list and the signconf.xml contents
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
-#TEST: DISABLED ON FREEBSD: due to repeated  _pthread_mutex_init_calloc_cb () 
-#TEST: seg faults on 64 bit
+## TEST: DISABLED ON FREEBSD: due to repeated  _pthread_mutex_init_calloc_cb () 
+## TEST: seg faults on 64 bit
 
 #TODO: - increase number of steps?
 #TODO: - check more logging in syslog
@@ -16,11 +16,11 @@ LONG_TIMEOUT=20     # Timeout when waiting for enforcer run to have happened
 SLEEP_INTERVAL=50   # This should be just shorter than the enforcer run interval in conf.xml
 
 
-case "$DISTRIBUTION" in
-	freebsd )
-		return 0
-		;;
-esac
+# case "$DISTRIBUTION" in
+# 	freebsd )
+# 		return 0
+# 		;;
+# esac
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
