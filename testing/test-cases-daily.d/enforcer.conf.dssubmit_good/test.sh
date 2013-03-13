@@ -6,12 +6,6 @@
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 ENFORCER_COUNT=2	# How many log lines we expect to see
 
-case "$DISTRIBUTION" in
-	freebsd )
-		ENFORCER_COUNT=4 # Double count because of "kernel" log lines
-		;;
-esac
-
 cp dssub.pl "$INSTALL_ROOT/var/opendnssec/tmp/" &&
 chmod 744 "$INSTALL_ROOT/var/opendnssec/tmp/dssub.pl" &&
 

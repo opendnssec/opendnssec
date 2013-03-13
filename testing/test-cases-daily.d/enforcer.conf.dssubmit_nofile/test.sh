@@ -6,12 +6,6 @@
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 ENFORCER_COUNT=2	# How many log lines we expect to see
 
-case "$DISTRIBUTION" in
-	freebsd )
-		ENFORCER_COUNT=4 # Double count because of "kernel" log lines
-		;;
-esac
-
 # We need the file in place while we setup or kaspcheck fails
 touch "$INSTALL_ROOT/var/opendnssec/tmp/wrong_dssub.pl" &&
 

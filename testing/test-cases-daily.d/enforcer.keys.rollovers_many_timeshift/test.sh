@@ -21,13 +21,6 @@ cp_signconfs_at_timestep_Y () {
 
 }
 
-
-case "$DISTRIBUTION" in
-	freebsd )
-		return 0
-		;;
-esac
-
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
