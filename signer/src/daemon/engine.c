@@ -94,7 +94,6 @@ engine_create(void)
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
     engine->pid = -1;
-    engine->zfpid = -1;
     engine->uid = -1;
     engine->gid = -1;
     engine->daemonize = 0;
