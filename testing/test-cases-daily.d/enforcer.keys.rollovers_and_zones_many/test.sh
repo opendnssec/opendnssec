@@ -2,11 +2,12 @@
 #
 #TEST: Test to track key rollovers when many zones are configured on many policies
 #TEST: in real time. 
-#TEST: DISABLED ON SQLITE (database locking causes problems)
-#TEST: DISABLED ON OPENBSD (last signing fails....)
 #TEST: Configured with very short key lifetimes and 1 min enforcer interval.
 #TEST: Checks just the signconf.xml contents and a that the zone is signed
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
+
+#DISABLED: ON SQLITE (database locking causes problems)
+#DISABLED: ON OPENBSD (last signing fails....)
 
 #TODO: - check more logging in syslog
 

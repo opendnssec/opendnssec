@@ -4,6 +4,16 @@
 #TEST: Configure no PIN while PIN is needed, expect failure
 #TEST: Then login and start everything successfully
 
+#DISABLED: ON SOLARIS due to unreproducible core dump when
+#DISABLED: running on the sparc64 box. !Needs investigating!        
+
+case "$DISTRIBUTION" in
+	sunos )
+		return 0
+		;;
+esac
+
+
 # Make sure the PIN is cleared from shared memory
 log_this clear-pin ods-hsmutil logout
 
