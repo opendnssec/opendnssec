@@ -1,9 +1,10 @@
 $Id$
 
 
-OpenDNSSEC 1.4.0-trunk
+OpenDNSSEC 1.4.0rc3 - 2013-03-15
 
 * Further testing of OPENDNSSEC-387 completed, release returned to rc status.
+
 
 OpenDNSSEC 1.4.0b3 - 2013-02-20
 
