@@ -51,7 +51,8 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
-#define SE_CLI_CMDLEN 6
+#define SE_CLI_CMDLEN 6 /* minumum daemon response size (chars in "\ncmd> ") */
+//~ #define HIST_CAPACITY 10
 
 static const char* cli_str = "client";
 
@@ -87,19 +88,23 @@ max(int a, int b)
 /**
  * Interface.
  *
+ * fp: stdin
+ * sockfd: pipe to daemon
+ * cmd: command line args, may be NULL;
  */
 static int
 interface_run(FILE* fp, int sockfd, char* cmd)
 {
     int maxfdp1 = 0;
     int stdineof = 0;
-    int i = 0;
     int n = 0;
     int ret = 0;
     int cmd_written = 0;
     int cmd_response = 0;
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
+    //~ int hist_index = 0;
+    //~ char history[HIST_CAPACITY][ODS_SE_MAXLINE];
     int written;
 
     stdineof = 0;
@@ -138,32 +143,27 @@ interface_run(FILE* fp, int sockfd, char* cmd)
         }
 
         if (FD_ISSET(sockfd, &rset)) {
+            /* We have data ready from the daemon to read. */
             /* clear buffer */
-            for (i=0; i < ODS_SE_MAXLINE; i++) {
-                buf[i] = 0;
-            }
-            buf[ODS_SE_MAXLINE-1] = '\0';
-
+            memset(buf, 0, ODS_SE_MAXLINE);
             /* socket is readable */
-            if ((n = read(sockfd, buf, ODS_SE_MAXLINE)) <= 0) {
-                if (n < 0) {
-                    /* error occurred */
-                    fprintf(stderr, "error: %s\n", strerror(errno));
-                    return 1;
+            n = read(sockfd, buf, ODS_SE_MAXLINE);
+            if (n < 0) {
+                /* error occurred */
+                fprintf(stderr, "error: %s\n", strerror(errno));
+                return 1;
+            } else if (n == 0) {
+                if (stdineof == 1) {
+                    /* normal termination */
+                    return 0;
                 } else {
-                    /* n==0 */
-                    if (stdineof == 1) {
-                        /* normal termination */
-                        return 0;
-                    } else {
-                        /* weird termination */
-                        fprintf(stderr, "enforcer engine terminated "
-                                "prematurely\n");
-                        return 1;
-                    }
+                    /* weird termination */
+                    fprintf(stderr, "enforcer engine terminated "
+                            "prematurely\n");
+                    return 1;
                 }
             }
-
+            
             if (cmd) {
                 if (n < SE_CLI_CMDLEN) {
                     /* not enough data received */
@@ -231,12 +231,11 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             }
 
             /* clear buffer */
-            for (i=0; i< ODS_SE_MAXLINE; i++) {
-                buf[i] = 0;
-            }
+            memset(buf, 0, ODS_SE_MAXLINE);
 
             /* interactive mode */
-            if ((n = read(fileno(fp), buf, ODS_SE_MAXLINE)) == 0) {
+            n = read(fileno(fp), buf, ODS_SE_MAXLINE);
+            if (n == 0) { /* eof */
                 stdineof = 1;
                 ret = shutdown(sockfd, SHUT_WR);
                 if (ret != 0) {
@@ -246,14 +245,21 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 }
                 FD_CLR(fileno(fp), &rset);
                 continue;
+            } else if (n < 0) {
+                fprintf(stderr, "read from stdin failed: %s\n",
+                        strerror(errno));
+                return 1;
             }
-            if (strncmp(buf, "exit", 4) == 0 ||
-                strncmp(buf, "quit", 4) == 0) {
+            if (n >= 4 && (strncmp(buf, "exit", 4) == 0 ||
+                strncmp(buf, "quit", 4) == 0)) {
                 return 0;
             }
+            
             ods_str_trim(buf);
             n = strlen(buf);
             ods_writen(sockfd, buf, n);
+            //~ memcpy(history[hist_index], buf, ODS_SE_MAXLINE);
+            //~ hist_index = (hist_index+1) % HIST_CAPACITY;
         }
     }
 }
