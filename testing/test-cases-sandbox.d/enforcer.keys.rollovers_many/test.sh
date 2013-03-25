@@ -5,8 +5,6 @@
 #TEST: Checks the output of ods-ksmutil key list and the signconf.xml contents
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
 
-#DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
-
 #TODO: - increase number of steps?
 #TODO: - check more logging in syslog
 
@@ -18,12 +16,6 @@ SLEEP_INTERVAL=50   # This should be just shorter than the enforcer run interval
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
-
-case "$DISTRIBUTION" in
-	freebsd )
-		return 0
-		;;
-esac
 
 ods_reset_env &&
 
