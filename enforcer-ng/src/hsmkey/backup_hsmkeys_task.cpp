@@ -43,6 +43,7 @@
 
 #include <map>
 #include <fcntl.h>
+#include <utility>
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
@@ -224,28 +225,47 @@ perform_backup_list(int sockfd, engineconfig_type *config, const char *repositor
 		ods_printf(sockfd,"error: key enumeration failed\n");
 		return;
 	}
-	ods_printf(sockfd,"NOTIMPL\n");
-	return;
-	//~ OrmContextRef context;
-	//~ keys_marked = 0;
-	//~ for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-		//~ ::ods::hsmkey::HsmKey key;
-		//~ if (OrmGetMessage(rows, key, true, context)) {
-			//~ if (key.backmeup()) {
-				//~ key.set_backmeup(false);
-				//~ keys_marked++;
-				//~ if (!OrmMessageUpdate(context)) {
-					//~ ods_log_error_and_printf(sockfd, module_str,
-						//~ "database record update failed");
-				//~ }
-			//~ }
-			//~ context.release();
-		//~ }
-	//~ }
+	
+	using namespace std;
+	typedef std::vector<int> Val;
+	typedef map<string, Val> Policy;
+	
+	Policy::iterator polit;
+	Val val;
+	Policy pol;
+	
+	OrmContextRef context;
+	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		::ods::hsmkey::HsmKey key;
+		if (OrmGetMessage(rows, key, true, context)) {
+			val = pol[key.policy()];
+			if (val.empty()) {
+				val.push_back(key.backmeup());
+				val.push_back(key.backedup());
+				val.push_back(1);
+			} else {
+				val[0] += key.backmeup();
+				val[1] += key.backedup();
+				val[2]++;
+			}
+			pol[key.policy()] = val;
+			context.release();
+		}
+	}
 	rows.release();
+	
+	ods_printf(sockfd, "Backups:\n");
+	for (polit = pol.begin();  polit != pol.end(); polit++) {
+		string policyname = (*polit).first;
+		int backmeup = (*polit).second[0];
+		int backedup = (*polit).second[1];
+		int total = (*polit).second[2];
+		ods_printf(sockfd, "Repository %s has %d keys: %d backed up, %d unbacked "
+			"up, %d prepared.\n", policyname.c_str(), total, backedup, total - backedup, backmeup);
+	}
+
 	if (!transaction.commit()) {
 		ods_printf(sockfd,"error committing transaction.");
 		return;
 	}
-	ods_printf(sockfd,"info: keys unflagged for backed up: %d\n", keys_marked);
 }
