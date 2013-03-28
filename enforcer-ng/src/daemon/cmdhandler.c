@@ -471,43 +471,32 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssiz
 static void
 cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
 {
-    ssize_t n = 0;
-    int sockfd = 0;
+    ssize_t n;
+    int sockfd;
     char buf[ODS_SE_MAXLINE];
+    int done = 0;
 
     ods_log_assert(cmdc);
-    if (!cmdc)
-        return;
+    if (!cmdc) return;
     sockfd = cmdc->client_fd;
 
-again:
-    while ((n = read(sockfd, buf, ODS_SE_MAXLINE)) > 0) {
-        buf[n-1] = '\0';
-        n--;
-        if (n <= 0) {
-            return;
-        }
-        
-        if (cmdhandler_perform_command(sockfd,cmdc->engine,buf,n)) {
-        	/**
-        	 * Command stopped enforcer, exit nicly
-        	 */
-        	return;
-        }
-        
-        (void)snprintf(buf, SE_CMDH_CMDLEN, "\ncmd> ");
-        ods_writen(sockfd, buf, strlen(buf));
-    }
-
-    if (n < 0 && (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN) ) {
-        goto again;
-    } else if (n < 0 && errno == ECONNRESET) {
-        ods_log_debug("[%s] done handling client: %s", module_str,
-            strerror(errno));
-    } else if (n < 0 ) {
-        ods_log_error("[%s] read error: %s", module_str, strerror(errno));
-    }
-    return;
+	while (!done) {
+		done = 1;
+		n = read(sockfd, buf, ODS_SE_MAXLINE);
+		if (n <= 0) {
+			if (n == 0 || errno == ECONNRESET) {
+				ods_log_error("[%s] done handling client: %s", module_str,
+					strerror(errno));
+			} else if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
+				done = 0;
+			else
+				ods_log_error("[%s] read error: %s", module_str, strerror(errno));
+		} else {
+			buf[--n] = '\0';
+			if (n > 0)
+				cmdhandler_perform_command(sockfd, cmdc->engine, buf, n);
+		}
+	}
 }
 
 
