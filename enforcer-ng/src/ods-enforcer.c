@@ -80,12 +80,13 @@ usage(FILE* out)
 /**
  * Interface.
  *
- * fp: stdin
- * sockfd: pipe to daemon
- * cmd: command line args, may be NULL;
+ * sockfd: pipe to daemon. must be open and NON_BLOCKING.
+ * cmd: command line to send to daemon. Must not be NULL.
+ * 
+ * return 0 on success.
  */
 static int
-interface_run(int sockfd, char* cmd)
+interface_run(const int sockfd, const char* cmd)
 {
     int written, n = 0, ret = 0, sockeof = 0;
     fd_set rset;
@@ -124,7 +125,7 @@ interface_run(int sockfd, char* cmd)
                         ret = 0;
                         continue; /* try again... */
                     }
-                    fprintf(stderr, "error writing to stdout: %s\n", 
+                    fprintf(stderr, "error writing to stdout: %s\n",
                         strerror(errno));
                     return 1; /*  */
                 }
@@ -138,64 +139,70 @@ interface_run(int sockfd, char* cmd)
 /**
  * Start interface
  *
- * char *cmd: command to exec, NULL for interactive mode
+ * char *cmd: command to exec, NULL for interactive mode.
+ * const char* servsock_filename: name of pipe to connect to daemon.
+ * 
+ * return 0 on succes.
  */
 static int
-interface_start(char* cmd_arg)
+interface_start(const char* cmd_arg, const char* servsock_filename)
 {
-    int sockfd, ret, flags, n;
+    int sockfd, flags, return_value;
     struct sockaddr_un servaddr;
-    const char* servsock_filename = OPENDNSSEC_ENFORCER_SOCKETFILE;
-    char* icmd = NULL; /* interactive commands*/
-    char* cmd;
-    int keep_running = 1;
-    
-    ods_log_init(NULL, 0, 0);
+    char *icmd_ptr;
+    char cmd[ODS_SE_MAXLINE];
 
-    while (keep_running) {
+    do {
+        return_value = 0;
         /* read user input */
-        if (!cmd_arg) {
-            icmd = readline("cmd> ");
-            if (!icmd) { /* eof */
+        if (!cmd_arg) { /* interactive mode */
+            memset(cmd, 0, ODS_SE_MAXLINE);
+            if ((icmd_ptr = readline("cmd> ")) == NULL) { /* eof */
                 printf("\n");
                 break;
             }
-            ods_str_trim(icmd);
-            n = strlen(icmd)+1;/* include terminator */
-            if (icmd[0]!=0) add_history(icmd);
-            
-            if (n >= 5 && (strncmp(icmd, "exit", 4) == 0 ||
-                strncmp(icmd, "quit", 4) == 0)) {
-                break;
-            }
-            cmd = icmd;
-        } else {
-            cmd = cmd_arg;
-            keep_running = 0;
+            strncpy(cmd, icmd_ptr, ODS_SE_MAXLINE);
+            free(icmd_ptr);
+        } else { /* one shot mode */
+            strncpy(cmd, cmd_arg, ODS_SE_MAXLINE);
         }
+        cmd[ODS_SE_MAXLINE-1] = 0; /* user input, handle with care */
+        ods_str_trim(cmd);
+        if (cmd[0] == 0) continue; /* don't bother daemon w/ whitespace */
+
+        add_history(cmd);
+
+        /* These commands don't go through the pipe */
+        if (ods_strcmp(cmd, "exit") == 0 || ods_strcmp(cmd, "quit") == 0)
+            break;
+        if (ods_strcmp(cmd, "start") == 0) {
+                system(ODS_EN_ENGINE);
+                continue;
+        }
+
         /* Now we know what to say, open socket */
         sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sockfd <= 0) {
             fprintf(stderr, "Unable to connect to engine. "
-                "socket() failed: %s (\"%s\")\n", strerror(errno), servsock_filename);
-            return 1;
+                "socket() failed: %s (\"%s\")\n",
+                strerror(errno), servsock_filename);
+            return_value = 1;
+            break;
         }
 
         /* no suprises */
         bzero(&servaddr, sizeof(servaddr));
         servaddr.sun_family = AF_UNIX;
         strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path) - 1);
-        ret = connect(sockfd, (const struct sockaddr*) &servaddr, sizeof(servaddr));
-        if (ret != 0) {
-            if (cmd && ods_strcmp(cmd, "start") == 0) {
-                system(ODS_EN_ENGINE);
-            } else if (cmd && ods_strcmp(cmd, "running") == 0) {
+        if (connect(sockfd, (const struct sockaddr*) &servaddr, sizeof(servaddr)) != 0) {
+            if (ods_strcmp(cmd, "running") == 0)
                 fprintf(stderr, "Engine not running.\n");
-            } else {
+            else
                 fprintf(stderr, "Unable to connect to engine. "
-                "connect() failed: %s (\"%s\")\n"
-                "Is ods-enforcerd running?\n", strerror(errno), servsock_filename);
-            }
+                    "connect() failed: %s (\"%s\")\n"
+                    "Is ods-enforcerd running?\n", 
+                    strerror(errno), servsock_filename);
+            return_value = 1;
             close(sockfd);
             continue;
         }
@@ -205,27 +212,23 @@ interface_start(char* cmd_arg)
             ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
                 "failed: %s", cli_str, strerror(errno));
             close(sockfd);
-            return 1;
+            return_value = 1;
+            break;
         }
         flags |= O_NONBLOCK;
         if (fcntl(sockfd, F_SETFL, flags) < 0) {
             ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
                 "failed: %s", cli_str, strerror(errno));
             close(sockfd);
-            return 1;
+            return_value = 1;
+            break;
         }
 
-        if (cmd_arg) {
-            interface_run(sockfd, cmd);
-            break;
-        } else {
-            ret = interface_run(sockfd, cmd);
-            free(icmd);
-            if (ret) break;  /* error case */
-        }
+        return_value = interface_run(sockfd, cmd);
         close(sockfd);
-    }
-    return 0;
+        if (return_value) break;
+    } while (!cmd_arg);
+    return return_value;
 }
 
 
@@ -238,13 +241,15 @@ main(int argc, char* argv[])
 {
     char* cmd = NULL;
     int ret = 0;
+
     allocator_type* clialloc = allocator_create(malloc, free);
     if (!clialloc) {
         fprintf(stderr,"error, malloc failed for client\n");
         exit(1);
     }
-    
-    /*  concat arguments an add 1 extra char for 
+    ods_log_init(NULL, 0, 0);
+
+    /*  concat arguments an add 1 extra char for
         adding '\n' char later on, but only when argc > 1 */
     if (argc > 1) {
         cmd = ods_str_join(clialloc, argc-1, &argv[1], ' ');
@@ -259,7 +264,7 @@ main(int argc, char* argv[])
         usage(stdout);
         ret = 1;
     } else {
-        ret = interface_start(cmd);
+        ret = interface_start(cmd, OPENDNSSEC_ENFORCER_SOCKETFILE);
     }
 
     /* done */
