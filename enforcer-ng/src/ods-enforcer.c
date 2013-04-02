@@ -53,8 +53,11 @@
 
 /* cmd history */
 #include <stdlib.h>
+
+#ifdef HAVE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
+#endif
 
 static const char* cli_str = "client";
 
@@ -114,7 +117,6 @@ interface_run(const int sockfd, const char* cmd)
                 printf("\n");
             } else if (n < 0) {
                 fprintf(stderr, "error reading pipe: %s\n", strerror(errno));
-                rl_callback_handler_remove();
                 return 1; /* indicates error */
             }
             /* now write what we have to stdout */
@@ -147,9 +149,11 @@ interface_run(const int sockfd, const char* cmd)
 static int
 interface_start(const char* cmd_arg, const char* servsock_filename)
 {
-    int sockfd, flags, return_value;
+    int sockfd, flags, return_value, n;
     struct sockaddr_un servaddr;
+#ifdef HAVE_READLINE
     char *icmd_ptr;
+#endif
     char cmd[ODS_SE_MAXLINE];
 
     do {
@@ -157,12 +161,25 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
         /* read user input */
         if (!cmd_arg) { /* interactive mode */
             memset(cmd, 0, ODS_SE_MAXLINE);
+#ifdef HAVE_READLINE
             if ((icmd_ptr = readline("cmd> ")) == NULL) { /* eof */
                 printf("\n");
                 break;
             }
             strncpy(cmd, icmd_ptr, ODS_SE_MAXLINE);
             free(icmd_ptr);
+#else
+            printf("cmd> "); fflush(stdout);
+            n = read(fileno(stdin), cmd, ODS_SE_MAXLINE);
+            if (n == 0) { /* eof */
+                printf("\n");
+                break;
+            } else if (n == -1) {
+                exit(1);
+            }
+            /* read produces trailing lf */
+            cmd[n-1] = 0;
+#endif 
         } else { /* one shot mode */
             strncpy(cmd, cmd_arg, ODS_SE_MAXLINE);
         }
@@ -170,8 +187,9 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
         ods_str_trim(cmd);
         if (cmd[0] == 0) continue; /* don't bother daemon w/ whitespace */
 
+#ifdef HAVE_READLINE
         add_history(cmd);
-
+#endif
         /* These commands don't go through the pipe */
         if (ods_strcmp(cmd, "exit") == 0 || ods_strcmp(cmd, "quit") == 0)
             break;
@@ -228,6 +246,12 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
         close(sockfd);
         if (return_value) break;
     } while (!cmd_arg);
+
+#ifdef HAVE_READLINE
+    clear_history();
+    rl_free_undo_list();
+#endif
+
     return return_value;
 }
 

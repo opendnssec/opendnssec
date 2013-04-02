@@ -168,7 +168,8 @@ ods_enforcer_SOURCES = \
 ods_enforcer_LDADD = \
 	$(LIBHSM) \
 	@LDNS_LIBS@ \
-	@XML2_LIBS@
+	@XML2_LIBS@ \
+	@READLINE_LIBS@
 
 %.pb.cc %.pb.h: %.proto
 	$(PROTOC) @PROTOBUF_INCLUDES@ -I$(srcdir)/xmlext-pb -I$(srcdir)/protobuf-orm --cpp_out=`dirname $@` -I=`dirname $<` $<
