@@ -77,6 +77,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         if (!ecfg) {
             ods_log_error("[%s] unable to create config: allocator_alloc() "
                 "failed", conf_str);
+            ods_fclose(cfgfd);
             return NULL;
         }
         ecfg->allocator = allocator;
