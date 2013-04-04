@@ -298,7 +298,7 @@ ods_file_lastmodified(const char* file)
         return buf.st_mtime;
     } else {
         ods_log_error("[%s] unable to stat file %s: ods_fopen() failed",
-            file_str, file, strerror(errno));
+            file_str, file);
     }
     return 0;
 }
