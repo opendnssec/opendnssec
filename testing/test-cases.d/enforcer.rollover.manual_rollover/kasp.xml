@@ -28,7 +28,6 @@
 			<TTL>PT10M</TTL>
 			<RetireSafety>PT10M</RetireSafety>
 			<PublishSafety>PT10M</PublishSafety>
-			<ShareKeys/>
 			<Purge>P1D</Purge>
 			<KSK>
 				<Algorithm length="2048">7</Algorithm>
