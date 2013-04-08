@@ -6,7 +6,7 @@
 
 
 if [ -n "$HAVE_MYSQL" ]; then
-	ods_setup_conf conf.xml conf-mysql.xml
+        ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
 ods_reset_env &&
@@ -59,6 +59,15 @@ log_this_timeout dig 10 dig -p 15354 @127.0.0.1 ixfr=1001 ods &&
 log_grep dig stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1002.*9000.*4500.*1209600.*3600' &&
 log_grep dig stdout 'label35\.ods\..*3600.*IN.*NS.*ns1\.label35\.ods\.' &&
 log_grep dig stdout 'ns1\.label35\.ods\..*3600.*IN.*A.*192\.0\.2\.1' &&
+
+# Validate the output on redhat
+case "$DISTRIBUTION" in
+        redhat )
+                log_this_timeout dig_axfr 10 dig -p 15354 @127.0.0.1 axfr ods  &&
+                log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host _log..dig_axfr.stdout &&
+                log_grep validate-zone-ods stdout 'validation errors:   0'
+                ;;
+esac &&
 
 ## Stop
 log_this_timeout ods-control-stop 60 ods-control stop &&

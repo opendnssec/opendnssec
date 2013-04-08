@@ -34,7 +34,19 @@ test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.binary.org" &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] 64/1.0.168.192.IN-ADDR.ARPA' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/64-1.0.168.192.in-addr.arpa" &&
 
-# Validate the output when we have a validation tool.....
+# Validate the output on redhat
+case "$DISTRIBUTION" in
+        redhat )
+                # can't use -p all as the zone has only 1 NS per name
+                log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+                log_grep validate-zone-ods stdout 'validation errors:   0'
+                # This fails because of 1. invalid/unsupported rdtypes and 2. broken NSEC3 chain
+                #log_this validate-zone-ods validns -s "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
+                #log_grep validate-zone-ods stdout 'validation errors:   0'
+                # The other two zone types don't seem to be supported by validns
+                ;;
+esac &&
+
 
 #########################################################################
 # Tests to cover signing specific bugs
@@ -76,7 +88,9 @@ syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 mv kasp.xml_orig kasp.xml &&
 return 0
 
+echo '*********** ERROR **********'
 ods_kill
-mv kasp.xml_orig kasp.xml &&
+mv kasp.xml_orig kasp.xml
 return 1
+
 
