@@ -111,10 +111,10 @@ bool get_arguments(int sockfd, const char *cmd,
     (void)ods_find_arg_and_param(&argc,argv,"signconf","s",&signconf);
     (void)ods_find_arg_and_param(&argc,argv,"infile","if",&infile);
     (void)ods_find_arg_and_param(&argc,argv,"outfile","of",&outfile);
-    (void)ods_find_arg_and_param(&argc,argv,"intype","it",&signconf);
-    (void)ods_find_arg_and_param(&argc,argv,"outtype","ot",&signconf);
-    (void)ods_find_arg_and_param(&argc,argv,"inconf","ic",&signconf);
-    (void)ods_find_arg_and_param(&argc,argv,"outconf","oc",&signconf);
+    (void)ods_find_arg_and_param(&argc,argv,"intype","it",&intype);
+    (void)ods_find_arg_and_param(&argc,argv,"outtype","ot",&outtype);
+    (void)ods_find_arg_and_param(&argc,argv,"inconf","ic",&inconf);
+    (void)ods_find_arg_and_param(&argc,argv,"outconf","oc",&outconf);
 
     if (argc) {
 		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
