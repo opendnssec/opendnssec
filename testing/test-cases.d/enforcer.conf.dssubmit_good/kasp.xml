@@ -54,7 +54,7 @@
 		<Parent>
 			<PropagationDelay>PT20M</PropagationDelay>
 			<DS>
-				<TTL>PT10M</TTL>
+				<TTL>PT5M</TTL>
 			</DS>
 			<SOA>
 				<TTL>PT5H</TTL>

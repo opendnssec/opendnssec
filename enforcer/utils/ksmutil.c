@@ -1399,6 +1399,11 @@ cmd_exportkeys ()
     ldns_rr *ds_sha256_rr = NULL;
     hsm_sign_params_t *sign_params = NULL;
 
+	/* To find the ttl of the DS */
+	int policy_id = -1;
+	int rrttl = -1;
+	int param_id = -1; /* unused */
+
     char* sql = NULL;
     KSM_KEYDATA data;       /* Data for each key */
     DB_RESULT	result;     /* Result set from query */
@@ -1556,10 +1561,39 @@ cmd_exportkeys ()
             sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
             if (ds_flag == 0) {
+	
+				/* Set TTL if we can find it; else leave it as the default */
+				/* We need a policy id */
+				status = KsmPolicyIdFromZoneId(data.zone_id, &policy_id);
+				if (status == 0) {
+
+					/* Use this to get the TTL parameter value */
+					if (keytype_id == KSM_TYPE_KSK) {
+						status = KsmParameterValue(KSM_PAR_KSKTTL_STRING, KSM_PAR_KSKTTL_CAT, &rrttl, policy_id, &param_id);
+					} else {
+						status = KsmParameterValue(KSM_PAR_ZSKTTL_STRING, KSM_PAR_ZSKTTL_CAT, &rrttl, policy_id, &param_id);
+					}
+					if (status == 0) {
+						ldns_rr_set_ttl(dnskey_rr, rrttl);
+					}
+				}
+					
                 printf("\n;%s %s DNSKEY record:\n", KsmKeywordStateValueToName(data.state), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                 ldns_rr_print(stdout, dnskey_rr);
             }
             else {
+	
+				/* Set TTL if we can find it; else leave it as the default */
+				/* We need a policy id */
+				status = KsmPolicyIdFromZoneId(data.zone_id, &policy_id);
+				if (status == 0) {
+
+					/* Use this to get the DSTTL parameter value */
+					status = KsmParameterValue(KSM_PAR_DSTTL_STRING, KSM_PAR_DSTTL_CAT, &rrttl, policy_id, &param_id);
+					if (status == 0) {
+						ldns_rr_set_ttl(dnskey_rr, rrttl);
+					}
+				}	
 
                 printf("\n;%s %s DS record (SHA1):\n", KsmKeywordStateValueToName(data.state), (keytype_id == KSM_TYPE_KSK ? "KSK" : "ZSK"));
                 ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
