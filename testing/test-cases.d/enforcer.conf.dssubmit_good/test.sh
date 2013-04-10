@@ -57,6 +57,13 @@ echo "Testing contents of dssub.out" &&
 grep "ods. 600 IN DNSKEY 257 3 7 AwEAA.*" "$INSTALL_ROOT/var/opendnssec/tmp/dssub.out" &&
 ! grep "; {cka_id = .*}" "$INSTALL_ROOT/var/opendnssec/tmp/dssub.out" &&
 
+# Also export the key to double check the TTL 
+log_this ods-ksmutil-key-export 'ods-ksmutil key export' &&
+log_grep ods-ksmutil-key-export stdout 'ods.	600	IN	DNSKEY	257 3 7 AwEAA' &&
+
+log_this ods-ksmutil-key-export-ds 'ods-ksmutil key export --ds' &&
+log_grep ods-ksmutil-key-export-ds stdout 'ods.	300	IN	DS	' &&
+
 # Clean up
 echo "Cleaning up files" &&
 rm "$INSTALL_ROOT/var/opendnssec/tmp/dssub.pl" &&
