@@ -9,6 +9,8 @@ BUGS:
 -----
 
 OPENDNSSEC-332: Statistics on average sigs/sec not accurate
+OPENDNSSEC-398: The ods-ksmutil key rollover command does not work correctly
+when rolling all keys using the --policy option
 
 
 Limitations on Number of Zones
