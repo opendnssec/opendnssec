@@ -62,7 +62,7 @@
 		</Parent>
 	</Policy>
 	<Policy name="bill">
-		<Description>default policy but with shared keys</Description>
+		<Description>default fast test policy</Description>
 		<Signatures>
 			<Resign>PT3M</Resign>
 			<Refresh>PT15M</Refresh>
@@ -88,7 +88,6 @@
 			<TTL>PT10M</TTL>
 			<RetireSafety>PT10M</RetireSafety>
 			<PublishSafety>PT10M</PublishSafety>
-			<ShareKeys/>			
 			<Purge>P1D</Purge>
 			<KSK>
 				<Algorithm length="2048">7</Algorithm>
