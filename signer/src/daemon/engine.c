@@ -715,7 +715,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
         zone->notify_command = (char*) str2;
         zone->notify_ns = zone->notify_args[0];
     } else {
-        ods_log_error("[%s] unable to set notify ns: replace \%zone failed",
+        ods_log_error("[%s] unable to set notify ns: replace zone failed",
             engine_str);
     }
     return;
