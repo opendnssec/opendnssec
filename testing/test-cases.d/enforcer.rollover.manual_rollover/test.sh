@@ -34,6 +34,8 @@ log_grep ods-ksmutil-key-list1 stdout 'ods                             KSK      
 log_grep ods-ksmutil-key-list1 stdout 'ods                             ZSK           active' &&
 log_grep ods-ksmutil-key-list1 stdout 'ods2                            KSK           publish' &&
 log_grep ods-ksmutil-key-list1 stdout 'ods2                            ZSK           active' &&
+log_grep ods-ksmutil-key-list1 stdout 'ods3                            KSK           publish' &&
+log_grep ods-ksmutil-key-list1 stdout 'ods3                            ZSK           active' &&
 
 #OPENDNSSEC-91. Make sure either a keytype or the all option are required
 ! log_this ods-ksmutil-key-rollover_bad1 ods-ksmutil key rollover --zone ods &&
@@ -60,6 +62,9 @@ log_grep ods-ksmutil-key-list2 stdout 'ods                             ZSK      
 log_grep ods-ksmutil-key-list1 stdout 'ods2                            KSK           publish' &&
 log_grep ods-ksmutil-key-list1 stdout 'ods2                            ZSK           active' &&
 ! log_grep ods-ksmutil-key-list2 stdout 'ods2                            ZSK           publish' &&
+log_grep ods-ksmutil-key-list1 stdout 'ods3                            KSK           publish' &&
+log_grep ods-ksmutil-key-list1 stdout 'ods3                            ZSK           active' &&
+! log_grep ods-ksmutil-key-list2 stdout 'ods3                            ZSK           publish' &&
 KSK_CKA_ID1=`log_grep -o ods-ksmutil-key-list2 stdout "ods                             KSK           publish" | awk '{print $6}'` &&
 ZSK_CKA_ID1=`log_grep -o ods-ksmutil-key-list2 stdout "ods                             ZSK           active" | awk '{print $6}'` &&
 ZSK_CKA_ID2=`log_grep -o ods-ksmutil-key-list2 stdout "ods                             ZSK           publish" | awk '{print $6}'` &&
@@ -196,6 +201,8 @@ log_grep ods-ksmutil-key-list10 stdout "ods                             ZSK     
 log_grep ods-ksmutil-key-list10 stdout "ods                             ZSK           publish" &&
 log_grep ods-ksmutil-key-list10 stdout 'ods2                            KSK           ready' &&
 log_grep ods-ksmutil-key-list10 stdout 'ods2                            ZSK           active' &&
+log_grep ods-ksmutil-key-list10 stdout 'ods3                            KSK           ready' &&
+log_grep ods-ksmutil-key-list10 stdout 'ods3                            ZSK           active' &&
 
 # ******************* Now roll a zone which shares keys ************************ 
 echo "y" | log_this ods-ksmutil-key-rollover3 ods-ksmutil key rollover --zone ods2 --keytype ZSK &&
@@ -217,6 +224,9 @@ log_grep ods-ksmutil-key-list11 stdout "ods                             ZSK     
 log_grep ods-ksmutil-key-list11 stdout 'ods2                            KSK           ready' &&
 log_grep ods-ksmutil-key-list11 stdout 'ods2                            ZSK           active' &&
 log_grep ods-ksmutil-key-list11 stdout 'ods2                            ZSK           publish' &&
+log_grep ods-ksmutil-key-list11 stdout 'ods3                            KSK           ready' &&
+log_grep ods-ksmutil-key-list11 stdout 'ods3                            ZSK           active' &&
+log_grep ods-ksmutil-key-list11 stdout 'ods3                            ZSK           publish' &&
 
 return 0
 
