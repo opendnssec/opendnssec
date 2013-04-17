@@ -41,7 +41,7 @@ log_grep ods-ksmutil-key-rollover_bad stdout "Error, can't find policy : bob" &&
 
 # ******************* Roll the ZSK first ************************ 
 echo "y" | log_this ods-ksmutil-key-rollover1 ods-ksmutil key rollover --policy default --keytype ZSK &&
-syslog_grep "ods-ksmutil: Manual key rollover for key type zsk on policy default initiated" &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type zsk on policy default initiated" &&
 # *************************************************************** 
 
 # Run the enforcer and check for a published ZSK on our policy
@@ -111,7 +111,7 @@ ZSK_CKA_ID3=`log_grep -o ods-ksmutil-key-list5 stdout "ods                      
 
 # ******************* Roll the KSK now ************************ 
 echo "y" | log_this ods-ksmutil-key-rollover2 ods-ksmutil key rollover --policy default --keytype KSK &&
-syslog_grep "ods-ksmutil: Manual key rollover for key type ksk on policy default initiated" &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type ksk on policy default initiated" &&
 # *************************************************************
 
 # Run the enforcer
@@ -175,7 +175,7 @@ log_grep ods-ksmutil-key-list9 stdout "ods                             ZSK      
 
 # ********Lets roll for a policy and all key types now ************** 
 echo "y" | log_this ods-ksmutil-key-rollover_all ods-ksmutil key rollover --policy default --all &&
-syslog_grep "ods-ksmutil: Manual key rollover for key type all on policy default initiated" &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type all on policy default initiated" &&
 # ******************************************************************* 
 
 # Run the enforcer

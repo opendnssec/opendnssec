@@ -45,7 +45,7 @@ log_grep ods-ksmutil-key-rollover_bad2 stdout "Error, can't find zone : bob" &&
 
 # ******************* Roll the ZSK first ************************ 
 log_this ods-ksmutil-key-rollover1 ods-ksmutil key rollover --zone ods --keytype ZSK &&
-syslog_grep "ods-ksmutil: Manual key rollover for key type zsk on zone ods initiated" &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type zsk on zone ods initiated" &&
 # *************************************************************** 
 
 # Run the enforcer and check for a published ZSK for our zone
@@ -115,7 +115,7 @@ ZSK_CKA_ID3=`log_grep -o ods-ksmutil-key-list5 stdout "ods                      
 
 # ******************* Roll the KSK now ************************ 
 log_this ods-ksmutil-key-rollover2 ods-ksmutil key rollover --zone ods --keytype KSK &&
-syslog_grep "ods-ksmutil: Manual key rollover for key type ksk on zone ods initiated" &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type ksk on zone ods initiated" &&
 # *************************************************************
 
 # Run the enforcer
@@ -180,7 +180,7 @@ log_grep ods-ksmutil-key-list9 stdout "ods                             ZSK      
 # ********Lets roll for a policy and all key types now ************** 
 log_this ods-ksmutil-key-rollover_all ods-ksmutil key rollover --zone ods --all &&
 #echo "y" | log_this ods-ksmutil-key-rollover_all ods-ksmutil key rollover --policy default --all &&
-syslog_grep "ods-ksmutil: Manual key rollover for key type all on zone ods initiated" &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type all on zone ods initiated" &&
 # ******************************************************************* 
 
 # Run the enforcer
@@ -200,7 +200,7 @@ log_grep ods-ksmutil-key-list10 stdout 'ods2                            ZSK     
 # ******************* Now roll a zone which shares keys ************************ 
 echo "y" | log_this ods-ksmutil-key-rollover3 ods-ksmutil key rollover --zone ods2 --keytype ZSK &&
 log_grep ods-ksmutil-key-rollover3 stdout "This zone shares keys with others, all instances of the active key on this zone will be retired; are you sure?" &&
-syslog_grep "ods-ksmutil: Manual key rollover for key type zsk on zone ods2 initiated" &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type zsk on zone ods2 initiated" &&
 # ***************************************************************
 
 # Run the enforcer
