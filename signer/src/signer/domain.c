@@ -917,7 +917,6 @@ void
 domain_print(FILE* fd, domain_type* domain)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    int print_glue = 0;
     rrset_type* rrset = NULL;
     rrset_type* soa_rrset = NULL;
     rrset_type* cname_rrset = NULL;
@@ -950,17 +949,6 @@ domain_print(FILE* fd, domain_type* domain)
             if (rrset->rr_type != LDNS_RR_TYPE_SOA) {
                 if (domain->dstatus == DOMAIN_STATUS_OCCLUDED) {
                     /* glue?  */
-                    print_glue = 1;
-/* TODO: allow for now (root zone has it)
-                    parent = domain->parent;
-                    while (parent && parent->dstatus != DOMAIN_STATUS_APEX) {
-                        if (domain_examine_ns_rdata(parent, domain->dname)) {
-                            print_glue = 1;
-                            break;
-                        }
-                        parent = parent->parent;
-                    }
-*/
                     rrset_print(fd, rrset, 1);
                 } else {
                     rrset_print(fd, rrset, 0);
