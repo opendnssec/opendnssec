@@ -961,10 +961,7 @@ domain_print(FILE* fd, domain_type* domain)
                         parent = parent->parent;
                     }
 */
-                    if (print_glue && (rrset->rr_type == LDNS_RR_TYPE_A ||
-                        rrset->rr_type == LDNS_RR_TYPE_AAAA)) {
-                        rrset_print(fd, rrset, 1);
-                    }
+                    rrset_print(fd, rrset, 1);
                 } else {
                     rrset_print(fd, rrset, 0);
                 }

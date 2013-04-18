@@ -11,6 +11,7 @@ Bugfixes:
   output.
 * OPENDNSSEC-398: The ods-ksmutil key rollover command does not work correctly
   when rolling all keys using the --policy option
+* SUPPORT-40: Signer Engine: Keep occluded data in signed zone files/transfers.
 
 
 OpenDNSSEC 1.3.13 - 2013-02-20
