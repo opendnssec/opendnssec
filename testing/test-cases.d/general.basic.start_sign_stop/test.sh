@@ -3,6 +3,15 @@
 #TEST: Start, sign a single zone with one repository, stop.
 #TEST: On redhat, also perform basic validation of the zone with validns
 
+# So we can use validns 0.7 it is installed from source so need to
+# specify this path
+
+case "$DISTRIBUTION" in
+        redhat )
+                append_path /usr/sbin
+                ;;
+esac
+
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&

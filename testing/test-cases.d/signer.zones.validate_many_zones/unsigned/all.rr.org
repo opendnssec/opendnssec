@@ -24,6 +24,7 @@ ns1.all.rr.org.		IN	A		10.1.0.52
 ; 2 an authoritative name server
 ; [RFC1035]
 all.rr.org.		IN	NS		ns1.example.com.
+all.rr.org.		IN	NS		ns2.example.com.
 
 ; MD
 ; 3 a mail destination (Obsolete - use MX)

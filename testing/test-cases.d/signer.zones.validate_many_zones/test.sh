@@ -5,6 +5,14 @@
 #TEST: Will eventually add validation into this to check the output
 #TEST: For now use it to check any signing bugs with explicit tests
 
+# So we can use validns 0.7 it is installed from source so need to
+# specify this path
+case "$DISTRIBUTION" in
+        redhat )
+                append_path /usr/sbin
+                ;;
+esac
+
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -40,9 +48,8 @@ case "$DISTRIBUTION" in
                 # can't use -p all as the zone has only 1 NS per name
                 log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
                 log_grep validate-zone-ods stdout 'validation errors:   0'
-                # This fails because of 1. invalid/unsupported rdtypes and 2. broken NSEC3 chain
-                #log_this validate-zone-ods validns -s "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
-                #log_grep validate-zone-ods stdout 'validation errors:   0'
+                log_this validate-zone-all.rr.org validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
+                log_grep validate-zone-all.rr.org stdout 'validation errors:   0'
                 # The other two zone types don't seem to be supported by validns
                 ;;
 esac &&
