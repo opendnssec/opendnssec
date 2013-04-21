@@ -3,6 +3,11 @@ $Id$
 
 OpenDNSSEC 1.4.0-trunk
 
+* Production release of 1.4
+* Versioning scheme and release support policies updated
+* Summary of changes in 1.4 can be found on the wiki:
+  http://wiki.opendnssec.org/display/DOCS
+
 
 OpenDNSSEC 1.4.0rc3 - 2013-03-15
 
