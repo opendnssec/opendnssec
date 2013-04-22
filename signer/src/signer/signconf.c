@@ -369,20 +369,20 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
     ods_log_assert(a);
     ods_log_assert(b);
 
-   if (a->nsec_type != b->nsec_type) {
-       new_task = TASK_NSECIFY;
-   } else if (a->nsec_type == LDNS_RR_TYPE_NSEC3) {
-       if ((ods_strcmp(a->nsec3_salt, b->nsec3_salt) != 0) ||
-           (a->nsec3_algo != b->nsec3_algo) ||
-           (a->nsec3_iterations != b->nsec3_iterations) ||
-           (a->nsec3_optout != b->nsec3_optout)) {
+    if (duration_compare(a->soa_min, b->soa_min)) {
+        new_task = TASK_NSECIFY;
+    } else if (a->nsec_type != b->nsec_type) {
+        new_task = TASK_NSECIFY;
+    } else if (a->nsec_type == LDNS_RR_TYPE_NSEC3) {
+        if ((ods_strcmp(a->nsec3_salt, b->nsec3_salt) != 0) ||
+            (a->nsec3_algo != b->nsec3_algo) ||
+            (a->nsec3_iterations != b->nsec3_iterations) ||
+            (a->nsec3_optout != b->nsec3_optout)) {
 
-           new_task = TASK_NSECIFY;
-       }
-   } else if (duration_compare(a->soa_min, b->soa_min)) {
-       new_task = TASK_NSECIFY;
-   }
-   return new_task;
+            new_task = TASK_NSECIFY;
+        }
+    }
+    return new_task;
 }
 
 
