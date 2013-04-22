@@ -314,7 +314,7 @@ worker_perform_task(worker_type* worker)
                         worker->jobs_completed, worker->jobs_appointed);
                     status = ODS_STATUS_ERR;
                 } else if (worker->need_to_exit) {
-                    ods_log_debug("[%s[%i]] sign zone %s failed: worker "
+                    ods_log_warning("[%s[%i]] sign zone %s failed: worker "
                         "needs to exit", worker2str(worker->type),
                         worker->thread_num, task_who2str(task->who));
                     status = ODS_STATUS_ERR;

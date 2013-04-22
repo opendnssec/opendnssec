@@ -13,7 +13,6 @@ case "$DISTRIBUTION" in
                 ;;
 esac
 
-
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
@@ -26,7 +25,8 @@ syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
 #########################################################################
 # Basic checks of signing test zones
 
-log_this_timeout ods-control-signer-start 60 ods-signerd -1 &&
+log_this_timeout ods-control-signer-start 60 ods-signerd -vvvv &&
+#log_this_timeout ods-control-signer-start 60 ods-control signer start &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] example.com' &&
@@ -49,7 +49,7 @@ case "$DISTRIBUTION" in
                 log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
                 log_grep validate-zone-ods stdout 'validation errors:   0' &&
                 log_this validate-zone-all.rr.org validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
-                log_grep validate-zone-all.rr.org stdout 'validation errors:   0' 
+                log_grep validate-zone-all.rr.org stdout 'validation errors:   0'
                 # The other two zone types don't seem to be supported by validns
                 ;;
 esac &&
@@ -61,23 +61,15 @@ esac &&
 #OPENDNSSEC-247 - Update the SOA minimum in the policy and make sure the NSEC TTL changes.
 $GREP -q -- "<Minimum>PT300S</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
 $GREP -q -- "300.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
-mv kasp.xml kasp.xml_orig &&
+cp kasp.xml kasp.xml.orig &&
 cp test/kasp.xml kasp.xml &&
 log_this ods-update-policy ods_setup_conf kasp.xml &&
 log_this_timeout ods-update-policy 10 ods-ksmutil update kasp &&
 syslog_waitfor_count 60 2 'ods-enforcerd: .*Sleeping for' &&
 $GREP -q -- "<Minimum>PT600S</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
-
-log_this_timeout ods-control-signer-start 60 ods-signerd  &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
-# SAD -> MM: This is only logged when using SQLite...
-#syslog_waitfor 60 'ods-signerd: .*zone all.rr.org set soa ttl to 600' &&
-
-log_this ods-resign-diff_ttl ods-signer sign all.rr.org &&
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
-# SAD -> MM: This check fails...
-#$GREP -q -- "600.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
+$GREP -q -- "600.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
 #########################################################################
 
@@ -85,12 +77,12 @@ log_this_timeout ods-control-start 60 ods-control stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 
-mv kasp.xml_orig kasp.xml &&
+cp kasp.xml.orig kasp.xml &&
 return 0
 
 echo '*********** ERROR **********'
 ods_kill
-mv kasp.xml_orig kasp.xml
+cp kasp.xml.orig kasp.xml
 return 1
 
 
