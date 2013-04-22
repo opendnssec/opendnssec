@@ -181,7 +181,7 @@ OpenDNSSEC 1.3.3 - 2011-11-17
 Bugfixes:
 * Auditor: Handle ruby 1.9 differences in ods-kaspcheck.
 * Auditor: Require dnsruby 1.53 for bugfixes.
-* Bugfix #262: Drudgers seem to be in a waiting state, but the RRset FIFO 
+* Bugfix #262: Drudgers seem to be in a waiting state, but the RRset FIFO
   queue is full. Do an additional broadcast.
 * Enforcer: Check HSM connection when waking up from sleep, attempt to
   reconnect if it is not valid. (r5511 in trunk, ported into the branch due
@@ -197,9 +197,9 @@ Bugfixes:
 * Signer Engine: Deal with carriage returns (dos format) in zone file.
 * Signer Engine: <Refresh> is PT0S means that refresh equals signtime.
 * Signer Engine: Defense in depth in signer for duplicate keys.
-* Signer Engine: Make sure that all required zonelist elements exist, 
+* Signer Engine: Make sure that all required zonelist elements exist,
   otherwise error.
-* Signer Engine: Warn the user if the serial is b0rk, and you can not 
+* Signer Engine: Warn the user if the serial is b0rk, and you can not
   use the serial from the signconf.
 * Signer Engine: Log Auditor exit code.
 * Fix a similar bug like #257: Error in ods-signerd, where a corrupted
@@ -209,7 +209,7 @@ Bugfixes:
 OpenDNSSEC 1.3.2 - 2011-09-13
 
 Bugfixes:
-* Bugfix #257: Error in ods-signerd, where a corrupted backup file results 
+* Bugfix #257: Error in ods-signerd, where a corrupted backup file results
   in an invalid pointer free().
 * Signer Engine: Mark that a zone has a valid signer configuration, after
   recovering the zone from the backup files.
@@ -221,12 +221,12 @@ Bugfixes:
 * Auditor: Fix 'ZSK in use too long' message to handle new signer behaviour.
 * Bugfix #255: RHEL6 patch to contrib/opendnssec.spec. (Rick van Rein)
 * Bugfix #256: Make sure argument in "ods-control signer" is not stripped off.
-* Bugfix #259: ods-ksmutil: Prevent MySQL username or password being interpreted
-  by the shell when running "ods-ksmutil setup".
+* Bugfix #259: ods-ksmutil: Prevent MySQL username or password being
+  interpreted by the shell when running "ods-ksmutil setup".
 * Bugfix #260: "ods-ksmutil zone list" now handles empty zonelists.
 * Enforcer: Unsigned comparison resulting in wrong error message.
-* ods-ksmutil: fixed issue where first ds-seen command run on a zone would work,
-  but return an error code and not send a HUP to the enforcerd.
+* ods-ksmutil: fixed issue where first ds-seen command run on a zone would
+  work, but return an error code and not send a HUP to the enforcerd.
 * Signer Engine: A threading issue occasionally puts the default validity
   on NSEC(3) RRs and the denial validity on other RRs.
 * Signer Engine: An update command could interrupt the signing process and the
@@ -242,11 +242,12 @@ OpenDNSSEC 1.3.0 - 2011-07-12
 * Enforcer: Change message about KSK retirement to make it less confusing.
 
 Bugfixes:
-* ods-control: If the Enforcer did not close down, you entered an infinite loop.
+* ods-control: If the Enforcer did not close down, you entered an infinite
+  loop.
 * Signer Engine: Fix log message typos.
 * Signer Engine: Fix crash where ods-signer update
 * Signer Engine: Also replace DNSKEYs if <DNSKEY><TTL> has changed in policy.
-* Zonefetcher: Sometimes invalid 'Address already in use' occurred. 
+* Zonefetcher: Sometimes invalid 'Address already in use' occurred.
 * Bugfix #247: Fixes bug introduced by bugfix #242.
 
 
@@ -286,6 +287,7 @@ OpenDNSSEC 1.3.0rc1 - 2011-04-21
 * <SkipPublicKey/> is enabled for SoftHSM in the default configuration.
   It improves the performance by only using the private key objects.
 * Document the <RolloverNotification> tag in conf.xml.
+* Include check for resign < resalt in ods-kaspcheck.
 
 Bugfixes:
 * Bugfix #221: Segmentation Fault on schedule.c:232
@@ -301,7 +303,8 @@ OpenDNSSEC 1.3.0b1 - 2011-03-23
 * Enforcer: Stop import of policy if it is not consistent.
 * ods-signer: The queue command will now also show what tasks the workers
   are working on.
-* Signer Engine: Just warn if occluded zone data was found, don't stop signing process.
+* Signer Engine: Just warn if occluded zone data was found, don't stop signing
+  process.
 * Signer Engine: Simpler serial maintenance, reduces the number of conflicts.
   Less chance to hit a 'cannot update: serial too small' error message.
 * Signer Engine: Simpler NSEC(3) maintenance.
@@ -647,8 +650,8 @@ Bugfixes:
 * ods-ksmutil: update zonelist correctly links keys to new zones if key sharing 
   is turned on.
 * Bugreport #59: Problem starting ods-signer on a 64-bit machine
-* ods-ksmutil: update zonelist command now correctly adds and deletes zones (and
-  sorts out their keys).
+* ods-ksmutil: update zonelist command now correctly adds and deletes zones
+  (and sorts out their keys).
 
 OpenDNSSEC 1.0.0b8 - 2009-11-23
 
