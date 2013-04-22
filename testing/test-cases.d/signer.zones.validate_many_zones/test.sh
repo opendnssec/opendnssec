@@ -25,8 +25,7 @@ syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
 #########################################################################
 # Basic checks of signing test zones
 
-log_this_timeout ods-control-signer-start 60 ods-signerd -vvvv &&
-#log_this_timeout ods-control-signer-start 60 ods-control signer start &&
+log_this_timeout ods-control-signer-start 60 ods-control signer start &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] example.com' &&
