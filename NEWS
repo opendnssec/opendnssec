@@ -5,6 +5,8 @@ OpenDNSSEC 1.3.14rc1
 * OPENDNSSEC-367: ods-ksmutil: Require user confirmation if the alogrithm for
   a key is changed in a policy (as this rollover is not handled cleanly)
 * OPENDNSSEC-91: Make the keytype flag required when rolling keys
+* OPENDNSSEC-403: Signer Engine: new command 'ods-signer locks' that shows
+  locking information (for debugging purposes).
 
 Bugfixes:
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA

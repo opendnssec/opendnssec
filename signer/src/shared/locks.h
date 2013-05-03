@@ -40,6 +40,62 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#define LOCKED_SIGNAL_ENGINE_INIT           1
+#define LOCKED_SIGNAL_ENGINE_RUN            2
+#define LOCKED_SIGNAL_ENGINE_CAPTURE        3
+#define LOCKED_SIGNAL_ENGINE_SLEEP          4
+#define LOCKED_SCHEDULE_ENGINE_DELZONE      5
+#define LOCKED_SCHEDULE_ENGINE_ADDZONE      6
+#define LOCKED_SCHEDULE_ENGINE_RESCHEDULE   7
+#define LOCKED_SCHEDULE_ENGINE_RECOVER      8
+#define LOCKED_SIGNAL_SIGHUP                9
+#define LOCKED_SIGNAL_SIGTERM               10
+#define LOCKED_SIGNAL_CMD_RELOAD            11
+#define LOCKED_SIGNAL_CMD_STOP              12
+#define LOCKED_ZL_CMD_ZONES                 13
+#define LOCKED_ZL_CMD_UPDATE                14
+#define LOCKED_ZL_CMD_UPDATE_ALL            15
+#define LOCKED_ZL_CMD_SIGN                  16
+#define LOCKED_ZL_CMD_CLEAR                 17
+#define LOCKED_SCHEDULE_CMD_UPDATE          18
+#define LOCKED_SCHEDULE_CMD_SIGN            19
+#define LOCKED_SCHEDULE_CMD_SIGN_ALL        20
+#define LOCKED_SCHEDULE_CMD_QUEUE           21
+#define LOCKED_SCHEDULE_CMD_FLUSH           22
+#define LOCKED_STATS_RRSET_SIGN             23
+#define LOCKED_STATS_TOOLS_INPUT_START      24
+#define LOCKED_STATS_TOOLS_INPUT_STOP       25
+#define LOCKED_STATS_TOOLS_NSECIFY_START    26
+#define LOCKED_STATS_TOOLS_NSECIFY_STOP     27
+#define LOCKED_STATS_TOOLS_AUDIT_START      28
+#define LOCKED_STATS_TOOLS_AUDIT_STOP       29
+#define LOCKED_STATS_TOOLS_OUTPUT_START     30
+#define LOCKED_STATS_TOOLS_OUTPUT_STOP      31
+#define LOCKED_STATS_TOOLS_LOG              32
+#define LOCKED_STATS_ZONE_RECOVER           33
+#define LOCKED_ZONE_CMD_UPDATE              34
+#define LOCKED_ZONE_CMD_SIGN                35
+#define LOCKED_ZONE_CMD_CLEAR               36
+#define LOCKED_ZONE_ENGINE_DELZONE          37
+#define LOCKED_ZONE_ENGINE_ADDZONE          38
+#define LOCKED_ZONE_ENGINE_UPDZONE          39
+
+#define LOCKED_WORKER_INIT                  50
+#define LOCKED_WORKER_SIGN                  51
+#define LOCKED_WORKER_SLEEP                 52
+#define LOCKED_WORKER_SLEEP_UNLESS          53
+#define LOCKED_WORKER_WAKEUP                54
+
+#define LOCKED_Q_WORKER(x)                 (300+x)
+#define LOCKED_Q_DRUDGER(x)                (400+x)
+#define LOCKED_SCHEDULE_WORKER(x)          (500+x)
+#define LOCKED_WORKER_RRSET(x)             (600+x)
+#define LOCKED_WORKER_DRUDGER(x)           (700+x)
+#define LOCKED_ZONE_WORKER(x)              (800+x)
+#define LOCKED_STATS_WORKER(x)             (900+x)
+
+
+
 #define LOCKRET(func) do { \
 	int err; \
 	if ( (err=(func)) != 0) \

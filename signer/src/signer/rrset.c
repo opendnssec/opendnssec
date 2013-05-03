@@ -1110,12 +1110,14 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     ldns_rr_list_free(rr_list);
 
     lock_basic_lock(&stats->stats_lock);
+    stats->stats_locked = LOCKED_STATS_RRSET_SIGN;
     if (rrset->rr_type == LDNS_RR_TYPE_SOA) {
         stats->sig_soa_count += newsigs;
     }
     stats->sig_count += newsigs;
     stats->sig_reuse += reusedsigs;
     lock_basic_unlock(&stats->stats_lock);
+    stats->stats_locked = 0;
     return ODS_STATUS_OK;
 }
 
@@ -1147,11 +1149,13 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
     ods_log_assert(q);
 
     lock_basic_lock(&q->q_lock);
+    q->q_locked = LOCKED_Q_WORKER(worker->thread_num);
     status = fifoq_push(q, (void*) rrset, worker, &tries);
     while (status == ODS_STATUS_UNCHANGED) {
         tries++;
         if (worker->need_to_exit) {
             lock_basic_unlock(&q->q_lock);
+            q->q_locked = 0;
             return ODS_STATUS_UNCHANGED;
         }
         /**
@@ -1164,11 +1168,13 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
         status = fifoq_push(q, (void*) rrset, worker, &tries);
     }
     lock_basic_unlock(&q->q_lock);
-
+    q->q_locked = 0;
     ods_log_assert(status == ODS_STATUS_OK);
     lock_basic_lock(&worker->worker_lock);
+    worker->worker_locked = LOCKED_WORKER_RRSET(worker->thread_num);
     worker->jobs_appointed += 1;
     lock_basic_unlock(&worker->worker_lock);
+    worker->worker_locked = 0;
     return status;
 }
 

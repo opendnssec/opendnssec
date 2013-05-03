@@ -69,10 +69,10 @@ signal_handler(sig_atomic_t sig)
             signal_hup_recvd++;
             if (signal_engine) {
                 lock_basic_lock(&signal_engine->signal_lock);
-                /* [LOCK] signal */
+                signal_engine->signal_locked = LOCKED_SIGNAL_SIGHUP;
                 lock_basic_alarm(&signal_engine->signal_cond);
-                /* [UNLOCK] signal */
                 lock_basic_unlock(&signal_engine->signal_lock);
+                signal_engine->signal_locked = 0;
             }
             break;
         case SIGTERM:
@@ -80,10 +80,10 @@ signal_handler(sig_atomic_t sig)
             signal_term_recvd++;
             if (signal_engine) {
                 lock_basic_lock(&signal_engine->signal_lock);
-                /* [LOCK] signal */
+                signal_engine->signal_locked = LOCKED_SIGNAL_SIGTERM;
                 lock_basic_alarm(&signal_engine->signal_cond);
-                /* [UNLOCK] signal */
                 lock_basic_unlock(&signal_engine->signal_lock);
+                signal_engine->signal_locked = 0;
             }
             break;
         default:

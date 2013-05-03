@@ -63,6 +63,7 @@ struct schedule_struct {
     int flushcount;
     int loading; /* to determine backoff */
     lock_basic_type schedule_lock;
+    int schedule_locked;
 };
 
 /**

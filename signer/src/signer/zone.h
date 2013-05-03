@@ -91,6 +91,7 @@ struct zone_struct {
     stats_type* stats;
 
     lock_basic_type zone_lock;
+    int zone_locked;
 };
 
 /**

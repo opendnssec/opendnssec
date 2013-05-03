@@ -75,6 +75,7 @@ struct engine_struct {
     sig_atomic_t signal;
     cond_basic_type signal_cond;
     lock_basic_type signal_lock;
+    int signal_locked;
 };
 
 /**

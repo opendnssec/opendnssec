@@ -72,10 +72,12 @@ tools_input(zone_type* zone)
 
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = LOCKED_STATS_TOOLS_INPUT_START;
         zone->stats->sort_done = 0;
         zone->stats->sort_count = 0;
         zone->stats->sort_time = 0;
         lock_basic_unlock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = 0;
     }
 
     if (zone->adinbound->type == ADAPTER_FILE) {
@@ -153,10 +155,12 @@ lock_fetch:
 
     if (status == ODS_STATUS_OK && zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = LOCKED_STATS_TOOLS_INPUT_STOP;
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
         zone->stats->sort_done = 1;
         lock_basic_unlock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = 0;
     }
     return status;
 }
@@ -197,9 +201,11 @@ tools_nsecify(zone_type* zone)
 
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = LOCKED_STATS_TOOLS_NSECIFY_START;
         zone->stats->nsec_time = 0;
         zone->stats->nsec_count = 0;
         lock_basic_unlock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = 0;
     }
 
     start = time(NULL);
@@ -236,12 +242,14 @@ tools_nsecify(zone_type* zone)
     end = time(NULL);
     if (status == ODS_STATUS_OK && zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = LOCKED_STATS_TOOLS_NSECIFY_STOP;
         if (!zone->stats->start_time) {
             zone->stats->start_time = start;
         }
         zone->stats->nsec_time = (end-start);
         zone->stats->nsec_count = num_added;
         lock_basic_unlock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = 0;
     }
     return status;
 }
@@ -278,12 +286,14 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
 
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = LOCKED_STATS_TOOLS_AUDIT_START;
         if (zone->stats->sort_done == 0 &&
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
             lock_basic_unlock(&zone->stats->stats_lock);
             return ODS_STATUS_OK;
         }
         lock_basic_unlock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = 0;
     }
 
     if (zone->signconf->audit) {
@@ -329,8 +339,10 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
         end = time(NULL);
         if (status == ODS_STATUS_OK && zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
+            zone->stats->stats_locked = LOCKED_STATS_TOOLS_AUDIT_STOP;
             zone->stats->audit_time = (end-start);
             lock_basic_unlock(&zone->stats->stats_lock);
+            zone->stats->stats_locked = 0;
         }
     }
 #else
@@ -369,6 +381,7 @@ tools_output(zone_type* zone)
 
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = LOCKED_STATS_TOOLS_OUTPUT_START;
         if (zone->stats->sort_done == 0 &&
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
             ods_log_verbose("[%s] skip write zone %s serial %u (zone not "
@@ -376,11 +389,13 @@ tools_output(zone_type* zone)
                 zone->zonedata->internal_serial);
             stats_clear(zone->stats);
             lock_basic_unlock(&zone->stats->stats_lock);
+            zone->stats->stats_locked = 0;
             zone->zonedata->internal_serial =
                 zone->zonedata->outbound_serial;
             return ODS_STATUS_OK;
         }
         lock_basic_unlock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = 0;
     }
 
     outbound_serial = zone->zonedata->outbound_serial;
@@ -411,12 +426,14 @@ tools_output(zone_type* zone)
     /* log stats */
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = LOCKED_STATS_TOOLS_LOG;
         zone->stats->end_time = time(NULL);
         ods_log_debug("[%s] log stats for zone %s", tools_str,
             zone->name?zone->name:"(null)");
         stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
         stats_clear(zone->stats);
         lock_basic_unlock(&zone->stats->stats_lock);
+        zone->stats->stats_locked = 0;
     }
     return status;
 }

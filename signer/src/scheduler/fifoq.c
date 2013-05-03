@@ -69,6 +69,7 @@ fifoq_create(allocator_type* allocator)
     lock_basic_init(&fifoq->q_lock);
     lock_basic_set(&fifoq->q_threshold);
     lock_basic_set(&fifoq->q_nonfull);
+    fifoq->q_locked = 0;
     return fifoq;
 }
 

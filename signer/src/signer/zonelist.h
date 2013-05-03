@@ -55,6 +55,7 @@ struct zonelist_struct {
     int just_updated;
     int just_removed;
     lock_basic_type zl_lock;
+    int zl_locked;
 };
 
 /**

@@ -71,6 +71,7 @@ schedule_create(allocator_type* allocator)
     schedule->flushcount = 0;
     schedule->tasks = ldns_rbtree_create(task_compare);
     lock_basic_init(&schedule->schedule_lock);
+    schedule->schedule_locked = 0;
     return schedule;
 }
 

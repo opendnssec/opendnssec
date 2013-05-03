@@ -67,6 +67,7 @@ struct worker_struct {
     int need_to_exit;
     cond_basic_type worker_alarm;
     lock_basic_type worker_lock;
+    int worker_locked;
 };
 
 /**
