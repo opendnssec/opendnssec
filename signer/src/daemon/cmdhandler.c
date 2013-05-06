@@ -604,6 +604,7 @@ cmdhandler_handle_cmd_locks(int sockfd, cmdhandler_type* cmdc)
             ods_writen(sockfd, buf, strlen(buf));
     }
     /* zones */
+    lock_basic_lock(&cmdc->engine->zonelist->zl_lock);
     node = ldns_rbtree_first(cmdc->engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
@@ -617,6 +618,7 @@ cmdhandler_handle_cmd_locks(int sockfd, cmdhandler_type* cmdc)
         ods_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
+    lock_basic_unlock(&cmdc->engine->zonelist->zl_lock);
     return;
 }
 
