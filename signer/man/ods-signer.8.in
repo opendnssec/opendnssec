@@ -15,7 +15,7 @@
 |
 .I queue
 |
-.I locks
+.I debug\-locks
 |
 .I flush
 |

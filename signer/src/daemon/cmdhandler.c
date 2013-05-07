@@ -88,7 +88,7 @@ cmdhandler_handle_cmd_help(int sockfd)
         "                All signatures will be regenerated on the next "
                          "re-sign.\n"
         "queue           show the current task queue.\n"
-        "locks           show locking information (for debugging purposes).\n"
+        "debug-locks     show locking information (for debugging purposes).\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
 
@@ -548,11 +548,11 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
 
 
 /**
- * Handle the 'locks' command.
+ * Handle the 'debug-locks' command.
  *
  */
 static void
-cmdhandler_handle_cmd_locks(int sockfd, cmdhandler_type* cmdc)
+cmdhandler_handle_cmd_debuglocks(int sockfd, cmdhandler_type* cmdc)
 {
     char* strtime = NULL;
     char buf[ODS_SE_MAXLINE];
@@ -850,9 +850,9 @@ again:
         } else if (n == 5 && strncmp(buf, "queue", n) == 0) {
             ods_log_debug("[%s] list tasks command", cmdh_str);
             cmdhandler_handle_cmd_queue(sockfd, cmdc);
-        } else if (n == 5 && strncmp(buf, "locks", n) == 0) {
-            ods_log_debug("[%s] show locks command", cmdh_str);
-            cmdhandler_handle_cmd_locks(sockfd, cmdc);
+        } else if (n == 11 && strncmp(buf, "debug-locks", n) == 0) {
+            ods_log_debug("[%s] debug locks command", cmdh_str);
+            cmdhandler_handle_cmd_debuglocks(sockfd, cmdc);
         } else if (n == 5 && strncmp(buf, "flush", n) == 0) {
             ods_log_debug("[%s] flush tasks command", cmdh_str);
             cmdhandler_handle_cmd_flush(sockfd, cmdc);
