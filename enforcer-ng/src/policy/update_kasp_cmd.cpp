@@ -51,6 +51,22 @@ help_update_kasp_cmd(int sockfd)
 	   "update kasp     import policies from kasp.xml into the enforcer.\n");
 }
 
+static void
+flush_all_tasks(int sockfd, engine_type* engine)
+{
+    ods_log_debug("[%s] flushing all tasks...", module_str);
+    ods_printf(sockfd,"flushing all tasks...\n");
+    
+    ods_log_assert(engine);
+    ods_log_assert(engine->taskq);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    /* [LOCK] schedule */
+    schedule_flush(engine->taskq, TASK_NONE);
+    /* [UNLOCK] schedule */
+    lock_basic_unlock(&engine->taskq->schedule_lock);
+    engine_wakeup_workers(engine);
+}
+
 int
 handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
                         ssize_t n)
@@ -66,6 +82,7 @@ handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
     time_t tstart = time(NULL);
 	
     perform_update_kasp(sockfd, engine->config);
+    flush_all_tasks(sockfd, engine);
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;
