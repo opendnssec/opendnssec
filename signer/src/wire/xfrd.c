@@ -926,7 +926,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
     status = xfrd_parse_rrs(xfrd, buffer, ancount_todo, &done);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] bad packet: zone %s received bad xfr packet "
-            "(%s)", xfrd_str, zone->name, xfrd->master->address,
+            "from %s (%s)", xfrd_str, zone->name, xfrd->master->address,
             ods_status2str(status));
         return XFRD_PKT_BAD;
     }
