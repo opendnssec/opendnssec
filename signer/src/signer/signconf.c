@@ -314,8 +314,8 @@ signconf_check(signconf_type* sc)
         status = ODS_STATUS_CFG_ERR;
     }
     if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
-        if (sc->nsec3_algo == 0) {
-            ods_log_error("[%s] check failed: no nsec3 algorithm found",
+        if (sc->nsec3_algo != LDNS_SHA1) {
+            ods_log_error("[%s] check failed: invalid nsec3 algorithm",
                 sc_str);
             status = ODS_STATUS_CFG_ERR;
         }

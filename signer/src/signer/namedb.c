@@ -714,7 +714,11 @@ namedb_add_denial(namedb_type* db, ldns_rdf* dname, nsec3params_type* n3p)
     } else {
         owner = ldns_rdf_clone(dname);
     }
-    ods_log_assert(owner);
+    if (!owner) {
+        ods_log_error("[%s] unable to add denial: create owner failed",
+            db_str);
+        return NULL;
+    }
     denial = denial_create(db->zone, owner);
     if (!denial) {
         ods_log_error("[%s] unable to add denial: denial_create() failed",
