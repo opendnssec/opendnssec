@@ -185,7 +185,7 @@ signconf_update(signconf_type** signconf, const char* scfile,
         new_sc->last_modified = st_mtime;
         if (signconf_check(new_sc) != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to update signconf: signconf %s has "
-                "errors (%s)", sc_str, scfile, ods_status2str(status));
+                "errors", sc_str, scfile);
             signconf_cleanup(new_sc);
             return ODS_STATUS_CFG_ERR;
         }
