@@ -1,3 +1,7 @@
+6 June 2013: Matthijs
+- Bugfix: Remove wrongly placed reset of serial disk acquired.
+- Bugfix: Don't crash if NSEC3 Hash Algo is bogus.
+
 22 April 2013: Matthijs
 - OPENDNSSEC-247: TTL NSEC3 was not updated on SOA Minimum change.
 
