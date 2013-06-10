@@ -5,7 +5,10 @@ OpenDNSSEC 1.4.1
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
   Minimum change.
 * Bugfix: The time when inbound serial is acquired was reset invalidly,
-  could cause OpenDNSSEC wanting AXFR responses while requesting IXFR.
+  could cause OpenDNSSEC wanting AXFR responses while requesting IXFR (thanks
+  Stuart Lau).
+* Bugfix: Fix malform in Outbound IXFR/TCP subsequent packet (thanks Stuart
+  Lau).
 * Bugfix: Fix assertion error in case NSEC3 hash algorithm in signconf
   is not SHA1.
 

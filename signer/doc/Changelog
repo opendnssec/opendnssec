@@ -1,5 +1,10 @@
+10 June 2013: Matthijs
+- Bugfix: Fix malform in Outbound IXFR/TCP subsequent packet (thanks Stuart
+  Lau).
+
 6 June 2013: Matthijs
-- Bugfix: Remove wrongly placed reset of serial disk acquired.
+- Bugfix: Remove wrongly placed reset of serial disk acquired (thanks 
+  Stuart Lau).
 - Bugfix: Don't crash if NSEC3 Hash Algo is bogus.
 
 22 April 2013: Matthijs

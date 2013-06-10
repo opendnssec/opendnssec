@@ -417,6 +417,7 @@ ixfr(query_type* q, engine_type* engine)
         buffer_set_limit(q->buffer, BUFFER_PKT_HEADER_SIZE);
         buffer_pkt_set_qdcount(q->buffer, 0);
         query_prepare(q);
+        soa_found = 1;
     }
 
     /* add as many records as fit */
