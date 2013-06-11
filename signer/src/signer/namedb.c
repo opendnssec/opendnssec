@@ -156,9 +156,11 @@ namedb_create(void* zone)
     db->inbserial = 0;
     db->intserial = 0;
     db->outserial = 0;
+    db->altserial = 0;
     db->is_initialized = 0;
     db->is_processed = 0;
     db->serial_updated = 0;
+    db->force_serial = 0;
     return db;
 }
 

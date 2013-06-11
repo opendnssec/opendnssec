@@ -354,8 +354,8 @@ main(int argc, char* argv[])
         exit(1);
     }
 
-    if (argc > 3) {
-        fprintf(stderr,"error, too many arguments\n");
+    if (argc > 5) {
+        fprintf(stderr,"error, too many arguments (%d)\n", argc);
         exit(1);
     }
 
