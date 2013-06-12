@@ -832,7 +832,7 @@ engine_update_zones(engine_type* engine)
     reload_zonefetcher(engine);
 
     lock_basic_lock(&engine->zonelist->zl_lock);
-    engine->zonelist->zl_locked = 1;
+    engine->zonelist->zl_locked = LOCKED_ZL_ENGINE_UPDATEZONES;
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
@@ -963,7 +963,7 @@ engine_recover(engine_type* engine)
     ods_log_assert(engine->zonelist->zones);
 
     lock_basic_lock(&engine->zonelist->zl_lock);
-    engine->zonelist->zl_locked = 1;
+    engine->zonelist->zl_locked = LOCKED_ZL_ENGINE_RECOVER;
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;

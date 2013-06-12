@@ -572,6 +572,7 @@ worker_work(worker_type* worker)
                 worker->thread_num);
             worker->task = schedule_get_first_task(worker->engine->taskq);
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);
+            worker->engine->taskq->schedule_locked = 0;
             if (worker->task && !worker->engine->taskq->loading) {
                 timeout = (worker->task->when - now);
             } else {

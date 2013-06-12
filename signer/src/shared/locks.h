@@ -86,6 +86,9 @@
 #define LOCKED_WORKER_SLEEP_UNLESS          53
 #define LOCKED_WORKER_WAKEUP                54
 
+#define LOCKED_ZL_ENGINE_UPDATEZONES        60
+#define LOCKED_ZL_ENGINE_RECOVER            61
+
 #define LOCKED_Q_WORKER(x)                 (300+x)
 #define LOCKED_Q_DRUDGER(x)                (400+x)
 #define LOCKED_SCHEDULE_WORKER(x)          (500+x)
