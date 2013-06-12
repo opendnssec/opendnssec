@@ -2,6 +2,10 @@ $Id$
 
 OpenDNSSEC 1.4.1
 
+* SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr> so that the user
+  can specify the SOA serial to use in the signed zone [OPENDNSSEC-401].
+
+Bugfixes:
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
   Minimum change.
 * Bugfix: The time when inbound serial is acquired was reset invalidly,
