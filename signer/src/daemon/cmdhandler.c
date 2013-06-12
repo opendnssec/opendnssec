@@ -38,6 +38,7 @@
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
+#include "shared/util.h"
 
 #include <errno.h>
 #include <fcntl.h>
