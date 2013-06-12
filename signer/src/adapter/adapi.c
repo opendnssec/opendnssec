@@ -235,7 +235,8 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
         return ODS_STATUS_OK;
     }
     tmp = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-    status = namedb_update_serial(zone->db, zone->signconf->soa_serial, tmp);
+    status = namedb_update_serial(zone->db, zone->name,
+        zone->signconf->soa_serial, tmp);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
             "soa serial rdata (%s)", adapi_str, zone->name,
