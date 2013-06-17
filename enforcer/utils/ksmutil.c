@@ -312,9 +312,11 @@ usage_keyroll ()
 {
     fprintf(stderr,
             "  key rollover\n"
-            "\t--zone zone [--keytype <type>]           aka -z\n"
+            "\t--zone zone                              aka -z\n"
+            "\t--keytype <type> | --all                 aka -t / -a\n"
             "  key rollover\n"
-            "\t--policy policy [--keytype <type>]       aka -p\n");
+            "\t--policy policy                          aka -p\n"
+            "\t--keytype <type> | --all                 aka -t / -a\n");
 }
 
     void
@@ -1906,6 +1908,8 @@ cmd_rollzone ()
     int status = 0;
     int user_certain;
 
+    char logmsg[256]; /* For the message that we log when we are done here */
+
     /* If we were given a keytype, turn it into a number */
     if (o_keytype != NULL) {
         StrToLower(o_keytype);
@@ -1926,6 +1930,7 @@ cmd_rollzone ()
 		StrAppend(&o_zone, ".");
 		status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
 		if (status != 0) {
+			printf("Error, can't find zone : %s\n", o_zone);
 			db_disconnect(lock_fd);
 			return(status);
 		}
@@ -1962,6 +1967,27 @@ cmd_rollzone ()
         return(status);
     }
 
+	/* Let them know that it seemed to work */
+	snprintf(logmsg, 256, "Manual key rollover for key type %s on zone %s initiated" , (o_keytype == NULL) ? "all" : o_keytype, o_zone);
+	printf("\n%s\n", logmsg);
+
+/* send the msg to syslog */
+#ifdef HAVE_OPENLOG_R
+        openlog_r("ods-ksmutil", 0, DEFAULT_LOG_FACILITY, &sdata);
+#else
+        openlog("ods-ksmutil", 0, DEFAULT_LOG_FACILITY);
+#endif
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_INFO, &sdata, "%s", logmsg);
+#else
+        syslog(LOG_INFO, "%s", logmsg);
+#endif
+#ifdef HAVE_CLOSELOG_R
+        closelog_r(&sdata);
+#else
+        closelog();
+#endif
+
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
 
@@ -1990,11 +2016,13 @@ cmd_rollpolicy ()
 
     int zone_count = -1;
     
-    int key_type = 0;
+    int key_type = -1;
     int policy_id = 0;
 
     int status = 0;
     int user_certain;
+
+    char logmsg[256]; /* For the message that we log when we are done here */
 
     /* If we were given a keytype, turn it into a number */
     if (o_keytype != NULL) {
@@ -2049,6 +2077,31 @@ cmd_rollpolicy ()
     }
 
     status = keyRoll(-1, policy_id, key_type);
+    if (status != 0) {
+        db_disconnect(lock_fd);
+        return(status);
+    }
+ 
+	/* Let them know that it seemed to work */
+	snprintf(logmsg, 256, "Manual key rollover for key type %s on policy %s initiated" , (o_keytype == NULL) ? "all" : o_keytype, o_policy);
+	printf("%s\n", logmsg);
+
+/* send the msg to syslog */
+#ifdef HAVE_OPENLOG_R
+        openlog_r("ods-ksmutil", 0, DEFAULT_LOG_FACILITY, &sdata);
+#else
+        openlog("ods-ksmutil", 0, DEFAULT_LOG_FACILITY);
+#endif
+#ifdef HAVE_SYSLOG_R
+        syslog_r(LOG_INFO, &sdata, "%s", logmsg);
+#else
+        syslog(LOG_INFO, "%s", logmsg);
+#endif
+#ifdef HAVE_CLOSELOG_R
+        closelog_r(&sdata);
+#else
+        closelog();
+#endif
 
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
@@ -3868,18 +3921,26 @@ main (int argc, char *argv[])
             result = cmd_import();
         }
         else if (!strncmp(case_verb, "ROLLOVER", 8)) {
-            /* Are we rolling a zone or a whole policy? */
-            if (o_zone != NULL && o_policy == NULL) {
-                result = cmd_rollzone();
-            }
-            else if (o_zone == NULL && o_policy != NULL) {
-                result = cmd_rollpolicy();
-            }
-            else {
-                printf("Please provide either a zone OR a policy to rollover\n");
+            /* Check that we have either a key type or the all flag */
+            if (all_flag == 0 && o_keytype == NULL) {
+		        printf("Please specify either a keytype, KSK or ZSK, with the --keytype <type> option or use the --all option\n");
                 usage_keyroll();
                 result = -1;
-            }
+		    } 
+		    else {
+	            /* Are we rolling a zone or a whole policy? */
+	            if (o_zone != NULL && o_policy == NULL) {
+	                result = cmd_rollzone();
+	            }
+	            else if (o_zone == NULL && o_policy != NULL) {
+	                result = cmd_rollpolicy();
+	            }
+	            else {
+	                printf("Please provide either a zone OR a policy to rollover\n");
+	                usage_keyroll();
+	                result = -1;
+	            }
+	        }
         }
         else if (!strncmp(case_verb, "PURGE", 5)) {
             if ((o_zone != NULL && o_policy == NULL) || 

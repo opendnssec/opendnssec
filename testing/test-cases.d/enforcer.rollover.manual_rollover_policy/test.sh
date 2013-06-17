@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 #TEST: Test to make sure a manual key rollover can be done
-#TEST: Roll the ZSK and then the KSK and use the zone option
+#TEST: Roll the ZSK and then the KSK and use the policy option
 #TEST: We use TIMESHIFT to hurry things along
 
 #TODO: Test the no-retire on the ds-seen command
@@ -28,30 +28,24 @@ syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
 syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:00" &&
 
-# Check that we have 2 keys per zone
+# Check that we have 2 keys for each zone
 log_this ods-ksmutil-key-list1 ods-ksmutil key list &&
 log_grep ods-ksmutil-key-list1 stdout 'ods                             KSK           publish' &&
 log_grep ods-ksmutil-key-list1 stdout 'ods                             ZSK           active' &&
 log_grep ods-ksmutil-key-list1 stdout 'ods2                            KSK           publish' &&
 log_grep ods-ksmutil-key-list1 stdout 'ods2                            ZSK           active' &&
-log_grep ods-ksmutil-key-list1 stdout 'ods3                            KSK           publish' &&
-log_grep ods-ksmutil-key-list1 stdout 'ods3                            ZSK           active' &&
 
-#OPENDNSSEC-91. Make sure either a keytype or the all option are required
-! log_this ods-ksmutil-key-rollover_bad1 ods-ksmutil key rollover --zone ods &&
-log_grep ods-ksmutil-key-rollover_bad1 stdout 'Please specify either a keytype, KSK or ZSK, with the --keytype <type> option or use the --all option' &&
-
-# Make sure nothing happens for a non-existant zone
-! log_this ods-ksmutil-key-rollover_bad2 ods-ksmutil key rollover --zone bob --keytype ZSK &&
-log_grep ods-ksmutil-key-rollover_bad2 stdout "Error, can't find zone : bob" &&
+# Make sure nothing happens for a non-existant policy
+! log_this ods-ksmutil-key-rollover_bad ods-ksmutil key rollover --policy bob --keytype ZSK &&
+log_grep ods-ksmutil-key-rollover_bad stdout "Error, can't find policy : bob" &&
 
 # ******************* Roll the ZSK first ************************ 
-log_this ods-ksmutil-key-rollover1 ods-ksmutil key rollover --zone ods --keytype ZSK &&
-syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type zsk on zone ods initiated" &&
+echo "y" | log_this ods-ksmutil-key-rollover1 ods-ksmutil key rollover --policy default --keytype ZSK &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type zsk on policy default initiated" &&
 # *************************************************************** 
 
-# Run the enforcer and check for a published ZSK for our zone
-# and check nothing happens to the other zone
+# Run the enforcer and check for a published ZSK on our policy
+# and make sure the zone on the other policy hasn't rolled
 log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
 syslog_waitfor_count $ENFORCER_WAIT 2 'ods-enforcerd: .*all done' &&
 
@@ -62,9 +56,6 @@ log_grep ods-ksmutil-key-list2 stdout 'ods                             ZSK      
 log_grep ods-ksmutil-key-list1 stdout 'ods2                            KSK           publish' &&
 log_grep ods-ksmutil-key-list1 stdout 'ods2                            ZSK           active' &&
 ! log_grep ods-ksmutil-key-list2 stdout 'ods2                            ZSK           publish' &&
-log_grep ods-ksmutil-key-list1 stdout 'ods3                            KSK           publish' &&
-log_grep ods-ksmutil-key-list1 stdout 'ods3                            ZSK           active' &&
-! log_grep ods-ksmutil-key-list2 stdout 'ods3                            ZSK           publish' &&
 KSK_CKA_ID1=`log_grep -o ods-ksmutil-key-list2 stdout "ods                             KSK           publish" | awk '{print $9}'` &&
 ZSK_CKA_ID1=`log_grep -o ods-ksmutil-key-list2 stdout "ods                             ZSK           active" | awk '{print $9}'` &&
 ZSK_CKA_ID2=`log_grep -o ods-ksmutil-key-list2 stdout "ods                             ZSK           publish" | awk '{print $9}'` &&
@@ -119,8 +110,8 @@ log_grep ods-ksmutil-key-list5 stdout 'ods                             ZSK      
 ZSK_CKA_ID3=`log_grep -o ods-ksmutil-key-list5 stdout "ods                             ZSK           publish" | awk '{print $9}'` &&
 
 # ******************* Roll the KSK now ************************ 
-log_this ods-ksmutil-key-rollover2 ods-ksmutil key rollover --zone ods --keytype KSK &&
-syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type ksk on zone ods initiated" &&
+echo "y" | log_this ods-ksmutil-key-rollover2 ods-ksmutil key rollover --policy default --keytype KSK &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type ksk on policy default initiated" &&
 # *************************************************************
 
 # Run the enforcer
@@ -183,9 +174,8 @@ log_grep ods-ksmutil-key-list9 stdout "ods                             ZSK      
 ! log_grep ods-ksmutil-key-list9 stdout "ods                             ZSK           publish" &&
 
 # ********Lets roll for a policy and all key types now ************** 
-log_this ods-ksmutil-key-rollover_all ods-ksmutil key rollover --zone ods --all &&
-#echo "y" | log_this ods-ksmutil-key-rollover_all ods-ksmutil key rollover --policy default --all &&
-syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type all on zone ods initiated" &&
+echo "y" | log_this ods-ksmutil-key-rollover_all ods-ksmutil key rollover --policy default --all &&
+syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type all on policy default initiated" &&
 # ******************************************************************* 
 
 # Run the enforcer
@@ -199,34 +189,7 @@ log_grep ods-ksmutil-key-list10 stdout "ods                             KSK     
 log_grep ods-ksmutil-key-list10 stdout "ods                             ZSK           retire.*$ZSK_CKA_ID2" &&
 log_grep ods-ksmutil-key-list10 stdout "ods                             ZSK           active.*$ZSK_CKA_ID3" &&
 log_grep ods-ksmutil-key-list10 stdout "ods                             ZSK           publish" &&
-log_grep ods-ksmutil-key-list10 stdout 'ods2                            KSK           ready' &&
-log_grep ods-ksmutil-key-list10 stdout 'ods2                            ZSK           active' &&
-log_grep ods-ksmutil-key-list10 stdout 'ods3                            KSK           ready' &&
-log_grep ods-ksmutil-key-list10 stdout 'ods3                            ZSK           active' &&
 
-# ******************* Now roll a zone which shares keys ************************ 
-echo "y" | log_this ods-ksmutil-key-rollover3 ods-ksmutil key rollover --zone ods2 --keytype ZSK &&
-log_grep ods-ksmutil-key-rollover3 stdout "This zone shares keys with others, all instances of the active key on this zone will be retired; are you sure?" &&
-syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type zsk on zone ods2 initiated" &&
-# ***************************************************************
-
-# Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 10 'ods-enforcerd: .*all done' &&
-
-# Check both keys have started rolling on ods2
-log_this ods-ksmutil-key-list11 ods-ksmutil key list --verbose &&
-log_grep ods-ksmutil-key-list11 stdout "ods                             KSK           active.*$KSK_CKA_ID2" &&
-log_grep ods-ksmutil-key-list11 stdout "ods                             KSK           publish" &&
-log_grep ods-ksmutil-key-list11 stdout "ods                             ZSK           retire.*$ZSK_CKA_ID2" &&
-log_grep ods-ksmutil-key-list11 stdout "ods                             ZSK           active.*$ZSK_CKA_ID3" &&
-log_grep ods-ksmutil-key-list11 stdout "ods                             ZSK           publish" &&
-log_grep ods-ksmutil-key-list11 stdout 'ods2                            KSK           ready' &&
-log_grep ods-ksmutil-key-list11 stdout 'ods2                            ZSK           active' &&
-log_grep ods-ksmutil-key-list11 stdout 'ods2                            ZSK           publish' &&
-log_grep ods-ksmutil-key-list11 stdout 'ods3                            KSK           ready' &&
-log_grep ods-ksmutil-key-list11 stdout 'ods3                            ZSK           active' &&
-log_grep ods-ksmutil-key-list11 stdout 'ods3                            ZSK           publish' &&
 
 return 0
 

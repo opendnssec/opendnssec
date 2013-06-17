@@ -195,16 +195,20 @@ database of the KASP Enforcer.  The options \-\-zone and \-\-policy
 are used to limit this operation to a single named zone or policy,
 respectively.
 .TP
-.B key rollover \-\-zone|\-z \fIname\fB [\-\-keytype \fItype\fB]
+.B key rollover \-\-zone|\-z \fIname\fB \-\-keytype \fItype\fB|\-t \fItype\fB
 .TP
-.B key rollover \-\-policy|\-p \fIname\fB [\-\-keytype \fItype\fB]
+.B key rollover \-\-zone|\-z \fIname\fB \-\-all|\-a
+.TP
+.B key rollover \-\-policy|\-p \fIname\fB \-\-keytype \fItype\fB|\-t \fItype\fB
+.TP
+.B key rollover \-\-policy|\-p \fIname\fB \-\-all|\-a
 Rollover active keys on the named zone or policy, respectively.
 This command is used to intiate manual rollovers; if it is not given,
 OpenDNSSEC will automatically rollover keys when the need arises. (Or, in the 
 case of KSKs it will start the rollover process, to finish the KSK rollover see
 ksk-roll below.)
 
-The \-\-keytype option specifies the type of key to roll (both are rolled if nothing is specified) After running, the KASP Enforcer will be woken up so that the signer can be sent the new information.
+The \-\-keytype option specifies the type of key to roll. Alternatively the --all option can be used which will roll both types of keys. After running, the KASP Enforcer will be woken up so that the signer can be sent the new information.
 
 If the policy that the zone is on specifies that keys are shared then all zones on that policy will be rolled. If appropriate, a backup of the sqlite DB file is made.
 

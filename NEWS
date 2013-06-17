@@ -4,6 +4,7 @@ OpenDNSSEC 1.4.1
 
 * SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr> so that the user
   can specify the SOA serial to use in the signed zone [OPENDNSSEC-401].
+* OPENDNSSEC-91: Make the keytype flag required when rolling keys
 
 Bugfixes:
 * SUPPORT-60: Fix datecounter in case inbound serial is higher than outbound
@@ -19,6 +20,8 @@ Bugfixes:
   Stuart Lau).
 * Bugfix: Fix malform in Outbound IXFR/TCP subsequent packet (thanks Stuart
   Lau).
+* OPENDNSSEC-398: The ods-ksmutil key rollover command does not work correctly
+  when rolling all keys using the --policy option
 
 
 OpenDNSSEC 1.4.0 - 2013-04-22
