@@ -81,6 +81,8 @@ cmdhandler_handle_cmd_help(int sockfd)
         "zones                       Show the currently known zones.\n"
         "sign <zone> [--serial <nr>] Read zone and schedule for immediate "
                                     "(re-)sign.\n"
+        "                            If a serial is given, that serial is used "
+                                    "in the output zone.\n"
         "sign --all                  Read all zones and schedule all for "
                                     "immediate (re-)sign.\n"
         "clear <zone>                Delete the internal storage of this "
