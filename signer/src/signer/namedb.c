@@ -271,7 +271,7 @@ namedb_update_serial(namedb_type* db, const char* zone_name, const char* format,
     if (!db->is_initialized) {
         db->intserial = soa;
     } else {
-        db->intserial += update; /* automatically does % 2^32 */
+        db->intserial = prev + update; /* automatically does % 2^32 */
     }
     ods_log_debug("[%s] zone %s update serial: %u + %u = %u", db_str, zone_name,
         prev, update, db->intserial);

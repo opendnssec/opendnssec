@@ -6,6 +6,8 @@ OpenDNSSEC 1.4.1
   can specify the SOA serial to use in the signed zone [OPENDNSSEC-401].
 
 Bugfixes:
+* SUPPORT-60: Fix datecounter in case inbound serial is higher than outbound
+  serial [OPENDNSSEC-420].
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
   Minimum change.
 * OPENDNSSEC-421: Signer Engine: Fix assertion error in case NSEC3 hash

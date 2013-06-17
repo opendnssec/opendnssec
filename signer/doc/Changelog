@@ -1,3 +1,7 @@
+17 June 2013: Matthijs
+- SUPPORT-60: Fix datecounter in case inbound serial is higher than outbound
+  serial [OPENDNSSEC-420].
+
 12 June 2013: Matthijs
 - OPENDNSSEC-401: SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr>
   so that the user can specify the SOA serial to use in the signed zone.
