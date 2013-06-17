@@ -214,9 +214,8 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         lock_basic_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found.\n",
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
                 tbd);
-        lock_basic_lock(&zone->zone_lock);
             ods_writen(sockfd, buf, strlen(buf));
             /* update all */
             cmdhandler_handle_cmd_update(sockfd, cmdc, "--all");
@@ -241,6 +240,13 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         ods_writen(sockfd, buf, strlen(buf));
     }
     return;
+}
+
+
+static uint32_t
+max(uint32_t a, uint32_t b)
+{
+    return (a<b?b:a);
 }
 
 
@@ -323,7 +329,8 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         lock_basic_lock(&zone->zone_lock);
         if (force_serial) {
             ods_log_assert(zone->db);
-            if (!util_serial_gt(serial, zone->db->intserial)) {
+            if (!util_serial_gt(serial, max(zone->db->outserial,
+                zone->db->inbserial))) {
                 lock_basic_unlock(&zone->zone_lock);
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to enforce "
                     "serial %u for zone %s.\n", serial, tbd);

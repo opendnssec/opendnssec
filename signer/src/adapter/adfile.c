@@ -250,7 +250,7 @@ adfile_read_file(FILE* fd, zone_type* zone)
         /* add to the database */
         result = adapi_add_rr(zone, rr, 0);
         if (result == ODS_STATUS_UNCHANGED) {
-            ods_log_debug("[%s] RR at line %i already in db: %s",
+            ods_log_debug("[%s] skipping RR at line %i (duplicate): %s",
                 adapter_str, l, line);
             ldns_rr_free(rr);
             rr = NULL;
