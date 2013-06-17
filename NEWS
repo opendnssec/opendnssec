@@ -12,6 +12,8 @@ Bugfixes:
   Minimum change.
 * OPENDNSSEC-421: Signer Engine: Fix assertion error in case NSEC3 hash
   algorithm in signconf is not SHA1.
+* OPENDNSSEC-421: ods-kaspcheck: Check whether NSEC3 hash algorithm in kasp
+  is valid.
 * Bugfix: The time when inbound serial is acquired was reset invalidly,
   could cause OpenDNSSEC wanting AXFR responses while requesting IXFR (thanks
   Stuart Lau).
