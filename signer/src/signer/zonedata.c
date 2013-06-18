@@ -184,9 +184,11 @@ zonedata_create(allocator_type* allocator)
     zonedata_init_domains(zd);
     zonedata_init_denial(zd);
     zd->initialized = 0;
+    zd->force_serial = 0;
     zd->inbound_serial = 0;
     zd->internal_serial = 0;
     zd->outbound_serial = 0;
+    zd->enforced_serial = 0;
     zd->default_ttl = 3600; /* TODO: configure --default-ttl option? */
     return zd;
 }
@@ -1185,12 +1187,14 @@ max(uint32_t a, uint32_t b)
     return (a<b?b:a);
 }
 
+
 /**
  * Update the serial.
  *
  */
 ods_status
-zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
+zonedata_update_serial(zonedata_type* zd, signconf_type* sc,
+    const char* zone_name)
 {
     uint32_t soa = 0;
     uint32_t prev = 0;
@@ -1198,23 +1202,35 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
 
     ods_log_assert(zd);
     ods_log_assert(sc);
+    ods_log_assert(zone_name);
 
     prev = max(zd->outbound_serial, zd->inbound_serial);
-    ods_log_debug("[%s] update serial: in=%u internal=%u out=%u now=%u",
-        zd_str, zd->inbound_serial, zd->internal_serial, zd->outbound_serial,
-        (uint32_t) time_now());
+    ods_log_debug("[%s] zone %s update serial: in=%u internal=%u out=%u now=%u",
+        zd_str, zone_name, zd->inbound_serial, zd->internal_serial,
+        zd->outbound_serial, (uint32_t) time_now());
 
     if (!sc->soa_serial) {
         ods_log_error("[%s] no serial type given", zd_str);
         return ODS_STATUS_ERR;
     }
-    if (ods_strcmp(sc->soa_serial, "unixtime") == 0) {
+    if (zd->force_serial) {
+        soa = zd->enforced_serial;
+        if (!DNS_SERIAL_GT(soa, prev)) {
+            ods_log_warning("[%s] zone %s unable to enforce serial: %u does not "
+                " increase %u", zd_str, zone_name, soa, prev);
+            soa = prev + 1;
+        } else {
+            ods_log_info("[%s] zone %s enforcing serial %u", zd_str, zone_name,
+                soa);
+        }
+        zd->force_serial = 0;
+    } else if (ods_strcmp(sc->soa_serial, "unixtime") == 0) {
         soa = (uint32_t) time_now();
         if (!zd->initialized) {
             if (!DNS_SERIAL_GT(soa, zd->inbound_serial)) {
-                ods_log_warning("[%s] unable to use unixtime %u as serial: "
-                    "not greater than inbound serial %u", zd_str, soa,
-                    zd->inbound_serial);
+                ods_log_warning("[%s] zone %s unable to use unixtime %u as "
+                    "serial: not greater than inbound serial %u", zd_str,
+                    zone_name, soa, zd->inbound_serial);
                 soa = zd->inbound_serial + 1;
             }
         } else if (!DNS_SERIAL_GT(soa, prev)) {
@@ -1231,9 +1247,9 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
         if (!zd->initialized) {
             if (!DNS_SERIAL_GT(soa, zd->inbound_serial)) {
-                ods_log_warning("[%s] unable to use datecounter %u as serial: "
-                    "not greater than inbound serial %u", zd_str, soa,
-                    zd->inbound_serial);
+                ods_log_warning("[%s] zone %s unable to use datecounter %u as "
+                    "serial: not greater than inbound serial %u", zd_str,
+                    zone_name, soa, zd->inbound_serial);
                 soa = zd->inbound_serial + 1;
             }
         } else if (!DNS_SERIAL_GT(soa, prev)) {
@@ -1243,12 +1259,14 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
         prev = zd->outbound_serial;
         soa = zd->inbound_serial;
         if (zd->initialized && !DNS_SERIAL_GT(soa, prev)) {
-            ods_log_error("[%s] cannot keep SOA SERIAL from input zone "
-                " (%u): previous output SOA SERIAL is %u", zd_str, soa, prev);
+            ods_log_error("[%s] zone %s cannot keep SOA SERIAL from input zone "
+                "(%u): previous output SOA SERIAL is %u", zd_str, zone_name,
+                soa, prev);
             return ODS_STATUS_CONFLICT_ERR;
         }
     } else {
-        ods_log_error("[%s] unknown serial type %s", zd_str, sc->soa_serial);
+        ods_log_error("[%s] zone %s unknown serial type %s", zd_str, zone_name,
+            sc->soa_serial);
         return ODS_STATUS_ERR;
     }
 
@@ -1263,8 +1281,8 @@ zonedata_update_serial(zonedata_type* zd, signconf_type* sc)
     } else {
         zd->internal_serial = prev + update; /* automatically does % 2^32 */
     }
-    ods_log_debug("[%s] update serial: %u + %u = %u", zd_str, prev, update,
-        zd->internal_serial);
+    ods_log_debug("[%s] zone %s update serial: %u + %u = %u", zd_str, zone_name,
+        prev, update, zd->internal_serial);
     return ODS_STATUS_OK;
 }
 

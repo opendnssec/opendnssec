@@ -1156,28 +1156,26 @@ zone_update_serial(zone_type* zone)
     rrset_type* rrset = NULL;
     ldns_rdf* serial = NULL;
 
-    if (!zone) {
-        ods_log_error("[%s] unable to update serial: no zone",
-            zone_str);
+    if (!zone || !zone->name) {
+        ods_log_error("[%s] unable to update serial: no zone", zone_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone);
+    ods_log_assert(zone->name);
 
     if (!zone->signconf) {
-        ods_log_error("[%s] unable to update serial: no signconf",
-            zone_str);
+        ods_log_error("[%s] unable to update serial: no signconf", zone_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->signconf);
 
     if (!zone->zonedata) {
-        ods_log_error("[%s] unable to update serial: no zonedata",
-            zone_str);
+        ods_log_error("[%s] unable to update serial: no zonedata", zone_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->zonedata);
 
-    status = zonedata_update_serial(zone->zonedata, zone->signconf);
+    status = zonedata_update_serial(zone->zonedata, zone->signconf, zone->name);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to update serial: failed to increment",
             zone_str);

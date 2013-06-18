@@ -61,10 +61,12 @@ struct zonedata_struct {
     ldns_rbtree_t* domains;
     ldns_rbtree_t* denial_chain;
     int initialized;
+    int force_serial;
     uint32_t default_ttl; /* fallback ttl */
     uint32_t inbound_serial; /* last seen inbound soa serial */
     uint32_t internal_serial; /* latest internal soa serial */
     uint32_t outbound_serial; /* last written outbound soa serial */
+    uint32_t enforced_serial; /* enforce this serial */
 };
 
 /**
@@ -246,10 +248,12 @@ ods_status zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
  * Update the serial.
  * \param[in] zd zone data
  * \param[in] sc signer configuration
+ * \param[in] zone_name zone name
  * \return ods_status status
  *
  */
-ods_status zonedata_update_serial(zonedata_type* zd, signconf_type* sc);
+ods_status zonedata_update_serial(zonedata_type* zd, signconf_type* sc,
+    const char* zone_name);
 
 /**
  * Queue all RRsets.
