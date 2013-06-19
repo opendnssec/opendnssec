@@ -18,4 +18,4 @@ cd build &&
 	--with-database-backend=sqlite3 \
 	--with-dbname=opendnssec-release-test \
 	--with-pkcs11-softhsm=/usr/local/lib/softhsm/libsofthsm.so \
-	--enable-eppclient $@
+	$@
