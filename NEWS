@@ -3,7 +3,7 @@ $Id$
 OpenDNSSEC 1.4.2
 
 
-OpenDNSSEC 1.4.1rc1 - 2013-06-19
+OpenDNSSEC 1.4.1 - 2013-06-27
 
 * SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr> so that the user
   can specify the SOA serial to use in the signed zone [OPENDNSSEC-401].
