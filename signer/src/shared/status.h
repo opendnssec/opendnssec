@@ -84,7 +84,8 @@ enum ods_enum_status {
     ODS_STATUS_BUFAVAIL,
     ODS_STATUS_PARSESOA,
     ODS_STATUS_REQAXFR,
-    ODS_STATUS_INSERIAL
+    ODS_STATUS_INSERIAL,
+    ODS_STATUS_XFRBADFORM
 };
 typedef enum ods_enum_status ods_status;
 

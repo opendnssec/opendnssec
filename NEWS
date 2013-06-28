@@ -2,6 +2,9 @@ $Id$
 
 OpenDNSSEC 1.4.2
 
+Bugfixes:
+* Signer Engine: Improved Inbound XFR checking.
+
 
 OpenDNSSEC 1.4.1 - 2013-06-27
 

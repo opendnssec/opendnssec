@@ -1,3 +1,6 @@
+28 June 2013: Matthijs
+- Improved XFR checking
+
 17 June 2013: Matthijs
 - SUPPORT-60: Fix datecounter in case inbound serial is higher than outbound
   serial [OPENDNSSEC-420].

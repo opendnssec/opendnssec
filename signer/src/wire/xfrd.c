@@ -718,11 +718,15 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
     uint16_t rrlen = 0;
     uint32_t ttl = 0;
     uint32_t serial = 0;
+    uint32_t tmp_serial = 0;
     size_t i = 0;
     ods_log_assert(xfrd);
     ods_log_assert(buffer);
     ods_log_assert(done);
     for (i=0; i < count; ++i, ++xfrd->msg_rr_count) {
+         if (*done) {
+            return ODS_STATUS_XFRBADFORM;
+         }
          if (!buffer_skip_dname(buffer)) {
              return ODS_STATUS_SKIPDNAME;
          }
@@ -757,6 +761,7 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
                  }
                  lock_basic_unlock(&xfrd->serial_lock);
                  xfrd->msg_old_serial = serial;
+                 tmp_serial = serial;
              } else if (serial == xfrd->msg_new_serial) {
                  /* saw another SOA of new serial. */
                  if (xfrd->msg_is_ixfr == 1) {
@@ -764,6 +769,18 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
                  } else {
                      *done = 1; /* final axfr/ixfr soa */
                  }
+             } else if (xfrd->msg_is_ixfr) {
+                 /* some additional checks */
+                 if (util_serial_gt(serial, xfrd->msg_new_serial)) {
+                     /* bad middle serial in IXFR (too high) */
+                     return ODS_STATUS_INSERIAL;
+                 }
+                 if (util_serial_gt(tmp_serial, serial)) {
+                     /* middle serial decreases in IXFR */
+                     return ODS_STATUS_INSERIAL;
+                 }
+                 /* serial ok, update tmp serial */
+                 tmp_serial = serial;
              }
          } else {
              buffer_skip(buffer, rrlen);
