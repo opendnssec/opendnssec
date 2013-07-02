@@ -161,14 +161,21 @@ log_rrset(ldns_rdf* dname, ldns_rr_type type, const char* pre, int level)
 const char*
 rrset_type2str(ldns_rr_type type)
 {
-    const ldns_rr_descriptor* descriptor;
-    descriptor = ldns_rr_descript(type);
-    if (descriptor && descriptor->_name) {
-        return descriptor->_name;
+    if (type == LDNS_RR_TYPE_IXFR) {
+        return "IXFR";
     } else if (type == LDNS_RR_TYPE_AXFR) {
         return "AXFR";
-    } else if (type == LDNS_RR_TYPE_IXFR) {
-        return "IXFR";
+    } else if (type == LDNS_RR_TYPE_MAILB) {
+        return "MAILB";
+    } else if (type == LDNS_RR_TYPE_MAILA) {
+        return "MAILA";
+    } else if (type == LDNS_RR_TYPE_ANY) {
+        return "ANY";
+    } else {
+        const ldns_rr_descriptor* descriptor = ldns_rr_descript(type);
+        if (descriptor && descriptor->_name) {
+            return descriptor->_name;
+        }
     }
     return "TYPE???";
 }
