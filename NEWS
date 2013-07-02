@@ -4,6 +4,8 @@ OpenDNSSEC 1.4.2
 
 Bugfixes:
 * Signer Engine: Improved Inbound XFR checking.
+* OPENDNSSEC-425 (Clone of 397) - Change "hsmutil list" output so that the
+  table header goes to stdout not stderr
 
 
 OpenDNSSEC 1.4.1 - 2013-06-27

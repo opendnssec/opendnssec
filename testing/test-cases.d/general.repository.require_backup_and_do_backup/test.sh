@@ -25,6 +25,11 @@ syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
+log_this ods-hsmutil-list ods-hsmutil list &&
+log_grep ods-hsmutil-list stdout '2 keys found.' &&
+log_grep ods-hsmutil-list stdout 'Repository.*ID.*Type' &&
+log_grep ods-hsmutil-list stdout 'SoftHSM.*RSA/1024' &&
+
 log_this_timeout ods-control-stop 60 ods-control stop &&
 syslog_waitfor 60 'ods-enforcerd: .*all done' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
