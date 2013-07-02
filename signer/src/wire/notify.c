@@ -375,9 +375,9 @@ notify_tsig_sign(notify_type* notify, buffer_type* buffer)
     notify->tsig_rr->algo_name =
         ldns_rdf_clone(notify->tsig_rr->algo->wf_name);
     notify->tsig_rr->key_name = ldns_rdf_clone(notify->tsig_rr->key->dname);
-    log_dname(notify->tsig_rr->key_name, "tsig sign notify with key %s",
+    log_dname(notify->tsig_rr->key_name, "tsig sign notify with key",
         LOG_DEBUG);
-    log_dname(notify->tsig_rr->algo_name, "tsig sign notify with algorithm %s",
+    log_dname(notify->tsig_rr->algo_name, "tsig sign notify with algorithm",
         LOG_DEBUG);
     tsig_rr_prepare(notify->tsig_rr);
     tsig_rr_update(notify->tsig_rr, buffer, buffer_position(buffer));

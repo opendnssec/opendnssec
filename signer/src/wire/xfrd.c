@@ -358,8 +358,8 @@ xfrd_tsig_sign(xfrd_type* xfrd, buffer_type* buffer)
     xfrd->tsig_rr->original_query_id = buffer_pkt_id(buffer);
     xfrd->tsig_rr->algo_name = ldns_rdf_clone(xfrd->tsig_rr->algo->wf_name);
     xfrd->tsig_rr->key_name = ldns_rdf_clone(xfrd->tsig_rr->key->dname);
-    log_dname(xfrd->tsig_rr->key_name, "tsig sign query with key ", LOG_DEBUG);
-    log_dname(xfrd->tsig_rr->algo_name, "tsig sign query with algorithm ",
+    log_dname(xfrd->tsig_rr->key_name, "tsig sign query with key", LOG_DEBUG);
+    log_dname(xfrd->tsig_rr->algo_name, "tsig sign query with algorithm",
         LOG_DEBUG);
     tsig_rr_prepare(xfrd->tsig_rr);
     tsig_rr_update(xfrd->tsig_rr, buffer, buffer_position(buffer));
