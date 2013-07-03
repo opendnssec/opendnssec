@@ -34,6 +34,7 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "daemon/engine.h"
+#include "shared/file.h"
 #include "shared/util.h"
 #include "wire/axfr.h"
 #include "wire/query.h"
@@ -62,6 +63,7 @@ query_create(void)
     q->allocator = allocator;
     q->buffer = NULL;
     q->tsig_rr = NULL;
+    q->axfr_fd = NULL;
     q->buffer = buffer_create(allocator, PACKET_BUFFER_SIZE);
     if (!q->buffer) {
         query_cleanup(q);
@@ -106,7 +108,10 @@ query_reset(query_type* q, size_t maxlen, int is_tcp)
     q->zone = NULL;
     /* domain, opcode, cname count, delegation, compression, temp */
     q->axfr_is_done = 0;
-    q->axfr_fd = NULL;
+    if (q->axfr_fd) {
+        ods_fclose(q->axfr_fd);
+        q->axfr_fd = NULL;
+    }
     q->serial = 0;
     q->startpos = 0;
     return;

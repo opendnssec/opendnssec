@@ -499,6 +499,7 @@ ixfr(query_type* q, engine_type* engine)
     q->tsig_sign_it = 1; /* sign last packet */
     q->axfr_is_done = 1;
     ods_fclose(q->axfr_fd);
+    q->axfr_fd = NULL;
 
 return_ixfr:
     ods_log_debug("[%s] return part ixfr zone %s", axfr_str, q->zone->name);
