@@ -1,3 +1,7 @@
+3 July 2013: Matthijs
+- SUPPORT-66: Fix file descriptor leak in case of TCP write error
+  [OPENDNSSEC-427].
+
 28 June 2013: Matthijs
 - Improved XFR checking
 

@@ -1052,6 +1052,10 @@ query_cleanup(query_type* q)
         return;
     }
     allocator = q->allocator;
+    if (q->axfr_fd) {
+        ods_fclose(q->axfr_fd);
+        q->axfr_fd = NULL;
+    }
     buffer_cleanup(q->buffer, allocator);
     tsig_rr_cleanup(q->tsig_rr);
     allocator_deallocate(allocator, (void*)q);

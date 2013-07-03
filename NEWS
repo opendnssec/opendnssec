@@ -3,9 +3,11 @@ $Id$
 OpenDNSSEC 1.4.2
 
 Bugfixes:
-* Signer Engine: Improved Inbound XFR checking.
+* SUPPORT-66: Signer Engine: Fix file descriptor leak in case of TCP write
+  error [OPENDNSSEC-427].
 * OPENDNSSEC-425 (Clone of 397) - Change "hsmutil list" output so that the
   table header goes to stdout not stderr
+* Signer Engine: Improved Inbound XFR checking.
 
 
 OpenDNSSEC 1.4.1 - 2013-06-27
