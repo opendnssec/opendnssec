@@ -85,26 +85,30 @@ cmdhandler_handle_cmd_help(int sockfd)
                                     "in the output zone.\n"
         "sign --all                  Read all zones and schedule all for "
                                     "immediate (re-)sign.\n"
+    );
+    ods_writen(sockfd, buf, strlen(buf));
+
+    (void) snprintf(buf, ODS_SE_MAXLINE,
         "clear <zone>                Delete the internal storage of this "
                                     "zone.\n"
         "                            All signatures will be regenerated "
                                     "on the next re-sign.\n"
         "queue                       Show the current task queue.\n"
+        "flush                       Execute all scheduled tasks "
+                                    "immediately.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "flush                           Execute all scheduled tasks "
-                                        "immediately.\n"
-        "update <zone>                   Update this zone signer "
-                                        "configurations.\n"
-        "update [--all]                  Update zone list and all signer "
-                                        "configurations.\n"
-        "start                           Start the engine.\n"
-        "running                         Check if the engine is running.\n"
-        "reload                          Reload the engine.\n"
-        "stop                            Stop the engine.\n"
-        "verbosity <nr>                  Set verbosity.\n"
+        "update <zone>               Update this zone signer "
+                                    "configurations.\n"
+        "update [--all]              Update zone list and all signer "
+                                    "configurations.\n"
+        "start                       Start the engine.\n"
+        "running                     Check if the engine is running.\n"
+        "reload                      Reload the engine.\n"
+        "stop                        Stop the engine.\n"
+        "verbosity <nr>              Set verbosity.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
     return;
