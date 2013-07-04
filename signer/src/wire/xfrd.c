@@ -538,8 +538,6 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
         return;
     }
     lock_basic_lock(&xfrd->rw_lock);
-    lock_basic_lock(&xfrd->serial_lock);
-    lock_basic_unlock(&xfrd->serial_lock);
 
     fd = ods_fopen(xfrfile, NULL, "a");
     free((void*) xfrfile);
