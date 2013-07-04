@@ -916,8 +916,6 @@ zone_recover2(zone_type* zone)
         free((void*)filename);
         ods_fclose(fd);
         /* journal */
-        zone->db->is_initialized = 1;
-
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
         if (filename) {
             fd = ods_fopen(filename, NULL, "r");
@@ -928,13 +926,16 @@ zone_recover2(zone_type* zone)
                 ods_log_warning("[%s] corrupted journal file zone %s, "
                     "skipping (%s)", zone_str, zone->name,
                     ods_status2str(status));
+                (void)unlink(filename);
                 ixfr_cleanup(zone->ixfr);
                 zone->ixfr = ixfr_create((void*)zone);
+            } else {
+                zone->db->is_initialized = 1;
+                lock_basic_lock(&zone->ixfr->ixfr_lock);
+                ixfr_purge(zone->ixfr);
+                lock_basic_unlock(&zone->ixfr->ixfr_lock);
             }
         }
-        lock_basic_lock(&zone->ixfr->ixfr_lock);
-        ixfr_purge(zone->ixfr);
-        lock_basic_unlock(&zone->ixfr->ixfr_lock);
 
         /* all ok */
         free((void*)filename);

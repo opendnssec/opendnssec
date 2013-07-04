@@ -926,6 +926,7 @@ engine_recover(engine_type* engine)
         zone = (zone_type*) node->data;
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
+        lock_basic_lock(&zone->zone_lock);
         status = zone_recover2(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
@@ -961,6 +962,7 @@ engine_recover(engine_type* engine)
             }
             result = ODS_STATUS_OK; /* will trigger update zones */
         }
+        lock_basic_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
     /* [UNLOCK] zonelist */
