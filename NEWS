@@ -8,6 +8,8 @@ Bugfixes:
 * OPENDNSSEC-425 (Clone of 397) - Change "hsmutil list" output so that the
   table header goes to stdout not stderr
 * Signer Engine: Improved Inbound XFR checking.
+* Signer Engine: Fix double free corruption in case of adding zone with
+  DNS Outbound Adapters and NotifyCommand enabled.
 
 
 OpenDNSSEC 1.4.1 - 2013-06-27
