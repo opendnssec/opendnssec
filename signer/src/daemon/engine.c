@@ -693,14 +693,16 @@ set_notify_ns(zone_type* zone, const char* cmd)
     ods_log_assert(zone->adoutbound);
     if (zone->adoutbound->type == ADAPTER_FILE) {
         str = ods_replace(cmd, "%zonefile", zone->adoutbound->configstr);
-    } else {
-        str = cmd;
-    }
-    str2 = ods_replace(str, "%zone", zone->name);
-    if (str2) {
+        if (!str) {
+            ods_log_error("[%s] unable to set notify ns: replace zonefile failed",
+                engine_str);
+        }
+        str2 = ods_replace(str, "%zone", zone->name);
         free((void*)str);
-
-        ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
+    } else {
+        str2 = ods_replace(cmd, "%zone", zone->name);
+    }
+    if (str2) {
         ods_str_trim((char*) str2);
         str = str2;
         if (*str) {
@@ -714,6 +716,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
         }
         zone->notify_command = (char*) str2;
         zone->notify_ns = zone->notify_args[0];
+        ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
     } else {
         ods_log_error("[%s] unable to set notify ns: replace zone failed",
             engine_str);
