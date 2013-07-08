@@ -207,6 +207,10 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
 
+    if (backup) {
+        /* no need to do processing */
+        return ODS_STATUS_OK;
+    }
     if (zone->signconf->soa_ttl) {
         tmp = (uint32_t) duration2time(zone->signconf->soa_ttl);
         ods_log_verbose("[%s] zone %s set soa ttl to %u",
@@ -255,9 +259,7 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
             "soa serial rdata", adapi_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    if (!backup) {
-        zone->db->serial_updated = 1;
-    }
+    zone->db->serial_updated = 1;
     return ODS_STATUS_OK;
 }
 

@@ -915,6 +915,7 @@ zone_recover2(zone_type* zone)
         zone->task = (void*) task;
         free((void*)filename);
         ods_fclose(fd);
+        zone->db->is_initialized = 1;
         /* journal */
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
         if (filename) {
@@ -929,13 +930,11 @@ zone_recover2(zone_type* zone)
                 (void)unlink(filename);
                 ixfr_cleanup(zone->ixfr);
                 zone->ixfr = ixfr_create((void*)zone);
-            } else {
-                zone->db->is_initialized = 1;
-                lock_basic_lock(&zone->ixfr->ixfr_lock);
-                ixfr_purge(zone->ixfr);
-                lock_basic_unlock(&zone->ixfr->ixfr_lock);
             }
         }
+        lock_basic_lock(&zone->ixfr->ixfr_lock);
+        ixfr_purge(zone->ixfr);
+        lock_basic_unlock(&zone->ixfr->ixfr_lock);
 
         /* all ok */
         free((void*)filename);
