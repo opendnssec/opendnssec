@@ -48,6 +48,117 @@ const char* axfr_str = "axfr";
 
 
 /**
+ * Handle SOA request.
+ *
+ */
+query_state
+soa_request(query_type* q, engine_type* engine)
+{
+    char* xfrfile = NULL;
+    ldns_rr* rr = NULL;
+    ldns_rdf* prev = NULL;
+    ldns_rdf* orig = NULL;
+    uint16_t total_added = 0;
+    uint32_t ttl = 0;
+    time_t expire = 0;
+    ldns_status status = LDNS_STATUS_OK;
+    char line[SE_ADFILE_MAXLINE];
+    unsigned l = 0;
+    long fpos = 0;
+    size_t bufpos = 0;
+    FILE* fd = NULL;
+    ods_log_assert(q);
+    ods_log_assert(q->buffer);
+    ods_log_assert(q->zone);
+    ods_log_assert(q->zone->name);
+    ods_log_assert(engine);
+    xfrfile = ods_build_path(q->zone->name, ".axfr", 0, 1);
+    if (xfrfile) {
+        fd = ods_fopen(xfrfile, NULL, "r");
+    }
+    if (!fd) {
+        ods_log_error("[%s] unable to open file %s for zone %s",
+            axfr_str, xfrfile, q->zone->name);
+        free((void*)xfrfile);
+        buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+        return QUERY_PROCESSED;
+    }
+    free((void*)xfrfile);
+    if (q->tsig_rr->status == TSIG_OK) {
+        q->tsig_sign_it = 1; /* sign first packet in stream */
+    }
+    /* compression? */
+
+    /* add SOA RR */
+    fpos = ftell(fd);
+    if (fpos < 0) {
+        ods_log_error("[%s] unable to read soa for zone %s: ftell() failed "
+            "(%s)", axfr_str, q->zone->name, strerror(errno));
+        buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+        ods_fclose(fd);
+        return QUERY_PROCESSED;
+    }
+    rr = addns_read_rr(fd, line, &orig, &prev, &ttl, &status, &l);
+    if (!rr) {
+        /* no SOA no transfer */
+        ods_log_error("[%s] bad axfr zone %s, corrupted file", axfr_str,
+            q->zone->name);
+        buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+        ods_fclose(fd);
+        return QUERY_PROCESSED;
+    }
+    /* first RR must be SOA */
+    if (ldns_rr_get_type(rr) != LDNS_RR_TYPE_SOA) {
+        ods_log_error("[%s] bad axfr zone %s, first rr is not soa",
+            axfr_str, q->zone->name);
+        ldns_rr_free(rr);
+        buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+        ods_fclose(fd);
+        return QUERY_PROCESSED;
+    }
+    /* zone not expired? */
+    if (q->zone->xfrd) {
+        expire = q->zone->xfrd->serial_xfr_acquired;
+        expire += ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_EXPIRE));
+        if (expire < time_now()) {
+            ods_log_warning("[%s] zone %s expired, not serving soa",
+                axfr_str, q->zone->name);
+            ldns_rr_free(rr);
+            buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+            ods_fclose(fd);
+            return QUERY_PROCESSED;
+        }
+    }
+    /* does it fit? */
+    if (query_add_rr(q, rr)) {
+        ods_log_debug("[%s] set soa in axfr zone %s", axfr_str,
+            q->zone->name);
+        buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
+        total_added++;
+        ldns_rr_free(rr);
+        rr = NULL;
+        bufpos = buffer_position(q->buffer);
+    } else {
+        ods_log_error("[%s] soa does not fit in axfr zone %s",
+            axfr_str, q->zone->name);
+        ldns_rr_free(rr);
+        buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
+        ods_fclose(fd);
+        return QUERY_PROCESSED;
+    }
+    ods_fclose(fd);
+    buffer_pkt_set_ancount(q->buffer, total_added);
+    buffer_pkt_set_nscount(q->buffer, 0);
+    buffer_pkt_set_arcount(q->buffer, 0);
+    /* check if it needs TSIG signatures */
+    if (q->tsig_rr->status == TSIG_OK) {
+        q->tsig_sign_it = 1;
+    }
+    return QUERY_PROCESSED;
+}
+
+
+/**
  * Do AXFR.
  *
  */
@@ -277,7 +388,6 @@ udp_overflow:
     ods_log_debug("[%s] zone transfer %s udp overflow", axfr_str,
         q->zone->name);
     return QUERY_PROCESSED;
-
 }
 
 

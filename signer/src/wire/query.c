@@ -652,6 +652,13 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return axfr(q, engine);
     }
     /* (soa) query */
+    if (qtype == LDNS_RR_TYPE_SOA) {
+        ods_log_assert(q->zone->name);
+        ods_log_debug("[%s] incoming soa request for zone %s",
+            query_str, q->zone->name);
+        return soa_request(q, engine);
+    }
+    /* other qtypes */
     return query_response(q, qtype);
 }
 
