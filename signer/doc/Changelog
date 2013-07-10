@@ -1,3 +1,7 @@
+10 July 2013: Matthijs
+- Signer response to SOA queries from file, instead of memory. Makes
+  response non-blocking [OPENDNSSEC-424].
+
 5 July 2013: Matthijs
 - Fix invalid free in case of adding a new zone with DNS outbound adapters
   and NotifyCommand (thanks Ville Mattila).

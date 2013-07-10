@@ -5,6 +5,8 @@ OpenDNSSEC 1.4.2
 Bugfixes:
 * SUPPORT-66: Signer Engine: Fix file descriptor leak in case of TCP write
   error [OPENDNSSEC-427].
+* OPENDNSSEC-424: Signer Engine: Respond to SOA queries from file instead
+  of memory. Makes response non-blocking.
 * OPENDNSSEC-425 (Clone of 397) - Change "hsmutil list" output so that the
   table header goes to stdout not stderr
 * Signer Engine: Improved Inbound XFR checking.
