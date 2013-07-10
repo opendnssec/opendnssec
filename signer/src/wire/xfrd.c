@@ -723,7 +723,7 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
     ods_log_assert(done);
     for (i=0; i < count; ++i, ++xfrd->msg_rr_count) {
          if (*done) {
-            return ODS_STATUS_XFRBADFORM;
+            return ODS_STATUS_OK;
          }
          if (!buffer_skip_dname(buffer)) {
              return ODS_STATUS_SKIPDNAME;
@@ -973,6 +973,8 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
     ods_log_assert(zone);
     ods_log_assert(zone->name);
     res = xfrd_parse_packet(xfrd, buffer);
+    ods_log_debug("[%s] zone %s xfr packet parsed (res %d)", xfrd_str, zone->name, res);
+
     switch (res) {
         case XFRD_PKT_MORE:
         case XFRD_PKT_XFR:

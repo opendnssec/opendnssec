@@ -628,6 +628,8 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
     dnsout = (dnsout_type*) q->zone->adoutbound->config;
     /* acl also in use for soa and other queries */
     if (!acl_find(dnsout->provide_xfr, &q->addr, q->tsig_rr)) {
+        ods_log_debug("[%s] zone %s acl query refused", query_str,
+            q->zone->name);
         return query_refused(q);
     }
     /* ixfr? */
