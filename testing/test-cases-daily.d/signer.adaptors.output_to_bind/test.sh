@@ -47,6 +47,9 @@ case "$DISTRIBUTION" in
 		## Transfer should not take more than 60 seconds
 		sleep 60 &&
 
+                ## Increase verbosity for a while
+                log_this ods-signer ods-signer verbosity 5 &&
+
 		## SOA query to Bind
 		log_this_timeout soa 10 drill -p 10053 @127.0.0.1 soa ods &&
 		log_grep soa stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*1200.*180.*1209600.*3600' &&
