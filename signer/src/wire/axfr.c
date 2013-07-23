@@ -58,14 +58,11 @@ soa_request(query_type* q, engine_type* engine)
     ldns_rr* rr = NULL;
     ldns_rdf* prev = NULL;
     ldns_rdf* orig = NULL;
-    uint16_t total_added = 0;
     uint32_t ttl = 0;
     time_t expire = 0;
     ldns_status status = LDNS_STATUS_OK;
     char line[SE_ADFILE_MAXLINE];
     unsigned l = 0;
-    long fpos = 0;
-    size_t bufpos = 0;
     FILE* fd = NULL;
     ods_log_assert(q);
     ods_log_assert(q->buffer);
@@ -90,14 +87,6 @@ soa_request(query_type* q, engine_type* engine)
     /* compression? */
 
     /* add SOA RR */
-    fpos = ftell(fd);
-    if (fpos < 0) {
-        ods_log_error("[%s] unable to read soa for zone %s: ftell() failed "
-            "(%s)", axfr_str, q->zone->name, strerror(errno));
-        buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
-        ods_fclose(fd);
-        return QUERY_PROCESSED;
-    }
     rr = addns_read_rr(fd, line, &orig, &prev, &ttl, &status, &l);
     if (!rr) {
         /* no SOA no transfer */
@@ -131,15 +120,13 @@ soa_request(query_type* q, engine_type* engine)
     }
     /* does it fit? */
     if (query_add_rr(q, rr)) {
-        ods_log_debug("[%s] set soa in axfr zone %s", axfr_str,
+        ods_log_debug("[%s] set soa in response %s", axfr_str,
             q->zone->name);
         buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
-        total_added++;
         ldns_rr_free(rr);
         rr = NULL;
-        bufpos = buffer_position(q->buffer);
     } else {
-        ods_log_error("[%s] soa does not fit in axfr zone %s",
+        ods_log_error("[%s] soa does not fit in response %s",
             axfr_str, q->zone->name);
         ldns_rr_free(rr);
         buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
@@ -147,9 +134,10 @@ soa_request(query_type* q, engine_type* engine)
         return QUERY_PROCESSED;
     }
     ods_fclose(fd);
-    buffer_pkt_set_ancount(q->buffer, total_added);
+    buffer_pkt_set_ancount(q->buffer, 1);
     buffer_pkt_set_nscount(q->buffer, 0);
     buffer_pkt_set_arcount(q->buffer, 0);
+    buffer_pkt_set_aa(q->buffer);
     /* check if it needs TSIG signatures */
     if (q->tsig_rr->status == TSIG_OK) {
         q->tsig_sign_it = 1;
