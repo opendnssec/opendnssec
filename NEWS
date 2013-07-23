@@ -2,6 +2,9 @@ $Id$
 
 OpenDNSSEC 1.4.2
 
+* OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take 
+  number of zones as a parameter
+
 Bugfixes:
 * SUPPORT-66: Signer Engine: Fix file descriptor leak in case of TCP write
   error [OPENDNSSEC-427].
