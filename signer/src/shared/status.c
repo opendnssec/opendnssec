@@ -107,7 +107,7 @@ ods_lookup_by_id(ods_lookup_table *table, int id)
  * Look up a descriptive text by each status.
  *
  */
-const char *
+const char*
 ods_status2str(ods_status status)
 {
     ods_lookup_table *lt;

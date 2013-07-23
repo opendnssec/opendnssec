@@ -289,8 +289,9 @@ notify_handle_reply(notify_type* notify)
     }
     /* could check tsig */
     if (buffer_pkt_rcode(xfrhandler->packet) != LDNS_RCODE_NOERROR) {
-        ods_log_error("[%s] zone %s received bad notify rcode %d",
-            notify_str, zone->name, buffer_pkt_rcode(xfrhandler->packet));
+        const char* str = buffer_rcode2str(buffer_pkt_rcode(xfrhandler->packet));
+        ods_log_error("[%s] zone %s received bad notify rcode %s",
+            notify_str, zone->name, str?str:"UNKNOWN" );
         if (buffer_pkt_rcode(xfrhandler->packet) != LDNS_RCODE_NOTIMPL) {
             return 1;
         }
