@@ -359,7 +359,7 @@ zone_publish_nsec3param(zone_type* zone)
             return ODS_STATUS_MALLOC_ERR;
         }
         ldns_rr_set_class(rr, zone->klass);
-        ldns_rr_set_ttl(rr, 0);
+        ldns_rr_set_ttl(rr, zone->default_ttl);
         ldns_rr_set_owner(rr, ldns_rdf_clone(zone->apex));
         ldns_nsec3_add_param_rdfs(rr,
             zone->signconf->nsec3params->algorithm, 0,

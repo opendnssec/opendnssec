@@ -1,3 +1,7 @@
+24 July 2013: Matthijs
+- OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
+  prevent bad caching effects on resolvers.
+
 23 July 2013: Matthijs
 - Set AA bit in SOA response (fix daily tests).
 - Better log msg bad rcode notify
