@@ -658,7 +658,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
         ods_log_assert(nsec3params_rr);
 
         ldns_rr_set_class(nsec3params_rr, zone->klass);
-        ldns_rr_set_ttl(nsec3params_rr, 0);
+        ldns_rr_set_ttl(nsec3params_rr, zone->zonedata->default_ttl);
         ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->dname));
         ldns_nsec3_add_param_rdfs(nsec3params_rr,
             zone->nsec3params->algorithm, 0,
