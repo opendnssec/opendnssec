@@ -3,9 +3,17 @@
 #TEST: Test to check the operation of the 'ods-ksmutil key generate' command
 #TEST: including the new -zonecount parameter
 
+#DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
+
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
+
+case "$DISTRIBUTION" in
+	freebsd )
+		return 0
+		;;
+esac
 
 ods_reset_env &&
 
