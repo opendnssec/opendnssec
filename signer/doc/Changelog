@@ -6,7 +6,6 @@
 - Set AA bit in SOA response (fix daily tests).
 - Better log msg bad rcode notify
 
-
 10 July 2013: Matthijs
 - Signer response to SOA queries from file, instead of memory. Makes
   response non-blocking [OPENDNSSEC-424].

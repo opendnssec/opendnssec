@@ -2,14 +2,14 @@ $Id$
 
 OpenDNSSEC 1.4.2
 
+* OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
+  prevent bad caching effects on resolvers.
 * OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take 
   number of zones as a parameter
 
 Bugfixes:
 * SUPPORT-66: Signer Engine: Fix file descriptor leak in case of TCP write
   error [OPENDNSSEC-427].
-* OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
-  prevent bad caching effects on resolvers.
 * OPENDNSSEC-424: Signer Engine: Respond to SOA queries from file instead
   of memory. Makes response non-blocking.
 * OPENDNSSEC-425 (Clone of 397) - Change "hsmutil list" output so that the
