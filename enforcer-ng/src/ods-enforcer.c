@@ -155,6 +155,7 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
     char *icmd_ptr;
 #endif
     char cmd[ODS_SE_MAXLINE];
+    int user_certain;
 
     do {
         return_value = 0;
@@ -196,6 +197,17 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
         if (ods_strcmp(cmd, "start") == 0) {
                 system(ODS_EN_ENGINE);
                 continue;
+        }
+
+        if (ods_strcmp(cmd, "setup") == 0) {
+            printf("*WARNING* This will erase all data in the database;"
+                    "are you sure? [y/N] ");
+
+            user_certain = getchar();
+            if (user_certain != 'y' && user_certain != 'Y') {
+                printf("Okay, quitting...\n");
+                continue;
+            }
         }
 
         /* Now we know what to say, open socket */
