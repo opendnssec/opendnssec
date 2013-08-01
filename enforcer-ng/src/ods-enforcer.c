@@ -195,8 +195,10 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
         if (ods_strcmp(cmd, "exit") == 0 || ods_strcmp(cmd, "quit") == 0)
             break;
         if (ods_strcmp(cmd, "start") == 0) {
-                system(ODS_EN_ENGINE);
-                continue;
+            if (system(ODS_EN_ENGINE)) {
+                return_value = 1;
+            }
+            continue;
         }
 
         if (ods_strcmp(cmd, "setup") == 0) {

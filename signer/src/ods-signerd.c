@@ -162,8 +162,5 @@ main(int argc, char* argv[])
 
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC signer engine version %s\n", PACKAGE_VERSION);
-    engine_start(cfgfile, cmdline_verbosity, daemonize, info, single_run);
-
-    /* done */
-    return 0;
+    return engine_start(cfgfile, cmdline_verbosity, daemonize, info, single_run);
 }

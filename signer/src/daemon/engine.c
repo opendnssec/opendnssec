@@ -523,6 +523,12 @@ engine_setup(engine_type* engine)
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
         return ODS_STATUS_PRIVDROP_ERR;
     }
+    /* set up hsm */ /* LEAK */
+    result = lhsm_open(engine->config->cfg_filename);
+    if (result != HSM_OK) {
+        fprintf(stderr, "Fail to open hsm\n");
+        return ODS_STATUS_HSM_ERR;
+    }
     /* daemonize */
     if (engine->daemonize) {
         switch ((engine->pid = fork())) {
@@ -541,12 +547,19 @@ engine_setup(engine_type* engine)
                 exit(0);
         }
         if (setsid() == -1) {
+            hsm_close();
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
             return ODS_STATUS_SETSID_ERR;
         }
     }
     engine->pid = getpid();
+    /* write pidfile */
+    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+        hsm_close();
+        return ODS_STATUS_WRITE_PIDFILE_ERR;
+    }
+    /* setup done */
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
     /* catch signals */
@@ -556,11 +569,6 @@ engine_setup(engine_type* engine)
     action.sa_flags = 0;
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
-    /* set up hsm */ /* LEAK */
-    result = lhsm_open(engine->config->cfg_filename);
-    if (result != HSM_OK) {
-        return ODS_STATUS_HSM_ERR;
-    }
     /* create workers/drudgers */
     engine_create_workers(engine);
     engine_create_drudgers(engine);
@@ -569,12 +577,6 @@ engine_setup(engine_type* engine)
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init(engine->allocator);
-    /* write pidfile */
-    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
-        hsm_close();
-        return ODS_STATUS_WRITE_PIDFILE_ERR;
-    }
-    /* setup done */
     return ODS_STATUS_OK;
 }
 
@@ -940,7 +942,7 @@ engine_recover(engine_type* engine)
  * Start engine.
  *
  */
-void
+int
 engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int info, int single_run)
 {
@@ -949,6 +951,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
     int close_hsm = 0;
+    int ret = 1;
 
     ods_log_assert(cfgfile);
     ods_log_init(NULL, use_syslog, cmdline_verbosity);
@@ -961,7 +964,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     engine = engine_create();
     if (!engine) {
         ods_fatal_exit("[%s] create failed", engine_str);
-        return;
+        return ret;
     }
     engine->daemonize = daemonize;
 
@@ -988,13 +991,14 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
             ods_status2str(status));
-        engine->need_to_exit = 1;
         if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
             /* command handler had not yet been started */
             engine->cmdhandler_done = 1;
         }
+        goto earlyexit;
     } else {
         /* setup ok, mark hsm open */
+        ret = 1;
         close_hsm = 1;
     }
 
@@ -1048,7 +1052,7 @@ earlyexit:
     xmlCleanupParser();
     xmlCleanupGlobals();
     xmlCleanupThreads();
-    return;
+    return ret;
 }
 
 

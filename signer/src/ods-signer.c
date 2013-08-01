@@ -290,7 +290,11 @@ interface_start(char* cmd)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            return system(ODS_SE_ENGINE);
+            if (system(ODS_SE_ENGINE)) {
+                fprintf(stderr, "Fail to start enforce engine\n");
+                return 1;
+            }
+            return 0;
         }
 
         if (cmd && ods_strcmp(cmd, "running\n") == 0) {
