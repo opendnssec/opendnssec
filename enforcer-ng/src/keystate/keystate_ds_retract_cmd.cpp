@@ -48,7 +48,8 @@ help_keystate_ds_retract_cmd(int sockfd)
     ods_printf(sockfd,
         "key ds-retract  list KSK keys that should be retracted from the parent.\n"
         "  --zone <zone> (aka -z) force retract of KSK key for zone <zone>.\n"
-        "  --id <id>     (aka -k) force retract of KSK key with id <id>.\n"
+        "  --cka_id <cka_id>\n"
+        "                (aka -k) force retract of KSK key with cka_id <cka_id>.\n"
         "  --auto        (aka -a) perform retract for all keys that have "
                         "the retract flag set.\n"
         );
@@ -86,9 +87,9 @@ handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
     }
     
     const char *zone = NULL;
-    const char *id = NULL;
+    const char *cka_id = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    (void)ods_find_arg_and_param(&argc,argv,"id","k",&id);
+    (void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
     bool bAutomatic = ods_find_arg(&argc,argv,"auto","a") != -1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
@@ -99,8 +100,8 @@ handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
     
     /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_keystate_ds_retract(sockfd,engine->config,zone,id,bAutomatic?1:0);
-    if (!zone && !id) {
+    perform_keystate_ds_retract(sockfd,engine->config,zone,cka_id,bAutomatic?1:0);
+    if (!zone && !cka_id) {
         ods_printf(sockfd,"%s completed in %ld seconds.\n",
 				   scmd,time(NULL)-tstart);
     }

@@ -52,7 +52,8 @@ void help_keystate_ds_gone_cmd(int sockfd)
 	ods_printf(sockfd,
 		"key ds-gone     list KSK keys that were retracted from the parent.\n"
         "  --zone <zone> (aka -z) set KSK key to unsubmitted for zone <zone>\n"
-        "  --id <id>     (aka -k) with id <id>.\n"
+        "  --cka_id <cka_id>\n"
+        "                (aka -k) with cka_id <cka_id>.\n"
         "  --keytag <keytag>\n"
         "                (aka -x) with keytag <keytag>.\n"
         );
@@ -87,10 +88,10 @@ int handled_keystate_ds_gone_cmd(int sockfd, engine_type* engine,
     }
 
     const char *zone = NULL;
-    const char *id = NULL;
+    const char *cka_id = NULL;
     const char *keytag = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    (void)ods_find_arg_and_param(&argc,argv,"id","k",&id);
+    (void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
     (void)ods_find_arg_and_param(&argc,argv,"keytag","x",&keytag);
 
     // Check for unknown parameters on the command line
@@ -109,30 +110,30 @@ int handled_keystate_ds_gone_cmd(int sockfd, engine_type* engine,
         return 1; // errors, but handled
     }
 
-    // Either no option or combi of zone & id or zone & keytag needs to be 
-    // present. But not both id and keytag
+    // Either no option or combi of zone & cka_id or zone & keytag needs to be 
+    // present. But not both cka_id and keytag
     uint16_t nkeytag = 0;
-    if (zone || id || keytag) {
+    if (zone || cka_id || keytag) {
         if (!zone) {
             ods_log_warning("[%s] expected option --zone <zone> for %s command",
                             module_str,scmd);
             ods_printf(sockfd,"expected --zone <zone> option\n");
             return 1; // errors, but handled
         }
-        if (!id && !keytag) {
-            ods_log_warning("[%s] expected option --id <id> or "
+        if (!cka_id && !keytag) {
+            ods_log_warning("[%s] expected option --cka_id <cka_id> or "
                             "--keytag <keytag> for %s command",
                             module_str,scmd);
-            ods_printf(sockfd,"expected --id <id> or "
+            ods_printf(sockfd,"expected --cka_id <cka_id> or "
                            "--keytag <keytag> option\n");
             return 1; // errors, but handled
         } else {
-            if (id && keytag) {
-                ods_log_warning("[%s] both --id <id> and --keytag <keytag> given, "
+            if (cka_id && keytag) {
+                ods_log_warning("[%s] both --cka_id <cka_id> and --keytag <keytag> given, "
                                 "please only specify one for %s command",
                                 module_str,scmd);
                 ods_printf(sockfd,
-                               "both --id <id> and --keytag <keytag> given, "
+                               "both --cka_id <cka_id> and --keytag <keytag> given, "
                                "please only specify one\n");
                 return 1; // errors, but handled
             }
@@ -153,7 +154,7 @@ int handled_keystate_ds_gone_cmd(int sockfd, engine_type* engine,
     
     time_t tstart = time(NULL);
 
-    perform_keystate_ds_gone(sockfd,engine->config,zone,id,nkeytag);
+    perform_keystate_ds_gone(sockfd,engine->config,zone,cka_id,nkeytag);
     
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 
