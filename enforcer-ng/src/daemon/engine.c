@@ -443,8 +443,15 @@ engine_setup_and_return_status(engine_type* engine)
     /* set up hsm */ /* LEAK */
     result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
     if (result != HSM_OK) {
-        ods_log_error("[%s] error initializing libhsm (errno %i)",
-            engine_str, result);
+        char* error =  hsm_get_error(NULL);
+        if (error != NULL) {
+            ods_log_error("[%s] %s", engine_str, error);
+            free(error);
+        } else {
+            ods_log_crit("[%s] error opening libhsm (errno %i)", engine_str,
+                result);
+        }
+
         return ODS_STATUS_HSM_ERR;
     }
 
