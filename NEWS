@@ -8,6 +8,10 @@ OpenDNSSEC 1.4.2
   number of zones as a parameter
 
 Bugfixes:
+* OPENDNSSEC-438: 'ods-ksmutil key generate' creates too many keys for 
+  <SharedKeys/> policies when KSK and ZSK use same algorithm and length
+* OPENDNSSEC_440: * OPENDNSSEC-438: 'ods-ksmutil key generate' creates too 
+  many keys for some cases
 * SUPPORT-66: Signer Engine: Fix file descriptor leak in case of TCP write
   error [OPENDNSSEC-427].
 * OPENDNSSEC-424: Signer Engine: Respond to SOA queries from file instead

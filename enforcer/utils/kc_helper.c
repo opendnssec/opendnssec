@@ -712,12 +712,12 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	else if (nsec == 3) {
 		if (ksk_algo <= 5) {
 			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"KSK NSEC3 in %s.\n", policy_name, ksk_algo, kasp);
+					"KSK NSEC3 in %s. Policy must have id greater than 5.\n", policy_name, ksk_algo, kasp);
 			status++;
 		}
 		if (zsk_algo <= 5) {
 			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"ZSK NSEC3 in %s.\n", policy_name, zsk_algo, kasp);
+					"ZSK NSEC3 in %s. Policy must have id greater than 5.\n", policy_name, zsk_algo, kasp);
 			status++;
 		}
 
