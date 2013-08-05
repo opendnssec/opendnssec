@@ -136,7 +136,7 @@ Synchronise the database with the contents of zonelist.xml; identical to "update
 .SH "KEY MANAGEMENT SUBCOMMANDS"
 .LP
 .TP
-.B key generate \-\-policy|\-p \fIname\fB --interval|-n \fIinterval\fB
+.B key generate \-\-policy|\-p \fIname\fB \-\-interval|\-n \fIinterval\fB [\-\-zonetotal|\-Z \fIzonetotal\fB]
 Create enough keys for the named policy to last for the period of time given
 by interval.  See INTERVAL FORMAT for the format of timing specifications.
 
@@ -145,6 +145,11 @@ arises.  This command can be used to pregenerate keys (maybe for the expected
 lifetime of an HSM) to help with backup policies.  It is also a convenient 
 method of pregenerating a set of keys to allow a disaster recovery site to have
 a copy of the keys without needed to synchronise keys generated on the fly.
+
+By default the command generates keys for all the zones found on the specified
+policy. If the optional parameter \-\-zonetotal is specified then keys will be 
+generated for that total number of zones, regardless of how many are actually
+currently on the policy.
 .TP
 .B key import \-\-algorithm|\-g \fIalgname\fB \-\-bits|\-b \fIbits\fB \-\-repository|\-r \fIrepo\fB \-\-cka_id|\-k \fIckaid\fB \-\-zone|\-z \fIzone\fB \-\-keytype|\-t \fItype\fB \-\-keystate|\-e \fIstate\fB \-\-time|\-w \fItime\fB [\-\-retire|\-y \fItime\fB]
 Add a key which was created outside of the OpenDNSSEC code into the database.

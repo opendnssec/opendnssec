@@ -2,8 +2,14 @@ $Id$
 
 OpenDNSSEC 1.3.15rc1
 
+* OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take total 
+  number of zones as a parameter
 * SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr> so that the user
   can specify the SOA serial to use in the signed zone [OPENDNSSEC-423].
+
+Bugfixes:
+* OPENDNSSEC-438: 'ods-ksmutil key generate' creates too many keys for 
+  <SharedKeys/> policies when KSK and ZSK use same algorithm and length
 * OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
   prevent bad caching effects on resolvers.
 * OPENDNSSEC-397: Change "hsmutil list" output so that the table header goes 

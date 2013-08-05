@@ -111,6 +111,7 @@ char *o_keytype = NULL;
 char *o_time = NULL;
 char *o_retire = NULL;
 char *o_zone = NULL;
+char *o_zonetotal = NULL;
 char *o_keytag = NULL;
 static int all_flag = 0;
 static int ds_flag = 0;
@@ -328,8 +329,9 @@ usage_keygen ()
 {
     fprintf(stderr,
             "  key generate\n"
-		    "\t--policy <policy>\n"
-            "\t--interval <interval>\n");
+		    "\t--policy <policy>                        aka -p\n"
+            "\t--interval <interval>                    aka -n\n"
+            "\t[--zonetotal <total no. of zones>]       aka -Z\n");
 }
 
     void
@@ -3578,12 +3580,13 @@ main (int argc, char *argv[])
         {"keytag",  required_argument, 0, 'x'},
         {"retire",  required_argument, 0, 'y'},
         {"zone",    required_argument, 0, 'z'},
+		{"zonetotal", required_argument, 0, 'Z'},
         {0,0,0,0}
     };
 
     progname = argv[0];
 
-    while ((ch = getopt_long(argc, argv, "ab:c:de:fg:hi:k:n:o:p:r:s:t:vVw:x:y:z:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "ab:c:de:fg:hi:k:n:o:p:r:s:t:vVw:x:y:z:Z", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'a':
                 all_flag = 1;
@@ -3665,6 +3668,9 @@ main (int argc, char *argv[])
 				}
 
                 break;
+			case 'Z':
+				o_zonetotal = StrStrdup(optarg);
+				break;
             default:
                 usage();
                 exit(1);
@@ -6803,46 +6809,78 @@ int cmd_genkeys()
     } 
     DbFreeResult(result); 
 
-    if (status == 0) { 
-        /* make sure that we have at least one zone */ 
-        if (zone_count == 0) { 
-            printf("No zones on policy %s, skipping...", policy->name);
+    if (status != 0) {
+        printf("Could not count zones on policy %s\n", policy->name);
 	    db_disconnect(lock_fd);
 	    if (ctx) {
 		    hsm_destroy_context(ctx);
 	    }
 	    hsm_close();
-            KsmPolicyFree(policy);
-            return status; 
-        } 
-    } else {
-        printf("Could not count zones on policy %s", policy->name);
-        db_disconnect(lock_fd);
-	if (ctx) {
-		hsm_destroy_context(ctx);
-	}
-	hsm_close();
-	KsmPolicyFree(policy);
+        KsmPolicyFree(policy);
         return status; 
-    }
+    } 
+    printf("Info: %d zone(s) found on policy \"%s\"\n", zone_count, policy->name);
+
+	/* If the zone total has been specified manually then use this 
+	instead but report how it differs from the actual number of zones*/
+    if (o_zonetotal) {
+	  /* Check the value is numeric*/
+      if (StrIsDigits(o_zonetotal)) {
+        status = StrStrtoi(o_zonetotal, &zone_count);
+        if (status != 0) {
+            printf("Error: Unable to convert zonetotal \"%s\"; to an integer\n", o_zonetotal);
+            db_disconnect(lock_fd);
+            KsmPolicyFree(policy);
+            exit(1);
+        }
+    } else {
+          printf("Error: zonetotal \"%s\"; should be numeric only\n", o_zonetotal);
+          db_disconnect(lock_fd);
+          KsmPolicyFree(policy);
+          exit(1);
+      }
+      /* Check the value is greater than 0*/
+      if (zone_count < 1) { 
+          printf("Error: zonetotal parameter value of %d is invalid - the value must be greater than 0\n", zone_count);
+	      db_disconnect(lock_fd);
+          KsmPolicyFree(policy);
+          exit(1); 
+      }
+	  printf("Info: Keys will actually be generated for a total of %d zone(s) as specified by zone total parameter\n", zone_count);
+	}
+	else {
+        /* make sure that we have at least one zone */ 
+        if (zone_count == 0) { 
+            printf("No zones on policy %s, skipping...\n", policy->name);
+	    	db_disconnect(lock_fd);
+		if (ctx) {
+			hsm_destroy_context(ctx);
+		}
+		hsm_close();
+		KsmPolicyFree(policy);
+	        return status; 
+	    }
+	}
 
     /* Find out how many ksk keys are needed for the POLICY */
     status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, interval, &ksks_needed, policy->ksk->rollover_scheme, zone_count);
     if (status != 0) {
         printf("Could not predict ksk requirement for next interval for %s\n", policy->name);
-        /* TODO exit? continue with next policy? */
+		hsm_close();
+        db_disconnect(lock_fd);
+        KsmPolicyFree(policy);
+		return(1);
     }
     /* Find out how many suitable keys we have */
     status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, interval, rightnow, &keys_in_queue, KSM_TYPE_KSK);
     if (status != 0) {
         printf("Could not count current ksk numbers for policy %s\n", policy->name);
-        /* TODO exit? continue with next policy? */
+		hsm_close();
+        db_disconnect(lock_fd);
+        KsmPolicyFree(policy);
+		return(1);
     }
-    /* Correct for shared keys */
-    if (policy->shared_keys == KSM_KEYS_SHARED) {
-        keys_in_queue /= zone_count;
-    }
-
+    /* Don't have to adjust the queue for shared keys as the prediction has already taken care of that.*/
     new_keys = ksks_needed - keys_in_queue;
     /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
 
@@ -6859,6 +6897,13 @@ int cmd_genkeys()
         }
     }
 
+	if (new_keys <= 0 ) {
+		printf("No new KSKs need to be created.\n");
+    }
+    else {
+		printf("%d new KSK(s) (%d bits) need to be created.\n", new_keys, policy->ksk->bits);
+	}
+	
     /* Create the required keys */
     for (i=new_keys ; i > 0 ; i--){
         if (hsm_supported_algorithm(policy->ksk->algorithm) == 0) {
@@ -6922,12 +6967,10 @@ int cmd_genkeys()
         printf("Could not count current zsk numbers for policy %s\n", policy->name);
         /* TODO exit? continue with next policy? */
     }
-    /* Correct for shared keys */
-    if (policy->shared_keys == KSM_KEYS_SHARED) {
-        keys_in_queue /= zone_count;
-    }
+	/* Don't have to adjust the queue for shared keys as the prediction has already taken care of that.*/
     /* Might have to account for ksks */
     if (same_keys) {
+	    /* fprintf(stderr, "SAME KEY TYPE: adjusting for ksks on queue. Keys actually in queue now(%d), ksks_needed(%d)\n", keys_in_queue, ksks_needed); */
         keys_in_queue -= ksks_needed;
     }
 
@@ -6946,6 +6989,14 @@ int cmd_genkeys()
             new_keys = policy->zsk->sm_capacity - current_count;
         }
     }
+
+	if (new_keys <= 0 ) {
+		/* Don't exit here, just fall through to the end */
+		printf("No new ZSKs need to be created.\n");
+    }
+    else {
+		printf("%d new ZSK(s) (%d bits) need to be created.\n", new_keys, policy->zsk->bits);
+	}
 
     /* Create the required keys */
     for (i = new_keys ; i > 0 ; i--) {
