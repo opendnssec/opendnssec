@@ -34,7 +34,6 @@
 #include "config.h"
 #include "adapter/adapi.h"
 #include "shared/duration.h"
-#include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
@@ -121,7 +120,7 @@ adapi_get_ttl(zone_type* zone)
  *
  */
 void
-adapi_trans_full(zone_type* zone)
+adapi_trans_full(zone_type* zone, unsigned more_coming)
 {
     time_t start = 0;
     time_t end = 0;
@@ -129,7 +128,7 @@ adapi_trans_full(zone_type* zone)
     if (!zone || !zone->db) {
         return;
     }
-    namedb_diff(zone->db, 0);
+    namedb_diff(zone->db, 0, more_coming);
 
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
@@ -141,13 +140,15 @@ adapi_trans_full(zone_type* zone)
     /* nsecify(3) */
     namedb_nsecify(zone->db, &num_added);
     end = time(NULL);
-    lock_basic_lock(&zone->stats->stats_lock);
-    if (!zone->stats->start_time) {
-        zone->stats->start_time = start;
+    if (zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
+        if (!zone->stats->start_time) {
+            zone->stats->start_time = start;
+        }
+        zone->stats->nsec_time = (end-start);
+        zone->stats->nsec_count = num_added;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
-    zone->stats->nsec_time = (end-start);
-    zone->stats->nsec_count = num_added;
-    lock_basic_unlock(&zone->stats->stats_lock);
     return;
 }
 
@@ -157,7 +158,7 @@ adapi_trans_full(zone_type* zone)
  *
  */
 void
-adapi_trans_diff(zone_type* zone)
+adapi_trans_diff(zone_type* zone, unsigned more_coming)
 {
     time_t start = 0;
     time_t end = 0;
@@ -165,7 +166,7 @@ adapi_trans_diff(zone_type* zone)
     if (!zone || !zone->db) {
         return;
     }
-    namedb_diff(zone->db, 1);
+    namedb_diff(zone->db, 1, more_coming);
 
    if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
@@ -177,13 +178,15 @@ adapi_trans_diff(zone_type* zone)
     /* nsecify(3) */
     namedb_nsecify(zone->db, &num_added);
     end = time(NULL);
-    lock_basic_lock(&zone->stats->stats_lock);
-    if (!zone->stats->start_time) {
-        zone->stats->start_time = start;
+    if (zone->stats) {
+        lock_basic_lock(&zone->stats->stats_lock);
+        if (!zone->stats->start_time) {
+            zone->stats->start_time = start;
+        }
+        zone->stats->nsec_time = (end-start);
+        zone->stats->nsec_count = num_added;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
-    zone->stats->nsec_time = (end-start);
-    zone->stats->nsec_count = num_added;
-    lock_basic_unlock(&zone->stats->stats_lock);
     return;
 }
 
@@ -221,7 +224,7 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
             ldns_rdf_deep_free(soa_rdata);
             soa_rdata = NULL;
         } else {
-            ods_log_error("[%s] unable to %s rr to zone %s: failed to replace "
+            ods_log_error("[%s] unable to %s soa to zone %s: failed to replace "
                 "soa minimum rdata", adapi_str, add?"add":"delete",
                 zone->name);
             return ODS_STATUS_ASSERT_ERR;
@@ -234,7 +237,7 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
     tmp = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
     status = namedb_update_serial(zone->db, zone->signconf->soa_serial, tmp);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to add rr to zone %s: failed to replace "
+        ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
             "soa serial rdata (%s)", adapi_str, zone->name,
             ods_status2str(status));
         return status;
@@ -247,8 +250,8 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
         ldns_rdf_deep_free(soa_rdata);
         soa_rdata = NULL;
     } else {
-        ods_log_error("[%s] unable to %s rr to zone %s: failed to replace "
-            "soa serial rdata", adapi_str, add?"add":"delete", zone->name);
+        ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
+            "soa serial rdata", adapi_str, zone->name);
         return ODS_STATUS_ERR;
     }
     if (!backup) {
@@ -392,6 +395,8 @@ adapi_printzone(FILE* fd, zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db) {
+        ods_log_error("[%s] unable to print zone: file descriptor, zone or "
+            "name database missing", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     namedb_export(fd, zone->db, &status);
@@ -409,6 +414,8 @@ adapi_printaxfr(FILE* fd, zone_type* zone)
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db) {
+        ods_log_error("[%s] unable to print axfr: file descriptor, zone or "
+            "name database missing", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     namedb_export(fd, zone->db, &status);
@@ -431,6 +438,8 @@ adapi_printixfr(FILE* fd, zone_type* zone)
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
     if (!fd || !zone || !zone->db || !zone->ixfr) {
+        ods_log_error("[%s] unable to print ixfr: file descriptor, zone or "
+            "name database missing", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     if (!zone->db->is_initialized) {
@@ -443,7 +452,9 @@ adapi_printixfr(FILE* fd, zone_type* zone)
     if (status != ODS_STATUS_OK) {
         return status;
     }
+    lock_basic_lock(&zone->ixfr->ixfr_lock);
     ixfr_print(fd, zone->ixfr);
+    lock_basic_unlock(&zone->ixfr->ixfr_lock);
     rrset_print(fd, rrset, 1, &status);
     return status;
 }

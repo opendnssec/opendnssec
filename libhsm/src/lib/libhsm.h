@@ -41,7 +41,13 @@ extern "C" {
  * Note that currently the MySQL kasp schema limits the number of HSMs to 
  * 127; so to increase it beyond that requires some database changes similar
  * to when keypairs(id) was increased, see svn r4465.
+ *
+ * Note that this constant also determines the size of the shared PIN memory.
+ * Increasing this size requires any existing memory to be removed and should
+ * be part of a migration script.
  */
+#define HSM_MAX_SESSIONS 100
+
 #define HSM_MAX_ALGONAME 16
 
 #define HSM_ERROR_MSGSIZE 512
@@ -49,6 +55,12 @@ extern "C" {
 /* TODO: depends on type and key, or just leave it at current
  * maximum? */
 #define HSM_MAX_SIGNATURE_LENGTH 512
+
+/* Note that this constant also determines the size of the shared PIN memory.
+ * Increasing this size requires any existing memory to be removed and should
+ * be part of a migration script.
+ */
+#define HSM_MAX_PIN_LENGTH 255
 
 /*! Return codes for some of the functions */
 /*! These should be different than the list of CKR_ values defined
@@ -62,6 +74,11 @@ extern "C" {
 #define HSM_NO_REPOSITORIES       0x10000005
 #define HSM_MODULE_NOT_FOUND      0x10000006
 
+/*! The mode for the PIN callback functions */
+#define HSM_PIN_FIRST	0	/* Used when getting the PIN for the first time. */
+#define HSM_PIN_RETRY	1	/* Used when we failed to login the first time. */
+#define HSM_PIN_SAVE	2	/* The latest PIN can be saved for future use. Called
+				   after a successful login. */
 
 /*! HSM configuration */
 typedef struct {
@@ -124,8 +141,6 @@ typedef struct {
                     no PIN configured. The default hsm_prompt_pin() can
                     be used. If this value is NULL, these tokens will
                     be skipped
-\param data optional data that will be directly passed to the callback
-            function
 \return 0 if successful, !0 if failed
 
 Attaches all configured HSMs, querying for PINs (using the given
@@ -136,19 +151,42 @@ global context will be used) and log into each HSM.
 */
 int
 hsm_open(const char *config,
-         char *(pin_callback)(const char *repository, void *),
-         void *data);
+         char *(pin_callback)(unsigned int, const char *, unsigned int));
 
 
 /*! Function that queries for a PIN, can be used as callback
-    for hsm_open()
+    for hsm_open(). Stores the PIN in the shared memory.
 
+\param id Used for identifying the repository. Will have a value between zero and
+          HSM_MAX_SESSIONS.
 \param repository The repository name will be included in the prompt
-\param data This value is unused
+\param mode The type of mode the function should run in.
 \return The string the user enters
 */
 char *
-hsm_prompt_pin(const char *repository, void *data);
+hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode);
+
+
+/*! Function that will check if there is a PIN in the shared memory and returns it.
+
+\param id Used for identifying the repository. Will have a value between zero and
+          HSM_MAX_SESSIONS.
+\param repository The repository name will be included in the prompt
+\param mode The type of mode the function should run in.
+\return The string the user enters
+*/
+char *
+hsm_check_pin(unsigned int id, const char *repository, unsigned int mode);
+
+
+/*! Logout
+
+    Function that will logout the user by deleting the shared memory and
+    semaphore. Any authenticated process will still be able to interact
+    with the HSM.
+*/
+int
+hsm_logout_pin();
 
 
 /*! Close HSM library

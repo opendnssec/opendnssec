@@ -69,6 +69,20 @@ AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T
 AC_TYPE_UINT16_T
+AC_MSG_CHECKING(for union semun)
+AC_TRY_COMPILE([#include <sys/types.h>
+                #include <sys/ipc.h>
+                #include <sys/sem.h>],
+               [union semun arg;],
+               [have_union_semun=1],
+               [have_union_semun=0]
+)
+if test $have_union_semun = 1; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(HAVE_UNION_SEMUN, 1, [union semun is defined])
+else
+  AC_MSG_RESULT(no)
+fi
 
 # pthread
 ACX_PTHREAD
@@ -114,17 +128,6 @@ AC_REPLACE_FUNCS(b64_ntop)
 ACX_BROKEN_SETRES
 AC_CHECK_STRPTIME
 
-# find out how to restart named processes
-AC_PATH_PROG(PKILL, pkill)
-AC_PATH_PROG(KILLALL, killall)
-if test -n "$PKILL" -a -x "$PKILL"; then
-  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "$PKILL -HUP ods-enforcerd", [Command to restart a named process])
-elif test -n "$KILLALL" -a -x "$KILLALL"; then
-  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "$KILLALL -HUP ods-enforcerd", [Command to restart a named process])
-else
-  AC_DEFINE_UNQUOTED(RESTART_ENFORCERD_CMD, "/bin/false", [Command to restart a named process])
-fi
-
 # check for some target-specific stuff
 case "$host" in
 *-*-darwin*)
@@ -137,6 +140,14 @@ case "$host" in
     AC_DEFINE(_NETBSD_SOURCE, 1, [Enable functions on BSD])
     ;;
 esac
+
+# check for the sockaddr_un.sun_len member
+AC_CHECK_MEMBER([struct sockaddr_un.sun_len],
+    [AC_DEFINE(HAVE_SOCKADDR_SUN_LEN,1,[Have the sockaddr_un.sun_len member.])],
+    [],
+    [ #include <sys/types.h>
+      #include <sys/un.h>
+    ])
 
 # timeshift
 AC_ARG_ENABLE(timeshift,
@@ -154,6 +165,8 @@ fi
 # common dependencies
 ACX_LIBXML2
 ACX_LDNS(1,6,12)
+ACX_LDNS_NOT(1,6,14, [binary incompatibility, see http://open.nlnetlabs.nl/pipermail/ldns-users/2012-October/000564.html])
+ACX_LDNS_NOT(1,6,15, [fail to create NSEC3 bitmap for empty non-terminals, see http://www.nlnetlabs.nl/pipermail/ldns-users/2012-November/000565.html])
 ACX_PKCS11_MODULES
 ACX_RT
 ACX_LIBC
@@ -211,35 +224,6 @@ AH_BOTTOM([
 ])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
-# plugins/eppclient
-AC_ARG_ENABLE(eppclient,
-	AC_HELP_STRING([--enable-eppclient],
-		[Enable eppclient build (default disabled)]),
-		[enable_eppclient="${enableval}"],
-		[enable_eppclient="no"])
-if test "x${enable_eppclient}" = "xyes"; then
-	AC_SEARCH_LIBS(nanosleep, rt posix4, AC_DEFINE(HAVE_NANOSLEEP, 1,
-		[Define if you have nanosleep]))
-
-	# ACX_LIBXML2
-	# ACX_LDNS(1,6,6)
-	ACX_LIBSQLITE3
-	LIBCURL_CHECK_CONFIG([yes], [7.18.2], [], [AC_MSG_ERROR(["libcurl not found"])])
-
-	EPPCLIENTD_CONF=$OPENDNSSEC_SYSCONF_DIR/eppclientd.conf
-	EPPCLIENTD_DB=$OPENDNSSEC_LOCALSTATE_DIR/eppclientd.sqlite
-	EPPCLIENTD_PID=$OPENDNSSEC_PID_DIR/eppclientd.pid
-	EPPCLIENTD_PIPE=$OPENDNSSEC_PID_DIR/eppclientd.pipe
-
-	AC_SUBST([EPPCLIENTD_CONF])
-	AC_SUBST([EPPCLIENTD_DB])
-	AC_SUBST([EPPCLIENTD_PID])
-	AC_SUBST([EPPCLIENTD_PIPE])
-
-	AC_DEFINE_UNQUOTED(EPPCLIENTD_CONF, "$EPPCLIENTD_CONF", [Path to the eppclientd.conf])
-fi
-AM_CONDITIONAL([ENABLE_EPPCLIENT], [test "${enable_eppclient}" = "yes"])
-
 # check for a green cucumber (but only if we can shift time)
 if test "x${enable_timeshift}" = "xyes"; then
 	AC_PATH_PROG(CUCUMBER, cucumber)
@@ -285,12 +269,6 @@ AC_CONFIG_FILES([
 	libhsm/checks/conf-opensc.xml
 	libhsm/checks/conf-ncipher.xml
 	libhsm/checks/conf-aepkeyper.xml
-	plugins/eppclient/Makefile
-	plugins/eppclient/src/Makefile
-	plugins/eppclient/src/eppclient.8
-	plugins/eppclient/src/eppclientd.8
-	plugins/eppclient/src/eppclientd.conf
-	plugins/eppclient/src/eppclientd.conf.5
 	signer/Makefile
 	signer/man/Makefile
 	signer/man/ods-signer.8

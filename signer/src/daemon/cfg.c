@@ -77,6 +77,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         if (!ecfg) {
             ods_log_error("[%s] unable to create config: allocator_alloc() "
                 "failed", conf_str);
+            ods_fclose(cfgfd);
             return NULL;
         }
         ecfg->allocator = allocator;
@@ -201,6 +202,26 @@ engine_config_print(FILE* out, engineconfig_type* config)
             }
             fprintf(out, "\t\t</Privileges>\n");
         }
+        if (config->interfaces) {
+             size_t i = 0;
+             fprintf(out, "\t\t<Listener>\n");
+
+             for (i=0; i < config->interfaces->count; i++) {
+                 fprintf(out, "\t\t\t<Interface>");
+                 if (config->interfaces->interfaces[i].address) {
+                     fprintf(out, "<Address>%s</Address>",
+                         config->interfaces->interfaces[i].address);
+                 }
+                 if (config->interfaces->interfaces[i].port) {
+                     fprintf(out, "<Port>%s</Port>",
+                         config->interfaces->interfaces[i].port);
+                 }
+                 fprintf(out, "<Interface>\n");
+             }
+             fprintf(out, "\t\t</Listener>\n");
+
+        }
+
         fprintf(out, "\t\t<WorkingDirectory>%s</WorkingDirectory>\n",
             config->working_dir);
         fprintf(out, "\t\t<WorkerThreads>%i</WorkerThreads>\n",
@@ -237,11 +258,11 @@ engine_config_cleanup(engineconfig_type* config)
     }
     allocator = config->allocator;
     listener_cleanup(config->interfaces);
+    allocator_deallocate(allocator, (void*) config->notify_command);
     allocator_deallocate(allocator, (void*) config->cfg_filename);
     allocator_deallocate(allocator, (void*) config->zonelist_filename);
     allocator_deallocate(allocator, (void*) config->log_filename);
     allocator_deallocate(allocator, (void*) config->pid_filename);
-    allocator_deallocate(allocator, (void*) config->notify_command);
     allocator_deallocate(allocator, (void*) config->clisock_filename);
     allocator_deallocate(allocator, (void*) config->working_dir);
     allocator_deallocate(allocator, (void*) config->username);

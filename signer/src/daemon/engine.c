@@ -94,7 +94,6 @@ engine_create(void)
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
     engine->pid = -1;
-    engine->zfpid = -1;
     engine->uid = -1;
     engine->gid = -1;
     engine->daemonize = 0;
@@ -416,6 +415,7 @@ engine_stop_workers(engine_type* engine)
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
+    ods_log_debug("[%s] notify workers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
@@ -436,6 +436,7 @@ engine_stop_drudgers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 1;
     }
+    ods_log_debug("[%s] notify drudgers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
@@ -473,6 +474,7 @@ engine_wakeup_workers(engine_type* engine)
 static ods_status
 engine_setup(engine_type* engine)
 {
+    ods_status status = ODS_STATUS_OK;
     struct sigaction action;
     int result = 0;
     int sockets[2] = {0,0};
@@ -502,6 +504,11 @@ engine_setup(engine_type* engine)
         }
         engine->xfrhandler->dnshandler.fd = sockets[0];
         engine->dnshandler->xfrhandler.fd = sockets[1];
+        status = dnshandler_listen(engine->dnshandler);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] setup: unable to listen to sockets (%s)",
+                engine_str, ods_status2str(status));
+        }
     }
     /* privdrop */
     engine->uid = privuid(engine->config->username);
@@ -567,8 +574,15 @@ engine_setup(engine_type* engine)
     action.sa_handler = signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
-    sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
+    sigaction(SIGHUP, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGILL, &action, NULL);
+    sigaction(SIGUSR1, &action, NULL);
+    sigaction(SIGALRM, &action, NULL);
+    sigaction(SIGCHLD, &action, NULL);
+    action.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &action, NULL);
     /* create workers/drudgers */
     engine_create_workers(engine);
     engine_create_drudgers(engine);
@@ -674,6 +688,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
 {
     const char* str = NULL;
     const char* str2 = NULL;
+    char* token = NULL;
     ods_log_assert(cmd);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -684,9 +699,27 @@ set_notify_ns(zone_type* zone, const char* cmd)
         str = cmd;
     }
     str2 = ods_replace(str, "%zone", zone->name);
-    free((void*)str);
-    zone->notify_ns = (const char*) str2;
-    ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
+    if (str2) {
+        free((void*)str);
+
+        ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
+        ods_str_trim((char*) str2);
+        str = str2;
+        if (*str) {
+            token = NULL;
+            while ((token = strtok((char*) str, " "))) {
+                if (*token) {
+                    ods_str_list_add(&zone->notify_args, token);
+                }
+                str = NULL;
+            }
+        }
+        zone->notify_command = (char*) str2;
+        zone->notify_ns = zone->notify_args[0];
+    } else {
+        ods_log_error("[%s] unable to set notify ns: replace zone failed",
+            engine_str);
+    }
     return;
 }
 
@@ -980,11 +1013,13 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         engine_config_print(stdout, engine->config); /* for debugging */
         goto earlyexit;
     }
-
+    /* check pidfile */
+    if (!util_check_pidfile(engine->config->pid_filename)) {
+        exit(1);
+    }
     /* open log */
     ods_log_init(engine->config->log_filename, engine->config->use_syslog,
        engine->config->verbosity);
-
     /* setup */
     tzset(); /* for portability */
     status = engine_setup(engine);
@@ -1030,11 +1065,14 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
     if (close_hsm) {
+        ods_log_verbose("[%s] close hsm", engine_str);
         hsm_close();
     }
-    engine_stop_xfrhandler(engine);
-    engine_stop_dnshandler(engine);
-    engine_stop_cmdhandler(engine);
+    if (!engine->cmdhandler_done) {
+        engine_stop_xfrhandler(engine);
+        engine_stop_dnshandler(engine);
+        engine_stop_cmdhandler(engine);
+    }
 
 earlyexit:
     if (engine && engine->config) {

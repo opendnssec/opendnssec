@@ -21,10 +21,6 @@ if ENABLE_ENFORCERNG
 SUBDIRS += enforcer-ng
 endif
 
-if ENABLE_EPPCLIENT
-SUBDIRS += plugins/eppclient
-endif
-
 EXTRA_DIST =	$(srcdir)/LICENSE \
 		$(srcdir)/KNOWN_ISSUES \
 		$(srcdir)/MIGRATION \

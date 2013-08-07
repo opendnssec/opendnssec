@@ -389,7 +389,7 @@ acl_tsig_matches(acl_type* acl, tsig_rr_type* tsig)
     }
     if (tsig->status != TSIG_OK) {
         ods_log_debug("[%s] no match: tsig %s", acl_str,
-            tsig_strerror(tsig->status));
+            tsig_status2str(tsig->status));
         return 0; /* query has no TSIG */
     }
     if (tsig->error_code != LDNS_RCODE_NOERROR) {

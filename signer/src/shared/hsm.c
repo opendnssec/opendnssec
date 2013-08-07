@@ -45,7 +45,7 @@ static const char* hsm_str = "hsm";
 int
 lhsm_open(const char* filename)
 {
-    int result = hsm_open(filename, hsm_prompt_pin, NULL);
+    int result = hsm_open(filename, hsm_check_pin);
     if (result != HSM_OK) {
         char* error =  hsm_get_error(NULL);
         if (error != NULL) {
@@ -261,7 +261,7 @@ lhsm_sign_start:
     params->inception = inception;
     params->expiration = expiration;
     params->keytag = ldns_calc_keytag(key_id->dnskey);
-    ods_log_debug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
+    ods_log_deeebug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
         ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
         key_id->locator?key_id->locator:"(null)", params->keytag);
     result = hsm_sign_rrset(ctx, rrset, key_id->hsmkey, params);

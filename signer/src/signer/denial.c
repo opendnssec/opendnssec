@@ -89,8 +89,18 @@ denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
     domain = (domain_type*) denial->domain;
     rrset = domain->rrsets;
     while (rrset) {
-        types[*types_count] = rrset->rrtype;
-        *types_count = *types_count + 1;
+        ldns_rr_type dstatus = domain_is_occluded(domain);
+        if (dstatus == LDNS_RR_TYPE_SOA) {
+            /* Authoritative or delegation */
+            dstatus = domain_is_delegpt(domain);
+            if (dstatus == LDNS_RR_TYPE_SOA ||
+                rrset->rrtype == LDNS_RR_TYPE_NS ||
+                rrset->rrtype == LDNS_RR_TYPE_DS) {
+
+                types[*types_count] = rrset->rrtype;
+                *types_count = *types_count + 1;
+            }
+        }
         rrset = rrset->next;
     }
     return;
@@ -241,7 +251,7 @@ void
 denial_diff(denial_type* denial)
 {
     if (denial && denial->rrset) {
-        rrset_diff(denial->rrset, 0);
+        rrset_diff(denial->rrset, 0, 0);
     }
     return;
 }
@@ -340,6 +350,8 @@ denial_print(FILE* fd, denial_type* denial, ods_status* status)
 {
     if (!denial || !fd) {
         if (status) {
+            ods_log_crit("[%s] unable to print denial: denial of fd missing",
+                denial_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
         return;

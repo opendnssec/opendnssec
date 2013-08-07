@@ -42,7 +42,7 @@ start = element Configuration {
 			element TokenLabel { xsd:string },
 
 			# PKCS#11 Login Credentials
-			element PIN { xsd:string },
+			element PIN { xsd:string }?,
 
 			# Maxmimum number of key pairs in the repository
 			# DEFAULT: infinite
@@ -80,6 +80,10 @@ start = element Configuration {
 		# User & group to drop privs to
 		privs?,
 
+		# Number of Worker Threads
+		# DEFAULT: 1
+		element WorkerThreads { xsd:positiveInteger }?,
+		
 		# Where to store internal Enforcer state
 		element Datastore { (mysql | sqlite) },
 

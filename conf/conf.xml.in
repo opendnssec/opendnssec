@@ -44,7 +44,10 @@
 			<Group>opendnssec</Group>
 		</Privileges>
 -->
-
+<!-- NOTE: Enforcer worker threads are not used; this option is ignored -->
+<!--
+		<WorkerThreads>4</WorkerThreads>
+-->
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
@@ -52,9 +55,9 @@
 		<!-- <RolloverNotification>P14D</RolloverNotification> -->
 		
 		<!-- the <DelegationSignerSubmitCommand> will get all current
-		     DNSKEYs (as a RRset) on standard input
+		     DNSKEYs (as a RRset) on standard input (with optional CKA_ID)
 		-->
-		<!-- <DelegationSignerSubmitCommand>@OPENDNSSEC_SBIN_DIR@/eppclient</DelegationSignerSubmitCommand> -->
+		<!-- <DelegationSignerSubmitCommand>@OPENDNSSEC_SBIN_DIR@/simple-dnskey-mailer.sh</DelegationSignerSubmitCommand> -->
 	</Enforcer>
 
 	<Signer>

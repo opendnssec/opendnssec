@@ -807,7 +807,7 @@ buffer_pkt_id(buffer_type* buffer)
 static uint16_t
 random_id(void)
 {
-    return (uint16_t) 4; /* could be more random */
+    return ldns_get_random();
 }
 
 /**

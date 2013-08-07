@@ -85,8 +85,12 @@ ods_fgetc(FILE* fd, unsigned int* line_nr)
     ods_log_assert(line_nr);
 
     c = fgetc(fd);
-	if (c == '\n') {
+    if (c == '\n') {
         (*line_nr)++;
+    }
+    if (c == EOF && errno != 0) {
+        ods_log_crit("[%s] fgetc() failed, enough memory? (%s)",
+            file_str, strerror(errno));
     }
     return c;
 }
@@ -188,7 +192,7 @@ ods_fopen(const char* file, const char* dir, const char* mode)
     char* openf = NULL;
 
     ods_log_assert(mode);
-    ods_log_debug("[%s] open file %s%s file=%s mode=%s", file_str,
+    ods_log_deeebug("[%s] open file %s%s file=%s mode=%s", file_str,
         (dir?"dir=":""), (dir?dir:""), (file?file:"(null)"),
         ods_file_mode2str(mode));
 
@@ -202,6 +206,9 @@ ods_fopen(const char* file, const char* dir, const char* mode)
     if (len_total > 0) {
         openf = (char*) malloc(sizeof(char)*(len_total + 1));
         if (!openf) {
+            ods_log_error("[%s] unable to open file %s%s%s for %s: malloc() "
+                "failed", file_str, (dir?dir:""), (dir?"/":""),
+                (file?file:"(null)"), ods_file_mode2str(mode));
             return NULL;
         }
         if (dir) {
@@ -218,7 +225,7 @@ ods_fopen(const char* file, const char* dir, const char* mode)
         if (len_file) {
             fd = fopen(openf, mode);
             if (!fd) {
-                ods_log_verbose("[%s] unable to open file %s for %s: %s",
+                ods_log_debug("[%s] unable to open file %s for %s: %s",
                     file_str, openf?openf:"(null)",
                     ods_file_mode2str(mode), strerror(errno));
             }
@@ -289,6 +296,9 @@ ods_file_lastmodified(const char* file)
         }
         ods_fclose(fd);
         return buf.st_mtime;
+    } else {
+        ods_log_error("[%s] unable to stat file %s: ods_fopen() failed",
+            file_str, file);
     }
     return 0;
 }
@@ -550,5 +560,45 @@ ods_str_trim(char* str)
         str++;
     }
     *str = '\0';
+    return;
+}
+
+
+/**
+ * Add a string to a list of strings. Taken from ods-enforcer.
+ *
+ */
+void
+ods_str_list_add(char*** list, char* str)
+{
+    char** old = NULL;
+    size_t count = 0;
+
+    if (*list) {
+        for (count=0; (*list)[count]; ++count) {
+            ;
+        }
+        old = *list;
+
+        *list = (char**) calloc(sizeof(char*), count+2);
+        if (!*list) {
+            ods_fatal_exit("[%s] fatal ods_str_list_add(): calloc() failed",
+                file_str);
+        }
+        if (old) {
+            memcpy(*list, old, count * sizeof(char*));
+        }
+        free(old);
+        (*list)[count] = str;
+        (*list)[count+1] = NULL;
+    } else {
+        /** List is NULL, allocate new */
+        *list = calloc(sizeof(char*), 2);
+        if (!*list) {
+            ods_fatal_exit("[%s] fatal ods_str_list_add(): calloc() failed",
+                file_str);
+        }
+        (*list)[0] = str;
+    }
     return;
 }

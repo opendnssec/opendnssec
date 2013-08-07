@@ -35,7 +35,6 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/log.h"
-#include "signer/backup.h"
 #include "shared/status.h"
 #include "signer/signconf.h"
 
@@ -136,6 +135,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
             if (!signconf->nsec3params) {
                 ods_log_error("[%s] unable to read signconf %s: "
                     "nsec3params_create() failed", sc_str, scfile);
+                ods_fclose(fd);
                 return ODS_STATUS_MALLOC_ERR;
             }
         }
@@ -244,8 +244,9 @@ signconf_backup(FILE* fd, signconf_type* sc, const char* version)
     signconf_backup_duration(fd, "soamin", sc->soa_min);
     fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
-        fprintf(fd, "audit 0\n");
+        fprintf(fd, "audit 0");
     }
+    fprintf(fd, "\n");
     return;
 }
 
@@ -370,7 +371,9 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
     ods_log_assert(a);
     ods_log_assert(b);
 
-   if (a->nsec_type != b->nsec_type) {
+   if (duration_compare(a->soa_min, b->soa_min)) {
+       new_task = TASK_NSECIFY;
+   } else if (a->nsec_type != b->nsec_type) {
        new_task = TASK_NSECIFY;
    } else if (a->nsec_type == LDNS_RR_TYPE_NSEC3) {
        if ((ods_strcmp(a->nsec3_salt, b->nsec3_salt) != 0) ||
@@ -380,8 +383,6 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
 
            new_task = TASK_NSECIFY;
        }
-   } else if (duration_compare(a->soa_min, b->soa_min)) {
-       new_task = TASK_NSECIFY;
    }
    return new_task;
 }
@@ -505,9 +506,12 @@ signconf_log(signconf_type* sc, const char* name)
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
             "VALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
-            sc_str, name?name:"(null)", resign, refresh, validity, denial,
-            jitter, offset, (int) sc->nsec_type, dnskeyttl, soattl,
-            soamin, sc->soa_serial?sc->soa_serial:"(null)");
+            sc_str, name?name:"(null)", resign?resign:"(null)",
+            refresh?refresh:"(null)", validity?validity:"(null)",
+            denial?denial:"(null)", jitter?jitter:"(null)",
+            offset?offset:"(null)", (int) sc->nsec_type,
+            dnskeyttl?dnskeyttl:"(null)", soattl?soattl:"(null)",
+            soamin?soamin:"(null)", sc->soa_serial?sc->soa_serial:"(null)");
         /* nsec3 parameters */
         if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
             ods_log_debug("[%s] zone %s nsec3: OPTOUT[%i] ALGORITHM[%u] "

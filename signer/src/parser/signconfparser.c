@@ -35,7 +35,6 @@
 #include "parser/signconfparser.h"
 #include "shared/duration.h"
 #include "shared/log.h"
-#include "signer/signconf.h"
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -135,7 +134,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
                     ods_log_warning("[%s] unable to push duplicate key %s "
                         "to keylist, skipping", parser_str, locator);
                 } else {
-                    new_key = keylist_push(kl, locator,
+                    (void) keylist_push(kl, locator,
                         (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
                         publish, ksk, zsk);
                 }

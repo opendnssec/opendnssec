@@ -215,7 +215,7 @@ tsig_rr_type* tsig_rr_create(allocator_type* allocator);
 
 /**
  * Reset TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  * \param[in] algo tsig algorithm
  * \param[in] key tsig key
  *
@@ -224,7 +224,7 @@ void tsig_rr_reset(tsig_rr_type* trr, tsig_algo_type* algo, tsig_key_type* key);
 
 /**
  * Find TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  * \param[in] buffer packet buffer
  * \return int 1 if not present or present and valid, 0 otherwise.
  *
@@ -233,16 +233,16 @@ int tsig_rr_find(tsig_rr_type* trr, buffer_type* buffer);
 
 /**
  * Parse TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  * \param[in] buffer packet buffer
- * \return int 1 if not TSIG RRm or TSIG RR and valid, 0 otherwise.
+ * \return int 1 if not TSIG RR or TSIG RR and valid, 0 otherwise.
  *
  */
 int tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer);
 
 /**
  * Lookup TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  * \return int 1 if succeeded, 0 if unknown
  *
  */
@@ -250,14 +250,14 @@ int tsig_rr_lookup(tsig_rr_type* trr);
 
 /**
  * Prepare TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  *
  */
 void tsig_rr_prepare(tsig_rr_type* trr);
 
 /**
  * Update TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  * \param[in] buffer packet buffer
  * \param[in] length number of octets of buffer to add to the TSIG hash,
  *                   replacing the buffer's id with the original
@@ -267,15 +267,15 @@ void tsig_rr_prepare(tsig_rr_type* trr);
 void tsig_rr_update(tsig_rr_type* trr, buffer_type* buffer, size_t length);
 
 /**
- * Sing TSIG RR.
- * \param[in] trr tsig rr
+ * Sign TSIG RR.
+ * \param[in] trr TSIG RR
  *
  */
 void tsig_rr_sign(tsig_rr_type* trr);
 
 /**
  * Verify TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  * \return int 1 if verified, 0 on error
  *
  */
@@ -283,7 +283,7 @@ int tsig_rr_verify(tsig_rr_type* trr);
 
 /**
  * Append TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  * \param[in] buffer packet buffer
  *
  */
@@ -291,7 +291,7 @@ void tsig_rr_append(tsig_rr_type* trr, buffer_type* buffer);
 
 /*
  * The amount of space to reserve in the response for the TSIG data.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  * \return size_t reserved space size
  *
  */
@@ -299,29 +299,37 @@ size_t tsig_rr_reserved_space(tsig_rr_type *trr);
 
 /**
  * Reply with error TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  *
  */
 void tsig_rr_error(tsig_rr_type* trr);
 
 /**
  * Get human readable TSIG error code.
- * \param[in] status tsig status
+ * \param[in] status TSIG status
+ * \return const char* TSIG status
+ *
+ */
+const char* tsig_status2str(tsig_status status);
+
+/**
+ * Get human readable TSIG error code.
+ * \param[in] error TSIG error code
  * \return const char* readable error code
  *
  */
-const char* tsig_strerror(tsig_status status);
+const char* tsig_strerror(uint16_t error);
 
 /**
  * Free TSIG RR.
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  *
  */
 void tsig_rr_free(tsig_rr_type* trr);
 
 /**
  * Cleanup TSIG RR
- * \param[in] trr tsig rr
+ * \param[in] trr TSIG RR
  *
  */
 void tsig_rr_cleanup(tsig_rr_type* trr);

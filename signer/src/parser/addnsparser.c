@@ -299,12 +299,12 @@ parse_addns_tsig_static(allocator_type* allocator, const char* filename,
                 new_tsig = tsig_create(allocator, name, algo, secret);
                 if (!new_tsig) {
                    ods_log_error("[%s] unable to add tsig %s: "
-                       "tsig_create() failed", parser_str, name?name:"");
+                       "tsig_create() failed", parser_str, name);
                 } else {
                    new_tsig->next = tsig;
                    tsig = new_tsig;
                    ods_log_debug("[%s] added %s tsig to list %s",
-                       parser_str, name?name:"", (char*) expr);
+                       parser_str, name, (char*) expr);
                 }
             }
             free((void*)name);

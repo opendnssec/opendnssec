@@ -91,7 +91,9 @@ zone_create(char* name, ldns_rr_class klass)
     zone->default_ttl = 3600; /* TODO: configure --default-ttl option? */
     zone->apex = ldns_dname_new_frm_str(name);
     /* check zone->apex? */
+    zone->notify_command = NULL;
     zone->notify_ns = NULL;
+    zone->notify_args = NULL;
     zone->policy_name = NULL;
     zone->signconf_filename = NULL;
     zone->adinbound = NULL;
@@ -202,7 +204,10 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
              task->halted_when = task->when;
              task->interrupt = what;
          }
-         task->what = what;
+         /** Only reschedule if what to do is lower than what was scheduled. */
+         if (task->what > what) {
+             task->what = what;
+         }
          task->when = time_now();
          status = schedule_task(taskq, task, 0);
      } else {
@@ -391,7 +396,6 @@ zone_publish_nsec3param(zone_type* zone)
         zone->signconf->nsec3params->rr = rr;
     }
     ods_log_assert(zone->signconf->nsec3params->rr);
-
     status = zone_add_rr(zone, zone->signconf->nsec3params->rr, 0);
     if (status == ODS_STATUS_UNCHANGED) {
         /* rr already exists, adjust pointer */
@@ -498,7 +502,7 @@ zone_update_serial(zone_type* zone)
     }
     soa = rrset_add_rr(rrset, rr);
     ods_log_assert(soa);
-    rrset_diff(rrset, 0);
+    rrset_diff(rrset, 0, 0);
     zone->db->serial_updated = 0;
     return ODS_STATUS_OK;
 }
@@ -580,9 +584,10 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         }
         return ODS_STATUS_UNCHANGED;
     } else {
-       record = rrset_add_rr(rrset, rr);
-       ods_log_assert(record);
-       ods_log_assert(record->rr);
+        record = rrset_add_rr(rrset, rr);
+        ods_log_assert(record);
+        ods_log_assert(record->rr);
+        ods_log_assert(record->is_added);
     }
     /* update stats */
     if (do_stats && zone->stats) {
@@ -625,6 +630,7 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
             "RR not found", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
+
     record->is_removed = 1;
     record->is_added = 0; /* unset is_added */
     /* update stats */
@@ -716,7 +722,7 @@ zone_cleanup(zone_type* zone)
     }
     allocator = zone->allocator;
     zone_lock = zone->zone_lock;
-    xfr_lock = zone->zone_lock;
+    xfr_lock = zone->xfr_lock;
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
@@ -726,7 +732,8 @@ zone_cleanup(zone_type* zone)
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
-    allocator_deallocate(allocator, (void*) zone->notify_ns);
+    allocator_deallocate(allocator, (void*) zone->notify_command);
+    allocator_deallocate(allocator, (void*) zone->notify_args);
     allocator_deallocate(allocator, (void*) zone->policy_name);
     allocator_deallocate(allocator, (void*) zone->signconf_filename);
     allocator_deallocate(allocator, (void*) zone->name);
@@ -765,6 +772,9 @@ zone_recover2(zone_type* zone)
     ods_log_assert(zone->db);
 
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
+    if (!filename) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
         /* start recovery */
@@ -931,7 +941,9 @@ zone_recover2(zone_type* zone)
         zone->db->is_initialized = 1;
 
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
-        fd = ods_fopen(filename, NULL, "r");
+        if (filename) {
+            fd = ods_fopen(filename, NULL, "r");
+        }
         if (fd) {
             status = backup_read_ixfr(fd, zone);
             if (status != ODS_STATUS_OK) {
@@ -942,7 +954,9 @@ zone_recover2(zone_type* zone)
                 zone->ixfr = ixfr_create((void*)zone);
             }
         }
+        lock_basic_lock(&zone->ixfr->ixfr_lock);
         ixfr_purge(zone->ixfr);
+        lock_basic_unlock(&zone->ixfr->ixfr_lock);
 
         /* all ok */
         free((void*)filename);
@@ -1001,8 +1015,10 @@ zone_backup2(zone_type* zone)
 
     tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
+    if (!tmpfile || !filename) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(tmpfile, NULL, "w");
-
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
         task = (task_type*) zone->task;

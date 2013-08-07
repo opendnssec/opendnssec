@@ -80,7 +80,6 @@ fifoq_type* fifoq_create(allocator_type* allocator);
 /**
  * Wipe queue.
  * \param[in] q queue to be wiped
- * \param[out] worker worker that owns the item
  *
  */
 void fifoq_wipe(fifoq_type* q);

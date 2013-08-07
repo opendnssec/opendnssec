@@ -313,9 +313,11 @@ static void
 unlink_backup_file(const char* filename, const char* extension)
 {
     char* tmpname = ods_build_path(filename, extension, 0, 1);
-    ods_log_debug("[%s] unlink file %s", cmdh_str, tmpname);
-    unlink(tmpname);
-    free((void*)tmpname);
+    if (tmpname) {
+        ods_log_debug("[%s] unlink file %s", cmdh_str, tmpname);
+        unlink(tmpname);
+        free((void*)tmpname);
+    }
     return;
 }
 
@@ -339,6 +341,8 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     engine = (engine_type*) cmdc->engine;
     unlink_backup_file(tbd, ".inbound");
     unlink_backup_file(tbd, ".backup");
+    unlink_backup_file(tbd, ".axfr");
+    unlink_backup_file(tbd, ".ixfr");
     lock_basic_lock(&engine->zonelist->zl_lock);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
         LDNS_RR_CLASS_IN);
@@ -349,15 +353,25 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         intserial = zone->db->intserial;
         outserial = zone->db->outserial;
         namedb_cleanup(zone->db);
-        zone->db = NULL;
-        zone->db = namedb_create(zone->allocator);
-        zone->db->is_initialized = 1;
+        ixfr_cleanup(zone->ixfr);
+        signconf_cleanup(zone->signconf);
+
+        zone->db = namedb_create((void*)zone);
+        zone->ixfr = ixfr_create((void*)zone);
+        zone->signconf = signconf_create();
+
+        if (!zone->signconf || !zone->ixfr || !zone->db) {
+            ods_fatal_exit("[%s] unable to clear zone %s: failed to recreate"
+            "signconf, ixfr of db structure (out of memory?)", cmdh_str, tbd);
+            return;
+        }
+        /* restore serial management */
         zone->db->inbserial = inbserial;
         zone->db->intserial = intserial;
         zone->db->outserial = outserial;
 
         task = (task_type*) zone->task;
-        task->what = TASK_READ;
+        task->what = TASK_SIGNCONF;
         lock_basic_unlock(&zone->zone_lock);
 
         (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
@@ -719,6 +733,7 @@ cmdhandler_accept_client(void* arg)
     ods_log_debug("[%s] accept client %i", cmdh_str, cmdc->client_fd);
     cmdhandler_handle_cmd(cmdc);
     if (cmdc->client_fd) {
+        shutdown(cmdc->client_fd, SHUT_RDWR);
         close(cmdc->client_fd);
     }
     free(cmdc);
@@ -746,7 +761,7 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     /* new socket */
     ods_log_debug("[%s] create socket %s", cmdh_str, filename);
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (listenfd <= 0) {
+    if (listenfd < 0) {
         ods_log_error("[%s] unable to create cmdhandler: "
             "socket() failed (%s)", cmdh_str, strerror(errno));
         return NULL;
@@ -773,6 +788,9 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sun_family = AF_UNIX;
     strncpy(servaddr.sun_path, filename, sizeof(servaddr.sun_path) - 1);
+#ifdef HAVE_SOCKADDR_SUN_LEN
+    servaddr.sun_len = strlen(servaddr.sun_path);
+#endif
     /* bind and listen... */
     ret = bind(listenfd, (const struct sockaddr*) &servaddr,
         SUN_LEN(&servaddr));

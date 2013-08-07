@@ -441,7 +441,7 @@ engine_setup_and_return_status(engine_type* engine)
     }
 
     /* set up hsm */ /* LEAK */
-    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
+    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin);
     if (result != HSM_OK) {
         char* error =  hsm_get_error(NULL);
         if (error != NULL) {

@@ -182,12 +182,20 @@ namedb_domain_search(ldns_rbtree_t* tree, ldns_rdf* dname)
 }
 
 
+static uint32_t
+max(uint32_t a, uint32_t b)
+{
+    return (a<b?b:a);
+}
+
+
 /**
  * Determine new SOA SERIAL.
  *
  */
 ods_status
-namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
+namedb_update_serial(namedb_type* db, const char* format,
+    uint32_t inbound_serial)
 {
     uint32_t soa = 0;
     uint32_t prev = 0;
@@ -195,9 +203,9 @@ namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
     if (!db || !format) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    prev = db->outserial;
+    prev = max(db->outserial, inbound_serial);
     if (!db->is_initialized) {
-        prev = serial;
+        prev = inbound_serial;
     }
     ods_log_debug("[%s] update serial: format=%s "
         "in=%u internal=%u out=%u now=%u",
@@ -207,20 +215,31 @@ namedb_update_serial(namedb_type* db, const char* format, uint32_t serial)
     if (ods_strcmp(format, "unixtime") == 0) {
         soa = (uint32_t) time_now();
         if (!util_serial_gt(soa, prev)) {
+            if (!db->is_initialized) {
+                ods_log_warning("[%s] unable to use unixtime as serial: %u "
+                    "does not increase %u. Serial set to %u", db_str, soa, prev,
+                    (prev+1));
+            }
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "datecounter") == 0) {
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
         if (!util_serial_gt(soa, prev)) {
+            if (!db->is_initialized) {
+                ods_log_warning("[%s] unable to use datecounter as serial: %u "
+                    "does not increase %u. Serial set to %u", db_str, soa, prev,
+                    (prev+1));
+            }
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "counter") == 0) {
-        soa = serial;
+        soa = inbound_serial + 1;
         if (db->is_initialized && !util_serial_gt(soa, prev)) {
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "keep") == 0) {
-        soa = serial;
+        prev = db->outserial;
+        soa = inbound_serial;
         if (db->is_initialized && !util_serial_gt(soa, prev)) {
             ods_log_error("[%s] cannot keep SOA SERIAL from input zone "
                 " (%u): previous output SOA SERIAL is %u", db_str, soa, prev);
@@ -264,6 +283,7 @@ namedb_domain_entize(namedb_type* db, domain_type* domain, ldns_rdf* apex)
         /* domain already has parent */
         return ODS_STATUS_OK;
     }
+
     while (domain && ldns_dname_is_subdomain(domain->dname, apex) &&
            ldns_dname_compare(domain->dname, apex) != 0) {
         /**
@@ -335,6 +355,11 @@ namedb_add_domain(namedb_type* db, ldns_rdf* dname)
         return NULL;
     }
     new_node = domain2node(domain);
+    if (!new_node) {
+        ods_log_error("[%s] unable to add domain: domain2node() failed",
+            db_str);
+        return NULL;
+    }
     if (ldns_rbtree_insert(db->domains, new_node) == NULL) {
         ods_log_error("[%s] unable to add domain: already present", db_str);
         log_dname(domain->dname, "ERR +DOMAIN", LOG_ERR);
@@ -345,7 +370,7 @@ namedb_add_domain(namedb_type* db, ldns_rdf* dname)
     domain = (domain_type*) new_node->data;
     domain->node = new_node;
     domain->is_new = 1;
-    log_dname(domain->dname, "+DOMAIN", LOG_DEBUG);
+    log_dname(domain->dname, "+DOMAIN", LOG_DEEEBUG);
     return domain;
 }
 
@@ -360,7 +385,6 @@ namedb_del_domain(namedb_type* db, domain_type* domain)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     if (!domain || !db || !db->domains) {
         ods_log_error("[%s] unable to delete domain: !db || !domain", db_str);
-        log_dname(domain->dname, "ERR -DOMAIN", LOG_ERR);
         return NULL;
     }
     if (domain->rrsets || domain->denial) {
@@ -375,7 +399,7 @@ namedb_del_domain(namedb_type* db, domain_type* domain)
         ods_log_assert(!domain->denial);
         free((void*)node);
         domain->node = NULL;
-        log_dname(domain->dname, "-DOMAIN", LOG_DEBUG);
+        log_dname(domain->dname, "-DOMAIN", LOG_DEEEBUG);
         return domain;
     }
     ods_log_error("[%s] unable to delete domain: not found", db_str);
@@ -595,7 +619,7 @@ namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
  * See if domains/denials can be deleted.
  *
  */
-static domain_type*
+static int
 namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
 {
     domain_type* parent = NULL;
@@ -603,6 +627,7 @@ namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
     unsigned is_deleted = 0;
     ods_log_assert(db);
     ods_log_assert(domain);
+    ods_log_assert(domain->dname);
     zone = (void*) domain->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
@@ -619,21 +644,17 @@ namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
                 }
             }
         }
+        parent = domain->parent;
         if (domain_can_be_deleted(domain)) {
             /* -DOMAIN */
-            parent = domain->parent;
             domain = namedb_del_domain(db, domain);
             domain_cleanup(domain);
             is_deleted = 1;
-            /* continue with parent */
-            domain = parent;
-        } else if (is_deleted) {
-            break;
-        } else {
-            return domain; /* domain was not deleted */
         }
+        /* continue with parent */
+        domain = parent;
     }
-    return NULL;
+    return is_deleted;
 }
 
 
@@ -701,6 +722,11 @@ namedb_add_denial(namedb_type* db, ldns_rdf* dname, nsec3params_type* n3p)
         return NULL;
     }
     new_node = denial2node(denial);
+    if (!new_node) {
+        ods_log_error("[%s] unable to add denial: denial2node() failed",
+            db_str);
+        return NULL;
+    }
     if (!ldns_rbtree_insert(db->denials, new_node)) {
         ods_log_error("[%s] unable to add denial: already present", db_str);
         log_dname(denial->dname, "ERR +DENIAL", LOG_ERR);
@@ -720,7 +746,7 @@ namedb_add_denial(namedb_type* db, ldns_rdf* dname, nsec3params_type* n3p)
     pdenial = (denial_type*) pnode->data;
     ods_log_assert(pdenial);
     pdenial->nxt_changed = 1;
-    log_dname(denial->dname, "+DENIAL", LOG_DEBUG);
+    log_dname(denial->dname, "+DENIAL", LOG_DEEEBUG);
     return denial;
 }
 
@@ -763,7 +789,7 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
     free((void*)node);
     denial->domain = NULL;
     denial->node = NULL;
-    log_dname(denial->dname, "-DENIAL", LOG_DEBUG);
+    log_dname(denial->dname, "-DENIAL", LOG_DEEEBUG);
     return denial;
 }
 
@@ -773,7 +799,7 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
  *
  */
 void
-namedb_diff(namedb_type* db, unsigned is_ixfr)
+namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -787,9 +813,17 @@ namedb_diff(namedb_type* db, unsigned is_ixfr)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
-        domain_diff(domain, is_ixfr);
-        domain = namedb_del_denial_trigger(db, domain, 0);
-        if (domain) {
+        domain_diff(domain, is_ixfr, more_coming);
+    }
+    node = ldns_rbtree_first(db->domains);
+    if (!node || node == LDNS_RBTREE_NULL) {
+        return;
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        domain = (domain_type*) node->data;
+        node = ldns_rbtree_next(node);
+        if (!namedb_del_denial_trigger(db, domain, 0)) {
+            /* del_denial did not delete domain */
             namedb_add_denial_trigger(db, domain);
         }
     }
@@ -802,7 +836,7 @@ namedb_diff(namedb_type* db, unsigned is_ixfr)
  *
  */
 void
-namedb_rollback(namedb_type* db)
+namedb_rollback(namedb_type* db, unsigned keepsc)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -816,8 +850,8 @@ namedb_rollback(namedb_type* db)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
-        domain_rollback(domain);
-        domain = namedb_del_denial_trigger(db, domain, 1);
+        domain_rollback(domain, keepsc);
+        (void) namedb_del_denial_trigger(db, domain, 1);
     }
     return;
 }
@@ -882,7 +916,8 @@ namedb_examine(namedb_type* db)
         rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
         if (rrset) {
             /* Thou shall not have other data next to CNAME */
-            if (domain_count_rrset_is_added(domain) > 1) {
+            if (domain_count_rrset_is_added(domain) > 1 &&
+                rrset_count_rr_is_added(rrset) > 0) {
                 log_rrset(domain->dname, rrset->rrtype,
                     "CNAME and other data at the same name", LOG_ERR);
                 return ODS_STATUS_CONFLICT_ERR;
@@ -936,12 +971,15 @@ namedb_wipe_denial(namedb_type* db)
         while (node && node != LDNS_RBTREE_NULL) {
             denial = (denial_type*) node->data;
             if (!denial->rrset) {
+                node = ldns_rbtree_next(node);
                 continue;
             }
             for (i=0; i < denial->rrset->rr_count; i++) {
                 if (denial->rrset->rrs[i].exists) {
                     /* ixfr -RR */
+                    lock_basic_lock(&zone->ixfr->ixfr_lock);
                     ixfr_del_rr(zone->ixfr, denial->rrset->rrs[i].rr);
+                    lock_basic_unlock(&zone->ixfr->ixfr_lock);
                 }
                 denial->rrset->rrs[i].exists = 0;
                 rrset_del_rr(denial->rrset, i);
@@ -949,7 +987,9 @@ namedb_wipe_denial(namedb_type* db)
             }
             for (i=0; i < denial->rrset->rrsig_count; i++) {
                 /* ixfr -RRSIG */
+                lock_basic_lock(&zone->ixfr->ixfr_lock);
                 ixfr_del_rr(zone->ixfr, denial->rrset->rrsigs[i].rr);
+                lock_basic_unlock(&zone->ixfr->ixfr_lock);
                 rrset_del_rrsig(denial->rrset, i);
                 i--;
             }
@@ -973,6 +1013,8 @@ namedb_export(FILE* fd, namedb_type* db, ods_status* status)
     domain_type* domain = NULL;
     if (!fd || !db || !db->domains) {
         if (status) {
+            ods_log_error("[%s] unable to export namedb: file descriptor "
+                "or name database missing", db_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
         return;

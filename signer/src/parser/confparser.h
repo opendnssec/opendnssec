@@ -82,8 +82,6 @@ listener_type* parse_conf_listener(allocator_type* allocator,
 /** Common */
 const char* parse_conf_zonelist_filename(allocator_type* allocator,
     const char* cfgfile);
-const char* parse_conf_zonefetch_filename(allocator_type* allocator,
-    const char* cfgfile);
 const char* parse_conf_log_filename(allocator_type* allocator,
     const char* cfgfile);
 

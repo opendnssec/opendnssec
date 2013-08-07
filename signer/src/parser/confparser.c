@@ -34,7 +34,6 @@
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
 #include "shared/allocator.h"
-#include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "wire/acl.h"
@@ -300,23 +299,6 @@ parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
         cfgfile,
         "//Configuration/Common/ZoneListFile",
         1);
-
-    if (str) {
-        dup = allocator_strdup(allocator, str);
-        free((void*)str);
-    }
-    return dup;
-}
-
-
-const char*
-parse_conf_zonefetch_filename(allocator_type* allocator, const char* cfgfile)
-{
-    const char* dup = NULL;
-    const char* str = parse_conf_string(
-        cfgfile,
-        "//Configuration/Common/ZoneFetchFile",
-        0);
 
     if (str) {
         dup = allocator_strdup(allocator, str);

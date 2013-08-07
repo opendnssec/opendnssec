@@ -26,6 +26,14 @@ the user PIN, and the path to its shared library.
 .SH "COMMANDS"
 .LP
 .TP
+\fBlogin\fR
+If there is no PIN in conf.xml, then this command will ask for it and login.
+The PINs are stored in a shared memory and are accessible to the other daemons.
+.TP
+\fBlogout\fR
+Will erase the semaphore and the shared memory containing any credentials.
+Authenticated processes will still be able to interact with the HSM.
+.TP
 \fBlist\fR [\fIrepository\fR]
 List the keys that are available in all or one \fIrepository\fR
 .TP

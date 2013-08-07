@@ -203,6 +203,8 @@ adapter_write(void* zone)
 {
     zone_type* adzone = (zone_type*) zone;
     if (!adzone || !adzone->db || !adzone->adoutbound) {
+        ods_log_error("[%s] unable to write zone: no output adapter",
+            adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(adzone->name);

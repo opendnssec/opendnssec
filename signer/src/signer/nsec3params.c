@@ -74,6 +74,12 @@ nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
     }
     /* construct salt data */
     salt_tmp = (uint8_t*) calloc(*salt_len / 2, sizeof(uint8_t));
+    if (!salt_tmp) {
+        ods_log_error("[%s] construct salt data for %s failed", nsec3_str,
+            salt_str);
+        *salt = NULL;
+        return ODS_STATUS_MALLOC_ERR;
+    }
     for (c = 0; c < *salt_len; c += 2) {
         if (isxdigit((int) salt_str[c]) && isxdigit((int) salt_str[c+1])) {
             salt_tmp[c/2] = (uint8_t) ldns_hexdigit_to_int(salt_str[c]) * 16 +

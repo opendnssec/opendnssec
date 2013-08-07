@@ -69,7 +69,6 @@ struct engine_struct {
     int cmdhandler_done;
 
     pid_t pid;
-    pid_t zfpid;
     uid_t uid;
     gid_t gid;
 

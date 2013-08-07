@@ -206,6 +206,21 @@ query_refused(query_type* q)
 
 
 /**
+ * NOTAUTH.
+ *
+ */
+static query_state
+query_notauth(query_type* q)
+{
+    if (!q) {
+        return QUERY_DISCARDED;
+    }
+    ods_log_debug("[%s] notauth", query_str);
+    return query_error(q, LDNS_RCODE_NOTAUTH);
+}
+
+
+/**
  * Parse SOA RR in packet.
  * (kind of similar to xfrd_parse_soa)
  *
@@ -285,19 +300,19 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     if (!q->zone->adinbound || q->zone->adinbound->type != ADAPTER_DNS) {
         ods_log_error("[%s] zone %s is not configured to have input dns "
             "adapter", query_str, q->zone->name);
-        return query_refused(q);
+        return query_notauth(q);
     }
     ods_log_assert(q->zone->adinbound->config);
     dnsin = (dnsin_type*) q->zone->adinbound->config;
     if (!acl_find(dnsin->allow_notify, &q->addr, q->tsig_rr)) {
         if (addr2ip(q->addr, address, sizeof(address))) {
-            ods_log_info("[%s] notify for zone %s from client %s refused: no "
-                "acl matches", query_str, q->zone->name, address);
+            ods_log_info("[%s] unauthorized notify for zone %s from client %s: "
+                "no acl matches", query_str, q->zone->name, address);
         } else {
-            ods_log_info("[%s] notify for zone %s from unknown client "
-                "refused: no acl matches", query_str, q->zone->name);
+            ods_log_info("[%s] unauthorized notify for zone %s from unknown "
+                "client: no acl matches", query_str, q->zone->name);
         }
-        return query_refused(q);
+        return query_notauth(q);
     }
     ods_log_assert(q->zone->xfrd);
     /* skip header and question section */
@@ -449,8 +464,7 @@ response_encode_rr(query_type* q, ldns_rr* rr, ldns_pkt_section section)
  *
  */
 static uint16_t
-response_encode_rrset(query_type* q, rrset_type* rrset,
-    ldns_pkt_section section)
+response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section)
 {
     uint16_t i = 0;
     uint16_t added = 0;
@@ -461,8 +475,10 @@ response_encode_rrset(query_type* q, rrset_type* rrset,
     for (i = 0; i < rrset->rr_count; i++) {
         added += response_encode_rr(q, rrset->rrs[i].rr, section);
     }
-    for (i = 0; i < rrset->rrsig_count; i++) {
-        added += response_encode_rr(q, rrset->rrsigs[i].rr, section);
+    if (q->edns_rr && q->edns_rr->dnssec_ok) {
+        for (i = 0; i < rrset->rrsig_count; i++) {
+            added += response_encode_rr(q, rrset->rrsigs[i].rr, section);
+        }
     }
     /* truncation? */
     return added;
@@ -674,7 +690,7 @@ query_process_tsig(query_type* q)
         tsig_rr_update(q->tsig_rr, q->buffer, buffer_limit(q->buffer));
         if (!tsig_rr_verify(q->tsig_rr)) {
             ods_log_debug("[%s] bad tsig signature", query_str);
-            return LDNS_RCODE_REFUSED;
+            return LDNS_RCODE_NOTAUTH;
         }
     }
     return LDNS_RCODE_NOERROR;
@@ -834,7 +850,7 @@ query_process(query_type* q, void* engine)
         return query_formerr(q);
     }
     /* else: valid tsig, or no tsig present */
-    ods_log_debug("[%s] tsig %s", query_str, tsig_strerror(q->tsig_rr->status));
+    ods_log_debug("[%s] tsig %s", query_str, tsig_status2str(q->tsig_rr->status));
     rcode = query_process_tsig(q);
     if (rcode != LDNS_RCODE_NOERROR) {
         return query_error(q, rcode);
@@ -853,7 +869,8 @@ query_process(query_type* q, void* engine)
     opcode = ldns_pkt_get_opcode(pkt);
     qtype = ldns_rr_get_type(rr);
     ldns_pkt_free(pkt);
-    switch(opcode) {
+
+    switch (opcode) {
         case LDNS_PACKET_NOTIFY:
             return query_process_notify(q, qtype, engine);
         case LDNS_PACKET_QUERY:
@@ -861,7 +878,7 @@ query_process(query_type* q, void* engine)
         case LDNS_PACKET_UPDATE:
             return query_process_update(q);
         default:
-            return query_notimpl(q);
+            break;
     }
     return query_notimpl(q);
 }

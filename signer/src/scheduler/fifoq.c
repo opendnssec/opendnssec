@@ -103,7 +103,10 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
     }
     q->count -= 1;
     if (q->count <= (size_t) FIFOQ_MAX_COUNT * 0.1) {
-        /* notify waiting workers that they can start queuing again */
+        /**
+         * Notify waiting workers that they can start queuing again
+         * If no workers are waiting, this call has no effect.
+         */
         lock_basic_broadcast(&q->q_nonfull);
     }
     return pop;
@@ -121,7 +124,11 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
         return ODS_STATUS_ASSERT_ERR;
     }
     if (q->count >= FIFOQ_MAX_COUNT) {
-        /* #262 if drudgers remain on hold, do additional broadcast */
+        /**
+         * #262:
+         * If drudgers remain on hold, do additional broadcast.
+         * If no drudgers are waiting, this call has no effect.
+         */
         if (*tries > FIFOQ_TRIES_COUNT) {
             lock_basic_broadcast(&q->q_threshold);
             ods_log_debug("[%s] queue full, notify drudgers again", fifoq_str);
@@ -136,6 +143,7 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
     if (q->count == 1) {
         ods_log_deeebug("[%s] threshold %u reached, notify drudgers",
             fifoq_str, q->count);
+        /* If no drudgers are waiting, this call has no effect. */
         lock_basic_broadcast(&q->q_threshold);
     }
     return ODS_STATUS_OK;
