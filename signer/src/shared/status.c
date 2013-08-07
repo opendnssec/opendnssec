@@ -85,6 +85,7 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_PARSESOA, "Failed to parse SOA RR"},
     { ODS_STATUS_REQAXFR, "Got IXFR, but AXFR required"},
     { ODS_STATUS_INSERIAL, "Serial mismatch"},
+    { ODS_STATUS_XFRBADFORM, "XFR bad format"},
 
     { 0, NULL }
 };
@@ -106,7 +107,7 @@ ods_lookup_by_id(ods_lookup_table *table, int id)
  * Look up a descriptive text by each status.
  *
  */
-const char *
+const char*
 ods_status2str(ods_status status)
 {
     ods_lookup_table *lt;

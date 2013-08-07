@@ -48,6 +48,7 @@
 #define BUFFER_SIZE (16 * 1024) /* use 16K buffers */
 
 static const char* file_str = "file";
+static unsigned int file_count = 0;
 
 
 /**
@@ -228,6 +229,9 @@ ods_fopen(const char* file, const char* dir, const char* mode)
                 ods_log_debug("[%s] unable to open file %s for %s: %s",
                     file_str, openf?openf:"(null)",
                     ods_file_mode2str(mode), strerror(errno));
+            } else {
+                file_count++;
+                ods_log_debug("[%s] openfile %s count %u", file_str, openf?openf:"(null)", file_count);
             }
         }
         free((void*) openf);
@@ -243,6 +247,7 @@ void
 ods_fclose(FILE* fd)
 {
     if (fd) {
+        file_count--;
         fclose(fd);
     }
     return;

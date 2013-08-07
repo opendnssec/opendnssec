@@ -45,6 +45,15 @@
 #define AXFR_MAX_MESSAGE_LEN MAX_COMPRESSION_OFFSET
 
 /**
+ * Handle SOA request.
+ * \param[in] q soa request
+ * \param[in] engine signer engine
+ * \return query_state state of the query
+ *
+ */
+query_state soa_request(query_type* q, engine_type* engine);
+
+/**
  * Do AXFR.
  * \param[in] q axfr request
  * \param[in] engine signer engine

@@ -1,3 +1,43 @@
+24 July 2013: Matthijs
+- OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
+  prevent bad caching effects on resolvers.
+
+23 July 2013: Matthijs
+- Set AA bit in SOA response (fix daily tests).
+- Better log msg bad rcode notify
+
+10 July 2013: Matthijs
+- Signer response to SOA queries from file, instead of memory. Makes
+  response non-blocking [OPENDNSSEC-424].
+
+5 July 2013: Matthijs
+- Fix invalid free in case of adding a new zone with DNS outbound adapters
+  and NotifyCommand (thanks Ville Mattila).
+
+3 July 2013: Matthijs
+- SUPPORT-66: Fix file descriptor leak in case of TCP write error
+  [OPENDNSSEC-427].
+
+28 June 2013: Matthijs
+- Improved XFR checking
+
+17 June 2013: Matthijs
+- SUPPORT-60: Fix datecounter in case inbound serial is higher than outbound
+  serial [OPENDNSSEC-420].
+
+12 June 2013: Matthijs
+- OPENDNSSEC-401: SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr>
+  so that the user can specify the SOA serial to use in the signed zone.
+
+10 June 2013: Matthijs
+- Bugfix: Fix malform in Outbound IXFR/TCP subsequent packet (thanks Stuart
+  Lau).
+
+6 June 2013: Matthijs
+- Bugfix: Remove wrongly placed reset of serial disk acquired (thanks 
+  Stuart Lau).
+- Bugfix: Don't crash if NSEC3 Hash Algo is bogus.
+
 22 April 2013: Matthijs
 - OPENDNSSEC-247: TTL NSEC3 was not updated on SOA Minimum change.
 

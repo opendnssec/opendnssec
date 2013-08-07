@@ -141,7 +141,8 @@ tools_input(zone_type* zone)
         namedb_rollback(zone->db, 0);
     }
     end = time(NULL);
-    if (status == ODS_STATUS_OK && zone->stats) {
+    if ((status == ODS_STATUS_OK || status == ODS_STATUS_UNCHANGED)
+        && zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);

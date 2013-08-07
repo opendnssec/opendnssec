@@ -207,6 +207,10 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
 
+    if (backup) {
+        /* no need to do processing */
+        return ODS_STATUS_OK;
+    }
     if (zone->signconf->soa_ttl) {
         tmp = (uint32_t) duration2time(zone->signconf->soa_ttl);
         ods_log_verbose("[%s] zone %s set soa ttl to %u",
@@ -235,7 +239,8 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
         return ODS_STATUS_OK;
     }
     tmp = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-    status = namedb_update_serial(zone->db, zone->signconf->soa_serial, tmp);
+    status = namedb_update_serial(zone->db, zone->name,
+        zone->signconf->soa_serial, tmp);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
             "soa serial rdata (%s)", adapi_str, zone->name,
@@ -254,9 +259,7 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
             "soa serial rdata", adapi_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    if (!backup) {
-        zone->db->serial_updated = 1;
-    }
+    zone->db->serial_updated = 1;
     return ODS_STATUS_OK;
 }
 

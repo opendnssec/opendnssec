@@ -695,14 +695,16 @@ set_notify_ns(zone_type* zone, const char* cmd)
     ods_log_assert(zone->adoutbound);
     if (zone->adoutbound->type == ADAPTER_FILE) {
         str = ods_replace(cmd, "%zonefile", zone->adoutbound->configstr);
-    } else {
-        str = cmd;
-    }
-    str2 = ods_replace(str, "%zone", zone->name);
-    if (str2) {
+        if (!str) {
+            ods_log_error("[%s] unable to set notify ns: replace zonefile failed",
+                engine_str);
+        }
+        str2 = ods_replace(str, "%zone", zone->name);
         free((void*)str);
-
-        ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
+    } else {
+        str2 = ods_replace(cmd, "%zone", zone->name);
+    }
+    if (str2) {
         ods_str_trim((char*) str2);
         str = str2;
         if (*str) {
@@ -716,6 +718,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
         }
         zone->notify_command = (char*) str2;
         zone->notify_ns = zone->notify_args[0];
+        ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
     } else {
         ods_log_error("[%s] unable to set notify ns: replace zone failed",
             engine_str);
@@ -928,6 +931,7 @@ engine_recover(engine_type* engine)
         zone = (zone_type*) node->data;
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
+        lock_basic_lock(&zone->zone_lock);
         status = zone_recover2(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
@@ -963,6 +967,7 @@ engine_recover(engine_type* engine)
             }
             result = ODS_STATUS_OK; /* will trigger update zones */
         }
+        lock_basic_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
     /* [UNLOCK] zonelist */
@@ -1052,7 +1057,8 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             ods_log_info("[%s] signer reloading", engine_str);
             engine->need_to_reload = 0;
         } else {
-            ods_log_info("[%s] signer started", engine_str);
+            ods_log_info("[%s] signer started (version %s), pid %u",
+                engine_str, PACKAGE_VERSION, engine->pid);
             zl_changed = engine_recover(engine);
         }
         if (zl_changed == ODS_STATUS_OK ||

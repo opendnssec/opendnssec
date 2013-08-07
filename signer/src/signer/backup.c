@@ -531,7 +531,7 @@ backup_read_ixfr(FILE* in, void* zone)
     char line[SE_ADFILE_MAXLINE];
     uint32_t serial = 0;
     unsigned l = 0;
-    unsigned first_soa = 1; /* expect soa first */
+    unsigned first_soa = 0;
     unsigned del_mode = 0;
 
     ods_log_assert(in);
@@ -571,7 +571,7 @@ backup_read_ixfr(FILE* in, void* zone)
         if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
             serial = ldns_rdf2native_int32(
                 ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-            if (first_soa) {
+            if (!first_soa) {
                 ods_log_debug("[%s] ixfr first SOA: %s", backup_str,
                     ldns_rr2str(rr));
                 /* first SOA */
@@ -584,10 +584,10 @@ backup_read_ixfr(FILE* in, void* zone)
                     result = ODS_STATUS_ERR;
                     goto backup_ixfr_done;
                 }
-                first_soa = 0;
+                first_soa = 1;
                 continue;
             }
-            ods_log_assert(!first_soa);
+            ods_log_assert(first_soa);
             if (!del_mode) {
                 if (z->db->outserial == serial) {
                     /* final SOA */
@@ -612,7 +612,7 @@ backup_read_ixfr(FILE* in, void* zone)
             del_mode = !del_mode;
         }
         /* ixfr add or del rr */
-        if (first_soa) {
+        if (!first_soa) {
             ods_log_error("[%s] bad ixfr journal: first RR not SOA",
                 backup_str);
             ldns_rr_free(rr);
@@ -620,7 +620,7 @@ backup_read_ixfr(FILE* in, void* zone)
             result = ODS_STATUS_ERR;
             goto backup_ixfr_done;
         }
-        ods_log_assert(!first_soa);
+        ods_log_assert(first_soa);
         lock_basic_lock(&z->ixfr->ixfr_lock);
         if (del_mode) {
             ods_log_debug("[%s] -IXFR: %s", backup_str, ldns_rr2str(rr));

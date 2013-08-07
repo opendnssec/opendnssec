@@ -478,8 +478,8 @@ zone_update_serial(zone_type* zone)
             "clone soa rr", zone_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    status = namedb_update_serial(zone->db, zone->signconf->soa_serial,
-        zone->db->inbserial);
+    status = namedb_update_serial(zone->db, zone->name,
+        zone->signconf->soa_serial, zone->db->inbserial);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to update zone %s soa serial: %s",
             zone_str, zone->name, ods_status2str(status));
@@ -937,9 +937,8 @@ zone_recover2(zone_type* zone)
         zone->task = (void*) task;
         free((void*)filename);
         ods_fclose(fd);
-        /* journal */
         zone->db->is_initialized = 1;
-
+        /* journal */
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
         if (filename) {
             fd = ods_fopen(filename, NULL, "r");
@@ -950,6 +949,7 @@ zone_recover2(zone_type* zone)
                 ods_log_warning("[%s] corrupted journal file zone %s, "
                     "skipping (%s)", zone_str, zone->name,
                     ods_status2str(status));
+                (void)unlink(filename);
                 ixfr_cleanup(zone->ixfr);
                 zone->ixfr = ixfr_create((void*)zone);
             }

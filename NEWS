@@ -4,8 +4,26 @@ OpenDNSSEC 2.0.0a4 (EnforcerNG branch)
 
 * Bugfix: OPENDNSSEC-281, Commandhandler sometimes unresponsive.
 * Bugfix: OPENDNSSEC-276, HSM initialized after fork().
+* OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
+  prevent bad caching effects on resolvers.
+* OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take 
+  number of zones as a parameter
 
 OpenDNSSEC 2.0.0a3 (EnforcerNG branch) - 2012-06-18
+Bugfixes:
+* OPENDNSSEC-438: 'ods-ksmutil key generate' creates too many keys for 
+  <SharedKeys/> policies when KSK and ZSK use same algorithm and length
+* OPENDNSSEC_440: * OPENDNSSEC-438: 'ods-ksmutil key generate' creates too 
+  many keys for some cases
+* SUPPORT-66: Signer Engine: Fix file descriptor leak in case of TCP write
+  error [OPENDNSSEC-427].
+* OPENDNSSEC-424: Signer Engine: Respond to SOA queries from file instead
+  of memory. Makes response non-blocking.
+* OPENDNSSEC-425 (Clone of 397) - Change "hsmutil list" output so that the
+  table header goes to stdout not stderr
+* Signer Engine: Improved Inbound XFR checking.
+* Signer Engine: Fix double free corruption in case of adding zone with
+  DNS Outbound Adapters and NotifyCommand enabled.
 
 * Enforcer: Limit number of pregenerated keys when using <SharedKeys>.
 * Enforcer: MySQL database backend implemented.
@@ -21,6 +39,31 @@ OpenDNSSEC 2.0.0-trunk
 
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
   Minimum change.
+
+
+
+OpenDNSSEC 1.4.1 - 2013-06-27
+
+* SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr> so that the user
+  can specify the SOA serial to use in the signed zone [OPENDNSSEC-401].
+* OPENDNSSEC-91: Make the keytype flag required when rolling keys
+
+Bugfixes:
+* SUPPORT-60: Fix datecounter in case inbound serial is higher than outbound
+  serial [OPENDNSSEC-420].
+* OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
+  Minimum change.
+* OPENDNSSEC-421: Signer Engine: Fix assertion error in case NSEC3 hash
+  algorithm in signconf is not SHA1.
+* OPENDNSSEC-421: ods-kaspcheck: Check whether NSEC3 hash algorithm in kasp
+  is valid.
+* Bugfix: The time when inbound serial is acquired was reset invalidly,
+  could cause OpenDNSSEC wanting AXFR responses while requesting IXFR (thanks
+  Stuart Lau).
+* Bugfix: Fix malform in Outbound IXFR/TCP subsequent packet (thanks Stuart
+  Lau).
+* OPENDNSSEC-398: The ods-ksmutil key rollover command does not work correctly
+  when rolling all keys using the --policy option
 
 
 OpenDNSSEC 1.4.0 - 2013-04-22
