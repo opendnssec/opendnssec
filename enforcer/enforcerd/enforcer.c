@@ -384,12 +384,13 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
             log_msg(config, LOG_INFO, "No zones on policy %s, skipping...", policy->name);
             StrFree(rightnow);
             return status; 
-        } 
+		}
     } else {
         log_msg(NULL, LOG_ERR, "Could not count zones on policy %s", policy->name);
         StrFree(rightnow);
         return status; 
     }
+	log_msg(config, LOG_INFO, "%d zone(s) found on policy \"%s\"\n", zone_count, policy->name);
 
     /* Find out how many ksk keys are needed for the POLICY */
     status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, config->interval, &ksks_needed, policy->ksk->rollover_scheme, zone_count);
@@ -403,10 +404,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         log_msg(NULL, LOG_ERR, "Could not count current ksk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */
     }
-    /* Correct for shared keys */
-    if (policy->shared_keys == KSM_KEYS_SHARED) {
-        keys_in_queue /= zone_count;
-    }
+    /* Don't have to adjust the queue for shared keys as the prediction has already taken care of that.*/
 
     new_keys = ksks_needed - keys_in_queue;
     /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
@@ -423,6 +421,12 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
             new_keys = policy->ksk->sm_capacity - current_count;
         }
     }
+	if (new_keys <= 0 ) {
+		log_msg(config, LOG_INFO,"No new KSKs need to be created.\n");
+    }
+    else {
+		log_msg(config, LOG_INFO,"%d new KSK(s) (%d bits) need to be created.\n", new_keys, policy->ksk->bits);
+	}
 
     /* Create the required keys */
     for (i=new_keys ; i > 0 ; i--){
@@ -482,10 +486,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
         log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */
     }
-    /* Correct for shared keys */
-    if (policy->shared_keys == KSM_KEYS_SHARED) {
-        keys_in_queue /= zone_count;
-    }
+    /* Don't have to adjust the queue for shared keys as the prediction has already taken care of that.*/
     /* Might have to account for ksks */
     if (same_keys) {
         keys_in_queue -= ksks_needed;
@@ -506,6 +507,14 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
             new_keys = policy->zsk->sm_capacity - current_count;
         }
     }
+
+	if (new_keys <= 0 ) {
+		/* Don't exit here, just fall through to the end */
+		log_msg(config, LOG_INFO, "No new ZSKs need to be created.\n");
+    }
+    else {
+		log_msg(config, LOG_INFO, "%d new ZSK(s) (%d bits) need to be created.\n", new_keys, policy->zsk->bits);
+	}
 
     /* Create the required keys */
     for (i = new_keys ; i > 0 ; i--) {
