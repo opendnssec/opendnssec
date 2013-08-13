@@ -17,8 +17,9 @@
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
-		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
-		<Interval>PT40M</Interval>
+		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
+		<Interval>PT300M</Interval>
+		<!--<ManualKeyGeneration/>-->
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>

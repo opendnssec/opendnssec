@@ -24,25 +24,23 @@
 	
 	<Keys>
 		<!-- Parameters for both KSK and ZSK -->
-		<TTL>PT20S</TTL>
-		<RetireSafety>PT15S</RetireSafety>
-		<PublishSafety>PT1S</PublishSafety>
+		<TTL>PT15M</TTL>
+		<RetireSafety>PT0S</RetireSafety>
+		<PublishSafety>PT0S</PublishSafety>
 		<Purge>PT3H</Purge>
 		<!-- Parameters for KSK only -->
 		<KSK>
-			<Algorithm length="2048">7</Algorithm>
-			<Lifetime>PT50M</Lifetime>
+			<Algorithm length="1024">7</Algorithm>
+			<Lifetime>PT45M</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
-			<!--<Standby>1</Standby>-->
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
 			<Algorithm length="2048">7</Algorithm>
-			<Lifetime>PT10M</Lifetime>
+			<Lifetime>PT25M</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
-			<!--<Standby>1</Standby>-->
 		</ZSK>
 	</Keys>
 	
