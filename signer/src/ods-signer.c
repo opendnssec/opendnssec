@@ -295,7 +295,7 @@ interface_start(char* cmd)
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
             if (system(ODS_SE_ENGINE)) {
-                fprintf(stderr, "Fail to start enforce engine\n");
+                fprintf(stderr, "Failed to start signer engine\n");
                 return 1;
             }
             return 0;

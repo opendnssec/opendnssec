@@ -41,6 +41,7 @@
 
 #include <memory>
 #include <fcntl.h>
+#include <cstring>
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"

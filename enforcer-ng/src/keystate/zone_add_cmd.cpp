@@ -30,6 +30,7 @@
  */
 
 #include <ctime>
+#include <cstring>
 #include <iostream>
 #include <cassert>
 
@@ -55,17 +56,15 @@ help_zone_add_cmd(int sockfd)
 			   "  --signconf <path>\n"
 			   "                (aka -s) signer configuration file\n"
 			   "  --infile <path>\n"
-			   "                (aka -if) file input adapter file\n"
+			   "                (aka -i) file input adapter file or \n"
+               "                              input adapter config file\n"
 			   "  --outfile <path>\n"
-			   "                (aka -of) file  output adapter file\n"
-			   "  --intype <type>\n"
-			   "                (aka -it) input adapter type\n"
-			   "  --outtype <type>\n"
-			   "                (aka -ot) output adapter type\n"
-			   "  --inconf <path>\n"
-			   "                (aka -ic) input adapter config file\n"
-			   "  --outconf <path>\n"
-			   "                (aka -oc) output adapter config file\n"
+			   "                (aka -o) file output adapter file or\n"
+               "                              output adapter config file\n"
+			   "  --in-type <type>\n"
+			   "                (aka -j) input adapter type\n"
+			   "  --out-type <type>\n"
+			   "                (aka -q) output adapter type\n"
 
         );
 }
@@ -109,12 +108,10 @@ bool get_arguments(int sockfd, const char *cmd,
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
     (void)ods_find_arg_and_param(&argc,argv,"policy","p",&policy);
     (void)ods_find_arg_and_param(&argc,argv,"signconf","s",&signconf);
-    (void)ods_find_arg_and_param(&argc,argv,"infile","if",&infile);
-    (void)ods_find_arg_and_param(&argc,argv,"outfile","of",&outfile);
-    (void)ods_find_arg_and_param(&argc,argv,"intype","it",&intype);
-    (void)ods_find_arg_and_param(&argc,argv,"outtype","ot",&outtype);
-    (void)ods_find_arg_and_param(&argc,argv,"inconf","ic",&inconf);
-    (void)ods_find_arg_and_param(&argc,argv,"outconf","oc",&outconf);
+    (void)ods_find_arg_and_param(&argc,argv,"infile","i",&infile);
+    (void)ods_find_arg_and_param(&argc,argv,"outfile","o",&outfile);
+    (void)ods_find_arg_and_param(&argc,argv,"in-type","j",&intype);
+    (void)ods_find_arg_and_param(&argc,argv,"out-type","q",&outtype);
 
     if (argc) {
 		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
@@ -138,38 +135,49 @@ bool get_arguments(int sockfd, const char *cmd,
         return false;
     }
 	out_signconf = signconf;
+
 	if (!infile && !intype) {
 		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --infile or --intype");
+								 "expected option --infile or --in-type");
         return false;
 	}
-	if (infile)
-		out_infile = infile;
-	if (intype)
+    if (!intype || (0 == strcasecmp(intype, "file"))) {
+        out_infile = infile; 
+    } else if (0 == strcasecmp(intype, "dns")) {
+        if (!infile) {
+            ods_log_error_and_printf(sockfd, module_str,
+                    "expected option --infile");
+            return false;
+        }
 		out_intype = intype;
+		out_inconf = infile;
+    } else {
+		ods_log_error_and_printf(sockfd, module_str,
+								 "invalid parameter for --in-type");
+        return false;
+    }
+
 	if (!outfile && !outtype) {
 		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --outfile or --outtype");
+								 "expected option --outfile or --out-type");
         return false;
 	}
-	if (outfile)
-		out_outfile = outfile;
-	if (outtype)
+    if (!outtype || (0 == strcasecmp(outtype, "file"))) {
+        out_outfile = outfile; 
+    } else if (0 == strcasecmp(outtype, "dns")) {
+        if (!outfile) {
+            ods_log_error_and_printf(sockfd, module_str,
+                    "expected option --outfile");
+            return false;
+        }
 		out_outtype = outtype;
-	if (intype && !inconf) {
-		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --inconf");
+		out_outconf = outfile;
+    } else {
+		ods_log_error_and_printf(sockfd, module_str,
+								 "invalid parameter for --out-type");
         return false;
-	}
-	if (inconf)
-		out_inconf = inconf;
-	if (outtype && !outconf) {
-		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --outconf");
-        return false;
-	}
-	if (outconf)
-		out_outconf = outconf;
+    }
+
 	return true;
 }
 
