@@ -317,8 +317,8 @@ syslog_grep_count 1  'ods-enforcerd: .*50 new ZSK(s) (2048 bits) need to be crea
 log_this enforcer2-keylist_hsm_3   ods-hsmutil list &&
 log_grep enforcer2-keylist_hsm_3   stdout "220 keys found." &&
 
-echo
-echo "************OK******************"
+echo &&
+echo "************OK******************" &&
 echo
 
 return 0 

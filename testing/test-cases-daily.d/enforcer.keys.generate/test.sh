@@ -30,7 +30,10 @@ esac
 
 ods_reset_env &&
 
+################################################################
 ##################  Basic behaviour  ###########################
+################################################################
+
 # Fail with no zones
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
@@ -49,7 +52,10 @@ syslog_grep_count 1  'ods-enforcerd: .*5 new ZSK(s) (2048 bits) need to be creat
 log_this enforcer-keylist   ods-hsmutil list &&
 log_grep enforcer-keylist   stdout "6 keys found." && 
 
+#####################################################################################
 ##################  1. Keys not shared, same alg & length ###########################
+#####################################################################################
+
 ods_setup_conf zonelist.xml zonelist.xml &&
 ods_reset_env &&
 
@@ -107,7 +113,10 @@ log_this enforcer-keylist_2a   ods-hsmutil list &&
 log_grep enforcer-keylist_2a   stdout "96 keys found." &&
 
 
+#####################################################################################
 ##################  2. Keys not shared, diff alg & length ###########################
+#####################################################################################
+
 ods_setup_conf zonelist.xml zonelist.xml &&
 ods_reset_env &&
 
@@ -139,7 +148,10 @@ log_this enforcer-keylist_4   ods-hsmutil list &&
 log_grep enforcer-keylist_4   stdout "63 keys found." &&
  
 
+######################################################################################################
 ##################  3. Keys not shared, same alg & length. Standby enabled ###########################
+######################################################################################################
+
 ods_setup_conf zonelist.xml zonelist.xml &&
 ods_reset_env &&
 
@@ -156,7 +168,10 @@ log_this enforcer-keylist_5   ods-hsmutil list &&
 log_grep enforcer-keylist_5   stdout "18 keys found." &&
 
 
+#####################################################################################
 ##################  4. Keys not shared, same alg & length ###########################
+#####################################################################################
+
 ods_setup_conf zonelist.xml zonelist.xml &&
 ods_reset_env &&
 
@@ -196,9 +211,9 @@ log_this enforcer-keylist_9   ods-hsmutil list &&
 log_grep enforcer-keylist_9   stdout "68 keys found." &&
 
 
-echo
-echo "************OK******************"
-echo
+echo &&
+echo "************OK******************" &&
+echo 
 
 return 0 
 

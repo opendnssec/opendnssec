@@ -192,8 +192,8 @@ log_grep ods-ksmutil-zonetotal_shared_3   stdout "2 new ZSK(s) (2048 bits) need 
 log_this ods-ksmutil-keylist_9   ods-hsmutil list &&
 log_grep ods-ksmutil-keylist_9   stdout "14 keys found." &&
 
-echo
-echo "************OK******************"
+echo &&
+echo "************OK******************" &&
 echo
 
 return 0 
