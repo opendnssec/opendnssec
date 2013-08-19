@@ -18,7 +18,7 @@
 	</Common>
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
-		<Interval>PT40M</Interval>
+		<Interval>PT1M</Interval>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>

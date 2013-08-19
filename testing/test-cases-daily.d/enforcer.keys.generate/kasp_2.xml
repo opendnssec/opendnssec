@@ -300,14 +300,14 @@
 		<!-- Parameters for KSK only -->
 		<KSK>
 			<Algorithm length="2048">7</Algorithm>
-			<Lifetime>PT45M</Lifetime>
+			<Lifetime>PT5M</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
 			<Algorithm length="2048">7</Algorithm>
-			<Lifetime>PT25M</Lifetime>
+			<Lifetime>PT2M</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 		</ZSK>
@@ -365,14 +365,14 @@
 		<!-- Parameters for KSK only -->
 		<KSK>
 			<Algorithm length="1024">7</Algorithm>
-			<Lifetime>PT45M</Lifetime>
+			<Lifetime>PT5M</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
 			<Algorithm length="2048">8</Algorithm>
-			<Lifetime>PT25M</Lifetime>
+			<Lifetime>PT2M</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 		</ZSK>
