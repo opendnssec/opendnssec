@@ -319,7 +319,7 @@ log_grep enforcer2-keylist_hsm_3   stdout "220 keys found." &&
 
 echo &&
 echo "************OK******************" &&
-echo
+echo &&
 
 return 0 
 

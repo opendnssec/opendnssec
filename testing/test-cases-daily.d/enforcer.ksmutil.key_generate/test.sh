@@ -194,7 +194,7 @@ log_grep ods-ksmutil-keylist_9   stdout "14 keys found." &&
 
 echo &&
 echo "************OK******************" &&
-echo
+echo &&
 
 return 0 
 

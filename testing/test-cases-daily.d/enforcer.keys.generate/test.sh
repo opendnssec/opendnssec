@@ -213,7 +213,7 @@ log_grep enforcer-keylist_9   stdout "68 keys found." &&
 
 echo &&
 echo "************OK******************" &&
-echo 
+echo &&
 
 return 0 
 
