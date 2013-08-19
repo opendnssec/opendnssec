@@ -7,8 +7,9 @@
 #TEST: shared keys and standby
 
 #DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
+#DISABLED: ON SOLARIS T2000- as key generation takes too long!
 
-ENFORCER_WAIT=30	# Seconds we wait for enforcer to run
+ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 
 add_zones() {
 	for (( ZONE_COUNT=$1; ZONE_COUNT<=$2; ZONE_COUNT++ ))
@@ -23,7 +24,12 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 case "$DISTRIBUTION" in
-	freebsd )
+	sunos )	
+		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
+			return 0	
+		fi
+		;;			
+	freebsd )	
 		return 0
 		;;
 esac

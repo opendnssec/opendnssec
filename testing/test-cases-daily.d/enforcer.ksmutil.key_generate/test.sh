@@ -8,13 +8,19 @@
 #TEST: shared keys and standby
 
 #DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
+#DISABLED: ON SOLARIS T2000- as key generation takes too long!
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
 case "$DISTRIBUTION" in
-	freebsd )
+	sunos )	
+		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
+			return 0	
+		fi
+		;;			
+	freebsd )	
 		return 0
 		;;
 esac
