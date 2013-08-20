@@ -24,7 +24,12 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 case "$DISTRIBUTION" in
-	freebsd )
+	sunos )	
+		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
+			return 0	
+		fi
+		;;			
+	freebsd )	
 		return 0
 		;;
 esac
