@@ -421,6 +421,47 @@ zone_rollback_nsec3param(zone_type* zone)
 
 
 /**
+ * Prepare keys for signing.
+ *
+ */
+ods_status
+zone_prepare_keys(zone_type* zone)
+{
+    hsm_ctx_t* ctx = NULL;
+    uint16_t i = 0;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!zone || !zone->db || !zone->signconf || !zone->signconf->keys) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->name);
+    /* hsm access */
+    ctx = hsm_create_context();
+    if (ctx == NULL) {
+        ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+            "error creating libhsm context", zone_str, zone->name);
+        return ODS_STATUS_HSM_ERR;
+    }
+    /* prepare keys */
+    for (i=0; i < zone->signconf->keys->count; i++) {
+        /* get dnskey */
+        status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i]);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+                "error getting dnskey", zone_str, zone->name);
+            break;
+        }
+        ods_log_assert(zone->signconf->keys->keys[i].dnskey);
+        ods_log_assert(zone->signconf->keys->keys[i].hsmkey);
+        ods_log_assert(zone->signconf->keys->keys[i].params);
+    }
+    /* done */
+    hsm_destroy_context(ctx);
+    return status;
+}
+
+
+/**
  * Update serial.
  *
  */
