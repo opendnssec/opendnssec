@@ -2,8 +2,6 @@ $Id$
 
 OpenDNSSEC 1.4.2
 
-* OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
-  prevent bad caching effects on resolvers.
 * OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take 
   number of zones as a parameter
 
