@@ -11,8 +11,6 @@ Bugfixes:
 * OPENDNSSEC-438: 'ods-ksmutil key generate' and the enforcer can create 
   too many keys for <SharedKeys/> policies when KSK and ZSK use same 
   algorithm and length
-* OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
-  prevent bad caching effects on resolvers.
 * OPENDNSSEC-397: Change "hsmutil list" output so that the table header goes 
   to stdout not stderr
 
