@@ -82,7 +82,7 @@ addns_read_line:
             case ';':
             case '\n':
                 if (ods_strcmp(";;ENDPACKET", line) == 0) {
-	                    /* end of pkt */
+                    /* end of pkt */
                     *status = LDNS_STATUS_OK;
                     return NULL;
                 }
@@ -127,6 +127,8 @@ addns_read_line:
         }
     }
     /* -1, unexpected EOF */
+    ods_log_error("[%s] unexpected EOF line %i",
+        adapter_str, l&&*l?*l:0);
     *status = LDNS_STATUS_ERR;
     return NULL;
 }
