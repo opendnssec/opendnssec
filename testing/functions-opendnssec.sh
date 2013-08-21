@@ -531,11 +531,11 @@ ods_bind9_dynupdate ()
 	update_iter=0
 	while [ "$update_iter" -lt "$update_total" ] ; do
 		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 10 "test$update_iter\.$zone_name\..*7200.*IN.*NS.*ns1\.test$update_iter\.$zone_name\." >/dev/null 2>/dev/null; then
-			echo "ods_bind9_dynupdate: update failed, test$udpdate_iter.$zone_name\. NS not in signed zonefile" >&2
+			echo "ods_bind9_dynupdate: update failed, test$update_iter.$zone_name. NS not in signed zonefile" >&2
 			return 1
 		fi
 		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 10 "ns1\.test$update_iter\.$zone_name\..*7200.*IN.*A.*1\.2\.3\.4" >/dev/null 2>/dev/null; then
-			echo "ods_bind9_dynupdate: update failed, ns1.test$udpdate_iter.$zone_name\. A not in signed zonefile" >&2
+			echo "ods_bind9_dynupdate: update failed, ns1.test$update_iter.$zone_name. A not in signed zonefile" >&2
 			return 1
 		fi
 
