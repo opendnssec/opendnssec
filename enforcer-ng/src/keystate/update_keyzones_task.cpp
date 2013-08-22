@@ -30,6 +30,7 @@
  */
 
 #include "keystate/update_keyzones_task.h"
+#include "keystate/zone_del_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 
@@ -41,6 +42,7 @@
 #include "xmlext-pb/xmlext-wr.h"
 
 #include <memory>
+#include <vector>
 #include <fcntl.h>
 
 #include "protobuf-orm/pb-orm.h"
@@ -90,18 +92,21 @@ load_zonelist_xml(int sockfd, const char * zonelistfile,
 }
 
 
-void 
+int 
 perform_update_keyzones(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
     
     std::auto_ptr< ::ods::keystate::ZoneListDocument > zonelistDoc;
 	if (!load_zonelist_xml(sockfd, config->zonelist_filename, zonelistDoc))
-		return; // errors have already been reported.
+		return 0; // errors have already been reported.
+
+    ods_printf(sockfd, "zonelist filename set to %s\n", 
+                    config->zonelist_filename);
 
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return;  // errors have already been reported.
+		return 0;  // errors have already been reported.
 
 	//TODO: SPEED: We should create an index on the EnforcerZone.name column
 		
@@ -114,19 +119,23 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
             zonelistDoc->zonelist().zones(i);
 		
 		zoneimported[zl_zone.name()] = true;
+
+        ods_printf(sockfd, "Zone %s found in zonelist.xml; policy set to %s\n", 
+                zl_zone.name().c_str(),
+                zl_zone.policy().c_str());
 		
 		{	OrmTransactionRW transaction(conn);
 			if (!transaction.started()) {
 				ods_log_error_and_printf(sockfd, module_str,
 					"error starting a database transaction for updating zones");
-				return;
+				return 0;
 			}
 			
 			std::string qzone;
 			if (!OrmQuoteStringValue(conn, zl_zone.name(), qzone)) {
 				ods_log_error_and_printf(sockfd, module_str,
 										 "quoting a string failed");
-				return;
+				return 0;
 			}
 
 			::ods::keystate::EnforcerZone ks_zone;
@@ -137,7 +146,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 				{
 					ods_log_error_and_printf(sockfd, module_str,
 											 "zone lookup by name failed");
-					return;
+					return 0;
 				}
 			
 				// if OrmFirst succeeds, a zone with the queried name is 
@@ -150,7 +159,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 					{
 						ods_log_error_and_printf(sockfd, module_str,
 												 "zone retrieval failed");
-						return;
+						return 0;
 					}
 						
 					// query no longer needed, so lets drop it.
@@ -161,13 +170,16 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 					ks_zone.set_policy(zl_zone.policy());
 					ks_zone.set_signconf_path(zl_zone.signer_configuration());
 					ks_zone.mutable_adapters()->CopyFrom(zl_zone.adapters());
-					
+
+                    ods_printf(sockfd, "Zone: %s found in database, update it\n",
+                            zl_zone.name().c_str());
+
 					// If anything changed, update the zone
 					if (!OrmMessageUpdate(context))
 					{
 						ods_log_error_and_printf(sockfd, module_str,
 												 "zone update failed");
-						return;
+						return 0;
 					}
 
 				} else {
@@ -183,21 +195,81 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 								
 					// enforcer needs to trigger signer configuration writing.
 					ks_zone.set_signconf_needs_writing( false );
-					
+
+                    ods_printf(sockfd, "Zone: %s not found in database, insert it\n",
+                            zl_zone.name().c_str());
+
 					pb::uint64 zoneid;
 					if (!OrmMessageInsert(conn, ks_zone, zoneid)) {
 						ods_log_error_and_printf(sockfd, module_str,
 										"inserting zone into the database failed");
-						return;
+						return 0;
 					}
 				}
 					
 				if (!transaction.commit()) {
 					ods_log_error_and_printf(sockfd, module_str,
 									"committing zone to the database failed");
-					return;
+					return 0;
 				}
 			}
 		}
     }
+
+    std::vector<std::string> non_exist_zones;
+    //delete non-exist zone
+    {  
+        OrmTransaction transaction(conn);
+        if (!transaction.started()) {
+            ods_log_error_and_printf(sockfd, module_str, 
+                    "starting database transaction failed");
+            return 0;
+        }
+    
+        {   OrmResultRef rows;
+            ::ods::keystate::EnforcerZone enfzone;
+    
+            bool ok = OrmMessageEnum(conn, enfzone.descriptor(), rows);
+            if (!ok) {
+                ods_log_error_and_printf(sockfd, module_str, 
+                        "zone enumaration failed");
+                return 0;
+            }
+    
+            for (bool next=OrmFirst(rows); next; next = OrmNext(rows)) {
+                 OrmContextRef context;
+                 if (!OrmGetMessage(rows, enfzone, true, context)) {
+                     rows.release();
+                     ods_log_error_and_printf(sockfd, module_str, 
+                             "retrieving zone from database failed");
+                     return 0;
+                 }
+
+                 //zone is not in zonelist.xml, then delete it
+                 if (!zoneimported[enfzone.name()]) {
+                     non_exist_zones.push_back(enfzone.name());
+                 }
+            }
+            
+            rows.release();
+        }
+
+        if (!transaction.commit()) {
+            ods_log_error_and_printf(sockfd, module_str,
+                    "committing zone enumeration select failed");
+            return 0;
+        }
+    }
+
+    if (!non_exist_zones.empty()) {
+        int del_zone_count = non_exist_zones.size();
+        for (int i = 0; i < del_zone_count; ++i) {
+            ods_printf(sockfd, "Zone: %s not exist in zonelist.xml, "
+                    "delete it from database\n",
+                    non_exist_zones[i].c_str());
+            perform_zone_del(sockfd, config, non_exist_zones[i].c_str());
+        }
+    }
+
+    return 1;
 }

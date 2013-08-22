@@ -48,6 +48,7 @@
 #include "keystate/zone_export_cmd.h"
 #include "keystate/zone_add_cmd.h"
 #include "keystate/zone_del_cmd.h"
+#include "keystate/zonelist_cmd.h"
 
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/keystate_export_cmd.h"
@@ -148,6 +149,9 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_hsmkey_gen_cmd,
     help_hsmkey_list_cmd,
     help_backup_cmd,
+
+    help_zonelist_export_cmd,
+    help_zonelist_import_cmd,
     
     /* ! NULL TERMINATED ! */
     NULL
@@ -187,6 +191,9 @@ enforcer_commands[] = {
     handled_hsmkey_gen_cmd,
     handled_hsmkey_list_cmd,
     handled_backup_cmds,
+
+    handled_zonelist_export_cmd,
+    handled_zonelist_import_cmd,
 
     /* ! NULL TERMINATED ! */
     NULL

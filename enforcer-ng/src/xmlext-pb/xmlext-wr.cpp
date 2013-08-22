@@ -227,7 +227,7 @@ recurse_write(
 
         // skip fields that have no xml option set
         if (!field->options().HasExtension(xml)) continue;
-        
+
         std::string indent(level,'\t');
         const xmloption xmlopt = field->options().GetExtension(xml);
 

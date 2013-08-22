@@ -34,6 +34,6 @@
 
 #include "daemon/cfg.h"
 
-void perform_update_keyzones(int sockfd, engineconfig_type *config);
+int perform_update_keyzones(int sockfd, engineconfig_type *config);
 
 #endif
