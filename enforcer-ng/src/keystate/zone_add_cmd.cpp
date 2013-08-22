@@ -53,14 +53,14 @@ help_zone_add_cmd(int sockfd)
 			   "  --zone <zone>	(aka -z) name of the zone\n"
 			   "  --policy <policy>\n"
 			   "                (aka -p) name of the policy\n"
-			   "  --signconf <path>\n"
+			   "  --signerconf <path>\n"
 			   "                (aka -s) signer configuration file\n"
-			   "  --infile <path>\n"
-			   "                (aka -i) file input adapter file or \n"
-               "                              input adapter config file\n"
-			   "  --outfile <path>\n"
-			   "                (aka -o) file output adapter file or\n"
-               "                              output adapter config file\n"
+			   "  --input <path>\n"
+			   "                (aka -i) input adapter zone file "
+                                        "or config file\n"
+			   "  --output <path>\n"
+			   "                (aka -o) output adapter zone file "
+                                        "or config file\n"
 			   "  --in-type <type>\n"
 			   "                (aka -j) input adapter type\n"
 			   "  --out-type <type>\n"
@@ -99,17 +99,17 @@ bool get_arguments(int sockfd, const char *cmd,
     const char *zone = NULL;
     const char *policy = NULL;
 	const char *signconf = NULL;
-	const char *infile = NULL;
-	const char *outfile = NULL;
+	const char *input = NULL;
+	const char *output = NULL;
 	const char *intype = NULL;
 	const char *outtype = NULL;
 	const char *inconf = NULL;
 	const char *outconf = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
     (void)ods_find_arg_and_param(&argc,argv,"policy","p",&policy);
-    (void)ods_find_arg_and_param(&argc,argv,"signconf","s",&signconf);
-    (void)ods_find_arg_and_param(&argc,argv,"infile","i",&infile);
-    (void)ods_find_arg_and_param(&argc,argv,"outfile","o",&outfile);
+    (void)ods_find_arg_and_param(&argc,argv,"signerconf","s",&signconf);
+    (void)ods_find_arg_and_param(&argc,argv,"input","i",&input);
+    (void)ods_find_arg_and_param(&argc,argv,"output","o",&output);
     (void)ods_find_arg_and_param(&argc,argv,"in-type","j",&intype);
     (void)ods_find_arg_and_param(&argc,argv,"out-type","q",&outtype);
 
@@ -136,42 +136,42 @@ bool get_arguments(int sockfd, const char *cmd,
     }
 	out_signconf = signconf;
 
-	if (!infile && !intype) {
+	if (!input && !intype) {
 		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --infile or --in-type");
+								 "expected option --input or --in-type");
         return false;
 	}
     if (!intype || (0 == strcasecmp(intype, "file"))) {
-        out_infile = infile; 
+        out_infile = input; 
     } else if (0 == strcasecmp(intype, "dns")) {
-        if (!infile) {
+        if (!input) {
             ods_log_error_and_printf(sockfd, module_str,
-                    "expected option --infile");
+                    "expected option --input");
             return false;
         }
 		out_intype = intype;
-		out_inconf = infile;
+		out_inconf = input;
     } else {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "invalid parameter for --in-type");
         return false;
     }
 
-	if (!outfile && !outtype) {
+	if (!output && !outtype) {
 		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --outfile or --out-type");
+								 "expected option --output or --out-type");
         return false;
 	}
     if (!outtype || (0 == strcasecmp(outtype, "file"))) {
-        out_outfile = outfile; 
+        out_outfile = output; 
     } else if (0 == strcasecmp(outtype, "dns")) {
-        if (!outfile) {
+        if (!output) {
             ods_log_error_and_printf(sockfd, module_str,
-                    "expected option --outfile");
+                    "expected option --output");
             return false;
         }
 		out_outtype = outtype;
-		out_outconf = outfile;
+		out_outconf = output;
     } else {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "invalid parameter for --out-type");
