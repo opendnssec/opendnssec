@@ -126,10 +126,8 @@ addns_read_line:
                 break;
         }
     }
-    /* -1, unexpected EOF */
-    ods_log_error("[%s] unexpected EOF line %i",
-        adapter_str, l&&*l?*l:0);
-    *status = LDNS_STATUS_ERR;
+    /* -1, EOF */
+    *status = LDNS_STATUS_OK;
     return NULL;
 }
 
@@ -353,15 +351,15 @@ begin_pkt:
         prev = NULL;
     }
     /* check again */
-    if (ods_strcmp(";;BEGINPACKET", line) == 0) {
+    if (ods_strcmp(";;ENDPACKET", line) == 0) {
+        ods_log_verbose("[%s] xfr zone %s on disk complete, commit to db",
+            adapter_str, zone->name);
+    } else {
         ods_log_warning("[%s] xfr zone %s on disk incomplete, rollback",
             adapter_str, zone->name);
         namedb_rollback(zone->db, 1);
         result = ODS_STATUS_OK;
         goto begin_pkt;
-    } else {
-        ods_log_verbose("[%s] xfr zone %s on disk complete, commit to db",
-            adapter_str, zone->name);
     }
     /* otherwise ENDPACKET or EOF */
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
