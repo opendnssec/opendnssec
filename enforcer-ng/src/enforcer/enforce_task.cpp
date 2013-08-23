@@ -184,7 +184,6 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	
     time_t t_now = time_now();
-
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, engine->config, conn)) {
 		ods_log_error("[%s] retrying in 30 minutes", module_str);
@@ -192,7 +191,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	}
 
 	std::auto_ptr< HsmKeyFactoryCallbacks > hsmKeyFactoryCallbacks(
-									new HsmKeyFactoryCallbacks(sockfd,engine));
+			new HsmKeyFactoryCallbacks(sockfd,engine));
     // Hook the key factory up with the database
     HsmKeyFactoryPB keyfactory(conn,hsmKeyFactoryCallbacks.get());
 
@@ -201,95 +200,80 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     bool bSubmitToParent = false;
     bool bRetractFromParent = false;
 
-	{	OrmTransactionRW transaction(conn);
+	OrmResultRef rows;
+	::ods::keystate::EnforcerZone enfzone;
+
+	bool ok;
+	if (bForceUpdate)
+		ok = OrmMessageEnum(conn,enfzone.descriptor(),rows);
+	else {
+		const char *where = "next_change IS NULL OR next_change <= %d";
+		ok = OrmMessageEnumWhere(conn,enfzone.descriptor(),rows,where,t_now);
+	}
+	if (!ok)
+		LOG_AND_RESCHEDULE_15SECS("zone enumeration failed");
+
+	// Go through all the zones that need handling and call enforcer
+	// update for the zone when its schedule time is earlier or
+	// identical to time_now.
+
+	bool next=OrmFirst(rows);
+	while (next) {
+		OrmTransactionRW transaction(conn);
 		if (!transaction.started())
 			LOG_AND_RESCHEDULE_15SECS("transaction not started");
-		
-		{	OrmResultRef rows;
-			::ods::keystate::EnforcerZone enfzone;
-			
-			bool ok;
-			if (bForceUpdate)
-				ok = OrmMessageEnum(conn,enfzone.descriptor(),rows);
-			else {
-				const char *where = "next_change IS NULL OR next_change <= %d";
-				ok = OrmMessageEnumWhere(conn,enfzone.descriptor(),rows,where,t_now);
-			}
-			if (!ok)
-				LOG_AND_RESCHEDULE_15SECS("zone enumeration failed");
-			
-			// Go through all the zones that need handling and call enforcer
-			// update for the zone when its schedule time is earlier or
-			// identical to time_now.
-			int batchcountdown = 5; // enforce 5 zones per transaction
-			for (bool next=OrmFirst(rows); next && batchcountdown; next = OrmNext(rows)) {
-
-				OrmContextRef context;
-				if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
-					LOG_AND_RESCHEDULE_15SECS("retrieving zone from database failed");
-
-				::ods::kasp::Policy policy;
-				if (!load_kasp_policy(conn, enfzone.policy(), policy)) {
-
-					// Policy for this zone not found, so don't schedule
-					// it again !
-					ods_printf(sockfd,
-							   "Next update for zone %s NOT scheduled "
-							   "because policy %s is missing !\n",
-							   enfzone.name().c_str(),
-							   enfzone.policy().c_str());
-					enfzone.set_next_change((time_t)-1);
-					
-				} else {
-					
-					EnforcerZonePB enfZone(&enfzone, policy);
-					time_t t_next = update(enfZone, t_now, keyfactory);
-					
-					if (enfZone.signerConfNeedsWriting())
-						bSignerConfNeedsWriting = true;
-					
-					KeyDataList &kdl = enfZone.keyDataList();
-					for (int k=0; k<kdl.numKeys(); ++k) {
-						if (kdl.key(k).dsAtParent() == DS_SUBMIT)
-							bSubmitToParent = true;
-						if (kdl.key(k).dsAtParent() == DS_RETRACT)
-							bRetractFromParent = true;
-					}
-					
-					if (t_next == -1) {
-						ods_printf(sockfd,
-								   "Next update for zone %s NOT scheduled "
-								   "by enforcer !\n",
-									enfzone.name().c_str());
-					}
-						
-					enfZone.setNextChange(t_next);
-					if (t_next != -1) {
-						// Invalid schedule time then skip the zone.
-						char tbuf[32] = "date/time invalid\n"; // at least 26 bytes
-						ctime_r(&t_next,tbuf); // note that ctime_r inserts a \n
-						ods_printf(sockfd,
-								   "Next update for zone %s scheduled at %s",
-								   enfzone.name().c_str(),
-								   tbuf);
-					}
-
-				}
-
-				if (!OrmMessageUpdate(context))
-					LOG_AND_RESCHEDULE_15SECS("updating zone in the database failed");
+		for (int cnt = 5; next && cnt; next = OrmNext(rows), cnt--) {
+			OrmContextRef context;
+			if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
+				LOG_AND_RESCHEDULE_15SECS("retrieving zone from database failed");
+			::ods::kasp::Policy policy;
+			if (!load_kasp_policy(conn, enfzone.policy(), policy)) {
+				/* Policy for this zone not found, don't reschedule */
+				ods_printf(sockfd, 
+					"Next update for zone %s NOT scheduled "
+					"because policy %s is missing !\n",
+					enfzone.name().c_str(),
+					enfzone.policy().c_str());
+				enfzone.set_next_change((time_t)-1);
+			} else {
+				EnforcerZonePB enfZone(&enfzone, policy);
+				time_t t_next = update(enfZone, t_now, keyfactory);
+				if (enfZone.signerConfNeedsWriting())
+					bSignerConfNeedsWriting = true;
 				
-				// Perform a limited number of zone updates per transaction.
-				--batchcountdown;
+				KeyDataList &kdl = enfZone.keyDataList();
+				for (int k=0; k<kdl.numKeys(); ++k) {
+					if (kdl.key(k).dsAtParent() == DS_SUBMIT)
+						bSubmitToParent = true;
+					if (kdl.key(k).dsAtParent() == DS_RETRACT)
+						bRetractFromParent = true;
+				}
+				
+				if (t_next == -1) {
+					ods_printf(sockfd,
+						"Next update for zone %s NOT scheduled "
+						"by enforcer !\n", enfzone.name().c_str());
+				}
+				
+				enfZone.setNextChange(t_next);
+				if (t_next != -1) {
+					// Invalid schedule time then skip the zone.
+					char tbuf[32] = "date/time invalid\n"; // at least 26 bytes
+					ctime_r(&t_next,tbuf); // note that ctime_r inserts a \n
+					ods_printf(sockfd,
+							   "Next update for zone %s scheduled at %s",
+							   enfzone.name().c_str(),
+							   tbuf);
+				}
 			}
-			
-			// we no longer need the query result, so release it.
-			rows.release();
-			
-			if (!transaction.commit())
-				LOG_AND_RESCHEDULE_15SECS("committing updated zones to the database failed");
+			if (!OrmMessageUpdate(context))
+				LOG_AND_RESCHEDULE_15SECS("updating zone in the database failed");
 		}
+		if (!transaction.commit())
+			LOG_AND_RESCHEDULE_15SECS("committing updated zones to the database failed");
 	}
+	// we no longer need the query result, so release it.
+	rows.release();
 
     // Delete the call backs and launch key pre-generation when we ran out 
     // of keys during the enforcement
