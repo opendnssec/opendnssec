@@ -351,7 +351,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 static task_type *
 enforce_task_perform(task_type *task)
 {
-    if (perform_enforce(-1, (engine_type *)task->context, 0, task) != -1)
+    if (perform_enforce(-1, (engine_type *)task->context, task->flush, task) != -1)
         return task;
 
     task_cleanup(task);
