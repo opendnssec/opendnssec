@@ -94,7 +94,7 @@ while ( [ $STATUS -eq 0 ] && [ $NUMBER_OF_ZONES -lt $MAX_ZONES ] ); do
 	for (( ZONE_COUNT=1; ZONE_COUNT<=$ZONE_STEPS; ZONE_COUNT++ )); do
 		NUMBER_OF_ZONES=$((NUMBER_OF_ZONES + 1)) &&
 		sed s/ods./ods_$NUMBER_OF_ZONES./g unsigned/ods > unsigned/ods_$NUMBER_OF_ZONES &&
-		log_this ods-control-enforcer-start ods-enforcer zone add --zone ods_$NUMBER_OF_ZONES  --policy default --signconf $INSTALL_ROOT/var/opendnssec/signconf/ods_$NUMBER_OF_ZONES.xml --infile unsigned/ods_$NUMBER_OF_ZONES --outfile $INSTALL_ROOT/var/opendnssec/signed/ods_$NUMBER_OF_ZONES &&
+		log_this ods-control-enforcer-start ods-enforcer zone add --zone ods_$NUMBER_OF_ZONES  --policy default --signerconf $INSTALL_ROOT/var/opendnssec/signconf/ods_$NUMBER_OF_ZONES.xml --input unsigned/ods_$NUMBER_OF_ZONES --output $INSTALL_ROOT/var/opendnssec/signed/ods_$NUMBER_OF_ZONES &&
 	    log_this ods-control-enforcer-start echo "Added zone" 
 		if [ $? -eq 1 ]; then
 			echo "could not perform zone add"
