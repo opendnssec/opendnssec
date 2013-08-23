@@ -358,10 +358,14 @@ begin_pkt:
         ods_log_warning("[%s] xfr zone %s on disk incomplete, rollback",
             adapter_str, zone->name);
         namedb_rollback(zone->db, 1);
-        result = ODS_STATUS_OK;
-        goto begin_pkt;
+        if (ods_strcmp(";;BEGINPACKET", line) == 0) {
+            result = ODS_STATUS_OK;
+            goto begin_pkt;
+        } else {
+            result = ODS_STATUS_XFRINCOMPLETE;
+        }
     }
-    /* otherwise ENDPACKET or EOF */
+    /* otherwise EOF */
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RR at line %i (%s): %s",
             adapter_str, l, ldns_get_errorstr_by_id(status), line);
