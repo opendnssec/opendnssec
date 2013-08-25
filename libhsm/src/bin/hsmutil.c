@@ -404,7 +404,9 @@ cmd_test (int argc, char *argv[])
         argv++;
 
         printf("Testing repository: %s\n\n", repository);
-        return hsm_test(repository);
+        int rv = hsm_test(repository);
+        if (repository) free(repository);
+        return rv;
     } else {
         usage();
     }
