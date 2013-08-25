@@ -2408,6 +2408,19 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
 
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+
+    /* check whether this key doesn't happen to exist already */
+
+    do {
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
+
     CK_KEY_TYPE keyType = CKK_DSA;
     CK_MECHANISM mechanism1 = {
         CKM_DSA_PARAMETER_GEN, NULL_PTR, 0
@@ -2450,19 +2463,6 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
         { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
         { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
     };
-
-    if (!ctx) ctx = _hsm_ctx;
-    session = hsm_find_repository_session(ctx, repository);
-    if (!session) return NULL;
-
-    /* check whether this key doesn't happen to exist already */
-
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
-    /* the CKA_LABEL will contain a hexadecimal string representation
-     * of the id */
-    hsm_hex_unparse(id_str, id, 16);
 
     /* Generate the domain parameters */
 
@@ -2521,6 +2521,19 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
 
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+
+    /* check whether this key doesn't happen to exist already */
+
+    do {
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
+
     CK_KEY_TYPE keyType = CKK_GOSTR3410;
     CK_MECHANISM mechanism = {
         CKM_GOSTR3410_KEY_PAIR_GEN, NULL_PTR, 0
@@ -2553,19 +2566,6 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
         { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
         { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
     };
-
-    if (!ctx) ctx = _hsm_ctx;
-    session = hsm_find_repository_session(ctx, repository);
-    if (!session) return NULL;
-
-    /* check whether this key doesn't happen to exist already */
-
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
-    /* the CKA_LABEL will contain a hexadecimal string representation
-     * of the id */
-    hsm_hex_unparse(id_str, id, 16);
 
     /* Generate key pair */
 
