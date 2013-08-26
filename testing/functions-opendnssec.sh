@@ -1,5 +1,25 @@
 #!/usr/bin/env bash
 
+ODS_ENFORCER_WAIT_START=90
+ODS_SIGNER_WAIT_START=90
+ODS_ODS_CONTROL_WAIT_START=90
+
+ODS_ENFORCER_WAIT_START_LOG=90
+ODS_SIGNER_WAIT_START_LOG=90
+
+ODS_ENFORCER_WAIT_STOP=90
+ODS_SIGNER_WAIT_STOP=90
+ODS_ODS_CONTROL_WAIT_STOP=90
+
+ODS_ENFORCER_WAIT_STOP_LOG=90
+ODS_SIGNER_WAIT_STOP_LOG=90
+
+ODS_ENFORCER_START_LOG_STRING='ods-enforcerd: .*Sleeping for'
+ODS_SIGNER_START_LOG_STRING='ods-signerd: .*\[engine\] signer started'
+
+ODS_ENFORCER_STOP_LOG_STRING='ods-enforcerd: .*all done'
+ODS_SIGNER_STOP_LOG_STRING='ods-signerd: .*\[engine\] signer shutdown'
+
 ods_pre_test ()
 {
 	ods_nuke_env &&
@@ -196,11 +216,377 @@ ods_reset_env ()
 	echo "ods_reset_env: resetting opendnssec environment"
 	
 	ods_softhsm_init_token 0 &&
+	ods_setup_env &&
+	return 0
+	
+	return 1
+}
+
+ods_setup_env ()
+{
 	echo "y" | log_this "ods-ksmutil-setup" ods-ksmutil setup &&
 	return 0
 	
 	return 1
 }
+
+ods_is_enforcer_running ()
+{
+	# returns true if enforcer is running
+	if  pgrep -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null; then
+		return 0
+	fi		
+	return 1
+}
+
+ods_is_signer_running ()
+{
+	# returns true if signer is running
+	if  pgrep -u `id -u` 'ods-signerd' >/dev/null 2>/dev/null; then
+		return 0
+	fi		
+	return 1
+}
+
+ods_ods-control_enforcer_start() {
+	
+	if  ! log_this_timeout ods_ods-control_enforcer_start $ODS_ENFORCER_WAIT_START ods-control enforcer start ; then
+		echo "ods_ods-control_enforcer_start: ERROR: Could not start ods-enforcerd. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_ods-control_enforcer_stop() {
+	
+	if  ! log_this_timeout ods_ods-control_enforcer_stop $ODS_ENFORCER_WAIT_STOP ods-control enforcer stop ; then
+		echo "ods_ods-control_enforcer_stop: ERROR: Could not stop ods-enforcerd. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_enforcer_start_timeshift() {
+	
+	if  ! log_this_timeout ods_enforcer_start_timeshift $ODS_ENFORCER_WAIT_START ods-enforcerd -1 ; then
+		echo "ods_enforcer_start_timeshift: ERROR: Could not start ods-enforcerd. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_ods-control_signer_start() {
+	
+	if  ! log_this_timeout ods_ods-control_signer_start $ODS_SIGNER_WAIT_START ods-control signer start ; then
+		echo "ods_ods-control_signer_start: ERROR: Could not start ods-signerd. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_ods-control_signer_stop() {
+	
+	if  ! log_this_timeout ods_ods-control_signer_stop $ODS_SIGNER_WAIT_STOP ods-control signer stop ; then
+		echo "ods_ods-control_signer_stop: ERROR: Could not stop ods-signerd. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_ods-control_start() {
+	
+	if  ! log_this_timeout ods_ods-control_start $ODS_ODS_CONTROL_WAIT_START ods-control start ; then
+		echo "ods_ods-control_start: ERROR: Could not start ods-control. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_ods-control_stop() {
+	
+	if  ! log_this_timeout ods_ods-control_stop $ODS_ODS_CONTROL_WAIT_STOP ods-control stop ; then
+		echo "ods_ods-control_stop: ERROR: Could not stop ods-control. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_enforcer_count_starts() {
+	
+	# Counts the number of times the enforcer has already run by
+	# seting up the $syslog_grep_count_variable to contain a count of runs
+	echo "ods_enforcer_count_starts: Checking how many times enforcer has started already"
+    syslog_grep_count 0 "$ODS_ENFORCER_START_LOG_STRING"
+    echo "ods_enforcer_count_starts: Enforcer has started" $syslog_grep_count_variable "times so far"
+	
+}
+
+ods_enforcer_count_stops() {
+	
+	# Counts the number of times the enforcer has already stopped by
+	# seting up the $syslog_grep_count_variable to contain a count of stops
+	echo "ods_enforcer_count_stops: Checking how many times enforcer has stopped already"
+    syslog_grep_count 0 "$ODS_ENFORCER_STOP_LOG_STRING"
+    echo "ods_enforcer_count_stops: Enforcer has stopped" $syslog_grep_count_variable "times so far"
+	
+}
+
+
+ods_enforcer_waitfor_starts() {
+	
+	# Waits for the enforcer to have run the specified number of times
+	if [ -z "$1" ]; then
+		echo "usage: ods_enforcer_waitfor_starts <expected_starts>" >&2
+		return 1
+	fi	
+	echo "ods_enforcer_waitfor_starts:  Waiting for latest start of enforcer"
+	if ! syslog_waitfor_count $ODS_ENFORCER_WAIT_START_LOG $1 "$ODS_ENFORCER_START_LOG_STRING" ; then
+		echo "ods_enforcer_waitfor_starts: ERROR: ods-enforcerd has not started. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_enforcer_waitfor_stops() {
+	
+	# Waits for the enforcer to have stopped the specified number of times
+	if [ -z "$1" ]; then
+		echo "usage: ods_enforcer_waitfor_stops <expected_stops>" >&2
+		return 1
+	fi	
+	echo "ods_enforcer_waitfor_stops:  Waiting for latest stop of enforcer"
+	if ! syslog_waitfor_count $ODS_ENFORCER_WAIT_STOP_LOG $1 "$ODS_ENFORCER_STOP_LOG_STRING" ; then
+		echo "ods_enforcer_waitfor_stops: ERROR: ods-enforcerd has not stopped. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_signer_count_starts() {
+	
+	# Counts the number of times the signer has already run by
+	# seting up the $syslog_grep_count_variable to contain a count of starts
+	echo "ods_signer_count_starts: Checking how many times signer has started already"
+    syslog_grep_count 0 "$ODS_SIGNER_START_LOG_STRING"
+    echo "ods_signer_count_starts: Signer has started" $syslog_grep_count_variable "times so far"
+	
+}
+
+ods_signer_count_stops() {
+	
+	# Counts the number of times the signer has already run by
+	# seting up the $syslog_grep_count_variable to contain a count of stops
+	echo "ods_signer_count_stops: Checking how many times signer has stopped already"
+    syslog_grep_count 0 "$ODS_SIGNER_STOP_LOG_STRING"
+    echo "ods_signer_count_stops: Signer has stopped" $syslog_grep_count_variable "times so far"
+	
+}
+
+ods_signer_waitfor_starts() {
+	
+	# Waits for the signer to have run the specified number of times
+	if [ -z "$1" ]; then
+		echo "usage: ods_signer_waitfor_starts <expected_starts>" >&2
+		return 1
+	fi	
+	echo "ods_signer_waitfor_starts:  Waiting for latest start of signer"
+	if ! syslog_waitfor_count $ODS_SIGNER_WAIT_START_LOG $1 "$ODS_SIGNER_START_LOG_STRING" ; then
+		echo "ods_signer_waitfor_starts: ERROR: ods-signerd has not started. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_signer_waitfor_stops() {
+	
+	# Waits for the signer to have stopped the specified number of times
+	if [ -z "$1" ]; then
+		echo "usage: ods_signer_waitfor_stops <expected_stops>" >&2
+		return 1
+	fi	
+	echo "ods_signer_waitfor_stops:  Waiting for latest stop of signer"
+	if ! syslog_waitfor_count $ODS_SIGNER_WAIT_STOP_LOG $1 "$ODS_SIGNER_STOP_LOG_STRING" ; then
+		echo "ods_signer_waitfor_stops: ERROR: ods-signerd has not stopped. Exiting..." >&2
+		return 1
+	fi
+	return 0
+	
+}
+
+ods_start_enforcer() 
+{
+	
+	if ods_is_enforcer_running; then
+		echo "ods_start_enforcer: ERROR: ods-enforcerd is already running.." >&2
+		return 1
+	fi		
+		
+	echo "ods_start_enforcer: Starting ods-enforcer now..." >&2 &&
+	
+ 	ods_enforcer_count_starts &&
+    local ods_enforcer_start_count="$syslog_grep_count_variable" &&
+	ods_ods-control_enforcer_start	&&
+	ods_enforcer_waitfor_starts $(( ods_enforcer_start_count + 1 )) &&
+	
+	echo "ods_start_enforcer: ods-enforcer started OK..." >&2 &&
+	return 0
+	
+	return 1
+}
+
+ods_stop_enforcer() {
+	
+	if ! ods_is_enforcer_running; then
+		echo "ods_stop_enforcer: ERROR: ods-enforcerd is not running.." >&2
+		return 1
+	fi		
+		
+	echo "ods_stop_enforcer: Stoppinb ods-enforcer now..." >&2 &&
+	
+ 	ods_enforcer_count_stops &&
+    local ods_enforcer_stop_count="$syslog_grep_count_variable" &&
+	ods_ods-control_enforcer_stop	&&
+	ods_enforcer_waitfor_stops $(( ods_enforcer_stop_count + 1 )) &&
+	
+	echo "ods_stop_enforcer: ods-enforcer stopped OK..." >&2 &&
+	return 0
+	
+	return 1
+}
+
+ods_start_enforcer_timeshift() {
+		
+	if ods_is_enforcer_running; then
+		echo "ods_start_enforcer_timeshift: ERROR: ods-enforcerd is already running.." >&2
+		return 1
+	fi		
+		
+	echo "ods_start_enforcer_timeshift: Starting ods-enforcer now..." >&2 &&
+	
+	# When the enforcer runs in timeshift mode it runs to completion
+	# so it has to be measured as a stop
+ 	ods_enforcer_count_stops &&
+    local ods_enforcer_stop_count="$syslog_grep_count_variable" &&
+	ods_enforcer_start_timeshift &&
+	ods_enforcer_waitfor_stops $(( ods_enforcer_stop_count + 1 )) &&
+	
+	echo "ods_start_enforcer_timeshift: ods-enforcer started OK..." >&2 &&
+	return 0
+	
+	return 1
+}
+
+
+ods_start_signer() {
+		
+	if ods_is_signer_running; then
+		echo "ods_start_signer: ERROR: ods-signerd is already running.." >&2
+		return 1
+	fi		
+		
+	echo "ods_start_signer: Starting ods-signer now..." >&2 &&
+	
+ 	ods_signer_count_starts &&
+    local ods_signer_start_count="$syslog_grep_count_variable" &&
+	ods_ods-control_signer_start	&&
+	ods_signer_waitfor_starts $(( ods_signer_start_count + 1 )) &&
+	
+	echo "ods_start_signer: ods-signer started OK..." >&2 &&
+	return 0
+	
+	return 1
+}
+
+ods_stop_signer() {
+	
+	if ! ods_is_signer_running; then
+		echo "ods_stop_signer: ERROR: ods-signerd is not running.." >&2
+		return 1
+	fi		
+		
+	echo "ods_stop_signer: Stopping ods-signer now..." >&2 &&
+	
+ 	ods_signer_count_stops &&
+    local ods_signer_stop_count="$syslog_grep_count_variable" &&
+	ods_ods-control_signer_stop	&&
+	ods_signer_waitfor_stops $(( ods_signer_stop_count + 1 )) &&
+	
+	echo "ods_stop_signer: ods-signer stopped OK..." >&2 &&
+	return 0
+	
+	return 1
+}
+
+ods_start_ods-control() {
+	
+	if ods_is_signer_running; then
+		echo "ods_start_ods-control: ERROR: ods-signerd is already running.." >&2
+		return 1
+	fi
+	if ods_is_enforcer_running; then
+		echo "ods_start_ods-control: ERROR: ods-enforcerd is already running.." >&2
+		return 1
+	fi			
+		
+	echo "ods_start_ods-control: Starting ods-signer now..." >&2 &&
+	
+ 	ods_signer_count_starts &&
+    local ods_signer_start_count="$syslog_grep_count_variable" &&
+ 	ods_enforcer_count_starts &&
+    local ods_enforcer_start_count="$syslog_grep_count_variable" &&
+
+	ods_ods-control_start	&&
+		
+	ods_signer_waitfor_starts $(( ods_signer_start_count + 1 )) &&
+	ods_enforcer_waitfor_starts $(( ods_enforcer_start_count + 1 )) &&	
+	
+	echo "ods_start_ods-control: ods-control started OK..." >&2 &&
+	return 0
+	
+	return 1	
+	
+}
+
+ods_stop_ods-control() {
+	
+	if ! ods_is_signer_running; then
+		echo "ods_stop_ods-control: ERROR: ods-signerd is not running.." >&2
+		return 1
+	fi
+	if ! ods_is_enforcer_running; then
+		echo "ods_stop_ods-control: ERROR: ods-enforcerd is not running.." >&2
+		return 1
+	fi			
+		
+	echo "ods_stop_ods-control: Stopping ods-signer now..." >&2 &&
+	
+ 	ods_signer_count_stops &&
+    local ods_signer_stop_count="$syslog_grep_count_variable" &&
+ 	ods_enforcer_count_stops &&
+    local ods_enforcer_stop_count="$syslog_grep_count_variable" &&
+
+	ods_ods-control_stop &&
+		
+	ods_signer_waitfor_stops $(( ods_signer_stop_count + 1 )) &&
+	ods_enforcer_waitfor_stops $(( ods_enforcer_stop_count + 1 )) &&	
+	
+	echo "ods_stop_ods-control: ods-control stopped OK..." >&2 &&
+	return 0
+	
+	return 1
+
+}
+
 
 ods_process_kill ()
 {

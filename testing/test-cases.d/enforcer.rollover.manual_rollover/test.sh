@@ -21,8 +21,7 @@ ods_reset_env &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 # Make sure TIMESHIFT worked:
 syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
@@ -52,8 +51,7 @@ syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type zsk on zone od
 
 # Run the enforcer and check for a published ZSK for our zone
 # and check nothing happens to the other zone
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 2 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 log_this ods-ksmutil-key-list2 ods-ksmutil key list --verbose  &&
 log_grep ods-ksmutil-key-list2 stdout 'ods                             KSK           publish' &&
@@ -74,8 +72,7 @@ syslog_grep "WARNING: ZSK rollover for zone 'ods' not completed as there are no 
 ##################  STEP 1: Time = 1hrs ###########################
 export ENFORCER_TIMESHIFT='01-01-2010 13:00' &&
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 3 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 13:00" &&
 
 # Check the published key is now active and the old key is retired
@@ -94,8 +91,7 @@ log_grep ods-ksmutil-dsseen_ods1 stdout "Key $KSK_CKA_ID1 made active" &&
 ##################  STEP 2: Time = 3hrs ###########################
 export ENFORCER_TIMESHIFT='01-01-2010 15:00' &&
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 4 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 15:00" &&
 
 # Make sure the old key is now retired
@@ -107,8 +103,7 @@ log_grep ods-ksmutil-key-list4 stdout "ods                             ZSK      
 ##################  STEP 3: Time = 13hrs ###########################
 export ENFORCER_TIMESHIFT='02-01-2010 01:00' &&
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 5 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 02-01-2010 01:00" &&
 
 # Check the next scheduled rollover starts for the ZSK
@@ -124,8 +119,7 @@ syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type ksk on zone od
 # *************************************************************
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 6 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 # Look for a published KSK
 log_this ods-ksmutil-key-list6 ods-ksmutil key list --verbose &&
@@ -140,8 +134,7 @@ syslog_grep "WARNING: KSK rollover for zone 'ods' not completed as there are no 
 # ##################  STEP 4: Time = 14hrs ###########################
 export ENFORCER_TIMESHIFT='02-01-2010 02:00' &&
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 7 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 02-01-2010 02:00" &&
 
 # Look for a ready KSK
@@ -169,8 +162,7 @@ log_grep ods-ksmutil-key-list8 stdout "ods                             ZSK      
 # ##################  STEP 5: Time = 15hrs ###########################
 export ENFORCER_TIMESHIFT='02-01-2010 03:00' &&
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 8 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 02-01-2010 03:00" &&
 
 # Look for only an active KSK
@@ -189,8 +181,7 @@ syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type all on zone od
 # ******************************************************************* 
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 9 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 # Check both keys have started rolling
 log_this ods-ksmutil-key-list10 ods-ksmutil key list --verbose &&
@@ -211,8 +202,7 @@ syslog_waitfor 5 "ods-ksmutil: .*Manual key rollover for key type zsk on zone od
 # ***************************************************************
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 10 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 # Check both keys have started rolling on ods2
 log_this ods-ksmutil-key-list11 ods-ksmutil key list --verbose &&
