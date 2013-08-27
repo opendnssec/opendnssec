@@ -103,8 +103,6 @@ bool get_arguments(int sockfd, const char *cmd,
 	const char *output = NULL;
 	const char *intype = NULL;
 	const char *outtype = NULL;
-	const char *inconf = NULL;
-	const char *outconf = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
     (void)ods_find_arg_and_param(&argc,argv,"policy","p",&policy);
     (void)ods_find_arg_and_param(&argc,argv,"signerconf","s",&signconf);

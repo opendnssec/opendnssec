@@ -113,6 +113,7 @@ ods_enforcerd_SOURCES = \
 	keystate/update_keyzones_task.cpp keystate/update_keyzones_task.h \
 	keystate/keystate_rollover_cmd.cpp keystate/keystate_rollover_cmd.h \
 	keystate/keystate_rollover_task.cpp keystate/keystate_rollover_task.h \
+	keystate/zonelist_task.h keystate/zonelist_task.cpp \
 	keystate/zonelist_cmd.h keystate/zonelist_cmd.cpp \
 	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 	signconf/signconf_task.cpp signconf/signconf_task.h \
