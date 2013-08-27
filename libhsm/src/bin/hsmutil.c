@@ -62,7 +62,7 @@ usage ()
     fprintf(stderr,"  login\n");
     fprintf(stderr,"  logout\n");
     fprintf(stderr,"  list [repository]\n");
-    fprintf(stderr,"  generate <repository> rsa <keysize>\n");
+    fprintf(stderr,"  generate <repository> rsa|gost [keysize]\n");
     fprintf(stderr,"  remove <id>\n");
     fprintf(stderr,"  purge <repository>\n");
     fprintf(stderr,"  dnskey <id> <name>\n");
@@ -149,11 +149,11 @@ cmd_list (int argc, char *argv[])
             /* Skip NULL key for now */
             continue;
         }
-        
+
         key_count_valid++;
 
         key_info = hsm_get_key_info(NULL, key);
-        
+
         if (key_info) {
             snprintf(key_type, sizeof(key_type), "%s/%lu",
                 key_info->algorithm_name, key_info->keysize);
@@ -168,7 +168,7 @@ cmd_list (int argc, char *argv[])
         hsm_key_info_free(key_info);
     }
     hsm_key_list_free(keys, key_count);
-    
+
     if (key_count != key_count_valid) {
         size_t invalid_keys;
         invalid_keys = key_count - key_count_valid;
@@ -190,7 +190,7 @@ cmd_generate (int argc, char *argv[])
     hsm_key_t *key = NULL;
     hsm_ctx_t *ctx = NULL;
 
-    if (argc != 3) {
+    if (argc < 2 || argc > 3) {
         usage();
         return -1;
     }
@@ -203,32 +203,37 @@ cmd_generate (int argc, char *argv[])
        return 1;
     }
 
-
     algorithm = strdup(argv[1]);
-    keysize = atoi(argv[2]);
+    if (argc == 3) {
+        keysize = atoi(argv[2]);
+    }
 
     if (!strcasecmp(algorithm, "rsa")) {
         printf("Generating %d bit RSA key in repository: %s\n",
             keysize, repository);
 
         key = hsm_generate_rsa_key(NULL, repository, keysize);
+    } else if (!strcasecmp(algorithm, "gost")) {
+        printf("Generating 512 bit GOST key in repository: %s\n",
+            repository);
 
-        if (key) {
-            hsm_key_info_t *key_info;
-
-            key_info = hsm_get_key_info(NULL, key);
-            printf("Key generation successful: %s\n",
-                key_info ? key_info->id : "NULL");
-            hsm_key_info_free(key_info);
-            if (verbose) hsm_print_key(key);
-            hsm_key_free(key);
-        } else {
-            printf("Key generation failed.\n");
-            return -1;
-        }
-
+        key = hsm_generate_gost_key(NULL, repository);
     } else {
         printf("Unknown algorithm: %s\n", algorithm);
+        return -1;
+    }
+
+    if (key) {
+        hsm_key_info_t *key_info;
+
+        key_info = hsm_get_key_info(NULL, key);
+        printf("Key generation successful: %s\n",
+            key_info ? key_info->id : "NULL");
+        hsm_key_info_free(key_info);
+        if (verbose) hsm_print_key(key);
+        hsm_key_free(key);
+    } else {
+        printf("Key generation failed.\n");
         return -1;
     }
 
