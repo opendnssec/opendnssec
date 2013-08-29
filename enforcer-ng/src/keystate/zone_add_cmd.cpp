@@ -69,6 +69,22 @@ help_zone_add_cmd(int sockfd)
         );
 }
 
+static inline void
+get_full_path(const std::string &input_file,
+                    const std::string &relative_dir,
+                    std::string &full_file_path)
+{
+    if (input_file[0] == '/')
+        full_file_path = input_file;
+    else {
+        full_file_path = std::string(OPENDNSSEC_STATE_DIR) +
+                        std::string("/") +
+                        relative_dir +
+                        std::string("/") +
+                        input_file;
+    }
+}
+
 bool get_arguments(int sockfd, const char *cmd,
 				   std::string &out_zone,
 				   std::string &out_policy,
@@ -128,48 +144,50 @@ bool get_arguments(int sockfd, const char *cmd,
     }
 	out_policy = policy;
     if (!signconf) {
-		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --signconf <path>");
-        return false;
+        bool is_dot_ending = false;
+        if (zone[strlen(zone) - 1] == '.') is_dot_ending = true;
+        out_signconf = out_zone + 
+                        (is_dot_ending ? std::string("xml") 
+                                        : std::string(".xml"));
     }
-	out_signconf = signconf;
+    else
+	    out_signconf = signconf;
+    get_full_path(out_signconf, std::string("signconf"), out_signconf);
 
-	if (!input && !intype) {
-		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --input or --in-type");
-        return false;
-	}
     if (!intype || (0 == strcasecmp(intype, "file"))) {
-        out_infile = input; 
+        if (input)
+            out_infile = input; 
+        else
+            out_infile = out_zone;
+        get_full_path(out_infile, std::string("var/opendnssec/unsigned"),
+                out_infile);
     } else if (0 == strcasecmp(intype, "dns")) {
-        if (!input) {
-            ods_log_error_and_printf(sockfd, module_str,
-                    "expected option --input");
-            return false;
-        }
-		out_intype = intype;
-		out_inconf = input;
+		out_intype = "DNS";
+        if (input)
+		    out_inconf = input;
+        else
+            out_inconf = "addns.xml";
+        get_full_path(out_inconf, std::string("etc/opendnssec"), out_inconf);
     } else {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "invalid parameter for --in-type");
         return false;
     }
 
-	if (!output && !outtype) {
-		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --output or --out-type");
-        return false;
-	}
     if (!outtype || (0 == strcasecmp(outtype, "file"))) {
-        out_outfile = output; 
+        if (output)
+            out_outfile = output; 
+        else
+            out_outfile = out_zone;
+        get_full_path(out_outfile, std::string("var/opendnssec/signed"),
+                out_outfile);
     } else if (0 == strcasecmp(outtype, "dns")) {
-        if (!output) {
-            ods_log_error_and_printf(sockfd, module_str,
-                    "expected option --output");
-            return false;
-        }
+        if (output)
+		    out_outconf = output;
+        else
+            out_outconf = "addns.xml";
 		out_outtype = outtype;
-		out_outconf = output;
+        get_full_path(out_outconf, std::string("etc/opendnssec"), out_outconf);
     } else {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "invalid parameter for --out-type");
@@ -206,8 +224,8 @@ handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
 					 infile.c_str(),
 					 outfile.c_str(),
 					 intype.c_str(),
-					 outtype.c_str(),
 					 inconf.c_str(),
+					 outtype.c_str(),
 					 outconf.c_str()
 					 );
 	
