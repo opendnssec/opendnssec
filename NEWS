@@ -22,6 +22,8 @@ Bugfixes:
 * Signer Engine: Fix double free corruption in case of adding zone with
   DNS Outbound Adapters and NotifyCommand enabled.
 * OPENDNSSEC-443: ods-ksmutil: Clean up of hsm connection handling
+* OPENDNSSEC-401: 'ods-signer sign <zone> --serial <nr>' command produces seg
+  fault when run directly on command line (i.e. not via interactive mode)
 
 
 OpenDNSSEC 1.4.1 - 2013-06-27
