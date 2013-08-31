@@ -19,7 +19,7 @@ ods_reset_env &&
 ods_start_ods-control && 
 
 ## Wait for signed zone file
-syslog_waitfor 60 1 'ods-signerd: .*\[STATS\] ods' &&
+syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$SIGNED_ZONE" &&
 `$GREP -q -- "IN[[:space:]]SOA[[:space:]]ns1.ods.[[:space:]]postmaster.ods.[[:space:]]1001[[:space:]]" $SIGNED_ZONE` &&
 echo "Zone originally signed with serial 1001" &&
