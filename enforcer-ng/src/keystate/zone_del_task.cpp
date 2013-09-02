@@ -58,11 +58,13 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
 		return; // error already reported.
 
 	std::string qzone;
-	if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
-		const char *emsg = "quoting zone value failed";
-		ods_log_error_and_printf(sockfd,module_str,emsg);
-		return;
-	}
+    if (*zone) {
+        if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
+            const char *emsg = "quoting zone value failed";
+            ods_log_error_and_printf(sockfd,module_str,emsg);
+            return;
+        }
+    }
 	
 	{	OrmTransactionRW transaction(conn);
 		if (!transaction.started()) {
@@ -71,15 +73,62 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
 			return;
 		}
 		
-		if (!OrmMessageDeleteWhere(conn,
-								   ::ods::keystate::EnforcerZone::descriptor(),
-								   "name = %s",
-								   qzone.c_str()))
-		{
-			const char *emsg = "unable to delete zone %s";
-			ods_log_error_and_printf(sockfd,module_str,emsg,qzone.c_str());
-			return;
-		}
+        if (qzone.empty()) {
+            OrmResultRef rows;
+            ::ods::keystate::EnforcerZone enfzone;
+            std::vector<std::string> del_zones;
+            bool ok = OrmMessageEnum(conn, enfzone.descriptor(), rows);
+            if (!ok) {
+                transaction.rollback();
+                ods_log_error("[%s] enum enforcer zone failed", module_str);
+                return;
+            }
+
+            for (bool next=OrmFirst(rows); next; next = OrmNext(rows)) {
+                OrmContextRef context;
+                if (!OrmGetMessage(rows, enfzone, true, context)) {
+                    rows.release();
+                    transaction.rollback();
+                    ods_log_error("[%s] retrieving zone from database failed");
+                    return;
+                }
+
+                del_zones.push_back(enfzone.name());
+            }
+            rows.release();
+
+            for (std::vector<std::string>::iterator it = del_zones.begin(); 
+                    it != del_zones.end(); ++it) {
+	            std::string del_zone;
+                if (!OrmQuoteStringValue(conn, std::string(*it), del_zone)) {
+                    transaction.rollback();
+                    const char *emsg = "quoting zone value failed";
+                    ods_log_error_and_printf(sockfd,module_str,emsg);
+                    return;
+                }
+                if (!OrmMessageDeleteWhere(conn,
+                            ::ods::keystate::EnforcerZone::descriptor(),
+                            "name = %s",
+                            del_zone.c_str())) {
+                    transaction.rollback();
+                    const char *emsg = "unable to delete zone %s";
+                    ods_log_error_and_printf(sockfd,module_str,emsg, it->c_str());
+                    return;
+                }
+            }
+        }
+        else {
+            if (!OrmMessageDeleteWhere(conn,
+                        ::ods::keystate::EnforcerZone::descriptor(),
+                        "name = %s",
+                        qzone.c_str()))
+            {
+                transaction.rollback();
+                const char *emsg = "unable to delete zone %s";
+                ods_log_error_and_printf(sockfd,module_str,emsg,qzone.c_str());
+                return;
+            }
+        }
 		
 		if (!transaction.commit()) {
 			const char *emsg = "committing delete of zone %s to database failed";
@@ -88,6 +137,12 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
 		}
     }
 
-    ods_log_debug("[%s] zone %s deleted successfully", module_str,qzone.c_str());
-	ods_printf(sockfd, "zone %s deleted successfully\n",qzone.c_str());
+    if (qzone.empty()) {
+        ods_log_debug("[%s] all zones deleted successfully", module_str);
+	    ods_printf(sockfd, "all zones deleted successfully\n");
+    }
+    else {
+        ods_log_debug("[%s] zone %s deleted successfully", module_str,qzone.c_str());
+	    ods_printf(sockfd, "zone %s deleted successfully\n",qzone.c_str());
+    }
 }

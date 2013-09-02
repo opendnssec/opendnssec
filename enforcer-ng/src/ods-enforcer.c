@@ -212,6 +212,17 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
             }
         }
 
+        if (strstr(cmd, "zone delete") && !strstr(cmd, "--force")) {
+            printf("*WARNING* This will delete all zone data in database;"
+                    "are you sure? [y/N] ");
+
+            user_certain = getchar();
+            if (user_certain != 'y' && user_certain != 'Y') {
+                printf("Okay, quitting...\n");
+                continue;
+            }
+        }
+
         /* Now we know what to say, open socket */
         sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sockfd <= 0) {

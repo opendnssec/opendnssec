@@ -45,7 +45,7 @@ static const char *module_str = "zone_del_cmd";
 void help_zone_del_cmd(int sockfd)
 {
     ods_printf(sockfd,
-			   "zone del        delete zones\n"
+			   "zone delete     delete zones\n"
 			   "  --zone <zone> (aka -z) the zone to delete\n"
 			   "  --force       (aka -f) additional flag to "
 								"indicate you really mean it\n"
@@ -74,30 +74,31 @@ bool get_arguments(int sockfd, const char *cmd,
     
     const char *zone = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    bool bforce = ods_find_arg(&argc,argv,"force","f")!=-1;
+    int del_all = 0;
+    if (ods_find_arg(&argc, argv, "all", "a") != -1) del_all = 1;
+    ods_find_arg(&argc, argv, "force", "f");
 	
     if (argc) {
 		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
         return false;
     }
     if (!zone) {
-		ods_log_error_and_printf(sockfd,module_str,
+        if (!del_all) {
+		    ods_log_error_and_printf(sockfd,module_str,
 								 "expected option --zone <zone>");
-        return false;
+            return false;
+        }
     }
-	out_zone = zone;
-    if (!bforce) {
-		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --force");
-        return false;
-    }
+    else
+	    out_zone = zone;
+
 	return true;
 }
 
 int handled_zone_del_cmd(int sockfd, engine_type* engine, const char *cmd, 
 						  ssize_t n)
 {
-    const char *scmd =  "zone del";
+    const char *scmd =  "zone delete";
     
     cmd = ods_check_command(cmd,n,scmd);
     if (!cmd)
