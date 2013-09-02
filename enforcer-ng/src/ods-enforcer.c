@@ -149,10 +149,12 @@ interface_run(const int sockfd, const char* cmd)
 static int
 interface_start(const char* cmd_arg, const char* servsock_filename)
 {
-    int sockfd, flags, return_value, n;
+    int sockfd, flags, return_value;
     struct sockaddr_un servaddr;
 #ifdef HAVE_READLINE
     char *icmd_ptr;
+#else
+    int n;
 #endif
     char cmd[ODS_SE_MAXLINE];
     int user_certain;
@@ -206,6 +208,7 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
                     "are you sure? [y/N] ");
 
             user_certain = getchar();
+            while(getchar() != '\n') /* flush input buffer */;
             if (user_certain != 'y' && user_certain != 'Y') {
                 printf("Okay, quitting...\n");
                 continue;
@@ -217,6 +220,7 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
                     "are you sure? [y/N] ");
 
             user_certain = getchar();
+            while(getchar() != '\n') /* flush input buffer */;
             if (user_certain != 'y' && user_certain != 'Y') {
                 printf("Okay, quitting...\n");
                 continue;
