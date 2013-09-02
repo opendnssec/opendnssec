@@ -24,6 +24,8 @@ Bugfixes:
 * OPENDNSSEC-443: ods-ksmutil: Clean up of hsm connection handling
 * OPENDNSSEC-401: 'ods-signer sign <zone> --serial <nr>' command produces seg
   fault when run directly on command line (i.e. not via interactive mode)
+* OPENDNSSEC-444: Fix double free corruption in case of HSM connection
+  error while signing RRsets (also fixes SUPPORT-71).
 
 
 OpenDNSSEC 1.4.1 - 2013-06-27
