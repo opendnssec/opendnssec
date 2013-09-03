@@ -1,6 +1,6 @@
 $Id$
 
-OpenDNSSEC 1.4.2
+OpenDNSSEC 1.4.2rc1 - 2013-09-03
 
 * OPENDNSSEC-428: ods-ksmutil: Add option for 'ods-ksmutil key generate' to 
   take number of zones as a parameter
