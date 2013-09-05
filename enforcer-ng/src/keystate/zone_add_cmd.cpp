@@ -65,7 +65,7 @@ help_zone_add_cmd(int sockfd)
 			   "                (aka -j) input adapter type\n"
 			   "  --out-type <type>\n"
 			   "                (aka -q) output adapter type\n"
-
+               "  --no-xml      (aka -m)\n"
         );
 }
 
@@ -94,7 +94,8 @@ bool get_arguments(int sockfd, const char *cmd,
 				   std::string &out_intype,
 				   std::string &out_outtype,
 				   std::string &out_inconf,
-				   std::string &out_outconf)
+				   std::string &out_outconf,
+                   int &need_write_xml)
 {
 	char buf[ODS_SE_MAXLINE];
     const char *argv[16];
@@ -126,6 +127,7 @@ bool get_arguments(int sockfd, const char *cmd,
     (void)ods_find_arg_and_param(&argc,argv,"output","o",&output);
     (void)ods_find_arg_and_param(&argc,argv,"in-type","j",&intype);
     (void)ods_find_arg_and_param(&argc,argv,"out-type","q",&outtype);
+    if (ods_find_arg(&argc, argv, "no-xml", "m") >= 0) need_write_xml = 0;
 
     if (argc) {
 		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
@@ -210,8 +212,9 @@ handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
     ods_log_debug("[%s] %s command", module_str, scmd);
 
 	std::string zone,policy,signconf,infile,outfile,intype,outtype,inconf,outconf;
+    int need_write_xml = 1;
 	if (!get_arguments(sockfd,cmd,zone,policy,signconf,infile,outfile,
-					   intype,outtype,inconf,outconf)
+					   intype,outtype,inconf,outconf, need_write_xml)
 		)
 		return 1;
 	
@@ -226,8 +229,8 @@ handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
 					 intype.c_str(),
 					 inconf.c_str(),
 					 outtype.c_str(),
-					 outconf.c_str()
-					 );
+					 outconf.c_str(),
+					 need_write_xml);
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 

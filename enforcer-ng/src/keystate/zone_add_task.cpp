@@ -45,6 +45,7 @@
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
+#include "keystate/write_signzone_task.h"
 
 static const char *module_str = "zone_add_task";
 
@@ -59,7 +60,8 @@ perform_zone_add(int sockfd,
 				 const char *ad_input_type,
 				 const char *ad_input_config,
 				 const char *ad_output_type,
-				 const char *ad_output_config)
+				 const char *ad_output_config,
+                 int need_write_xml)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -153,4 +155,8 @@ perform_zone_add(int sockfd,
 			}
 		}
 	}
+
+    if (need_write_xml && !perform_write_signzone_file(sockfd, config))
+        ods_log_error_and_printf(sockfd, module_str, 
+                "failed to write signzones.xml");
 }

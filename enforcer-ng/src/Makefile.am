@@ -115,6 +115,7 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_rollover_task.cpp keystate/keystate_rollover_task.h \
 	keystate/zonelist_task.h keystate/zonelist_task.cpp \
 	keystate/zonelist_cmd.h keystate/zonelist_cmd.cpp \
+	keystate/write_signzone_task.h keystate/write_signzone_task.cpp \
 	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 	signconf/signconf_task.cpp signconf/signconf_task.h \
 	enforcer/enforcerdata.h \

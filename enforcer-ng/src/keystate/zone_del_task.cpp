@@ -33,6 +33,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "keystate/zone_del_task.h"
+#include "keystate/write_signzone_task.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
@@ -49,7 +50,7 @@
 static const char *module_str = "zone_del_task";
 
 void 
-perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
+perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int need_write_xml)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -58,6 +59,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
 		return; // error already reported.
 
 	std::string qzone;
+    bool is_del_succeed = false;
     if (*zone) {
         if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
             const char *emsg = "quoting zone value failed";
@@ -115,6 +117,8 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
                     ods_log_error_and_printf(sockfd,module_str,emsg, it->c_str());
                     return;
                 }
+
+                is_del_succeed = true;
             }
         }
         else {
@@ -128,6 +132,8 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
                 ods_log_error_and_printf(sockfd,module_str,emsg,qzone.c_str());
                 return;
             }
+
+            is_del_succeed = true;
         }
 		
 		if (!transaction.commit()) {
@@ -136,6 +142,11 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
 			return;
 		}
     }
+
+    if (need_write_xml && is_del_succeed &&
+            !perform_write_signzone_file(sockfd, config))
+        ods_log_error_and_printf(sockfd, module_str, 
+                    "failed to write signzones.xml");
 
     if (qzone.empty()) {
         ods_log_debug("[%s] all zones deleted successfully", module_str);

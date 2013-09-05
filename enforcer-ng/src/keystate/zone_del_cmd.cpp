@@ -49,12 +49,14 @@ void help_zone_del_cmd(int sockfd)
 			   "  --zone <zone> (aka -z) the zone to delete\n"
 			   "  --force       (aka -f) additional flag to "
 								"indicate you really mean it\n"
+               "  --no-xml      (aka -m)\n"
 			   );
 	
 }
 
 bool get_arguments(int sockfd, const char *cmd,
-				   std::string &out_zone)
+				   std::string &out_zone,
+                   int &need_write_xml)
 {
 	char buf[ODS_SE_MAXLINE];
     const char *argv[16];
@@ -76,7 +78,7 @@ bool get_arguments(int sockfd, const char *cmd,
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
     int del_all = 0;
     if (ods_find_arg(&argc, argv, "all", "a") != -1) del_all = 1;
-    ods_find_arg(&argc, argv, "force", "f");
+    if (ods_find_arg(&argc, argv, "no-xml", "m") >= 0) need_write_xml = 0;
 	
     if (argc) {
 		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
@@ -107,12 +109,13 @@ int handled_zone_del_cmd(int sockfd, engine_type* engine, const char *cmd,
     ods_log_debug("[%s] %s command", module_str, scmd);
 
 	std::string zone;
-	if (!get_arguments(sockfd,cmd,zone))
+    int need_write_xml = 1;
+	if (!get_arguments(sockfd,cmd,zone, need_write_xml))
 		return 1;
 
     time_t tstart = time(NULL);
 
-    perform_zone_del(sockfd,engine->config, zone.c_str());
+    perform_zone_del(sockfd,engine->config, zone.c_str(), need_write_xml);
 
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;

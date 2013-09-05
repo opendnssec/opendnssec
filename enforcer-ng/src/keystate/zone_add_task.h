@@ -44,6 +44,7 @@ void perform_zone_add(int sockfd,
 					  const char *ad_input_type,
 					  const char *ad_input_config,
 					  const char *ad_output_type,
-					  const char *ad_output_config);
+					  const char *ad_output_config,
+                      int need_write_xml);
 
 #endif

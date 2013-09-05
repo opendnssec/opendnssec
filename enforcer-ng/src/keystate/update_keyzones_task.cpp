@@ -47,6 +47,7 @@
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
+#include "keystate/write_signzone_task.h"
 
 static const char *module_str = "update_keyzones_task";
 
@@ -279,9 +280,16 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
             ods_printf(sockfd, "Zone: %s not exist in zonelist.xml, "
                     "delete it from database\n",
                     non_exist_zones[i].c_str());
-            perform_zone_del(sockfd, config, non_exist_zones[i].c_str());
+            perform_zone_del(sockfd, config, 
+                    non_exist_zones[i].c_str(),
+                    0);
         }
     }
+
+    //write signzones.xml
+    if (!perform_write_signzone_file(sockfd, config))
+        ods_log_error_and_printf(sockfd, module_str, 
+                "failed to write signzones file");
 
     return 1;
 }
