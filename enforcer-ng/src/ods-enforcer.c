@@ -208,7 +208,8 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
                     "are you sure? [y/N] ");
 
             user_certain = getchar();
-            while(getchar() != '\n') /* flush input buffer */;
+            if (user_certain != '\n')
+                while(getchar() != '\n') /* flush input buffer */;
             if (user_certain != 'y' && user_certain != 'Y') {
                 printf("Okay, quitting...\n");
                 continue;
@@ -220,7 +221,8 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
                     "are you sure? [y/N] ");
 
             user_certain = getchar();
-            while(getchar() != '\n') /* flush input buffer */;
+            if (user_certain != '\n')
+                while(getchar() != '\n') /* flush input buffer */;
             if (user_certain != 'y' && user_certain != 'Y') {
                 printf("Okay, quitting...\n");
                 continue;
