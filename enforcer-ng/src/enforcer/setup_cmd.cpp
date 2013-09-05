@@ -34,6 +34,7 @@
 #include <cassert>
 
 #include "enforcer/setup_cmd.h"
+#include "enforcer/autostart_cmd.h"
 
 #include "shared/duration.h"
 #include "shared/file.h"
@@ -181,6 +182,7 @@ int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 			return 1; // errors have already been reported.
 	}
 
+	autostart(engine);
 	perform_update_kasp(sockfd, engine->config);
 	perform_update_keyzones(sockfd, engine->config);
 	perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
