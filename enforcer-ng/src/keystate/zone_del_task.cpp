@@ -122,6 +122,29 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
             }
         }
         else {
+            //find the zone
+            OrmResultRef rows;
+            if (!OrmMessageEnumWhere(conn, 
+                        ::ods::keystate::EnforcerZone::descriptor(),
+                        rows,
+                        "name = %s",
+                        qzone.c_str())) {
+                transaction.rollback();
+                ods_log_error_and_printf(sockfd, module_str, 
+                        "unable to find zone %s", qzone.c_str());
+                return;
+            }
+
+            if (!OrmFirst(rows)) {
+                rows.release();
+                transaction.rollback();
+                ods_log_error_and_printf(sockfd, module_str, 
+                        "Couldn't find zone %s", qzone.c_str());
+                return;
+            }
+
+            rows.release();
+
             if (!OrmMessageDeleteWhere(conn,
                         ::ods::keystate::EnforcerZone::descriptor(),
                         "name = %s",
