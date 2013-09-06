@@ -32,17 +32,13 @@ case "$DISTRIBUTION" in
 		ods_bind9_start &&
 
 		## Start OpenDNSSEC
-		log_this_timeout ods-control-start 60 ods-control start &&
-		syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
-		syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
+		ods_start_ods-control &&
 
 		## Send updates
 		ods_bind9_dynupdate 100 10000 ods &&
 
 		## Stop
-		log_this_timeout ods-control-stop 60 ods-control stop &&
-		syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-		syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
+		ods_stop_ods-control &&
 		ods_bind9_stop &&
 		rm -f $BIND9_NAMED_RUNDIR/bind.log &&
 		rm -f $BIND9_NAMED_RUNDIR/update.txt &&

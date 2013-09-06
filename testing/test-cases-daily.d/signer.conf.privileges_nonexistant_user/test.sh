@@ -6,6 +6,7 @@
 
 
 ods_reset_env &&
+
 echo 'Privileges have been adjusted for the signer in the conf.xml. User = opendnssec; Group = opendnssec. This user and group do not have acces to the correct folder.' &&
 echo 'Stop the ODS-Enforcer and ODS-Signer' &&
 log_this_timeout ods-control-start 60 ods-control stop &&

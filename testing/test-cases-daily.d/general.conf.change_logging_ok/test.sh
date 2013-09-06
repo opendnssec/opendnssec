@@ -8,16 +8,12 @@ fi &&
 
 ods_reset_env &&
 
-log_this_timeout ods-control-start 60 ods-control start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
+ods_start_ods-control &&
 
 syslog_grep 'ods-enforcerd: .*Log User set to: local1' &&
 syslog_grep 'ods-enforcerd: .*Switched log facility to: local1' &&
 
-log_this_timeout ods-control-stop 60 ods-control stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
+ods_stop_ods-control &&
 return 0
 
 ods_kill
