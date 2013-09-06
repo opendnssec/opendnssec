@@ -1515,6 +1515,7 @@ cmd_exportkeys ()
                 KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, KSM_STATE_KEYPUBLISH);
         if (nchar >= sizeof(buffer)) {
             status = -1;
+			hsm_close();
             return status;
         }
         DqsConditionKeyword(&sql, "STATE", DQS_COMPARE_IN, buffer, 0);
@@ -1537,6 +1538,7 @@ cmd_exportkeys ()
 
             if (!key) {
                 printf("Key %s in DB but not repository\n", data.location);
+				hsm_close();
                 return -1;
             }
 
@@ -1547,6 +1549,7 @@ cmd_exportkeys ()
                 if (status != 0) {
                     printf("Error: unable to find zone name for id %d\n", zone_id);
                     hsm_sign_params_free(sign_params);
+					hsm_close();
                     return(status);
                 }
                 sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone_name);
@@ -1644,6 +1647,7 @@ cmd_exportkeys ()
         ldns_rr_free(ds_sha256_rr);
     }
 
+	hsm_close();
     DbDisconnect(dbhandle);
 
     return 0;
@@ -6459,6 +6463,10 @@ int ListKeys(int zone_id)
         ldns_rr_free(dnskey_rr);
     }
 
+    if (verbose_flag) {
+		hsm_close();
+    }
+
     return status;
 }
 
@@ -6551,6 +6559,7 @@ int PurgeKeys(int zone_id, int policy_id)
                 printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
+				hsm_close();
                 return status;
             }
 
@@ -6571,6 +6580,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+					hsm_close();
                     return status;
                 }
 
@@ -6586,6 +6596,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     printf("SQL failed: %s\n", DbErrmsg(DbHandle()));
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+					hsm_close();
                     return status;
                 }
 
@@ -6596,6 +6607,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     printf("Key not found: %s\n", temp_loc);
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+					hsm_close();
                     return -1;
                 }
 
@@ -6609,6 +6621,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     printf("Key remove failed.\n");
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
+					hsm_close();
                     return -1;
                 }
             }
@@ -6634,6 +6647,8 @@ int PurgeKeys(int zone_id, int policy_id)
     DbFreeRow(row);
 
     DbStringFree(temp_loc);
+
+	hsm_close();
 
     return status;
 }
@@ -6793,6 +6808,7 @@ int cmd_genkeys()
         printf("Couldn't turn \"now\" into a date, quitting...\n");
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
+		hsm_close();
         exit(1);
     }
 
@@ -6815,7 +6831,7 @@ int cmd_genkeys()
 	    if (ctx) {
 		    hsm_destroy_context(ctx);
 	    }
-	    hsm_close();
+		hsm_close();	
         KsmPolicyFree(policy);
         return status; 
     } 
@@ -6831,12 +6847,14 @@ int cmd_genkeys()
             printf("Error: Unable to convert zonetotal \"%s\"; to an integer\n", o_zonetotal);
             db_disconnect(lock_fd);
             KsmPolicyFree(policy);
+			hsm_close();
             exit(1);
         }
     } else {
           printf("Error: zonetotal \"%s\"; should be numeric only\n", o_zonetotal);
           db_disconnect(lock_fd);
           KsmPolicyFree(policy);
+		  hsm_close();
           exit(1);
       }
       /* Check the value is greater than 0*/
@@ -6844,6 +6862,7 @@ int cmd_genkeys()
           printf("Error: zonetotal parameter value of %d is invalid - the value must be greater than 0\n", zone_count);
 	      db_disconnect(lock_fd);
           KsmPolicyFree(policy);
+		  hsm_close();
           exit(1); 
       }
 	  printf("Info: Keys will actually be generated for a total of %d zone(s) as specified by zone total parameter\n", zone_count);
@@ -6858,7 +6877,7 @@ int cmd_genkeys()
 		}
 		hsm_close();
 		KsmPolicyFree(policy);
-	        return status; 
+	    return status; 
 	    }
 	}
 
@@ -6922,6 +6941,7 @@ int cmd_genkeys()
                 }
                 db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
+				hsm_close();
                 exit(1);
             }
             id = hsm_get_key_id(ctx, key);
@@ -6936,6 +6956,7 @@ int cmd_genkeys()
                 }
                 db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
+				hsm_close();
                 exit(1);
             }
             printf("Created KSK size: %i, alg: %i with id: %s in repository: %s and database.\n", policy->ksk->bits,
@@ -6945,6 +6966,7 @@ int cmd_genkeys()
             printf("Key algorithm %d unsupported by libhsm.\n", policy->ksk->algorithm);
             db_disconnect(lock_fd);
             KsmPolicyFree(policy);
+			hsm_close();
             exit(1);
         }
     }
@@ -7016,6 +7038,7 @@ int cmd_genkeys()
                 }
                 db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
+				hsm_close();
                 exit(1);
             }
             id = hsm_get_key_id(ctx, key);
@@ -7030,6 +7053,7 @@ int cmd_genkeys()
                 }
                 db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
+				hsm_close();
                 exit(1);
             }
             printf("Created ZSK size: %i, alg: %i with id: %s in repository: %s and database.\n", policy->zsk->bits,
@@ -7039,6 +7063,7 @@ int cmd_genkeys()
             printf("Key algorithm %d unsupported by libhsm.\n", policy->zsk->algorithm);
             db_disconnect(lock_fd);
             KsmPolicyFree(policy);
+			hsm_close();
             exit(1);
         }
     }
@@ -7321,6 +7346,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
         KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_DSSUB);
     if (nchar >= sizeof(buffer)) {
         printf("Error: Overran buffer in CountKeys\n");
+		hsm_close();
         return(-1);
     }
 
@@ -7433,6 +7459,8 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
     if (dnskey_rr != NULL) {
         ldns_rr_free(dnskey_rr);
     }
+
+	hsm_close();
 
     return status;
 }
