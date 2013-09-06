@@ -91,6 +91,24 @@ load_zonelist_xml(int sockfd, const char * zonelistfile,
 	return true;
 }
 
+static int
+get_zones_from_db(OrmConnRef *conn, std::map<std::string, bool> zones_db)
+{
+	OrmResultRef result;
+	::ods::keystate::EnforcerZone enfzone;
+	int err = !OrmMessageEnum(*conn, enfzone.descriptor(), result);
+	if (err) return 0;
+	for (bool next=OrmFirst(result); next; next = OrmNext(result)) {
+		OrmContextRef context;
+		if (!OrmGetMessage(result, enfzone, true, context)) {
+			err = 1;
+			break;
+		}
+		zones_db[enfzone.name()] = true;
+	}
+	result.release();
+	return err;
+}
 
 int 
 perform_update_keyzones(int sockfd, engineconfig_type *config)
@@ -114,6 +132,33 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 	// to insert new zones to the keystates.
 	std::map<std::string, bool> zoneimported;
 	
+	/* first make a map with all current zones
+	 * then iterate new zones to filter current */
+	
+	std::map<std::string, bool> zones_db;
+	std::map<std::string, bool> zones_import;
+	std::map<std::string, bool> zones_delete;
+	std::map<std::string, bool> zones_new;
+	std::map<std::string, bool> zones_update;
+	typedef std::map<std::string, bool>::iterator item;
+	
+	get_zones_from_db(&conn, zones_db);
+	for (int i=0; i<zonelistDoc->zonelist().zones_size(); ++i) {
+		const ::ods::keystate::ZoneData &zl_zone = 
+				zonelistDoc->zonelist().zones(i);
+		zones_import[zl_zone.name()] = true;
+	}
+	for (item iterator = zones_import.begin(); iterator != zones_import.end(); iterator++) {
+       if (zones_db[iterator->first])
+			zones_delete[iterator->first] = true;
+	}
+	for (item iterator = zones_db.begin(); iterator != zones_db.end(); iterator++) {
+       if (!zones_update[iterator->first])
+			zones_update[iterator->first] = true;
+		else
+			zones_new[iterator->first] = true;
+	}
+
 	//non-empty zonelist
 	if (zonelistDoc->has_zonelist()) {
 		OrmTransactionRW transaction(conn);
@@ -125,7 +170,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 		for (int i=0; i<zonelistDoc->zonelist().zones_size(); ++i) {
 			const ::ods::keystate::ZoneData &zl_zone = 
 				zonelistDoc->zonelist().zones(i);
-			zoneimported[zl_zone.name()] = true;
+			//~ zoneimported[zl_zone.name()] = true;
 			ods_printf(sockfd, "Zone %s found in zonelist.xml;" 
 				" policy set to %s\n", zl_zone.name().c_str(),
 				zl_zone.policy().c_str());
@@ -140,13 +185,16 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 			/* Lookup zone in database */
 			::ods::keystate::EnforcerZone ks_zone;
 			OrmResultRef rows;
-			if (!OrmMessageEnumWhere(conn, ks_zone.descriptor(), rows,
-				"name = %s",qzone.c_str()))
-			{
-				ods_log_error_and_printf(sockfd, module_str,
-					"zone lookup by name failed");
-				return 0;
-			}
+			/* check if qzone in zones_update */
+			bool update = zones_update[qzone];
+			if (update)
+				if (!OrmMessageEnumWhere(conn, ks_zone.descriptor(), rows,
+					"name = %s",qzone.c_str()))
+				{
+					ods_log_error_and_printf(sockfd, module_str,
+						"zone lookup by name failed");
+					return 0;
+				}
 
 			OrmContextRef context;
 			if (OrmFirst(rows)) {
@@ -225,7 +273,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
                  }
 
                  //zone is not in zonelist.xml, then delete it
-                 if (!zoneimported[enfzone.name()]) {
+                 if (!zones_import[enfzone.name()]) {
                      non_exist_zones.push_back(enfzone.name());
                  }
             }
