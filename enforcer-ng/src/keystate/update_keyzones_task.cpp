@@ -125,20 +125,10 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
 		return 0;  // errors have already been reported.
-
-	//TODO: SPEED: We should create an index on the EnforcerZone.name column
-		
-	// Go through the list of zones from the zonelist to determine if we need
-	// to insert new zones to the keystates.
-	std::map<std::string, bool> zoneimported;
-	
-	/* first make a map with all current zones
-	 * then iterate new zones to filter current */
 	
 	std::map<std::string, bool> zones_db;
 	std::map<std::string, bool> zones_import;
 	std::map<std::string, bool> zones_delete;
-	std::map<std::string, bool> zones_new;
 	std::map<std::string, bool> zones_update;
 	typedef std::map<std::string, bool>::iterator item;
 	
@@ -155,8 +145,6 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 	for (item iterator = zones_db.begin(); iterator != zones_db.end(); iterator++) {
        if (!zones_update[iterator->first])
 			zones_update[iterator->first] = true;
-		else
-			zones_new[iterator->first] = true;
 	}
 
 	//non-empty zonelist
@@ -170,7 +158,6 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 		for (int i=0; i<zonelistDoc->zonelist().zones_size(); ++i) {
 			const ::ods::keystate::ZoneData &zl_zone = 
 				zonelistDoc->zonelist().zones(i);
-			//~ zoneimported[zl_zone.name()] = true;
 			ods_printf(sockfd, "Zone %s found in zonelist.xml;" 
 				" policy set to %s\n", zl_zone.name().c_str(),
 				zl_zone.policy().c_str());
@@ -182,12 +169,13 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 				return 0;
 			}
 
-			/* Lookup zone in database */
+			/* Lookup zone in database.
+			 * We first lookup the zone in a map. Doing this gives us
+			 * a near O(n) complexity. The enum function slows down
+			 * as DB size increases. */
 			::ods::keystate::EnforcerZone ks_zone;
 			OrmResultRef rows;
-			/* check if qzone in zones_update */
-			bool update = zones_update[qzone];
-			if (update)
+			if (zones_update[qzone]) {
 				if (!OrmMessageEnumWhere(conn, ks_zone.descriptor(), rows,
 					"name = %s",qzone.c_str()))
 				{
@@ -195,6 +183,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 						"zone lookup by name failed");
 					return 0;
 				}
+			}
 
 			OrmContextRef context;
 			if (OrmFirst(rows)) {
@@ -243,67 +232,16 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 		}
     }
 
-    std::vector<std::string> non_exist_zones;
-    //delete non-exist zone
-    {  
-        OrmTransaction transaction(conn);
-        if (!transaction.started()) {
-            ods_log_error_and_printf(sockfd, module_str, 
-                    "starting database transaction failed");
-            return 0;
-        }
-    
-        {   OrmResultRef rows;
-            ::ods::keystate::EnforcerZone enfzone;
-    
-            bool ok = OrmMessageEnum(conn, enfzone.descriptor(), rows);
-            if (!ok) {
-                ods_log_error_and_printf(sockfd, module_str, 
-                        "zone enumaration failed");
-                return 0;
-            }
-    
-            for (bool next=OrmFirst(rows); next; next = OrmNext(rows)) {
-                 OrmContextRef context;
-                 if (!OrmGetMessage(rows, enfzone, true, context)) {
-                     rows.release();
-                     ods_log_error_and_printf(sockfd, module_str, 
-                             "retrieving zone from database failed");
-                     return 0;
-                 }
-
-                 //zone is not in zonelist.xml, then delete it
-                 if (!zones_import[enfzone.name()]) {
-                     non_exist_zones.push_back(enfzone.name());
-                 }
-            }
-            
-            rows.release();
-        }
-
-        if (!transaction.commit()) {
-            ods_log_error_and_printf(sockfd, module_str,
-                    "committing zone enumeration select failed");
-            return 0;
-        }
-    }
-
-    if (!non_exist_zones.empty()) {
-        int del_zone_count = non_exist_zones.size();
-        for (int i = 0; i < del_zone_count; ++i) {
-            ods_printf(sockfd, "Zone: %s not exist in zonelist.xml, "
-                    "delete it from database\n",
-                    non_exist_zones[i].c_str());
-            perform_zone_del(sockfd, config, 
-                    non_exist_zones[i].c_str(),
-                    0);
-        }
-    }
+	for (item iterator = zones_delete.begin(); iterator != zones_delete.end(); iterator++) {
+		ods_printf(sockfd, "Zone: %s not exist in zonelist.xml, "
+			"delete it from database\n", iterator->first.c_str());
+		perform_zone_del(sockfd, config, iterator->first.c_str(),0);
+	}
 
     //write signzones.xml
-    if (!perform_write_signzone_file(sockfd, config))
-        ods_log_error_and_printf(sockfd, module_str, 
-                "failed to write signzones file");
+	if (!perform_write_signzone_file(sockfd, config))
+		ods_log_error_and_printf(sockfd, module_str, 
+			"failed to write signzones file");
 
-    return 1;
+	return 1;
 }
