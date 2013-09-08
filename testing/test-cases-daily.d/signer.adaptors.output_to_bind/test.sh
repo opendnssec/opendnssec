@@ -37,7 +37,7 @@ case "$DISTRIBUTION" in
 		ods_bind9_start &&
 
         ## Start OpenDNSSEC
-        lods_start_ods-control &&
+        ods_start_ods-control &&
 
 		## Wait for signed zone file
 		syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
