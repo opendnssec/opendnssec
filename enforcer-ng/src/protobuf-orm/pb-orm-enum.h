@@ -52,6 +52,11 @@ bool OrmMessageEnum(OrmConn conn,
 					const pb::Descriptor *descriptor,
 					OrmResult &result);
 
+bool OrmMessageEnum(OrmConn conn,
+					const pb::Descriptor *descriptor,
+					const char *column,
+					OrmResult &result);
+
 bool OrmMessageEnumWhere(OrmConn conn,
 						 const pb::Descriptor *descriptor,
 						 OrmResult &result,

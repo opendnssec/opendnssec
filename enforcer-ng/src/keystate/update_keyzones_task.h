@@ -34,6 +34,10 @@
 
 #include "daemon/cfg.h"
 
+/* Read zonelist, add or update zones in database. Drop old zones.
+ * sockfd: Output channel for client
+ * config: 
+ * return: 1 on succes, 0 on error*/
 int perform_update_keyzones(int sockfd, engineconfig_type *config);
 
 #endif

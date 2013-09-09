@@ -44,6 +44,7 @@
 #include <memory>
 #include <vector>
 #include <fcntl.h>
+#include <set>
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
@@ -91,20 +92,25 @@ load_zonelist_xml(int sockfd, const char * zonelistfile,
 	return true;
 }
 
+/* Load zones from database
+ * conn: Open connection to the database
+ * zones_db: set to add zones from database to.
+ * return: 0 on succes, 1 on error.
+ * */
 static int
-get_zones_from_db(OrmConnRef *conn, std::map<std::string, bool> &zones_db)
+get_zones_from_db(OrmConnRef *conn, std::set<std::string> &zones_db)
 {
 	OrmResultRef result;
 	::ods::keystate::EnforcerZone enfzone;
-	int err = !OrmMessageEnum(*conn, enfzone.descriptor(), result);
-	if (err) return 0;
+	int err = !OrmMessageEnum(*conn, enfzone.descriptor(), "name", result);
+	if (err) return 1;
 	for (bool next=OrmFirst(result); next; next = OrmNext(result)) {
 		OrmContextRef context;
 		if (!OrmGetMessage(result, enfzone, true, context)) {
 			err = 1;
 			break;
 		}
-		zones_db[enfzone.name()] = true;
+		zones_db.insert(enfzone.name());
 	}
 	result.release();
 	return err;
@@ -126,20 +132,25 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 	if (!ods_orm_connect(sockfd, config, conn))
 		return 0;  // errors have already been reported.
 	
-	std::map<std::string, bool> zones_db;
-	std::map<std::string, bool> zones_import;
-	std::map<std::string, bool> zones_delete;
-	typedef std::map<std::string, bool>::iterator item;
+	/* Preprocess zones in zonelist and database to speed up insertion.
+	 * Unordered sets would be even better, but then we need to
+	 * compile with c++11.
+	 * */
+	std::set<std::string> zones_db, zones_import, zones_delete;
+	typedef std::set<std::string>::iterator item;
 	
-	get_zones_from_db(&conn, zones_db);
+	if (get_zones_from_db(&conn, zones_db)) {
+		ods_log_error_and_printf(sockfd, module_str, "error reading database");
+		return 0;
+	}
 	for (int i=0; i<zonelistDoc->zonelist().zones_size(); ++i) {
 		const ::ods::keystate::ZoneData &zl_zone = 
-				zonelistDoc->zonelist().zones(i);
-		zones_import[zl_zone.name()] = true;
+			zonelistDoc->zonelist().zones(i);
+		zones_import.insert(zl_zone.name());
 	}
 	for (item iterator = zones_db.begin(); iterator != zones_db.end(); iterator++) {
-       if (!zones_import[iterator->first])
-			zones_delete[iterator->first] = true;
+       if (!zones_import.count(*iterator))
+			zones_delete.insert(*iterator);
 	}
 
 	//non-empty zonelist
@@ -165,14 +176,14 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 			}
 
 			/* Lookup zone in database.
-			 * We first lookup the zone in a map. Doing this gives us
+			 * We first lookup the zone in a set. Doing this gives us
 			 * a near O(n) complexity. The enum function slows down
 			 * as DB size increases. */
 			::ods::keystate::EnforcerZone ks_zone;
 			OrmResultRef rows;
-			if (zones_db[qzone]) {
+			if (zones_db.count(qzone)) {
 				if (!OrmMessageEnumWhere(conn, ks_zone.descriptor(), rows,
-					"name = %s",qzone.c_str()))
+					"name = %s", qzone.c_str()))
 				{
 					ods_log_error_and_printf(sockfd, module_str,
 						"zone lookup by name failed");
@@ -187,7 +198,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 					" update it\n", zl_zone.name().c_str());
 				if (!OrmGetMessage(rows, ks_zone, true, context)) {
 					ods_log_error_and_printf(sockfd, module_str,
-							"zone retrieval failed");
+						"zone retrieval failed");
 					return 0;
 				}
 			}
@@ -229,14 +240,15 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 
 	for (item iterator = zones_delete.begin(); iterator != zones_delete.end(); iterator++) {
 		ods_printf(sockfd, "Zone: %s not exist in zonelist.xml, "
-			"delete it from database\n", iterator->first.c_str());
-		perform_zone_del(sockfd, config, iterator->first.c_str(),0);
+			"delete it from database\n", iterator->c_str());
+		perform_zone_del(sockfd, config, iterator->c_str(), 0);
 	}
 
-    //write signzones.xml
-	if (!perform_write_signzone_file(sockfd, config))
+	//write signzones.xml
+	if (!perform_write_signzone_file(sockfd, config)) {
 		ods_log_error_and_printf(sockfd, module_str, 
 			"failed to write signzones file");
-
+		return 0;
+	}
 	return 1;
 }
