@@ -39,15 +39,13 @@ ods_reset_env &&
 ##################  Basic behaviour  ###########################
 # Fail with no zones
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*No zones on policy Policy1, skipping...' &&
 
 # Generate keys with algorithm 7, length 2048
 add_zones 1 1 1 && 
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' 
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*1 zone(s) found on policy \"Policy1\""  &&
 syslog_grep_count 1  'ods-enforcerd: .*1 new KSK(s) (2048 bits) need to be created.'  &&
@@ -63,8 +61,7 @@ ods_reset_env &&
 # Firstly for an empty queue
 add_zones 2 4 2 && 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*3 zone(s) found on policy \"Policy2\""  &&
 syslog_grep_count 1  'ods-enforcerd: .*6 new KSK(s) (2048 bits) need to be created.'  &&
@@ -74,8 +71,7 @@ log_grep enforcer-keylist_1   stdout "15 keys found." &&
 
 add_zones 5 10 2 && 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1 "ods-enforcerd: .*9 zone(s) found on policy \"Policy2\""  &&
 # 3 ZSKs have been made active so we need more keys than when we run the test from ods-ksmutil
@@ -88,8 +84,7 @@ log_grep enforcer-keylist_1a   stdout "48 keys found." &&
 # Then when there are some keys in the queue: more than the number of KSK needed but less than the total
 add_zones 11 17 2 && 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*16 zone(s) found on policy \"Policy2\""  &&
 syslog_grep_count 1  'ods-enforcerd: .*No new KSKs need to be created.'  &&
@@ -101,8 +96,7 @@ log_grep enforcer-keylist_2   stdout "89 keys found." &&
 ##################
 # Then when there are more than enough keys in the queue
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 2  "ods-enforcerd: .*16 zone(s) found on policy \"Policy2\""  &&
 syslog_grep_count 2  'ods-enforcerd: .*No new KSKs need to be created.'  &&
@@ -121,8 +115,7 @@ ods_reset_env &&
 # Firstly for an empty queue
 add_zones 1 3 3 && 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*3 zone(s) found on policy \"Policy3\""  &&
 syslog_grep_count 3  'ods-enforcerd: .*6 new KSK(s) (2048 bits) need to be created.'  &&
@@ -134,8 +127,7 @@ log_grep enforcer-keylist_3   stdout "15 keys found." &&
 # Then when there are some keys in the queue
 add_zones 4 12 3 && 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*12 zone(s) found on policy \"Policy3\""  &&
 syslog_grep_count 1  'ods-enforcerd: .*18 new KSK(s) (2048 bits) need to be created.'  &&
@@ -152,8 +144,7 @@ ods_reset_env &&
 # Generate keys where standby also is enabled on alg 7, length 2048
 add_zones 1 3 4 && 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*3 zone(s) found on policy \"Policy4\""  &&
 syslog_grep_count 1  'ods-enforcerd: .*9 new KSK(s) (2048 bits) need to be created.'  &&
@@ -171,8 +162,7 @@ add_zones 1 15 5 &&
 # Now a policy with shared keys one with alg 7, length 1024 and one with alg 8, length 2048
 add_zones 16 30 6 && 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1 "ods-enforcerd: .*15 zone(s) found on policy \"Policy5\""  &&
 syslog_grep_count 1  "ods-enforcerd: .*15 zone(s) found on policy \"Policy6\""  &&
@@ -188,8 +178,7 @@ ods_setup_conf kasp.xml kasp_2.xml &&
 log_this ods-ksmutil-update-kasp ods-ksmutil update kasp && 
 
 # Again with some keys in the queue
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 2  "ods-enforcerd: .*15 zone(s) found on policy \"Policy5\""  &&
 syslog_grep_count 2  'ods-enforcerd: .*9 new KSK(s) (2048 bits) need to be created.'  &&

@@ -18,8 +18,7 @@ mkdir  base &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zones already exist and we let it generate keys itself)
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 # Check that we have 2 keys per zone
 log_this ods-ksmutil-key-list0 ods-ksmutil key list &&

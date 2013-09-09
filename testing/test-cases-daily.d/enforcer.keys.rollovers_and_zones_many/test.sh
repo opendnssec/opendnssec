@@ -72,8 +72,7 @@ echo "y" | log_this ods-ksmutil-setup_zone_and_keys   ods-ksmutil key generate -
 echo "y" | log_this ods-ksmutil-setup_zone_and_keys   ods-ksmutil key generate --interval PT10M --policy  shared &&
 
 # Start enforcer
-log_this_timeout ods-enforcer-start $SHORT_TIMEOUT   ods-control enforcer start &&
-syslog_waitfor $SHORT_TIMEOUT 'ods-enforcerd: .*Sleeping for' &&
+ods_start_enforcer && 
 ##################  STEP 0: Time = 0 ###########################
 # Check the output
 log_this ods-ksmutil-check-0   date && log_this ods-ksmutil-check-0   ods-ksmutil key list --all --verbose &&
@@ -151,8 +150,7 @@ sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 16 'ods-enforcerd: .
 check_zones_at_timestep_Y 6 &&
  
 # ##################  SHUTDOWN ###########################
-log_this_timeout ods-enforcer-stop 60 ods-control enforcer stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
+ods_stop_enforcer &&
 
 log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
 
