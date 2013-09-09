@@ -410,16 +410,23 @@ worker_perform_task(worker_type* worker)
             }
             /* check the HSM connection before queuing sign operations */
             lhsm_check_connection((void*)engine);
-            /* queue menial, hard signing work */
-            worker_queue_zone(worker, engine->signq, zone);
-            ods_log_deeebug("[%s[%i]] wait until drudgers are finished "
-                "signing zone %s", worker2str(worker->type), worker->thread_num,
-                task_who2str(task));
-            /* sleep until work is done */
-            worker_sleep_unless(worker, 0);
+            /* prepare keys */
+            status = zone_prepare_keys(zone);
+            if (status == ODS_STATUS_OK) {
+                /* queue menial, hard signing work */
+                worker_queue_zone(worker, engine->signq, zone);
+                ods_log_deeebug("[%s[%i]] wait until drudgers are finished "
+                    "signing zone %s", worker2str(worker->type),
+                    worker->thread_num, task_who2str(task));
+                /* sleep until work is done */
+                worker_sleep_unless(worker, 0);
+            }
             /* stop timer */
             end = time(NULL);
-            status = worker_check_jobs(worker, task);
+            /* check status and jobs */
+            if (status == ODS_STATUS_OK) {
+                status = worker_check_jobs(worker, task);
+            }
             worker_clear_jobs(worker);
             if (status == ODS_STATUS_OK && zone->stats) {
                 lock_basic_lock(&zone->stats->stats_lock);

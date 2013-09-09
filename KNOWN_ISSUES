@@ -9,6 +9,7 @@ BUGS:
 -----
 
 OPENDNSSEC-332: Statistics on average sigs/sec not accurate
+OPENDNSSEC-437: Problem with invalid signatures on SOA RRset.
 
 
 Limitations on Number of Zones

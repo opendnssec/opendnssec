@@ -82,7 +82,7 @@ addns_read_line:
             case ';':
             case '\n':
                 if (ods_strcmp(";;ENDPACKET", line) == 0) {
-	                    /* end of pkt */
+                    /* end of pkt */
                     *status = LDNS_STATUS_OK;
                     return NULL;
                 }
@@ -126,8 +126,8 @@ addns_read_line:
                 break;
         }
     }
-    /* -1, unexpected EOF */
-    *status = LDNS_STATUS_ERR;
+    /* -1, EOF */
+    *status = LDNS_STATUS_OK;
     return NULL;
 }
 
@@ -351,17 +351,21 @@ begin_pkt:
         prev = NULL;
     }
     /* check again */
-    if (ods_strcmp(";;BEGINPACKET", line) == 0) {
+    if (ods_strcmp(";;ENDPACKET", line) == 0) {
+        ods_log_verbose("[%s] xfr zone %s on disk complete, commit to db",
+            adapter_str, zone->name);
+    } else {
         ods_log_warning("[%s] xfr zone %s on disk incomplete, rollback",
             adapter_str, zone->name);
         namedb_rollback(zone->db, 1);
-        result = ODS_STATUS_OK;
-        goto begin_pkt;
-    } else {
-        ods_log_verbose("[%s] xfr zone %s on disk complete, commit to db",
-            adapter_str, zone->name);
+        if (ods_strcmp(";;BEGINPACKET", line) == 0) {
+            result = ODS_STATUS_OK;
+            goto begin_pkt;
+        } else {
+            result = ODS_STATUS_XFRINCOMPLETE;
+        }
     }
-    /* otherwise ENDPACKET or EOF */
+    /* otherwise EOF */
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RR at line %i (%s): %s",
             adapter_str, l, ldns_get_errorstr_by_id(status), line);

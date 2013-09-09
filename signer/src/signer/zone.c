@@ -373,15 +373,7 @@ zone_publish_nsec3param(zone_type* zone)
             return ODS_STATUS_MALLOC_ERR;
         }
         ldns_rr_set_class(rr, zone->klass);
-        ttl = zone->default_ttl;
-        /* MaxZoneTTL */
-        if (zone->signconf->max_zone_ttl) {
-            maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
-            if (maxttl < ttl) {
-                ttl = maxttl;
-            }
-        }
-        ldns_rr_set_ttl(rr, ttl);
+        ldns_rr_set_ttl(rr, 0);
         ldns_rr_set_owner(rr, ldns_rdf_clone(zone->apex));
         ldns_nsec3_add_param_rdfs(rr,
             zone->signconf->nsec3params->algorithm, 0,
@@ -439,6 +431,47 @@ zone_rollback_nsec3param(zone_type* zone)
         }
     }
     return;
+}
+
+
+/**
+ * Prepare keys for signing.
+ *
+ */
+ods_status
+zone_prepare_keys(zone_type* zone)
+{
+    hsm_ctx_t* ctx = NULL;
+    uint16_t i = 0;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!zone || !zone->db || !zone->signconf || !zone->signconf->keys) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->name);
+    /* hsm access */
+    ctx = hsm_create_context();
+    if (ctx == NULL) {
+        ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+            "error creating libhsm context", zone_str, zone->name);
+        return ODS_STATUS_HSM_ERR;
+    }
+    /* prepare keys */
+    for (i=0; i < zone->signconf->keys->count; i++) {
+        /* get dnskey */
+        status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i]);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+                "error getting dnskey", zone_str, zone->name);
+            break;
+        }
+        ods_log_assert(zone->signconf->keys->keys[i].dnskey);
+        ods_log_assert(zone->signconf->keys->keys[i].hsmkey);
+        ods_log_assert(zone->signconf->keys->keys[i].params);
+    }
+    /* done */
+    hsm_destroy_context(ctx);
+    return status;
 }
 
 

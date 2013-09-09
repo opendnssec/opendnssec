@@ -349,7 +349,7 @@ main(int argc, char* argv[])
 {
     int c;
     int options_size = 0;
-    const char* options[4];
+    const char* options[5];
     char* cmd = NULL;
     int ret = 0;
     allocator_type* clialloc = allocator_create(malloc, free);

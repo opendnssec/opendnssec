@@ -11,19 +11,26 @@ OpenDNSSEC 2.0.0a4 (EnforcerNG branch)
 
 OpenDNSSEC 2.0.0a3 (EnforcerNG branch) - 2012-06-18
 Bugfixes:
-* OPENDNSSEC-438: 'ods-ksmutil key generate' creates too many keys for 
-  <SharedKeys/> policies when KSK and ZSK use same algorithm and length
-* OPENDNSSEC_440: * OPENDNSSEC-438: 'ods-ksmutil key generate' creates too 
-  many keys for some cases
+* OPENDNSSEC-438: 'ods-ksmutil key generate' and the enforcer can create
+  too many keys for <SharedKeys/> policies when KSK and ZSK use same 
+  algorithm and length
+* OPENDNSSEC_440: 'ods-ksmutil key generate' and the enforcer can create
+  too many keys if there are keys already available and the KSK and ZSK use 
+  same algorithm and length
 * SUPPORT-66: Signer Engine: Fix file descriptor leak in case of TCP write
   error [OPENDNSSEC-427].
 * OPENDNSSEC-424: Signer Engine: Respond to SOA queries from file instead
   of memory. Makes response non-blocking.
-* OPENDNSSEC-425 (Clone of 397) - Change "hsmutil list" output so that the
-  table header goes to stdout not stderr
+* OPENDNSSEC-425 Change "hsmutil list" output so that the table header goes
+  to stdout not stderr
 * Signer Engine: Improved Inbound XFR checking.
 * Signer Engine: Fix double free corruption in case of adding zone with
   DNS Outbound Adapters and NotifyCommand enabled.
+* OPENDNSSEC-443: ods-ksmutil: Clean up of hsm connection handling
+* OPENDNSSEC-401: 'ods-signer sign <zone> --serial <nr>' command produces seg
+  fault when run directly on command line (i.e. not via interactive mode)
+* OPENDNSSEC-444: Fix double free corruption in case of HSM connection
+  error while signing RRsets (also fixes SUPPORT-71).
 
 * Enforcer: Limit number of pregenerated keys when using <SharedKeys>.
 * Enforcer: MySQL database backend implemented.

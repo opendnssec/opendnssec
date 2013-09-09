@@ -1,3 +1,7 @@
+20 August 2013: Matthijs
+- OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default 0 again, to
+  keep similarity with BIND9. Decided it needs a configuration option.
+
 24 July 2013: Matthijs
 - OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
   prevent bad caching effects on resolvers.

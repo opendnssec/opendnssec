@@ -86,6 +86,7 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_REQAXFR, "Got IXFR, but AXFR required"},
     { ODS_STATUS_INSERIAL, "Serial mismatch"},
     { ODS_STATUS_XFRBADFORM, "XFR bad format"},
+    { ODS_STATUS_XFRINCOMPLETE, "XFR on disk incomplete (in progress?)"},
 
     { 0, NULL }
 };
