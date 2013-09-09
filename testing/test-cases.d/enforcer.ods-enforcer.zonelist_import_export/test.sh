@@ -2,14 +2,6 @@
 #
 #TEST: Test to import/export zone list. 
 
-#DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
-
-case "$DISTRIBUTION" in
-    freebsd )
-        return 0
-        ;;
-esac
-
 ods_reset_env &&
 log_this_timeout ods-control-start 30 ods-control start &&
 syslog_waitfor 60 'ods-enforcerd: .*\[engine\] enforcer started' &&
@@ -24,6 +16,10 @@ log_grep ods-enforcer-export_zonelist   stdout "<SignerConfiguration>${INSTALL_R
 log_grep ods-enforcer-export_zonelist   stdout "<Adapter type=\"File\">" &&
 log_grep ods-enforcer-export_zonelist   stdout "${INSTALL_ROOT}/var/opendnssec/unsigned/ods1" &&
 log_grep ods-enforcer-export_zonelist   stdout "${INSTALL_ROOT}/var/opendnssec/signed/ods1" &&
+
+#zone list
+log_this ods-enforcer-zone_list1 ods-enforcer zone list &&
+log_grep ods-enforcer-zone_list1  stdout "ods1.*default.*${INSTALL_ROOT}/var/opendnssec/signconf/ods1.xml" &&
 
 ods_setup_conf zonelist.xml zonelist2.xml &&
 
@@ -42,6 +38,10 @@ log_grep ods-enforcer-export_zonelist2   stdout "<SignerConfiguration>${INSTALL_
 log_grep ods-enforcer-export_zonelist2   stdout "<Adapter type=\"File\">" &&
 log_grep ods-enforcer-export_zonelist2   stdout "${INSTALL_ROOT}/var/opendnssec/unsigned/ods3" &&
 log_grep ods-enforcer-export_zonelist2   stdout "${INSTALL_ROOT}/var/opendnssec/signed/ods3" &&
+
+#zone list
+log_this ods-enforcer-zone_list2 ods-enforcer zone list &&
+log_grep ods-enforcer-zone_list2  stdout "ods3.*default.*${INSTALL_ROOT}/var/opendnssec/signconf/ods3.xml" &&
 
 #shutdown
 log_this_timeout ods-control-stop 30 ods-control stop &&
