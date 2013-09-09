@@ -99,7 +99,8 @@ perform_zone_add(int sockfd,
 			if (OrmFirst(rows)) {
 				ods_log_error_and_printf(sockfd,
 										 module_str,
-										 "zone %s already exists",
+										 "Failed to Import zone %s; "
+                                         "it already exists",
 										 zone);
 				return;
 			}
@@ -159,4 +160,6 @@ perform_zone_add(int sockfd,
     if (need_write_xml && !perform_write_signzone_file(sockfd, config))
         ods_log_error_and_printf(sockfd, module_str, 
                 "failed to write signzones.xml");
+
+    ods_printf(sockfd, "Imported zone: %s\n", zone);
 }

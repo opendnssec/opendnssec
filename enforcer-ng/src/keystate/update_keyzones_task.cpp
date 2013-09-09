@@ -92,7 +92,7 @@ load_zonelist_xml(int sockfd, const char * zonelistfile,
 }
 
 static int
-get_zones_from_db(OrmConnRef *conn, std::map<std::string, bool> zones_db)
+get_zones_from_db(OrmConnRef *conn, std::map<std::string, bool> &zones_db)
 {
 	OrmResultRef result;
 	::ods::keystate::EnforcerZone enfzone;
@@ -129,7 +129,6 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 	std::map<std::string, bool> zones_db;
 	std::map<std::string, bool> zones_import;
 	std::map<std::string, bool> zones_delete;
-	std::map<std::string, bool> zones_update;
 	typedef std::map<std::string, bool>::iterator item;
 	
 	get_zones_from_db(&conn, zones_db);
@@ -138,13 +137,9 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 				zonelistDoc->zonelist().zones(i);
 		zones_import[zl_zone.name()] = true;
 	}
-	for (item iterator = zones_import.begin(); iterator != zones_import.end(); iterator++) {
-       if (zones_db[iterator->first])
-			zones_delete[iterator->first] = true;
-	}
 	for (item iterator = zones_db.begin(); iterator != zones_db.end(); iterator++) {
-       if (!zones_update[iterator->first])
-			zones_update[iterator->first] = true;
+       if (!zones_import[iterator->first])
+			zones_delete[iterator->first] = true;
 	}
 
 	//non-empty zonelist
@@ -175,7 +170,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 			 * as DB size increases. */
 			::ods::keystate::EnforcerZone ks_zone;
 			OrmResultRef rows;
-			if (zones_update[qzone]) {
+			if (zones_db[qzone]) {
 				if (!OrmMessageEnumWhere(conn, ks_zone.descriptor(), rows,
 					"name = %s",qzone.c_str()))
 				{

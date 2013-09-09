@@ -47,6 +47,7 @@ void help_zone_del_cmd(int sockfd)
     ods_printf(sockfd,
 			   "zone delete     delete zones\n"
 			   "  --zone <zone> (aka -z) the zone to delete\n"
+               "  --all         (aka -a) delete all zones\n"
 			   "  --force       (aka -f) additional flag to "
 								"indicate you really mean it\n"
                "  --no-xml      (aka -m)\n"
@@ -77,6 +78,7 @@ bool get_arguments(int sockfd, const char *cmd,
     const char *zone = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
     int del_all = 0;
+    ods_find_arg(&argc, argv, "force", "f");
     if (ods_find_arg(&argc, argv, "all", "a") != -1) del_all = 1;
     if (ods_find_arg(&argc, argv, "no-xml", "m") >= 0) need_write_xml = 0;
 	
