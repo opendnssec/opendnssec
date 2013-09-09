@@ -59,13 +59,7 @@ perform_zone_list(int sockfd, engineconfig_type *config)
 	if (!ods_orm_connect(sockfd, config, conn))
 		return; // error already reported.
 
-	{	OrmTransaction transaction(conn);
-		if (!transaction.started()) {
-			const char *errmsg = "could not start database transaction";
-			ods_log_error_and_printf(sockfd,module_str,errmsg);
-			return;
-		}
-		
+	{
 		::ods::keystate::EnforcerZone zone;
 		
 		{	OrmResultRef rows;
@@ -102,8 +96,7 @@ perform_zone_list(int sockfd, engineconfig_type *config)
                        );
 			
 			for (bool next=true; next; next=OrmNext(rows)) {
-
-				if (!OrmGetMessage(rows, zone, true))
+				if (!OrmGetMessage(rows, zone, false))
 					return;
 				
 				char nctime[32];
