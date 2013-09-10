@@ -11,7 +11,9 @@ ODS_ENFORCER_WAIT_STOP=90
 ODS_SIGNER_WAIT_STOP=90
 ODS_ODS_CONTROL_WAIT_STOP=90
 
-ODS_ENFORCER_WAIT_STOP_LOG=90
+# The enforcer can take a long time to run in some tests when generating lots of keys
+# Should really let the calling test override this default
+ODS_ENFORCER_WAIT_STOP_LOG=150
 ODS_SIGNER_WAIT_STOP_LOG=90
 
 ODS_ENFORCER_START_LOG_STRING='ods-enforcerd: .*Sleeping for'
