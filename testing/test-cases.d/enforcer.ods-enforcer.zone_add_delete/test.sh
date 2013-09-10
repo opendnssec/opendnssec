@@ -63,7 +63,7 @@ log_this ods-enforcer-zone_list7 ods-enforcer zone list &&
 log_grep ods-enforcer-zone_list7  stdout    "I have no zones configured" &&
 
 #shutdown
-log_this_timeout ods-control-stop 30 ods-control stop &&
+log_this_timeout ods-control-stop 60 ods-control stop &&
 syslog_waitfor 60 'ods-enforcerd: .*\[engine\] enforcer shutdown' &&
 syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
 return 0
