@@ -93,21 +93,6 @@ bool OrmMessageEnum(OrmConn conn,
 	return r.new_handle(result);
 }
 
-bool OrmMessageEnum(OrmConn conn,
-					const pb::Descriptor *descriptor,
-					const char *column,
-					OrmResult &result)
-{
-	DB::OrmResultT r( CONN->queryf("SELECT %s FROM %s",
-		column, descriptor->name().c_str()) );
-	if (!r.assigned()) {
-		OrmLogError("expected to be able to select from table: %s",
-			  descriptor->name().c_str());
-		return false;
-	}
-	return r.new_handle(result);
-}
-
 bool OrmMessageEnumWhere(OrmConn conn,
 						 const pb::Descriptor *descriptor,
 						 OrmResult &result,

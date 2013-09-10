@@ -102,11 +102,11 @@ get_zones_from_db(OrmConnRef *conn, std::set<std::string> &zones_db)
 {
 	OrmResultRef result;
 	::ods::keystate::EnforcerZone enfzone;
-	int err = !OrmMessageEnum(*conn, enfzone.descriptor(), "name", result);
+	int err = !OrmMessageEnum(*conn, enfzone.descriptor(), result);
 	if (err) return 1;
 	for (bool next=OrmFirst(result); next; next = OrmNext(result)) {
 		OrmContextRef context;
-		if (!OrmGetMessage(result, enfzone, true, context)) {
+		if (!OrmGetMessage(result, enfzone, false, context)) {
 			err = 1;
 			break;
 		}
