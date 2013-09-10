@@ -14,6 +14,8 @@ Bugfixes:
 * OPENDNSSEC-397: Change "hsmutil list" output so that the table header goes 
   to stdout not stderr
 * OPENDNSSEC-445: ods-ksmutil: Clean up of hsm connection handling
+* OPENDNSSEC-452: Fix double free corruption in case of HSM connection
+  error while signing RRsets (also fixes SUPPORT-71).
 
 
 OpenDNSSEC 1.3.14 - 2013-05-16
