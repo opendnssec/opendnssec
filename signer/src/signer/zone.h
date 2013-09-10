@@ -187,6 +187,14 @@ ods_status zone_recover(zone_type* zone);
 void zone_merge(zone_type* z1, zone_type* z2);
 
 /**
+ * Prepare keys for signing.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_prepare_keys(zone_type* zone);
+
+/**
  * Update serial.
  * \param[in] zone zone
  * \return ods_status status

@@ -126,6 +126,45 @@ worker_fulfilled(worker_type* worker)
 
 
 /**
+ * Make sure that no appointed jobs have failed.
+ *
+ */
+static ods_status
+worker_check_jobs(worker_type* worker, task_type* task)
+{
+    ods_status status = ODS_STATUS_OK;
+    ods_log_assert(worker);
+    ods_log_assert(task);
+    lock_basic_lock(&worker->worker_lock);
+    worker->worker_locked = LOCKED_WORKER_SIGN;
+    if (worker->jobs_failed) {
+        ods_log_error("[%s[%i]] sign zone %s failed: %u RRsets failed",
+            worker2str(worker->type), worker->thread_num,
+            task_who2str(task->who), worker->jobs_failed);
+        status = ODS_STATUS_ERR;
+    } else if (worker->jobs_completed != worker->jobs_appointed) {
+        ods_log_error("[%s[%i]] sign zone %s failed: processed %u of %u RRsets",
+            worker2str(worker->type), worker->thread_num, task_who2str(task->who),
+            worker->jobs_completed, worker->jobs_appointed);
+        status = ODS_STATUS_ERR;
+    } else if (worker->need_to_exit) {
+        ods_log_warning("[%s[%i]] sign zone %s failed: worker needs to exit",
+            worker2str(worker->type), worker->thread_num,
+            task_who2str(task->who));
+        status = ODS_STATUS_ERR;
+    } else {
+        ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u RRsets succeeded",
+            worker2str(worker->type), worker->thread_num, task_who2str(task->who),
+            worker->jobs_completed, worker->jobs_appointed);
+            ods_log_assert(worker->jobs_appointed == worker->jobs_completed);
+    }
+    lock_basic_unlock(&worker->worker_lock);
+    worker->worker_locked = 0;
+    return status;
+}
+
+
+/**
  * Perform task.
  *
  */
@@ -294,48 +333,27 @@ worker_perform_task(worker_type* worker)
                 }
                 /* check the HSM connection before queuing sign operations */
                 lhsm_check_connection((void*)engine);
-                /* queue menial, hard signing work */
-                status = zonedata_queue(zone->zonedata, engine->signq, worker);
-                ods_log_debug("[%s[%i]] wait until drudgers are finished "
-                    "signing zone %s, %u signatures queued",
-                    worker2str(worker->type), worker->thread_num,
-                    task_who2str(task->who), worker->jobs_appointed);
-                /* sleep until work is done */
-                if (!worker->need_to_exit) {
-                    worker_sleep_unless(worker, 0);
+                /* prepare keys */
+                status = zone_prepare_keys(zone);
+                if (status == ODS_STATUS_OK) {
+                    /* queue menial, hard signing work */
+                    status = zonedata_queue(zone->zonedata, engine->signq,
+                        worker);
+                    ods_log_debug("[%s[%i]] wait until drudgers are finished "
+                        "signing zone %s, %u signatures queued",
+                        worker2str(worker->type), worker->thread_num,
+                        task_who2str(task->who), worker->jobs_appointed);
+                    /* sleep until work is done */
+                    if (!worker->need_to_exit) {
+                        worker_sleep_unless(worker, 0);
+                    }
                 }
-                lock_basic_lock(&worker->worker_lock);
-                worker->worker_locked = LOCKED_WORKER_SIGN;
-                if (worker->jobs_failed) {
-                    ods_log_error("[%s[%i]] sign zone %s failed: %u "
-                        "RRsets failed", worker2str(worker->type),
-                        worker->thread_num, task_who2str(task->who),
-                        worker->jobs_failed);
-                    status = ODS_STATUS_ERR;
-                } else if (!worker_fulfilled(worker)) {
-                    ods_log_error("[%s[%i]] sign zone %s failed: processed "
-                        "%u of %u RRsets", worker2str(worker->type),
-                        worker->thread_num, task_who2str(task->who),
-                        worker->jobs_completed, worker->jobs_appointed);
-                    status = ODS_STATUS_ERR;
-                } else if (worker->need_to_exit) {
-                    ods_log_warning("[%s[%i]] sign zone %s failed: worker "
-                        "needs to exit", worker2str(worker->type),
-                        worker->thread_num, task_who2str(task->who));
-                    status = ODS_STATUS_ERR;
-                } else {
-                    ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u "
-                        "RRsets succeeded", worker2str(worker->type),
-                        worker->thread_num, task_who2str(task->who),
-                        worker->jobs_completed, worker->jobs_appointed);
-                    ods_log_assert(worker->jobs_appointed ==
-                        worker->jobs_completed);
+                if (status == ODS_STATUS_OK) {
+                    status = worker_check_jobs(worker, task);
                 }
                 worker->jobs_appointed = 0;
                 worker->jobs_completed = 0;
                 worker->jobs_failed = 0;
-                lock_basic_unlock(&worker->worker_lock);
-                worker->worker_locked = 0;
                 /* stop timer */
                 end = time(NULL);
                 if (status == ODS_STATUS_OK && zone->stats) {

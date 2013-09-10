@@ -239,25 +239,6 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ods_log_assert(rrset);
     ods_log_assert(inception);
     ods_log_assert(expiration);
-
-lhsm_sign_start:
-
-    if (!key_id->dnskey) {
-        status = lhsm_get_key(ctx, owner, key_id);
-        if (status != ODS_STATUS_OK) {
-            error = hsm_get_error(ctx);
-            if (error) {
-                ods_log_error("[%s] %s", hsm_str, error);
-                free((void*)error);
-            } else if (!retries) {
-                lhsm_clear_key_cache(key_id);
-                retries++;
-                goto lhsm_sign_start;
-            }
-            ods_log_error("[%s] unable to sign: get key failed", hsm_str);
-            return NULL;
-        }
-    }
     ods_log_assert(key_id->dnskey);
     ods_log_assert(key_id->hsmkey);
     ods_log_assert(key_id->params);
@@ -268,7 +249,7 @@ lhsm_sign_start:
     params->flags = key_id->flags;
     params->inception = inception;
     params->expiration = expiration;
-    params->keytag = ldns_calc_keytag(key_id->dnskey);
+    params->keytag = key_id->params->keytag;
     ods_log_debug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
         ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
         key_id->locator?key_id->locator:"(null)", params->keytag);
@@ -280,10 +261,6 @@ lhsm_sign_start:
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
             free((void*)error);
-        } else if (!retries) {
-            lhsm_clear_key_cache(key_id);
-            retries++;
-            goto lhsm_sign_start;
         }
         ods_log_crit("[%s] error signing rrset with libhsm", hsm_str);
     }

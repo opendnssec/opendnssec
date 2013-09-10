@@ -1145,6 +1145,49 @@ zone_merge(zone_type* z1, zone_type* z2)
 
 
 /**
+ * Prepare keys for signing.
+ *
+ */
+ods_status
+zone_prepare_keys(zone_type* zone)
+{
+    hsm_ctx_t* ctx = NULL;
+    key_type* key = NULL;
+    uint16_t i = 0;
+    ods_status status = ODS_STATUS_OK;
+    if (!zone || !zone->zonedata || !zone->signconf || !zone->signconf->keys) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->name);
+    /* hsm access */
+    ctx = hsm_create_context();
+    if (ctx == NULL) {
+        ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+            "error creating libhsm context", zone_str, zone->name);
+        return ODS_STATUS_HSM_ERR;
+    }
+    /* prepare keys */
+    key = zone->signconf->keys->first_key;
+    for (i=0; key; i++) {
+        /* get dnskey */
+        status = lhsm_get_key(ctx, zone->dname, key);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+                "error getting dnskey", zone_str, zone->name);
+            break;
+        }
+        ods_log_assert(key->dnskey);
+        ods_log_assert(key->hsmkey);
+        ods_log_assert(key->params);
+    }
+    /* done */
+    hsm_destroy_context(ctx);
+    return status;
+
+}
+
+
+/**
  * Update serial.
  *
  */
