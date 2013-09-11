@@ -96,6 +96,8 @@
 #define LOCKED_WORKER_DRUDGER(x)           (700+x)
 #define LOCKED_ZONE_WORKER(x)              (800+x)
 #define LOCKED_STATS_WORKER(x)             (900+x)
+#define LOCKED_SLEEP_WORKER(x)             (1000+x)
+#define LOCKED_SLEEP_DRUDGER(x)            (1100+x)
 
 
 

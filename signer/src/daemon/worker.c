@@ -641,8 +641,11 @@ worker_drudge(worker_type* worker)
         if (!rrset) {
             ods_log_deeebug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
+            worker->engine->signq->q_locked =
+                LOCKED_SLEEP_DRUDGER(worker->thread_num);
             worker_wait_locked(&engine->signq->q_lock,
                 &engine->signq->q_threshold);
+            worker->engine->signq->q_locked = LOCKED_Q_DRUDGER(worker->thread_num);
             rrset = (rrset_type*) fifoq_pop(engine->signq, &chief);
         }
         worker->engine->signq->q_locked = 0;

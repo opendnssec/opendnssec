@@ -1164,7 +1164,9 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
          * automatically grab the lock when the queue is nonfull.
          * Queue is nonfull at 10% of the queue size.
          */
+        q->q_locked = LOCKED_SLEEP_WORKER(worker->thread_num);
         lock_basic_sleep(&q->q_nonfull, &q->q_lock, 5);
+        q->q_locked = LOCKED_Q_WORKER(worker->thread_num);
         status = fifoq_push(q, (void*) rrset, worker, &tries);
     }
     q->q_locked = 0;
