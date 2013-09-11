@@ -1,8 +1,7 @@
 $Id$
 
 OpenDNSSEC 1.3.15rc1
-* SUPPORT-75: Signer Engine: Fix double free crash in case of HSM connection
-  error during signing [OPENDNSSEC-452].
+
 * SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr> so that the user
   can specify the SOA serial to use in the signed zone [OPENDNSSEC-423].
 * OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take total 
@@ -10,14 +9,14 @@ OpenDNSSEC 1.3.15rc1
 * OPENDNSSEC-448: Signer Engine: Enhancements to signer debug locks.
 
 Bugfixes:
+* SUPPORT-75: Signer Engine: Fix double free crash in case of HSM connection
+  error during signing [OPENDNSSEC-452].
 * OPENDNSSEC-397: Change "hsmutil list" output so that the table header goes 
   to stdout not stderr
 * OPENDNSSEC-438: 'ods-ksmutil key generate' and the enforcer can create 
   too many keys for <SharedKeys/> policies when KSK and ZSK use same 
   algorithm and length
 * OPENDNSSEC-445: ods-ksmutil: Clean up of hsm connection handling
-* OPENDNSSEC-452: Fix double free corruption in case of HSM connection
-  error while signing RRsets (also fixes SUPPORT-71).
 
 
 OpenDNSSEC 1.3.14 - 2013-05-16
