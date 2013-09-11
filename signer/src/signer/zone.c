@@ -1153,7 +1153,6 @@ zone_prepare_keys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
     key_type* key = NULL;
-    uint16_t i = 0;
     ods_status status = ODS_STATUS_OK;
     if (!zone || !zone->zonedata || !zone->signconf || !zone->signconf->keys) {
         return ODS_STATUS_ASSERT_ERR;
@@ -1168,7 +1167,7 @@ zone_prepare_keys(zone_type* zone)
     }
     /* prepare keys */
     key = zone->signconf->keys->first_key;
-    for (i=0; key; i++) {
+    while (key) {
         /* get dnskey */
         status = lhsm_get_key(ctx, zone->dname, key);
         if (status != ODS_STATUS_OK) {
@@ -1179,6 +1178,7 @@ zone_prepare_keys(zone_type* zone)
         ods_log_assert(key->dnskey);
         ods_log_assert(key->hsmkey);
         ods_log_assert(key->params);
+        key = key->next;
     }
     /* done */
     hsm_destroy_context(ctx);
