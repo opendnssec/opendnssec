@@ -95,8 +95,8 @@ zonelist_create(allocator_type* allocator)
     zlist->allocator = allocator;
     zlist->zones = ldns_rbtree_create(zone_compare);
     zlist->last_modified = 0;
-    lock_basic_init(&zlist->zl_lock);
     zlist->zl_locked = 0;
+    lock_basic_init(&zlist->zl_lock);
     return zlist;
 }
 

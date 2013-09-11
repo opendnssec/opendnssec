@@ -76,8 +76,8 @@ tools_input(zone_type* zone)
         zone->stats->sort_done = 0;
         zone->stats->sort_count = 0;
         zone->stats->sort_time = 0;
-        lock_basic_unlock(&zone->stats->stats_lock);
         zone->stats->stats_locked = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
 
     if (zone->adinbound->type == ADAPTER_FILE) {
@@ -159,8 +159,8 @@ lock_fetch:
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
         zone->stats->sort_done = 1;
-        lock_basic_unlock(&zone->stats->stats_lock);
         zone->stats->stats_locked = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
     return status;
 }
@@ -204,8 +204,8 @@ tools_nsecify(zone_type* zone)
         zone->stats->stats_locked = LOCKED_STATS_TOOLS_NSECIFY_START;
         zone->stats->nsec_time = 0;
         zone->stats->nsec_count = 0;
-        lock_basic_unlock(&zone->stats->stats_lock);
         zone->stats->stats_locked = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
 
     start = time(NULL);
@@ -248,8 +248,8 @@ tools_nsecify(zone_type* zone)
         }
         zone->stats->nsec_time = (end-start);
         zone->stats->nsec_count = num_added;
-        lock_basic_unlock(&zone->stats->stats_lock);
         zone->stats->stats_locked = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
     return status;
 }
@@ -292,8 +292,8 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             lock_basic_unlock(&zone->stats->stats_lock);
             return ODS_STATUS_OK;
         }
-        lock_basic_unlock(&zone->stats->stats_lock);
         zone->stats->stats_locked = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
 
     if (zone->signconf->audit) {
@@ -341,8 +341,8 @@ tools_audit(zone_type* zone, char* working_dir, char* cfg_filename)
             lock_basic_lock(&zone->stats->stats_lock);
             zone->stats->stats_locked = LOCKED_STATS_TOOLS_AUDIT_STOP;
             zone->stats->audit_time = (end-start);
-            lock_basic_unlock(&zone->stats->stats_lock);
             zone->stats->stats_locked = 0;
+            lock_basic_unlock(&zone->stats->stats_lock);
         }
     }
 #else
@@ -388,14 +388,14 @@ tools_output(zone_type* zone)
                 "changed)", tools_str, zone->name?zone->name:"(null)",
                 zone->zonedata->internal_serial);
             stats_clear(zone->stats);
-            lock_basic_unlock(&zone->stats->stats_lock);
             zone->stats->stats_locked = 0;
+            lock_basic_unlock(&zone->stats->stats_lock);
             zone->zonedata->internal_serial =
                 zone->zonedata->outbound_serial;
             return ODS_STATUS_OK;
         }
-        lock_basic_unlock(&zone->stats->stats_lock);
         zone->stats->stats_locked = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
 
     outbound_serial = zone->zonedata->outbound_serial;
@@ -432,8 +432,8 @@ tools_output(zone_type* zone)
             zone->name?zone->name:"(null)");
         stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
         stats_clear(zone->stats);
-        lock_basic_unlock(&zone->stats->stats_lock);
         zone->stats->stats_locked = 0;
+        lock_basic_unlock(&zone->stats->stats_lock);
     }
     return status;
 }

@@ -104,8 +104,8 @@ engine_create(void)
     lock_basic_lock(&engine->signal_lock);
     engine->signal_locked = LOCKED_SIGNAL_ENGINE_INIT;
     engine->signal = SIGNAL_INIT;
-    lock_basic_unlock(&engine->signal_lock);
     engine->signal_locked = 0;
+    lock_basic_unlock(&engine->signal_lock);
 
     engine->zonelist = zonelist_create(engine->allocator);
     if (!engine->zonelist) {
@@ -728,8 +728,8 @@ engine_run(engine_type* engine, int single_run)
     lock_basic_lock(&engine->signal_lock);
     engine->signal_locked = LOCKED_SIGNAL_ENGINE_RUN;
     engine->signal = SIGNAL_RUN;
-    lock_basic_unlock(&engine->signal_lock);
     engine->signal_locked = 0;
+    lock_basic_unlock(&engine->signal_lock);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
         lock_basic_lock(&engine->signal_lock);
@@ -751,8 +751,8 @@ engine_run(engine_type* engine, int single_run)
                 engine->signal = SIGNAL_RUN;
                 break;
         }
-        lock_basic_unlock(&engine->signal_lock);
         engine->signal_locked = 0;
+        lock_basic_unlock(&engine->signal_lock);
 
         if (single_run) {
            engine->need_to_exit = engine_all_zones_processed(engine);
@@ -764,8 +764,8 @@ engine_run(engine_type* engine, int single_run)
            ods_log_debug("[%s] taking a break", engine_str);
            lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 3600);
         }
-        lock_basic_unlock(&engine->signal_lock);
         engine->signal_locked = 0;
+        lock_basic_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
@@ -849,13 +849,13 @@ engine_update_zones(engine_type* engine)
                 engine->taskq->schedule_locked = LOCKED_SCHEDULE_ENGINE_DELZONE;
                 task = unschedule_task(engine->taskq,
                     (task_type*) zone->task);
-                lock_basic_unlock(&engine->taskq->schedule_lock);
                 engine->taskq->schedule_locked = 0;
+                lock_basic_unlock(&engine->taskq->schedule_lock);
             }
             task_cleanup(task);
             task = NULL;
-            lock_basic_unlock(&zone->zone_lock);
             zone->zone_locked = 0;
+            lock_basic_unlock(&zone->zone_lock);
 
             zone_cleanup(zone);
             zone = NULL;
@@ -880,14 +880,14 @@ engine_update_zones(engine_type* engine)
                 lock_basic_lock(&engine->taskq->schedule_lock);
                 engine->taskq->schedule_locked = LOCKED_SCHEDULE_ENGINE_ADDZONE;
                 status = schedule_task(engine->taskq, task, 0);
-                lock_basic_unlock(&engine->taskq->schedule_lock);
                 engine->taskq->schedule_locked = 0;
+                lock_basic_unlock(&engine->taskq->schedule_lock);
                 wake_up = 1;
             }
             /* zone fetcher enabled? */
             zone->fetch = (engine->config->zonefetch_filename != NULL);
-            lock_basic_unlock(&zone->zone_lock);
             zone->zone_locked = 0;
+            lock_basic_unlock(&zone->zone_lock);
         } else { /* always try to update signconf */
             lock_basic_lock(&zone->zone_lock);
             zone->zone_locked = LOCKED_ZONE_ENGINE_UPDZONE;
@@ -916,10 +916,10 @@ engine_update_zones(engine_type* engine)
                 task->interrupt = TASK_SIGNCONF;
                 /* task->halted set by worker */
             }
-            lock_basic_unlock(&engine->taskq->schedule_lock);
             engine->taskq->schedule_locked = 0;
-            lock_basic_unlock(&zone->zone_lock);
+            lock_basic_unlock(&engine->taskq->schedule_lock);
             zone->zone_locked = 0;
+            lock_basic_unlock(&zone->zone_lock);
 
             wake_up = 1;
         }
@@ -932,8 +932,8 @@ engine_update_zones(engine_type* engine)
         }
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&engine->zonelist->zl_lock);
     engine->zonelist->zl_locked = 0;
+    lock_basic_unlock(&engine->zonelist->zl_lock);
     if (wake_up) {
         engine_wakeup_workers(engine);
     }
@@ -984,8 +984,8 @@ engine_recover(engine_type* engine)
             lock_basic_lock(&engine->taskq->schedule_lock);
             engine->taskq->schedule_locked = LOCKED_SCHEDULE_ENGINE_RECOVER;
             status = schedule_task(engine->taskq, (task_type*) zone->task, 0);
-            lock_basic_unlock(&engine->taskq->schedule_lock);
             engine->taskq->schedule_locked = 0;
+            lock_basic_unlock(&engine->taskq->schedule_lock);
 
             if (status != ODS_STATUS_OK) {
                 ods_log_crit("[%s] unable to schedule task for zone %s: %s",
@@ -1008,8 +1008,8 @@ engine_recover(engine_type* engine)
         }
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&engine->zonelist->zl_lock);
     engine->zonelist->zl_locked = 0;
+    lock_basic_unlock(&engine->zonelist->zl_lock);
     return result;
 }
 
@@ -1088,8 +1088,8 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         engine->zonelist->just_removed = 0;
         engine->zonelist->just_added = 0;
         engine->zonelist->just_updated = 0;
-        lock_basic_unlock(&engine->zonelist->zl_lock);
         engine->zonelist->zl_locked = 0;
+        lock_basic_unlock(&engine->zonelist->zl_lock);
 
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);

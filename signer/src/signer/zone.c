@@ -130,8 +130,8 @@ zone_create(char* name, ldns_rr_class klass)
 
     zone->stats = stats_create();
     zone->task = NULL;
-    lock_basic_init(&zone->zone_lock);
     zone->zone_locked = 0;
+    lock_basic_init(&zone->zone_lock);
     return zone;
 }
 
@@ -977,8 +977,8 @@ zone_recover(zone_type* zone)
             lock_basic_lock(&zone->stats->stats_lock);
             zone->stats->stats_locked = LOCKED_STATS_ZONE_RECOVER;
             stats_clear(zone->stats);
-            lock_basic_unlock(&zone->stats->stats_lock);
             zone->stats->stats_locked = 0;
+            lock_basic_unlock(&zone->stats->stats_lock);
         }
         return ODS_STATUS_OK;
     } else {
@@ -1018,8 +1018,8 @@ zone_recover(zone_type* zone)
                 lock_basic_lock(&zone->stats->stats_lock);
                 zone->stats->stats_locked = LOCKED_STATS_ZONE_RECOVER;
                 stats_clear(zone->stats);
-                lock_basic_unlock(&zone->stats->stats_lock);
                 zone->stats->stats_locked = 0;
+                lock_basic_unlock(&zone->stats->stats_lock);
             }
             return ODS_STATUS_UNCHANGED;
         }
@@ -1068,8 +1068,8 @@ recover_error:
        lock_basic_lock(&zone->stats->stats_lock);
        zone->stats->stats_locked = LOCKED_STATS_ZONE_RECOVER;
        stats_clear(zone->stats);
-       lock_basic_unlock(&zone->stats->stats_lock);
        zone->stats->stats_locked = 0;
+       lock_basic_unlock(&zone->stats->stats_lock);
     }
     return ODS_STATUS_ERR;
 }

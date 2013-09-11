@@ -92,8 +92,8 @@ worker_create(allocator_type* allocator, int num, worker_id type)
     worker->jobs_failed = 0;
     worker->sleeping = 0;
     worker->waiting = 0;
-    lock_basic_unlock(&worker->worker_lock);
     worker->worker_locked = 0;
+    lock_basic_unlock(&worker->worker_lock);
     return worker;
 }
 
@@ -158,8 +158,8 @@ worker_check_jobs(worker_type* worker, task_type* task)
             worker->jobs_completed, worker->jobs_appointed);
             ods_log_assert(worker->jobs_appointed == worker->jobs_completed);
     }
-    lock_basic_unlock(&worker->worker_lock);
     worker->worker_locked = 0;
+    lock_basic_unlock(&worker->worker_lock);
     return status;
 }
 
@@ -328,8 +328,8 @@ worker_perform_task(worker_type* worker)
                     zone->stats->sig_soa_count = 0;
                     zone->stats->sig_reuse = 0;
                     zone->stats->sig_time = 0;
-                    lock_basic_unlock(&zone->stats->stats_lock);
                     zone->stats->stats_locked = 0;
+                    lock_basic_unlock(&zone->stats->stats_lock);
                 }
                 /* check the HSM connection before queuing sign operations */
                 lhsm_check_connection((void*)engine);
@@ -360,8 +360,8 @@ worker_perform_task(worker_type* worker)
                     lock_basic_lock(&zone->stats->stats_lock);
                     zone->stats->stats_locked = LOCKED_STATS_WORKER(worker->thread_num);
                     zone->stats->sig_time = (end-start);
-                    lock_basic_unlock(&zone->stats->stats_lock);
                     zone->stats->stats_locked = 0;
+                    lock_basic_unlock(&zone->stats->stats_lock);
                 }
             }
 
@@ -557,8 +557,8 @@ worker_work(worker_type* worker)
         worker->task = schedule_pop_task(worker->engine->taskq);
         if (worker->task) {
             worker->working_with = worker->task->what;
-            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
             worker->engine->taskq->schedule_locked = 0;
+            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
             zone = worker->task->zone;
             lock_basic_lock(&zone->zone_lock);
@@ -579,18 +579,18 @@ worker_work(worker_type* worker)
             worker->task = NULL;
             worker->working_with = TASK_NONE;
             (void) schedule_task(worker->engine->taskq, zone->task, 1);
-            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
             worker->engine->taskq->schedule_locked = 0;
-            lock_basic_unlock(&zone->zone_lock);
+            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
             zone->zone_locked = 0;
+            lock_basic_unlock(&zone->zone_lock);
 
             timeout = 1;
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
             worker->task = schedule_get_first_task(worker->engine->taskq);
-            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
             worker->engine->taskq->schedule_locked = 0;
+            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
             if (worker->task && !worker->engine->taskq->loading) {
                 timeout = (worker->task->when - now);
             } else {
@@ -645,8 +645,8 @@ worker_drudge(worker_type* worker)
                 &engine->signq->q_threshold);
             rrset = (rrset_type*) fifoq_pop(engine->signq, &chief);
         }
-        lock_basic_unlock(&worker->engine->signq->q_lock);
         worker->engine->signq->q_locked = 0;
+        lock_basic_unlock(&worker->engine->signq->q_lock);
         if (rrset) {
             ods_log_assert(chief);
             ods_log_debug("[%s[%i]] create hsm context",
@@ -666,8 +666,8 @@ worker_drudge(worker_type* worker)
                 task = chief->task;
                 ods_log_assert(task);
                 zone = task->zone;
-                lock_basic_unlock(&chief->worker_lock);
                 chief->worker_locked = 0;
+                lock_basic_unlock(&chief->worker_lock);
                 ods_log_assert(zone);
                 ods_log_assert(zone->signconf);
                 ods_log_assert(rrset);
@@ -682,8 +682,8 @@ worker_drudge(worker_type* worker)
                 } else {
                     chief->jobs_failed += 1;
                 }
-                lock_basic_unlock(&chief->worker_lock);
                 worker->worker_locked = 0;
+                lock_basic_unlock(&chief->worker_lock);
             }
             if (worker_fulfilled(chief) && chief->sleeping) {
                 ods_log_debug("[%s[%i]] wake up chief[%u], work is done",
@@ -747,8 +747,8 @@ worker_sleep(worker_type* worker, time_t timeout)
     worker->sleeping = 1;
     lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
         timeout);
-    lock_basic_unlock(&worker->worker_lock);
     worker->worker_locked = 0;
+    lock_basic_unlock(&worker->worker_lock);
     return;
 }
 
@@ -773,8 +773,8 @@ worker_sleep_unless(worker_type* worker, time_t timeout)
            worker->thread_num, worker->jobs_appointed, worker->jobs_completed,
            worker->jobs_failed);
     }
-    lock_basic_unlock(&worker->worker_lock);
     worker->worker_locked = 0;
+    lock_basic_unlock(&worker->worker_lock);
     return;
 }
 
@@ -794,8 +794,8 @@ worker_wakeup(worker_type* worker)
         worker->worker_locked = LOCKED_WORKER_WAKEUP;
         lock_basic_alarm(&worker->worker_alarm);
         worker->sleeping = 0;
-        lock_basic_unlock(&worker->worker_lock);
         worker->worker_locked = 0;
+        lock_basic_unlock(&worker->worker_lock);
     }
     return;
 }

@@ -1116,8 +1116,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, ldns_rdf* owner,
     }
     stats->sig_count += newsigs;
     stats->sig_reuse += reusedsigs;
-    lock_basic_unlock(&stats->stats_lock);
     stats->stats_locked = 0;
+    lock_basic_unlock(&stats->stats_lock);
     return ODS_STATUS_OK;
 }
 
@@ -1154,8 +1154,8 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
     while (status == ODS_STATUS_UNCHANGED) {
         tries++;
         if (worker->need_to_exit) {
-            lock_basic_unlock(&q->q_lock);
             q->q_locked = 0;
+            lock_basic_unlock(&q->q_lock);
             return ODS_STATUS_UNCHANGED;
         }
         /**
@@ -1167,14 +1167,14 @@ rrset_queue(rrset_type* rrset, fifoq_type* q, worker_type* worker)
         lock_basic_sleep(&q->q_nonfull, &q->q_lock, 5);
         status = fifoq_push(q, (void*) rrset, worker, &tries);
     }
-    lock_basic_unlock(&q->q_lock);
     q->q_locked = 0;
+    lock_basic_unlock(&q->q_lock);
     ods_log_assert(status == ODS_STATUS_OK);
     lock_basic_lock(&worker->worker_lock);
     worker->worker_locked = LOCKED_WORKER_RRSET(worker->thread_num);
     worker->jobs_appointed += 1;
-    lock_basic_unlock(&worker->worker_lock);
     worker->worker_locked = 0;
+    lock_basic_unlock(&worker->worker_lock);
     return status;
 }
 
