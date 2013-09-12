@@ -1,0 +1,41 @@
+options {
+
+	pid-file	"./bind9/named.pid";
+
+
+	// If there is a firewall between you and nameservers you want
+	// to talk to, you might need to uncomment the query-source
+	// directive below.  Previous versions of BIND always asked
+	// questions using port 53, but BIND 8.1 and later use an unprivileged
+	// port by default.
+
+	// query-source address * port 53;
+
+	// If your ISP provided one or more IP addresses for stable 
+	// nameservers, you probably want to use them as forwarders.  
+	// Uncomment the following block, and insert the addresses replacing 
+	// the all-0's placeholder.
+
+	// forwarders {
+	// 	0.0.0.0;
+	// };
+
+	auth-nxdomain no;    # conform to RFC1035
+	listen-on-v6 { any; };
+
+
+        # The allow-query record contains a list of networks or IP addresses
+        # to accept and deny queries from. The default is to allow queries
+        # from all hosts.
+
+        allow-query { 127.0.0.1; };
+
+        # If notify is set to yes (default), notify messages are sent to other
+        # name servers when the the zone data is changed.  Instead of setting
+        # a global 'notify' statement in the 'options' section, a separate
+        # 'notify' can be added to each zone definition.
+
+        notify no;
+        recursion no;
+};
+
