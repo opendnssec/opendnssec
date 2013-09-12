@@ -72,8 +72,7 @@ echo "y" | log_this ods-ksmutil-setup_zone_and_keys   ods-ksmutil key generate -
 echo "y" | log_this ods-ksmutil-setup_zone_and_keys   ods-ksmutil key generate --interval PT10M --policy  shared &&
 
 # Start enforcer
-log_this_timeout ods-enforcer-start $SHORT_TIMEOUT   ods-control enforcer start &&
-syslog_waitfor $SHORT_TIMEOUT 'ods-enforcerd: .*Sleeping for' &&
+ods_start_enforcer && 
 ##################  STEP 0: Time = 0 ###########################
 # Check the output
 log_this ods-ksmutil-check-0   date && log_this ods-ksmutil-check-0   ods-ksmutil key list --all --verbose &&
@@ -146,18 +145,24 @@ syslog_waitfor_count $LONG_TIMEOUT 14 'ods-enforcerd: .*Sleeping for' &&
 # Wait for the enforcer to run.
 sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 15 'ods-enforcerd: .*Sleeping for' &&
 # ##################  STEP 6 ###########################
-# Add an extra enforcer run before the last check as otherwise the timing it too close to a ZSK rollover to be sure
-sleep $SLEEP_INTERVAL && syslog_waitfor_count $LONG_TIMEOUT 16 'ods-enforcerd: .*Sleeping for' &&
-check_zones_at_timestep_Y 6 &&
+# just check the state of the KSKs here as the ZSK rollover is too hard to predict in real time
+log_this ods-ksmutil-check-6   date && log_this ods-ksmutil-check-6   ods-ksmutil key list --all --verbose &&
+log_grep ods-ksmutil-check-6   stdout "KSK           retire.*$KSK_ODS1_1" &&
+log_grep ods-ksmutil-check-6   stdout "KSK           active.*$KSK_ODS1_2" &&
+log_grep ods-ksmutil-check-6   stdout "KSK           retire.*$KSK_ODS2_1" &&
+log_grep ods-ksmutil-check-6   stdout "KSK           active.*$KSK_ODS2_2" &&
+log_grep ods-ksmutil-check-6   stdout "KSK           retire.*$KSK_ODS3_1" &&
+log_grep ods-ksmutil-check-6   stdout "KSK           active.*$KSK_ODS3_2" &&
+log_grep ods-ksmutil-check-6   stdout "KSK           retire.*$KSK_ODS4_1" &&
+log_grep ods-ksmutil-check-6   stdout "KSK           active.*$KSK_ODS4_2" &&
  
 # ##################  SHUTDOWN ###########################
-log_this_timeout ods-enforcer-stop 60 ods-control enforcer stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
+ods_stop_enforcer &&
 
 log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
 
 rm -rf base &&
-
+echo "************OK******************" &&
 return 0
 
 echo

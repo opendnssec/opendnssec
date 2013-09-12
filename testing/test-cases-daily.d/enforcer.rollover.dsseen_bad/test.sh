@@ -15,8 +15,7 @@ ods_reset_env &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 # Make sure TIMESHIFT worked:
 syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
@@ -47,8 +46,7 @@ log_grep ods-ksmutil-key-list0_2 stdout 'ods                             ZSK    
 export ENFORCER_TIMESHIFT='01-01-2010 14:00' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT $ENFORCER_COUNT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 14:00" &&
 
 # We should be ready for a ds-seen on ods

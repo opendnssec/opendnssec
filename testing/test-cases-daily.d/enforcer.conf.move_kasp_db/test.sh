@@ -11,13 +11,7 @@ ods_reset_env &&
 ods_setup_conf conf.xml conf2.xml &&
 mv -- "$INSTALL_ROOT/var/opendnssec/kasp.db" "$INSTALL_ROOT/var/opendnssec/kasp2.db" &&
 
-log_this_timeout ods-control-start 60 ods-control start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
-
-log_this_timeout ods-control-stop 60 ods-control stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
+ods_start_ods-control &&
 return 0
 
 ods_kill

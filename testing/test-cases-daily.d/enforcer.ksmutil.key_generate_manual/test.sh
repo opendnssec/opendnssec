@@ -52,8 +52,7 @@ log_this ods-ksmutil-keylist_hms_1   ods-hsmutil list &&
 log_grep ods-ksmutil-keylist_hms_1   stdout "8 keys found." && 
 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy5\""  &&
 # check is hasn't generated any keys
@@ -66,8 +65,7 @@ log_grep enforcer-keylist_1   stdout "ods_10.*KSK           publish" &&
 
 ################## Jump forward 20M
 export ENFORCER_TIMESHIFT='01-01-2010 12:20' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy5\""  &&
 # check is hasn't generated any keys
@@ -99,8 +97,7 @@ log_grep ods-ksmutil-keylist_3   stdout "14 keys found." &&
 
 # check the enforcer doesn't generate any keys
 export ENFORCER_TIMESHIFT='01-01-2010 12:20' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy5\""  &&
 # check is hasn't generated any keys
@@ -116,8 +113,7 @@ fi &&
 
 log_this ods-ksmutil-update ods-ksmutil update conf &&
 
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy5\""  &&
 syslog_grep_count 1  'ods-enforcerd: .*No new KSKs need to be created.'  &&
@@ -151,8 +147,7 @@ log_this ods-ksmutil1-keylist_hms_1   ods-hsmutil list &&
 log_grep ods-ksmutil1-keylist_hms_1   stdout "8 keys found." && 
 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer1-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy6\""  &&
 # check is hasn't generated any keys
@@ -165,8 +160,7 @@ log_grep enforcer1-keylist_1   stdout "ods_10.*KSK           publish" &&
 
 ################## Jump forward 20M
 export ENFORCER_TIMESHIFT='01-01-2010 12:20' &&
-log_this_timeout ods-control-enforcer1-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy6\""  &&
 # check is hasn't generated any keys
@@ -198,8 +192,7 @@ log_grep ods-ksmutil1-keylist_3   stdout "14 keys found." &&
 
 # check the enforcer doesn't generate any keys
 export ENFORCER_TIMESHIFT='01-01-2010 12:20' &&
-log_this_timeout ods-control-enforcer1-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy6\""  &&
 # check is hasn't generated any keys
@@ -216,8 +209,7 @@ fi &&
 
 log_this ods-ksmutil1-update ods-ksmutil update conf &&
 
-log_this_timeout ods-control-enforcer1-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy6\""  &&
 syslog_grep_count 1  'ods-enforcerd: .*3 new KSK(s) (1024 bits) need to be created.' &&
@@ -250,8 +242,7 @@ log_this ods-ksmutil2-keylist_hms_1   ods-hsmutil list &&
 log_grep ods-ksmutil2-keylist_hms_1   stdout "80 keys found." && 
 
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer2-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy1\""  &&
 # check is hasn't generated any keys
@@ -264,8 +255,7 @@ log_grep enforcer2-keylist_1   stdout "ods_10.*KSK           publish" &&
 
 ################## Jump forward 20M
 export ENFORCER_TIMESHIFT='01-01-2010 12:20' &&
-log_this_timeout ods-control-enforcer2-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy1\""  &&
 # check is hasn't generated any keys
@@ -297,8 +287,7 @@ log_grep ods-ksmutil2-keylist_3   stdout "140 keys found." &&
 
 # check the enforcer doesn't generate any keys
 export ENFORCER_TIMESHIFT='01-01-2010 12:20' &&
-log_this_timeout ods-control-enforcer2-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 ! syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy1\""  &&
 # check is hasn't generated any keys
@@ -314,8 +303,7 @@ fi &&
 
 log_this ods-ksmutil2-update ods-ksmutil update conf &&
 
-log_this_timeout ods-control-enforcer2-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*10 zone(s) found on policy \"Policy1\""  &&
 syslog_grep_count 1  'ods-enforcerd: .*30 new KSK(s) (1024 bits) need to be created.' &&

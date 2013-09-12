@@ -43,8 +43,7 @@ mkdir  base &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 
 # Make sure TIMESHIFT worked:
 syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
@@ -77,8 +76,7 @@ KSK_CKA_ID_2=`log_grep -o ods-ksmutil-cka_id1 stdout "ods2                      
 export ENFORCER_TIMESHIFT='01-01-2010 12:03:40' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 2 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:03:40" &&
 
 # We should be ready for a ds-seen on ods1 but not ods2 (not ready until 12:15)
@@ -124,8 +122,7 @@ cp_signconfs_at_timestep_Y 1 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:10' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 3 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:10" &&
 
 # We should be still not expect a ds-seen on ods2 (not ready until 12:15)
@@ -152,8 +149,7 @@ cp_signconfs_at_timestep_Y 2 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:14:30' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 4 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:14:30" &&
 
 # Key list should show KSK in ready state
@@ -200,8 +196,7 @@ cp_signconfs_at_timestep_Y 3 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:21' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 5 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:21" &&
 
 # Key list should reflect this new key
@@ -226,8 +221,7 @@ cp_signconfs_at_timestep_Y 4 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:24:30' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 6 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:24:30" &&
 
 # Key list should reflect ready key
@@ -252,8 +246,7 @@ cp_signconfs_at_timestep_Y 5 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:24:40' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 7 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:24:40" &&
 
 # Key list should reflect both ready keys
@@ -278,8 +271,7 @@ cp_signconfs_at_timestep_Y 6 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:25' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 8 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:25" &&
 
 # Key list should reflect these rolls
@@ -302,8 +294,7 @@ cp_signconfs_at_timestep_Y 7 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:30' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 9 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:30" &&
 
 # Key list should reflect these rolls
@@ -331,8 +322,7 @@ KSK_CKA_ID_3=`log_grep -o ods-ksmutil-cka_id9 stdout "ods1                      
 export ENFORCER_TIMESHIFT='01-01-2010 12:33:40' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 10 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:33:40" &&
 
 # We should be ready for a ds-seen on ods1 but not ods2 (not ready until 12:15)
@@ -377,8 +367,7 @@ cp_signconfs_at_timestep_Y 9 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:35:30' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 11 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:35:30" &&
 
 # Key list should reflect this new key
@@ -402,8 +391,7 @@ cp_signconfs_at_timestep_Y 10 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:38:50' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 12 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:38:50" &&
 
 # Key list
@@ -427,8 +415,7 @@ cp_signconfs_at_timestep_Y 11 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:42:40' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 13 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:42:40" &&
 
 # Key list
@@ -452,8 +439,7 @@ cp_signconfs_at_timestep_Y 12 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:44:30' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 14 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:44:30" &&
 
 # Key list
@@ -478,8 +464,7 @@ cp_signconfs_at_timestep_Y 13 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:46:20' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 15 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:46:20" &&
 
 # Key list
@@ -505,8 +490,7 @@ cp_signconfs_at_timestep_Y 14 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:50' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 16 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:50" &&
 
 # Key list
@@ -534,8 +518,7 @@ KSK_CKA_ID_4=`log_grep -o ods-ksmutil-cka_id16 stdout "ods2                     
 export ENFORCER_TIMESHIFT='01-01-2010 12:59' &&
 
 # Run the enforcer
-log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -1 &&
-syslog_waitfor_count $ENFORCER_WAIT 17 'ods-enforcerd: .*all done' &&
+ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:59" &&
 
 # Key list

@@ -16,7 +16,7 @@ ods_reset_env &&
 
 ods_setup_conf conf.xml conf.xml &&
 
-! log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
+! ods_start_enforcer &&
 syslog_waitfor 10 "ods-enforcerd: .*ERROR: unable to connect to database - Access denied for user 'test'@'localhost' to database 'test999'" &&
 ! pgrep -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null &&
 return 0

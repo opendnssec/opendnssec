@@ -16,9 +16,7 @@ ods_reset_env &&
 
 ##################  SETUP ###########################
 # Start enforcer and signer
-log_this_timeout ods-control-start 60 ods-control start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
+ods_start_ods-control && 
 
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
@@ -40,10 +38,7 @@ log_this signer-sign-serial_fail	ods-signer flush &&
 log_grep signer-sign-serial_fail    stdout "Error: Unable to enforce serial 500 for zone ods." && 
 
 
-log_this_timeout ods-control-stop 60 ods-control stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
-
+ods_stop_ods-control &&
 echo "** OK **" &&
 return 0
 		
