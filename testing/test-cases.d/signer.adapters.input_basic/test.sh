@@ -29,12 +29,12 @@ syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 ## Check signed zone file [when we decide on auditor tool]
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 # Validate the output on redhat
-case "$DISTRIBUTION" in
-        redhat )
-                log_this validate-zone-ods validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-                log_grep validate-zone-ods stdout 'validation errors:   0'
-                ;;
-esac &&
+# case "$DISTRIBUTION" in
+#         redhat )
+#                 log_this validate-zone-ods validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+#                 log_grep validate-zone-ods stdout 'validation errors:   0'
+#                 ;;
+# esac &&
 
 ods-signer verbosity 5 &&
 
