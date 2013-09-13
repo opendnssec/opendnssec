@@ -2,7 +2,7 @@
 #
 #TEST: Test to import/export zone list. 
 
-ods_reset_env &&
+ods_reset_env 20 &&
 ods_start_ods-control && 
 #log_this_timeout ods-control-start 30 ods-control start &&
 #syslog_waitfor 60 'ods-enforcerd: .*\[engine\] enforcer started' &&
