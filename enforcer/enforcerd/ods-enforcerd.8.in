@@ -11,6 +11,8 @@
 .IR FILE] 
 .RB [ \-d ] 
 .RB [ \-1 ] 
+.RB [ \-p
+.IR POLICY] 
 .RB [ \-P 
 .IR PIDFILE ]
 .RB [ \-v ] 
@@ -36,6 +38,9 @@ Run in debug mode.
 .TP
 .B \-1
 Run once, then exit.
+.TP
+.B \-p\fI POLICY
+Run once processing only the specified policy, then exit.
 .TP
 .B \-P\fI PIDFILE
 Use alternate process-id file.

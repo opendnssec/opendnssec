@@ -392,14 +392,15 @@ usage(const char* prog)
     fprintf(stderr, "Usage: %s [OPTION]...\n", prog);
     fprintf(stderr, "OpenDNSSEC Enforcer version %s\n\n", VERSION);
     fprintf(stderr, "Supported options:\n");
-    fprintf(stderr, "  -c <file>   Use alternate conf.xml.\n");
-    fprintf(stderr, "  -d          Debug.\n");
-    fprintf(stderr, "  -1          Run once, then exit.\n");
+    fprintf(stderr, "  -c <file>    Use alternate conf.xml.\n");
+    fprintf(stderr, "  -d           Debug.\n");
+    fprintf(stderr, "  -1           Run once, then exit.\n");
+    fprintf(stderr, "  -p <policy>  Run once processing only the specified policy, then exit.\n");
 /*    fprintf(stderr, "  -u user     Change effective uid to the specified user.\n");*/
-    fprintf(stderr, "  -P pidfile  Specify the PID file to write.\n");
+    fprintf(stderr, "  -P <pidfile> Specify the PID file to write.\n");
 
-    fprintf(stderr, "  -V          Print version.\n");
-    fprintf(stderr, "  -[?|h]      This help.\n");
+    fprintf(stderr, "  -V           Print version.\n");
+    fprintf(stderr, "  -[?|h]       This help.\n");
 }
 
     static void
@@ -622,7 +623,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
     /*
      * Read the command line
      */
-    while ((c = getopt(*argc, argv, "1c:hdV?u:P:")) != -1) {
+    while ((c = getopt(*argc, argv, "1c:hdV?u:P:p:")) != -1) {
         switch (c) {
             case '1':
                 config->once = true;
@@ -675,6 +676,11 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
                         endpwent();
                     }
                 }   
+                break;
+            case 'p':
+                config->policy = optarg;
+				config->once = true;
+				fprintf(stdout,  "Will only process policy \"%s\", will only run once. Check the logs for results. \n", config->policy);
                 break;
             case 'h':
                 usage(config->program);

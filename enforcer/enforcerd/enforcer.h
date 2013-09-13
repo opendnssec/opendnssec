@@ -43,7 +43,7 @@ int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);
 
 int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx);
-int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy);
+int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy, bool all_policies);
 
 int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd);
 int commKeyConfig(void* context, KSM_KEYDATA* key_data);

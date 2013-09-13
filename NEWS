@@ -1,5 +1,11 @@
 $Id$
 
+OpenDNSSEC 1.3.16rc1
+
+* OPENDNSSEC-458: Add 'ods-enforcerd -p <policy>' option. This prompts the 
+  enforcer to run once and only process the specified policy and associated
+  zones. 
+
 OpenDNSSEC 1.3.15rc1
 
 * SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr> so that the user
