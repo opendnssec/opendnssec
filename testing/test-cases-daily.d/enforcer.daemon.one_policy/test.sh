@@ -27,13 +27,13 @@ syslog_grep_count 1 "ods-enforcerd: .*Policy other found\." &&
 syslog_grep_count 1 "ods-enforcerd: .*1 zone(s) found on policy \"other\"" &&
 
 syslog_grep_count 1 "ods-enforcerd: .*Policy for ods set to default." &&
-syslog_grep_count 1 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods.xml." &&
+syslog_grep_count 1 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods.xml." &&
 
 syslog_grep_count 1 "ods-enforcerd: .*Policy for ods1 set to default." &&
-syslog_grep_count 1 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods1.xml." &&
+syslog_grep_count 1 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods1.xml." &&
 
 syslog_grep_count 1 "ods-enforcerd: .*Policy for ods2 set to other." &&
-syslog_grep_count 1 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods2.xml." &&
+syslog_grep_count 1 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods2.xml." &&
 
 
 ################## Run again on just a single policy
@@ -51,14 +51,14 @@ syslog_grep_count 1 "ods-enforcerd: .*Policy other found\." &&
 syslog_grep_count 1 "ods-enforcerd: .*1 zone(s) found on policy \"other\"" &&
 
 syslog_grep_count 2 "ods-enforcerd: .*Policy for ods set to default." &&
-syslog_grep_count 2 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods.xml." &&
+syslog_grep_count 2 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods.xml." &&
 
 syslog_grep_count 2 "ods-enforcerd: .*Policy for ods1 set to default." &&
-syslog_grep_count 2 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods1.xml." &&
+syslog_grep_count 2 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods1.xml." &&
 
 syslog_grep_count 2 "ods-enforcerd: .*Policy for ods2 set to other." &&
 syslog_grep_count 1 "ods-enforcerd: .*Skipping zone ods2 as not on specified policy \"default\"." && 
-syslog_grep_count 1 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods2.xml." &&
+syslog_grep_count 1 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods2.xml." &&
 
 
 ################## Run again on just the other policy
@@ -77,15 +77,15 @@ syslog_grep_count 2 "ods-enforcerd: .*1 zone(s) found on policy \"other\"" &&
 
 syslog_grep_count 3 "ods-enforcerd: .*Zone ods found." &&
 syslog_grep_count 1 "ods-enforcerd: .*Skipping zone ods as not on specified policy \"other\"." &&
-syslog_grep_count 2 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods.xml." && 
+syslog_grep_count 2 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods.xml." && 
 
 syslog_grep_count 3 "ods-enforcerd: .*Zone ods1 found." &&
 syslog_grep_count 1 "ods-enforcerd: .*Skipping zone ods1 as not on specified policy \"other\"." &&
-syslog_grep_count 2 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods1.xml." && 
+syslog_grep_count 2 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods1.xml." && 
 
 syslog_grep_count 3 "ods-enforcerd: .*Zone ods2 found." &&
 syslog_grep_count 1 "ods-enforcerd: .*Skipping zone ods2 as not on specified policy \"default\"." && 
-syslog_grep_count 2 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods2.xml." &&
+syslog_grep_count 2 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods2.xml." &&
 
 ################## And now on a policy that doesn't exist
 ! log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -p bob &&
@@ -104,15 +104,15 @@ syslog_grep_count 3 "ods-enforcerd: .*1 zone(s) found on policy \"other\"" &&
 
 syslog_grep_count 4 "ods-enforcerd: .*Zone ods found." &&
 syslog_grep_count 1 "ods-enforcerd: .*Skipping zone ods as not on specified policy \"other\"." &&
-syslog_grep_count 3 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods.xml." && 
+syslog_grep_count 3 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods.xml." && 
 
 syslog_grep_count 4 "ods-enforcerd: .*Zone ods1 found." &&
 syslog_grep_count 1 "ods-enforcerd: .*Skipping zone ods1 as not on specified policy \"other\"." &&
-syslog_grep_count 3 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods1.xml." && 
+syslog_grep_count 3 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods1.xml." && 
 
 syslog_grep_count 4 "ods-enforcerd: .*Zone ods2 found." &&
 syslog_grep_count 1 "ods-enforcerd: .*Skipping zone ods2 as not on specified policy \"default\"." && 
-syslog_grep_count 3 "ods-enforcerd: .*Config will be output to /home/sara/jenkins/1.3_s/workspace/root/local-test/var/opendnssec/signconf/ods2.xml." &&
+syslog_grep_count 3 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var/opendnssec/signconf/ods2.xml." &&
 
 
 
