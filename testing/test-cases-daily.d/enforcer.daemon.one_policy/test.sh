@@ -89,10 +89,9 @@ syslog_grep_count 2 "ods-enforcerd: .*Config will be output to $INSTALL_ROOT/var
 
 ################## And now on a policy that doesn't exist
 ! log_this_timeout ods-control-enforcer-start $ENFORCER_WAIT ods-enforcerd -p bob &&
-syslog_waitfor_count $ENFORCER_WAIT 3 'ods-enforcerd: .*all done' &&
 
-syslog_grep_count 1 "ods-enforcerd: .*Will only process policy \"bob\" as specified on the command line with the --policy option" &&
-syslog_grep_count 1 "ods-enforcerd: .*Policy \"bob\" not found. Exiting." &&
+syslog_waitfor_count $ENFORCER_WAIT 1 "ods-enforcerd: .*Will only process policy \"bob\" as specified on the command line with the --policy option" &&
+syslog_waitfor_count $ENFORCER_WAIT 1 "ods-enforcerd: .*Policy \"bob\" not found. Exiting." &&
 
 ################# Paranoid check that running the enforcer again now processes all 3 zones...
 ods_start_enforcer_timeshift &&
