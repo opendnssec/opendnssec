@@ -1,0 +1,7 @@
+usage: ods-ksmutil [-c <config> | --config <config>] 
+
+  policy export
+	--policy [policy_name] | --all           aka -p / -a
+  policy import
+  policy list
+  policy purge

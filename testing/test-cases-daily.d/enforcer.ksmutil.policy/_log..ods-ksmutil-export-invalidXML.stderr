@@ -1,0 +1,14 @@
+/home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml:1: parser error : String not closed expecting " or '
+<?xml version="1111.0" encoding="UTF-8"?>
+                ^
+/home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml:1: parser error : Malformed declaration expecting version
+<?xml version="1111.0" encoding="UTF-8"?>
+                ^
+/home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml:1: parser error : Blank needed here
+<?xml version="1111.0" encoding="UTF-8"?>
+                ^
+/home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml:1: parser error : parsing XML declaration: '?>' expected
+<?xml version="1111.0" encoding="UTF-8"?>
+                ^
+ods-kaspcheck returned an error, please check your policy
+Could not HUP ods-enforcerd

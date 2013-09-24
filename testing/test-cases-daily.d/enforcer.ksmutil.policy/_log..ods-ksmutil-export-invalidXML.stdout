@@ -1,0 +1,15 @@
+INFO: The XML in /home/wanggd/workspace/root/local-test/etc/opendnssec/conf.xml is valid
+INFO: The XML in /home/wanggd/workspace/root/local-test/etc/opendnssec/zonelist.xml is valid
+ERROR: unable to parse file "/home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml"
+zonelist filename set to /home/wanggd/workspace/root/local-test/etc/opendnssec/zonelist.xml.
+kasp filename set to /home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml.
+Failed to update policies
+INFO: The XML in /home/wanggd/workspace/root/local-test/etc/opendnssec/conf.xml is valid
+INFO: The XML in /home/wanggd/workspace/root/local-test/etc/opendnssec/zonelist.xml is valid
+INFO: The XML in /home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml is valid
+Notifying enforcer of new database...
+Cannot find PID file
+zonelist filename set to /home/wanggd/workspace/root/local-test/etc/opendnssec/zonelist.xml.
+kasp filename set to /home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml.
+Policy default found
+Policy default2 found

@@ -1,0 +1,6 @@
+*WARNING* This feature is experimental and has not been fully tested; are you sure? [y/N] zonelist filename set to /home/wanggd/workspace/root/local-test/etc/opendnssec/zonelist.xml.
+kasp filename set to /home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml.
+No zones on policy default2; purging...
+No keys to purge.
+No zones on policy default3; purging...
+No keys to purge.

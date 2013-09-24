@@ -1,0 +1,12 @@
+INFO: The XML in /home/wanggd/workspace/root/local-test/etc/opendnssec/conf.xml is valid
+INFO: The XML in /home/wanggd/workspace/root/local-test/etc/opendnssec/zonelist.xml is valid
+INFO: The XML in /home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml is valid
+*WARNING* This will erase all data in the database; are you sure? [y/N] zonelist filename set to /home/wanggd/workspace/root/local-test/etc/opendnssec/zonelist.xml.
+kasp filename set to /home/wanggd/workspace/root/local-test/etc/opendnssec/kasp.xml.
+Repository SoftHSM found
+Capacity set to 100000.
+RequireBackup NOT set; please make sure that you know the potential problems of using keys which are not recoverable
+Policy default found
+Policy default2 found
+Zone ods found; policy set to default
+Added zone ods to database
