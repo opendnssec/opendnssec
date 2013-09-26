@@ -14,9 +14,9 @@ log_this ods-ksmutil-update ods-ksmutil update kasp &&
 log_grep ods-ksmutil-update stdout 'Notifying enforcer of new database...' &&
 
 #TODO: - incomplete parameter validation
-log_this ods-ksmutil-export-incomplete-parameters ods-ksmutil policy export 
+! log_this ods-ksmutil-export-incomplete-parameters ods-ksmutil policy export && 
 log_grep ods-ksmutil-export-incomplete-parameters stdout 'please specify either --policy <policy> or --all' &&
-log_this ods-ksmutil-export-incomplete-parameters ods-ksmutil policy 
+! log_this ods-ksmutil-export-incomplete-parameters ods-ksmutil policy && 
 log_grep ods-ksmutil-export-incomplete-parameters stdout 'Unknown command: policy NULL' &&
 echo "************incomplete parameter validation OK******************" &&
 echo &&
@@ -75,7 +75,7 @@ echo &&
 
 #TODO: - check the invalid XML won't import, and we should get the expected errors
 log_this ods-ksmutil-export-invalidXML cp -- "kasp_invalid.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-log_this ods-ksmutil-export-invalidXML ods-ksmutil policy import &&
+! log_this ods-ksmutil-export-invalidXML ods-ksmutil policy import &&
 log_grep ods-ksmutil-export-invalidXML stderr 'ods-kaspcheck returned an error, please check your policy' &&
 echo "****************check the invalid XML OK*********************" &&
 echo &&
@@ -106,12 +106,12 @@ rm -f kasp_3policies_export.xml &&
 rm -f kasp_2policies_export.xml &&
 echo &&
 echo "****************all test OK******************" &&
-echo
+echo &&
 return 0
 
-echo
+echo 
 echo "************ERROR******************"
-echo
+echo 
 ods_kill
 return 1
 
