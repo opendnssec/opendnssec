@@ -125,6 +125,46 @@ case "$1" in
 		
 		exit $RETVAL
 		;;
+
+	'stop')
+		echo "Stopping enforcer..."
+		#"$sbindir/ods-enforcer" stop
+
+		if [ -r "$enforcer_pid_file" ]; then
+			kill -TERM `cat "$enforcer_pid_file"`
+			RETVAL=$?
+			if [ $RETVAL = 0 ]; then
+				i=0
+				while [ -r "$enforcer_pid_file" ]; do
+					sleep 1
+					i=`expr $i + 1`
+					if [ $i -ge 5 ]; then
+						RETVAL=1
+						echo "Could not stop enforcer"
+						break
+					fi
+				done
+			fi
+		else
+			echo "Cannot find PID file"
+			RETVAL=1
+		fi
+		exit $RETVAL
+		;;
+###################### add by sword 20130923 start ##################
+	'notify')
+		echo "Notifying enforcer of new database..."
+		
+		if [ -r "$enforcer_pid_file" ]; then
+			kill -HUP `cat "$enforcer_pid_file"`
+			RETVAL=$?
+		else
+			echo "Cannot find PID file"
+			RETVAL=1
+		fi
+		exit $RETVAL
+		;;
+###################### add by sword 20130923 end ##################
 	*)
 		shift
 		"$sbindir/ods-enforcer" "$@"

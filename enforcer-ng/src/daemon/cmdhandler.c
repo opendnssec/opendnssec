@@ -252,7 +252,6 @@ int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_
     return 1;
 }
 
-
 /**
  * Handle the 'reload' command.
  *
@@ -262,22 +261,21 @@ int handled_reload_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t
     char buf[ODS_SE_MAXLINE];
     if (n != 6 || strncmp(cmd, "reload", n) != 0) return 0;
     ods_log_debug("[%s] reload command", module_str);
-    
+
     ods_log_assert(engine);
-    
+
     engine->need_to_reload = 1;
-    
+
     lock_basic_lock(&engine->signal_lock);
     /* [LOCK] signal */
     lock_basic_alarm(&engine->signal_cond);
     /* [UNLOCK] signal */
     lock_basic_unlock(&engine->signal_lock);
-    
+
     (void)snprintf(buf, ODS_SE_MAXLINE, "Reloading engine.\n");
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }
-
 
 /**
  * Handle the 'stop' command.
@@ -302,6 +300,35 @@ int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n
     (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
     ods_writen(sockfd, buf, strlen(buf));
     return 2;
+}
+
+/**
+ * Handle the 'notify' command.
+ *
+ */
+int handled_notify_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+    char buf[ODS_SE_MAXLINE];
+    (void)snprintf(buf, ODS_SE_MAXLINE, cmd);
+    if (n != 6 || strncmp(cmd, "notify", n) != 0) return 0;
+    ods_log_debug("[%s] notify command", module_str);
+
+    ods_log_assert(engine);
+
+    if (restart_enforcerd() != 0) {
+		(void)snprintf(buf, ODS_SE_MAXLINE, "Could not HUP ods-enforcerd\n");
+	}else{
+		 (void)snprintf(buf, ODS_SE_MAXLINE, "HUP ods-enforcerd success\n");
+	}
+    ods_writen(sockfd, buf, strlen(buf));
+	return 1;
+}
+
+int restart_enforcerd()
+{
+	/* ToDo: This should really be rewritten so that it will read
+	   OPENDNSSEC_ENFORCER_PIDFILE and send a SIGHUP itself */
+	return system(ODS_EN_NOTIFY);
 }
 
 /**
@@ -385,6 +412,7 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
         "running         returns acknowledgment that the engine is running.\n"
         "reload          reload the engine.\n"
         "stop            stop the engine and terminate the process.\n"
+    	"notify          notify the engine .\n"
         "verbosity <nr>  set verbosity.\n"
         "help            show overview of available commands.\n"
         );
@@ -424,6 +452,7 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssiz
         handled_reload_cmd,
         handled_start_cmd,
         handled_stop_cmd,
+        handled_notify_cmd,
         handled_verbosity_cmd,
         handled_help_cmd,
         handled_unknown_cmd /* unknown command allways matches, so last entry */
