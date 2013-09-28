@@ -230,9 +230,9 @@ If only one key is in the active state then this command will exit
 with an error message, as completing would leave no active keys.
 
 .TP
-.B key ds-seen --keytag|-x \fIkeytag\fB
+.B key ds-seen --zone|-z \fIzone\fB  --keytag|-x \fIkeytag\fB  [--no-notify|-l] [--no-retire|-f]
 .TP
-.B key ds-seen --cka_id|-k \fIckaid\fB
+.B key ds-seen --zone|-z \fIzone\fB  --cka_id|-k \fIckaid\fB  [--no-notify|-l] [--no-retire|-f]
 Indicate to OpenDNSSEC that a submitted DS record has appeared in the
 parent zone, and thereby trigger the completion of a KSK rollover.
 Note that this action is not yet standardised, and can therefore not
@@ -244,6 +244,12 @@ reflect these alternatives.  The \-\-keytag option specifies the
 short integer that serves as a DNSSEC handle to a key; the \-\-cka_id
 option refers to a key by way of its long hexadecimal identifier used
 to identify the key in the repository.
+
+An optional \-\-no\-notify flag can also be passed in, which prevents
+the enforcer being notified of this change. If this flag is used then
+the enforcer must be manually notified with the 'ods-enforcerd notify'
+command or the changes will not take effect until the next scheduled 
+run of the enforcer. 
 
 An optional \-\-no\-retire flag can also be passed in, without this the 
 existing key is moved into the retired state at the same time as making 
