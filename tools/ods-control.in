@@ -151,7 +151,6 @@ case "$1" in
 		fi
 		exit $RETVAL
 		;;
-###################### add by sword 20130923 start ##################
 	'notify')
 		echo "Notifying enforcer of new database..."
 		
@@ -164,7 +163,6 @@ case "$1" in
 		fi
 		exit $RETVAL
 		;;
-###################### add by sword 20130923 end ##################
 	*)
 		shift
 		"$sbindir/ods-enforcer" "$@"
