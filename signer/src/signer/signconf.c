@@ -562,27 +562,6 @@ signconf_compare_keys(signconf_type* a, signconf_type* b, ldns_rr_list* del)
 
 
 /**
- * Compare signer configurations.
- *
- */
-task_id
-signconf_compare(signconf_type* a, signconf_type* b)
-{
-    task_id new_task = TASK_NONE;
-    task_id tmp_task = TASK_NONE;
-
-    new_task = signconf_compare_denial(a, b);
-    tmp_task = signconf_compare_keys(a, b, NULL);
-    if (tmp_task != TASK_NONE) {
-        new_task = tmp_task;
-    }
-    /* not like python: reschedule if resign/refresh differs */
-    /* this needs review, tasks correct on signconf changes? */
-    return new_task;
-}
-
-
-/**
  * Clean up signer configuration.
  *
  */

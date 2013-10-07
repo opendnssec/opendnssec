@@ -141,15 +141,6 @@ task_id signconf_compare_keys(signconf_type* a, signconf_type* b,
     ldns_rr_list* del);
 
 /**
- * Compare signer configurations.
- * \param[in] a a signer configuration
- * \param[in] b another signer configuration
- * \return task_id what task needs to be scheduled
- *
- */
-task_id signconf_compare(signconf_type* a, signconf_type* b);
-
-/**
  * Clean up signer configuration.
  * \param[in] sc signconf to cleanup
  *
