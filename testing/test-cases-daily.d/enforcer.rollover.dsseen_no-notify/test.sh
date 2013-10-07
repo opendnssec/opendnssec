@@ -72,7 +72,7 @@ log_grep ods-ksmutil-check-4   stdout "ods1.*KSK           ready.*$KSK_CKA_ID_2"
 echo "* Issue second DSSEEN" &&
 log_this ods-ksmutil-dsseen_2   ods-ksmutil key ds-seen --zone ods1 --cka_id  $KSK_CKA_ID_2 --no-notify &&
 log_grep ods-ksmutil-dsseen_2 stdout "No HUP ods-enforcerd was performed as the '--no-notify' flag was specified." &&
-log_grep ods-ksmutil-dsseen_2 stdout "Warning: The enforcer must be manually notified or the changes will not take effect until the next scheduled enforcer run." &&
+log_grep ods-ksmutil-dsseen_2 stdout "Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run." &&
 syslog_waitfor $SHORT_TIMEOUT   "ods-ksmutil: .*Key $KSK_CKA_ID_2 made active" &&
 # check the enforcer hasn't run
 sleep 10 &&
