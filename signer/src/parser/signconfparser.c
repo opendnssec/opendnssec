@@ -287,7 +287,7 @@ parse_sc_nsec3param_ttl(const char* cfgfile)
 {
     duration_type* duration = NULL;
     const char* str = parse_conf_string(cfgfile,
-        "//SignerConfiguration/Zone/NSEC3/TTL",
+        "//SignerConfiguration/Zone/Denial/NSEC3/TTL",
         0);
     if (!str) {
         return NULL;
