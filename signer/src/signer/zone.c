@@ -433,9 +433,9 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
         }
 
         /* Denial of Existence Rollover? */
-        if (denial_what == TASK_NSECIFY) {
+        if (denial_what != TASK_NONE) {
             status = ODS_STATUS_OK;
-            if (denial_what == TASK_NSECIFY && zone->nsec3params) {
+            if (zone->nsec3params) {
                 status = nsec3param_withdraw(zone, zone->nsec3params->rr);
             }
             if (status != ODS_STATUS_OK) {
@@ -445,13 +445,17 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
                 zonedata_rollback(zone->zonedata);
                 return status;
             }
-            /* or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3PARAM changed */
             nsec3params_cleanup(zone->nsec3params);
             zone->nsec3params = NULL;
-            /* all NSEC(3)s become invalid */
-            zonedata_wipe_denial(zone->zonedata);
-            zonedata_cleanup_chain(zone->zonedata);
-            zonedata_init_denial(zone->zonedata);
+            if (denial_what == TASK_NSECIFY) {
+                /**
+                 * Or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3 params changed.
+                 * All NSEC(3)s become invalid.
+                 */
+                zonedata_wipe_denial(zone->zonedata);
+                zonedata_cleanup_chain(zone->zonedata);
+                zonedata_init_denial(zone->zonedata);
+            }
         }
 
         /* all ok, switch to new signconf */
@@ -647,6 +651,8 @@ zone_prepare_nsec3(zone_type* zone, int recover)
         nsec3params_rr = ldns_rr_clone(zone->nsec3params->rr);
         status = zone_add_rr(zone, nsec3params_rr, 0);
     } else if (doe_rollover) {
+        uint32_t paramttl =
+            (uint32_t) duration2time(zone->signconf->nsec3param_ttl);
         nsec3params_rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
         if (!nsec3params_rr) {
             ods_log_error("[%s] unable to prepare zone %s for NSEC3: failed "
@@ -658,7 +664,7 @@ zone_prepare_nsec3(zone_type* zone, int recover)
         ods_log_assert(nsec3params_rr);
 
         ldns_rr_set_class(nsec3params_rr, zone->klass);
-        ldns_rr_set_ttl(nsec3params_rr, 0);
+        ldns_rr_set_ttl(nsec3params_rr, paramttl);
         ldns_rr_set_owner(nsec3params_rr, ldns_rdf_clone(zone->dname));
         ldns_nsec3_add_param_rdfs(nsec3params_rr,
             zone->nsec3params->algorithm, 0,
