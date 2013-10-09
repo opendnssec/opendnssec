@@ -1207,29 +1207,36 @@ zone_update_serial(zone_type* zone)
     ods_log_assert(zone->name);
 
     if (!zone->signconf) {
-        ods_log_error("[%s] unable to update serial: no signconf", zone_str);
+        ods_log_error("[%s] unable to update serial zone %s: no signconf",
+           zone_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->signconf);
 
     if (!zone->zonedata) {
-        ods_log_error("[%s] unable to update serial: no zonedata", zone_str);
+        ods_log_error("[%s] unable to update serial zone %s: no zonedata",
+            zone_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->zonedata);
 
     status = zonedata_update_serial(zone->zonedata, zone->signconf, zone->name);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to update serial: failed to increment",
-            zone_str);
+        ods_log_error("[%s] unable to update serial zone %s: failed to "
+            "increment (%s)", zone_str, zone->name, ods_status2str(status));
+        if (status == ODS_STATUS_CONFLICT_ERR) {
+            ods_log_error("[%s] If this is the result of a key rollover, "
+                "please increment the serial in the unsigned zone %s",
+                zone_str, zone->name);
+        }
         return status;
     }
 
     /* lookup domain */
     domain = zonedata_lookup_domain(zone->zonedata, zone->dname);
     if (!domain) {
-        ods_log_error("[%s] unable to update serial: apex not found",
-            zone_str);
+        ods_log_error("[%s] unable to update serial zone %s: apex not found",
+            zone_str, zone->name);
         return ODS_STATUS_ERR;
     }
     ods_log_assert(domain);
@@ -1237,8 +1244,8 @@ zone_update_serial(zone_type* zone)
     /* lookup RRset */
     rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
     if (!rrset) {
-        ods_log_error("[%s] unable to update serial: SOA RRset not found",
-            zone_str);
+        ods_log_error("[%s] unable to update serial zone %s: SOA RRset not found",
+            zone_str, zone->name);
         return ODS_STATUS_ERR;
     }
     ods_log_assert(rrset);
@@ -1255,8 +1262,8 @@ zone_update_serial(zone_type* zone)
             }
             ldns_rdf_deep_free(serial);
          } else {
-            ods_log_error("[%s] unable to update serial: failed to replace "
-                "SOA SERIAL rdata", zone_str);
+            ods_log_error("[%s] unable to update serial zone %s: failed to "
+                "replace SOA SERIAL rdata", zone_str, zone->name);
             return ODS_STATUS_ERR;
         }
     }
