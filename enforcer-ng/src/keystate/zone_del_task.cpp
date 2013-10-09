@@ -60,7 +60,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
 
 	std::string qzone;
     bool is_del_succeed = false;
-    if (*zone) {
+    if (strlen(zone) > 0) {
         if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
             const char *emsg = "quoting zone value failed";
             ods_log_error_and_printf(sockfd,module_str,emsg);
@@ -178,5 +178,23 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
     else {
         ods_log_debug("[%s] zone %s deleted successfully", module_str,qzone.c_str());
 	    ods_printf(sockfd, "zone %s deleted successfully\n",qzone.c_str());
+
+        OrmTransactionRW transaction(conn);
+		if (!transaction.started()) return;
+        OrmResultRef rows;
+        ::ods::keystate::EnforcerZone enfzone;
+        bool ok = OrmMessageEnum(conn, enfzone.descriptor(), rows);
+        if (!ok) {
+            transaction.rollback();
+            return;
+        }
+
+        if (!OrmFirst(rows)) {
+            ods_log_debug("[%s] there is no zone in the database", module_str);
+            ods_printf(sockfd, "there is no zone in the database\n");
+        }
+
+        rows.release();
+		transaction.commit();
     }
 }

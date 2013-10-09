@@ -216,7 +216,8 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
             }
         }
 
-        if (strstr(cmd, "zone delete") && !strstr(cmd, "--force")) {
+        if (strstr(cmd, "zone delete") && 
+                (!strstr(cmd, "--force") || !strstr(cmd, "-f"))) {
             printf("*WARNING* This will delete all zone data in database;"
                     "are you sure? [y/N] ");
 
