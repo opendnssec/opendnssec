@@ -109,6 +109,7 @@ nsec = element NSEC { empty }
 # This section is taken directly from the corresponding KASP policy
 # (except that the NSEC3 Salt is not optional)
 nsec3 = element NSEC3 {
+		ttl?,
 		element OptOut { empty }?,
 		element Hash {
 			algorithm,
