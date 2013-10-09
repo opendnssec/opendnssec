@@ -1,6 +1,8 @@
 $Id$
 
 OpenDNSSEC 1.4.3
+* SUPPORT-72: Improve logging when failed to increment serial in case 
+  of key rollover and serial value "keep" [OPENDNSSEC-461].
 
 
 OpenDNSSEC 1.4.2 - 2013-09-11

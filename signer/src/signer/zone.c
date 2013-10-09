@@ -502,6 +502,11 @@ zone_update_serial(zone_type* zone)
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to update zone %s soa serial: %s",
             zone_str, zone->name, ods_status2str(status));
+        if (status == ODS_STATUS_CONFLICT_ERR) {
+            ods_log_error("[%s] If this is the result of a key rollover, "
+                "please increment the serial in the unsigned zone %s",
+                zone_str, zone->name);
+        }
         ldns_rr_free(rr);
         return status;
     }
