@@ -262,11 +262,12 @@ duration2string(duration_type* duration)
         count = count + 1 + digits_in_number(duration->minutes);
         T = 1;
     }
-    if (duration->seconds > 0) {
+    if (duration->seconds > 0 ||
+        (!D && !duration->hours && !duration->minutes)) {
         count = count + 1 + digits_in_number(duration->seconds);
         T = 1;
     }
-    if (T || !D) {
+    if (T) {
         count++;
     }
 
@@ -302,7 +303,7 @@ duration2string(duration_type* duration)
         str = strncat(str, num, count+2);
         free((void*) num);
     }
-    if (T || !D) {
+    if (T) {
         str = strncat(str, "T", 1);
     }
     if (duration->hours > 0) {
