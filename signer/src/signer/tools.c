@@ -55,7 +55,6 @@ tools_signconf(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
     signconf_type* new_signconf = NULL;
-    task_id denial_what = TASK_NONE;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -63,9 +62,12 @@ tools_signconf(zone_type* zone)
     if (status == ODS_STATUS_OK) {
         ods_log_assert(new_signconf);
         /* Denial of Existence Rollover? */
-        denial_what = signconf_compare_denial(zone->signconf, new_signconf);
-        if (denial_what == TASK_NSECIFY) {
-            /* or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3PARAM changed */
+        if (signconf_compare_denial(zone->signconf, new_signconf)
+            == TASK_NSECIFY) {
+            /**
+             * Or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3 params changed.
+             * All NSEC(3)s become invalid.
+             */
             namedb_wipe_denial(zone->db);
             namedb_cleanup_denials(zone->db);
             namedb_init_denials(zone->db);

@@ -72,6 +72,7 @@ signconf_create(void)
     sc->sig_jitter = NULL;
     sc->sig_inception_offset = NULL;
     /* Denial of existence */
+    sc->nsec3param_ttl = NULL;
     sc->nsec_type = 0;
     sc->nsec3_optout = 0;
     sc->nsec3_algo = 0;
@@ -123,6 +124,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
         signconf->sig_inception_offset = parse_sc_sig_inception_offset(scfile);
         signconf->nsec_type = parse_sc_nsec_type(scfile);
         if (signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
+            signconf->nsec3param_ttl = parse_sc_nsec3param_ttl(scfile);
             signconf->nsec3_optout = parse_sc_nsec3_optout(scfile);
             signconf->nsec3_algo = parse_sc_nsec3_algorithm(scfile);
             signconf->nsec3_iterations = parse_sc_nsec3_iterations(scfile);
@@ -208,7 +210,7 @@ signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
 {
     char* str = duration2string(duration);
     fprintf(fd, "%s %s ", opt, str);
-    free((void*) str);
+    free((void*) str?str:"(null)");
     return;
 }
 
@@ -380,6 +382,8 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
             (a->nsec3_optout != b->nsec3_optout)) {
 
             new_task = TASK_NSECIFY;
+        } else if (duration_compare(a->nsec3param_ttl, b->nsec3param_ttl)) {
+           new_task = TASK_READ;
         }
     }
     return new_task;
@@ -430,6 +434,11 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
             fprintf(out, "\t\t\t<NSEC />\n");
         } else if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
             fprintf(out, "\t\t\t<NSEC3>\n");
+            if (sc->nsec3param_ttl) {
+                s = duration2string(sc->nsec3param_ttl);
+                fprintf(out, "\t\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
+                free((void*)s);
+            }
             if (sc->nsec3_optout) {
                 fprintf(out, "\t\t\t\t<OptOut />\n");
             }
@@ -489,6 +498,7 @@ signconf_log(signconf_type* sc, const char* name)
     char* dnskeyttl = NULL;
     char* soattl = NULL;
     char* soamin = NULL;
+    char* paramttl = NULL;
 
     if (sc) {
         resign = duration2string(sc->sig_resign_interval);
@@ -498,23 +508,36 @@ signconf_log(signconf_type* sc, const char* name)
         jitter = duration2string(sc->sig_jitter);
         offset = duration2string(sc->sig_inception_offset);
         dnskeyttl = duration2string(sc->dnskey_ttl);
+        paramttl = duration2string(sc->nsec3param_ttl);
         soattl = duration2string(sc->soa_ttl);
         soamin = duration2string(sc->soa_min);
         /* signconf */
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
             "VALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
-            sc_str, name?name:"(null)", resign?resign:"(null)",
-            refresh?refresh:"(null)", validity?validity:"(null)",
-            denial?denial:"(null)", jitter?jitter:"(null)",
-            offset?offset:"(null)", (int) sc->nsec_type,
-            dnskeyttl?dnskeyttl:"(null)", soattl?soattl:"(null)",
-            soamin?soamin:"(null)", sc->soa_serial?sc->soa_serial:"(null)");
+            sc_str,
+            name?name:"(null)",
+            resign?resign:"(null)",
+            refresh?refresh:"(null)",
+            validity?validity:"(null)",
+            denial?denial:"(null)",
+            jitter?jitter:"(null)",
+            offset?offset:"(null)",
+            (int) sc->nsec_type,
+            dnskeyttl?dnskeyttl:"(null)",
+            soattl?soattl:"(null)",
+            soamin?soamin:"(null)",
+            sc->soa_serial?sc->soa_serial:"(null)");
         /* nsec3 parameters */
         if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            ods_log_debug("[%s] zone %s nsec3: OPTOUT[%i] ALGORITHM[%u] "
-                "ITERATIONS[%u] SALT[%s]", sc_str, name, sc->nsec3_optout,
-                sc->nsec3_algo, sc->nsec3_iterations,
+            ods_log_debug("[%s] zone %s nsec3: PARAMTTL[%s] OPTOUT[%i] "
+                "ALGORITHM[%u] ITERATIONS[%u] SALT[%s]",
+                sc_str,
+                name?name:"(null)",
+                paramttl?paramttl:"PT0S",
+                sc->nsec3_optout,
+                sc->nsec3_algo,
+                sc->nsec3_iterations,
                 sc->nsec3_salt?sc->nsec3_salt:"(null)");
         }
         /* keys */
@@ -527,6 +550,7 @@ signconf_log(signconf_type* sc, const char* name)
         free((void*)jitter);
         free((void*)offset);
         free((void*)dnskeyttl);
+        free((void*)paramttl);
         free((void*)soattl);
         free((void*)soamin);
     }
