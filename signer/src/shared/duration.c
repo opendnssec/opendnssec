@@ -230,7 +230,7 @@ duration2string(duration_type* duration)
 {
     char* str = NULL, *num = NULL;
     size_t count = 2;
-    int T = 0;
+    int T = 0, D = 0;
 
     if (!duration) {
         return NULL;
@@ -238,15 +238,19 @@ duration2string(duration_type* duration)
 
     if (duration->years > 0) {
         count = count + 1 + digits_in_number(duration->years);
+        D = 1;
     }
     if (duration->months > 0) {
         count = count + 1 + digits_in_number(duration->months);
+        D = 1;
     }
     if (duration->weeks > 0) {
         count = count + 1 + digits_in_number(duration->weeks);
+        D = 1;
     }
     if (duration->days > 0) {
         count = count + 1 + digits_in_number(duration->days);
+        D = 1;
     }
     if (duration->hours > 0) {
         count = count + 1 + digits_in_number(duration->hours);
@@ -260,7 +264,7 @@ duration2string(duration_type* duration)
         count = count + 1 + digits_in_number(duration->seconds);
         T = 1;
     }
-    if (T) {
+    if (T || !D) {
         count++;
     }
 
@@ -312,7 +316,7 @@ duration2string(duration_type* duration)
             goto duration2string_num_calloc_failed;
         }
     }
-    if (T) {
+    if (T || !D) {
         str = strncat(str, "T", 1);
     }
     if (duration->hours > 0) {
@@ -337,7 +341,8 @@ duration2string(duration_type* duration)
             goto duration2string_num_calloc_failed;
         }
     }
-    if (duration->seconds > 0) {
+    if (duration->seconds > 0 ||
+        (!D && !duration->hours && !duration->minutes)) {
         count = digits_in_number(duration->seconds);
         num = (char*) calloc(count+2, sizeof(char));
         if (num) {
