@@ -212,7 +212,9 @@ digits_in_number(time_t duration)
 {
     uint32_t period = (uint32_t) duration;
     size_t count = 0;
-
+    if (!period) {
+        return 1;
+    }
     while (period > 0) {
         count++;
         period /= 10;
@@ -260,11 +262,12 @@ duration2string(duration_type* duration)
         count = count + 1 + digits_in_number(duration->minutes);
         T = 1;
     }
-    if (duration->seconds > 0) {
+    if (duration->seconds > 0 ||
+        (!D && !duration->hours && !duration->minutes)) {
         count = count + 1 + digits_in_number(duration->seconds);
         T = 1;
     }
-    if (T || !D) {
+    if (T) {
         count++;
     }
 
@@ -316,7 +319,7 @@ duration2string(duration_type* duration)
             goto duration2string_num_calloc_failed;
         }
     }
-    if (T || !D) {
+    if (T) {
         str = strncat(str, "T", 1);
     }
     if (duration->hours > 0) {
