@@ -5,7 +5,9 @@ OpenDNSSEC 1.4.3
   of key rollover and serial value "keep" [OPENDNSSEC-461].
 
 Bugfixes:
-* OPENDNSSEC-463: Duration PT0S is not printed correctly.
+* OPENDNSSEC-463: Signer Engine: Duration PT0S is now printed correctly.
+* OPENDNSSEC-467: Signer Engine: After ods-signer clear, signer should not use
+  inbound serial.
 
 
 OpenDNSSEC 1.4.2 - 2013-09-11

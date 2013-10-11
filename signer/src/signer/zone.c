@@ -964,6 +964,7 @@ zone_recover2(zone_type* zone)
         free((void*)filename);
         ods_fclose(fd);
         zone->db->is_initialized = 1;
+        zone->db->have_serial = 1;
         /* journal */
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
         if (filename) {

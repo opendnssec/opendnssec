@@ -432,6 +432,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->db->inbserial = inbserial;
         zone->db->intserial = intserial;
         zone->db->outserial = outserial;
+        zone->db->have_serial = 1;
 
         task = (task_type*) zone->task;
         task->what = TASK_SIGNCONF;

@@ -158,6 +158,7 @@ namedb_create(void* zone)
     db->outserial = 0;
     db->altserial = 0;
     db->is_initialized = 0;
+    db->have_serial = 0;
     db->is_processed = 0;
     db->serial_updated = 0;
     db->force_serial = 0;
@@ -206,7 +207,7 @@ namedb_update_serial(namedb_type* db, const char* zone_name, const char* format,
         return ODS_STATUS_ASSERT_ERR;
     }
     prev = max(db->outserial, inbound_serial);
-    if (!db->is_initialized) {
+    if (!db->have_serial) {
         prev = inbound_serial;
     }
     ods_log_debug("[%s] zone %s update serial: format=%s in=%u internal=%u "
@@ -227,7 +228,7 @@ namedb_update_serial(namedb_type* db, const char* zone_name, const char* format,
     } else if (ods_strcmp(format, "unixtime") == 0) {
         soa = (uint32_t) time_now();
         if (!util_serial_gt(soa, prev)) {
-            if (!db->is_initialized) {
+            if (!db->have_serial) {
                 ods_log_warning("[%s] zone %s unable to use unixtime as serial: "
                     "%u does not increase %u. Serial set to %u", db_str,
                     zone_name, soa, prev, (prev+1));
@@ -237,7 +238,7 @@ namedb_update_serial(namedb_type* db, const char* zone_name, const char* format,
     } else if (ods_strcmp(format, "datecounter") == 0) {
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
         if (!util_serial_gt(soa, prev)) {
-            if (!db->is_initialized) {
+            if (!db->have_serial) {
                 ods_log_warning("[%s] zone %s unable to use datecounter as "
                     "serial: %u does not increase %u. Serial set to %u", db_str,
                     zone_name, soa, prev, (prev+1));
@@ -246,13 +247,13 @@ namedb_update_serial(namedb_type* db, const char* zone_name, const char* format,
         }
     } else if (ods_strcmp(format, "counter") == 0) {
         soa = inbound_serial + 1;
-        if (db->is_initialized && !util_serial_gt(soa, prev)) {
+        if (db->have_serial && !util_serial_gt(soa, prev)) {
             soa = prev + 1;
         }
     } else if (ods_strcmp(format, "keep") == 0) {
         prev = db->outserial;
         soa = inbound_serial;
-        if (db->is_initialized && !util_serial_gt(soa, prev)) {
+        if (db->have_serial && !util_serial_gt(soa, prev)) {
             ods_log_error("[%s] zone %s cannot keep SOA SERIAL from input zone "
                 " (%u): previous output SOA SERIAL is %u", db_str, zone_name,
                 soa, prev);
@@ -268,7 +269,7 @@ namedb_update_serial(namedb_type* db, const char* zone_name, const char* format,
     if (update > 0x7FFFFFFF) {
         update = 0x7FFFFFFF;
     }
-    if (!db->is_initialized) {
+    if (!db->have_serial) {
         db->intserial = soa;
     } else {
         db->intserial = prev + update; /* automatically does % 2^32 */

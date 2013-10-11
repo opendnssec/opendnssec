@@ -210,6 +210,7 @@ tools_output(zone_type* zone, engine_type* engine)
     }
     zone->db->outserial = zone->db->intserial;
     zone->db->is_initialized = 1;
+    zone->db->have_serial = 1;
     lock_basic_lock(&zone->ixfr->ixfr_lock);
     ixfr_purge(zone->ixfr);
     lock_basic_unlock(&zone->ixfr->ixfr_lock);
