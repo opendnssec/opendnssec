@@ -30,6 +30,7 @@
 
 		<Denial>
 			<NSEC3>
+				<!-- <TTL>PT0S</TTL> -->
 				<!-- <OptOut/> -->
 				<Resalt>P100D</Resalt>
 				<Hash>

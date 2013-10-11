@@ -144,6 +144,9 @@ serial = element Serial {
 nsec = element NSEC { empty }
 
 nsec3 = element NSEC3 {
+	# what value for NSEC3PARAM TTL to use? Default 0.
+	ttl?,
+
 	# use global NSEC3 opt-out?
 	element OptOut { empty }?,
 
