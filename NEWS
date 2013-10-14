@@ -6,6 +6,8 @@ OpenDNSSEC 1.4.3
 
 Bugfixes:
 * OPENDNSSEC-463: Signer Engine: Duration PT0S is now printed correctly.
+* OPENDNSSEC-466: Signer Engine: Created bad TSIG signature when falling back to
+  AXFR.
 * OPENDNSSEC-467: Signer Engine: After ods-signer clear, signer should not use
   inbound serial.
 
