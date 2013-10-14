@@ -651,7 +651,7 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         ods_log_assert(q->zone->name);
         ods_log_debug("[%s] incoming axfr request for zone %s",
             query_str, q->zone->name);
-        return axfr(q, engine);
+        return axfr(q, engine, 0);
     }
     /* (soa) query */
     if (qtype == LDNS_RR_TYPE_SOA) {
