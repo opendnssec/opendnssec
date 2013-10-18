@@ -315,21 +315,14 @@ int handled_notify_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t
 
     ods_log_assert(engine);
 
-    if (restart_enforcerd() != 0) {
-		(void)snprintf(buf, ODS_SE_MAXLINE, "Could not HUP ods-enforcerd\n");
-	}else{
-		 (void)snprintf(buf, ODS_SE_MAXLINE, "HUP ods-enforcerd success\n");
-	}
+    kill(engine->pid, SIGHUP);
+
+	(void)snprintf(buf, ODS_SE_MAXLINE, "HUP ods-enforcerd success\n");
+
     ods_writen(sockfd, buf, strlen(buf));
 	return 1;
 }
 
-int restart_enforcerd()
-{
-	/* ToDo: This should really be rewritten so that it will read
-	   OPENDNSSEC_ENFORCER_PIDFILE and send a SIGHUP itself */
-	return system(ODS_EN_NOTIFY);
-}
 
 /**
  * Handle the 'start' command.

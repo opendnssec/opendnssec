@@ -323,6 +323,13 @@
 		A7E70DC9134C408F00B13EA0 /* enforce_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = enforce_task.cpp; sourceTree = "<group>"; };
 		A7E70DCA134C408F00B13EA0 /* enforce_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforce_task.h; sourceTree = "<group>"; };
 		A7E70DCB134C408F00B13EA0 /* enforce_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enforce_cmd.h; sourceTree = "<group>"; };
+		
+		A7E70DCB134C408F00B13EA0 /* update_conf_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_conf_cmd.cpp; sourceTree = "<group>"; };
+		A7E70DCB134C408F00B13EA0 /* update_conf_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_conf_cmd.h; sourceTree = "<group>"; };
+		A7E70DCB134C408F00B13EA0 /* update_conf_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_conf_task.cpp; sourceTree = "<group>"; };
+		A7E70DCB134C408F00B13EA0 /* update_conf_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_conf_task.h; sourceTree = "<group>"; };
+				
+		
 		A7E70DE8134DC62F00B13EA0 /* update_kasp_cmd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = update_kasp_cmd.h; sourceTree = "<group>"; };
 		A7E70DE9134DC62F00B13EA0 /* update_kasp_task.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_kasp_task.cpp; sourceTree = "<group>"; };
 		A7E70DEA134DC62F00B13EA0 /* update_kasp_cmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = update_kasp_cmd.cpp; sourceTree = "<group>"; };

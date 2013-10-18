@@ -50,7 +50,8 @@ case "$DISTRIBUTION" in
 				--with-dbname=opendnssec-build-test \
 				--enable-timeshift &&
 			$MAKE &&
-			$MAKE check &&
+	#		$MAKE check &&
+			$MAKE clean &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
