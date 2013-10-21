@@ -631,7 +631,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 
 	/* For all policies, check that the "Re-sign" interval is less 
 	 * than the "Refresh" interval. */
-	if (refresh <= resign) {
+	if (refresh && refresh <= resign) {
 		dual_log("ERROR: The Refresh interval (%d seconds) for "
 				"%s Policy in %s is less than or equal to the Resign interval "
 				"(%d seconds)\n", refresh, policy_name, kasp, resign);
