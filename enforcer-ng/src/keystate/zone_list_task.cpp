@@ -52,73 +52,41 @@ void
 perform_zone_list(int sockfd, engineconfig_type *config)
 {
 	const char *zonelistfile = config->zonelist_filename;
-
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
-
+	::ods::keystate::EnforcerZone zone;
+	OrmResultRef rows;
 	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn))
-		return; // error already reported.
-
-	{
-		::ods::keystate::EnforcerZone zone;
-		
-		{	OrmResultRef rows;
-			if (!OrmMessageEnum(conn, zone.descriptor(),rows)) {
-				const char *errmsg = "failure during zone enumeration";
-				ods_log_error_and_printf(sockfd,module_str,errmsg);
-				return;
+	const char* fmt = "%-31s %-13s %-26s %-34s\n";
+	char nctime[32];
+	
+	if (!ods_orm_connect(sockfd, config, conn)) return;
+	if (!OrmMessageEnum(conn, zone.descriptor(),rows)) {
+		ods_log_error_and_printf(sockfd, module_str,
+			"failure during zone enumeration");
+		return;
+	}
+	ods_printf(sockfd, "Zonelist filename set to: %s\n"
+		"Database set to: %s\n", zonelistfile, config->datastore);
+	if (!OrmFirst(rows)) {
+		ods_printf(sockfd, "I have no zones configured\n");
+		return;
+	}
+	ods_printf(sockfd, "Zones:\n");
+	ods_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:", 
+		"Signer Configuration:");
+	for (bool next=true; next; next=OrmNext(rows)) {
+		if (!OrmGetMessage(rows, zone, false)) return;
+		if (zone.next_change() > 0) {
+			if (!ods_ctime_r(nctime, sizeof nctime, zone.next_change())) {
+				strncpy(nctime, "invalid date/time", sizeof nctime);
+				nctime[sizeof nctime - 1] = '\0';
 			}
-			
-			if (!OrmFirst(rows)) {
-				ods_printf(sockfd,
-						   "Zonelist filename set to: %s\n"
-						   "Database set to: %s\n"
-						   "I have no zones configured\n",
-						   zonelistfile,
-						   config->datastore);
-				return;
-			}
-
-			//TODO: SPEED: what if there are milions of zones ?
-			
-			ods_printf(sockfd,
-                       "Zonelist filename set to: %s\n"
-                       "Database set to: %s\n"
-//                       "I have %i zones configured\n"
-                       "Zones:\n"
-                       "Zone:                           "
-                       "Policy:       "
-                       "Next change:               "
-                       "Signer Configuration:"
-                       "\n",
-                       zonelistfile,
-					   config->datastore //,nzones
-                       );
-			
-			for (bool next=true; next; next=OrmNext(rows)) {
-				if (!OrmGetMessage(rows, zone, false))
-					return;
-				
-				char nctime[32];
-				if (zone.next_change()>0) {
-					if (!ods_ctime_r(nctime,sizeof(nctime),zone.next_change())) {
-						strncpy(nctime,"invalid date/time",sizeof(nctime));
-						nctime[sizeof(nctime)-1] = '\0';
-					}
-				} else {
-					strncpy(nctime,"as soon as possible",sizeof(nctime));
-					nctime[sizeof(nctime)-1] = '\0';
-				}
-				ods_printf(sockfd,
-						   "%-31s %-13s %-26s %-34s\n",
-						   zone.name().c_str(),
-						   zone.policy().c_str(),
-						   nctime,
-						   zone.signconf_path().c_str()
-						   );
-			}
-        }
-    }
-
-    ods_log_debug("[%s] zone list completed", module_str);
+		} else {
+			strncpy(nctime, "as soon as possible", sizeof nctime);
+			nctime[sizeof(nctime)-1] = '\0';
+		}
+		ods_printf(sockfd, fmt, zone.name().c_str(), zone.policy().c_str(),
+			nctime, zone.signconf_path().c_str());
+	}
+	ods_log_debug("[%s] zone list completed", module_str);
 }
