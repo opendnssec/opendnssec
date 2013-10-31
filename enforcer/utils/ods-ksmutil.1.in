@@ -110,8 +110,8 @@ The \-\-zone option names the zone to add; the \-\-policy option names
 the policy to use instead of default; the \-\-in\-type and \-\-out\-type
 specify the type of input and output adapters (default is File); the \-\-input option specifies a
 non\-standard location for the unsigned zone (default is 
-@OPENDNSSEC_STATE_DIR@/unsigned/ZONE); the \-\-output option specifies a non\-standard 
-location for the signed zone (default is @OPENDNSSEC_STATE_DIR@/signed/ZONE).
+@OPENDNSSEC_STATE_DIR@/unsigned/ZONE) or the DNS input file(default is @OPENDNSSEC_CONFIG_DIR@/addns.xml); the \-\-output option specifies a non\-standard 
+location for the signed zone (default is @OPENDNSSEC_STATE_DIR@/signed/ZONE) or the DNS output file(default is @OPENDNSSEC_CONFIG_DIR@/addns.xml).
 The \-\-no\-xml flag stops the zonelist.xml file from being updated. This is
 suitable for a batch mode where you will add multiple zones and then just write
 zonelist once at the end.
@@ -155,7 +155,7 @@ policy. If the optional parameter \-\-zonetotal is specified then keys will be
 generated for that total number of zones, regardless of how many are actually
 currently on the policy.
 .TP
-.B key import \-\-algorithm|\-g \fIalgname\fB \-\-bits|\-b \fIbits\fB \-\-repository|\-r \fIrepo\fB \-\-cka_id|\-k \fIckaid\fB \-\-zone|\-z \fIzone\fB \-\-keytype|\-t \fItype\fB \-\-keystate|\-e \fIstate\fB \-\-time|\-w \fItime\fB [\-\-retire|\-y \fItime\fB]
+.B key import \-\-algorithm|\-g \fIalgname\fB \-\-bits|\-b \fIbits\fB \-\-repository|\-r \fIrepo\fB \-\-cka_id|\-k \fIckaid\fB \-\-zone|\-z \fIzone\fB \-\-keytype|\-t \fItype\fB \-\-keystate|\-e \fIstate\fB \-\-time|\-w \fItime\fB [\-\-check\-hsm|\-C \fIcheckhsm\fB] [\-\-retire|\-y \fItime\fB]
 Add a key which was created outside of the OpenDNSSEC code into the database.
 In doing so, the further details involved in key management must be specified
 in options.
@@ -173,6 +173,7 @@ introduction to these terms.
 The \-\-keystate option specifies the state in which the key will be after
 import, and must be one of the options defined in the KEY STATES section below.
 the \-\-time option specifies the time that this key was created;
+the \-\-check\-hsm option specified that the key import should fail if no matching key with the specified cka_id exists in the HSM.
 the \-\-retire option specifies the time that this key should be retired. These last two options take the formats given in the TIME FORMATS section below.
 .TP
 .B key export \-\-zone|\-z \fIname\fB [\-\-keystate|\-e \fIstate\fB] [\-\-keytype|\-t \fItype\fB] [\-\-ds]
