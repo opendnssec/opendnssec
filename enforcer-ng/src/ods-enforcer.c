@@ -127,6 +127,7 @@ interface_run(const int sockfd, const char* cmd)
                         ret = 0;
                         continue; /* try again... */
                     }
+                    if (errno == EPIPE ) return 0;
                     fprintf(stderr, "error writing to stdout: %s\n",
                         strerror(errno));
                     return 1; /*  */
