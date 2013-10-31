@@ -89,8 +89,8 @@ log_grep ods-ksmutil-zone_add   stdout "WARNING: The output file $INSTALL_ROOT/e
 
 echo && 
 echo "************OK******************" &&
-echo 
-return 1
+echo &&
+return 0
 
 echo
 echo "************ERROR******************"

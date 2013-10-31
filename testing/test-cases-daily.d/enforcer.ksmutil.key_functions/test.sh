@@ -139,7 +139,7 @@ log_grep ods-ksmutil-key-purge stdout "Key remove successful:" &&
 
 echo && 
 echo "************OK******************" &&
-echo 
+echo &&
 return 0
 
 echo

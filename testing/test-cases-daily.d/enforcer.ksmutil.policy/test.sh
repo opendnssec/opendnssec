@@ -2,9 +2,10 @@
 
 #TEST: Test to check that policy import/export/list works correctly
 #TODO: we need to check the command ods-ksmutil policy purge later
-#if [ -n "$HAVE_MYSQL" ]; then
-#	ods_setup_conf conf.xml conf-mysql.xml
-#fi &&
+
+if [ -n "$HAVE_MYSQL" ]; then
+	ods_setup_conf conf.xml conf-mysql.xml
+fi &&
 
 ods_reset_env &&
 
