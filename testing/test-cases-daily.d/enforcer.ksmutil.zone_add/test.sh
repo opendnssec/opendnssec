@@ -84,13 +84,13 @@ log_grep ods-ksmutil-zone_add   stdout "WARNING: The input file $INSTALL_ROOT/et
 
 #6. Test none exist output file in the case of --out-type DNS
 mv $INSTALL_ROOT/etc/opendnssec/addns.xml.backup $INSTALL_ROOT/etc/opendnssec/addns.xml &&
-! log_this ods-ksmutil-zone_add   ods-ksmutil zone add --zone ods13 --input $INSTALL_ROOT/etc/opendnssec/addns.xml --in-type DNS --out-type DNS --output $INSTALL_ROOT/etc/opendnssec/addns1.xml --signerconf $INSTALL_ROOT/var/opendnssec/signconf/ods13.xml &&
-log_grep ods-ksmutil-zone_add   stdout "couldn't find output file: $INSTALL_ROOT/etc/opendnssec/addns1.xml" &&
+log_this ods-ksmutil-zone_add   ods-ksmutil zone add --zone ods13 --input $INSTALL_ROOT/etc/opendnssec/addns.xml --in-type DNS --out-type DNS --output $INSTALL_ROOT/etc/opendnssec/addns1.xml --signerconf $INSTALL_ROOT/var/opendnssec/signconf/ods13.xml &&
+log_grep ods-ksmutil-zone_add   stdout "WARNING: The output file $INSTALL_ROOT/etc/opendnssec/addns1.xml for zone ods13 does not currently exist." &&
 
 echo && 
 echo "************OK******************" &&
 echo 
-return 0
+return 1
 
 echo
 echo "************ERROR******************"
