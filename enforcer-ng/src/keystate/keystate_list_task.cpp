@@ -46,8 +46,134 @@
 
 static const char *module_str = "keystate_list_task";
 
+enum {KSK = 1, ZSK, CSK};
+enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_DEA, KS_UNK, KS_MIX};
+const char* statenames[] = {"generated", "published", "ready", 
+		"active", "retired", "dead", "unknown", "mixed"};
+enum {DS_NSUB, DS_SUBM, DS_SBMD, DS_SEEN, DS_RETR, DS_RTRD};
+
+/** Map 2.0 states to 1.x states
+ * @param p: state of RR higher in the chain (e.g. DS)
+ * @param c: state of RR lower in the chain (e.g. DNSKEY)
+ * @param introducing: key goal
+ * @return: state in 1.x speak
+ **/
+int keystate(int p, int c, int introducing)
+{
+	enum { HID = 0, RUM, OMN, UNR, NAV };
+	if (introducing) {
+		if (p == HID && c == HID) return KS_GEN;
+		if (p == HID || c == HID) return KS_PUB;
+		if (p == OMN && c == OMN) return KS_ACT;
+		if (p == RUM || c == RUM) return KS_RDY;
+		return KS_UNK;
+	} else {
+		if (p == HID && c == HID) return KS_DEA;
+		if (p == UNR || c == UNR) return KS_RET;
+		if (p == OMN && c == OMN) return KS_ACT;
+		return KS_RET;
+	}
+}
+int zskstate(const ::ods::keystate::KeyData &key)
+{
+	return keystate(key.dnskey().state(), key.rrsig().state(),
+		key.introducing());
+}
+int kskstate(const ::ods::keystate::KeyData &key)
+{
+	return keystate(key.ds().state(), key.dnskey().state(),
+		key.introducing());
+}
+
+/** Human readable keystate in 1.x speak
+ * @param key: key to evaluate
+ * @return: state as string
+ **/
+const char*
+map_keystate(const ::ods::keystate::KeyData &key)
+{
+	int z,k;
+	switch(key.role()) {
+		case KSK: return statenames[kskstate(key)];
+		case ZSK: return statenames[zskstate(key)];
+		case CSK:
+			k = kskstate(key);
+			z = zskstate(key);
+			if (k != z) return statenames[KS_MIX];
+			return statenames[k];
+	}
+	statenames[KS_UNK];
+}
+
+/** Time of next transition. Caller responsible for freeing ret
+ * @param zone: zone key belongs to
+ * @param key: key to evaluate
+ * @return: human readable transition time/event */
+char*
+map_keytime(::ods::keystate::EnforcerZone zone, 
+	const ::ods::keystate::KeyData &key)
+{
+	switch(key.ds_at_parent()) {
+		case DS_SUBM: return strdup("waiting for ds-submit");
+		case DS_SBMD: return strdup("waiting for ds-seen");
+		case DS_RETR: return strdup("waiting for ds-retract");
+		case DS_RTRD: return strdup("waiting for ds-gone");
+	}
+	if ((signed int)zone.next_change() < 0)
+		return strdup("-");
+
+	char ct[26];
+	struct tm srtm;
+	time_t t = (time_t)zone.next_change();
+	localtime_r(&t, &srtm);
+	strftime(ct, 26, "%Y-%m-%d %H:%M:%S", &srtm);
+	return strdup(ct);
+}
+
 void 
-perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
+perform_keystate_list_compat(int sockfd, engineconfig_type* config)
+{
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	::ods::keystate::EnforcerZone zone;
+	OrmResultRef rows;
+	const char* fmt = "%-31s %-8s %-9s %-30s\n";
+
+	if (!ods_orm_connect(sockfd, config, conn))
+		return;
+	OrmTransaction transaction(conn);
+	
+	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
+		ods_log_error("[%s] error enumerating zones", module_str);
+		ods_printf(sockfd, "error enumerating zones\n");
+		return;
+	}
+	
+	ods_printf(sockfd, "Keys:\n");
+	ods_printf(sockfd, fmt, "Zone:", "Keytype:", "State:", 
+		"Date of next transition:");
+
+	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		if (!OrmGetMessage(rows, zone, true)) {
+			ods_log_error("[%s] error reading zone", module_str);
+			ods_printf(sockfd, "error reading zone\n");
+			return;
+		}
+			
+		for (int k=0; k<zone.keys_size(); ++k) {
+			const ::ods::keystate::KeyData &key = zone.keys(k);
+			std::string keyrole = keyrole_Name(key.role());
+			const char* state = map_keystate(key);
+			char* tchange = map_keytime(zone, key);
+			ods_printf(sockfd, fmt, zone.name().c_str(),
+				keyrole.c_str(), state, tchange);
+			free(tchange);
+		}
+	}
+}
+
+void 
+perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -65,7 +191,7 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
 		::ods::keystate::EnforcerZone zone;
 		
 		{	OrmResultRef rows;
-			if (!OrmMessageEnum(conn, zone.descriptor(),rows)) {
+			if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 				ods_log_error("[%s] error enumerating zones", module_str);
 				ods_printf(sockfd, "error enumerating zones\n");
 				return;
@@ -120,3 +246,11 @@ perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
     }
 }
 
+void 
+perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
+{
+	if (bverbose)
+		perform_keystate_list_verbose(sockfd, config);
+	else
+		perform_keystate_list_compat(sockfd, config);
+}

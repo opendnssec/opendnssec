@@ -46,7 +46,7 @@ void help_keystate_list_cmd(int sockfd)
 {
     ods_printf(sockfd,
         "key list        list all the keys used by a zone\n"
-//        "  --verbose     (aka -v) also show the id for every key.\n"
+        "  --verbose     (aka -v) also show the id for every key.\n"
         );
 }
 
