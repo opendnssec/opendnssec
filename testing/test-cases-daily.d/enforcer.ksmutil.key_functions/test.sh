@@ -14,11 +14,12 @@ if [ -n "$HAVE_MYSQL" ]; then
 else 
         ods_setup_conf conf.xml conf.xml
 fi &&
-#case "$DISTRIBUTION" in
-#	freebsd )
-#		return 0
-#		;;
-#esac
+
+case "$DISTRIBUTION" in
+	freebsd )
+		return 0
+		;;
+esac
 
 ods_reset_env &&
 
