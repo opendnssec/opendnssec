@@ -100,9 +100,9 @@ log_grep ods-ksmutil-check-1   stdout "$CKA_ID" &&
 log_this ods-ksmutil-key-import ods-ksmutil key import --cka_id 123456 --repository SoftHSM --bits 2048 --algorithm 5 --keystate 2 --keytype ZSK  --zone ods --time "2013-08-29 14:17:28" &&
 log_grep ods-ksmutil-key-import stdout "Warning: No key with the CKA_ID 123456                            exists in the repository SoftHSM. The key will be imported into the database anyway" &&
 
-# use the option --check-hsm
-! log_this ods-ksmutil-key-import ods-ksmutil key import --cka_id 654321 --repository SoftHSM --bits 2048 --algorithm 5 --keystate 2 --keytype ZSK  --zone ods --time "2013-08-29 14:17:28" --check-hsm &&
-log_grep ods-ksmutil-key-import stdout "Error: No key with the CKA_ID 654321                            exists in the repository SoftHSM. When the option [--check-hsm] is used the key MUST exist in the hsm for the key to be imported" &&
+# use the option --check-repository
+! log_this ods-ksmutil-key-import ods-ksmutil key import --cka_id 654321 --repository SoftHSM --bits 2048 --algorithm 5 --keystate 2 --keytype ZSK  --zone ods --time "2013-08-29 14:17:28" --check-repository &&
+log_grep ods-ksmutil-key-import stdout "Error: No key with the CKA_ID 654321                            exists in the repository SoftHSM. When the option [--check-repository] is used the key MUST exist in the repository for the key to be imported" &&
 
 ! log_this ods-ksmutil-key-import ods-ksmutil key import --cka_id 123 --repository SoftHSM_1 --bits 2048 --algorithm 5 --keystate 2 --keytype ZSK  --zone ods --time "2013-08-29 14:17:28" &&
 log_grep ods-ksmutil-key-import   stdout "Error: unable to find a repository named \"SoftHSM1_1\" in database" &&

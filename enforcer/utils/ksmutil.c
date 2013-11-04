@@ -124,7 +124,7 @@ static int xml_flag = 1;
 static int td_flag = 0;
 static int force_flag = 0;
 static int hsm_flag = 1;
-static int check_hsm_flag = 0;
+static int check_repository_flag = 0;
 
 static int restart_enforcerd(void);
 
@@ -306,7 +306,7 @@ usage_keyimport ()
             "\t--keystate <state>                       aka -e\n"
             "\t--keytype <type>                         aka -t\n"
             "\t--time <time>                            aka -w\n"
-    		"\t[--check-hsm]                            aka -C\n"
+    		"\t[--check-repository]                     aka -C\n"
             "\t[--retire <retire>]                      aka -y\n");
 }
 
@@ -3164,8 +3164,8 @@ cmd_import ()
 	key = hsm_find_key_by_id(NULL, o_cka_id);
 	hsm_close();
 	if (!key) {
-		if(check_hsm_flag){
-			printf("Error: No key with the CKA_ID %-33s exists in the repository %s. When the option [--check-hsm] is used the key MUST exist in the hsm for the key to be imported. \n", o_cka_id,o_repository);
+		if(check_repository_flag){
+			printf("Error: No key with the CKA_ID %-33s exists in the repository %s. When the option [--check-repository] is used the key MUST exist in the repository for the key to be imported. \n", o_cka_id,o_repository);
 			return(1);
 		}else{
 			printf("Warning: No key with the CKA_ID %-33s exists in the repository %s. The key will be imported into the database anyway. \n", o_cka_id,o_repository);
@@ -3767,7 +3767,7 @@ main (int argc, char *argv[])
         {"auto-accept", no_argument,   0, 'A'},
         {"bits",    required_argument, 0, 'b'},
         {"config",  required_argument, 0, 'c'},
-        {"check-hsm", no_argument,     0, 'C'},
+        {"check-repository", no_argument,     0, 'C'},
         {"ds",      no_argument,       0, 'd'},
         {"keystate", required_argument, 0, 'e'},
         {"no-retire", no_argument,       0, 'f'},
@@ -3813,7 +3813,7 @@ main (int argc, char *argv[])
                 config = StrStrdup(optarg);
                 break;
             case 'C':
-            	check_hsm_flag = 1;
+            	check_repository_flag = 1;
             	break;
             case 'd':
                 ds_flag = 1;
