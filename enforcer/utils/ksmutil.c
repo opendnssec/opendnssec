@@ -121,6 +121,7 @@ static int verbose_flag = 0;
 static int xml_flag = 1;
 static int td_flag = 0;
 static int force_flag = 0;
+static int check_repository_flag = 0;
 
 static int restart_enforcerd(void);
 
@@ -300,6 +301,7 @@ usage_keyimport ()
             "\t--keystate <state>                       aka -e\n"
             "\t--keytype <type>                         aka -t\n"
             "\t--time <time>                            aka -w\n"
+    		"\t[--check-repository]                     aka -C\n"
             "\t[--retire <retire>]                      aka -y\n");
 }
 
@@ -478,6 +480,29 @@ types_help()
 {
     fprintf(stderr,
             "key types:  KSK|ZSK\n");
+}
+
+/*
+ * exist_file - check if the file exist
+ *
+ *
+ * Arguments:
+ *
+ *      char* filename
+ *
+ * Returns:
+ *      int
+ *          Status return.  1 file exist
+ *                          0 file not exist
+ */
+int exist_file(const char* filename){
+	int status = 0;
+	FILE *file = fopen(filename, "r");
+	if(file != NULL){
+		fclose(file);
+		status = 1;
+	}
+	return status;
 }
 
 /* 
@@ -936,6 +961,11 @@ cmd_addzone ()
         StrAppend(&output_name, o_output);
     } else {
         StrAppend(&output_name, o_output);
+    }
+
+    /* validate if the input file exist */
+    if(!exist_file(input_name)){
+       	printf("WARNING: The input file %s for zone %s does not currently exist. The zone will been added to the database anyway. \n",input_name, o_zone);
     }
 
     free(path);
@@ -2972,6 +3002,8 @@ cmd_import ()
 
     int user_certain;           /* Continue ? */
 
+	hsm_key_t *key = NULL;
+
     /* Chech that we got all arguments. */
 
     if (o_cka_id == NULL) {
@@ -3006,6 +3038,27 @@ cmd_import ()
         printf("Error: please specify the time of when the key entered the given state with the --time <time>\n");
         return(1);
     }
+
+    /* Check the key does not exist in the specified HSM */
+	status = hsm_open(config, hsm_prompt_pin, NULL);
+	if (status) {
+		hsm_print_error(NULL);
+		return(1);
+	}
+	key = hsm_find_key_by_id(NULL, o_cka_id);
+	hsm_close();
+	if (!key) {
+		if(check_repository_flag){
+			printf("Error: No key with the CKA_ID %-33s exists in the repository %s. When the option [--check-repository] is used the key MUST exist in the repository for the key to be imported. \n", o_cka_id,o_repository);
+			return(1);
+		}else{
+			printf("Warning: No key with the CKA_ID %-33s exists in the repository %s. The key will be imported into the database anyway. \n", o_cka_id,o_repository);
+		}
+	}else{
+		hsm_key_free(key);
+	}
+
+
 
     /* try to connect to the database */
     status = db_connect(&dbhandle, &lock_fd, 1);
@@ -3577,6 +3630,7 @@ main (int argc, char *argv[])
         {"all",     no_argument,       0, 'a'},
         {"bits",    required_argument, 0, 'b'},
         {"config",  required_argument, 0, 'c'},
+        {"check-repository", no_argument, 0, 'C'},
         {"ds",      no_argument,       0, 'd'},
         {"keystate", required_argument, 0, 'e'},
         {"no-retire", no_argument,       0, 'f'},
@@ -3615,6 +3669,9 @@ main (int argc, char *argv[])
             case 'c':
                 config = StrStrdup(optarg);
                 break;
+            case 'C':
+            	check_repository_flag = 1;
+            	break;
             case 'd':
                 ds_flag = 1;
                 break;
