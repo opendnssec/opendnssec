@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# Script that can be used from with a specific test directory to run that
+# single test. To use it:
+# - cd into a test directory
+# - run  >../../test-this.sh
+
+# If you are using MySQL instead of SQLite then uncomment the following line
+#export HAVE_MYSQL="YES"
+
 export INSTALL_TAG=local-test
 export WORKSPACE=`pwd`
 export SVN_REVISION=1

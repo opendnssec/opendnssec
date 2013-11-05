@@ -125,6 +125,7 @@ main(int argc, char *argv[]){
     config.password = (unsigned char *)calloc(MAX_PASSWORD_LENGTH, sizeof(char));
     config.schema = (unsigned char *)calloc(MAX_SCHEMA_LENGTH, sizeof(char));
     config.DSSubmitCmd = (char *)calloc(MAXPATHLEN + 1024, sizeof(char));
+    config.policy = NULL;
 
     if (config.user == NULL || config.password == NULL || config.schema == NULL) {
         log_msg(&config, LOG_ERR, "Malloc for config struct failed");
