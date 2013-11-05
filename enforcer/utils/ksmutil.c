@@ -119,6 +119,7 @@ static int all_flag = 0;
 static int auto_accept_flag = 0;
 static int ds_flag = 0;
 static int retire_flag = 1;
+static int notify_flag = 1;
 static int verbose_flag = 0;
 static int xml_flag = 1;
 static int td_flag = 0;
@@ -360,7 +361,8 @@ usage_keydsseen ()
             /*"\t--zone <zone> (or --all)                 aka -z\n"*/
             "\t--zone <zone>                            aka -z\n"
             "\t--keytag <keytag> | --cka_id <CKA_ID>    aka -x / -k\n"
-            "\t--no-retire\n");
+            "\t[--no-notify|-l]                         aka -l\n"
+            "\t[--no-retire|-f]                         aka -f\n");
 }
 
 	void
@@ -3041,9 +3043,15 @@ cmd_dsseen()
 				} else {
 					/* ...Unless this looks like a new zone, in which case poke
 					   the enforcerd*/
-					if (restart_enforcerd() != 0)
-					{
+					if (notify_flag == 1) {
+						if (restart_enforcerd() != 0) {
 						fprintf(stderr, "Could not HUP ods-enforcerd\n");
+						} else {
+							printf("Performed a HUP ods-enforcerd\n");
+					}
+					} else {
+						printf("No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
+						printf("Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
 					}
 					return 0;
 				}
@@ -3062,11 +3070,16 @@ cmd_dsseen()
         }
     }
 
-    /* Need to poke the enforcer to wake it up */
-    if (restart_enforcerd() != 0)
-    {
+	if (notify_flag == 1) {
+		if (restart_enforcerd() != 0) {
         fprintf(stderr, "Could not HUP ods-enforcerd\n");
+		} else {
+			printf("Performed a HUP ods-enforcerd\n");
     }
+	} else {
+		printf("No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
+		printf("Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
+	}
 
     /* Release sqlite lock file (if we have it) */
     db_disconnect(lock_fd);
@@ -3777,6 +3790,7 @@ main (int argc, char *argv[])
         {"input",   required_argument, 0, 'i'},
         {"in-type", required_argument, 0, 'j'},
         {"cka_id",  required_argument, 0, 'k'},
+        {"no-notify", no_argument,       0, 'l'},
         {"no-xml",  no_argument,        0, 'm'},
         {"no-hsm",  no_argument,        0, 'M'},
         {"interval",  required_argument, 0, 'n'},
@@ -3798,7 +3812,7 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt_long(argc, argv, "aAb:Cc:de:fFg:hi:j:k:mMn:o:p:q:r:s:t:vVw:x:y:z:Z:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "aAb:Cc:de:fFg:hi:j:k:mMln:o:p:q:r:s:t:vVw:x:y:z:Z:", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'a':
                 all_flag = 1;
@@ -3845,6 +3859,9 @@ main (int argc, char *argv[])
                 break;
             case 'k':
                 o_cka_id = StrStrdup(optarg);
+                break;
+            case 'l':
+                notify_flag = 0;
                 break;
             case 'm':
                 xml_flag = 0;
