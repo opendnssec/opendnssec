@@ -298,6 +298,14 @@ public:
     virtual void setRollZskNow(bool value) = 0;
     virtual bool rollCskNow() = 0;
     virtual void setRollCskNow(bool value) = 0;
+    
+    /* Only used to show the user */
+    virtual time_t nextKskRoll() = 0;
+    virtual time_t nextZskRoll() = 0;
+    virtual time_t nextCskRoll() = 0;
+    virtual void setNextKskRoll(time_t value) = 0;
+    virtual void setNextZskRoll(time_t value) = 0;
+    virtual void setNextCskRoll(time_t value) = 0;
 };
 
 typedef time_t (*update_func_type)(EnforcerZone *zone, time_t now, HsmKeyFactory *keyfactory);

@@ -1174,6 +1174,25 @@ keyForAlgorithm(KeyDataList &key_list, const KeyRole role, const int algorithm)
 	return false;
 }
 
+void 
+setnextroll(EnforcerZone &zone, KeyRole role, time_t t, int clr)
+{
+	if (!clr) {
+		time_t p;
+		switch(role) {
+			case KSK: p = zone.nextKskRoll(); break;
+			case ZSK: p = zone.nextZskRoll(); break;
+			case CSK: p = zone.nextCskRoll(); break;
+		}
+		if (p && p < t) return; /* need no update */
+	}
+	switch(role) {
+		case KSK: zone.setNextKskRoll(t); break;
+		case ZSK: zone.setNextZskRoll(t); break;
+		case CSK: zone.setNextCskRoll(t); break;
+	}
+}
+
 /**
  * See what needs to be done for the policy 
  * 
@@ -1212,6 +1231,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
+		setnextroll(zone, (KeyRole)role, 0, 1);
 		/** NOTE: we are not looping over keys, but configurations */
 		for ( int i = 0; i < numberOfKeyConfigs( policyKeys, (KeyRole)role ); i++ ) {
 			string repository;
@@ -1239,7 +1259,10 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				forceRoll |= !keyForAlgorithm(key_list, (KeyRole)role, 
 					algorithm);
 				/** No reason to roll at all */
-				if (!forceRoll) continue;
+				if (!forceRoll) {
+					setnextroll(zone, (KeyRole)role, 0, 0);
+					continue;
+				}
 			}
 			/** Try an automatic roll */
 			if (!forceRoll) {
@@ -1252,11 +1275,11 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 					/** yes, but no need to roll at this time. Schedule 
 					 * for later */
 					minTime( addtime(key->inception(), lifetime), return_at );
+					setnextroll(zone, (KeyRole)role, addtime(key->inception(), lifetime), 0);
 					continue;
 				}
 				/** No, or key is expired, we need a new one. */
 			}
-
 			/** time for a new key */
 			ods_log_verbose("[%s] %s New key needed for role %d", 
 				module_str, scmd, role);
@@ -1270,6 +1293,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				ods_log_crit("[%s] %s Key lifetime unreasonably short "
 					"with respect to TTL and MaxZoneTTL. Will not insert key!",
 					module_str, scmd);
+				setnextroll(zone, (KeyRole)role, now, 0);
 				continue;
 			}
 
@@ -1289,6 +1313,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				minTime( now + NOKEY_TIMEOUT, return_at);
 				ods_log_warning("[%s] %s No keys available on hsm, retry in %d seconds", 
 					module_str, scmd, NOKEY_TIMEOUT);
+				setnextroll(zone, (KeyRole)role, now, 0);
 				continue;
 			}
 			ods_log_verbose("[%s] %s got new key from HSM", module_str, 
@@ -1315,6 +1340,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 
 			/** New key inserted, come back after its lifetime */
 			minTime( now + lifetime, return_at );
+			setnextroll(zone, (KeyRole)role, addtime(now, lifetime), 0);
 
 			/** Tell similar keys to outroduce, skip new key */
 			for (int j = 0; j < key_list.numKeys(); j++) {

@@ -54,6 +54,7 @@
 #include "keystate/zonelist_cmd.h"
 
 #include "keystate/keystate_list_cmd.h"
+#include "keystate/rollover_list_cmd.h"
 #include "keystate/keystate_export_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
 #include "keystate/keystate_ds_seen_cmd.h"
@@ -141,6 +142,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_zone_del_cmd,
 
     help_keystate_list_cmd,
+    help_rollover_list_cmd,
     help_keystate_export_cmd,
     help_keystate_ds_submit_cmd,
     help_keystate_ds_seen_cmd,
@@ -185,6 +187,7 @@ enforcer_commands[] = {
     handled_zone_del_cmd,
 
     handled_keystate_list_cmd,
+    handled_rollover_list_cmd,
     handled_keystate_export_cmd,
     handled_keystate_ds_submit_cmd,
     handled_keystate_ds_seen_cmd,

@@ -60,6 +60,9 @@ message EnforcerZone {
 	
 	optional Adapters adapters = 13 [(xml).path="Adapters"];
 	repeated KeyDependency dependencies = 14;
+	optional uint32 next_ksk_roll = 15 [default = 0, (xml).path="nextKskRoll"]; // not used for logic
+	optional uint32 next_zsk_roll = 16 [default = 0, (xml).path="nextZskRoll"]; // not used for logic
+	optional uint32 next_csk_roll = 17 [default = 0, (xml).path="nextCskRoll"]; // not used for logic
 } 
 
 message KeyDependency {

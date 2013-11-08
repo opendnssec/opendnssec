@@ -198,6 +198,14 @@ public:
     virtual void setRollZskNow(bool value);
     virtual bool rollCskNow();
     virtual void setRollCskNow(bool value);
+    
+    /* Only used to show the user */
+    virtual time_t nextKskRoll();
+    virtual time_t nextZskRoll();
+    virtual time_t nextCskRoll();
+    virtual void setNextKskRoll(time_t value);
+    virtual void setNextZskRoll(time_t value);
+    virtual void setNextCskRoll(time_t value);
 };
 
 #endif

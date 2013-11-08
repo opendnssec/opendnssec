@@ -482,3 +482,11 @@ void EnforcerZonePB::setRollCskNow(bool value)
 {
     _zone->set_roll_csk_now(value);
 }
+/* Only used to show the user */
+time_t EnforcerZonePB::nextKskRoll() {return _zone->next_ksk_roll();}
+time_t EnforcerZonePB::nextZskRoll() {return _zone->next_zsk_roll();}
+time_t EnforcerZonePB::nextCskRoll() {return _zone->next_csk_roll();}
+void EnforcerZonePB::setNextKskRoll(time_t value) {_zone->set_next_ksk_roll(value);}
+void EnforcerZonePB::setNextZskRoll(time_t value) {_zone->set_next_zsk_roll(value);}
+void EnforcerZonePB::setNextCskRoll(time_t value) {_zone->set_next_csk_roll(value);}
+
