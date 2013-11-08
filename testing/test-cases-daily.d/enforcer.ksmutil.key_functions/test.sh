@@ -33,7 +33,7 @@ log_grep ods-ksmutil-setup_zone_and_keys   stdout "Found Zone: ods; on policy Po
 
 # Generate keys
 echo "y" | log_this ods-ksmutil-setup_zone_and_keys   ods-ksmutil key generate --interval PT40M --policy  Policy1 &&
-log_grep ods-ksmutil-setup_zone_and_keys   stdout "22 new KSK(s)" &&
+log_grep ods-ksmutil-setup_zone_and_keys   stdout "22 new KSK(s) (2048 bits) need to be created" &&
 log_this ods-ksmutil-setup_zone_and_keys   ods-ksmutil update conf &&
 log_grep ods-ksmutil-setup_zone_and_keys   stdout "RequireBackup NOT set; " &&
 
@@ -41,7 +41,7 @@ log_grep ods-ksmutil-setup_zone_and_keys   stdout "RequireBackup NOT set; " &&
 export ENFORCER_TIMESHIFT='21-08-2013 10:40:40' &&
 log_this_timeout ods-control-enforcer-start $LONG_TIMEOUT ods-enforcerd -1 &&
 syslog_waitfor_count $LONG_TIMEOUT 1 'ods-enforcerd: .*all done' &&
-syslog_grep "Timeshift mode detected, running once only!" && 
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 21-08-2013 10:40:40" &&
 
 ##################  Check the keys ###########################
 # Check the output
@@ -102,7 +102,7 @@ log_grep ods-ksmutil-key-import stdout "Warning: No key with the CKA_ID 123456  
 
 # use the option --check-repository
 ! log_this ods-ksmutil-key-import ods-ksmutil key import --cka_id 654321 --repository SoftHSM --bits 2048 --algorithm 5 --keystate 2 --keytype ZSK  --zone ods --time "2013-08-29 14:17:28" --check-repository &&
-log_grep ods-ksmutil-key-import stdout "When the option \[--check-repository\] is used the key MUST exist in the repository for the key to be imported" &&
+log_grep ods-ksmutil-key-import stdout "Error: No key with the CKA_ID 654321                            exists in the repository SoftHSM. When the option \[--check-repository\] is used the key MUST exist in the repository for the key to be imported" &&
 
 ! log_this ods-ksmutil-key-import ods-ksmutil key import --cka_id 123 --repository SoftHSM_1 --bits 2048 --algorithm 5 --keystate 2 --keytype ZSK  --zone ods --time "2013-08-29 14:17:28" &&
 log_grep ods-ksmutil-key-import   stdout "Error: unable to find a repository named \"SoftHSM_1\" in database" &&
@@ -120,17 +120,17 @@ log_grep ods-ksmutil-key-purge stdout "No keys to purge." &&
 export ENFORCER_TIMESHIFT='21-08-2013 10:41:40' &&
 log_this_timeout ods-control-enforcer-start $LONG_TIMEOUT ods-enforcerd -1 &&
 syslog_waitfor_count $LONG_TIMEOUT 2 'ods-enforcerd: .*all done' &&
-syslog_grep "Timeshift mode detected, running once only!" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 21-08-2013 10:41:40" &&
 
 export ENFORCER_TIMESHIFT='21-08-2013 10:43:40' &&
 log_this_timeout ods-control-enforcer-start $LONG_TIMEOUT ods-enforcerd -1 &&
 syslog_waitfor_count $LONG_TIMEOUT 3 'ods-enforcerd: .*all done' &&
-syslog_grep "Timeshift mode detected, running once only!" &&
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 21-08-2013 10:43:40" &&
 
 export ENFORCER_TIMESHIFT='21-08-2013 10:44:10' &&
 log_this_timeout ods-control-enforcer-start $LONG_TIMEOUT ods-enforcerd -1 &&
 syslog_waitfor_count $LONG_TIMEOUT 4 'ods-enforcerd: .*all done' &&
-syslog_grep "Timeshift mode detected, running once only!" && 
+syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 21-08-2013 10:44:10" &&
 
 log_this ods-ksmutil-key-purge ods-ksmutil key purge --zone ods &&
 log_grep ods-ksmutil-key-purge stdout "Key remove successful" &&
