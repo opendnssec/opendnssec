@@ -137,7 +137,7 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 	OrmConnRef conn;
 	::ods::keystate::EnforcerZone zone;
 	OrmResultRef rows;
-	const char* fmt = "%-31s %-8s %-9s %-30s\n";
+	const char* fmt = "%-31s %-8s %-9s %s\n";
 
 	if (!ods_orm_connect(sockfd, config, conn))
 		return;
