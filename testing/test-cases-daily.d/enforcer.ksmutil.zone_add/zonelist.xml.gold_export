@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<ZoneList>
+    <Zone name="ods1">
+        <Policy>Policy1</Policy>
+        <SignerConfiguration>install_dir/var/opendnssec/signconf/ods1.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>install_dir/var/opendnssec/unsigned/ods1</File>
+            </Input>
+            <Output>
+                <File>install_dir/var/opendnssec/signed/ods1</File>
+            </Output>
+        </Adapters>
+    </Zone>
+    <Zone name="ods2">
+        <Policy>Policy1</Policy>
+        <SignerConfiguration>install_dir/var/opendnssec/signconf/ods2.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>install_dir/var/opendnssec/unsigned/ods2</File>
+            </Input>
+            <Output>
+                <File>install_dir/var/opendnssec/signed/ods2</File>
+            </Output>
+        </Adapters>
+    </Zone>
+    <Zone name="ods0">
+        <Policy>default</Policy>
+        <SignerConfiguration>install_dir/var/opendnssec/signconf/ods0.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>install_dir/var/opendnssec/unsigned/ods0</File>
+            </Input>
+            <Output>
+                <File>install_dir/var/opendnssec/signed/ods0</File>
+            </Output>
+        </Adapters>
+    </Zone>
+    <Zone name="ods3">
+        <Policy>default</Policy>
+        <SignerConfiguration>install_dir/var/opendnssec/signconf/ods3.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>install_dir/var/opendnssec/unsigned/ods3</File>
+            </Input>
+            <Output>
+                <File>install_dir/var/opendnssec/signed/ods3</File>
+            </Output>
+        </Adapters>
+    </Zone>
+    <Zone name="ods4">
+        <Policy>default</Policy>
+        <SignerConfiguration>install_dir/var/opendnssec/signconf/ods4_.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>install_dir/var/opendnssec/unsigned/ods4</File>
+            </Input>
+            <Output>
+                <File>install_dir/var/opendnssec/signed/ods4</File>
+            </Output>
+        </Adapters>
+    </Zone>
+    <Zone name="ods5">
+        <Policy>default</Policy>
+        <SignerConfiguration>install_dir/var/opendnssec/signconf/ods5.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <File>install_dir/var/opendnssec/unsigned/ods5</File>
+            </Input>
+            <Output>
+                <File>install_dir/var/opendnssec/signed/ods5</File>
+            </Output>
+        </Adapters>
+    </Zone>
+</ZoneList>
