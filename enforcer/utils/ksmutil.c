@@ -4955,6 +4955,9 @@ int update_policies(char* kasp_filename)
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Resalt")) {
                             SetParamOnPolicy(xmlNodeGetContent(childNode2), "resalt", "denial", policy->denial->resalt, policy->id, DURATION_TYPE);
                                 }
+								else if (xmlStrEqual(childNode2->name, (const xmlChar *)"TTL")) {
+                            SetParamOnPolicy(xmlNodeGetContent(childNode2), "ttl", "denial", policy->denial->ttl, policy->id, DURATION_TYPE);
+                                }
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Hash")) {
                                     childNode3 = childNode2->children;
                                     while (childNode3){
@@ -6338,6 +6341,10 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     else    /* NSEC3 */
     {
         nsec_node = xmlNewTextChild(denial_node, NULL, (const xmlChar *)"NSEC3", NULL);
+		if (policy->denial->ttl != 0) {
+			snprintf(temp_time, 32, "PT%dS", policy->denial->ttl);
+			(void) xmlNewTextChild(nsec_node, NULL, (const xmlChar *)"TTL", (const xmlChar *)temp_time);
+		}
         if (policy->denial->optout == 1)
         {
             (void) xmlNewTextChild(nsec_node, NULL, (const xmlChar *)"OptOut", NULL);

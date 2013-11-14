@@ -243,6 +243,10 @@ int KsmPolicyRead(KSM_POLICY* policy)
     /* status = KsmPolicyExists(policy->name); */
     status = KsmPolicySetIdFromName(policy);
 
+	/* NSEC3PARAM TTL might be null in the database if the policy was imported before the fix
+	 * so default to zero */
+	policy->denial->ttl=0;
+
     if (status == 0) {
 
         status = KsmPolicyParametersInit(&result, policy->name);

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ZoneList>
+	<Zone name="with-ttl">
+		<Policy>nsec3_ttl</Policy>
+		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/with-ttl.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<File>@INSTALL_ROOT@/var/opendnssec/unsigned/with-ttl</File>
+			</Input>
+			<Output>
+				<File>@INSTALL_ROOT@/var/opendnssec/signed/with-ttl</File>
+			</Output>
+		</Adapters>
+	</Zone>
+	<Zone name="non-ttl">
+		<Policy>nsec3_nottl</Policy>
+		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/non-ttl.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<File>@INSTALL_ROOT@/var/opendnssec/unsigned/non-ttl</File>
+			</Input>
+			<Output>
+				<File>@INSTALL_ROOT@/var/opendnssec/signed/non-ttl</File>
+			</Output>
+		</Adapters>
+	</Zone>
+</ZoneList>
