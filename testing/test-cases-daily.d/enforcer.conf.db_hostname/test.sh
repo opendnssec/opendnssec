@@ -17,7 +17,7 @@ ods_reset_env &&
 ods_setup_conf conf.xml conf.xml &&
 
 ! ods_start_enforcer &&
-syslog_waitfor 80 "ods-enforcerd: .*ERROR: unable to connect to database - Can't connect to MySQL server on 'www.opendnssec.org'" &&
+syslog_waitfor 80 "ods-enforcerd: .*ERROR: unable to connect to database - Unknown MySQL server host 'www.opendnssec1.org'" &&
 ! pgrep -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null &&
 return 0
 
