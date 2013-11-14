@@ -445,6 +445,9 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEEEBUG);
     rrset->rrsigs[rrnum].owner = NULL;
     rrset->rrsigs[rrnum].rr = NULL;
+    allocator_deallocate(zone->allocator,
+        (void*)rrset->rrsigs[rrnum].key_locator);
+    rrset->rrsigs[rrnum].key_locator = NULL;
     while (rrnum < rrset->rrsig_count-1) {
         rrset->rrsigs[rrnum] = rrset->rrsigs[rrnum+1];
         rrnum++;
