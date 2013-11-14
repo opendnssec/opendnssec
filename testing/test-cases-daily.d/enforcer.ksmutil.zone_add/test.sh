@@ -3,6 +3,16 @@
 #TEST: Test that the ods-ksmutil zone add works correctly
 #TEST: Also test that 'basic' zonelist import/export works (no incrementatl changes tested)
 
+# Cater for the fact that solaris and openbsd use different flags in diff
+
+local ignore_blank_lines=" -B "
+case "$DISTRIBUTION" in
+	sunos | \
+	openbsd )
+		ignore_blank_lines="-b"
+		;;
+esac
+
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
@@ -104,13 +114,13 @@ log_grep ods-ksmutil-zone_add_bad   stdout "WARNING: The output file $INSTALL_RO
 
 # Check the zonelist.xml
 echo "Checking zonelist contents" && 
-diff -B  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_local &&
+diff $ignore_blank_lines  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_local &&
 echo "Zonelist contents OK" && 
 
 # Check the export gives the same thing  (note - we use a different gold file here as the order
 # in the exported file is not the same as that in the configuration file)
 ods-ksmutil zonelist export > zonelist.xml.temp &&
-diff -B -w  zonelist.xml.temp zonelist.xml.gold_export_local &&
+diff $ignore_blank_lines -w  zonelist.xml.temp zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" && 
 
 # Now add without updating the zonelist. 
@@ -120,12 +130,12 @@ log_this ods-ksmutil-zone_add_list_1   ods-ksmutil zone list &&
 log_grep ods-ksmutil-zone_add_list_1   stdout "Found zone ods14 in DB but not zonelist." &&
 
 echo "Checking zonelist contents again after silent add" && 
-diff -B  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_local &&
+diff $ignore_blank_lines  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_local &&
 echo "Zonelist contents OK again" &&
 
 # Exported zonelist should be different (not checked in detail)....
 ods-ksmutil zonelist export > zonelist.xml.temp1 &&
-! diff -q -B -w  zonelist.xml.temp1 zonelist.xml.gold_export_local &&
+! diff $ignore_blank_lines -w  zonelist.xml.temp1 zonelist.xml.gold_export_local >/dev/null 2>/dev/null &&
 echo "Zonelist export contents OK" &&
 
 ##################  TEST:  Zone deletion  ###########################
@@ -137,7 +147,7 @@ log_this ods-ksmutil-zone_del_list_1   ods-ksmutil zone list &&
 ! log_grep ods-ksmutil-zone_del_list_1   stdout "Deleted zone: ods1 from database only, please run \"ods-ksmutil zonelist export\" to update zonelist.xml" &&
 
 echo "Checking zonelist contents again after silent delete" && 
-diff -B  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_local &&
+diff $ignore_blank_lines  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_local &&
 echo "Zonelist contents OK again" &&
 
 log_this ods-ksmutil-zone_del_2  ods-ksmutil zone delete --zone ods2  &&
@@ -185,7 +195,7 @@ log_grep ods-ksmutil-zone_add_list_2   stdout "Found Zone: ods13; on policy defa
 # Check the export gives the same thing  (note - we use a different gold file here as the order
 # in the exported file is not the same as that in the configuration file)
 ods-ksmutil zonelist export > zonelist.xml.temp_2 &&
-diff -B -w  zonelist.xml.temp_2 zonelist.xml.gold_export_local &&
+diff $ignore_blank_lines -w  zonelist.xml.temp_2 zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" &&
 
 # Clean up
