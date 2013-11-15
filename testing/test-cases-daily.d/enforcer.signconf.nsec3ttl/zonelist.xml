@@ -13,15 +13,27 @@
 			</Output>
 		</Adapters>
 	</Zone>
-	<Zone name="non-ttl">
-		<Policy>nsec3_nottl</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/non-ttl.xml</SignerConfiguration>
+	<Zone name="with-0-ttl">
+		<Policy>nsec3_0_ttl</Policy>
+		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/with-0-ttl.xml</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<File>@INSTALL_ROOT@/var/opendnssec/unsigned/non-ttl</File>
+				<File>@INSTALL_ROOT@/var/opendnssec/unsigned/with-0-ttl</File>
 			</Input>
 			<Output>
-				<File>@INSTALL_ROOT@/var/opendnssec/signed/non-ttl</File>
+				<File>@INSTALL_ROOT@/var/opendnssec/signed/with-0-ttl</File>
+			</Output>
+		</Adapters>
+	</Zone>
+	<Zone name="no-ttl">
+		<Policy>nsec3_nottl</Policy>
+		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/no-ttl.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<File>@INSTALL_ROOT@/var/opendnssec/unsigned/no-ttl</File>
+			</Input>
+			<Output>
+				<File>@INSTALL_ROOT@/var/opendnssec/signed/no-ttl</File>
 			</Output>
 		</Adapters>
 	</Zone>

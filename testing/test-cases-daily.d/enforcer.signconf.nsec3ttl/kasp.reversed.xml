@@ -19,6 +19,7 @@
 
 		<Denial>
 			<NSEC3>
+				<TTL>PT3600S</TTL>
 				<OptOut/>
 				<Resalt>P100D</Resalt>
 				<Hash>
@@ -93,7 +94,7 @@
 
 		<Denial>
 			<NSEC3>
-				<TTL>PT3600S</TTL>
+				<!--<TTL>PT0S</TTL>-->
 				<OptOut/>
 				<Resalt>P100D</Resalt>
 				<Hash>
@@ -151,7 +152,7 @@
 		</Parent>
 
 	</Policy>
-	
+
 	<Policy name="nsec3_0_ttl">
 		<Description>A default policy that will amaze you and your friends</Description>
 		<Signatures>
@@ -167,7 +168,7 @@
 
 		<Denial>
 			<NSEC3>
-				<TTL>PT0S</TTL>
+				<TTL>PT3600S</TTL>
 				<OptOut/>
 				<Resalt>P100D</Resalt>
 				<Hash>
