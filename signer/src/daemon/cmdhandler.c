@@ -239,11 +239,13 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
                 cmdh_str, zone->name, ods_status2str(status));
         } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
+            tbd);
+            ods_writen(sockfd, buf, strlen(buf));
+            ods_log_verbose("[%s] zone %s scheduled for immediate update signconf",
+                cmdh_str, tbd);
             engine_wakeup_workers(engine);
         }
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
-            tbd);
-        ods_writen(sockfd, buf, strlen(buf));
     }
     return;
 }
@@ -391,6 +393,7 @@ unlink_backup_file(const char* filename, const char* extension)
 static void
 cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 {
+    ods_status status = ODS_STATUS_OK;
     engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
@@ -434,20 +437,27 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->db->outserial = outserial;
         zone->db->have_serial = 1;
 
-        task = (task_type*) zone->task;
-        task->what = TASK_SIGNCONF;
+        status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
         lock_basic_unlock(&zone->zone_lock);
 
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
-            "%s cleared", tbd?tbd:"(null)");
-        ods_log_info("[%s] internal zone information about %s cleared",
-            cmdh_str, tbd?tbd:"(null)");
+        if (status != ODS_STATUS_OK) {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
+                "task for zone %s.\n", tbd);
+            ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
+                cmdh_str, zone->name, ods_status2str(status));
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
+                "%s cleared", tbd?tbd:"(null)");
+            ods_log_info("[%s] internal zone information about %s cleared",
+                cmdh_str, tbd?tbd:"(null)");
+        }
     } else {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Cannot clear zone %s, zone not "
             "found", tbd?tbd:"(null)");
         ods_log_warning("[%s] cannot clear zone %s, zone not found",
             cmdh_str, tbd?tbd:"(null)");
     }
+
     ods_writen(sockfd, buf, strlen(buf));
     return;
 }
