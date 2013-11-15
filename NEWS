@@ -3,6 +3,11 @@ $Id$
 OpenDNSSEC 1.4.3
 * SUPPORT-72: Improve logging when failed to increment serial in case 
   of key rollover and serial value "keep" [OPENDNSSEC-461].
+* OPENDNSSEC-106: Add 'ods-enforcerd -p <policy>' option. This prompts the
+  enforcer to run once and only process the specified policy and associated
+  zones.
+* OPENDNSSEC-390: ods-ksmutil: Add an option to the 'ods-ksmutil key ds-seen'
+  command so the user can choose not to notify the enforcer.
 * OPENDNSSEC-430: ods-ksmutil: Improve 'zone add' - Zone add command 
   could warn if a specified zone file or adapter file does not exits.
 * OPENDNSSEC-431: ods-ksmutil: Improve 'zone add' - Support default <input>
@@ -17,9 +22,11 @@ OpenDNSSEC 1.4.3
 
 
 Bugfixes:
+* OPENDNSSEC-435: Signer Engine: Fix a serious memory leak in signature
+  cleanup.
 * OPENDNSSEC-463: Signer Engine: Duration PT0S is now printed correctly.
-* OPENDNSSEC-466: Signer Engine: Created bad TSIG signature when falling back to
-  AXFR.
+* OPENDNSSEC-466: Signer Engine: Created bad TSIG signature when falling back
+  to AXFR.
 * OPENDNSSEC-467: Signer Engine: After ods-signer clear, signer should not use
   inbound serial.
 
