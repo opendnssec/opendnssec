@@ -5,7 +5,7 @@
 
 #TODO: Test with other serial options
 
-SIGNED_ZONE=$INSTALL_ROOT/var/opendnssec/signed/ods	# The zone path which already signed by OpenDNSsec	
+SIGNED_ZONE=$INSTALL_ROOT/var/opendnssec/signed/ods	# The zone path which already signed by OpenDNSSSEC
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
@@ -16,7 +16,7 @@ ods_reset_env &&
 
 ##################  SETUP ###########################
 # Start enforcer and signer
-ods_start_ods-control && 
+ods_start_ods-control &&
 
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
@@ -35,12 +35,12 @@ echo "Zone now signed with serial 2000" &&
 ##################  Sign with lower serial ###########################
 log_this signer-sign-serial_fail	ods-signer sign ods --serial 500 &&
 log_this signer-sign-serial_fail	ods-signer flush &&
-log_grep signer-sign-serial_fail    stdout "Error: Unable to enforce serial 500 for zone ods." && 
+log_grep signer-sign-serial_fail	stdout "Error: Unable to enforce serial 500 for zone ods." && 
 
 
 ods_stop_ods-control &&
 echo "** OK **" &&
 return 0
-		
-ods_kill 
+
+ods_kill
 return 1
