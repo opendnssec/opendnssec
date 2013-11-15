@@ -47,7 +47,7 @@
 			<SOA>
 				<TTL>PT10M</TTL>
 				<Minimum>PT10M</Minimum>
-				<Serial>unixtime</Serial>
+				<Serial>counter</Serial>
 			</SOA>
 		</Zone>
 		<Parent>

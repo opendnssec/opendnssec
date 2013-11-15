@@ -8,7 +8,7 @@
 ; SOA
 ; 6 marks the start of a zone of authority
 ; [RFC1035]
-@			IN	SOA		ns1 postmaster.all.rr.org. (
+@		7200	IN	SOA		ns1 postmaster.all.rr.org. (
 						1            ; serial number
 						3600         ; refresh   [1h]
 						600          ; retry     [10m]

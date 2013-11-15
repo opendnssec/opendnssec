@@ -18,14 +18,14 @@ if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
+ods_setup_conf kasp.xml kasp-init.xml
 ods_reset_env &&
-
-ods_start_enforcer && 
+ods_start_enforcer &&
 
 #########################################################################
 # Basic checks of signing test zones
 
-ods_start_signer && 
+ods_start_signer &&
 
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] example.com' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
@@ -57,8 +57,8 @@ esac &&
 # Tests to cover signing specific bugs
 
 #SUPPORT-40 - Double check that all records down to the forth level appear in the output
-$GREP -q -- "^test.example.com..*86400.*IN.*NS.*ns2.example.com." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
-$GREP -q -- "^test1.test.example.com..*86400.*IN.*NS.*ns2.example.com." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+$GREP -q -- "^test\.example\.com\..*86400.*IN.*NS.*ns2\.example\.com\." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+$GREP -q -- "^test1\.test\.example\.com\..*86400.*IN.*NS.*ns2\.example\.com\." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 
 #OPENDSNSEC-290 - Update the zone by changing a CNAME record to an A record.
 ods_setup_zone test/all.rr.org &&
@@ -80,16 +80,27 @@ syslog_waitfor_count 60 3 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 $GREP -q -- "600.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
+#OPENDNSSEC-467 - After ods-signer clear, signer should not use inbound serial
+log_this_timeout ods-clear-zone 10 ods-signer clear all.rr.org &&
+log_this_timeout ods-clear-zone 10 ods-signer sign all.rr.org &&
+syslog_waitfor_count 60 4 'ods-signerd: .*\[STATS\] all.rr.org' &&
+echo check if signed file exists...
+test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
+# serial should be 5 now: 1 + four resigns
+echo check serial in zone file
+$GREP -q -- "^all\.rr\.org\..*7200.*IN.*SOA.*ns1\.all\.rr\.org\..*postmaster\.all\.rr\.org\..*5.*3600.*600.*86400.*3600.*" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
+
+echo all ok stop
+
 #########################################################################
 
-ods_stop_ods-control && 
+ods_stop_ods-control &&
 
 cp kasp.xml_orig kasp.xml &&
 return 0
 
 echo '*********** ERROR **********'
+cat "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org"
 ods_kill
 cp kasp.xml_orig kasp.xml
 return 1
-
-
