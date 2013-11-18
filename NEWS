@@ -14,11 +14,8 @@ OpenDNSSEC 1.4.3
   and <output> values for DNS adapters.
 * OPENDNSSEC-454: ods-ksmutil: Add option for 'ods-ksmutil key import' to
   check if there is a matching key in the repository before import.
-* OPENDNSSEC-458: Add 'ods-enforcerd -p <policy>' option. This prompts the 
-  enforcer to run once and only process the specified policy and associated
-  zones.
-* OPENDNSSEC-460: ods-ksmutil: Add an option to the 'ods-ksmutil key ds-seen'
-  command so the user can choose not to notify the enforcer. 
+* OPENDNSSEC-330: NSEC3PARAM TTL can now be optionally configured in kasp.xml. 
+  Default value remains PT0S.
 
 
 Bugfixes:

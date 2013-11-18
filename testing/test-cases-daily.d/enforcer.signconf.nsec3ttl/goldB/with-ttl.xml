@@ -13,12 +13,11 @@
 
 		<Denial>
 			<NSEC3>
-				<TTL>PT3600S</TTL>
 				<OptOut />
 				<Hash>
 					<Algorithm>1</Algorithm>
 					<Iterations>5</Iterations>
-					<Salt>0f276b08acfd1201</Salt>
+					<Salt>e5e60a9d7a3adc36</Salt>
 				</Hash>
 			</NSEC3>
 		</Denial>
@@ -28,7 +27,7 @@
 			<Key>
 				<Flags>257</Flags>
 				<Algorithm>7</Algorithm>
-				<Locator>31abb127bf919d115da4790fe40281d9</Locator>
+				<Locator>82ca4f2f57be41b79658572f56f54aa8</Locator>
 				<KSK />
 				<Publish />
 			</Key>
@@ -36,7 +35,7 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>7</Algorithm>
-				<Locator>c4e798df0285315d0c801986aa0b7df9</Locator>
+				<Locator>036f1c8370c52c773324055865161527</Locator>
 				<ZSK />
 				<Publish />
 			</Key>
@@ -44,14 +43,14 @@
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>7</Algorithm>
-				<Locator>f9cc2b55ebd4a4101b34c70580919619</Locator>
+				<Locator>398cfdc1a4bf84e4d738056e8d6c9f97</Locator>
 				<Publish />
 			</Key>
 
 			<Key>
 				<Flags>256</Flags>
 				<Algorithm>7</Algorithm>
-				<Locator>3a3f858d58e65f70d993b37bcdd22335</Locator>
+				<Locator>c4d3544f0ed57f6ad1576800c67f687a</Locator>
 				<Publish />
 			</Key>
 
