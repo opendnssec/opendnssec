@@ -4569,6 +4569,7 @@ int update_policies(char* kasp_filename)
     xmlNode *childNode2;
     xmlNode *childNode3;
     xmlChar *opt_out_flag = (xmlChar *)"N";
+    xmlChar *nsec3param_ttl = (xmlChar *)"PT0S";
     xmlChar *share_keys_flag = (xmlChar *)"N";
     xmlChar *man_roll_flag = (xmlChar *)"N";
     xmlChar *rfc5011_flag = (xmlChar *)"N";
@@ -4956,7 +4957,7 @@ int update_policies(char* kasp_filename)
                             SetParamOnPolicy(xmlNodeGetContent(childNode2), "resalt", "denial", policy->denial->resalt, policy->id, DURATION_TYPE);
                                 }
 								else if (xmlStrEqual(childNode2->name, (const xmlChar *)"TTL")) {
-                            SetParamOnPolicy(xmlNodeGetContent(childNode2), "ttl", "denial", policy->denial->ttl, policy->id, DURATION_TYPE);
+									nsec3param_ttl = xmlNodeGetContent(childNode2);
                                 }
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Hash")) {
                                     childNode3 = childNode2->children;
@@ -4978,6 +4979,7 @@ int update_policies(char* kasp_filename)
                             }
                             /* Set things that we flagged */
                             SetParamOnPolicy(opt_out_flag, "optout", "denial", policy->denial->optout, policy->id, BOOL_TYPE);
+                            SetParamOnPolicy(nsec3param_ttl, "ttl", "denial", policy->denial->ttl, policy->id, DURATION_TYPE);
                         } /* End of NSEC3 */
                         else if (xmlStrEqual(childNode->name, (const xmlChar *)"NSEC")) {
                             status = KsmParameterSet("version", "denial", 1, policy->id);
