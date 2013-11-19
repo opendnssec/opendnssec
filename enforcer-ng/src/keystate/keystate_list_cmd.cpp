@@ -47,6 +47,7 @@ void help_keystate_list_cmd(int sockfd)
     ods_printf(sockfd,
         "key list        list all the keys used by a zone\n"
         "  --verbose     (aka -v) also show the id for every key.\n"
+        "  --debug       (aka -d) Print more information about the keystate.\n"
         );
 }
 
@@ -79,6 +80,7 @@ int handled_keystate_list_cmd(int sockfd, engine_type* engine, const char *cmd,
     }
     
     bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
+    bool bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
@@ -88,7 +90,7 @@ int handled_keystate_list_cmd(int sockfd, engine_type* engine, const char *cmd,
     
     time_t tstart = time(NULL);
 
-    perform_keystate_list(sockfd,engine->config,bVerbose?1:0);
+    perform_keystate_list(sockfd, engine->config, bVerbose, bDebug);
 	
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     

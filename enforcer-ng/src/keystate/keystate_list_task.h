@@ -35,6 +35,7 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void perform_keystate_list(int sockfd, engineconfig_type *config,int bverbose);
+void perform_keystate_list(int sockfd, engineconfig_type *config,
+	bool bverbose, bool bdebug);
 
 #endif

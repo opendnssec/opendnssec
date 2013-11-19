@@ -38,6 +38,7 @@
 
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
+#include "enforcer/hsmkeyfactory.h"
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
@@ -46,11 +47,13 @@
 
 static const char *module_str = "keystate_list_task";
 
-enum {KSK = 1, ZSK, CSK};
+namespace KeyTypes {enum {KSK = 1, ZSK, CSK}; };
 enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_DEA, KS_UNK, KS_MIX};
 const char* statenames[] = {"generate", "publish", "ready", 
 		"active", "retire", "dead", "unknown", "mixed"};
-enum {DS_NSUB, DS_SUBM, DS_SBMD, DS_SEEN, DS_RETR, DS_RTRD};
+namespace DSStates {
+		enum {DS_NSUB, DS_SUBM, DS_SBMD, DS_SEEN, DS_RETR, DS_RTRD};
+};
 
 /** Map 2.0 states to 1.x states
  * @param p: state of RR higher in the chain (e.g. DS)
@@ -94,9 +97,9 @@ map_keystate(const ::ods::keystate::KeyData &key)
 {
 	int z,k;
 	switch(key.role()) {
-		case KSK: return statenames[kskstate(key)];
-		case ZSK: return statenames[zskstate(key)];
-		case CSK:
+		case KeyTypes::KSK: return statenames[kskstate(key)];
+		case KeyTypes::ZSK: return statenames[zskstate(key)];
+		case KeyTypes::CSK:
 			k = kskstate(key);
 			z = zskstate(key);
 			if (k != z) return statenames[KS_MIX];
@@ -114,10 +117,10 @@ map_keytime(::ods::keystate::EnforcerZone zone,
 	const ::ods::keystate::KeyData &key)
 {
 	switch(key.ds_at_parent()) {
-		case DS_SUBM: return strdup("waiting for ds-submit");
-		case DS_SBMD: return strdup("waiting for ds-seen");
-		case DS_RETR: return strdup("waiting for ds-retract");
-		case DS_RTRD: return strdup("waiting for ds-gone");
+		case DSStates::DS_SUBM: return strdup("waiting for ds-submit");
+		case DSStates::DS_SBMD: return strdup("waiting for ds-seen");
+		case DSStates::DS_RETR: return strdup("waiting for ds-retract");
+		case DSStates::DS_RTRD: return strdup("waiting for ds-gone");
 	}
 	if ((signed int)zone.next_change() < 0)
 		return strdup("-");
@@ -174,6 +177,59 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 
 void 
 perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
+{
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	::ods::keystate::EnforcerZone zone;
+	OrmResultRef rows;
+	const char* fmthdr = "%-31s %-8s %-9s %-24s %-5s %-10s %-32s %s\n";
+	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %s\n";
+
+	if (!ods_orm_connect(sockfd, config, conn))
+		return;
+	OrmTransaction transaction(conn);
+	
+	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
+		ods_log_error("[%s] error enumerating zones", module_str);
+		ods_printf(sockfd, "error enumerating zones\n");
+		return;
+	}
+	
+	ods_printf(sockfd, "Keys:\n");
+	ods_printf(sockfd, fmthdr, "Zone:", "Keytype:", "State:", 
+		"Date of next transition:", "Size:", "Algorithm:", "CKA_ID:", 
+		"Repository:");
+
+    HsmKeyFactoryPB keyfactory(conn, NULL);
+	HsmKey *hsmkey;
+
+	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		if (!OrmGetMessage(rows, zone, true)) {
+			ods_log_error("[%s] error reading zone", module_str);
+			ods_printf(sockfd, "error reading zone\n");
+			return;
+		}
+		
+		for (int k=0; k<zone.keys_size(); ++k) {
+			const ::ods::keystate::KeyData &key = zone.keys(k);
+			std::string keyrole = keyrole_Name(key.role());
+			const char* state = map_keystate(key);
+			char* tchange = map_keytime(zone, key);
+			keyfactory.GetHsmKeyByLocator(key.locator(), &hsmkey);
+			ods_printf(sockfd, fmt, zone.name().c_str(),
+				keyrole.c_str(), state, tchange,
+				hsmkey->bits(),
+				key.algorithm(),
+				key.locator().c_str(),
+				hsmkey->repository().c_str()
+			);
+			free(tchange);
+		}
+	}
+}
+
+void 
+perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -247,9 +303,12 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 }
 
 void 
-perform_keystate_list(int sockfd, engineconfig_type *config, int bverbose)
+perform_keystate_list(int sockfd, engineconfig_type *config, 
+	bool bverbose, bool bdebug)
 {
-	if (bverbose)
+	if (bdebug)
+		perform_keystate_list_debug(sockfd, config);
+	else if (bverbose)
 		perform_keystate_list_verbose(sockfd, config);
 	else
 		perform_keystate_list_compat(sockfd, config);
