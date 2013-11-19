@@ -48,8 +48,8 @@ static const char *module_str = "keystate_list_task";
 
 enum {KSK = 1, ZSK, CSK};
 enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_DEA, KS_UNK, KS_MIX};
-const char* statenames[] = {"generated", "published", "ready", 
-		"active", "retired", "dead", "unknown", "mixed"};
+const char* statenames[] = {"generate", "publish", "ready", 
+		"active", "retire", "dead", "unknown", "mixed"};
 enum {DS_NSUB, DS_SUBM, DS_SBMD, DS_SEEN, DS_RETR, DS_RTRD};
 
 /** Map 2.0 states to 1.x states
