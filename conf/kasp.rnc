@@ -102,7 +102,7 @@ start = element KASP {
 				# generic key definition, see below
 				anykey,
 				# Controlling minimize flags Enforcer-ng
-				element KskRollType { "ZskDoubleSignature" | "ZskPrePublication" | "ZskDoubleRRsig" }?
+				element ZskRollType { "ZskDoubleSignature" | "ZskPrePublication" | "ZskDoubleRRsig" }?
 			}*,
 
 			# Combined Signing Keys (CSK) parameters
