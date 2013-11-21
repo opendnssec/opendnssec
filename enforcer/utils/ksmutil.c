@@ -488,7 +488,7 @@ types_help()
  * @return: (int) 1 if file exist, 0 otherwise.
  *
  */
-int
+static int
 exist_file(const char* filename) {
 	int status = 0;
 	FILE *file = fopen(filename, "r");
