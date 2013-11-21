@@ -235,9 +235,9 @@ If only one key is in the active state then this command will exit
 with an error message, as completing would leave no active keys.
 
 .TP
-.B key ds-seen --zone|-z \fIzone\fB  --keytag|-x \fIkeytag\fB  [--no-notify|-l] [--no-retire|-f]
+.B key ds\-seen \-\-zone|\-z \fIzone\fB  \-\-keytag|\-x \fIkeytag\fB  [\-\-no\-notify|\-l] [\-\-no\-retire|\-f]
 .TP
-.B key ds-seen --zone|-z \fIzone\fB  --cka_id|-k \fIckaid\fB  [--no-notify|-l] [--no-retire|-f]
+.B key ds\-seen \-\-zone|\-z \fIzone\fB  \-\-cka_id|\-k \fIckaid\fB  [\-\-no\-notify|\-l] [\-\-no\-retire|\-f]
 Indicate to OpenDNSSEC that a submitted DS record has appeared in the
 parent zone, and thereby trigger the completion of a KSK rollover.
 Note that this action is not yet standardised, and can therefore not

@@ -501,20 +501,14 @@ types_help()
             "key types:  KSK|ZSK\n");
 }
 
-/*+
- * exist_file - check if the file exist
+/*
+ * Check if the file exists.
+ * @param filename: name of file to be checked.
+ * @return: (int) 1 if file exist, 0 otherwise.
  *
- *
- * Arguments:
- *
- *      char* filename
- *
- * Returns:
- *      int
- *          Status return.  1 file exist
- *                          0 file not exist
  */
-int exist_file(const char* filename){
+static int
+exist_file(const char* filename) {
 	int status = 0;
 	FILE *file = fopen(filename, "r");
 	if(file != NULL){
@@ -527,7 +521,7 @@ int exist_file(const char* filename){
 /* 
  * Do initial import of config files into database
  */
-    int
+int
 cmd_setup ()
 {
     DB_HANDLE	dbhandle;
@@ -1013,11 +1007,11 @@ cmd_addzone ()
 
    	/* validate if the input file exist */
    	if(!exist_file(input_name)){
-   		printf("WARNING: The input file %s for zone %s does not currently exist. The zone will been added to the database anyway. \n",input_name, o_zone);
+   		fprintf(stdout, "WARNING: The input file %s for zone %s does not currently exist. The zone will been added to the database anyway. \n",input_name, o_zone);
    	}
 
    	if(strcmp(output_type, "DNS") == 0 && !exist_file(output_name)){
-   		printf("WARNING: The output file %s for zone %s does not currently exist. \n",output_name, o_zone);
+   		fprintf(stdout, "WARNING: The output file %s for zone %s does not currently exist. \n",output_name, o_zone);
    	}
 
     free(path);
@@ -3047,11 +3041,11 @@ cmd_dsseen()
 						if (restart_enforcerd() != 0) {
 						fprintf(stderr, "Could not HUP ods-enforcerd\n");
 						} else {
-							printf("Performed a HUP ods-enforcerd\n");
+							fprintf(stdout, "Performed a HUP ods-enforcerd\n"); /** too verbose? */
 					}
 					} else {
-						printf("No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
-						printf("Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
+						fprintf(stdout, "No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
+						fprintf(stdout, "Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
 					}
 					return 0;
 				}
@@ -3074,11 +3068,11 @@ cmd_dsseen()
 		if (restart_enforcerd() != 0) {
         fprintf(stderr, "Could not HUP ods-enforcerd\n");
 		} else {
-			printf("Performed a HUP ods-enforcerd\n");
+			fprintf(stdout, "Performed a HUP ods-enforcerd\n"); /** too verbose? */
     }
 	} else {
-		printf("No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
-		printf("Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
+		fprintf(stdout, "No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
+		fprintf(stdout, "Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
 	}
 
     /* Release sqlite lock file (if we have it) */
@@ -3178,10 +3172,10 @@ cmd_import ()
 	hsm_close();
 	if (!key) {
 		if(check_repository_flag){
-			printf("Error: No key with the CKA_ID %-33s exists in the repository %s. When the option [--check-repository] is used the key MUST exist in the repository for the key to be imported. \n", o_cka_id,o_repository);
+			fprintf(stderr, "Error: No key with the CKA_ID %-33s exists in the repository %s. When the option [--check-repository] is used the key MUST exist in the repository for the key to be imported. \n", o_cka_id,o_repository);
 			return(1);
 		}else{
-			printf("Warning: No key with the CKA_ID %-33s exists in the repository %s. The key will be imported into the database anyway. \n", o_cka_id,o_repository);
+			fprintf(stdout, "Warning: No key with the CKA_ID %-33s exists in the repository %s. The key will be imported into the database anyway. \n", o_cka_id,o_repository);
 		}
 	}else{
 		hsm_key_free(key);
@@ -3202,7 +3196,6 @@ cmd_import ()
         db_disconnect(lock_fd);
         return status;
     }
-
 
     /* check that the zone name is valid and use it to get some ids */
 	status = KsmZoneIdAndPolicyFromName(o_zone, &policy_id, &zone_id);
