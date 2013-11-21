@@ -3043,10 +3043,10 @@ cmd_import ()
 	hsm_close();
 	if (!key) {
 		if(check_repository_flag){
-			printf("Error: No key with the CKA_ID %-33s exists in the repository %s. When the option [--check-repository] is used the key MUST exist in the repository for the key to be imported. \n", o_cka_id,o_repository);
+			fprintf(stderr, "Error: No key with the CKA_ID %-33s exists in the repository %s. When the option [--check-repository] is used the key MUST exist in the repository for the key to be imported. \n", o_cka_id,o_repository);
 			return(1);
 		}else{
-			printf("Warning: No key with the CKA_ID %-33s exists in the repository %s. The key will be imported into the database anyway. \n", o_cka_id,o_repository);
+			fprintf(stdout, "Warning: No key with the CKA_ID %-33s exists in the repository %s. The key will be imported into the database anyway. \n", o_cka_id,o_repository);
 		}
 	}else{
 		hsm_key_free(key);
