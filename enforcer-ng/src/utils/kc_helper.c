@@ -99,7 +99,7 @@ int check_rng(const char *filename, const char *rngfilename) {
     xmlRelaxNGPtr schema = NULL;
 
 	if (verbose) {
-		dual_log("DEBUG: About to check XML validity in %s\n", filename);
+		dual_log("DEBUG: About to check XML validity in %s with %s\n", filename, rngfilename);
 	}
 
    	/* Load XML document */
@@ -407,6 +407,8 @@ int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_
 	return status;
 }
 
+
+
 int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp) {
 	int status = 0;
 	int i = 0;
@@ -422,18 +424,23 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	int jitter = 0;
 	int inception = 0;
 	int ttl = 0;
+	int ds_ttl = 0;
+	int maxzone_ttl = 0;
 	int retire = 0;
 	int publish = 0;
 	int nsec = 0;
 	int resalt = 0;
-	int ksk_algo = 0;
-	int ksk_length = 0;
-	int ksk_life = 0;
-	char *ksk_repo = NULL;
-	int zsk_algo = 0;
-	int zsk_length = 0;
-	int zsk_life = 0;
-	char *zsk_repo = NULL;
+	
+	enum {KSK = 1, ZSK, CSK};
+	struct key {
+		int type;
+		int algo;
+		int length;
+		int life;
+		char *repo;
+		struct key *next;
+	};
+	struct key *tmpkey, *firstkey = NULL, *curkey = NULL;
 	char *serial = NULL;
  
 	snprintf(my_policy, KC_NAME_LENGTH, "policy %s,", policy_name);
@@ -476,6 +483,11 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"InceptionOffset")) {
 					temp_char = (char *) xmlNodeGetContent(childNode);
 					status += check_time_def(temp_char, my_policy, "Signatures/InceptionOffset", kasp, &inception);
+					StrFree(temp_char);
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"MaxZoneTTL")) {
+					temp_char = (char *) xmlNodeGetContent(childNode);
+					status += check_time_def(temp_char, my_policy, "Signatures/MaxZoneTTL", kasp, &maxzone_ttl);
 					StrFree(temp_char);
 				}
 
@@ -528,24 +540,33 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				}
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"KSK")) {
 					childNode2 = childNode->children;
+					if (!curkey) {
+						firstkey = curkey = (struct key*) malloc(sizeof *curkey);
+					} else {
+						curkey->next = (struct key*) malloc(sizeof *curkey);
+						curkey = curkey->next;
+					}
+					memset(curkey, 0, sizeof *curkey);
+					curkey->type = KSK;
+					
 					while (childNode2){
 
 						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
-							StrStrtoi(temp_char, &ksk_algo);
+							StrStrtoi(temp_char, &curkey->algo);
 							StrFree(temp_char);
 
 							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
-							StrStrtoi(temp_char, &ksk_length);
+							StrStrtoi(temp_char, &curkey->length);
 							StrFree(temp_char);
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
-							status += check_time_def(temp_char, my_policy, "Keys/KSK Lifetime", kasp, &ksk_life);
+							status += check_time_def(temp_char, my_policy, "Keys/KSK Lifetime", kasp, &curkey->life);
 							StrFree(temp_char);
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
-							ksk_repo = (char *) xmlNodeGetContent(childNode2);
+							curkey->repo = (char *) xmlNodeGetContent(childNode2);
 						}
 
 						childNode2 = childNode2->next;
@@ -553,25 +574,69 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				}
 				else if (xmlStrEqual(childNode->name, (const xmlChar *)"ZSK")) {
 					childNode2 = childNode->children;
+					if (!curkey) {
+						firstkey = curkey = (struct key*) malloc(sizeof *curkey);
+					} else {
+						curkey->next = (struct key*) malloc(sizeof *curkey);
+						curkey = curkey->next;
+					}
+					memset(curkey, 0, sizeof *curkey);
+					curkey->type = ZSK;
+					
 					while (childNode2){
 
 						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
-							StrStrtoi(temp_char, &zsk_algo);
+							StrStrtoi(temp_char, &curkey->algo);
 							StrFree(temp_char);
 
 							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
-							StrStrtoi(temp_char, &zsk_length);
+							StrStrtoi(temp_char, &curkey->length);
 							StrFree(temp_char);
 
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
 							temp_char = (char *) xmlNodeGetContent(childNode2);
-							status += check_time_def(temp_char, my_policy, "Keys/ZSK Lifetime", kasp, &zsk_life);
+							status += check_time_def(temp_char, my_policy, "Keys/ZSK Lifetime", kasp, &curkey->life);
 							StrFree(temp_char);
 						}
 						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
-							zsk_repo = (char *) xmlNodeGetContent(childNode2);
+							curkey->repo = (char *) xmlNodeGetContent(childNode2);
+						}
+
+						childNode2 = childNode2->next;
+					}
+				}
+				else if (xmlStrEqual(childNode->name, (const xmlChar *)"CSK")) {
+					childNode2 = childNode->children;
+					if (!curkey) {
+						firstkey = curkey = (struct key*) malloc(sizeof *curkey);
+					} else {
+						curkey->next = (struct key*) malloc(sizeof *curkey);
+						curkey = curkey->next;
+					}
+					memset(curkey, 0, sizeof *curkey);
+					curkey->type = CSK;
+					
+					while (childNode2){
+
+						if (xmlStrEqual(childNode2->name, (const xmlChar *)"Algorithm")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							StrStrtoi(temp_char, &curkey->algo);
+							StrFree(temp_char);
+
+							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
+							StrStrtoi(temp_char, &curkey->length);
+							StrFree(temp_char);
+
+						}
+						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Lifetime")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							status += check_time_def(temp_char, my_policy, "Keys/CSK Lifetime", kasp, &curkey->life);
+							StrFree(temp_char);
+						}
+						else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Repository")) {
+							curkey->repo = (char *) xmlNodeGetContent(childNode2);
 						}
 
 						childNode2 = childNode2->next;
@@ -600,6 +665,27 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				childNode = childNode->next;
 			}
 		}
+		else if (xmlStrEqual(curNode->name, (const xmlChar *)"Parent")) {
+			childNode = curNode->children;
+			while (childNode) {
+				
+				if (xmlStrEqual(childNode->name, (const xmlChar *)"DS")) {
+					childNode2 = childNode->children;
+					while (childNode2){
+
+						if (xmlStrEqual(childNode2->name, (const xmlChar *)"TTL")) {
+							temp_char = (char *) xmlNodeGetContent(childNode2);
+							status += check_time_def(temp_char, my_policy, "Parent/DS/TTL", kasp, &ds_ttl);
+							StrFree(temp_char);
+						}
+
+						childNode2 = childNode2->next;
+					}
+				}
+
+				childNode = childNode->next;
+			}
+		}
 
 
 		curNode = curNode->next;
@@ -608,6 +694,25 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	/* Now for the actual tests, from 
 	 * https://wiki.opendnssec.org/display/OpenDNSSEC/Configuration+Checker+%28ods-kaspcheck%29 */
 
+	for (curkey = firstkey; curkey; curkey = curkey->next) {
+		if ((curkey->type & KSK) && ds_ttl + ttl >= curkey->life) {
+			dual_log("ERROR: KSK/Lifetime (%d seconds) for policy '%s' "
+				"is shorter than the DNSKEY record TTL (%d seconds) plus "
+				"the DS record TTL (%d seconds). This would mean replacing "
+				"keys before they'd be able to reach the ready state.\n",
+				curkey->life, policy_name, ttl, ds_ttl);
+			status++;
+		}
+
+		if ((curkey->type & ZSK) && maxzone_ttl + ttl >= curkey->life) {
+			dual_log("ERROR: ZSK/Lifetime (%d seconds) for policy '%s' "
+				"is shorter than the DNSKEY record TTL (%d seconds) plus "
+				"the MaxZoneTTL (%d seconds). This would mean replacing "
+				"keys before they'd be able to reach the ready state.\n",
+				curkey->life, policy_name, ttl, maxzone_ttl);
+			status++;
+		}
+	}
 	/* For all policies, check that the "Re-sign" interval is less 
 	 * than the "Refresh" interval. */
 	if (refresh <= resign) {
@@ -689,15 +794,17 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	if (nsec == 1) {
 	}
 	else if (nsec == 3) {
-		if (ksk_algo <= 5) {
-			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"KSK NSEC3 in %s.\n", policy_name, ksk_algo, kasp);
-			status++;
-		}
-		if (zsk_algo <= 5) {
-			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"ZSK NSEC3 in %s.\n", policy_name, zsk_algo, kasp);
-			status++;
+		for (curkey = firstkey; curkey; curkey = curkey->next) {
+			if ((curkey->type & KSK) && curkey->algo <= 5) {
+				dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
+						"KSK NSEC3 in %s.\n", policy_name, curkey->algo, kasp);
+				status++;
+			}
+			if ((curkey->type & ZSK) && curkey->algo <= 5) {
+				dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
+						"ZSK NSEC3 in %s.\n", policy_name, curkey->algo, kasp);
+				status++;
+			}
 		}
 
 		/* Warn if resalt is less than resign interval. */
@@ -729,62 +836,77 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	/* The key strength should be checked for sanity 
 	 * - warn if less than 1024 or error if more than 4096. 
 	 *   Only do this check for RSA. */
-	if (ksk_algo == 5 || ksk_algo == 7 || ksk_algo == 8 || ksk_algo == 10) {
-		if (ksk_length < 1024) {
-			dual_log("WARNING: Key length of %d used for KSK in %s policy in %s. Should "
-					"probably be 1024 or more\n", ksk_length, policy_name, kasp);
+	for (curkey = firstkey; curkey; curkey = curkey->next) {
+		if ((curkey->type & KSK) && (curkey->algo == 5 || 
+				curkey->algo == 7 ||curkey->algo == 8 || 
+				curkey->algo == 10)) {
+			if (curkey->length < 1024) {
+				dual_log("WARNING: Key length of %d used for KSK in %s policy in %s. Should "
+						"probably be 1024 or more\n", curkey->length, policy_name, kasp);
+			}
+			else if (curkey->length > 4096) {
+				dual_log("ERROR: Key length of %d used for KSK in %s policy in %s. Should "
+						"be 4096 or less\n", curkey->length, policy_name, kasp);
+				status++;
+			}
 		}
-		else if (ksk_length > 4096) {
-			dual_log("ERROR: Key length of %d used for KSK in %s policy in %s. Should "
-					"be 4096 or less\n", ksk_length, policy_name, kasp);
-			status++;
-		}
-	}
-	if (zsk_algo == 5 || zsk_algo == 7 || zsk_algo == 8 || zsk_algo == 10) {
-		if (zsk_length < 1024) {
-			dual_log("WARNING: Key length of %d used for ZSK in %s policy in %s. Should "
-					"probably be 1024 or more\n", zsk_length, policy_name, kasp);
-		}
-		else if (zsk_length > 4096) {
-			dual_log("ERROR: Key length of %d used for ZSK in %s policy in %s. Should "
-					"be 4096 or less\n", zsk_length, policy_name, kasp);
-			status++;
+		if ((curkey->type & ZSK) && (curkey->algo == 5 || 
+				curkey->algo == 7 || curkey->algo == 8 || 
+				curkey->algo == 10)) {
+			if (curkey->length < 1024) {
+				dual_log("WARNING: Key length of %d used for ZSK in %s policy in %s. Should "
+						"probably be 1024 or more\n", curkey->length, policy_name, kasp);
+			}
+			else if (curkey->length > 4096) {
+				dual_log("ERROR: Key length of %d used for ZSK in %s policy in %s. Should "
+						"be 4096 or less\n", curkey->length, policy_name, kasp);
+				status++;
+			}
 		}
 	}
 
 	/* Check that repositories listed in the KSK and ZSK sections are defined
 	 * in conf.xml. */
-	if (ksk_repo != NULL) {
-		for (i = 0; i < repo_count; i++) {
-			if (strcmp(ksk_repo, repo_list[i]) == 0) {
-				break;
+	for (curkey = firstkey; curkey; curkey = curkey->next) {
+		if ((curkey->type & KSK) && curkey->repo != NULL) {
+			for (i = 0; i < repo_count; i++) {
+				if (strcmp(curkey->repo, repo_list[i]) == 0) {
+					break;
+				}
+			}
+			if (i >= repo_count) {
+				dual_log("ERROR: Unknown repository (%s) defined for KSK in "
+						"%s policy in %s\n", curkey->repo, policy_name, kasp);
+				status++;
 			}
 		}
-		if (i >= repo_count) {
-			dual_log("ERROR: Unknown repository (%s) defined for KSK in "
-					"%s policy in %s\n", ksk_repo, policy_name, kasp);
-			status++;
-		}
-	}
 
-	if (zsk_repo != NULL) {
-		for (i = 0; i < repo_count; i++) {
-			if (strcmp(zsk_repo, repo_list[i]) == 0) {
-				break;
+		if ((curkey->type & ZSK) && curkey->repo != NULL) {
+			for (i = 0; i < repo_count; i++) {
+				if (strcmp(curkey->repo, repo_list[i]) == 0) {
+					break;
+				}
+			}
+			if (i >= repo_count) {
+				dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
+						"%s policy\n", curkey->repo, policy_name);
+				status++;
 			}
 		}
-		if (i >= repo_count) {
-			dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
-					"%s policy\n", zsk_repo, policy_name);
-			status++;
-		}
 	}
-	
-	/* Warn if for any zone, the KSK lifetime is less than the ZSK lifetime. */
-	if (ksk_life < zsk_life) {
-		dual_log("WARNING: KSK minimum lifetime (%d seconds) is less than "
-				"ZSK minimum lifetime (%d seconds) for %s Policy in %s\n", 
-				ksk_life, zsk_life, policy_name, kasp);
+	/* O(n^2). But this is probably a small set */
+	for (curkey = firstkey; curkey; curkey = curkey->next) {
+		if (!(curkey->type & KSK)) continue;
+		for (tmpkey = firstkey; tmpkey; tmpkey = tmpkey->next) {
+			if (!(tmpkey->type & ZSK)) continue;
+			if (tmpkey->algo != curkey->algo) continue;
+			/* Warn if for any zone, the KSK lifetime is less than the ZSK lifetime. */
+			if (curkey->life < tmpkey->life) {
+				dual_log("WARNING: KSK minimum lifetime (%d seconds) is less than "
+						"ZSK minimum lifetime (%d seconds) for %s Policy in %s\n", 
+						curkey->life, tmpkey->life, policy_name, kasp);
+			}
+		}
 	}
 
 	/* Check that the value of the "Serial" tag is valid. (Done by rng) */
@@ -802,9 +924,12 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				jitter, denial, policy_name, kasp);
 		status++;
 	}
-
-	StrFree(ksk_repo);
-	StrFree(zsk_repo);
+	while (curkey) {
+		tmpkey = curkey;
+		curkey = curkey->next;
+		StrFree(tmpkey->repo);
+		free(tmpkey);
+	}
 	StrFree(serial);
 
 	return status;
