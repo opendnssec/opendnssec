@@ -933,6 +933,9 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     if (policy->denial->version == 3)
     {
         fprintf(file, "\t\t\t<NSEC3>\n");
+		if (policy->denial->ttl != 0) {
+			fprintf(file, "\t\t\t\t<TTL>PT%dS</TTL>\n", policy->denial->ttl);
+		}
         if (policy->denial->optout == 1)
         {
             fprintf(file, "\t\t\t\t<OptOut />\n");

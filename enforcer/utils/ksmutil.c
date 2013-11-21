@@ -4384,6 +4384,7 @@ int update_policies(char* kasp_filename)
     xmlNode *childNode2;
     xmlNode *childNode3;
     xmlChar *opt_out_flag = (xmlChar *)"N";
+    xmlChar *nsec3param_ttl = NULL ;
     xmlChar *share_keys_flag = (xmlChar *)"N";
     xmlChar *man_roll_flag = (xmlChar *)"N";
     xmlChar *rfc5011_flag = (xmlChar *)"N";
@@ -4763,6 +4764,9 @@ int update_policies(char* kasp_filename)
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Resalt")) {
                             SetParamOnPolicy(xmlNodeGetContent(childNode2), "resalt", "denial", policy->denial->resalt, policy->id, DURATION_TYPE);
                                 }
+								else if (xmlStrEqual(childNode2->name, (const xmlChar *)"TTL")) {
+									nsec3param_ttl = xmlNodeGetContent(childNode2);
+                                }
                                 else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Hash")) {
                                     childNode3 = childNode2->children;
                                     while (childNode3){
@@ -4783,6 +4787,10 @@ int update_policies(char* kasp_filename)
                             }
                             /* Set things that we flagged */
                             SetParamOnPolicy(opt_out_flag, "optout", "denial", policy->denial->optout, policy->id, BOOL_TYPE);
+                            if (nsec3param_ttl == NULL)
+                            	nsec3param_ttl = (xmlChar *) StrStrdup("PT0S"); 
+                            SetParamOnPolicy(nsec3param_ttl, "ttl", "denial", policy->denial->ttl, policy->id, DURATION_TYPE);
+                            nsec3param_ttl = NULL;
                         } /* End of NSEC3 */
                         else if (xmlStrEqual(childNode->name, (const xmlChar *)"NSEC")) {
                             status = KsmParameterSet("version", "denial", 1, policy->id);
@@ -6184,6 +6192,10 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
     else    /* NSEC3 */
     {
         nsec_node = xmlNewTextChild(denial_node, NULL, (const xmlChar *)"NSEC3", NULL);
+		if (policy->denial->ttl != 0) {
+			snprintf(temp_time, 32, "PT%dS", policy->denial->ttl);
+			(void) xmlNewTextChild(nsec_node, NULL, (const xmlChar *)"TTL", (const xmlChar *)temp_time);
+		}
         if (policy->denial->optout == 1)
         {
             (void) xmlNewTextChild(nsec_node, NULL, (const xmlChar *)"OptOut", NULL);
@@ -6194,7 +6206,7 @@ int append_policy(xmlDocPtr doc, KSM_POLICY *policy)
         snprintf(temp_time, 32, "%d", policy->denial->algorithm);
         (void) xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Algorithm", (const xmlChar *)temp_time);
         snprintf(temp_time, 32, "%d", policy->denial->iteration);
-        (void) xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Iteration", (const xmlChar *)temp_time);
+        (void) xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Iterations", (const xmlChar *)temp_time);
         snprintf(temp_time, 32, "%d", policy->denial->saltlength);
         salt_node = xmlNewTextChild(hash_node, NULL, (const xmlChar *)"Salt", NULL);
         (void) xmlNewProp(salt_node, (const xmlChar *)"length", (const xmlChar *)temp_time);
