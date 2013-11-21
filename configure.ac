@@ -251,6 +251,7 @@ AC_CONFIG_FILES([
 	conf/zonelist.xml
 	enforcer-ng/Makefile
 	enforcer-ng/src/Makefile
+	enforcer-ng/src/utils/Makefile
 	enforcer-ng/man/Makefile
 	enforcer-ng/src/protobuf-orm/test/Makefile
 	enforcer-ng/man/ods-enforcer.8

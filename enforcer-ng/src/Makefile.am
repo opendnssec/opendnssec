@@ -26,7 +26,7 @@ CLEANFILES = $(BUILT_SOURCES)
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
-SUBDIRS = protobuf-orm/test
+SUBDIRS = utils protobuf-orm/test
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
