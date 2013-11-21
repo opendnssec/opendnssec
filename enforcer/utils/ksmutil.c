@@ -483,19 +483,13 @@ types_help()
 }
 
 /*
- * exist_file - check if the file exist
+ * Check if the file exist.
+ * @param filename: name of file to be checked.
+ * @return: (int) 1 if file exist, 0 otherwise.
  *
- *
- * Arguments:
- *
- *      char* filename
- *
- * Returns:
- *      int
- *          Status return.  1 file exist
- *                          0 file not exist
  */
-int exist_file(const char* filename){
+int
+exist_file(const char* filename) {
 	int status = 0;
 	FILE *file = fopen(filename, "r");
 	if(file != NULL){
@@ -965,7 +959,7 @@ cmd_addzone ()
 
     /* validate if the input file exist */
     if(!exist_file(input_name)){
-       	printf("WARNING: The input file %s for zone %s does not currently exist. The zone will been added to the database anyway. \n",input_name, o_zone);
+       	printf("WARNING: The input file %s for zone %s does not currently exist, or is not readable. The zone will been added to the database anyway. \n",input_name, o_zone);
     }
 
     free(path);
@@ -2918,11 +2912,11 @@ cmd_dsseen()
 						if (restart_enforcerd() != 0) {
 							fprintf(stderr, "Could not HUP ods-enforcerd\n");
 						} else {
-							printf("Performed a HUP ods-enforcerd\n");
+							fprintf(stdout, "Performed a HUP ods-enforcerd\n"); /* too verbose? */
 						}
 					} else {
-						printf("No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
-						printf("Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
+						fprintf(stdout, "No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
+						fprintf(stdout, "Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
 					}
 					return 0;
 				}
@@ -2945,11 +2939,11 @@ cmd_dsseen()
 		if (restart_enforcerd() != 0) {
 			fprintf(stderr, "Could not HUP ods-enforcerd\n");
 		} else {
-			printf("Performed a HUP ods-enforcerd\n");
+			fprintf(stdout, "Performed a HUP ods-enforcerd\n"); /* too verbose? */
 		}
 	} else {
-		printf("No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
-		printf("Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
+		fprintf(stdout, "No HUP ods-enforcerd was performed as the '--no-notify' flag was specified.\n");
+		fprintf(stdout, "Warning: The enforcer must be manually notified or the changes will not take full effect until the next scheduled enforcer run.\n");						
 	}
 
     /* Release sqlite lock file (if we have it) */

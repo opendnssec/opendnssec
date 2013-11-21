@@ -1,57 +1,57 @@
-.TH "ods-ksmutil" "1" "February 2010" OpenDNSSEC "OpenDNSSEC ods-ksmutil"
+.TH "ods\-ksmutil" "1" "February 2010" OpenDNSSEC "OpenDNSSEC ods-ksmutil"
 .\" $Id$
 .SH "NAME"
 .LP
-.B ods-ksmutil
+.B ods\-ksmutil
 \- OpenDNSSEC zone and key management
 .SH "SYNOPSIS"
 .LP
-.B ods-ksmutil setup
+.B ods\-ksmutil setup
 .br
-.B ods-ksmutil start|stop|notify
+.B ods\-ksmutil start|stop|notify
 .br
-.B ods-ksmutil update kasp|zonelist|conf|all
+.B ods\-ksmutil update kasp|zonelist|conf|all
 .br
-.B ods-ksmutil zone add|delete|list
+.B ods\-ksmutil zone add|delete|list
 .RB ...
 .br
-.B ods-ksmutil zonelist import|export
+.B ods\-ksmutil zonelist import|export
 .br
-.B ods-ksmutil key generate|import|export|list|purge|rollover|ksk-retire|ds-seen
+.B ods\-ksmutil key generate|import|export|list|purge|rollover|ksk\-retire|ds\-seen
 .RB ...
 .br
-.B ods-ksmutil rollover list
+.B ods\-ksmutil rollover list
 .RB ...
 .br
-.B ods-ksmutil policy export|import|purge
+.B ods\-ksmutil policy export|import|purge
 .RB ...
 .br
-.B ods-ksmutil repository list
+.B ods\-ksmutil repository list
 .RB ...
 .br
-.B ods-ksmutil backup list|prepare|commit|rollback|done
+.B ods\-ksmutil backup list|prepare|commit|rollback|done
 .br
-.B ods-ksmutil database backup
+.B ods\-ksmutil database backup
 .RB ...
 .SH "DESCRIPTION"
 .LP
-.I ods-ksmutil
+.I ods\-ksmutil
 manages the operation of the KASP Enforcer, which is the part of OpenDNSSEC
 that triggers key generation and signing operations on domains based on
 policies with user-defined timing and security requirements.
 Since everything beyond this management utility is usually automatic,
-.I ods-ksmutil
+.I ods\-ksmutil
 is the primary tool for managing OpenDNSSEC.  Among the functions of
-.I ods-ksmutil
+.I ods\-ksmutil
 are key management, updates to the zone list and manually rolling keys
 to recover from exceptional situations like key loss.
 .PP
 To get started, a first invocation of
-.I ods-ksmutil setup
+.I ods\-ksmutil setup
 is needed;
 see SETUP AND UPDATE COMMANDS below for details.
 After this is done, the rest of the functionality of
-.I ods-ksmutil
+.I ods\-ksmutil
 becomes available.
 .PP
 The following sections discuss the subcommands in logical groups,
@@ -64,9 +64,9 @@ Change the conf.xml file that is used from the default.
 .TP
 .B help
 This can be used as a subcommand to
-.I ods-ksmutil
+.I ods\-ksmutil
 or it can be used after a partial subcommand.  In response,
-.I ods-ksmutil
+.I ods\-ksmutil
 will give a synopsis of how to continue the command.
 .TP
 .B \-V, \-\-version
@@ -112,9 +112,9 @@ The \-\-no\-xml flag stops the zonelist.xml file from being updated. This is
 suitable for a batch mode where you will add multiple zones and then just write
 zonelist once at the end.
 .TP
-.B zone delete --zone|-z \fIname\fB [\-\-no\-xml]
+.B zone delete \-\-zone|\-z \fIname\fB [\-\-no\-xml]
 .TP
-.B zone delete --all|-a
+.B zone delete \-\-all|\-a
 Delete one zone (or all zones, respectively) from both zonelist.xml and
 the database.  This is equivalent to manually editing zonelist.xml and then
 running the
@@ -211,18 +211,18 @@ OpenDNSSEC will automatically rollover keys when the need arises. (Or, in the
 case of KSKs it will start the rollover process, to finish the KSK rollover see
 ksk-roll below.)
 
-The \-\-keytype option specifies the type of key to roll. Alternatively the --all option can be used which will roll both types of keys. After running, the KASP Enforcer will be woken up so that the signer can be sent the new information.
+The \-\-keytype option specifies the type of key to roll. Alternatively the \-\-all option can be used which will roll both types of keys. After running, the KASP Enforcer will be woken up so that the signer can be sent the new information.
 
 If the policy that the zone is on specifies that keys are shared then all zones on that policy will be rolled. If appropriate, a backup of the sqlite DB file is made.
 
 If there are no keys ready to take over from the current key then the rollover will not occur immediately, but will be put off until the is a key in the ready state.
 
 .TP
-.B key ksk-retire --zone|-z \fIzone\fB
+.B key ksk-retire \-\-zone|\-z \fIzone\fB
 .TP
-.B key ksk-retire --keytag|-x \fIkeytag\fB
+.B key ksk-retire \-\-keytag|\-x \fIkeytag\fB
 .TP
-.B key ksk-retire --cka_id|-k \fIckaid\fB
+.B key ksk-retire \-\-cka_id|\-k \fIckaid\fB
 Indicate to OpenDNSSEC that a currently active key should be retired.
 If key identifiers are not provided then the oldest key in the zone 
 will be retired.
@@ -231,9 +231,9 @@ If only one key is in the active state then this command will exit
 with an error message, as completing would leave no active keys.
 
 .TP
-.B key ds-seen --zone|-z \fIzone\fB  --keytag|-x \fIkeytag\fB  [--no-notify|-l] [--no-retire|-f]
+.B key ds-seen \-\-zone|\-z \fIzone\fB  \-\-keytag|\-x \fIkeytag\fB  [\-\-no-notify|\-l] [\-\-no\-retire|\-f]
 .TP
-.B key ds-seen --zone|-z \fIzone\fB  --cka_id|-k \fIckaid\fB  [--no-notify|-l] [--no-retire|-f]
+.B key ds-seen \-\-zone|\-z \fIzone\fB  \-\-cka_id|\-k \fIckaid\fB  [\-\-no-notify|\-l] [\-\-no\-retire|\-f]
 Indicate to OpenDNSSEC that a submitted DS record has appeared in the
 parent zone, and thereby trigger the completion of a KSK rollover.
 Note that this action is not yet standardised, and can therefore not
@@ -265,7 +265,7 @@ submission of DS records to a registry.
 .SH "POLICY ADMINISTRATION SUBCOMMANDS"
 .LP
 .TP
-.B policy export [--policy|--all|-p|-a]
+.B policy export [\-\-policy|\-\-all|\-p|\-a]
 Export a policy from the database in the same format as the kasp.xml file.
 .TP
 .B policy import
