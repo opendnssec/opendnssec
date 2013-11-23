@@ -96,7 +96,7 @@ rm kasp.xml.temp2 &&
 echo &&
 echo "************ OK ******************" &&
 echo &&
-return 1
+return 0
 
 echo
 echo "************ERROR******************"
