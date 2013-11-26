@@ -26,7 +26,7 @@ CLEANFILES = $(BUILT_SOURCES)
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
-SUBDIRS = protobuf-orm/test
+SUBDIRS = utils protobuf-orm/test
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
@@ -80,8 +80,6 @@ ods_enforcerd_SOURCES = \
 	policy/policy_list_task.cpp policy/policy_list_task.h \
 	policy/policy_resalt_cmd.cpp policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.cpp policy/policy_resalt_task.h \
-	policy/policy_purge_cmd.cpp policy/policy_purge_cmd.h\
-	policy/policy_purge_task.cpp policy/policy_purge_task.h\
 	policy/resalt.cpp policy/resalt.h \
 	hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
 	hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
@@ -101,6 +99,8 @@ ods_enforcerd_SOURCES = \
 	keystate/zone_del_task.cpp keystate/zone_del_task.h \
 	keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
 	keystate/keystate_list_task.cpp keystate/keystate_list_task.h \
+	keystate/rollover_list_cmd.cpp keystate/rollover_list_cmd.h \
+	keystate/rollover_list_task.cpp keystate/rollover_list_task.h \
 	keystate/keystate_export_cmd.cpp keystate/keystate_export_cmd.h \
 	keystate/keystate_export_task.cpp keystate/keystate_export_task.h \
 	keystate/keystate_ds_submit_cmd.cpp keystate/keystate_ds_submit_cmd.h \

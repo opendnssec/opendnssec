@@ -47,8 +47,6 @@
 #include "hsmkey/update_hsmkeys_cmd.h"
 
 #include "policy/policy_list_cmd.h"
-#include "policy/policy_purge_cmd.h"
-
 #include "keystate/zone_list_cmd.h"
 #include "keystate/zone_export_cmd.h"
 #include "keystate/zone_add_cmd.h"
@@ -56,6 +54,7 @@
 #include "keystate/zonelist_cmd.h"
 
 #include "keystate/keystate_list_cmd.h"
+#include "keystate/rollover_list_cmd.h"
 #include "keystate/keystate_export_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
 #include "keystate/keystate_ds_seen_cmd.h"
@@ -136,7 +135,6 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_update_hsmkeys_cmd,
     help_update_all_cmd,
     
-    help_policy_purge_cmd,
     help_policy_list_cmd,
     help_zone_list_cmd,
     help_zone_export_cmd,
@@ -144,6 +142,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_zone_del_cmd,
 
     help_keystate_list_cmd,
+    help_rollover_list_cmd,
     help_keystate_export_cmd,
     help_keystate_ds_submit_cmd,
     help_keystate_ds_seen_cmd,
@@ -181,7 +180,6 @@ enforcer_commands[] = {
     handled_update_hsmkeys_cmd,
     handled_update_all_cmd,
     
-    handled_policy_purge_cmd,
     handled_policy_list_cmd,
     handled_zone_list_cmd,
     handled_zone_export_cmd,
@@ -189,6 +187,7 @@ enforcer_commands[] = {
     handled_zone_del_cmd,
 
     handled_keystate_list_cmd,
+    handled_rollover_list_cmd,
     handled_keystate_export_cmd,
     handled_keystate_ds_submit_cmd,
     handled_keystate_ds_seen_cmd,

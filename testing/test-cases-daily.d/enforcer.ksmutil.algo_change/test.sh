@@ -16,7 +16,6 @@ log_this ods-ksmutil-update1 ods-ksmutil update kasp &&
 log_grep ods-ksmutil-update1 stdout 'Notifying enforcer of new database...' &&
 
 # Export the policy and check some of its values
-log_this ods-ksmutil-export2 ods-ksmutil policy list &&
 log_this ods-ksmutil-export1 ods-ksmutil policy export -p default &&
 log_grep ods-ksmutil-export1 stdout '<Policy name="default">' &&
 log_grep ods-ksmutil-export1 stdout '<KSK>' &&

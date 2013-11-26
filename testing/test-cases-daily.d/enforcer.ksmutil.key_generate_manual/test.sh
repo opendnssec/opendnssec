@@ -38,9 +38,10 @@ ods_reset_env &&
 ##########################################################################################
 ##################  Shared keys and same alg & length behaviour ###########################
 ##########################################################################################
+
 # Add a few zones
 add_zones 1 10 5 && 
-log_this ods-ksmutil-keylist_hms_1   ods-ksmutil policy export &&
+
 # Generate keys on a policy which shares keys with the same algorithm 7 and length 2048
 echo "y" | log_this ods-ksmutil-generate_1   ods-ksmutil key generate --interval PT100M --policy  Policy5 &&
 log_grep ods-ksmutil-generate_1   stdout "Info: 10 zone(s) found on policy \"Policy5\"" &&
