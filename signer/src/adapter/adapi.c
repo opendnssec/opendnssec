@@ -245,6 +245,11 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
         ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
             "soa serial rdata (%s)", adapi_str, zone->name,
             ods_status2str(status));
+        if (status == ODS_STATUS_CONFLICT_ERR) {
+            ods_log_error("[%s] If this is the result of a key rollover, "
+                "please increment the serial in the unsigned zone %s",
+                adapi_str, zone->name);
+        }
         return status;
     }
     ods_log_verbose("[%s] zone %s set soa serial to %u", adapi_str,

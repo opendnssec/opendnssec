@@ -58,6 +58,7 @@ struct namedb_struct {
     unsigned is_processed : 1;
     unsigned serial_updated : 1;
     unsigned force_serial : 1;
+    unsigned have_serial : 1;
 };
 
 /**

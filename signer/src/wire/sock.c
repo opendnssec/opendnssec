@@ -766,7 +766,7 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
         if (data->qstate == QUERY_IXFR) {
             data->qstate = ixfr(q, data->engine);
         } else {
-            data->qstate = axfr(q, data->engine);
+            data->qstate = axfr(q, data->engine, 0);
         }
         if (data->qstate != QUERY_PROCESSED) {
             /* edns, tsig */

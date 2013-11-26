@@ -249,7 +249,8 @@ worker_queue_zone(worker_type* worker, fifoq_type* q, zone_type* zone)
  *
  */
 static ods_status
-worker_check_jobs(worker_type* worker, task_type* task) {
+worker_check_jobs(worker_type* worker, task_type* task)
+{
     ods_log_assert(worker);
     ods_log_assert(task);
     lock_basic_lock(&worker->worker_lock);

@@ -57,10 +57,11 @@ query_state soa_request(query_type* q, engine_type* engine);
  * Do AXFR.
  * \param[in] q axfr request
  * \param[in] engine signer engine
+ * \param[in] fallback fallback from ixfr?
  * \return query_state state of the query
  *
  */
-query_state axfr(query_type* q, engine_type* engine);
+query_state axfr(query_type* q, engine_type* engine, int fallback);
 
 /**
  * Do IXFR.

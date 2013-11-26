@@ -1,4 +1,23 @@
+14 November 2013: Matthijs
+- Fix task rescheduling for OPENDNSSEC-467.
+
+14 November 2013: Matthijs
+- OPENDNSSEC-435: Fix a memleak when cleaning up signatures.
+
+14 October 2013: Matthijs
+- OPENDNSSEC-466: Signer create bad TSIG when falling back to AXFR.
+
+11 October 2013: Matthijs
+- OPENDNSSEC-467: After ods-signer clear, signer used inbound serial
+
+9 October 2013: Matthijs
+- SUPPORT-72: Improve logging when serial cannot be incremented [OPENDNSSEC-461].
+- OPENDNSSEC-330: NSEC3PARAM TTL configurable in kasp.
+- OPENDNSSEC-463: Duration PT0S is not printed correctly.
+
 20 August 2013: Matthijs
+- SUPPORT-71: Signer crashes on a double free in case of a HSM connection
+  problem [OPENDNSSEC-444].
 - OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default 0 again, to
   keep similarity with BIND9. Decided it needs a configuration option.
 

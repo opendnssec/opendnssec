@@ -151,7 +151,7 @@ soa_request(query_type* q, engine_type* engine)
  *
  */
 query_state
-axfr(query_type* q, engine_type* engine)
+axfr(query_type* q, engine_type* engine, int fallback)
 {
     char* xfrfile = NULL;
     ldns_rr* rr = NULL;
@@ -180,11 +180,13 @@ axfr(query_type* q, engine_type* engine)
     }
 
     /* prepare TSIG */
-    q->tsig_prepare_it = 0;
-    q->tsig_update_it = 1;
-    if (q->tsig_sign_it) {
-        q->tsig_prepare_it = 1;
-        q->tsig_sign_it = 0;
+    if (!fallback) {
+        q->tsig_prepare_it = 0;
+        q->tsig_update_it = 1;
+        if (q->tsig_sign_it) {
+            q->tsig_prepare_it = 1;
+            q->tsig_sign_it = 0;
+        }
     }
     ods_log_assert(q->tsig_rr);
     if (q->axfr_fd == NULL) {
@@ -433,7 +435,7 @@ ixfr(query_type* q, engine_type* engine)
                 q->zone->name);
             free((void*)xfrfile);
             buffer_set_position(q->buffer, q->startpos);
-            return axfr(q, engine);
+            return axfr(q, engine, 1);
         }
         free((void*)xfrfile);
         if (q->tsig_rr->status == TSIG_OK) {
@@ -451,7 +453,7 @@ ixfr(query_type* q, engine_type* engine)
             ods_fclose(q->axfr_fd);
             q->axfr_fd = NULL;
             buffer_set_position(q->buffer, q->startpos);
-            return axfr(q, engine);
+            return axfr(q, engine, 1);
         }
         rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl, &status,
             &l);
@@ -528,7 +530,7 @@ ixfr(query_type* q, engine_type* engine)
         ods_fclose(q->axfr_fd);
         q->axfr_fd = NULL;
         buffer_set_position(q->buffer, q->startpos);
-        return axfr(q, engine);
+        return axfr(q, engine, 1);
     }
     while ((rr = addns_read_rr(q->axfr_fd, line, &orig, &prev, &ttl,
         &status, &l)) != NULL) {
@@ -568,7 +570,7 @@ ixfr(query_type* q, engine_type* engine)
                 ods_fclose(q->axfr_fd);
                 q->axfr_fd = NULL;
                 buffer_set_position(q->buffer, q->startpos);
-                return axfr(q, engine);
+                return axfr(q, engine, 1);
             }
             buffer_pkt_set_ancount(q->buffer, buffer_pkt_ancount(q->buffer)+1);
             total_added++;
@@ -621,7 +623,7 @@ axfr_fallback:
             q->axfr_fd = NULL;
         }
         buffer_set_position(q->buffer, q->startpos);
-        return axfr(q, engine);
+        return axfr(q, engine, 1);
     }
     /* UDP Overflow */
     ods_log_info("[%s] ixfr udp overflow zone %s", axfr_str, q->zone->name);
