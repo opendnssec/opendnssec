@@ -78,6 +78,8 @@ ods_enforcerd_SOURCES = \
 	policy/update_kasp_task.cpp policy/update_kasp_task.h \
 	policy/policy_list_cmd.cpp policy/policy_list_cmd.h \
 	policy/policy_list_task.cpp policy/policy_list_task.h \
+	policy/policy_purge_cmd.cpp policy/policy_purge_cmd.h\
+	policy/policy_purge_task.cpp policy/policy_purge_task.h\
 	policy/policy_resalt_cmd.cpp policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.cpp policy/policy_resalt_task.h \
 	policy/resalt.cpp policy/resalt.h \

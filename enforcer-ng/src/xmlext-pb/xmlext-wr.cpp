@@ -28,7 +28,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
+#include <iostream>
 #include <errno.h>
 #include <set>
 
@@ -208,6 +208,7 @@ recurse_write(
     const std::vector<const ::google::protobuf::FieldDescriptor*> &fields,
     int ccskip)
 {
+	ods_printf(9,"44--------1111111111111111111111\n");
     const ::google::protobuf::Reflection *reflection = msg->GetReflection();
     static int level = -1;
     ++level;
@@ -215,28 +216,30 @@ recurse_write(
     std::set<const ::google::protobuf::FieldDescriptor*> processed_fields;
     std::vector<const ::google::protobuf::FieldDescriptor*>::const_iterator it;
     for (it=fields.begin(); it != fields.end(); ++it) {
-
+    	ods_printf(9,"44--------4444444444444444444444\n");
         const ::google::protobuf::FieldDescriptor *field = *it;
+        ods_printf(9,"55--------11\n");
         if (!field) continue;
-        
+        ods_printf(9,"55--------22\n");
 		//printf("FIELD: %s\n",field->name().c_str());
 			   
 
         // skip fields of the message that already have been processed
         if (processed_fields.find(field) != processed_fields.end()) continue;
-
+        ods_printf(9,"55--------33\n");
         // skip fields that have no xml option set
         if (!field->options().HasExtension(xml)) continue;
-
+        ods_printf(9,"55--------44\n");
         std::string indent(level,'\t');
+        ods_printf(9,"55--------55\n");
         const xmloption xmlopt = field->options().GetExtension(xml);
-
+        ods_printf(9,"55--------66\n");
 		//printf("	XPATH: %s\n",xmlopt.path().c_str());
         
         // skip fields that represent xml attributes when processing the 
         // field list to expand fields into xml elements.
         if (xmlopt.path().find('@') == 0) continue;
-
+        ods_printf(9,"55--------77\n");
         /*
          * if there is a / inside the xml attribute, then 
          * it may indicate a nested element something like 
@@ -247,7 +250,9 @@ recurse_write(
          * recursively into recurse_write.
          */
         int sspos = xmlopt.path().find('/',ccskip);
+        ods_printf(9,"55--------88\n");
         if (sspos != std::string::npos) {
+        	ods_printf(9,"55--------99\n");
             // get single component of nested element name
             std::string elem = xmlopt.path().substr(ccskip,sspos-ccskip);
             
@@ -267,15 +272,20 @@ recurse_write(
                     processed_fields.insert(*it);
                 }
             }
+            ods_printf(9,"44--------5555555555555555555555\n");
             recurse_write(fw,msg,subfields,sspos+1);
+            ods_printf(9,"44--------666666666666666666666666\n");
 
             fprintf(fw,"%s</%s>\n",indent.c_str(),elem.c_str());
             continue;
         }
-        
-        std::string elem = xmlopt.path().substr(ccskip);
+        ods_printf(9,"55--------1010\n");
+        std::string elem = xmlopt.path().substr(0,ccskip);
+        ods_printf(9,"55--------1111\n");
         std::string attributes;
+        ods_printf(9,"55--------1212\n");
         if (field->is_repeated()) {
+        	ods_printf(9,"44--------22222222222222222222222222222\n");
             // REPEATED
             int field_size = reflection->FieldSize(*msg,field);
             for (int f=0; f<field_size; ++f) {
@@ -369,8 +379,11 @@ recurse_write(
                     case ::google::protobuf::FieldDescriptor::TYPE_MESSAGE:
                         // Length-delimited message.
                         fprintf(fw,"\n");
+                        ods_printf(9,"33--------111111111111111111111111\n");
                         write_msg(fw,&reflection->GetRepeatedMessage(*msg,field,f));
+                        ods_printf(9,"33--------222222222222222222222222\n");
                         fprintf(fw,"%s",indent.c_str());
+                        ods_printf(9,"33--------333333333333333333333333\n");
                         break;
                         
                     case ::google::protobuf::FieldDescriptor::TYPE_BYTES:
@@ -394,6 +407,7 @@ recurse_write(
                 
             }
         } else {
+        	ods_printf(9,"44--------333333333333333333333333\n");
             // REQUIRED or OPTIONAL
             switch (field->type()) {
                 case ::google::protobuf::FieldDescriptor::TYPE_BOOL:
@@ -480,8 +494,11 @@ recurse_write(
                 case ::google::protobuf::FieldDescriptor::TYPE_MESSAGE:
                     // Length-delimited message.
                     fprintf(fw,"\n");
+                    ods_printf(9,"33--------4444444444444444444444444\n");
                     write_msg(fw,&reflection->GetMessage(*msg,field));
+                    ods_printf(9,"33--------5555555555555555555555555\n");
                     fprintf(fw,"%s",indent.c_str());
+                    ods_printf(9,"33--------66666666666666666666666666\n");
                     break;
                     
                 case ::google::protobuf::FieldDescriptor::TYPE_BYTES:
@@ -495,6 +512,7 @@ recurse_write(
                     break;
                     
                 default:
+                	ods_printf(9,"44--------77777777777777777777\n");
                     fprintf(fw,"ERROR: UNKNOWN FIELD TYPE");
             }
             if (field->type() 
@@ -506,18 +524,22 @@ recurse_write(
 					fprintf(fw,"</%s>\n",elem.c_str());
             }
         }
-        
+        ods_printf(9,"44--------888888888888888888888888888\n");
     }
-    
+    ods_printf(9,"44--------99999999999999999999999999\n");
     --level;
 }
 
 void 
 write_msg(FILE *fw, const ::google::protobuf::Message *msg)
 {
+	ods_printf(9,"22--------111111111111111111111111\n");
     std::vector<const ::google::protobuf::FieldDescriptor*> fields;
+    ods_printf(9,"22--------222222222222222222222\n");
     msg->GetReflection()->ListFields(*msg, &fields);
+    ods_printf(9,"22--------33333333333333333333333\n");
     recurse_write(fw,msg,fields,0);
+    ods_printf(9,"22--------444444444444444444444444\n");
 }
 
 bool write_pb_message_to_xml_file(const google::protobuf::Message *document, 
@@ -532,21 +554,33 @@ bool write_pb_message_to_xml_file(const google::protobuf::Message *document,
 
 bool write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
 								int fd)
-{
+{	ods_printf(fd,"11--------1111111111111\n");
     if (fd<0) {
+    	ods_printf(fd,"11-------2222222222222\n");
         ods_log_error("[%s] write_pb_message_to_xml_fd: invalid fd: %d",
                       module_str,fd);
+        ods_printf(fd,"11--------333333333333333\n");
         return false;
+        ods_printf(fd,"11--------444444444444444\n");
     }
+    ods_printf(fd,"11--------5555555555555\n");
     int dfd = dup(fd);
     if (dfd<0) {
+    	ods_printf(fd,"11--------6666666666666\n");
         ods_log_error("[%s] write_pb_message_to_xml_fd: can't dup fd: %s",
                       module_str,strerror(errno));
+        ods_printf(fd,"11--------777777777777777\n");
         return false;
+        ods_printf(fd,"11--------888888888888888\n");
     }
+    ods_printf(fd,"11-------99999999999999\n");
     FILE *fw = fdopen(dfd,"w");
+    ods_printf(fd,"11--------101010101010101\n");
     if (!fw) return false;
+    ods_printf(fd,"11--------11-11-11-11-11-11-1\n");
+    ods_printf(fd,"%d\n",fd);
     write_msg(fw,document);
+    ods_printf(fd,"11--------22-22-22-22-22-22-22-22-2\n");
     ods_fclose(fw);
     return true;
 }
