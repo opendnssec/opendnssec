@@ -465,9 +465,11 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
  * Compare signer configurations on key material.
  *
  */
-task_id
-signconf_compare_keys(signconf_type* a, signconf_type* b, ldns_rr_list* del)
+ods_status
+signconf_compare_keys(signconf_type* a, signconf_type* b, ldns_rr_list* del,
+    task_id* task)
 {
+    hsm_ctx_t* ctx = NULL;
     task_id new_task = TASK_NONE;
     ods_status status = ODS_STATUS_OK;
     key_type* walk = NULL;
@@ -481,6 +483,14 @@ signconf_compare_keys(signconf_type* a, signconf_type* b, ldns_rr_list* del)
     }
     ods_log_assert(a);
     ods_log_assert(b);
+    ods_log_assert(task);
+
+    ctx = hsm_create_context();
+    if (!ctx) {
+        *task = TASK_NONE;
+        return ODS_STATUS_HSM_ERR;
+    }
+    ods_log_assert(ctx);
 
     /* keys deleted? */
     if (a->keys) {
@@ -529,7 +539,7 @@ signconf_compare_keys(signconf_type* a, signconf_type* b, ldns_rr_list* del)
             if (walk->dnskey && !kb->dnskey) {
                 kb->dnskey = walk->dnskey;
                 kb->hsmkey = walk->hsmkey;
-                status = lhsm_get_key(NULL, ldns_rr_owner(walk->dnskey), kb);
+                status = lhsm_get_key(ctx, ldns_rr_owner(walk->dnskey), kb);
                 walk->hsmkey = NULL;
                 walk->dnskey = NULL;
             }
@@ -561,7 +571,9 @@ signconf_compare_keys(signconf_type* a, signconf_type* b, ldns_rr_list* del)
             walk = walk->next;
         }
     }
-   return new_task;
+    *task = new_task;
+    hsm_destroy_context(ctx);
+    return ODS_STATUS_OK;
 }
 
 
