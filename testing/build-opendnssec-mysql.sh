@@ -45,12 +45,11 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
-				--with-database-backend=mysql \
-				--with-dbname=build \
-				--with-dbhost=localhost \
-				--with-dbuser=build \
-				--with-dbpass=build \
-				--disable-auditor \
+				--with-enforcer-database=mysql \
+				--with-enforcer-database-test-database=build \
+				--with-enforcer-database-test-host=localhost \
+				--with-enforcer-database-test-username=build \
+				--with-enforcer-database-test-password=build \
 				--enable-timeshift &&
 			$MAKE &&
 			$MAKE check &&
@@ -72,12 +71,11 @@ case "$DISTRIBUTION" in
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-mysql=/usr/mysql/5.1 \
-				--with-database-backend=mysql \
-				--with-dbname=build \
-				--with-dbhost=localhost \
-				--with-dbuser=build \
-				--with-dbpass=build \
-				--disable-auditor \
+				--with-enforcer-database=mysql \
+				--with-enforcer-database-test-database=build \
+				--with-enforcer-database-test-host=localhost \
+				--with-enforcer-database-test-username=build \
+				--with-enforcer-database-test-password=build \
 				--enable-timeshift &&
 			$MAKE &&
 			$MAKE check &&
@@ -99,12 +97,11 @@ case "$DISTRIBUTION" in
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-cunit=/usr/pkg \
-				--with-database-backend=mysql \
-				--with-dbname=build \
-				--with-dbhost=localhost \
-				--with-dbuser=build \
-				--with-dbpass=build \
-				--disable-auditor \
+				--with-enforcer-database=mysql \
+				--with-enforcer-database-test-database=build \
+				--with-enforcer-database-test-host=localhost \
+				--with-enforcer-database-test-username=build \
+				--with-enforcer-database-test-password=build \
 				--enable-timeshift \
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
@@ -126,12 +123,11 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
-				--with-database-backend=mysql \
-				--with-dbname=build \
-				--with-dbhost=localhost \
-				--with-dbuser=build \
-				--with-dbpass=build \
-				--disable-auditor \
+				--with-enforcer-database=mysql \
+				--with-enforcer-database-test-database=build \
+				--with-enforcer-database-test-host=localhost \
+				--with-enforcer-database-test-username=build \
+				--with-enforcer-database-test-password=build \
 				--enable-timeshift &&
 			$MAKE &&
 			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
