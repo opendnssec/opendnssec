@@ -417,7 +417,13 @@ zone_load_signconf(zone_type* zone, task_id* tbs)
             return ODS_STATUS_MALLOC_ERR;
         }
         denial_what = signconf_compare_denial(zone->signconf, signconf);
-        keys_what = signconf_compare_keys(zone->signconf, signconf, del);
+        status = signconf_compare_keys(zone->signconf, signconf, del, &keys_what);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to load signconf: zone %s "
+                "signconf %s: %s", zone_str, zone->name,
+                zone->signconf_filename, ods_status2str(status));
+            return status;
+        }
 
         /* Key Rollover? */
         if (keys_what == TASK_READ) {

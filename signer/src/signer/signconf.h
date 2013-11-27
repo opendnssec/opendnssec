@@ -135,11 +135,12 @@ task_id signconf_compare_denial(signconf_type* a, signconf_type* b);
  * \param[in] a a signer configuration
  * \param[in] b another signer configuration
  * \param[out] del list of DNSKEY RRs that have to be removed
- * \return task_id what task needs to be scheduled
+ * \param[out] task to be scheduled
+ * \return ods_status status
  *
  */
-task_id signconf_compare_keys(signconf_type* a, signconf_type* b,
-    ldns_rr_list* del);
+ods_status signconf_compare_keys(signconf_type* a, signconf_type* b,
+    ldns_rr_list* del, task_id* task);
 
 /**
  * Clean up signer configuration.

@@ -18,6 +18,8 @@ OpenDNSSEC 1.3.16rc1
 
 
 Bugfixes:
+* OPENDNSSEC-451: Signer Engine: Prevent CKA_ID and DNSKEY mixup by using
+  a separate HSM context when loading signer configuration.
 * OPENDNSSEC-462: Signer Engine: Duration PT0S is not printed correctly.
 * ods-ksmutil: Fix typo in policy export with NSEC3 <Iterations>.
 
