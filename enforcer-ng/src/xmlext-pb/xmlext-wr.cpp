@@ -75,21 +75,23 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
         const ::google::protobuf::FieldDescriptor *field = *it;
         if (!field) continue;
         const xmloption xmlopt = field->options().GetExtension(xml);
-        if (xmlopt.path().find('@') == 0) {
+        size_t at_idx;
+        if ((at_idx = xmlopt.path().find('@')) != std::string::npos) {
             int snprintf_size = 0;
             const char *fmt;
+            at_idx++;
             
             switch (field->type()) {
                 case ::google::protobuf::FieldDescriptor::TYPE_FLOAT:
                     // float, exactly four bytes on the wire.
                     ods_strcat_printf(a, " %s=\"%g\"",
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       reflection->GetFloat(*msg,field));
                     break;
                 case ::google::protobuf::FieldDescriptor::TYPE_DOUBLE:
                     // double, exactly eight bytes on the wire.
                     ods_strcat_printf(a, " %s=\"%g\"",
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       reflection->GetDouble(*msg,field));
                     break;
                     
@@ -104,7 +106,7 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                     else
                         fmt = " %s=\"%d\"";
                     ods_strcat_printf(a, fmt,
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       reflection->GetInt32(*msg,field));
                     break;
                     
@@ -119,7 +121,7 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                     else
                         fmt = " %s=\"%lld\"";
                     ods_strcat_printf(a, fmt,
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       reflection->GetInt64(*msg,field));
                     break;
                     
@@ -132,7 +134,7 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                     else
                         fmt = " %s=\"%u\"";
                     ods_strcat_printf(a, fmt,
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       reflection->GetUInt32(*msg,field));
                     break;
                     
@@ -145,28 +147,28 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                     else
                         fmt = " %s=\"%llu\"";
                     ods_strcat_printf(a, fmt,
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       reflection->GetUInt64(*msg,field));
                     break;
                     
                 case ::google::protobuf::FieldDescriptor::TYPE_BOOL:
                     // bool, varint on the wire.
                     ods_strcat_printf(a, " %s=\"%d\"",
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       (int)reflection->GetBool(*msg,field)?1:0);
                     break;
                     
                 case ::google::protobuf::FieldDescriptor::TYPE_STRING:
                     // UTF-8 text.
                     ods_strcat_printf(a, " %s=\"%s\"",
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       reflection->GetString(*msg,field).c_str());
                     break;
                     
                 case ::google::protobuf::FieldDescriptor::TYPE_MESSAGE:
                     // Length-delimited message.
                     ods_strcat_printf(a, " %s=\"%s\"",
-                                  xmlopt.path().substr(1).c_str(),
+                                  xmlopt.path().substr(at_idx).c_str(),
                                   "ERROR: Message doesn't fit in xml attribute");
                     ods_log_error("[%s] Message doesn't fit in xml attribute",
                                   module_str);
@@ -175,7 +177,7 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                 case ::google::protobuf::FieldDescriptor::TYPE_BYTES:
                     // Arbitrary byte array.
                     ods_strcat_printf(a, " %s=\"%s\"",
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       "ERROR: Bytes don't fit in xml attribute");
                     ods_log_error("[%s] Bytes don't fit in xml attribute",
                                   module_str);
@@ -184,13 +186,13 @@ generate_attributes(std::string &a, const google::protobuf::Message *msg)
                 case ::google::protobuf::FieldDescriptor::TYPE_ENUM:
                     // Enum, varint on the wire
                     ods_strcat_printf(a, " %s=\"%s\"",
-                              xmlopt.path().substr(1).c_str(),
+                              xmlopt.path().substr(at_idx).c_str(),
                               reflection->GetEnum(*msg,field)->name().c_str());
                     break;
                     
                 default:
                     ods_strcat_printf(a, " %s=\"%s\"",
-                                      xmlopt.path().substr(1).c_str(),
+                                      xmlopt.path().substr(at_idx).c_str(),
                                       "ERROR: UNKNOWN FIELD TYPE");
                     ods_log_error("[%s] Unknow field type",
                                   module_str);
@@ -234,8 +236,8 @@ recurse_write(
 		//printf("	XPATH: %s\n",xmlopt.path().c_str());
         
         // skip fields that represent xml attributes when processing the 
-        // field list to expand fields into xml elements.
-        if (xmlopt.path().find('@') == 0) continue;
+        // field list to expand fields into xml elements
+        if (xmlopt.path().find('@') != std::string::npos) continue;
 
         /*
          * if there is a / inside the xml attribute, then 
@@ -259,7 +261,7 @@ recurse_write(
                 
                 const xmloption subxmlopt = (*it)->options().GetExtension(xml);
                 
-                if (subxmlopt.path().find(elem,ccskip) == 0) {
+                if (subxmlopt.path().find(elem,ccskip) != std::string::npos) {
                 
                     // process these fields in a nested call to recurse_write
                     subfields.push_back(*it);
