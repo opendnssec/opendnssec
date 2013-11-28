@@ -1,6 +1,10 @@
 $Id$
 
-OpenDNSSEC 1.4.3
+OpenDNSSEC 1.4.4rc1
+
+
+OpenDNSSEC 1.4.3 - 2013-12-04
+
 * SUPPORT-72: Improve logging when failed to increment serial in case 
   of key rollover and serial value "keep" [OPENDNSSEC-461].
 * OPENDNSSEC-106: Add 'ods-enforcerd -p <policy>' option. This prompts the
