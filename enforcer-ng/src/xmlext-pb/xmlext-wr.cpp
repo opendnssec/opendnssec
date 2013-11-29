@@ -29,6 +29,12 @@
  *
  */
 
+/* FILE
+ * Convert protobuf datastructure to formatted xml output. This
+ * is less straight-forward than it seems. Not all data has a nice tree
+ * like structure.
+ * */
+
 #include <errno.h>
 #include <set>
 #include <sstream>
@@ -104,6 +110,9 @@ get_value(const Message *msg, const FieldDescriptor *field)
     }
 }
 
+/* True if field is intended as an xml attribute 
+ * (<element attribute="value">)
+ * */
 bool
 isattr(const FieldDescriptor *field) {
     const xmloption xmlopt = field->options().GetExtension(xml);
