@@ -57,7 +57,7 @@ static const char *module_str = "policy_export_task";
 	ods_log_error_and_printf(sockfd,module_str,errmsg); return; } while (0)
 #define ODS_LOG_AND_CONTINUE(errmsg) do { \
 	ods_log_error_and_printf(sockfd,module_str,errmsg); continue; } while (0)
-
+/*
 void 
 perform_policy_export(int sockfd, engineconfig_type *config, const char *policy)
 {
@@ -122,5 +122,53 @@ perform_policy_export(int sockfd, engineconfig_type *config, const char *policy)
 			ods_log_debug("[%s] policy export completed", module_str);
 		}
     }
+}*/
+
+void 
+perform_policy_export(int sockfd, engineconfig_type *config, const char *policyname)
+{
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn)) return;
+	
+	OrmTransaction transaction(conn);
+	if (!transaction.started()) {
+		ods_log_error_and_printf(sockfd, module_str, 
+			"database transaction failed");
+		return;
+	}
+
+	OrmResultRef rows;
+	::ods::kasp::Policy policy;
+	if (!OrmMessageEnum(conn,policy.descriptor(),rows)) {
+		ods_log_error_and_printf(sockfd, module_str,
+			"database policy enumeration failed\n");
+		return;
+	}
+	
+	if (!OrmFirst(rows)) {
+		ods_log_debug("[%s] policy list completed", module_str);
+		ods_printf(sockfd,
+				   "Database set to: %s\n"
+				   "I have no policies configured\n"
+				   ,config->datastore);
+		return;
+	}
+	
+	
+	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		if (!OrmGetMessage(rows, policy, true)) {
+			ods_log_error_and_printf(sockfd, module_str,
+								"reading policy from database failed");
+			return;
+		}
+			
+		if (!write_pb_message_to_xml_fd(&policy, sockfd)){
+			ods_log_error_and_printf(sockfd, module_str,
+									  "writing message to xml file failed");
+			return;
+		}
+	}
+    ods_log_debug("[%s] policy list completed", module_str);
 }
 
