@@ -142,14 +142,13 @@ isattr(const FieldDescriptor *field) {
 }
 
 void
-getSubForElem( const FieldDescriptor *field,
+getSubForElemStr( string elempath,
     std::vector<const FieldDescriptor*> *input,
     std::vector<const FieldDescriptor*> *output
 )
 {
     std::vector<const FieldDescriptor*> keep;
     vector<const FieldDescriptor*>::iterator fld_iter;
-    string elempath = field->options().GetExtension(xml).path();
     //~ printf("\tFIELD: %s\n", elempath.c_str());
     
     for (fld_iter=input->begin(); fld_iter != input->end(); ++fld_iter) {
@@ -167,12 +166,38 @@ getSubForElem( const FieldDescriptor *field,
     }
 }
 
+void
+getSubForElem( const FieldDescriptor *field,
+    std::vector<const FieldDescriptor*> *input,
+    std::vector<const FieldDescriptor*> *output
+)
+{
+    string elempath = field->options().GetExtension(xml).path();
+    getSubForElemStr(elempath, input, output);
+}
+
 string
 strip_path(string in)
 {
     size_t pos = in.rfind('/');
     if (pos == string::npos) return in;
     return in.substr(pos+1, in.length());
+}
+
+string
+strip_pathlabel(string in)
+{
+    size_t pos = in.find('/');
+    if (pos == string::npos) return in;
+    return in.substr(pos+1, in.length());
+}
+
+string
+get_pathroot(string in)
+{
+    size_t pos = in.find('/');
+    if (pos == string::npos) return in;
+    return in.substr(0, pos);
 }
 
 string
@@ -228,12 +253,32 @@ close_element(FILE *fw, const FieldDescriptor *field,
 }
 
 void
-write_nonterminals(const Message *msg, 
-    const vector<const FieldDescriptor*> &nonterminal_elements)
+recurse_write(FILE *, const FieldDescriptor *,
+    const vector<const FieldDescriptor*> &,
+    const vector<const FieldDescriptor*> &,
+    const Message *, int, string);
+    
+void
+write_nonterminals(FILE *fw, const Message *msg, 
+    vector<const FieldDescriptor*> *nonterminal_elements, int lvl)
 {
-    if (nonterminal_elements.empty()) return;
+    vector<const FieldDescriptor*>::const_iterator fld_iter;
+    std::vector<const FieldDescriptor*> sibblings;
+    std::vector<const FieldDescriptor*> attrs;
+    
+    if (nonterminal_elements->empty()) return;
     printf("PROC NON TERMINALs\n");
     
+    while (!nonterminal_elements->empty()) {
+        sibblings.clear();
+        fld_iter = nonterminal_elements->begin();
+        string root = get_pathroot((*fld_iter)->options().GetExtension(xml).path());
+        getSubForElemStr(root, nonterminal_elements, &sibblings);
+        
+        fprintf(fw, "<%s>\n",  root.c_str());
+        recurse_write(fw, NULL, sibblings, attrs, msg, lvl+1, root);
+        fprintf(fw, "</%s>\n",  root.c_str());
+    }
 }
 
 
@@ -242,7 +287,7 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     const vector<const FieldDescriptor*> &fields,
     const vector<const FieldDescriptor*> &attrs,
     const Message *msg,
-    int lvl)
+    int lvl, string nonterm_prfx)
 {
     const Reflection *reflection = msg->GetReflection();
     vector<const FieldDescriptor*>::const_iterator fld_iter;
@@ -265,6 +310,9 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
             continue;
         }
         string xmlpath = (*fld_iter)->options().GetExtension(xml).path();
+        if (nonterm_prfx.length() > 0) {
+            xmlpath = xmlpath.substr(nonterm_prfx.length()+1, xmlpath.length());
+        }
         if (isattr(*fld_iter)) {
             printf("%d attribute found: %s (\"%s\")\n", lvl, (*fld_iter)->name().c_str(), xmlpath.c_str());
             attributes.push_back(*fld_iter);
@@ -307,13 +355,13 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
                     const Message *submsg = &reflection->GetRepeatedMessage(*msg, *fld_iter, f);
                     submsg->GetReflection()->ListFields(*submsg, &subfields);
                     getSubForElem(*fld_iter, &nonterminal_elements, &subfields);
-                    recurse_write(fw, *fld_iter, subfields, elem_attr, submsg, lvl+1);
+                    recurse_write(fw, *fld_iter, subfields, elem_attr, submsg, lvl+1, "");
                 }
             } else {
                 const Message *submsg = &reflection->GetMessage(*msg, *fld_iter);
                 submsg->GetReflection()->ListFields(*submsg, &subfields);
                 getSubForElem(*fld_iter, &nonterminal_elements, &subfields);
-                recurse_write(fw, *fld_iter, subfields, elem_attr, submsg, lvl+1);
+                recurse_write(fw, *fld_iter, subfields, elem_attr, submsg, lvl+1, "");
             }
         } else {
             //We have a terminal (element w/o children)
@@ -327,7 +375,7 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
         }
     }
     
-    write_nonterminals(msg, nonterminal_elements);
+    write_nonterminals(fw, msg, &nonterminal_elements, lvl);
     
     if (parentfield) {
         close_element(fw, parentfield, elements, attributes, msg);
@@ -340,7 +388,7 @@ write_msg(FILE *fw, const ::google::protobuf::Message *msg)
     std::vector<const ::google::protobuf::FieldDescriptor*> fields;
     msg->GetReflection()->ListFields(*msg, &fields);
     std::vector<const FieldDescriptor*> attributes;
-    recurse_write(fw, NULL, fields, attributes, msg, 0);
+    recurse_write(fw, NULL, fields, attributes, msg, 0, "");
 }
 
 bool write_pb_message_to_xml_file(const google::protobuf::Message *document, 
