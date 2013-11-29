@@ -62,7 +62,6 @@ ods_strcat_printf(std::string &str, const char *format, ...)
 using namespace ::google::protobuf;
 using namespace std;
 
-
 string
 get_value(const Message *msg, const FieldDescriptor *field)
 {
@@ -117,10 +116,6 @@ get_value(const Message *msg, const FieldDescriptor *field)
         case FieldDescriptor::TYPE_STRING: // UTF-8 text.
             ods_strcat_printf(a, "%s", reflection->GetString(*msg, field).c_str());
             break;
-        //~ case FieldDescriptor::TYPE_MESSAGE: // Length-delimited message.
-            //~ ods_strcat_printf(a, "%s", "ERROR: Message doesn't fit in xml attribute");
-            //~ ods_log_error("[%s] Message doesn't fit in xml attribute", module_str);
-            //~ break;
         case FieldDescriptor::TYPE_BYTES: // Arbitrary byte array.
             ods_strcat_printf(a, "%s", "ERROR: Bytes don't fit in xml attribute");
             ods_log_error("[%s] Bytes don't fit in xml attribute", module_str);
