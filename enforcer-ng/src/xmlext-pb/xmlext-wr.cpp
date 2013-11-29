@@ -31,6 +31,7 @@
 
 #include <errno.h>
 #include <set>
+#include <sstream>
 
 #include "config.h"
 #include "xmlext-wr.h"
@@ -39,95 +40,68 @@
 #include "shared/log.h"
 #include "shared/file.h"
 
-static const char *module_str = "xmlext_wr";
-
-void
-ods_strcat_printf(std::string &str, const char *format, ...)
-{
-    char buf[ODS_SE_MAXLINE] = "";
-    int nbuf;
-    va_list args;
-    va_start(args, format);
-    nbuf = vsnprintf(buf,ODS_SE_MAXLINE,format,args);
-    if (nbuf<0)
-        ods_log_error("[%s] ods_strcat_printf: encoding error" ,module_str);
-    else
-        if (nbuf>=ODS_SE_MAXLINE)
-            ods_log_error("[%s] ods_strcat_printf: printed string too long",
-                          module_str);
-    str += buf;
-    va_end(args);
-}
-
 using namespace ::google::protobuf;
 using namespace std;
+
+static const char *module_str = "xmlext_wr";
+
+template <typename T> string tostr(const T& t) { 
+	ostringstream os; os<<t; return os.str();
+}
 
 string
 get_value(const Message *msg, const FieldDescriptor *field)
 {
     const Reflection *reflection = msg->GetReflection();
     const xmloption xmlopt = field->options().GetExtension(xml);
-    string a;
+    char tmp[ODS_SE_MAXLINE];
     
     switch (field->type()) {
-        case FieldDescriptor::TYPE_FLOAT:
-            // float, exactly four bytes on the wire.
-            ods_strcat_printf(a, "%g",reflection->GetFloat(*msg, field));
-            break;
+        case FieldDescriptor::TYPE_FLOAT:    // float, exactly four bytes on the wire.
+            return tostr(reflection->GetFloat(*msg, field));
         case FieldDescriptor::TYPE_MESSAGE:
-            a = "";
-            break;
-        case FieldDescriptor::TYPE_DOUBLE: // double, exactly eight bytes on the wire.
-            ods_strcat_printf(a, "%g", reflection->GetDouble(*msg, field));
-            break;
+            return "";
+        case FieldDescriptor::TYPE_DOUBLE:   // double, exactly eight bytes on the wire.
+            return tostr(reflection->GetDouble(*msg, field));
         case FieldDescriptor::TYPE_INT32:    // int32, varint on the wire.  Negative numbers
         case FieldDescriptor::TYPE_SFIXED32: // int32, exactly four bytes on the wire
         case FieldDescriptor::TYPE_SINT32:   // int32, ZigZag-encoded varint on the wire
-            if (xmlopt.type()==duration)
-                ods_strcat_printf(a, "PT%dS", reflection->GetInt32(*msg, field));
-            else
-                ods_strcat_printf(a, "%d", reflection->GetInt32(*msg, field));
-            break;
+            if (xmlopt.type() != duration)
+                return tostr(reflection->GetInt32(*msg, field));
+            snprintf(tmp, ODS_SE_MAXLINE, "PT%dS", reflection->GetInt32(*msg, field));
+            return tostr(tmp);
         case FieldDescriptor::TYPE_INT64:    // int64, varint on the wire.  Negative numbers
         case FieldDescriptor::TYPE_SFIXED64: // int64, exactly eight bytes on the wire
         case FieldDescriptor::TYPE_SINT64:   // int64, ZigZag-encoded varint on the wire
-            if (xmlopt.type()==duration)
-                ods_strcat_printf(a, "PT%lldS", reflection->GetInt64(*msg, field));
-            else
-                ods_strcat_printf(a, "%lld", reflection->GetInt64(*msg, field));
-            break;
-        case FieldDescriptor::TYPE_UINT32: // uint32, varint on the wire
-        case FieldDescriptor::TYPE_FIXED32: // uint32, exactly four bytes on the wire.
-            if (xmlopt.type()==duration)
-                ods_strcat_printf(a, "PT%uS", reflection->GetUInt32(*msg, field));
-            else
-                ods_strcat_printf(a, "%u", reflection->GetUInt32(*msg, field));
-            break;
-        case FieldDescriptor::TYPE_UINT64: // uint64, varint on the wire.
-        case FieldDescriptor::TYPE_FIXED64: // uint64, exactly eight bytes on the wire.
-            if (xmlopt.type()==duration)
-                ods_strcat_printf(a, "PT%lluS", reflection->GetUInt64(*msg, field));
-            else
-                ods_strcat_printf(a, "%llu", reflection->GetUInt64(*msg, field));
-            break;
-        case FieldDescriptor::TYPE_BOOL: // bool, varint on the wire.
-            ods_strcat_printf(a, "%d", (int)reflection->GetBool(*msg, field)?1:0);
-            break;
-        case FieldDescriptor::TYPE_STRING: // UTF-8 text.
-            ods_strcat_printf(a, "%s", reflection->GetString(*msg, field).c_str());
-            break;
-        case FieldDescriptor::TYPE_BYTES: // Arbitrary byte array.
-            ods_strcat_printf(a, "%s", "ERROR: Bytes don't fit in xml attribute");
+            if (xmlopt.type() != duration)
+                return tostr(reflection->GetInt64(*msg, field));
+            snprintf(tmp, ODS_SE_MAXLINE, "PT%lldS", reflection->GetInt64(*msg, field));
+            return tostr(tmp);
+        case FieldDescriptor::TYPE_UINT32:   // uint32, varint on the wire
+        case FieldDescriptor::TYPE_FIXED32:  // uint32, exactly four bytes on the wire.
+            if (xmlopt.type() != duration)
+                return tostr(reflection->GetUInt32(*msg, field));
+            snprintf(tmp, ODS_SE_MAXLINE, "PT%uS", reflection->GetUInt32(*msg, field));
+            return tostr(tmp);
+        case FieldDescriptor::TYPE_UINT64:   // uint64, varint on the wire.
+        case FieldDescriptor::TYPE_FIXED64:  // uint64, exactly eight bytes on the wire.
+            if (xmlopt.type() != duration)
+                return tostr(reflection->GetUInt64(*msg, field));
+            snprintf(tmp, ODS_SE_MAXLINE, "PT%lluS", reflection->GetUInt64(*msg, field));
+            return tostr(tmp);
+        case FieldDescriptor::TYPE_BOOL:     // bool, varint on the wire.
+            return tostr((int)reflection->GetBool(*msg, field)?1:0);
+        case FieldDescriptor::TYPE_STRING:   // UTF-8 text.
+            return reflection->GetString(*msg, field);
+        case FieldDescriptor::TYPE_BYTES:    // Arbitrary byte array.
             ods_log_error("[%s] Bytes don't fit in xml attribute", module_str);
-            break;
-        case FieldDescriptor::TYPE_ENUM: // Enum, varint on the wire
-            ods_strcat_printf(a, "%s", reflection->GetEnum(*msg,field)->name().c_str());
-            break;
+            return tostr("ERROR: Bytes don't fit in xml attribute");
+        case FieldDescriptor::TYPE_ENUM:     // Enum, varint on the wire
+            return reflection->GetEnum(*msg,field)->name();
         default:
-            ods_strcat_printf(a, "%s", "ERROR: UNKNOWN FIELD TYPE");
             ods_log_error("[%s] Unknow field type", module_str);
+            return tostr("ERROR: UNKNOWN FIELD TYPE");
     }
-    return a;
 }
 
 bool
@@ -207,13 +181,14 @@ void
 open_element(FILE *fw, const FieldDescriptor *field,
     std::vector<const FieldDescriptor*> elements,
     std::vector<const FieldDescriptor*> attributes,
-    const Message *msg
+    const Message *msg, int lvl
 )
 {
     /* get everything after last '/' */
     string elempath = field->options().GetExtension(xml).path();
     string elemname = strip_path(elempath);
 
+    for (int i = 0; i<lvl; i++) fprintf(fw, "  ");
     fprintf(fw, "<%s", elemname.c_str());
     //~ printf(" ((attrlen %d)) ", attributes.size());
     vector<const FieldDescriptor*>::const_iterator fld_iter;
@@ -237,13 +212,15 @@ void
 close_element(FILE *fw, const FieldDescriptor *field,
     std::vector<const FieldDescriptor*> elements,
     std::vector<const FieldDescriptor*> attributes,
-    const Message *msg
+    const Message *msg, int lvl
 )
 {
     string elempath = field->options().GetExtension(xml).path();
     string elemname = strip_path(elempath);
     string val =  get_value(msg, field);
     if (elements.empty() && val.empty()) return;
+    if (!elements.empty())
+        for (int i = 0; i<lvl; i++) fprintf(fw, "  ");
     fprintf(fw, "</%s>\n",  elemname.c_str());
 }
 
@@ -270,8 +247,10 @@ write_nonterminals(FILE *fw, const Message *msg,
         string root = get_pathroot((*fld_iter)->options().GetExtension(xml).path());
         getSubForElemStr(root, nonterminal_elements, &sibblings);
         
+        for (int i = 0; i<lvl; i++) fprintf(fw, "  ");
         fprintf(fw, "<%s>\n",  root.c_str());
         recurse_write(fw, NULL, sibblings, attrs, msg, lvl+1, root);
+        for (int i = 0; i<lvl; i++) fprintf(fw, "  ");
         fprintf(fw, "</%s>\n",  root.c_str());
     }
 }
@@ -326,7 +305,7 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     if (parentfield) {
         std::vector<const FieldDescriptor*> parent_attr;
         getSubForElem(parentfield, &attributes, &parent_attr);
-        open_element(fw, parentfield, elements, parent_attr, msg);
+        open_element(fw, parentfield, elements, parent_attr, msg, lvl-1);
     }
     
     for (fld_iter=elements.begin(); fld_iter != elements.end(); ++fld_iter) {
@@ -364,8 +343,8 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
                 printf("DUBUG skipping repeated field");
                 continue;
             } else {
-                open_element (fw, *fld_iter, subfields, elem_attr, msg);
-                close_element(fw, *fld_iter, subfields, elem_attr, msg);
+                open_element (fw, *fld_iter, subfields, elem_attr, msg, lvl);
+                close_element(fw, *fld_iter, subfields, elem_attr, msg, lvl);
             }
         }
     }
@@ -373,7 +352,7 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     write_nonterminals(fw, msg, &nonterminal_elements, lvl);
     
     if (parentfield) {
-        close_element(fw, parentfield, elements, attributes, msg);
+        close_element(fw, parentfield, elements, attributes, msg, lvl-1);
     }
 }
 
@@ -386,8 +365,9 @@ write_msg(FILE *fw, const ::google::protobuf::Message *msg)
     recurse_write(fw, NULL, fields, attributes, msg, 0, "");
 }
 
-bool write_pb_message_to_xml_file(const google::protobuf::Message *document, 
-                                  const char *xmlfilepath)
+bool
+write_pb_message_to_xml_file(const google::protobuf::Message *document, 
+    const char *xmlfilepath)
 {
     FILE *fw = ods_fopen(xmlfilepath,NULL,"w");
     if (!fw) return false;
@@ -396,8 +376,9 @@ bool write_pb_message_to_xml_file(const google::protobuf::Message *document,
     return true;
 }
 
-bool write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
-								int fd)
+bool
+write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
+    int fd)
 {
     if (fd<0) {
         ods_log_error("[%s] write_pb_message_to_xml_fd: invalid fd: %d",
