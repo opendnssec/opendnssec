@@ -96,27 +96,13 @@ perform_policy_export(int sockfd, engineconfig_type *config, const char *policyn
 				"reading policy from database failed");
 			return;
 		}
-		const char *name = NULL;
-		/* extract policy name */
-		std::vector<const ::google::protobuf::FieldDescriptor*> fields;
-		policy.GetReflection()->ListFields(policy, &fields);
-		std::vector<const ::google::protobuf::FieldDescriptor*>::const_iterator fld_iter;
-		for (fld_iter=fields.begin(); fld_iter != fields.end(); ++fld_iter) {
-			/* Not defined in xml structure, ignore */
-			if (!(*fld_iter)->options().HasExtension(xml)) continue;
-			std::string xmlpath = (*fld_iter)->options().GetExtension(xml).path();
-			if (xmlpath.compare("@name") == 0) {
-				name = policy.GetReflection()->GetString(policy, *fld_iter).c_str();
-				break;
-			}
-		}
+		const char *name = policy.name().c_str();
 		if (!name || (policyname && strcmp(name, policyname) != 0))
 			continue;
-
 		ods_printf(sockfd, "  <Policy name=\"%s\">\n", name);
 		if (!write_pb_message_to_xml_fd(&policy, sockfd, 2)){
 			ods_log_error_and_printf(sockfd, module_str,
-									  "writing message to xml file failed");
+				"writing message to xml file failed");
 			return;
 		}
 		ods_printf(sockfd, "  </Policy>\n");
