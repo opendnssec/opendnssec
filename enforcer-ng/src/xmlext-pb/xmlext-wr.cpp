@@ -322,7 +322,7 @@ write_nonterminals(FILE *fw, const Message *msg,
  * param nonterm_prfx: prefix of non-terminal element in path (these 
  *     are not represented by field descriptors). Init with empty string.
  * */
-void
+static void
 recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     const vector<const FieldDescriptor*> &fields,
     const vector<const FieldDescriptor*> &attrs, const Message *msg,
