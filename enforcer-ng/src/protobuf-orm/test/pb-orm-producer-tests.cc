@@ -191,7 +191,7 @@ static void *producer(void *param)
 		}
 
 	} catch (CppUnit::Exception e) {
-		std::string str = "Exception in consumer: ";
+		std::string str = "Exception in producer: ";
 		str += e.what();
 		CPPUNIT_FAIL(str.c_str());
 		NUM_RUNNING--;
