@@ -29,28 +29,12 @@
  *
  */
 
-#ifndef _XMLEXT_PB_XMLEXT_WR_H_
-#define _XMLEXT_PB_XMLEXT_WR_H_
+#ifndef _POLICY_POLICY_EXPORT_TASK_H_
+#define _POLICY_POLICY_EXPORT_TASK_H_
 
-/**
- * Protocol Buffer Extension to write a Message to an XML file.
- *
- * This module can write a (nested) protocol buffer message to an XML file.
- * The .proto file that was used to generate the C++ protocol buffer Message 
- * classes should have protocol buffer options set that indicate where in the 
- * XML file data should be written.
- *
- */
+#include "daemon/cfg.h"
+#include "scheduler/task.h"
 
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/message.h>
-
-bool write_pb_message_to_xml_file(const google::protobuf::Message *document, 
-                                  const char *xmlfilepath);
-
-bool write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
-								int fd, int lvl);
-bool write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
-								int fd);
+void perform_policy_export(int sockfd, engineconfig_type *config, const char *policy);
 
 #endif
