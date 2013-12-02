@@ -49,6 +49,8 @@ bool write_pb_message_to_xml_file(const google::protobuf::Message *document,
                                   const char *xmlfilepath);
 
 bool write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
+								int fd, int lvl);
+bool write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
 								int fd);
 
 #endif

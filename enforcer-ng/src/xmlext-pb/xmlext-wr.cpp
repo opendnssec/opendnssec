@@ -414,12 +414,12 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
 }
 
 void 
-write_msg(FILE *fw, const ::google::protobuf::Message *msg)
+write_msg(FILE *fw, const ::google::protobuf::Message *msg, int lvl)
 {
     vector<const ::google::protobuf::FieldDescriptor*> fields;
     msg->GetReflection()->ListFields(*msg, &fields);
     vector<const FieldDescriptor*> attributes;
-    recurse_write(fw, NULL, fields, attributes, msg, 0, "");
+    recurse_write(fw, NULL, fields, attributes, msg, lvl, "");
 }
 
 bool
@@ -428,14 +428,14 @@ write_pb_message_to_xml_file(const google::protobuf::Message *document,
 {
     FILE *fw = ods_fopen(xmlfilepath,NULL,"w");
     if (!fw) return false;
-    write_msg(fw,document);
+    write_msg(fw,document, 0);
     ods_fclose(fw);
     return true;
 }
 
 bool
 write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
-    int fd)
+    int fd, int lvl)
 {
     if (fd<0) {
         ods_log_error("[%s] write_pb_message_to_xml_fd: invalid fd: %d",
@@ -450,7 +450,14 @@ write_pb_message_to_xml_fd(const google::protobuf::Message *document,
     }
     FILE *fw = fdopen(dfd,"w");
     if (!fw) return false;
-    write_msg(fw,document);
+    write_msg(fw, document, lvl);
     ods_fclose(fw);
     return true;
+}
+
+bool
+write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
+    int fd)
+{
+    return write_pb_message_to_xml_fd(document, fd, 0);
 }

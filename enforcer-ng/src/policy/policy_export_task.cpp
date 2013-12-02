@@ -57,72 +57,6 @@ static const char *module_str = "policy_export_task";
 	ods_log_error_and_printf(sockfd,module_str,errmsg); return; } while (0)
 #define ODS_LOG_AND_CONTINUE(errmsg) do { \
 	ods_log_error_and_printf(sockfd,module_str,errmsg); continue; } while (0)
-/*
-void 
-perform_policy_export(int sockfd, engineconfig_type *config, const char *policy)
-{
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn))
-		return; // error already reported.
-
-	{
-		OrmTransaction transaction(conn);
-		if (!transaction.started()) {
-			ods_log_error_and_printf(sockfd, module_str,
-					"database transaction failed");
-			return;
-		}
-
-		{	OrmResultRef rows;
-			::ods::kasp::Policy pexport;
-			std::string qpolicy;
-			if (policy) {
-				if (!OrmQuoteStringValue(conn, std::string(policy), qpolicy)) {
-					ods_log_error_and_printf(sockfd, module_str,
-							"quoting string value failed\n");
-					return;
-				}
-			}
-
-			if (qpolicy.empty()) {
-				if (!OrmMessageEnum(conn, pexport.descriptor(), rows)) {
-					ods_log_error_and_printf(sockfd, module_str,
-							"database policy enumeration failed\n");
-					return;
-				}
-			} else {
-				if (!OrmMessageEnumWhere(conn, pexport.descriptor(), rows,
-						"name = %s", qpolicy.c_str())) {
-					ods_log_error_and_printf(sockfd, module_str,
-							"database policy enumeration failed\n");
-					return;
-
-				}
-			}
-			ods_printf(sockfd,
-					   "Database set to: %s\n"
-					   "Policies:\n"
-					   "\n"
-					   ,config->datastore);
-
-			for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-				if (!OrmGetMessage(rows, pexport, true)){
-					ods_log_error_and_printf(sockfd, module_str,
-										"reading policy from database failed");
-					return;
-				}
-						if (!write_pb_message_to_xml_fd(pexport.mutable_keys(),sockfd)){
-									ods_log_error_and_printf(sockfd, module_str,
-															  "writing message to xml file failed");
-									return;
-						}
-			}
-			ods_log_debug("[%s] policy export completed", module_str);
-		}
-    }
-}*/
 
 void 
 perform_policy_export(int sockfd, engineconfig_type *config, const char *policyname)
@@ -149,26 +83,46 @@ perform_policy_export(int sockfd, engineconfig_type *config, const char *policyn
 	if (!OrmFirst(rows)) {
 		ods_log_debug("[%s] policy list completed", module_str);
 		ods_printf(sockfd,
-				   "Database set to: %s\n"
-				   "I have no policies configured\n"
-				   ,config->datastore);
+			"Database set to: %s\n"
+			"I have no policies configured\n"
+			,config->datastore);
 		return;
 	}
-	
-	
+
+	ods_printf(sockfd, "<KASP>\n");
 	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
 		if (!OrmGetMessage(rows, policy, true)) {
 			ods_log_error_and_printf(sockfd, module_str,
-								"reading policy from database failed");
+				"reading policy from database failed");
 			return;
 		}
-			
-		if (!write_pb_message_to_xml_fd(&policy, sockfd)){
+		const char *name = NULL;
+		/* extract policy name */
+		std::vector<const ::google::protobuf::FieldDescriptor*> fields;
+		policy.GetReflection()->ListFields(policy, &fields);
+		std::vector<const ::google::protobuf::FieldDescriptor*>::const_iterator fld_iter;
+		for (fld_iter=fields.begin(); fld_iter != fields.end(); ++fld_iter) {
+			/* Not defined in xml structure, ignore */
+			if (!(*fld_iter)->options().HasExtension(xml)) continue;
+			std::string xmlpath = (*fld_iter)->options().GetExtension(xml).path();
+			if (xmlpath.compare("@name") == 0) {
+				name = policy.GetReflection()->GetString(policy, *fld_iter).c_str();
+				break;
+			}
+		}
+		if (!name || (policyname && strcmp(name, policyname) != 0))
+			continue;
+
+		ods_printf(sockfd, "  <Policy name=\"%s\">\n", name);
+		if (!write_pb_message_to_xml_fd(&policy, sockfd, 2)){
 			ods_log_error_and_printf(sockfd, module_str,
 									  "writing message to xml file failed");
 			return;
 		}
+		ods_printf(sockfd, "  </Policy>\n");
 	}
+	ods_printf(sockfd, "</KASP>\n");
+	
     ods_log_debug("[%s] policy list completed", module_str);
 }
 
