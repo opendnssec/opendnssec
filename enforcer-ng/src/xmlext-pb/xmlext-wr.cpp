@@ -147,7 +147,7 @@ getSubForElemStr( string prefix, vector<const FieldDescriptor*> *input,
     
     for (fld_iter=input->begin(); fld_iter != input->end(); ++fld_iter) {
         string attrpath = (*fld_iter)->options().GetExtension(xml).path();
-        if (attrpath.find(prefix, 0) == 0)
+        if (attrpath.find(prefix, 0) == 0 || attrpath.find("@", 0) == 0)
             subfields->push_back(*fld_iter);
         else
             keep.push_back(*fld_iter);
@@ -246,7 +246,7 @@ open_element(FILE *fw, const FieldDescriptor *field,
         
         string attrpath = (*fld_iter)->options().GetExtension(xml).path();
         string attrname = scrub_attr(attrpath);
-        fprintf(fw, " %s = \"%s\"", attrname.c_str(), get_value(msg, *fld_iter).c_str());
+        fprintf(fw, " %s=\"%s\"", attrname.c_str(), get_value(msg, *fld_iter).c_str());
     }
     
     string val =  get_value(msg, field);
