@@ -419,7 +419,8 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     write_nonterminals(fw, msg, &nonterminal_elements, lvl);
     
     if (parentfield) {
-        close_element(fw, parentfield, elements.empty(), attributes, msg, lvl-1);
+        close_element(fw, parentfield, elements.empty() && 
+            nonterminal_elements.empty(), attributes, msg, lvl-1);
     }
 }
 
