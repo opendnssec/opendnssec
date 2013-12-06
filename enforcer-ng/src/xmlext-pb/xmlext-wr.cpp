@@ -278,9 +278,7 @@ close_element(FILE *fw, const FieldDescriptor *field, bool no_children,
     int lvl)
 {
     /* If it is a bool it is already closed don't print */
-    if (field->type() == FieldDescriptor::TYPE_BOOL) {
-        if(!msg->GetReflection()->GetBool(*msg, field)) return;
-    }
+    if (field->type() == FieldDescriptor::TYPE_BOOL) return;
     
     string elempath = field->options().GetExtension(xml).path();
     string elemname = strip_path(elempath);
