@@ -416,11 +416,11 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     
     /* Everything left in nonterminal_elements after processing is in
      * fact an empty non-terminal, these need special treatment */
+    int nochild = elements.empty() && nonterminal_elements.empty();
     write_nonterminals(fw, msg, &nonterminal_elements, lvl);
     
     if (parentfield) {
-        close_element(fw, parentfield, elements.empty() && 
-            nonterminal_elements.empty(), attributes, msg, lvl-1);
+        close_element(fw, parentfield, nochild, attributes, msg, lvl-1);
     }
 }
 
