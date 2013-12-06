@@ -235,9 +235,11 @@ open_element(FILE *fw, const FieldDescriptor *field,
     bool no_children, vector<const FieldDescriptor*> attributes,
     const Message *msg, int lvl)
 {
+    int isbool = false;
     /* If it is a bool and false don't print */
     if (field->type() == FieldDescriptor::TYPE_BOOL) {
         if(!msg->GetReflection()->GetBool(*msg, field)) return;
+        isbool = true;
     }
     
     /* get everything after last '/' */
@@ -254,7 +256,7 @@ open_element(FILE *fw, const FieldDescriptor *field,
     }
 
     string val =  get_value(msg, field);
-    if (!val.empty())
+    if (!val.empty() && !isbool)
         fprintf(fw, ">%s",  val.c_str());
     else if (no_children)
         fprintf(fw, "/>\n");
@@ -275,6 +277,11 @@ close_element(FILE *fw, const FieldDescriptor *field, bool no_children,
     vector<const FieldDescriptor*> attributes, const Message *msg,
     int lvl)
 {
+    /* If it is a bool it is already closed don't print */
+    if (field->type() == FieldDescriptor::TYPE_BOOL) {
+        if(!msg->GetReflection()->GetBool(*msg, field)) return;
+    }
+    
     string elempath = field->options().GetExtension(xml).path();
     string elemname = strip_path(elempath);
     string val =  get_value(msg, field);
