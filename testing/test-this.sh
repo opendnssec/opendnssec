@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 export INSTALL_TAG=local-test
-export WORKSPACE=`pwd`
+#export WORKSPACE=`pwd`
 export SVN_REVISION=1
 
 source `dirname "$0"`/lib.sh && init || exit 1
