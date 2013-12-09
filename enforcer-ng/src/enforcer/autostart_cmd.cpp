@@ -86,6 +86,8 @@ autostart(engine_type* engine)
 	if (!OrmMessageEnum(conn, policy.descriptor(), rows)) {
 		ods_log_info("[%s] Database is not set up yet."
 			" Not scheduling tasks.", module_str);
+		ods_log_info("[%s] Run the 'ods-enforcer setup'"
+		    " command to create the database.", module_str);	
 		return;
 	}
 	rows.release();
