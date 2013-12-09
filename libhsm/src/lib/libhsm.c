@@ -1392,7 +1392,7 @@ hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
     hsm_remove_leading_zeroes(modulus, &modulus_len);
 
     data_size = public_exponent_len + modulus_len + 1;
-    if (public_exponent_len <= 256) {
+    if (public_exponent_len <= 255) {
         data = malloc(data_size);
         if (!data) {
             hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",

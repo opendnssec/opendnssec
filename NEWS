@@ -2,6 +2,9 @@ $Id$
 
 OpenDNSSEC 1.4.4rc1
 
+Bugfixes:
+* OPENDNSSEC-481: Fix an off-by-one length check error in libhsm.
+
 
 OpenDNSSEC 1.4.3 - 2013-12-04
 
