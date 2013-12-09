@@ -5,6 +5,8 @@ OpenDNSSEC 2.0.0-trunk
 
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
   Minimum change.
+* OPENDNSSEC-449: ods-hsmutil: The user must now select type and algorithm
+  when creating a DNSKEY RR.
 
 
 OpenDNSSEC 1.4.0 - 2013-04-22
