@@ -3,7 +3,8 @@ $Id$
 OpenDNSSEC 1.13.17rc1
 
 Bugfixes:
-* OPENDNSSEC-481: Fix an off-by-one length check error in libhsm.
+* OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
+* OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
 
 
 OpenDNSSEC 1.3.16 - 2013-12-04
