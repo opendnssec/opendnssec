@@ -8,6 +8,9 @@ OpenDNSSEC 2.0.0-trunk
 * OPENDNSSEC-449: ods-hsmutil: The user must now select type and algorithm
   when creating a DNSKEY RR.
 
+Bugfixes:
+* OPENDNSSEC-481: Fix an off-by-one length check error in libhsm.
+
 
 OpenDNSSEC 1.4.0 - 2013-04-22
 
