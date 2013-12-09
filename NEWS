@@ -9,7 +9,8 @@ OpenDNSSEC 2.0.0-trunk
   when creating a DNSKEY RR.
 
 Bugfixes:
-* OPENDNSSEC-481: Fix an off-by-one length check error in libhsm.
+* OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
+* OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
 
 
 OpenDNSSEC 1.4.0 - 2013-04-22

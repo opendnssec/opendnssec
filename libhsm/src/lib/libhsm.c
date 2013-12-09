@@ -1113,6 +1113,8 @@ hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
                                          1,
                                          &objectCount);
     if (hsm_pkcs11_check_error(ctx, rv, "Find object")) {
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+        hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
         return 0;
     }
 
@@ -1299,6 +1301,8 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
         if (hsm_pkcs11_check_error(ctx, rv, "Find first object")) {
             free(key_handles);
             *count = 0;
+            rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+            hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
             return NULL;
         }
 
