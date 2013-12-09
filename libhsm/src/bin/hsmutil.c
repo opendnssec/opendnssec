@@ -62,10 +62,10 @@ usage ()
     fprintf(stderr,"  login\n");
     fprintf(stderr,"  logout\n");
     fprintf(stderr,"  list [repository]\n");
-    fprintf(stderr,"  generate <repository> rsa|gost [keysize]\n");
+    fprintf(stderr,"  generate <repository> rsa|dsa|gost|ecdsa [keysize]\n");
     fprintf(stderr,"  remove <id>\n");
     fprintf(stderr,"  purge <repository>\n");
-    fprintf(stderr,"  dnskey <id> <name>\n");
+    fprintf(stderr,"  dnskey <id> <name> <type> <algo>\n");
     fprintf(stderr,"  test <repository>\n");
     fprintf(stderr,"  info\n");
 #if 0
@@ -213,11 +213,32 @@ cmd_generate (int argc, char *argv[])
             keysize, repository);
 
         key = hsm_generate_rsa_key(NULL, repository, keysize);
+    } else if (!strcasecmp(algorithm, "dsa")) {
+        printf("Generating %d bit DSA key in repository: %s\n",
+            keysize, repository);
+
+        key = hsm_generate_dsa_key(NULL, repository, keysize);
     } else if (!strcasecmp(algorithm, "gost")) {
         printf("Generating 512 bit GOST key in repository: %s\n",
             repository);
 
         key = hsm_generate_gost_key(NULL, repository);
+    } else if (!strcasecmp(algorithm, "ecdsa")) {
+        if (keysize == 256) {
+            printf("Generating a P-256 ECDSA key in repository: %s\n",
+                repository);
+
+            key = hsm_generate_ecdsa_key(NULL, repository, "P-256");
+        } else if (keysize == 384) {
+            printf("Generating a P-384 ECDSA key in repository: %s\n",
+                repository);
+
+            key = hsm_generate_ecdsa_key(NULL, repository, "P-384");
+        } else {
+            printf("Invalid ECDSA key size: %d\n", keysize);
+            printf("Expecting 256 or 384.\n");
+            return -1;
+        }
     } else {
         printf("Unknown algorithm: %s\n", algorithm);
         return -1;
@@ -359,18 +380,22 @@ cmd_dnskey (int argc, char *argv[])
 {
     char *id;
     char *name;
+    int type;
+    int algo;
 
     hsm_key_t *key = NULL;
     ldns_rr *dnskey_rr;
     hsm_sign_params_t *sign_params;
 
-    if (argc != 2) {
+    if (argc != 4) {
         usage();
         return -1;
     }
 
     id = strdup(argv[0]);
     name = strdup(argv[1]);
+    type = atoi(argv[2]);
+    algo = atoi(argv[3]);
 
     key = hsm_find_key_by_id(NULL, id);
 
@@ -381,8 +406,95 @@ cmd_dnskey (int argc, char *argv[])
         return -1;
     }
 
+    if (type != LDNS_KEY_ZONE_KEY && type != LDNS_KEY_ZONE_KEY + LDNS_KEY_SEP_KEY) {
+        printf("Invalid key type: %i\n", type);
+        printf("Please use: %i or %i\n", LDNS_KEY_ZONE_KEY, LDNS_KEY_ZONE_KEY + LDNS_KEY_SEP_KEY);
+        free(name);
+        free(id);
+        return -1;
+    }
+
+    hsm_key_info_t *key_info = hsm_get_key_info(NULL, key);
+    switch (algo) {
+        case LDNS_SIGN_RSAMD5:
+        case LDNS_SIGN_RSASHA1:
+        case LDNS_SIGN_RSASHA1_NSEC3:
+        case LDNS_SIGN_RSASHA256:
+        case LDNS_SIGN_RSASHA512:
+            if (strcmp(key_info->algorithm_name, "RSA") != 0) {
+                printf("Not an RSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+        case LDNS_SIGN_DSA:
+        case LDNS_SIGN_DSA_NSEC3:
+            if (strcmp(key_info->algorithm_name, "DSA") != 0) {
+                printf("Not a DSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+        case LDNS_SIGN_ECC_GOST:
+            if (strcmp(key_info->algorithm_name, "GOST") != 0) {
+                printf("Not a GOST key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
+        case LDNS_SIGN_ECDSAP256SHA256:
+            if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
+                printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            if (key_info->keysize != 256) {
+                printf("The key is a ECDSA/%lu, expecting ECDSA/256 for this algorithm.\n", key_info->keysize);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+        case LDNS_SIGN_ECDSAP384SHA384:
+            if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
+                printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            if (key_info->keysize != 384) {
+                printf("The key is a ECDSA/%lu, expecting ECDSA/384 for this algorithm.\n", key_info->keysize);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+#endif
+        default:
+            printf("Invalid algorithm: %i\n", algo);
+            hsm_key_info_free(key_info);
+            free(name);
+            free(id);
+            return -1;
+    }
+    hsm_key_info_free(key_info);
+
     sign_params = hsm_sign_params_new();
-    sign_params->algorithm = LDNS_RSASHA1;
+    sign_params->algorithm = algo;
+    sign_params->flags = type;
     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, name);
     dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
