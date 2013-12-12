@@ -117,10 +117,6 @@ start = element Configuration {
 		# Number of Worker Threads
 		# DEFAULT: 4
 		element WorkerThreads { xsd:positiveInteger }?,
-        
-		# Number of Threads performing operations involving Security Modules.
-		# DEFAULT: 1
-		element SecurityModuleThreads { xsd:positiveInteger }?
 	},
 
 	# Configuration parameters for the Signer
