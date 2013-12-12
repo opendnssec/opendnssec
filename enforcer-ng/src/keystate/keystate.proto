@@ -153,7 +153,10 @@ message Adapters {
 
 message Adapter {
 	// Other adapter
-	optional Other other = 1 [(xml).path="Adapter"];
+	//optional Other other = 1 [(xml).path="Adapter"];
+	optional string config = 1 [(xml).path="Adapter"];
+	optional string type = 2 [(xml).path="@Adapter/type", default="File"];
+	
 	// File adapter
 	optional string file = 3 [(xml).path="File"];
 }
