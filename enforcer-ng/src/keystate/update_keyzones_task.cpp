@@ -244,10 +244,10 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 		perform_zone_del(sockfd, config, iterator->c_str(), 0);
 	}
 
-	//write signzones.xml
+	/* write internal zonelist */
 	if (!perform_write_signzone_file(sockfd, config)) {
 		ods_log_error_and_printf(sockfd, module_str, 
-			"failed to write signzones file");
+			"failed to write internal zonelist");
 		return 0;
 	}
 	return 1;

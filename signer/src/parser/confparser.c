@@ -31,6 +31,8 @@
  *
  */
 
+#include "config.h"
+#include "compat.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
 #include "shared/allocator.h"
@@ -294,17 +296,39 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
 const char*
 parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
 {
-    const char* dup = NULL;
+    int lwd = 0;
+    int lzl = 0;
+    int found = 0;
+    char* dup = NULL;
     const char* str = parse_conf_string(
         cfgfile,
-        "//Configuration/Common/ZoneListFile",
-        1);
+        "//Configuration/Enforcer/WorkingDirectory",
+        0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        found = 1;
+    } else {
+        str = OPENDNSSEC_ENFORCER_WORKINGDIR;
+    }
+    lwd = strlen(str);
+    lzl = strlen(OPENDNSSEC_ENFORCER_ZONELIST);
+    if (lwd>0 && strncmp(str + (lwd-1), "/", 1) != 0) {
+        dup = allocator_alloc(allocator, sizeof(char)*(lwd+lzl+2));
+        memcpy(dup, str, sizeof(char)*(lwd+1));
+        strlcat(dup, "/", sizeof(char)*(lwd+2));
+        strlcat(dup, OPENDNSSEC_ENFORCER_ZONELIST, sizeof(char)*(lwd+lzl+2));
+        lwd += (lzl+1);
+    } else {
+        dup = allocator_alloc(allocator, sizeof(char)*(lwd+lzl+1));
+        memcpy(dup, str, sizeof(char)*(lwd+1));
+        strlcat(dup, OPENDNSSEC_ENFORCER_ZONELIST, sizeof(char)*(lwd+lzl+1));
+        lwd += (lzl+1);
+    }
+    if (found) {
         free((void*)str);
     }
-    return dup;
+    ods_log_assert(dup);
+    return (const char*) dup;
 }
 
 
