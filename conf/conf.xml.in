@@ -45,12 +45,6 @@
 		</Privileges>
 -->
 
-		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/enforcer</WorkingDirectory>
-
-<!-- NOTE: Enforcer worker threads are not used; this option is ignored -->
-<!--
-		<WorkerThreads>4</WorkerThreads>
--->
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
@@ -61,6 +55,13 @@
 		     DNSKEYs (as a RRset) on standard input (with optional CKA_ID)
 		-->
 		<!-- <DelegationSignerSubmitCommand>@OPENDNSSEC_SBIN_DIR@/simple-dnskey-mailer.sh</DelegationSignerSubmitCommand> -->
+
+		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/enforcer</WorkingDirectory>
+
+<!-- NOTE: Enforcer worker threads are not used; this option is ignored -->
+<!--
+		<WorkerThreads>4</WorkerThreads>
+-->
 	</Enforcer>
 
 	<Signer>
