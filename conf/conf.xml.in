@@ -44,6 +44,9 @@
 			<Group>opendnssec</Group>
 		</Privileges>
 -->
+
+		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/enforcer</WorkingDirectory>
+
 <!-- NOTE: Enforcer worker threads are not used; this option is ignored -->
 <!--
 		<WorkerThreads>4</WorkerThreads>
@@ -68,7 +71,7 @@
 		</Privileges>
 -->
 
-		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
+		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/signer</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
 <!--
 		<SignerThreads>4</SignerThreads>
