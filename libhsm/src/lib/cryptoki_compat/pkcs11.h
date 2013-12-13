@@ -435,6 +435,7 @@ typedef unsigned long ck_attribute_type_t;
 #define CKA_ALWAYS_AUTHENTICATE		(0x202)
 #define CKA_WRAP_WITH_TRUSTED		(0x210)
 #define CKA_GOSTR3410PARAMS		(0x250)		/* From PKCS#11 v2.30 - draft 7 */
+#define CKA_GOSTR3411PARAMS		(0x251)		/* From PKCS#11 v2.30 - draft 7 */
 #define CKA_HW_FEATURE_TYPE		(0x300)
 #define CKA_RESET_ON_INIT		(0x301)
 #define CKA_HAS_RESET			(0x302)

@@ -72,6 +72,9 @@ OpenDNSSEC 2.0.0-trunk
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
   Minimum change.
 
+Bugfixes:
+* OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
+* OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
 
 
 OpenDNSSEC 1.4.1 - 2013-06-27
