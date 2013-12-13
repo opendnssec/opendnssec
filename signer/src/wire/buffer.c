@@ -56,6 +56,22 @@
 
 static const char* buffer_str = "buffer";
 
+ods_lookup_table ods_rcode_str[] = {
+    { LDNS_RCODE_NOERROR, "NOERROR" },
+    { LDNS_RCODE_FORMERR, "FORMERR" },
+    { LDNS_RCODE_SERVFAIL, "SERVFAIL" },
+    { LDNS_RCODE_NXDOMAIN, "NXDOMAIN" },
+    { LDNS_RCODE_NOTIMPL, "NOTIMPL" },
+    { LDNS_RCODE_REFUSED, "REFUSED" },
+    { LDNS_RCODE_YXDOMAIN, "YXDOMAIN" },
+    { LDNS_RCODE_YXRRSET, "YXRRSET" },
+    { LDNS_RCODE_NXRRSET, "NXRRSET" },
+    { LDNS_RCODE_NOTAUTH, "NOTAUTH" },
+    { LDNS_RCODE_NOTZONE, "NOTZONE" },
+    { 0, NULL }
+};
+
+
 /**
  * Create a new buffer with the specified capacity.
  *
@@ -1020,6 +1036,22 @@ buffer_pkt_set_rcode(buffer_type* buffer, ldns_pkt_rcode rcode)
     ods_log_assert(buffer);
     RCODE_SET(buffer, rcode);
     return;
+}
+
+
+/**
+ * Look up a descriptive text by each rcode.
+ *
+ */
+const char*
+buffer_rcode2str(ldns_pkt_rcode rcode)
+{
+    ods_lookup_table *lt;
+    lt = ods_lookup_by_id(ods_rcode_str, rcode);
+    if (lt) {
+        return lt->name;
+    }
+    return NULL;
 }
 
 

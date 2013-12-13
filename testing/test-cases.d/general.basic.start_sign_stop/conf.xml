@@ -10,7 +10,7 @@
 	</RepositoryList>
 	<Common>
 		<Logging>
-			<Verbosity>4</Verbosity>
+			<Verbosity>3</Verbosity>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
@@ -19,6 +19,7 @@
 	<Enforcer>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
+		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>

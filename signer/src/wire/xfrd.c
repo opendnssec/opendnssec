@@ -358,8 +358,8 @@ xfrd_tsig_sign(xfrd_type* xfrd, buffer_type* buffer)
     xfrd->tsig_rr->original_query_id = buffer_pkt_id(buffer);
     xfrd->tsig_rr->algo_name = ldns_rdf_clone(xfrd->tsig_rr->algo->wf_name);
     xfrd->tsig_rr->key_name = ldns_rdf_clone(xfrd->tsig_rr->key->dname);
-    log_dname(xfrd->tsig_rr->key_name, "tsig sign query with key ", LOG_DEBUG);
-    log_dname(xfrd->tsig_rr->algo_name, "tsig sign query with algorithm ",
+    log_dname(xfrd->tsig_rr->key_name, "tsig sign query with key", LOG_DEBUG);
+    log_dname(xfrd->tsig_rr->algo_name, "tsig sign query with algorithm",
         LOG_DEBUG);
     tsig_rr_prepare(xfrd->tsig_rr);
     tsig_rr_update(xfrd->tsig_rr, buffer, buffer_position(buffer));
@@ -538,9 +538,6 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
         return;
     }
     lock_basic_lock(&xfrd->rw_lock);
-    lock_basic_lock(&xfrd->serial_lock);
-    xfrd->serial_disk_acquired = 0;
-    lock_basic_unlock(&xfrd->serial_lock);
 
     fd = ods_fopen(xfrfile, NULL, "a");
     free((void*) xfrfile);
@@ -719,11 +716,15 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
     uint16_t rrlen = 0;
     uint32_t ttl = 0;
     uint32_t serial = 0;
+    uint32_t tmp_serial = 0;
     size_t i = 0;
     ods_log_assert(xfrd);
     ods_log_assert(buffer);
     ods_log_assert(done);
     for (i=0; i < count; ++i, ++xfrd->msg_rr_count) {
+         if (*done) {
+            return ODS_STATUS_OK;
+         }
          if (!buffer_skip_dname(buffer)) {
              return ODS_STATUS_SKIPDNAME;
          }
@@ -758,6 +759,7 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
                  }
                  lock_basic_unlock(&xfrd->serial_lock);
                  xfrd->msg_old_serial = serial;
+                 tmp_serial = serial;
              } else if (serial == xfrd->msg_new_serial) {
                  /* saw another SOA of new serial. */
                  if (xfrd->msg_is_ixfr == 1) {
@@ -765,6 +767,18 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
                  } else {
                      *done = 1; /* final axfr/ixfr soa */
                  }
+             } else if (xfrd->msg_is_ixfr) {
+                 /* some additional checks */
+                 if (util_serial_gt(serial, xfrd->msg_new_serial)) {
+                     /* bad middle serial in IXFR (too high) */
+                     return ODS_STATUS_INSERIAL;
+                 }
+                 if (util_serial_gt(tmp_serial, serial)) {
+                     /* middle serial decreases in IXFR */
+                     return ODS_STATUS_INSERIAL;
+                 }
+                 /* serial ok, update tmp serial */
+                 tmp_serial = serial;
              }
          } else {
              buffer_skip(buffer, rrlen);
@@ -926,7 +940,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
     status = xfrd_parse_rrs(xfrd, buffer, ancount_todo, &done);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] bad packet: zone %s received bad xfr packet "
-            "(%s)", xfrd_str, zone->name, xfrd->master->address,
+            "from %s (%s)", xfrd_str, zone->name, xfrd->master->address,
             ods_status2str(status));
         return XFRD_PKT_BAD;
     }
@@ -959,6 +973,8 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
     ods_log_assert(zone);
     ods_log_assert(zone->name);
     res = xfrd_parse_packet(xfrd, buffer);
+    ods_log_debug("[%s] zone %s xfr packet parsed (res %d)", xfrd_str, zone->name, res);
+
     switch (res) {
         case XFRD_PKT_MORE:
         case XFRD_PKT_XFR:

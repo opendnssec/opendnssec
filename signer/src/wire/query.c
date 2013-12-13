@@ -34,6 +34,7 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "daemon/engine.h"
+#include "shared/file.h"
 #include "shared/util.h"
 #include "wire/axfr.h"
 #include "wire/query.h"
@@ -62,6 +63,7 @@ query_create(void)
     q->allocator = allocator;
     q->buffer = NULL;
     q->tsig_rr = NULL;
+    q->axfr_fd = NULL;
     q->buffer = buffer_create(allocator, PACKET_BUFFER_SIZE);
     if (!q->buffer) {
         query_cleanup(q);
@@ -106,7 +108,10 @@ query_reset(query_type* q, size_t maxlen, int is_tcp)
     q->zone = NULL;
     /* domain, opcode, cname count, delegation, compression, temp */
     q->axfr_is_done = 0;
-    q->axfr_fd = NULL;
+    if (q->axfr_fd) {
+        ods_fclose(q->axfr_fd);
+        q->axfr_fd = NULL;
+    }
     q->serial = 0;
     q->startpos = 0;
     return;
@@ -623,6 +628,8 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
     dnsout = (dnsout_type*) q->zone->adoutbound->config;
     /* acl also in use for soa and other queries */
     if (!acl_find(dnsout->provide_xfr, &q->addr, q->tsig_rr)) {
+        ods_log_debug("[%s] zone %s acl query refused", query_str,
+            q->zone->name);
         return query_refused(q);
     }
     /* ixfr? */
@@ -644,9 +651,16 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         ods_log_assert(q->zone->name);
         ods_log_debug("[%s] incoming axfr request for zone %s",
             query_str, q->zone->name);
-        return axfr(q, engine);
+        return axfr(q, engine, 0);
     }
     /* (soa) query */
+    if (qtype == LDNS_RR_TYPE_SOA) {
+        ods_log_assert(q->zone->name);
+        ods_log_debug("[%s] incoming soa request for zone %s",
+            query_str, q->zone->name);
+        return soa_request(q, engine);
+    }
+    /* other qtypes */
     return query_response(q, qtype);
 }
 
@@ -1047,6 +1061,10 @@ query_cleanup(query_type* q)
         return;
     }
     allocator = q->allocator;
+    if (q->axfr_fd) {
+        ods_fclose(q->axfr_fd);
+        q->axfr_fd = NULL;
+    }
     buffer_cleanup(q->buffer, allocator);
     tsig_rr_cleanup(q->tsig_rr);
     allocator_deallocate(allocator, (void*)q);

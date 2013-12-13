@@ -60,7 +60,10 @@ start = element KASP {
 			element Jitter { xsd:duration },
 
 			# how much should we predate the signature inception time?
-			element InceptionOffset { xsd:duration }
+			element InceptionOffset { xsd:duration },
+
+			# Maximum TTL that may be used in a zone.
+			maxzonettl?
 		},
 
 		# use NSEC or NSEC3?
@@ -86,6 +89,8 @@ start = element KASP {
 			element KSK {
 				# generic key definition, see below
 				anykey,
+				# Controlling minimize flags Enforcer-ng
+				element KskRollType { "KskDoubleRRset" | "KskDoubleDS" | "KskDoubleSignature" }?,
 
 				# use RFC 5011 for key rollover?
 				# Not implemented yet
@@ -95,7 +100,21 @@ start = element KASP {
 			# Zone Signing Keys (ZSK) parameters
 			element ZSK {
 				# generic key definition, see below
-				anykey
+				anykey,
+				# Controlling minimize flags Enforcer-ng
+				element ZskRollType { "ZskDoubleSignature" | "ZskPrePublication" | "ZskDoubleRRsig" }?
+			}*,
+
+			# Combined Signing Keys (CSK) parameters
+			element CSK {
+				# generic key definition, see below
+				anykey,
+				# Controlling minimize flags Enforcer-ng
+				element CskRollType { "CskDoubleRRset" | "CskSingleSignature" | "CskDoubleDS" | "CskDoubleSignature" | "CskPrePublication" }?,
+				
+				# use RFC 5011 for key rollover?
+				# Not implemented yet
+				element RFC5011 { empty }?
 			}*
 		},
 
@@ -144,6 +163,9 @@ serial = element Serial {
 nsec = element NSEC { empty }
 
 nsec3 = element NSEC3 {
+	# what value for NSEC3PARAM TTL to use? Default 0.
+	ttl?,
+
 	# use global NSEC3 opt-out?
 	element OptOut { empty }?,
 
@@ -189,6 +211,8 @@ anykey = element Algorithm {
 
 
 ttl = element TTL { xsd:duration }
+
+maxzonettl = element MaxZoneTTL { xsd:duration }
 
 propagationdelay = element PropagationDelay { xsd:duration }
 

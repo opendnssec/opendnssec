@@ -9,35 +9,33 @@ fi &&
 
 ods_reset_env &&
 
-log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
+ods_start_enforcer &&
 
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<Resign>PT180S</Resign>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<Refresh>PT900S</Refresh>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<Default>PT3600S</Default>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<Denial>PT3600S</Denial>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<Jitter>PT60S</Jitter>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<InceptionOffset>PT60S</InceptionOffset>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<OptOut />" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<TTL>PT600S</TTL>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
-$GREP -q -- "<Minimum>PT300S</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<Resign>PT7200S</Resign>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<Refresh>PT259200S</Refresh>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<Default>PT1209600S</Default>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<Denial>PT1296000S</Denial>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<Jitter>PT43200S</Jitter>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<InceptionOffset>PT3600S</InceptionOffset>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<OptOut/>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<TTL>PT3600S</TTL>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
+$GREP -q -- "<Minimum>PT3600S</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
 $GREP -q -- "<Serial>unixtime</Serial>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
 
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-$GREP -q -- "<Resign>PT300S</Resign>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-$GREP -q -- "<Refresh>PT1500S</Refresh>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-$GREP -q -- "<Default>PT7200S</Default>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-$GREP -q -- "<Denial>PT7200S</Denial>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-$GREP -q -- "<Jitter>PT120S</Jitter>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-$GREP -q -- "<InceptionOffset>PT120S</InceptionOffset>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-! $GREP -q -- "<OptOut />" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-$GREP -q -- "<TTL>PT1200S</TTL>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
-$GREP -q -- "<Minimum>PT600S</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+$GREP -q -- "<Resign>PT3600S</Resign>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+$GREP -q -- "<Refresh>PT172800S</Refresh>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+$GREP -q -- "<Default>PT1814400S</Default>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+$GREP -q -- "<Denial>PT1728000S</Denial>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+$GREP -q -- "<Jitter>PT36000S</Jitter>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+$GREP -q -- "<InceptionOffset>PT3000S</InceptionOffset>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+! $GREP -q -- "<OptOut/>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+$GREP -q -- "<TTL>PT3400S</TTL>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
+$GREP -q -- "<Minimum>PT6000S</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
 $GREP -q -- "<Serial>counter</Serial>" "$INSTALL_ROOT/var/opendnssec/signconf/ods2.xml" &&
 
-log_this_timeout ods-control-enforcer-stop 60 ods-control enforcer stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
+ods_stop_enforcer &&
 return 0
 
 ods_kill

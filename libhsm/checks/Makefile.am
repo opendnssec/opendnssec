@@ -1,11 +1,14 @@
 # $Id$
 
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = token.db othertoken.db
 
 LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
 AM_CPPFLAGS = \
+		-I$(top_srcdir)/common \
 		-I$(top_builddir)/common \
 		-I$(srcdir)/../src/lib \
 		@LDNS_INCLUDES@

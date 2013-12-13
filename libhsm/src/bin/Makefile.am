@@ -1,5 +1,7 @@
 # $Id$
 
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBCOMPAT = ${top_builddir}/common/libcompat.a

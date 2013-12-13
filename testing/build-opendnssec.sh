@@ -18,7 +18,7 @@ case "$DISTRIBUTION" in
 		append_cflags "-std=c99"
 		;;
 	opensuse )
-		append_ldflags "-lncurses"
+		append_ldflags "-lncurses -lpthread"
 		;;
 	sunos )	
 		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
@@ -46,9 +46,9 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
-				--with-database-backend=sqlite3 \
-				--with-dbname=opendnssec-build-test \
-				--enable-timeshift &&			
+				--with-enforcer-database=sqlite3 \
+				--with-enforcer-database-test-database=opendnssec-build-test \
+				--enable-timeshift &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
@@ -67,8 +67,8 @@ case "$DISTRIBUTION" in
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-cunit=/usr/pkg \
-				--with-database-backend=sqlite3 \
-				--with-dbname=opendnssec-build-test \
+				--with-enforcer-database=sqlite3 \
+				--with-enforcer-database-test-database=opendnssec-build-test \
 				--enable-timeshift \
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
@@ -88,11 +88,12 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
-				--with-database-backend=sqlite3 \
-				--with-dbname=opendnssec-build-test \
+				--with-enforcer-database=sqlite3 \
+				--with-enforcer-database-test-database=opendnssec-build-test \
 				--enable-timeshift &&
 			$MAKE &&
 			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
+			(cd enforcer-ng && $MAKE check) &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&

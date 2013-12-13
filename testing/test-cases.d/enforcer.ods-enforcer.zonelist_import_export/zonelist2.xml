@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ZoneList>
+    <Zone name="ods3">
+        <Policy>default</Policy>
+        <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods3.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods3</Adapter>
+            </Input>
+            <Output>
+                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods3</Adapter>
+            </Output>
+        </Adapters>
+    </Zone>
+</ZoneList>

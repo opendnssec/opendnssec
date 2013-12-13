@@ -13,20 +13,19 @@ case "$DISTRIBUTION" in
                 ;;
 esac
 
+
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-ods_reset_env &&
+ods_reset_env 20  &&
 
-log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
+ods_start_enforcer && 
 
 #########################################################################
 # Basic checks of signing test zones
 
-log_this_timeout ods-control-signer-start 60 ods-control signer start &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
+ods_start_signer && 
 
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] example.com' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
@@ -83,16 +82,14 @@ $GREP -q -- "600.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
 #########################################################################
 
-log_this_timeout ods-control-start 60 ods-control stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
+ods_stop_ods-control && 
 
 cp kasp.xml_orig kasp.xml &&
 return 0
 
 echo '*********** ERROR **********'
 ods_kill
-mv kasp.xml_orig kasp.xml
+cp kasp.xml_orig kasp.xml
 return 1
 
 

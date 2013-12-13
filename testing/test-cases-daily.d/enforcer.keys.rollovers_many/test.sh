@@ -47,8 +47,7 @@ log_this ods-ksmutil-setup_zone_and_keys   ods-ksmutil update conf &&
 log_grep ods-ksmutil-setup_zone_and_keys   stdout "RequireBackup NOT set; " &&
 
 # Start enforcer
-log_this_timeout ods-control-enforcer-startart $SHORT_TIMEOUT   ods-control enforcer start &&
-syslog_waitfor $SHORT_TIMEOUT 'ods-enforcerd: .*Sleeping for' &&
+ods_start_enforcer && 
 
 ##################  STEP 0: Time = 0 ###########################
 # Check the output
@@ -251,8 +250,7 @@ log_grep ods-ksmutil-check-10   stdout "KSK           active.*$KSK_CKA_ID_3" &&
 cp $INSTALL_ROOT/var/opendnssec/signconf/ods.xml base/ods_signconf_10.xml &&
  
 # ##################  SHUTDOWN ###########################
-log_this_timeout ods-control-enforcer-stop $SHORT_TIMEOUT    ods-control enforcer stop &&
-syslog_waitfor $SHORT_TIMEOUT   'ods-enforcerd: .*all done' &&
+ods_stop_enforcer &&
 
 log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
 

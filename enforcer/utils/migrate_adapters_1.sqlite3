@@ -1,6 +1,0 @@
--- Migrate existing database for zonelist adapter stuff
-
-alter table zones add column in_type varchar(512) default "File";
-alter table zones add column out_type varchar(512) default "File";
-
-update dbadmin set version = 3;

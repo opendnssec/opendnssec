@@ -108,6 +108,8 @@ log_grep ods-kaspcheck-run-bad-config stdout "ERROR: Key length of 6048 used for
 log_grep ods-kaspcheck-run-bad-config stdout "ERROR: Unknown repository (unknownHSM) defined for KSK in registry policy in kaspcheck_bad/kasp.xml" &&
 # Warn if for any zone, the KSK lifetime is less than the ZSK lifetime.
 log_grep ods-kaspcheck-run-bad-config stdout "WARNING: KSK minimum lifetime (31536000 seconds) is less than ZSK minimum lifetime (120960000 seconds) for namedtwice Policy in kaspcheck_bad/kasp.xml" &&
+# NSEC3 Hash Algorithm should be checked [OPENDNSSEC-421].
+log_grep ods-kaspcheck-run-bad-config stdout "ERROR: NSEC3 Hash algorithm for registry Policy in kaspcheck_bad/kasp.xml is 11 but should be 1" &&
 return 0
 
 return 1

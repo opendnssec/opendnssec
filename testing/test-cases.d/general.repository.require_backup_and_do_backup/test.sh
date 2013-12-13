@@ -9,25 +9,32 @@ fi &&
 
 ods_reset_env &&
 
-log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
-syslog_waitfor 60 'ods-enforcerd: .*NOTE: keys generated in repository SoftHSM will not become active until they have been backed up' &&
-syslog_waitfor 60 'ods-enforcerd: .*ERROR: Trying to make non-backed up ZSK active when RequireBackup flag is set' &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
+ods_start_enforcer &&
+syslog_grep 'ods-enforcerd: .*NOTE: keys generated in repository SoftHSM will not become active until they have been backed up' &&
+syslog_grep 'ods-enforcerd: .*ERROR: Trying to make non-backed up ZSK active when RequireBackup flag is set' &&
 
 log_this ods-ksmutil-backup-prepare ods-ksmutil backup prepare &&
 log_this ods-ksmutil-backup-commit ods-ksmutil backup commit &&
-log_this ods-ksmutil-notify ods-ksmutil notify &&
-syslog_waitfor_count 60 2 'ods-enforcerd: .*Sleeping for' &&
 
-log_this_timeout ods-control-signer-start 60 ods-control signer start &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
+# Count how many times the enforcer has run
+ods_enforcer_count_starts &&
+local test_enforcer_start_count="$syslog_grep_count_variable" &&
+
+log_this ods-ksmutil-notify ods-ksmutil notify &&
+# We should see the enforcer wake up and run once more
+ods_enforcer_waitfor_starts $(( test_enforcer_start_count + 1 )) &&
+
+ods_start_signer &&
 
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
-log_this_timeout ods-control-stop 60 ods-control stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
+log_this ods-hsmutil-list ods-hsmutil list &&
+log_grep ods-hsmutil-list stdout '2 keys found.' &&
+log_grep ods-hsmutil-list stdout 'Repository.*ID.*Type' &&
+log_grep ods-hsmutil-list stdout 'SoftHSM.*RSA/1024' &&
+
+ods_stop_ods-control &&
 return 0
 
 ods_kill

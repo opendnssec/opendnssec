@@ -274,6 +274,22 @@ parse_sc_dnskey_ttl(const char* cfgfile)
 
 
 duration_type*
+parse_sc_nsec3param_ttl(const char* cfgfile)
+{
+    duration_type* duration = NULL;
+    const char* str = parse_conf_string(cfgfile,
+        "//SignerConfiguration/Zone/Denial/NSEC3/TTL",
+        0);
+    if (!str) {
+        return NULL;
+    }
+    duration = duration_create_from_string(str);
+    free((void*)str);
+    return duration;
+}
+
+
+duration_type*
 parse_sc_soa_ttl(const char* cfgfile)
 {
     duration_type* duration = NULL;
@@ -295,6 +311,22 @@ parse_sc_soa_min(const char* cfgfile)
     duration_type* duration = NULL;
     const char* str = parse_conf_string(cfgfile,
         "//SignerConfiguration/Zone/SOA/Minimum",
+        1);
+    if (!str) {
+        return NULL;
+    }
+    duration = duration_create_from_string(str);
+    free((void*)str);
+    return duration;
+}
+
+
+duration_type*
+parse_sc_max_zone_ttl(const char* cfgfile)
+{
+    duration_type* duration = NULL;
+    const char* str = parse_conf_string(cfgfile,
+        "//SignerConfiguration/Zone/Signatures/MaxZoneTTL",
         1);
     if (!str) {
         return NULL;

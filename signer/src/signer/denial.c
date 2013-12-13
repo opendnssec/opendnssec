@@ -303,15 +303,31 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
 {
     ldns_rr* nsec_rr = NULL;
     zone_type* zone = NULL;
+    uint32_t ttl = 0;
+    uint32_t maxttl = 0;
     ods_log_assert(denial);
     ods_log_assert(nxt);
     zone = (zone_type*) denial->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     if (denial->nxt_changed || denial->bitmap_changed) {
+        ttl = zone->default_ttl;
+        /* SOA MINIMUM */
+        if (zone->signconf->soa_min) {
+            ttl = (uint32_t) duration2time(zone->signconf->soa_min);
+        }
+        /* MaxZoneTTL */
+/* I think we should not cap ttl for NSEC(3) RRs...
+        if (zone->signconf->max_zone_ttl) {
+            maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
+            if (maxttl < ttl) {
+                ttl = maxttl;
+            }
+        }
+*/
         /* create new NSEC(3) rr */
-        nsec_rr = denial_create_nsec(denial, nxt, zone->default_ttl,
-            zone->klass, zone->signconf->nsec3params);
+        nsec_rr = denial_create_nsec(denial, nxt, ttl, zone->klass,
+            zone->signconf->nsec3params);
         if (!nsec_rr) {
             ods_fatal_exit("[%s] unable to nsecify: denial_create_nsec() "
                 "failed", denial_str);

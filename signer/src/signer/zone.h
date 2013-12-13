@@ -161,6 +161,14 @@ ods_status zone_publish_nsec3param(zone_type* zone);
 void zone_rollback_nsec3param(zone_type* zone);
 
 /**
+ * Prepare keys for signing.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_prepare_keys(zone_type* zone);
+
+/**
  * Update serial.
  * \param[in] zone zone
  * \return ods_status status

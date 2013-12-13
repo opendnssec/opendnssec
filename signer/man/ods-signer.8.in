@@ -19,7 +19,7 @@
 .I running
 |
 .I sign 
-.IR <zone>
+.IR <zone> [ \-\-serial <number> ]
 |
 .I sign \-\-all 
 |

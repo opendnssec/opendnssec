@@ -38,6 +38,7 @@
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
+#include "shared/util.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -77,26 +78,37 @@ cmdhandler_handle_cmd_help(int sockfd)
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "Commands:\n"
-        "zones           Show the currently known zones.\n"
-        "sign <zone>     Read zone and schedule for immediate (re-)sign.\n"
-        "sign --all      Read all zones and schedule all for immediate "
-                         "(re-)sign.\n"
-        "clear <zone>    Delete the internal storage of this zone.\n"
-        "                All signatures will be regenerated on the next "
-                         "re-sign.\n"
-        "queue           Show the current task queue.\n"
+        "zones                       Show the currently known zones.\n"
+        "sign <zone> [--serial <nr>] Read zone and schedule for immediate "
+                                    "(re-)sign.\n"
+        "                            If a serial is given, that serial is used "
+                                    "in the output zone.\n"
+        "sign --all                  Read all zones and schedule all for "
+                                    "immediate (re-)sign.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "flush           Execute all scheduled tasks immediately.\n"
-        "update <zone>   Update this zone signer configurations.\n"
-        "update [--all]  Update zone list and all signer configurations.\n"
-        "start           Start the engine.\n"
-        "running         Check if the engine is running.\n"
-        "reload          Reload the engine.\n"
-        "stop            Stop the engine.\n"
-        "verbosity <nr>  Set verbosity.\n"
+        "clear <zone>                Delete the internal storage of this "
+                                    "zone.\n"
+        "                            All signatures will be regenerated "
+                                    "on the next re-sign.\n"
+        "queue                       Show the current task queue.\n"
+        "flush                       Execute all scheduled tasks "
+                                    "immediately.\n"
+    );
+    ods_writen(sockfd, buf, strlen(buf));
+
+    (void) snprintf(buf, ODS_SE_MAXLINE,
+        "update <zone>               Update this zone signer "
+                                    "configurations.\n"
+        "update [--all]              Update zone list and all signer "
+                                    "configurations.\n"
+        "start                       Start the engine.\n"
+        "running                     Check if the engine is running.\n"
+        "reload                      Reload the engine.\n"
+        "stop                        Stop the engine.\n"
+        "verbosity <nr>              Set verbosity.\n"
     );
     ods_writen(sockfd, buf, strlen(buf));
     return;
@@ -208,7 +220,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         lock_basic_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found.\n",
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
                 tbd);
             ods_writen(sockfd, buf, strlen(buf));
             /* update all */
@@ -227,13 +239,22 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
                 cmdh_str, zone->name, ods_status2str(status));
         } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
+            tbd);
+            ods_writen(sockfd, buf, strlen(buf));
+            ods_log_verbose("[%s] zone %s scheduled for immediate update signconf",
+                cmdh_str, tbd);
             engine_wakeup_workers(engine);
         }
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
-            tbd);
-        ods_writen(sockfd, buf, strlen(buf));
     }
     return;
+}
+
+
+static uint32_t
+max(uint32_t a, uint32_t b)
+{
+    return (a<b?b:a);
 }
 
 
@@ -266,23 +287,67 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             cmdh_str);
         return;
     } else {
+        char* delim1 = strchr(tbd, ' ');
+        char* delim2 = NULL;
+        int force_serial = 0;
+        uint32_t serial = 0;
+        if (delim1) {
+            char* end = NULL;
+            /** Some trailing text, could it be --serial? */
+            if (strncmp(delim1+1, "--serial ", 9) != 0) {
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting <zone> "
+                    "--serial <nr>, got %s.\n", tbd);
+                ods_writen(sockfd, buf, strlen(buf));
+                return;
+            }
+            delim2 = strchr(delim1+1, ' ');
+            if (!delim2) {
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting serial.\n");
+                ods_writen(sockfd, buf, strlen(buf));
+                return;
+            }
+            serial = (uint32_t) strtol(delim2+1, &end, 10);
+            if (*end != '\0') {
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting serial, "
+                    "got %s.\n", delim2+1);
+                ods_writen(sockfd, buf, strlen(buf));
+                return;
+            }
+            force_serial = 1;
+            *delim1 = '\0';
+        }
         lock_basic_lock(&engine->zonelist->zl_lock);
         zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
-        /* If this zone is just added, don't update (it might not have a task yet) */
+        /* If this zone is just added, don't update (it might not have a task
+         * yet).
+         */
         if (zone && zone->zl_status == ZONE_ZL_ADDED) {
             zone = NULL;
         }
         lock_basic_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s not found.\n",
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
                 tbd);
             ods_writen(sockfd, buf, strlen(buf));
             return;
         }
 
         lock_basic_lock(&zone->zone_lock);
+        if (force_serial) {
+            ods_log_assert(zone->db);
+            if (!util_serial_gt(serial, max(zone->db->outserial,
+                zone->db->inbserial))) {
+                lock_basic_unlock(&zone->zone_lock);
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to enforce "
+                    "serial %u for zone %s.\n", serial, tbd);
+                ods_writen(sockfd, buf, strlen(buf));
+                return;
+            }
+            zone->db->altserial = serial;
+            zone->db->force_serial = 1;
+        }
         status = zone_reschedule_task(zone, engine->taskq, TASK_READ);
         lock_basic_unlock(&zone->zone_lock);
 
@@ -328,6 +393,7 @@ unlink_backup_file(const char* filename, const char* extension)
 static void
 cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
 {
+    ods_status status = ODS_STATUS_OK;
     engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
@@ -369,15 +435,22 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->db->inbserial = inbserial;
         zone->db->intserial = intserial;
         zone->db->outserial = outserial;
+        zone->db->have_serial = 1;
 
-        task = (task_type*) zone->task;
-        task->what = TASK_SIGNCONF;
+        status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
         lock_basic_unlock(&zone->zone_lock);
 
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
-            "%s cleared", tbd?tbd:"(null)");
-        ods_log_info("[%s] internal zone information about %s cleared",
-            cmdh_str, tbd?tbd:"(null)");
+        if (status != ODS_STATUS_OK) {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
+                "task for zone %s.\n", tbd);
+            ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
+                cmdh_str, zone->name, ods_status2str(status));
+        } else {
+            (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
+                "%s cleared", tbd?tbd:"(null)");
+            ods_log_info("[%s] internal zone information about %s cleared",
+                cmdh_str, tbd?tbd:"(null)");
+        }
     } else {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Cannot clear zone %s, zone not "
             "found", tbd?tbd:"(null)");

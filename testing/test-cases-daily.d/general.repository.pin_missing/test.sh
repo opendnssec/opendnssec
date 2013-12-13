@@ -14,10 +14,10 @@ fi &&
 ! log_this ods-hsmutil-purge ods-hsmutil purge SoftHSM  &&
 log_grep ods-hsmutil-purge stderr 'Incorrect PIN for repository SoftHSM' &&
 
-! log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
+! ods_start_enforcer &&
 syslog_waitfor 10 'ods-enforcerd: .*Incorrect PIN for repository SoftHSM' &&
 
-! log_this_timeout ods-control-signer-start 60 ods-control signer start &&
+! ods_start_signer &&
 syslog_waitfor 10 'ods-signerd: .*\[hsm\].*Incorrect PIN for repository SoftHSM' &&
 
 ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&

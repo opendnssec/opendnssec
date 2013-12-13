@@ -161,14 +161,21 @@ log_rrset(ldns_rdf* dname, ldns_rr_type type, const char* pre, int level)
 const char*
 rrset_type2str(ldns_rr_type type)
 {
-    const ldns_rr_descriptor* descriptor;
-    descriptor = ldns_rr_descript(type);
-    if (descriptor && descriptor->_name) {
-        return descriptor->_name;
+    if (type == LDNS_RR_TYPE_IXFR) {
+        return "IXFR";
     } else if (type == LDNS_RR_TYPE_AXFR) {
         return "AXFR";
-    } else if (type == LDNS_RR_TYPE_IXFR) {
-        return "IXFR";
+    } else if (type == LDNS_RR_TYPE_MAILB) {
+        return "MAILB";
+    } else if (type == LDNS_RR_TYPE_MAILA) {
+        return "MAILA";
+    } else if (type == LDNS_RR_TYPE_ANY) {
+        return "ANY";
+    } else {
+        const ldns_rr_descriptor* descriptor = ldns_rr_descript(type);
+        if (descriptor && descriptor->_name) {
+            return descriptor->_name;
+        }
     }
     return "TYPE???";
 }
@@ -438,6 +445,9 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEEEBUG);
     rrset->rrsigs[rrnum].owner = NULL;
     rrset->rrsigs[rrnum].rr = NULL;
+    allocator_deallocate(zone->allocator,
+        (void*)rrset->rrsigs[rrnum].key_locator);
+    rrset->rrsigs[rrnum].key_locator = NULL;
     while (rrnum < rrset->rrsig_count-1) {
         rrset->rrsigs[rrnum] = rrset->rrsigs[rrnum+1];
         rrnum++;
@@ -541,6 +551,57 @@ recycle_drop_sig:
 
 
 /**
+ * Is the list of RRSIGs ok?
+ *
+ */
+static int
+rrset_sigok(rrset_type* rrset, key_type* key)
+{
+    key_type* sigkey = NULL;
+    zone_type* zone = NULL;
+    size_t i = 0;
+    ods_log_assert(rrset);
+    ods_log_assert(key);
+    ods_log_assert(key->locator);
+    zone = (zone_type*) rrset->zone;
+    ods_log_assert(zone);
+
+    /* Does this key have a RRSIG? */
+    for (i=0; i < rrset->rrsig_count; i++) {
+        if (ods_strcmp(key->locator, rrset->rrsigs[i].key_locator) == 0 &&
+            key->flags == rrset->rrsigs[i].key_flags) {
+            /* Active key already has a valid RRSIG. SIGOK */
+            return 1;
+        }
+    }
+    /* DNSKEY RRset always needs to be signed with active key */
+    if (rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+        return 0;
+    }
+    /* Let's look for RRSIGs from inactive ZSKs */
+    for (i=0; i < rrset->rrsig_count; i++) {
+        /* Same algorithm? */
+        if (key->algorithm != ldns_rdf2native_int8(
+                ldns_rr_rrsig_algorithm(rrset->rrsigs[i].rr))) {
+            /* Not the same algorithm, so this one does not count */
+            continue;
+        }
+        /* Inactive key? */
+        sigkey = keylist_lookup_by_locator(zone->signconf->keys,
+            rrset->rrsigs[i].key_locator);
+        ods_log_assert(sigkey);
+        if (sigkey->zsk) {
+            /* Active key, so this one does not count */
+            continue;
+        }
+        /* So we found a valid RRSIG from an inactive key. SIGOK */
+        return 1;
+    }
+    /* We need a new RRSIG. */
+    return 0;
+}
+
+/**
  * Is the RRset signed with this algorithm?
  *
  */
@@ -559,7 +620,6 @@ rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
     }
     return 0;
 }
-
 
 /**
  * Is the RRset signed with this locator?

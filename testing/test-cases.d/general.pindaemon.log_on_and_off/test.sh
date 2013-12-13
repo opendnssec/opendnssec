@@ -39,13 +39,8 @@ syslog_waitfor 10 'ods-signerd: .*\[hsm\].*hsm_check_pin(): No PIN in shared mem
 echo "1234" | log_this ods-hsmutil-login ods-hsmutil login && 
 log_grep ods-hsmutil-login stdout 'The tokens are now logged in.' &&
 
-log_this_timeout ods-control-start 60 ods-control start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
-
-log_this_timeout ods-control-stop 60 ods-control stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' && 
+ods_start_ods-control &&
+ods_stop_ods-control &&
 return 0
 
 ods_kill

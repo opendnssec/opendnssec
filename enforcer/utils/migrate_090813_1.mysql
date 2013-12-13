@@ -1,3 +1,0 @@
--- Migrate existing database for key backup stuff
-
-alter table securitymodules add column requirebackup tinyint default 1;

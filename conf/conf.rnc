@@ -80,10 +80,6 @@ start = element Configuration {
 		# User & group to drop privs to
 		privs?,
 
-		# Number of Worker Threads
-		# DEFAULT: 1
-		element WorkerThreads { xsd:positiveInteger }?,
-		
 		# Where to store internal Enforcer state
 		element Datastore { (mysql | sqlite) },
 
@@ -93,12 +89,34 @@ start = element Configuration {
 		# Use manual key generation?
 		element ManualKeyGeneration { empty }?,
 
+		# Period to automatically pre-generate keys for, when ManualKeyGeneration is not used
+		# DEFAULT: P1Y
+		element AutomaticKeyGenerationPeriod { xsd:duration }?,
+
 		# How long before a KSK Rollover should we start warning (optional)
 		element RolloverNotification { xsd:duration }?,
 
 		# Command to use for submitting new DS records to a parent -
 		# the command should accept DNSKEY RRsets via STDIN
-		element DelegationSignerSubmitCommand { xsd:string }?
+		element DelegationSignerSubmitCommand { xsd:string }?,
+
+		# Command to use for retracting an existing DS record from the parent -
+		# the command should accept DNSKEY RRsets via STDIN
+		element DelegationSignerRetractCommand { xsd:string }?,
+
+		# File used to detect enforcerd is already running.
+		element PidFile { xsd:string }?,
+
+		# Socket to use for communicating between enforcer and enforcerd
+		element SocketFile { xsd:string }?,
+
+		# Location to store intermediate enforcer information
+		# DEFAULT: $(localstatedir)/opendnssec/tmp
+		element WorkingDirectory { xsd:string }?,
+
+		# Number of Worker Threads
+		# DEFAULT: 4
+		element WorkerThreads { xsd:positiveInteger }?
 	},
 
 	# Configuration parameters for the Signer
@@ -142,7 +160,10 @@ privs = element Privileges {
 	element User { xsd:string }?,
 
 	# DEFAULT: do not drop privs
-	element Group { xsd:string }?
+	element Group { xsd:string }?,
+	
+	# chroot directory to use
+	element Directory {xsd:string }?
 }
 
 mysql = element MySQL {

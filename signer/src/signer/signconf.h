@@ -61,6 +61,7 @@ struct signconf_struct {
     duration_type* sig_jitter;
     duration_type* sig_inception_offset;
     /* Denial of existence */
+    duration_type* nsec3param_ttl;
     ldns_rr_type nsec_type;
     int nsec3_optout;
     uint32_t nsec3_algo;
@@ -75,6 +76,7 @@ struct signconf_struct {
     duration_type* soa_min;
     const char* soa_serial;
     /* Other useful information */
+    duration_type* max_zone_ttl;
     const char* filename;
     time_t last_modified;
 };

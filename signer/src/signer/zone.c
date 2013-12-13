@@ -234,6 +234,7 @@ zone_publish_dnskeys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
+    uint32_t maxttl = 0;
     uint16_t i = 0;
     ods_status status = ODS_STATUS_OK;
     rrset_type* rrset = NULL;
@@ -251,11 +252,20 @@ zone_publish_dnskeys(zone_type* zone)
             "error creating libhsm context", zone_str, zone->name);
         return ODS_STATUS_HSM_ERR;
     }
-    /* dnskey ttl */
     ttl = zone->default_ttl;
+    /* dnskey ttl */
     if (zone->signconf->dnskey_ttl) {
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
     }
+    /* MaxZoneTTL */
+/*
+    if (zone->signconf->max_zone_ttl) {
+        maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
+        if (maxttl < ttl) {
+            ttl = maxttl;
+        }
+    }
+*/
     /* publish keys */
     for (i=0; i < zone->signconf->keys->count; i++) {
         if (!zone->signconf->keys->keys[i].publish) {
@@ -271,6 +281,8 @@ zone_publish_dnskeys(zone_type* zone)
                 break;
             }
         }
+        ods_log_debug("[%s] publish %s DNSKEY locator %s", zone_str,
+            zone->name, zone->signconf->keys->keys[i].locator);
         ods_log_assert(zone->signconf->keys->keys[i].dnskey);
         ldns_rr_set_ttl(zone->signconf->keys->keys[i].dnskey, ttl);
         ldns_rr_set_class(zone->signconf->keys->keys[i].dnskey, zone->klass);
@@ -340,6 +352,8 @@ zone_publish_nsec3param(zone_type* zone)
     rr_type* n3prr = NULL;
     ldns_rr* rr = NULL;
     ods_status status = ODS_STATUS_OK;
+    uint32_t ttl = 0;
+    uint32_t maxttl = 0;
 
     if (!zone || !zone->name || !zone->db || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
@@ -351,6 +365,8 @@ zone_publish_nsec3param(zone_type* zone)
     }
 
     if (!zone->signconf->nsec3params->rr) {
+        uint32_t paramttl =
+            (uint32_t) duration2time(zone->signconf->nsec3param_ttl);
         rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
         if (!rr) {
             ods_log_error("[%s] unable to publish nsec3params for zone %s: "
@@ -359,7 +375,7 @@ zone_publish_nsec3param(zone_type* zone)
             return ODS_STATUS_MALLOC_ERR;
         }
         ldns_rr_set_class(rr, zone->klass);
-        ldns_rr_set_ttl(rr, 0);
+        ldns_rr_set_ttl(rr, paramttl);
         ldns_rr_set_owner(rr, ldns_rdf_clone(zone->apex));
         ldns_nsec3_add_param_rdfs(rr,
             zone->signconf->nsec3params->algorithm, 0,
@@ -421,6 +437,47 @@ zone_rollback_nsec3param(zone_type* zone)
 
 
 /**
+ * Prepare keys for signing.
+ *
+ */
+ods_status
+zone_prepare_keys(zone_type* zone)
+{
+    hsm_ctx_t* ctx = NULL;
+    uint16_t i = 0;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!zone || !zone->db || !zone->signconf || !zone->signconf->keys) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->name);
+    /* hsm access */
+    ctx = hsm_create_context();
+    if (ctx == NULL) {
+        ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+            "error creating libhsm context", zone_str, zone->name);
+        return ODS_STATUS_HSM_ERR;
+    }
+    /* prepare keys */
+    for (i=0; i < zone->signconf->keys->count; i++) {
+        /* get dnskey */
+        status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i]);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+                "error getting dnskey", zone_str, zone->name);
+            break;
+        }
+        ods_log_assert(zone->signconf->keys->keys[i].dnskey);
+        ods_log_assert(zone->signconf->keys->keys[i].hsmkey);
+        ods_log_assert(zone->signconf->keys->keys[i].params);
+    }
+    /* done */
+    hsm_destroy_context(ctx);
+    return status;
+}
+
+
+/**
  * Update serial.
  *
  */
@@ -456,11 +513,16 @@ zone_update_serial(zone_type* zone)
             "clone soa rr", zone_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    status = namedb_update_serial(zone->db, zone->signconf->soa_serial,
-        zone->db->inbserial);
+    status = namedb_update_serial(zone->db, zone->name,
+        zone->signconf->soa_serial, zone->db->inbserial);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to update zone %s soa serial: %s",
             zone_str, zone->name, ods_status2str(status));
+        if (status == ODS_STATUS_CONFLICT_ERR) {
+            ods_log_error("[%s] If this is the result of a key rollover, "
+                "please increment the serial in the unsigned zone %s",
+                zone_str, zone->name);
+        }
         ldns_rr_free(rr);
         return status;
     }
@@ -915,9 +977,9 @@ zone_recover2(zone_type* zone)
         zone->task = (void*) task;
         free((void*)filename);
         ods_fclose(fd);
-        /* journal */
         zone->db->is_initialized = 1;
-
+        zone->db->have_serial = 1;
+        /* journal */
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
         if (filename) {
             fd = ods_fopen(filename, NULL, "r");
@@ -928,6 +990,7 @@ zone_recover2(zone_type* zone)
                 ods_log_warning("[%s] corrupted journal file zone %s, "
                     "skipping (%s)", zone_str, zone->name,
                     ods_status2str(status));
+                (void)unlink(filename);
                 ixfr_cleanup(zone->ixfr);
                 zone->ixfr = ixfr_create((void*)zone);
             }

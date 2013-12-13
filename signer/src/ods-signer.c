@@ -294,7 +294,11 @@ interface_start(char* cmd)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            return system(ODS_SE_ENGINE);
+            if (system(ODS_SE_ENGINE)) {
+                fprintf(stderr, "Failed to start signer engine\n");
+                return 1;
+            }
+            return 0;
         }
 
         if (cmd && ods_strcmp(cmd, "running\n") == 0) {
@@ -345,7 +349,7 @@ main(int argc, char* argv[])
 {
     int c;
     int options_size = 0;
-    const char* options[4];
+    const char* options[5];
     char* cmd = NULL;
     int ret = 0;
     allocator_type* clialloc = allocator_create(malloc, free);
@@ -354,8 +358,8 @@ main(int argc, char* argv[])
         exit(1);
     }
 
-    if (argc > 3) {
-        fprintf(stderr,"error, too many arguments\n");
+    if (argc > 5) {
+        fprintf(stderr,"error, too many arguments (%d)\n", argc);
         exit(1);
     }
 

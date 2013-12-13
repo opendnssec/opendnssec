@@ -82,7 +82,7 @@
         <OptOut/>
         <Resalt>P100D</Resalt>
         <Hash>
-          <Algorithm>1</Algorithm>
+          <Algorithm>11</Algorithm>
           <Iterations>5</Iterations>
           <Salt length="8"/>
         </Hash>

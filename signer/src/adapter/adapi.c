@@ -207,6 +207,10 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
 
+    if (backup) {
+        /* no need to do processing */
+        return ODS_STATUS_OK;
+    }
     if (zone->signconf->soa_ttl) {
         tmp = (uint32_t) duration2time(zone->signconf->soa_ttl);
         ods_log_verbose("[%s] zone %s set soa ttl to %u",
@@ -235,11 +239,17 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
         return ODS_STATUS_OK;
     }
     tmp = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-    status = namedb_update_serial(zone->db, zone->signconf->soa_serial, tmp);
+    status = namedb_update_serial(zone->db, zone->name,
+        zone->signconf->soa_serial, tmp);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
             "soa serial rdata (%s)", adapi_str, zone->name,
             ods_status2str(status));
+        if (status == ODS_STATUS_CONFLICT_ERR) {
+            ods_log_error("[%s] If this is the result of a key rollover, "
+                "please increment the serial in the unsigned zone %s",
+                adapi_str, zone->name);
+        }
         return status;
     }
     ods_log_verbose("[%s] zone %s set soa serial to %u", adapi_str,
@@ -254,9 +264,7 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
             "soa serial rdata", adapi_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    if (!backup) {
-        zone->db->serial_updated = 1;
-    }
+    zone->db->serial_updated = 1;
     return ODS_STATUS_OK;
 }
 
@@ -289,6 +297,7 @@ static ods_status
 adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
 {
     ods_status status = ODS_STATUS_OK;
+    uint32_t tmp = 0;
     ods_log_assert(rr);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -326,7 +335,28 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
                 "skipping", adapi_str, zone->name,
                 (unsigned) ldns_rr_get_type(rr));
             return ODS_STATUS_UNCHANGED;
+        } else if (zone->signconf->max_zone_ttl) {
+            /* Convert MaxZoneTTL */
+            tmp = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
         }
+    }
+    /* //MaxZoneTTL. Only set for RRtype != SOA && RRtype != DNSKEY */
+    if (tmp && tmp < ldns_rr_ttl(rr)) {
+        char* str = ldns_rdf2str(ldns_rr_owner(rr));
+        if (str) {
+            size_t i = 0;
+            str[(strlen(str))-1] = '\0';
+            /* replace tabs with white space */
+            for (i=0; i < strlen(str); i++) {
+                if (str[i] == '\t') {
+                    str[i] = ' ';
+                }
+            }
+            ods_log_debug("[%s] capping ttl %u to MaxZoneTTL %u for rrset "
+                "<%s,%s>", adapi_str, ldns_rr_ttl(rr), tmp, str,
+                rrset_type2str(ldns_rr_get_type(rr)));
+        }
+        ldns_rr_set_ttl(rr, tmp);
     }
 
     /* TODO: DNAME and CNAME checks */

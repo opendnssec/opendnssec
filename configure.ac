@@ -21,6 +21,7 @@ AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
+AC_PROG_CXX
 
 # additional programs
 AC_PATH_PROG(XMLLINT, xmllint)
@@ -87,6 +88,7 @@ fi
 ACX_PTHREAD
 LIBS="$PTHREAD_LIBS $LIBS"
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+CPPFLAGS="$CPPFLAGS $PTHREAD_CFLAGS"
 CC="$PTHREAD_CC"
 
 # checks for library functions
@@ -98,7 +100,7 @@ AC_CHECK_FUNCS([setregid setreuid])
 AC_CHECK_FUNCS([chown stat exit time atoi getpid waitpid sigfillset])
 AC_CHECK_FUNCS([malloc calloc realloc free])
 AC_CHECK_FUNCS([strlen strncmp strncat strncpy strerror strncasecmp strdup])
-AC_CHECK_FUNCS([fgetc fopen fclose ferror fprintf vsnprintf fflush])
+AC_CHECK_FUNCS([fgetc fopen fclose ferror fprintf vsnprintf snprintf fflush])
 AC_CHECK_FUNCS([openlog closelog syslog])
 AC_CHECK_FUNCS([openlog_r closelog_r syslog_r vsyslog_r])
 AC_CHECK_FUNCS([chroot getgroups setgroups initgroups])
@@ -131,8 +133,11 @@ case "$host" in
 *-*-darwin*)
     AC_DEFINE(SETEUID_BREAKS_SETUID, 1,
 	    [Define if your platform breaks doing a seteuid before a setuid])
-	AC_DEFINE(BROKEN_SETREUID, 1, [Define if your setreuid() is broken])
-	AC_DEFINE(BROKEN_SETREGID, 1, [Define if your setregid() is broken])
+    AC_DEFINE(BROKEN_SETREUID, 1, [Define if your setreuid() is broken])
+    AC_DEFINE(BROKEN_SETREGID, 1, [Define if your setregid() is broken])
+    ;;
+*-*-netbsd*)
+    AC_DEFINE(_NETBSD_SOURCE, 1, [Enable functions on BSD])
     ;;
 esac
 
@@ -171,19 +176,20 @@ ACX_SSL
 ACX_DLOPEN
 AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 
-# enforcer
-AC_PATH_PROG(PERL, perl)
-if test -z "$PERL"; then
-   AC_MSG_ERROR([perl not found])
+# enforcer-ng
+AC_ARG_ENABLE(enforcerng,
+	AC_HELP_STRING([--disable-enforcerng],
+		[Disable enforcerng build (default enabled)]),
+		[enable_enforcerng="${enableval}"],
+		[enable_enforcerng="yes"])
+if test "x${enable_enforcerng}" = "xyes"; then
+	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
+	ACX_PROTOBUF(2,2,0)
+	ACX_ENFORCER_DATABASE
+	ACX_LIBREADLINE
 fi
-ACX_DBPARAMS
-ACX_DATABASE_BACKEND
-ACX_CUNIT
-AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
-AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_signer}" = "yes"])
-
-# cunit
-AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])
+AH_BOTTOM([#include "stdbool-cpp.h"])
+AM_CONDITIONAL([ENABLE_ENFORCERNG], [test "${enable_enforcerng}" = "yes"])
 
 # signer
 AC_ARG_ENABLE(signer,
@@ -194,8 +200,8 @@ AC_ARG_ENABLE(signer,
 AH_BOTTOM([
 	/* define before includes as it specifies what standard to use. */
 	#if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
-	        || !defined (HAVE_CTIME_R_PROTO) \
-	        || defined (STRPTIME_NEEDS_DEFINES)
+		|| !defined (HAVE_CTIME_R_PROTO) \
+		|| defined (STRPTIME_NEEDS_DEFINES)
 	#  ifndef _XOPEN_SOURCE
 	#    define _XOPEN_SOURCE 600
 	#  endif
@@ -208,7 +214,7 @@ AH_BOTTOM([
 	#  ifndef __EXTENSIONS__
 	#    define __EXTENSIONS__ 1
 	#  endif
-	#  ifndef _STDC_C99
+	#  if !defined(_STDC_C99) && !defined(__cplusplus)
 	#    define _STDC_C99 1
 	#  endif
 	#  ifndef _ALL_SOURCE
@@ -243,24 +249,13 @@ AC_CONFIG_FILES([
 	conf/kasp.xml
 	conf/signconf.xml
 	conf/zonelist.xml
-	enforcer/Makefile
-	enforcer/common/Makefile
-	enforcer/enforcerd/Makefile
-	enforcer/enforcerd/ods-enforcerd.8
-	enforcer/ksm/Makefile
-	enforcer/ksm/include/Makefile
-	enforcer/ksm/include/ksm/Makefile
-	enforcer/test/Makefile
-	enforcer/test/cucumber/Makefile
-	enforcer/test/cucumber/c_conf.xml
-	enforcer/test/cucumber/c_kasp.xml
-	enforcer/test/cucumber/c_zonelist.base.xml
-	enforcer/test/cunit/Makefile
-	enforcer/test/cunit/database_setup_mysql.sh
-	enforcer/test/cunit/database_setup_sqlite3.sh
-	enforcer/utils/Makefile
-	enforcer/utils/ods-kaspcheck.1
-	enforcer/utils/ods-ksmutil.1
+	enforcer-ng/Makefile
+	enforcer-ng/src/Makefile
+	enforcer-ng/src/utils/Makefile
+	enforcer-ng/man/Makefile
+	enforcer-ng/src/protobuf-orm/test/Makefile
+	enforcer-ng/man/ods-enforcer.8
+	enforcer-ng/man/ods-enforcerd.8
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/bin/Makefile

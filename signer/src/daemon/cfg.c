@@ -182,9 +182,13 @@ engine_config_print(FILE* out, engineconfig_type* config)
 	        fprintf(out, "\t\t\t</File>\n");
 	        fprintf(out, "\t\t</Logging>\n");
         }
+        fprintf(out, "\t</Common>\n");
+
+        /* Enforcer */
+        fprintf(out, "\t<Enforcer>\n");
         fprintf(out, "\t\t<ZoneListFile>%s</ZoneListFile>\n",
             config->zonelist_filename);
-        fprintf(out, "\t</Common>\n");
+        fprintf(out, "\t</Enforcer>\n");
 
         /* Signer */
         fprintf(out, "\t<Signer>\n");

@@ -12,8 +12,7 @@ ods_reset_env &&
 log_this_timeout ods-ksmutil-zone-add 5 ods-ksmutil zone add -z test.delete --policy non-default &&
 
 # Run the enforcer so that keys are created
-log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
+ods_start_enforcer &&
 
 # Check the presence of all signconfs
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
@@ -79,8 +78,7 @@ echo "y" | log_this ods-ksmutil-zone-del ods-ksmutil zone delete --all &&
 log_this ods-ksmutil-zone-list4 ods-ksmutil zone list &&
 log_grep ods-ksmutil-zone-list4 stdout 'No zones in DB or zonelist.' &&
 
-log_this_timeout ods-control-enforcer-stop 60 ods-control enforcer stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
+ods_stop_enforcer &&
 return 0
 
 ods_kill

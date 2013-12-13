@@ -44,19 +44,24 @@
 			<Group>opendnssec</Group>
 		</Privileges>
 -->
-<!-- NOTE: Enforcer worker threads are not used; this option is ignored -->
-<!--
-		<WorkerThreads>4</WorkerThreads>
--->
+
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
+		<AutomaticKeyGenerationPeriod>P1Y</AutomaticKeyGenerationPeriod>
 		<!-- <RolloverNotification>P14D</RolloverNotification> -->
 		
 		<!-- the <DelegationSignerSubmitCommand> will get all current
 		     DNSKEYs (as a RRset) on standard input (with optional CKA_ID)
 		-->
 		<!-- <DelegationSignerSubmitCommand>@OPENDNSSEC_SBIN_DIR@/simple-dnskey-mailer.sh</DelegationSignerSubmitCommand> -->
+
+		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/enforcer</WorkingDirectory>
+
+<!-- NOTE: Enforcer worker threads are not used; this option is ignored -->
+<!--
+		<WorkerThreads>4</WorkerThreads>
+-->
 	</Enforcer>
 
 	<Signer>
@@ -67,7 +72,7 @@
 		</Privileges>
 -->
 
-		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
+		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/signer</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
 <!--
 		<SignerThreads>4</SignerThreads>

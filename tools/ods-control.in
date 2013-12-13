@@ -31,16 +31,12 @@ progname="ods-control"
 bindir="@OPENDNSSEC_BIN_DIR@"
 sbindir="@OPENDNSSEC_SBIN_DIR@"
 enforcer_pid_file="@OPENDNSSEC_ENFORCER_PIDFILE@"
+enforcer_socket_file="@OPENDNSSEC_ENFORCER_SOCKETFILE@"
 signer_pid_file="@OPENDNSSEC_SIGNER_PIDFILE@"
 signer_socket_file="@OPENDNSSEC_SIGNER_SOCKET@"
 
 
 case "$1" in
-
-'ksm')
-	shift
-	"$bindir/ods-ksmutil" $@
-	;;
 
 'hsm')
 	shift
@@ -97,7 +93,8 @@ case "$1" in
 
 	'start')
 		echo "Starting enforcer..."
-		"$sbindir/ods-enforcerd"
+		"$sbindir/ods-enforcer" start
+		
 		RETVAL=$?
 		if [ $RETVAL = 0 ]; then
 			i=0
@@ -107,51 +104,41 @@ case "$1" in
 				if [ $i -ge 5 ]; then
 					RETVAL=1
 					echo "Could not start enforcer"
-					break
+					exit $RETVAL
 				fi
 			done
-		fi
-		exit $RETVAL
-		;;
+			i=0
+			while [ ! -r "$enforcer_socket_file" ]; do
+				sleep 1
+				i=`expr $i + 1`
+				if [ $i -ge 5 ]; then
+					RETVAL=1
+					echo "Could not start enforcer"
+					exit $RETVAL
+				fi
+			done
+			sleep 1
 
-	'stop')
-		echo "Stopping enforcer..."
-		if [ -r "$enforcer_pid_file" ]; then
-			kill -TERM `cat "$enforcer_pid_file"`
+			"$sbindir/ods-enforcer" running
 			RETVAL=$?
-			if [ $RETVAL = 0 ]; then
-				i=0
-				while [ -r "$enforcer_pid_file" ]; do
-					sleep 1
-					i=`expr $i + 1`
-					if [ $i -ge 5 ]; then
-						RETVAL=1
-						echo "Could not stop enforcer"
-						break
-					fi
-				done
-			fi
-		else
-			echo "Cannot find PID file"
-			RETVAL=1
 		fi
+		
 		exit $RETVAL
 		;;
 
 	'notify')
 		echo "Notifying enforcer of new database..."
-		if [ -r "$enforcer_pid_file" ]; then
-			kill -HUP `cat "$enforcer_pid_file"`
-			RETVAL=$?
-		else
-			echo "Cannot find PID file"
-			RETVAL=1
-		fi
+		
+		"$sbindir/ods-enforcer" notify
+		
+		RETVAL=$?
+		
 		exit $RETVAL
 		;;
 
 	*)
-		echo "usage: $progname enforcer start|stop|notify"
+		shift
+		"$sbindir/ods-enforcer" "$@"
 		;;
 
 	esac
@@ -170,9 +157,10 @@ case "$1" in
 	;;
 
 'stop')
+	echo "Stopping enforcer.."
 	"$0" enforcer stop
 	echo "Stopping signer engine..."
-	"$sbindir/ods-signer" stop
+	"$0" signer stop
 	;;
 
 *)

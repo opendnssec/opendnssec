@@ -32,7 +32,13 @@
 
 #include <stdint.h>
 
-/* Note that currently the MySQL kasp schema limits the number of HSMs to
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define HSM_MAX_SESSIONS 100
+/* 
+ * Note that currently the MySQL kasp schema limits the number of HSMs to 
  * 127; so to increase it beyond that requires some database changes similar
  * to when keypairs(id) was increased, see svn r4465.
  *
@@ -513,5 +519,9 @@ void hsm_print_ctx(hsm_ctx_t *gctx);
 void hsm_print_key(hsm_key_t *key);
 void hsm_print_error(hsm_ctx_t *ctx);
 void hsm_print_tokeninfo(hsm_ctx_t *gctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HSM_H */

@@ -55,7 +55,6 @@ tools_signconf(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
     signconf_type* new_signconf = NULL;
-    task_id denial_what = TASK_NONE;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -63,9 +62,12 @@ tools_signconf(zone_type* zone)
     if (status == ODS_STATUS_OK) {
         ods_log_assert(new_signconf);
         /* Denial of Existence Rollover? */
-        denial_what = signconf_compare_denial(zone->signconf, new_signconf);
-        if (denial_what == TASK_NSECIFY) {
-            /* or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3PARAM changed */
+        if (signconf_compare_denial(zone->signconf, new_signconf)
+            == TASK_NSECIFY) {
+            /**
+             * Or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3 params changed.
+             * All NSEC(3)s become invalid.
+             */
             namedb_wipe_denial(zone->db);
             namedb_cleanup_denials(zone->db);
             namedb_init_denials(zone->db);
@@ -141,7 +143,8 @@ tools_input(zone_type* zone)
         namedb_rollback(zone->db, 0);
     }
     end = time(NULL);
-    if (status == ODS_STATUS_OK && zone->stats) {
+    if ((status == ODS_STATUS_OK || status == ODS_STATUS_UNCHANGED)
+        && zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
@@ -207,6 +210,7 @@ tools_output(zone_type* zone, engine_type* engine)
     }
     zone->db->outserial = zone->db->intserial;
     zone->db->is_initialized = 1;
+    zone->db->have_serial = 1;
     lock_basic_lock(&zone->ixfr->ixfr_lock);
     ixfr_purge(zone->ixfr);
     lock_basic_unlock(&zone->ixfr->ixfr_lock);

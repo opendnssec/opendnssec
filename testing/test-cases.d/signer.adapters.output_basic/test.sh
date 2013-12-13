@@ -16,15 +16,13 @@ if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-ods_reset_env &&
+ods_reset_env 20 &&
 
 ## Start secondary name server
 ods_ldns_testns 15353 ods.datafile &&
 
 ## Start OpenDNSSEC
-log_this_timeout ods-control-start 60 ods-control start &&
-syslog_waitfor 60 'ods-enforcerd: .*Sleeping for' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer started' &&
+ods_start_ods-control && 
 
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
@@ -68,18 +66,16 @@ log_grep dig stdout 'label35\.ods\..*3600.*IN.*NS.*ns1\.label35\.ods\.' &&
 log_grep dig stdout 'ns1\.label35\.ods\..*3600.*IN.*A.*192\.0\.2\.1' &&
 
 # Validate the output on redhat
-case "$DISTRIBUTION" in                                                                                 
-        redhat )
-                dig -p 15354 @127.0.0.1 axfr ods > ods_axfr &&
-                log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host ods_axfr &&
-                log_grep validate-zone-ods stdout 'validation errors:   0'
-                ;;
-esac &&
+# case "$DISTRIBUTION" in                                                                                 
+#         redhat )
+#                 dig -p 15354 @127.0.0.1 axfr ods > ods_axfr &&
+#                 log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host ods_axfr &&
+#                 log_grep validate-zone-ods stdout 'validation errors:   0'
+#                 ;;
+# esac &&
 
 ## Stop
-log_this_timeout ods-control-stop 60 ods-control stop &&
-syslog_waitfor 60 'ods-enforcerd: .*all done' &&
-syslog_waitfor 60 'ods-signerd: .*\[engine\] signer shutdown' &&
+ods_stop_ods-control && 
 ods_ldns_testns_kill &&
 return 0
 

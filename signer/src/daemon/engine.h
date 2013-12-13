@@ -88,9 +88,10 @@ struct engine_struct {
  * \param[in] daemonize to run as daemon or not
  * \param[in] info print info and exit
  * \param[in] single_run run once
+ * \return 0 if successful, 1 on error
  *
  */
-void engine_start(const char* cfgfile, int cmdline_verbosity,
+int engine_start(const char* cfgfile, int cmdline_verbosity,
     int daemonize, int info, int single_run);
 
 /**

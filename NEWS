@@ -1,16 +1,104 @@
 $Id$
 
+OpenDNSSEC 2.0.0a4 (EnforcerNG branch) 
+
+* SUPPORT-72: Improve logging when failed to increment serial in case 
+  of key rollover and serial value "keep" [OPENDNSSEC-461].
+* OPENDNSSEC-106: Add 'ods-enforcerd -p <policy>' option. This prompts the
+  enforcer to run once and only process the specified policy and associated
+  zones.
+* OPENDNSSEC-330: NSEC3PARAM TTL can now be optionally configured in kasp.xml. 
+  Default value remains PT0S.
+* OPENDNSSEC-390: ods-ksmutil: Add an option to the 'ods-ksmutil key ds-seen'
+  command so the user can choose not to notify the enforcer.
+* OPENDNSSEC-430: ods-ksmutil: Improve 'zone add' - Zone add command 
+  could warn if a specified zone file or adapter file does not exits.
+* OPENDNSSEC-431: ods-ksmutil: Improve 'zone add' - Support default <input>
+  and <output> values for DNS adapters.
+* OPENDNSSEC-454: ods-ksmutil: Add option for 'ods-ksmutil key import' to
+  check if there is a matching key in the repository before import.
+
+* Bugfix: OPENDNSSEC-281, Commandhandler sometimes unresponsive.
+* Bugfix: OPENDNSSEC-276, HSM initialized after fork().
+* OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
+  prevent bad caching effects on resolvers.
+* OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take 
+  number of zones as a parameter
+
+Bugfixes:
+* OPENDNSSEC-435: Signer Engine: Fix a serious memory leak in signature
+  cleanup.
+* OPENDNSSEC-463: Signer Engine: Duration PT0S is now printed correctly.
+* OPENDNSSEC-466: Signer Engine: Created bad TSIG signature when falling back
+  to AXFR.
+* OPENDNSSEC-467: Signer Engine: After ods-signer clear, signer should not use
+  inbound serial.
+
+OpenDNSSEC 2.0.0a3 (EnforcerNG branch) - 2012-06-18
+Bugfixes:
+* SUPPORT-66: Signer Engine: Fix file descriptor leak in case of TCP write
+  error [OPENDNSSEC-427].
+* SUPPORT-71: Signer Engine: Fix double free crash in case of HSM connection
+  error during signing [OPENDNSSEC-444].
+* OPENDNSSEC-401: 'ods-signer sign <zone> --serial <nr>' command produces seg
+  fault when run directly on command line (i.e. not via interactive mode)
+* OPENDNSSEC-440: 'ods-ksmutil key generate' and the enforcer can create
+  too many keys if there are keys already available and the KSK and ZSK use
+  same algorithm and length
+* OPENDNSSEC-424: Signer Engine: Respond to SOA queries from file instead
+  of memory. Makes response non-blocking.
+* OPENDNSSEC-425 Change "hsmutil list" output so that the table header goes
+  to stdout not stderr
+* OPENDNSSEC-438: 'ods-ksmutil key generate' and the enforcer can create
+  too many keys for <SharedKeys/> policies when KSK and ZSK use same
+  algorithm and length
+* OPENDNSSEC-443: ods-ksmutil: Clean up of hsm connection handling
+* Signer Engine: Improved Inbound XFR checking.
+* Signer Engine: Fix double free corruption in case of adding zone with
+  DNS Outbound Adapters and NotifyCommand enabled.
+
+* Enforcer: Limit number of pregenerated keys when using <SharedKeys>.
+* Enforcer: MySQL database backend implemented.
+* Enforcer: New directive <MaxZoneTTL> to make safe assumptions about
+  zonefile.
+* Enforcer: New zone add command, allow specifying adapters.
+* Enforcer: New zone del command, use --force for still signed zones.
+* Enforcer: Pre-generate keys on the HSM.
+* Enforcer: SQLite database backend implemented.
+
 
 OpenDNSSEC 2.0.0-trunk
 
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
   Minimum change.
-* OPENDNSSEC-449: ods-hsmutil: The user must now select type and algorithm
-  when creating a DNSKEY RR.
 
 Bugfixes:
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
+
+
+OpenDNSSEC 1.4.1 - 2013-06-27
+
+* SUPPORT-58: Extend ods-signer sign <zone> with --serial <nr> so that the user
+  can specify the SOA serial to use in the signed zone [OPENDNSSEC-401].
+* OPENDNSSEC-91: Make the keytype flag required when rolling keys
+
+Bugfixes:
+* SUPPORT-60: Fix datecounter in case inbound serial is higher than outbound
+  serial [OPENDNSSEC-420].
+* OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
+  Minimum change.
+* OPENDNSSEC-421: Signer Engine: Fix assertion error in case NSEC3 hash
+  algorithm in signconf is not SHA1.
+* OPENDNSSEC-421: ods-kaspcheck: Check whether NSEC3 hash algorithm in kasp
+  is valid.
+* Bugfix: The time when inbound serial is acquired was reset invalidly,
+  could cause OpenDNSSEC wanting AXFR responses while requesting IXFR (thanks
+  Stuart Lau).
+* Bugfix: Fix malform in Outbound IXFR/TCP subsequent packet (thanks Stuart
+  Lau).
+* OPENDNSSEC-398: The ods-ksmutil key rollover command does not work correctly
+  when rolling all keys using the --policy option
 
 
 OpenDNSSEC 1.4.0 - 2013-04-22
@@ -37,11 +125,55 @@ OPENDNSSEC-387, which is a significant functional change compared to rc2.
   existing use; but it will now be silently ignored.
 
 Bugfixes:
+* OPENDNSSEC-183: Enforcer: If no DNSKEYs use negative TTL as TTL(DNSKEY).
+* OPENDNSSEC-185: Enforcer: Used wrong value for negative caching.
+* OPENDNSSEC-206: Enforcer: Notify Signer on generating new signer
+  configuration.
+* OPENDNSSEC-224: Enforcer: Fix rolling simultaneous keys.
+  (e.g. emergency roll)
+* OPENDNSSEC-271: Enforcer: Signer configurations w/o keys are now accepted.
+* Enforcer: Handle cases where negative cache > positive cache.
+* Enforcer: Take resign interval into account when signer does smooth
+  rollover.
 * OPENDNSSEC-388: Signer Engine: Internal serial should take into account
   the inbound serial.
 * SUPPORT-50/51: Signer Engine: Inbound DNS Adapter incorrectly updates 
   NSEC3PARAM and DNSKEY RRset [OPENDNSSEC-389]
 * OPENDNSSEC-389: Input DNS Adapter incorrectly updating NSEC3PARAM and DNSKEY RRsets
+
+Known Issues:
+* Enforcer: Key material not always reused when using <SharedKeys>.
+* Enforcer: Lacking documentation.
+* Enforcer: No migration tools.
+
+
+OpenDNSSEC EnforcerNG branch alpha2 - 2011-10-18
+
+* Enforcer: Automatic introduce keys marked as manual, like other enforcer.
+* Enforcer: Automatically retract never submitted DS records.
+* Enforcer: CSK is now configurable.
+* Enforcer: Do not allow lifetime of key to be shorter than TTL.
+* Enforcer: Support for RollOverType in kasp.xml
+
+Bugfixes:
+* Enforcer: Fixed concurrency related crashes.
+* Enforcer: Remove some scheduling when waiting for user input.
+* Enforcer: Schedule the purging of keys.
+
+
+OpenDNSSEC EnforcerNG branch alpha1 - 2011-09-23
+
+HIGH-LEVEL DESIGN GOALS:
+* Support for a large number of zones. The enforcer should reasonably be
+  useable with many zones. Think order of magnitude 50.000 concurrent zones.
+* Allow for future rollover strategies. Provide a generic framework to
+  implement other kinds of rollovers in the future.
+* Drop in replacement. Should replace the current enforcer but keep the same
+  interface and provide migration scripts from earlier installs.
+
+Trunk
+
+Bugfixes:
 
 
 OpenDNSSEC 1.4.0rc2 - 2013-01-25
