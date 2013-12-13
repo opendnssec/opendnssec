@@ -117,6 +117,18 @@ typedef struct {
   unsigned long keysize;         /*!< key size */
 } hsm_key_info_t;
 
+/*! HSM Repository */
+typedef struct {
+    const char   *name;          /*!< name */
+    const char   *module;        /*!< PKCS#11 module */
+    const char   *tokenlabel;    /*!< PKCS#11 token label */
+    const char   *pin;           /*!< PKCS#11 login credentials */
+    unsigned int capacity;       /*!< maximum no. of key pairs */
+    uint8_t      require_backup; /*!< require backup of keys before use? */
+    uint8_t      skip_pubkey;    /*!< skip public keys in repository? */
+} hsm_repository_t;
+
+
 /*! HSM context to keep track of sessions */
 typedef struct {
     hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
@@ -140,7 +152,7 @@ typedef struct {
 \param pin_callback This function will be called for tokens that have
                     no PIN configured. The default hsm_prompt_pin() can
                     be used. If this value is NULL, these tokens will
-                    be skipped
+                    be skipped.
 \return 0 if successful, !0 if failed
 
 Attaches all configured HSMs, querying for PINs (using the given
@@ -153,6 +165,24 @@ int
 hsm_open(const char *config,
          char *(pin_callback)(unsigned int, const char *, unsigned int));
 
+/*! Open HSM library
+
+\param rlist Repository list.
+\param pin_callback This function will be called for tokens that have
+                    no PIN configured. The default hsm_prompt_pin() can
+                    be used. If this value is NULL, these tokens will
+                    be skipped.
+\return 0 if successful, !0 if failed
+
+Attaches all HSMs in the repository list, querying for PINs (using the given
+callback function) if not known.
+Also creates initial sessions (not part of any context; every API
+function that takes a context can be passed NULL, in which case the
+global context will be used) and log into each HSM.
+*/
+int
+hsm_open2(hsm_repository_t** rlist,
+         char *(pin_callback)(unsigned int, const char *, unsigned int));
 
 /*! Function that queries for a PIN, can be used as callback
     for hsm_open(). Stores the PIN in the shared memory.

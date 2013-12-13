@@ -254,11 +254,11 @@ hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *action)
 static void
 hsm_pkcs11_unload_functions(void *handle)
 {
-    int result;
     if (handle) {
 #if defined(HAVE_LOADLIBRARY)
         /* no idea */
 #elif defined(HAVE_DLOPEN)
+        int result;
         result = dlclose(handle);
 #endif
     }
@@ -2266,6 +2266,64 @@ hsm_open(const char *config,
         return HSM_NO_REPOSITORIES;
     }
 
+    return result;
+}
+
+int
+hsm_open2(hsm_repository_t** rlist,
+         char *(pin_callback)(unsigned int, const char *, unsigned int))
+{
+    hsm_config_t module_config;
+    hsm_repository_t* repo = NULL;
+    char* module_pin = NULL;
+    int result = HSM_OK;
+    int tries;
+    int repositories = 0;
+
+    /* create an internal context with an attached session for each
+     * configured HSM. */
+    _hsm_ctx = hsm_ctx_new();
+
+    while (repo) {
+        if (repo->name && repo->module && repo->tokenlabel) {
+            if (repo->pin) {
+                result = hsm_attach(repo->name, repo->tokenlabel,
+                    repo->module, repo->pin, &module_config);
+            } else {
+                if (pin_callback) {
+                    result = HSM_PIN_INCORRECT;
+                    tries = 0;
+                    while (result == HSM_PIN_INCORRECT && tries < 3) {
+                        module_pin = pin_callback(_hsm_ctx->session_count,
+                            repo->name, tries?HSM_PIN_RETRY:HSM_PIN_FIRST);
+                        if (module_pin == NULL) break;
+                        result = hsm_attach(repo->name, repo->tokenlabel,
+                            repo->module, module_pin, &module_config);
+                        if (result == HSM_OK) {
+                            pin_callback(_hsm_ctx->session_count - 1,
+                                repo->name, HSM_PIN_SAVE);
+                        }
+                        memset(module_pin, 0, strlen(module_pin));
+                        tries++;
+                    }
+                } else {
+                    /* no pin, no callback */
+                    hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open()",
+                        "No pin or callback function");
+                    result = HSM_ERROR;
+                }
+            }
+            if (result != HSM_OK) {
+                break;
+            }
+            repositories++;
+        }
+    }
+    if (result == HSM_OK && repositories == 0) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
+            "No repositories found");
+        return HSM_NO_REPOSITORIES;
+    }
     return result;
 }
 
