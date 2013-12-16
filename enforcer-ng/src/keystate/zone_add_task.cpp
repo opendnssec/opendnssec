@@ -114,29 +114,29 @@ perform_zone_add(int sockfd,
 			ks_zone.set_signconf_path( signerconf );
 			if (*ad_input_file) {
 				//ks_zone.mutable_adapters()->mutable_input()->set_file(ad_input_file);
-				::ods::keystate::Adapter *adapter =
+				::ods::keystate::Input *input =
 					ks_zone.mutable_adapters()->mutable_input();
-				adapter->set_type("File");
-				adapter->set_config(ad_input_file);
+				input->set_type("File");
+				input->set_adapter(ad_input_file);
 			}
 			if (*ad_output_file) {
 				//ks_zone.mutable_adapters()->mutable_output()->set_file(ad_output_file);
-				::ods::keystate::Adapter *adapter =
+				::ods::keystate::Output *output =
 					ks_zone.mutable_adapters()->mutable_output();
-				adapter->set_type("File");
-				adapter->set_config(ad_output_file);
+				output->set_type("File");
+				output->set_adapter(ad_output_file);
 			}
 			if (*ad_input_type) {
-				::ods::keystate::Adapter *adapter =
+				::ods::keystate::Input *input =
 					ks_zone.mutable_adapters()->mutable_input();
-				adapter->set_type("DNS");
-				adapter->set_config(ad_input_config);
+				input->set_type("DNS");
+				input->set_adapter(ad_input_config);
 			}
 			if (*ad_output_type) {
-				::ods::keystate::Adapter *adapter =
+				::ods::keystate::Output *output =
 					ks_zone.mutable_adapters()->mutable_output();
-				adapter->set_type("DNS");
-				adapter->set_config(ad_output_config);
+				output->set_type("DNS");
+				output->set_adapter(ad_output_config);
 			}
 						
 			// enforcer needs to trigger signer configuration writing.
