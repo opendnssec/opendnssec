@@ -105,6 +105,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         	ecfg->verbosity = parse_conf_verbosity(cfgfile);
         }
         ecfg->interfaces = parse_conf_listener(allocator, cfgfile);
+        ecfg->repositories = parse_conf_repositories(allocator, cfgfile);
         /* done */
         ods_fclose(cfgfd);
         return ecfg;
@@ -262,6 +263,7 @@ engine_config_cleanup(engineconfig_type* config)
     }
     allocator = config->allocator;
     listener_cleanup(config->interfaces);
+    hsm_repository_free(config->repositories);
     allocator_deallocate(allocator, (void*) config->notify_command);
     allocator_deallocate(allocator, (void*) config->cfg_filename);
     allocator_deallocate(allocator, (void*) config->zonelist_filename);

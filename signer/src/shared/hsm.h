@@ -47,19 +47,19 @@
 
 /**
  * Open HSM.
- * \param[in] filename the configuration filename
+ * \param[in] rlist repository list
  * \return int hsm status
  *
  */
-int lhsm_open(const char* filename);
+int lhsm_open(hsm_repository_t* rlist);
 
 /**
  * Reopen HSM.
- * \param[in] filename the configuration filename
+ * \param[in] rlist repository list
  * \return int hsm status
  *
  */
-int lhsm_reopen(const char* filename);
+int lhsm_reopen(hsm_repository_t* rlist);
 
 /**
  * Check the HSM connection, reload engine if necessary.

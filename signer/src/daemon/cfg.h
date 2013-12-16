@@ -36,6 +36,7 @@
 
 #include "config.h"
 #include "shared/allocator.h"
+#include "shared/hsm.h"
 #include "shared/locks.h"
 #include "shared/status.h"
 #include "wire/listener.h"
@@ -50,6 +51,7 @@ typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
     allocator_type* allocator;
     listener_type* interfaces;
+    hsm_repository_t* repositories;
     const char* cfg_filename;
     const char* zonelist_filename;
     const char* log_filename;

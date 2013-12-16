@@ -137,6 +137,105 @@ parse_file_check(const char* cfgfile, const char* rngfile)
 
 /* TODO: look how the enforcer reads this now */
 
+/**
+ * Parse the repositories.
+ *
+ */
+hsm_repository_t*
+parse_conf_repositories(allocator_type* allocator, const char* cfgfile)
+{
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlNode* curNode = NULL;
+    xmlChar* xexpr = NULL;
+
+    int i;
+    char* name;
+    char* module;
+    char* tokenlabel;
+    char* pin;
+    uint8_t use_pubkey;
+    hsm_repository_t* rlist = NULL;
+    hsm_repository_t* repo  = NULL;
+
+    /* Load XML document */
+    doc = xmlParseFile(cfgfile);
+    if (doc == NULL) {
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlParseFile() failed", parser_str);
+        return NULL;
+    }
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlXPathNewContext() failed", parser_str);
+        return NULL;
+    }
+    /* Evaluate xpath expression */
+    xexpr = (xmlChar*) "//Configuration/RepositoryList/Repository";
+    xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
+    if(xpathObj == NULL) {
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlXPathEvalExpression failed", parser_str);
+        return NULL;
+    }
+    /* Parse repositories */
+    if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
+        for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
+            repo = NULL;
+            name = NULL;
+            module = NULL;
+            tokenlabel = NULL;
+            pin = NULL;
+            use_pubkey = 1;
+
+            curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i],
+                                             (const xmlChar *)"name");
+            while (curNode) {
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
+                    module = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
+                    tokenlabel = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
+                    pin = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"SkipPublicKey"))
+                    use_pubkey = 0;
+
+                curNode = curNode->next;
+            }
+            if (name && module && tokenlabel) {
+                repo = hsm_repository_new(name, module, tokenlabel, pin,
+                    use_pubkey);
+            }
+            if (!repo) {
+               ods_log_error("[%s] unable to add %s repository: "
+                   "hsm_repository_new() failed", parser_str, name?name:"-");
+            } else {
+               repo->next = rlist;
+               rlist = repo;
+               ods_log_debug("[%s] added %s repository to repositorylist",
+                   parser_str, name);
+            }
+            free((void*)name);
+            free((void*)module);
+            free((void*)tokenlabel);
+        }
+    }
+
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+    return rlist;
+}
+
 
 /**
  * Parse the listener interfaces.
