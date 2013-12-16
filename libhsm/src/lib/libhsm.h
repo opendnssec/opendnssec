@@ -117,16 +117,16 @@ typedef struct {
   unsigned long keysize;         /*!< key size */
 } hsm_key_info_t;
 
-/*! HSM Repository */
-typedef struct {
-    const char   *name;          /*!< name */
-    const char   *module;        /*!< PKCS#11 module */
-    const char   *tokenlabel;    /*!< PKCS#11 token label */
-    const char   *pin;           /*!< PKCS#11 login credentials */
-    unsigned int capacity;       /*!< maximum no. of key pairs */
-    uint8_t      require_backup; /*!< require backup of keys before use? */
-    uint8_t      skip_pubkey;    /*!< skip public keys in repository? */
-} hsm_repository_t;
+/*! HSM Repositories */
+typedef struct hsm_repository_struct hsm_repository_t;
+struct hsm_repository_struct {
+    hsm_repository_t* next; /*!< next repository > */
+    char    *name;          /*!< name */
+    char    *module;        /*!< PKCS#11 module */
+    char    *tokenlabel;    /*!< PKCS#11 token label */
+    char    *pin;           /*!< PKCS#11 login credentials */
+    uint8_t use_pubkey;     /*!< use public keys in repository? */
+};
 
 
 /*! HSM context to keep track of sessions */
@@ -181,8 +181,29 @@ function that takes a context can be passed NULL, in which case the
 global context will be used) and log into each HSM.
 */
 int
-hsm_open2(hsm_repository_t** rlist,
+hsm_open2(hsm_repository_t* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int));
+
+
+/*! Create new repository as specified in conf.xml.
+
+\param name           Repository name.
+\param module         PKCS#11 module.
+\param tokenlabel     PKCS#11 token label.
+\param pin            PKCS#11 login credentials.
+\param use_pubkey     Whether to store the public key in the HSM.
+\return The created repository.
+*/
+hsm_repository_t *
+hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
+    uint8_t use_pubkey);
+
+/*! Free configured repositories.
+
+\param r Repository list.
+*/
+void
+hsm_repository_free(hsm_repository_t* r);
 
 /*! Function that queries for a PIN, can be used as callback
     for hsm_open(). Stores the PIN in the shared memory.
