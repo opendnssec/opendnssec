@@ -22,7 +22,7 @@
 		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	<Signer>
-		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
+		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
 	</Signer>
 </Configuration>

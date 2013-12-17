@@ -20,7 +20,7 @@
 		<Interval>PT3600S</Interval>
 	</Enforcer>
 	<Signer>
-		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
+		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
 		<WorkerThreads>8</WorkerThreads>
 	</Signer>
 </Configuration>
