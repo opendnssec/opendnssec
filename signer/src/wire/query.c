@@ -342,7 +342,7 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
             return QUERY_DISCARDED;
         }
         lock_basic_lock(&q->zone->xfrd->serial_lock);
-        if (q->zone->xfrd->notify_acquired) {
+        if (q->zone->xfrd->serial_notify_acquired) {
             if (!util_serial_gt(q->zone->xfrd->serial_notify,
                 q->zone->xfrd->serial_disk)) {
                 ods_log_debug("[%s] ignore notify: already got zone %s serial "
