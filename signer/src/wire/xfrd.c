@@ -1696,8 +1696,7 @@ xfrd_make_request(xfrd_type* xfrd)
     if (xfrd->serial_xfr_acquired && !xfrd->master->ixfr_disabled) {
         xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_UDP_TIMEOUT);
         xfrd_udp_obtain(xfrd);
-    } else if (xfrd->serial_xfr_acquired <= 0 ||
-        xfrd->master->ixfr_disabled) {
+    } else if (!xfrd->serial_xfr_acquired || xfrd->master->ixfr_disabled) {
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
         ods_log_assert(xfrhandler);
         xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_TCP_TIMEOUT);
