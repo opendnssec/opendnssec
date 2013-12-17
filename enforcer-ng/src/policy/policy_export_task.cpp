@@ -28,10 +28,6 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-/****************************/
-#include <stdio.h>
-
- /**/
 
 #include "shared/duration.h"
 #include "shared/file.h"
@@ -40,7 +36,7 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 
-#include "policy/kasp.pb.h"
+#include "kasp.pb.h"
 
 #include "xmlext-pb/xmlext-rd.h"
 #include "xmlext-pb/xmlext-wr.h"
@@ -53,62 +49,77 @@
 
 static const char *module_str = "policy_export_task";
 
-#define ODS_LOG_AND_RETURN(errmsg) do { \
-	ods_log_error_and_printf(sockfd,module_str,errmsg); return; } while (0)
-#define ODS_LOG_AND_CONTINUE(errmsg) do { \
-	ods_log_error_and_printf(sockfd,module_str,errmsg); continue; } while (0)
-
 void 
-perform_policy_export(int sockfd, engineconfig_type *config, const char *policyname)
+perform_policy_export(int sockfd, engineconfig_type *config, const char *policy)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
+
 	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return;
-	
-	OrmTransaction transaction(conn);
-	if (!transaction.started()) {
-		ods_log_error_and_printf(sockfd, module_str, 
-			"database transaction failed");
-		return;
-	}
+	if (!ods_orm_connect(sockfd, config, conn))
+		return; // error already reported.
 
-	OrmResultRef rows;
-	::ods::kasp::Policy policy;
-	if (!OrmMessageEnum(conn,policy.descriptor(),rows)) {
-		ods_log_error_and_printf(sockfd, module_str,
-			"database policy enumeration failed\n");
-		return;
-	}
-	
-	if (!OrmFirst(rows)) {
-		ods_log_debug("[%s] policy list completed", module_str);
-		ods_printf(sockfd,
-			"Database set to: %s\n"
-			"I have no policies configured\n"
-			,config->datastore);
-		return;
-	}
-
-	ods_printf(sockfd, "<KASP>\n");
-	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-		if (!OrmGetMessage(rows, policy, true)) {
+	{
+		OrmTransaction transaction(conn);
+		if (!transaction.started()) {
 			ods_log_error_and_printf(sockfd, module_str,
-				"reading policy from database failed");
+					"database transaction failed");
 			return;
 		}
-		const char *name = policy.name().c_str();
-		if (!name || (policyname && strcmp(name, policyname) != 0))
-			continue;
-		ods_printf(sockfd, "  <Policy name=\"%s\">\n", name);
-		if (!write_pb_message_to_xml_fd(&policy, sockfd, 2)){
-			ods_log_error_and_printf(sockfd, module_str,
-				"writing message to xml file failed");
-			return;
+
+
+		{	OrmResultRef rows;
+			::ods::kasp::Policy pexport;
+
+
+			std::string qpolicy;
+			if (policy) {
+				if (!OrmQuoteStringValue(conn, std::string(policy), qpolicy)) {
+					ods_log_error_and_printf(sockfd, module_str,
+							"quoting string value failed\n");
+					return;
+				}
+			}
+
+			if (qpolicy.empty()) {
+				if (!OrmMessageEnum(conn, pexport.descriptor(), rows)) {
+					ods_log_error_and_printf(sockfd, module_str,
+							"database policy enumeration failed\n");
+					return;
+				}
+			} else {
+				if (!OrmMessageEnumWhere(conn, pexport.descriptor(), rows,
+						"name = %s", qpolicy.c_str())) {
+					ods_log_error_and_printf(sockfd, module_str,
+							"database policy enumeration failed\n");
+					return;
+				}
+			}
+
+			ods_printf(sockfd,
+					   "Database set to: %s\n"
+					   "Policies:\n"
+					   "\n"
+					   ,config->datastore);
+
+			for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+				ods_printf(sockfd,"1111111\n");
+				if (!OrmGetMessage(rows, pexport, true)){
+					ods_printf(sockfd,"22222222\n");
+					ods_log_error_and_printf(sockfd, module_str,
+										"reading policy from database failed");
+					return;
+				}
+				ods_printf(sockfd,"555555555\n");
+				if (!write_pb_message_to_xml_fd(pexport.mutable_keys(),sockfd)){
+					ods_printf(sockfd,"333333333\n");
+					ods_log_error_and_printf(sockfd, module_str,
+										"writing message to xml file failed");
+					return;
+				}
+				ods_printf(sockfd,"666666666\n");
+			}
+			ods_printf(sockfd,"4444444444444\n");
+			ods_log_debug("[%s] policy export completed", module_str);
 		}
-		ods_printf(sockfd, "  </Policy>\n");
-	}
-	ods_printf(sockfd, "</KASP>\n");
-	
-    ods_log_debug("[%s] policy list completed", module_str);
+    }
 }
-
