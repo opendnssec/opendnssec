@@ -5,7 +5,7 @@ OpenDNSSEC 1.4.4rc1
 Bugfixes:
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
-
+* SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512]
 
 OpenDNSSEC 1.4.3 - 2013-12-04
 
