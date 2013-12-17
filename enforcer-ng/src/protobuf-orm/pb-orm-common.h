@@ -34,6 +34,7 @@
 #ifndef pb_orm_common_h
 #define pb_orm_common_h
 
+#include <time.h>
 #include "config.h"
 
 //////////////////////////
