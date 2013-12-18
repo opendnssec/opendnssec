@@ -97,7 +97,7 @@ log_grep ods-control-stop stdout 'Engine shut down.' &&
 
 echo &&
 echo "****************all test OK******************" &&
-echo
+echo &&
 return 0
 
 echo
