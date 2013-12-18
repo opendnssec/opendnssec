@@ -1,3 +1,6 @@
+18 December 2013: Matthijs
+- Merged OPENDNSSEC-515 from 1.3 branch.
+
 16 December 2013: Matthijs
 - SUPPORT-101: If notify_acquired, then zone transfer in progress: don't
   forward notify to xfr handler.
