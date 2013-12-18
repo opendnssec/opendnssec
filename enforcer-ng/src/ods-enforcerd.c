@@ -46,6 +46,7 @@
 #include "keystate/update_keyzones_cmd.h"
 #include "hsmkey/update_hsmkeys_cmd.h"
 
+#include "policy/policy_export_cmd.h"
 #include "policy/policy_import_cmd.h"
 #include "policy/policy_list_cmd.h"
 #include "policy/policy_purge_cmd.h"
@@ -137,6 +138,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_update_hsmkeys_cmd,
     help_update_all_cmd,
     
+    help_policy_export_cmd,
     help_policy_import_cmd,
     help_policy_list_cmd,
     help_policy_purge_cmd,
@@ -184,6 +186,7 @@ enforcer_commands[] = {
     handled_update_hsmkeys_cmd,
     handled_update_all_cmd,
     
+    handled_policy_export_cmd,
     handled_policy_import_cmd,	
     handled_policy_list_cmd,
     handled_policy_purge_cmd,
