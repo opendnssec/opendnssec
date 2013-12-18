@@ -5,6 +5,7 @@ OpenDNSSEC 1.13.17rc1
 Bugfixes:
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
+* OPENDNSSEC-515: Signer Engine: Don't replace tabs in RRs with whitespace.
 
 
 OpenDNSSEC 1.3.16 - 2013-12-04

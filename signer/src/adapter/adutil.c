@@ -163,9 +163,6 @@ adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l)
             }
             line[li] = ' ';
             li++;
-        } else if (c == '\t' && lc != '\\') {
-            line[li] = ' ';
-            li++;
         } else {
             line[li] = c;
             li++;
