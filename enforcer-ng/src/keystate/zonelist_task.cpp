@@ -74,7 +74,7 @@ perform_zonelist_export(int sockfd, engineconfig_type *config)
                  if (!OrmGetMessage(rows, enfzone, true, context)) {
                      rows.release();
                      transaction.rollback();
-                     ods_log_error("[%s] retrieving zone from database failed");
+                     ods_log_error("[%s] retrieving zone from database failed", module_str);
                      return 0;
                  }
             
@@ -93,7 +93,7 @@ perform_zonelist_export(int sockfd, engineconfig_type *config)
             
              if (!write_pb_message_to_xml_fd(zonelistdoc.get(), sockfd)) {
                  transaction.rollback();
-                 ods_log_error("[%s] writing enforcer zone to xml file failed");
+                 ods_log_error("[%s] writing enforcer zone to xml file failed", module_str);
                  return 0;
              }
         }

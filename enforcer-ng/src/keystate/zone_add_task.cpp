@@ -114,26 +114,26 @@ perform_zone_add(int sockfd,
 			ks_zone.set_signconf_path( signerconf );
 			if (*ad_input_file) {
 				//ks_zone.mutable_adapters()->mutable_input()->set_file(ad_input_file);
-				::ods::keystate::Input *input =
+				::ods::keystate::Adapter *input =
 					ks_zone.mutable_adapters()->mutable_input();
 				input->set_type("File");
 				input->set_adapter(ad_input_file);
 			}
 			if (*ad_output_file) {
 				//ks_zone.mutable_adapters()->mutable_output()->set_file(ad_output_file);
-				::ods::keystate::Output *output =
+				::ods::keystate::Adapter *output =
 					ks_zone.mutable_adapters()->mutable_output();
 				output->set_type("File");
 				output->set_adapter(ad_output_file);
 			}
 			if (*ad_input_type) {
-				::ods::keystate::Input *input =
+				::ods::keystate::Adapter *input =
 					ks_zone.mutable_adapters()->mutable_input();
 				input->set_type("DNS");
 				input->set_adapter(ad_input_config);
 			}
 			if (*ad_output_type) {
-				::ods::keystate::Output *output =
+				::ods::keystate::Adapter *output =
 					ks_zone.mutable_adapters()->mutable_output();
 				output->set_type("DNS");
 				output->set_adapter(ad_output_config);

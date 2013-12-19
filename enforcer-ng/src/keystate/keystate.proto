@@ -147,16 +147,13 @@ message ZoneData {
 }
 
 message Adapters {
-	required Input input = 1 [(xml).path="Input"];
-	required Output output = 2 [(xml).path="Output"];
+	required Adapter input = 1 [(xml).path="Input"];
+	required Adapter output = 2 [(xml).path="Output"];
 }
 
-message Input {
+message Adapter {
 	optional string adapter = 1 [(xml).path="Adapter"];
 	optional string type = 2 [(xml).path="Adapter/@type", default="File"];
-}
-
-message Output {
-	optional string adapter = 1 [(xml).path="Adapter"];
-	optional string type = 2 [(xml).path="Adapter/@type", default="File"];
+	// For backwards compatibility
+	optional string file = 3 [(xml).path="File"];
 }
