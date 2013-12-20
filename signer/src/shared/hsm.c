@@ -43,9 +43,9 @@ static const char* hsm_str = "hsm";
  *
  */
 int
-lhsm_open(const char* filename)
+lhsm_open(hsm_repository_t* rlist)
 {
-    int result = hsm_open(filename, hsm_check_pin);
+    int result = hsm_open2(rlist, hsm_check_pin);
     if (result != HSM_OK) {
         char* error =  hsm_get_error(NULL);
         if (error != NULL) {
@@ -68,13 +68,13 @@ lhsm_open(const char* filename)
  *
  */
 int
-lhsm_reopen(const char* filename)
+lhsm_reopen(hsm_repository_t* rlist)
 {
     if (hsm_check_context(NULL) != HSM_OK) {
         ods_log_warning("[%s] idle libhsm connection, trying to reopen",
             hsm_str);
         hsm_close();
-        return lhsm_open(filename);
+        return lhsm_open(rlist);
     }
     return HSM_OK;
 }
@@ -119,7 +119,7 @@ lhsm_check_connection(void* engine)
             hsm_str);
         engine_stop_drudgers(e);
         hsm_close();
-        (void)lhsm_open(e->config->cfg_filename);
+        (void)lhsm_open(e->config->repositories);
         engine_start_drudgers((engine_type*) engine);
     } else {
         ods_log_debug("[%s] libhsm connection ok", hsm_str);

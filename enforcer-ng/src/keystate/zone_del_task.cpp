@@ -169,7 +169,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
     if (need_write_xml && is_del_succeed &&
             !perform_write_signzone_file(sockfd, config))
         ods_log_error_and_printf(sockfd, module_str, 
-                    "failed to write signzones.xml");
+                    "failed to write internal zonelist");
 
     if (qzone.empty()) {
         ods_log_debug("[%s] all zones deleted successfully", module_str);

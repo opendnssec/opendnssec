@@ -352,7 +352,7 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
                     str[i] = ' ';
                 }
             }
-            ods_log_warning("[%s] capping ttl %u to MaxZoneTTL %u for rrset "
+            ods_log_debug("[%s] capping ttl %u to MaxZoneTTL %u for rrset "
                 "<%s,%s>", adapi_str, ldns_rr_ttl(rr), tmp, str,
                 rrset_type2str(ldns_rr_get_type(rr)));
         }

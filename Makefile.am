@@ -31,7 +31,8 @@ EXTRA_DIST =	$(srcdir)/LICENSE \
 install-data-hook:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec
-	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/tmp
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signer
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/enforcer
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signconf
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/unsigned
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signed

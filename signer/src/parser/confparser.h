@@ -37,6 +37,7 @@
 #include "config.h"
 #include "wire/listener.h"
 #include "shared/allocator.h"
+#include "shared/hsm.h"
 #include "shared/status.h"
 
 #define ADMAX 6 /* Maximum number of adapters that can be initialized */
@@ -60,6 +61,16 @@ ods_status parse_file_check(const char* cfgfile, const char* rngfile);
  */
 const char* parse_conf_string(const char* cfgfile, const char* expr,
     int required);
+
+/**
+ * Parse the repository list.
+ * \param[in] allocator the allocator
+ * \param[in] cfgfile the configuration file name
+ * \return hsm_repository_t* repositories
+ *
+ */
+hsm_repository_t* parse_conf_repositories(allocator_type* allocator,
+    const char* cfgfile);
 
 /**
  * Parse the listener interfaces.

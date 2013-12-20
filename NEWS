@@ -18,12 +18,13 @@ OpenDNSSEC 2.0.0a4 (EnforcerNG branch)
 * OPENDNSSEC-454: ods-ksmutil: Add option for 'ods-ksmutil key import' to
   check if there is a matching key in the repository before import.
 
-* Bugfix: OPENDNSSEC-281, Commandhandler sometimes unresponsive.
-* Bugfix: OPENDNSSEC-276, HSM initialized after fork().
+* OPENDNSSEC-281: Enforcer NG: Commandhandler sometimes unresponsive.
+* OPENDNSSEC-276, Enforcer NG: HSM initialized after fork().
 * OPENDNSSEC-330: Signer Engine: NSEC3PARAM TTL is default TTL again, to
   prevent bad caching effects on resolvers.
 * OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take 
   number of zones as a parameter
+* OPENDNSSEC-515: Signer Engine: Don't replace tabs in RR with whitespace.
 
 Bugfixes:
 * OPENDNSSEC-435: Signer Engine: Fix a serious memory leak in signature
@@ -72,6 +73,9 @@ OpenDNSSEC 2.0.0-trunk
 * OPENDNSSEC-247: Signer Engine: TTL on NSEC3 was not updated on SOA
   Minimum change.
 
+Bugfixes:
+* OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
+* OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
 
 
 OpenDNSSEC 1.4.1 - 2013-06-27

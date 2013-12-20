@@ -114,29 +114,29 @@ perform_zone_add(int sockfd,
 			ks_zone.set_signconf_path( signerconf );
 			if (*ad_input_file) {
 				//ks_zone.mutable_adapters()->mutable_input()->set_file(ad_input_file);
-				::ods::keystate::Other *other =
-				  ks_zone.mutable_adapters()->mutable_input()->mutable_other();
-				other->set_type("File");
-				other->set_config(ad_input_file);
+				::ods::keystate::Adapter *input =
+					ks_zone.mutable_adapters()->mutable_input();
+				input->set_type("File");
+				input->set_adapter(ad_input_file);
 			}
 			if (*ad_output_file) {
 				//ks_zone.mutable_adapters()->mutable_output()->set_file(ad_output_file);
-				::ods::keystate::Other *other =
-				  ks_zone.mutable_adapters()->mutable_output()->mutable_other();
-				other->set_type("File");
-				other->set_config(ad_output_file);
+				::ods::keystate::Adapter *output =
+					ks_zone.mutable_adapters()->mutable_output();
+				output->set_type("File");
+				output->set_adapter(ad_output_file);
 			}
 			if (*ad_input_type) {
-				::ods::keystate::Other *other =
-				  ks_zone.mutable_adapters()->mutable_input()->mutable_other();
-				other->set_type("DNS");
-				other->set_config(ad_input_config);
+				::ods::keystate::Adapter *input =
+					ks_zone.mutable_adapters()->mutable_input();
+				input->set_type("DNS");
+				input->set_adapter(ad_input_config);
 			}
 			if (*ad_output_type) {
-				::ods::keystate::Other *other =
-				ks_zone.mutable_adapters()->mutable_output()->mutable_other();
-				other->set_type("DNS");
-				other->set_config(ad_output_config);
+				::ods::keystate::Adapter *output =
+					ks_zone.mutable_adapters()->mutable_output();
+				output->set_type("DNS");
+				output->set_adapter(ad_output_config);
 			}
 						
 			// enforcer needs to trigger signer configuration writing.
@@ -159,7 +159,7 @@ perform_zone_add(int sockfd,
 
     if (need_write_xml && !perform_write_signzone_file(sockfd, config))
         ods_log_error_and_printf(sockfd, module_str, 
-                "failed to write signzones.xml");
+                "failed to write internal zonelist");
 
     ods_printf(sockfd, "Imported zone: %s\n", zone);
 }

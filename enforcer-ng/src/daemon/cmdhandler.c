@@ -164,7 +164,7 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
     now = time_now();
     strtime = ctime_r(&now,ctimebuf);
     (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "I have %i tasks scheduled.\nIt is now %s",
+                   "I have %i tasks scheduled.\nIt is now       %s",
                    (int) engine->taskq->tasks->count,
                    strtime?strtime:"(null)\n");
     ods_writen(sockfd, buf, strlen(buf));
@@ -183,6 +183,8 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
 
             (void)snprintf(buf, ODS_SE_MAXLINE, "Leaping to time %s\n",
                            strtime?strtime:"(null)");
+		    ods_log_info("Time leap: Leaping to time %s\n", 
+		                 strtime?strtime:"(null)");
             ods_writen(sockfd, buf, strlen(buf));
             
             bShouldLeap = 1;

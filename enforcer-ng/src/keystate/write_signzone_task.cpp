@@ -82,7 +82,6 @@ perform_write_signzone_file(int sockfd, engineconfig_type *config)
                      ods_log_error("[%s] retrieving zone from database failed");
                      return 0;
                  }
-            
                  std::auto_ptr< ::ods::keystate::ZoneData > zonedata(
                          new ::ods::keystate::ZoneData);
                  zonedata->set_name(enfzone.name());
@@ -94,7 +93,6 @@ perform_write_signzone_file(int sockfd, engineconfig_type *config)
                      zonelistdoc->mutable_zonelist()->add_zones();
                  added_zonedata->CopyFrom(*zonedata);
              }
-            
              rows.release();
 
         }
@@ -106,27 +104,33 @@ perform_write_signzone_file(int sockfd, engineconfig_type *config)
     }
 
     //write signzone file
-    std::string signzone_file(OPENDNSSEC_STATE_DIR);
-    signzone_file.append("/signconf/signzones.xml");
+    std::string signzone_file(config->working_dir);
+    //check whether workingdir ends with slash
+    if (signzone_file.length() > 0 &&
+        signzone_file[signzone_file.length() - 1] != '/') {
+        signzone_file.append("/");
+    }
+
+    signzone_file.append(OPENDNSSEC_ENFORCER_ZONELIST);
     std::string tmp_signzone_file(signzone_file);
     tmp_signzone_file.append(".bak");
     if (zonelistdoc.get()->has_zonelist() && 
             (zonelistdoc.get()->mutable_zonelist()->zones_size() > 0)) {
         if (!write_pb_message_to_xml_file(zonelistdoc.get(), tmp_signzone_file.c_str())) {
-            ods_log_error("[%s] failed to write signzones.xml.bak", module_str);
+            ods_log_error("[%s] failed to write %s.bak", module_str, OPENDNSSEC_ENFORCER_ZONELIST);
             return 0;
         }
     }
     else {
         //write empty zonelistdoc
         if (!write_empty_signzones_file(tmp_signzone_file)) {
-            ods_log_error("[%s] failed to write empty signzones.xml.bak", module_str);
+            ods_log_error("[%s] failed to write empty %s.bak", module_str, OPENDNSSEC_ENFORCER_ZONELIST);
             return 0;
         }
     }
 
     if (rename(tmp_signzone_file.c_str(), signzone_file.c_str())) {
-        ods_log_error("[%s] failed to rename signzones.xml", module_str);
+        ods_log_error("[%s] failed to rename %s", module_str, OPENDNSSEC_ENFORCER_ZONELIST);
         return 0;
     }
 

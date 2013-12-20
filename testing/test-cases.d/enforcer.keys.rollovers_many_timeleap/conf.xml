@@ -13,14 +13,15 @@
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
-		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist2.xml</ZoneListFile>
+		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
-		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
+		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
+		<AutomaticKeyGenerationPeriod>PT360000S</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	<Signer>
-		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
+		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
 	</Signer>
 </Configuration>

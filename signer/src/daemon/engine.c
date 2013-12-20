@@ -531,7 +531,7 @@ engine_setup(engine_type* engine)
         return ODS_STATUS_PRIVDROP_ERR;
     }
     /* set up hsm */ /* LEAK */
-    result = lhsm_open(engine->config->cfg_filename);
+    result = lhsm_open(engine->config->repositories);
     if (result != HSM_OK) {
         fprintf(stderr, "Fail to open hsm\n");
         return ODS_STATUS_HSM_ERR;

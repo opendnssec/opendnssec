@@ -147,7 +147,7 @@ getSubForElemStr( string prefix, vector<const FieldDescriptor*> *input,
     
     for (fld_iter=input->begin(); fld_iter != input->end(); ++fld_iter) {
         string attrpath = (*fld_iter)->options().GetExtension(xml).path();
-        if (attrpath.find(prefix, 0) == 0)
+        if (attrpath.find(prefix, 0) == 0 || attrpath.find("@", 0) == 0)
             subfields->push_back(*fld_iter);
         else
             keep.push_back(*fld_iter);
@@ -235,6 +235,13 @@ open_element(FILE *fw, const FieldDescriptor *field,
     bool no_children, vector<const FieldDescriptor*> attributes,
     const Message *msg, int lvl)
 {
+    int isbool = false;
+    /* If it is a bool and false don't print */
+    if (field->type() == FieldDescriptor::TYPE_BOOL) {
+        if(!msg->GetReflection()->GetBool(*msg, field)) return;
+        isbool = true;
+    }
+    
     /* get everything after last '/' */
     string elempath = field->options().GetExtension(xml).path();
     string elemname = strip_path(elempath);
@@ -243,14 +250,13 @@ open_element(FILE *fw, const FieldDescriptor *field,
     fprintf(fw, "<%s", elemname.c_str());
     vector<const FieldDescriptor*>::const_iterator fld_iter;
     for (fld_iter=attributes.begin(); fld_iter != attributes.end(); ++fld_iter) {
-        
         string attrpath = (*fld_iter)->options().GetExtension(xml).path();
         string attrname = scrub_attr(attrpath);
-        fprintf(fw, " %s = \"%s\"", attrname.c_str(), get_value(msg, *fld_iter).c_str());
+        fprintf(fw, " %s=\"%s\"", attrname.c_str(), get_value(msg, *fld_iter).c_str());
     }
-    
+
     string val =  get_value(msg, field);
-    if (!val.empty())
+    if (!val.empty() && !isbool)
         fprintf(fw, ">%s",  val.c_str());
     else if (no_children)
         fprintf(fw, "/>\n");
@@ -271,6 +277,9 @@ close_element(FILE *fw, const FieldDescriptor *field, bool no_children,
     vector<const FieldDescriptor*> attributes, const Message *msg,
     int lvl)
 {
+    /* If it is a bool it is already closed don't print */
+    if (field->type() == FieldDescriptor::TYPE_BOOL) return;
+    
     string elempath = field->options().GetExtension(xml).path();
     string elemname = strip_path(elempath);
     string val =  get_value(msg, field);
@@ -359,7 +368,8 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     if (parentfield) {
         vector<const FieldDescriptor*> parent_attr;
         getSubForElem(parentfield, &attributes, &parent_attr);
-        open_element(fw, parentfield, elements.empty(), parent_attr, msg, lvl-1);
+        open_element(fw, parentfield, elements.empty() && 
+            nonterminal_elements.empty(), parent_attr, msg, lvl-1);
     }
     
     /* Process all subelements, recurs if needed. */
@@ -406,10 +416,11 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     
     /* Everything left in nonterminal_elements after processing is in
      * fact an empty non-terminal, these need special treatment */
+    int nochild = elements.empty() && nonterminal_elements.empty();
     write_nonterminals(fw, msg, &nonterminal_elements, lvl);
     
     if (parentfield) {
-        close_element(fw, parentfield, elements.empty(), attributes, msg, lvl-1);
+        close_element(fw, parentfield, nochild, attributes, msg, lvl-1);
     }
 }
 
@@ -428,6 +439,7 @@ write_pb_message_to_xml_file(const google::protobuf::Message *document,
 {
     FILE *fw = ods_fopen(xmlfilepath,NULL,"w");
     if (!fw) return false;
+    fprintf(fw, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     write_msg(fw,document, 0);
     ods_fclose(fw);
     return true;

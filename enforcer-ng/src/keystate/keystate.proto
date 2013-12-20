@@ -152,15 +152,8 @@ message Adapters {
 }
 
 message Adapter {
-	// Other adapter
-	optional Other other = 1 [(xml).path="Adapter"];
-	// File adapter
+	optional string adapter = 1 [(xml).path="Adapter"];
+	optional string type = 2 [(xml).path="Adapter/@type", default="File"];
+	// For backwards compatibility
 	optional string file = 3 [(xml).path="File"];
-}
-
-message Other {
-	// Adapter type
-	optional string type = 1 [(xml).path="@type", default="File"];
-	// Configuration file
-	optional string config = 2 [(xml).path="text()"];
 }
