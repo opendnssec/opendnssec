@@ -227,6 +227,7 @@ pb_assign_field(OrmResult result,
 			OrmLogError("cannot assign TYPE_GROUP field from database");
 			return false;
 		case pb::FieldDescriptor::TYPE_MESSAGE: {
+			if (!recurse) return true;
 			unsigned long long id = RESULT->get_ulonglong_idx(field_idx);
 			if (RESULT->failed())
 				return false;
