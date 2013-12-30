@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- $Id: zonelist.xml.in 5954 2011-12-01 09:54:31Z yuri $ -->
+<ZoneList>
+	<Zone name="example.com">
+		<Policy>default</Policy>
+		<SignerConfiguration>$INSTALL_ROOT/var/opendnssec/signconf/example.com.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<Adapter type="File">$INSTALL_ROOT/var/opendnssec/unsigned/example.com</Adapter>
+			</Input>
+			<Output>
+				<Adapter type="File">$INSTALL_ROOT/var/opendnssec/signed/example.com</Adapter>
+			</Output>
+		</Adapters>
+	</Zone>
+	<Zone name="example.net">
+		<Policy>default_1</Policy>
+		<SignerConfiguration>$INSTALL_ROOT/var/opendnssec/signconf/example.net.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<Adapter type="DNS">$INSTALL_ROOT/etc/opendnssec/addns.xml</Adapter>
+			</Input>
+			<Output>
+				<Adapter type="DNS">$INSTALL_ROOT/etc/opendnssec/addns.xml</Adapter>
+			</Output>
+		</Adapters>
+	</Zone>
+</ZoneList>
