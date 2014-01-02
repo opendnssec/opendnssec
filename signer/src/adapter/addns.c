@@ -417,15 +417,25 @@ begin_rrs:
             ods_log_crit("[%s] unable to restore incomple xfr zone %s: %s",
                 adapter_str, zone->name, ods_status2str(result));
         } else {
+            ods_log_info("[%s] copied xfrd zone %s file %s to %s",
+                adapter_str, zone->name, fin, fout);
+
             lock_basic_lock(&zone->xfrd->rw_lock);
             result = ods_file_copy(xfrd, fout, 0, 1);
             if (result != ODS_STATUS_OK) {
                 ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
                     adapter_str, zone->name, ods_status2str(result));
-            } else if (rename(fout, xfrd) != 0) {
-                result = ODS_STATUS_RENAME_ERR;
-                ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
-                    adapter_str, zone->name, ods_status2str(result));
+            } else {
+                ods_log_info("[%s] copied xfrd zone %s file %s to %s",
+                    adapter_str, zone->name, xfrd, fout);
+                if (rename(fout, xfrd) != 0) {
+                    result = ODS_STATUS_RENAME_ERR;
+                    ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
+                        adapter_str, zone->name, ods_status2str(result));
+                } else {
+                    ods_log_info("[%s] renamed xfrd zone %s file %s to %s",
+                        adapter_str, zone->name, fout, xfrd);
+                }
             }
             lock_basic_unlock(&zone->xfrd->rw_lock);
         }
