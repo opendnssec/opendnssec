@@ -34,6 +34,8 @@ ods_ksmutil_SOURCES = ksmutil.c
 ods_ksmutil_LDADD = $(LIBKSM) $(LIBHSM) $(LIBCOMPAT)
 ods_ksmutil_LDADD += @XML2_LIBS@ @DB_LIBS@ @LDNS_LIBS@
 
-EXTRA_DIST = $(srcdir)/migrate_*.pl
-EXTRA_DIST += $(srcdir)/add_indexes.sqlite3
-EXTRA_DIST += $(srcdir)/migrate_zone_delete.mysql
+migrationdir = $(datadir)/opendnssec/migration
+
+dist_migration_DATA = $(srcdir)/migrate_*.pl \
+    $(srcdir)/add_indexes.sqlite3 \
+    $(srcdir)/migrate_zone_delete.mysql
