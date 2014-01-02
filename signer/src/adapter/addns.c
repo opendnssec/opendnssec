@@ -140,6 +140,8 @@ static ods_status
 addns_read_pkt(FILE* fd, zone_type* zone)
 {
     ldns_rr* rr = NULL;
+    long startpos = 0;
+    long fpos = 0;
     int len = 0;
     uint32_t new_serial = 0;
     uint32_t old_serial = 0;
@@ -163,6 +165,8 @@ addns_read_pkt(FILE* fd, zone_type* zone)
     ods_log_assert(zone);
     ods_log_assert(zone->name);
 
+
+    fpos = ftell(fd);
     len = adutil_readline_frm_file(fd, line, &l, 1);
     if (len < 0) {
         /* -1 EOF */
@@ -174,6 +178,8 @@ addns_read_pkt(FILE* fd, zone_type* zone)
             adapter_str, zone->name, line);
         return ODS_STATUS_ERR;
     }
+    startpos = fpos;
+    fpos = ftell(fd);
 
 begin_pkt:
     rr_count = 0;
@@ -196,9 +202,12 @@ begin_pkt:
     /* $TTL <default ttl> */
     ttl = adapi_get_ttl(zone);
 
+begin_rrs:
     /* read RRs */
     while ((rr = addns_read_rr(fd, line, &orig, &prev, &ttl, &status, &l))
         != NULL) {
+        /* update file position */
+        fpos = ftell(fd);
         /* check status */
         if (status != LDNS_STATUS_OK) {
             ods_log_error("[%s] error reading RR at line %i (%s): %s",
@@ -246,6 +255,7 @@ begin_pkt:
                     len = adutil_readline_frm_file(fd, line, &l, 1);
                     if (len && ods_strcmp(";;ENDPACKET", line) == 0) {
                         /* end of pkt */
+                        startpos = 0;
                         break;
                     }
                 }
@@ -354,12 +364,14 @@ begin_pkt:
     if (ods_strcmp(";;ENDPACKET", line) == 0) {
         ods_log_verbose("[%s] xfr zone %s on disk complete, commit to db",
             adapter_str, zone->name);
+            startpos = 0;
     } else {
         ods_log_warning("[%s] xfr zone %s on disk incomplete, rollback",
             adapter_str, zone->name);
         namedb_rollback(zone->db, 1);
         if (ods_strcmp(";;BEGINPACKET", line) == 0) {
             result = ODS_STATUS_OK;
+            startpos = fpos;
             goto begin_pkt;
         } else {
             result = ODS_STATUS_XFRINCOMPLETE;
@@ -392,6 +404,34 @@ begin_pkt:
         /* do a transaction for DNSKEY and NSEC3PARAM */
         adapi_trans_diff(zone, 1);
         result = ODS_STATUS_OK;
+    }
+    if (result == ODS_STATUS_XFRINCOMPLETE) {
+        /** we have to restore the incomplete zone transfer:
+          * xfrd = (xfrd.tmp + startpos) . (xfrd)
+          */
+        char* xfrd = ods_build_path(zone->name, ".xfrd", 0, 1);
+        char* fin = ods_build_path(zone->name, ".xfrd.tmp", 0, 1);
+        char* fout = ods_build_path(zone->name, ".xfrd.bak", 0, 1);
+        result = ods_file_copy(fin, fout, startpos, 0);
+        if (result != ODS_STATUS_OK) {
+            ods_log_crit("[%s] unable to restore incomple xfr zone %s: %s",
+                adapter_str, zone->name, ods_status2str(result));
+        } else {
+            lock_basic_lock(&zone->xfrd->rw_lock);
+            result = ods_file_copy(xfrd, fout, 0, 1);
+            if (result != ODS_STATUS_OK) {
+                ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
+                    adapter_str, zone->name, ods_status2str(result));
+            } else if (rename(fout, xfrd) != 0) {
+                result = ODS_STATUS_RENAME_ERR;
+                ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
+                    adapter_str, zone->name, ods_status2str(result));
+            }
+            lock_basic_unlock(&zone->xfrd->rw_lock);
+        }
+        free((void*) xfrd);
+        free((void*) fin);
+        free((void*) fout);
     }
     return result;
 }
