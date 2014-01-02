@@ -39,7 +39,9 @@ ods_kaspcheck_SOURCES = kaspcheck.c kaspcheck.h \
 ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
 ods_kaspcheck_LDADD += @XML2_LIBS@
 
-EXTRA_DIST = $(srcdir)/migrate_*.pl
-EXTRA_DIST += $(srcdir)/migrate_adapters_1.*
-EXTRA_DIST += $(srcdir)/convert_database.pl
-EXTRA_DIST += $(srcdir)/migrate_zone_delete.mysql
+migrationdir = $(datadir)/opendnssec/migration
+
+dist_migration_DATA = $(srcdir)/migrate_*.pl \
+    $(srcdir)/migrate_adapters_1.* \
+    $(srcdir)/convert_database.pl \
+    $(srcdir)/migrate_zone_delete.mysql
