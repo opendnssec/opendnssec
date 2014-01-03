@@ -446,10 +446,12 @@ ods_file_copy(const char* file1, const char* file2, long startpos, int append)
         close(fin);
         return ODS_STATUS_FOPEN_ERR;
     }
-    if (fseek(fin, startpos, SEEK_SET) != 0) {
+    ods_log_info("[%s] lseek file %s pos %ld", file_str, file1, startpos);
+    if (lseek(fin, startpos, SEEK_SET) != 0) {
         return ODS_STATUS_FSEEK_ERR;
     }
     while (1) {
+        ods_log_info("[%s] read file %s", file_str, file1);
         read_size = read(fin, buf, sizeof(buf));
         if (read_size == 0) {
             break;
@@ -459,6 +461,7 @@ ods_file_copy(const char* file1, const char* file2, long startpos, int append)
             close(fout);
             return ODS_STATUS_FREAD_ERR;
         }
+        ods_log_info("[%s] write file %s", file_str, file2);
         if (write(fout, buf, (unsigned int) read_size) < 0) {
             close(fin);
             close(fout);

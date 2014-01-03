@@ -413,8 +413,9 @@ begin_rrs:
         char* xfrd = ods_build_path(zone->name, ".xfrd", 0, 1);
         char* fin = ods_build_path(zone->name, ".xfrd.tmp", 0, 1);
         char* fout = ods_build_path(zone->name, ".xfrd.bak", 0, 1);
+        ods_log_info("[%s] restore xfrd zone %s xfrd %s fin %s fout %s",
+            adapter_str, zone->name, xfrd, fin, fout);
         result = ods_file_copy(fin, fout, startpos, 0);
-        ods_log_info("[%s] restore xfrd zone %s", adapter_str, zone->name);
         if (result != ODS_STATUS_OK) {
             ods_log_crit("[%s] unable to restore incomple xfr zone %s: %s",
                 adapter_str, zone->name, ods_status2str(result));
