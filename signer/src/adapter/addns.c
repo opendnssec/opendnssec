@@ -160,6 +160,9 @@ addns_read_pkt(FILE* fd, zone_type* zone)
     unsigned line_update_interval = 100000;
     unsigned line_update = line_update_interval;
     unsigned l = 0;
+    char* xfrd;
+    char* fin;
+    char* fout;
 
     ods_log_assert(fd);
     ods_log_assert(zone);
@@ -410,9 +413,12 @@ begin_rrs:
         /** we have to restore the incomplete zone transfer:
           * xfrd = (xfrd.tmp + startpos) . (xfrd)
           */
-        char* xfrd = ods_build_path(zone->name, ".xfrd", 0, 1);
-        char* fin = ods_build_path(zone->name, ".xfrd.tmp", 0, 1);
-        char* fout = ods_build_path(zone->name, ".xfrd.bak", 0, 1);
+        xfrd = ods_build_path(zone->name, ".xfrd", 0, 1);
+        fin = ods_build_path(zone->name, ".xfrd.tmp", 0, 1);
+        fout = ods_build_path(zone->name, ".xfrd.bak", 0, 1);
+        if (!xfrd || !fin || !fout) {
+            return ODS_STATUS_MALLOC_ERR;
+        }
         ods_log_info("[%s] restore xfrd zone %s xfrd %s fin %s fout %s",
             adapter_str, zone->name, xfrd, fin, fout);
         result = ods_file_copy(fin, fout, startpos, 0);
