@@ -447,7 +447,7 @@ ods_file_copy(const char* file1, const char* file2, long startpos, int append)
         return ODS_STATUS_FOPEN_ERR;
     }
     ods_log_info("[%s] lseek file %s pos %ld", file_str, file1, startpos);
-    if (lseek(fin, startpos, SEEK_SET) != 0) {
+    if (lseek(fin, startpos, SEEK_SET) < 0) {
         return ODS_STATUS_FSEEK_ERR;
     }
     while (1) {
