@@ -459,6 +459,8 @@ xfrd_commit_packet(xfrd_type* xfrd)
     ods_log_assert(zone->name);
     lock_basic_lock(&zone->zone_lock);
     lock_basic_lock(&xfrd->rw_lock);
+    ods_log_info("[%s] locked xfrd zone %s file %s for commit", xfrd_str,
+        zone->name, xfrfile);
     lock_basic_lock(&xfrd->serial_lock);
     /* mark end packet */
     fd = ods_fopen(xfrfile, NULL, "a");
@@ -469,6 +471,8 @@ xfrd_commit_packet(xfrd_type* xfrd)
     } else {
         lock_basic_unlock(&zone->zone_lock);
         lock_basic_unlock(&xfrd->rw_lock);
+        ods_log_info("[%s] unlocked xfrd zone %s file %s for commit", xfrd_str,
+            zone->name, xfrfile);
         lock_basic_unlock(&xfrd->serial_lock);
         ods_log_crit("[%s] unable to commit xfr zone %s: ods_fopen() failed "
             "(%s)", xfrd_str, zone->name, strerror(errno));
@@ -500,6 +504,8 @@ xfrd_commit_packet(xfrd_type* xfrd)
         }
     }
     lock_basic_unlock(&xfrd->serial_lock);
+    ods_log_info("[%s] unlocked xfrd zone %s file %s for commit", xfrd_str,
+        zone->name, xfrfile);
     lock_basic_unlock(&xfrd->rw_lock);
     lock_basic_unlock(&zone->zone_lock);
     return;
@@ -538,6 +544,8 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
         return;
     }
     lock_basic_lock(&xfrd->rw_lock);
+    ods_log_info("[%s] locked xfrd zone %s file %s for dump", xfrd_str,
+        zone->name, xfrfile);
 
     fd = ods_fopen(xfrfile, NULL, "a");
     free((void*) xfrfile);
@@ -545,6 +553,8 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
         ods_log_crit("[%s] unable to dump packet zone %s: ods_fopen() failed "
             "(%s)", xfrd_str, zone->name, strerror(errno));
         lock_basic_unlock(&xfrd->rw_lock);
+        ods_log_info("[%s] unlocked xfrd zone %s file %s for dump", xfrd_str,
+            zone->name, xfrfile);
         return;
     }
     ods_log_assert(fd);
@@ -553,6 +563,8 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
     }
     ldns_rr_list_print(fd, ldns_pkt_answer(pkt));
     ods_fclose(fd);
+    ods_log_info("[%s] unlocked xfrd zone %s file %s for dump", xfrd_str,
+        zone->name, xfrfile);
     lock_basic_unlock(&xfrd->rw_lock);
     ldns_pkt_free(pkt);
     return;

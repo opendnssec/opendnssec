@@ -430,6 +430,9 @@ begin_rrs:
                 adapter_str, zone->name, fin, fout);
 
             lock_basic_lock(&zone->xfrd->rw_lock);
+
+            ods_log_info("[%s] locked xfrd zone %s file %s",
+                adapter_str, zone->name, xfrd);
             result = ods_file_copy(xfrd, fout, 0, 1);
             if (result != ODS_STATUS_OK) {
                 ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
@@ -447,6 +450,8 @@ begin_rrs:
                 }
             }
             lock_basic_unlock(&zone->xfrd->rw_lock);
+            ods_log_info("[%s] unlocked xfrd zone %s file %s",
+                adapter_str, zone->name, xfrd);
         }
         free((void*) xfrd);
         free((void*) fin);
