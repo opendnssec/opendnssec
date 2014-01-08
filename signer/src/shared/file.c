@@ -454,20 +454,26 @@ ods_file_copy(const char* file1, const char* file2, long startpos, int append)
         ods_log_info("[%s] read file %s", file_str, file1);
         read_size = read(fin, buf, sizeof(buf));
         if (read_size == 0) {
+            ods_log_info("[%s] read file %s size %d", file_str, file1, read_size);
             break;
         }
         if (read_size < 0) {
+            ods_log_error("[%s] read file %s error %s", file_str, file1,
+                strerror(errno));
             close(fin);
             close(fout);
             return ODS_STATUS_FREAD_ERR;
         }
         ods_log_info("[%s] write file %s", file_str, file2);
         if (write(fout, buf, (unsigned int) read_size) < 0) {
+            ods_log_error("[%s] write file %s error %s", file_str, file1,
+                strerror(errno));
             close(fin);
             close(fout);
             return ODS_STATUS_FWRITE_ERR;
         }
     }
+    ods_log_info("[%s] file copy %s to %s done", file_str, file1, file2);
     close(fin);
     close(fout);
     return ODS_STATUS_OK;
