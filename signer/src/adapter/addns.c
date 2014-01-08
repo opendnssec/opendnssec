@@ -765,6 +765,7 @@ addns_read(void* zone)
         free((void*) file);
         return ODS_STATUS_FOPEN_ERR;
     }
+    lock_basic_unlock(&z->xfrd->rw_lock);
 
     status = addns_read_file(fd, z);
     if (status == ODS_STATUS_OK) {
@@ -781,7 +782,6 @@ addns_read(void* zone)
     }
     free((void*) file);
     ods_fclose(fd);
-    lock_basic_unlock(&z->xfrd->rw_lock);
     return status;
 }
 
