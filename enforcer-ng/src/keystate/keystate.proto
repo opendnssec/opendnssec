@@ -130,6 +130,8 @@ message ZoneListDocument {
 
 message ZoneList {
 	repeated ZoneData zones = 1 [(xml).path="Zone"];
+	// Define this dummy variable so we can export empty lists
+	optional bool export_empty = 2;
 }
 
 message ZoneData {

@@ -41,7 +41,7 @@ void
 help_zonelist_export_cmd(int sockfd)
 {
     ods_printf(sockfd,
-            "zonelist export        export zonelist conf to xml file\n"
+            "zonelist export        export zone list from database in xml format\n"
             );
 }
 
@@ -49,8 +49,7 @@ void
 help_zonelist_import_cmd(int sockfd)
 {
     ods_printf(sockfd,
-            "zonelist import        import zone configuration"
-                                    " changes from xml file\n"
+            "zonelist import        sync database with contents of zonelist.xml\n"
             );
 }
 
@@ -66,7 +65,7 @@ handled_zonelist_export_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     ods_log_debug("[%s] %s command", module_str, scmd);
 
-    perform_zonelist_export(sockfd, engine->config);
+    perform_zonelist_export_to_fd(sockfd, engine->config);
     return 1;
 }
 

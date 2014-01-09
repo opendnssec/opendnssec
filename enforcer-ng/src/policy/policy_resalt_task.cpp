@@ -104,7 +104,7 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
 		if (!OrmFirst(rows)) {
 			ods_printf(sockfd, 
 					   "Database set to: %s\n"
-					   "I have no policies configured\n",
+					   "There are no policies configured\n",
 					   config->datastore);
 			return time_resched;
 		}

@@ -46,6 +46,7 @@ ods_nuke_env ()
 {
 	local kasp_files=`cd "$INSTALL_ROOT/var/opendnssec/" && ls kasp*db* 2>/dev/null`
 	local tmp_files=`ls "$INSTALL_ROOT/var/opendnssec/signer/" 2>/dev/null`
+	local tmp_files2=`ls "$INSTALL_ROOT/var/opendnssec/tmp/" 2>/dev/null`
 	local unsigned_files=`ls "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null`
 	local signed_files=`ls "$INSTALL_ROOT/var/opendnssec/signed/" 2>/dev/null`
 	local signconf_files=`ls "$INSTALL_ROOT/var/opendnssec/signconf/" 2>/dev/null`
@@ -64,6 +65,12 @@ ods_nuke_env ()
 			rm -rf -- $tmp_files 2>/dev/null
 		)
 	fi &&
+	if [ -n "$tmp_files2" ]; then
+		(
+			cd "$INSTALL_ROOT/var/opendnssec/tmp/" &&
+			rm -rf -- $tmp_files2 2>/dev/null
+		)
+	fi &&	
 	if [ -n "$unsigned_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/unsigned/" &&

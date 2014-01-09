@@ -30,6 +30,7 @@
  */
 
 #include "keystate/zone_add_task.h"
+#include "keystate/zonelist_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 
@@ -37,6 +38,7 @@
 #include <google/protobuf/message.h>
 
 #include "keystate/keystate.pb.h"
+#include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
 #include <memory>
@@ -77,11 +79,17 @@ perform_zone_add(int sockfd,
 		}
 		
 		std::string qzone;
+		std::string qpolicy;
 		if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
 			ods_log_error_and_printf(sockfd, module_str,
 									 "quoting a string failed");
 			return;
 		}
+		if (!OrmQuoteStringValue(conn, std::string(policy), qpolicy)) {
+			ods_log_error_and_printf(sockfd, module_str,
+									 "quoting a string failed");
+			return;
+		}		
 
 		{	OrmResultRef rows;
 			
@@ -104,6 +112,30 @@ perform_zone_add(int sockfd,
 										 zone);
 				return;
 			}
+
+			// Now lets query for the policy
+			rows.release();
+			
+			::ods::kasp::Policy ks_policy;
+			if (!OrmMessageEnumWhere(conn, ks_policy.descriptor(), rows,
+									 "name = %s",qpolicy.c_str()))
+			{
+				ods_log_error_and_printf(sockfd, module_str,
+										 "policy lookup by name for %s failed", qpolicy.c_str());
+				return;
+			}
+		
+			// if OrmFirst failes, no policy with the queried name is 
+			// present
+			if (!OrmFirst(rows)) {
+				ods_log_error_and_printf(sockfd,
+										 module_str,
+										 "Failed to Import zone %s; "
+										 "Error, can't find policy : %s",
+										 zone, policy);
+				return;
+			}
+
 
 			// query no longer needed, so let's release it.
 			rows.release();
@@ -140,7 +172,7 @@ perform_zone_add(int sockfd,
 			}
 						
 			// enforcer needs to trigger signer configuration writing.
-			ks_zone.set_signconf_needs_writing( false );
+			ks_zone.set_signconf_needs_writing( true );
 			
 			pb::uint64 zoneid;
 			if (!OrmMessageInsert(conn, ks_zone, zoneid)) {
@@ -157,9 +189,21 @@ perform_zone_add(int sockfd,
 		}
 	}
 
-    if (need_write_xml && !perform_write_signzone_file(sockfd, config))
+	// Now lets write out the required files - the internal list and optionally the zonelist.xml
+	// Note at the moment we re-export the whole file in zonelist.xml format here but this should be optimised....
+    if (!perform_write_signzone_file(sockfd, config)) {
         ods_log_error_and_printf(sockfd, module_str, 
                 "failed to write internal zonelist");
+	}
 
-    ods_printf(sockfd, "Imported zone: %s\n", zone);
+    if (need_write_xml) {
+		if (!perform_zonelist_export_to_file(config->zonelist_filename,config)) {
+        	ods_log_error_and_printf(sockfd, module_str, 
+                	"failed to write zonelist.xml");
+		}
+		ods_printf(sockfd, "Imported zone: %s into database and zonelist.xml updated.\n", zone);
+	} else {
+		ods_printf(sockfd, "Imported zone: %s into database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
+	}
+
 }

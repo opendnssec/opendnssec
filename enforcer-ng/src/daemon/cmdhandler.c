@@ -88,7 +88,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
 
     ods_log_assert(engine);
     if (!engine->taskq || !engine->taskq->tasks) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "I have no tasks scheduled.\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
         ods_writen(sockfd, buf, strlen(buf));
         return 1;
     }
@@ -110,7 +110,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     now = time_now();
     strtime = ctime_r(&now,ctimebuf);
     (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "\nI have %i tasks scheduled.\nIt is now %s",
+                   "\nThere are %i tasks scheduled.\nIt is now %s",
                    (int) engine->taskq->tasks->count,
                    strtime?strtime:"(null)\n");
     ods_writen(sockfd, buf, strlen(buf));
@@ -152,7 +152,7 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
     
     ods_log_assert(engine);
     if (!engine->taskq || !engine->taskq->tasks) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "I have no tasks scheduled.\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
         ods_writen(sockfd, buf, strlen(buf));
         return 1;
     }
@@ -164,7 +164,7 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
     now = time_now();
     strtime = ctime_r(&now,ctimebuf);
     (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "I have %i tasks scheduled.\nIt is now       %s",
+                   "There are %i tasks scheduled.\nIt is now       %s",
                    (int) engine->taskq->tasks->count,
                    strtime?strtime:"(null)\n");
     ods_writen(sockfd, buf, strlen(buf));
@@ -423,9 +423,35 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
 int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
+    help_xxxx_cmd_type *help;
+
     ods_log_debug("[%s] unknown command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
                    cmd?cmd:"(null)");
+    ods_writen(sockfd, buf, strlen(buf));
+
+    /* Anouncement */
+    (void) snprintf(buf, ODS_SE_MAXLINE,"Commands:\n");
+    ods_writen(sockfd, buf, strlen(buf));
+    
+    /* Call all help functions to emit help texts to the socket. */ 
+    for (help=engine->help; help && *help; ++help) {
+        (*help)(sockfd);
+    }
+    
+    /* Generic commands */
+    (void) snprintf(buf, ODS_SE_MAXLINE,
+        "queue           show the current task queue.\n"
+        "time leap       simulate progression of time by leaping to the time\n"
+        "                of the earliest scheduled task.\n"
+        "flush           execute all scheduled tasks immediately.\n"
+        "running         returns acknowledgment that the engine is running.\n"
+        "reload          reload the engine.\n"
+        "stop            stop the engine and terminate the process.\n"
+    	"notify          notify the engine .\n"
+        "verbosity <nr>  set verbosity.\n"
+        "help            show overview of available commands.\n"
+        );
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }

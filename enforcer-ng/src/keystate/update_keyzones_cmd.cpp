@@ -36,6 +36,7 @@
 #include "keystate/update_keyzones_cmd.h"
 #include "keystate/update_keyzones_task.h"
 #include "enforcer/enforce_task.h"
+#include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
@@ -66,6 +67,9 @@ handled_update_keyzones_cmd(int sockfd, engine_type* engine, const char *cmd,
     time_t tstart = time(NULL);
 	
     perform_update_keyzones(sockfd,engine->config);
+
+	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+					   engine->config->automatic_keygen_duration);
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 

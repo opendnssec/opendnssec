@@ -37,6 +37,7 @@
 
 #include "policy/update_kasp_cmd.h"
 #include "policy/update_kasp_task.h"
+#include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
@@ -82,6 +83,10 @@ handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
     time_t tstart = time(NULL);
 	
     perform_update_kasp(sockfd, engine->config);
+
+	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+					   engine->config->automatic_keygen_duration);
+					
     flush_all_tasks(sockfd, engine);
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);

@@ -51,7 +51,8 @@ static const char *module_str = "zone_list_task";
 void 
 perform_zone_list(int sockfd, engineconfig_type *config)
 {
-	const char *zonelistfile = config->zonelist_filename;
+	// Since the DB is leading, don't report info from the zonelist file
+	//const char *zonelistfile = config->zonelist_filename;
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	::ods::keystate::EnforcerZone zone;
 	OrmResultRef rows;
@@ -65,10 +66,10 @@ perform_zone_list(int sockfd, engineconfig_type *config)
 			"failure during zone enumeration");
 		return;
 	}
-	ods_printf(sockfd, "Zonelist filename set to: %s\n"
-		"Database set to: %s\n", zonelistfile, config->datastore);
+	ods_printf(sockfd, /*"Zonelist filename set to: %s\n"*/
+		"Database set to: %s\n", /*zonelistfile,*/ config->datastore);
 	if (!OrmFirst(rows)) {
-		ods_printf(sockfd, "I have no zones configured\n");
+		ods_printf(sockfd, "No zones configured in DB.\n");
 		return;
 	}
 	ods_printf(sockfd, "Zones:\n");

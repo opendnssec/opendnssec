@@ -41,8 +41,21 @@
 
 static const char *module_str = "zonelist_task";
 
+
 int
-perform_zonelist_export(int sockfd, engineconfig_type *config)
+perform_zonelist_export_to_file(const std::string& filename, engineconfig_type *config)
+{
+	return perform_zonelist_export(&filename, 0, config);
+}
+
+int
+perform_zonelist_export_to_fd(int sockfd, engineconfig_type *config)
+{
+	return perform_zonelist_export(NULL, sockfd, config);
+}
+
+int
+perform_zonelist_export(const std::string* filename, int sockfd, engineconfig_type *config)
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
     OrmConnRef conn;
@@ -61,10 +74,12 @@ perform_zonelist_export(int sockfd, engineconfig_type *config)
             ::ods::keystate::EnforcerZone enfzone;
             std::auto_ptr< ::ods::keystate::ZoneListDocument > zonelistdoc(
                     new ::ods::keystate::ZoneListDocument );
+			// This is a dummy variable so that empty zonelists will be exported
+			// It does not appear in the output file
+			zonelistdoc->mutable_zonelist()->set_export_empty(true);
 
             bool ok = OrmMessageEnum(conn, enfzone.descriptor(), rows);
             if (!ok) {
-                transaction.rollback();
                 ods_log_error("[%s] enum enforcer zone failed", module_str);
                 return 0;
             }
@@ -73,7 +88,6 @@ perform_zonelist_export(int sockfd, engineconfig_type *config)
                  OrmContextRef context;
                  if (!OrmGetMessage(rows, enfzone, true, context)) {
                      rows.release();
-                     transaction.rollback();
                      ods_log_error("[%s] retrieving zone from database failed", module_str);
                      return 0;
                  }
@@ -90,17 +104,38 @@ perform_zonelist_export(int sockfd, engineconfig_type *config)
              }
             
              rows.release();
-            
-             if (!write_pb_message_to_xml_fd(zonelistdoc.get(), sockfd)) {
-                 transaction.rollback();
-                 ods_log_error("[%s] writing enforcer zone to xml file failed", module_str);
-                 return 0;
-             }
-        }
 
-        if (!transaction.commit()) {
-            ods_log_error("[%s] commit transaction failed", module_str);
-            return 0;
+			// Where should we write the output?
+            if (filename != NULL) {
+				// First create a backup file
+    			std::string filename_bak(*filename);
+    			filename_bak.append(".backup");	
+				// TDODO: Implement a copy function that doesn't use a system call!!!
+				// if (!ods_file_copy(filename->c_str(), filename_bak.c_str())) {
+				// 			        ods_log_error("[%s] failed to create backup %s to %s", module_str, filename->c_str(), filename_bak.c_str());
+				// 			        return 0;					
+				// }				
+				// Do the write as an atomic operation i.e. write to a .tmp then rename it...
+    			std::string filename_tmp(*filename);
+    			filename_tmp.append(".tmp");								
+	            if (!write_pb_message_to_xml_file(zonelistdoc.get(), filename_tmp.c_str())) {
+	                 ods_log_error("[%s] writing zonelist xml to output failed", module_str);
+	                 return 0;
+	            }	
+			    if (rename(filename_tmp.c_str(), filename->c_str())) {
+			        ods_log_error("[%s] failed to rename %s to %s", module_str, filename_tmp.c_str(), filename->c_str());
+			        return 0;
+			    }
+			    if (!remove(filename_tmp.c_str())) {
+			        ods_log_error("[%s] failed to remove %s", module_str, filename_tmp.c_str());
+			    }			
+			
+			} else {
+	             if (!write_pb_message_to_xml_fd(zonelistdoc.get(), sockfd)) {
+	                 ods_log_error("[%s] writing zonelist xml to output failed", module_str);
+	                 return 0;
+	             }
+			}
         }
     }
 
