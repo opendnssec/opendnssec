@@ -77,7 +77,6 @@ ods_enforcerd_SOURCES = \
 	policy/policy_export_cmd.cpp policy/policy_export_cmd.h \
 	policy/policy_export_task.cpp policy/policy_export_task.h \
 	policy/policy_import_cmd.cpp policy/policy_import_cmd.h \
-	policy/policy_import_task.cpp policy/policy_import_task.h \
 	policy/update_kasp_cmd.cpp policy/update_kasp_cmd.h \
 	policy/update_kasp_task.cpp policy/update_kasp_task.h \
 	policy/policy_list_cmd.cpp policy/policy_list_cmd.h \

@@ -36,7 +36,8 @@
 #include "policy/kasp.pb.h"
 
 #include "policy/policy_import_cmd.h"
-#include "policy/policy_import_task.h"
+#include "policy/update_kasp_task.h"
+/*#include "policy/policy_import_task.h" */
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
@@ -81,7 +82,9 @@ handled_policy_import_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     time_t tstart = time(NULL);
 	
-    perform_policy_import(sockfd, engine->config);
+   /* perform_policy_import(sockfd, engine->config); */
+    perform_update_kasp(sockfd, engine->config);
+
     flush_all_tasks(sockfd, engine);
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
