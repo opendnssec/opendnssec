@@ -33,11 +33,11 @@ log_grep ods-enforcer-zone-list_1 stdout 'ods[[:space:]].*default' &&
 
 #policy purge
 echo "y" | log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
-log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default2; purging..." &&
-log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default3; purging..." &&
+log_grep ods-enforcer-policy-purge_1 stdout "purge[[:space:]]policy[[:space:]]with[[:space:]]name[[:space:]]=[[:space:]]'default2'[[:space:]]succeed!" &&
+log_grep ods-enforcer-policy-purge_1 stdout "purge[[:space:]]policy[[:space:]]with[[:space:]]name[[:space:]]=[[:space:]]'default3'[[:space:]]succeed!" &&
 # Check that the policy is removed from the kasp file
-! `$GREP -q -- "default2" $KASP_FILE` &&
-! `$GREP -q -- "default3" $KASP_FILE` &&
+#! `$GREP -q -- "default2" $KASP_FILE` &&
+#! `$GREP -q -- "default3" $KASP_FILE` &&
 
 #list policy
 log_this ods-enforcer-policy-list_2 "ods-enforcer policy list" &&
@@ -67,7 +67,7 @@ log_grep ods-enforcer-zone-list_2 stdout 'ods1[[:space:]].*default2' &&
 
 #policy purge
 echo "y" | log_this ods-enforcer-policy-purge_2 "ods-enforcer policy purge" &&
-log_grep ods-enforcer-policy-purge_2 stdout "No zones on policy default3; purging..." &&
+log_grep ods-enforcer-policy-purge_2 stdout "purge[[:space:]]policy[[:space:]]with[[:space:]]name[[:space:]]=[[:space:]]'default3'[[:space:]]succeed!" &&
 
 #list policy
 log_this ods-enforcer-policy-list_4 "ods-enforcer policy list" &&
@@ -82,7 +82,7 @@ log_grep ods-enforcer-zone-delete stdout "zone 'ods1' deleted successfully" &&
 #policy purge
 echo "y " | log_this ods-enforcer-policy-purge_3 "ods-enforcer policy purge" &&
 # FIX THIS ON 2.0 # log_grep ods-enforcer-policy-purge_3 stdout "No zones on policy default2; purging..." &&
-! `$GREP -q -- "default2" $KASP_FILE` &&
+#! `$GREP -q -- "default2" $KASP_FILE` &&
 
 #list policy
 log_this ods-enforcer-policy-list_5 "ods-enforcer policy list" &&
