@@ -1,6 +1,6 @@
 <KASP>
   <Policy name="default">
-    <Description>A default policy</Description>
+    <Description name="default">A default policy</Description>
     <Signatures>
       <Resign>PT5356800S</Resign>
       <Refresh>PT8035200S</Refresh>
@@ -14,7 +14,7 @@
     </Signatures>
     <Denial>
       <NSEC3>
-        <OptOut>1</OptOut>
+        <OptOut/>
         <Resalt>PT8640000S</Resalt>
         <Hash>
           <Algorithm>1</Algorithm>

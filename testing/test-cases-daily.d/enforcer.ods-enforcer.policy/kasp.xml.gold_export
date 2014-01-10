@@ -1,6 +1,6 @@
 <KASP>
   <Policy name="default">
-    <Description>A default policy</Description>
+    <Description name="default">A default policy</Description>
     <Signatures>
       <Resign>PT5356800S</Resign>
       <Refresh>PT8035200S</Refresh>
@@ -14,7 +14,7 @@
     </Signatures>
     <Denial>
       <NSEC3>
-        <OptOut>1</OptOut>
+        <OptOut/>
         <Resalt>PT8640000S</Resalt>
         <Hash>
           <Algorithm>1</Algorithm>
@@ -62,7 +62,7 @@
     </Parent>
   </Policy>
   <Policy name="default_1">
-    <Description>A default policy with ShareKeys enable</Description>
+    <Description name="default_1">A default policy with ShareKeys enable</Description>
     <Signatures>
       <Resign>PT5356800S</Resign>
       <Refresh>PT8035200S</Refresh>
@@ -76,7 +76,7 @@
     </Signatures>
     <Denial>
       <NSEC3>
-        <OptOut>1</OptOut>
+        <OptOut/>
         <Resalt>PT8640000S</Resalt>
         <Hash>
           <Algorithm>1</Algorithm>
@@ -88,7 +88,7 @@
       <TTL>PT8035200S</TTL>
       <RetireSafety>PT3600S</RetireSafety>
       <PublishSafety>PT3600S</PublishSafety>
-      <ShareKeys>1</ShareKeys>
+      <ShareKeys/>
       <Purge>PT1209600S</Purge>
       <KSK>
         <Algorithm length = "2048">7</Algorithm>
@@ -125,7 +125,7 @@
     </Parent>
   </Policy>
   <Policy name="default_2">
-    <Description>A default policy with ManualRollover enable</Description>
+    <Description name="default_2">A default policy with ManualRollover enable</Description>
     <Signatures>
       <Resign>PT5356800S</Resign>
       <Refresh>PT8035200S</Refresh>
@@ -139,7 +139,7 @@
     </Signatures>
     <Denial>
       <NSEC3>
-        <OptOut>1</OptOut>
+        <OptOut/>
         <TTL>PT3600S</TTL>
         <Resalt>PT8640000S</Resalt>
         <Hash>
@@ -158,7 +158,7 @@
         <Lifetime>PT31536000S</Lifetime>
         <Repository>SoftHSM</Repository>
         <Standby>1</Standby>
-        <ManualRollover>1</ManualRollover>
+        <ManualRollover/>
         <KskRollType>KskDoubleSignature</KskRollType>
       </KSK>
       <ZSK>
@@ -189,7 +189,7 @@
     </Parent>
   </Policy>
   <Policy name="default_3">
-    <Description>A default policy with ShareKeys and ManualRollover enable</Description>
+    <Description name="default_3">A default policy with ShareKeys and ManualRollover enable</Description>
     <Signatures>
       <Resign>PT5356800S</Resign>
       <Refresh>PT8035200S</Refresh>
@@ -203,7 +203,7 @@
     </Signatures>
     <Denial>
       <NSEC3>
-        <OptOut>1</OptOut>
+        <OptOut/>
         <Resalt>PT8640000S</Resalt>
         <Hash>
           <Algorithm>1</Algorithm>
@@ -215,14 +215,14 @@
       <TTL>PT8035200S</TTL>
       <RetireSafety>PT3600S</RetireSafety>
       <PublishSafety>PT3600S</PublishSafety>
-      <ShareKeys>1</ShareKeys>
+      <ShareKeys/>
       <Purge>PT1209600S</Purge>
       <KSK>
         <Algorithm length = "2048">7</Algorithm>
         <Lifetime>PT31536000S</Lifetime>
         <Repository>SoftHSM</Repository>
         <Standby>1</Standby>
-        <ManualRollover>1</ManualRollover>
+        <ManualRollover/>
         <KskRollType>KskDoubleSignature</KskRollType>
       </KSK>
       <ZSK>
