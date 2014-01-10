@@ -7,7 +7,7 @@ ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 ENFORCER_COUNT=2	# How many log lines we expect to see
 
 # We need the file in place while we setup or kaspcheck fails
-touch "$INSTALL_ROOT/var/opendnssec/tmp/wrong_dssub.pl" &&
+touch "$INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl" &&
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
@@ -16,7 +16,7 @@ fi &&
 ods_reset_env &&
 
 # Now we can remove it
-rm "$INSTALL_ROOT/var/opendnssec/tmp/wrong_dssub.pl" &&
+rm "$INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl" &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
@@ -28,7 +28,7 @@ syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:00" &&
 
 # Check that we are trying to use the correct (wrong) command:
-syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/tmp/wrong_dssub.pl to submit DS records" &&
+syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl to submit DS records" &&
 
 # Check that we have 2 keys
 log_this ods-ksmutil-key-list1 ods-ksmutil key list &&
@@ -51,16 +51,16 @@ syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT 
 syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods with the following cka_ids, $KSK_CKA_ID" &&
 
 # Check syslog for the command failing
-syslog_grep "ods-enforcerd: .*Cannot stat file $INSTALL_ROOT/var/opendnssec/tmp/wrong_dssub.pl: No such file or directory" &&
+syslog_grep "ods-enforcerd: .*Cannot stat file $INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl: No such file or directory" &&
 
 # Check that no dssub.out file exists
 echo "Testing dssub.out doesn't exist" &&
-! test -f "$INSTALL_ROOT/var/opendnssec/tmp/dssub.out" &&
+! test -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
 return 0
 
 # Something went wrong, make sure clean up tmp if nothing else
-rm "$INSTALL_ROOT/var/opendnssec/tmp/*" &&
+rm "$INSTALL_ROOT/var/opendnssec/enforcer/*" &&
 
 echo
 echo "************ERROR******************"

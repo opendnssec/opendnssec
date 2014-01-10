@@ -37,114 +37,27 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/orm.h"
-//#include "config.h"
 #include "keystate/keystate.pb.h"
 #include "keystate/write_signzone_task.h"
+#include "keystate/zonelist_task.h"
 
 static const char *module_str = "write_signzone_task";
 
-static int write_empty_signzones_file(const std::string &file_name);
+
 
 int
 perform_write_signzone_file(int sockfd, engineconfig_type *config)
 {
-    GOOGLE_PROTOBUF_VERIFY_VERSION;
-    OrmConnRef conn;
-    if (!ods_orm_connect(sockfd, config, conn)) {
-        ods_log_error("[%s] connect database failed", module_str);
-        return 0; // error already reported.
-    }
-
-    std::auto_ptr< ::ods::keystate::ZoneListDocument > zonelistdoc(
-                new ::ods::keystate::ZoneListDocument );
-    
-    {   OrmTransaction transaction(conn);
-        if (!transaction.started()) {
-            ods_log_error("[%s] begin transaction failed", module_str);
-            return 0;
-        }
-    
-        {   OrmResultRef rows;
-            ::ods::keystate::EnforcerZone enfzone;
-
-            bool ok = OrmMessageEnum(conn, enfzone.descriptor(), rows);
-            if (!ok) {
-                transaction.rollback();
-                ods_log_error("[%s] enum enforcer zone failed", module_str);
-                return 0;
-            }
-
-            for (bool next=OrmFirst(rows); next; next = OrmNext(rows)) {
-                 OrmContextRef context;
-                 if (!OrmGetMessage(rows, enfzone, true, context)) {
-                     rows.release();
-                     transaction.rollback();
-                     ods_log_error("[%s] retrieving zone from database failed");
-                     return 0;
-                 }
-                 std::auto_ptr< ::ods::keystate::ZoneData > zonedata(
-                         new ::ods::keystate::ZoneData);
-                 zonedata->set_name(enfzone.name());
-                 zonedata->set_policy(enfzone.policy());
-                 zonedata->set_signer_configuration(
-                         enfzone.signconf_path());
-                 zonedata->mutable_adapters()->CopyFrom(enfzone.adapters());
-                 ::ods::keystate::ZoneData *added_zonedata = 
-                     zonelistdoc->mutable_zonelist()->add_zones();
-                 added_zonedata->CopyFrom(*zonedata);
-             }
-             rows.release();
-
-        }
-
-        if (!transaction.commit()) {
-            ods_log_error("[%s] commit transaction failed", module_str);
-            return 0;
-        }
-    }
 
     //write signzone file
     std::string signzone_file(config->working_dir);
-    //check whether workingdir ends with slash
-    if (signzone_file.length() > 0 &&
-        signzone_file[signzone_file.length() - 1] != '/') {
-        signzone_file.append("/");
-    }
-
+    signzone_file.append("/");
     signzone_file.append(OPENDNSSEC_ENFORCER_ZONELIST);
-    std::string tmp_signzone_file(signzone_file);
-    tmp_signzone_file.append(".bak");
-    if (zonelistdoc.get()->has_zonelist() && 
-            (zonelistdoc.get()->mutable_zonelist()->zones_size() > 0)) {
-        if (!write_pb_message_to_xml_file(zonelistdoc.get(), tmp_signzone_file.c_str())) {
-            ods_log_error("[%s] failed to write %s.bak", module_str, OPENDNSSEC_ENFORCER_ZONELIST);
-            return 0;
-        }
-    }
-    else {
-        //write empty zonelistdoc
-        if (!write_empty_signzones_file(tmp_signzone_file)) {
-            ods_log_error("[%s] failed to write empty %s.bak", module_str, OPENDNSSEC_ENFORCER_ZONELIST);
-            return 0;
-        }
-    }
 
-    if (rename(tmp_signzone_file.c_str(), signzone_file.c_str())) {
-        ods_log_error("[%s] failed to rename %s", module_str, OPENDNSSEC_ENFORCER_ZONELIST);
-        return 0;
-    }
-
-    return 1;
-}
-
-static int
-write_empty_signzones_file(const std::string &file_name)
-{
-    FILE *fw = ods_fopen(file_name.c_str(), NULL, "w");
-    if (!fw) return 0;
-
-    fprintf(fw, "<ZoneList>\n</ZoneList>\n");
-    ods_fclose(fw);
+	if (!perform_zonelist_export_to_file(signzone_file,config)) {
+    	ods_log_error_and_printf(sockfd, module_str, 
+            	"failed to write %s", signzone_file.c_str());
+	}
 
     return 1;
 }

@@ -38,6 +38,7 @@
 #include <google/protobuf/message.h>
 
 #include "keystate/keystate.pb.h"
+#include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 #include "xmlext-pb/xmlext-wr.h"
 
@@ -165,9 +166,41 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 			const ::ods::keystate::ZoneData &zl_zone = 
 				zonelistDoc->zonelist().zones(i);
 			ods_printf(sockfd, "Zone %s found in zonelist.xml;" 
-				" policy set to %s\n", zl_zone.name().c_str(),
+				" with policy set to %s\n", zl_zone.name().c_str(),
 				zl_zone.policy().c_str());
+				
+				
+			// Now lets query for the policy to check it exists
+			std::string qpolicy;
+			if (!OrmQuoteStringValue(conn, std::string(zl_zone.policy().c_str()), qpolicy)) {
+				ods_log_error_and_printf(sockfd, module_str,
+										 "quoting a string failed");
+				return 0;
+			}			
+			
+			OrmResultRef rows;
+			::ods::kasp::Policy ks_policy;
+			if (!OrmMessageEnumWhere(conn, ks_policy.descriptor(), rows,
+									 "name = %s",qpolicy.c_str()))
+			{
+				ods_log_error_and_printf(sockfd, module_str,
+										 "policy lookup by name for %s failed", qpolicy.c_str());
+				return 0;
+			}
+		
+			// if OrmFirst failes, no policy with the queried name is 
+			// present
+			if (!OrmFirst(rows)) {
+				ods_log_error_and_printf(sockfd,
+										 module_str,
+										 "Failed to Import zone %s; "
+										 "Error, can't find policy : %s",
+										 zl_zone.name().c_str(), zl_zone.policy().c_str());
+				return 0;
+			}				
+			rows.release();
 
+			// Now lets process the zone
 			std::string qzone;
 			if (!OrmQuoteStringValue(conn, zl_zone.name(), qzone)) {
 				ods_log_error_and_printf(sockfd, module_str,
@@ -180,8 +213,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 			 * a near O(n) complexity. The enum function slows down
 			 * as DB size increases. */
 			::ods::keystate::EnforcerZone ks_zone;
-			OrmResultRef rows;
-			if (zones_db.count(qzone)) {
+			if (zones_db.count(zl_zone.name())) {
 				if (!OrmMessageEnumWhere(conn, ks_zone.descriptor(), rows,
 					"name = %s", qzone.c_str()))
 				{
@@ -194,11 +226,10 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 			OrmContextRef context;
 			if (OrmFirst(rows)) {
 				/* Zone already in database, retrieve it. */
-				ods_printf(sockfd, "Zone: %s found in database,"
-					" update it\n", zl_zone.name().c_str());
+				ods_printf(sockfd, "Zone %s found in database. ", zl_zone.name().c_str());
 				if (!OrmGetMessage(rows, ks_zone, true, context)) {
 					ods_log_error_and_printf(sockfd, module_str,
-						"zone retrieval failed");
+						"zone retrieval failed");						
 					return 0;
 				}
 			}
@@ -209,6 +240,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 					zl_zone.signer_configuration());
 			ks_zone.mutable_adapters()->CopyFrom(
 					zl_zone.adapters());
+			ks_zone.set_signconf_needs_writing( true );
 
 			if (OrmFirst(rows)) {
 				/* update */
@@ -217,17 +249,17 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 						"zone update failed");
 					return 0;
 				}
+				ods_printf(sockfd, "Updated zone %s in database\n", zl_zone.name().c_str());
 			} else {
 				/* insert */
-				ks_zone.set_signconf_needs_writing( false );
-				ods_printf(sockfd, "Zone: %s not found in database,"
-					" insert it\n", zl_zone.name().c_str());
+				ods_printf(sockfd, "Zone %s not found in database. ", zl_zone.name().c_str());
 				pb::uint64 zoneid;
 				if (!OrmMessageInsert(conn, ks_zone, zoneid)) {
 					ods_log_error_and_printf(sockfd, module_str,
 						"inserting zone into the database failed");
 					return 0;
 				}
+				ods_printf(sockfd, "Added zone %s to database\n", zl_zone.name().c_str());
 			}
 			rows.release();
         }
@@ -239,9 +271,9 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
     }
 
 	for (item iterator = zones_delete.begin(); iterator != zones_delete.end(); iterator++) {
-		ods_printf(sockfd, "Zone: %s not exist in zonelist.xml, "
-			"delete it from database\n", iterator->c_str());
-		perform_zone_del(sockfd, config, iterator->c_str(), 0);
+		ods_printf(sockfd, "Zone %s not found in zonelist.xml\n", iterator->c_str());			
+		perform_zone_del(sockfd, config, iterator->c_str(), 0, true);
+		ods_printf(sockfd, "Deleted zone %s from database\n", iterator->c_str());		
 	}
 
 	/* write internal zonelist */

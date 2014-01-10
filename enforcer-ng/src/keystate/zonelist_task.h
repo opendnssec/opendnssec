@@ -32,8 +32,15 @@
 #ifndef _KEYSTATE_ZONELIST_TASK_H_
 #define _KEYSTATE_ZONELIST_TASK_H_
 
+#include <string>
+
 #include "daemon/cfg.h"
 
-int perform_zonelist_export(int sockfd, engineconfig_type *config);
+// wrapper functions
+int perform_zonelist_export_to_fd(int sockfd, engineconfig_type *config);
+int perform_zonelist_export_to_file(const std::string& filename, engineconfig_type *config);
+// real work
+int perform_zonelist_export(const std::string* filename, int sockfd, engineconfig_type *config);
+
 
 #endif

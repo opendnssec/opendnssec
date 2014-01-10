@@ -1288,14 +1288,21 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 
 			/** Sanity check. This would produce silly output and give
 			 * the signer lots of useless work */
-			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime || 
-					role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
-				ods_log_crit("[%s] %s Key lifetime unreasonably short "
-					"with respect to TTL and MaxZoneTTL. Will not insert key!",
-					module_str, scmd);
+			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime) {
+				ods_log_crit("[%s] %s For policy %s KSK key lifetime of %d is unreasonably short "
+					"with respect to sum of parent TTL (%d) and key TTL (%d). Will not insert key!",
+					module_str, scmd, policyName.c_str(), lifetime, policy->parent().ttlds(), policy->keys().ttl());
 				setnextroll(zone, (KeyRole)role, now, 0);
 				continue;
 			}
+			
+			if (role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
+				ods_log_crit("[%s] %s For policy %s ZSK key lifetime of %d is unreasonably short "
+					"with respect to sum of MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
+					module_str, scmd, policyName.c_str(), lifetime, policy->signatures().max_zone_ttl(), policy->keys().ttl());
+				setnextroll(zone, (KeyRole)role, now, 0);
+				continue;
+			}			
 
 			if ( policyKeys.zones_share_keys() )
 				/** Try to get an existing key or ask for new shared */
@@ -1311,8 +1318,8 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			if ( !got_key ) {
 				/** The factory was not ready, return later */
 				minTime( now + NOKEY_TIMEOUT, return_at);
-				ods_log_warning("[%s] %s No keys available on hsm, retry in %d seconds", 
-					module_str, scmd, NOKEY_TIMEOUT);
+				ods_log_warning("[%s] %s No keys available on hsm for policy %s, retry in %d seconds", 
+					module_str, scmd, policyName.c_str(), NOKEY_TIMEOUT);
 				setnextroll(zone, (KeyRole)role, now, 0);
 				continue;
 			}

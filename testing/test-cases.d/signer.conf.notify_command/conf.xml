@@ -21,8 +21,8 @@
 		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	<Signer>
-		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
+		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
-		<NotifyCommand>@INSTALL_ROOT@/var/opendnssec/tmp/test-notify-command.sh %zone %zonefile</NotifyCommand>
+		<NotifyCommand>@INSTALL_ROOT@/var/opendnssec/signer/test-notify-command.sh %zone %zonefile</NotifyCommand>
 	</Signer>
 </Configuration>

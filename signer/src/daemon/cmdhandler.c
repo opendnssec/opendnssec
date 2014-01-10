@@ -131,13 +131,13 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
     if (!engine->zonelist || !engine->zonelist->zones) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "I have no zones configured\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "There are no zones configured\n");
         ods_writen(sockfd, buf, strlen(buf));
         return;
     }
     /* how many zones */
     lock_basic_lock(&engine->zonelist->zl_lock);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "I have %i zones configured\n",
+    (void)snprintf(buf, ODS_SE_MAXLINE, "There are %i zones configured\n",
         (int) engine->zonelist->zones->count);
     ods_writen(sockfd, buf, strlen(buf));
     /* list zones */
@@ -480,7 +480,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
     if (!engine->taskq || !engine->taskq->tasks) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "I have no tasks scheduled.\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
         ods_writen(sockfd, buf, strlen(buf));
         return;
     }
@@ -503,7 +503,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         }
     }
     /* how many tasks */
-    (void)snprintf(buf, ODS_SE_MAXLINE, "\nI have %i tasks scheduled.\n",
+    (void)snprintf(buf, ODS_SE_MAXLINE, "\nThere are %i tasks scheduled.\n",
         (int) engine->taskq->tasks->count);
     ods_writen(sockfd, buf, strlen(buf));
     /* list tasks */

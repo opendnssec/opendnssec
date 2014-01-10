@@ -35,6 +35,6 @@
 #include "daemon/cfg.h"
 
 void perform_zone_del(int sockfd, engineconfig_type *config, 
-                    const char *zone, int need_write_xml);
+                    const char *zone, int need_write_xml, bool quiet);
 
 #endif

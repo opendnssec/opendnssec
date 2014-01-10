@@ -141,7 +141,7 @@ main (int argc, char *argv[])
         }
     } else if (do_sign || do_delete) {
         keys = hsm_list_keys(ctx, &key_count);
-        printf("I have found %u keys\n", (unsigned int) key_count);
+        printf("Found %u keys\n", (unsigned int) key_count);
 
         /* let's just use the very first key we find and throw away the rest */
         for (i = 0; i < key_count && !key; i++) {
