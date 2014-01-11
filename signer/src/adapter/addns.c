@@ -480,10 +480,10 @@ addns_read_file(FILE* fd, zone_type* zone)
     while (status == ODS_STATUS_OK) {
         status = addns_read_pkt(fd, zone);
         if (status == ODS_STATUS_OK) {
-            lock_basic_lock(&z->xfrd->serial_lock);
-            z->xfrd->serial_xfr = adapi_get_serial(z);
-            z->xfrd->serial_xfr_acquired = z->xfrd->serial_disk_acquired;
-            lock_basic_unlock(&z->xfrd->serial_lock);
+            lock_basic_lock(&zone->xfrd->serial_lock);
+            zone->xfrd->serial_xfr = adapi_get_serial(zone);
+            zone->xfrd->serial_xfr_acquired = zone->xfrd->serial_disk_acquired;
+            lock_basic_unlock(&zone->xfrd->serial_lock);
         }
     }
     if (status == ODS_STATUS_EOF) {
