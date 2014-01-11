@@ -462,6 +462,7 @@ begin_rrs:
         free((void*) xfrd);
         free((void*) fin);
         free((void*) fout);
+        result = ODS_STATUS_XFRINCOMPLETE;
     }
     return result;
 }
@@ -478,6 +479,12 @@ addns_read_file(FILE* fd, zone_type* zone)
 
     while (status == ODS_STATUS_OK) {
         status = addns_read_pkt(fd, zone);
+        if (status == ODS_STATUS_OK) {
+            lock_basic_lock(&z->xfrd->serial_lock);
+            z->xfrd->serial_xfr = adapi_get_serial(z);
+            z->xfrd->serial_xfr_acquired = z->xfrd->serial_disk_acquired;
+            lock_basic_unlock(&z->xfrd->serial_lock);
+        }
     }
     if (status == ODS_STATUS_EOF) {
         status = ODS_STATUS_OK;
@@ -775,10 +782,6 @@ addns_read(void* zone)
 
     status = addns_read_file(fd, z);
     if (status == ODS_STATUS_OK) {
-        lock_basic_lock(&z->xfrd->serial_lock);
-        z->xfrd->serial_xfr = adapi_get_serial(z);
-        z->xfrd->serial_xfr_acquired = z->xfrd->serial_disk_acquired;
-        lock_basic_unlock(&z->xfrd->serial_lock);
         /* clean up copy of zone transfer */
         if (unlink((const char*) file) != 0) {
             ods_log_error("[%s] unable to unlink zone transfer copy file %s: "
