@@ -454,6 +454,15 @@ begin_rrs:
             } else {
                 ods_log_info("[%s] xfrd zone %s file %s was not modified",
                     adapter_str, zone->name, xfrd);
+                if (rename(fout, xfrd) != 0) {
+                    result = ODS_STATUS_RENAME_ERR;
+                    ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
+                        adapter_str, zone->name, ods_status2str(result));
+                } else {
+                    ods_log_info("[%s] renamed xfrd zone %s file %s to %s",
+                        adapter_str, zone->name, fout, xfrd);
+                }
+
             }
             lock_basic_unlock(&zone->xfrd->rw_lock);
             ods_log_info("[%s] unlocked xfrd zone %s file %s",
