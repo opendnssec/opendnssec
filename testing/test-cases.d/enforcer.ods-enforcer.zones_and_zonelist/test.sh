@@ -17,11 +17,14 @@ eval sed -e 's#@INSTALL_ROOT@#$INSTALL_ROOT#' zonelist.xml.gold_export > zonelis
 eval sed -e 's#@INSTALL_ROOT@#$INSTALL_ROOT#' zonelist.xml.gold_export2 > zonelist.xml.gold_export2_local &&
 
 # Cater for the fact that solaris and openbsd use different flags in diff
-local ignore_blank_lines=" -B "
+# Use -w to ignore whitespace, but on those 2 platforms need -b instead
+# Note, since openbsd can't ignore entire blank lines, we need to get the gold
+# files just right to avoid having to fix this up during the test 
+local ignore_whitespace=" -w "
 case "$DISTRIBUTION" in
 	sunos | \
 	openbsd )
-		ignore_blank_lines="-b"
+		ignore_whitespace="-b"
 		;;
 esac
 
@@ -141,18 +144,18 @@ log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods13 --input 
 #cp $ZONELIST_FILE zonelist.xml.gold &&
 
 # Check the zones.xml internal file is written (2.0 new behaviour)
-diff $ignore_blank_lines -w  $ZONES_FILE zonelist.xml.gold_local &&
+diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local &&
 echo "zones.xml contents OK" &&
 
 # Check the zonelist.xml is still empty (2.0 default behaviour)
 echo "Checking zonelist contents" && 
-diff $ignore_blank_lines  $ZONELIST_FILE zonelist.xml &&
+diff $ignore_whitespace  $ZONELIST_FILE zonelist.xml &&
 echo "Zonelist contents OK" && 
 
 # Check the export against a gold
 ##### TO FIX:  Need a <xml version> comment at the top of the output???
 ods-enforcer zonelist export > zonelist.xml.temp &&
-diff $ignore_blank_lines -w  zonelist.xml.temp zonelist.xml.gold_export_local &&
+diff $ignore_whitespace   zonelist.xml.temp zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" && 
 
 # Now add _and_ update the zonelist (2.0 new behaviour)
@@ -164,18 +167,18 @@ log_grep ods-enforcer-zone_add_list_1   stdout "ods14[[:space:]]*default" &&
 
 # Exported zonelist should be different (not checked in detail)....
 echo "Checking zonelist contents again after update of zonelist.xml" && 
-! diff $ignore_blank_lines  $ZONELIST_FILE zonelist.xml.gold_local >/dev/null 2>/dev/null &&
+! diff $ignore_whitespace  $ZONELIST_FILE zonelist.xml.gold_local >/dev/null 2>/dev/null &&
 $GREP -q -- "ods14" "$ZONELIST_FILE" &&
 echo "Zonelist contents OK again" &&
 
 # And the zones.xml should be different too
-! diff $ignore_blank_lines -w  $ZONES_FILE zonelist.xml.gold_local >/dev/null 2>/dev/null &&
+! diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local >/dev/null 2>/dev/null &&
 $GREP -q -- "ods14" "$ZONES_FILE" &&
 echo "zones.xml contents OK" &&
 
 # Exported zonelist should be different (not checked in detail)....
 ods-enforcer zonelist export > zonelist.xml.temp1 &&
-! diff $ignore_blank_lines -w  zonelist.xml.temp1 zonelist.xml.gold_export_local >/dev/null 2>/dev/null &&
+! diff $ignore_whitespace   zonelist.xml.temp1 zonelist.xml.gold_export_local >/dev/null 2>/dev/null &&
 $GREP -q -- "ods14" "zonelist.xml.temp1" &&
 echo "Zonelist export contents OK" &&
 
@@ -189,7 +192,7 @@ log_this ods-enforcer-zone_del_list_1   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_1   stdout "ods1[[:space:]]*Policy1" &&
 
 echo "Checking zonelist contents again after delete" && 
-###diff $ignore_blank_lines  $ZONELIST_FILE zonelist.xml.gold_local &&
+###diff $ignore_whitespace  $ZONELIST_FILE zonelist.xml.gold_local &&
 $GREP -q -- "ods1\"" "$ZONELIST_FILE" &&
 $GREP -q -- "ods14" "$ZONELIST_FILE" &&
 ! $GREP -q -- "ods1\"" "$ZONES_FILE" &&
@@ -246,9 +249,9 @@ log_grep ods-enforcer-zone_add_list_2   stdout "ods13[[:space:]]*default" &&
 # Check the export gives the same thing  (note - we use a different gold file here as the order
 # in the exported file is not the same as that in the configuration file)
 ods-enforcer zonelist export > zonelist.xml.temp2 &&
-diff $ignore_blank_lines -w  zonelist.xml.temp2 zonelist.xml.gold_export_local &&
+diff $ignore_whitespace   zonelist.xml.temp2 zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" &&
-diff $ignore_blank_lines -w  $ZONES_FILE zonelist.xml.gold_local &&
+diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local &&
 echo "zones.xml contents OK" &&
 
 # Now do another import with a file that has one extra zone and one zone removed
@@ -273,9 +276,9 @@ log_grep ods-enforcer-zone_add_list_3   stdout "ods13[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_3   stdout "ods14[[:space:]]*default" &&
 
 ods-enforcer zonelist export > zonelist.xml.temp3 &&
-diff $ignore_blank_lines -w  zonelist.xml.temp3 zonelist.xml.gold_export2_local &&
+diff $ignore_whitespace   zonelist.xml.temp3 zonelist.xml.gold_export2_local &&
 echo "Zonelist export contents OK" &&
-diff $ignore_blank_lines -w  $ZONES_FILE zonelist.xml.test_local &&
+diff $ignore_whitespace   $ZONES_FILE zonelist.xml.test_local &&
 echo "zones.xml contents OK" &&
 
 
@@ -309,7 +312,7 @@ log_this ods-enforcer-zonelist-import-empty ods-enforcer zonelist import &&
 log_this ods-enforcer-zonelist-import-empty   ods-enforcer zone list &&
 log_grep ods-enforcer-zonelist-import-empty   stdout "No zones configured in DB." &&
 
-diff $ignore_blank_lines -w  $ZONES_FILE zonelist.xml &&
+diff $ignore_whitespace   $ZONES_FILE zonelist.xml &&
 echo "Zonelist export contents OK" &&
 
 ods_stop_enforcer && 
