@@ -131,6 +131,7 @@ static void *consumer(void *param)
 							for (int j=1; j<SPINLOCK_COMMIT+1; ++j) {
 								if (transaction.commit()) {
 									++eat; // managed to consume 1
+									loopcount = 0;
 									//printf("CONSUMER TRANSACTION %d SUCCESS AFTER %d TRIES IN %.0f us\n", eat, j, (clock() - start) / (CLOCKS_PER_SEC / 1000000));
 									break;
 								}

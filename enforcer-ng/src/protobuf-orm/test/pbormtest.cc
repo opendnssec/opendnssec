@@ -37,6 +37,9 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/extensions/HelperMacros.h>
+#include <cppunit/TestResult.h>
+#include <cppunit/TestResultCollector.h>
+#include <cppunit/TextTestProgressListener.h>
 #include "timecollector.h"
 
 #include "pbormtest.h"
@@ -86,9 +89,15 @@ int main(int argc, char* argv[])
 	CppUnit::TextUi::TestRunner runner;
 	CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
 
+	CppUnit::TestResult controller;
+	CppUnit::TestResultCollector result;
+	CppUnit::TextTestProgressListener progress;
+	controller.addListener( &result ); 
+	controller.addListener( &progress );   
+
 	runner.addTest(registry.makeTest());
-	runner.run();
+	runner.run(controller);
 
 	PrintCollectedTimings();
-	return 0;
+	return !result.wasSuccessful();
 }

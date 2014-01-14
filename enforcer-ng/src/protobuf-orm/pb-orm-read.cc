@@ -227,10 +227,13 @@ pb_assign_field(OrmResult result,
 			OrmLogError("cannot assign TYPE_GROUP field from database");
 			return false;
 		case pb::FieldDescriptor::TYPE_MESSAGE: {
-			if (!recurse) return true;
 			unsigned long long id = RESULT->get_ulonglong_idx(field_idx);
 			if (RESULT->failed())
 				return false;
+			/** YBS: If recurse is not set I believe we should return 
+			 * here to prevent many database lookups. It however seems
+			 * to cause pb-orm-test failures. */
+			/** if (!recurse) return true; */
 			pb::Message *value = reflection->MutableMessage(&message, field);
 			if (!context)
 				return OrmMessageRead(RESULT.conn, *value, id, recurse);
