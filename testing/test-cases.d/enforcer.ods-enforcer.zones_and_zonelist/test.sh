@@ -222,9 +222,9 @@ echo "y " | log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all  &&
 log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones configured in DB." &&
 
-echo "Checking no zones in zonelist" && 
-! $GREP -q -- "\<\/Zone\>"  "$ZONELIST_FILE" &&
-echo "Zonelist contents empty" &&
+echo "Checking no zones in internal zonelist" && 
+diff $ignore_whitespace   $ZONES_FILE zonelist.xml &&
+echo "Internal Zone file contents empty" &&
 
 ##################  TEST:  Zonelist.xml  import ###########################
 
