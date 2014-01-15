@@ -257,19 +257,20 @@ tools_output(zone_type* zone, engine_type* engine)
                 break;
         }
     }
-    if (engine->dnshandler) {
-        dnshandler_fwd_notify(engine->dnshandler, (uint8_t*) ODS_SE_NOTIFY_CMD,
-            strlen(ODS_SE_NOTIFY_CMD));
-    }
     /* log stats */
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->end_time = time(NULL);
-        ods_log_debug("[%s] log stats for zone %s", tools_str,
-            zone->name?zone->name:"(null)");
-        stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
+        ods_log_debug("[%s] log stats for zone %s serial %u", tools_str,
+            zone->name?zone->name:"(null)", (unsigned) zone->db->outserial);
+        stats_log(zone->stats, zone->name, zone->db->outserial,
+            zone->signconf->nsec_type);
         stats_clear(zone->stats);
         lock_basic_unlock(&zone->stats->stats_lock);
+    }
+    if (engine->dnshandler) {
+        dnshandler_fwd_notify(engine->dnshandler, (uint8_t*) ODS_SE_NOTIFY_CMD,
+            strlen(ODS_SE_NOTIFY_CMD));
     }
     return status;
 }
