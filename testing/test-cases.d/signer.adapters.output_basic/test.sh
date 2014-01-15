@@ -57,7 +57,7 @@ log_grep ixfr-tcp stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
 ## Update zonefile to create journal
 cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
 ods-signer sign ods &&
-syslog_waitfor 10 'ods-signerd: .*\[STATS\] ods RR\[count=3 time*' &&
+syslog_waitfor 10 'ods-signerd: .*\[STATS\] ods 1002 RR\[count=3 time*' &&
 
 ## See if we can get an IXFR back
 log_this_timeout dig 10 dig -p 15354 @127.0.0.1 ixfr=1001 ods &&
@@ -66,7 +66,7 @@ log_grep dig stdout 'label35\.ods\..*3600.*IN.*NS.*ns1\.label35\.ods\.' &&
 log_grep dig stdout 'ns1\.label35\.ods\..*3600.*IN.*A.*192\.0\.2\.1' &&
 
 # Validate the output on redhat
-case "$DISTRIBUTION" in                                                                                 
+case "$DISTRIBUTION" in
         redhat )
                 dig -p 15354 @127.0.0.1 axfr ods > ods_axfr &&
                 log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host ods_axfr &&
