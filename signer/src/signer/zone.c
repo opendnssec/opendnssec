@@ -987,7 +987,9 @@ zone_recover2(zone_type* zone)
 
         /* all ok */
         free((void*)filename);
-        ods_fclose(fd);
+        if (fd) {
+            ods_fclose(fd);
+        }
         if (zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
