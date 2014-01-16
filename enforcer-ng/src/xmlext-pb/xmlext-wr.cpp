@@ -342,16 +342,6 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     const Reflection *reflection = msg->GetReflection();
     vector<const FieldDescriptor*>::const_iterator fld_iter;
     
-    /*debugging*/
-    fprintf(fw, "DEBUGGING\n");
-    vector<const FieldDescriptor*>::const_iterator i;
-    for (i=fields.begin(); i != fields.end(); ++i) {
-        string xmlpath = (*i)->options().GetExtension(xml).path();
-        fprintf(fw, "DBG %s\n", xmlpath.c_str());
-    }
-    
-    /*debugging*/
-    
     /* sort out subelements of parent */
     vector<const FieldDescriptor*> attributes, elements, nonterminal_elements;
     for (fld_iter=fields.begin(); fld_iter != fields.end(); ++fld_iter) {
