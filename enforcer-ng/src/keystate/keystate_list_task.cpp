@@ -163,6 +163,8 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 			return;
 		}
 			
+			//~ select z.name, k.child_id from EnforcerZone z inner join EnforcerZone_keys k on z.id=k.parent_id inner join   limit 10
+			
 		for (int k=0; k<zone.keys_size(); ++k) {
 			const ::ods::keystate::KeyData &key = zone.keys(k);
 			std::string keyrole = keyrole_Name(key.role());

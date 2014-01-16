@@ -247,6 +247,7 @@ int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
 int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
+    (void) engine;
     if (n != 7 || strncmp(cmd, "running", n) != 0) return 0;
     ods_log_debug("[%s] running command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
@@ -424,6 +425,7 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_
 {
     char buf[ODS_SE_MAXLINE];
     help_xxxx_cmd_type *help;
+    (void) n;
 
     ods_log_debug("[%s] unknown command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",

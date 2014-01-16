@@ -458,7 +458,7 @@ timeshift2time(const char *time)
         /* Try to scan the time... */
         if (strptime(time, "%Y%m%d%H%M%S", &tm)) {
                 timeshift = mktime_from_utc(&tm);
-	}
+        }
         return timeshift;
 }
 
@@ -483,20 +483,15 @@ set_time_now(time_t now)
 time_t
 time_now(void)
 {
+    time_t now;
 #ifdef ENFORCER_TIMESHIFT
     const char* env = getenv("ENFORCER_TIMESHIFT");
+    if (env) return timeshift2time(env);
 #endif /* ENFORCER_TIMESHIFT */
-    time_t now = time(NULL);
-
-#ifdef ENFORCER_TIMESHIFT
-    if (env) {
-        return timeshift2time(env);
-    } else
-#endif /* ENFORCER_TIMESHIFT */
-
+    (void) timeshift2time; /* Suppress build warnings */
+    now = time(NULL);
     return now > time_now_set ? now : time_now_set;
 }
-
 
 /**
  * copycode: This code is based on the EXAMPLE in the strftime manual.
