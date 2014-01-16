@@ -364,7 +364,7 @@ ods_enforcer_count_stops() {
 	echo "ods_enforcer_count_stops: Checking how many times enforcer has stopped already"
     syslog_grep_count 0 "$ODS_ENFORCER_STOP_LOG_STRING"
     echo "ods_enforcer_count_stops: Enforcer has stopped" $syslog_grep_count_variable "times so far"
-	
+
 }
 
 
@@ -419,7 +419,7 @@ ods_signer_count_starts() {
 	echo "ods_signer_count_starts: Checking how many times signer has started already"
     syslog_grep_count 0 "$ODS_SIGNER_START_LOG_STRING"
     echo "ods_signer_count_starts: Signer has started" $syslog_grep_count_variable "times so far"
-	
+
 }
 
 ods_signer_count_stops() {
@@ -520,12 +520,12 @@ ods_stop_enforcer() {
 	# double check the process is killed as this seems to take a little while on some platforms
 	if ods_is_enforcer_running; then
 		sleep 1
-		echo "ods_stop_enforcer: waiting for process to terminate..." >&2 &&
+		echo "ods_stop_enforcer: waiting for process to terminate..." >&2 
 		if ods_is_enforcer_running; then
-				echo "ods_stop_enforcer: ERROR: ods-enforcerd process is still running..." >&2 &&
+				echo "ods_stop_enforcer: ERROR: ods-enforcerd process is still running..." >&2
 				return 1
 		fi
-	fi
+	fi &&
 	
 	echo "ods_stop_enforcer: ods-enforcer stopped OK..." >&2 &&
 	return 0
@@ -555,12 +555,12 @@ ods_start_enforcer_timeshift() {
 	# double check the process is killed as this seems to take a little while on some platforms
 	if ods_is_enforcer_running; then
 		sleep 1
-		echo "ods_stop_enforcer: waiting for process to terminate..." >&2 &&
+		echo "ods_stop_enforcer: waiting for process to terminate..." >&2 
 		if ods_is_enforcer_running; then
-				echo "ods_stop_enforcer: ERROR: ods-enforcerd process is still running..." >&2 &&
+				echo "ods_stop_enforcer: ERROR: ods-enforcerd process is still running..." >&2 
 				return 1
 		fi
-	fi	
+	fi &&
 	
 	echo "ods_start_enforcer_timeshift: ods-enforcer started OK..." >&2 &&
 	return 0
@@ -612,12 +612,12 @@ ods_stop_signer() {
 	# double check the process is killed as this seems to take a little while on some platforms
 	if ods_is_signer_running; then
 		sleep 1
-		echo "ods_stop_signer: waiting for process to terminate..." >&2 &&
+		echo "ods_stop_signer: waiting for process to terminate..." >&2 
 		if ods_is_signer_running; then
-				echo "ods_stop_signer: ERROR: ods-signerd process is still running..." >&2 &&
+				echo "ods_stop_signer: ERROR: ods-signerd process is still running..." >&2 
 				return 1
 		fi
-	fi	
+	fi	&&
 	
 	echo "ods_stop_signer: ods-signer stopped OK..." >&2 &&
 	return 0
@@ -681,16 +681,16 @@ ods_stop_ods-control() {
 	# double check the process is killed as this seems to take a little while on some platforms
 	if ods_is_signer_running || ods_is_enforcer_running; then
 		sleep 1
-		echo "ods_stop_signer: waiting for processes to terminate..." >&2 &&
+		echo "ods_stop_signer: waiting for processes to terminate..." >&2 
 		if ods_is_signer_running; then
-				echo "ods_stop_signer: ERROR: ods-signerd process is still running..." >&2 &&
+				echo "ods_stop_signer: ERROR: ods-signerd process is still running..." >&2 
 				return 1
 		fi
 		if ods_is_enforcer_running; then
-				echo "ods_stop_signer: ERROR: ods-enforcerd process is still running..." >&2 &&
+				echo "ods_stop_signer: ERROR: ods-enforcerd process is still running..." >&2 
 				return 1
 		fi		
-	fi	
+	fi	&&
 	
 	
 	echo "ods_stop_ods-control: ods-control stopped OK..." >&2 &&
