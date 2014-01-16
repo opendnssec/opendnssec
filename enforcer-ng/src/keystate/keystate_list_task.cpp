@@ -182,8 +182,8 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 	OrmConnRef conn;
 	::ods::keystate::EnforcerZone zone;
 	OrmResultRef rows;
-	const char* fmthdr = "%-31s %-8s %-9s %-24s %-5s %-10s %-32s %s\n";
-	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %s\n";
+	const char* fmthdr = "%-31s %-8s %-9s %-24s %-5s %-10s %-32s %-11s %s\n";
+	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n";
 
 	if (!ods_orm_connect(sockfd, config, conn))
 		return;
@@ -198,7 +198,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 	ods_printf(sockfd, "Keys:\n");
 	ods_printf(sockfd, fmthdr, "Zone:", "Keytype:", "State:", 
 		"Date of next transition:", "Size:", "Algorithm:", "CKA_ID:", 
-		"Repository:");
+		"Repository:", "KeyTag:");
 
     HsmKeyFactoryPB keyfactory(conn, NULL);
 	HsmKey *hsmkey;
@@ -221,7 +221,8 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 				hsmkey->bits(),
 				key.algorithm(),
 				key.locator().c_str(),
-				hsmkey->repository().c_str()
+				hsmkey->repository().c_str(),
+				key.keytag()
 			);
 			free(tchange);
 		}

@@ -223,6 +223,16 @@ void KeyDataPB::setDsAtParent(DsAtParent value)
     }
 }
 
+uint16_t KeyDataPB::keytag()
+{
+    return (uint16_t)_keydata->keytag();
+}
+
+void KeyDataPB::setKeytag(uint16_t value)
+{
+	_keydata->set_keytag( (uint32_t)value );
+}
+
 KeyDependencyPB::KeyDependencyPB( ::ods::keystate::KeyDependency *keydependency)
 :   _keydependency(keydependency)
 {

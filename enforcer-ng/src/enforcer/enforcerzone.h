@@ -106,6 +106,9 @@ public:
     /* Current state of the DS record at the parent */
     virtual DsAtParent dsAtParent();
     virtual void setDsAtParent(DsAtParent value);
+    
+    virtual uint16_t keytag();
+    virtual void setKeytag(uint16_t value);
 };
 
 class KeyDataListPB : public KeyDataList {

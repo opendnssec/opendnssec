@@ -233,6 +233,9 @@ public:
     
     virtual void setDsAtParent(DsAtParent value) = 0;
     virtual DsAtParent dsAtParent() = 0;
+    
+    virtual uint16_t keytag() = 0;
+    virtual void setKeytag(uint16_t value) = 0;
 };
 
 class KeyDataList {

@@ -90,7 +90,7 @@ message KeyData {
     required KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
     optional bool active_ksk = 16 [default = false, (xml).path="ActiveKSK"];
     optional dsatparent ds_at_parent = 17 [default = unsubmitted, (xml).path="DSAtParent"];
-    optional uint32 keytag = 18 [default = 0, (xml).path="Keytag"];
+    optional uint32 keytag = 18 [(xml).path="Keytag"]; //PB can't do uint16
 }
 
 message KeyState {

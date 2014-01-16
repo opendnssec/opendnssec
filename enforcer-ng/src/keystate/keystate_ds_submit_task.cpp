@@ -280,7 +280,6 @@ submit_keys(OrmConn conn,
 								::ods::keystate::KeyData *kd =
 									enfzone.mutable_keys(k);
 								kd->set_ds_at_parent(::ods::keystate::submitted);
-								kd->set_keytag(keytag);
 								bKeyModified = true;
 							}
 						}
@@ -302,7 +301,6 @@ submit_keys(OrmConn conn,
 									::ods::keystate::KeyData *kd = 
 										enfzone.mutable_keys(k);
 									kd->set_ds_at_parent(::ods::keystate::submitted);
-									kd->set_keytag(keytag);
 									bKeyModified = true;
 								}
 							}
@@ -322,7 +320,6 @@ submit_keys(OrmConn conn,
 								::ods::keystate::KeyData *kd = 
 									enfzone.mutable_keys(k);
 								kd->set_ds_at_parent(::ods::keystate::submitted);
-								kd->set_keytag(keytag);
 								bKeyModified = true;
 							}
 						}
