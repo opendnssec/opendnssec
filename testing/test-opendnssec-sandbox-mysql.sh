@@ -6,7 +6,28 @@ export HAVE_MYSQL="YES"
 
 require opendnssec-mysql
 
-check_if_tested sandbox-mysql && exit 0
+# clean out the sandbox
+cd test-cases-sandbox.d
+rm -rf enforcer.* signer.* general.*
+cd ..
+
+# now copy only test dirs that contain the sandbox file. ignore the 'off' status
+for test_dir in test-cases.d test-cases-daily.d; do
+	cd $test_dir
+	ls -1  2>/dev/null >"_sb_tests.$BUILD_TAG"
+	while read entry; do
+		if [ -d "$entry" -a -f "$entry/test.sh" ]; then
+		    if [ -f "$entry/sandbox" ]; then
+				echo "Found test for sandbox: " $test_dir/$entry
+				rsync -r $entry ../test-cases-sandbox.d --exclude=off
+			fi
+		fi
+	done <"_sb_tests.$BUILD_TAG"
+	rm -f "_sb_tests.$BUILD_TAG" 2>/dev/null
+	cd ..
+done
+
+#check_if_tested sandbox && exit 0
 start_test sandbox-mysql
 
 PRE_TEST=ods_pre_test
