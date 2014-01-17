@@ -1200,11 +1200,12 @@ setnextroll(EnforcerZone &zone, KeyRole role, time_t t, int clr)
  * Calculate keytag
  * @param loc: Locator of keydata on HSM
  * @param alg: Algorithm of key
- * @param role: KeyRole of key
+ * @param ksk: 0 for zsk, positive int for ksk|csk
+ * @param[out] success: set if returned keytag is meaningfull.
  * return: keytag
  * */
 static uint16_t 
-keytag(const char *loc, int alg, int role)
+keytag(const char *loc, int alg, int ksk, bool *succes)
 {
 	uint16_t tag;
 	hsm_ctx_t *hsm_ctx = hsm_create_context();
@@ -1214,17 +1215,19 @@ keytag(const char *loc, int alg, int role)
 	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "dummy");
 	sign_params->algorithm = (ldns_algorithm) alg;
 	sign_params->flags = LDNS_KEY_ZONE_KEY;
-	if (role & KSK) sign_params->flags |= LDNS_KEY_SEP_KEY;
-
-	hsm_key_t *hsmkey = hsm_find_key_by_id(hsm_ctx, loc);;
+	if (ksk) sign_params->flags |= LDNS_KEY_SEP_KEY;
+	*succes = false;
+	hsm_key_t *hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
+	if (!hsmkey) return 0;
 	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
-
+	if (!dnskey_rr) return 0;
 	tag = ldns_calc_keytag(dnskey_rr);
 
 	hsm_sign_params_free(sign_params);
 	hsm_key_free(hsmkey);
 	ldns_rr_free(dnskey_rr);
 	hsm_destroy_context(hsm_ctx);
+	*succes = true;
 	return tag;
 }
 
@@ -1366,9 +1369,16 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				now, (KeyRole)role, p_rolltype);
 			new_key.setLocator( newkey_hsmkey->locator() );
 
+			/** Get keytag for our new key. On failure continue 
+			 * without */
+			bool success;
 			uint16_t tag = keytag(newkey_hsmkey->locator().c_str(), 
-				algorithm, role);
-			new_key.setKeytag(tag);
+				algorithm, role&KSK, &success);
+			if (success)
+				new_key.setKeytag(tag);
+			else
+				ods_log_error("[%s] %s error calculating keytag", 
+					module_str, scmd);
 
 			new_key.setDsAtParent(DS_UNSUBMITTED);
 			struct FutureKey fkey;

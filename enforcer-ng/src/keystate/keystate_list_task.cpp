@@ -222,7 +222,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 				key.algorithm(),
 				key.locator().c_str(),
 				hsmkey->repository().c_str(),
-				key.keytag()
+				(key.has_keytag() ? key.keytag() : -1)
 			);
 			free(tchange);
 		}
