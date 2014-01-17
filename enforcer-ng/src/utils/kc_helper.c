@@ -420,7 +420,7 @@ int check_interval(xmlXPathContextPtr xpath_ctx,
 	}
 	temp_char = (char*) xmlXPathCastToString(xpath_obj);
 	xmlXPathFreeObject(xpath_obj);
-	if ( strnlen(temp_char, 32) != 0) {
+	if ( strlen(temp_char) != 0) {
 		dual_log("WARNING: Deprecated tag %s found in %s.\n", interval_xexpr, filename);
 		return 0;
 	}
