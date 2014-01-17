@@ -353,6 +353,9 @@ int check_conf(char** kasp) {
 	/* Warn if RolloverNotification is M or Y */
 	status += check_time_def_from_xpath(xpath_ctx, (xmlChar *)"//Configuration/Enforcer/RolloverNotification", "Configuration", "Enforcer/RolloverNotification", config);
 
+	status += check_interval(xpath_ctx, 
+		(xmlChar *)"//Configuration/Enforcer/Interval", config);
+
 	/* Check DelegationSignerSubmitCommand exists (if set) */
 	temp_status = check_file_from_xpath(xpath_ctx, "DelegationSignerSubmitCommand",
 			(xmlChar *)"//Configuration/Enforcer/DelegationSignerSubmitCommand");
