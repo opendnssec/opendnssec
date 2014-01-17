@@ -288,9 +288,8 @@ main(int argc, char* argv[])
 
 #ifdef ENFORCER_TIMESHIFT
     if (getenv("ENFORCER_TIMESHIFT")) {
-        fprintf(stdout, "WARNING: timeshift %s detected, running once only\n",
+        fprintf(stdout, "WARNING: timeshift %s detected, this is a fixed point in time.\n",
             getenv("ENFORCER_TIMESHIFT"));
-        single_run = 1;
     } else {
         fprintf(stdout, "DEBUG: timeshift mode enabled, but not set.\n");
     }
