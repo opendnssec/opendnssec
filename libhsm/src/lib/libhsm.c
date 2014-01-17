@@ -258,8 +258,7 @@ hsm_pkcs11_unload_functions(void *handle)
 #if defined(HAVE_LOADLIBRARY)
         /* no idea */
 #elif defined(HAVE_DLOPEN)
-        int result;
-        result = dlclose(handle);
+        (void) dlclose(handle);
 #endif
     }
 }
