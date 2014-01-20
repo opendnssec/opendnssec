@@ -171,6 +171,9 @@ public:
     
     /* Get access to the policy for associated with this zone */
     virtual const ::ods::kasp::Policy *policy();
+    /* TTL we must take in to account when rolling wrt signatures. 
+     * defined as max( MaxZoneTTL, Nsec3ParamTTL ) */
+    virtual int max_zone_ttl();
     
     /* Get access to the list of KeyDependency entries for this zone. */
     virtual KeyDependencyList &keyDependencyList();

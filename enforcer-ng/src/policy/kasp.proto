@@ -80,7 +80,7 @@ message NSEC {
 
 message NSEC3 {
     optional bool optout = 1 [(xml).path="OptOut"]; // opt out flag for nsec3
-    optional uint32 ttl = 2 [(xml).path="TTL", (xml).type=duration]; // ttl for nsec(3) rrs ?? not found in kasp.rnc
+    optional uint32 ttl = 2 [(xml).path="TTL", (xml).type=duration]; // ttl for nsec3param RR
     required uint32 resalt = 3 [(xml).path="Resalt", (xml).type=duration]; // re-salting interval
     required uint32 algorithm = 4 [(xml).path="Hash/Algorithm"]; // algorithm 0..255
     required uint32 iterations = 5 [(xml).path="Hash/Iterations"]; // iterations 0..65535

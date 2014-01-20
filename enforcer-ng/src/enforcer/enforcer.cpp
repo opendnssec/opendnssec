@@ -709,7 +709,7 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 			endDate = zone.ttlEnddateRs();
 			recordTTL = max(min(policy->zone().ttl(),
 							policy->zone().min()), 
-							policy->signatures().max_zone_ttl());
+							zone.max_zone_ttl());
 			break;				  
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
@@ -829,7 +829,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 	if (zone.ttlEnddateRs() <= now)
 		zone.setTtlEnddateRs(addtime(now, 
 				max(min(policy->zone().ttl(), policy->zone().min()), 
-					policy->signatures().max_zone_ttl()))); 
+					zone.max_zone_ttl()))); 
 
 	/** Keep looping till there are no state changes.
 	 * Find the earliest update time */
@@ -1337,7 +1337,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			if (role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
 				ods_log_crit("[%s] %s For policy %s ZSK key lifetime of %d is unreasonably short "
 					"with respect to sum of MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
-					module_str, scmd, policyName.c_str(), lifetime, policy->signatures().max_zone_ttl(), policy->keys().ttl());
+					module_str, scmd, policyName.c_str(), lifetime, zone.max_zone_ttl(), policy->keys().ttl());
 				setnextroll(zone, (KeyRole)role, now, 0);
 				continue;
 			}			

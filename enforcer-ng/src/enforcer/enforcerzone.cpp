@@ -408,6 +408,16 @@ const ::ods::kasp::Policy *EnforcerZonePB::policy()
     return &_policy;
 }
 
+int EnforcerZonePB::max_zone_ttl()
+{
+    int maxzonettl = _policy.signatures().max_zone_ttl();
+    if (!_policy.denial().has_nsec3() || !_policy.denial().nsec3().has_ttl()) {
+	return maxzonettl;
+    }
+    int nsec3paramttl = _policy.denial().nsec3().ttl();
+    return (nsec3paramttl > maxzonettl)? nsec3paramttl : maxzonettl;
+}
+
 KeyDependencyList &EnforcerZonePB::keyDependencyList()
 {
     return _keyDependencyList;
