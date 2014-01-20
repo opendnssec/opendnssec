@@ -45,7 +45,7 @@ log_grep axfr stdout 'below\.zonecut\.label4\.ods\..*600.*IN.*NS.*ns\.zonecut\.l
 log_this_timeout ixfr 10 drill -p 15354 @127.0.0.1 ixfr ods &&
 syslog_waitfor 10 'ods-signerd: .*\[axfr\] axfr fallback zone ods' &&
 syslog_waitfor 10 'ods-signerd: .*\[axfr\] axfr udp overflow zone ods' &&
-log_grep ixfr stdout 'ods\..*IN.*IXFR' &&
+log_grep ixfr stdout 'ods\..*IN.*TYPE251' &&
 log_grep ixfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 ! (log_grep ixfr stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.') &&
 
@@ -66,7 +66,7 @@ log_grep dig stdout 'label35\.ods\..*3600.*IN.*NS.*ns1\.label35\.ods\.' &&
 log_grep dig stdout 'ns1\.label35\.ods\..*3600.*IN.*A.*192\.0\.2\.1' &&
 
 # Validate the output on redhat
-# case "$DISTRIBUTION" in                                                                                 
+# case "$DISTRIBUTION" in
 #         redhat )
 #                 dig -p 15354 @127.0.0.1 axfr ods > ods_axfr &&
 #                 log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host ods_axfr &&
