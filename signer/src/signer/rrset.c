@@ -804,6 +804,10 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
          * currently, there is no rule that the number of signatures
          * over this RRset equals the number of active keys.
          */
+        if (rrset_sigok(rrset, &zone->signconf->keys->keys[i])) {
+            ods_log_debug("[%s] RRset[%i] with key %s returns sigok",
+               rrset_str, rrset->rrtype, zone->signconf->keys->keys[i].locator);
+        }
 
         /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,

@@ -142,7 +142,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
  *
  */
 hsm_repository_t*
-parse_conf_repositories(allocator_type* allocator, const char* cfgfile)
+parse_conf_repositories(const char* cfgfile)
 {
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;

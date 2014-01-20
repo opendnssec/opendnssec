@@ -397,7 +397,6 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
-    task_type* task = NULL;
     uint32_t inbserial = 0;
     uint32_t intserial = 0;
     uint32_t outserial = 0;

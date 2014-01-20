@@ -64,13 +64,11 @@ const char* parse_conf_string(const char* cfgfile, const char* expr,
 
 /**
  * Parse the repository list.
- * \param[in] allocator the allocator
  * \param[in] cfgfile the configuration file name
  * \return hsm_repository_t* repositories
  *
  */
-hsm_repository_t* parse_conf_repositories(allocator_type* allocator,
-    const char* cfgfile);
+hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
 /**
  * Parse the listener interfaces.

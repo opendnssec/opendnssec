@@ -105,7 +105,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         	ecfg->verbosity = parse_conf_verbosity(cfgfile);
         }
         ecfg->interfaces = parse_conf_listener(allocator, cfgfile);
-        ecfg->repositories = parse_conf_repositories(allocator, cfgfile);
+        ecfg->repositories = parse_conf_repositories(cfgfile);
         /* done */
         ods_fclose(cfgfd);
         return ecfg;
