@@ -163,10 +163,13 @@ char* ods_dir_name(const char* file);
  * Copy file.
  * \param[in] file1 from file name
  * \param[in] file2 to file name
+ * \param[in] startpos starting file position in file1
+ * \param[in] append whether to append or do a regular copy
  * \return ods_status
  *
  */
-ods_status ods_file_copy(const char* file1, const char* file2);
+ods_status ods_file_copy(const char* file1, const char* file2, long startpos,
+    int append);
 
 /**
  * (Create) and change ownership of directories.

@@ -80,10 +80,12 @@ stats_type* stats_create(void);
  * Log statistics.
  * \param[in] stats statistics
  * \param[in] name zone name
+ * \param[in] serial serial
  * \param[in] nsec_type NSEC or NSEC3
  *
  */
-void stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type);
+void stats_log(stats_type* stats, const char* name, uint32_t serial,
+    ldns_rr_type nsec_type);
 
 /**
  * Clear statistics.
