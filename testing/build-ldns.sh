@@ -40,6 +40,7 @@ case "$DISTRIBUTION" in
 			./configure --prefix="$INSTALL_ROOT" \
 				--with-drill \
 				--with-examples \
+				--enable-stderr-msgs \
 				--disable-gost \
 				--disable-ecdsa &&
 			$MAKE &&
