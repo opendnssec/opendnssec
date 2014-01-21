@@ -57,7 +57,7 @@ log_grep ixfr-tcp stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
 ## Update zonefile to create journal
 cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
 ods-signer sign ods &&
-syslog_waitfor 10 'ods-signerd: .*\[STATS\] ods RR\[count=3 time*' &&
+syslog_waitfor 10 'ods-signerd: .*\[STATS\] ods 1002 RR\[count=3 time*' &&
 
 ## See if we can get an IXFR back
 log_this_timeout dig 10 dig -p 15354 @127.0.0.1 ixfr=1001 ods &&
