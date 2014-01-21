@@ -1,9 +1,34 @@
 /*
- * policy_purge_task.cpp
+ * $Id$
  *
- *  Created on: 2013-11-15
- *      Author: zhangjm
+ * Copyright (c) 2011 Surfnet 
+ * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2011 OpenDNSSEC AB (svb)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
+
 #include <stdio.h>
 #include <iostream>
 #include <cassert>
@@ -15,6 +40,7 @@
 
 #include "enforcer/enforcerzone.h"
 #include "policy/policy_purge_task.h"
+#include "policy/policy_export_task.h"
 
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/keystate_list_task.h"
@@ -39,6 +65,8 @@ static const char *module_str = "policy_purge_task";
 int perform_policy_purge(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	
+	//TODO: backup the kasp file before we do anything
 
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
@@ -104,7 +132,7 @@ int perform_policy_purge(int sockfd, engineconfig_type *config)
 										  ::ods::kasp::Policy::descriptor(),
 										  "name = %s",
 										  del_policy.c_str());
-					ods_printf(sockfd,"purge policy with name = %s succeed!\n",del_policy.c_str());
+					ods_printf(sockfd,"No zones on policy %s; purging...\n",it->c_str());
 				}
 			}
 		}
@@ -116,4 +144,10 @@ int perform_policy_purge(int sockfd, engineconfig_type *config)
 			return 0;
 		}
 	}
+	
+	// Now we need to export the kasp.xml file with the new list of policies
+	// TODO: add error checking
+	perform_policy_export_to_file(config->policy_filename,config, NULL);
+	
+	
 }

@@ -32,9 +32,15 @@
 #ifndef _POLICY_POLICY_EXPORT_TASK_H_
 #define _POLICY_POLICY_EXPORT_TASK_H_
 
-#include "daemon/cfg.h"
-#include "scheduler/task.h"
+#include <string>
 
-void perform_policy_export(int sockfd, engineconfig_type *config, const char *policy);
+#include "daemon/cfg.h"
+
+
+// wrapper functions
+void perform_policy_export_to_fd(int sockfd, engineconfig_type *config, const char *policyname);
+void perform_policy_export_to_file(const std::string& filename, engineconfig_type *config, const char *policyname);
+// real work
+void perform_policy_export(const std::string* filename, int sockfd, engineconfig_type *config, const char *policyname);
 
 #endif

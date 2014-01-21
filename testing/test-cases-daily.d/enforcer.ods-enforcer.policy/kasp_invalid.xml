@@ -5,7 +5,7 @@
 		<Description>default fast test policy</Description>
 		<Signatures>
 			<Resign>PT3M</Resign>
-			<Refresh>PT15M</Refresh>
+			<Refresh>PT15M
 			<Validity>
 				<Default>PT1H</Default>
 				<Denial>PT1H</Denial>
@@ -64,7 +64,7 @@
 	</Policy>
 
 	<Policy name="default2">
-		<Description>default fast test policy2</Description>
+		<Description>default fast test policy</Description>
 		<Signatures>
 			<Resign>PT3M</Resign>
 			<Refresh>PT15M</Refresh>

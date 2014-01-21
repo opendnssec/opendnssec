@@ -37,7 +37,7 @@
 
 #include "policy/policy_import_cmd.h"
 #include "policy/update_kasp_task.h"
-/*#include "policy/policy_import_task.h" */
+#include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
@@ -49,7 +49,7 @@ void
 help_policy_import_cmd(int sockfd)
 {
     ods_printf(sockfd,
-	   "policy import     import policies from kasp.xml into the enforcer.\n");
+			   "policy import   import policies from kasp.xml into the enforcer.\n");
 }
 
 static void
@@ -84,6 +84,10 @@ handled_policy_import_cmd(int sockfd, engine_type* engine, const char *cmd,
 	
    /* perform_policy_import(sockfd, engine->config); */
     perform_update_kasp(sockfd, engine->config);
+
+	//TODO: Need error checking so we only do this if the update succeeds
+	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+					   engine->config->automatic_keygen_duration);
 
     flush_all_tasks(sockfd, engine);
 	

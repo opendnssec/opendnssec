@@ -58,7 +58,7 @@ help_zone_add_cmd(int sockfd)
 			   "                [--output <path>]     (aka -o)    output adapter zone file or config file\n"
 			   "                [--in-type <type>]    (aka -j)    input adapter type ('File' or 'DNS')\n"
 			   "                [--out-type <type>]   (aka -q)    output adapter type ('File' or 'DNS')\n"
-               "                [--xml]               (aka -u)    update the zonelist.xml file\n"
+			   "                [--xml]               (aka -u)    update the zonelist.xml file\n"
         );
 }
 
