@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 
 #TEST: Test to check that policy import/export/list works correctly
-#TODO: we need to check the command ods-ksmutil policy purge later
+
+# Cater for the fact that solaris needs gdiff and openbsd needs gdiff installed!
+# Really need to get gdiff installed and then use a fins_diff function....
+local diff_ignore_whitespace="diff -I ^[[:space:]]*$  -w -B " 
+case "$DISTRIBUTION" in
+	sunos  )
+		diff_ignore_whitespace="gdiff -I ^[[:space:]]*$  -w -B"
+		;;
+	openbsd )
+		return 0
+		;;
+esac
+
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -9,12 +21,108 @@ fi &&
 
 ods_reset_env &&
 
-# Set the policy to the initial value
-log_this ods-ksmutil-update cp -- "kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-log_this ods-ksmutil-update ods-ksmutil update kasp &&
-log_grep ods-ksmutil-update stdout 'Notifying enforcer of new database...' &&
+  #############Start with a kasp with 2 policies  #############
 
-#TODO: - incomplete parameter validation
+# test the command "ods-ksmutil policy list"
+log_this ods-ksmutil-list_1 ods-ksmutil policy list &&
+log_grep ods-ksmutil-list_1 stdout 'default[[:space:]]*default fast test policy' &&
+log_grep ods-ksmutil-list_1 stdout 'default2[[:space:]]*default fast test policy2' &&
+echo "************list OK******************" &&
+
+# Export the policy default and check some of its values
+ods-ksmutil policy export -p default > kasp.xml.temp &&
+$diff_ignore_whitespace  kasp.xml.temp kasp.xml.gold_export_default_policy &&
+rm kasp.xml.temp &&
+
+echo "************export -p default OK******************" &&
+
+# Export both the policies
+ods-ksmutil policy export --all > kasp.xml.temp &&
+$diff_ignore_whitespace  kasp.xml.temp kasp.xml.gold_export_2_policies &&
+rm kasp.xml.temp &&
+
+echo "************export --all OK******************" &&
+
+ods_start_enforcer &&
+sleep 5 &&
+log_this ods-ksmutil-export-after_run ods-ksmutil policy export --all &&
+ods_stop_enforcer &&
+
+############# Now add/update policyies  #############
+
+# test the command "ods-ksmutil policy import" and import 3 policies
+log_this ods-ksmutil-import_1 cp -- "kasp_3policies.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
+log_this ods-ksmutil-import_1 ods-ksmutil policy import &&
+echo "************import of 3 policies OK******************" &&
+log_this ods-ksmutil-list_2 ods-ksmutil policy list &&
+log_grep ods-ksmutil-list_2 stdout 'default[[:space:]]*default fast test policy' &&
+log_grep ods-ksmutil-list_2 stdout 'default2[[:space:]]*default fast test policy2' &&
+log_grep ods-ksmutil-list_2 stdout 'default3[[:space:]]*default fast test policy3' &&
+echo "************list OK******************" &&
+# Export again and check against the imported kasp
+ods-ksmutil policy export --all > kasp.xml.temp &&
+$diff_ignore_whitespace  kasp.xml.temp kasp.xml.gold_export_3_policies &&
+rm kasp.xml.temp &&
+
+echo "************export OK******************" &&
+echo &&
+
+############# Now try to remove a policy  #############
+
+# Set the kasp back to the original kaps with 2 policies, this time use the exported file to test a round trip
+log_this ods-ksmutil-import_2 cp -- "kasp.xml.gold_export_2_policies" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
+log_this ods-ksmutil-import_2 ods-ksmutil policy import &&
+echo "************import of 2 policies OK******************" &&
+# All 3 policies should still be there
+log_this ods-ksmutil-list_3 ods-ksmutil policy list &&
+log_grep ods-ksmutil-list_3 stdout 'default[[:space:]]*default fast test policy' &&
+log_grep ods-ksmutil-list_3 stdout 'default2[[:space:]]*default fast test policy2' &&
+log_grep ods-ksmutil-list_3 stdout 'default3[[:space:]]*default fast test policy3' &&
+echo "************list OK******************" &&
+# check the kasp hasn't been updated
+$diff_ignore_whitespace "$INSTALL_ROOT/etc/opendnssec/kasp.xml" "kasp.xml.gold_export_2_policies" &&
+echo "************kasp OK******************" &&
+
+# Now use purge to clean up policy 3 and it will also remove policy 2
+echo "y" | log_this ods-enforcer-policy-purge_1 "ods-ksmutil policy purge" &&
+# check the kasp has been updated
+$diff_ignore_whitespace  "$INSTALL_ROOT/etc/opendnssec/kasp.xml"  kasp.xml.gold_export_default_policy &&
+echo "************export OK******************" &&
+
+# Export the remaining policy
+ods-ksmutil policy export --all > kasp.xml.temp &&
+$diff_ignore_whitespace  kasp.xml.temp kasp.xml.gold_export_default_policy &&
+rm kasp.xml.temp &&
+
+echo "************export OK******************" &&
+echo &&
+
+# Now check we export an empty policy 
+echo "y" | log_this ods-ksmutil-remove-zone ods-ksmutil zone delete --all &&
+# Now use purge to remomve the remainin policy
+echo "y" | log_this ods-enforcer-policy-purge_2 "ods-ksmutil policy purge" &&
+# check the kasp has been updated
+$diff_ignore_whitespace  "$INSTALL_ROOT/etc/opendnssec/kasp.xml"  kasp.xml.gold_export_empty &&
+echo "************empty kasp OK******************" &&
+echo &&
+
+############ Check some error cases for the commands now ###########################
+
+# check the invalid XML won't import, and we should get the expected errors
+log_this ods-ksmutil-import-invalidXML cp -- "kasp_invalid.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
+! log_this ods-ksmutil-import-invalidXML ods-ksmutil policy import &&
+log_grep ods-ksmutil-import-invalidXML stderr 'ods-kaspcheck returned an error, please check your policy' &&
+echo "****************check the invalid XML OK*********************" &&
+echo &&
+
+# check the file won't import if a repo does not exist, and we should get the expected errors
+log_this ods-ksmutil-import-invalidXML_1 cp -- "kasp_missing_repo.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
+! log_this ods-ksmutil-import-invalidXML_1 ods-ksmutil policy import &&
+log_grep ods-ksmutil-import-invalidXML_1 stdout "ERROR: Unknown repository (bob) defined for KSK in default policy in " &&
+echo "****************check the invalid XML OK*********************" &&
+echo &&
+
+# Test incomplete command line for export
 ! log_this ods-ksmutil-export-incomplete-parameters ods-ksmutil policy export &&
 log_grep ods-ksmutil-export-incomplete-parameters stdout 'please specify either --policy <policy> or --all' &&
 ! log_this ods-ksmutil-export-incomplete-parameters ods-ksmutil policy &&
@@ -22,84 +130,7 @@ log_grep ods-ksmutil-export-incomplete-parameters stdout 'Unknown command: polic
 echo "************incomplete parameter validation OK******************" &&
 echo &&
 
-# test the command "ods-ksmutil policy list"
-log_this ods-ksmutil-list ods-ksmutil policy list &&
-log_grep ods-ksmutil-list stdout 'default2                         default fast test policy' &&
-echo "************list OK******************" &&
-echo &&
 
-# Export the policy default and check some of its values
-log_this ods-ksmutil-export-p ods-ksmutil policy export -p default &&
-log_grep ods-ksmutil-export-p stdout '<Policy name="default">' &&
-log_grep ods-ksmutil-export-p stdout '<KSK>' &&
-log_grep ods-ksmutil-export-p stdout '<Algorithm length="2048">7</Algorithm>' &&
-log_grep ods-ksmutil-export-p stdout '<Lifetime>PT345600S</Lifetime>' &&
-log_grep ods-ksmutil-export-p stdout '<Repository>SoftHSM</Repository>' &&
-log_grep ods-ksmutil-export-p stdout '<Standby>0</Standby>' &&
-log_grep ods-ksmutil-export-p stdout '</KSK>' &&
-log_grep_count ods-ksmutil-export-p stdout '<Algorithm length="1024">7</Algorithm>' 1 &&
-echo "************export -p default OK******************" &&
-echo &&
-
-# Export the policy default2 and check some of its values
-log_this ods-ksmutil-export-p ods-ksmutil policy export -p default2 &&
-log_grep ods-ksmutil-export-p stdout '<Policy name="default2">' &&
-log_grep_count ods-ksmutil-export-p stdout '<Algorithm length="1024">7</Algorithm>' 2 &&
-echo "************export -p default2 OK******************" &&
-echo &&
-
-# Export the policy by command "ods-ksmutil policy export -all" and check some of its value
-log_this ods-ksmutil-export-p ods-ksmutil policy export --all &&
-log_grep_count ods-ksmutil-export-p stdout '<Policy name="default">' 2 &&
-log_grep_count ods-ksmutil-export-p stdout '<Policy name="default2">' 2 &&
-log_grep_count ods-ksmutil-export-p stdout '<Algorithm length="1024">7</Algorithm>' 4 &&
-echo "****************export -all OK*********************" &&
-echo &&
-
-# test the command "ods-ksmutil policy import"
-log_this ods-ksmutil-import cp -- "kasp_3policies.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-# kasp_3policies.xml: add default3 in the kasp.xml
-log_this ods-ksmutil-import ods-ksmutil policy import &&
-# 'diff' between the imported and exported they should be the same
-log_this ods-ksmutil-export-3policies ods-ksmutil policy export --all &&
-log_grep ods-ksmutil-export-3policies stdout '<Policy name="default3">' &&
-echo "****************import -all OK*********************" &&
-echo &&
-
-
-# test the command "ods-ksmutil policy list" again
-log_this ods-ksmutil-list ods-ksmutil policy list &&
-log_grep ods-ksmutil-list stdout 'default3                         default fast test policy' &&
-echo "****************list OK*********************" &&
-echo &&
-
-#TODO: - check the invalid XML won't import, and we should get the expected errors
-log_this ods-ksmutil-export-invalidXML cp -- "kasp_invalid.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-! log_this ods-ksmutil-export-invalidXML ods-ksmutil policy import &&
-log_grep ods-ksmutil-export-invalidXML stdout 'Error: unable to parse file ' &&
-echo "****************check the invalid XML OK*********************" &&
-echo &&
-
-# Set the policy to original value
-log_this ods-ksmutil-export-invalidXML cp -- "kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-log_this ods-ksmutil-export-invalidXML ods-ksmutil policy import &&
-# log_this ods-ksmutil-export1 ods-ksmutil update kasp &&
-log_this ods-ksmutil-export-2policies ods-ksmutil policy export --all &&
-log_grep ods-ksmutil-export-2policies stdout '<Policy name="default3">' &&
-# to prove that The commands (ods-ksmutil policy import and ods-ksmutil update kasp) can only add policies, but cannot delete policies from database.
-echo "****************test more about export OK*********************" &&
-echo &&
-
-#TODO: we should test more about command "ods-ksmutil policy purge"
-echo "y" | log_this ods-ksmutil-purge ods-ksmutil policy purge &&
-log_grep ods-ksmutil-purge stdout 'No zones on policy default2; purging...' &&
-log_grep ods-ksmutil-purge stdout 'No zones on policy default3; purging...' &&
-echo "****************test policy purge OK*********************" &&
-echo &&
-
-# Set the policy to original value and end our test
-log_this ods-ksmutil-update cp -- "kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-log_this ods-ksmutil-update ods-ksmutil update kasp &&
 
 echo &&
 echo "****************all test OK******************" &&

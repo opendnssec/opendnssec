@@ -5,7 +5,7 @@
 		<Description>default fast test policy</Description>
 		<Signatures>
 			<Resign>PT3M</Resign>
-			<Refresh>PT15M
+			<Refresh>PT15M</Refresh>
 			<Validity>
 				<Default>PT1H</Default>
 				<Denial>PT1H</Denial>
@@ -38,7 +38,7 @@
 			</KSK>
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>PT25H</Lifetime>
+				<Lifetime>PT12H</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</ZSK>
@@ -100,7 +100,7 @@
 			</KSK>
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>PT25H</Lifetime>
+				<Lifetime>PT12H</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</ZSK>
