@@ -1,6 +1,9 @@
+22 January 2014: Matthijs
+- OPENDNSSEC-526: Backup xfrd state.
+
 13 January 2014: Matthijs
-- Fix a bug where the zone transfer was not stored on disk completely yet,
-  and the restore failed.
+- OPENDNSSEC-529: Fix a bug where the zone transfer was not stored on disk
+  completely yet, and the restore failed.
 
 18 December 2013: Matthijs
 - Merged OPENDNSSEC-515 from 1.3 branch.

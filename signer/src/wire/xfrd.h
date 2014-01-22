@@ -177,8 +177,9 @@ socklen_t xfrd_acl_sockaddr_to(acl_type* acl,
 /**
  * Cleanup zone transfer structure.
  * \param[in] xfrd zone transfer structure.
+ * \param[in] backup backup transfer variables.
  *
  */
-void xfrd_cleanup(xfrd_type* xfrd);
+void xfrd_cleanup(xfrd_type* xfrd, int backup);
 
 #endif /* WIRE_XFRD_H */

@@ -44,6 +44,7 @@
 
 #define BUFFER_PKT_HEADER_SIZE 12
 #define MAXDOMAINLEN 255
+#define MAXLABELLEN 63
 #define MAX_RDLENGTH    65535
 #define MAX_RR_SIZE \
         (MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)
