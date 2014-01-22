@@ -86,8 +86,8 @@ log_grep ods-ksmutil-policy-purge_3 stdout "No zones on policy default2; purging
 #list policy
 log_this ods-ksmutil-policy-list_5 "ods-ksmutil policy list" &&
 log_grep ods-ksmutil-policy-list_5 stdout 'default[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
-! log_grep ods-ksmutil-policy-list_2 stdout 'default2[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
-! log_grep ods-ksmutil-policy-list_2 stdout 'default3[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
+! log_grep ods-ksmutil-policy-list_5 stdout 'default2[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
+! log_grep ods-ksmutil-policy-list_5 stdout 'default3[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
 
 #set the kasp to default
 log_this ods-set-kasp-default cp -- "kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
