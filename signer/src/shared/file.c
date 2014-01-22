@@ -425,7 +425,7 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
  *
  */
 ods_status
-ods_file_copy(const char* file1, const char* file2)
+ods_file_copy(const char* file1, const char* file2, long startpos, int append)
 {
     char buf[BUFFER_SIZE];
     int fin = 0;
@@ -437,9 +437,18 @@ ods_file_copy(const char* file1, const char* file2)
     if ((fin = open(file1, O_RDONLY|O_NONBLOCK)) < 0) {
         return ODS_STATUS_FOPEN_ERR;
     }
-    if ((fout = open(file2, O_WRONLY|O_TRUNC|O_CREAT, 0666)) < 0) {
+    if (append) {
+        fout = open(file2, O_WRONLY|O_APPEND|O_CREAT, 0666);
+    } else {
+        fout = open(file2, O_WRONLY|O_TRUNC|O_CREAT, 0666);
+    }
+    if (fout < 0) {
         close(fin);
         return ODS_STATUS_FOPEN_ERR;
+    }
+    ods_log_debug("[%s] lseek file %s pos %ld", file_str, file1, startpos);
+    if (lseek(fin, startpos, SEEK_SET) < 0) {
+        return ODS_STATUS_FSEEK_ERR;
     }
     while (1) {
         read_size = read(fin, buf, sizeof(buf));
@@ -447,11 +456,15 @@ ods_file_copy(const char* file1, const char* file2)
             break;
         }
         if (read_size < 0) {
+            ods_log_error("[%s] read file %s error %s", file_str, file1,
+                strerror(errno));
             close(fin);
             close(fout);
             return ODS_STATUS_FREAD_ERR;
         }
         if (write(fout, buf, (unsigned int) read_size) < 0) {
+            ods_log_error("[%s] write file %s error %s", file_str, file1,
+                strerror(errno));
             close(fin);
             close(fout);
             return ODS_STATUS_FWRITE_ERR;

@@ -56,6 +56,9 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
 
 int check_time_def(const char *time_expr, const char *location, const char *field, const char *filename, int* interval);
 int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_xexpr, const char *location, const char *field, const char *filename);
+/** Check for presence of the Interval tag. The tag is not used 
+ * anymore in 2.0 so we print a deprecation warning if present. */
+int check_interval(xmlXPathContextPtr xpath_ctx, const xmlChar *interval_xexpr, const char *filename);
 
 int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp);
 

@@ -51,6 +51,7 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_CONFLICT_ERR, "Conflict detected"},
     { ODS_STATUS_ERR, "General error"},
     { ODS_STATUS_FOPEN_ERR, "Unable to open file"},
+    { ODS_STATUS_FSEEK_ERR, "fseek() failed"},
     { ODS_STATUS_FORK_ERR, "fork() failed"},
     { ODS_STATUS_FREAD_ERR, "Unable to read file"},
     { ODS_STATUS_FWRITE_ERR, "Unable to write file"},

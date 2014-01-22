@@ -595,7 +595,7 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
         /* [LOCK] signal */
         if (engine->signal == SIGNAL_RUN && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
-           lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 3600);
+           lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 0);
         }
         /* [UNLOCK] signal */
         lock_basic_unlock(&engine->signal_lock);

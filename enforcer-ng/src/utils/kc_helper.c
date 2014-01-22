@@ -407,6 +407,26 @@ int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_
 	return status;
 }
 
+int check_interval(xmlXPathContextPtr xpath_ctx,
+	const xmlChar *interval_xexpr, const char *filename)
+{
+	char *temp_char;
+	xmlXPathObjectPtr xpath_obj;
+	xpath_obj = xmlXPathEvalExpression(interval_xexpr, xpath_ctx);
+	
+	if(!xpath_obj) {
+		dual_log("ERROR: unable to evaluate xpath expression: %s\n", interval_xexpr);
+		return 1;
+	}
+	temp_char = (char*) xmlXPathCastToString(xpath_obj);
+	xmlXPathFreeObject(xpath_obj);
+	if ( strlen(temp_char) != 0) {
+		dual_log("WARNING: Deprecated tag %s found in %s.\n", interval_xexpr, filename);
+		return 0;
+	}
+	return 0;
+}
+
 
 
 int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp) {

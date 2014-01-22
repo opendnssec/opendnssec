@@ -84,7 +84,7 @@ start = element Configuration {
 		& element Datastore { (mysql | sqlite) }
 
 		# Interval between runs of the key rollover procedure
-		& element Interval { xsd:duration }
+		& element Interval { xsd:duration }?
 
 		# Use manual key generation?
 		& element ManualKeyGeneration { empty }?

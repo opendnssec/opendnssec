@@ -90,8 +90,8 @@ privuid(const char* username)
             return -1;
         }
         /* Lookup the user id in /etc/passwd */
-        s = getpwnam_r(username, &pwd, buf, bufsize, &result); /* LEAK */
-        if (result != NULL) {
+        s = getpwnam_r(username, &pwd, buf, bufsize, &result);
+        if (s == 0 && result != NULL) {
             uid = pwd.pw_uid;
         }
         free((void*) buf);
@@ -129,8 +129,8 @@ privgid(const char *groupname)
             return -1;
         }
         /* Lookup the group id in /etc/group */
-        s = getgrnam_r(groupname, &grp, buf, bufsize, &result); /* LEAK */
-        if (result != NULL) {
+        s = getgrnam_r(groupname, &grp, buf, bufsize, &result);
+        if (s == 0 && result != NULL) {
             gid = grp.gr_gid;
         }
         free((void*) buf);

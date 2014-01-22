@@ -342,27 +342,31 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
             return QUERY_DISCARDED;
         }
         lock_basic_lock(&q->zone->xfrd->serial_lock);
-        q->zone->xfrd->serial_notify = serial;
-        q->zone->xfrd->serial_notify_acquired = time_now();
-        if (!util_serial_gt(q->zone->xfrd->serial_notify,
-            q->zone->xfrd->serial_disk)) {
-            ods_log_debug("[%s] ignore notify: already got zone %s serial "
-                "%u on disk", query_str, q->zone->name,
-                q->zone->xfrd->serial_notify);
+        if (q->zone->xfrd->serial_notify_acquired) {
+            if (!util_serial_gt(q->zone->xfrd->serial_notify,
+                q->zone->xfrd->serial_disk)) {
+                ods_log_debug("[%s] ignore notify: already got zone %s serial "
+                    "%u on disk", query_str, q->zone->name,
+                    q->zone->xfrd->serial_notify);
+                q->zone->xfrd->serial_notify_acquired = 0;
+            } else {
+                ods_log_debug("[%s] ignore notify: zone %s transfer in process",
+                    query_str, q->zone->name);
+                /* update values */
+                q->zone->xfrd->serial_notify = serial;
+                q->zone->xfrd->serial_notify_acquired = time_now();
+            }
             lock_basic_unlock(&q->zone->xfrd->serial_lock);
             goto send_notify_ok;
         }
+        q->zone->xfrd->serial_notify = serial;
+        q->zone->xfrd->serial_notify_acquired = time_now();
         lock_basic_unlock(&q->zone->xfrd->serial_lock);
-    } else {
-        lock_basic_lock(&q->zone->xfrd->serial_lock);
-        q->zone->xfrd->serial_notify = 0;
-        q->zone->xfrd->serial_notify_acquired = 0;
-        lock_basic_unlock(&q->zone->xfrd->serial_lock);
+        /* forward notify to xfrd */
+        xfrd_set_timer_now(q->zone->xfrd);
+        dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
+            buffer_remaining(q->buffer));
     }
-    /* forward notify to xfrd */
-    xfrd_set_timer_now(q->zone->xfrd);
-    dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
-        buffer_remaining(q->buffer));
 
 send_notify_ok:
     /* send notify ok */

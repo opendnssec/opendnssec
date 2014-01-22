@@ -257,13 +257,15 @@ void
 ods_printf(int fd, const char * format, ...)
 {
     char buf[ODS_SE_MAXLINE];
+    int ok;
+    size_t nbuf;
 	va_list ap;
 	va_start(ap, format);
-	int ok = (vsnprintf(buf, ODS_SE_MAXLINE, format,ap) < ODS_SE_MAXLINE);
+	ok = (vsnprintf(buf, ODS_SE_MAXLINE, format,ap) < ODS_SE_MAXLINE);
 	va_end(ap);
 	if (!ok) {
 		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		size_t nbuf = strlen(strcpy(buf,"error: vsnprintf buffer too small\n"));
+		nbuf = strlen(strcpy(buf,"error: vsnprintf buffer too small\n"));
 		ods_writen(fd, buf, nbuf);
 	}
 	ods_writen(fd, buf, strlen(buf));
@@ -281,12 +283,13 @@ ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
 	char fmt[128];
     char buf[ODS_SE_MAXLINE];
 	int ok;
+	size_t nbuf;
 	
 	/* first perform the ods_log_error */
-	ok = (snprintf(fmt, sizeof(fmt), "[%s] %s", mod, format) < sizeof(fmt));
+	ok = (snprintf(fmt, sizeof(fmt), "[%s] %s", mod, format) < (int)sizeof(fmt));
 	if (!ok) {
 		ods_log_error("[%s] snprintf buffer too small",file_str);
-		size_t nbuf = strlen(strcpy(buf,"error: snprintf buffer too small\n"));
+		nbuf = strlen(strcpy(buf,"error: snprintf buffer too small\n"));
 		ods_writen(fd, buf, nbuf);
 		return;
 	}
@@ -296,10 +299,10 @@ ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
 
 
 	/* then perform the ods_printf */
-	ok = (snprintf(fmt, sizeof(fmt), "error: %s\n", format) < sizeof(fmt));
+	ok = (snprintf(fmt, sizeof(fmt), "error: %s\n", format) < (int)sizeof(fmt));
 	if (!ok) {
 		ods_log_error("[%s] snprintf buffer too small",file_str);
-		size_t nbuf = strlen(strcpy(buf,"error: snprintf buffer too small\n"));
+		nbuf = strlen(strcpy(buf,"error: snprintf buffer too small\n"));
 		ods_writen(fd, buf, nbuf);
 		return;
 	}
@@ -309,7 +312,7 @@ ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
 	va_end(ap);
 	if (!ok) {
 		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		size_t nbuf = strlen(strcpy(buf,"error: vsnprintf buffer too small\n"));
+		nbuf = strlen(strcpy(buf,"error: vsnprintf buffer too small\n"));
 		ods_writen(fd, buf, nbuf);
 		return;
 	}
@@ -332,6 +335,11 @@ ods_file_lastmodified(const char* file)
 
     if ((fd = ods_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
+        if (ret == -1) {
+            ods_log_error("[%s] Could not get info for file \'%s\' (%s)", 
+                file_str, file, strerror(errno));
+            return 0;
+        }
         ods_fclose(fd);
         return buf.st_mtime;
     }

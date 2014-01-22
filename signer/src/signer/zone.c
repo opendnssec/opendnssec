@@ -234,7 +234,6 @@ zone_publish_dnskeys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
-    uint32_t maxttl = 0;
     uint16_t i = 0;
     ods_status status = ODS_STATUS_OK;
     rrset_type* rrset = NULL;
@@ -257,15 +256,6 @@ zone_publish_dnskeys(zone_type* zone)
     if (zone->signconf->dnskey_ttl) {
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
     }
-    /* MaxZoneTTL */
-/*
-    if (zone->signconf->max_zone_ttl) {
-        maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
-        if (maxttl < ttl) {
-            ttl = maxttl;
-        }
-    }
-*/
     /* publish keys */
     for (i=0; i < zone->signconf->keys->count; i++) {
         if (!zone->signconf->keys->keys[i].publish) {
@@ -352,8 +342,6 @@ zone_publish_nsec3param(zone_type* zone)
     rr_type* n3prr = NULL;
     ldns_rr* rr = NULL;
     ods_status status = ODS_STATUS_OK;
-    uint32_t ttl = 0;
-    uint32_t maxttl = 0;
 
     if (!zone || !zone->name || !zone->db || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
@@ -1001,7 +989,9 @@ zone_recover2(zone_type* zone)
 
         /* all ok */
         free((void*)filename);
-        ods_fclose(fd);
+        if (fd) {
+            ods_fclose(fd);
+        }
         if (zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);

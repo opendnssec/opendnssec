@@ -674,7 +674,7 @@ engine_run(engine_type* engine, int single_run)
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
-    (void)lhsm_reopen(engine->config->cfg_filename);
+    (void)lhsm_reopen(engine->config->repositories);
     return;
 }
 

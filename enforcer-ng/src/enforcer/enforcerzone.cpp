@@ -223,6 +223,16 @@ void KeyDataPB::setDsAtParent(DsAtParent value)
     }
 }
 
+uint16_t KeyDataPB::keytag()
+{
+    return (uint16_t)_keydata->keytag();
+}
+
+void KeyDataPB::setKeytag(uint16_t value)
+{
+	_keydata->set_keytag( (uint32_t)value );
+}
+
 KeyDependencyPB::KeyDependencyPB( ::ods::keystate::KeyDependency *keydependency)
 :   _keydependency(keydependency)
 {
@@ -396,6 +406,16 @@ const std::string &EnforcerZonePB::name()
 const ::ods::kasp::Policy *EnforcerZonePB::policy()
 {
     return &_policy;
+}
+
+int EnforcerZonePB::max_zone_ttl()
+{
+    int maxzonettl = _policy.signatures().max_zone_ttl();
+    if (!_policy.denial().has_nsec3() || !_policy.denial().nsec3().has_ttl()) {
+	return maxzonettl;
+    }
+    int nsec3paramttl = _policy.denial().nsec3().ttl();
+    return (nsec3paramttl > maxzonettl)? nsec3paramttl : maxzonettl;
 }
 
 KeyDependencyList &EnforcerZonePB::keyDependencyList()

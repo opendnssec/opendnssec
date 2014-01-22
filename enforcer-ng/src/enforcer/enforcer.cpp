@@ -49,7 +49,10 @@
 #include "enforcer/enforcerdata.h"
 #include "policy/kasp.pb.h"
 #include "hsmkey/hsmkey.pb.h"
-//~ #include "pb-orm-read.h"
+
+#include <libhsm.h>
+#include <libhsmdns.h>
+#include <ldns/ldns.h>
 
 #include "shared/duration.h"
 #include "shared/log.h"
@@ -706,7 +709,7 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 			endDate = zone.ttlEnddateRs();
 			recordTTL = max(min(policy->zone().ttl(),
 							policy->zone().min()), 
-							policy->signatures().max_zone_ttl());
+							zone.max_zone_ttl());
 			break;				  
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
@@ -826,7 +829,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 	if (zone.ttlEnddateRs() <= now)
 		zone.setTtlEnddateRs(addtime(now, 
 				max(min(policy->zone().ttl(), policy->zone().min()), 
-					policy->signatures().max_zone_ttl()))); 
+					zone.max_zone_ttl()))); 
 
 	/** Keep looping till there are no state changes.
 	 * Find the earliest update time */
@@ -1193,6 +1196,41 @@ setnextroll(EnforcerZone &zone, KeyRole role, time_t t, int clr)
 	}
 }
 
+/** 
+ * Calculate keytag
+ * @param loc: Locator of keydata on HSM
+ * @param alg: Algorithm of key
+ * @param ksk: 0 for zsk, positive int for ksk|csk
+ * @param[out] success: set if returned keytag is meaningfull.
+ * return: keytag
+ * */
+static uint16_t 
+keytag(const char *loc, int alg, int ksk, bool *succes)
+{
+	uint16_t tag;
+	hsm_ctx_t *hsm_ctx = hsm_create_context();
+	hsm_sign_params_t *sign_params = hsm_sign_params_new();
+	/* The owner name is not relevant for the keytag calculation.
+	 * However, a ldns_rdf_clone down the path will trip over it. */
+	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "dummy");
+	sign_params->algorithm = (ldns_algorithm) alg;
+	sign_params->flags = LDNS_KEY_ZONE_KEY;
+	if (ksk) sign_params->flags |= LDNS_KEY_SEP_KEY;
+	*succes = false;
+	hsm_key_t *hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
+	if (!hsmkey) return 0;
+	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
+	if (!dnskey_rr) return 0;
+	tag = ldns_calc_keytag(dnskey_rr);
+
+	hsm_sign_params_free(sign_params);
+	hsm_key_free(hsmkey);
+	ldns_rr_free(dnskey_rr);
+	hsm_destroy_context(hsm_ctx);
+	*succes = true;
+	return tag;
+}
+
 /**
  * See what needs to be done for the policy 
  * 
@@ -1299,7 +1337,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			if (role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
 				ods_log_crit("[%s] %s For policy %s ZSK key lifetime of %d is unreasonably short "
 					"with respect to sum of MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
-					module_str, scmd, policyName.c_str(), lifetime, policy->signatures().max_zone_ttl(), policy->keys().ttl());
+					module_str, scmd, policyName.c_str(), lifetime, zone.max_zone_ttl(), policy->keys().ttl());
 				setnextroll(zone, (KeyRole)role, now, 0);
 				continue;
 			}			
@@ -1330,6 +1368,17 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
 				now, (KeyRole)role, p_rolltype);
 			new_key.setLocator( newkey_hsmkey->locator() );
+
+			/** Get keytag for our new key. On failure continue 
+			 * without */
+			bool success;
+			uint16_t tag = keytag(newkey_hsmkey->locator().c_str(), 
+				algorithm, role&KSK, &success);
+			if (success)
+				new_key.setKeytag(tag);
+			else
+				ods_log_error("[%s] %s error calculating keytag", 
+					module_str, scmd);
 
 			new_key.setDsAtParent(DS_UNSUBMITTED);
 			struct FutureKey fkey;
