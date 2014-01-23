@@ -40,6 +40,7 @@
 #include <cppunit/TestResult.h>
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/TextTestProgressListener.h>
+#include <cppunit/BriefTestProgressListener.h>
 #include "timecollector.h"
 
 #include "pbormtest.h"
@@ -92,8 +93,11 @@ int main(int argc, char* argv[])
 	CppUnit::TestResult controller;
 	CppUnit::TestResultCollector result;
 	CppUnit::TextTestProgressListener progress;
-	controller.addListener( &result ); 
-	controller.addListener( &progress );   
+	CppUnit::BriefTestProgressListener status;
+
+	controller.addListener( &result );
+	controller.addListener( &progress );
+	controller.addListener( &status );
 
 	runner.addTest(registry.makeTest());
 	runner.run(controller);
