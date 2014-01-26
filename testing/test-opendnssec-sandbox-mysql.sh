@@ -19,7 +19,8 @@ for test_dir in test-cases.d test-cases-daily.d; do
 		if [ -d "$entry" -a -f "$entry/test.sh" ]; then
 		    if [ -f "$entry/sandbox" ]; then
 				echo "Found test for sandbox: " $test_dir/$entry
-				rsync -r $entry ../test-cases-sandbox.d --exclude=off
+				cp -r $entry ../test-cases-sandbox.d
+				rm ../test-cases-sandbox.d/$entry/off
 			fi
 		fi
 	done <"_sb_tests.$BUILD_TAG"

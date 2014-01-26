@@ -199,6 +199,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     bool bSignerConfNeedsWriting = false;
     bool bSubmitToParent = false;
     bool bRetractFromParent = false;
+	bool zones_need_updating = false;
 
 	OrmResultRef rows;
 	::ods::keystate::EnforcerZone enfzone;
@@ -218,6 +219,12 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	// identical to time_now.
 
 	bool next=OrmFirst(rows);
+	// I would output a count of the zones here, but according to the documenation
+	// a count is very expensive!
+	if (next) {
+		ods_log_info("[%s] Updating all zones that need require action", module_str);
+		zones_need_updating = true;
+	}
 	while (next) {
 		OrmTransactionRW transaction(conn);
 		if (!transaction.started())
@@ -274,6 +281,8 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	}
 	// we no longer need the query result, so release it.
 	rows.release();
+	if (zones_need_updating)
+		ods_log_info("[%s] Completed updating all zones that need required action", module_str);
 
     // Delete the call backs and launch key pre-generation when we ran out 
     // of keys during the enforcement
@@ -326,6 +335,8 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
             signconf_task(engine->config, "signconf", "signer configurations");
         schedule_task(sockfd,engine,signconf,"signconf");
     }
+	else
+		ods_log_info("[%s] No changes to any signconf file required", module_str);
 
     // Launch ds-submit task when one of the updated key states has the
     // DS_SUBMIT flag set.
