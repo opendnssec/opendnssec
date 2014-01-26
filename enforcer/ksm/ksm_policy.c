@@ -271,8 +271,14 @@ int KsmPolicyRead(KSM_POLICY* policy)
                 if (strncmp(data.category, "parent", 6) == 0) {
             		if (strncmp(data.name, "propagationdelay", 16) == 0) policy->parent->propdelay=data.value;
             		if (strncmp(data.name, "min", 3) == 0) policy->parent->soa_min=data.value;
-            		if (strncmp(data.name, "ttl", 3) == 0) policy->parent->soa_ttl=data.value;
-            		if (strncmp(data.name, "ttlds", 5) == 0) policy->parent->ds_ttl=data.value;
+					/* Resolve ambiguity in comparing names for these two parameters. With the old code if 
+					 ttlds came out the DB second, it would overwrite the value for ttl! */
+            		if (strncmp(data.name, "ttlds", 5) == 0) { 
+						policy->parent->ds_ttl=data.value;
+					}
+            		else if (strncmp(data.name, "ttl", 3) == 0) {
+							policy->parent->soa_ttl=data.value;
+					}
                 }
             	if (strncmp(data.category, "signature", 9) == 0) {
             		if (strncmp(data.name, "jitter", 6) == 0) policy->signer->jitter=data.value;
