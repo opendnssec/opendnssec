@@ -246,7 +246,7 @@ open_element(FILE *fw, const FieldDescriptor *field,
     string elempath = field->options().GetExtension(xml).path();
     string elemname = strip_path(elempath);
 
-    for (int i = 0; i<lvl; i++) fprintf(fw, "  ");
+    for (int i = 0; i<lvl; i++) fprintf(fw, "    ");
     fprintf(fw, "<%s", elemname.c_str());
     vector<const FieldDescriptor*>::const_iterator fld_iter;
     for (fld_iter=attributes.begin(); fld_iter != attributes.end(); ++fld_iter) {
@@ -284,7 +284,7 @@ close_element(FILE *fw, const FieldDescriptor *field, bool no_children,
     string elemname = strip_path(elempath);
     string val =  get_value(msg, field);
     if (no_children && val.empty()) return;
-    if (!no_children) for (int i = 0; i<lvl; i++) fprintf(fw, "  ");
+    if (!no_children) for (int i = 0; i<lvl; i++) fprintf(fw, "    ");
     fprintf(fw, "</%s>\n",  elemname.c_str());
 }
 
@@ -299,11 +299,10 @@ close_element(FILE *fw, const FieldDescriptor *field, bool no_children,
  */
 static void
 write_nonterminals(FILE *fw, const Message *msg, 
-    vector<const FieldDescriptor*> *nonterminal_elements, int lvl)
+    vector<const FieldDescriptor*> *nonterminal_elements, vector<const FieldDescriptor*> *attributes, int lvl)
 {
     vector<const FieldDescriptor*>::const_iterator fld_iter;
     vector<const FieldDescriptor*> sibblings;
-    vector<const FieldDescriptor*> attrs;
     
     if (nonterminal_elements->empty()) return;
     
@@ -313,10 +312,10 @@ write_nonterminals(FILE *fw, const Message *msg,
         string root = get_pathroot((*fld_iter)->options().GetExtension(xml).path());
         getSubForElemStr(root, nonterminal_elements, &sibblings);
         
-        for (int i = 0; i<lvl; i++) fprintf(fw, "  ");
+        for (int i = 0; i<lvl; i++) fprintf(fw, "    ");
         fprintf(fw, "<%s>\n",  root.c_str());
-        recurse_write(fw, NULL, sibblings, attrs, msg, lvl+1, root);
-        for (int i = 0; i<lvl; i++) fprintf(fw, "  ");
+        recurse_write(fw, NULL, sibblings, *attributes, msg, lvl+1, root);
+        for (int i = 0; i<lvl; i++) fprintf(fw, "    ");
         fprintf(fw, "</%s>\n",  root.c_str());
     }
 }
@@ -417,7 +416,7 @@ recurse_write(FILE *fw, const FieldDescriptor *parentfield,
     /* Everything left in nonterminal_elements after processing is in
      * fact an empty non-terminal, these need special treatment */
     int nochild = elements.empty() && nonterminal_elements.empty();
-    write_nonterminals(fw, msg, &nonterminal_elements, lvl);
+    write_nonterminals(fw, msg, &nonterminal_elements, &attributes, lvl);
     
     if (parentfield) {
         close_element(fw, parentfield, nochild, attributes, msg, lvl-1);
@@ -462,6 +461,7 @@ write_pb_message_to_xml_fd(const google::protobuf::Message *document,
     }
     FILE *fw = fdopen(dfd,"w");
     if (!fw) return false;
+    fprintf(fw, "<?xml version=\"1.0\"?>\n");
     write_msg(fw, document, lvl);
     ods_fclose(fw);
     return true;

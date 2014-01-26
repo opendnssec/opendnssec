@@ -29,18 +29,22 @@
  *
  */
 
-#ifndef _POLICY_POLICY_EXPORT_TASK_H_
-#define _POLICY_POLICY_EXPORT_TASK_H_
+#ifndef _POLICY_POLICY_IMPORT_CMD_H_
+#define _POLICY_POLICY_IMPORT_CMD_H_
 
-#include <string>
+#include "daemon/engine.h"
 
-#include "daemon/cfg.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+void help_policy_import_cmd(int sockfd);
 
-// wrapper functions
-void perform_policy_export_to_fd(int sockfd, engineconfig_type *config, const char *policyname);
-void perform_policy_export_to_file(const std::string& filename, engineconfig_type *config, const char *policyname);
-// real work
-void perform_policy_export(const std::string* filename, int sockfd, engineconfig_type *config, const char *policyname);
+int handled_policy_import_cmd(int sockfd, engine_type* engine, const char *cmd,
+							ssize_t n);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -36,6 +36,7 @@ echo "y" | log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
 log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default2; purging..." &&
 log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default3; purging..." &&
 # Check that the policy is removed from the kasp file
+`$GREP -q -- "default" $KASP_FILE` &&
 ! `$GREP -q -- "default2" $KASP_FILE` &&
 ! `$GREP -q -- "default3" $KASP_FILE` &&
 
@@ -77,18 +78,20 @@ log_grep ods-enforcer-policy-list_4 stdout 'default2[[:space:]]*default[[:space:
 
 #delete zone ods1
 echo "y" | log_this ods-enforcer-zone-delete "ods-enforcer zone delete -z ods1" &&
-log_grep ods-enforcer-zone-delete stdout "zone 'ods1' deleted successfully" &&
+log_grep ods-enforcer-zone-delete stdout "Deleted zone: ods1 in database only" &&
 
 #policy purge
 echo "y " | log_this ods-enforcer-policy-purge_3 "ods-enforcer policy purge" &&
-# FIX THIS ON 2.0 # log_grep ods-enforcer-policy-purge_3 stdout "No zones on policy default2; purging..." &&
+log_grep ods-enforcer-policy-purge_3 stdout "No zones on policy default2; purging..." &&
+`$GREP -q -- "default" $KASP_FILE` &&
 ! `$GREP -q -- "default2" $KASP_FILE` &&
+! `$GREP -q -- "default3" $KASP_FILE` &&
 
 #list policy
 log_this ods-enforcer-policy-list_5 "ods-enforcer policy list" &&
 log_grep ods-enforcer-policy-list_5 stdout 'default[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
-! log_grep ods-enforcer-policy-list_2 stdout 'default2[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
-! log_grep ods-enforcer-policy-list_2 stdout 'default3[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
+! log_grep ods-enforcer-policy-list_5 stdout 'default2[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
+! log_grep ods-enforcer-policy-list_5 stdout 'default3[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
 
 #set the kasp to default
 log_this ods-set-kasp-default cp -- "kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&

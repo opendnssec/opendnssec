@@ -35,6 +35,7 @@
 
 #include "policy/policy_export_cmd.h"
 #include "policy/policy_export_task.h"
+#include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
@@ -45,8 +46,8 @@ static const char *module_str = "policy_export_cmd";
 void help_policy_export_cmd(int sockfd)
 {
     ods_printf(sockfd,
-    		"policy export     export policies\n"
-    		"  --policy <policy_name> (aka -p) | --all (aka -a)  \n");
+			   "policy export   export policies in the kasp.xml format\n"
+			   "                --policy <policy_name> | --all (aka -p | -a)  \n");
 }
 
 int handled_policy_export_cmd(int sockfd, engine_type* engine, const char *cmd,
@@ -64,6 +65,8 @@ int handled_policy_export_cmd(int sockfd, engine_type* engine, const char *cmd,
 	        return 0; // not handled
 
 	    ods_log_debug("[%s] %s command", module_str, scmd);
+	
+		//time_t tstart = time(NULL);
 
 	    // Use buf as an intermediate buffer for the command.
 	    strncpy(buf,cmd,sizeof(buf));
@@ -79,10 +82,11 @@ int handled_policy_export_cmd(int sockfd, engine_type* engine, const char *cmd,
 	    }
 
 	    const char *policy = NULL;
-	    int ex_all=0;
+	    int export_all=0;
 	    ods_find_arg_and_param(&argc,argv,"policy","p",&policy);
-	    if (ods_find_arg(&argc, argv, "all", "a") != -1) ex_all = 1;
-	    if (!policy && ex_all) {
+	    if (ods_find_arg(&argc, argv, "all", "a") >= 0) export_all = 1;
+	
+	    if (!policy && export_all == 0) {
 	        ods_log_warning("[%s] expected option --policy <zone> | --all  for %s command",
 	                        module_str,scmd);
 	        ods_printf(sockfd,"expected --policy <policy> | --all  option\n");
@@ -96,8 +100,9 @@ int handled_policy_export_cmd(int sockfd, engine_type* engine, const char *cmd,
 	        return 1; // errors, but handled
 	    }
 
-	    perform_policy_export(sockfd,engine->config,policy);
-
+	    perform_policy_export_to_fd(sockfd,engine->config,policy);
+	
+		//ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 	    return 1;
 
 }

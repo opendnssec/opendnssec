@@ -1,9 +1,34 @@
 /*
- * policy_purge_cmd.cpp
+ * $Id$
  *
- *  Created on: 2013��10��18��
- *      Author: zhangjm
+ * Copyright (c) 2011 Surfnet 
+ * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2011 OpenDNSSEC AB (svb)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
+
 #include <ctime>
 #include <iostream>
 #include <cassert>
@@ -19,7 +44,8 @@ static const char *module_str = "policy_purge_cmd";
 
 void
 help_policy_purge_cmd(int sockfd){
-	 ods_printf(sockfd,"policy purge     Delete any policies with no zones \n");
+	 ods_printf(sockfd,
+			   "policy purge    delete any policies with no zones and update kasp.xml \n");
 }
 
 /* Delete any policies with no zones  */
@@ -31,6 +57,8 @@ handled_policy_purge_cmd(int sockfd, engine_type* engine, const char *cmd,
 	    cmd = ods_check_command(cmd,n,scmd);
 	    if (!cmd)
 	        return 0; // not handled
+	
+		// TODO: Should we require a confirmation here?
 
 	    ods_log_debug("[%s] %s command", module_str, scmd);
 

@@ -35,7 +35,7 @@
 
 #include "policy/kasp.pb.h"
 
-#include "policy/update_kasp_cmd.h"
+#include "policy/policy_import_cmd.h"
 #include "policy/update_kasp_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"
@@ -43,13 +43,13 @@
 #include "shared/str.h"
 #include "daemon/engine.h"
 
-static const char *module_str = "update_kasp_cmd";
+static const char *module_str = "policy_import_cmd";
 
 void
-help_update_kasp_cmd(int sockfd)
+help_policy_import_cmd(int sockfd)
 {
     ods_printf(sockfd,
-			   "update kasp     import policies from kasp.xml into the enforcer.\n");
+			   "policy import   import policies from kasp.xml into the enforcer.\n");
 }
 
 static void
@@ -69,10 +69,10 @@ flush_all_tasks(int sockfd, engine_type* engine)
 }
 
 int
-handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
+handled_policy_import_cmd(int sockfd, engine_type* engine, const char *cmd,
                         ssize_t n)
 {
-    const char *scmd = "update kasp";
+    const char *scmd = "policy import";
 
     cmd = ods_check_command(cmd,n,scmd);
     if (!cmd)
@@ -82,12 +82,13 @@ handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     time_t tstart = time(NULL);
 	
+   /* perform_policy_import(sockfd, engine->config); */
     perform_update_kasp(sockfd, engine->config);
 
 	//TODO: Need error checking so we only do this if the update succeeds
 	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 					   engine->config->automatic_keygen_duration);
-					
+
     flush_all_tasks(sockfd, engine);
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);

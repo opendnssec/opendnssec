@@ -87,7 +87,7 @@ load_kasp_xml(int sockfd, const char * policiesfile,
 	}
 	
 	ods_log_info("kasp loaded from %s", policiesfile);
-	ods_printf(sockfd,"kasp loaded from %s", policiesfile);
+	ods_printf(sockfd,"kasp loaded from %s\n", policiesfile);
 	return true;
 }
 
@@ -107,25 +107,30 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 
 	//TODO: SPEED: We should create an index on the Policy.name column
 	
+	OrmTransactionRW transaction(conn);
+	if (!transaction.started()) {
+		ods_log_error_and_printf(sockfd, module_str,
+								 "starting a database transaction for "
+								 "updating a policy failed");
+		return;
+	}	
+	
     // Go through the list of policies from the kasp.xml file to determine
 	// if we need to insert new policies to the policies table.
     for (int i=0; i<kaspDoc->kasp().policies_size(); ++i) {
         const ::ods::kasp::Policy &policy = kaspDoc->kasp().policies(i);
 		
-		{	OrmTransactionRW transaction(conn);
-			if (!transaction.started()) {
-				ods_log_error_and_printf(sockfd, module_str,
-										 "starting a database transaction for "
-										 "updating a policy failed");
-				return;
-			}
-			
+		{			
 			std::string qpolicy;
+			ods_log_debug("policy %s found ", policy.name().c_str());
 			if (!OrmQuoteStringValue(conn, policy.name(), qpolicy)) {
 				ods_log_error_and_printf(sockfd, module_str,
 										 "quoting a string failed");
 				return;
 			}
+			
+			//TODO: We should do an update for existing policies. 
+			//TODO: As I would hope this failed due to foreign key violations!!
 			
 			// delete the existing policy from the database
 			if (!OrmMessageDeleteWhere(conn, policy.descriptor(),
@@ -143,16 +148,14 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 							"inserting policy into the database failed");
 				return;
 			}
-			
-			// commit the update policy to the database.
-			if (!transaction.commit()) {
-				ods_log_error_and_printf(sockfd, module_str,
-										 "committing policy to the database failed");
-				return;
-			}
-			ods_log_debug("policy %s found ", policy.name().c_str());
 		}
     }
+	// commit the update policy to the database.
+	if (!transaction.commit()) {
+		ods_log_error_and_printf(sockfd, module_str,
+								 "committing policy to the database failed");
+		return;
+	}
 	ods_log_info("kasp update complete");
-	ods_printf(sockfd,"kasp update complete");
+	ods_printf(sockfd,"kasp update complete\n");
 }
