@@ -170,9 +170,9 @@ perform_zone_add(int sockfd,
 				output->set_type("DNS");
 				output->set_adapter(ad_output_config);
 			}
-						
-			// enforcer needs to trigger signer configuration writing.
-			ks_zone.set_signconf_needs_writing( true );
+			
+			// Let the enforcer make this decision		
+			ks_zone.set_signconf_needs_writing( false );
 			
 			pb::uint64 zoneid;
 			if (!OrmMessageInsert(conn, ks_zone, zoneid)) {
@@ -205,5 +205,7 @@ perform_zone_add(int sockfd,
 	} else {
 		ods_printf(sockfd, "Imported zone: %s into database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
 	}
+	
+	ods_log_info("[%s] added Zone: %s", module_str, zone);
 
 }

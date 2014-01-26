@@ -240,7 +240,8 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 					zl_zone.signer_configuration());
 			ks_zone.mutable_adapters()->CopyFrom(
 					zl_zone.adapters());
-			ks_zone.set_signconf_needs_writing( true );
+			// Let the enforcer make this decision
+			ks_zone.set_signconf_needs_writing( false );
 
 			if (OrmFirst(rows)) {
 				/* update */
