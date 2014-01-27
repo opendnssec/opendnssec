@@ -77,7 +77,8 @@ stats_clear(stats_type* stats)
  *
  */
 void
-stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type)
+stats_log(stats_type* stats, const char* name, uint32_t serial,
+    ldns_rr_type nsec_type)
 {
     uint32_t avsign = 0;
 
@@ -88,11 +89,12 @@ stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type)
     if (stats->sig_time) {
         avsign = (uint32_t) (stats->sig_count/stats->sig_time);
     }
-    ods_log_info("[STATS] %s RR[count=%u time=%u(sec)] "
+    ods_log_info("[STATS] %s %u RR[count=%u time=%u(sec)] "
         "NSEC%s[count=%u time=%u(sec)] "
         "RRSIG[new=%u reused=%u time=%u(sec) avg=%u(sig/sec)] "
         "AUDIT[time=%u(sec)] TOTAL[time=%u(sec)] ",
-        name?name:"(null)", stats->sort_count, stats->sort_time,
+        name?name:"(null)", (unsigned) serial,
+        stats->sort_count, stats->sort_time,
         nsec_type==LDNS_RR_TYPE_NSEC3?"3":"", stats->nsec_count,
         stats->nsec_time, stats->sig_count, stats->sig_reuse,
         stats->sig_time, avsign, stats->audit_time,

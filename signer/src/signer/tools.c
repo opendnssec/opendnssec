@@ -428,9 +428,12 @@ tools_output(zone_type* zone)
         lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->stats_locked = LOCKED_STATS_TOOLS_LOG;
         zone->stats->end_time = time(NULL);
-        ods_log_debug("[%s] log stats for zone %s", tools_str,
-            zone->name?zone->name:"(null)");
-        stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
+        ods_log_debug("[%s] log stats for zone %s serial %u", tools_str,
+            zone->name?zone->name:"(null)",
+            zone->zonedata->outbound_serial);
+        stats_log(zone->stats, zone->name,
+            zone->zonedata->outbound_serial,
+            zone->signconf->nsec_type);
         stats_clear(zone->stats);
         zone->stats->stats_locked = 0;
         lock_basic_unlock(&zone->stats->stats_lock);

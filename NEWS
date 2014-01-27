@@ -2,6 +2,9 @@ $Id$
 
 OpenDNSSEC 1.13.17rc1
 
+* Signer Engine: log serial of signed zone in STATS line.
+
+
 Bugfixes:
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
