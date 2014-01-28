@@ -1282,17 +1282,17 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				&p_rolltype);
 
 			bool forceRoll = false;
+			switch((KeyRole)role) {
+				case KSK: forceRoll = zone.rollKskNow(); break;
+				case ZSK: forceRoll = zone.rollZskNow(); break;
+				case CSK: forceRoll = zone.rollCskNow(); break;
+				default:
+					/** Programming error, report a bug! */
+					ods_fatal_exit("[%s] %s Unknow Role: (%d)",
+					module_str, scmd, role);
+			}
 			/** Should we do a manual rollover *now*? */
 			if (manual_rollover) {
-				switch((KeyRole)role) {
-					case KSK: forceRoll = zone.rollKskNow(); break;
-					case ZSK: forceRoll = zone.rollZskNow(); break;
-					case CSK: forceRoll = zone.rollCskNow(); break;
-					default:
-						/** Programming error, report a bug! */
-						ods_fatal_exit("[%s] %s Unknow Role: (%d)",
-						module_str, scmd, role);
-				}
 				/** If no similar key available, roll. */
 				forceRoll |= !keyForAlgorithm(key_list, (KeyRole)role, 
 					algorithm);
@@ -1422,16 +1422,14 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			
 			/* The user explicitly requested a rollover, request 
 			 * succeeded. We can now stop try to roll manually.  */
-			if (manual_rollover) {
-				switch((KeyRole)role) {
-					case KSK: zone.setRollKskNow(false); break;
-					case ZSK: zone.setRollZskNow(false); break;
-					case CSK: zone.setRollCskNow(false); break;
-					default:
-						/** Programming error, report a bug! */
-						ods_fatal_exit("[%s] %s Unknow Role: (%d)",
-						module_str, scmd, role);
-				}
+			switch((KeyRole)role) {
+				case KSK: zone.setRollKskNow(false); break;
+				case ZSK: zone.setRollZskNow(false); break;
+				case CSK: zone.setRollCskNow(false); break;
+				default:
+					/** Programming error, report a bug! */
+					ods_fatal_exit("[%s] %s Unknow Role: (%d)",
+					module_str, scmd, role);
 			}
 		} /** loop over keyconfigs */
 	} /** loop over KeyRole */
