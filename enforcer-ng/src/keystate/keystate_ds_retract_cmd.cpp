@@ -52,12 +52,13 @@ help_keystate_ds_retract_cmd(int sockfd)
         "                (aka -k) force retract of KSK key with cka_id <cka_id>.\n"
         "  --auto        (aka -a) perform retract for all keys that have "
                         "the retract flag set.\n"
-        );
+        "  --force       (aka -f) force retract even if DelegationSignerRetractCommand is absent.\n"
+    );
 }
 
 int
 handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
-								const char *cmd, ssize_t n)
+                                const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     const char *argv[8];
@@ -91,6 +92,7 @@ handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
     (void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
     bool bAutomatic = ods_find_arg(&argc,argv,"auto","a") != -1;
+    bool force = ods_find_arg(&argc,argv,"force","f") != -1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
@@ -100,10 +102,11 @@ handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
     
     /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_keystate_ds_retract(sockfd,engine->config,zone,cka_id,bAutomatic?1:0);
+    perform_keystate_ds_retract(sockfd, engine->config, zone,cka_id, 
+        bAutomatic?1:0, force);
     if (!zone && !cka_id) {
         ods_printf(sockfd,"%s completed in %ld seconds.\n",
-				   scmd,time(NULL)-tstart);
+                   scmd,time(NULL)-tstart);
     }
 
     return 1;

@@ -58,7 +58,8 @@ submit_dnskey_by_id(int sockfd,
 					::ods::keystate::keyrole role,
 					const char *zone,
 					int algorithm,
-					uint32_t ttl)
+					uint32_t ttl,
+					bool force)
 {
 	struct stat stat_ret;
 	/* Code to output the DNSKEY record  (stolen from hsmutil) */
@@ -124,10 +125,14 @@ submit_dnskey_by_id(int sockfd,
 	// submit the dnskey rr string to a configured
 	// delegation signer submit program.
 	if (!ds_submit_command || ds_submit_command[0] == '\0') {
-		keytag = 0;
-		ods_log_error_and_printf(sockfd, module_str, 
-			"no \"DelegationSignerSubmitCommand\" binary "
-			"configured in conf.xml.");
+		if (!force) {
+			ods_log_error_and_printf(sockfd, module_str, 
+				"No \"DelegationSignerSubmitCommand\" "
+				"configured. No state changes made. "
+				"Use --force to override.");
+			keytag = 0;
+		}
+		/* else: Do nothing, return keytag. */
 	} else if (stat(ds_submit_command, &stat_ret) != 0) {
 		/* First check that the command exists */
 		keytag = 0;
@@ -201,7 +206,8 @@ submit_keys(OrmConn conn,
 			const char *zone,
 			const char *id,
 			const char *datastore,
-			const char *ds_submit_command)
+			const char *ds_submit_command,
+			bool force)
 {
 	#define LOG_AND_RETURN(errmsg)\
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
@@ -274,7 +280,7 @@ submit_keys(OrmConn conn,
 												key.role(),
 												enfzone.name().c_str(),
 												key.algorithm(),
-												dnskey_ttl);
+												dnskey_ttl, force);
 							if (keytag)
 							{
 								::ods::keystate::KeyData *kd =
@@ -295,7 +301,7 @@ submit_keys(OrmConn conn,
 													key.role(),
 													enfzone.name().c_str(),
 													key.algorithm(),
-													dnskey_ttl);
+													dnskey_ttl, force);
 								if (keytag)
 								{
 									::ods::keystate::KeyData *kd = 
@@ -314,7 +320,7 @@ submit_keys(OrmConn conn,
 												key.role(),
 												enfzone.name().c_str(),
 												key.algorithm(),
-												dnskey_ttl);
+												dnskey_ttl, force);
 							if (keytag)
 							{
 								::ods::keystate::KeyData *kd = 
@@ -425,7 +431,8 @@ list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
 
 void 
 perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
-						   const char *zone, const char *id, int bauto)
+						   const char *zone, const char *id, int bauto,
+						   bool force)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
@@ -433,7 +440,7 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
 		// Evaluate parameters and submit keys to the parent when instructed to.
 		if (zone || id || bauto)
 			submit_keys(conn,sockfd,zone,id,config->datastore,
-						config->delegation_signer_submit_command);
+						config->delegation_signer_submit_command, force);
 		else
 			list_keys_submit(conn,sockfd,config->datastore);
 	}
@@ -443,7 +450,7 @@ static task_type *
 keystate_ds_submit_task_perform(task_type *task)
 {
 	perform_keystate_ds_submit(-1,(engineconfig_type *)task->context,NULL,NULL,
-							   0);
+							   0, false);
 	task_cleanup(task);
 	return NULL;
 }

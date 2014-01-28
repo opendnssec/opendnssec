@@ -56,7 +56,8 @@ retract_dnskey_by_id(int sockfd,
 					const char *id,
 					::ods::keystate::keyrole role,
 					const char *zone,
-					int algorithm)
+					int algorithm,
+					bool force)
 {
 	struct stat stat_ret;
 	/* Code to output the DNSKEY record  (stolen from hsmutil) */
@@ -116,9 +117,14 @@ retract_dnskey_by_id(int sockfd,
 	// pass the dnskey rr string to a configured
 	// delegation signer retract program.
 	if (!ds_retract_command || ds_retract_command[0] == '\0') {
-		ods_log_error_and_printf(sockfd, module_str,
-			"no \"DelegationSignerRetractCommand\" binary "
-			"configured in conf.xml.");
+		if (!force) {
+			ods_log_error_and_printf(sockfd, module_str, 
+				"No \"DelegationSignerRetractCommand\" "
+				"configured. No state changes made. "
+				"Use --force to override.");
+			bOK = false;
+		}
+		/* else: Do nothing, return keytag. */
 	} else if (stat(ds_retract_command, &stat_ret) != 0) {
 		/* First check that the command exists */
 		ods_log_error_and_printf(sockfd, module_str,
@@ -168,7 +174,8 @@ retract_keys(OrmConn conn,
 			const char *zone,
 			const char *id,
 			const char *datastore,
-			const char *ds_retract_command)
+			const char *ds_retract_command,
+			bool force)
 {
 	#define LOG_AND_RETURN(errmsg)\
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
@@ -229,7 +236,8 @@ retract_keys(OrmConn conn,
 													 key.locator().c_str(),
 													 key.role(),
 													 enfzone.name().c_str(),
-													 key.algorithm()))
+													 key.algorithm(),
+													 force))
 							{
 								::ods::keystate::KeyData *kd =
 									enfzone.mutable_keys(k);
@@ -247,7 +255,8 @@ retract_keys(OrmConn conn,
 														 key.locator().c_str(),
 														 key.role(),
 														 enfzone.name().c_str(),
-														 key.algorithm()))
+														 key.algorithm(),
+														 force))
 								{
 									::ods::keystate::KeyData *kd = 
 									enfzone.mutable_keys(k);
@@ -263,7 +272,8 @@ retract_keys(OrmConn conn,
 													 key.locator().c_str(),
 													 key.role(),
 													 enfzone.name().c_str(),
-													 key.algorithm()))
+													 key.algorithm(),
+													 force))
 							{
 								::ods::keystate::KeyData *kd = 
 									enfzone.mutable_keys(k);
@@ -373,7 +383,8 @@ list_keys_retract(OrmConn conn, int sockfd, const char *datastore)
 
 void 
 perform_keystate_ds_retract(int sockfd, engineconfig_type *config,
-							const char *zone, const char *id, int bauto)
+							const char *zone, const char *id, int bauto,
+							bool force)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
@@ -381,7 +392,7 @@ perform_keystate_ds_retract(int sockfd, engineconfig_type *config,
 		// Evaluate parameters and retract keys from the parent when instructed to.
 		if (zone || id || bauto)
 			retract_keys(conn,sockfd,zone,id,config->datastore,
-						 config->delegation_signer_retract_command);
+						 config->delegation_signer_retract_command, force);
 		else
 			list_keys_retract(conn,sockfd,config->datastore);
 	}
@@ -391,7 +402,7 @@ static task_type *
 keystate_ds_retract_task_perform(task_type *task)
 {
 	perform_keystate_ds_retract(-1,(engineconfig_type *)task->context,NULL,NULL,
-							   0);
+							   0, false);
 	task_cleanup(task);
 	return NULL;
 }
