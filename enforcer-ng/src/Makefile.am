@@ -96,8 +96,6 @@ ods_enforcerd_SOURCES = \
 	hsmkey/update_hsmkeys_task.cpp hsmkey/update_hsmkeys_task.h \
 	keystate/zone_list_cmd.cpp keystate/zone_list_cmd.h \
 	keystate/zone_list_task.cpp keystate/zone_list_task.h \
-	keystate/zone_export_cmd.cpp keystate/zone_export_cmd.h \
-	keystate/zone_export_task.cpp keystate/zone_export_task.h \
 	keystate/zone_add_cmd.cpp keystate/zone_add_cmd.h \
 	keystate/zone_add_task.cpp keystate/zone_add_task.h \
 	keystate/zone_del_cmd.cpp keystate/zone_del_cmd.h \
