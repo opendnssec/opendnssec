@@ -217,10 +217,6 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 				LOG_AND_RETURN_1("policy %s not found",enfzone.policy().c_str());
 			uint32_t dnskey_ttl = policy.keys().ttl();
 
-			bool bSubmitChanged = false;
-			bool bRetractChanged = false;
-			bool bKeytagChanged = false;
-			
 			for (int k=0; k<enfzone.keys_size(); ++k) {
 				const ::ods::keystate::KeyData &key = enfzone.keys(k);
 				if (key.role()==::ods::keystate::ZSK)
@@ -239,37 +235,11 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 												 enfzone.name().c_str(),
 												 key.algorithm(),bds,
 												 dnskey_ttl);
-				if (keytag) {
+				if (keytag)
 					ods_writen(sockfd, dnskey.c_str(), dnskey.size());
-					bSubmitChanged = key.ds_at_parent()==::ods::keystate::submit;
-					bRetractChanged = key.ds_at_parent()==::ods::keystate::retract;
-					bKeytagChanged = key.keytag()!=keytag;
-					if (bSubmitChanged) {
-						::ods::keystate::KeyData *kd = enfzone.mutable_keys(k);
-						kd->set_ds_at_parent(::ods::keystate::submitted);
-					}
-					if (bRetractChanged) {
-						::ods::keystate::KeyData *kd = enfzone.mutable_keys(k);
-						kd->set_ds_at_parent(::ods::keystate::retracted);
-					}
-					if (bKeytagChanged) {
-						::ods::keystate::KeyData *kd = enfzone.mutable_keys(k);
-						kd->set_keytag(keytag);
-					}
-				} else
+				else
 					LOG_AND_RETURN_2("unable to find key with id %s or can't hash algorithm %d",
 						key.locator().c_str(), key.algorithm());
-			}
-	
-			if (bSubmitChanged || bRetractChanged || bKeytagChanged) {
-				// Update the zone recursively in the database as keystates
-				// have been changed because of the export
-				
-				if (!OrmMessageUpdate(context))
-					LOG_AND_RETURN("updating zone in the database failed");
-				
-				if (!transaction.commit())
-					LOG_AND_RETURN("committing zone to the database failed");
 			}
 		}
 	}
