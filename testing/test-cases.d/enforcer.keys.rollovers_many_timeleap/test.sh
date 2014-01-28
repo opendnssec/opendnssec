@@ -69,7 +69,7 @@ log_this ods-enforcer-output ods-enforcer rollover list &&
 
 log_this ods-enforcer-output echo "----- Do key export and ds-submit" &&
 log_this ods-enforcer-output 'ods-enforcer key export --zone ods1' &&
-log_this ods-enforcer-output 'ods-enforcer key ds-submit --zone ods1' && sleep 1 &&
+log_this ods-enforcer-output 'ods-enforcer key ds-submit --zone ods1 --force' && sleep 1 &&
 
 log_this ods-enforcer-output echo "----- Expect ready(ds-seen)/active" &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
