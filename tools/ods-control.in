@@ -126,15 +126,6 @@ case "$1" in
 		exit $RETVAL
 		;;
 
-	'notify')
-		echo "Notifying enforcer of new database..."
-		
-		"$sbindir/ods-enforcer" notify
-		
-		RETVAL=$?
-		
-		exit $RETVAL
-		;;
 
 	*)
 		shift
@@ -164,7 +155,7 @@ case "$1" in
 	;;
 
 *)
-	echo "usage: $progname ksm|hsm|signer|enforcer|start|stop ..."
+	echo "usage: $progname hsm|signer|enforcer|start|stop ..."
 	;;
 
 esac

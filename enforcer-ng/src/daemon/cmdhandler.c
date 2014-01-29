@@ -305,27 +305,6 @@ int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n
     return 2;
 }
 
-/**
- * Handle the 'notify' command.
- *
- */
-int handled_notify_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    char buf[ODS_SE_MAXLINE];
-    (void)snprintf(buf, ODS_SE_MAXLINE, cmd);
-    if (n != 6 || strncmp(cmd, "notify", n) != 0) return 0;
-    ods_log_debug("[%s] notify command", module_str);
-
-    ods_log_assert(engine);
-
-    kill(engine->pid, SIGHUP);
-
-	(void)snprintf(buf, ODS_SE_MAXLINE, "HUP ods-enforcerd success\n");
-
-    ods_writen(sockfd, buf, strlen(buf));
-	return 1;
-}
-
 
 /**
  * Handle the 'start' command.
@@ -408,7 +387,6 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
         "running         returns acknowledgment that the engine is running.\n"
         "reload          reload the engine.\n"
         "stop            stop the engine and terminate the process.\n"
-    	"notify          notify the engine .\n"
         "verbosity <nr>  set verbosity.\n"
         "help            show overview of available commands.\n"
         );
@@ -450,7 +428,6 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_
         "running         returns acknowledgment that the engine is running.\n"
         "reload          reload the engine.\n"
         "stop            stop the engine and terminate the process.\n"
-    	"notify          notify the engine .\n"
         "verbosity <nr>  set verbosity.\n"
         "help            show overview of available commands.\n"
         );
@@ -475,7 +452,6 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssiz
         handled_reload_cmd,
         handled_start_cmd,
         handled_stop_cmd,
-        handled_notify_cmd,
         handled_verbosity_cmd,
         handled_help_cmd,
         handled_unknown_cmd /* unknown command allways matches, so last entry */
