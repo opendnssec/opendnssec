@@ -1021,6 +1021,7 @@ hsm_get_key_ecdsa_value(hsm_ctx_t *ctx, const hsm_session_t *session,
             "Error allocating memory for value");
         return NULL;
     }
+    memset(value, 0, value_len);
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
@@ -1028,6 +1029,14 @@ hsm_get_key_ecdsa_value(hsm_ctx_t *ctx, const hsm_session_t *session,
                                       template,
                                       1);
     if (hsm_pkcs11_check_error(ctx, rv, "get attribute value")) {
+        free(value);
+        return NULL;
+    }
+
+    if(value_len != template[0].ulValueLen) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+           "HSM returned two different length for a same CKA_EC_POINT. " \
+            "Abnormal behaviour detected.");
         free(value);
         return NULL;
     }
