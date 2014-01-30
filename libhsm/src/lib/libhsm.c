@@ -1347,14 +1347,15 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
     CK_ULONG max_object_count = 100;
     CK_ULONG i, j;
     CK_OBJECT_HANDLE object[max_object_count];
-    CK_OBJECT_HANDLE *key_handles = NULL;
+    CK_OBJECT_HANDLE *key_handles = NULL, *new_key_handles = NULL;
+  
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 1);
     if (hsm_pkcs11_check_error(ctx, rv, "Find objects init")) {
-        *count = 0;
-        return NULL;
+        goto err;
     }
+
     j = 0;
     while (objectCount > 0) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
@@ -1362,16 +1363,28 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                                                  max_object_count,
                                                  &objectCount);
         if (hsm_pkcs11_check_error(ctx, rv, "Find first object")) {
-            free(key_handles);
-            *count = 0;
             rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
             hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
-            return NULL;
+            goto err;
         }
 
         total_count += objectCount;
         if (objectCount > 0 && store) {
-            key_handles = realloc(key_handles, total_count * sizeof(CK_OBJECT_HANDLE));
+            if (SIZE_MAX / sizeof(CK_OBJECT_HANDLE) < total_count) {
+                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                    "Too much object handle returned by HSM to allocate key_handles");
+                goto err;
+            }
+
+            new_key_handles = realloc(key_handles, total_count * sizeof(CK_OBJECT_HANDLE));
+            if (new_key_handles != NULL) {
+                key_handles = new_key_handles;
+            } else {
+                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                    "Error allocating memory for object handle (OOM)");
+                goto err;
+            }
+
             for (i = 0; i < objectCount; i++) {
                 key_handles[j] = object[i];
                 j++;
@@ -1381,17 +1394,28 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
     if (hsm_pkcs11_check_error(ctx, rv, "Find objects final")) {
-        free(key_handles);
-        *count = 0;
-        return NULL;
+        goto err;
     }
 
     if (store) {
-        keys = realloc(keys, total_count * sizeof(hsm_key_t *));
+        if(SIZE_MAX / sizeof(hsm_key_t *) < total_count) {
+                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                    "Too much object handle returned by HSM to allocate keys");
+                goto err;
+        } 
+
+        keys = malloc(total_count * sizeof(hsm_key_t *));
+        if(keys == NULL) {
+                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                    "Error allocating memory for keys table (OOM)");
+                goto err;
+        }
+
         for (i = 0; i < total_count; i++) {
             key = hsm_key_new_privkey_object_handle(ctx, session,
                                                     key_handles[i]);
-            /* todo, if we get NULL, free all and return error? */
+            if(key == NULL) goto errkeys;
+
             keys[i] = key;
         }
     }
@@ -1399,6 +1423,14 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
 
     *count = total_count;
     return keys;
+
+errkeys:
+    hsm_key_list_free(keys, i-1);
+
+err:
+    free(key_handles);
+    *count = 0;
+    return NULL;
 }
 
 
