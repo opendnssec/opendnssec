@@ -439,9 +439,19 @@ hsm_get_slot_id(hsm_ctx_t *ctx,
         hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
                           "No slots found in HSM");
         return HSM_ERROR;
+    } else if (slotCount > (SIZE_MAX / sizeof(CK_SLOT_ID))) {
+        hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
+                          "Too many slots found in HSM");
+        return HSM_ERROR;
     }
 
     slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
+    if(slotIds == NULL) {
+        hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
+                          "Could not allocate slot ID table");
+        return HSM_ERROR;
+    }
+
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
     if (hsm_pkcs11_check_error(ctx, rv, "get slot list")) {
         return HSM_ERROR;
