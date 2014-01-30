@@ -50,103 +50,107 @@
 
 static const char *module_str = "keystate_export_task";
 
-static uint16_t 
-dnskey_from_id(std::string &dnskey,
-				const char *id,
-				::ods::keystate::keyrole role,
-				const char *zone,
-				int algorithm,
-				int bDS,
-				uint32_t ttl)
+/** Retrieve KEY from HSM, should only be called for DNSKEYs
+ * @param id, locator of DNSKEY on HSM
+ * @param zone, name of zone key belongs to
+ * @param algorithm, alg of DNSKEY
+ * @param ttl, ttl DS should get. if 0 DNSKEY_TTL is used.
+ * @return RR on succes, NULL on error */
+static ldns_rr *
+get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 {
 	hsm_key_t *key;
 	hsm_sign_params_t *sign_params;
-	ldns_rr *dnskey_rr;
-	ldns_algorithm algo = (ldns_algorithm)algorithm;
 	
 	/* Code to output the DNSKEY record  (stolen from hsmutil) */
 	hsm_ctx_t *hsm_ctx = hsm_create_context();
 	if (!hsm_ctx) {
 		ods_log_error("[%s] Could not connect to HSM", module_str);
-		return false;
+		return NULL;
 	}
-	key = hsm_find_key_by_id(hsm_ctx, id);
-	
-	if (!key) {
-		// printf("Key %s in DB but not repository\n", id);
+	if (!(key = hsm_find_key_by_id(hsm_ctx, id))) {
 		hsm_destroy_context(hsm_ctx);
-		return 0;
+		return NULL;
 	}
 	
-	/*
-	 * Sign params only need to be kept around 
-	 * for the hsm_get_dnskey() call.
-	 */
+	/* Sign params only need to be kept around 
+	 * for the hsm_get_dnskey() call. */
 	sign_params = hsm_sign_params_new();
 	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
-	sign_params->algorithm = algo;
-	sign_params->flags = LDNS_KEY_ZONE_KEY;
-	if (role == ::ods::keystate::KSK)
-		sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
-	/* Get the DNSKEY record */
-	dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
-	hsm_sign_params_free(sign_params);
-	/* Calculate the keytag for this key, we return it. */
-	uint16_t keytag = ldns_calc_keytag(dnskey_rr);
-	/* Override the TTL in the dnskey rr */
-	if (ttl)
-		ldns_rr_set_ttl(dnskey_rr, ttl);
-	
-	char *rrstr;
-	if (!bDS) {
-#if 0
-		ldns_rr_print(stdout, dnskey_rr);
-#endif
-		rrstr = ldns_rr2str(dnskey_rr);
-		dnskey = rrstr;
-		LDNS_FREE(rrstr);
-	} else {
-	
-		switch (algo) {
-			case LDNS_RSASHA1: // 5
-			{
-				/* DS record (SHA1) */
-				ldns_rr *ds_sha1_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
-#if 0
-				ldns_rr_print(stdout, ds_sha1_rr);
-#endif
-				rrstr = ldns_rr2str(ds_sha1_rr);
-				dnskey = rrstr;
-				LDNS_FREE(rrstr);
-
-				ldns_rr_free(ds_sha1_rr);
-				break;
-			}
-			case LDNS_RSASHA256: // 8 - RFC 5702
-			{
+	sign_params->algorithm = (ldns_algorithm) alg;
+	sign_params->flags = LDNS_KEY_ZONE_KEY | LDNS_KEY_SEP_KEY;
 		
-				/* DS record (SHA256) */
-				ldns_rr *ds_sha256_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
-#if 0
-				ldns_rr_print(stdout, ds_sha256_rr);
-#endif
-				rrstr = ldns_rr2str(ds_sha256_rr);
-				dnskey = rrstr;
-				LDNS_FREE(rrstr);
+	/* Get the DNSKEY record */
+	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-				ldns_rr_free(ds_sha256_rr);
-				break;
-			}
-			default:
-				ods_log_error("[%s] Can't hash algorithm %d.", module_str, algorithm);
-				keytag = 0;
-		}
-	}
-	ldns_rr_free(dnskey_rr);
 	hsm_key_free(key);
+	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	
+	/* Override the TTL in the dnskey rr */
+	if (ttl) ldns_rr_set_ttl(dnskey_rr, ttl);
+	
+	return dnskey_rr;
+}
+
+/** get DNSKEY record and keytag, should only be called for DNSKEYs
+ * @param[out] dnskey, DNSKEY in zonefile format
+ * @param id, locator of DNSKEY on HSM
+ * @param zone, name of zone key belongs to
+ * @param algorithm, alg of DNSKEY
+ * @param ttl, ttl DS should get. if 0 DNSKEY_TTL is used.
+ * @return keytag on succes, 0 on error 
+ * 
+ * TODO: KEYTAG could very well be 0 THIS is not the right way to 
+ * flag succes! */
+static uint16_t 
+dnskey_from_id(std::string &dnskey, const char *id, const char *zone, 
+	int algorithm, uint32_t ttl)
+{
+	ldns_rr *dnskey_rr = get_dnskey(id, zone, algorithm, ttl);
+	if (!dnskey_rr) return 0;
+
+	uint16_t keytag = ldns_calc_keytag(dnskey_rr);
+	char *rrstr = ldns_rr2str(dnskey_rr);
+	dnskey = std::string(rrstr);
+	LDNS_FREE(rrstr);
+	ldns_rr_free(dnskey_rr);
+	
 	return keytag;
+}
+
+/** Print SHA1 and SHA256 DS records, should only be called for DNSKEYs
+ * @param sockfd, Where to print to
+ * @param id, locator of DNSKEY on HSM
+ * @param zone, name of zone key belongs to
+ * @param algorithm, alg of DNSKEY
+ * @param ttl, ttl DS should get. if 0 DNSKEY_TTL is used.
+ * @return 1 on succes 0 on error */
+static int 
+print_ds_from_id(int sockfd, const char *id, const char *zone, 
+	int algorithm, uint32_t ttl)
+{
+	ldns_rr *dnskey_rr = get_dnskey(id, zone, algorithm, ttl);
+	if (!dnskey_rr) return 0;
+	char *rrstr;
+	ldns_rr *ds_sha_rr;
+	
+	/* DS record (SHA1) */
+	ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
+	rrstr = ldns_rr2str(ds_sha_rr);
+	ods_printf(sockfd, ";KSK DS record (SHA1):\n%s", rrstr);
+	LDNS_FREE(rrstr);
+	ldns_rr_free(ds_sha_rr);
+	
+	/* DS record (SHA256) */
+	ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
+	rrstr = ldns_rr2str(ds_sha_rr);
+	ods_printf(sockfd, ";KSK DS record (SHA256):\n%s", rrstr);
+	LDNS_FREE(rrstr);
+	ldns_rr_free(ds_sha_rr);
+
+	ldns_rr_free(dnskey_rr);
+	return 1;
 }
 
 static bool
@@ -185,61 +189,64 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 	if (!ods_orm_connect(sockfd, config, conn))
 		return; // error already reported.
 	
-	{	OrmTransactionRW transaction(conn);
-		if (!transaction.started())
-			LOG_AND_RETURN("transaction not started");
+	OrmTransactionRW transaction(conn);
+	if (!transaction.started())
+		LOG_AND_RETURN("transaction not started");
 
-		std::string qzone;
-		if (!OrmQuoteStringValue(conn, std::string(zone), qzone))
-			LOG_AND_RETURN("quoting string value failed");
+	std::string qzone;
+	if (!OrmQuoteStringValue(conn, std::string(zone), qzone))
+		LOG_AND_RETURN("quoting string value failed");
+	
+	OrmResultRef rows;
+	::ods::keystate::EnforcerZone enfzone;
+	if (!OrmMessageEnumWhere(conn,enfzone.descriptor(), rows, 
+		"name = %s", qzone.c_str()))
+		LOG_AND_RETURN("zone enumeration failed");
+	
+	if (!OrmFirst(rows)) {
+		ods_printf(sockfd,"zone %s not found\n",zone);
+		return;
+	}
+	
+	OrmContextRef context;
+	if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
+		LOG_AND_RETURN("retrieving zone from database failed");
+	// we no longer need the query result, so release it.
+	rows.release();
+
+	// Retrieve the dnskey ttl from the policy associated with the zone.
+	::ods::kasp::Policy policy;
+	if (!load_kasp_policy(conn, enfzone.policy(), policy))
+		LOG_AND_RETURN_1("policy %s not found",enfzone.policy().c_str());
+	uint32_t dnskey_ttl = policy.keys().ttl();
+
+	for (int k=0; k<enfzone.keys_size(); ++k) {
+		const ::ods::keystate::KeyData &key = enfzone.keys(k);
+		if (key.role()==::ods::keystate::ZSK)
+			continue;
 		
-		{	OrmResultRef rows;
-			::ods::keystate::EnforcerZone enfzone;
-			if (!OrmMessageEnumWhere(conn,enfzone.descriptor(),
-									 rows,"name = %s",qzone.c_str()))
-				LOG_AND_RETURN("zone enumeration failed");
-			
-			if (!OrmFirst(rows)) {
-				ods_printf(sockfd,"zone %s not found\n",zone);
-				return;
-			}
-			
-			OrmContextRef context;
-			if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
-				LOG_AND_RETURN("retrieving zone from database failed");
-			
-			// we no longer need the query result, so release it.
-			rows.release();
-
-			// Retrieve the dnskey ttl from the policy associated with the zone.
-			::ods::kasp::Policy policy;
-			if (!load_kasp_policy(conn, enfzone.policy(), policy))
-				LOG_AND_RETURN_1("policy %s not found",enfzone.policy().c_str());
-			uint32_t dnskey_ttl = policy.keys().ttl();
-
-			for (int k=0; k<enfzone.keys_size(); ++k) {
-				const ::ods::keystate::KeyData &key = enfzone.keys(k);
-				if (key.role()==::ods::keystate::ZSK)
-					continue;
-				
-				if (key.ds_at_parent()!=::ods::keystate::submit
-					&& key.ds_at_parent()!=::ods::keystate::submitted
-					&& key.ds_at_parent()!=::ods::keystate::retract
-					&& key.ds_at_parent()!=::ods::keystate::retracted
-					)
-					continue;
-				
-				std::string dnskey;
-				uint16_t keytag = dnskey_from_id(dnskey,key.locator().c_str(),
-												 key.role(),
-												 enfzone.name().c_str(),
-												 key.algorithm(),bds,
-												 dnskey_ttl);
-				if (keytag)
-					ods_writen(sockfd, dnskey.c_str(), dnskey.size());
-				else
-					LOG_AND_RETURN_2("unable to find key with id %s or can't hash algorithm %d",
-						key.locator().c_str(), key.algorithm());
+		if (key.ds_at_parent()!=::ods::keystate::submit
+			&& key.ds_at_parent()!=::ods::keystate::submitted
+			&& key.ds_at_parent()!=::ods::keystate::retract
+			&& key.ds_at_parent()!=::ods::keystate::retracted
+			)
+			continue;
+		
+		if (!bds) {
+			std::string dnskey;
+			uint16_t keytag = dnskey_from_id(dnskey, key.locator().c_str(),
+				enfzone.name().c_str(), key.algorithm(), dnskey_ttl);
+			if (keytag)
+				ods_writen(sockfd, dnskey.c_str(), dnskey.size());
+			else
+				LOG_AND_RETURN_2("unable to find key with id %s or can't hash algorithm %d",
+					key.locator().c_str(), key.algorithm());
+		} else {
+			if (!print_ds_from_id(sockfd, key.locator().c_str(), 
+				enfzone.name().c_str(), key.algorithm(), dnskey_ttl))
+			{
+				LOG_AND_RETURN_1("unable to find key with id %s on HSM",
+					key.locator().c_str());
 			}
 		}
 	}
