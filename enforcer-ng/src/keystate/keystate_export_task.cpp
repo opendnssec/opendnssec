@@ -103,20 +103,19 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
  * 
  * TODO: KEYTAG could very well be 0 THIS is not the right way to 
  * flag succes! */
-static uint16_t 
-dnskey_from_id(std::string &dnskey, const char *id, const char *zone, 
-	int algorithm, uint32_t ttl)
+static int 
+dnskey_from_id(std::string &dnskey, const char *id, 
+	const char *zone, int algorithm, uint32_t ttl)
 {
 	ldns_rr *dnskey_rr = get_dnskey(id, zone, algorithm, ttl);
 	if (!dnskey_rr) return 0;
 
-	uint16_t keytag = ldns_calc_keytag(dnskey_rr);
 	char *rrstr = ldns_rr2str(dnskey_rr);
 	dnskey = std::string(rrstr);
 	LDNS_FREE(rrstr);
 	ldns_rr_free(dnskey_rr);
 	
-	return keytag;
+	return 1;
 }
 
 /** Print SHA1 and SHA256 DS records, should only be called for DNSKEYs
@@ -234,13 +233,15 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 		
 		if (!bds) {
 			std::string dnskey;
-			uint16_t keytag = dnskey_from_id(dnskey, key.locator().c_str(),
-				enfzone.name().c_str(), key.algorithm(), dnskey_ttl);
-			if (keytag)
-				ods_writen(sockfd, dnskey.c_str(), dnskey.size());
-			else
+			if (!dnskey_from_id(dnskey, key.locator().c_str(),
+				enfzone.name().c_str(), key.algorithm(), dnskey_ttl))
+			{
 				LOG_AND_RETURN_2("unable to find key with id %s or can't hash algorithm %d",
 					key.locator().c_str(), key.algorithm());
+				
+			} else {
+				ods_writen(sockfd, dnskey.c_str(), dnskey.size());
+			}
 		} else {
 			if (!print_ds_from_id(sockfd, key.locator().c_str(), 
 				enfzone.name().c_str(), key.algorithm(), dnskey_ttl))
