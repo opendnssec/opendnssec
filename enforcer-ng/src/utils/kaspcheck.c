@@ -43,30 +43,29 @@
 #include <libxml/relaxng.h>
 
 const char *progname = NULL;
-
-char *config = (char *) OPENDNSSEC_CONFIG_FILE;
-char *kasp = NULL;
 int verbose = 0;
-char **repo_list = NULL;
-int repo_count = 0;
 
 #define StrFree(ptr) {if(ptr != NULL) {free(ptr); (ptr) = NULL;}}
 
 /*
  * Display usage
  */
-void usage ()
+static void usage()
 {
-    fprintf(stderr,
-			 "usage: %s [options]\n\n"
-			 "Options:\n"
-			 "  -c, --conf [PATH_TO_CONF_FILE]  Path to OpenDNSSEC configuration file\n"
-			 "             (defaults to %s)\n"
-			 "  -k, --kasp [PATH_TO_KASP_FILE]  Path to KASP policy file\n"
+	fprintf(stderr,
+			"usage: %s [options]\n\n"
+			"Options:\n"
+			"  -c, --conf [PATH_TO_CONF_FILE]  Path to OpenDNSSEC configuration file\n"
+			"             (defaults to %s)\n"
+			"  -k, --kasp [PATH_TO_KASP_FILE]  Path to KASP policy file\n"
+			"             (defaults to the path from the conf.xml file)\n",
+			progname, OPENDNSSEC_CONFIG_FILE);
+	fprintf(stderr,
+			 "  -z, --zonelist [PATH_TO_ZONELIST_FILE]  Path to zonelist file\n"
 			 "             (defaults to the path from the conf.xml file)\n"
 			 "  -V, --version                   Display the version information\n"
 			 "  -v, --verbose                   Print extra DEBUG messages\n"
-             "  -h, --help                      Show this message\n", progname, OPENDNSSEC_CONFIG_FILE);
+			 "  -h, --help                      Show this message\n");
 }
 
 /* 
@@ -74,167 +73,167 @@ void usage ()
  */
 int main (int argc, char *argv[])
 {
+	char *conffile = NULL, *kaspfile = NULL, *zonelistfile = NULL;
 	int status = 0; /* Will be non-zero on error (NOT warning) */
-    int ch;
-	int option_index = 0;
-	int i = 0;
-	int free_config = 0;
+	char **repo_list = NULL;
+	int repo_count = 0;
+	int ch, i, option_index = 0;
 	static struct option long_options[] =
-    {
-        {"config",  required_argument, 0, 'c'},
-        {"help",    no_argument,       0, 'h'},
-        {"kasp",  required_argument, 0, 'k'},
-        {"version", no_argument,       0, 'V'},
-        {"verbose", no_argument,       0, 'v'},
-        {0,0,0,0}
-    };
+	{
+		{"config",  required_argument, 0, 'c'},
+		{"help",    no_argument,       0, 'h'},
+		{"kasp",  required_argument, 0, 'k'},
+		{"zonelist",  required_argument, 0, 'z'},
+		{"version", no_argument,       0, 'V'},
+		{"verbose", no_argument,       0, 'v'},
+		{0,0,0,0}
+	};
 
 	/* The program name is the last component of the program file name */
-    if ((progname = strrchr(argv[0], '/'))) {	/* EQUALS */
-        ++progname;			/* Point to character after last "/" */
-	}
-	else {
+	if ((progname = strrchr(argv[0], '/'))) {	/* EQUALS */
+		++progname;			/* Point to character after last "/" */
+	} else {
 		progname = argv[0];
 	}
 
-    while ((ch = getopt_long(argc, argv, "c:hk:Vv", long_options, &option_index)) != -1) {
-        switch (ch) {
-            case 'c':
-				config = StrStrdup(optarg);
-				free_config = 1;
-                break;
+	while ((ch = getopt_long(argc, argv, "c:hk:Vvz:", long_options, &option_index)) != -1)
+	{
+		switch (ch)
+		{
+			case 'c':
+				conffile = StrStrdup(optarg);
+				break;
 			case 'h':
 				usage();
 				exit(0);
 				break;
-            case 'k':
-				kasp = StrStrdup(optarg);
-                break;
+			case 'k':
+				kaspfile = StrStrdup(optarg);
+				break;
+			case 'z':
+				zonelistfile = StrStrdup(optarg);
+				break;
 			case 'V':
-                printf("%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
-                exit(0);
-                break;
+				printf("%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+				exit(0);
+				break;
 			case 'v':
 				verbose = 1;
 				break;
 		}
 	}
 
+	if (!conffile)
+		conffile = StrStrdup((char *)OPENDNSSEC_CONFIG_FILE);
+		
 	/* 0) Some basic setup */
 	log_init(DEFAULT_LOG_FACILITY, progname);
-
 	/* 1) Check on conf.xml - set kasp.xml (if -k flag not given) */
-	status = check_conf(&kasp);
-
+	status = check_conf(conffile, &kaspfile, &zonelistfile, &repo_list, &repo_count);
 	/* 2) Checks on kasp.xml */
-	status += check_kasp();
-
-	if (verbose) {
-		dual_log("DEBUG: finished %d\n", status);
-	}
+	status += check_kasp(kaspfile, repo_list, repo_count);
+	/* 3) Checks on zonelist.xml */
+	status += check_zonelist(zonelistfile);
 
 	xmlCleanupParser();
-
-	for (i = 0; i < repo_count; i++) {
-		StrFree(repo_list[i]);
-	}
+	for (i = 0; i < repo_count; i++) StrFree(repo_list[i]);
 	StrFree(repo_list);
-	if (free_config) {
-		StrFree(config);
-	}
-	StrFree(kasp);
+	StrFree(conffile);
+	StrFree(kaspfile);
+	StrFree(zonelistfile);
 
+	if (verbose)
+		dual_log("DEBUG: finished %d\n", status);
 	return status;
 }
 
-/*
- * Check the conf.xml file
- * Set kasp.xml from file (unless -k flag was given)
- * Return status (0 == success; 1 == error)
- */
-
-int check_conf(char** kasp) {
+/** Check the conf.xml file
+ * @param conf: config file to validate
+ * @param kasp[in,out]: if NULL, will set it to kasp.xml found in config
+ * @param zonelist[in,out]: if NULL, will set it to zonelist.xml found 
+ * 		in config
+ * @return status (0 == success; 1 == error) */
+int check_conf(char *conf, char **kasp, char **zonelist, 
+	char ***repo_listout, int *repo_countout)
+{
 	int status = 0;
 	int i = 0;
 	int j = 0;
 	int temp_status = 0;
+	char **repo_list;
+	int repo_count = 0;
 
 	xmlDocPtr doc;
-    xmlXPathContextPtr xpath_ctx;
-    xmlXPathObjectPtr xpath_obj;
-    xmlNode *curNode;
-    xmlChar *xexpr;
+	xmlXPathContextPtr xpath_ctx;
+	xmlXPathObjectPtr xpath_obj;
+	xmlNode *curNode;
+	xmlChar *xexpr;
 	char* temp_char = NULL;
 
 	KC_REPO* repo = NULL;
 	int* repo_mods = NULL; /* To see if we have looked at this module before */
 
-	const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/conf.rng";
-	const char* zonerngfilename = OPENDNSSEC_SCHEMA_DIR "/zonelist.rng";
-
 	/* Check that the file is well-formed */
-	status = check_rng(config, rngfilename);
+	status = check_rng(conf, OPENDNSSEC_SCHEMA_DIR "/conf.rng");
 
-	if (status == 0) {
-		dual_log("INFO: The XML in %s is valid\n", config);
-	} else {
-		return status; /* Don't try to read the file if it is invalid */
-	}
+	/* Don't try to read the file if it is invalid */
+	if (status != 0) return status;
+	dual_log("INFO: The XML in %s is valid\n", conf);
 
 	 /* Load XML document */
-    doc = xmlParseFile(config);
-    if (doc == NULL) {
-        return 1;
-    }
+	doc = xmlParseFile(conf);
+	if (doc == NULL) return 1;
 
-    /* Create xpath evaluation context */
-    xpath_ctx = xmlXPathNewContext(doc);
-    if(xpath_ctx == NULL) {
-        xmlFreeDoc(doc);
-        return 1;
-    }
+	/* Create xpath evaluation context */
+	xpath_ctx = xmlXPathNewContext(doc);
+	if(xpath_ctx == NULL) {
+		xmlFreeDoc(doc);
+		return 1;
+	}
 
-    /* REPOSITORY section */
-    xexpr = (xmlChar *)"//Configuration/RepositoryList/Repository";
-    xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if(xpath_obj == NULL) {
-        xmlXPathFreeContext(xpath_ctx);
-        xmlFreeDoc(doc);
-        return 1;
-    }
+	/* REPOSITORY section */
+	xexpr = (xmlChar *)"//Configuration/RepositoryList/Repository";
+	xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
+	if(xpath_obj == NULL) {
+		xmlXPathFreeContext(xpath_ctx);
+		xmlFreeDoc(doc);
+		return 1;
+	}
 
-    if (xpath_obj->nodesetval) {
+	if (xpath_obj->nodesetval) {
 		repo_count = xpath_obj->nodesetval->nodeNr;
+		*repo_countout = repo_count;
 		
 		repo = (KC_REPO*)malloc(sizeof(KC_REPO) * repo_count);
 		repo_mods = (int*)malloc(sizeof(int) * repo_count);
 		repo_list = (char**)malloc(sizeof(char*) * repo_count);
+		*repo_listout = repo_list;
 
 		if (repo == NULL || repo_mods == NULL || repo_list == NULL) {
 			dual_log("ERROR: malloc for repo information failed\n");
 			exit(1);
 		}
 
-        for (i = 0; i < repo_count; i++) {
+		for (i = 0; i < repo_count; i++) {
 			repo_mods[i] = 0;
-                 
-            curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
+				 
+			curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
 			/* Default for capacity */
 
-            repo[i].name = (char *) xmlGetProp(xpath_obj->nodesetval->nodeTab[i],
-                                             (const xmlChar *)"name");
+			repo[i].name = (char *) xmlGetProp(xpath_obj->nodesetval->nodeTab[i],
+											 (const xmlChar *)"name");
 			repo_list[i] = StrStrdup(repo[i].name);
 
-            while (curNode) {
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
-                    repo[i].TokenLabel = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
-                    repo[i].module = (char *) xmlNodeGetContent(curNode);
-                curNode = curNode->next;
-            }
-        }
-    }
-    xmlXPathFreeObject(xpath_obj);
+			while (curNode) {
+				if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
+					repo[i].TokenLabel = (char *) xmlNodeGetContent(curNode);
+				if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
+					repo[i].module = (char *) xmlNodeGetContent(curNode);
+				curNode = curNode->next;
+			}
+		}
+	}
+	xmlXPathFreeObject(xpath_obj);
 
 	/* Now we have all the information we need do the checks */
 	for (i = 0; i < repo_count; i++) {
@@ -253,7 +252,7 @@ int check_conf(char** kasp) {
 					repo_mods[j] = 1; /* done */
 
 					if (strcmp(repo[i].TokenLabel, repo[j].TokenLabel) == 0) {
-						dual_log("ERROR: Multiple Repositories (%s and %s) in %s have the same Module (%s) and TokenLabel (%s)\n", repo[i].name, repo[j].name, config, repo[i].module, repo[i].TokenLabel);
+						dual_log("ERROR: Multiple Repositories (%s and %s) in %s have the same Module (%s) and TokenLabel (%s)\n", repo[i].name, repo[j].name, conf, repo[i].module, repo[i].TokenLabel);
 						status += 1;
 					}
 				}
@@ -293,35 +292,29 @@ int check_conf(char** kasp) {
 		StrFree(temp_char);
 		xmlXPathFreeObject(xpath_obj);
 	}
-    
+	
+	if (*zonelist == NULL) {
+		xexpr = (xmlChar *)"//Configuration/Common/ZoneListFile";
+		xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
+		if(xpath_obj == NULL) {
+			xmlXPathFreeContext(xpath_ctx);
+			xmlFreeDoc(doc);
 
-	/* Check that the  Zonelist file is well-formed */
-	xexpr = (xmlChar *)"//Configuration/Common/ZoneListFile";
-	xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-	if(xpath_obj == NULL) {
-		xmlXPathFreeContext(xpath_ctx);
-		xmlFreeDoc(doc);
+			for (i = 0; i < repo_count; i++) {
+				free(repo[i].name);
+				free(repo[i].module);
+				free(repo[i].TokenLabel);
+			}
+			free(repo);
+			free(repo_mods);
 
-		for (i = 0; i < repo_count; i++) {
-			free(repo[i].name);
-			free(repo[i].module);
-			free(repo[i].TokenLabel);
+			return -1;
 		}
-		free(repo);
-		free(repo_mods);
-
-		return -1;
+		temp_char = (char*) xmlXPathCastToString(xpath_obj);
+		StrAppend(zonelist, temp_char);
+		StrFree(temp_char);
+		xmlXPathFreeObject(xpath_obj);
 	}
-	temp_char = (char*) xmlXPathCastToString(xpath_obj);
-
-	if (check_rng(temp_char, zonerngfilename) == 0) {
-		dual_log("INFO: The XML in %s is valid\n", temp_char);
-	} else {
-		status += 1;
-	}
-
-    xmlXPathFreeObject(xpath_obj);
-	StrFree(temp_char);
 
 	/* ENFORCER section */
 
@@ -348,13 +341,13 @@ int check_conf(char** kasp) {
 	}
 
 	/* Warn if Interval is M or Y */
-	status += check_time_def_from_xpath(xpath_ctx, (xmlChar *)"//Configuration/Enforcer/Interval", "Configuration", "Enforcer/Interval", config);
+	status += check_time_def_from_xpath(xpath_ctx, (xmlChar *)"//Configuration/Enforcer/Interval", "Configuration", "Enforcer/Interval", conf);
 
 	/* Warn if RolloverNotification is M or Y */
-	status += check_time_def_from_xpath(xpath_ctx, (xmlChar *)"//Configuration/Enforcer/RolloverNotification", "Configuration", "Enforcer/RolloverNotification", config);
+	status += check_time_def_from_xpath(xpath_ctx, (xmlChar *)"//Configuration/Enforcer/RolloverNotification", "Configuration", "Enforcer/RolloverNotification", conf);
 
 	status += check_interval(xpath_ctx, 
-		(xmlChar *)"//Configuration/Enforcer/Interval", config);
+		(xmlChar *)"//Configuration/Enforcer/Interval", conf);
 
 	/* Check DelegationSignerSubmitCommand exists (if set) */
 	temp_status = check_file_from_xpath(xpath_ctx, "DelegationSignerSubmitCommand",
@@ -379,8 +372,8 @@ int check_conf(char** kasp) {
 		status += temp_status;
 	}
 		
-    xmlXPathFreeContext(xpath_ctx);
-    xmlFreeDoc(doc);
+	xmlXPathFreeContext(xpath_ctx);
+	xmlFreeDoc(doc);
 
 	for (i = 0; i < repo_count; i++) {
 		free(repo[i].name);
@@ -394,32 +387,51 @@ int check_conf(char** kasp) {
 }
 
 /*
+ * Check the zonelist.xml file
+ * Return status (0 == success; 1 == error)
+ */
+int check_zonelist(char *zonelist)
+{
+	if (!zonelist || !strncmp(zonelist, "", 1)) {
+		dual_log("ERROR: No location for zonelist.xml set\n");
+		return 1;
+	}
+
+	/* Check that the  Zonelist file is well-formed */
+	if (check_rng(zonelist, OPENDNSSEC_SCHEMA_DIR "/zonelist.rng") != 0)
+		return 1;
+	
+	dual_log("INFO: The XML in %s is valid\n", zonelist);
+	return 0;
+
+}
+
+/*
  * Check the kasp.xml file
  * Return status (0 == success; 1 == error)
  */
-
-int check_kasp() {
+int check_kasp(char *kasp, char **repo_list, int repo_count)
+{
 	int status = 0;
 	int i = 0;
 	int j = 0;
-	const char* rngfilename = OPENDNSSEC_SCHEMA_DIR "/kasp.rng";
 	xmlDocPtr doc;
-    xmlXPathContextPtr xpath_ctx;
-    xmlXPathObjectPtr xpath_obj;
-    xmlNode *curNode;
-    xmlChar *xexpr;
+	xmlXPathContextPtr xpath_ctx;
+	xmlXPathObjectPtr xpath_obj;
+	xmlNode *curNode;
+	xmlChar *xexpr;
 
 	int policy_count = 0;
 	char **policy_names = NULL;
 	int default_found = 0;
 
-	if (kasp == NULL) {
+	if (!kasp) {
 		dual_log("ERROR: No location for kasp.xml set\n");
 		return 1;
 	}
 
 /* Check that the file is well-formed */
-	status = check_rng(kasp, rngfilename);
+	status = check_rng(kasp, OPENDNSSEC_SCHEMA_DIR "/kasp.rng");
 
 	if (status ==0) {
 		dual_log("INFO: The XML in %s is valid\n", kasp);
@@ -428,27 +440,27 @@ int check_kasp() {
 	}
 
 	/* Load XML document */
-    doc = xmlParseFile(kasp);
-    if (doc == NULL) {
-        return 1;
-    }
+	doc = xmlParseFile(kasp);
+	if (doc == NULL) {
+		return 1;
+	}
 
-    /* Create xpath evaluation context */
-    xpath_ctx = xmlXPathNewContext(doc);
-    if(xpath_ctx == NULL) {
-        xmlFreeDoc(doc);
-        return 1;
-    }
+	/* Create xpath evaluation context */
+	xpath_ctx = xmlXPathNewContext(doc);
+	if(xpath_ctx == NULL) {
+		xmlFreeDoc(doc);
+		return 1;
+	}
 
 	/* First pass through the whole document to test for a policy called "default" and no duplicate names */
 
-    xexpr = (xmlChar *)"//KASP/Policy";
-    xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if(xpath_obj == NULL) {
-        xmlXPathFreeContext(xpath_ctx);
-        xmlFreeDoc(doc);
-        return 1;
-    }
+	xexpr = (xmlChar *)"//KASP/Policy";
+	xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
+	if(xpath_obj == NULL) {
+		xmlXPathFreeContext(xpath_ctx);
+		xmlFreeDoc(doc);
+		return 1;
+	}
 
 	if (xpath_obj->nodesetval) {
 		policy_count = xpath_obj->nodesetval->nodeNr;
@@ -494,7 +506,7 @@ int check_kasp() {
 	}
 	free(policy_names);
 
-    xmlXPathFreeObject(xpath_obj);
+	xmlXPathFreeObject(xpath_obj);
 	xmlXPathFreeContext(xpath_ctx);
 	xmlFreeDoc(doc);
 

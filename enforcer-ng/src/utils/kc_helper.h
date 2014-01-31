@@ -60,6 +60,7 @@ int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_
  * anymore in 2.0 so we print a deprecation warning if present. */
 int check_interval(xmlXPathContextPtr xpath_ctx, const xmlChar *interval_xexpr, const char *filename);
 
+/* if repo_list NULL, will skip the check to see all repositories in kasp are available in conf */
 int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp);
 
 int DtXMLIntervalSeconds(const char* text, int* interval);

@@ -34,7 +34,8 @@ typedef struct {
 	char *TokenLabel;
 } KC_REPO;
 
-int check_conf(char** kasp);
-int check_kasp();
+int check_conf(char *conf, char **kasp, char **zonelist, char ***repo_listout, int *repo_countout);
+int check_kasp(char *kasp, char **repo_list, int repo_count);
+int check_zonelist(char *zonelist);
 
 #endif /* KASPCHECK_H */

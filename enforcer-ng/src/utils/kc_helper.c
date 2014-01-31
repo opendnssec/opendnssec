@@ -57,7 +57,7 @@ void log_init(int facility, const char *program_name)
 /* Switch log to new facility */
 void log_switch(int facility, const char *program_name)
 {
-    closelog();
+	closelog();
 	openlog(program_name, 0, facility);
 }
 
@@ -65,8 +65,8 @@ void log_switch(int facility, const char *program_name)
 void dual_log(const char *format, ...) {
 
 	/* If the variable arg list is bad then random errors can occur */ 
-    va_list args;
-    va_list args2;
+	va_list args;
+	va_list args2;
 	va_start(args, format);
 	va_copy(args2, args);
 
@@ -95,84 +95,84 @@ int check_rng(const char *filename, const char *rngfilename) {
 	xmlDocPtr doc = NULL;
 	xmlDocPtr rngdoc = NULL;
 	xmlRelaxNGParserCtxtPtr rngpctx = NULL;
-    xmlRelaxNGValidCtxtPtr rngctx = NULL;
-    xmlRelaxNGPtr schema = NULL;
+	xmlRelaxNGValidCtxtPtr rngctx = NULL;
+	xmlRelaxNGPtr schema = NULL;
 
 	if (verbose) {
 		dual_log("DEBUG: About to check XML validity in %s with %s\n", filename, rngfilename);
 	}
 
    	/* Load XML document */
-    doc = xmlParseFile(filename);
-    if (doc == NULL) {
-        dual_log("ERROR: unable to parse file \"%s\"\n", filename);
+	doc = xmlParseFile(filename);
+	if (doc == NULL) {
+		dual_log("ERROR: unable to parse file \"%s\"\n", filename);
 		/* Maybe the file doesn't exist? */
 		check_file(filename, "Configuration file");
 
-        return(1);
-    }
+		return(1);
+	}
 
-    /* Load rng document */
-    rngdoc = xmlParseFile(rngfilename);
-    if (rngdoc == NULL) {
-        dual_log("ERROR: unable to parse file \"%s\"\n", rngfilename);
+	/* Load rng document */
+	rngdoc = xmlParseFile(rngfilename);
+	if (rngdoc == NULL) {
+		dual_log("ERROR: unable to parse file \"%s\"\n", rngfilename);
 		/* Maybe the file doesn't exist? */
 		check_file(rngfilename, "RNG file");
 
-        xmlFreeDoc(doc);
-        
+		xmlFreeDoc(doc);
+		
 		return(1);
-    }
+	}
 
-    /* Create an XML RelaxNGs parser context for the relax-ng document. */
-    rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
-    if (rngpctx == NULL) {
-        dual_log("ERROR: unable to create XML RelaxNGs parser context\n");
+	/* Create an XML RelaxNGs parser context for the relax-ng document. */
+	rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+	if (rngpctx == NULL) {
+		dual_log("ERROR: unable to create XML RelaxNGs parser context\n");
 
-        xmlFreeDoc(doc);
-        xmlFreeDoc(rngdoc);
-        
+		xmlFreeDoc(doc);
+		xmlFreeDoc(rngdoc);
+		
 		return(1);
-    }
+	}
 
 	xmlRelaxNGSetParserErrors(rngpctx,
 		(xmlRelaxNGValidityErrorFunc) fprintf,
 		(xmlRelaxNGValidityWarningFunc) fprintf,
 		stderr);
 
-    /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
-    schema = xmlRelaxNGParse(rngpctx);
-    if (schema == NULL) {
-        dual_log("ERROR: unable to parse a schema definition resource\n");
+	/* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
+	schema = xmlRelaxNGParse(rngpctx);
+	if (schema == NULL) {
+		dual_log("ERROR: unable to parse a schema definition resource\n");
 
 		xmlRelaxNGFreeParserCtxt(rngpctx);
 		xmlFreeDoc(doc);
 		xmlFreeDoc(rngdoc);
 
-        return(1);
-    }
+		return(1);
+	}
 
-    /* Create an XML RelaxNGs validation context based on the given schema */
-    rngctx = xmlRelaxNGNewValidCtxt(schema);
-    if (rngctx == NULL) {
-        dual_log("ERROR: unable to create RelaxNGs validation context based on the schema\n");
+	/* Create an XML RelaxNGs validation context based on the given schema */
+	rngctx = xmlRelaxNGNewValidCtxt(schema);
+	if (rngctx == NULL) {
+		dual_log("ERROR: unable to create RelaxNGs validation context based on the schema\n");
 
 		xmlRelaxNGFree(schema);
 		xmlRelaxNGFreeParserCtxt(rngpctx);
 		xmlFreeDoc(doc);
 		xmlFreeDoc(rngdoc);
-        
+		
 		return(1);
-    }
+	}
 
 	xmlRelaxNGSetValidErrors(rngctx,
 		(xmlRelaxNGValidityErrorFunc) fprintf,
 		(xmlRelaxNGValidityWarningFunc) fprintf,
 		stderr);
 
-    /* Validate a document tree in memory. */
-    if (xmlRelaxNGValidateDoc(rngctx,doc) != 0) {
-        dual_log("ERROR: %s fails to validate\n", filename);
+	/* Validate a document tree in memory. */
+	if (xmlRelaxNGValidateDoc(rngctx,doc) != 0) {
+		dual_log("ERROR: %s fails to validate\n", filename);
 
 		xmlRelaxNGFreeValidCtxt(rngctx);
 		xmlRelaxNGFree(schema);
@@ -180,14 +180,14 @@ int check_rng(const char *filename, const char *rngfilename) {
 		xmlFreeDoc(doc);
 		xmlFreeDoc(rngdoc);
 
-        return(1);
-    }
+		return(1);
+	}
 
-    xmlRelaxNGFreeValidCtxt(rngctx);
+	xmlRelaxNGFreeValidCtxt(rngctx);
 	xmlRelaxNGFree(schema);
-    xmlRelaxNGFreeParserCtxt(rngpctx);
-    xmlFreeDoc(doc);
-    xmlFreeDoc(rngdoc);
+	xmlRelaxNGFreeParserCtxt(rngpctx);
+	xmlFreeDoc(doc);
+	xmlFreeDoc(rngdoc);
 
 	return 0;
 }
@@ -207,10 +207,10 @@ int check_file(const char *filename, const char *log_string) {
 		return 1;
 	}
 
-    if (S_ISREG(stat_ret.st_mode)) {
-        /* The file exists */
+	if (S_ISREG(stat_ret.st_mode)) {
+		/* The file exists */
 		return 0;
-    }
+	}
 
 	dual_log("ERROR: %s (%s) does not exist\n", log_string, filename);
 	return 1;
@@ -227,7 +227,7 @@ int check_file_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, 
 		dual_log("ERROR: unable to evaluate xpath expression: %s", file_xexpr);
 		return 1;
 	}
-    if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
+	if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
 		temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 		/* strip off any trailing characters (needed for DSSub with cks_id) */
@@ -238,14 +238,14 @@ int check_file_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, 
 
 		status = check_file(temp_char, log_string);
 
-        StrFree(temp_char);
+		StrFree(temp_char);
 	} else {
 		/* Not set; return -1 so that we can test the default path */
 		xmlXPathFreeObject(xpath_obj);
 		return -1;
 	}
 
-    xmlXPathFreeObject(xpath_obj);
+	xmlXPathFreeObject(xpath_obj);
 	return status;
 }
 
@@ -261,10 +261,10 @@ int check_path(const char *pathname, const char *log_string) {
 		}
 	}
 
-    if (S_ISDIR(stat_ret.st_mode)) {
-        /* The directory exists */
+	if (S_ISDIR(stat_ret.st_mode)) {
+		/* The directory exists */
 		return 0;
-    }
+	}
 
 	dual_log("ERROR: %s (%s) does not exist\n", log_string, pathname);
 
@@ -281,19 +281,19 @@ int check_path_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, 
 		dual_log("ERROR: unable to evaluate xpath expression: %s", path_xexpr);
 		return 1;
 	}
-    if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
+	if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
 		temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 		status = check_path(temp_char, log_string);
 
-        StrFree(temp_char);
+		StrFree(temp_char);
 	} else {
 		/* Not set; return -1 so that we can test the default path */
 		xmlXPathFreeObject(xpath_obj);
 		return -1;
 	}
 
-    xmlXPathFreeObject(xpath_obj);
+	xmlXPathFreeObject(xpath_obj);
 	return status;
 }
 
@@ -303,7 +303,7 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
 	char* temp_char = NULL;
 	
 	struct passwd *pwd;
-    struct group  *grp;
+	struct group  *grp;
 
 	/* Group if specified */
 	xpath_obj = xmlXPathEvalExpression(group_xexpr, xpath_ctx);
@@ -311,38 +311,38 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
 		dual_log("ERROR: unable to evaluate xpath expression: %s", group_xexpr);
 		return(1);
 	}
-    if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
-        temp_char = (char*) xmlXPathCastToString(xpath_obj);
+	if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
+		temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 		if ((grp = getgrnam(temp_char)) == NULL) {
-            dual_log("ERROR: Group '%s' does not exist\n", temp_char);
-            status += 1;
-        }
+			dual_log("ERROR: Group '%s' does not exist\n", temp_char);
+			status += 1;
+		}
 		endgrent();
 
-        StrFree(temp_char);
-    }
-    xmlXPathFreeObject(xpath_obj);
+		StrFree(temp_char);
+	}
+	xmlXPathFreeObject(xpath_obj);
 
 	/* User if specified */
 	xpath_obj = xmlXPathEvalExpression(user_xexpr, xpath_ctx);
-    if(xpath_obj == NULL) {
-        dual_log("ERROR: unable to evaluate xpath expression: %s", user_xexpr);
-        return(1);
-    }
-    if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
-        temp_char = (char*) xmlXPathCastToString(xpath_obj);
+	if(xpath_obj == NULL) {
+		dual_log("ERROR: unable to evaluate xpath expression: %s", user_xexpr);
+		return(1);
+	}
+	if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
+		temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 		if ((pwd = getpwnam(temp_char)) == NULL) {
-            dual_log("ERROR: User '%s' does not exist\n", temp_char);
-            status += 1;
-        }
+			dual_log("ERROR: User '%s' does not exist\n", temp_char);
+			status += 1;
+		}
 		endpwent();
 
-        StrFree(temp_char);
-    }
+		StrFree(temp_char);
+	}
 
-    xmlXPathFreeObject(xpath_obj);
+	xmlXPathFreeObject(xpath_obj);
 
 	return status;
 }
@@ -396,13 +396,13 @@ int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_
 		dual_log("ERROR: unable to evaluate xpath expression: %s", time_xexpr);
 		return 1;
 	}
-    if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
+	if (xpath_obj->nodesetval != NULL && xpath_obj->nodesetval->nodeNr > 0) {
 		temp_char = (char *)xmlXPathCastToString(xpath_obj);
 		status += check_time_def(temp_char, location, field, filename, &ignore);
 		StrFree(temp_char);
 	}
 
-    xmlXPathFreeObject(xpath_obj);
+	xmlXPathFreeObject(xpath_obj);
 
 	return status;
 }
@@ -887,30 +887,32 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 
 	/* Check that repositories listed in the KSK and ZSK sections are defined
 	 * in conf.xml. */
-	for (curkey = firstkey; curkey; curkey = curkey->next) {
-		if ((curkey->type & KSK) && curkey->repo != NULL) {
-			for (i = 0; i < repo_count; i++) {
-				if (strcmp(curkey->repo, repo_list[i]) == 0) {
-					break;
+	if (repo_list) {
+		for (curkey = firstkey; curkey; curkey = curkey->next) {
+			if ((curkey->type & KSK) && curkey->repo != NULL) {
+				for (i = 0; i < repo_count; i++) {
+					if (strcmp(curkey->repo, repo_list[i]) == 0) {
+						break;
+					}
+				}
+				if (i >= repo_count) {
+					dual_log("ERROR: Unknown repository (%s) defined for KSK in "
+							"%s policy in %s\n", curkey->repo, policy_name, kasp);
+					status++;
 				}
 			}
-			if (i >= repo_count) {
-				dual_log("ERROR: Unknown repository (%s) defined for KSK in "
-						"%s policy in %s\n", curkey->repo, policy_name, kasp);
-				status++;
-			}
-		}
 
-		if ((curkey->type & ZSK) && curkey->repo != NULL) {
-			for (i = 0; i < repo_count; i++) {
-				if (strcmp(curkey->repo, repo_list[i]) == 0) {
-					break;
+			if ((curkey->type & ZSK) && curkey->repo != NULL) {
+				for (i = 0; i < repo_count; i++) {
+					if (strcmp(curkey->repo, repo_list[i]) == 0) {
+						break;
+					}
 				}
-			}
-			if (i >= repo_count) {
-				dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
-						"%s policy\n", curkey->repo, policy_name);
-				status++;
+				if (i >= repo_count) {
+					dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
+							"%s policy\n", curkey->repo, policy_name);
+					status++;
+				}
 			}
 		}
 	}
@@ -1012,157 +1014,157 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 
 int DtXMLIntervalSeconds(const char* text, int* interval)
 {
-    int     length = 0;         /* Length of the string */
-    short   is_time = 0;    /* Do we have a Time section or not */
-    short   is_neg = 0;    /* Do we have a negative number */
-    short   warning = 0;    /* Do we need a warning code for duration approximation? */
-    short   got_temp = 0;    /* Have we seen a number? */
-    long long    temp = 0;       /* Number from this section */
-    const char  *ptr = text;    /* allow us to read through */
+	int     length = 0;         /* Length of the string */
+	short   is_time = 0;    /* Do we have a Time section or not */
+	short   is_neg = 0;    /* Do we have a negative number */
+	short   warning = 0;    /* Do we need a warning code for duration approximation? */
+	short   got_temp = 0;    /* Have we seen a number? */
+	long long    temp = 0;       /* Number from this section */
+	const char  *ptr = text;    /* allow us to read through */
 
-    int status = 0;
+	int status = 0;
 
-    long long temp_interval = 0;
+	long long temp_interval = 0;
 
-    if (text && interval && *text) {
-        length = strlen(text);
-    } else {
-        return(4);
-    }
+	if (text && interval && *text) {
+		length = strlen(text);
+	} else {
+		return(4);
+	}
 
-    if (ptr && length && interval) {
-        const char *end = text + length;
-        if (*ptr == '-') {
-            is_neg = 1;
-            ptr++;
-        }
-        if (*ptr == 'P') {
-            ptr++;
-        }
-        do {
-            switch (*ptr) {
-                case 'S':
-                    if (got_temp) {
-                        temp_interval += temp;
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
+	if (ptr && length && interval) {
+		const char *end = text + length;
+		if (*ptr == '-') {
+			is_neg = 1;
+			ptr++;
+		}
+		if (*ptr == 'P') {
+			ptr++;
+		}
+		do {
+			switch (*ptr) {
+				case 'S':
+					if (got_temp) {
+						temp_interval += temp;
+						temp = 0;
+						got_temp = 0;
+					} else {
+						return(2);
+					}
+					break;
 
-                case 'M':
-                    if (got_temp) {
-                        if (is_time) {
-                            temp_interval += 60 * temp;
-                        } else {
-                            temp_interval += 31 * 24 * 60 * 60 * temp;
-                            warning -= 1;
-                        }
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
+				case 'M':
+					if (got_temp) {
+						if (is_time) {
+							temp_interval += 60 * temp;
+						} else {
+							temp_interval += 31 * 24 * 60 * 60 * temp;
+							warning -= 1;
+						}
+						temp = 0;
+						got_temp = 0;
+					} else {
+						return(2);
+					}
+					break;
 
-                case 'H':
-                    if (got_temp) {
-                        temp_interval += 60 * 60 * temp;
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
+				case 'H':
+					if (got_temp) {
+						temp_interval += 60 * 60 * temp;
+						temp = 0;
+						got_temp = 0;
+					} else {
+						return(2);
+					}
+					break;
 
-                case 'D':
-                    if (got_temp) {
-                        temp_interval += 24 * 60 * 60 * temp;
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
+				case 'D':
+					if (got_temp) {
+						temp_interval += 24 * 60 * 60 * temp;
+						temp = 0;
+						got_temp = 0;
+					} else {
+						return(2);
+					}
+					break;
 
-                case 'W':
-                    if (got_temp) {
-                        temp_interval += 7 * 24 * 60 * 60 * temp;
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
+				case 'W':
+					if (got_temp) {
+						temp_interval += 7 * 24 * 60 * 60 * temp;
+						temp = 0;
+						got_temp = 0;
+					} else {
+						return(2);
+					}
+					break;
 
-                case 'Y':
-                    if (got_temp) {
-                        temp_interval += 365 * 24 * 60 * 60 * temp;
-                        temp = 0;
-                        warning -= 2;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
+				case 'Y':
+					if (got_temp) {
+						temp_interval += 365 * 24 * 60 * 60 * temp;
+						temp = 0;
+						warning -= 2;
+						got_temp = 0;
+					} else {
+						return(2);
+					}
+					break;
 
-                case 'T':
-                    is_time = 1;
-                    break;
+				case 'T':
+					is_time = 1;
+					break;
 
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                    if (!temp) {
-                        temp = atoll(ptr);
-                        got_temp = 1;
-                        if ((temp_interval <= INT_MIN) || (temp_interval >= INT_MAX)) {
-                            return(3);
-                        }
-                    }
-                    break;
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					if (!temp) {
+						temp = atoll(ptr);
+						got_temp = 1;
+						if ((temp_interval <= INT_MIN) || (temp_interval >= INT_MAX)) {
+							return(3);
+						}
+					}
+					break;
 
-                default:
-                    if (ptr != end) {
-                        return(2);
-                    }
-            }
-        } while (ptr++ < end);
-    }
-    else {
-        status = 2;     /* Can't translate string/overflow */
-    }
+				default:
+					if (ptr != end) {
+						return(2);
+					}
+			}
+		} while (ptr++ < end);
+	}
+	else {
+		status = 2;     /* Can't translate string/overflow */
+	}
 
-    /* If we had no trailing letter then it is an implicit "S" */
-    if (temp) {
-        temp_interval += temp;
-        temp = 0;
-    }
+	/* If we had no trailing letter then it is an implicit "S" */
+	if (temp) {
+		temp_interval += temp;
+		temp = 0;
+	}
 
-    if (is_neg == 1) {
-        temp_interval = 0 - temp_interval;
-    }
+	if (is_neg == 1) {
+		temp_interval = 0 - temp_interval;
+	}
 
-    if (warning < 0) {
-        status = warning;
-    }
+	if (warning < 0) {
+		status = warning;
+	}
 
-    if ((temp_interval >= INT_MIN) && (temp_interval <= INT_MAX)) {
-        *interval = (int) temp_interval;
-    }
-    else {
-        status = 3;     /* Integer overflow */
-    }
+	if ((temp_interval >= INT_MIN) && (temp_interval <= INT_MAX)) {
+		*interval = (int) temp_interval;
+	}
+	else {
+		status = 3;     /* Integer overflow */
+	}
 
-    return status;
+	return status;
 }
 
 /*+
@@ -1188,24 +1190,24 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
 
 int StrStrtoi(const char* string, int* value)
 {
-    long    longval;    /* "long" to be passed to StrStrtol */
-    int     status;     /* Status return */
+	long    longval;    /* "long" to be passed to StrStrtol */
+	int     status;     /* Status return */
 
-    if (value == NULL) {
-        dual_log("ERROR: NULL value passed to StrStrtoi\n");
-        return 1;
-    }
-    status = StrStrtol(string, &longval);
-    if (status == 0) {
-        if ((longval >= INT_MIN) && (longval <= INT_MAX)) {
-            *value = (int) longval;
-        }
-        else {
-            status = 1;     /* Integer overflow */
-        }
-    }
+	if (value == NULL) {
+		dual_log("ERROR: NULL value passed to StrStrtoi\n");
+		return 1;
+	}
+	status = StrStrtol(string, &longval);
+	if (status == 0) {
+		if ((longval >= INT_MIN) && (longval <= INT_MAX)) {
+			*value = (int) longval;
+		}
+		else {
+			status = 1;     /* Integer overflow */
+		}
+	}
 
-    return status;
+	return status;
 }
 
 /*+
@@ -1232,39 +1234,39 @@ int StrStrtoi(const char* string, int* value)
 
 int StrStrtol(const char* string, long* value)
 {
-    char*   endptr;         /* End of string pointer */
-    int     status = 1;     /* Assume failure */
-    char*   copy;           /* Copy of the string */
-    char*   start;          /* Start of the trimmed string */
+	char*   endptr;         /* End of string pointer */
+	int     status = 1;     /* Assume failure */
+	char*   copy;           /* Copy of the string */
+	char*   start;          /* Start of the trimmed string */
 
-    if (value == NULL) {
-        dual_log("ERROR: NULL value passed to StrStrtol\n");
-        return 1;
-    }
-    if (string) {
-        copy = StrStrdup(string);
-        StrTrimR(copy);             /* Remove trailing spaces */
-        start = StrTrimL(copy);     /* ... and leading ones */
-        if (*start) {
+	if (value == NULL) {
+		dual_log("ERROR: NULL value passed to StrStrtol\n");
+		return 1;
+	}
+	if (string) {
+		copy = StrStrdup(string);
+		StrTrimR(copy);             /* Remove trailing spaces */
+		start = StrTrimL(copy);     /* ... and leading ones */
+		if (*start) {
 
-            /* String is not NULL, so try a conversion */
+			/* String is not NULL, so try a conversion */
 
-            errno = 0;
-            *value = strtol(start, &endptr, 10);
+			errno = 0;
+			*value = strtol(start, &endptr, 10);
 
-            /* Only success if all characters converted */
+			/* Only success if all characters converted */
 
-            if (errno == 0) {
-                status = (*endptr == '\0') ? 0 : 1;
-            }
-            else {
-                status = 1;
-            }
-        }
-        StrFree(copy);
-    }
+			if (errno == 0) {
+				status = (*endptr == '\0') ? 0 : 1;
+			}
+			else {
+				status = 1;
+			}
+		}
+		StrFree(copy);
+	}
 
-    return status;
+	return status;
 }
 
 /*+
@@ -1286,20 +1288,20 @@ int StrStrtol(const char* string, long* value)
 
 char* StrStrdup(const char* string)
 {
-    char* duplicate = NULL; /* Pointer to the duplicated string */
+	char* duplicate = NULL; /* Pointer to the duplicated string */
 
-    if (string) {
-        duplicate = strdup(string);
-        if (duplicate == NULL) {
+	if (string) {
+		duplicate = strdup(string);
+		if (duplicate == NULL) {
 			dual_log("ERROR: StrStrdup: Call to malloc() returned null - out of swap space?");
-            exit(1);
-        }
-    }
-    else {
-        duplicate = MemCalloc(1, 1);    /* Allocate a single zeroed byte */
-    }
+			exit(1);
+		}
+	}
+	else {
+		duplicate = MemCalloc(1, 1);    /* Allocate a single zeroed byte */
+	}
 
-    return duplicate;
+	return duplicate;
 }
 
 /*+
@@ -1328,31 +1330,31 @@ char* StrStrdup(const char* string)
 
 void StrAppend(char** str1, const char* str2)
 {
-    int len1;   /* Length of string 1 */
-    int len2;   /* Length of string 2 */
+	int len1;   /* Length of string 1 */
+	int len2;   /* Length of string 2 */
 
-    if (str1 && str2) {
+	if (str1 && str2) {
 
-        /* Something to append and we can append it */
+		/* Something to append and we can append it */
 
-        len2 = strlen(str2);
-        if (*str1) {
-            len1 = strlen(*str1);
+		len2 = strlen(str2);
+		if (*str1) {
+			len1 = strlen(*str1);
 
-            /* Allocate space for combined string and concatenate */
+			/* Allocate space for combined string and concatenate */
 
-            *str1 = MemRealloc(*str1, (len1 + len2 + 1) * sizeof(char));
-            strcat(*str1, str2);
-        }
-        else {
+			*str1 = MemRealloc(*str1, (len1 + len2 + 1) * sizeof(char));
+			strcat(*str1, str2);
+		}
+		else {
 
-            /* Nothing in string 1, so just duplicate string 2 */
+			/* Nothing in string 1, so just duplicate string 2 */
 
-            *str1 = StrStrdup(str2);
-        }
-    }
+			*str1 = StrStrdup(str2);
+		}
+	}
 
-    return;
+	return;
 }
 
 /*+
@@ -1373,23 +1375,23 @@ void StrAppend(char** str1, const char* str2)
 
 void StrTrimR(char *text)
 {
-    if (text) {
+	if (text) {
 
-        /* Work backwards through the string */
+		/* Work backwards through the string */
 
-        int textlen = strlen(text);
-        while (-- textlen >= 0) {
-            if (! isspace((int) text[textlen])) {
-                text[textlen + 1] = '\0';
-                return;
-            }
-        }
+		int textlen = strlen(text);
+		while (-- textlen >= 0) {
+			if (! isspace((int) text[textlen])) {
+				text[textlen + 1] = '\0';
+				return;
+			}
+		}
 
-        /* Get here if the entire string is white space */
+		/* Get here if the entire string is white space */
 
-        text[0] = '\0';
-    }
-    return;
+		text[0] = '\0';
+	}
+	return;
 }
 
 /*+
@@ -1412,31 +1414,31 @@ void StrTrimR(char *text)
 
 char* StrTrimL(char* text)
 {
-    if (text) {
-        while (*text && isspace((int) *text)) {
-            ++text;
-        }
-    }
+	if (text) {
+		while (*text && isspace((int) *text)) {
+			++text;
+		}
+	}
 
-    return text;
+	return text;
 }
 
 void* MemCalloc(size_t nmemb, size_t size)
 {
-    void *ptr = calloc(nmemb, size);
-    if (ptr == NULL) {
+	void *ptr = calloc(nmemb, size);
+	if (ptr == NULL) {
 		dual_log("ERROR: calloc: Out of swap space");
 		exit(1);
-    }
-    return ptr;
+	}
+	return ptr;
 }
 
 void* MemRealloc(void *ptr, size_t size)
 {
-    void *ptr1 = realloc(ptr, size);
-    if (ptr1 == NULL) {
+	void *ptr1 = realloc(ptr, size);
+	if (ptr1 == NULL) {
 		dual_log("ERROR: realloc: Out of swap space");
-        exit(1);
-    }
-    return ptr1;
+		exit(1);
+	}
+	return ptr1;
 }
