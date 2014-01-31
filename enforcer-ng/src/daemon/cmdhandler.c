@@ -41,6 +41,7 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/duration.h"
+#include "shared/str.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -146,9 +147,39 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
     task_type* task = NULL;
     const char *scmd = "time leap";
     ssize_t ncmd = strlen(scmd);
+    const char *time = NULL;
+	time_t time_leap = 0;
+	struct tm tm;	
+    const char *argv[16];
+    const int NARGV = sizeof(argv)/sizeof(char*);
+    int argc;	
     
-    if (n != ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
+    if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
     ods_log_debug("[%s] %s command", module_str, scmd);
+
+    strncpy(buf,cmd,sizeof(buf));
+    buf[sizeof(buf)-1] = '\0';
+    argc = ods_str_explode(buf,NARGV,argv);
+    if (argc > NARGV) {
+        ods_log_error_and_printf(sockfd,module_str,"too many arguments");
+        return false;
+    }   
+    (void)ods_find_arg_and_param(&argc,argv,"time","t",&time);
+    if (time) {
+        if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {	
+            time_leap = mktime_from_utc(&tm);
+		    (void)snprintf(buf, ODS_SE_MAXLINE,"Using %s parameter value as time to leap to\n", 
+		                 time);	
+		   	ods_writen(sockfd, buf, strlen(buf));
+		}	
+		else {
+	        (void)snprintf(buf, ODS_SE_MAXLINE,
+	                       "Time leap: Error - could not convert '%s' to a time. "
+						   "Format is YYYY-MM-DD-HH:MM:SS \n", time);
+	        ods_writen(sockfd, buf, strlen(buf));	
+			return 1;				
+		}		
+	}
     
     ods_log_assert(engine);
     if (!engine->taskq || !engine->taskq->tasks) {
@@ -175,9 +206,12 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
 
     if (task) {
         if (!task->flush) {
-            set_time_now(task->when);
-        
-            strtime = ctime_r(&task->when,ctimebuf);
+			/*Use the parameter vaule, or if not given use the time of the first task*/
+			if (!time_leap) 
+				time_leap = task->when;
+					
+	        set_time_now(time_leap);
+		    strtime = ctime_r(&time_leap,ctimebuf);		
             if (strtime)
                 strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
 
