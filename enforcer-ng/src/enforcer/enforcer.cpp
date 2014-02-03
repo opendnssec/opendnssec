@@ -1342,16 +1342,31 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				continue;
 			}			
 
-			if ( policyKeys.zones_share_keys() )
+			if ( policyKeys.zones_share_keys() ) {
 				/** Try to get an existing key or ask for new shared */
 				got_key = getLastReusableKey( zone, policy, 
 					(KeyRole)role, bits, repository, algorithm, now, 
-					&newkey_hsmkey, keyfactory, lifetime) ||
-					keyfactory.CreateSharedKey(bits, repository, policyName,
+					&newkey_hsmkey, keyfactory, lifetime);
+				if (got_key) {
+					/** Check if this key material isn't already used
+					 * by our zone. Protobuf code checks this as well
+					 * but it is bugged. */
+					for (int j = 0; j < key_list.numKeys(); j++) {
+						KeyData &key = key_list.key(j);
+						if (newkey_hsmkey->locator() == key.locator()) {
+							got_key = false;
+							break;
+						}
+					}
+				} 
+				if (!got_key) {
+					got_key = keyfactory.CreateSharedKey(bits, repository, policyName,
 					algorithm, (KeyRole)role, zone.name(),&newkey_hsmkey );
-			else
+				}
+			} else {
 				got_key = keyfactory.CreateNewKey(bits,repository,
 					policyName, algorithm, (KeyRole)role, &newkey_hsmkey );
+			}
 			
 			if ( !got_key ) {
 				/** The factory was not ready, return later */

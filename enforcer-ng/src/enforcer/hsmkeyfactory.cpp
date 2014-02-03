@@ -371,6 +371,7 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits, const std::string &repository,
             && k->second.algorithm() == algorithm
             && k->second.keyRole() == role
             && !k->second.usedByZone(zone)
+            && k->second.candidateForSharing()
             )
         {
             *ppKey = &k->second;
