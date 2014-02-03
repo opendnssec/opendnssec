@@ -40,11 +40,26 @@
 
 #define KC_NAME_LENGTH     256
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct {
+	char *name;
+	char *module;
+	char *TokenLabel;
+} KC_REPO;
+
+int check_conf(char *conf, char **kasp, char **zonelist, 
+	char ***repo_listout, int *repo_countout, int verbose);
+int check_kasp(char *kasp, char **repo_list, int repo_count, int verbose);
+int check_zonelist(const char *zonelist, int verbose);
+
 void log_init(int facility, const char *program_name);
 void log_switch(int facility, const char *program_name);
 void dual_log(const char *format, ...);
 
-int check_rng(const char *filename, const char *rngfilename);
+int check_rng(const char *filename, const char *rngfilename, int verbose);
 
 int check_file(const char *filename, const char *log_string);
 int check_file_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, const xmlChar *file_xexpr);
@@ -73,5 +88,8 @@ char* StrTrimL(char* text);
 void* MemCalloc(size_t nmemb, size_t size);
 void* MemRealloc(void *ptr, size_t size);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* KC_HELPER_H */

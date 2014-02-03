@@ -28,14 +28,5 @@
 #ifndef KASPCHECK_H
 #define KASPCHECK_H
 
-typedef struct {
-	char *name;
-	char *module;
-	char *TokenLabel;
-} KC_REPO;
-
-int check_conf(char *conf, char **kasp, char **zonelist, char ***repo_listout, int *repo_countout);
-int check_kasp(char *kasp, char **repo_list, int repo_count);
-int check_zonelist(char *zonelist);
 
 #endif /* KASPCHECK_H */

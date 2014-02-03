@@ -153,8 +153,9 @@ ods_enforcerd_SOURCES = \
 	protobuf-orm/pb-orm-str.cc protobuf-orm/pb-orm-str.h \
 	protobuf-orm/pb-orm-transaction.cc protobuf-orm/pb-orm-transaction.h \
 	protobuf-orm/pb-orm-update.cc protobuf-orm/pb-orm-update.h \
-	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h
-
+	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h \
+	utils/kc_helper.c utils/kc_helper.h 
+	
 ods_enforcerd_LDADD = \
 	$(LIBHSM) \
     $(LIBCOMPAT) \

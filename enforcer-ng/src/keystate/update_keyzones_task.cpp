@@ -36,6 +36,7 @@
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
+#include "utils/kc_helper.h"
 
 #include "keystate/keystate.pb.h"
 #include "policy/kasp.pb.h"
@@ -57,6 +58,14 @@ static bool
 load_zonelist_xml(int sockfd, const char * zonelistfile,
 				  std::auto_ptr< ::ods::keystate::ZoneListDocument >&doc)
 {
+	/* Validate zonelist with kaspcheck */
+	int zl_error = check_zonelist(zonelistfile, 0);
+	if (zl_error) {
+		ods_log_error_and_printf(sockfd, module_str,
+			"Unable to validate '%s' consistency.", zonelistfile);
+		return false;
+	}
+	
 	// Create a zonefile and load it with zones from the xml zonelist.xml
 	doc.reset(new ::ods::keystate::ZoneListDocument);
 	if (doc.get() == NULL) {
