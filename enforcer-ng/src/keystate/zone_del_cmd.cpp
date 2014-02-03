@@ -45,9 +45,9 @@ static const char *module_str = "zone_del_cmd";
 void help_zone_del_cmd(int sockfd)
 {
     ods_printf(sockfd,
-			   "zone delete     delete zones\n"
-			   "                --zone <zone> | --all (aka -z | -a) the zone to delete, or delete all zones\n"
-               "                --xml                 (aka -u)    update zonelist.xml\n"
+			   "zone delete            Delete zones from the enforcer database.\n"
+			   "      --zone <zone> | --all      (aka -z | -a)  zone, or delete all zones.\n"
+               "      [--xml]                    (aka -u)       update zonelist.xml.\n"
 			   );
 	
 }
@@ -113,8 +113,10 @@ int handled_zone_del_cmd(int sockfd, engine_type* engine, const char *cmd,
 
 	std::string zone;
     int need_write_xml = 0;
-	if (!get_arguments(sockfd,cmd,zone, need_write_xml))
+	if (!get_arguments(sockfd,cmd,zone, need_write_xml)) {
+		help_zone_del_cmd(sockfd);
 		return 1;
+	}
 
     time_t tstart = time(NULL);
 

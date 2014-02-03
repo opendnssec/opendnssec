@@ -54,7 +54,7 @@ static const char *module_str = "enforce_cmd";
 void help_enforce_zones_cmd(int sockfd)
 {
     ods_printf(sockfd,
-		    "enforce         force the enforcer to run once for every zone.\n");
+		       "enforce                Force the enforcer to run once for every zone.\n");
 }
 
 /**

@@ -41,7 +41,7 @@ void
 help_zonelist_export_cmd(int sockfd)
 {
     ods_printf(sockfd,
-            "zonelist export        export zone list from database in xml format\n"
+            "zonelist export        Export zones from database in zonelist.xml format.\n"
             );
 }
 
@@ -49,7 +49,7 @@ void
 help_zonelist_import_cmd(int sockfd)
 {
     ods_printf(sockfd,
-            "zonelist import        sync database with contents of zonelist.xml\n"
+            "zonelist import        Sync database with contents of zonelist.xml.\n"
             );
 }
 

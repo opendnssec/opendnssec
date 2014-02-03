@@ -45,7 +45,7 @@ static const char *module_str = "policy_purge_cmd";
 void
 help_policy_purge_cmd(int sockfd){
 	 ods_printf(sockfd,
-			   "policy purge    delete any policies with no zones and update kasp.xml \n");
+			   "policy purge           Delete any policies with no zones and update kasp.xml. \n");
 }
 
 /* Delete any policies with no zones  */

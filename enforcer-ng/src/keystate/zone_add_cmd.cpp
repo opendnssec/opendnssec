@@ -50,15 +50,15 @@ void
 help_zone_add_cmd(int sockfd)
 {
     ods_printf(sockfd,
-			   "zone add        add a new zone to the enforcer\n"
-			   "                --zone <zone>         (aka -z)    name of the zone\n"
-			   "                [--policy <policy>]   (aka -p)    name of the policy\n"
-			   "                [--signerconf <path>] (aka -s)    signer configuration file\n"
-			   "                [--input <path>]      (aka -i)    input adapter zone file or config file\n"
-			   "                [--output <path>]     (aka -o)    output adapter zone file or config file\n"
-			   "                [--in-type <type>]    (aka -j)    input adapter type ('File' or 'DNS')\n"
-			   "                [--out-type <type>]   (aka -q)    output adapter type ('File' or 'DNS')\n"
-			   "                [--xml]               (aka -u)    update the zonelist.xml file\n"
+			   "zone add               Add a new zone to the enforcer database.\n"
+			   "      --zone <zone>              (aka -z)  zone.\n"
+			   "      [--policy <policy>]        (aka -p)  policy.\n"
+			   "      [--signerconf <path>]      (aka -s)  signer configuration file.\n"
+			   "      [--in-type <type>]         (aka -j)  input adapter type ('File' or 'DNS').\n"			
+			   "      [--input <path>]           (aka -i)  input adapter zone or config file.\n"
+			   "      [--out-type <type>]        (aka -q)  output adapter type ('File' or 'DNS')\n"			
+			   "      [--output <path>]          (aka -o)  output adapter zone or config file.\n"
+			   "      [--xml]                    (aka -u)  update the zonelist.xml file.\n"
         );
 }
 
@@ -122,15 +122,12 @@ bool get_arguments(int sockfd, const char *cmd,
     if (ods_find_arg(&argc, argv, "xml", "u") >= 0) need_write_xml = 1;
 
     if (argc) {
-		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
-		help_zone_add_cmd(sockfd);	
+		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");	
         return false;
     }
     if (!zone) {
 		ods_log_error_and_printf(sockfd,module_str,
-								 "expected option --zone <zone>");
-		help_zone_add_cmd(sockfd);						
-								
+								 "expected option --zone <zone>");														
         return false;
     }
 	out_zone = zone;
@@ -170,8 +167,7 @@ bool get_arguments(int sockfd, const char *cmd,
         get_full_path(out_inconf, std::string(OPENDNSSEC_CONFIG_DIR), out_inconf);
     } else {
 		ods_log_error_and_printf(sockfd, module_str,
-								 "invalid parameter for --in-type");
-		help_zone_add_cmd(sockfd);	
+								 "invalid parameter for --in-type");	
         return false;
     }
 
@@ -191,8 +187,7 @@ bool get_arguments(int sockfd, const char *cmd,
         get_full_path(out_outconf, std::string(OPENDNSSEC_CONFIG_DIR), out_outconf);
     } else {
 		ods_log_error_and_printf(sockfd, module_str,
-								 "invalid parameter for --out-type");
-		help_zone_add_cmd(sockfd);	
+								 "invalid parameter for --out-type");	
         return false;
     }
 
@@ -215,8 +210,10 @@ handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
     int need_write_xml = 0;
 	if (!get_arguments(sockfd,cmd,zone,policy,signconf,infile,outfile,
 					   intype,outtype,inconf,outconf, need_write_xml)
-		)
+		) {
+		help_zone_add_cmd(sockfd);
 		return 1;
+	}
 	
     time_t tstart = time(NULL);
 	

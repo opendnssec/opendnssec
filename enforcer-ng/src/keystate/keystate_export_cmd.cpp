@@ -45,10 +45,9 @@ static const char *module_str = "keystate_export_cmd";
 void help_keystate_export_cmd(int sockfd)
 {
 	ods_printf(sockfd,
-        "key export      export trust anchors of a given zone\n"
-        "  --zone <zone> (aka -z) export for the given zone.\n"
-        "  [--dnskey]    export DNSKEY in BIND format (default).\n"
-        "  [--ds]        export DS in BIND format.\n");
+               "key export             Export DNSKEY(s) for a given zone.\n"
+               "      --zone <zone>              (aka -z)  zone.\n"
+               "      [--ds]                     (aka -d)  export DS in BIND format.\n");
 }
 
 int handled_keystate_export_cmd(int sockfd, engine_type* engine,
@@ -76,23 +75,26 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine,
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"too many arguments\n");
+		help_keystate_export_cmd(sockfd);
         return 1; // errors, but handled
     }
     
     const char *zone = NULL;
+	bool bds = 0;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    bool bds = ods_find_arg(&argc,argv,"ds","ds") != -1;
-    (void)ods_find_arg(&argc,argv,"dnskey","dns");
+	if (ods_find_arg(&argc,argv,"ds","d") >= 0) bds = 1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"unknown arguments\n");
+		help_keystate_export_cmd(sockfd);
         return 1; // errors, but handled
     }
     if (!zone) {
         ods_log_warning("[%s] expected option --zone <zone> for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"expected --zone <zone> option\n");
+		help_keystate_export_cmd(sockfd);
         return 1; // errors, but handled
     }
     

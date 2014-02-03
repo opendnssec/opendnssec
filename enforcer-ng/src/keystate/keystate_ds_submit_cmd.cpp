@@ -46,12 +46,14 @@ void
 help_keystate_ds_submit_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "key ds-submit   list KSK keys that should be submitted to the parent.\n"
-        "  --zone <zone> (aka -z) force submit of KSK key for zone <zone>.\n"
-        "  --cka_id <CKA_ID>\n" 
-        "                (aka -k) force submit of KSK key with cka_id <CKA_ID>.\n"
-        "  --auto        (aka -a) perform submit for all keys that have the submit flag set.\n"
-        "  --force       (aka -f) force submit even if DelegationSignerSubmitCommand is absent.\n"
+               "key ds-submit          Issue a ds-submit to the enforcer for a KSK.\n"
+			   "                       (This command with no parameters lists eligible keys.)\n"
+               "      --zone <zone>              (aka -z)  zone.\n"
+               "      --cka_id <CKA_ID>          (aka -k)  cka_id <CKA_ID> of the key.\n"
+               "      [--auto]                   (aka -a)  perform submit for all keys that\n"
+			   "                                           have the submit flag set.\n"
+               "      [--force]                  (aka -f)  force even if there is no configured\n"
+			   "                                           DelegationSignerSubmitCommand.\n"
         );
 }
 
@@ -96,6 +98,7 @@ handled_keystate_ds_submit_cmd(int sockfd, engine_type* engine,
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"unknown arguments\n");
+		help_keystate_ds_submit_cmd(sockfd);
         return 1; // errors, but handled
     }
     

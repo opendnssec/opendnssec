@@ -38,9 +38,9 @@
 extern "C" {
 #endif
 
-void help_hsmkey_gen_cmd(int sockfd);
+void help_keystate_generate_cmd(int sockfd);
 
-int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
+int handled_keystate_generate_cmd(int sockfd, engine_type* engine, const char *cmd,
                            ssize_t n);
 
 #ifdef __cplusplus

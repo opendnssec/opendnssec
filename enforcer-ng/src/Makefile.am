@@ -88,8 +88,6 @@ ods_enforcerd_SOURCES = \
 	policy/resalt.cpp policy/resalt.h \
 	hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
 	hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
-	hsmkey/hsmkey_list_cmd.cpp hsmkey/hsmkey_list_cmd.h \
-	hsmkey/hsmkey_list_task.cpp hsmkey/hsmkey_list_task.h \
 	hsmkey/backup_hsmkeys_cmd.cpp hsmkey/backup_hsmkeys_cmd.h \
 	hsmkey/backup_hsmkeys_task.cpp hsmkey/backup_hsmkeys_task.h \
 	hsmkey/update_hsmkeys_cmd.cpp hsmkey/update_hsmkeys_cmd.h \

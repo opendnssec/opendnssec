@@ -50,10 +50,9 @@ static const char *module_str = "keystate_rollover_cmd";
 void help_keystate_rollover_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "key rollover    rollover the key\n"
-        "  --zone <zone> (aka -z) rollover key with id <id>.\n"
-        "  [--keytype <keytype>]\n"
-        "                (aka -t) type of the key KSK or ZSK (default all).\n"
+               "key rollover           Perform a manual key rollover.\n"
+               "      --zone <zone>              (aka -z)  zone.\n"
+               "      [--keytype <keytype>]      (aka -t)  KSK or ZSK (default all).\n"
         );
 }
 
@@ -82,6 +81,7 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"too many arguments\n");
+		help_keystate_rollover_cmd(sockfd);
         return 1; // errors, but handled
     }
     
@@ -93,12 +93,14 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"unknown arguments\n");
+		help_keystate_rollover_cmd(sockfd);
         return 1; // errors, but handled
     }
     if (!zone) {
         ods_log_warning("[%s] expected option --zone <zone> for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"expected --zone <zone> option\n");
+		help_keystate_rollover_cmd(sockfd);
         return 1; // errors, but handled
     }
 
@@ -119,6 +121,7 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
                     ods_log_warning("[%s] given keytype \"%s\" invalid",
                                     module_str,keytype);
                     ods_printf(sockfd,"given keytype \"%s\" invalid\n",keytype);
+					help_keystate_rollover_cmd(sockfd);
                     return 1; // errors, but handled
                 }
             }

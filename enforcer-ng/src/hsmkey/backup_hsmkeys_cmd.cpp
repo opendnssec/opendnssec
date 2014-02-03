@@ -49,25 +49,19 @@ void
 help_backup_cmd(int sockfd)
 {
 	ods_printf(sockfd,
-		"backup prepare" "\t"
-			"Flag the keys found in all configured HSMs as to be backed up.\n"
-		"  --repository <repository>""\n\t\t"
-			"Limit to this repository.\n");
+		       "backup list            Enumerate backup status of keys.\n"
+		       "      --repository <repository>  (aka -r)  Limit to this repository.\n");
 	ods_printf(sockfd,
-		"backup commit" "\t"
-			"Mark flagged keys found in all configured HSMs as backed up.\n"
-		"  --repository <repository>""\n\t\t"
-			"Limit to this repository.\n");
+		       "backup prepare         Flag the keys found in all configured HSMs as to be \n"
+			   "                       backed up.\n"
+		       "      --repository <repository>  (aka -r)  Limit to this repository.\n");
 	ods_printf(sockfd,
-		"backup rollback" "\t"
-			"Cancel a 'backup prepare' action.\n"
-		"  --repository <repository>""\n\t\t"
-			"Limit to this repository.\n");
+		       "backup commit          Mark flagged keys found in all configured HSMs as\n"
+			   "                       backed up.\n"
+		       "      --repository <repository>  (aka -r)  Limit to this repository.\n");
 	ods_printf(sockfd,
-		"backup list" "\t"
-			"Enumerate backup status of keys.\n"
-		"  --repository <repository>""\n\t\t"
-			"Limit to this repository.\n");
+		       "backup rollback        Cancel a 'backup prepare' action.\n"
+		       "      --repository <repository>  (aka -r)  Limit to this repository.\n");
 }
 
 static int
@@ -91,6 +85,7 @@ handled_backup_cmd(int sockfd, engine_type* engine,
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str,scmd);
 		ods_printf(sockfd,"too many arguments\n");
+		help_backup_cmd(sockfd);
 		return 1; // errors, but handled
 	}
 	(void)ods_find_arg_and_param(&argc,argv,"repository","r",&repository);

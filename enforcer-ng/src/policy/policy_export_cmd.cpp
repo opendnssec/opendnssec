@@ -46,8 +46,9 @@ static const char *module_str = "policy_export_cmd";
 void help_policy_export_cmd(int sockfd)
 {
     ods_printf(sockfd,
-			   "policy export   export policies in the kasp.xml format\n"
-			   "                --policy <policy_name> | --all (aka -p | -a)  \n");
+			   "policy export          Export policies in the kasp.xml format.\n"
+			   "      --policy <policy_name> | --all  (aka -p | -a)  policy to export, or \n"
+			   "                                                     export all polices.\n");
 }
 
 int handled_policy_export_cmd(int sockfd, engine_type* engine, const char *cmd,
@@ -90,6 +91,7 @@ int handled_policy_export_cmd(int sockfd, engine_type* engine, const char *cmd,
 	        ods_log_warning("[%s] expected option --policy <zone> | --all  for %s command",
 	                        module_str,scmd);
 	        ods_printf(sockfd,"expected --policy <policy> | --all  option\n");
+			help_policy_export_cmd(sockfd);
 	        return 1; // errors, but handled
 	    }
 
@@ -97,6 +99,7 @@ int handled_policy_export_cmd(int sockfd, engine_type* engine, const char *cmd,
 	        ods_log_warning("[%s] unknown arguments for %s command",
 	                        module_str,scmd);
 	        ods_printf(sockfd,"unknown arguments\n");
+			help_policy_export_cmd(sockfd);
 	        return 1; // errors, but handled
 	    }
 

@@ -45,7 +45,7 @@ static const char *module_str = "policy_list_cmd";
 void help_policy_list_cmd(int sockfd)
 {
     ods_printf(sockfd,
-			   "policy list     list policies\n");
+			   "policy list            List policies.\n");
 }
 
 int handled_policy_list_cmd(int sockfd, engine_type* engine, const char *cmd, 

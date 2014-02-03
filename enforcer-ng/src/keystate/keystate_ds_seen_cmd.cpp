@@ -46,12 +46,11 @@ static const char *module_str = "keystate_ds_seen_cmd";
 void help_keystate_ds_seen_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "key ds-seen     list KSK keys that were submitted to the parent.\n"
-        "  --zone <zone> (aka -z) set KSK key to seen for zone <zone>\n"
-        "  --cka_id <CKA_ID>\n" 
-        "                (aka -k) with cka_id <CKA_ID>.\n"
-        "  --keytag <keytag>\n"
-        "                (aka -x) with keytag <keytag>.\n"
+               "key ds-seen            Issue a ds-seen to the enforcer for a KSK.\n"
+			   "                       (This command with no parameters lists eligible keys.)\n"
+               "      --zone <zone>              (aka -z)  zone.\n"
+               "      --cka_id <CKA_ID>          (aka -k)  cka_id <CKA_ID> of the key.\n"
+               "      --keytag <keytag>          (aka -x)  keytag <keytag> of the key.\n"
         );
 }
 
@@ -95,6 +94,7 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"unknown arguments\n");
+		help_keystate_ds_seen_cmd(sockfd);
         return 1; // errors, but handled
     }
     
@@ -103,6 +103,7 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
 		ods_printf(sockfd,"too many arguments\n");
+		help_keystate_ds_seen_cmd(sockfd);		
         return 1; // errors, but handled
     }
     
@@ -114,6 +115,7 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
             ods_log_warning("[%s] expected option --zone <zone> for %s command",
                             module_str,scmd);
 			ods_printf(sockfd,"expected --zone <zone> option\n");
+			help_keystate_ds_seen_cmd(sockfd);
             return 1; // errors, but handled
         }
         if (!cka_id && !keytag) {
@@ -122,6 +124,7 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
                             module_str,scmd);
             ods_printf(sockfd,"expected --cka_id <cka_id> or "
                            "--keytag <keytag> option\n");
+			help_keystate_ds_seen_cmd(sockfd);
             return 1; // errors, but handled
         } else {
             if (cka_id && keytag) {
@@ -131,6 +134,7 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
                 ods_printf(sockfd,
                                "both --cka_id <cka_id> and --keytag <keytag> given, "
                                "please only specify one\n");
+				help_keystate_ds_seen_cmd(sockfd);
                 return 1; // errors, but handled
             }
         }

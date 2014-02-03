@@ -63,9 +63,8 @@ static const char *module_str = "setup_cmd";
 void help_setup_cmd(int sockfd)
 {
    ods_printf(sockfd,
-        "setup           delete existing database files and then perform:\n"
-        "                  update kasp - to import kasp.xml\n"
-        "                  update zonelist - to import zonelist.xml\n"
+			   "setup                  Delete existing database contents and perform\n"
+			   "                       update kasp, zonelist and repositorylist.\n"
         );
 }
 
@@ -183,6 +182,8 @@ int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 	}
 
 	autostart(engine);
+	// TODO: Add this function once implemented
+	//perform_update_conf(engine->config);
 	perform_update_kasp(sockfd, engine->config);
 	perform_update_keyzones(sockfd, engine->config);
 	perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);

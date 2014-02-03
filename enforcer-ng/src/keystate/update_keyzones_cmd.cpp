@@ -48,7 +48,7 @@ void
 help_update_keyzones_cmd(int sockfd)
 {
     ods_printf(sockfd,
-             "update zonelist update zonelist by importing zonelist.xml\n"
+               "update zonelist        Import zones from zonelist.xml into enforcer.\n"
         );
 }
 

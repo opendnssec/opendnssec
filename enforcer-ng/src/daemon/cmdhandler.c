@@ -404,7 +404,7 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
 
     
     /* Anouncement */
-    (void) snprintf(buf, ODS_SE_MAXLINE,"Commands:\n");
+    (void) snprintf(buf, ODS_SE_MAXLINE,"\nCommands:\n");
     ods_writen(sockfd, buf, strlen(buf));
     
     /* Call all help functions to emit help texts to the socket. */ 
@@ -414,15 +414,17 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
     
     /* Generic commands */
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "queue           show the current task queue.\n"
-        "time leap       simulate progression of time by leaping to the time\n"
-        "                of the earliest scheduled task.\n"
-        "flush           execute all scheduled tasks immediately.\n"
-        "running         returns acknowledgment that the engine is running.\n"
-        "reload          reload the engine.\n"
-        "stop            stop the engine and terminate the process.\n"
-        "verbosity <nr>  set verbosity.\n"
-        "help            show overview of available commands.\n"
+               "queue                  Show the current task queue.\n"
+#ifdef ENFORCER_TIMESHIFT
+               "time leap              Simulate progression of time by leaping to the time of\n"
+               "                       the earliest scheduled task.\n"
+#endif
+               "flush                  Execute all scheduled tasks immediately.\n"
+               "running                Returns acknowledgment that the engine is running.\n"
+               "reload                 Reload the engine.\n"
+               "stop                   Stop the engine and terminate the process.\n"
+               "verbosity <nr>         Set verbosity.\n"
+               "help                   Show overview of available commands.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
@@ -455,15 +457,17 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_
     
     /* Generic commands */
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "queue           show the current task queue.\n"
-        "time leap       simulate progression of time by leaping to the time\n"
-        "                of the earliest scheduled task.\n"
-        "flush           execute all scheduled tasks immediately.\n"
-        "running         returns acknowledgment that the engine is running.\n"
-        "reload          reload the engine.\n"
-        "stop            stop the engine and terminate the process.\n"
-        "verbosity <nr>  set verbosity.\n"
-        "help            show overview of available commands.\n"
+               "queue                  Show the current task queue.\n"
+#ifdef ENFORCER_TIMESHIFT
+               "time leap              Simulate progression of time by leaping to the time of\n"
+               "                       the earliest scheduled task.\n"
+#endif
+               "flush                  Execute all scheduled tasks immediately.\n"
+               "running                Returns acknowledgment that the engine is running.\n"
+               "reload                 Reload the engine.\n"
+               "stop                   Stop the engine and terminate the process.\n"
+               "verbosity <nr>         Set verbosity.\n"
+               "help                   Show overview of available commands.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
@@ -480,7 +484,9 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssiz
     handled_xxxx_cmd_type *handled_cmd = NULL;
     handled_xxxx_cmd_type internal_handled_cmds[] = {
         handled_queue_cmd,
+#ifdef ENFORCER_TIMESHIFT
         handled_time_leap_cmd,
+#endif
         handled_flush_cmd,
         handled_running_cmd,
         handled_reload_cmd,

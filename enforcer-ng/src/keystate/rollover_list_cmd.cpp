@@ -44,7 +44,8 @@ static const char *module_str = "rollover_list_cmd";
 
 void help_rollover_list_cmd(int sockfd)
 {
-	ods_printf(sockfd, "rollover list   list upcoming rollovers\n");
+	ods_printf(sockfd, 
+	           "rollover list          List upcoming rollovers.\n");
 }
 
 int handled_rollover_list_cmd(int sockfd, engine_type* engine,

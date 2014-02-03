@@ -49,7 +49,7 @@ void
 help_policy_import_cmd(int sockfd)
 {
     ods_printf(sockfd,
-			   "policy import   import policies from kasp.xml into the enforcer.\n");
+			   "policy import          Import policies from kasp.xml into the enforcer database.\n");
 }
 
 static void

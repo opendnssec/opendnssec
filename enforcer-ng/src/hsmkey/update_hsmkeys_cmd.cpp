@@ -42,22 +42,21 @@
 #include "shared/str.h"
 #include "daemon/engine.h"
 
-static const char *module_str = "update_hsmkeys_cmd";
+static const char *module_str = "keystate_import_cmd";
 
 void
-help_update_hsmkeys_cmd(int sockfd)
+help_keystate_import_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "update hsmkeys  import the keys found in all configured HSMs\n"
-        "                into the database.\n"
+               "key import             Bulk import of all keys found in all HSMs.\n"
         );
 }
 
 int
-handled_update_hsmkeys_cmd(int sockfd, engine_type* engine, const char *cmd,
+handled_keystate_import_cmd(int sockfd, engine_type* engine, const char *cmd,
                            ssize_t n)
 {
-    const char *scmd = "update hsmkeys";
+    const char *scmd = "key import";
 
     cmd = ods_check_command(cmd,n,scmd);
     if (!cmd)

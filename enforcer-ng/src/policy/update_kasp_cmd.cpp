@@ -49,7 +49,7 @@ void
 help_update_kasp_cmd(int sockfd)
 {
     ods_printf(sockfd,
-			   "update kasp     import policies from kasp.xml into the enforcer.\n");
+			   "update kasp            Import policies from kasp.xml into the enforcer.\n");
 }
 
 static void

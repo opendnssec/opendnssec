@@ -40,23 +40,17 @@
 #include "shared/str.h"
 #include "daemon/engine.h"
 
-static const char *module_str = "hsmkey_gen_cmd";
+static const char *module_str = "keystate_generate";
 
 /**
  * Print help for the 'hsmkey_gen' command
  *
  */
-void help_hsmkey_gen_cmd(int sockfd)
+void help_keystate_generate_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "hsm key gen     pre-generate a collection of hsm keys\n"
-        "                before they are actually needed by the enforcer.\n"
-		"  --duration <duration>\n"
-		"                (aka -d) generate enough keys for the currently\n"
-		"                present zones to last for the duration specified.\n"
-		"                examples:\n"
-		"                  -d P2Y         2 years\n"
-		"                  -d P3YT1H6M    3 years, 1 hour and 6 minutes\n"
+               "key generate           Pre-generate keys.\n"
+	       	   "      --duration <duration>      (aka -d)  duration to generate keys for.\n"
         );
 }
 
@@ -82,6 +76,7 @@ get_period(int sockfd,
 		ods_log_error_and_printf(sockfd, module_str,
 								 "too many arguments for %s command",
 								 scmd);
+		help_keystate_generate_cmd(sockfd);						
         return false; // errors, but handled
     }
     
@@ -93,6 +88,7 @@ get_period(int sockfd,
 		ods_log_error_and_printf(sockfd, module_str,
 								 "unknown arguments for %s command",
 								 scmd);
+		help_keystate_generate_cmd(sockfd);									
         return false; // errors, but handled
     }
 
@@ -106,7 +102,7 @@ get_period(int sockfd,
 		if (!duration) {
 			ods_log_error_and_printf(sockfd, module_str,
 									 "invalid duration argument %s",
-									 str);
+									 str);									
 			return false; // errors, but handled
 		}
 		period = duration2time(duration);
@@ -124,10 +120,10 @@ get_period(int sockfd,
 
 
 
-int handled_hsmkey_gen_cmd(int sockfd, engine_type* engine, const char *cmd,
+int handled_keystate_generate_cmd(int sockfd, engine_type* engine, const char *cmd,
 						   ssize_t n)
 {
-    const char *scmd = "hsm key gen";
+    const char *scmd = "key generate";
     
     cmd = ods_check_command(cmd,n,scmd);
     if (!cmd)

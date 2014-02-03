@@ -46,13 +46,14 @@ void
 help_keystate_ds_retract_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "key ds-retract  list KSK keys that should be retracted from the parent.\n"
-        "  --zone <zone> (aka -z) force retract of KSK key for zone <zone>.\n"
-        "  --cka_id <cka_id>\n"
-        "                (aka -k) force retract of KSK key with cka_id <cka_id>.\n"
-        "  --auto        (aka -a) perform retract for all keys that have "
-                        "the retract flag set.\n"
-        "  --force       (aka -f) force retract even if DelegationSignerRetractCommand is absent.\n"
+               "key ds-retract         Issue a ds-retract to the enforcer for a KSK.\n"
+			   "                       (This command with no parameters lists eligible keys.)\n"
+               "      --zone <zone>              (aka -z)  zone.\n"
+               "      --cka_id <cka_id>          (aka -k)  cka_id <CKA_ID> of the key.\n"
+               "      --auto                     (aka -a)  perform retract for all keys that\n"
+			   "                                           have the retract flag set.\n"
+               "      --force                    (aka -f)  force even if there is no configured\n"
+			   "                                           DelegationSignerRetractCommand.\n"
     );
 }
 
@@ -84,6 +85,7 @@ handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"too many arguments\n");
+		help_keystate_ds_retract_cmd(sockfd);
         return 1; // errors, but handled
     }
     
@@ -97,6 +99,7 @@ handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"unknown arguments\n");
+		help_keystate_ds_retract_cmd(sockfd);
         return 1; // errors, but handled
     }
     

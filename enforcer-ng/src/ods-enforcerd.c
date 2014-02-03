@@ -68,7 +68,6 @@
 #include "signconf/signconf_cmd.h"
 
 #include "hsmkey/hsmkey_gen_cmd.h"
-#include "hsmkey/hsmkey_list_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
 
 /* System libraries last */
@@ -130,39 +129,40 @@ version(FILE* out)
 
 static help_xxxx_cmd_type enforcer_help[] = {
     help_setup_cmd,
-    help_update_conf_cmd,
     help_update_kasp_cmd,
-    help_policy_resalt_cmd,
     help_update_keyzones_cmd,
-    help_update_hsmkeys_cmd,
+    help_update_conf_cmd,
     help_update_all_cmd,
     
+    help_policy_list_cmd,
     help_policy_export_cmd,
     help_policy_import_cmd,
-    help_policy_list_cmd,
     help_policy_purge_cmd,
+    help_policy_resalt_cmd,
+
     help_zone_list_cmd,
     help_zone_add_cmd,
     help_zone_del_cmd,
 
+    help_zonelist_export_cmd,
+    help_zonelist_import_cmd,
+
     help_keystate_list_cmd,
-    help_rollover_list_cmd,
+    help_keystate_import_cmd,
     help_keystate_export_cmd,
     help_keystate_ds_submit_cmd,
     help_keystate_ds_seen_cmd,
     help_keystate_ds_retract_cmd,
     help_keystate_ds_gone_cmd,
     help_keystate_rollover_cmd,
-    
-    help_enforce_zones_cmd,
-    help_signconf_cmd,
-    
-    help_hsmkey_gen_cmd,
-    help_hsmkey_list_cmd,
+    help_keystate_generate_cmd,
+
+    help_rollover_list_cmd,
+
     help_backup_cmd,
 
-    help_zonelist_export_cmd,
-    help_zonelist_import_cmd,
+    help_enforce_zones_cmd,
+    help_signconf_cmd,
     
     /* ! NULL TERMINATED ! */
     NULL
@@ -177,39 +177,40 @@ static help_xxxx_cmd_type enforcer_help[] = {
 static handled_xxxx_cmd_type 
 enforcer_commands[] = {
     handled_setup_cmd,
-    handled_update_conf_cmd,
     handled_update_kasp_cmd,
-    handled_policy_resalt_cmd,
     handled_update_keyzones_cmd,
-    handled_update_hsmkeys_cmd,
+    handled_update_conf_cmd,
     handled_update_all_cmd,
     
-    handled_policy_export_cmd,
-    handled_policy_import_cmd,	
     handled_policy_list_cmd,
+    handled_policy_import_cmd,	
+    handled_policy_export_cmd,
     handled_policy_purge_cmd,
+    handled_policy_resalt_cmd,
+
     handled_zone_list_cmd,
     handled_zone_add_cmd,
     handled_zone_del_cmd,
 
+    handled_zonelist_export_cmd,
+    handled_zonelist_import_cmd,
+
     handled_keystate_list_cmd,
-    handled_rollover_list_cmd,
+    handled_keystate_import_cmd,
     handled_keystate_export_cmd,
     handled_keystate_ds_submit_cmd,
     handled_keystate_ds_seen_cmd,
     handled_keystate_ds_retract_cmd,
     handled_keystate_ds_gone_cmd,
     handled_keystate_rollover_cmd,
-    
-    handled_enforce_zones_cmd,
-    handled_signconf_cmd,
+    handled_keystate_generate_cmd,
 
-    handled_hsmkey_gen_cmd,
-    handled_hsmkey_list_cmd,
+    handled_rollover_list_cmd,
+
     handled_backup_cmds,
 
-    handled_zonelist_export_cmd,
-    handled_zonelist_import_cmd,
+    handled_enforce_zones_cmd,
+    handled_signconf_cmd,
 
     /* ! NULL TERMINATED ! */
     NULL
