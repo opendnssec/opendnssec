@@ -48,6 +48,8 @@
 
 #define StrFree(ptr) {if(ptr != NULL) {free(ptr); (ptr) = NULL;}}
 
+int kc_helper_printto_stdout = 0;
+
 void log_init(int facility, const char *program_name)
 {
 	openlog(program_name, 0, facility);
@@ -71,18 +73,16 @@ void dual_log(const char *format, ...) {
 
 	if (strncmp(format, "ERROR:", 6) == 0) {
 		vsyslog(LOG_ERR, format, args);
-	}
-	else if (strncmp(format, "WARNING:", 8) == 0) {
+	} else if (strncmp(format, "WARNING:", 8) == 0) {
 		vsyslog(LOG_WARNING, format, args);
-	}
-	else if (strncmp(format, "DEBUG:", 6) == 0) {
+	} else if (strncmp(format, "DEBUG:", 6) == 0) {
 		vsyslog(LOG_DEBUG, format, args);
-	}
-	else {
+	} else {
 		vsyslog(LOG_INFO, format, args);
 	}
 
-	vprintf(format, args2);
+	if (kc_helper_printto_stdout)
+		vprintf(format, args2);
 	
 	va_end(args);
 	va_end(args2);
@@ -102,7 +102,7 @@ int check_rng(const char *filename, const char *rngfilename, int verbose)
 			filename, rngfilename);
 	}
 
-   	/* Load XML document */
+	/* Load XML document */
 	doc = xmlParseFile(filename);
 	if (doc == NULL) {
 		dual_log("ERROR: unable to parse file \"%s\"\n", filename);
@@ -1444,7 +1444,11 @@ void* MemRealloc(void *ptr, size_t size)
 	return ptr1;
 }
 
-
+/* Used to squelch libxml output when linked in Enforcer */
+static void quiet_error_func(void * ctx, const char * msg, ...)
+{
+	(void)ctx; (void)msg;
+}
 
 /** Check the conf.xml file
  * @param conf: config file to validate
@@ -1452,7 +1456,7 @@ void* MemRealloc(void *ptr, size_t size)
  * @param zonelist[in,out]: if NULL, will set it to zonelist.xml found 
  * 		in config
  * @return status (0 == success; 1 == error) */
-int check_conf(char *conf, char **kasp, char **zonelist, 
+int check_conf(const char *conf, char **kasp, char **zonelist, 
 	char ***repo_listout, int *repo_countout, int verbose)
 {
 	int status = 0;
@@ -1471,6 +1475,9 @@ int check_conf(char *conf, char **kasp, char **zonelist,
 
 	KC_REPO* repo = NULL;
 	int* repo_mods = NULL; /* To see if we have looked at this module before */
+
+	if (!kc_helper_printto_stdout)
+		xmlSetGenericErrorFunc(NULL, quiet_error_func);
 
 	/* Check that the file is well-formed */
 	status = check_rng(conf, OPENDNSSEC_SCHEMA_DIR "/conf.rng", verbose);
@@ -1696,6 +1703,9 @@ int check_zonelist(const char *zonelist, int verbose)
 		return 1;
 	}
 
+	if (!kc_helper_printto_stdout)
+		xmlSetGenericErrorFunc(NULL, quiet_error_func);
+
 	/* Check that the  Zonelist file is well-formed */
 	if (check_rng(zonelist, OPENDNSSEC_SCHEMA_DIR "/zonelist.rng", verbose) != 0)
 		return 1;
@@ -1709,7 +1719,7 @@ int check_zonelist(const char *zonelist, int verbose)
  * Check the kasp.xml file
  * Return status (0 == success; 1 == error)
  */
-int check_kasp(char *kasp, char **repo_list, int repo_count, int verbose)
+int check_kasp(const char *kasp, char **repo_list, int repo_count, int verbose)
 {
 	int status = 0;
 	int i = 0;
@@ -1723,6 +1733,9 @@ int check_kasp(char *kasp, char **repo_list, int repo_count, int verbose)
 	int policy_count = 0;
 	char **policy_names = NULL;
 	int default_found = 0;
+
+	if (!kc_helper_printto_stdout)
+		xmlSetGenericErrorFunc(NULL, quiet_error_func);
 
 	if (!kasp) {
 		dual_log("ERROR: No location for kasp.xml set\n");

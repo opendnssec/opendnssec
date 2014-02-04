@@ -37,19 +37,37 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
+#include "utils/kc_helper.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
+static const char *module_str = "update_repositorylist_task";
 
-int perform_update_conf(engine_type* engine, const char *cmd,ssize_t n){
+int perform_update_conf(int sockfd, engine_type* engine, 
+	const char *cmd, ssize_t n)
+{
+	const char* cfgfile = ODS_SE_CFGFILE;
+	char *kasp = NULL;
+	char *zonelist = NULL;
+	char **replist = NULL;
+	int repcount, i;
 
-	 int cmdline_verbosity = 0;
-	 const char* cfgfile = ODS_SE_CFGFILE;
-
-
+	int cc_status = check_conf(cfgfile, &kasp, &zonelist, 
+		&replist, &repcount, 0);
+	free(kasp);
+	free(zonelist);
+	if (replist) {
+		for (i = 0; i < repcount; i++) free(replist[i]);
+	}
+		
+	if (cc_status) {
+		ods_log_error_and_printf(sockfd, module_str,
+			"Unable to validate '%s' consistency.", cfgfile);
+		return 0;
+	}
     engine->config->hsm = parse_conf_repositories(cfgfile);
-
+	return 1;
 }
 

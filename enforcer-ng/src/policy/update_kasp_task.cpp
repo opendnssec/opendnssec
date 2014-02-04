@@ -32,6 +32,7 @@
 #include "update_kasp_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
+#include "utils/kc_helper.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
@@ -92,18 +93,24 @@ load_kasp_xml(int sockfd, const char * policiesfile,
 }
 
 
-void 
+bool 
 perform_update_kasp(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
-    
-    std::auto_ptr< ::ods::kasp::KaspDocument > kaspDoc;
+
+	if (check_kasp(config->policy_filename, NULL, 0, 0)) {
+		ods_log_error_and_printf(sockfd, module_str,
+			"Unable to validate '%s' consistency.", config->policy_filename);
+		return false;
+	}
+
+	std::auto_ptr< ::ods::kasp::KaspDocument > kaspDoc;
 	if (!load_kasp_xml(sockfd, config->policy_filename, kaspDoc))
-		return; // errors have already been reported.
+		return false; // errors have already been reported.
 	
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return;  // errors have already been reported.
+		return false;  // errors have already been reported.
 
 	//TODO: SPEED: We should create an index on the Policy.name column
 	
@@ -112,7 +119,7 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 		ods_log_error_and_printf(sockfd, module_str,
 								 "starting a database transaction for "
 								 "updating a policy failed");
-		return;
+		return false;
 	}	
 	
     // Go through the list of policies from the kasp.xml file to determine
@@ -126,7 +133,7 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 			if (!OrmQuoteStringValue(conn, policy.name(), qpolicy)) {
 				ods_log_error_and_printf(sockfd, module_str,
 										 "quoting a string failed");
-				return;
+				return false;
 			}
 			
 			//TODO: We should do an update for existing policies. 
@@ -138,7 +145,7 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 				ods_log_error_and_printf(sockfd, module_str,
 										 "failed to delete policy with "
 										 "name %s",policy.name().c_str());
-				return;
+				return false;
 			}
 				
 			// insert the policy we read from the kasp.xml file.
@@ -146,7 +153,7 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 			if (!OrmMessageInsert(conn, policy, policyid)) {
 				ods_log_error_and_printf(sockfd, module_str,
 							"inserting policy into the database failed");
-				return;
+				return false;
 			}
 		}
     }
@@ -154,8 +161,9 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 	if (!transaction.commit()) {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "committing policy to the database failed");
-		return;
+		return false;
 	}
 	ods_log_info("kasp update complete");
 	ods_printf(sockfd,"kasp update complete\n");
+	return true;
 }

@@ -38,7 +38,7 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-int perform_update_conf(engine_type* engine, const char *cmd, ssize_t n);
+int perform_update_conf(int sockfd, engine_type* engine, const char *cmd, ssize_t n);
 
 
 #endif /* UPDATE_CONF_TASK_H_ */

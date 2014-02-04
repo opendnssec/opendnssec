@@ -42,6 +42,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
+#include "utils/kc_helper.h"
 
 
 #include "policy/update_kasp_task.h"
@@ -59,7 +60,8 @@
 
 static const char *module_str = "update_all_cmd";
 
-void help_update_all_cmd(int sockfd){
+void help_update_all_cmd(int sockfd)
+{
 	ods_printf(sockfd,
 	           "update all             Perform update kasp, zonelist and repositorylist.\n"
 	);
@@ -68,47 +70,72 @@ void help_update_all_cmd(int sockfd){
 static void
 flush_all_tasks(int sockfd, engine_type* engine)
 {
-    ods_log_debug("[%s] flushing all tasks...", module_str);
-    ods_printf(sockfd,"flushing all tasks...\n");
+	ods_log_debug("[%s] flushing all tasks...", module_str);
+	ods_printf(sockfd,"flushing all tasks...\n");
 
-    ods_log_assert(engine);
-    ods_log_assert(engine->taskq);
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-    schedule_flush(engine->taskq, TASK_NONE);
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-    engine_wakeup_workers(engine);
+	ods_log_assert(engine);
+	ods_log_assert(engine->taskq);
+	lock_basic_lock(&engine->taskq->schedule_lock);
+	/* [LOCK] schedule */
+	schedule_flush(engine->taskq, TASK_NONE);
+	/* [UNLOCK] schedule */
+	lock_basic_unlock(&engine->taskq->schedule_lock);
+	engine_wakeup_workers(engine);
 }
 
-int handled_update_all_cmd(int sockfd, engine_type* engine, const char *cmd,
-					  ssize_t n){
-		const char *scmd = "update all";
-	    cmd = ods_check_command(cmd,n,scmd);
-	    if (!cmd)
-	        return 0; // not handled
+int
+handled_update_all_cmd(int sockfd, engine_type* engine, const char *cmd,
+	ssize_t n)
+{
+	const char *scmd = "update all";
+	cmd = ods_check_command(cmd,n,scmd);
+	if (!cmd) return 0; // not handled
+	ods_log_debug("[%s] %s command", module_str, scmd);
 
-	    ods_log_debug("[%s] %s command", module_str, scmd);
+	// check that we are using a compatible protobuf version.
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	time_t tstart = time(NULL);
 
-		// check that we are using a compatible protobuf version.
-		GOOGLE_PROTOBUF_VERIFY_VERSION;
+	autostart(engine);
 
-	    time_t tstart = time(NULL);
+	/* todo error checking */
 
+	char *kasp = NULL;
+	char *zonelist = NULL;
+	char **replist = NULL;
+	int repcount, i;
+	
+	int error = 1;
+	if (check_conf(engine->config->cfg_filename, &kasp, 
+			&zonelist, &replist, &repcount, 0))
+		ods_log_error_and_printf(sockfd, module_str, 
+			"Unable to validate '%s' consistency.", 
+			engine->config->cfg_filename);
+	else if (check_kasp(kasp, replist, repcount, 0))
+		ods_log_error_and_printf(sockfd, module_str, 
+			"Unable to validate '%s' consistency.", kasp);
+	else if (check_zonelist(zonelist, 0))
+		ods_log_error_and_printf(sockfd, module_str, 
+			"Unable to validate '%s' consistency.", zonelist);
+	else error = 0;
+	
+	free(kasp);
+	free(zonelist);
+	if (replist) {
+		for (i = 0; i < repcount; i++) free(replist[i]);
+	}
 
-		autostart(engine);
-		perform_update_conf(engine,cmd,n);
+	if (!error) {
+		perform_update_conf(sockfd, engine, cmd, n);
 		perform_update_kasp(sockfd, engine->config);
 		perform_update_keyzones(sockfd, engine->config);
-
 		perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
 		perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 						   engine->config->automatic_keygen_duration);
-
-	    flush_all_tasks(sockfd, engine);
-
-	    ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-	    return 1;
+		flush_all_tasks(sockfd, engine);
+	}
+	ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
+	return 1;
 }
 
 

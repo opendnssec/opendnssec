@@ -50,9 +50,9 @@ typedef struct {
 	char *TokenLabel;
 } KC_REPO;
 
-int check_conf(char *conf, char **kasp, char **zonelist, 
+int check_conf(const char *conf, char **kasp, char **zonelist, 
 	char ***repo_listout, int *repo_countout, int verbose);
-int check_kasp(char *kasp, char **repo_list, int repo_count, int verbose);
+int check_kasp(const char *kasp, char **repo_list, int repo_count, int verbose);
 int check_zonelist(const char *zonelist, int verbose);
 
 void log_init(int facility, const char *program_name);

@@ -72,6 +72,7 @@ static void usage()
  */
 int main (int argc, char *argv[])
 {
+	extern int kc_helper_printto_stdout;
 	char *conffile = NULL, *kaspfile = NULL, *zonelistfile = NULL;
 	int status = 0; /* Will be non-zero on error (NOT warning) */
 	char **repo_list = NULL;
@@ -121,6 +122,8 @@ int main (int argc, char *argv[])
 				break;
 		}
 	}
+
+	kc_helper_printto_stdout = 1;
 
 	if (!conffile)
 		conffile = StrStrdup((char *)OPENDNSSEC_CONFIG_FILE);
