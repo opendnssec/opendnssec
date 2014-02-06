@@ -45,7 +45,7 @@
 
 static const char *module_str = "update_repositorylist_task";
 
-int perform_update_conf(int sockfd, engine_type* engine, 
+int perform_update_repositorylist(int sockfd, engine_type* engine, 
 	const char *cmd, ssize_t n)
 {
 	const char* cfgfile = ODS_SE_CFGFILE;

@@ -29,16 +29,13 @@
  *
  */
 
-#ifndef UPDATE_CONF_TASK_H_
-#define UPDATE_CONF_TASK_H_
+#ifndef UPDATE_REPOSITORYLIST_TASK_H_
+#define UPDATE_REPOSITORYLIST_TASK_H_
 
 #include "config.h"
 #include "daemon/engine.h"
 
-#include "daemon/cfg.h"
-#include "scheduler/task.h"
-
-int perform_update_conf(int sockfd, engine_type* engine, const char *cmd, ssize_t n);
+int perform_update_repositorylist(int sockfd, engine_type* engine, const char *cmd, ssize_t n);
 
 
-#endif /* UPDATE_CONF_TASK_H_ */
+#endif /* UPDATE_REPOSITORYLIST_TASK_H_ */

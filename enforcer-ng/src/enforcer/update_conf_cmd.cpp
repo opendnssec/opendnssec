@@ -30,6 +30,7 @@
  */
 
 #include "enforcer/update_conf_cmd.h"
+#include "enforcer/update_conf_task.h"
 
 #include "hsmkey/update_hsmkeys_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
@@ -40,7 +41,7 @@
 static const char *module_str = "update_repositorylist_cmd";
 
 void
-help_update_conf_cmd(int sockfd)
+help_update_repositorylist_cmd(int sockfd)
 {
 	ods_printf(sockfd,
 		"update repositorylist  Import respositories from conf.xml "
@@ -64,7 +65,7 @@ flush_all_tasks(int sockfd, engine_type* engine)
 }
 
 int
-handled_update_conf_cmd(int sockfd, engine_type* engine, 
+handled_update_repositorylist_cmd(int sockfd, engine_type* engine, 
 	const char *cmd, ssize_t n)
 {
 	const char *scmd = "update repositorylist";
@@ -76,7 +77,7 @@ handled_update_conf_cmd(int sockfd, engine_type* engine,
 	ods_log_debug("[%s] %s command", module_str, scmd);
 	time_t tstart = time(NULL);
 
-	if (perform_update_conf(sockfd, engine, cmd, n)) {
+	if (perform_update_repositorylist(sockfd, engine, cmd, n)) {
 		kill(engine->pid, SIGHUP);
 		ods_printf(sockfd, "Notifying enforcer of new respositories! \n");
 	}

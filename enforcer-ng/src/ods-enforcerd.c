@@ -131,7 +131,7 @@ static help_xxxx_cmd_type enforcer_help[] = {
     help_setup_cmd,
     help_update_kasp_cmd,
     help_update_keyzones_cmd,
-    help_update_conf_cmd,
+    help_update_repositorylist_cmd,
     help_update_all_cmd,
     
     help_policy_list_cmd,
@@ -179,7 +179,7 @@ enforcer_commands[] = {
     handled_setup_cmd,
     handled_update_kasp_cmd,
     handled_update_keyzones_cmd,
-    handled_update_conf_cmd,
+    handled_update_repositorylist_cmd,
     handled_update_all_cmd,
     
     handled_policy_list_cmd,
