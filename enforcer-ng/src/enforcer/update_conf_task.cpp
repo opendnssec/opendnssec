@@ -31,17 +31,8 @@
 #include "update_conf_task.h"
 
 #include "config.h"
-#include "daemon/cfg.h"
-#include "parser/confparser.h"
-#include "shared/allocator.h"
 #include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
 #include "utils/kc_helper.h"
-
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
 
 static const char *module_str = "update_conf_task";
 
@@ -67,7 +58,7 @@ int perform_update_conf(int sockfd, engine_type* engine,
 			"Unable to validate '%s' consistency.", cfgfile);
 		return 0;
 	}
-    engine->config->hsm = parse_conf_repositories(cfgfile);
+    /* Do stuff here */
 	return 1;
 }
 

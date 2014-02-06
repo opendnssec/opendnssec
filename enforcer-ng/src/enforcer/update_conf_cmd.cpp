@@ -44,25 +44,22 @@ void
 help_update_conf_cmd(int sockfd)
 {
 	ods_printf(sockfd,
-		"update repositorylist  FIXME\n");
+		"update configuration - this does _nothing_ FIXME\n");
 }
 
 int
 handled_update_conf_cmd(int sockfd, engine_type* engine, 
 	const char *cmd, ssize_t n)
 {
-	const char *scmd = "update repositorylist";
-
-	cmd = ods_check_command(cmd,n,scmd);
-	if (!cmd)
-		return 0; // not handled
+	const char *scmd = "update conf";
+	cmd = ods_check_command(cmd, n, scmd);
+	if (!cmd) return 0; // not handled
 
 	ods_log_debug("[%s] %s command", module_str, scmd);
 	time_t tstart = time(NULL);
 
 	if (perform_update_conf(sockfd, engine, cmd, n)) {
-		kill(engine->pid, SIGHUP);
-		ods_printf(sockfd, "Notifying enforcer of new respositories! \n");
+		/*success*/
 	}
 
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
