@@ -41,7 +41,7 @@
 static const char *module_str = "update_conf_cmd";
 
 void
-help_update_repositorylist_cmd(int sockfd)
+help_update_conf_cmd(int sockfd)
 {
 	ods_printf(sockfd,
 		"update repositorylist  FIXME\n");
