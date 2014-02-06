@@ -28,7 +28,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include "update_conf_task.h"
+#include "update_repositorylist_task.h"
 
 #include "config.h"
 #include "daemon/cfg.h"

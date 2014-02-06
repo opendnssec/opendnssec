@@ -29,8 +29,8 @@
  *
  */
 
-#include "enforcer/update_conf_cmd.h"
-#include "enforcer/update_conf_task.h"
+#include "enforcer/update_repositorylist_cmd.h"
+#include "enforcer/update_repositorylist_task.h"
 
 #include "hsmkey/update_hsmkeys_task.h"
 #include "hsmkey/hsmkey_gen_task.h"

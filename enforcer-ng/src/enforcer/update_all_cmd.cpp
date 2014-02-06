@@ -36,7 +36,7 @@
 #include "enforcer/update_all_cmd.h"
 #include "enforcer/setup_cmd.h"
 #include "enforcer/autostart_cmd.h"
-#include "enforcer/update_conf_task.h"
+#include "enforcer/update_repositorylist_task.h"
 
 #include "shared/duration.h"
 #include "shared/file.h"
