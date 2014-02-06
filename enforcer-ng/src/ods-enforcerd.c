@@ -38,6 +38,7 @@
 /* Pull in the commands that have been implemented for the enforcer */
 #include "enforcer/autostart_cmd.h"
 #include "enforcer/setup_cmd.h"
+#include "enforcer/update_conf_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
 

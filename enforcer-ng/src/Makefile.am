@@ -129,6 +129,8 @@ ods_enforcerd_SOURCES = \
 	enforcer/enforcer.cpp enforcer/enforcer.h \
 	enforcer/enforcerzone.cpp enforcer/enforcerzone.h \
 	enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.h \
+	enforcer/update_conf_cmd.cpp enforcer/update_conf_cmd.h \
+	enforcer/update_conf_task.cpp enforcer/update_conf_task.h \
 	enforcer/update_repositorylist_cmd.cpp enforcer/update_repositorylist_cmd.h \
 	enforcer/update_repositorylist_task.cpp enforcer/update_repositorylist_task.h \
 	enforcer/update_all_cmd.cpp enforcer/update_all_cmd.h \

@@ -126,22 +126,6 @@ drop_database_tables(int sockfd, OrmConn conn, engineconfig_type* config)
 	return ok;
 }
 
-static void
-flush_all_tasks(int sockfd, engine_type* engine)
-{
-    ods_log_debug("[%s] flushing all tasks...", module_str);
-    ods_printf(sockfd,"flushing all tasks...\n");
-    
-    ods_log_assert(engine);
-    ods_log_assert(engine->taskq);
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-    schedule_flush(engine->taskq, TASK_NONE);
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-    engine_wakeup_workers(engine);
-}
-
 /**
  * Handle the 'setup' command.
  *
