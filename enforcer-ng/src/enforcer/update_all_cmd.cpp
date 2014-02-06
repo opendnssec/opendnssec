@@ -98,13 +98,15 @@ handled_update_all_cmd(int sockfd, engine_type* engine, const char *cmd,
 
 	autostart(engine);
 
-	/* todo error checking */
-
+	/* Check all files for errors. The perform_update_*()
+	 * functions check as well but this gives us all or nothing.
+	 * Plus we get a complete check of the files mentioned in the 
+	 * conf which need not be the same as the files in use by the 
+	 * running enforcer!*/
 	char *kasp = NULL;
 	char *zonelist = NULL;
 	char **replist = NULL;
 	int repcount, i;
-	
 	int error = 1;
 	if (check_conf(engine->config->cfg_filename, &kasp, 
 			&zonelist, &replist, &repcount, 0))
@@ -125,10 +127,13 @@ handled_update_all_cmd(int sockfd, engine_type* engine, const char *cmd,
 		for (i = 0; i < repcount; i++) free(replist[i]);
 	}
 
+	if (!error) 
+		error |= perform_update_conf(sockfd, engine, cmd, n);
+	if (!error) 
+		error |= perform_update_kasp(sockfd, engine->config);
+	if (!error) 
+		error |= perform_update_keyzones(sockfd, engine->config);
 	if (!error) {
-		perform_update_conf(sockfd, engine, cmd, n);
-		perform_update_kasp(sockfd, engine->config);
-		perform_update_keyzones(sockfd, engine->config);
 		perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
 		perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 						   engine->config->automatic_keygen_duration);
