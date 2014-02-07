@@ -66,7 +66,6 @@ struct engine_struct {
     allocator_type* allocator;
     engineconfig_type* config;
     worker_type** workers;
-    worker_type** drudgers;
     schedule_type* taskq;
     fifoq_type* signq;
     help_xxxx_cmd_type *help;
