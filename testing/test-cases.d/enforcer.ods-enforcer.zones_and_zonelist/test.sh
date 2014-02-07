@@ -254,6 +254,15 @@ echo "Zonelist export contents OK" &&
 diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local &&
 echo "zones.xml contents OK" &&
 
+# Hacky workaround for problem seen with database transactions locking
+case "$DISTRIBUTION" in
+	redhat | \
+	centos )
+		sleep 20 
+		;;
+esac &&
+
+
 # Now do another import with a file that has one extra zone and one zone removed
 # and some of the data changed
 cp zonelist.xml.test_local "$ZONELIST_FILE" &&

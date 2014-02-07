@@ -311,6 +311,9 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 							"error commiting updated zones to the database.");
 				}
 			}
+			else {
+				transaction.rollback();				
+			}
 		}
 	}
 }
