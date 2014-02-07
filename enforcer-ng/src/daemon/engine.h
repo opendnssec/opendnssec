@@ -80,6 +80,7 @@ struct engine_struct {
     int daemonize;
     int need_to_exit;
     int need_to_reload;
+    int setup_error;
 
     sig_atomic_t signal;
     cond_basic_type signal_cond;
@@ -137,6 +138,12 @@ void engine_stop(engine_type* engine);
  *
  */
 void engine_wakeup_workers(engine_type* engine);
+/** signal all workers to stop. Blocks until all workers are joined.
+ * \param[in] engine engine */
+void engine_stop_workers(engine_type* engine);
+/** start all workers.
+ * \param[in] engine engine */
+void engine_start_workers(engine_type* engine);
 
 /**
  * Clean up engine.

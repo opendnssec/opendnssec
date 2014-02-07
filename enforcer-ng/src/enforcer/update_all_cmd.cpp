@@ -112,7 +112,7 @@ handled_update_all_cmd(int sockfd, engine_type* engine, const char *cmd,
 	}
 
 	if (!error) 
-		error |= perform_update_repositorylist(sockfd, engine, cmd, n);
+		error |= perform_update_repositorylist(sockfd, engine);
 	if (!error) 
 		error |= perform_update_kasp(sockfd, engine->config);
 	if (!error) 

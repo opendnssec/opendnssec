@@ -190,9 +190,14 @@ worker_sleep(worker_type* worker, time_t timeout)
     ods_log_assert(worker);
     lock_basic_lock(&worker->worker_lock);
     /* [LOCK] worker */
-    worker->sleeping = 1;
-    lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
-        timeout);
+    /** need_to_exit may be set after check in worker start
+     * and alarm might be fired before worker_lock. This check
+     * prevents possible deadlock */
+    if (!worker->need_to_exit) {
+        worker->sleeping = 1;
+        lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
+            timeout);
+    }
     /* [UNLOCK] worker */
     lock_basic_unlock(&worker->worker_lock);
     return;
@@ -209,7 +214,7 @@ worker_sleep_unless(worker_type* worker, time_t timeout)
     ods_log_assert(worker);
     lock_basic_lock(&worker->worker_lock);
     /* [LOCK] worker */
-    if (!worker_fulfilled(worker)) {
+    if (!worker->need_to_exit && !worker_fulfilled(worker)) {
         worker->sleeping = 1;
         lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
             timeout);

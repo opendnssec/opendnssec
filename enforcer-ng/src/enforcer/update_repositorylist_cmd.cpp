@@ -53,19 +53,15 @@ handled_update_repositorylist_cmd(int sockfd, engine_type* engine,
 	const char *cmd, ssize_t n)
 {
 	const char *scmd = "update repositorylist";
-
-	cmd = ods_check_command(cmd,n,scmd);
-	if (!cmd)
-		return 0; // not handled
-
+	cmd = ods_check_command(cmd, n, scmd);
+	if (!cmd) return 0; // not handled
 	ods_log_debug("[%s] %s command", module_str, scmd);
 	time_t tstart = time(NULL);
 
-	if (perform_update_repositorylist(sockfd, engine, cmd, n)) {
-		kill(engine->pid, SIGHUP);
-		ods_printf(sockfd, "Notifying enforcer of new respositories! \n");
+	if (!perform_update_repositorylist(sockfd, engine)) {
+		ods_log_error_and_printf(sockfd, module_str,
+			"unable to update repositorylist.");
 	}
-
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 	return 1;
 }

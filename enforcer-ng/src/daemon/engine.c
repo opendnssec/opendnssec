@@ -96,6 +96,7 @@ engine_create(void)
     engine->daemonize = 0;
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
+    engine->setup_error = 0;
 
     engine->signal = SIGNAL_INIT;
     lock_basic_init(&engine->signal_lock);
@@ -269,7 +270,7 @@ worker_thread_start(void* arg)
     worker_start(worker);
     return NULL;
 }
-static void
+void
 engine_start_workers(engine_type* engine)
 {
     size_t i = 0;
@@ -286,7 +287,7 @@ engine_start_workers(engine_type* engine)
     return;
 }
 
-static void
+void
 engine_stop_workers(engine_type* engine)
 {
     size_t i = 0;
@@ -335,7 +336,6 @@ static ods_status
 engine_setup_and_return_status(engine_type* engine)
 {
     struct sigaction action;
-    int result = 0;
     int fd;
 
     ods_log_debug("[%s] enforcer setup", engine_str);
@@ -372,21 +372,6 @@ engine_setup_and_return_status(engine_type* engine)
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to drop privileges", engine_str);
         return ODS_STATUS_PRIVDROP_ERR;
-    }
-
-    /* set up hsm */ /* LEAK */
-    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin);
-    if (result != HSM_OK) {
-        char* error =  hsm_get_error(NULL);
-        if (error != NULL) {
-            ods_log_error("[%s] %s", engine_str, error);
-            free(error);
-        } else {
-            ods_log_crit("[%s] error opening libhsm (errno %i)", engine_str,
-                result);
-        }
-
-        return ODS_STATUS_HSM_ERR;
     }
 
     /* daemonize */
@@ -464,7 +449,7 @@ engine_setup(engine_type* engine, handled_xxxx_cmd_type *commands,
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
                       ods_status2str(status));
-        engine->need_to_exit = 1;
+        engine->setup_error = 1;
         if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
             /* command handler had not yet been started */
             engine->cmdhandler_done = 1;
@@ -548,7 +533,21 @@ engine_runloop(engine_type* engine, start_cb_t start, int single_run)
 {
     /* run */
     while (engine->need_to_exit == 0) {
-        
+        /* set up hsm */
+        int result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin);
+        if (result != HSM_OK) {
+            char* error =  hsm_get_error(NULL);
+            if (error != NULL) {
+                ods_log_error("[%s] %s", engine_str, error);
+                free(error);
+            } else {
+                ods_log_crit("[%s] error opening libhsm (errno %i)", engine_str,
+                    result);
+            }
+            engine->setup_error = 1;
+            break;
+        }
+    
         if (engine->need_to_reload) {
             ods_log_info("[%s] enforcer reloading", engine_str);
             engine->need_to_reload = 0;
@@ -561,11 +560,11 @@ engine_runloop(engine_type* engine, start_cb_t start, int single_run)
         }
         
         engine_run(engine, start, single_run);
+        hsm_close();
     }
     
     /* shutdown */
     ods_log_info("[%s] enforcer shutdown", engine_str);
-    hsm_close();
     if (engine->cmdhandler != NULL) {
         engine_stop_cmdhandler(engine);
     }

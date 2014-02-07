@@ -112,6 +112,12 @@ ods_status engine_config_check(engineconfig_type* config);
 void engine_config_print(FILE* out, engineconfig_type* config);
 
 /**
+ * Free linked list of hsms 
+ */
+void
+engine_config_freehsms(struct engineconfig_repository* hsm);
+
+/**
  * Clean up config.
  * \param[in] config engine configuration
  *

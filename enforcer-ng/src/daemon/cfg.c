@@ -263,6 +263,19 @@ engine_config_print(FILE* out, engineconfig_type* config)
     return;
 }
 
+void
+engine_config_freehsms(struct engineconfig_repository* hsm)
+{
+    struct engineconfig_repository *hsmtofree;
+	hsmtofree = hsm;
+	while (hsmtofree) {
+		hsm = hsmtofree->next;
+		if (hsmtofree->name)
+			free(hsmtofree->name);
+		free(hsmtofree);
+		hsmtofree = hsm;
+	}
+}
 
 /**
  * Clean up config.
@@ -271,7 +284,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
 void
 engine_config_cleanup(engineconfig_type* config)
 {
-    struct engineconfig_repository* hsm, *hsmtofree;
     allocator_type* allocator;
     if (!config) {
         return;
@@ -294,13 +306,7 @@ engine_config_cleanup(engineconfig_type* config)
 	allocator_deallocate(allocator, (void*) config->db_host);
 	allocator_deallocate(allocator, (void*)	config->db_username);
 	allocator_deallocate(allocator, (void*)	config->db_password);
-	hsmtofree = config->hsm;
-	while (hsmtofree) {
-		hsm = hsmtofree->next;
-		if (hsmtofree->name) free(hsmtofree->name);
-		free(hsmtofree);
-		hsmtofree = hsm;
-	}
+	engine_config_freehsms(config->hsm);
 	config->hsm = NULL;
     allocator_deallocate(allocator, (void*) config);
     return;

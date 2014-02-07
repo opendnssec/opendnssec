@@ -35,7 +35,13 @@
 #include "config.h"
 #include "daemon/engine.h"
 
-int perform_update_repositorylist(int sockfd, engine_type* engine, const char *cmd, ssize_t n);
-
+/** NOTICE: This task MUST NOT end up in the queue because I stops 
+ * all workers and wait for them to be gone. It would cause a deadlock.
+ * 
+ * Update the repositorylist
+ * @param sockfd. Client to print to.
+ * @param engine. Main daemon state
+ * @return 1 on success, 0 on failure.*/
+int perform_update_repositorylist(int sockfd, engine_type* engine);
 
 #endif /* UPDATE_REPOSITORYLIST_TASK_H_ */
