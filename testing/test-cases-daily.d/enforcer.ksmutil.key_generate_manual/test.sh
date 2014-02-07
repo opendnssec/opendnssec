@@ -5,7 +5,6 @@
 #TEST: It then switches to automatic key generation and checks the enforcer
 #TEST: then does the right thing.
 
-#DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
 #DISABLED: ON SOLARIS T2000- as key generation takes too long!
 
 ENFORCER_WAIT=90
@@ -28,9 +27,6 @@ case "$DISTRIBUTION" in
 			return 0	
 		fi
 		;;			
-	freebsd )	
-		return 0
-		;;
 esac
 
 ods_reset_env &&
