@@ -117,8 +117,10 @@ lhsm_check_connection(void* engine)
     if (hsm_check_context(NULL) != HSM_OK) {
         ods_log_warning("[%s] idle libhsm connection, trying to reopen",
             hsm_str);
+        engine_stop_drudgers(e);
         hsm_close();
         (void)lhsm_open(e->config->repositories);
+        engine_start_drudgers((engine_type*) engine);
     } else {
         ods_log_debug("[%s] libhsm connection ok", hsm_str);
     }
