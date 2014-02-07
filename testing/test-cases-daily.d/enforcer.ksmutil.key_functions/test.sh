@@ -2,8 +2,6 @@
 #
 #TEST: Test to check that key import/export/purge works correctly
 
-#DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
-
 # Lets use parameters for the timing intervals so they are easy to change
 SHORT_TIMEOUT=11    # Timeout when checking log output. DS lock out wait is 10 sec so use 11 for this
 LONG_TIMEOUT=40     # Timeout when waiting for enforcer run to have happened
@@ -14,12 +12,6 @@ if [ -n "$HAVE_MYSQL" ]; then
 else 
         ods_setup_conf conf.xml conf.xml
 fi &&
-
-case "$DISTRIBUTION" in
-	freebsd )
-		return 0
-		;;
-esac
 
 ods_reset_env &&
 

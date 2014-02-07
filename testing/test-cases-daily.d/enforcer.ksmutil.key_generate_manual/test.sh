@@ -5,14 +5,9 @@
 #TEST: It then switches to automatic key generation and checks the enforcer
 #TEST: then does the right thing.
 
-#DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
 #DISABLED: ON SOLARIS T2000- as key generation takes too long!
 
 ENFORCER_WAIT=90
-
-if [ -n "$HAVE_MYSQL" ]; then
-        ods_setup_conf conf.xml conf-mysql.xml
-fi &&
 
 add_zones() {
 	for (( ZONE_COUNT=$1; ZONE_COUNT<=$2; ZONE_COUNT++ ))
@@ -28,10 +23,11 @@ case "$DISTRIBUTION" in
 			return 0	
 		fi
 		;;			
-	freebsd )	
-		return 0
-		;;
 esac
+
+if [ -n "$HAVE_MYSQL" ]; then
+        ods_setup_conf conf.xml conf-mysql.xml
+fi &&
 
 ods_reset_env &&
 
