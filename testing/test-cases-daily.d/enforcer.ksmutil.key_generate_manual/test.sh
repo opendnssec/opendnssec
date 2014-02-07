@@ -9,10 +9,6 @@
 
 ENFORCER_WAIT=90
 
-if [ -n "$HAVE_MYSQL" ]; then
-        ods_setup_conf conf.xml conf-mysql.xml
-fi &&
-
 add_zones() {
 	for (( ZONE_COUNT=$1; ZONE_COUNT<=$2; ZONE_COUNT++ ))
 	do
@@ -28,6 +24,10 @@ case "$DISTRIBUTION" in
 		fi
 		;;			
 esac
+
+if [ -n "$HAVE_MYSQL" ]; then
+        ods_setup_conf conf.xml conf-mysql.xml
+fi &&
 
 ods_reset_env &&
 

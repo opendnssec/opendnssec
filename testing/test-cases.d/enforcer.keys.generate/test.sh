@@ -18,10 +18,6 @@ add_zones() {
 	done 	
 }
 
-if [ -n "$HAVE_MYSQL" ]; then
-        ods_setup_conf conf.xml conf-mysql.xml
-fi &&
-
 case "$DISTRIBUTION" in
 	sunos )	
 		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
@@ -29,6 +25,10 @@ case "$DISTRIBUTION" in
 		fi
 		;;			
 esac
+
+if [ -n "$HAVE_MYSQL" ]; then
+        ods_setup_conf conf.xml conf-mysql.xml
+fi &&
 
 ods_reset_env &&
 
