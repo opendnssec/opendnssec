@@ -534,6 +534,10 @@ engine_runloop(engine_type* engine, start_cb_t start, int single_run)
     /* run */
     while (engine->need_to_exit == 0) {
         /* set up hsm */
+        /* TODO: On a reload the hsm configuration could have been 
+         * changed. Currently if we are unable to reopen the hsms we
+         * have no choice but bail out. We must change this and try
+         * to reopen the old repository list. hint: use hsm_open2 */
         int result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin);
         if (result != HSM_OK) {
             char* error =  hsm_get_error(NULL);
