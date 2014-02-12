@@ -168,6 +168,9 @@ int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 	autostart(engine);
 	// TODO: Add this function once implemented
 	//perform_update_conf(engine->config);
+	/* This needs to be revised, DONT continue when kasp or keyzones
+	 * fail. Maybe also call update repositorylist (and restart)
+	 * Also, what does "autostart(engine);" do here? figure it out! */
 	perform_update_kasp(sockfd, engine->config);
 	perform_update_keyzones(sockfd, engine->config);
 	perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);

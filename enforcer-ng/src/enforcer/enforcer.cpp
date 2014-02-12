@@ -1486,12 +1486,15 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 		if (keyTime != -1) keyTime = addtime(keyTime, purgetime);
 		if (keyPurgable) {
 			if (now >= keyTime) {
-				ods_log_info("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
+				ods_log_info("[%s] %s delete key: %s", module_str, scmd,
+					key.locator().c_str());
 				key_list.delKey(i);
-				key_dep.delDependency( &key );
 			} else {
 				minTime(keyTime, firstPurge);
 			}
+			/** It might not be time to purge the key just yet, but we
+			 * can already assume no other key depends on it. */
+			key_dep.delDependency( &key );
 		}
 	}
 	return firstPurge;
