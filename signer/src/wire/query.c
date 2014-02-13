@@ -638,6 +638,9 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
     }
     /* ixfr? */
     if (qtype == LDNS_RR_TYPE_IXFR) {
+        ods_log_assert(q->zone->name);
+        ods_log_debug("[%s] incoming ixfr request for zone %s",
+            query_str, q->zone->name);
         if (query_process_ixfr(q) != QUERY_PROCESSED) {
             buffer_pkt_set_flags(q->buffer, 0);
             return query_formerr(q);
