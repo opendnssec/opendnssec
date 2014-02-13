@@ -1,0 +1,3 @@
+Script name                                Scenarios in Report
+general.performance.single_add                 1, 4, 8 (5 with xml parm changed)
+general.performance.bulk_add                   2, 6
