@@ -64,7 +64,7 @@ usage(FILE* out)
     fprintf(out, "Usage: %s [<cmd>]\n", "ods-signer");
     fprintf(out, "Simple command line interface to control the signer "
                  "engine daemon.\nIf no cmd is given, the tool is going "
-                 "to interactive mode.\n");
+                 "into interactive mode.\n");
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
                  "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
@@ -101,7 +101,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
 
-    stdineof = 0;
     FD_ZERO(&rset);
     for(;;) {
         /* prepare */
@@ -178,6 +177,9 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                     buf[n] = '\0';
                     cmd_response = 1;
                 }
+            } else {
+                /* always null terminate string */
+                buf[n] = '\0';
             }
 
             /* n > 0 : when we get to this line... */
@@ -199,7 +201,8 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 }
                 /* ret > 0 : when we get here... */
                 if (written+ret > n) {
-                    fprintf(stderr, "\n\nwrite error: more bytes (%d) written than required (%d)\n",
+                    fprintf(stderr, "\n\nwrite error: more bytes (%d) written "
+                        "than required (%d)\n",
                         written+ret, n);
                     break;
                 }
@@ -255,11 +258,12 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             ods_writen(sockfd, buf, n);
         }
     }
+    return 0;
 }
 
 
 /**
- * Start interface
+ * Start interface.
  *
  */
 static int
@@ -290,7 +294,11 @@ interface_start(char* cmd)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            return system(ODS_SE_ENGINE);
+            if (system(ODS_SE_ENGINE)) {
+                fprintf(stderr, "Failed to start signer engine\n");
+                return 1;
+            }
+            return 0;
         }
 
         if (cmd && ods_strcmp(cmd, "running\n") == 0) {
@@ -341,7 +349,7 @@ main(int argc, char* argv[])
 {
     int c;
     int options_size = 0;
-    const char* options[4];
+    const char* options[5];
     char* cmd = NULL;
     int ret = 0;
     allocator_type* clialloc = allocator_create(malloc, free);
@@ -350,8 +358,8 @@ main(int argc, char* argv[])
         exit(1);
     }
 
-    if (argc > 3) {
-        fprintf(stderr,"error, too many arguments\n");
+    if (argc > 5) {
+        fprintf(stderr,"error, too many arguments (%d)\n", argc);
         exit(1);
     }
 

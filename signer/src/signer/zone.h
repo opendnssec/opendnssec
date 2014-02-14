@@ -71,7 +71,9 @@ struct zone_struct {
     ldns_rr_class klass; /* class */
     uint32_t default_ttl; /* ttl */
     /* from conf.xml */
+    char *notify_command; /* placeholder for the whole notify command */
     const char* notify_ns; /* master name server reload command */
+    char** notify_args; /* reload command arguments */
     /* from zonelist.xml */
     const char* name; /* string format zone name */
     const char* policy_name; /* policy identifier */
@@ -157,6 +159,14 @@ ods_status zone_publish_nsec3param(zone_type* zone);
  *
  */
 void zone_rollback_nsec3param(zone_type* zone);
+
+/**
+ * Prepare keys for signing.
+ * \param[in] zone zone
+ * \return ods_status status
+ *
+ */
+ods_status zone_prepare_keys(zone_type* zone);
 
 /**
  * Update serial.

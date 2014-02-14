@@ -200,6 +200,11 @@ write_signer_configuration_to_file(int sockfd,
 		return false;
 	}
 
+	ods_log_info("[%s] Signconf for zone %s written to to %s",
+							 module_str,
+							 ks_zone->name().c_str(),
+							 ks_zone->signconf_path().c_str());
+
 	return true;
 }
 
@@ -265,6 +270,7 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 
 				if (!write_signer_configuration_to_file(sockfd,&policy,&zone))
 					continue; // skip to next zone
+					
 				
 				if (zone.signconf_needs_writing()) {
 					zone.set_signconf_needs_writing(false);
@@ -288,8 +294,8 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 							strcat(signer_command, zone.name().c_str());
 							if (system(signer_command) != 0)
 							{
-								ods_log_error("Could not call signer engine");
-								ods_log_info("Will continue: call 'ods-signer update' to manually update zones");
+								ods_log_error("[%s] Could not call signer engine", module_str);
+								ods_log_info("[%s] Will continue: call 'ods-signer update' to manually update zones", module_str);
 								signer_flag = 0;
 							}
 						}
@@ -304,6 +310,9 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 					ods_log_error_and_printf(sockfd, module_str,
 							"error commiting updated zones to the database.");
 				}
+			}
+			else {
+				transaction.rollback();				
 			}
 		}
 	}

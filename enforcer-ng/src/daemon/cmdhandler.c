@@ -41,6 +41,7 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/duration.h"
+#include "shared/str.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -88,7 +89,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
 
     ods_log_assert(engine);
     if (!engine->taskq || !engine->taskq->tasks) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "I have no tasks scheduled.\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
         ods_writen(sockfd, buf, strlen(buf));
         return 1;
     }
@@ -110,7 +111,7 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     now = time_now();
     strtime = ctime_r(&now,ctimebuf);
     (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "\nI have %i tasks scheduled.\nIt is now %s",
+                   "\nThere are %i tasks scheduled.\nIt is now %s",
                    (int) engine->taskq->tasks->count,
                    strtime?strtime:"(null)\n");
     ods_writen(sockfd, buf, strlen(buf));
@@ -146,13 +147,43 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
     task_type* task = NULL;
     const char *scmd = "time leap";
     ssize_t ncmd = strlen(scmd);
+    const char *time = NULL;
+	time_t time_leap = 0;
+	struct tm tm;	
+    const char *argv[16];
+    const int NARGV = sizeof(argv)/sizeof(char*);
+    int argc;	
     
-    if (n != ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
+    if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
     ods_log_debug("[%s] %s command", module_str, scmd);
+
+    strncpy(buf,cmd,sizeof(buf));
+    buf[sizeof(buf)-1] = '\0';
+    argc = ods_str_explode(buf,NARGV,argv);
+    if (argc > NARGV) {
+        ods_log_error_and_printf(sockfd,module_str,"too many arguments");
+        return false;
+    }   
+    (void)ods_find_arg_and_param(&argc,argv,"time","t",&time);
+    if (time) {
+        if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {	
+            time_leap = mktime_from_utc(&tm);
+		    (void)snprintf(buf, ODS_SE_MAXLINE,"Using %s parameter value as time to leap to\n", 
+		                 time);	
+		   	ods_writen(sockfd, buf, strlen(buf));
+		}	
+		else {
+	        (void)snprintf(buf, ODS_SE_MAXLINE,
+	                       "Time leap: Error - could not convert '%s' to a time. "
+						   "Format is YYYY-MM-DD-HH:MM:SS \n", time);
+	        ods_writen(sockfd, buf, strlen(buf));	
+			return 1;				
+		}		
+	}
     
     ods_log_assert(engine);
     if (!engine->taskq || !engine->taskq->tasks) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "I have no tasks scheduled.\n");
+        (void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
         ods_writen(sockfd, buf, strlen(buf));
         return 1;
     }
@@ -164,7 +195,7 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
     now = time_now();
     strtime = ctime_r(&now,ctimebuf);
     (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "I have %i tasks scheduled.\nIt is now %s",
+                   "There are %i tasks scheduled.\nIt is now       %s",
                    (int) engine->taskq->tasks->count,
                    strtime?strtime:"(null)\n");
     ods_writen(sockfd, buf, strlen(buf));
@@ -175,14 +206,19 @@ int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
 
     if (task) {
         if (!task->flush) {
-            set_time_now(task->when);
-        
-            strtime = ctime_r(&task->when,ctimebuf);
+			/*Use the parameter vaule, or if not given use the time of the first task*/
+			if (!time_leap) 
+				time_leap = task->when;
+					
+	        set_time_now(time_leap);
+		    strtime = ctime_r(&time_leap,ctimebuf);		
             if (strtime)
                 strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
 
             (void)snprintf(buf, ODS_SE_MAXLINE, "Leaping to time %s\n",
                            strtime?strtime:"(null)");
+		    ods_log_info("Time leap: Leaping to time %s\n", 
+		                 strtime?strtime:"(null)");
             ods_writen(sockfd, buf, strlen(buf));
             
             bShouldLeap = 1;
@@ -245,13 +281,13 @@ int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
 int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
+    (void) engine;
     if (n != 7 || strncmp(cmd, "running", n) != 0) return 0;
     ods_log_debug("[%s] running command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }
-
 
 /**
  * Handle the 'reload' command.
@@ -262,22 +298,21 @@ int handled_reload_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t
     char buf[ODS_SE_MAXLINE];
     if (n != 6 || strncmp(cmd, "reload", n) != 0) return 0;
     ods_log_debug("[%s] reload command", module_str);
-    
+
     ods_log_assert(engine);
-    
+
     engine->need_to_reload = 1;
-    
+
     lock_basic_lock(&engine->signal_lock);
     /* [LOCK] signal */
     lock_basic_alarm(&engine->signal_cond);
     /* [UNLOCK] signal */
     lock_basic_unlock(&engine->signal_lock);
-    
+
     (void)snprintf(buf, ODS_SE_MAXLINE, "Reloading engine.\n");
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }
-
 
 /**
  * Handle the 'stop' command.
@@ -300,6 +335,25 @@ int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n
     lock_basic_unlock(&engine->signal_lock);
     
     (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
+    ods_writen(sockfd, buf, strlen(buf));
+    return 2;
+}
+
+
+/**
+ * Handle the 'start' command.
+ *
+ */
+int handled_start_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+    char buf[ODS_SE_MAXLINE];
+    if (n != 5 || strncmp(cmd, "start", n) != 0) return 0;
+    ods_log_debug("[%s] start command", module_str);
+    
+    ods_log_assert(engine);
+    
+    (void)snprintf(buf, ODS_SE_MAXLINE-2, ODS_EN_START_RESPONSE);
+    (void)snprintf(buf+strlen(buf), 2, "\n "); /*last char is stripped*/
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }
@@ -350,7 +404,7 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
 
     
     /* Anouncement */
-    (void) snprintf(buf, ODS_SE_MAXLINE,"Commands:\n");
+    (void) snprintf(buf, ODS_SE_MAXLINE,"\nCommands:\n");
     ods_writen(sockfd, buf, strlen(buf));
     
     /* Call all help functions to emit help texts to the socket. */ 
@@ -360,15 +414,17 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
     
     /* Generic commands */
     (void) snprintf(buf, ODS_SE_MAXLINE,
-        "queue           show the current task queue.\n"
-        "time leap       simulate progression of time by leaping to the time\n"
-        "                of the earliest scheduled task.\n"
-        "flush           execute all scheduled tasks immediately.\n"
-        "running         returns acknowledgment that the engine is running.\n"
-        "reload          reload the engine.\n"
-        "stop            stop the engine and terminate the process.\n"
-        "verbosity <nr>  set verbosity.\n"
-        "help            show overview of available commands.\n"
+               "queue                  Show the current task queue.\n"
+#ifdef ENFORCER_TIMESHIFT
+               "time leap              Simulate progression of time by leaping to the time of\n"
+               "                       the earliest scheduled task.\n"
+#endif
+               "flush                  Execute all scheduled tasks immediately.\n"
+               "running                Returns acknowledgment that the engine is running.\n"
+               "reload                 Reload the engine.\n"
+               "stop                   Stop the engine and terminate the process.\n"
+               "verbosity <nr>         Set verbosity.\n"
+               "help                   Show overview of available commands.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
@@ -382,58 +438,98 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
 int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
+    help_xxxx_cmd_type *help;
+    (void) n;
+
     ods_log_debug("[%s] unknown command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
                    cmd?cmd:"(null)");
+    ods_writen(sockfd, buf, strlen(buf));
+
+    /* Anouncement */
+    (void) snprintf(buf, ODS_SE_MAXLINE,"Commands:\n");
+    ods_writen(sockfd, buf, strlen(buf));
+    
+    /* Call all help functions to emit help texts to the socket. */ 
+    for (help=engine->help; help && *help; ++help) {
+        (*help)(sockfd);
+    }
+    
+    /* Generic commands */
+    (void) snprintf(buf, ODS_SE_MAXLINE,
+               "queue                  Show the current task queue.\n"
+#ifdef ENFORCER_TIMESHIFT
+               "time leap              Simulate progression of time by leaping to the time of\n"
+               "                       the earliest scheduled task.\n"
+#endif
+               "flush                  Execute all scheduled tasks immediately.\n"
+               "running                Returns acknowledgment that the engine is running.\n"
+               "reload                 Reload the engine.\n"
+               "stop                   Stop the engine and terminate the process.\n"
+               "verbosity <nr>         Set verbosity.\n"
+               "help                   Show overview of available commands.\n"
+        );
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }
 
 
-static void
+/**
+ * Perform command
+ * \return int Returns 1 if the command stopped the enforcer, otherwise 0.
+ */
+static int
 cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssize_t n)
 {
     handled_xxxx_cmd_type *handled_cmd = NULL;
     handled_xxxx_cmd_type internal_handled_cmds[] = {
         handled_queue_cmd,
+#ifdef ENFORCER_TIMESHIFT
         handled_time_leap_cmd,
+#endif
         handled_flush_cmd,
         handled_running_cmd,
         handled_reload_cmd,
+        handled_start_cmd,
         handled_stop_cmd,
         handled_verbosity_cmd,
         handled_help_cmd,
         handled_unknown_cmd /* unknown command allways matches, so last entry */
     };
     unsigned int cmdidx;
+    int ret;
 
     ods_log_verbose("received command %s[%i]", cmd, n);
     
     /* enumerate the list of external commands and break from the 
      * loop when one of the handled_xxx_cmd entries inidicates the 
-     * command was handled by returning 1
+     * command was handled by returning 1 or 2 if enforcer is stopped
      */
     for (handled_cmd=engine->commands; handled_cmd && *handled_cmd;
          ++handled_cmd) 
     {
-        if ((*handled_cmd)(sockfd,engine,cmd,n)) break;
+        if ((ret = (*handled_cmd)(sockfd,engine,cmd,n))) break;
     }
     
     /* if the command was not handled, try the internal list of commands */
     if (handled_cmd==NULL || *handled_cmd==NULL) {
         /* enumerate the list of internal commands and break from the loop
          * when one of the handled_xxx_cmd entries inidicates the command 
-         * was handled by returning 1
+         * was handled by returning 1 or 2 if enforcer is stopped
          */
         for (cmdidx=0; 
              cmdidx<sizeof(internal_handled_cmds)/sizeof(handled_xxxx_cmd_type);
              ++cmdidx)
         {
-            if (internal_handled_cmds[cmdidx](sockfd,engine,cmd,n)) break;
+            if ((ret = internal_handled_cmds[cmdidx](sockfd,engine,cmd,n))) break;
         }
     }
     
     ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
+
+    if (ret == 2)
+    	return 1;
+    return 0;
 }
 
 /**
@@ -443,38 +539,32 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssiz
 static void
 cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
 {
-    ssize_t n = 0;
-    int sockfd = 0;
+    ssize_t n;
+    int sockfd;
     char buf[ODS_SE_MAXLINE];
+    int done = 0;
 
     ods_log_assert(cmdc);
-    if (!cmdc)
-        return;
+    if (!cmdc) return;
     sockfd = cmdc->client_fd;
 
-again:
-    while ((n = read(sockfd, buf, ODS_SE_MAXLINE)) > 0) {
-        buf[n-1] = '\0';
-        n--;
-        if (n <= 0) {
-            return;
-        }
-        
-        cmdhandler_perform_command(sockfd,cmdc->engine,buf,n);
-        
-        (void)snprintf(buf, SE_CMDH_CMDLEN, "\ncmd> ");
-        ods_writen(sockfd, buf, strlen(buf));
-    }
-
-    if (n < 0 && (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN) ) {
-        goto again;
-    } else if (n < 0 && errno == ECONNRESET) {
-        ods_log_debug("[%s] done handling client: %s", module_str,
-            strerror(errno));
-    } else if (n < 0 ) {
-        ods_log_error("[%s] read error: %s", module_str, strerror(errno));
-    }
-    return;
+	while (!done) {
+		done = 1;
+		n = read(sockfd, buf, ODS_SE_MAXLINE);
+		if (n <= 0) {
+			if (n == 0 || errno == ECONNRESET) {
+				ods_log_error("[%s] done handling client: %s", module_str,
+					strerror(errno));
+			} else if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
+				done = 0;
+			else
+				ods_log_error("[%s] read error: %s", module_str, strerror(errno));
+		} else {
+			buf[--n] = '\0';
+			if (n > 0)
+				cmdhandler_perform_command(sockfd, cmdc->engine, buf, n);
+		}
+	}
 }
 
 

@@ -48,8 +48,7 @@ void
 help_signconf_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "signconf        force the writing of signer configuration files "
-                        "for all zones.\n"
+               "signconf               Force write of signer configuration files for all zones.\n"
         );
 }
 

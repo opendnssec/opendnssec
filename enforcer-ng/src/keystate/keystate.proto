@@ -60,6 +60,9 @@ message EnforcerZone {
 	
 	optional Adapters adapters = 13 [(xml).path="Adapters"];
 	repeated KeyDependency dependencies = 14;
+	optional uint32 next_ksk_roll = 15 [default = 0, (xml).path="nextKskRoll"]; // not used for logic
+	optional uint32 next_zsk_roll = 16 [default = 0, (xml).path="nextZskRoll"]; // not used for logic
+	optional uint32 next_csk_roll = 17 [default = 0, (xml).path="nextCskRoll"]; // not used for logic
 } 
 
 message KeyDependency {
@@ -87,7 +90,7 @@ message KeyData {
     required KeyState rrsigdnskey = 15 [(xml).path="RRSIGDNSKEY"];
     optional bool active_ksk = 16 [default = false, (xml).path="ActiveKSK"];
     optional dsatparent ds_at_parent = 17 [default = unsubmitted, (xml).path="DSAtParent"];
-    optional uint32 keytag = 18 [default = 0, (xml).path="Keytag"];
+    optional uint32 keytag = 18 [(xml).path="Keytag"]; //PB can't do uint16
 }
 
 message KeyState {
@@ -127,6 +130,8 @@ message ZoneListDocument {
 
 message ZoneList {
 	repeated ZoneData zones = 1 [(xml).path="Zone"];
+	// Define this dummy variable so we can export empty lists
+	optional bool export_empty = 2;
 }
 
 message ZoneData {
@@ -149,15 +154,8 @@ message Adapters {
 }
 
 message Adapter {
-	// Other adapter
-	optional Other other = 1 [(xml).path="Adapter"];
-	// File adapter
+	optional string adapter = 1 [(xml).path="Adapter"];
+	optional string type = 2 [(xml).path="Adapter/@type", default="File"];
+	// For backwards compatibility
 	optional string file = 3 [(xml).path="File"];
-}
-
-message Other {
-	// Adapter type
-	optional string type = 1 [(xml).path="@type", default="File"];
-	// Configuration file
-	optional string config = 2 [(xml).path="text()"];
 }

@@ -18,6 +18,7 @@
 
 		<Denial>
 			<NSEC3>
+				<!-- <TTL>PT0S</TTL> -->
 				<OptOut/>
 				<Hash>
 					<Algorithm>1</Algorithm>

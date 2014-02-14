@@ -33,6 +33,8 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "keystate/zone_del_task.h"
+#include "keystate/write_signzone_task.h"
+#include "keystate/zonelist_task.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
@@ -49,7 +51,7 @@
 static const char *module_str = "zone_del_task";
 
 void 
-perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
+perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int need_write_xml, bool quiet)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -58,11 +60,14 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
 		return; // error already reported.
 
 	std::string qzone;
-	if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
-		const char *emsg = "quoting zone value failed";
-		ods_log_error_and_printf(sockfd,module_str,emsg);
-		return;
-	}
+    bool is_del_succeed = false;
+    if (strlen(zone) > 0) {
+        if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
+            const char *emsg = "quoting zone value failed";
+            ods_log_error_and_printf(sockfd,module_str,emsg);
+            return;
+        }
+    }
 	
 	{	OrmTransactionRW transaction(conn);
 		if (!transaction.started()) {
@@ -71,15 +76,89 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
 			return;
 		}
 		
-		if (!OrmMessageDeleteWhere(conn,
-								   ::ods::keystate::EnforcerZone::descriptor(),
-								   "name = %s",
-								   qzone.c_str()))
-		{
-			const char *emsg = "unable to delete zone %s";
-			ods_log_error_and_printf(sockfd,module_str,emsg,qzone.c_str());
-			return;
-		}
+        if (qzone.empty()) {
+            OrmResultRef rows;
+            ::ods::keystate::EnforcerZone enfzone;
+            std::vector<std::string> del_zones;
+            bool ok = OrmMessageEnum(conn, enfzone.descriptor(), rows);
+            if (!ok) {
+                transaction.rollback();
+                ods_log_error("[%s] enum enforcer zone failed", module_str);
+                return;
+            }
+
+            for (bool next=OrmFirst(rows); next; next = OrmNext(rows)) {
+                OrmContextRef context;
+                if (!OrmGetMessage(rows, enfzone, true, context)) {
+                    rows.release();
+                    transaction.rollback();
+                    ods_log_error("[%s] retrieving zone from database failed");
+                    return;
+                }
+
+                del_zones.push_back(enfzone.name());
+            }
+            rows.release();
+
+            for (std::vector<std::string>::iterator it = del_zones.begin(); 
+                    it != del_zones.end(); ++it) {
+	            std::string del_zone;
+                if (!OrmQuoteStringValue(conn, std::string(*it), del_zone)) {
+                    transaction.rollback();
+                    const char *emsg = "quoting zone value failed";
+                    ods_log_error_and_printf(sockfd,module_str,emsg);
+                    return;
+                }
+                if (!OrmMessageDeleteWhere(conn,
+                            ::ods::keystate::EnforcerZone::descriptor(),
+                            "name = %s",
+                            del_zone.c_str())) {
+                    transaction.rollback();
+                    const char *emsg = "unable to delete zone %s";
+                    ods_log_error_and_printf(sockfd,module_str,emsg, it->c_str());
+                    return;
+                }
+
+                is_del_succeed = true;
+            }
+        }
+        else {
+            //find the zone
+            OrmResultRef rows;
+            if (!OrmMessageEnumWhere(conn, 
+                        ::ods::keystate::EnforcerZone::descriptor(),
+                        rows,
+                        "name = %s",
+                        qzone.c_str())) {
+                transaction.rollback();
+                ods_log_error_and_printf(sockfd, module_str, 
+                        "unable to find zone %s", qzone.c_str());
+                return;
+            }
+
+            if (!OrmFirst(rows)) {
+                rows.release();
+                transaction.rollback();
+                ods_log_error_and_printf(sockfd, module_str, 
+                        "Couldn't find zone %s", qzone.c_str());
+                return;
+            }
+
+            rows.release();
+
+            if (!OrmMessageDeleteWhere(conn,
+                        ::ods::keystate::EnforcerZone::descriptor(),
+                        "name = %s",
+                        qzone.c_str()))
+            {
+                transaction.rollback();
+                const char *emsg = "unable to delete zone %s";
+                ods_log_error_and_printf(sockfd,module_str,emsg,qzone.c_str());
+                return;
+            }
+
+            is_del_succeed = true;
+        }
 		
 		if (!transaction.commit()) {
 			const char *emsg = "committing delete of zone %s to database failed";
@@ -88,6 +167,35 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone)
 		}
     }
 
-    ods_log_debug("[%s] zone %s deleted successfully", module_str,qzone.c_str());
-	ods_printf(sockfd, "zone %s deleted successfully\n",qzone.c_str());
+
+	// Now lets write out the required files - the internal list and optionally the zonelist.xml
+	// Note at the moment we re-export the whole file in zonelist.xml format here but this should be optimised....
+    if (is_del_succeed) {
+		if (!perform_write_signzone_file(sockfd, config)) {
+        	ods_log_error_and_printf(sockfd, module_str, 
+                "failed to write internal zonelist");
+		}
+
+ 	   if (need_write_xml) {
+			if (!perform_zonelist_export_to_file(config->zonelist_filename,config)) {
+	        	ods_log_error_and_printf(sockfd, module_str, 
+	                	"failed to write zonelist.xml");
+			}
+			if (!quiet) {
+				if (qzone.empty()) {
+					ods_printf(sockfd, "Deleted all zones in database and zonelist.xml updated.\n");
+				} else {
+					ods_printf(sockfd, "Deleted zone: %s in database and zonelist.xml updated.\n", zone);
+				}
+			}
+		} else if (!quiet) {
+			if (qzone.empty()) {
+				ods_printf(sockfd, "Deleted all zones in database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
+			} else {
+				ods_printf(sockfd, "Deleted zone: %s in database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
+			}
+		}
+	}
+
+
 }

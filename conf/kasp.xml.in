@@ -26,11 +26,12 @@
 			</Validity>
 			<Jitter>PT12H</Jitter>
 			<InceptionOffset>PT3600S</InceptionOffset>
-			<MaxZoneTTL>PT1D</MaxZoneTTL>
+			<MaxZoneTTL>P1D</MaxZoneTTL>
 		</Signatures>
 
 		<Denial>
 			<NSEC3>
+				<!-- <TTL>PT0S</TTL> -->
 				<!-- <OptOut/> -->
 				<Resalt>P100D</Resalt>
 				<Hash>

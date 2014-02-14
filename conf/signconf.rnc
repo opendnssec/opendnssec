@@ -31,57 +31,57 @@ start = element SignerConfiguration { zone }
 
 zone = element Zone {
 		# zone name
-		attribute name { xsd:string },
+		attribute name { xsd:string }
 
 		# this section is taken directly from the corresponding KASP policy
-		element Signatures {
-			element Resign { xsd:duration },
-			element Refresh { xsd:duration },
-			element Validity {
-				element Default { xsd:duration },
-				element Denial { xsd:duration }
-			},
-			element Jitter { xsd:duration },
-			element InceptionOffset { xsd:duration },
+		& element Signatures {
+			element Resign { xsd:duration }
+			& element Refresh { xsd:duration }
+			& element Validity {
+				element Default { xsd:duration }
+				& element Denial { xsd:duration }
+			}
+			& element Jitter { xsd:duration }
+			& element InceptionOffset { xsd:duration }
 			
-			maxzonettl? # Maximum TTL that may be used in a zone.
-		},
+			& maxzonettl? # Maximum TTL that may be used in a zone.
+		}
 
 		# use NSEC or NSEC3?
-		element Denial { (nsec | nsec3)	},
+		& element Denial { (nsec | nsec3)	}
 
-		element Keys {
+		& element Keys {
 			# TTL for all DNSKEYs
-			ttl,
+			ttl
 
-			element Key {
+			& element Key {
 				# DNSKEY flags
-				element Flags { xsd:nonNegativeInteger { maxInclusive = "65535" } },
+				element Flags { xsd:nonNegativeInteger { maxInclusive = "65535" } }
 				
 				# DNSKEY algorithm
-				algorithm,
+				& algorithm
 				
 				# The key locator is matched against the
 				# PKCS#11 CKA_ID and is specified as a string
 				# of hex characters.
-				element Locator { xsd:hexBinary },
+				& element Locator { xsd:hexBinary }
 
 				# sign all the DNSKEY RRsets with this key?
-				element KSK { empty }?,
+				& element KSK { empty }?
 				
 				# sign all non-DNSKEY RRsets with this key?
-				element ZSK { empty }?,
+				& element ZSK { empty }?
 				
 				# include this key in the zonefile?
-				element Publish { empty }?,
+				& element Publish { empty }?
 				
 				# deactivate this key (i.e. do not recycle any signatures)
-				element Deactivate { empty }?
+				& element Deactivate { empty }?
 			}*
-		},
+		}
 
 		# What parameters to use for the SOA record
-		soa
+		& soa
 	}
 
 algorithm = element Algorithm { xsd:nonNegativeInteger { maxInclusive = "255" } }
@@ -89,9 +89,9 @@ algorithm = element Algorithm { xsd:nonNegativeInteger { maxInclusive = "255" } 
 ttl = element TTL { xsd:duration }
 
 soa = element SOA {
-		ttl,
-		element Minimum { xsd:duration },
-		serial
+		ttl
+		& element Minimum { xsd:duration }
+		& serial
 	}
 
 # see kasp.rnc for description
@@ -108,11 +108,12 @@ nsec = element NSEC { empty }
 # This section is taken directly from the corresponding KASP policy
 # (except that the NSEC3 Salt is not optional)
 nsec3 = element NSEC3 {
-		element OptOut { empty }?,
-		element Hash {
-			algorithm,
-			element Iterations { xsd:nonNegativeInteger { maxInclusive = "65535" } },
-			element Salt { xsd:string }
+		ttl?
+		& element OptOut { empty }?
+		& element Hash {
+			algorithm
+			& element Iterations { xsd:nonNegativeInteger { maxInclusive = "65535" } }
+			& element Salt { xsd:string }
 		}
 	}
 

@@ -68,6 +68,7 @@ adapter_create(const char* str, adapter_mode type, unsigned in)
     adapter->allocator = allocator;
     adapter->type = type;
     adapter->inbound = in;
+    adapter->error = 0;
     adapter->config = NULL;
     adapter->config_last_modified = 0;
     adapter->configstr = allocator_strdup(allocator, str);
@@ -202,9 +203,13 @@ adapter_write(void* zone)
 {
     zone_type* adzone = (zone_type*) zone;
     if (!adzone || !adzone->db || !adzone->adoutbound) {
+        ods_log_error("[%s] unable to write zone: no output adapter",
+            adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
+    ods_log_assert(adzone->name);
     ods_log_assert(adzone->adoutbound->configstr);
+
     switch(adzone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "

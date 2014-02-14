@@ -46,6 +46,7 @@
 
 #include <memory>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 static const char *module_str = "keystate_ds_retract_task";
 
@@ -55,109 +56,116 @@ retract_dnskey_by_id(int sockfd,
 					const char *id,
 					::ods::keystate::keyrole role,
 					const char *zone,
-					int algorithm)
+					int algorithm,
+					bool force)
 {
-    /* Code to output the DNSKEY record  (stolen from hsmutil) */
-    hsm_ctx_t *hsm_ctx = hsm_create_context();
-    if (!hsm_ctx) {
+	struct stat stat_ret;
+	/* Code to output the DNSKEY record  (stolen from hsmutil) */
+	hsm_ctx_t *hsm_ctx = hsm_create_context();
+	if (!hsm_ctx) {
 		ods_log_error_and_printf(sockfd,
 								 module_str,
 								 "could not connect to HSM");
-        return false;
-    }
-    hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
-    
-    if (!key) {
-        ods_log_error_and_printf(sockfd,
+		return false;
+	}
+	hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
+	
+	if (!key) {
+		ods_log_error_and_printf(sockfd,
 								 module_str,
 								 "key %s not found in any HSM",
 								 id);
-        hsm_destroy_context(hsm_ctx);
-        return false;
-    }
-    
-    bool bOK = false;
-    char *dnskey_rr_str;
+		hsm_destroy_context(hsm_ctx);
+		return false;
+	}
 	
-    hsm_sign_params_t *sign_params = hsm_sign_params_new();
-    sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
-    sign_params->algorithm = (ldns_algorithm)algorithm;
-    sign_params->flags = LDNS_KEY_ZONE_KEY;
-    sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
-    
-    ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
+	bool bOK = false;
+	char *dnskey_rr_str;
+	
+	hsm_sign_params_t *sign_params = hsm_sign_params_new();
+	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
+	sign_params->algorithm = (ldns_algorithm)algorithm;
+	sign_params->flags = LDNS_KEY_ZONE_KEY;
+	sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
+	
+	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 #if 0
-    ldns_rr_print(stdout, dnskey_rr);
+	ldns_rr_print(stdout, dnskey_rr);
 #endif        
-    dnskey_rr_str = ldns_rr2str(dnskey_rr);
-    
-    hsm_sign_params_free(sign_params);
-    ldns_rr_free(dnskey_rr);
-    hsm_key_free(key);
+	dnskey_rr_str = ldns_rr2str(dnskey_rr);
 	
-    /* Replace tab with white-space */
-    for (int i = 0; dnskey_rr_str[i]; ++i) {
-        if (dnskey_rr_str[i] == '\t') {
-            dnskey_rr_str[i] = ' ';
-        }
-    }
-    
-    /* We need to strip off trailing comments before we send
-     to any clients that might be listening */
-    for (int i = 0; dnskey_rr_str[i]; ++i) {
-        if (dnskey_rr_str[i] == ';') {
-            dnskey_rr_str[i] = '\n';
-            dnskey_rr_str[i+1] = '\0';
-            break;
-        }
-    }
-
-    // pass the dnskey rr string to a configured
-    // delegation signer retract program.
-    if (ds_retract_command && ds_retract_command[0] != '\0') {
-        /* send records to the configured command */
-        FILE *fp = popen(ds_retract_command, "w");
-        if (fp == NULL) {
-            ods_log_error_and_printf(sockfd,
-									 module_str,
-									 "failed to run command: %s: %s",
-									 ds_retract_command,
-									 strerror(errno));
-        } else {
-            int bytes_written = fprintf(fp, "%s", dnskey_rr_str);
-            if (bytes_written < 0) {
-                ods_log_error_and_printf(sockfd,
-										 module_str,
-										 "[%s] Failed to write to %s: %s",
-										 ds_retract_command,
-										 strerror(errno));
-            } else {
-				
-                if (pclose(fp) == -1) {
-                    ods_log_error_and_printf(sockfd,
-											 module_str,
-											 "failed to close %s: %s",
-											 ds_retract_command,
-											 strerror(errno));
-                } else {
-                    bOK = true;
-                    ods_printf(sockfd,
-							   "key %s retracted by %s\n",
-							   id,
-							   ds_retract_command);
-                }
-            }
-        }
-    } else {
-        ods_log_error_and_printf(sockfd,
-								 module_str,
-								 "no \"DelegationSignerRetractCommand\" binary "
-								 "configured in conf.xml.");
-    }
+	hsm_sign_params_free(sign_params);
+	ldns_rr_free(dnskey_rr);
+	hsm_key_free(key);
 	
-    LDNS_FREE(dnskey_rr_str);
-    hsm_destroy_context(hsm_ctx);
-    return bOK;
+	/* Replace tab with white-space */
+	for (int i = 0; dnskey_rr_str[i]; ++i) {
+		if (dnskey_rr_str[i] == '\t') {
+			dnskey_rr_str[i] = ' ';
+		}
+	}
+	
+	/* We need to strip off trailing comments before we send
+	 to any clients that might be listening */
+	for (int i = 0; dnskey_rr_str[i]; ++i) {
+		if (dnskey_rr_str[i] == ';') {
+			dnskey_rr_str[i] = '\n';
+			dnskey_rr_str[i+1] = '\0';
+			break;
+		}
+	}
+	// pass the dnskey rr string to a configured
+	// delegation signer retract program.
+	if (!ds_retract_command || ds_retract_command[0] == '\0') {
+		if (!force) {
+			ods_log_error_and_printf(sockfd, module_str, 
+				"No \"DelegationSignerRetractCommand\" "
+				"configured. No state changes made. "
+				"Use --force to override.");
+			bOK = false;
+		}
+		/* else: Do nothing, return keytag. */
+	} else if (stat(ds_retract_command, &stat_ret) != 0) {
+		/* First check that the command exists */
+		ods_log_error_and_printf(sockfd, module_str,
+			"Cannot stat file %s: %s", ds_retract_command,
+			strerror(errno));
+	} else if (S_ISREG(stat_ret.st_mode) && 
+			!(stat_ret.st_mode & S_IXUSR || 
+			  stat_ret.st_mode & S_IXGRP || 
+			  stat_ret.st_mode & S_IXOTH)) {
+		/* Then see if it is a regular file, then if usr, grp or 
+		 * all have execute set */
+		ods_log_error_and_printf(sockfd, module_str,
+			"File %s is not executable", ds_retract_command);
+	} else {
+		/* send records to the configured command */
+		FILE *fp = popen(ds_retract_command, "w");
+		if (fp == NULL) {
+			ods_log_error_and_printf(sockfd, module_str,
+				"failed to run command: %s: %s", ds_retract_command,
+				strerror(errno));
+		} else {
+			int bytes_written = fprintf(fp, "%s", dnskey_rr_str);
+			if (bytes_written < 0) {
+				ods_log_error_and_printf(sockfd, module_str,
+					"[%s] Failed to write to %s: %s", ds_retract_command,
+					strerror(errno));
+			} else if (pclose(fp) == -1) {
+				ods_log_error_and_printf(sockfd, module_str,
+					"failed to close %s: %s", ds_retract_command,
+					strerror(errno));
+			} else {
+				bOK = true;
+				ods_printf(sockfd, "key %s retracted by %s\n", id,
+					ds_retract_command);
+			}
+		}
+	}
+	
+	LDNS_FREE(dnskey_rr_str);
+	hsm_destroy_context(hsm_ctx);
+	return bOK;
 }
 
 static void
@@ -166,7 +174,8 @@ retract_keys(OrmConn conn,
 			const char *zone,
 			const char *id,
 			const char *datastore,
-			const char *ds_retract_command)
+			const char *ds_retract_command,
+			bool force)
 {
 	#define LOG_AND_RETURN(errmsg)\
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
@@ -227,7 +236,8 @@ retract_keys(OrmConn conn,
 													 key.locator().c_str(),
 													 key.role(),
 													 enfzone.name().c_str(),
-													 key.algorithm()))
+													 key.algorithm(),
+													 force))
 							{
 								::ods::keystate::KeyData *kd =
 									enfzone.mutable_keys(k);
@@ -245,7 +255,8 @@ retract_keys(OrmConn conn,
 														 key.locator().c_str(),
 														 key.role(),
 														 enfzone.name().c_str(),
-														 key.algorithm()))
+														 key.algorithm(),
+														 force))
 								{
 									::ods::keystate::KeyData *kd = 
 									enfzone.mutable_keys(k);
@@ -261,7 +272,8 @@ retract_keys(OrmConn conn,
 													 key.locator().c_str(),
 													 key.role(),
 													 enfzone.name().c_str(),
-													 key.algorithm()))
+													 key.algorithm(),
+													 force))
 							{
 								::ods::keystate::KeyData *kd = 
 									enfzone.mutable_keys(k);
@@ -320,7 +332,7 @@ list_keys_retract(OrmConn conn, int sockfd, const char *datastore)
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
 	
 	// List the keys with retract flags.
-    ods_printf(sockfd,
+	ods_printf(sockfd,
 			   "Database set to: %s\n"
 			   "Retract Keys:\n"
 			   "Zone:                           "
@@ -364,14 +376,15 @@ list_keys_retract(OrmConn conn, int sockfd, const char *datastore)
 						   );
 			}
 		}
-    }
+	}
 	
 	#undef LOG_AND_RETURN
 }
 
 void 
 perform_keystate_ds_retract(int sockfd, engineconfig_type *config,
-							const char *zone, const char *id, int bauto)
+							const char *zone, const char *id, int bauto,
+							bool force)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
@@ -379,7 +392,7 @@ perform_keystate_ds_retract(int sockfd, engineconfig_type *config,
 		// Evaluate parameters and retract keys from the parent when instructed to.
 		if (zone || id || bauto)
 			retract_keys(conn,sockfd,zone,id,config->datastore,
-						 config->delegation_signer_retract_command);
+						 config->delegation_signer_retract_command, force);
 		else
 			list_keys_retract(conn,sockfd,config->datastore);
 	}
@@ -388,17 +401,17 @@ perform_keystate_ds_retract(int sockfd, engineconfig_type *config,
 static task_type * 
 keystate_ds_retract_task_perform(task_type *task)
 {
-    perform_keystate_ds_retract(-1,(engineconfig_type *)task->context,NULL,NULL,
-                               1);
-    task_cleanup(task);
-    return NULL;
+	perform_keystate_ds_retract(-1,(engineconfig_type *)task->context,NULL,NULL,
+							   0, false);
+	task_cleanup(task);
+	return NULL;
 }
 
 task_type *
 keystate_ds_retract_task(engineconfig_type *config, const char *what,
-                        const char *who)
+						const char *who)
 {
-    task_id what_id = task_register(what, "keystate_ds_retract_task_perform",
-                                    keystate_ds_retract_task_perform);
+	task_id what_id = task_register(what, "keystate_ds_retract_task_perform",
+									keystate_ds_retract_task_perform);
 	return task_create(what_id, time_now(), who, (void*)config);
 }

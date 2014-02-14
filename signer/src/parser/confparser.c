@@ -31,10 +31,11 @@
  *
  */
 
+#include "config.h"
+#include "compat.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
 #include "shared/allocator.h"
-#include "shared/file.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "wire/acl.h"
@@ -135,6 +136,105 @@ parse_file_check(const char* cfgfile, const char* rngfile)
 }
 
 /* TODO: look how the enforcer reads this now */
+
+/**
+ * Parse the repositories.
+ *
+ */
+hsm_repository_t*
+parse_conf_repositories(const char* cfgfile)
+{
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlNode* curNode = NULL;
+    xmlChar* xexpr = NULL;
+
+    int i;
+    char* name;
+    char* module;
+    char* tokenlabel;
+    char* pin;
+    uint8_t use_pubkey;
+    hsm_repository_t* rlist = NULL;
+    hsm_repository_t* repo  = NULL;
+
+    /* Load XML document */
+    doc = xmlParseFile(cfgfile);
+    if (doc == NULL) {
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlParseFile() failed", parser_str);
+        return NULL;
+    }
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlXPathNewContext() failed", parser_str);
+        return NULL;
+    }
+    /* Evaluate xpath expression */
+    xexpr = (xmlChar*) "//Configuration/RepositoryList/Repository";
+    xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
+    if(xpathObj == NULL) {
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlXPathEvalExpression failed", parser_str);
+        return NULL;
+    }
+    /* Parse repositories */
+    if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
+        for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
+            repo = NULL;
+            name = NULL;
+            module = NULL;
+            tokenlabel = NULL;
+            pin = NULL;
+            use_pubkey = 1;
+
+            curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i],
+                                             (const xmlChar *)"name");
+            while (curNode) {
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
+                    module = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
+                    tokenlabel = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
+                    pin = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"SkipPublicKey"))
+                    use_pubkey = 0;
+
+                curNode = curNode->next;
+            }
+            if (name && module && tokenlabel) {
+                repo = hsm_repository_new(name, module, tokenlabel, pin,
+                    use_pubkey);
+            }
+            if (!repo) {
+               ods_log_error("[%s] unable to add %s repository: "
+                   "hsm_repository_new() failed", parser_str, name?name:"-");
+            } else {
+               repo->next = rlist;
+               rlist = repo;
+               ods_log_debug("[%s] added %s repository to repositorylist",
+                   parser_str, name);
+            }
+            free((void*)name);
+            free((void*)module);
+            free((void*)tokenlabel);
+        }
+    }
+
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+    return rlist;
+}
 
 
 /**
@@ -295,34 +395,39 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
 const char*
 parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
 {
-    const char* dup = NULL;
+    int lwd = 0;
+    int lzl = 0;
+    int found = 0;
+    char* dup = NULL;
     const char* str = parse_conf_string(
         cfgfile,
-        "//Configuration/Common/ZoneListFile",
-        1);
-
-    if (str) {
-        dup = allocator_strdup(allocator, str);
-        free((void*)str);
-    }
-    return dup;
-}
-
-
-const char*
-parse_conf_zonefetch_filename(allocator_type* allocator, const char* cfgfile)
-{
-    const char* dup = NULL;
-    const char* str = parse_conf_string(
-        cfgfile,
-        "//Configuration/Common/ZoneFetchFile",
+        "//Configuration/Enforcer/WorkingDirectory",
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        found = 1;
+    } else {
+        str = OPENDNSSEC_ENFORCER_WORKINGDIR;
+    }
+    lwd = strlen(str);
+    lzl = strlen(OPENDNSSEC_ENFORCER_ZONELIST);
+    if (lwd>0 && strncmp(str + (lwd-1), "/", 1) != 0) {
+        dup = allocator_alloc(allocator, sizeof(char)*(lwd+lzl+2));
+        memcpy(dup, str, sizeof(char)*(lwd+1));
+        strlcat(dup, "/", sizeof(char)*(lwd+2));
+        strlcat(dup, OPENDNSSEC_ENFORCER_ZONELIST, sizeof(char)*(lwd+lzl+2));
+        lwd += (lzl+1);
+    } else {
+        dup = allocator_alloc(allocator, sizeof(char)*(lwd+lzl+1));
+        memcpy(dup, str, sizeof(char)*(lwd+1));
+        strlcat(dup, OPENDNSSEC_ENFORCER_ZONELIST, sizeof(char)*(lwd+lzl+1));
+        lwd += (lzl+1);
+    }
+    if (found) {
         free((void*)str);
     }
-    return dup;
+    ods_log_assert(dup);
+    return (const char*) dup;
 }
 
 

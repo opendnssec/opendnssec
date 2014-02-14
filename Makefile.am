@@ -11,7 +11,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = common libhsm conf tools contrib
+SUBDIRS = common libhsm conf tools
 
 if ENABLE_SIGNER
 SUBDIRS += signer
@@ -19,10 +19,6 @@ endif
 
 if ENABLE_ENFORCERNG
 SUBDIRS += enforcer-ng
-endif
-
-if ENABLE_EPPCLIENT
-SUBDIRS += plugins/eppclient
 endif
 
 EXTRA_DIST =	$(srcdir)/LICENSE \
@@ -35,7 +31,8 @@ EXTRA_DIST =	$(srcdir)/LICENSE \
 install-data-hook:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec
-	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/tmp
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signer
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/enforcer
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signconf
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/unsigned
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/opendnssec/signed

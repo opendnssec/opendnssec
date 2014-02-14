@@ -88,7 +88,6 @@ engine_create(void)
     engine->allocator = allocator;
     engine->config = NULL;
     engine->workers = NULL;
-    engine->drudgers = NULL;
     engine->cmdhandler = NULL;
     engine->cmdhandler_done = 0;
     engine->pid = -1;
@@ -97,6 +96,7 @@ engine_create(void)
     engine->daemonize = 0;
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
+    engine->setup_error = 0;
 
     engine->signal = SIGNAL_INIT;
     lock_basic_init(&engine->signal_lock);
@@ -257,30 +257,11 @@ engine_create_workers(engine_type* engine)
     engine->workers = (worker_type**) allocator_alloc(engine->allocator,
         ((size_t)engine->config->num_worker_threads) * sizeof(worker_type*));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(engine->allocator, i,
-            WORKER_WORKER);
+        engine->workers[i] = worker_create(engine->allocator, i);
     }
     return;
 }
-static void
-engine_create_drudgers(engine_type* engine)
-{
-#if HAVE_DRUDGERS
-    size_t i = 0;
-#endif
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    ods_log_assert(engine->allocator);
-#if HAVE_DRUDGERS
-    engine->drudgers = (worker_type**) allocator_alloc(engine->allocator,
-        ((size_t)engine->config->num_signer_threads) * sizeof(worker_type*));
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        engine->drudgers[i] = worker_create(engine->allocator, i,
-            WORKER_DRUDGER);
-    }
-#endif
-    return;
-}
+
 static void*
 worker_thread_start(void* arg)
 {
@@ -289,7 +270,7 @@ worker_thread_start(void* arg)
     worker_start(worker);
     return NULL;
 }
-static void
+void
 engine_start_workers(engine_type* engine)
 {
     size_t i = 0;
@@ -305,27 +286,8 @@ engine_start_workers(engine_type* engine)
     }
     return;
 }
-static void
-engine_start_drudgers(engine_type* engine)
-{
-#if HAVE_DRUDGERS
-    size_t i = 0;
-#endif
 
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    ods_log_debug("[%s] start drudgers", engine_str);
-#if HAVE_DRUDGERS
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        engine->drudgers[i]->need_to_exit = 0;
-        engine->drudgers[i]->engine = (struct engine_struct*) engine;
-        ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
-            engine->drudgers[i]);
-    }
-#endif
-    return;
-}
-static void
+void
 engine_stop_workers(engine_type* engine)
 {
     size_t i = 0;
@@ -346,33 +308,6 @@ engine_stop_workers(engine_type* engine)
     }
     return;
 }
-static void
-engine_stop_drudgers(engine_type* engine)
-{
-#if HAVE_DRUDGERS
-    size_t i = 0;
-#endif
-
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    ods_log_debug("[%s] stop drudgers", engine_str);
-#if HAVE_DRUDGERS
-    /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        engine->drudgers[i]->need_to_exit = 1;
-    }
-    worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
-
-    /* head count */
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        ods_log_debug("[%s] join drudger %i", engine_str, i+1);
-        ods_thread_join(engine->drudgers[i]->thread_id);
-        engine->drudgers[i]->engine = NULL;
-    }
-#endif
-    return;
-}
-
 
 /**
  * Wake up all workers.
@@ -401,7 +336,6 @@ static ods_status
 engine_setup_and_return_status(engine_type* engine)
 {
     struct sigaction action;
-    int result = 0;
     int fd;
 
     ods_log_debug("[%s] enforcer setup", engine_str);
@@ -442,10 +376,11 @@ engine_setup_and_return_status(engine_type* engine)
 
     /* daemonize */
     if (engine->daemonize) {
-        switch ((engine->pid = fork())) {
+        switch (fork()) {
             case -1: /* error */
                 ods_log_error("[%s] unable to fork daemon: %s",
                     engine_str, strerror(errno));
+                hsm_close();
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
                 if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
@@ -466,6 +401,7 @@ engine_setup_and_return_status(engine_type* engine)
         if (setsid() == -1) {
             ods_log_error("[%s] unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
+            hsm_close();
             return ODS_STATUS_SETSID_ERR;
         }
     }
@@ -481,17 +417,8 @@ engine_setup_and_return_status(engine_type* engine)
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
 
-    /* set up hsm */ /* LEAK */
-    result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin, NULL);
-    if (result != HSM_OK) {
-        ods_log_error("[%s] error initializing libhsm (errno %i)",
-            engine_str, result);
-        return ODS_STATUS_HSM_ERR;
-    }
-
     /* create workers */
     engine_create_workers(engine);
-    engine_create_drudgers(engine);
 
     /* start command handler */
     engine_start_cmdhandler(engine);
@@ -522,7 +449,7 @@ engine_setup(engine_type* engine, handled_xxxx_cmd_type *commands,
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
                       ods_status2str(status));
-        engine->need_to_exit = 1;
+        engine->setup_error = 1;
         if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
             /* command handler had not yet been started */
             engine->cmdhandler_done = 1;
@@ -543,7 +470,6 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     ods_log_assert(engine);
 
     engine_start_workers(engine);
-    engine_start_drudgers(engine);
 
     lock_basic_lock(&engine->signal_lock);
     /* [LOCK] signal */
@@ -586,13 +512,12 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
         /* [LOCK] signal */
         if (engine->signal == SIGNAL_RUN && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
-           lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 3600);
+           lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 0);
         }
         /* [UNLOCK] signal */
         lock_basic_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] enforcer halted", engine_str);
-    engine_stop_drudgers(engine);
     engine_stop_workers(engine);
     return;
 }
@@ -608,7 +533,25 @@ engine_runloop(engine_type* engine, start_cb_t start, int single_run)
 {
     /* run */
     while (engine->need_to_exit == 0) {
-        
+        /* set up hsm */
+        /* TODO: On a reload the hsm configuration could have been 
+         * changed. Currently if we are unable to reopen the hsms we
+         * have no choice but bail out. We must change this and try
+         * to reopen the old repository list. hint: use hsm_open2 */
+        int result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin);
+        if (result != HSM_OK) {
+            char* error =  hsm_get_error(NULL);
+            if (error != NULL) {
+                ods_log_error("[%s] %s", engine_str, error);
+                free(error);
+            } else {
+                ods_log_crit("[%s] error opening libhsm (errno %i)", engine_str,
+                    result);
+            }
+            engine->setup_error = 1;
+            break;
+        }
+    
         if (engine->need_to_reload) {
             ods_log_info("[%s] enforcer reloading", engine_str);
             engine->need_to_reload = 0;
@@ -621,11 +564,11 @@ engine_runloop(engine_type* engine, start_cb_t start, int single_run)
         }
         
         engine_run(engine, start, single_run);
+        hsm_close();
     }
     
     /* shutdown */
     ods_log_info("[%s] enforcer shutdown", engine_str);
-    hsm_close();
     if (engine->cmdhandler != NULL) {
         engine_stop_cmdhandler(engine);
     }
@@ -740,14 +683,6 @@ engine_cleanup(engine_type* engine)
         }
         allocator_deallocate(allocator, (void*) engine->workers);
     }
-#if HAVE_DRUDGERS
-    if (engine->drudgers && engine->config) {
-       for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-           worker_cleanup(engine->drudgers[i]);
-       }
-        allocator_deallocate(allocator, (void*) engine->drudgers);
-    }
-#endif
     schedule_cleanup(engine->taskq);
     fifoq_cleanup(engine->signq);
     cmdhandler_cleanup(engine->cmdhandler);
@@ -758,4 +693,20 @@ engine_cleanup(engine_type* engine)
     lock_basic_off(&signal_cond);
     allocator_cleanup(allocator);
     return;
+}
+
+void
+flush_all_tasks(int sockfd, engine_type* engine)
+{
+    ods_log_debug("[%s] flushing all tasks...", engine_str);
+    ods_printf(sockfd,"flushing all tasks...\n");
+
+    ods_log_assert(engine);
+    ods_log_assert(engine->taskq);
+    lock_basic_lock(&engine->taskq->schedule_lock);
+    /* [LOCK] schedule */
+    schedule_flush(engine->taskq, TASK_NONE);
+    /* [UNLOCK] schedule */
+    lock_basic_unlock(&engine->taskq->schedule_lock);
+    engine_wakeup_workers(engine);
 }

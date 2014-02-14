@@ -142,6 +142,7 @@ tcp_conn_read(tcp_conn_type* tcp)
         ods_log_assert(tcp->total_bytes == sizeof(tcp->msglen));
         tcp->msglen = ntohs(tcp->msglen);
         if (tcp->msglen > buffer_capacity(tcp->packet)) {
+            /* packet to big, drop connection */
             ods_log_error("[%s] packet too big, dropping connection", tcp_str);
             return 0;
         }

@@ -94,7 +94,6 @@ engine_create(void)
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
     engine->pid = -1;
-    engine->zfpid = -1;
     engine->uid = -1;
     engine->gid = -1;
     engine->daemonize = 0;
@@ -416,6 +415,7 @@ engine_stop_workers(engine_type* engine)
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
+    ods_log_debug("[%s] notify workers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
@@ -436,6 +436,7 @@ engine_stop_drudgers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 1;
     }
+    ods_log_debug("[%s] notify drudgers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
@@ -473,6 +474,7 @@ engine_wakeup_workers(engine_type* engine)
 static ods_status
 engine_setup(engine_type* engine)
 {
+    ods_status status = ODS_STATUS_OK;
     struct sigaction action;
     int result = 0;
     int sockets[2] = {0,0};
@@ -502,6 +504,11 @@ engine_setup(engine_type* engine)
         }
         engine->xfrhandler->dnshandler.fd = sockets[0];
         engine->dnshandler->xfrhandler.fd = sockets[1];
+        status = dnshandler_listen(engine->dnshandler);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] setup: unable to listen to sockets (%s)",
+                engine_str, ods_status2str(status));
+        }
     }
     /* privdrop */
     engine->uid = privuid(engine->config->username);
@@ -523,6 +530,12 @@ engine_setup(engine_type* engine)
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
         return ODS_STATUS_PRIVDROP_ERR;
     }
+    /* set up hsm */ /* LEAK */
+    result = lhsm_open(engine->config->repositories);
+    if (result != HSM_OK) {
+        fprintf(stderr, "Fail to open hsm\n");
+        return ODS_STATUS_HSM_ERR;
+    }
     /* daemonize */
     if (engine->daemonize) {
         switch ((engine->pid = fork())) {
@@ -541,12 +554,19 @@ engine_setup(engine_type* engine)
                 exit(0);
         }
         if (setsid() == -1) {
+            hsm_close();
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
             return ODS_STATUS_SETSID_ERR;
         }
     }
     engine->pid = getpid();
+    /* write pidfile */
+    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+        hsm_close();
+        return ODS_STATUS_WRITE_PIDFILE_ERR;
+    }
+    /* setup done */
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
     /* catch signals */
@@ -554,13 +574,15 @@ engine_setup(engine_type* engine)
     action.sa_handler = signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
-    sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
-    /* set up hsm */ /* LEAK */
-    result = lhsm_open(engine->config->cfg_filename);
-    if (result != HSM_OK) {
-        return ODS_STATUS_HSM_ERR;
-    }
+    sigaction(SIGHUP, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGILL, &action, NULL);
+    sigaction(SIGUSR1, &action, NULL);
+    sigaction(SIGALRM, &action, NULL);
+    sigaction(SIGCHLD, &action, NULL);
+    action.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &action, NULL);
     /* create workers/drudgers */
     engine_create_workers(engine);
     engine_create_drudgers(engine);
@@ -569,12 +591,6 @@ engine_setup(engine_type* engine)
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init(engine->allocator);
-    /* write pidfile */
-    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
-        hsm_close();
-        return ODS_STATUS_WRITE_PIDFILE_ERR;
-    }
-    /* setup done */
     return ODS_STATUS_OK;
 }
 
@@ -658,7 +674,7 @@ engine_run(engine_type* engine, int single_run)
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
-    (void)lhsm_reopen(engine->config->cfg_filename);
+    (void)lhsm_reopen(engine->config->repositories);
     return;
 }
 
@@ -672,19 +688,41 @@ set_notify_ns(zone_type* zone, const char* cmd)
 {
     const char* str = NULL;
     const char* str2 = NULL;
+    char* token = NULL;
     ods_log_assert(cmd);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound);
     if (zone->adoutbound->type == ADAPTER_FILE) {
         str = ods_replace(cmd, "%zonefile", zone->adoutbound->configstr);
+        if (!str) {
+            ods_log_error("[%s] unable to set notify ns: replace zonefile failed",
+                engine_str);
+        }
+        str2 = ods_replace(str, "%zone", zone->name);
+        free((void*)str);
     } else {
-        str = cmd;
+        str2 = ods_replace(cmd, "%zone", zone->name);
     }
-    str2 = ods_replace(str, "%zone", zone->name);
-    free((void*)str);
-    zone->notify_ns = (const char*) str2;
-    ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
+    if (str2) {
+        ods_str_trim((char*) str2);
+        str = str2;
+        if (*str) {
+            token = NULL;
+            while ((token = strtok((char*) str, " "))) {
+                if (*token) {
+                    ods_str_list_add(&zone->notify_args, token);
+                }
+                str = NULL;
+            }
+        }
+        zone->notify_command = (char*) str2;
+        zone->notify_ns = zone->notify_args[0];
+        ods_log_debug("[%s] set notify ns: %s", engine_str, zone->notify_ns);
+    } else {
+        ods_log_error("[%s] unable to set notify ns: replace zone failed",
+            engine_str);
+    }
     return;
 }
 
@@ -752,7 +790,7 @@ dnsconfig_zone(engine_type* engine, zone_type* zone)
  *
  */
 void
-engine_update_zones(engine_type* engine)
+engine_update_zones(engine_type* engine, ods_status zl_changed)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
@@ -834,7 +872,8 @@ engine_update_zones(engine_type* engine)
             lock_basic_lock(&engine->taskq->schedule_lock);
             status = schedule_task(engine->taskq, task, 0);
             lock_basic_unlock(&engine->taskq->schedule_lock);
-        } else { /* always try to update signconf */
+        } else if (zl_changed == ODS_STATUS_OK) {
+            /* always try to update signconf */
             lock_basic_lock(&zone->zone_lock);
             status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
             lock_basic_unlock(&zone->zone_lock);
@@ -892,6 +931,7 @@ engine_recover(engine_type* engine)
         zone = (zone_type*) node->data;
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
+        lock_basic_lock(&zone->zone_lock);
         status = zone_recover2(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
@@ -927,6 +967,7 @@ engine_recover(engine_type* engine)
             }
             result = ODS_STATUS_OK; /* will trigger update zones */
         }
+        lock_basic_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
     /* [UNLOCK] zonelist */
@@ -939,7 +980,7 @@ engine_recover(engine_type* engine)
  * Start engine.
  *
  */
-void
+int
 engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int info, int single_run)
 {
@@ -948,6 +989,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
     int close_hsm = 0;
+    int ret = 1;
 
     ods_log_assert(cfgfile);
     ods_log_init(NULL, use_syslog, cmdline_verbosity);
@@ -960,7 +1002,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     engine = engine_create();
     if (!engine) {
         ods_fatal_exit("[%s] create failed", engine_str);
-        return;
+        return ret;
     }
     engine->daemonize = daemonize;
 
@@ -976,24 +1018,27 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         engine_config_print(stdout, engine->config); /* for debugging */
         goto earlyexit;
     }
-
+    /* check pidfile */
+    if (!util_check_pidfile(engine->config->pid_filename)) {
+        exit(1);
+    }
     /* open log */
     ods_log_init(engine->config->log_filename, engine->config->use_syslog,
        engine->config->verbosity);
-
     /* setup */
     tzset(); /* for portability */
     status = engine_setup(engine);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
             ods_status2str(status));
-        engine->need_to_exit = 1;
         if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
             /* command handler had not yet been started */
             engine->cmdhandler_done = 1;
         }
+        goto earlyexit;
     } else {
         /* setup ok, mark hsm open */
+        ret = 1;
         close_hsm = 1;
     }
 
@@ -1012,12 +1057,13 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             ods_log_info("[%s] signer reloading", engine_str);
             engine->need_to_reload = 0;
         } else {
-            ods_log_info("[%s] signer started", engine_str);
+            ods_log_info("[%s] signer started (version %s), pid %u",
+                engine_str, PACKAGE_VERSION, engine->pid);
             zl_changed = engine_recover(engine);
         }
         if (zl_changed == ODS_STATUS_OK ||
             zl_changed == ODS_STATUS_UNCHANGED) {
-            engine_update_zones(engine);
+            engine_update_zones(engine, zl_changed);
         }
         engine_run(engine, single_run);
     }
@@ -1025,11 +1071,14 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
     if (close_hsm) {
+        ods_log_verbose("[%s] close hsm", engine_str);
         hsm_close();
     }
-    engine_stop_xfrhandler(engine);
-    engine_stop_dnshandler(engine);
-    engine_stop_cmdhandler(engine);
+    if (!engine->cmdhandler_done) {
+        engine_stop_xfrhandler(engine);
+        engine_stop_dnshandler(engine);
+        engine_stop_cmdhandler(engine);
+    }
 
 earlyexit:
     if (engine && engine->config) {
@@ -1047,7 +1096,7 @@ earlyexit:
     xmlCleanupParser();
     xmlCleanupGlobals();
     xmlCleanupThreads();
-    return;
+    return ret;
 }
 
 

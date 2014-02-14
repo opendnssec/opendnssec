@@ -43,9 +43,9 @@ static const char* hsm_str = "hsm";
  *
  */
 int
-lhsm_open(const char* filename)
+lhsm_open(hsm_repository_t* rlist)
 {
-    int result = hsm_open(filename, hsm_prompt_pin, NULL);
+    int result = hsm_open2(rlist, hsm_check_pin);
     if (result != HSM_OK) {
         char* error =  hsm_get_error(NULL);
         if (error != NULL) {
@@ -68,13 +68,13 @@ lhsm_open(const char* filename)
  *
  */
 int
-lhsm_reopen(const char* filename)
+lhsm_reopen(hsm_repository_t* rlist)
 {
     if (hsm_check_context(NULL) != HSM_OK) {
         ods_log_warning("[%s] idle libhsm connection, trying to reopen",
             hsm_str);
         hsm_close();
-        return lhsm_open(filename);
+        return lhsm_open(rlist);
     }
     return HSM_OK;
 }
@@ -119,7 +119,7 @@ lhsm_check_connection(void* engine)
             hsm_str);
         engine_stop_drudgers(e);
         hsm_close();
-        (void)lhsm_open(e->config->cfg_filename);
+        (void)lhsm_open(e->config->repositories);
         engine_start_drudgers((engine_type*) engine);
     } else {
         ods_log_debug("[%s] libhsm connection ok", hsm_str);
@@ -219,36 +219,14 @@ ldns_rr*
 lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ldns_rdf* owner, time_t inception, time_t expiration)
 {
-    ods_status status = ODS_STATUS_OK;
     char* error = NULL;
     ldns_rr* result = NULL;
     hsm_sign_params_t* params = NULL;
-    int retries = 0;
 
     if (!owner || !key_id || !rrset || !inception || !expiration) {
         ods_log_error("[%s] unable to sign: missing required elements",
             hsm_str);
         return NULL;
-    }
-
-lhsm_sign_start:
-
-    /* get dnskey */
-    if (!key_id->dnskey) {
-        status = lhsm_get_key(ctx, owner, key_id);
-        if (status != ODS_STATUS_OK) {
-            error = hsm_get_error(ctx);
-            if (error) {
-                ods_log_error("[%s] %s", hsm_str, error);
-                free((void*)error);
-            } else if (!retries) {
-                lhsm_clear_key_cache(key_id);
-                retries++;
-                goto lhsm_sign_start;
-            }
-            ods_log_error("[%s] unable to sign: get key failed", hsm_str);
-            return NULL;
-        }
     }
     ods_log_assert(key_id->dnskey);
     ods_log_assert(key_id->hsmkey);
@@ -260,8 +238,8 @@ lhsm_sign_start:
     params->flags = key_id->flags;
     params->inception = inception;
     params->expiration = expiration;
-    params->keytag = ldns_calc_keytag(key_id->dnskey);
-    ods_log_debug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
+    params->keytag = key_id->params->keytag;
+    ods_log_deeebug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
         ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
         key_id->locator?key_id->locator:"(null)", params->keytag);
     result = hsm_sign_rrset(ctx, rrset, key_id->hsmkey, params);
@@ -271,10 +249,6 @@ lhsm_sign_start:
         if (error) {
             ods_log_error("[%s] %s", hsm_str, error);
             free((void*)error);
-        } else if (!retries) {
-            lhsm_clear_key_cache(key_id);
-            retries++;
-            goto lhsm_sign_start;
         }
         ods_log_crit("[%s] error signing rrset with libhsm", hsm_str);
     }

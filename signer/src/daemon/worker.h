@@ -123,21 +123,10 @@ void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
  * Let worker wait.
  * \param[in] lock lock to use
  * \param[in] condition condition to be met
- * \param[in] timeout maximum waiting time in seconds
  *
  */
 void worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
     time_t timeout);
-
-/**
- * Let worker wait on an already locked cond
- * \param[in] lock lock to use
- * \param[in] condition condition to be met
- * \param[in] timeout maximum waiting time in seconds
- *
- */
-void worker_wait_timeout_locked(lock_basic_type* lock, cond_basic_type*
-    condition, time_t timeout);
 
 /**
  * Notify a worker.

@@ -46,17 +46,20 @@ void
 help_keystate_ds_retract_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "key ds-retract  list KSK keys that should be retracted from the parent.\n"
-        "  --zone <zone> (aka -z) force retract of KSK key for zone <zone>.\n"
-        "  --id <id>     (aka -k) force retract of KSK key with id <id>.\n"
-        "  --auto        (aka -a) perform retract for all keys that have "
-                        "the retract flag set.\n"
-        );
+               "key ds-retract         Issue a ds-retract to the enforcer for a KSK.\n"
+			   "                       (This command with no parameters lists eligible keys.)\n"
+               "      --zone <zone>              (aka -z)  zone.\n"
+               "      --cka_id <cka_id>          (aka -k)  cka_id <CKA_ID> of the key.\n"
+               "      --auto                     (aka -a)  perform retract for all keys that\n"
+			   "                                           have the retract flag set.\n"
+               "      --force                    (aka -f)  force even if there is no configured\n"
+			   "                                           DelegationSignerRetractCommand.\n"
+    );
 }
 
 int
 handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
-								const char *cmd, ssize_t n)
+                                const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
     const char *argv[8];
@@ -82,27 +85,31 @@ handled_keystate_ds_retract_cmd(int sockfd, engine_type* engine,
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"too many arguments\n");
+		help_keystate_ds_retract_cmd(sockfd);
         return 1; // errors, but handled
     }
     
     const char *zone = NULL;
-    const char *id = NULL;
+    const char *cka_id = NULL;
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    (void)ods_find_arg_and_param(&argc,argv,"id","k",&id);
+    (void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
     bool bAutomatic = ods_find_arg(&argc,argv,"auto","a") != -1;
+    bool force = ods_find_arg(&argc,argv,"force","f") != -1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"unknown arguments\n");
+		help_keystate_ds_retract_cmd(sockfd);
         return 1; // errors, but handled
     }
     
     /* perform task immediately */
     time_t tstart = time(NULL);
-    perform_keystate_ds_retract(sockfd,engine->config,zone,id,bAutomatic?1:0);
-    if (!zone && !id) {
+    perform_keystate_ds_retract(sockfd, engine->config, zone,cka_id, 
+        bAutomatic?1:0, force);
+    if (!zone && !cka_id) {
         ods_printf(sockfd,"%s completed in %ld seconds.\n",
-				   scmd,time(NULL)-tstart);
+                   scmd,time(NULL)-tstart);
     }
 
     return 1;

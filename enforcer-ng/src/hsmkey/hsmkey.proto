@@ -55,6 +55,9 @@ message HsmKey {
     optional bool revoke = 9 [default = false, (orm.column).name = "isrevoked"];
     optional string key_type = 10; // key type name derived from name in PKCS#11 spec e.g. CKK_RSA becomes "RSA"
     optional string repository = 11; // repository in which the key was found e.g. SoftHSM
+    optional bool backmeup = 12 [default=false];
+    optional bool backedup = 13 [default=false];
+    optional bool requirebackup = 14 [default=false];
 } 
 
 enum keyrole {

@@ -157,6 +157,7 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
         ods_log_error("[%s] unable to schedule task: no task", schedule_str);
         return ODS_STATUS_ASSERT_ERR;
     }
+    task->flush = 0;
     ods_log_assert(task);
     if (!schedule) {
         ods_log_error("[%s] unable to schedule task: no schedule",
@@ -317,7 +318,6 @@ schedule_pop_task(schedule_type* schedule)
             ods_log_debug("[%s] pop task for %s", schedule_str,
                 pop->who?pop->who:"(null)");
         }
-        pop->flush = 0;
         return unschedule_task(schedule, pop);
     }
     return NULL;

@@ -64,6 +64,18 @@ static int log_level = LOG_CRIT;
 
 #define CTIME_LENGTH 26
 
+/**
+ * Use _r() functions on platforms that have. They are thread safe versions of
+ * the normal syslog functions. Platforms without _r() usually have thread safe
+ * normal functions.
+ */
+#if defined(HAVE_SYSLOG_R) && defined(HAVE_OPENLOG_R) && defined(HAVE_CLOSELOG_R)
+struct syslog_data sdata = SYSLOG_DATA_INIT;
+#else
+#undef HAVE_SYSLOG_R
+#undef HAVE_OPENLOG_R
+#undef HAVE_CLOSELOG_R
+#endif
 
 /* TODO:
    - prepend ods_ in common library
@@ -97,12 +109,20 @@ ods_log_init(const char *filename, int use_syslog, int verbosity)
 
 #ifdef HAVE_SYSLOG_H
     if(logging_to_syslog) {
+#ifdef HAVE_CLOSELOG_R
+    	closelog_r(&sdata);
+#else
         closelog();
+#endif
         logging_to_syslog = 0;
     }
     if(use_syslog) {
        facility = ods_log_get_facility(filename);
+#ifdef HAVE_OPENLOG_R
+       openlog_r(MY_PACKAGE_TARNAME, LOG_NDELAY, facility, &sdata);
+#else
        openlog(MY_PACKAGE_TARNAME, LOG_NDELAY, facility);
+#endif
        logging_to_syslog = 1;
        return;
     }
@@ -211,7 +231,11 @@ ods_log_vmsg(int priority, const char* t, const char* s, va_list args)
 
 #ifdef HAVE_SYSLOG_H
     if (logging_to_syslog) {
+#ifdef HAVE_SYSLOG_R
+        syslog_r(priority, &sdata, "%s", message);
+#else
         syslog(priority, "%s", message);
+#endif
         return;
     }
 #endif /* HAVE_SYSLOG_H */

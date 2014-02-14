@@ -89,8 +89,18 @@ denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
     domain = (domain_type*) denial->domain;
     rrset = domain->rrsets;
     while (rrset) {
-        types[*types_count] = rrset->rrtype;
-        *types_count = *types_count + 1;
+        ldns_rr_type dstatus = domain_is_occluded(domain);
+        if (dstatus == LDNS_RR_TYPE_SOA) {
+            /* Authoritative or delegation */
+            dstatus = domain_is_delegpt(domain);
+            if (dstatus == LDNS_RR_TYPE_SOA ||
+                rrset->rrtype == LDNS_RR_TYPE_NS ||
+                rrset->rrtype == LDNS_RR_TYPE_DS) {
+
+                types[*types_count] = rrset->rrtype;
+                *types_count = *types_count + 1;
+            }
+        }
         rrset = rrset->next;
     }
     return;
@@ -241,7 +251,7 @@ void
 denial_diff(denial_type* denial)
 {
     if (denial && denial->rrset) {
-        rrset_diff(denial->rrset, 0);
+        rrset_diff(denial->rrset, 0, 0);
     }
     return;
 }
@@ -294,7 +304,6 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
     ldns_rr* nsec_rr = NULL;
     zone_type* zone = NULL;
     uint32_t ttl = 0;
-    uint32_t maxttl = 0;
     ods_log_assert(denial);
     ods_log_assert(nxt);
     zone = (zone_type*) denial->zone;
@@ -306,15 +315,6 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
         if (zone->signconf->soa_min) {
             ttl = (uint32_t) duration2time(zone->signconf->soa_min);
         }
-        /* MaxZoneTTL */
-/* I think we should not cap ttl for NSEC(3) RRs...
-        if (zone->signconf->max_zone_ttl) {
-            maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
-            if (maxttl < ttl) {
-                ttl = maxttl;
-            }
-        }
-*/
         /* create new NSEC(3) rr */
         nsec_rr = denial_create_nsec(denial, nxt, ttl, zone->klass,
             zone->signconf->nsec3params);
@@ -340,6 +340,8 @@ denial_print(FILE* fd, denial_type* denial, ods_status* status)
 {
     if (!denial || !fd) {
         if (status) {
+            ods_log_crit("[%s] unable to print denial: denial of fd missing",
+                denial_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
         return;

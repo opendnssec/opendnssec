@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ZoneList>
+<!--
+	<Zone name="example.com">
+		<Policy>default</Policy>
+		<SignerConfiguration>/var/opendnssec/signconf/example.com.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<Adapter type="File">/var/opendnssec/unsigned/example.com</Adapter>
+			</Input>
+			<Output>
+				<Adapter type="File">/var/opendnssec/signed/example.com</Adapter>
+			</Output>
+		</Adapters>
+	</Zone>
+-->
+</ZoneList>

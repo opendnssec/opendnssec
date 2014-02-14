@@ -1,5 +1,7 @@
 # $Id$
 
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 BUILT_SOURCES = \
@@ -24,7 +26,7 @@ CLEANFILES = $(BUILT_SOURCES)
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
-SUBDIRS = protobuf-orm/test
+SUBDIRS = utils protobuf-orm/test
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
@@ -72,29 +74,34 @@ ods_enforcerd_SOURCES = \
 	shared/protobuf.cpp shared/protobuf.h \
 	xmlext-pb/xmlext-rd.cpp xmlext-pb/xmlext-rd.h \
 	xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \
+	policy/policy_export_cmd.cpp policy/policy_export_cmd.h \
+	policy/policy_export_task.cpp policy/policy_export_task.h \
+	policy/policy_import_cmd.cpp policy/policy_import_cmd.h \
 	policy/update_kasp_cmd.cpp policy/update_kasp_cmd.h \
 	policy/update_kasp_task.cpp policy/update_kasp_task.h \
 	policy/policy_list_cmd.cpp policy/policy_list_cmd.h \
 	policy/policy_list_task.cpp policy/policy_list_task.h \
+	policy/policy_purge_cmd.cpp policy/policy_purge_cmd.h\
+	policy/policy_purge_task.cpp policy/policy_purge_task.h\
 	policy/policy_resalt_cmd.cpp policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.cpp policy/policy_resalt_task.h \
 	policy/resalt.cpp policy/resalt.h \
 	hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
 	hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
-	hsmkey/hsmkey_list_cmd.cpp hsmkey/hsmkey_list_cmd.h \
-	hsmkey/hsmkey_list_task.cpp hsmkey/hsmkey_list_task.h \
+	hsmkey/backup_hsmkeys_cmd.cpp hsmkey/backup_hsmkeys_cmd.h \
+	hsmkey/backup_hsmkeys_task.cpp hsmkey/backup_hsmkeys_task.h \
 	hsmkey/update_hsmkeys_cmd.cpp hsmkey/update_hsmkeys_cmd.h \
 	hsmkey/update_hsmkeys_task.cpp hsmkey/update_hsmkeys_task.h \
 	keystate/zone_list_cmd.cpp keystate/zone_list_cmd.h \
 	keystate/zone_list_task.cpp keystate/zone_list_task.h \
-	keystate/zone_export_cmd.cpp keystate/zone_export_cmd.h \
-	keystate/zone_export_task.cpp keystate/zone_export_task.h \
 	keystate/zone_add_cmd.cpp keystate/zone_add_cmd.h \
 	keystate/zone_add_task.cpp keystate/zone_add_task.h \
 	keystate/zone_del_cmd.cpp keystate/zone_del_cmd.h \
 	keystate/zone_del_task.cpp keystate/zone_del_task.h \
 	keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
 	keystate/keystate_list_task.cpp keystate/keystate_list_task.h \
+	keystate/rollover_list_cmd.cpp keystate/rollover_list_cmd.h \
+	keystate/rollover_list_task.cpp keystate/rollover_list_task.h \
 	keystate/keystate_export_cmd.cpp keystate/keystate_export_cmd.h \
 	keystate/keystate_export_task.cpp keystate/keystate_export_task.h \
 	keystate/keystate_ds_submit_cmd.cpp keystate/keystate_ds_submit_cmd.h \
@@ -109,6 +116,9 @@ ods_enforcerd_SOURCES = \
 	keystate/update_keyzones_task.cpp keystate/update_keyzones_task.h \
 	keystate/keystate_rollover_cmd.cpp keystate/keystate_rollover_cmd.h \
 	keystate/keystate_rollover_task.cpp keystate/keystate_rollover_task.h \
+	keystate/zonelist_task.h keystate/zonelist_task.cpp \
+	keystate/zonelist_cmd.h keystate/zonelist_cmd.cpp \
+	keystate/write_signzone_task.h keystate/write_signzone_task.cpp \
 	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 	signconf/signconf_task.cpp signconf/signconf_task.h \
 	enforcer/enforcerdata.h \
@@ -119,6 +129,9 @@ ods_enforcerd_SOURCES = \
 	enforcer/enforcer.cpp enforcer/enforcer.h \
 	enforcer/enforcerzone.cpp enforcer/enforcerzone.h \
 	enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.h \
+	enforcer/update_repositorylist_cmd.cpp enforcer/update_repositorylist_cmd.h \
+	enforcer/update_repositorylist_task.cpp enforcer/update_repositorylist_task.h \
+	enforcer/update_all_cmd.cpp enforcer/update_all_cmd.h \
 	protobuf-orm/pb-orm.h \
 	protobuf-orm/pb-orm-common.h \
 	protobuf-orm/pb-orm-connect.cc protobuf-orm/pb-orm-connect.h \
@@ -140,10 +153,12 @@ ods_enforcerd_SOURCES = \
 	protobuf-orm/pb-orm-str.cc protobuf-orm/pb-orm-str.h \
 	protobuf-orm/pb-orm-transaction.cc protobuf-orm/pb-orm-transaction.h \
 	protobuf-orm/pb-orm-update.cc protobuf-orm/pb-orm-update.h \
-	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h
-
+	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h \
+	utils/kc_helper.c utils/kc_helper.h 
+	
 ods_enforcerd_LDADD = \
 	$(LIBHSM) \
+    $(LIBCOMPAT) \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@PTHREAD_LIBS@ \
@@ -163,7 +178,8 @@ ods_enforcer_SOURCES = \
 ods_enforcer_LDADD = \
 	$(LIBHSM) \
 	@LDNS_LIBS@ \
-	@XML2_LIBS@
+	@XML2_LIBS@ \
+	@READLINE_LIBS@
 
 %.pb.cc %.pb.h: %.proto
 	$(PROTOC) @PROTOBUF_INCLUDES@ -I$(srcdir)/xmlext-pb -I$(srcdir)/protobuf-orm --cpp_out=`dirname $@` -I=`dirname $<` $<

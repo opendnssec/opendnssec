@@ -34,6 +34,7 @@
 #include <cassert>
 
 #include "enforcer/setup_cmd.h"
+#include "enforcer/autostart_cmd.h"
 
 #include "shared/duration.h"
 #include "shared/file.h"
@@ -62,9 +63,8 @@ static const char *module_str = "setup_cmd";
 void help_setup_cmd(int sockfd)
 {
    ods_printf(sockfd,
-        "setup           delete existing database files and then perform:\n"
-        "                  update kasp - to import kasp.xml\n"
-        "                  update zonelist - to import zonelist.xml\n"
+			   "setup                  Delete existing database contents and perform\n"
+			   "                       update kasp, zonelist and repositorylist.\n"
         );
 }
 
@@ -126,22 +126,6 @@ drop_database_tables(int sockfd, OrmConn conn, engineconfig_type* config)
 	return ok;
 }
 
-static void
-flush_all_tasks(int sockfd, engine_type* engine)
-{
-    ods_log_debug("[%s] flushing all tasks...", module_str);
-    ods_printf(sockfd,"flushing all tasks...\n");
-    
-    ods_log_assert(engine);
-    ods_log_assert(engine->taskq);
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-    schedule_flush(engine->taskq, TASK_NONE);
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-    engine_wakeup_workers(engine);
-}
-
 /**
  * Handle the 'setup' command.
  *
@@ -181,6 +165,12 @@ int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 			return 1; // errors have already been reported.
 	}
 
+	autostart(engine);
+	// TODO: Add this function once implemented
+	//perform_update_conf(engine->config);
+	/* This needs to be revised, DONT continue when kasp or keyzones
+	 * fail. Maybe also call update repositorylist (and restart)
+	 * Also, what does "autostart(engine);" do here? figure it out! */
 	perform_update_kasp(sockfd, engine->config);
 	perform_update_keyzones(sockfd, engine->config);
 	perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);

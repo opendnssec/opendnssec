@@ -37,6 +37,7 @@
 
 #include "policy/update_kasp_cmd.h"
 #include "policy/update_kasp_task.h"
+#include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
@@ -47,26 +48,29 @@ static const char *module_str = "update_kasp_cmd";
 void
 help_update_kasp_cmd(int sockfd)
 {
-    ods_printf(sockfd,
-	   "update kasp     import policies from kasp.xml into the enforcer.\n");
+	ods_printf(sockfd, "update kasp            Import policies from"
+		" kasp.xml into the enforcer.\n");
 }
 
 int
-handled_update_kasp_cmd(int sockfd, engine_type* engine, const char *cmd,
-                        ssize_t n)
+handled_update_kasp_cmd(int sockfd, engine_type* engine, 
+	const char *cmd, ssize_t n)
 {
-    const char *scmd = "update kasp";
+	const char *scmd = "update kasp";
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
+	cmd = ods_check_command(cmd,n,scmd);
+	if (!cmd)
+		return 0; // not handled
 
-    ods_log_debug("[%s] %s command", module_str, scmd);
+	ods_log_debug("[%s] %s command", module_str, scmd);
 
-    time_t tstart = time(NULL);
-	
-    perform_update_kasp(sockfd, engine->config);
-	
-    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+	time_t tstart = time(NULL);
+
+	if (perform_update_kasp(sockfd, engine->config)) {
+		perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+						   engine->config->automatic_keygen_duration);
+		flush_all_tasks(sockfd, engine);
+	}
+	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
+	return 1;
 }

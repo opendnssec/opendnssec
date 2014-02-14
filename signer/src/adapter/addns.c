@@ -52,6 +52,7 @@
 #include <stdlib.h>
 
 static const char* adapter_str = "adapter";
+static ods_status addns_read_pkt(FILE* fd, zone_type* zone);
 static ods_status addns_read_file(FILE* fd, zone_type* zone);
 
 
@@ -71,7 +72,7 @@ addns_read_line:
     if (ttl) {
         new_ttl = *ttl;
     }
-    len = adutil_readline_frm_file(fd, line, l, 0);
+    len = adutil_readline_frm_file(fd, line, l, 1);
     adutil_rtrim_line(line, &len);
     if (len >= 0) {
         switch (line[0]) {
@@ -80,6 +81,16 @@ addns_read_line:
             /* comments, empty lines */
             case ';':
             case '\n':
+                if (ods_strcmp(";;ENDPACKET", line) == 0) {
+                    /* end of pkt */
+                    *status = LDNS_STATUS_OK;
+                    return NULL;
+                }
+                if (ods_strcmp(";;BEGINPACKET", line) == 0) {
+                    /* begin packet but previous not ended, rollback */
+                    *status = LDNS_STATUS_OK;
+                    return NULL;
+                }
                 goto addns_read_line; /* perhaps next line is rr */
                 break;
             /* let's hope its a RR */
@@ -122,13 +133,16 @@ addns_read_line:
 
 
 /**
- * Read IXFR from file.
+ * Read pkt from file.
  *
  */
 static ods_status
-addns_read_file(FILE* fd, zone_type* zone)
+addns_read_pkt(FILE* fd, zone_type* zone)
 {
     ldns_rr* rr = NULL;
+    long startpos = 0;
+    long fpos = 0;
+    int len = 0;
     uint32_t new_serial = 0;
     uint32_t old_serial = 0;
     uint32_t tmp_serial = 0;
@@ -146,10 +160,35 @@ addns_read_file(FILE* fd, zone_type* zone)
     unsigned line_update_interval = 100000;
     unsigned line_update = line_update_interval;
     unsigned l = 0;
+    char* xfrd;
+    char* fin;
+    char* fout;
 
     ods_log_assert(fd);
     ods_log_assert(zone);
+    ods_log_assert(zone->name);
 
+
+    fpos = ftell(fd);
+    len = adutil_readline_frm_file(fd, line, &l, 1);
+    if (len < 0) {
+        /* -1 EOF */
+        return ODS_STATUS_EOF;
+    }
+    adutil_rtrim_line(line, &len);
+    if (ods_strcmp(";;BEGINPACKET", line) != 0) {
+        ods_log_error("[%s] bogus xfrd file zone %s, missing ;;BEGINPACKET (was %s)",
+            adapter_str, zone->name, line);
+        return ODS_STATUS_ERR;
+    }
+    startpos = fpos;
+    fpos = ftell(fd);
+
+begin_pkt:
+    rr_count = 0;
+    is_axfr = 0;
+    del_mode = 0;
+    soa_seen = 0;
     /* $ORIGIN <zone name> */
     dname = adapi_get_origin(zone);
     if (!dname) {
@@ -165,9 +204,12 @@ addns_read_file(FILE* fd, zone_type* zone)
     }
     /* $TTL <default ttl> */
     ttl = adapi_get_ttl(zone);
+
     /* read RRs */
     while ((rr = addns_read_rr(fd, line, &orig, &prev, &ttl, &status, &l))
         != NULL) {
+        /* update file position */
+        fpos = ftell(fd);
         /* check status */
         if (status != LDNS_STATUS_OK) {
             ods_log_error("[%s] error reading RR at line %i (%s): %s",
@@ -210,7 +252,15 @@ addns_read_file(FILE* fd, zone_type* zone)
                 new_serial = tmp_serial;
                 ldns_rr_free(rr);
                 rr = NULL;
-                result = ODS_STATUS_UNCHANGED;
+                result = ODS_STATUS_UPTODATE;
+                while (len >= 0) {
+                    len = adutil_readline_frm_file(fd, line, &l, 1);
+                    if (len && ods_strcmp(";;ENDPACKET", line) == 0) {
+                        /* end of pkt */
+                        startpos = 0;
+                        break;
+                    }
+                }
                 break;
             }
             ldns_rr_free(rr);
@@ -278,13 +328,13 @@ addns_read_file(FILE* fd, zone_type* zone)
         }
         /* [add to/remove from] the zone */
         if (!is_axfr && del_mode) {
-            ods_log_debug("[%s] delete RR #%i at line %i: %s",
+            ods_log_deeebug("[%s] delete RR #%i at line %i: %s",
                 adapter_str, rr_count, l, line);
             result = adapi_del_rr(zone, rr, 0);
             ldns_rr_free(rr);
             rr = NULL;
         } else {
-            ods_log_debug("[%s] add RR #%i at line %i: %s",
+            ods_log_deeebug("[%s] add RR #%i at line %i: %s",
                 adapter_str, rr_count, l, line);
             result = adapi_add_rr(zone, rr, 0);
         }
@@ -312,6 +362,24 @@ addns_read_file(FILE* fd, zone_type* zone)
         ldns_rdf_deep_free(prev);
         prev = NULL;
     }
+    /* check again */
+    if (ods_strcmp(";;ENDPACKET", line) == 0) {
+        ods_log_verbose("[%s] xfr zone %s on disk complete, commit to db",
+            adapter_str, zone->name);
+            startpos = 0;
+    } else {
+        ods_log_warning("[%s] xfr zone %s on disk incomplete, rollback",
+            adapter_str, zone->name);
+        namedb_rollback(zone->db, 1);
+        if (ods_strcmp(";;BEGINPACKET", line) == 0) {
+            result = ODS_STATUS_OK;
+            startpos = fpos;
+            goto begin_pkt;
+        } else {
+            result = ODS_STATUS_XFRINCOMPLETE;
+        }
+    }
+    /* otherwise EOF */
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RR at line %i (%s): %s",
             adapter_str, l, ldns_get_errorstr_by_id(status), line);
@@ -326,18 +394,86 @@ addns_read_file(FILE* fd, zone_type* zone)
         }
     }
     /* input zone ok, set inbound serial and apply differences */
-    if (result == ODS_STATUS_OK || result == ODS_STATUS_UNCHANGED) {
+    if (result == ODS_STATUS_OK) {
         adapi_set_serial(zone, new_serial);
         if (is_axfr) {
-            adapi_trans_full(zone);
+            adapi_trans_full(zone, 1);
         } else {
-            adapi_trans_diff(zone);
-        }
-        if (result == ODS_STATUS_UNCHANGED) {
-            result = ODS_STATUS_OK;
+            adapi_trans_diff(zone, 1);
         }
     }
+    if (result == ODS_STATUS_UPTODATE) {
+        /* do a transaction for DNSKEY and NSEC3PARAM */
+        adapi_trans_diff(zone, 1);
+        result = ODS_STATUS_OK;
+    }
+    if (result == ODS_STATUS_XFRINCOMPLETE) {
+        /** we have to restore the incomplete zone transfer:
+          * xfrd = (xfrd.tmp + startpos) . (xfrd)
+          */
+        xfrd = ods_build_path(zone->name, ".xfrd", 0, 1);
+        fin = ods_build_path(zone->name, ".xfrd.tmp", 0, 1);
+        fout = ods_build_path(zone->name, ".xfrd.bak", 0, 1);
+        if (!xfrd || !fin || !fout) {
+            return ODS_STATUS_MALLOC_ERR;
+        }
+        ods_log_debug("[%s] restore xfrd zone %s xfrd %s fin %s fout %s",
+            adapter_str, zone->name, xfrd, fin, fout);
+        result = ods_file_copy(fin, fout, startpos, 0);
+        if (result != ODS_STATUS_OK) {
+            ods_log_crit("[%s] unable to restore incomple xfr zone %s: %s",
+                adapter_str, zone->name, ods_status2str(result));
+        } else {
+            lock_basic_lock(&zone->xfrd->rw_lock);
+            if (ods_file_lastmodified(xfrd)) {
+                result = ods_file_copy(xfrd, fout, 0, 1);
+                if (result != ODS_STATUS_OK) {
+                    ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
+                        adapter_str, zone->name, ods_status2str(result));
+                } else if (rename(fout, xfrd) != 0) {
+                    result = ODS_STATUS_RENAME_ERR;
+                    ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
+                        adapter_str, zone->name, ods_status2str(result));
+                }
+            } else if (rename(fout, xfrd) != 0) {
+                result = ODS_STATUS_RENAME_ERR;
+                ods_log_crit("[%s] unable to restore xfrd zone %s: %s",
+                    adapter_str, zone->name, ods_status2str(result));
+
+            }
+            lock_basic_unlock(&zone->xfrd->rw_lock);
+        }
+        free((void*) xfrd);
+        free((void*) fin);
+        free((void*) fout);
+        result = ODS_STATUS_XFRINCOMPLETE;
+    }
     return result;
+}
+
+
+/**
+ * Read pkt from file.
+ *
+ */
+static ods_status
+addns_read_file(FILE* fd, zone_type* zone)
+{
+    ods_status status = ODS_STATUS_OK;
+
+    while (status == ODS_STATUS_OK) {
+        status = addns_read_pkt(fd, zone);
+        if (status == ODS_STATUS_OK) {
+            lock_basic_lock(&zone->xfrd->serial_lock);
+            zone->xfrd->serial_xfr = adapi_get_serial(zone);
+            zone->xfrd->serial_xfr_acquired = zone->xfrd->serial_disk_acquired;
+            lock_basic_unlock(&zone->xfrd->serial_lock);
+        }
+    }
+    if (status == ODS_STATUS_EOF) {
+        status = ODS_STATUS_OK;
+    }
+    return status;
 }
 
 
@@ -548,7 +684,7 @@ dnsout_send_notify(void* zone)
     zone_type* z = (zone_type*) zone;
     rrset_type* rrset = NULL;
     ldns_rr* soa = NULL;
-    if (!z || !z->notify) {
+    if (!z->notify) {
         ods_log_error("[%s] unable to send notify for zone %s: no notify "
            "handler", adapter_str, z->name);
         return;
@@ -578,6 +714,7 @@ addns_read(void* zone)
     zone_type* z = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
     char* xfrfile = NULL;
+    char* file = NULL;
     FILE* fd = NULL;
     ods_log_assert(z);
     ods_log_assert(z->name);
@@ -586,27 +723,58 @@ addns_read(void* zone)
     ods_log_assert(z->adinbound);
     ods_log_assert(z->adinbound->type == ADAPTER_DNS);
 
-    if (!z->xfrd->serial_disk_acquired) {
+    lock_basic_lock(&z->xfrd->rw_lock);
+    lock_basic_lock(&z->xfrd->serial_lock);
+    /* did we already store a new zone transfer on disk? */
+    if (!z->xfrd->serial_disk_acquired ||
+        z->xfrd->serial_disk_acquired <= z->xfrd->serial_xfr_acquired) {
+        lock_basic_unlock(&z->xfrd->serial_lock);
+        lock_basic_unlock(&z->xfrd->rw_lock);
+        if (!z->xfrd->serial_disk_acquired) {
+            return ODS_STATUS_XFR_NOT_READY;
+        }
+        /* do a transaction for DNSKEY and NSEC3PARAM */
+        adapi_trans_diff(z, 0);
         return ODS_STATUS_UNCHANGED;
     }
-
-    lock_basic_lock(&z->xfrd->rw_lock);
+    /* copy zone transfers */
     xfrfile = ods_build_path(z->name, ".xfrd", 0, 1);
-    fd = ods_fopen(xfrfile, NULL, "r");
+    file = ods_build_path(z->name, ".xfrd.tmp", 0, 1);
+    if (!xfrfile || !file) {
+        ods_log_error("[%s] unable to build paths to xfrd files", adapter_str);
+        return ODS_STATUS_MALLOC_ERR;
+    }
+    if (rename(xfrfile, file) != 0) {
+        lock_basic_unlock(&z->xfrd->serial_lock);
+        lock_basic_unlock(&z->xfrd->rw_lock);
+        ods_log_error("[%s] unable to rename file %s to %s: %s", adapter_str,
+           xfrfile, file, strerror(errno));
+        free((void*) xfrfile);
+        free((void*) file);
+        return ODS_STATUS_RENAME_ERR;
+    }
+    lock_basic_unlock(&z->xfrd->serial_lock);
+    /* open copy of zone transfers to read */
+    fd = ods_fopen(file, NULL, "r");
     free((void*) xfrfile);
     if (!fd) {
         lock_basic_unlock(&z->xfrd->rw_lock);
+        free((void*) file);
         return ODS_STATUS_FOPEN_ERR;
     }
+    lock_basic_unlock(&z->xfrd->rw_lock);
+
     status = addns_read_file(fd, z);
     if (status == ODS_STATUS_OK) {
-        lock_basic_lock(&z->xfrd->serial_lock);
-        z->xfrd->serial_xfr = adapi_get_serial(z);
-        z->xfrd->serial_xfr_acquired = z->xfrd->serial_disk_acquired;
-        lock_basic_unlock(&z->xfrd->serial_lock);
+        /* clean up copy of zone transfer */
+        if (unlink((const char*) file) != 0) {
+            ods_log_error("[%s] unable to unlink zone transfer copy file %s: "
+                " %s", adapter_str, strerror(errno));
+            /* should be no issue */
+        }
     }
+    free((void*) file);
     ods_fclose(fd);
-    lock_basic_unlock(&z->xfrd->rw_lock);
     return status;
 }
 
@@ -632,6 +800,9 @@ addns_write(void* zone)
     ods_log_assert(z->adoutbound->type == ADAPTER_DNS);
 
     atmpfile = ods_build_path(z->name, ".axfr.tmp", 0, 1);
+    if (!atmpfile) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(atmpfile, NULL, "w");
     if (!fd) {
         free((void*) atmpfile);
@@ -640,11 +811,16 @@ addns_write(void* zone)
     status = adapi_printaxfr(fd, z);
     ods_fclose(fd);
     if (status != ODS_STATUS_OK) {
+        free((void*) atmpfile);
         return status;
     }
 
     if (z->db->is_initialized) {
         itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0, 1);
+        if (!itmpfile) {
+            free((void*) atmpfile);
+            return ODS_STATUS_MALLOC_ERR;
+        }
         fd = ods_fopen(itmpfile, NULL, "w");
         if (!fd) {
             free((void*) atmpfile);
@@ -652,14 +828,34 @@ addns_write(void* zone)
             return ODS_STATUS_FOPEN_ERR;
         }
         status = adapi_printixfr(fd, z);
+        ods_fclose(fd);
         if (status != ODS_STATUS_OK) {
+            free((void*) atmpfile);
+            free((void*) itmpfile);
             return status;
         }
-        ods_fclose(fd);
+    }
+
+    if (status == ODS_STATUS_OK) {
+        if (z->adoutbound->error) {
+            ods_log_error("[%s] unable to write zone %s axfr: one or "
+                "more RR print failed", adapter_str, z->name);
+            /* clear error */
+            z->adoutbound->error = 0;
+            free((void*) atmpfile);
+            free((void*) itmpfile);
+            return ODS_STATUS_FWRITE_ERR;
+        }
     }
 
     /* lock and move */
     axfrfile = ods_build_path(z->name, ".axfr", 0, 1);
+    if (!axfrfile) {
+        free((void*) atmpfile);
+        free((void*) itmpfile);
+        return ODS_STATUS_MALLOC_ERR;
+    }
+
     lock_basic_lock(&z->xfr_lock);
     ret = rename(atmpfile, axfrfile);
     if (ret != 0) {
@@ -671,11 +867,17 @@ addns_write(void* zone)
         free((void*) itmpfile);
         return ODS_STATUS_RENAME_ERR;
     }
-    free((void*) atmpfile);
     free((void*) axfrfile);
+    free((void*) atmpfile);
 
     if (z->db->is_initialized) {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
+        if (!ixfrfile) {
+            free((void*) axfrfile);
+            free((void*) atmpfile);
+            free((void*) itmpfile);
+            return ODS_STATUS_MALLOC_ERR;
+        }
         ret = rename(itmpfile, ixfrfile);
         if (ret != 0) {
             ods_log_error("[%s] unable to rename file %s to %s: %s",
@@ -685,9 +887,9 @@ addns_write(void* zone)
             free((void*) ixfrfile);
             return ODS_STATUS_RENAME_ERR;
         }
-        free((void*) itmpfile);
         free((void*) ixfrfile);
     }
+    free((void*) itmpfile);
     lock_basic_unlock(&z->xfr_lock);
 
     dnsout_send_notify(zone);

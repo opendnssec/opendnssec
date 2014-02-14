@@ -49,7 +49,10 @@
 #include "enforcer/enforcerdata.h"
 #include "policy/kasp.pb.h"
 #include "hsmkey/hsmkey.pb.h"
-//~ #include "pb-orm-read.h"
+
+#include <libhsm.h>
+#include <libhsmdns.h>
+#include <ldns/ldns.h>
 
 #include "shared/duration.h"
 #include "shared/log.h"
@@ -653,7 +656,9 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 				getState(*future_key->key, RS, NULL) != NOCARE)
 				return false;
 			/** 3) wait till DS is introduced */
-			if (getState(*future_key->key, DS, NULL) == OMN) return true;
+			if (getState(*future_key->key, DS, NULL) == OMN ||
+				getState(*future_key->key, DS, NULL) == NOCARE)
+				return true;
 			/** 4) Except, we might be doing algorithm rollover.
 			 * if no other good KSK available, ignore minimize flag*/
 			return !exists(key_list, future_key, true, mask_dnskey);
@@ -704,7 +709,7 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 			endDate = zone.ttlEnddateRs();
 			recordTTL = max(min(policy->zone().ttl(),
 							policy->zone().min()), 
-							policy->signatures().max_zone_ttl());
+							zone.max_zone_ttl());
 			break;				  
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
@@ -789,7 +794,8 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @return first absolute time some record *could* be advanced.
  * */
 time_t
-updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
+updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
+	HsmKeyFactory &keyfactory)
 {
 	time_t returntime_zone = -1;
 	time_t returntime_key;
@@ -823,7 +829,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 	if (zone.ttlEnddateRs() <= now)
 		zone.setTtlEnddateRs(addtime(now, 
 				max(min(policy->zone().ttl(), policy->zone().min()), 
-					policy->signatures().max_zone_ttl()))); 
+					zone.max_zone_ttl()))); 
 
 	/** Keep looping till there are no state changes.
 	 * Find the earliest update time */
@@ -902,6 +908,28 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned)
 
 				ods_log_verbose("[%s] %s Timing says we can (3/3) now: %d key: %d", 
 					module_str, scmd, now, returntime_key);
+
+				/** A record can only reach Omnipresent if properly backed up */
+				HsmKey *hsmkey;
+				if (next_state == OMN) {
+					if (!keyfactory.GetHsmKeyByLocator(key.locator(), 
+						&hsmkey)) {
+						/* fishy, this key has no key material! */
+						ods_fatal_exit("[%s] %s Key material associated with "
+								"key (%s) not found in database. Abort.",
+								module_str, scmd, key.locator().c_str());
+					} 
+					/* if backup required but not backed up: deny transition */
+					if (hsmkey->requirebackup() && !hsmkey->backedup()) {
+						ods_log_crit("[%s] %s Ready for transition "
+							"but key material not backed up yet (%s)", 
+							module_str, scmd, key.locator().c_str());
+						/* Try again in 60 seconds */
+						returntime_key = addtime(now, 60); 
+						minTime(returntime_key, returntime_zone);
+						continue;
+					}
+				}
 
 				/** If we are handling a DS we depend on the user or 
 				 * some other external process. We must communicate
@@ -1149,6 +1177,60 @@ keyForAlgorithm(KeyDataList &key_list, const KeyRole role, const int algorithm)
 	return false;
 }
 
+void 
+setnextroll(EnforcerZone &zone, KeyRole role, time_t t, int clr)
+{
+	if (!clr) {
+		time_t p;
+		switch(role) {
+			case KSK: p = zone.nextKskRoll(); break;
+			case ZSK: p = zone.nextZskRoll(); break;
+			case CSK: p = zone.nextCskRoll(); break;
+		}
+		if (p && p < t) return; /* need no update */
+	}
+	switch(role) {
+		case KSK: zone.setNextKskRoll(t); break;
+		case ZSK: zone.setNextZskRoll(t); break;
+		case CSK: zone.setNextCskRoll(t); break;
+	}
+}
+
+/** 
+ * Calculate keytag
+ * @param loc: Locator of keydata on HSM
+ * @param alg: Algorithm of key
+ * @param ksk: 0 for zsk, positive int for ksk|csk
+ * @param[out] success: set if returned keytag is meaningfull.
+ * return: keytag
+ * */
+static uint16_t 
+keytag(const char *loc, int alg, int ksk, bool *succes)
+{
+	uint16_t tag;
+	hsm_ctx_t *hsm_ctx = hsm_create_context();
+	hsm_sign_params_t *sign_params = hsm_sign_params_new();
+	/* The owner name is not relevant for the keytag calculation.
+	 * However, a ldns_rdf_clone down the path will trip over it. */
+	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "dummy");
+	sign_params->algorithm = (ldns_algorithm) alg;
+	sign_params->flags = LDNS_KEY_ZONE_KEY;
+	if (ksk) sign_params->flags |= LDNS_KEY_SEP_KEY;
+	*succes = false;
+	hsm_key_t *hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
+	if (!hsmkey) return 0;
+	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
+	if (!dnskey_rr) return 0;
+	tag = ldns_calc_keytag(dnskey_rr);
+
+	hsm_sign_params_free(sign_params);
+	hsm_key_free(hsmkey);
+	ldns_rr_free(dnskey_rr);
+	hsm_destroy_context(hsm_ctx);
+	*succes = true;
+	return tag;
+}
+
 /**
  * See what needs to be done for the policy 
  * 
@@ -1187,6 +1269,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 	/** Visit every type of key-configuration, not pretty but we can't
 	 * loop over enums. Include MAX in enum? */
 	for ( int role = 1; role < 4; role++ ) {
+		setnextroll(zone, (KeyRole)role, 0, 1);
 		/** NOTE: we are not looping over keys, but configurations */
 		for ( int i = 0; i < numberOfKeyConfigs( policyKeys, (KeyRole)role ); i++ ) {
 			string repository;
@@ -1199,22 +1282,25 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 				&p_rolltype);
 
 			bool forceRoll = false;
+			switch((KeyRole)role) {
+				case KSK: forceRoll = zone.rollKskNow(); break;
+				case ZSK: forceRoll = zone.rollZskNow(); break;
+				case CSK: forceRoll = zone.rollCskNow(); break;
+				default:
+					/** Programming error, report a bug! */
+					ods_fatal_exit("[%s] %s Unknow Role: (%d)",
+					module_str, scmd, role);
+			}
 			/** Should we do a manual rollover *now*? */
 			if (manual_rollover) {
-				switch((KeyRole)role) {
-					case KSK: forceRoll = zone.rollKskNow(); break;
-					case ZSK: forceRoll = zone.rollZskNow(); break;
-					case CSK: forceRoll = zone.rollCskNow(); break;
-					default:
-						/** Programming error, report a bug! */
-						ods_fatal_exit("[%s] %s Unknow Role: (%d)",
-						module_str, scmd, role);
-				}
 				/** If no similar key available, roll. */
 				forceRoll |= !keyForAlgorithm(key_list, (KeyRole)role, 
 					algorithm);
 				/** No reason to roll at all */
-				if (!forceRoll) continue;
+				if (!forceRoll) {
+					setnextroll(zone, (KeyRole)role, 0, 0);
+					continue;
+				}
 			}
 			/** Try an automatic roll */
 			if (!forceRoll) {
@@ -1227,11 +1313,11 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 					/** yes, but no need to roll at this time. Schedule 
 					 * for later */
 					minTime( addtime(key->inception(), lifetime), return_at );
+					setnextroll(zone, (KeyRole)role, addtime(key->inception(), lifetime), 0);
 					continue;
 				}
 				/** No, or key is expired, we need a new one. */
 			}
-
 			/** time for a new key */
 			ods_log_verbose("[%s] %s New key needed for role %d", 
 				module_str, scmd, role);
@@ -1240,30 +1326,54 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 
 			/** Sanity check. This would produce silly output and give
 			 * the signer lots of useless work */
-			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime || 
-					role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
-				ods_log_crit("[%s] %s Key lifetime unreasonably short "
-					"with respect to TTL and MaxZoneTTL. Will not insert key!",
-					module_str, scmd);
+			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime) {
+				ods_log_crit("[%s] %s For policy %s KSK key lifetime of %d is unreasonably short "
+					"with respect to sum of parent TTL (%d) and key TTL (%d). Will not insert key!",
+					module_str, scmd, policyName.c_str(), lifetime, policy->parent().ttlds(), policy->keys().ttl());
+				setnextroll(zone, (KeyRole)role, now, 0);
 				continue;
 			}
+			
+			if (role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
+				ods_log_crit("[%s] %s For policy %s ZSK key lifetime of %d is unreasonably short "
+					"with respect to sum of MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
+					module_str, scmd, policyName.c_str(), lifetime, zone.max_zone_ttl(), policy->keys().ttl());
+				setnextroll(zone, (KeyRole)role, now, 0);
+				continue;
+			}			
 
-			if ( policyKeys.zones_share_keys() )
+			if ( policyKeys.zones_share_keys() ) {
 				/** Try to get an existing key or ask for new shared */
 				got_key = getLastReusableKey( zone, policy, 
 					(KeyRole)role, bits, repository, algorithm, now, 
-					&newkey_hsmkey, keyfactory, lifetime) ||
-					keyfactory.CreateSharedKey(bits, repository, policyName,
+					&newkey_hsmkey, keyfactory, lifetime);
+				if (got_key) {
+					/** Check if this key material isn't already used
+					 * by our zone. Protobuf code checks this as well
+					 * but it is bugged. */
+					for (int j = 0; j < key_list.numKeys(); j++) {
+						KeyData &key = key_list.key(j);
+						if (newkey_hsmkey->locator() == key.locator()) {
+							got_key = false;
+							break;
+						}
+					}
+				} 
+				if (!got_key) {
+					got_key = keyfactory.CreateSharedKey(bits, repository, policyName,
 					algorithm, (KeyRole)role, zone.name(),&newkey_hsmkey );
-			else
+				}
+			} else {
 				got_key = keyfactory.CreateNewKey(bits,repository,
 					policyName, algorithm, (KeyRole)role, &newkey_hsmkey );
+			}
 			
 			if ( !got_key ) {
 				/** The factory was not ready, return later */
 				minTime( now + NOKEY_TIMEOUT, return_at);
-				ods_log_warning("[%s] %s No keys available on hsm, retry in %d seconds", 
-					module_str, scmd, NOKEY_TIMEOUT);
+				ods_log_warning("[%s] %s No keys available on hsm for policy %s, retry in %d seconds", 
+					module_str, scmd, policyName.c_str(), NOKEY_TIMEOUT);
+				setnextroll(zone, (KeyRole)role, now, 0);
 				continue;
 			}
 			ods_log_verbose("[%s] %s got new key from HSM", module_str, 
@@ -1273,6 +1383,17 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
 				now, (KeyRole)role, p_rolltype);
 			new_key.setLocator( newkey_hsmkey->locator() );
+
+			/** Get keytag for our new key. On failure continue 
+			 * without */
+			bool success;
+			uint16_t tag = keytag(newkey_hsmkey->locator().c_str(), 
+				algorithm, role&KSK, &success);
+			if (success)
+				new_key.setKeytag(tag);
+			else
+				ods_log_error("[%s] %s error calculating keytag", 
+					module_str, scmd);
 
 			new_key.setDsAtParent(DS_UNSUBMITTED);
 			struct FutureKey fkey;
@@ -1290,6 +1411,7 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 
 			/** New key inserted, come back after its lifetime */
 			minTime( now + lifetime, return_at );
+			setnextroll(zone, (KeyRole)role, addtime(now, lifetime), 0);
 
 			/** Tell similar keys to outroduce, skip new key */
 			for (int j = 0; j < key_list.numKeys(); j++) {
@@ -1315,16 +1437,14 @@ updatePolicy(EnforcerZone &zone, const time_t now,
 			
 			/* The user explicitly requested a rollover, request 
 			 * succeeded. We can now stop try to roll manually.  */
-			if (manual_rollover) {
-				switch((KeyRole)role) {
-					case KSK: zone.setRollKskNow(false); break;
-					case ZSK: zone.setRollZskNow(false); break;
-					case CSK: zone.setRollCskNow(false); break;
-					default:
-						/** Programming error, report a bug! */
-						ods_fatal_exit("[%s] %s Unknow Role: (%d)",
-						module_str, scmd, role);
-				}
+			switch((KeyRole)role) {
+				case KSK: zone.setRollKskNow(false); break;
+				case ZSK: zone.setRollZskNow(false); break;
+				case CSK: zone.setRollCskNow(false); break;
+				default:
+					/** Programming error, report a bug! */
+					ods_fatal_exit("[%s] %s Unknow Role: (%d)",
+					module_str, scmd, role);
 			}
 		} /** loop over keyconfigs */
 	} /** loop over KeyRole */
@@ -1366,12 +1486,15 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 		if (keyTime != -1) keyTime = addtime(keyTime, purgetime);
 		if (keyPurgable) {
 			if (now >= keyTime) {
-				ods_log_info("[%s] %s delete key: %s", module_str, scmd, key.locator().c_str());
+				ods_log_info("[%s] %s delete key: %s", module_str, scmd,
+					key.locator().c_str());
 				key_list.delKey(i);
-				key_dep.delDependency( &key );
 			} else {
 				minTime(keyTime, firstPurge);
 			}
+			/** It might not be time to purge the key just yet, but we
+			 * can already assume no other key depends on it. */
+			key_dep.delDependency( &key );
 		}
 	}
 	return firstPurge;
@@ -1394,7 +1517,7 @@ update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 		ods_log_info(
 			"[%s] %s No keys configured, zone will become unsigned eventually",
 			module_str, scmd);
-	zone_return_time = updateZone(zone, now, allow_unsigned);
+	zone_return_time = updateZone(zone, now, allow_unsigned, keyfactory);
 
 	/** Only purge old keys if the configuration says so. */
 	if (policy->keys().has_purge())

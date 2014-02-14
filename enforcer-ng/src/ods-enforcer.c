@@ -51,7 +51,13 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
-#define SE_CLI_CMDLEN 6
+/* cmd history */
+#include <stdlib.h>
+
+#ifdef HAVE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
 
 static const char* cli_str = "client";
 
@@ -65,7 +71,8 @@ usage(FILE* out)
     fprintf(out, "Usage: %s [<cmd>]\n", "ods-enforcer");
     fprintf(out, "Simple command line interface to control the enforcer "
                  "engine daemon.\nIf no cmd is given, the tool is going "
-                 "to interactive mode.\n");
+                 "to interactive mode.\nWhen the daemon is running "
+                 "'ods-enforcer help' gives a full list of available commands.\n");
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
                  "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
@@ -74,262 +81,212 @@ usage(FILE* out)
 
 
 /**
- * Return largest value.
- *
- */
-static int
-max(int a, int b)
-{
-    return a<b ? b : a;
-}
-
-
-/**
  * Interface.
  *
+ * sockfd: pipe to daemon. must be open and NON_BLOCKING.
+ * cmd: command line to send to daemon. Must not be NULL.
+ * 
+ * return 0 on success.
  */
 static int
-interface_run(FILE* fp, int sockfd, char* cmd)
+interface_run(const int sockfd, const char* cmd)
 {
-    int maxfdp1 = 0;
-    int stdineof = 0;
-    int i = 0;
-    int n = 0;
-    int ret = 0;
-    int cmd_written = 0;
-    int cmd_response = 0;
+    int written, n = 0, ret = 0, sockeof = 0;
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
-    int written;
 
-    stdineof = 0;
+    ods_writen(sockfd, cmd, strlen(cmd)+1);
     FD_ZERO(&rset);
-    for(;;) {
-        /* prepare */
-        if (stdineof == 0) {
-            FD_SET(fileno(fp), &rset);
-        }
-        FD_SET(sockfd, &rset);
-        maxfdp1 = max(fileno(fp), sockfd) + 1;
-
-        if (!cmd || cmd_written) {
-            /* interactive mode */
-            ret = select(maxfdp1, &rset, NULL, NULL, NULL);
-            if (ret < 0) {
-                if (errno != EINTR && errno != EWOULDBLOCK) {
-                    ods_log_warning("[%s] interface select error: %s",
-                        cli_str, strerror(errno));
-                }
-                continue;
+    while (!sockeof) {
+        FD_SET(sockfd, &rset); /* pipe */
+        ret = select(sockfd + 1, &rset, NULL, NULL, NULL);
+        if (ret < 0) {
+            if (errno != EINTR && errno != EWOULDBLOCK) {
+                ods_log_warning("[%s] interface select error: %s",
+                    cli_str, strerror(errno));
             }
-        } else if (cmd) {
-            /* passive mode */
-            ods_writen(sockfd, cmd, strlen(cmd));
-            cmd_written = 1;
-            stdineof = 1;
-            /* Clear the interactive mode / stdin fd from the set */
-            FD_CLR(fileno(fp), &rset);
             continue;
         }
-
-        if (cmd && cmd_written && cmd_response) {
-            /* normal termination */
-            return 0;
-        }
-
         if (FD_ISSET(sockfd, &rset)) {
-            /* clear buffer */
-            for (i=0; i < ODS_SE_MAXLINE; i++) {
-                buf[i] = 0;
-            }
-            buf[ODS_SE_MAXLINE-1] = '\0';
-
             /* socket is readable */
-            if ((n = read(sockfd, buf, ODS_SE_MAXLINE)) <= 0) {
-                if (n < 0) {
-                    /* error occurred */
-                    fprintf(stderr, "error: %s\n", strerror(errno));
-                    return 1;
-                } else {
-                    /* n==0 */
-                    if (stdineof == 1) {
-                        /* normal termination */
-                        return 0;
-                    } else {
-                        /* weird termination */
-                        fprintf(stderr, "enforcer engine terminated "
-                                "prematurely\n");
-                        return 1;
-                    }
-                }
+            memset(buf, 0, ODS_SE_MAXLINE);
+            n = read(sockfd, buf, ODS_SE_MAXLINE);
+            if (n == 0) {
+                /* daemon closed connection */
+                sockeof = 1;
+                printf("\n");
+            } else if (n < 0) {
+                fprintf(stderr, "error reading pipe: %s\n", strerror(errno));
+                return 1; /* indicates error */
             }
-
-            if (cmd) {
-                if (n < SE_CLI_CMDLEN) {
-                    /* not enough data received */
-                    fprintf(stderr, "not enough response data received "
-                            "from daemon.\n");
-                    return 1;
-                }
-                
-                /* n >= SE_CLI_CMDLEN : and so it is safe to do buffer 
-                    manipulations below. */
-                if (strncmp(buf+n-SE_CLI_CMDLEN,"\ncmd> ",SE_CLI_CMDLEN) == 0) {
-                
-                    /* we have the full response */
-                    n -= SE_CLI_CMDLEN;
-                    buf[n] = '\0';
-                    cmd_response = 1;
-                }
-            }
-
-            /* n > 0 : when we get to this line... */
-            for (written=0; written < n; written += ret) {
-                /* write what we got to stdout */
-                ret = (int) write(fileno(stdout), &buf[written], n-written);
-                /* error and shutdown handling */
-                if (ret == 0) {
-                    fprintf(stderr, "no write\n");
-                    break;
-                }
+            /* now write what we have to stdout */
+            for (written = 0, ret = 0; written < n; written += ret) {
+                ret = (int) write(fileno(stdout), buf+written, n-written);
                 if (ret < 0) {
                     if (errno == EINTR || errno == EWOULDBLOCK) {
                         ret = 0;
                         continue; /* try again... */
                     }
-                    fprintf(stderr, "\n\nwrite error: %s\n", strerror(errno));
-                    break;
-                }
-                /* ret > 0 : when we get here... */
-                if (written+ret > n) {
-                    fprintf(stderr, "\n\nwrite error: more bytes (%d) written than required (%d)\n", written+ret, n);
-                    break;
-                }
-                /* written+ret < n : means partial write, requires us to loop... */
-            }
-            if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 ) {
-                /* we do no further reading, flush */
-                write(fileno(stdout), "\n", 1);
-                return 0;
-            } else if (cmd_response) return 0;
-        }
-
-        if (FD_ISSET(fileno(fp), &rset)) {
-            /* input is readable */
-
-            if (cmd && cmd_written) {
-                /* passive mode */
-                stdineof = 1;
-                ret = shutdown(sockfd, SHUT_WR);
-                if (ret != 0) {
-                    fprintf(stderr, "shutdown failed: %s\n",
+                    if (errno == EPIPE ) return 0;
+                    fprintf(stderr, "error writing to stdout: %s\n",
                         strerror(errno));
-                    return 1;
+                    return 1; /*  */
                 }
-                FD_CLR(fileno(fp), &rset);
-                continue;
             }
-
-            /* clear buffer */
-            for (i=0; i< ODS_SE_MAXLINE; i++) {
-                buf[i] = 0;
-            }
-
-            /* interactive mode */
-            if ((n = read(fileno(fp), buf, ODS_SE_MAXLINE)) == 0) {
-                stdineof = 1;
-                ret = shutdown(sockfd, SHUT_WR);
-                if (ret != 0) {
-                    fprintf(stderr, "shutdown failed: %s\n",
-                        strerror(errno));
-                    return 1;
-                }
-                FD_CLR(fileno(fp), &rset);
-                continue;
-            }
-            if (strncmp(buf, "exit", 4) == 0 ||
-                strncmp(buf, "quit", 4) == 0) {
-                return 0;
-            }
-            ods_str_trim(buf);
-            n = strlen(buf);
-            ods_writen(sockfd, buf, n);
         }
     }
+    return 0;
 }
 
 
 /**
  * Start interface
  *
+ * char *cmd: command to exec, NULL for interactive mode.
+ * const char* servsock_filename: name of pipe to connect to daemon.
+ * 
+ * return 0 on succes.
  */
 static int
-interface_start(char* cmd)
+interface_start(const char* cmd_arg, const char* servsock_filename)
 {
-    int sockfd, ret, flags;
+    int sockfd, flags, return_value;
     struct sockaddr_un servaddr;
-    const char* servsock_filename = OPENDNSSEC_ENFORCER_SOCKETFILE;
+#ifdef HAVE_READLINE
+    char *icmd_ptr;
+#else
+    int n;
+#endif
+    char cmd[ODS_SE_MAXLINE];
+    int user_certain;
 
-    ods_log_init(NULL, 0, 0);
+    do {
+        return_value = 0;
+        /* read user input */
+        if (!cmd_arg) { /* interactive mode */
+            memset(cmd, 0, ODS_SE_MAXLINE);
+#ifdef HAVE_READLINE
+            if ((icmd_ptr = readline("cmd> ")) == NULL) { /* eof */
+                printf("\n");
+                break;
+            }
+            strncpy(cmd, icmd_ptr, ODS_SE_MAXLINE);
+            free(icmd_ptr);
+#else
+            printf("cmd> "); fflush(stdout);
+            n = read(fileno(stdin), cmd, ODS_SE_MAXLINE);
+            if (n == 0) { /* eof */
+                printf("\n");
+                break;
+            } else if (n == -1) {
+                exit(1);
+            }
+            /* read produces trailing lf */
+            cmd[n-1] = 0;
+#endif 
+        } else { /* one shot mode */
+            strncpy(cmd, cmd_arg, ODS_SE_MAXLINE);
+        }
+        cmd[ODS_SE_MAXLINE-1] = 0; /* user input, handle with care */
+        ods_str_trim(cmd);
+        if (cmd[0] == 0) continue; /* don't bother daemon w/ whitespace */
 
-    /* new socket */
-    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd <= 0) {
-        fprintf(stderr, "Unable to connect to engine. "
-            "socket() failed: %s\n", strerror(errno));
-        return 1;
-    }
-
-    /* no suprises */
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sun_family = AF_UNIX;
-    strncpy(servaddr.sun_path, servsock_filename,
-        sizeof(servaddr.sun_path) - 1);
-
-    /* connect */
-    ret = connect(sockfd, (const struct sockaddr*) &servaddr,
-        sizeof(servaddr));
-    if (ret != 0) {
-        if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            return system(ODS_EN_ENGINE);
+#ifdef HAVE_READLINE
+        add_history(cmd);
+#endif
+        /* These commands don't go through the pipe */
+        if (ods_strcmp(cmd, "exit") == 0 || ods_strcmp(cmd, "quit") == 0)
+            break;
+        /* FIXME: start must check on already running */
+        if (ods_strcmp(cmd, "start") == 0) {
+            if (system(ODS_EN_ENGINE)) {
+                return_value = 1;
+            }
+            continue;
         }
 
-        if (cmd && ods_strcmp(cmd, "running\n") == 0) {
-            fprintf(stderr, "Engine not running.\n");
-        } else {
-            fprintf(stderr, "Unable to connect to engine: "
-                "connect() failed: %s\n", strerror(errno));
+        if (ods_strcmp(cmd, "setup") == 0) {
+            printf("*WARNING* This will erase all data in the database;"
+                    "are you sure? [y/N] ");
+
+            user_certain = getchar();
+            if (user_certain != '\n')
+                while(getchar() != '\n') /* flush input buffer */;
+            if (user_certain != 'y' && user_certain != 'Y') {
+                printf("Okay, quitting...\n");
+                continue;
+            }
         }
 
-        close(sockfd);
-        return 1;
-    }
+        if (strstr(cmd, "zone delete") && 
+                (strstr(cmd, "--all") || strstr(cmd, "-a"))) {
+            printf("*WARNING* This will delete all zone data in database;"
+                    "are you sure? [y/N] ");
 
-    /* set socket to non-blocking */
-    flags = fcntl(sockfd, F_GETFL, 0);
-    if (flags < 0) {
-        ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
-            "failed: %s", cli_str, strerror(errno));
-        close(sockfd);
-        return 1;
-    }
-    flags |= O_NONBLOCK;
-    if (fcntl(sockfd, F_SETFL, flags) < 0) {
-        ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
-            "failed: %s", cli_str, strerror(errno));
-        close(sockfd);
-        return 1;
-    }
+            user_certain = getchar();
+            if (user_certain != '\n')
+                while(getchar() != '\n') /* flush input buffer */;
+            if (user_certain != 'y' && user_certain != 'Y') {
+                printf("Okay, quitting...\n");
+                continue;
+            }
+        }
 
-    /* some sort of interface */
-    if (!cmd) {
-        fprintf(stderr, "cmd> ");
-    }
+        /* Now we know what to say, open socket */
+        sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (sockfd <= 0) {
+            fprintf(stderr, "Unable to connect to engine. "
+                "socket() failed: %s (\"%s\")\n",
+                strerror(errno), servsock_filename);
+            return_value = 1;
+            break;
+        }
 
-    /* run */
-    ret = interface_run(stdin, sockfd, cmd);
-    close(sockfd);
-    return ret;
+        /* no suprises */
+        bzero(&servaddr, sizeof(servaddr));
+        servaddr.sun_family = AF_UNIX;
+        strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path) - 1);
+        if (connect(sockfd, (const struct sockaddr*) &servaddr, sizeof(servaddr)) != 0) {
+            if (ods_strcmp(cmd, "running") == 0)
+                fprintf(stderr, "Engine not running.\n");
+            else
+                fprintf(stderr, "Unable to connect to engine. "
+                    "connect() failed: %s (\"%s\")\n"
+                    "Is ods-enforcerd running?\n", 
+                    strerror(errno), servsock_filename);
+            return_value = 1;
+            close(sockfd);
+            continue;
+        }
+        /* set socket to non-blocking */
+        flags = fcntl(sockfd, F_GETFL, 0);
+        if (flags < 0) {
+            ods_log_error("[%s] unable to start interface, fcntl(F_GETFL) "
+                "failed: %s", cli_str, strerror(errno));
+            close(sockfd);
+            return_value = 1;
+            break;
+        }
+        flags |= O_NONBLOCK;
+        if (fcntl(sockfd, F_SETFL, flags) < 0) {
+            ods_log_error("[%s] unable to start interface, fcntl(F_SETFL) "
+                "failed: %s", cli_str, strerror(errno));
+            close(sockfd);
+            return_value = 1;
+            break;
+        }
+
+        return_value = interface_run(sockfd, cmd);
+        close(sockfd);
+        if (return_value) break;
+    } while (!cmd_arg);
+
+#ifdef HAVE_READLINE
+    clear_history();
+    rl_free_undo_list();
+#endif
+
+    return return_value;
 }
 
 
@@ -342,36 +299,30 @@ main(int argc, char* argv[])
 {
     char* cmd = NULL;
     int ret = 0;
+
     allocator_type* clialloc = allocator_create(malloc, free);
     if (!clialloc) {
         fprintf(stderr,"error, malloc failed for client\n");
         exit(1);
     }
+    ods_log_init(NULL, 0, 0);
 
-	/*	argv[0] is always the executable name so 
-		argc is always 1 or higher */
-	ods_log_assert(argc >= 1);
-	
-	/*	concat arguments an add 1 extra char for 
-		adding '\n' char later on, but only when argc > 1 */
-    cmd = ods_str_join(clialloc,argc-1,&argv[1],' ');
-
-    if (argc > 1 && !cmd) {
-        fprintf(stderr, "memory allocation failed\n");
-        exit(1);
+    /*  concat arguments an add 1 extra char for
+        adding '\n' char later on, but only when argc > 1 */
+    if (argc > 1) {
+        cmd = ods_str_join(clialloc, argc-1, &argv[1], ' ');
+        if (!cmd) {
+            fprintf(stderr, "memory allocation failed\n");
+            exit(1);
+        }
     }
 
     /* main stuff */
-    if (!cmd) {
-        ret = interface_start(cmd);
+    if (cmd && (ods_strcmp(cmd, "-h") == 0 || ods_strcmp(cmd, "--help") == 0)) {
+        usage(stdout);
+        ret = 1;
     } else {
-        if (ods_strcmp(cmd, "-h") == 0 || ods_strcmp(cmd, "--help") == 0) {
-            usage(stdout);
-            ret = 1;
-        } else {
-            strcat(cmd,"\n");
-            ret = interface_start(cmd);
-        }
+        ret = interface_start(cmd, OPENDNSSEC_ENFORCER_SOCKETFILE);
     }
 
     /* done */

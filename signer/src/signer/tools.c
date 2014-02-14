@@ -34,10 +34,14 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "adapter/adapter.h"
-#include "shared/file.h"
 #include "shared/log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
+
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 static const char* tools_str = "tools";
 
@@ -51,7 +55,6 @@ tools_signconf(zone_type* zone)
 {
     ods_status status = ODS_STATUS_OK;
     signconf_type* new_signconf = NULL;
-    task_id denial_what = TASK_NONE;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -59,9 +62,12 @@ tools_signconf(zone_type* zone)
     if (status == ODS_STATUS_OK) {
         ods_log_assert(new_signconf);
         /* Denial of Existence Rollover? */
-        denial_what = signconf_compare_denial(zone->signconf, new_signconf);
-        if (denial_what == TASK_NSECIFY) {
-            /* or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3PARAM changed */
+        if (signconf_compare_denial(zone->signconf, new_signconf)
+            == TASK_NSECIFY) {
+            /**
+             * Or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3 params changed.
+             * All NSEC(3)s become invalid.
+             */
             namedb_wipe_denial(zone->db);
             namedb_cleanup_denials(zone->db);
             namedb_init_denials(zone->db);
@@ -104,7 +110,7 @@ tools_input(zone_type* zone)
             ods_status2str(status));
         zone_rollback_dnskeys(zone);
         zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db);
+        namedb_rollback(zone->db, 0);
         return status;
     }
     /* Denial of Existence Rollover? */
@@ -115,7 +121,7 @@ tools_input(zone_type* zone)
             ods_status2str(status));
         zone_rollback_dnskeys(zone);
         zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db);
+        namedb_rollback(zone->db, 0);
         return status;
     }
 
@@ -129,15 +135,16 @@ tools_input(zone_type* zone)
     /* Input Adapter */
     start = time(NULL);
     status = adapter_read((void*)zone);
-    if (status != ODS_STATUS_OK) {
+    if (status != ODS_STATUS_OK && status != ODS_STATUS_UNCHANGED) {
         ods_log_error("[%s] unable to read zone %s: adapter failed (%s)",
             tools_str, zone->name, ods_status2str(status));
         zone_rollback_dnskeys(zone);
         zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db);
+        namedb_rollback(zone->db, 0);
     }
     end = time(NULL);
-    if (status == ODS_STATUS_OK && zone->stats) {
+    if ((status == ODS_STATUS_OK || status == ODS_STATUS_UNCHANGED)
+        && zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
@@ -149,6 +156,21 @@ tools_input(zone_type* zone)
 
 
 /**
+ * Close file descriptors.
+ *
+ */
+static void
+ods_closeall(int fd)
+{
+    int fdlimit = sysconf(_SC_OPEN_MAX);
+    while (fd < fdlimit) {
+        close(fd++);
+    }
+    return;
+}
+
+
+/**
  * Write zone to output adapter.
  *
  */
@@ -156,8 +178,6 @@ ods_status
 tools_output(zone_type* zone, engine_type* engine)
 {
     ods_status status = ODS_STATUS_OK;
-    char str[SYSTEM_MAXLEN];
-    int error = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_assert(zone);
@@ -190,32 +210,67 @@ tools_output(zone_type* zone, engine_type* engine)
     }
     zone->db->outserial = zone->db->intserial;
     zone->db->is_initialized = 1;
+    zone->db->have_serial = 1;
+    lock_basic_lock(&zone->ixfr->ixfr_lock);
     ixfr_purge(zone->ixfr);
+    lock_basic_unlock(&zone->ixfr->ixfr_lock);
     /* kick the nameserver */
     if (zone->notify_ns) {
+        int status;
+        pid_t pid, wpid;
         ods_log_verbose("[%s] notify nameserver: %s", tools_str,
             zone->notify_ns);
-        snprintf(str, SYSTEM_MAXLEN, "%s > /dev/null",
-            zone->notify_ns);
-        error = system(str);
-        if (error) {
-           ods_log_error("[%s] failed to notify nameserver", tools_str);
-           status = ODS_STATUS_ERR;
+	/** fork */
+        switch ((pid = fork())) {
+            case -1: /* error */
+                ods_log_error("[%s] notify nameserver failed: unable to fork "
+                    "(%s)", tools_str, strerror(errno));
+                return ODS_STATUS_FORK_ERR;
+            case 0: /* child */
+                /** close fds */
+		ods_closeall(0);
+                /** execv */
+                execvp(zone->notify_ns, zone->notify_args);
+                /** error */
+                ods_log_error("[%s] notify nameserver failed: execv() failed "
+                    "(%s)", tools_str, strerror(errno));
+                exit(1);
+                break;
+            default: /* parent */
+                ods_log_debug("[%s] notify nameserver process forked",
+                    tools_str);
+                /** wait for completion  */
+                while((wpid = waitpid(pid, &status, 0)) <= 0) {
+                    if (errno != EINTR) {
+                        break;
+                    }
+                }
+                if (wpid == -1) {
+                    ods_log_error("[%s] notify nameserver failed: waitpid() ",
+                        "failed (%s)", tools_str, strerror(errno));
+                } else if (!WIFEXITED(status)) {
+                    ods_log_error("[%s] notify nameserver failed: notify ",
+                        "command did not terminate normally", tools_str);
+                } else {
+                    ods_log_verbose("[%s] notify nameserver ok", tools_str);
+                }
+                break;
         }
-    }
-    if (engine->dnshandler) {
-        dnshandler_fwd_notify(engine->dnshandler, (uint8_t*) ODS_SE_NOTIFY_CMD,
-            strlen(ODS_SE_NOTIFY_CMD));
     }
     /* log stats */
     if (zone->stats) {
         lock_basic_lock(&zone->stats->stats_lock);
         zone->stats->end_time = time(NULL);
-        ods_log_debug("[%s] log stats for zone %s", tools_str,
-            zone->name?zone->name:"(null)");
-        stats_log(zone->stats, zone->name, zone->signconf->nsec_type);
+        ods_log_debug("[%s] log stats for zone %s serial %u", tools_str,
+            zone->name?zone->name:"(null)", (unsigned) zone->db->outserial);
+        stats_log(zone->stats, zone->name, zone->db->outserial,
+            zone->signconf->nsec_type);
         stats_clear(zone->stats);
         lock_basic_unlock(&zone->stats->stats_lock);
+    }
+    if (engine->dnshandler) {
+        dnshandler_fwd_notify(engine->dnshandler, (uint8_t*) ODS_SE_NOTIFY_CMD,
+            strlen(ODS_SE_NOTIFY_CMD));
     }
     return status;
 }

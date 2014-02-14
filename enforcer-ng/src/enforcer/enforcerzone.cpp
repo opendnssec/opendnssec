@@ -223,6 +223,16 @@ void KeyDataPB::setDsAtParent(DsAtParent value)
     }
 }
 
+uint16_t KeyDataPB::keytag()
+{
+    return (uint16_t)_keydata->keytag();
+}
+
+void KeyDataPB::setKeytag(uint16_t value)
+{
+	_keydata->set_keytag( (uint32_t)value );
+}
+
 KeyDependencyPB::KeyDependencyPB( ::ods::keystate::KeyDependency *keydependency)
 :   _keydependency(keydependency)
 {
@@ -398,6 +408,16 @@ const ::ods::kasp::Policy *EnforcerZonePB::policy()
     return &_policy;
 }
 
+int EnforcerZonePB::max_zone_ttl()
+{
+    int maxzonettl = _policy.signatures().max_zone_ttl();
+    if (!_policy.denial().has_nsec3() || !_policy.denial().nsec3().has_ttl()) {
+	return maxzonettl;
+    }
+    int nsec3paramttl = _policy.denial().nsec3().ttl();
+    return (nsec3paramttl > maxzonettl)? nsec3paramttl : maxzonettl;
+}
+
 KeyDependencyList &EnforcerZonePB::keyDependencyList()
 {
     return _keyDependencyList;
@@ -482,3 +502,11 @@ void EnforcerZonePB::setRollCskNow(bool value)
 {
     _zone->set_roll_csk_now(value);
 }
+/* Only used to show the user */
+time_t EnforcerZonePB::nextKskRoll() {return _zone->next_ksk_roll();}
+time_t EnforcerZonePB::nextZskRoll() {return _zone->next_zsk_roll();}
+time_t EnforcerZonePB::nextCskRoll() {return _zone->next_csk_roll();}
+void EnforcerZonePB::setNextKskRoll(time_t value) {_zone->set_next_ksk_roll(value);}
+void EnforcerZonePB::setNextZskRoll(time_t value) {_zone->set_next_zsk_roll(value);}
+void EnforcerZonePB::setNextCskRoll(time_t value) {_zone->set_next_csk_roll(value);}
+

@@ -43,6 +43,10 @@
 #include "shared/str.h"
 #include "daemon/engine.h"
 
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
+#include "policy/kasp.pb.h"
+
 static const char *module_str = "autostart_cmd";
 
 static void 
@@ -67,6 +71,27 @@ void
 autostart(engine_type* engine)
 {
     ods_log_debug("[%s] autostart", module_str);
+
+	/* Try to select from policies. This is only used to probe if the
+	 * database is already setup. If not, we don't schedule tasks which
+	 * would otherwise pollute the logs repeatedly. 
+	 * TODO: I'd like to see a better probe which does not log an error */
+	OrmConnRef conn;
+	OrmResultRef rows;
+	::ods::kasp::Policy policy;
+	if (!ods_orm_connect(-1, engine->config, conn)) {
+		ods_log_crit("Could not connect to database.");
+		return;
+	}
+	if (!OrmMessageEnum(conn, policy.descriptor(), rows)) {
+		ods_log_info("[%s] Database is not set up yet."
+			" Not scheduling tasks.", module_str);
+		ods_log_info("[%s] Run the 'ods-enforcer setup'"
+		    " command to create the database.", module_str);	
+		return;
+	}
+	rows.release();
+    
     schedule_task(engine, policy_resalt_task(engine->config), "resalt");
     schedule_task(engine, enforce_task(engine), "enforce");
 }

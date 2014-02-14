@@ -53,9 +53,12 @@ struct namedb_struct {
     uint32_t inbserial;
     uint32_t intserial;
     uint32_t outserial;
+    uint32_t altserial;
     unsigned is_initialized : 1;
     unsigned is_processed : 1;
     unsigned serial_updated : 1;
+    unsigned force_serial : 1;
+    unsigned have_serial : 1;
 };
 
 /**
@@ -76,13 +79,14 @@ namedb_type* namedb_create(void* zone);
 /**
  * Determine new SOA SERIAL.
  * \param[in] db namedb
+ * \param[in] zone_name zone name
  * \param[in] format <SOA><Serial> format from signer configuration
- * \param[in] serial inbound serial
+ * \param[in] inbound_serial inbound serial
  * \return ods_status status
  *
  */
-ods_status namedb_update_serial(namedb_type* db, const char* format,
-    uint32_t serial);
+ods_status namedb_update_serial(namedb_type* db, const char* zone_name,
+    const char* format, uint32_t inbound_serial);
 
 /**
  * Add empty non-terminals for domain.
@@ -163,16 +167,18 @@ ods_status namedb_examine(namedb_type* db);
  * Apply differences in db.
  * \param[in] db namedb
  * \param[in] is_ixfr true if incremental change
+ * \param[in] more_coming more transactions possible
  *
  */
-void namedb_diff(namedb_type* db, unsigned is_ixfr);
+void namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming);
 
 /**
  * Rollback differences in db.
  * \param[in] db namedb
+ * \param[in] keepsc keep RRs that did not came from the adapter.
  *
  */
-void namedb_rollback(namedb_type* db);
+void namedb_rollback(namedb_type* db, unsigned keepsc);
 
 /**
  * Nsecify db.

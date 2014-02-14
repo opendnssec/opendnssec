@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration>
+
+	<RepositoryList>
+
+		<Repository name="softHSM">
+			<Module>kaspcheck_bad/kasp.xml</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+		<Repository name="anotherHSM">
+			<Module>kaspcheck_bad/kasp.xml</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+		<Repository name="softHSM">
+			<Module>really/really/not/here/promise</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+ 
+	</RepositoryList>
+
+	<Common>
+		<Logging>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+		
+		<PolicyFile>kaspcheck_bad/kasp.xml</PolicyFile>
+		<ZoneListFile>kaspcheck_bad/zonelist.xml</ZoneListFile>
+
+	</Common>
+
+	<Enforcer>
+
+		<Datastore><SQLite>really/does_not_exist</SQLite></Datastore>
+		<Interval>P1Y</Interval>
+	</Enforcer>
+
+	<Signer>
+		<Privileges>
+			<User>lah_de_dah_dafffy_duck</User>
+			<Group>shouldnt_be_here_blah</Group> 
+		</Privileges>
+
+		<WorkingDirectory>kaspcheck_bad</WorkingDirectory>
+
+		<!-- the <NotifyCommmand> will expand the following variables:
+
+		     %zone      the name of the zone that was signed
+		     %zonefile  the filename of the signed zone
+		-->
+<!--
+		<NotifyCommand>/usr/local/bin/my_nameserver_reload_command</NotifyCommand>
+-->
+	</Signer>
+
+</Configuration>

@@ -1,9 +1,15 @@
 $Id$
 
-OpenDNSSEC 1.4.0a1 - Known Restrictions
+OpenDNSSEC 1.4.0 - Known Restrictions
 
-The following are the known problems and/or restrictions of release 1.4.0a1 of
+The following are the known problems and/or restrictions of release 1.4.0 of
 OpenDNSSEC.
+
+BUGS: 
+-----
+
+OPENDNSSEC-332: Statistics on average sigs/sec not accurate
+OPENDNSSEC-437: Problem with invalid signatures on SOA RRset.
 
 
 Limitations on Number of Zones
@@ -18,18 +24,6 @@ As a workaround, we suggest that either the same key is used for all zones, or
 that the number of zones be limited to about 5,000.
 
 This will be addressed in a future release of the software.
-
-
-Incompatibility in TSIG Key
----------------------------
-
-When setting up a TSIG key for the zone fetcher component, it should be noted
-that the SHA algorithm family used by OpenDNSSEC is incompatible with the
-BIND-9, due to a problem in the latter's cryptographic library.
-
-The problem is fixed in the upcoming BIND-9.7 release; in the meantime, avoid
-using TSIG authentication between the zone fetcher and the upstream
-nameserver.
 
 
 Issue with rolling from one algorithm to another
@@ -64,10 +58,13 @@ Enforcer does not remove/handle any quotation marks in the imported strings.
 This will create a problem when importing the information from e.g. the policy
 description field into the Enforcer database.
 
+Intermittent segmentation faults on FreeBSD 9 amd64
+-------------------------------------------------
+Segmentation faults in  _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
+have been intermittently seen when running regression tests on our FreeBSD
+test server (amd64, FreeBSD 9.0-RELEASE-p3). The segfaults have been seen to
+originate in the enforcer, the signer and SQLite on different occasions. These
+appear to be due to a bug in the FreeBSD malloc/pthread implementation and are
+not due to issues in the OpenDNSSEC code. 
 
-Backup files redesign
----------------------
 
-The backup files for the signer are being redesigned for version 1.4.0. In this
-first alpha release, the backup files are not read in correctly and will
-be considered corrupted.

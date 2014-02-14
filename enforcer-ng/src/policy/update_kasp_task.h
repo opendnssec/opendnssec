@@ -35,6 +35,6 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void perform_update_kasp(int sockfd, engineconfig_type *config);
+bool perform_update_kasp(int sockfd, engineconfig_type *config);
 
 #endif

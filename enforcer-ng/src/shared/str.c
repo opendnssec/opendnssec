@@ -137,7 +137,7 @@ ods_ctime_r(char *buf, size_t nbuf, time_t t)
 const char *ods_check_command(const char *cmd, int cmdsize, const char *scmd)
 {
     size_t ncmd = strlen(scmd);
-    if (cmdsize < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
+    if (cmdsize < (int)ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
     if (cmd[ncmd] == '\0') {
         cmd = "";
     } else if (cmd[ncmd] != ' ') {

@@ -59,16 +59,40 @@ usage ()
        "usage: %s [-c config] [-vV] command [options]\n",
         progname);
 
+    fprintf(stderr,"  login\n");
+    fprintf(stderr,"  logout\n");
     fprintf(stderr,"  list [repository]\n");
-    fprintf(stderr,"  generate <repository> rsa <keysize>\n");
+    fprintf(stderr,"  generate <repository> rsa|dsa|gost|ecdsa [keysize]\n");
     fprintf(stderr,"  remove <id>\n");
     fprintf(stderr,"  purge <repository>\n");
-    fprintf(stderr,"  dnskey <id> <name>\n");
+    fprintf(stderr,"  dnskey <id> <name> <type> <algo>\n");
     fprintf(stderr,"  test <repository>\n");
     fprintf(stderr,"  info\n");
 #if 0
     fprintf(stderr,"  debug\n");
 #endif
+}
+
+int
+cmd_login ()
+{
+    printf("The tokens are now logged in.\n");
+
+    return 0;
+}
+
+int
+cmd_logout ()
+{
+    if (hsm_logout_pin() != HSM_OK) {
+        printf("Failed to erase the credentials.\n");
+        hsm_print_error(NULL);
+        return 1;
+    }
+
+    printf("The credentials has been erased.\n");
+
+    return 0;
 }
 
 int
@@ -96,14 +120,14 @@ cmd_list (int argc, char *argv[])
            return 1;
         }
 
-        fprintf(stderr, "Listing keys in repository: %s\n", repository);
+        fprintf(stdout, "\nListing keys in repository: %s\n", repository);
         keys = hsm_list_keys_repository(NULL, &key_count, repository);
     } else {
-        fprintf(stderr, "Listing keys in all repositories.\n");
+        fprintf(stdout, "\nListing keys in all repositories.\n");
         keys = hsm_list_keys(NULL, &key_count);
     }
 
-    fprintf(stderr, "%u %s found.\n\n", (unsigned int) key_count,
+    fprintf(stdout, "%u %s found.\n\n", (unsigned int) key_count,
         (key_count > 1 || key_count == 0 ? "keys" : "key"));
 
     if (!keys) {
@@ -111,8 +135,8 @@ cmd_list (int argc, char *argv[])
     }
 
     /* print fancy header */
-    fprintf(stderr, key_info_format, "Repository", "ID", "Type");
-    fprintf(stderr, key_info_format, "----------", "--", "----");
+    fprintf(stdout, key_info_format, "Repository", "ID", "Type");
+    fprintf(stdout, key_info_format, "----------", "--", "----");
 
     for (i = 0; i < key_count; i++) {
         hsm_key_info_t *key_info;
@@ -125,11 +149,11 @@ cmd_list (int argc, char *argv[])
             /* Skip NULL key for now */
             continue;
         }
-        
+
         key_count_valid++;
 
         key_info = hsm_get_key_info(NULL, key);
-        
+
         if (key_info) {
             snprintf(key_type, sizeof(key_type), "%s/%lu",
                 key_info->algorithm_name, key_info->keysize);
@@ -144,7 +168,7 @@ cmd_list (int argc, char *argv[])
         hsm_key_info_free(key_info);
     }
     hsm_key_list_free(keys, key_count);
-    
+
     if (key_count != key_count_valid) {
         size_t invalid_keys;
         invalid_keys = key_count - key_count_valid;
@@ -166,7 +190,7 @@ cmd_generate (int argc, char *argv[])
     hsm_key_t *key = NULL;
     hsm_ctx_t *ctx = NULL;
 
-    if (argc != 3) {
+    if (argc < 2 || argc > 3) {
         usage();
         return -1;
     }
@@ -179,32 +203,58 @@ cmd_generate (int argc, char *argv[])
        return 1;
     }
 
-
     algorithm = strdup(argv[1]);
-    keysize = atoi(argv[2]);
+    if (argc == 3) {
+        keysize = atoi(argv[2]);
+    }
 
     if (!strcasecmp(algorithm, "rsa")) {
         printf("Generating %d bit RSA key in repository: %s\n",
             keysize, repository);
 
         key = hsm_generate_rsa_key(NULL, repository, keysize);
+    } else if (!strcasecmp(algorithm, "dsa")) {
+        printf("Generating %d bit DSA key in repository: %s\n",
+            keysize, repository);
 
-        if (key) {
-            hsm_key_info_t *key_info;
+        key = hsm_generate_dsa_key(NULL, repository, keysize);
+    } else if (!strcasecmp(algorithm, "gost")) {
+        printf("Generating 512 bit GOST key in repository: %s\n",
+            repository);
 
-            key_info = hsm_get_key_info(NULL, key);
-            printf("Key generation successful: %s\n",
-                key_info ? key_info->id : "NULL");
-            hsm_key_info_free(key_info);
-            if (verbose) hsm_print_key(key);
-            hsm_key_free(key);
+        key = hsm_generate_gost_key(NULL, repository);
+    } else if (!strcasecmp(algorithm, "ecdsa")) {
+        if (keysize == 256) {
+            printf("Generating a P-256 ECDSA key in repository: %s\n",
+                repository);
+
+            key = hsm_generate_ecdsa_key(NULL, repository, "P-256");
+        } else if (keysize == 384) {
+            printf("Generating a P-384 ECDSA key in repository: %s\n",
+                repository);
+
+            key = hsm_generate_ecdsa_key(NULL, repository, "P-384");
         } else {
-            printf("Key generation failed.\n");
+            printf("Invalid ECDSA key size: %d\n", keysize);
+            printf("Expecting 256 or 384.\n");
             return -1;
         }
-
     } else {
         printf("Unknown algorithm: %s\n", algorithm);
+        return -1;
+    }
+
+    if (key) {
+        hsm_key_info_t *key_info;
+
+        key_info = hsm_get_key_info(NULL, key);
+        printf("Key generation successful: %s\n",
+            key_info ? key_info->id : "NULL");
+        hsm_key_info_free(key_info);
+        if (verbose) hsm_print_key(key);
+        hsm_key_free(key);
+    } else {
+        printf("Key generation failed.\n");
         return -1;
     }
 
@@ -330,18 +380,22 @@ cmd_dnskey (int argc, char *argv[])
 {
     char *id;
     char *name;
+    int type;
+    int algo;
 
     hsm_key_t *key = NULL;
     ldns_rr *dnskey_rr;
     hsm_sign_params_t *sign_params;
 
-    if (argc != 2) {
+    if (argc != 4) {
         usage();
         return -1;
     }
 
     id = strdup(argv[0]);
     name = strdup(argv[1]);
+    type = atoi(argv[2]);
+    algo = atoi(argv[3]);
 
     key = hsm_find_key_by_id(NULL, id);
 
@@ -352,8 +406,95 @@ cmd_dnskey (int argc, char *argv[])
         return -1;
     }
 
+    if (type != LDNS_KEY_ZONE_KEY && type != LDNS_KEY_ZONE_KEY + LDNS_KEY_SEP_KEY) {
+        printf("Invalid key type: %i\n", type);
+        printf("Please use: %i or %i\n", LDNS_KEY_ZONE_KEY, LDNS_KEY_ZONE_KEY + LDNS_KEY_SEP_KEY);
+        free(name);
+        free(id);
+        return -1;
+    }
+
+    hsm_key_info_t *key_info = hsm_get_key_info(NULL, key);
+    switch (algo) {
+        case LDNS_SIGN_RSAMD5:
+        case LDNS_SIGN_RSASHA1:
+        case LDNS_SIGN_RSASHA1_NSEC3:
+        case LDNS_SIGN_RSASHA256:
+        case LDNS_SIGN_RSASHA512:
+            if (strcmp(key_info->algorithm_name, "RSA") != 0) {
+                printf("Not an RSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+        case LDNS_SIGN_DSA:
+        case LDNS_SIGN_DSA_NSEC3:
+            if (strcmp(key_info->algorithm_name, "DSA") != 0) {
+                printf("Not a DSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+        case LDNS_SIGN_ECC_GOST:
+            if (strcmp(key_info->algorithm_name, "GOST") != 0) {
+                printf("Not a GOST key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
+        case LDNS_SIGN_ECDSAP256SHA256:
+            if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
+                printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            if (key_info->keysize != 256) {
+                printf("The key is a ECDSA/%lu, expecting ECDSA/256 for this algorithm.\n", key_info->keysize);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+        case LDNS_SIGN_ECDSAP384SHA384:
+            if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
+                printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            if (key_info->keysize != 384) {
+                printf("The key is a ECDSA/%lu, expecting ECDSA/384 for this algorithm.\n", key_info->keysize);
+                hsm_key_info_free(key_info);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+#endif
+        default:
+            printf("Invalid algorithm: %i\n", algo);
+            hsm_key_info_free(key_info);
+            free(name);
+            free(id);
+            return -1;
+    }
+    hsm_key_info_free(key_info);
+
     sign_params = hsm_sign_params_new();
-    sign_params->algorithm = LDNS_RSASHA1;
+    sign_params->algorithm = algo;
+    sign_params->flags = type;
     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, name);
     dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
@@ -380,7 +521,9 @@ cmd_test (int argc, char *argv[])
         argv++;
 
         printf("Testing repository: %s\n\n", repository);
-        return hsm_test(repository);
+        int rv = hsm_test(repository);
+        if (repository) free(repository);
+        return rv;
     } else {
         usage();
     }
@@ -443,7 +586,13 @@ main (int argc, char *argv[])
         exit(1);
     }
 
-    result = hsm_open(config, hsm_prompt_pin, NULL);
+
+    if (!strcasecmp(argv[0], "logout")) {
+        if (config) free(config);
+        exit(cmd_logout());
+    }
+
+    result = hsm_open(config, hsm_prompt_pin);
     if (result) {
         hsm_print_error(NULL);
         exit(-1);
@@ -451,7 +600,11 @@ main (int argc, char *argv[])
 
     openlog("hsmutil", LOG_PID, LOG_USER);
 
-    if (!strcasecmp(argv[0], "list")) {
+    if (!strcasecmp(argv[0], "login")) {
+        argc --;
+        argv ++;
+        result = cmd_login();
+    } else if (!strcasecmp(argv[0], "list")) {
         argc --;
         argv ++;
         result = cmd_list(argc, argv);

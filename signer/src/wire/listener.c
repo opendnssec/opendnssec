@@ -77,9 +77,8 @@ listener_push(listener_type* listener, char* address, int family, char* port)
     listener->interfaces = (interface_type*) allocator_alloc(
         listener->allocator, (listener->count + 1) * sizeof(interface_type));
     if (!listener->interfaces) {
-        ods_log_error("[%s] unable to add interface: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to add interface: allocator_alloc() failed",
             listener_str);
-        exit(1);
     }
     if (ifs_old) {
         memcpy(listener->interfaces, ifs_old,

@@ -45,8 +45,9 @@ static const char *module_str = "keystate_list_cmd";
 void help_keystate_list_cmd(int sockfd)
 {
     ods_printf(sockfd,
-        "key list        list all the keys used by a zone\n"
-//        "  --verbose     (aka -v) also show the id for every key.\n"
+               "key list               List the keys in the enforcer database.\n"
+               "      [--verbose]                (aka -v)  also show additional key parameters.\n"
+               "      [--debug]                  (aka -d)  print information about the keystate.\n"
         );
 }
 
@@ -75,20 +76,23 @@ int handled_keystate_list_cmd(int sockfd, engine_type* engine, const char *cmd,
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"too many arguments\n");
+		help_keystate_list_cmd(sockfd);
         return 1; // errors, but handled
     }
     
     bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
+    bool bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,scmd);
         ods_printf(sockfd,"unknown arguments\n");
+		help_keystate_list_cmd(sockfd);
         return 1; // errors, but handled
     }
     
     time_t tstart = time(NULL);
 
-    perform_keystate_list(sockfd,engine->config,bVerbose?1:0);
+    perform_keystate_list(sockfd, engine->config, bVerbose, bDebug);
 	
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     

@@ -33,116 +33,113 @@ start = element Configuration {
 	element RepositoryList {
 		element Repository {
 			# Symbolic name of repository
-			attribute name { xsd:string },
+			attribute name { xsd:string } &
 
 			# PKCS#11 Module (aka shared library)
-			element Module { xsd:string },
+			element Module { xsd:string } &
 
-			# PKCS#11 Token Label,
-			element TokenLabel { xsd:string },
+			# PKCS#11 Token Label &
+			element TokenLabel { xsd:string } &
 
 			# PKCS#11 Login Credentials
-			element PIN { xsd:string },
+			element PIN { xsd:string }? &
 
 			# Maxmimum number of key pairs in the repository
 			# DEFAULT: infinite
-			element Capacity { xsd:positiveInteger }?,
+			element Capacity { xsd:positiveInteger }? &
 
 			# Require backup of keys before use (optional)
-			element RequireBackup { empty }?,
+			element RequireBackup { empty }? &
 
 			# Do not maintain public keys in the repository (optional)
 			element SkipPublicKey { empty }?
 		}*
-	},
+	} &
 
 	# Common configuration options
 	element Common {
 		# Configuration parameters for logging
 		element Logging {
-			element Verbosity { xsd:nonNegativeInteger }?,
-			 
+			element Verbosity { xsd:nonNegativeInteger }? &
+			
 			element Syslog {
 				# syslog facility
 				element Facility { syslogFacility }
 			}?
-		}?,
+		}? &
 
 		# Location to find the KASP file
-		element PolicyFile { xsd:string },
+		element PolicyFile { xsd:string } &
 
 		# Location to store the zonelist XML file
 		element ZoneListFile { xsd:string }
-	},
+	} &
 
 	# Configuration parameters for the KASP Enforcer
 	element Enforcer {
 		# User & group to drop privs to
-		privs?,
+		privs?
 
 		# Where to store internal Enforcer state
-		element Datastore { (mysql | sqlite) },
+		& element Datastore { (mysql | sqlite) }
 
 		# Interval between runs of the key rollover procedure
-		element Interval { xsd:duration },
+		# This is no longer used in 2.0 and will be deprecated in 2.1
+		& element Interval { xsd:duration }?
 
 		# Use manual key generation?
-		element ManualKeyGeneration { empty }?,
+		& element ManualKeyGeneration { empty }?
 
 		# Period to automatically pre-generate keys for, when ManualKeyGeneration is not used
 		# DEFAULT: P1Y
-		element AutomaticKeyGenerationPeriod { xsd:duration }?,
+		& element AutomaticKeyGenerationPeriod { xsd:duration }?
 
 		# How long before a KSK Rollover should we start warning (optional)
-		element RolloverNotification { xsd:duration }?,
+		& element RolloverNotification { xsd:duration }?
 
 		# Command to use for submitting new DS records to a parent -
 		# the command should accept DNSKEY RRsets via STDIN
-		element DelegationSignerSubmitCommand { xsd:string }?,
+		& element DelegationSignerSubmitCommand { xsd:string }?
 
 		# Command to use for retracting an existing DS record from the parent -
 		# the command should accept DNSKEY RRsets via STDIN
-		element DelegationSignerRetractCommand { xsd:string }?,
+		& element DelegationSignerRetractCommand { xsd:string }?
 
 		# File used to detect enforcerd is already running.
-		element PidFile { xsd:string }?,
+		& element PidFile { xsd:string }?
 
 		# Socket to use for communicating between enforcer and enforcerd
-		element SocketFile { xsd:string }?,
+		& element SocketFile { xsd:string }?
 
 		# Location to store intermediate enforcer information
 		# DEFAULT: $(localstatedir)/opendnssec/tmp
-		element WorkingDirectory { xsd:string }?,
+		& element WorkingDirectory { xsd:string }?
 
 		# Number of Worker Threads
 		# DEFAULT: 4
-		element WorkerThreads { xsd:positiveInteger }?,
-        
-		# Number of Threads performing operations involving Security Modules.
-		# DEFAULT: 1
-		element SecurityModuleThreads { xsd:positiveInteger }?
-	},
+		& element WorkerThreads { xsd:positiveInteger }?
+	} &
 
 	# Configuration parameters for the Signer
 	element Signer {
 		# User & group to drop privs to
-		privs?,
+		privs? &
 
 		# Location to store intermediate zone information
 		# DEFAULT: $(localstatedir)/opendnssec/tmp
-		element WorkingDirectory { xsd:string }?,
+		element WorkingDirectory { xsd:string }? &
 
 		# Number of Worker Threads
 		# DEFAULT: 4
-		element WorkerThreads { xsd:positiveInteger }?,
+		element WorkerThreads { xsd:positiveInteger }? &
 		# Number of Signer Threads
 		# DEFAULT: 4
-		element SignerThreads { xsd:positiveInteger }?,
+		element SignerThreads { xsd:positiveInteger }? &
 
 		# Listener
 		element Listener {
 			interface*
-		}?,
+		}? &
 
 		# System command to call after a zone has been (re)signed
 		#
@@ -161,10 +158,10 @@ syslogFacility = (
 
 privs = element Privileges {
 	# DEFAULT: do not drop privs
-	element User { xsd:string }?,
+	element User { xsd:string }? &
 
 	# DEFAULT: do not drop privs
-	element Group { xsd:string }?,
+	element Group { xsd:string }? &
 	
 	# chroot directory to use
 	element Directory {xsd:string }?
@@ -176,20 +173,19 @@ mysql = element MySQL {
 		attribute port { xsd:positiveInteger { maxInclusive = "65535" } }?,
 
 		# DEFAULT: 127.0.0.1
-		xsd:string }?,
+		xsd:string }? &
 
 	# database to use for KASP tables
-	element Database { xsd:string },
+	element Database { xsd:string } &
 
 	# username and password used to connect to database
-	element Username { xsd:string },
+	element Username { xsd:string } &
 	element Password { xsd:string }
 }
 
 sqlite = element SQLite { xsd:string }
 
-interface = element Interface {	address?, port? }
+interface = element Interface {	address? & port? }
 
 address = element Address { xsd:string } # e.g., 192.0.2.1 or 2001:DB8::1
 port    = element Port { xsd:positiveInteger { maxInclusive = "65535" } }
-

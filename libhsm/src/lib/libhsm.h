@@ -41,7 +41,13 @@ extern "C" {
  * Note that currently the MySQL kasp schema limits the number of HSMs to 
  * 127; so to increase it beyond that requires some database changes similar
  * to when keypairs(id) was increased, see svn r4465.
+ *
+ * Note that this constant also determines the size of the shared PIN memory.
+ * Increasing this size requires any existing memory to be removed and should
+ * be part of a migration script.
  */
+#define HSM_MAX_SESSIONS 100
+
 #define HSM_MAX_ALGONAME 16
 
 #define HSM_ERROR_MSGSIZE 512
@@ -49,6 +55,12 @@ extern "C" {
 /* TODO: depends on type and key, or just leave it at current
  * maximum? */
 #define HSM_MAX_SIGNATURE_LENGTH 512
+
+/* Note that this constant also determines the size of the shared PIN memory.
+ * Increasing this size requires any existing memory to be removed and should
+ * be part of a migration script.
+ */
+#define HSM_MAX_PIN_LENGTH 255
 
 /*! Return codes for some of the functions */
 /*! These should be different than the list of CKR_ values defined
@@ -62,6 +74,11 @@ extern "C" {
 #define HSM_NO_REPOSITORIES       0x10000005
 #define HSM_MODULE_NOT_FOUND      0x10000006
 
+/*! The mode for the PIN callback functions */
+#define HSM_PIN_FIRST	0	/* Used when getting the PIN for the first time. */
+#define HSM_PIN_RETRY	1	/* Used when we failed to login the first time. */
+#define HSM_PIN_SAVE	2	/* The latest PIN can be saved for future use. Called
+				   after a successful login. */
 
 /*! HSM configuration */
 typedef struct {
@@ -100,6 +117,18 @@ typedef struct {
   unsigned long keysize;         /*!< key size */
 } hsm_key_info_t;
 
+/*! HSM Repositories */
+typedef struct hsm_repository_struct hsm_repository_t;
+struct hsm_repository_struct {
+    hsm_repository_t* next; /*!< next repository > */
+    char    *name;          /*!< name */
+    char    *module;        /*!< PKCS#11 module */
+    char    *tokenlabel;    /*!< PKCS#11 token label */
+    char    *pin;           /*!< PKCS#11 login credentials */
+    uint8_t use_pubkey;     /*!< use public keys in repository? */
+};
+
+
 /*! HSM context to keep track of sessions */
 typedef struct {
     hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
@@ -123,9 +152,7 @@ typedef struct {
 \param pin_callback This function will be called for tokens that have
                     no PIN configured. The default hsm_prompt_pin() can
                     be used. If this value is NULL, these tokens will
-                    be skipped
-\param data optional data that will be directly passed to the callback
-            function
+                    be skipped.
 \return 0 if successful, !0 if failed
 
 Attaches all configured HSMs, querying for PINs (using the given
@@ -136,19 +163,81 @@ global context will be used) and log into each HSM.
 */
 int
 hsm_open(const char *config,
-         char *(pin_callback)(const char *repository, void *),
-         void *data);
+         char *(pin_callback)(unsigned int, const char *, unsigned int));
 
+/*! Open HSM library
+
+\param rlist Repository list.
+\param pin_callback This function will be called for tokens that have
+                    no PIN configured. The default hsm_prompt_pin() can
+                    be used. If this value is NULL, these tokens will
+                    be skipped.
+\return 0 if successful, !0 if failed
+
+Attaches all HSMs in the repository list, querying for PINs (using the given
+callback function) if not known.
+Also creates initial sessions (not part of any context; every API
+function that takes a context can be passed NULL, in which case the
+global context will be used) and log into each HSM.
+*/
+int
+hsm_open2(hsm_repository_t* rlist,
+         char *(pin_callback)(unsigned int, const char *, unsigned int));
+
+
+/*! Create new repository as specified in conf.xml.
+
+\param name           Repository name.
+\param module         PKCS#11 module.
+\param tokenlabel     PKCS#11 token label.
+\param pin            PKCS#11 login credentials.
+\param use_pubkey     Whether to store the public key in the HSM.
+\return The created repository.
+*/
+hsm_repository_t *
+hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
+    uint8_t use_pubkey);
+
+/*! Free configured repositories.
+
+\param r Repository list.
+*/
+void
+hsm_repository_free(hsm_repository_t* r);
 
 /*! Function that queries for a PIN, can be used as callback
-    for hsm_open()
+    for hsm_open(). Stores the PIN in the shared memory.
 
+\param id Used for identifying the repository. Will have a value between zero and
+          HSM_MAX_SESSIONS.
 \param repository The repository name will be included in the prompt
-\param data This value is unused
+\param mode The type of mode the function should run in.
 \return The string the user enters
 */
 char *
-hsm_prompt_pin(const char *repository, void *data);
+hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode);
+
+
+/*! Function that will check if there is a PIN in the shared memory and returns it.
+
+\param id Used for identifying the repository. Will have a value between zero and
+          HSM_MAX_SESSIONS.
+\param repository The repository name will be included in the prompt
+\param mode The type of mode the function should run in.
+\return The string the user enters
+*/
+char *
+hsm_check_pin(unsigned int id, const char *repository, unsigned int mode);
+
+
+/*! Logout
+
+    Function that will logout the user by deleting the shared memory and
+    semaphore. Any authenticated process will still be able to interact
+    with the HSM.
+*/
+int
+hsm_logout_pin();
 
 
 /*! Close HSM library
@@ -308,6 +397,23 @@ The returned key structure can be freed with hsm_key_free()
 hsm_key_t *
 hsm_generate_gost_key(hsm_ctx_t *context,
                      const char *repository);
+
+/*! Generate new key pair in HSM
+
+Keys generated by libhsm will have a 16-byte identifier set as CKA_ID
+and the hexadecimal representation of it set as CKA_LABEL.
+
+The returned key structure can be freed with hsm_key_free()
+
+\param context HSM context
+\param repository repository in where to create the key
+\param curve which curve to use
+\return return key identifier or NULL if key generation failed
+*/
+hsm_key_t *
+hsm_generate_ecdsa_key(hsm_ctx_t *context,
+                       const char *repository,
+                       const char *curve);
 
 /*! Remove a key pair from HSM
 

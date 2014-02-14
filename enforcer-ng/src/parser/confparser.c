@@ -36,6 +36,7 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/duration.h"
+#include "daemon/cfg.h"
 
 #include <libxml/xpath.h>
 #include <libxml/relaxng.h>
@@ -199,14 +200,92 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     return NULL;
 }
 
+/**
+ * Parse elements from the configuration file.
+ *
+ */
+ 
+struct engineconfig_repository*
+parse_conf_repositories(const char* cfgfile)
+{
+	int required = 0, i;
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlNode *curNode;
+    xmlChar *xexpr = (unsigned char *) "//Configuration/RepositoryList/Repository";
+    struct engineconfig_repository *head, *cur, *prev;
+
+    ods_log_assert(xexpr);
+    ods_log_assert(cfgfile);
+
+    /* Load XML document */
+    doc = xmlParseFile(cfgfile);
+    if (doc == NULL) {
+		ods_log_error("[%s] unable to parse cfgile %s", parser_str, cfgfile);
+        return NULL;
+    }
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if (xpathCtx == NULL) {
+        ods_log_error("[%s] unable to create new XPath context for cfgile "
+            "%s expr %s", parser_str, cfgfile, (char*) xexpr);
+        xmlFreeDoc(doc);
+        return NULL;
+    }
+    xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
+    if (xpathObj == NULL || xpathObj->nodesetval == NULL ||
+        xpathObj->nodesetval->nodeNr <= 0) {
+        ods_log_error("[%s] unable to find element %s in cfgfile %s", parser_str, (char*) xexpr, cfgfile);
+        if (required) {
+            ods_log_error("[%s] unable to evaluate required element %s in "
+                "cfgfile %s", parser_str, (char*) xexpr, cfgfile);
+        }
+        xmlXPathFreeContext(xpathCtx);
+        if (xpathObj) {
+            xmlXPathFreeObject(xpathObj);
+        }
+        xmlFreeDoc(doc);
+        return NULL;
+    }
+
+	prev = NULL;
+	head = NULL;
+    if (xpathObj->nodesetval) {
+        for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
+            cur = (struct engineconfig_repository*) malloc(sizeof(struct engineconfig_repository));
+            if (prev)
+				prev->next = cur;
+			else
+				head = cur;
+            curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
+            cur->require_backup = 0;
+            cur->next = NULL;
+            cur->name = (char *) xmlGetProp(
+				xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
+            
+            while (curNode) {
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"RequireBackup"))
+                    cur->require_backup = 1;            
+                curNode = curNode->next;
+            }
+            prev = cur;
+		}
+	}
+	xmlXPathFreeContext(xpathCtx);
+	xmlXPathFreeObject(xpathObj);
+	xmlFreeDoc(doc);
+	return head;
+}
+
 const char*
 parse_conf_policy_filename(allocator_type* allocator, const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
-                                        cfgfile,
-                                        "//Configuration/Common/PolicyFile",
-                                        1);
+		cfgfile,
+		"//Configuration/Common/PolicyFile",
+		1);
     
     if (str) {
         dup = allocator_strdup(allocator, str);

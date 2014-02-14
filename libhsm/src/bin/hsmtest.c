@@ -115,6 +115,14 @@ hsm_test (const char *repository)
     const unsigned int rsa_keysizes[] = { 512, 768, 1024, 1536, 2048, 4096 };
     const unsigned int dsa_keysizes[] = { 512, 768, 1024 };
     unsigned int keysize;
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
+    const ldns_algorithm ec_curves[] = {
+        LDNS_ECDSAP256SHA256,
+        LDNS_ECDSAP384SHA384
+    };
+    ldns_algorithm curve;
+#endif
 
     hsm_ctx_t *ctx = NULL;
     hsm_key_t *key = NULL;
@@ -312,6 +320,78 @@ hsm_test (const char *repository)
 
         printf("\n");
     }
+
+    /*
+     * Test key generation, signing and deletion for a number of key size
+     */
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
+    for (i=0; i<(sizeof(ec_curves)/sizeof(ldns_algorithm)); i++) {
+        curve = ec_curves[i];
+
+        if (curve == LDNS_ECDSAP256SHA256) {
+            printf("Generating ECDSA Curve P-256 key... ");
+            key = hsm_generate_ecdsa_key(ctx, repository, "P-256");
+        } else if (curve == LDNS_ECDSAP384SHA384) {
+            printf("Generating ECDSA Curve P-384 key... ");
+            key = hsm_generate_ecdsa_key(ctx, repository, "P-384");
+        } else {
+            printf("Failed: Unknown ECDSA curve\n");
+            continue;
+        }
+        if (!key) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+            continue;
+        } else {
+            printf("OK\n");
+        }
+
+        printf("Extracting key identifier... ");
+        id = hsm_get_key_id(ctx, key);
+        if (!id) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+        } else {
+            printf("OK, %s\n", id);
+        }
+        free(id);
+
+        if (curve == LDNS_ECDSAP256SHA256) {
+            printf("Signing (ECDSA/SHA256) with key... ");
+        } else if (curve == LDNS_ECDSAP384SHA384) {
+            printf("Signing (ECDSA/SHA384) with key... ");
+        } else {
+            printf("Signing with key... ");
+        }
+        result = hsm_test_sign(ctx, key, curve);
+        if (result) {
+            errors++;
+            printf("Failed, error: %d\n", result);
+            hsm_print_error(ctx);
+        } else {
+            printf("OK\n");
+        }
+
+        printf("Deleting key... ");
+        result = hsm_remove_key(ctx, key);
+        if (result) {
+            errors++;
+            printf("Failed: error: %d\n", result);
+            hsm_print_error(ctx);
+        } else {
+            printf("OK\n");
+        }
+
+        free(key);
+
+        printf("\n");
+    }
+#endif
 
     if (hsm_test_random()) {
         errors++;

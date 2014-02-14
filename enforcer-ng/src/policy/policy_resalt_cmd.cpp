@@ -46,8 +46,8 @@ void
 help_policy_resalt_cmd(int sockfd)
 {
 	ods_printf(sockfd,
-			"policy resalt   generate new NSEC3 salts for policies that have\n"
-			"                salts older than the resalt duration.\n"
+			   "policy resalt          Generate new NSEC3 salts for policies that have salts\n"
+			   "                       older than the resalt duration.\n"
              );
 }
 

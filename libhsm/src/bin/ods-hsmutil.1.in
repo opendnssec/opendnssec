@@ -26,11 +26,21 @@ the user PIN, and the path to its shared library.
 .SH "COMMANDS"
 .LP
 .TP
+\fBlogin\fR
+If there is no PIN in conf.xml, then this command will ask for it and login.
+The PINs are stored in a shared memory and are accessible to the other daemons.
+.TP
+\fBlogout\fR
+Will erase the semaphore and the shared memory containing any credentials.
+Authenticated processes will still be able to interact with the HSM.
+.TP
 \fBlist\fR [\fIrepository\fR]
 List the keys that are available in all or one \fIrepository\fR
 .TP
-\fBgenerate\fR \fIrepository\fR \fBrsa\fR \fIkeysize\fR
-Generate a new RSA key with the given \fIkeysize\fR in the \fIrepository\fR
+\fBgenerate\fR \fIrepository\fR \fBrsa|dsa|gost|ecdsa\fR [\fIkeysize\fR]
+Generate a new key with the given \fIkeysize\fR in the \fIrepository\fR.
+Note that GOST has a fixed key size and that ECDSA has two supported curves,
+P-256 and P-384. In the case of ECDSA, use 256 or 384 as the \fIkeysize\fR.  
 .TP
 \fBremove\fR \fIid\fR
 Delete the key with the given \fIid\fR
@@ -38,8 +48,11 @@ Delete the key with the given \fIid\fR
 \fBpurge\fR \fIrepository\fR
 Delete all keys in one \fIrepository\fR
 .TP
-\fBdnskey\fR \fIid\fR \fIname\fR 
-Create a DNSKEY RR for the given owner \fIname\fR based on the key with this \fIid\fR
+\fBdnskey\fR \fIid\fR \fIname\fR \fItype\fR \fIalgo\fR 
+Create a DNSKEY RR for the given owner \fIname\fR based on the key with this \fIid\fR.
+The \fItype\fR will indicate if it is a KSK (257) or ZSK (256). Please use the
+numerical value. The \fIalgo\fR, a value from the IANA repository, must match the
+algorithm of the key. 
 .TP
 \fBtest\fR \fIrepository\fR
 Perform a number of tests on a \fIrepository\fR

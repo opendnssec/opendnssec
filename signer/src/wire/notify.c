@@ -34,6 +34,7 @@
 #include "config.h"
 #include "adapter/addns.h"
 #include "daemon/xfrhandler.h"
+#include "signer/domain.h"
 #include "signer/zone.h"
 #include "wire/notify.h"
 #include "wire/xfrd.h"
@@ -288,8 +289,9 @@ notify_handle_reply(notify_type* notify)
     }
     /* could check tsig */
     if (buffer_pkt_rcode(xfrhandler->packet) != LDNS_RCODE_NOERROR) {
-        ods_log_error("[%s] zone %s received bad notify rcode %d",
-            notify_str, zone->name, buffer_pkt_rcode(xfrhandler->packet));
+        const char* str = buffer_rcode2str(buffer_pkt_rcode(xfrhandler->packet));
+        ods_log_error("[%s] zone %s received bad notify rcode %s",
+            notify_str, zone->name, str?str:"UNKNOWN" );
         if (buffer_pkt_rcode(xfrhandler->packet) != LDNS_RCODE_NOTIMPL) {
             return 1;
         }
@@ -374,9 +376,10 @@ notify_tsig_sign(notify_type* notify, buffer_type* buffer)
     notify->tsig_rr->algo_name =
         ldns_rdf_clone(notify->tsig_rr->algo->wf_name);
     notify->tsig_rr->key_name = ldns_rdf_clone(notify->tsig_rr->key->dname);
-    ods_log_debug("[%s] tsig sign notify with %s %s", notify_str,
-        ldns_rdf2str(notify->tsig_rr->key_name),
-        ldns_rdf2str(notify->tsig_rr->algo_name));
+    log_dname(notify->tsig_rr->key_name, "tsig sign notify with key",
+        LOG_DEBUG);
+    log_dname(notify->tsig_rr->algo_name, "tsig sign notify with algorithm",
+        LOG_DEBUG);
     tsig_rr_prepare(notify->tsig_rr);
     tsig_rr_update(notify->tsig_rr, buffer, buffer_position(buffer));
     tsig_rr_sign(notify->tsig_rr);
@@ -431,7 +434,7 @@ notify_send(notify_type* notify)
             zone->name, notify->secondary->address);
         return;
     }
-    ods_log_debug("[%s] notify retry %u for zone %s sent to %s", notify_str,
+    ods_log_verbose("[%s] notify retry %u for zone %s sent to %s", notify_str,
         notify->retry, zone->name, notify->secondary->address);
     return;
 }
@@ -485,7 +488,7 @@ notify_handle_zone(netio_type* ATTR_UNUSED(netio),
         ods_log_assert(notify->secondary->address);
         notify->retry++;
         if (notify->retry > NOTIFY_MAX_RETRY) {
-            ods_log_debug("[%s] notify max retry for zone %s, %s unreachable",
+            ods_log_verbose("[%s] notify max retry for zone %s, %s unreachable",
                 notify_str, zone->name, notify->secondary->address);
             notify_next(notify);
         } else {

@@ -90,6 +90,9 @@ public:
     virtual void setRevoke(bool value) = 0;
     
     virtual const std::string &repository() = 0;
+    
+    virtual bool backedup() = 0;
+    virtual bool requirebackup() = 0;
 	
 private:
 	HsmKey(const HsmKey &);
@@ -230,6 +233,9 @@ public:
     
     virtual void setDsAtParent(DsAtParent value) = 0;
     virtual DsAtParent dsAtParent() = 0;
+    
+    virtual uint16_t keytag() = 0;
+    virtual void setKeytag(uint16_t value) = 0;
 };
 
 class KeyDataList {
@@ -266,6 +272,9 @@ public:
     
     /* Get access to the policy for associated with this zone */
     virtual const ::ods::kasp::Policy *policy() = 0;
+    /* TTL we must take in to account when rolling wrt signatures. 
+     * defined as max( MaxZoneTTL, Nsec3ParamTTL ) */
+    virtual int max_zone_ttl() = 0;
 
     /* Get access to the list of KeyDependency entries for this zone. */
     virtual KeyDependencyList &keyDependencyList() = 0;
@@ -295,6 +304,14 @@ public:
     virtual void setRollZskNow(bool value) = 0;
     virtual bool rollCskNow() = 0;
     virtual void setRollCskNow(bool value) = 0;
+    
+    /* Only used to show the user */
+    virtual time_t nextKskRoll() = 0;
+    virtual time_t nextZskRoll() = 0;
+    virtual time_t nextCskRoll() = 0;
+    virtual void setNextKskRoll(time_t value) = 0;
+    virtual void setNextZskRoll(time_t value) = 0;
+    virtual void setNextCskRoll(time_t value) = 0;
 };
 
 typedef time_t (*update_func_type)(EnforcerZone *zone, time_t now, HsmKeyFactory *keyfactory);

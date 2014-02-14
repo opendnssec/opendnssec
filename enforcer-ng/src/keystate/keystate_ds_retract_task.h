@@ -37,7 +37,8 @@
 
 void
 perform_keystate_ds_retract(int sockfd, engineconfig_type *config,
-                            const char *zone, const char *id, int bauto);
+                            const char *zone, const char *id, int bauto,
+                            bool force);
 
 task_type *
 keystate_ds_retract_task(engineconfig_type *config, const char *what,

@@ -44,7 +44,8 @@ static const char *module_str = "zone_list_cmd";
 
 void help_zone_list_cmd(int sockfd)
 {
-    ods_printf(sockfd,"zone list       list zones\n");
+    ods_printf(sockfd,
+               "zone list              List zones.\n");
 }
 
 int handled_zone_list_cmd(int sockfd, engine_type* engine, const char *cmd, 

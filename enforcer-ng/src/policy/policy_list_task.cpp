@@ -77,7 +77,7 @@ perform_policy_list(int sockfd, engineconfig_type *config)
 				ods_log_debug("[%s] policy list completed", module_str);
 				ods_printf(sockfd,
 						   "Database set to: %s\n"
-						   "I have no policies configured\n"
+						   "There are no policies configured\n"
 						   ,config->datastore);
 				return;
 			}

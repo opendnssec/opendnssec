@@ -201,6 +201,16 @@ const std::string &HsmKeyPB::repository()
     return _keyref->_key->repository();
 }
 
+bool HsmKeyPB::backedup()
+{
+    return _keyref->_key->backedup();
+}
+
+bool HsmKeyPB::requirebackup()
+{
+    return _keyref->_key->requirebackup();
+}
+
 //////////////////////////////
 // HsmKeyFactoryPB
 //////////////////////////////
@@ -361,6 +371,7 @@ bool HsmKeyFactoryPB::UseSharedKey(int bits, const std::string &repository,
             && k->second.algorithm() == algorithm
             && k->second.keyRole() == role
             && !k->second.usedByZone(zone)
+            && k->second.candidateForSharing()
             )
         {
             *ppKey = &k->second;

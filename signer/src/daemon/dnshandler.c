@@ -103,6 +103,25 @@ dnshandler_create(allocator_type* allocator, listener_type* interfaces)
 
 
 /**
+ * Start dns handler listener.
+ *
+ */
+ods_status
+dnshandler_listen(dnshandler_type* dnshandler)
+{
+    ods_status status = ODS_STATUS_OK;
+    ods_log_assert(dnshandler);
+    status = sock_listen(dnshandler->socklist, dnshandler->interfaces);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to start: sock_listen() "
+            "failed (%s)", dnsh_str, ods_status2str(status));
+        dnshandler->thread_id = 0;
+    }
+    return status;
+}
+
+
+/**
  * Start dns handler.
  *
  */
@@ -112,21 +131,10 @@ dnshandler_start(dnshandler_type* dnshandler)
     size_t i = 0;
     engine_type* engine = NULL;
     netio_handler_type* tcp_accept_handlers = NULL;
-    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(dnshandler);
     ods_log_assert(dnshandler->engine);
     ods_log_debug("[%s] start", dnsh_str);
-    /* setup */
-    engine = (engine_type*) dnshandler->engine;
-    status = sock_listen(dnshandler->socklist, dnshandler->interfaces);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to start: sock_listen() "
-            "failed (%s)", dnsh_str, ods_status2str(status));
-        dnshandler->thread_id = 0;
-        engine->need_to_exit = 1;
-        return;
-    }
     /* udp */
     for (i=0; i < dnshandler->interfaces->count; i++) {
         struct udp_data* data = NULL;
@@ -194,9 +202,8 @@ dnshandler_start(dnshandler_type* dnshandler)
     }
     /* service */
     while (dnshandler->need_to_exit == 0) {
-        ods_log_debug("[%s] netio dispatch", dnsh_str);
+        ods_log_deeebug("[%s] netio dispatch", dnsh_str);
         if (netio_dispatch(dnshandler->netio, NULL, NULL) == -1) {
-            ods_log_debug("[%s] netio dispatch failed", dnsh_str);
             if (errno != EINTR) {
                 ods_log_error("[%s] unable to dispatch netio: %s", dnsh_str,
                     strerror(errno));

@@ -34,7 +34,6 @@
 #include "config.h"
 #include "daemon/engine.h"
 #include "shared/log.h"
-#include "shared/util.h"
 #include "signer/zone.h"
 #include "wire/axfr.h"
 #include "wire/netio.h"
@@ -518,7 +517,7 @@ sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     tcp_data->query->addrlen = addrlen;
     tcp_handler = (netio_handler_type*) allocator_alloc(allocator,
         sizeof(netio_handler_type));
-    if (!tcp_data) {
+    if (!tcp_handler) {
         ods_log_error("[%s] unable to handle incoming tcp connection: "
             "allocator_alloc() handler failed", sock_str);
         query_cleanup(tcp_data->query);
@@ -767,7 +766,7 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
         if (data->qstate == QUERY_IXFR) {
             data->qstate = ixfr(q, data->engine);
         } else {
-            data->qstate = axfr(q, data->engine);
+            data->qstate = axfr(q, data->engine, 0);
         }
         if (data->qstate != QUERY_PROCESSED) {
             /* edns, tsig */

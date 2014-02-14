@@ -91,7 +91,9 @@ zone_create(char* name, ldns_rr_class klass)
     zone->default_ttl = 3600; /* TODO: configure --default-ttl option? */
     zone->apex = ldns_dname_new_frm_str(name);
     /* check zone->apex? */
+    zone->notify_command = NULL;
     zone->notify_ns = NULL;
+    zone->notify_args = NULL;
     zone->policy_name = NULL;
     zone->signconf_filename = NULL;
     zone->adinbound = NULL;
@@ -202,7 +204,10 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
              task->halted_when = task->when;
              task->interrupt = what;
          }
-         task->what = what;
+         /** Only reschedule if what to do is lower than what was scheduled. */
+         if (task->what > what) {
+             task->what = what;
+         }
          task->when = time_now();
          status = schedule_task(taskq, task, 0);
      } else {
@@ -229,7 +234,6 @@ zone_publish_dnskeys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
-    uint32_t maxttl = 0;
     uint16_t i = 0;
     ods_status status = ODS_STATUS_OK;
     rrset_type* rrset = NULL;
@@ -252,15 +256,6 @@ zone_publish_dnskeys(zone_type* zone)
     if (zone->signconf->dnskey_ttl) {
         ttl = (uint32_t) duration2time(zone->signconf->dnskey_ttl);
     }
-    /* MaxZoneTTL */
-/*
-    if (zone->signconf->max_zone_ttl) {
-        maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
-        if (maxttl < ttl) {
-            ttl = maxttl;
-        }
-    }
-*/
     /* publish keys */
     for (i=0; i < zone->signconf->keys->count; i++) {
         if (!zone->signconf->keys->keys[i].publish) {
@@ -347,8 +342,6 @@ zone_publish_nsec3param(zone_type* zone)
     rr_type* n3prr = NULL;
     ldns_rr* rr = NULL;
     ods_status status = ODS_STATUS_OK;
-    uint32_t ttl = 0;
-    uint32_t maxttl = 0;
 
     if (!zone || !zone->name || !zone->db || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
@@ -360,6 +353,8 @@ zone_publish_nsec3param(zone_type* zone)
     }
 
     if (!zone->signconf->nsec3params->rr) {
+        uint32_t paramttl =
+            (uint32_t) duration2time(zone->signconf->nsec3param_ttl);
         rr = ldns_rr_new_frm_type(LDNS_RR_TYPE_NSEC3PARAMS);
         if (!rr) {
             ods_log_error("[%s] unable to publish nsec3params for zone %s: "
@@ -368,15 +363,7 @@ zone_publish_nsec3param(zone_type* zone)
             return ODS_STATUS_MALLOC_ERR;
         }
         ldns_rr_set_class(rr, zone->klass);
-        ttl = zone->default_ttl;
-        /* MaxZoneTTL */
-        if (zone->signconf->max_zone_ttl) {
-            maxttl = (uint32_t) duration2time(zone->signconf->max_zone_ttl);
-            if (maxttl < ttl) {
-                ttl = maxttl;
-            }
-        }
-        ldns_rr_set_ttl(rr, ttl);
+        ldns_rr_set_ttl(rr, paramttl);
         ldns_rr_set_owner(rr, ldns_rdf_clone(zone->apex));
         ldns_nsec3_add_param_rdfs(rr,
             zone->signconf->nsec3params->algorithm, 0,
@@ -391,7 +378,6 @@ zone_publish_nsec3param(zone_type* zone)
         zone->signconf->nsec3params->rr = rr;
     }
     ods_log_assert(zone->signconf->nsec3params->rr);
-
     status = zone_add_rr(zone, zone->signconf->nsec3params->rr, 0);
     if (status == ODS_STATUS_UNCHANGED) {
         /* rr already exists, adjust pointer */
@@ -439,6 +425,47 @@ zone_rollback_nsec3param(zone_type* zone)
 
 
 /**
+ * Prepare keys for signing.
+ *
+ */
+ods_status
+zone_prepare_keys(zone_type* zone)
+{
+    hsm_ctx_t* ctx = NULL;
+    uint16_t i = 0;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!zone || !zone->db || !zone->signconf || !zone->signconf->keys) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(zone->name);
+    /* hsm access */
+    ctx = hsm_create_context();
+    if (ctx == NULL) {
+        ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+            "error creating libhsm context", zone_str, zone->name);
+        return ODS_STATUS_HSM_ERR;
+    }
+    /* prepare keys */
+    for (i=0; i < zone->signconf->keys->count; i++) {
+        /* get dnskey */
+        status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i]);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to prepare signing keys for zone %s: "
+                "error getting dnskey", zone_str, zone->name);
+            break;
+        }
+        ods_log_assert(zone->signconf->keys->keys[i].dnskey);
+        ods_log_assert(zone->signconf->keys->keys[i].hsmkey);
+        ods_log_assert(zone->signconf->keys->keys[i].params);
+    }
+    /* done */
+    hsm_destroy_context(ctx);
+    return status;
+}
+
+
+/**
  * Update serial.
  *
  */
@@ -474,11 +501,16 @@ zone_update_serial(zone_type* zone)
             "clone soa rr", zone_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    status = namedb_update_serial(zone->db, zone->signconf->soa_serial,
-        zone->db->inbserial);
+    status = namedb_update_serial(zone->db, zone->name,
+        zone->signconf->soa_serial, zone->db->inbserial);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to update zone %s soa serial: %s",
             zone_str, zone->name, ods_status2str(status));
+        if (status == ODS_STATUS_CONFLICT_ERR) {
+            ods_log_error("[%s] If this is the result of a key rollover, "
+                "please increment the serial in the unsigned zone %s",
+                zone_str, zone->name);
+        }
         ldns_rr_free(rr);
         return status;
     }
@@ -498,7 +530,7 @@ zone_update_serial(zone_type* zone)
     }
     soa = rrset_add_rr(rrset, rr);
     ods_log_assert(soa);
-    rrset_diff(rrset, 0);
+    rrset_diff(rrset, 0, 0);
     zone->db->serial_updated = 0;
     return ODS_STATUS_OK;
 }
@@ -580,9 +612,10 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         }
         return ODS_STATUS_UNCHANGED;
     } else {
-       record = rrset_add_rr(rrset, rr);
-       ods_log_assert(record);
-       ods_log_assert(record->rr);
+        record = rrset_add_rr(rrset, rr);
+        ods_log_assert(record);
+        ods_log_assert(record->rr);
+        ods_log_assert(record->is_added);
     }
     /* update stats */
     if (do_stats && zone->stats) {
@@ -625,6 +658,7 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
             "RR not found", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
+
     record->is_removed = 1;
     record->is_added = 0; /* unset is_added */
     /* update stats */
@@ -716,7 +750,7 @@ zone_cleanup(zone_type* zone)
     }
     allocator = zone->allocator;
     zone_lock = zone->zone_lock;
-    xfr_lock = zone->zone_lock;
+    xfr_lock = zone->xfr_lock;
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
@@ -726,7 +760,8 @@ zone_cleanup(zone_type* zone)
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
-    allocator_deallocate(allocator, (void*) zone->notify_ns);
+    allocator_deallocate(allocator, (void*) zone->notify_command);
+    allocator_deallocate(allocator, (void*) zone->notify_args);
     allocator_deallocate(allocator, (void*) zone->policy_name);
     allocator_deallocate(allocator, (void*) zone->signconf_filename);
     allocator_deallocate(allocator, (void*) zone->name);
@@ -765,6 +800,9 @@ zone_recover2(zone_type* zone)
     ods_log_assert(zone->db);
 
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
+    if (!filename) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
         /* start recovery */
@@ -927,26 +965,33 @@ zone_recover2(zone_type* zone)
         zone->task = (void*) task;
         free((void*)filename);
         ods_fclose(fd);
-        /* journal */
         zone->db->is_initialized = 1;
-
+        zone->db->have_serial = 1;
+        /* journal */
         filename = ods_build_path(zone->name, ".ixfr", 0, 1);
-        fd = ods_fopen(filename, NULL, "r");
+        if (filename) {
+            fd = ods_fopen(filename, NULL, "r");
+        }
         if (fd) {
             status = backup_read_ixfr(fd, zone);
             if (status != ODS_STATUS_OK) {
                 ods_log_warning("[%s] corrupted journal file zone %s, "
                     "skipping (%s)", zone_str, zone->name,
                     ods_status2str(status));
+                (void)unlink(filename);
                 ixfr_cleanup(zone->ixfr);
                 zone->ixfr = ixfr_create((void*)zone);
             }
         }
+        lock_basic_lock(&zone->ixfr->ixfr_lock);
         ixfr_purge(zone->ixfr);
+        lock_basic_unlock(&zone->ixfr->ixfr_lock);
 
         /* all ok */
         free((void*)filename);
-        ods_fclose(fd);
+        if (fd) {
+            ods_fclose(fd);
+        }
         if (zone->stats) {
             lock_basic_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
@@ -1001,8 +1046,10 @@ zone_backup2(zone_type* zone)
 
     tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
+    if (!tmpfile || !filename) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(tmpfile, NULL, "w");
-
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
         task = (task_type*) zone->task;

@@ -44,13 +44,6 @@
 extern "C" {
 #endif
 
-enum worker_enum {
-    WORKER_NONE = 0,
-    WORKER_WORKER = 1,
-    WORKER_DRUDGER
-};
-typedef enum worker_enum worker_id;
-
 struct engine_struct;
 
 typedef struct worker_struct worker_type;
@@ -60,7 +53,6 @@ struct worker_struct {
     ods_thread_type thread_id;
     struct engine_struct* engine;
     task_type* task;
-    worker_id type;
     time_t clock_in;
     size_t jobs_appointed;
     size_t jobs_completed;
@@ -80,7 +72,7 @@ struct worker_struct {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(allocator_type* allocator, int num, worker_id type);
+worker_type* worker_create(allocator_type* allocator, int num);
 
 /**
  * Start working.

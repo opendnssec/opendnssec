@@ -201,17 +201,17 @@ parse_addns_acl(allocator_type* allocator, const char* filename,
                 }
                 curNode = curNode->next;
             }
-            if (prefix) {
+            if (prefix || key) {
                 new_acl = acl_create(allocator, prefix, NULL, key, tsig);
                 if (!new_acl) {
                    ods_log_error("[%s] unable to add acl for %s %s to list "
-                       "%s: acl_create() failed", parser_str, prefix,
+                       "%s: acl_create() failed", parser_str, prefix?prefix:"",
                        key?key:"", (char*) expr);
                 } else {
                    new_acl->next = acl;
                    acl = new_acl;
                    ods_log_debug("[%s] added %s %s interface to list %s",
-                       parser_str, prefix, key?key:"", (char*) expr);
+                       parser_str, prefix?prefix:"", key?key:"", (char*) expr);
                 }
             }
             free((void*)prefix);
@@ -299,12 +299,12 @@ parse_addns_tsig_static(allocator_type* allocator, const char* filename,
                 new_tsig = tsig_create(allocator, name, algo, secret);
                 if (!new_tsig) {
                    ods_log_error("[%s] unable to add tsig %s: "
-                       "tsig_create() failed", parser_str, name?name:"");
+                       "tsig_create() failed", parser_str, name);
                 } else {
                    new_tsig->next = tsig;
                    tsig = new_tsig;
                    ods_log_debug("[%s] added %s tsig to list %s",
-                       parser_str, name?name:"", (char*) expr);
+                       parser_str, name, (char*) expr);
                 }
             }
             free((void*)name);

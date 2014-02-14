@@ -81,7 +81,10 @@ public:
     virtual void setRevoke(bool value);
     
     virtual const std::string &repository();
-	
+    
+    virtual bool backedup();
+    virtual bool requirebackup();
+
 private:
 	void operator=(const HsmKeyPB &);
 };

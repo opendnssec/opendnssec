@@ -34,7 +34,8 @@ append_path ()
 {
 	if [ -d "$1" ]; then
 		if [ -n "$PATH" ]; then
-			echo "$PATH" | $GREP -q -- "$1" 2>/dev/null && return;
+			echo "$PATH" | $GREP -q -- "$1:" 2>/dev/null && return;
+			echo "$PATH" | $GREP -q -- "$1\$" 2>/dev/null && return;
 			PATH="$PATH:$1"
 		else
 			PATH="$1"
@@ -47,7 +48,8 @@ prepend_path ()
 {
 	if [ -d "$1" ]; then
 		if [ -n "$PATH" ]; then
-			echo "$PATH" | $GREP -q -- "$1" 2>/dev/null && return;
+			echo "$PATH" | $GREP -q -- "$1:" 2>/dev/null && return;
+			echo "$PATH" | $GREP -q -- "$1\$" 2>/dev/null && return;
 			PATH="$1:$PATH"
 		else
 			PATH="$1"
@@ -60,7 +62,8 @@ append_cflags ()
 {
 	if [ -n "$1" ]; then
 		if [ -n "$CFLAGS" ]; then
-			echo "$CFLAGS" | $GREP -q -- "$1" 2>/dev/null && return;
+			echo "$CFLAGS" | $GREP -q -- "$1 " 2>/dev/null && return;
+			echo "$CFLAGS" | $GREP -q -- "$1\$" 2>/dev/null && return;
 			CFLAGS="$CFLAGS $1"
 		else
 			CFLAGS="$1"
@@ -73,7 +76,8 @@ append_cppflags ()
 {
 	if [ -n "$1" ]; then
 		if [ -n "$CPPFLAGS" ]; then
-			echo "$CPPFLAGS" | $GREP -q -- "$1" 2>/dev/null && return;
+			echo "$CPPFLAGS" | $GREP -q -- "$1 " 2>/dev/null && return;
+			echo "$CPPFLAGS" | $GREP -q -- "$1\$" 2>/dev/null && return;
 			CPPFLAGS="$CPPFLAGS $1"
 		else
 			CPPFLAGS="$1"
@@ -86,7 +90,8 @@ append_ldflags ()
 {
 	if [ -n "$1" ]; then
 		if [ -n "$LDFLAGS" ]; then
-			echo "$LDFLAGS" | $GREP -q -- "$1" 2>/dev/null && return;
+			echo "$LDFLAGS" | $GREP -q -- "$1 " 2>/dev/null && return;
+			echo "$LDFLAGS" | $GREP -q -- "$1\$" 2>/dev/null && return;
 			LDFLAGS="$LDFLAGS $1"
 		else
 			LDFLAGS="$1"
@@ -99,7 +104,8 @@ append_ld_library_path ()
 {
 	if [ -d "$1" ]; then
 		if [ -n "$LD_LIBRARY_PATH" ]; then
-			echo "$LD_LIBRARY_PATH" | $GREP -q -- "$1" 2>/dev/null && return;
+			echo "$LD_LIBRARY_PATH" | $GREP -q -- "$1:" 2>/dev/null && return;
+			echo "$LD_LIBRARY_PATH" | $GREP -q -- "$1\$" 2>/dev/null && return;
 			LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$1"
 		else
 			LD_LIBRARY_PATH="$1"
@@ -475,6 +481,10 @@ setup_install_root ()
 		if [ -d "$INSTALL_ROOT/sbin" ]; then
 			prepend_path "$INSTALL_ROOT/sbin"
 		fi
+		if [ -d "$INSTALL_ROOT/lib64" ]; then
+			append_ldflags "-L$INSTALL_ROOT/lib64"
+			append_ld_library_path "$INSTALL_ROOT/lib64"
+		fi
 		if [ -d "$INSTALL_ROOT/lib" ]; then
 			append_ldflags "-L$INSTALL_ROOT/lib"
 			append_ld_library_path "$INSTALL_ROOT/lib"
@@ -491,6 +501,17 @@ setup_install_root ()
 	return 1
 }
 
+detect_revision ()
+{
+	if [ -z "$REVISION" ]; then
+		if [ -n "$SVN_REVISION" ]; then
+			REVISION="$SVN_REVISION"
+		elif [ -n "$GIT_COMMIT" ]; then
+			REVISION="$GIT_COMMIT"
+		fi
+	fi
+}
+	
 detect_distribution ()
 {
 	DISTRIBUTION="UNKNOWN"
@@ -540,6 +561,7 @@ init ()
 	unset POST_TEST
 	
 	find_grep || exit 1
+	detect_revision
 	detect_distribution
 	find_jenkins_workspace_root || exit 1
 	setup_install_root || exit 1
@@ -556,7 +578,20 @@ init ()
 	find_date || exit 1
 	find_tail || exit 1
 	
+	# prevent CTRL-Z and CTRL-C
+    trap "" SIGINT 2>/dev/null >/dev/null
+    trap "" SIGTSTP 2>/dev/null >/dev/null
+    
 	return 0
+}
+
+finish ()
+{
+	local core
+
+	find "$WORKSPACE" "$INSTALL_ROOT" -name '*core' -type f 2>/dev/null | while read core; do
+		chmod a+r "$core" 2>/dev/null
+	done
 }
 
 check_if_built ()
@@ -566,17 +601,17 @@ check_if_built ()
 		exit 1
 	fi
 	
-	if [ -z "$SVN_REVISION" ]; then
-		echo "check_if_built: No SVN_REVISION is set, can't check if build is ok!" >&2
+	if [ -z "$REVISION" ]; then
+		echo "check_if_built: No REVISION is set, can't check if build is ok!" >&2
 		exit 1
 	fi
 	
 	local name_tag="$1"
 	
 	if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" >/dev/null`
+		local build_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
 		
-		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+		if [ "$REVISION" = "$build_rev" ]; then
 			return 0
 		fi
 	fi
@@ -611,8 +646,8 @@ set_build_ok ()
 		exit 1
 	fi
 	
-	if [ -z "$SVN_REVISION" ]; then
-		echo "set_build_ok: No SVN_REVISION is set, can't check if build is ok!" >&2
+	if [ -z "$REVISION" ]; then
+		echo "set_build_ok: No REVISION is set, can't check if build is ok!" >&2
 		exit 1
 	fi
 	
@@ -623,12 +658,12 @@ set_build_ok ()
 		exit 1
 	fi
 
-	echo "$SVN_REVISION" > "$INSTALL_ROOT/.$name_tag.build"
+	echo "$REVISION" > "$INSTALL_ROOT/.$name_tag.build"
 
 	if [ -f "$INSTALL_ROOT/.$name_tag.build" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
+		local build_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
 		
-		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+		if [ "$REVISION" = "$build_rev" ]; then
 			if ! touch "$INSTALL_ROOT/.$name_tag.ok" 2>/dev/null; then
 				echo "set_build_ok: Can't tag build ok $INSTALL_ROOT/.$name_tag.ok !" >&2
 				return 1
@@ -648,17 +683,20 @@ check_if_tested ()
 		exit 1
 	fi
 	
-	if [ -z "$SVN_REVISION" ]; then
-		echo "check_if_tested: No SVN_REVISION is set, can't check if test is ok!" >&2
+	if [ -z "$REVISION" ]; then
+		echo "check_if_tested: No REVISION is set, can't check if test is ok!" >&2
 		exit 1
 	fi
 	
 	local name_tag="$1"
 	
 	if [ -f "$INSTALL_ROOT/.$name_tag.test" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
+		local build_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
 		
-		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+		if [ "$REVISION" = "$build_rev" ]; then
+		    if [ -f junit.xml ]; then
+		        touch junit.xml
+		    fi
 			return 0
 		fi
 	fi
@@ -770,8 +808,8 @@ set_test_ok ()
 		exit 1
 	fi
 	
-	if [ -z "$SVN_REVISION" ]; then
-		echo "set_test_ok: No SVN_REVISION is set, can't check if test is ok!" >&2
+	if [ -z "$REVISION" ]; then
+		echo "set_test_ok: No REVISION is set, can't check if test is ok!" >&2
 		exit 1
 	fi
 	
@@ -782,12 +820,12 @@ set_test_ok ()
 		exit 1
 	fi
 
-	echo "$SVN_REVISION" > "$INSTALL_ROOT/.$name_tag.test"
+	echo "$REVISION" > "$INSTALL_ROOT/.$name_tag.test"
 
 	if [ -f "$INSTALL_ROOT/.$name_tag.test" ]; then
-		local build_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
+		local test_rev=`cat "$INSTALL_ROOT/.$name_tag.test" 2>/dev/null`
 		
-		if [ "$SVN_REVISION" = "$build_svn_rev" ]; then
+		if [ "$REVISION" = "$test_rev" ]; then
 			if ! touch "$INSTALL_ROOT/.$name_tag.ok.test" 2>/dev/null; then
 				echo "set_test_ok: Can't tag test ok $INSTALL_ROOT/.$name_tag.ok.test !" >&2
 				return 1
@@ -796,7 +834,7 @@ set_test_ok ()
 		fi
 	fi
 	
-	echo "set_test_ok: Was not able to tag build ok!" >&2
+	echo "set_test_ok: Was not able to tag test ok!" >&2
 	return 1
 }
 
@@ -820,14 +858,14 @@ require ()
 		exit 1
 	fi
 	
-	local require_svn_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
+	local require_rev=`cat "$INSTALL_ROOT/.$name_tag.build" 2>/dev/null`
 
-	if [ -z "$require_svn_rev" ]; then
+	if [ -z "$require_rev" ]; then
 		echo "require: There is no build version for $name_tag!" >&2
 		exit 1
 	fi
 	
-	export SVN_REVISION="$SVN_REVISION-$name_tag:$require_svn_rev"
+	export REVISION="$REVISION-$name_tag:$require_rev"
 }
 
 check_hash ()
@@ -914,6 +952,20 @@ fetch_src ()
 	echo "$path_filename"
 }
 
+log_init ()
+{
+	if [ -z "$1" ]; then
+		echo "usage: log_this <log name>" >&2
+		exit 1
+	fi
+	
+	local name="$1"
+	local log_stderr="_log.$BUILD_TAG.$name.stderr"
+	local log_stdout="_log.$BUILD_TAG.$name.stdout"
+
+	touch "$log_stderr" "$log_stdout"
+}
+
 log_this ()
 {
 	if [ -z "$1" -o -z "$2" ]; then
@@ -925,7 +977,9 @@ log_this ()
 	local log_stderr="_log.$BUILD_TAG.$name.stderr"
 	local log_stdout="_log.$BUILD_TAG.$name.stdout"
 	shift
-	
+
+	touch "$log_stderr" "$log_stdout"
+		
 	echo "log_this: logging $name for command: $*"
 	$* 2>>"$log_stderr" >>"$log_stdout"
 }
@@ -964,6 +1018,8 @@ log_this_timeout ()
 	
 	time_stop=$(( time_start + timeout ))
 
+	touch "$log_stderr" "$log_stdout"
+	
 	echo "log_this_timeout: logging $name with timeout $timeout for command: $*"
 	( $* 2>>"$log_stderr" >>"$log_stdout" ) &
 	pid="$!"
@@ -1054,8 +1110,23 @@ log_force_stop ()
 
 log_grep ()
 {
+	local output=""
+	OPTIND=1
+	while getopts ":o" opt; do
+		case "$opt" in
+			o)
+				output=1
+				;;
+			\?)
+				echo "log_grep: Invalid option: -$OPTARG" >&2
+				exit 1
+				;;
+		esac
+	done
+	shift $((OPTIND-1))
+
 	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
-		echo "usage: log_grep <log name> <stdout|stderr|both> <grep string ...>" >&2
+		echo "usage: log_grep [-o] <log name> <stdout|stderr|both> <grep string ...>" >&2
 		exit 1
 	fi
 
@@ -1092,8 +1163,12 @@ log_grep ()
 		exit 1
 	fi
 
-	echo "log_grep: greping in $name for: $grep_string"
-	$GREP -q -- "$grep_string" $log_files 2>/dev/null
+	if [ -n "$output" ]; then
+		$GREP -- "$grep_string" $log_files 2>/dev/null
+	else
+		echo "log_grep: greping in $name for: $grep_string"
+		$GREP -q -- "$grep_string" $log_files 2>/dev/null
+	fi
 }
 
 log_grep_count ()
@@ -1148,6 +1223,85 @@ log_grep_count ()
 	return 1
 }
 
+log_waitfor ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$3" ]; then
+		echo "usage: log_waitfor <log name> <stdout|stderr|both> <timeout in seconds> <grep string ...>" >&2
+		exit 1
+	fi
+
+	local name="$1"
+	local log_stderr="_log.$BUILD_TAG.$name.stderr"
+	local log_stdout="_log.$BUILD_TAG.$name.stdout"
+	local type="$2"
+	local timeout="$3"
+	local grep_string="$4"
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local log_files
+
+	case "$type" in
+		stdout)
+		if [ ! -f "$log_stdout" ]; then
+			return 1
+		fi
+		log_files="$log_stdout"
+		;;
+		stderr)
+		if [ ! -f "$log_stderr" ]; then
+			return 1
+		fi
+		log_files="$log_stderr"
+		;;
+		both)
+		if [ ! -f "$log_stdout" -a ! -f "$log_stderr" ]; then
+			return 1
+		fi
+		log_files="$log_stdout $log_stderr"
+		;;
+	esac
+	
+	if [ -z "$log_files" ]; then
+		echo "log_waitfor: Wrong type of log file specified, should be stdout, stderr or both!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "log_waitfor: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "log_waitfor: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "log_waitfor: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	echo "log_waitfor: waiting for log $name to contain (timeout $timeout): $grep_string"
+	while true; do
+		if $GREP -q -- "$grep_string" $log_files 2>/dev/null; then
+			return 0
+		fi
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "log_waitfor: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		sleep 2
+	done
+	return 1
+}
+
 log_cleanup ()
 {
 	local pid_file
@@ -1179,6 +1333,25 @@ log_remove ()
 	rm -f "$log_stderr" "$log_stdout" 2>/dev/null
 }
 
+log_save_try ()
+{
+	if [ -z "$1" ]; then
+		echo "usage: log_save_try <try>" >&2
+		exit 1
+	fi
+	
+	local try="$1"
+	local log_file
+	
+	ls "_log.$BUILD_TAG"* 2>/dev/null | while read log_file; do
+		if ! mv "$log_file" "$log_file-try-$try" 2>/dev/null; then
+			echo "log_save_try: Unable to save log file $log_file to $log_file-try-$try"
+			return 1
+		fi
+	done
+	return 0
+}
+
 run_tests ()
 {
 	if [ -z "$1" ]; then
@@ -1194,8 +1367,19 @@ run_tests ()
 	local test_path
 	local test_status
 	local test_failed=0
+	local test_start
+	local test_stop
+	local test_time
 	local pwd=`pwd`
 	local pwd2
+	local retry
+	local junit="$WORKSPACE/junit.xml"
+    local junit_head="$WORKSPACE/junit.xml.head"
+    local junit_test="$WORKSPACE/junit.xml.test"
+    local junit_foot="$WORKSPACE/junit.xml.foot"
+    local tail_pid
+    local test_name
+    local test_classname
 
 	if [ -n "$PRE_TEST" ]; then
 		if ! declare -F "$PRE_TEST" >/dev/null 2>/dev/null; then
@@ -1208,52 +1392,168 @@ run_tests ()
 			unset POST_TEST
 		fi
 	fi
+	
+    if [ -n "$INTERRUPT_TEST" ]; then
+        if ! declare -F "$INTERRUPT_TEST" >/dev/null 2>/dev/null; then
+            unset INTERRUPT_TEST
+        fi
+    fi
+    
+	if [ -n "$RETRY_TEST" ]; then
+		if [ ! "$RETRY_TEST" -gt 0 ] 2>/dev/null; then
+			RETRY_TEST=0
+		fi
+	else
+		RETRY_TEST=0
+	fi
+
+	if [ -n "$RETRY_SLEEP" ]; then
+		if [ ! "$RETRY_SLEEP" -ge 0 ] 2>/dev/null; then
+			RETRY_SLEEP=10
+		fi
+	else
+		RETRY_SLEEP=10
+	fi
 
 	if ! cd "$test_dir" 2>/dev/null; then
 		echo "run_tests: unable to change to test directory $test_dir!" >&2
 		return 1
 	fi
 		
+    rm -f "$junit" "$junit_test"
+    echo '<?xml version="1.0" encoding="UTF-8"?>' > "$junit_head"
+    echo '<testsuites>' > "$junit_head"
+
 	ls -1 2>/dev/null | $GREP '^[0-9]*' | $GREP -v '\.off$' 2>/dev/null >"_tests.$BUILD_TAG"
 	while read entry; do
-		if [ -d "$entry" -a -f "$entry/test.sh" -a ! -f "$entry/off" ]; then
-			test[test_num]="$entry"
-			test_num=$(( test_num + 1 ))
+		if [ -d "$entry" -a -f "$entry/test.sh" ]; then
+		    if [ -f "$entry/off" ]; then
+		        test_name=`echo "$entry"|sed 's%\.% %g'|awk '{print $3}'`
+		        if [ -z "$test_name" ]; then
+		            test_name='unknown'
+		        fi
+		        test_classname=`echo "$entry"|sed 's%\.% %g'|awk '{print $1 "." $2}'`
+		        if [ -z "$test_classname" ]; then
+		            test_classname='unknown.unknown'
+		        fi
+	            echo '<testsuite name="'"$entry"'" tests="1" skip="1">' >> "$junit_test"
+	            echo '<testcase name="'"$test_name"'" classname="'"$test_classname"'">' >> "$junit_test"
+                echo '<skipped message="Skipped">Test skipped, disabled with off file</skipped>' >> "$junit_test"
+	            echo '</testcase>' >> "$junit_test"
+	            echo '</testsuite>' >> "$junit_test"
+	        else
+				test[test_num]="$entry"
+				test_num=$(( test_num + 1 ))
+			fi
 		fi
 	done <"_tests.$BUILD_TAG"
 	rm -f "_tests.$BUILD_TAG" 2>/dev/null
 	
 	if [ "$test_num" -le 0 ] 2>/dev/null; then
-		echo "run_tests: no tests found!" >&2
+		echo "run_tests: no active tests found!" >&2
 		cd "$pwd"
+		# Do not generate JUnit if there is no tests or all tests skipped because
+        # Jenkins might mark it failed otherwise
+	    rm -f "$junit_head" "$junit_test" "$junit_foot"
 		return 1
 	fi
-
+	
+    if [ -n "$INTERRUPT_TEST" ]; then
+		STOP_TEST=0
+		trap "STOP_TEST=1" SIGINT
+	fi
+	
 	echo "Running tests ..."	
 	while [ "$test_iter" -lt "$test_num" ] 2>/dev/null; do
+		retry=0
 		test_path="${test[test_iter]}"
 		test_iter=$(( test_iter + 1 ))
-		echo "##### $test_iter/$test_num $test_path ... "
+		test_start=`date +%s`
+        test_name=`echo "$test_path"|sed 's%\.% %g'|awk '{print $3}'`
+        if [ -z "$test_name" ]; then
+            test_name='unknown'
+        fi
+        test_classname=`echo "$test_path"|sed 's%\.% %g'|awk '{print $1 "." $2}'`
+        if [ -z "$test_classname" ]; then
+            test_classname='unknown.unknown'
+        fi
+		echo "##### `date` $test_iter/$test_num $test_path ... "
 		pwd2=`pwd`
 		cd "$test_path" 2>/dev/null &&
-		if [ -n "$PRE_TEST" ]; then
-			$PRE_TEST "$test_path"
-		fi &&
-		syslog_trace &&
-		( source ./test.sh )
-		test_status="$?"
+		rm -f "_test.$BUILD_TAG" &&
+		touch "_test.$BUILD_TAG" &&
+		while [ "$retry" -le "$RETRY_TEST" ] 2>/dev/null; do
+			if [ "$retry" -gt 0 ] 2>/dev/null; then
+				syslog_stop &&
+				log_save_try "$retry" &&
+				syslog_save_try "$retry" ||
+				{
+					echo "##### `date` $test_iter/$test_num $test_path ... Unable to retry"
+					test_status=1
+					break
+				}
+				echo "##### `date` $test_iter/$test_num $test_path ... RETRY $retry in $RETRY_SLEEP seconds"
+				sleep "$RETRY_SLEEP"
+                rm -f "_test.$BUILD_TAG"
+                touch "_test.$BUILD_TAG"
+			fi
+			syslog_trace &&
+			if [ -n "$PRE_TEST" ]; then
+				$PRE_TEST "$test_path"
+			fi &&
+			( source ./test.sh ) >> "_test.$BUILD_TAG" 2>&1
+            test_status="$?"
+			if [ -n "$INTERRUPT_TEST" -a "$STOP_TEST" = "1" ]; then
+                cat "_test.$BUILD_TAG"
+			    echo "##### `date` $test_iter/$test_num $test_path ... INTERRUPTED"
+			    break
+			fi
+			if [ "$test_status" -eq 0 ] 2>/dev/null; then
+				break
+			fi
+			retry=$(( retry + 1 ))
+		done
+		test_stop=`date +%s`
+		test_time=0
+        if [ "$test_start" -gt 0 -a "$test_stop" -gt 0 ] 2>/dev/null; then
+            test_time=$(( test_stop - test_start ))
+        fi
 		syslog_stop
-		if [ -n "$POST_TEST" ]; then
+        if [ -n "$INTERRUPT_TEST" -a "$STOP_TEST" = "1" ]; then
+            $INTERRUPT_TEST "$test_path"
+            test_failed=1
+            break
+        elif [ -n "$POST_TEST" ]; then
 			$POST_TEST "$test_path" "$test_status"
 		fi
 		if [ "$test_status" -eq 0 ] 2>/dev/null; then
-			echo "##### $test_iter/$test_num $test_path ... OK"
+			cat "_test.$BUILD_TAG"
+			echo "##### `date` $test_iter/$test_num $test_path ... OK"
 			log_cleanup
 			syslog_cleanup
+
+            echo '<testsuite name="'"$test_path"'" tests="1" time="'"$test_time"'">' >> "$junit_test"
+    		echo '<testcase name="'"$test_name"'" classname="'"$test_classname"'" time="'"$test_time"'">' >> "$junit_test"
+            echo '</testcase>' >> "$junit_test"
+            echo '<system-out>' >> "$junit_test"
+            cat "_test.$BUILD_TAG" | sed 's%&%\&amp;%g' | sed 's%<%\&lt;%g' | sed 's%>%\&gt;%g' >> "$junit_test" 2>/dev/null
+            echo '</system-out>' >> "$junit_test"
+            echo '</testsuite>' >> "$junit_test"
 		else
 			test_failed=$(( test_failed + 1 ))
-			echo "##### $test_iter/$test_num $test_path ... FAILED!"
+            cat "_test.$BUILD_TAG"
+			echo "##### `date` $test_iter/$test_num $test_path ... FAILED!"
+			
+            echo '<testsuite name="'"$test_path"'" tests="1" time="'"$test_time"'">' >> "$junit_test"
+            echo '<testcase name="'"$test_name"'" classname="'"$test_classname"'" time="'"$test_time"'">' >> "$junit_test"
+            echo '<failure message="Failed">Test failed, exit code '"$test_status"'</failure>' >> "$junit_test"
+            echo '</testcase>' >> "$junit_test"
+            echo '<system-err>' >> "$junit_test"
+            cat "_test.$BUILD_TAG" | sed 's%&%\&amp;%g' | sed 's%<%\&lt;%g' | sed 's%>%\&gt;%g' >> "$junit_test" 2>/dev/null
+            echo '</system-err>' >> "$junit_test"
+            echo '</testsuite>' >> "$junit_test"
 		fi
+		rm -f "_test.$BUILD_TAG"
 
 		if ! cd "$pwd2" 2>/dev/null; then
 			echo "run_tests: unable to change back to test directory $pwd2 after running a test!" >&2
@@ -1261,6 +1561,14 @@ run_tests ()
 			break
 		fi
 	done
+
+    if [ -n "$INTERRUPT_TEST" ]; then
+        trap "" SIGINT
+    fi
+
+    echo '</testsuites>' > "$junit_foot"
+    cat "$junit_head" "$junit_test" "$junit_foot" > "$junit" 2>/dev/null
+    rm -f "$junit_head" "$junit_test" "$junit_foot"
 
 	if ! cd "$pwd" 2>/dev/null; then
 		echo "run_tests: unable to change back to directory $pwd after running tests!" >&2
@@ -1296,6 +1604,12 @@ run_test ()
 		fi
 	fi
 
+    if [ -n "$INTERRUPT_TEST" ]; then
+        if ! declare -F "$INTERRUPT_TEST" >/dev/null 2>/dev/null; then
+            unset INTERRUPT_TEST
+        fi
+    fi
+	
 	if [ ! -f "$test_dir/test.sh" ]; then
 		echo "run_test: no test.sh in test $test_name ($test_dir)!" >&2
 		return 1
@@ -1306,6 +1620,11 @@ run_test ()
 		return 1
 	fi
 
+    if [ -n "$INTERRUPT_TEST" ]; then
+        STOP_TEST=0
+        trap "STOP_TEST=1" SIGINT
+    fi
+
 	echo "##### Running test $test_name ..." 
 	if [ -n "$PRE_TEST" ]; then
 		$PRE_TEST "$test_name"
@@ -1314,7 +1633,12 @@ run_test ()
 	( source ./test.sh )
 	test_status="$?"
 	syslog_stop
-	if [ -n "$POST_TEST" ]; then
+    if [ -n "$INTERRUPT_TEST" -a "$STOP_TEST" = "1" ]; then
+        echo "##### `date` $test_iter/$test_num $test_path ... INTERRUPTED"
+	    $INTERRUPT_TEST "$test_path"
+	    trap "" SIGINT
+	    return 1
+    elif [ -n "$POST_TEST" ]; then
 		$POST_TEST "$test_name" "$test_status"
 	fi
 	if [ "$test_status" -eq 0 ] 2>/dev/null; then
@@ -1399,7 +1723,7 @@ syslog_stop ()
 	fi
 	
 	if kill -TERM "$_SYSLOG_TRACE_PID" 2>/dev/null; then
-		wait "$_SYSLOG_TRACE_PID"
+		wait "$_SYSLOG_TRACE_PID" 2>/dev/null
 		unset _SYSLOG_TRACE_PID
 	fi
 	
@@ -1551,6 +1875,8 @@ syslog_grep_count ()
 	local count="$1"
 	local grep_string="$2"
 	local count_found
+	# create a non-local variable so the caller can get the actually value if they want
+	syslog_grep_count_variable=0
 	
 	if [ ! -f "_syslog.$BUILD_TAG" ]; then
 		echo "syslog_grep_count: No syslog file to grep from!" >&2
@@ -1559,6 +1885,7 @@ syslog_grep_count ()
 
 	echo "syslog_grep_count: greping syslog, should find $count of: $grep_string"
 	count_found=`$GREP -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null | wc -l 2>/dev/null`
+	syslog_grep_count_variable=$count_found
 	
 	if [ "$count_found" -eq "$count" ] 2>/dev/null; then
 		return 0
@@ -1569,7 +1896,23 @@ syslog_grep_count ()
 
 syslog_cleanup ()
 {
-	rm -f "_syslog.$BUILD_TAG" 2>/dev/null
+	rm -f "_syslog.$BUILD_TAG"* 2>/dev/null
+}
+
+syslog_save_try ()
+{
+	if [ -z "$1" ]; then
+		echo "usage: syslog_save_try <try>" >&2
+		exit 1
+	fi
+	
+	local try="$1"
+
+	if ! mv "_syslog.$BUILD_TAG" "_syslog.$BUILD_TAG-try-$try" 2>/dev/null; then
+		echo "syslog_save_try: Unable to save syslog file _syslog.$BUILD_TAG to _syslog.$BUILD_TAG-try-$try"
+		return 1
+	fi
+	return 0
 }
 
 apply_parameter ()
@@ -1607,6 +1950,41 @@ apply_parameter ()
 		mv "$file.$$" "$file" 2>/dev/null ||
 		{
 			echo "apply_parameter: Unable to apply parameter $parameter_tag value $parameter_value to file $file" >&2
+			return 1
+		}
+	done
+	
+	return 0
+}
+
+sed_inplace ()
+{
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: sed_inplace <expression> <files ... >" >&2
+		exit 1
+	fi
+	
+	local expression="$1"
+	shift 1
+	local files="$*"
+	local file
+	
+	for file in $files; do
+		if [ ! -f "$file" ]; then
+			echo "sed_inplace: File $file not found" >&2
+			return 1
+		fi
+		if [ -f "$file.$$" ]; then
+			echo "sed_inplace: Temporary file $file.$$ exists but it should not" >&2
+			return 1
+		fi
+	done
+	
+	for file in $files; do
+		sed "$expression" "$file" > "$file.$$" 2>/dev/null &&
+		mv "$file.$$" "$file" 2>/dev/null ||
+		{
+			echo "sed_inplace: Unable to sed inplace file $file" >&2
 			return 1
 		}
 	done
@@ -1674,5 +2052,165 @@ try_run ()
 	if kill -0 "$pid" 2>/dev/null; then
 		kill -KILL "$pid"
 	fi	
+	return 1
+}
+
+waitfor_this ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+		echo "usage: waitfor_this <file to grep> <timeout in seconds> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local file="$1"
+	local timeout="$2"
+	local grep_string="$3"
+		
+	if [ ! -f "$file" ]; then
+		echo "waitfor_this: No file to grep from!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "waitfor_this: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "waitfor_this: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "waitfor_this: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	echo "waitfor_this: waiting for $file to contain (timeout $timeout): $grep_string"
+	while true; do
+		if $GREP -q -- "$grep_string" "$file" 2>/dev/null; then
+			return 0
+		fi
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "waitfor_this: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		sleep 2
+	done
+	
+	return 1
+}
+
+waitfor_count_this ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$4" ]; then
+		echo "usage: waitfor_count_this <file to grep> <timeout in seconds> <count> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local file="$1"
+	local timeout="$2"
+	local count="$3"
+	local grep_string="$4"
+	local count_found
+		
+	if [ ! -f "$file" ]; then
+		echo "waitfor_count_this: No file to grep from!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$time_start" -gt 0 ] 2>/dev/null; then
+		echo "waitfor_count_this: Unable to get start time!" >&2
+		exit 1
+	fi
+	
+	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
+		echo "waitfor_count_this: Wrong timeout value or 0!" >&2
+		exit 1
+	fi
+	
+	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
+		echo "waitfor_count_this: Too long timeout used, can't be over 3600 seconds!" >&2
+		exit 1
+	fi
+	
+	time_stop=$(( time_start + timeout ))
+
+	echo "waitfor_count_this: waiting for $file to contain $count counts of (timeout $timeout): $grep_string"
+	while true; do
+		count_found=`$GREP -- "$grep_string" "$file" 2>/dev/null | wc -l 2>/dev/null`
+		if [ "$count_found" -eq "$count" ] 2>/dev/null; then
+			return 0
+		fi
+
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "waitfor_count_this: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		sleep 2
+	done
+	
+	return 1
+}
+
+grep_this ()
+{
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: grep_this <file to grep> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local file="$1"
+	local grep_string="$2"
+	
+	if [ ! -f "$file" ]; then
+		echo "grep_this: No file to grep from!" >&2
+		exit 1
+	fi
+
+	echo "grep_this: greping in $file for: $grep_string"
+	$GREP -q -- "$grep_string" "$file" 2>/dev/null
+}
+
+grep_count_this ()
+{
+	if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+		echo "usage: grep_count_this <file to grep> <count> <grep string ...>" >&2
+		exit 1
+	fi
+	
+	local file="$1"
+	local count="$2"
+	local grep_string="$3"
+	local count_found
+	
+	if [ ! -f "$file" ]; then
+		echo "grep_count_this: No file to grep from!" >&2
+		exit 1
+	fi
+
+	echo "grep_count_this: greping in $file, should find $count of: $grep_string"
+	count_found=`$GREP -- "$grep_string" "$file" 2>/dev/null | wc -l 2>/dev/null`
+	
+	if [ "$count_found" -eq "$count" ] 2>/dev/null; then
+		return 0
+	fi
+	
 	return 1
 }

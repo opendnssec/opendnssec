@@ -9,6 +9,8 @@ start_test opendnssec
 
 PRE_TEST=ods_pre_test
 POST_TEST=ods_post_test
+INTERRUPT_TEST=ods_interrupt_test
+RETRY_TEST=1
 test_ok=0
 (
 	ods_find_softhsm_module &&
@@ -17,6 +19,7 @@ test_ok=0
 test_ok=1
 
 stop_test
+finish
 
 if [ "$test_ok" -eq 1 ]; then
 	set_test_ok opendnssec || exit 1

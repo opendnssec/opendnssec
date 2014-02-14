@@ -47,6 +47,7 @@
 
 #include <memory>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 static const char *module_str = "keystate_ds_submit_task";
 
@@ -57,119 +58,127 @@ submit_dnskey_by_id(int sockfd,
 					::ods::keystate::keyrole role,
 					const char *zone,
 					int algorithm,
-					uint32_t ttl)
+					uint32_t ttl,
+					bool force)
 {
-    /* Code to output the DNSKEY record  (stolen from hsmutil) */
-    hsm_ctx_t *hsm_ctx = hsm_create_context();
-    if (!hsm_ctx) {
+	struct stat stat_ret;
+	/* Code to output the DNSKEY record  (stolen from hsmutil) */
+	hsm_ctx_t *hsm_ctx = hsm_create_context();
+	if (!hsm_ctx) {
 		ods_log_error_and_printf(sockfd,
 								 module_str,
 								 "could not connect to HSM");
-        return 0;
-    }
-    hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
-    
-    if (!key) {
-        ods_log_error_and_printf(sockfd,
+		return 0;
+	}
+	hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
+	
+	if (!key) {
+		ods_log_error_and_printf(sockfd,
 								 module_str,
 								 "key %s not found in any HSM",
 								 id);
-        hsm_destroy_context(hsm_ctx);
-        return 0;
-    }
-    
-    char *dnskey_rr_str;
+		hsm_destroy_context(hsm_ctx);
+		return 0;
+	}
+	
+	char *dnskey_rr_str;
 
-    hsm_sign_params_t *sign_params = hsm_sign_params_new();
-    sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
-    sign_params->algorithm = (ldns_algorithm)algorithm;
-    sign_params->flags = LDNS_KEY_ZONE_KEY;
-    sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
-    
-    ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
-    /* Calculate the keytag for this key, we return it. */
-    uint16_t keytag = ldns_calc_keytag(dnskey_rr);
-    /* Override the TTL in the dnskey rr */
-    if (ttl)
-        ldns_rr_set_ttl(dnskey_rr, ttl);
-    
+	hsm_sign_params_t *sign_params = hsm_sign_params_new();
+	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
+	sign_params->algorithm = (ldns_algorithm)algorithm;
+	sign_params->flags = LDNS_KEY_ZONE_KEY;
+	sign_params->flags += LDNS_KEY_SEP_KEY; /*KSK=>SEP*/
+	
+	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
+	/* Calculate the keytag for this key, we return it. */
+	uint16_t keytag = ldns_calc_keytag(dnskey_rr);
+	/* Override the TTL in the dnskey rr */
+	if (ttl)
+		ldns_rr_set_ttl(dnskey_rr, ttl);
+	
 #if 0
-    ldns_rr_print(stdout, dnskey_rr);
+	ldns_rr_print(stdout, dnskey_rr);
 #endif        
-    dnskey_rr_str = ldns_rr2str(dnskey_rr);
-    
-    hsm_sign_params_free(sign_params);
-    ldns_rr_free(dnskey_rr);
-    hsm_key_free(key);
+	dnskey_rr_str = ldns_rr2str(dnskey_rr);
+	
+	hsm_sign_params_free(sign_params);
+	ldns_rr_free(dnskey_rr);
+	hsm_key_free(key);
 
-    /* Replace tab with white-space */
-    for (int i = 0; dnskey_rr_str[i]; ++i) {
-        if (dnskey_rr_str[i] == '\t') {
-            dnskey_rr_str[i] = ' ';
-        }
-    }
-    
-    /* We need to strip off trailing comments before we send
-     to any clients that might be listening */
-    for (int i = 0; dnskey_rr_str[i]; ++i) {
-        if (dnskey_rr_str[i] == ';') {
-            dnskey_rr_str[i] = '\n';
-            dnskey_rr_str[i+1] = '\0';
-            break;
-        }
-    }
+	/* Replace tab with white-space */
+	for (int i = 0; dnskey_rr_str[i]; ++i) {
+		if (dnskey_rr_str[i] == '\t') {
+			dnskey_rr_str[i] = ' ';
+		}
+	}
+	
+	/* We need to strip off trailing comments before we send
+	 to any clients that might be listening */
+	for (int i = 0; dnskey_rr_str[i]; ++i) {
+		if (dnskey_rr_str[i] == ';') {
+			dnskey_rr_str[i] = '\n';
+			dnskey_rr_str[i+1] = '\0';
+			break;
+		}
+	}
 
-    // submit the dnskey rr string to a configured
-    // delegation signer submit program.
-    if (ds_submit_command && ds_submit_command[0] != '\0') {
-        /* send records to the configured command */
-        FILE *fp = popen(ds_submit_command, "w");
-        if (fp == NULL) {
-            keytag = 0;
-            ods_log_error_and_printf(sockfd,
-									 module_str,
-									 "failed to run command: %s: %s",
-									 ds_submit_command,
-									 strerror(errno));
-        } else {
-            int bytes_written = fprintf(fp, "%s", dnskey_rr_str);
-            if (bytes_written < 0) {
-                keytag = 0;
-                ods_log_error_and_printf(sockfd,
-										 module_str,
-										 "[%s] Failed to write to %s: %s",
-										 ds_submit_command,
-										 strerror(errno));
-            } else {
-            
-                if (pclose(fp) == -1) {
-                    keytag = 0;
-                    ods_log_error_and_printf(sockfd,
-											 module_str,
-											 "failed to close %s: %s",
-											 ds_submit_command,
-											 strerror(errno));
-                } else {
-                    ods_printf(sockfd,
-							   "key %s submitted to %s\n",
-							   id,
-							   ds_submit_command);
-                }
-            }
-        }
-    } else {
-        keytag = 0;
-        ods_log_error_and_printf(sockfd,
-								 module_str,
-								 "no \"DelegationSignerSubmitCommand\" binary "
-								 "configured in conf.xml.");
-    }
-        
-    LDNS_FREE(dnskey_rr_str);
-    hsm_destroy_context(hsm_ctx);
-    // Once the new DS records are seen in DNS please issue the ds-seen 
-    // command for zone %s with the following cka_ids %s
-    return keytag;
+	// submit the dnskey rr string to a configured
+	// delegation signer submit program.
+	if (!ds_submit_command || ds_submit_command[0] == '\0') {
+		if (!force) {
+			ods_log_error_and_printf(sockfd, module_str, 
+				"No \"DelegationSignerSubmitCommand\" "
+				"configured. No state changes made. "
+				"Use --force to override.");
+			keytag = 0;
+		}
+		/* else: Do nothing, return keytag. */
+	} else if (stat(ds_submit_command, &stat_ret) != 0) {
+		/* First check that the command exists */
+		keytag = 0;
+		ods_log_error_and_printf(sockfd, module_str,
+			"Cannot stat file %s: %s", ds_submit_command,
+			strerror(errno));
+	} else if (S_ISREG(stat_ret.st_mode) && 
+			!(stat_ret.st_mode & S_IXUSR || 
+			  stat_ret.st_mode & S_IXGRP || 
+			  stat_ret.st_mode & S_IXOTH)) {
+		/* Then see if it is a regular file, then if usr, grp or 
+		 * all have execute set */
+		keytag = 0;
+		ods_log_error_and_printf(sockfd, module_str,
+			"File %s is not executable", ds_submit_command);
+	} else {
+		/* send records to the configured command */
+		FILE *fp = popen(ds_submit_command, "w");
+		if (fp == NULL) {
+			keytag = 0;
+			ods_log_error_and_printf(sockfd, module_str,
+				"failed to run command: %s: %s",ds_submit_command,
+				strerror(errno));
+		} else {
+			int bytes_written = fprintf(fp, "%s", dnskey_rr_str);
+			if (bytes_written < 0) {
+				keytag = 0;
+				ods_log_error_and_printf(sockfd,  module_str,
+					 "[%s] Failed to write to %s: %s", ds_submit_command,
+					 strerror(errno));
+			} else if (pclose(fp) == -1) {
+				keytag = 0;
+				ods_log_error_and_printf(sockfd, module_str,
+					"failed to close %s: %s", ds_submit_command,
+					strerror(errno));
+			} else {
+				ods_printf(sockfd, "key %s submitted to %s\n",
+				   id, ds_submit_command);
+			}
+		}
+	}
+	LDNS_FREE(dnskey_rr_str);
+	hsm_destroy_context(hsm_ctx);
+	// Once the new DS records are seen in DNS please issue the ds-seen 
+	// command for zone %s with the following cka_ids %s
+	return keytag;
 }
 
 static bool
@@ -197,7 +206,8 @@ submit_keys(OrmConn conn,
 			const char *zone,
 			const char *id,
 			const char *datastore,
-			const char *ds_submit_command)
+			const char *ds_submit_command,
+			bool force)
 {
 	#define LOG_AND_RETURN(errmsg)\
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
@@ -270,13 +280,12 @@ submit_keys(OrmConn conn,
 												key.role(),
 												enfzone.name().c_str(),
 												key.algorithm(),
-												dnskey_ttl);
+												dnskey_ttl, force);
 							if (keytag)
 							{
 								::ods::keystate::KeyData *kd =
 									enfzone.mutable_keys(k);
 								kd->set_ds_at_parent(::ods::keystate::submitted);
-								kd->set_keytag(keytag);
 								bKeyModified = true;
 							}
 						}
@@ -292,13 +301,12 @@ submit_keys(OrmConn conn,
 													key.role(),
 													enfzone.name().c_str(),
 													key.algorithm(),
-													dnskey_ttl);
+													dnskey_ttl, force);
 								if (keytag)
 								{
 									::ods::keystate::KeyData *kd = 
 										enfzone.mutable_keys(k);
 									kd->set_ds_at_parent(::ods::keystate::submitted);
-									kd->set_keytag(keytag);
 									bKeyModified = true;
 								}
 							}
@@ -312,13 +320,12 @@ submit_keys(OrmConn conn,
 												key.role(),
 												enfzone.name().c_str(),
 												key.algorithm(),
-												dnskey_ttl);
+												dnskey_ttl, force);
 							if (keytag)
 							{
 								::ods::keystate::KeyData *kd = 
 									enfzone.mutable_keys(k);
 								kd->set_ds_at_parent(::ods::keystate::submitted);
-								kd->set_keytag(keytag);
 								bKeyModified = true;
 							}
 						}
@@ -373,7 +380,7 @@ list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
 	
 	// List the keys with submit flags.
-    ods_printf(sockfd,
+	ods_printf(sockfd,
 			   "Database set to: %s\n"
 			   "Submit Keys:\n"
 			   "Zone:                           "
@@ -417,14 +424,15 @@ list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
 						   );
 			}
 		}
-    }
+	}
 	
 	#undef LOG_AND_RETURN
 }
 
 void 
 perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
-                           const char *zone, const char *id, int bauto)
+						   const char *zone, const char *id, int bauto,
+						   bool force)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
@@ -432,7 +440,7 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
 		// Evaluate parameters and submit keys to the parent when instructed to.
 		if (zone || id || bauto)
 			submit_keys(conn,sockfd,zone,id,config->datastore,
-						config->delegation_signer_submit_command);
+						config->delegation_signer_submit_command, force);
 		else
 			list_keys_submit(conn,sockfd,config->datastore);
 	}
@@ -441,17 +449,17 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
 static task_type * 
 keystate_ds_submit_task_perform(task_type *task)
 {
-    perform_keystate_ds_submit(-1,(engineconfig_type *)task->context,NULL,NULL,
-                               1);
-    task_cleanup(task);
-    return NULL;
+	perform_keystate_ds_submit(-1,(engineconfig_type *)task->context,NULL,NULL,
+							   0, false);
+	task_cleanup(task);
+	return NULL;
 }
 
 task_type *
 keystate_ds_submit_task(engineconfig_type *config, const char *what,
-                        const char *who)
+						const char *who)
 {
-    task_id what_id = task_register(what, "keystate_ds_submit_task_perform",
-                                    keystate_ds_submit_task_perform);
+	task_id what_id = task_register(what, "keystate_ds_submit_task_perform",
+									keystate_ds_submit_task_perform);
 	return task_create(what_id, time_now(), who, (void*)config);
 }

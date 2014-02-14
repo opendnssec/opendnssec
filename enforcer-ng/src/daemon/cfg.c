@@ -116,6 +116,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
         ecfg->manual_keygen = parse_conf_manual_keygen(cfgfile);
+        ecfg->hsm = parse_conf_repositories(cfgfile);
         /* If any verbosity has been specified at cmd line we will use that */
         if (cmdline_verbosity > 0) {
         	ecfg->verbosity = cmdline_verbosity;
@@ -262,6 +263,19 @@ engine_config_print(FILE* out, engineconfig_type* config)
     return;
 }
 
+void
+engine_config_freehsms(struct engineconfig_repository* hsm)
+{
+    struct engineconfig_repository *hsmtofree;
+	hsmtofree = hsm;
+	while (hsmtofree) {
+		hsm = hsmtofree->next;
+		if (hsmtofree->name)
+			free(hsmtofree->name);
+		free(hsmtofree);
+		hsmtofree = hsm;
+	}
+}
 
 /**
  * Clean up config.
@@ -292,6 +306,8 @@ engine_config_cleanup(engineconfig_type* config)
 	allocator_deallocate(allocator, (void*) config->db_host);
 	allocator_deallocate(allocator, (void*)	config->db_username);
 	allocator_deallocate(allocator, (void*)	config->db_password);
+	engine_config_freehsms(config->hsm);
+	config->hsm = NULL;
     allocator_deallocate(allocator, (void*) config);
     return;
 }

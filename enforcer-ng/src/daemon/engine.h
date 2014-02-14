@@ -66,7 +66,6 @@ struct engine_struct {
     allocator_type* allocator;
     engineconfig_type* config;
     worker_type** workers;
-    worker_type** drudgers;
     schedule_type* taskq;
     fifoq_type* signq;
     help_xxxx_cmd_type *help;
@@ -81,6 +80,7 @@ struct engine_struct {
     int daemonize;
     int need_to_exit;
     int need_to_reload;
+    int setup_error;
 
     sig_atomic_t signal;
     cond_basic_type signal_cond;
@@ -138,6 +138,12 @@ void engine_stop(engine_type* engine);
  *
  */
 void engine_wakeup_workers(engine_type* engine);
+/** signal all workers to stop. Blocks until all workers are joined.
+ * \param[in] engine engine */
+void engine_stop_workers(engine_type* engine);
+/** start all workers.
+ * \param[in] engine engine */
+void engine_start_workers(engine_type* engine);
 
 /**
  * Clean up engine.
@@ -145,6 +151,14 @@ void engine_wakeup_workers(engine_type* engine);
  *
  */
 void engine_cleanup(engine_type* engine);
+
+/**
+ * Set all task to immediate execution and wake up all workers.
+ * \param[in] sockfd fd to print to user
+ * \param[in] engine engine
+ *
+ */
+void flush_all_tasks(int sockfd, engine_type* engine);
 
 #ifdef __cplusplus
 }

@@ -149,7 +149,9 @@ ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
 void
 ods_thread_blocksigs(void)
 {
+#ifndef HAVE_PTHREAD
     int err = 0;
+#endif
     sigset_t sigset;
     sigfillset(&sigset);
 
@@ -158,7 +160,7 @@ ods_thread_blocksigs(void)
         ods_fatal_exit("[%s] pthread_sigmask: %s", lock_str, strerror(err));
 #else /* !HAVE_PTHREAD */
     /* have nothing, do single process signal mask */
-    if((err=sigprocmask(SIG_SETMASK, &sigset, NULL)))
+    if(sigprocmask(SIG_SETMASK, &sigset, NULL) != 0)
         ods_fatal_exit("[%s] sigprocmask: %s", lock_str, strerror(errno));
 #endif /* HAVE_PTHREAD */
 }
