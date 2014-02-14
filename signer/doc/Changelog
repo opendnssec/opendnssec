@@ -1,3 +1,7 @@
+14 February 2014: Matthijs
+- Set NSEC3 on empty non-terminals to unsigned delegations: To be compatible
+  with validators that do not implement RFC 5155 Errata 3441 [OPENDNSSEC-549].
+
 22 January 2014: Matthijs
 - OPENDNSSEC-526: Backup xfrd state.
 

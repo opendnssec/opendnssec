@@ -529,7 +529,7 @@ namedb_add_nsec3_trigger(namedb_type* db, domain_type* domain,
         dstatus = domain_is_delegpt(domain);
         /* If Opt-Out is being used, owner names of unsigned delegations
            MAY be excluded. */
-        if (dstatus == LDNS_RR_TYPE_NS || domain_ent2unsignedns(domain)) {
+        if (dstatus == LDNS_RR_TYPE_NS) {
             return;
         }
     }
@@ -619,7 +619,7 @@ namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
         dstatus = domain_is_delegpt(domain);
         /* If Opt-Out is being used, owner names of unsigned delegations
            MAY be excluded. */
-        if (dstatus == LDNS_RR_TYPE_NS || domain_ent2unsignedns(domain)) {
+        if (dstatus == LDNS_RR_TYPE_NS) {
             denial_diff((denial_type*) domain->denial);
             denial = namedb_del_denial(db, domain->denial);
             denial_cleanup(denial);
