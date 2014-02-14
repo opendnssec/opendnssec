@@ -164,8 +164,9 @@ reschedule_enforce(task_type *task, time_t t_when, const char *z_when)
     return task->when;
 }
 
-time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
-                       task_type* task)
+static time_t
+perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
+	task_type* task)
 {
 	#define LOG_AND_RESCHEDULE(errmsg)\
 		do {\
@@ -233,6 +234,7 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		zones_need_updating = true;
 	}
 	while (next) {
+		if (engine->need_to_reload || engine->need_to_exit) break;
 		OrmTransactionRW transaction(conn);
 		if (!transaction.started())
 			LOG_AND_RESCHEDULE_15SECS("transaction not started");
@@ -366,10 +368,25 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
     return reschedule_enforce(task,t_when,z_when.c_str());
 }
 
+time_t perform_enforce_lock(int sockfd, engine_type *engine,
+	int bForceUpdate, task_type* task)
+{
+	time_t returntime;
+	int locked;
+	if (lock_basic_trylock(&engine->enforce_lock)) {
+		ods_printf(sockfd, "An other enforce task is already running."
+			" No action taken.\n");
+		return 0;
+	}
+	returntime = perform_enforce(sockfd, engine, bForceUpdate, task);
+	lock_basic_unlock(&engine->enforce_lock);
+	return returntime;
+}
+
 static task_type *
 enforce_task_perform(task_type *task)
 {
-	int return_time = perform_enforce(-1, (engine_type *)task->context, 
+	int return_time = perform_enforce_lock(-1, (engine_type *)task->context, 
 		enforce_all, task);
 	enforce_all = 0; /* global */
 	if (return_time != -1) return task;

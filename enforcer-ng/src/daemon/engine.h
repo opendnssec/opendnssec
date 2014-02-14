@@ -72,6 +72,8 @@ struct engine_struct {
     handled_xxxx_cmd_type *commands;
     cmdhandler_type* cmdhandler;
     int cmdhandler_done;
+    int init_setup_done;
+    int database_ready;
 
     pid_t pid;
     uid_t uid;
@@ -80,11 +82,10 @@ struct engine_struct {
     int daemonize;
     int need_to_exit;
     int need_to_reload;
-    int setup_error;
 
-    sig_atomic_t signal;
     cond_basic_type signal_cond;
     lock_basic_type signal_lock;
+    lock_basic_type enforce_lock;
 };
 
 /**
@@ -97,12 +98,9 @@ struct engine_struct {
  * \return engine_type* engine to use or NULL when engine couldn't start
  *
  */
-engine_type *engine_start(const char* cfgfile, int cmdline_verbosity,
-    int daemonize, int info);
-
 
 /**
- * Setup the engine started by engine_start
+ * Setup the engine started by engine_create
  * \param[in] engine the engine returned from engine_start
  * \param[in] commands NULL terminated list of command functions for 
  *            the engine that the command handler can run.
@@ -110,8 +108,17 @@ engine_type *engine_start(const char* cfgfile, int cmdline_verbosity,
  *            for the command to a socket.
  */
 
-void engine_setup(engine_type *engine, handled_xxxx_cmd_type *commands,
-                  help_xxxx_cmd_type *help);
+ods_status engine_setup(engine_type* engine);
+/**
+ * Clean up engine.
+ * \param[in] engine engine
+ *
+ */
+void engine_teardown(engine_type* engine);
+
+void
+engine_init(engine_type* engine, int daemonize,
+    handled_xxxx_cmd_type *commands, help_xxxx_cmd_type *help);
 
 typedef void (*start_cb_t)(engine_type* engine);
 
@@ -121,9 +128,10 @@ typedef void (*start_cb_t)(engine_type* engine);
  * the engine is ready to stop.
  * \param[in] engine the engine returned from engine_start
  * \param[in] single_run run once
+ * \return 0 if terminated normally, 1 on unrecoverable error.
  *
  */
-void engine_runloop(engine_type* engine, start_cb_t start, int single_run);
+int engine_run(engine_type* engine, start_cb_t start, int single_run);
 
 /**
  * Stop the engine after engine_runloop returns.
@@ -145,12 +153,8 @@ void engine_stop_workers(engine_type* engine);
  * \param[in] engine engine */
 void engine_start_workers(engine_type* engine);
 
-/**
- * Clean up engine.
- * \param[in] engine engine
- *
- */
-void engine_cleanup(engine_type* engine);
+engine_type* engine_alloc(void);
+void engine_dealloc(engine_type* engine);
 
 /**
  * Set all task to immediate execution and wake up all workers.

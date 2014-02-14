@@ -32,8 +32,9 @@
 #ifndef UPDATE_REPOSITORYLIST_TASK_H_
 #define UPDATE_REPOSITORYLIST_TASK_H_
 
-#include "config.h"
-#include "daemon/engine.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** NOTICE: This task MUST NOT end up in the queue because I stops 
  * all workers and wait for them to be gone. It would cause a deadlock.
@@ -43,5 +44,9 @@
  * @param engine. Main daemon state
  * @return 1 on success, 0 on failure.*/
 int perform_update_repositorylist(int sockfd, engine_type* engine);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UPDATE_REPOSITORYLIST_TASK_H_ */

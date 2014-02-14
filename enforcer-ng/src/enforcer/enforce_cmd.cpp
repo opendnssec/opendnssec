@@ -61,21 +61,18 @@ void help_enforce_zones_cmd(int sockfd)
  * Handle the 'enforce' command.
  *
  */
-int handled_enforce_zones_cmd(int sockfd, engine_type* engine, const char *cmd,
-							  ssize_t n)
+int
+handled_enforce_zones_cmd(int sockfd, engine_type* engine,
+	const char *cmd, ssize_t n)
 {
-    const char *scmd = "enforce";
-
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
-
+	const char *scmd = "enforce";
+	cmd = ods_check_command(cmd, n, scmd);
+	if (!cmd) return 0; // not handled
     ods_log_debug("[%s] %s command", module_str, scmd);
-
 	time_t tstart = time(NULL);
 
-	perform_enforce(sockfd, engine, 1, NULL);
-	
+	perform_enforce_lock(sockfd, engine, 1, NULL);
+
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+	return 1;
 }

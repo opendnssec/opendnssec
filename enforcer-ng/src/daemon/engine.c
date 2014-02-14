@@ -72,8 +72,8 @@ static const char* engine_str = "engine";
  * Create engine.
  *
  */
-static engine_type*
-engine_create(void)
+engine_type*
+engine_alloc(void)
 {
     engine_type* engine;
     allocator_type* allocator = allocator_create(malloc, free);
@@ -86,36 +86,39 @@ engine_create(void)
         return NULL;
     }
     engine->allocator = allocator;
-    engine->config = NULL;
-    engine->workers = NULL;
-    engine->cmdhandler = NULL;
-    engine->cmdhandler_done = 0;
-    engine->pid = -1;
-    engine->uid = -1;
-    engine->gid = -1;
-    engine->daemonize = 0;
-    engine->need_to_exit = 0;
-    engine->need_to_reload = 0;
-    engine->setup_error = 0;
 
-    engine->signal = SIGNAL_INIT;
     lock_basic_init(&engine->signal_lock);
+    lock_basic_init(&engine->enforce_lock);
     lock_basic_set(&engine->signal_cond);
 
     engine->taskq = schedule_create(engine->allocator);
     if (!engine->taskq) {
-        engine_cleanup(engine);
+        allocator_deallocate(allocator, (void*) engine);
         return NULL;
     }
     engine->signq = fifoq_create(engine->allocator);
     if (!engine->signq) {
-        engine_cleanup(engine);
+        schedule_cleanup(engine->taskq);
+        allocator_deallocate(allocator, (void*) engine);
+        allocator_cleanup(allocator);
         return NULL;
     }
     return engine;
 }
 
-
+void
+engine_dealloc(engine_type* engine)
+{
+    allocator_type* allocator = engine->allocator;
+    schedule_cleanup(engine->taskq);
+    fifoq_cleanup(engine->signq);
+    lock_basic_destroy(&engine->enforce_lock);
+    lock_basic_destroy(&engine->signal_lock);
+    lock_basic_off(&engine->signal_cond);
+    allocator_deallocate(allocator, (void*) engine);
+    allocator_cleanup(allocator);
+}
+    
 /**
  * Start command handler.
  *
@@ -128,6 +131,7 @@ cmdhandler_thread_start(void* arg)
     cmdhandler_start(cmd);
     return NULL;
 }
+
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
@@ -332,16 +336,15 @@ engine_wakeup_workers(engine_type* engine)
  * Set up engine and return the setup status.
  *
  */
-static ods_status
-engine_setup_and_return_status(engine_type* engine)
+ods_status
+engine_setup(engine_type* engine)
 {
-    struct sigaction action;
     int fd;
 
     ods_log_debug("[%s] enforcer setup", engine_str);
-    if (!engine || !engine->config) {
-        return ODS_STATUS_ASSERT_ERR;
-    }
+
+    ods_log_init(engine->config->log_filename, 
+        engine->config->use_syslog, engine->config->verbosity);
 
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->allocator,
@@ -352,76 +355,68 @@ engine_setup_and_return_status(engine_type* engine)
         return ODS_STATUS_CMDHANDLER_ERR;
     }
 
-    /* privdrop */
-    engine->uid = privuid(engine->config->username);
-    engine->gid = privgid(engine->config->group);
-    /* TODO: does piddir exists? */
-    /* remove the chown stuff: piddir? */
-    ods_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
-    ods_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
-    ods_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
-    if (engine->config->log_filename && !engine->config->use_syslog) {
-        ods_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
-    }
-    if (engine->config->working_dir &&
-        chdir(engine->config->working_dir) != 0) {
-        ods_log_error("[%s] chdir to %s failed: %s", engine_str,
-            engine->config->working_dir, strerror(errno));
-        return ODS_STATUS_CHDIR_ERR;
-    }
-    if (engine_privdrop(engine) != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to drop privileges", engine_str);
-        return ODS_STATUS_PRIVDROP_ERR;
-    }
+    if (!engine->init_setup_done) {
+        /* privdrop */
+        engine->uid = privuid(engine->config->username);
+        engine->gid = privgid(engine->config->group);
+        /* TODO: does piddir exists? */
+        /* remove the chown stuff: piddir? */
+        ods_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
+        ods_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
+        ods_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
+        if (engine->config->log_filename && !engine->config->use_syslog) {
+            ods_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
+        }
+        if (engine->config->working_dir &&
+            chdir(engine->config->working_dir) != 0) {
+            ods_log_error("[%s] chdir to %s failed: %s", engine_str,
+                engine->config->working_dir, strerror(errno));
+            return ODS_STATUS_CHDIR_ERR;
+        }
+        if (engine_privdrop(engine) != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to drop privileges", engine_str);
+            return ODS_STATUS_PRIVDROP_ERR;
+        }
 
-    /* daemonize */
-    if (engine->daemonize) {
-        switch (fork()) {
-            case -1: /* error */
-                ods_log_error("[%s] unable to fork daemon: %s",
+        /* daemonize */
+        if (engine->daemonize) {
+            switch (fork()) {
+                case -1: /* error */
+                    ods_log_error("[%s] unable to fork daemon: %s",
+                        engine_str, strerror(errno));
+                    hsm_close();
+                    return ODS_STATUS_FORK_ERR;
+                case 0: /* child */
+                    if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+                        (void)dup2(fd, STDIN_FILENO);
+                        (void)dup2(fd, STDOUT_FILENO);
+                        (void)dup2(fd, STDERR_FILENO);
+                        if (fd > 2) (void)close(fd);
+                    }
+                    engine->daemonize = 0; /* don't fork again on reload */
+                    break;
+                default: /* parent */
+                    exit(0);
+            }
+            if (setsid() == -1) {
+                ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
                 hsm_close();
-                return ODS_STATUS_FORK_ERR;
-            case 0: /* child */
-                if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
-                    (void)dup2(fd, STDIN_FILENO);
-                    (void)dup2(fd, STDOUT_FILENO);
-                    (void)dup2(fd, STDERR_FILENO);
-                    if (fd > 2) (void)close(fd);
-                }
-                break;
-            default: /* parent */
-                engine_cleanup(engine);
-                engine = NULL;
-                xmlCleanupParser();
-                xmlCleanupGlobals();
-                xmlCleanupThreads();
-                exit(0);
-        }
-        if (setsid() == -1) {
-            ods_log_error("[%s] unable to setsid daemon (%s)",
-                engine_str, strerror(errno));
-            hsm_close();
-            return ODS_STATUS_SETSID_ERR;
+                return ODS_STATUS_SETSID_ERR;
+            }
         }
     }
+    engine->init_setup_done = 1;
+    
     engine->pid = getpid();
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
-
-    /* catch signals */
-    signal_set_engine(engine);
-    action.sa_handler = signal_handler;
-    sigfillset(&action.sa_mask);
-    action.sa_flags = 0;
-    sigaction(SIGHUP, &action, NULL);
-    sigaction(SIGTERM, &action, NULL);
 
     /* create workers */
     engine_create_workers(engine);
 
     /* start command handler */
-    engine_start_cmdhandler(engine);
+    engine->cmdhandler_done = 0;
 
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
@@ -434,83 +429,102 @@ engine_setup_and_return_status(engine_type* engine)
 }
 
 /**
- * Set up engine.
+ * Clean up engine.
  *
  */
 void
-engine_setup(engine_type* engine, handled_xxxx_cmd_type *commands, 
-             help_xxxx_cmd_type *help)
+engine_teardown(engine_type* engine)
 {
-    ods_status status;
+    size_t i = 0;
 
-    engine->commands = commands;
-    engine->help = help;
-    status = engine_setup_and_return_status(engine);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] setup failed: %s", engine_str,
-                      ods_status2str(status));
-        engine->setup_error = 1;
-        if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
-            /* command handler had not yet been started */
-            engine->cmdhandler_done = 1;
+    if (!engine) return;
+    if (engine->config) {
+        if (engine->config->pid_filename) {
+            (void)unlink(engine->config->pid_filename);
+        }
+        if (engine->config->clisock_filename) {
+            (void)unlink(engine->config->clisock_filename);
         }
     }
+    if (engine->workers && engine->config) {
+        for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+            worker_cleanup(engine->workers[i]);
+        }
+        allocator_deallocate(engine->allocator, (void*) engine->workers);
+    }
+    cmdhandler_cleanup(engine->cmdhandler);
+}
+
+void
+engine_init(engine_type* engine, int daemonize,
+    handled_xxxx_cmd_type *commands, help_xxxx_cmd_type *help)
+{
+    struct sigaction action;
+
+    engine->config = NULL;
+    engine->workers = NULL;
+    engine->cmdhandler = NULL;
+    engine->cmdhandler_done = 1;
+    engine->init_setup_done = 0;
+    engine->database_ready = 0;
+    engine->pid = -1;
+    engine->uid = -1;
+    engine->gid = -1;
+    engine->need_to_exit = 0;
+    engine->need_to_reload = 0;
+    engine->daemonize = daemonize;
+    engine->commands = commands;
+    engine->help = help;
+    /* catch signals */
+    signal_set_engine(engine);
+    action.sa_handler = signal_handler;
+    sigfillset(&action.sa_mask);
+    action.sa_flags = 0;
+    sigaction(SIGHUP, &action, NULL);
+    sigaction(SIGTERM, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
 }
 
 /**
  * Run engine, run!.
  *
  */
-static void
+int
 engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
-    if (!engine) {
-        return;
-    }
+    int error;
     ods_log_assert(engine);
-
+    ods_log_info("[%s] enforcer started", engine_str);
+    
+    error = hsm_open(engine->config->cfg_filename, hsm_prompt_pin);
+    if (error != HSM_OK) {
+        char* errorstr =  hsm_get_error(NULL);
+        if (errorstr != NULL) {
+            ods_log_error("[%s] %s", engine_str, errorstr);
+            free(errorstr);
+        } else {
+            ods_log_crit("[%s] error opening libhsm (errno %i)", engine_str,
+                error);
+        }
+        return 1;
+    }
+    
+    engine->need_to_reload = 0;
+    engine_start_cmdhandler(engine);
     engine_start_workers(engine);
-
-    lock_basic_lock(&engine->signal_lock);
-    /* [LOCK] signal */
-    engine->signal = SIGNAL_RUN;
-    /* [UNLOCK] signal */
-    lock_basic_unlock(&engine->signal_lock);
 
     /* call the external start callback function */
     start(engine);
     
     while (!engine->need_to_exit && !engine->need_to_reload) {
-        lock_basic_lock(&engine->signal_lock);
-        /* [LOCK] signal */
-        engine->signal = signal_capture(engine->signal);
-        switch (engine->signal) {
-            case SIGNAL_RUN:
-                ods_log_assert(1);
-                break;
-            case SIGNAL_RELOAD:
-                engine->need_to_reload = 1;
-                break;
-            case SIGNAL_SHUTDOWN:
-                engine->need_to_exit = 1;
-                break;
-            default:
-                ods_log_warning("[%s] invalid signal captured: %d, "
-                    "keep running", engine_str, signal);
-                engine->signal = SIGNAL_RUN;
-                break;
-        }
-        /* [UNLOCK] signal */
-        lock_basic_unlock(&engine->signal_lock);
-
         if (single_run) {
             engine->need_to_exit = 1;
             /* FIXME: all tasks need to terminate, then set need_to_exit to 1 */
         }
 
         lock_basic_lock(&engine->signal_lock);
-        /* [LOCK] signal */
-        if (engine->signal == SIGNAL_RUN && !single_run) {
+        /* [LOCK] signal, recheck reload and lock */
+        if (!engine->need_to_exit && !engine->need_to_reload && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
            lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 0);
         }
@@ -519,180 +533,9 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     }
     ods_log_debug("[%s] enforcer halted", engine_str);
     engine_stop_workers(engine);
-    return;
-}
-
-
-/**
- * Engine runloop
- *
- */
-
-void 
-engine_runloop(engine_type* engine, start_cb_t start, int single_run)
-{
-    /* run */
-    while (engine->need_to_exit == 0) {
-        /* set up hsm */
-        /* TODO: On a reload the hsm configuration could have been 
-         * changed. Currently if we are unable to reopen the hsms we
-         * have no choice but bail out. We must change this and try
-         * to reopen the old repository list. hint: use hsm_open2 */
-        int result = hsm_open(engine->config->cfg_filename, hsm_prompt_pin);
-        if (result != HSM_OK) {
-            char* error =  hsm_get_error(NULL);
-            if (error != NULL) {
-                ods_log_error("[%s] %s", engine_str, error);
-                free(error);
-            } else {
-                ods_log_crit("[%s] error opening libhsm (errno %i)", engine_str,
-                    result);
-            }
-            engine->setup_error = 1;
-            break;
-        }
-    
-        if (engine->need_to_reload) {
-            ods_log_info("[%s] enforcer reloading", engine_str);
-            engine->need_to_reload = 0;
-        } else {
-            ods_log_info("[%s] enforcer started", engine_str);
-            /* try to recover from backups */
-            /* not for now:
-             engine_recover_from_backups(engine);
-             */
-        }
-        
-        engine_run(engine, start, single_run);
-        hsm_close();
-    }
-    
-    /* shutdown */
-    ods_log_info("[%s] enforcer shutdown", engine_str);
-    if (engine->cmdhandler != NULL) {
-        engine_stop_cmdhandler(engine);
-    }
-}
-
-
-/**
- * Start engine.
- *
- */
-engine_type *
-engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
-    int info)
-{
-    engine_type* engine = NULL;
-    int use_syslog = 0;
-    ods_status status = ODS_STATUS_OK;
-
-    ods_log_assert(cfgfile);
-    ods_log_init(NULL, use_syslog, cmdline_verbosity);
-    ods_log_verbose("[%s] starting enforcer", engine_str);
-
-    /* initialize */
-    xmlInitGlobals();
-    xmlInitParser();
-    xmlInitThreads();
-    engine = engine_create();
-    if (!engine) {
-        ods_fatal_exit("[%s] create failed", engine_str);
-        return NULL;
-    }
-    engine->daemonize = daemonize;
-
-    /* config */
-    engine->config = engine_config(engine->allocator, cfgfile,
-        cmdline_verbosity);
-    status = engine_config_check(engine->config);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] cfgfile %s has errors", engine_str, cfgfile);
-        engine_stop(engine);
-        return NULL;
-    }
-    if (info) {
-        engine_config_print(stdout, engine->config); /* for debugging */
-        engine_stop(engine);
-        return NULL;
-    }
-
-    /* open log */
-    ods_log_init(engine->config->log_filename, engine->config->use_syslog,
-       engine->config->verbosity);
-
-    /* setup */
-    tzset(); /* for portability */
-
-    /* initialize protobuf and protobuf-orm */
-    ods_protobuf_initialize();
-    ods_orm_initialize();
-    
-    return engine;
-}
-
-
-/**
- * Stop engine.
- *
- */
-void
-engine_stop(engine_type *engine)
-{
-    ods_orm_shutdown();
-    ods_protobuf_shutdown();
-
-    if (engine && engine->config) {
-        if (engine->config->pid_filename) {
-            (void)unlink(engine->config->pid_filename);
-        }
-        if (engine->config->clisock_filename) {
-            (void)unlink(engine->config->clisock_filename);
-        }
-    }
-    engine_cleanup(engine);
-    engine = NULL;
-    ods_log_close();
-    xmlCleanupParser();
-    xmlCleanupGlobals();
-    xmlCleanupThreads();
-}
-
-/**
- * Clean up engine.
- *
- */
-void
-engine_cleanup(engine_type* engine)
-{
-    size_t i = 0;
-    allocator_type* allocator;
-    cond_basic_type signal_cond;
-    lock_basic_type signal_lock;
-
-    if (!engine) {
-        return;
-    }
-    allocator = engine->allocator;
-    signal_cond = engine->signal_cond;
-    signal_lock = engine->signal_lock;
-
-    if (engine->workers && engine->config) {
-        for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-            worker_cleanup(engine->workers[i]);
-        }
-        allocator_deallocate(allocator, (void*) engine->workers);
-    }
-    schedule_cleanup(engine->taskq);
-    fifoq_cleanup(engine->signq);
-    cmdhandler_cleanup(engine->cmdhandler);
-    engine_config_cleanup(engine->config);
-    allocator_deallocate(allocator, (void*) engine);
-
-    lock_basic_destroy(&signal_lock);
-    lock_basic_off(&signal_cond);
-    allocator_cleanup(allocator);
-    return;
+    engine_stop_cmdhandler(engine);
+    (void) hsm_close();
+    return 0;
 }
 
 void

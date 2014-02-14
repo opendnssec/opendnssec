@@ -39,8 +39,6 @@
 
 #include <signal.h>
 
-static int signal_hup_recvd = 0;
-static int signal_term_recvd = 0;
 static engine_type* signal_engine = NULL;
 static const char* signal_str = "signal";
 
@@ -66,8 +64,8 @@ signal_handler(sig_atomic_t sig)
     switch (sig) {
         case SIGHUP:
             ods_log_debug("[%s] SIGHUP received", signal_str);
-            signal_hup_recvd++;
             if (signal_engine) {
+                signal_engine->need_to_reload = 1;
                 lock_basic_lock(&signal_engine->signal_lock);
                 /* [LOCK] signal */
                 lock_basic_alarm(&signal_engine->signal_cond);
@@ -75,10 +73,11 @@ signal_handler(sig_atomic_t sig)
                 lock_basic_unlock(&signal_engine->signal_lock);
             }
             break;
+        case SIGINT:
         case SIGTERM:
             ods_log_debug("[%s] SIGTERM received", signal_str);
-            signal_term_recvd++;
             if (signal_engine) {
+                signal_engine->need_to_exit = 1;
                 lock_basic_lock(&signal_engine->signal_lock);
                 /* [LOCK] signal */
                 lock_basic_alarm(&signal_engine->signal_cond);
@@ -87,25 +86,9 @@ signal_handler(sig_atomic_t sig)
             }
             break;
         default:
+            ods_log_debug("[%s] Spurious signal %d received", 
+                signal_str, sig);
             break;
     }
     return;
-}
-
-
-/**
- * Capture signal.
- *
- */
-sig_atomic_t
-signal_capture(sig_atomic_t dflsig)
-{
-    if (signal_term_recvd) {
-        signal_term_recvd = 0;
-        return SIGNAL_SHUTDOWN;
-    } else if (signal_hup_recvd) {
-        signal_hup_recvd = 0;
-        return SIGNAL_RELOAD;
-    }
-    return dflsig;
 }

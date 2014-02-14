@@ -35,6 +35,14 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void perform_update_hsmkeys(int sockfd, engineconfig_type *config, int bManual);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

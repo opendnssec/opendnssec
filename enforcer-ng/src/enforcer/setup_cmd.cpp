@@ -35,6 +35,7 @@
 
 #include "enforcer/setup_cmd.h"
 #include "enforcer/autostart_cmd.h"
+#include "enforcer/update_repositorylist_task.h"
 
 #include "shared/duration.h"
 #include "shared/file.h"
@@ -133,52 +134,51 @@ drop_database_tables(int sockfd, OrmConn conn, engineconfig_type* config)
 int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 					  ssize_t n)
 {
-    const char *scmd = "setup";
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
+	const char *scmd = "setup";
+	if (!ods_check_command(cmd, n, scmd)) return 0; // not handled
+	ods_log_debug("[%s] %s command", module_str, scmd);
+	time_t tstart = time(NULL);
 
-    ods_log_debug("[%s] %s command", module_str, scmd);
+	lock_basic_lock(&engine->signal_lock);
+		/** we have got the lock, daemon thread is not going anywhere 
+		 * we can safely stop all workers */
+		engine->need_to_reload = 1;
+		engine_stop_workers(engine);
 
-	// check that we are using a compatible protobuf version.
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	
-    time_t tstart = time(NULL);
-	
-	{
 		// Drop the database tables using a dedicated database connection.
 		OrmConnRef conn;
-		if (!ods_orm_connect(sockfd, engine->config, conn))
+		if (!ods_orm_connect(sockfd, engine->config, conn)
+			|| !drop_database_tables(sockfd,conn,engine->config)
+			|| !ods_orm_connect(sockfd, engine->config, conn)
+			|| !create_database_tables(sockfd, conn))
+		{
+			engine->need_to_reload = 0;
+			engine_start_workers(engine);
+			lock_basic_unlock(&engine->signal_lock);
+			lock_basic_alarm(&engine->signal_cond);
 			return 1; // errors have already been reported.
-		
-		if (!drop_database_tables(sockfd,conn,engine->config))
-			return 1; // errors have already been reported.
-	}
+		}
 
-	{ 
-		// Create the database tables using a dedicated database connection.
-		OrmConnRef conn;
-		if (!ods_orm_connect(sockfd, engine->config, conn))
-			return 1; // errors have already been reported.
-		
-		if (!create_database_tables(sockfd, conn))
-			return 1; // errors have already been reported.
-	}
+		/* we might have skipped this when starting w/o a db */
+		autostart(engine); 
 
-	autostart(engine);
-	// TODO: Add this function once implemented
-	//perform_update_conf(engine->config);
-	/* This needs to be revised, DONT continue when kasp or keyzones
-	 * fail. Maybe also call update repositorylist (and restart)
-	 * Also, what does "autostart(engine);" do here? figure it out! */
-	perform_update_kasp(sockfd, engine->config);
-	perform_update_keyzones(sockfd, engine->config);
-	perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
-	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
-					   engine->config->automatic_keygen_duration);
+		/* TODO: Add this function once implemented
+		 * perform_update_conf(engine->config); */
+		int error = !perform_update_kasp(sockfd, engine->config);
+		if (!error)
+			error |= !perform_update_keyzones(sockfd, engine->config);
+		if (!error) {
+			perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
+			perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+							   engine->config->automatic_keygen_duration);
+		}
 
-    flush_all_tasks(sockfd, engine);
+		engine->need_to_reload = 0;
+		engine_start_workers(engine);
+		flush_all_tasks(sockfd, engine);
+	lock_basic_unlock(&engine->signal_lock);
+	lock_basic_alarm(&engine->signal_cond);
 
-    ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+	ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
+	return 1;
 }

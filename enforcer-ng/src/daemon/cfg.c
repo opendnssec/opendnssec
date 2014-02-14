@@ -52,7 +52,7 @@ static const char* conf_str = "config";
  */
 engineconfig_type*
 engine_config(allocator_type* allocator, const char* cfgfile,
-    int cmdline_verbosity)
+    int cmdline_verbosity, engineconfig_type* oldcfg)
 {
     engineconfig_type* ecfg;
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
@@ -89,8 +89,35 @@ engine_config(allocator_type* allocator, const char* cfgfile,
     /* open cfgfile */
     cfgfd = ods_fopen(cfgfile, NULL, "r");
     if (cfgfd) {
+        if (oldcfg) {
+            /* This is a reload */
+            ecfg->cfg_filename = allocator_strdup(allocator, oldcfg->cfg_filename);
+            ecfg->clisock_filename = allocator_strdup(allocator, oldcfg->clisock_filename);
+            ecfg->working_dir = allocator_strdup(allocator, oldcfg->working_dir);
+            ecfg->username = allocator_strdup(allocator, oldcfg->username);
+            ecfg->group = allocator_strdup(allocator, oldcfg->group);
+            ecfg->chroot = allocator_strdup(allocator, oldcfg->chroot);
+            ecfg->pid_filename = allocator_strdup(allocator, oldcfg->pid_filename);
+            ecfg->datastore = allocator_strdup(allocator, oldcfg->datastore);
+            ecfg->db_host = allocator_strdup(allocator, oldcfg->db_host);
+            ecfg->db_username = allocator_strdup(allocator, oldcfg->db_username);
+            ecfg->db_password = allocator_strdup(allocator, oldcfg->db_password);
+            ecfg->db_port = oldcfg->db_port;
+        } else {
+            ecfg->cfg_filename = allocator_strdup(allocator, cfgfile);
+            ecfg->clisock_filename = parse_conf_clisock_filename(allocator, cfgfile);
+            ecfg->working_dir = parse_conf_working_dir(allocator, cfgfile);
+            ecfg->username = parse_conf_username(allocator, cfgfile);
+            ecfg->group = parse_conf_group(allocator, cfgfile);
+            ecfg->chroot = parse_conf_chroot(allocator, cfgfile);
+            ecfg->pid_filename = parse_conf_pid_filename(allocator, cfgfile);
+            ecfg->datastore = parse_conf_datastore(allocator, cfgfile);
+            ecfg->db_host = parse_conf_db_host(allocator, cfgfile);
+            ecfg->db_username = parse_conf_db_username(allocator, cfgfile);
+            ecfg->db_password = parse_conf_db_password(allocator, cfgfile);
+            ecfg->db_port = parse_conf_db_port(cfgfile);
+        }
         /* get values */
-        ecfg->cfg_filename = allocator_strdup(allocator, cfgfile);
         ecfg->policy_filename = parse_conf_policy_filename(allocator,
             cfgfile);
         ecfg->zonelist_filename = parse_conf_zonelist_filename(allocator,
@@ -98,35 +125,19 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         ecfg->zonefetch_filename = parse_conf_zonefetch_filename(allocator,
             cfgfile);
         ecfg->log_filename = parse_conf_log_filename(allocator, cfgfile);
-        ecfg->pid_filename = parse_conf_pid_filename(allocator, cfgfile);
         ecfg->delegation_signer_submit_command = 
             parse_conf_delegation_signer_submit_command(allocator, cfgfile);
         ecfg->delegation_signer_retract_command = 
             parse_conf_delegation_signer_retract_command(allocator, cfgfile);
-        ecfg->clisock_filename = parse_conf_clisock_filename(allocator,
-            cfgfile);
-        ecfg->working_dir = parse_conf_working_dir(allocator, cfgfile);
-        ecfg->username = parse_conf_username(allocator, cfgfile);
-        ecfg->group = parse_conf_group(allocator, cfgfile);
-        ecfg->chroot = parse_conf_chroot(allocator, cfgfile);
-        ecfg->datastore = parse_conf_datastore(allocator, cfgfile);
-		ecfg->db_host = parse_conf_db_host(allocator,cfgfile);
-		ecfg->db_username = parse_conf_db_username(allocator,cfgfile);
-		ecfg->db_password = parse_conf_db_password(allocator,cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
         ecfg->manual_keygen = parse_conf_manual_keygen(cfgfile);
         ecfg->hsm = parse_conf_repositories(cfgfile);
         /* If any verbosity has been specified at cmd line we will use that */
-        if (cmdline_verbosity > 0) {
-        	ecfg->verbosity = cmdline_verbosity;
-        }
-        else {
-        	ecfg->verbosity = parse_conf_verbosity(cfgfile);
-        }
-		ecfg->db_port = parse_conf_db_port(cfgfile);
-		ecfg->automatic_keygen_duration =
-			parse_conf_automatic_keygen_period(cfgfile);
+        ecfg->verbosity = cmdline_verbosity > 0 ?
+            cmdline_verbosity : parse_conf_verbosity(cfgfile);
+        ecfg->automatic_keygen_duration =
+            parse_conf_automatic_keygen_period(cfgfile);
 
         /* done */
         ods_fclose(cfgfd);

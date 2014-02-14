@@ -420,6 +420,9 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
                "                       the earliest scheduled task.\n"
 #endif
                "flush                  Execute all scheduled tasks immediately.\n"
+        );
+    ods_writen(sockfd, buf, strlen(buf));
+    (void) snprintf(buf, ODS_SE_MAXLINE,
                "running                Returns acknowledgment that the engine is running.\n"
                "reload                 Reload the engine.\n"
                "stop                   Stop the engine and terminate the process.\n"
@@ -463,6 +466,9 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_
                "                       the earliest scheduled task.\n"
 #endif
                "flush                  Execute all scheduled tasks immediately.\n"
+        );
+    ods_writen(sockfd, buf, strlen(buf));
+    (void) snprintf(buf, ODS_SE_MAXLINE,
                "running                Returns acknowledgment that the engine is running.\n"
                "reload                 Reload the engine.\n"
                "stop                   Stop the engine and terminate the process.\n"
@@ -743,7 +749,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     }
 
     ods_log_debug("[%s] done", module_str);
-    engine = cmdhandler->engine;
+    engine = cmdhandler->engine;/*todo check & remove me*/
     engine->cmdhandler_done = 1;
     return;
 }

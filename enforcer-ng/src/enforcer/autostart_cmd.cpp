@@ -42,9 +42,8 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-
-#include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
+#include "protobuf-orm/pb-orm.h"
 #include "policy/kasp.pb.h"
 
 static const char *module_str = "autostart_cmd";
@@ -56,6 +55,8 @@ schedule_task(engine_type* engine, task_type *task, const char * what)
     if (!task) {
         ods_log_crit("[%s] failed to create %s task", module_str, what);
     } else {
+        task->when += 2; /* quick fix race condition at startup
+            Allow orm/database to come up fully and prevent backoff */
         char buf[ODS_SE_MAXLINE];
         ods_status status = lock_and_schedule_task(engine->taskq, task, 0);
         if (status != ODS_STATUS_OK) {
@@ -66,31 +67,32 @@ schedule_task(engine_type* engine, task_type *task, const char * what)
         }
     }
 }
- 
-void
-autostart(engine_type* engine)
-{
-    ods_log_debug("[%s] autostart", module_str);
 
+int
+database_ready(engineconfig_type* config)
+{
 	/* Try to select from policies. This is only used to probe if the
 	 * database is already setup. If not, we don't schedule tasks which
-	 * would otherwise pollute the logs repeatedly. 
+	 * would otherwise pollute the logs repeatedly.
 	 * TODO: I'd like to see a better probe which does not log an error */
 	OrmConnRef conn;
 	OrmResultRef rows;
 	::ods::kasp::Policy policy;
-	if (!ods_orm_connect(-1, engine->config, conn)) {
-		ods_log_crit("Could not connect to database.");
-		return;
-	}
-	if (!OrmMessageEnum(conn, policy.descriptor(), rows)) {
-		ods_log_info("[%s] Database is not set up yet."
-			" Not scheduling tasks.", module_str);
-		ods_log_info("[%s] Run the 'ods-enforcer setup'"
-		    " command to create the database.", module_str);	
-		return;
+	if (!ods_orm_connect(-1, config, conn) ||
+		!OrmMessageEnum(conn, policy.descriptor(), rows))
+	{
+		return 0;
 	}
 	rows.release();
+	return 1;
+}
+
+void
+autostart(engine_type* engine)
+{
+    ods_log_debug("[%s] autostart", module_str);
+	
+	if (!engine->database_ready) return;
     
     schedule_task(engine, policy_resalt_task(engine->config), "resalt");
     schedule_task(engine, enforce_task(engine, 1), "enforce");
