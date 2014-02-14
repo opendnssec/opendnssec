@@ -2,6 +2,10 @@ $Id$
 
 OpenDNSSEC 1.4.4rc1
 
+* OPENDNSSEC-549: Signer Engine: Put NSEC3 records on empty non-terminals
+  derived from unsigned delegations (be compatible with servers that are
+  incompatible with RFC 5155 errata 3441).
+
 Bugfixes:
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
