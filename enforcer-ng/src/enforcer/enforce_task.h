@@ -38,8 +38,8 @@
 time_t perform_enforce(int sockfd, engine_type *engine, int bForce,
                        task_type *task);
 
-task_type *enforce_task(engine_type *engine);
+task_type *enforce_task(engine_type *engine, bool all);
 
-int flush_enforce_task(engine_type *engine);
+int flush_enforce_task(engine_type *engine, bool enforce_all);
 
 #endif
