@@ -60,6 +60,13 @@
 
 static const char *module_str = "enforce_task";
 
+/* hack for perform_enforce. The task is somewhat persistent, it is
+ * rescheduled but not recreated, thus needs some additional state.
+ * this SHOULD be in task context. Ideally a struct wrapping this 
+ * bool and engine. But the task does not have a context destructor 
+ * atm. This hack prevents a leak. */
+bool enforce_all = 1;
+
 static void 
 schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
 {
@@ -362,31 +369,32 @@ time_t perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 static task_type *
 enforce_task_perform(task_type *task)
 {
-    if (perform_enforce(-1, (engine_type *)task->context, task->flush, task) != -1)
-        return task;
-
-    task_cleanup(task);
-    return NULL;
+	int return_time = perform_enforce(-1, (engine_type *)task->context, 
+		enforce_all, task);
+	enforce_all = 0; /* global */
+	if (return_time != -1) return task;
+	task_cleanup(task);
+	return NULL;
 }
 
 task_type *
-enforce_task(engine_type *engine)
+enforce_task(engine_type *engine, bool all)
 {
-    const char *what = "enforce";
-    const char *who = "next zone";
-    task_id what_id = task_register(what, 
-                                 "enforce_task_perform",
-                                 enforce_task_perform);
-    return task_create(what_id, time_now(), who, (void*)engine);
+	const char *what = "enforce";
+	const char *who = "next zone";
+	enforce_all = all;
+	task_id what_id = task_register(what, 
+		"enforce_task_perform", enforce_task_perform);
+	return task_create(what_id, time_now(), who, (void*)engine);
 }
 
 
 int
-flush_enforce_task(engine_type *engine)
+flush_enforce_task(engine_type *engine, bool enforce_all)
 {
     /* flush (force to run) the enforcer task when it is waiting in the 
      task list. */
-    task_type *enf = enforce_task(engine);
+    task_type *enf = enforce_task(engine, enforce_all);
     lock_basic_lock(&engine->taskq->schedule_lock);
     /* [LOCK] schedule */
     task_type *running_enforcer = schedule_lookup_task(engine->taskq, enf);

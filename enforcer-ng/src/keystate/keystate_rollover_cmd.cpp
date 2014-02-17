@@ -134,7 +134,7 @@ int handled_keystate_rollover_cmd(int sockfd, engine_type* engine, const char *c
 
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 
-    flush_enforce_task(engine);
+    flush_enforce_task(engine, 0);
 
     return 1;
 }

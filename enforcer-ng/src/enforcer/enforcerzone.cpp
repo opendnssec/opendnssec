@@ -443,7 +443,6 @@ void EnforcerZonePB::setNextChange(time_t value)
     _zone->set_next_change(value);
 }
 
-
 time_t EnforcerZonePB::ttlEnddateDs()
 {
     return _zone->has_ttl_end_ds() ? _zone->ttl_end_ds() : 0;

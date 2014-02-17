@@ -88,6 +88,6 @@ handled_zonelist_import_cmd(int sockfd, engine_type* engine, const char *cmd,
 	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 		engine->config->automatic_keygen_duration);
 
-    flush_enforce_task(engine);
+    flush_enforce_task(engine, 1);
     return 1;
 }

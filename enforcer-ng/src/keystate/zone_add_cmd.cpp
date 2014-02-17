@@ -234,6 +234,6 @@ handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 
-    flush_enforce_task(engine);
+    flush_enforce_task(engine, 0);
     return 1;
 }

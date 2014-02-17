@@ -158,6 +158,6 @@ int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
 
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 
-    flush_enforce_task(engine);
+    flush_enforce_task(engine, 0);
     return 1;
 }
