@@ -93,5 +93,5 @@ autostart(engine_type* engine)
 	rows.release();
     
     schedule_task(engine, policy_resalt_task(engine->config), "resalt");
-    schedule_task(engine, enforce_task(engine), "enforce");
+    schedule_task(engine, enforce_task(engine, 1), "enforce");
 }

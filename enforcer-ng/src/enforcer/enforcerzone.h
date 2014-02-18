@@ -188,7 +188,7 @@ public:
     virtual void setSignerConfNeedsWriting(bool value);
     
     /* When the key states in this zone are expected to change state. */
-    void setNextChange(time_t value);
+    virtual void setNextChange(time_t value);
 
     /* Moment at which current TTL becomes effective */
     virtual time_t ttlEnddateDs();
