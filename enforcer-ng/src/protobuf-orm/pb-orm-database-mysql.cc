@@ -644,25 +644,25 @@ namespace DB {
 			return false;
 		}
 
-		if (mysql_options(db, MYSQL_OPT_CONNECT_TIMEOUT, &timeout)) {
+		if (mysql_options(db, MYSQL_OPT_CONNECT_TIMEOUT, (char*)&timeout)) {
 			OrmLogError("Unable to set MySQL connect timeout: %s", mysql_error(db));
 			close();
 			return false;
 		}
 
-		if (mysql_options(db, MYSQL_OPT_READ_TIMEOUT, &timeout)) {
+		if (mysql_options(db, MYSQL_OPT_READ_TIMEOUT, (char*)&timeout)) {
 			OrmLogError("Unable to set MySQL read timeout: %s", mysql_error(db));
 			close();
 			return false;
 		}
 		
-		if (mysql_options(db, MYSQL_OPT_WRITE_TIMEOUT, &timeout)) {
+		if (mysql_options(db, MYSQL_OPT_WRITE_TIMEOUT, (char*)&timeout)) {
 			OrmLogError("Unable to set MySQL write timeout: %s", mysql_error(db));
 			close();
 			return false;
 		}
 
-		if (mysql_options(db, MYSQL_OPT_RECONNECT, &reconnect)) {
+		if (mysql_options(db, MYSQL_OPT_RECONNECT, (char*)&reconnect)) {
 			OrmLogError("Unable to enable MySQL reconnect: %s", mysql_error(db));
 			close();
 			return false;
