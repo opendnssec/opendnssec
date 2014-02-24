@@ -116,7 +116,7 @@ engine_dealloc(engine_type* engine)
     allocator_deallocate(allocator, (void*) engine);
     allocator_cleanup(allocator);
 }
-    
+
 /**
  * Start command handler.
  *
