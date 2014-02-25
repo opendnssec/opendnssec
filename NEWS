@@ -6,7 +6,9 @@ Bugfixes:
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
 * OPENDNSSEC-515: Signer Engine: Don't replace tabs in RRs with whitespace.
+* OPENDNSSEC-537: libhsm: Possible memory corruption in hsm_get_slot_id.
 * SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512]
+
 
 OpenDNSSEC 1.4.3 - 2013-12-04
 
