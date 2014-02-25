@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 source `dirname "$0"`/lib.sh && init || exit 1
 
-require ldns
 require softhsm
 
 check_if_built opendnssec && exit 0
