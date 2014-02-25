@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+exit 0
+
 source `dirname "$0"`/lib.sh && init || exit 1
 
 LDNS="ldns-1.6.17"
