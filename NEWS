@@ -13,6 +13,8 @@ Bugfixes:
 * OPENDNSSEC-520: Signer Engine: Don't replace tabs in RRs with whitespace.
 * OPENDNSSEC-537: libhsm: Possible memory corruption in hsm_get_slot_id.
 * SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512].
+* OPENDNSSEC-544: Signer Engine: Fix assertion error that happens on an IXFR
+  request with EDNS.
 * Signer Engine: Fix a race condition when stopping daemon.
 
 
