@@ -732,9 +732,20 @@ ods_softhsm_init_token ()
 		so_pin=1234
 	fi
 	
+	if [ -x "$INSTALL_ROOT/bin/softhsm" ]; then
+		# we're using SoftHSMv1
+		softhsm=$INSTALL_ROOT/bin/softhsm
+	elif [ -x "$INSTALL_ROOT/bin/softhsm-util" ]; then
+		# we're using SoftHSMv2
+		softhsm=$INSTALL_ROOT/bin/softhsm-util
+	else
+		echo "ods_softhsm_init_token: neither SoftHSMv1 nor SoftHSMv2 found" >&2
+		exit 1
+	fi
+	
 	if [ "$slot" -ge 0 -a "$slot" -lt 20 ] 2>/dev/null; then
 		log_remove "softhsm-init-token-$slot" &&
-		log_this "softhsm-init-token-$slot" softhsm --init-token --slot "$slot" --label "$label" --pin "$pin" --so-pin "$so_pin" ||
+		log_this "softhsm-init-token-$slot" $softhsm --init-token --slot "$slot" --label "$label" --pin "$pin" --so-pin "$so_pin" ||
 		return 1
 		
 		if ! log_grep "softhsm-init-token-$slot" stdout "The token has been initialized."; then
