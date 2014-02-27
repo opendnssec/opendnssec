@@ -717,6 +717,8 @@ ods_softhsm_init_token ()
 		exit 1
 	fi
 
+	local softhsm
+
 	local slot="$1"
 	local label="$2"
 	local pin="$3"
@@ -732,7 +734,6 @@ ods_softhsm_init_token ()
 		so_pin=1234
 	fi
 	
-	local softhsm=
 	if [ -x "$INSTALL_ROOT/bin/softhsm" ]; then
 		# we're using SoftHSMv1
 		softhsm="$INSTALL_ROOT/bin/softhsm"
