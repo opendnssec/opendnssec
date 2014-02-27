@@ -15,6 +15,7 @@ Bugfixes:
 * SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512].
 * OPENDNSSEC-544: Signer Engine: Fix assertion error that happens on an IXFR
   request with EDNS.
+* OPENDNSSEC-560: Signer Engine: Don't crash when unsigned zone has no SOA.
 * Signer Engine: Fix a race condition when stopping daemon.
 
 
