@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 source `dirname "$0"`/lib.sh && init || exit 1
 
+( require softhsm2 >/dev/null 2>/dev/null ) ||
 require softhsm
 
 check_if_built opendnssec && exit 0
