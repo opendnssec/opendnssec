@@ -918,6 +918,7 @@ namedb_examine(namedb_type* db)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
+    int soa_seen = 0;
 /*
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
@@ -954,6 +955,21 @@ namedb_examine(namedb_type* db)
             if (rrset_count_rr_is_added(rrset) > 1) {
                 log_rrset(domain->dname, rrset->rrtype,
                     "multiple DNAMEs at the same name", LOG_ERR);
+                return ODS_STATUS_CONFLICT_ERR;
+            }
+        }
+        if (!soa_seen && domain->is_apex) {
+            rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
+            if (rrset) {
+                /* Thou shall have one and only one SOA */
+                if (rrset_count_rr_is_added(rrset) != 1) {
+                    log_rrset(domain->dname, rrset->rrtype,
+                        "Wrong number of SOA records, should be 1", LOG_ERR);
+                    return ODS_STATUS_CONFLICT_ERR;
+                }
+            } else {
+                log_rrset(domain->dname, rrset->rrtype, "missing SOA RRset",
+                    LOG_ERR);
                 return ODS_STATUS_CONFLICT_ERR;
             }
         }
