@@ -57,6 +57,7 @@ log_grep ods-enforcer-zone_add   stdout "Deleted zone:.*ods1" &&
 log_this ods-signer-sign-all ods-signer update --all &&
 log_this ods-signer-sign-all ods-signer sign --all &&
 
+syslog_waitfor_count 90 1 "update Zone: ods0" &&
 syslog_waitfor_count 90 2 'ods-signerd: .*\[STATS\] ods0' &&
 syslog_grep_count 1 "update Zone: ods1" &&
 syslog_grep_count 1 'ods-signerd: .*\[STATS\] ods1' &&
