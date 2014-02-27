@@ -46,7 +46,7 @@ log_grep ixfr stdout 'ods\..*IN.*TYPE251' &&
 log_grep ixfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 ! (log_grep ixfr stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.') &&
 
-## See if we fallback to AXFR if IXFR not available.
+## See if we fallback to AXFR if IXFR not available. [OPENDNSSEC-466]
 log_this_timeout ixfr-tcp 10 drill -t -p 15354 -y secret.example.com:sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=:hmac-sha256 @127.0.0.1 ixfr ods &&
 log_grep ixfr-tcp stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 log_grep ixfr-tcp stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
