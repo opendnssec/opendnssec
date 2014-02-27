@@ -292,3 +292,8 @@ label34.ods. 3600 IN NS ns5.label34.ods.
 ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
+
+delegation.label35.ods. 3600 IN NS ns6.delegation.label35.ods.
+ns6.delegation.label35.ods. 3600 IN A 192.0.2.1
+
+

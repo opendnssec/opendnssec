@@ -23,6 +23,12 @@ ods_start_ods-control &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
+# OPENDNSSEC-520: Make sure tabs in <character-strings> are not replaces with space
+# TODO
+
+# OPENDNSSEC-549: Deal with Errata 3441 of RFC 5155
+grep 'uf2mp408g1lut654h2l08fh1s8a5uq45\.ods\..*300.*IN.*NSEC3.*1.*1.*5.*-.*1o9gk9h0majtcvsj4i0uarbd3q7eq8ia' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+
 # Validate the output on redhat
 case "$DISTRIBUTION" in
         redhat )
