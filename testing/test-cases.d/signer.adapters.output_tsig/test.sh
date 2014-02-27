@@ -26,11 +26,9 @@ ods_start_ods-control &&
 
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
-## Retry NOTIFY
-syslog_waitfor 120 'ods-signerd: .*\[notify\] notify max retry for zone ods, 127\.0\.0\.1 unreachable' &&
 
 ## SOA query (DO bit set)
-log_this_timeout soa 10 drill -D -p 15354 @127.0.0.1 soa ods &&
+log_this_timeout soa 10 drill -D -p 15354 -y secret.example.com:sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=:hmac-sha256 @127.0.0.1 soa ods &&
 log_grep soa stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 
 ## See if we can transfer the signed zone
@@ -50,17 +48,6 @@ log_grep ixfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.
 log_this_timeout ixfr-tcp 10 drill -t -p 15354 -y secret.example.com:sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ=:hmac-sha256 @127.0.0.1 ixfr ods &&
 log_grep ixfr-tcp stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 log_grep ixfr-tcp stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
-
-## Update zonefile to create journal
-cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
-ods-signer sign ods &&
-syslog_waitfor 10 'ods-signerd: .*\[STATS\] ods 1002 RR\[count=3 time*' &&
-
-## See if we can get an IXFR back
-log_this_timeout dig 10 dig -p 15354 -y hmac-sha256:sw0nMPCswVbes1tmQTm1pcMmpNRK+oGMYN+qKNR/BwQ= @127.0.0.1 ixfr=1001 ods &&
-log_grep dig stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1002.*9000.*4500.*1209600.*3600' &&
-log_grep dig stdout 'label35\.ods\..*3600.*IN.*NS.*ns1\.label35\.ods\.' &&
-log_grep dig stdout 'ns1\.label35\.ods\..*3600.*IN.*A.*192\.0\.2\.1' &&
 
 ## Stop
 ods_stop_ods-control && 
