@@ -74,6 +74,14 @@ case "$DISTRIBUTION" in
                 ;;
 esac &&
 
+## Restart
+ods_stop_ods-control && 
+ods_start_ods-control && 
+
+## OPENDNSSEC-526: Do a SOA query (it should not be expired)
+log_this_timeout soa 10 drill -D -p 15354 @127.0.0.1 soa ods &&
+log_grep soa stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1002.*9000.*4500.*1209600.*3600' &&
+
 ## Stop
 ods_stop_ods-control && 
 ods_ldns_testns_kill &&
