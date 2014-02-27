@@ -732,12 +732,13 @@ ods_softhsm_init_token ()
 		so_pin=1234
 	fi
 	
+	local softhsm=
 	if [ -x "$INSTALL_ROOT/bin/softhsm" ]; then
 		# we're using SoftHSMv1
-		softhsm=$INSTALL_ROOT/bin/softhsm
+		softhsm="$INSTALL_ROOT/bin/softhsm"
 	elif [ -x "$INSTALL_ROOT/bin/softhsm-util" ]; then
 		# we're using SoftHSMv2
-		softhsm=$INSTALL_ROOT/bin/softhsm-util
+		softhsm="$INSTALL_ROOT/bin/softhsm-util"
 	else
 		echo "ods_softhsm_init_token: neither SoftHSMv1 nor SoftHSMv2 found" >&2
 		exit 1
