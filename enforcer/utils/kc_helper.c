@@ -254,21 +254,22 @@ int check_path(const char *pathname, const char *log_string) {
 	struct stat stat_ret;
 
 	if (stat(pathname, &stat_ret) != 0) {
-
 		if (errno != ENOENT) {
 			dual_log("ERROR: cannot stat directory %s: %s",
 					pathname, strerror(errno));
 			return 1;
 		}
+
+		dual_log("ERROR: %s (%s) does not exist", log_string, pathname);
+		return 1;
 	}
 
-    if (S_ISDIR(stat_ret.st_mode)) {
-        /* The directory exists */
+	if (S_ISDIR(stat_ret.st_mode)) {
+		/* The directory exists */
 		return 0;
-    }
+	}
 
-	dual_log("ERROR: %s (%s) does not exist", log_string, pathname);
-
+	dual_log("ERROR: %s (%s) is not a directory", log_string, pathname);
 	return 1;
 }
 
