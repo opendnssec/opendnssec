@@ -27,17 +27,11 @@ grep 'uf2mp408g1lut654h2l08fh1s8a5uq45\.ods\..*300.*IN.*NSEC3.*1.*1.*5.*-.*1o9gk
 # Testing OPENDNSSEC-520: Make sure tabs in <character-strings> are not replaces with space
 grep 'ods\..*600.*IN.*TXT.*"this		text	has	tabs"' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
-# Validate the output on redhat
-case "$DISTRIBUTION" in
-        redhat )
-                log_this validate-zone-ods validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-                log_grep validate-zone-ods stdout 'validation errors:   0'
-                ;;
-esac &&
-
+# Validate the output
+log_this validate-zone-ods validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+log_grep validate-zone-ods stdout 'validation errors:   0' &&
 ods_stop_ods-control &&
 return 0
 
-cat "$INSTALL_ROOT/var/opendnssec/signed/ods"
 ods_kill
 return 1
