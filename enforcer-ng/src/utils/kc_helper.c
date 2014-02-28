@@ -1472,6 +1472,10 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
 	xmlNode *curNode;
 	xmlChar *xexpr;
 	char* temp_char = NULL;
+    char* signer_dir = NULL;
+    int signer_dir_default = 0;
+    char* enforcer_dir = NULL;
+    int enforcer_dir_default = 0;
 
 	KC_REPO* repo = NULL;
 	int* repo_mods = NULL; /* To see if we have looked at this module before */
@@ -1662,6 +1666,18 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
 		status += temp_status;
 	}
 
+    /* Check Enforcer WorkingDirectory exists (or default)*/
+    temp_status = check_path_from_xpath(xpath_ctx, "Enforcer WorkingDirectory",
+            (xmlChar *)"//Configuration/Enforcer/WorkingDirectory");
+    if (temp_status == -1) {
+		/* Check the default location */
+        temp_status = check_path(OPENDNSSEC_STATE_DIR "/enforcer", 
+                            "default Enforcer WorkingDirectory");
+    }
+    if (temp_status > 0) {
+        status += temp_status;
+    }
+
 	/* SIGNER section */
 	/* Check defined user/group */
 	status += check_user_group(xpath_ctx, 
@@ -1669,14 +1685,47 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
 			(xmlChar *)"//Configuration/Signer/Privileges/Group");
 
 	/* Check WorkingDirectory exists (or default) */
-	temp_status = check_path_from_xpath(xpath_ctx, "WorkingDirectory",
+	temp_status = check_path_from_xpath(xpath_ctx, "Signer WorkingDirectory",
 			(xmlChar *)"//Configuration/Signer/WorkingDirectory");
 	if (temp_status == -1) {
 		/* Check the default location */
-		check_path(OPENDNSSEC_STATE_DIR "/tmp", "default WorkingDirectory");
-	} else {
-		status += temp_status;
-	}
+		temp_status = check_path(OPENDNSSEC_STATE_DIR "/signer", 
+                            "default Signer WorkingDirectory");
+    }
+    if (temp_status > 0) {
+	    status += temp_status;
+    }
+
+    /* Check signer workdirectory is not as same as the one of enforcer*/
+    xexpr = (xmlChar *)"//Configuration/Signer/WorkingDirectory";
+    xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
+    if (NULL == xpath_obj) {
+        signer_dir = (char*) OPENDNSSEC_STATE_DIR "/signer";
+        signer_dir_default = 1;
+    }
+    else {
+		signer_dir = (char*) xmlXPathCastToString(xpath_obj);
+        xmlXPathFreeObject(xpath_obj);
+    }
+    xexpr = (xmlChar *)"//Configuration/Enforcer/WorkingDirectory";
+    xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
+    if (NULL == xpath_obj) {
+        enforcer_dir = (char*) OPENDNSSEC_STATE_DIR "/enforcer";
+        enforcer_dir_default = 1;
+    }
+    else {
+		enforcer_dir = (char*) xmlXPathCastToString(xpath_obj);
+        xmlXPathFreeObject(xpath_obj);
+    }
+    temp_status = strcmp(signer_dir, enforcer_dir);
+    if (0 == temp_status) {
+        status++;
+		dual_log("ERROR: signer workingdirectory is the same as the one of enforcer\n");
+    }
+    if (0 == signer_dir_default)
+        StrFree(signer_dir);
+    if (0 == enforcer_dir_default)
+        StrFree(enforcer_dir);
 		
 	xmlXPathFreeContext(xpath_ctx);
 	xmlFreeDoc(doc);
