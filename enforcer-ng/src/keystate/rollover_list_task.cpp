@@ -117,9 +117,9 @@ perform_rollover_list(int sockfd, engineconfig_type *config, const char *listed_
         }
 
         if (!OrmFirst(rows)) {
-            ods_log_error("[%s] No key for zone:%s", 
+            ods_log_error("[%s] zone:%s not found", 
                     module_str, qzone.c_str());
-            ods_printf(sockfd, "No key for zone:%s\n", qzone.c_str());
+            ods_printf(sockfd, "zone:%s not found\n", qzone.c_str());
             return;
         }
     }
