@@ -45,7 +45,8 @@ static const char *module_str = "rollover_list_cmd";
 void help_rollover_list_cmd(int sockfd)
 {
 	ods_printf(sockfd, 
-	           "rollover list          List upcoming rollovers.\n");
+	           "rollover list          List upcoming rollovers.\n"
+               "      --zone <zone>              (aka -z)  zone.\n");
 }
 
 int handled_rollover_list_cmd(int sockfd, engine_type* engine,
@@ -73,22 +74,35 @@ int handled_rollover_list_cmd(int sockfd, engine_type* engine,
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str,scmd);
 		ods_printf(sockfd,"too many arguments\n");
+        help_rollover_list_cmd(sockfd);
 		return 1; // errors, but handled
 	}
 	
 	bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
+    if (ods_find_arg(&argc,argv,"help","h") != -1) {
+        help_rollover_list_cmd(sockfd);
+        return 1;
+    }
+
+    const char *zone_arg = NULL;
+    std::string zone;
+    if (ods_find_arg_and_param(&argc,argv,"zone","z",&zone_arg) >= 0
+            && NULL != zone_arg)
+        zone = zone_arg;
+    
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str,scmd);
 		ods_printf(sockfd,"unknown arguments\n");
+        help_rollover_list_cmd(sockfd);
 		return 1; // errors, but handled
 	}
 	
 	time_t tstart = time(NULL);
 
-	perform_rollover_list(sockfd, engine->config, bVerbose?1:0);
+	perform_rollover_list(sockfd, engine->config, zone.c_str(), bVerbose?1:0);
 	
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
+	ods_printf(sockfd,"%s completed in %ld seconds.",scmd,time(NULL)-tstart);
 	
 	return 1;
 }
