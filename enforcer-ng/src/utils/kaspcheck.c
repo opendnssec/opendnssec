@@ -146,6 +146,6 @@ int main (int argc, char *argv[])
 	StrFree(zonelistfile);
 
 	if (verbose)
-		dual_log("DEBUG: finished %d\n", status);
+		dual_log("DEBUG: finished %d", status);
 	return status;
 }
