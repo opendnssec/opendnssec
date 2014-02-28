@@ -373,7 +373,7 @@ int check_conf(char** kasp) {
 			(xmlChar *)"//Configuration/Signer/WorkingDirectory");
 	if (temp_status == -1) {
 		/* Check the default location */
-		check_path(OPENDNSSEC_STATE_DIR "/tmp", "default WorkingDirectory");
+		status += check_path(OPENDNSSEC_STATE_DIR "/tmp", "default WorkingDirectory");
 	} else {
 		status += temp_status;
 	}
