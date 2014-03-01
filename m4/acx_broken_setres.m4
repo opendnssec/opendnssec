@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_BROKEN_SETRES],[
 
 	AC_CHECK_FUNCS(setresuid, [

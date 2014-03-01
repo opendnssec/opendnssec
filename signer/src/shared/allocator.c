@@ -1,6 +1,4 @@
 /*
- * $Id: allocator.c 3817 2010-08-27 08:43:00Z matthijs $
- *
  * Copyright (c) 2010-2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

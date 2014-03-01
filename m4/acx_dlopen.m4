@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_DLOPEN],[
 	tmp_SUCCESS="no"
 

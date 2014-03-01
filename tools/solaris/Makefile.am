@@ -1,5 +1,3 @@
-# $Id$
-
 MAINTAINERCLEANFILES = \
 	config.log config.status \
 	$(srcdir)/Makefile.in \

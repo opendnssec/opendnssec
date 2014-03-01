@@ -1,6 +1,4 @@
 /*
- * $Id: communicator.h 1663 2009-08-19 09:04:23Z sion $
- *
  * Copyright (c) 2008-2009 Nominet UK. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

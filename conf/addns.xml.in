@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: addnsconf.xml.in 2735 2010-01-28 14:11:27Z matthijs $ -->
-
 <Adapter>
  	<DNS>
 		<TSIG>

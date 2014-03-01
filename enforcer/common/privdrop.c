@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 Nominet UK. All rights reserved.
  *
  * Based heavily on uidswap.c from openssh-5.2p1

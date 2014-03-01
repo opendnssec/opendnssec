@@ -1,6 +1,4 @@
 /*
- * $Id: addnsparser.h 4661 2011-03-25 10:30:29Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

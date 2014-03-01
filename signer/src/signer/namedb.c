@@ -1,6 +1,4 @@
 /*
- * $Id: namedb.c 5467 2011-08-24 06:51:16Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
