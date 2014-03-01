@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id$ -->
-
-
 <!-- ********* Important changes to zonelist.xml in 2.0 ***************
 
 In 2.0, the zonelist.xml file is no longer automatically updated when zones 

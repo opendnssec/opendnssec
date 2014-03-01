@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: c_kasp.xml.in 3876 2010-09-03 07:07:36Z jakob $ -->
-
 <KASP>
 	<Policy name="Policy1">
 		<Description>default fast test policy</Description>

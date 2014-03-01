@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2009 NLNet Labs.

@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_LIBSQLITE3],[
 	
 	tmp_CPPFLAGS=$CPPFLAGS

@@ -1,6 +1,4 @@
 /*
- * $Id: log.c 3845 2010-08-31 14:19:24Z matthijs $
- *
  * Copyright (c) 2009 NLnet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

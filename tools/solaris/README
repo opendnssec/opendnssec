@@ -1,5 +1,3 @@
-# $Id$
-
 Solaris scripts to control OpenDNSSEC processes:
 
 Any package for solaris should probably include something like the following:

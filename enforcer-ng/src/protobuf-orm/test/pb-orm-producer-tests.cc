@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 2011 SURFnet bv
  * All rights reserved.

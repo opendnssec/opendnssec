@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id: prepdist.sh 5999 2012-01-04 14:45:36Z jakob $
-
 PREFIX=/tmp/opendnssec-release
 
 if [ ! -f autogen.sh -a ! -f configure ]; then

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2011 Surfnet 
  * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2011 OpenDNSSEC AB (svb)
