@@ -1,5 +1,3 @@
-# $Id$
-
 m4_sinclude([version.m4])
 
 AC_PREREQ(2.61)

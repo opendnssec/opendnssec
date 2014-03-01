@@ -1,6 +1,4 @@
 /*
- * $Id: daemon_util.h 1360 2009-07-24 10:45:25Z sion $
- *
  * Copyright (c) 2009 Nominet UK. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

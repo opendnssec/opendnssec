@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id$ -->
-
 <ZoneFetch>
 	<!-- where to listen for notifies -->
 	<!-- DEFAULT: do not listen to notify on specific address -->

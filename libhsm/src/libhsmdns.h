@@ -1,5 +1,3 @@
-/* $Id: libhsm.h 826 2009-05-27 18:32:34Z jakob $ */
-
 /*
  * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2009 NLNet Labs.

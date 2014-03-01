@@ -1,5 +1,3 @@
-# $Id: acx_libxml2.m4 1122 2009-06-24 10:37:50Z jakob $
-
 AC_DEFUN([ACX_LIBXML2],[
 	AC_ARG_WITH(libxml2,
 		[AS_HELP_STRING([--with-libxml2=DIR],[look for libxml2 in this dir])],

@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_CUNIT],[
 	AC_ARG_WITH(cunit,
 		[AC_HELP_STRING([--with-cunit=DIR],[Look for cunit in this dir])],

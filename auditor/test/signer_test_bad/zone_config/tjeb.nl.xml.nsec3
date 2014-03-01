@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: tjeb.nl.xml 785 2009-05-25 12:58:36Z jelte $ -->
-
 <SignerConfiguration>
 	<Zone name="tjeb.nl">
 

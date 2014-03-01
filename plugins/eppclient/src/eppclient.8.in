@@ -1,5 +1,4 @@
 .TH "eppclient" "8" "March 2010" "OpenDNSSEC" "OpenDNSSEC eppclient"
-.\" $Id$
 .SH "NAME"
 eppclient \- OpenDNSSEC EPP plugin
 .SH "SYNOPSIS"
