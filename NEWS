@@ -1,6 +1,7 @@
 OpenDNSSEC 1.13.17rc1
 
 * Signer Engine: log serial of signed zone in STATS line.
+* OPENDNSSEC-569: Build compatibility with SoftHSMv2.
 
 
 Bugfixes:
