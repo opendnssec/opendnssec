@@ -44,6 +44,18 @@ ods_interrupt_test ()
 
 ods_nuke_env ()
 {
+	local softhsm2=""
+	if [ -d "$INSTALL_ROOT/var/softhsm/tokens" ]; then
+		rm -rf -- "$INSTALL_ROOT/var/softhsm/tokens" ||
+		return 1
+		softhsm2="$INSTALL_ROOT/var/softhsm"
+	fi
+	if [ -d "$INSTALL_ROOT/var/lib/softhsm/tokens" ]; then
+		rm -rf -- "$INSTALL_ROOT/var/lib/softhsm/tokens" ||
+		return 1
+		softhsm2="$INSTALL_ROOT/var/lib/softhsm"
+	fi
+
 	local kasp_files=`cd "$INSTALL_ROOT/var/opendnssec/" && ls kasp*db* 2>/dev/null`
 	local tmp_files=`ls "$INSTALL_ROOT/var/opendnssec/tmp/" 2>/dev/null`
 	local unsigned_files=`ls "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null`
@@ -94,6 +106,9 @@ ods_nuke_env ()
 			rm -f -- $softhsm_files2 2>/dev/null
 		)
 	fi &&
+	if [ -n "$softhsm2" ]; then
+		mkdir -- "$softhsm2/tokens"
+	fi &&
 	return 0
 	
 	return 1
@@ -107,7 +122,7 @@ ods_setup_conf ()
 	
 	if [ -n "$conf" ]; then
 		case "$conf" in
-			softhsm.conf | conf.xml | kasp.xml | zonefetch.xml | zonelist.xml )
+			softhsm.conf | softhsm2.conf | conf.xml | kasp.xml | zonefetch.xml | zonelist.xml )
 				;;
 			* )
 				echo "ods_setup_conf: Unknown conf file specified: $conf" >&2
@@ -121,8 +136,12 @@ ods_setup_conf ()
 		return 1
 	fi
 
-	# Conf files under /etc	
-	for conf_file in softhsm.conf; do
+	# Conf files under /etc
+	local softhsm_conf="softhsm.conf"
+	if [ -f "$INSTALL_ROOT/etc/softhsm2.conf.build" ]; then
+		softhsm_conf="softhsm2.conf"
+	fi
+	for conf_file in "$softhsm_conf"; do
 		if [ -n "$conf" -a "$conf" != "$conf_file" ]; then
 			continue
 		fi
@@ -740,6 +759,12 @@ ods_softhsm_init_token ()
 	elif [ -x "$INSTALL_ROOT/bin/softhsm-util" ]; then
 		# we're using SoftHSMv2
 		softhsm="$INSTALL_ROOT/bin/softhsm-util"
+		if [ -d "$INSTALL_ROOT/var/softhsm" ]; then
+			mkdir -p -- "$INSTALL_ROOT/var/softhsm/tokens"
+		fi
+		if [ -d "$INSTALL_ROOT/var/lib/softhsm" ]; then
+			mkdir -p -- "$INSTALL_ROOT/var/lib/softhsm/tokens"
+		fi
 	else
 		echo "ods_softhsm_init_token: neither SoftHSMv1 nor SoftHSMv2 found" >&2
 		exit 1
