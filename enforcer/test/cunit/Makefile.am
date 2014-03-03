@@ -1,5 +1,3 @@
-# $Id$
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a

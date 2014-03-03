@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_DBPARAMS],[
 
 	AC_ARG_WITH(dbname,

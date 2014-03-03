@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_MYSQL],[
 	AC_ARG_WITH(mysql,
         	AC_HELP_STRING([--with-mysql=DIR],[Specify prefix of path of MySQL]),
