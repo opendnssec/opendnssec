@@ -1,6 +1,4 @@
 /*
- * $Id: kc_helper.h 6293 2012-04-30 14:48:01Z sion $
- *
  * Copyright (c) 2012 Nominet UK. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

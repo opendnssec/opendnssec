@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 2012 Jerry Lundstršm .SE (The Internet Infrastructure Foundation).
  *

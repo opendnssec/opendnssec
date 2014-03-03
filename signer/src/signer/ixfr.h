@@ -1,6 +1,4 @@
 /*
- * $Id: ixfr.h 5260 2011-06-28 14:13:14Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

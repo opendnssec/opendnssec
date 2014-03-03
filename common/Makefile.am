@@ -1,5 +1,3 @@
-# $Id$
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 noinst_LIBRARIES = libcompat.a

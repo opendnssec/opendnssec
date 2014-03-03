@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_LIBREADLINE],[
 	AC_ARG_WITH(readline,
 		[  --with-readline         compile with the system readline library],

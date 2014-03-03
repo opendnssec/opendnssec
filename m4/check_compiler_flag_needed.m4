@@ -1,5 +1,3 @@
-# $Id$
-
 # if the given code compiles without the flag, execute argument 4
 # if the given code only compiles with the flag, execute argument 3
 # otherwise fail

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

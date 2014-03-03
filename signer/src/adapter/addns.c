@@ -1,6 +1,4 @@
 /*
- * $Id: addns.c 5237 2011-06-20 13:05:39Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

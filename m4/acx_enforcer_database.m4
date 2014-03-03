@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_ENFORCER_DATABASE],[
 
 	AC_ARG_WITH(enforcer-database,

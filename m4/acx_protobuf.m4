@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_PROTOBUF],[
 	AC_ARG_WITH(protobuf,
 		[AC_HELP_STRING([--with-protobuf=PATH],[specify prefix of path of protobuf library to use])],
