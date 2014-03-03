@@ -1,5 +1,3 @@
-# $Id$
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 RNC =	conf.rnc kasp.rnc zonelist.rnc signconf.rnc zonefetch.rnc

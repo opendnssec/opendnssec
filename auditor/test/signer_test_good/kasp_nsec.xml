@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: kasp.xml 740 2009-05-19 21:43:54Z jakob $ -->
-
 <KASP>
 
 	<Policy name="default">

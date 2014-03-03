@@ -1,5 +1,3 @@
-# $Id: configure.ac 2881 2010-02-24 14:29:21Z jakob $
-
 m4_sinclude([version.m4])
 
 AC_PREREQ(2.61)

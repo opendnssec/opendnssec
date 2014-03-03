@@ -1,5 +1,3 @@
-<!-- $Id$ -->
-
 <eppclient>
  <database>@EPPCLIENTD_DB@</database>
  <pipe>@EPPCLIENTD_PIPE@</pipe>

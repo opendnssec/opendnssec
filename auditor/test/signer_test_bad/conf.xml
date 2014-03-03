@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: conf.xml 1057 2009-06-17 13:33:44Z jakob $ -->
-
 <Configuration>
 
 	<RepositoryList>

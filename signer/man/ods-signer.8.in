@@ -1,5 +1,4 @@
 .TH "ods-signer" "8" "October 2010" "OpenDNSSEC" "OpenDNSSEC ods-signer"
-.\" $Id: ods-signer.8.in 3709 2010-08-10 13:03:45Z rb $
 .SH "NAME"
 .B ods\-signer 
 \- OpenDNSSEC Signer Engine client

@@ -1,5 +1,3 @@
-# $Id$
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 BUILT_SOURCES = dbsmsg.h kmemsg.h

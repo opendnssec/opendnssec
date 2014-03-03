@@ -1,5 +1,3 @@
-# $Id: Makefile.am 1971 2009-10-01 06:37:51Z jakob $
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 SUBDIRS = solaris

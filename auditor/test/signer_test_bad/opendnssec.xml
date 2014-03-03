@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: opendnssec.xml 820 2009-05-27 14:30:46Z jelte $ -->
-
 <Configuration>
 	<RepositoryList>
 		<Repository name="test">

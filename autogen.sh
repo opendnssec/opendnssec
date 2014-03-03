@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id$
-
 SUBDIRS="auditor plugins/eppclient"
 VERSION=version.m4
 

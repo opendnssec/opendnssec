@@ -1,5 +1,3 @@
-# $Id: acx_pedantic.m4 1122 2009-06-24 10:37:50Z jakob $
-
 AC_DEFUN([ACX_PEDANTIC],[
 	AC_ARG_ENABLE(
 		[pedantic],

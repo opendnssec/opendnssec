@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_DNSRUBY],[
 
 	AC_MSG_CHECKING([for dnsruby version $1 or greater])

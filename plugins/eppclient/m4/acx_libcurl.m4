@@ -1,5 +1,3 @@
-# $Id$
-
 # COPYRIGHT AND PERMISSION NOTICE
 #
 # Copyright (c) 1996 - 2010, Daniel Stenberg, <daniel@haxx.se>.

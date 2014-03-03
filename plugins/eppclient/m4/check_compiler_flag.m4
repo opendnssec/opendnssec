@@ -1,5 +1,3 @@
-# $Id: check_compiler_flag.m4 1122 2009-06-24 10:37:50Z jakob $
-
 # routine to help check for compiler flags.
 AC_DEFUN([CHECK_COMPILER_FLAG],[
 	AC_REQUIRE([AC_PROG_CC])

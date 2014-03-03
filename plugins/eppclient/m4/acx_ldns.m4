@@ -1,5 +1,3 @@
-# $Id: acx_ldns.m4 2678 2010-01-12 12:44:02Z rb $
-
 AC_DEFUN([ACX_LDNS],[
 	AC_ARG_WITH(ldns, 
 		[AC_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])],

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2010 .SE (The Internet Infrastructure Foundation).
  * All rights reserved.
  *
