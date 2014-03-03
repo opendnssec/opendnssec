@@ -488,6 +488,11 @@ zone_update_serial(zone_type* zone)
         return ODS_STATUS_OK;
     }
     rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
+    if (!rrset || !rrset->rrs || !rrset->rrs[0].rr) {
+        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
+            "find soa rrset", zone_str, zone->name);
+        return ODS_STATUS_ERR;
+    }
     ods_log_assert(rrset);
     ods_log_assert(rrset->rrs);
     ods_log_assert(rrset->rrs[0].rr);

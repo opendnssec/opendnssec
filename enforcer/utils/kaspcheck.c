@@ -130,7 +130,7 @@ int main (int argc, char *argv[])
 	status += check_kasp();
 
 	if (verbose) {
-		dual_log("DEBUG: finished %d\n", status);
+		dual_log("DEBUG: finished %d", status);
 	}
 
 	xmlCleanupParser();
@@ -176,7 +176,7 @@ int check_conf(char** kasp) {
 	status = check_rng(config, rngfilename);
 
 	if (status == 0) {
-		dual_log("INFO: The XML in %s is valid\n", config);
+		dual_log("INFO: The XML in %s is valid", config);
 	} else {
 		return status; /* Don't try to read the file if it is invalid */
 	}
@@ -211,7 +211,7 @@ int check_conf(char** kasp) {
 		repo_list = (char**)malloc(sizeof(char*) * repo_count);
 
 		if (repo == NULL || repo_mods == NULL || repo_list == NULL) {
-			dual_log("ERROR: malloc for repo information failed\n");
+			dual_log("ERROR: malloc for repo information failed");
 			exit(1);
 		}
 
@@ -253,7 +253,7 @@ int check_conf(char** kasp) {
 					repo_mods[j] = 1; /* done */
 
 					if (strcmp(repo[i].TokenLabel, repo[j].TokenLabel) == 0) {
-						dual_log("ERROR: Multiple Repositories (%s and %s) in %s have the same Module (%s) and TokenLabel (%s)\n", repo[i].name, repo[j].name, config, repo[i].module, repo[i].TokenLabel);
+						dual_log("ERROR: Multiple Repositories (%s and %s) in %s have the same Module (%s) and TokenLabel (%s)", repo[i].name, repo[j].name, config, repo[i].module, repo[i].TokenLabel);
 						status += 1;
 					}
 				}
@@ -263,7 +263,7 @@ int check_conf(char** kasp) {
 		/* 3) Check that the name is unique */
 		for (j = i+1; j < repo_count; j++) {
 			if (strcmp(repo[i].name, repo[j].name) == 0) {
-				dual_log("ERROR: Two repositories exist with the same name (%s)\n", repo[i].name);
+				dual_log("ERROR: Two repositories exist with the same name (%s)", repo[i].name);
 				status += 1;
 			}
 		}
@@ -315,7 +315,7 @@ int check_conf(char** kasp) {
 	temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 	if (check_rng(temp_char, zonerngfilename) == 0) {
-		dual_log("INFO: The XML in %s is valid\n", temp_char);
+		dual_log("INFO: The XML in %s is valid", temp_char);
 	} else {
 		status += 1;
 	}
@@ -337,13 +337,13 @@ int check_conf(char** kasp) {
 	if (temp_status == -1) {
 		/* Configured for Mysql DB */
 		/*if (DbFlavour() != MYSQL_DB) {
-			dual_log("ERROR: libksm compiled for sqlite3 but conf.xml configured for MySQL\n");
+			dual_log("ERROR: libksm compiled for sqlite3 but conf.xml configured for MySQL");
 		}*/
 	} else {
 		status += temp_status;
 		/* Configured for sqlite DB */
 		/*if (DbFlavour() != SQLITE_DB) {
-			dual_log("ERROR: libksm compiled for MySQL but conf.xml configured for sqlite3\n");
+			dual_log("ERROR: libksm compiled for MySQL but conf.xml configured for sqlite3");
 		}*/
 	}
 
@@ -371,7 +371,7 @@ int check_conf(char** kasp) {
 			(xmlChar *)"//Configuration/Signer/WorkingDirectory");
 	if (temp_status == -1) {
 		/* Check the default location */
-		check_path(OPENDNSSEC_STATE_DIR "/tmp", "default WorkingDirectory");
+		status += check_path(OPENDNSSEC_STATE_DIR "/tmp", "default WorkingDirectory");
 	} else {
 		status += temp_status;
 	}
@@ -411,7 +411,7 @@ int check_kasp() {
 	int default_found = 0;
 
 	if (kasp == NULL) {
-		dual_log("ERROR: No location for kasp.xml set\n");
+		dual_log("ERROR: No location for kasp.xml set");
 		return 1;
 	}
 
@@ -419,7 +419,7 @@ int check_kasp() {
 	status = check_rng(kasp, rngfilename);
 
 	if (status ==0) {
-		dual_log("INFO: The XML in %s is valid\n", kasp);
+		dual_log("INFO: The XML in %s is valid", kasp);
 	} else {
 		return 1;
 	}
@@ -452,7 +452,7 @@ int check_kasp() {
 
 		policy_names = (char**)malloc(sizeof(char*) * policy_count);
 		if (policy_names == NULL) {
-			dual_log("ERROR: Malloc for policy names failed\n");
+			dual_log("ERROR: Malloc for policy names failed");
 			exit(1);
 		}
 
@@ -470,13 +470,13 @@ int check_kasp() {
 		}
 		for (j = i+1; j < policy_count; j++) {
 			if ( (strcmp(policy_names[i], policy_names[j]) == 0) ) {
-				dual_log("ERROR: Two policies exist with the same name (%s)\n", policy_names[i]);
+				dual_log("ERROR: Two policies exist with the same name (%s)", policy_names[i]);
 				status += 1;
 			}
 		}
 	}
 	if (default_found == 0) {
-		dual_log("WARNING: No policy named 'default' in %s. This means you will need to refer explicitly to the policy for each zone\n", kasp);
+		dual_log("WARNING: No policy named 'default' in %s. This means you will need to refer explicitly to the policy for each zone", kasp);
 	}
 
 	/* Go again; this time check each policy */

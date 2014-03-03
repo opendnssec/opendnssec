@@ -1,10 +1,9 @@
 $ORIGIN ods.
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 1200 180 1209600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 9000 4500 1209600 3600
 ods. 600 IN MX 10 mail.ods.
 ods. 600 IN NS ns1.ods.
 ods. 600 IN NS ns2.ods.
 ods. 600 IN A 192.0.2.1
-ods. 600 IN TXT "this		text	has	tabs"
 mail.ods. 600 IN A 192.0.2.1
 ns1.ods. 600 IN A 192.0.2.1
 ns2.ods. 600 IN A 192.0.2.1
@@ -18,6 +17,8 @@ label4.ods. IN NS ns3.label4.ods.
 label4.ods. IN NS ns4.label4.ods.
 label4.ods. IN NS ns5.label4.ods.
 label4.ods. IN NS ns6.label4.ods.
+
+below.zonecut.label4.ods. IN NS ns.zonecut.label4.ods.
 
 ns1.label4.ods. IN A 192.0.2.1
 ns2.label4.ods. IN A 192.0.2.1
@@ -294,8 +295,5 @@ ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
 
-; Validns doesn't accept this [errate 3441 rfc 5155]
-;delegation.label35.ods. 3600 IN NS ns6.delegation.label35.ods.
-;ns6.delegation.label35.ods. 3600 IN A 192.0.2.1
-;delegation.label35.ods. 3600 IN NS ns7.delegation.label35.ods.
-;ns7.delegation.label35.ods. 3600 IN A 192.0.2.1
+label35.ods. 3600 IN NS ns1.label35.ods.
+ns1.label35.ods. 3600 IN A 192.0.2.1
