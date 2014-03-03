@@ -129,8 +129,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-password=build \
 				--enable-timeshift &&
 			$MAKE &&
-			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
-			(cd enforcer-ng && $MAKE check) &&
+			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
