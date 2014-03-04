@@ -90,10 +90,16 @@ database_ready(engineconfig_type* config)
 void
 autostart(engine_type* engine)
 {
+    task_type *resalt_task;
     ods_log_debug("[%s] autostart", module_str);
 	
 	if (!engine->database_ready) return;
     
-    schedule_task(engine, policy_resalt_task(engine->config), "resalt");
+    if (resalt_task = policy_resalt_task(engine->config)) {
+	/* race condition at startup. Make sure resalt loses over
+	 * enforce. Not fatal but disturbs test. */
+	resalt_task->when += 3;
+    }
+    schedule_task(engine, resalt_task, "resalt");
     schedule_task(engine, enforce_task(engine, 1), "enforce");
 }
