@@ -33,10 +33,11 @@
 #define DAEMON_CMDHANDLER_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
 
 #include <sys/un.h>
+
+#include "shared/allocator.h"
+#include "shared/locks.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,6 +82,23 @@ void cmdhandler_start(cmdhandler_type* cmdhandler);
  *
  */
 void cmdhandler_cleanup(cmdhandler_type* cmdhandler);
+
+struct cmd_func_block {
+	/* Name of command */
+	const char* cmdname;
+	/* print usage information */
+	void (*usage)(int sockfd);
+	/* print help, more elaborate than usage */
+	void (*help)(int sockfd);
+	/* 1 if module claims responibility for command
+	 * 0 otherwise */
+	int (*handles)(const char *cmd, ssize_t n);
+	/* 0 command executed, all OK
+	 * -1 Errors parsing commandline / missing params
+	 * positive error code to return to user.
+	 * */
+	int (*run)(int sockfd, struct engine_struct* engine);
+};
 
 #ifdef __cplusplus
 }

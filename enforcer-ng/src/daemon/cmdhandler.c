@@ -29,17 +29,7 @@
  *
  */
 
-#include "daemon/cmdhandler.h"
-#include "daemon/engine.h"
-#include "scheduler/schedule.h"
-#include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/locks.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/duration.h"
-#include "shared/str.h"
+#include "config.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -57,6 +47,22 @@
 /* According to earlier standards: select() sys/time.h sys/types.h unistd.h */
 #include <sys/time.h>
 #include <sys/types.h>
+
+#include "daemon/engine.h"
+#include "scheduler/schedule.h"
+#include "scheduler/task.h"
+#include "shared/allocator.h"
+#include "shared/file.h"
+#include "shared/locks.h"
+#include "shared/log.h"
+#include "shared/status.h"
+#include "shared/duration.h"
+#include "shared/str.h"
+
+/* commands to handle */
+#include "policy/policy_resalt_cmd.h"
+
+#include "daemon/cmdhandler.h"
 
 #define SE_CMDH_CMDLEN 7
 
@@ -385,6 +391,26 @@ int handled_verbosity_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
     return 1;
 }
 
+typedef struct cmd_func_block* (*fbgetfunctype)(void);
+static fbgetfunctype*
+cmd_funcs_avail(void)
+{
+	static struct cmd_func_block* (*fb[])(void) = {
+		&resalt_funcblock,
+		NULL
+	};
+	return fb;
+}
+
+void get_usage(int sockfd)
+{
+	fbgetfunctype* fb = cmd_funcs_avail();
+	int cmd_iter = 0;
+	while (fb[cmd_iter]) {
+		(*fb[cmd_iter])()->usage(sockfd);
+		cmd_iter++;
+	}
+}
 
 /**
  * Handle the 'help' command.
@@ -393,7 +419,7 @@ int handled_verbosity_cmd(int sockfd, engine_type* engine, const char *cmd, ssiz
 int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
-    help_xxxx_cmd_type *help;
+    (void) engine;
 
     /* help command ? */
     if (n != 4 || strncmp(cmd, "help", n) != 0) return 0;
@@ -405,10 +431,7 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
     (void) snprintf(buf, ODS_SE_MAXLINE,"\nCommands:\n");
     ods_writen(sockfd, buf, strlen(buf));
     
-    /* Call all help functions to emit help texts to the socket. */ 
-    for (help=engine->help; help && *help; ++help) {
-        (*help)(sockfd);
-    }
+    get_usage(sockfd);
     
     /* Generic commands */
     (void) snprintf(buf, ODS_SE_MAXLINE,
@@ -436,11 +459,12 @@ int handled_help_cmd(int sockfd, engine_type* engine,const char *cmd, ssize_t n)
  * Handle unknown command.
  *
  */
-int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+static int
+handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
-    help_xxxx_cmd_type *help;
     (void) n;
+    (void) engine;
 
     ods_log_debug("[%s] unknown command", module_str);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
@@ -451,10 +475,8 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_
     (void) snprintf(buf, ODS_SE_MAXLINE,"Commands:\n");
     ods_writen(sockfd, buf, strlen(buf));
     
-    /* Call all help functions to emit help texts to the socket. */ 
-    for (help=engine->help; help && *help; ++help) {
-        (*help)(sockfd);
-    }
+    (void) snprintf(buf, ODS_SE_MAXLINE, "PLACEHOLDER, print help\n");
+    get_usage(sockfd);
     
     /* Generic commands */
     (void) snprintf(buf, ODS_SE_MAXLINE,
@@ -477,15 +499,12 @@ int handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_
     return 1;
 }
 
-
 /**
  * Perform command
- * \return int Returns 1 if the command stopped the enforcer, otherwise 0.
  */
 static int
-cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssize_t n)
+cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
-    handled_xxxx_cmd_type *handled_cmd = NULL;
     handled_xxxx_cmd_type internal_handled_cmds[] = {
         handled_queue_cmd,
 #ifdef ENFORCER_TIMESHIFT
@@ -500,40 +519,44 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd,ssiz
         handled_help_cmd,
         handled_unknown_cmd /* unknown command allways matches, so last entry */
     };
-    unsigned int cmdidx;
-    int ret;
+	fbgetfunctype* fb = cmd_funcs_avail();
+	unsigned int cmdidx, cmd_iter, handled = 0;
+	int ret;
 
-    ods_log_verbose("received command %s[%i]", cmd, n);
+	ods_log_verbose("received command %s[%i]", cmd, n);
+
+	cmd_iter = 0;
+	while (fb[cmd_iter]) {
+		if ((*fb[cmd_iter])()->handles(cmd, n)) {
+			handled = 1;
+			ret = (*fb[cmd_iter])()->run(sockfd, engine);
+			if (ret == 0) {
+				/*ok*/
+			} else if (ret == -1) {
+				(*fb[cmd_iter])()->usage(sockfd);
+			} else {
+				/*err code*/
+			}
+			break;
+		}
+		cmd_iter++;
+	}
     
-    /* enumerate the list of external commands and break from the 
-     * loop when one of the handled_xxx_cmd entries inidicates the 
-     * command was handled by returning 1 or 2 if enforcer is stopped
-     */
-    for (handled_cmd=engine->commands; handled_cmd && *handled_cmd;
-         ++handled_cmd) 
-    {
-        if ((ret = (*handled_cmd)(sockfd,engine,cmd,n))) break;
-    }
+    if (handled) return ret;
     
-    /* if the command was not handled, try the internal list of commands */
-    if (handled_cmd==NULL || *handled_cmd==NULL) {
-        /* enumerate the list of internal commands and break from the loop
-         * when one of the handled_xxx_cmd entries inidicates the command 
-         * was handled by returning 1 or 2 if enforcer is stopped
-         */
-        for (cmdidx=0; 
-             cmdidx<sizeof(internal_handled_cmds)/sizeof(handled_xxxx_cmd_type);
-             ++cmdidx)
-        {
-            if ((ret = internal_handled_cmds[cmdidx](sockfd,engine,cmd,n))) break;
-        }
-    }
+	/* enumerate the list of internal commands and break from the loop
+	 * when one of the handled_xxx_cmd entries inidicates the command
+	 * was handled by returning 1 or 2 if enforcer is stopped
+	 */
+	for (cmdidx=0;
+		 cmdidx<sizeof(internal_handled_cmds)/sizeof(handled_xxxx_cmd_type);
+		 ++cmdidx)
+	{
+		if ((ret = internal_handled_cmds[cmdidx](sockfd,engine,cmd,n))) break;
+	}
     
     ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
-
-    if (ret == 2)
-    	return 1;
-    return 0;
+    return ret;
 }
 
 /**

@@ -76,6 +76,9 @@ database_ready(engineconfig_type* config)
 	OrmConnRef conn;
 	OrmResultRef rows;
 	::ods::kasp::Policy policy;
+
+	if (!config) return 0;
+
 	if (!ods_orm_connect(-1, config, conn) ||
 		!OrmMessageEnum(conn, policy.descriptor(), rows))
 	{

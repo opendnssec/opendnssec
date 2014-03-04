@@ -41,6 +41,8 @@ void help_policy_resalt_cmd(int sockfd);
 int handled_policy_resalt_cmd(int sockfd, engine_type* engine, const char *buf,
                               ssize_t n);
 
+struct cmd_func_block* resalt_funcblock(void);
+
 #ifdef __cplusplus
 }
 #endif
