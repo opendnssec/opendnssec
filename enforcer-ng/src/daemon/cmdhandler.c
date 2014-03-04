@@ -696,7 +696,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     struct sockaddr_un cliaddr;
     socklen_t clilen;
     cmdhandler_type* cmdc = NULL;
-    engine_type* engine = NULL;
     fd_set rset;
     int connfd = 0;
     int ret = 0;
@@ -705,7 +704,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     ods_log_assert(cmdhandler->engine);
     ods_log_debug("[%s] start", module_str);
 
-    engine = cmdhandler->engine;
     ods_thread_detach(cmdhandler->thread_id);
     FD_ZERO(&rset);
     while (cmdhandler->need_to_exit == 0) {
@@ -749,8 +747,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     }
 
     ods_log_debug("[%s] done", module_str);
-    engine = cmdhandler->engine;/*todo check & remove me*/
-    engine->cmdhandler_done = 1;
+    cmdhandler->engine->cmdhandler_done = 1;
     return;
 }
 
