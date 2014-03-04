@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <libhsm.h>
+#include "libhsm.h"
 #include <libhsmdns.h>
 
 extern char *optarg;

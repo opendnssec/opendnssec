@@ -70,6 +70,7 @@ typedef pthread_cond_t cond_basic_type;
 #define lock_basic_init(lock) LOCKRET(pthread_mutex_init(lock, NULL))
 #define lock_basic_destroy(lock) LOCKRET(pthread_mutex_destroy(lock))
 #define lock_basic_lock(lock) LOCKRET(pthread_mutex_lock(lock))
+#define lock_basic_trylock(lock) pthread_mutex_trylock(lock)
 #define lock_basic_unlock(lock) LOCKRET(pthread_mutex_unlock(lock))
 
 /** our own alarm clock */

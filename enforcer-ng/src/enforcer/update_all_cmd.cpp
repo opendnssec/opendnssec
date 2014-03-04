@@ -65,20 +65,9 @@ void help_update_all_cmd(int sockfd)
 	);
 }
 
-int
-handled_update_all_cmd(int sockfd, engine_type* engine, const char *cmd,
-	ssize_t n)
+static int
+check_all_task(int sockfd, engine_type* engine)
 {
-	const char *scmd = "update all";
-	cmd = ods_check_command(cmd,n,scmd);
-	if (!cmd) return 0; // not handled
-	ods_log_debug("[%s] %s command", module_str, scmd);
-
-	// check that we are using a compatible protobuf version.
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	time_t tstart = time(NULL);
-
-	autostart(engine);
 
 	/* Check all files for errors. The perform_update_*()
 	 * functions check as well but this gives us all or nothing.
@@ -102,24 +91,28 @@ handled_update_all_cmd(int sockfd, engine_type* engine, const char *cmd,
 		ods_log_error_and_printf(sockfd, module_str, 
 			"Unable to validate '%s' consistency.", zonelist);
 	else error = 0;
-	
+
 	free(kasp);
 	free(zonelist);
 	if (replist) {
 		for (i = 0; i < repcount; i++) free(replist[i]);
 	}
+	return error;
+}
 
-	if (!error) 
-		error |= perform_update_repositorylist(sockfd, engine);
-	if (!error) 
-		error |= perform_update_kasp(sockfd, engine->config);
-	if (!error) 
-		error |= perform_update_keyzones(sockfd, engine->config);
-	if (!error) {
-		perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
-		perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
-						   engine->config->automatic_keygen_duration);
-		flush_all_tasks(sockfd, engine);
+int
+handled_update_all_cmd(int sockfd, engine_type* engine, const char *cmd,
+	ssize_t n)
+{
+	const char *scmd = "update all";
+	cmd = ods_check_command(cmd,n,scmd);
+	if (!cmd) return 0; // not handled
+	ods_log_debug("[%s] %s command", module_str, scmd);
+	time_t tstart = time(NULL);
+
+	if (!check_all_task(sockfd, engine)) {
+		engine->need_to_reload = 1;
+		lock_basic_alarm(&engine->signal_cond);
 	}
 	ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 	return 1;

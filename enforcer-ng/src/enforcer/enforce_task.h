@@ -33,7 +33,7 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-time_t perform_enforce(int sockfd, engine_type *engine, int bForce,
+time_t perform_enforce_lock(int sockfd, engine_type *engine, int bForce,
                        task_type *task);
 
 task_type *enforce_task(engine_type *engine, bool all);

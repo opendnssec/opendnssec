@@ -91,7 +91,7 @@ struct engineconfig_struct {
  *
  */
 engineconfig_type* engine_config(allocator_type* allocator,
-    const char* cfgfile, int cmdline_verbosity);
+    const char* cfgfile, int cmdline_verbosity, engineconfig_type* oldcfg);
 
 /**
  * Check configuration.

@@ -33,6 +33,14 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool perform_update_kasp(int sockfd, engineconfig_type *config);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

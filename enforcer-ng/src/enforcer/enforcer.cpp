@@ -47,8 +47,8 @@
 #include "enforcer/enforcerdata.h"
 #include "policy/kasp.pb.h"
 #include "hsmkey/hsmkey.pb.h"
+#include "libhsm.h"
 
-#include <libhsm.h>
 #include <libhsmdns.h>
 #include <ldns/ldns.h>
 

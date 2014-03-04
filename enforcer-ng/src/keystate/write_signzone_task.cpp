@@ -46,16 +46,14 @@ static const char *module_str = "write_signzone_task";
 int
 perform_write_signzone_file(int sockfd, engineconfig_type *config)
 {
-
     //write signzone file
     std::string signzone_file(config->working_dir);
     signzone_file.append("/");
     signzone_file.append(OPENDNSSEC_ENFORCER_ZONELIST);
 
-	if (!perform_zonelist_export_to_file(signzone_file,config)) {
-    	ods_log_error_and_printf(sockfd, module_str, 
-            	"failed to write %s", signzone_file.c_str());
-	}
-
+    if (!perform_zonelist_export_to_file(signzone_file,config)) {
+        ods_log_error_and_printf(sockfd, module_str, 
+                "failed to write %s", signzone_file.c_str());
+    }
     return 1;
 }

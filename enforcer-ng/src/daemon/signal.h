@@ -40,11 +40,6 @@
 extern "C" {
 #endif
 
-#define SIGNAL_RUN 0
-#define SIGNAL_INIT 1
-#define SIGNAL_RELOAD 2
-#define SIGNAL_SHUTDOWN 3
-
 struct engine_struct;
 
 /**

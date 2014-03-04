@@ -35,9 +35,9 @@
 #include "config.h"
 #include "shared/status.h"
 #include "signer/stats.h"
+#include "libhsm.h"
 
 #include <ldns/ldns.h>
-#include <libhsm.h>
 
 /**
  * RRSIG.

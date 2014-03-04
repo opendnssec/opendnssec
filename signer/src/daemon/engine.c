@@ -44,9 +44,9 @@
 #include "shared/util.h"
 #include "signer/zonelist.h"
 #include "wire/tsig.h"
+#include "libhsm.h"
 
 #include <errno.h>
-#include <libhsm.h>
 #include <libxml/parser.h>
 #include <signal.h>
 #include <stdio.h>

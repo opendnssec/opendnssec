@@ -26,7 +26,6 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include "update_repositorylist_task.h"
 
 #include "config.h"
 #include "daemon/cfg.h"
@@ -36,7 +35,10 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "utils/kc_helper.h"
-#include <libhsm.h>
+#include "daemon/engine.h"
+#include "libhsm.h"
+
+#include "update_repositorylist_task.h"
 
 #include <errno.h>
 #include <stdio.h>
