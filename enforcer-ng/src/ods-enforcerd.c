@@ -377,18 +377,6 @@ main(int argc, char* argv[])
             break;
         }
 
-        if (engine->database_ready) {
-            if (!perform_update_kasp(-1, engine->config) ||
-                !perform_update_keyzones(-1, engine->config))
-            {
-                ods_log_error("Errors found in one of the XML files. "
-                    "Please run ods-kaspcheck and consult the log files.");
-                returncode = 5;
-                break;
-            }
-            perform_update_hsmkeys(-1, engine->config, 0);
-        }
-
         /* do daemon housekeeping: pid, privdrop, fork, log */
         if ((status = engine_setup(engine)) != ODS_STATUS_OK) {
             ods_log_error("setup failed: %s", ods_status2str(status));
