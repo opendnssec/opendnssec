@@ -37,12 +37,12 @@
 #include "config.h"
 #include "shared/status.h"
 #include "shared/keys.h"
+#include "libhsm.h"
 
 #include <ctype.h>
 #include <stdint.h>
 
 #include <ldns/ldns.h>
-#include <libhsm.h>
 #include <libhsmdns.h>
 
 #ifdef __cplusplus

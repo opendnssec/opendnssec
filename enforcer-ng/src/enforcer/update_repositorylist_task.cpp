@@ -38,11 +38,10 @@
 #include "shared/status.h"
 #include "utils/kc_helper.h"
 #include "daemon/engine.h"
+#include "libhsm.h"
 
 #include "update_repositorylist_task.h"
 
-
-#include <libhsm.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>

@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include <libhsm.h>
+#include "libhsm.h"
 #include <libhsmdns.h>
 
 #define PTHREAD_THREADS_MAX 2048

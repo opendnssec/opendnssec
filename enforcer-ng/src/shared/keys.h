@@ -36,6 +36,7 @@
 
 #include "shared/allocator.h"
 #include "shared/status.h"
+#include "libhsm.h"
 
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
@@ -44,7 +45,6 @@
 # include <unistd.h>
 #endif
 #include <ldns/ldns.h>
-#include <libhsm.h>
 #include <libhsmdns.h>
 
 #ifdef __cplusplus
