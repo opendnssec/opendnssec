@@ -62,7 +62,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 }
 
 static struct cmd_func_block funcblock = {
-	"policy resalt", &usage, NULL, &handles, &run
+	"policy purge", &usage, NULL, &handles, &run
 };
 
 struct cmd_func_block*
