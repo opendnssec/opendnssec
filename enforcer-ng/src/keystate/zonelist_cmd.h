@@ -30,22 +30,15 @@
 #ifndef _KEYSTATE_ZONELIST_CMD_H_
 #define _KEYSTATE_ZONELIST_CMD_H_
 
-#include "daemon/engine.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void help_zonelist_export_cmd(int sockfd);
-void help_zonelist_import_cmd(int sockfd);
-
-int handled_zonelist_export_cmd(int sockfd, engine_type* engine,
-                         const char *cmd, ssize_t n);
-int handled_zonelist_import_cmd(int sockfd, engine_type* engine,
-                         const char *cmd, ssize_t n);
+struct cmd_func_block* zonelist_import_funcblock(void);
+struct cmd_func_block* zonelist_export_funcblock(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* _KEYSTATE_ZONELIST_CMD_H_ */

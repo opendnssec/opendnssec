@@ -74,6 +74,7 @@
 #include "keystate/zone_list_cmd.h"
 #include "keystate/zone_del_cmd.h"
 #include "keystate/zone_add_cmd.h"
+#include "keystate/zonelist_cmd.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -423,6 +424,8 @@ cmd_funcs_avail(void)
         &zone_list_funcblock,
         &zone_add_funcblock,
         &zone_del_funcblock,
+        &zonelist_export_funcblock,
+        &zonelist_import_funcblock,
         NULL
     };
     return fb;
