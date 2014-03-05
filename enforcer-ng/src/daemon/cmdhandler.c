@@ -68,6 +68,7 @@
 #include "enforcer/update_all_cmd.h"
 #include "policy/update_kasp_cmd.h"
 #include "policy/policy_import_cmd.h"
+#include "policy/policy_export_cmd.h"
 #include "keystate/update_keyzones_cmd.h"
 
 #include "daemon/cmdhandler.h"
@@ -413,6 +414,7 @@ cmd_funcs_avail(void)
         &update_keyzones_funcblock,
         &policy_list_funcblock,
         &policy_import_funcblock,
+        &policy_export_funcblock,
         NULL
     };
     return fb;

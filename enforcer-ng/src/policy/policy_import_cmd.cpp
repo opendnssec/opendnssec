@@ -61,9 +61,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	ods_log_debug("[%s] %s command", module_str, policy_import_funcblock()->cmdname);
 	if (!perform_update_kasp(sockfd, engine->config)) return 1;
 
-	//TODO: Need error checking so we only do this if the update succeeds
 	error = perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
-					   engine->config->automatic_keygen_duration);
+		engine->config->automatic_keygen_duration);
 
 	flush_all_tasks(sockfd, engine);
 	return error;
