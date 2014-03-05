@@ -34,6 +34,7 @@
 #include "scheduler/task.h"
 
 void perform_rollover_list(int sockfd, engineconfig_type *config,
+    const char *zone,
 	int bverbose);
 
 #endif
