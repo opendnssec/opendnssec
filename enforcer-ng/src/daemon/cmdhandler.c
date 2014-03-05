@@ -61,8 +61,9 @@
 
 /* commands to handle */
 #include "policy/policy_resalt_cmd.h"
-#include "enforcer/setup_cmd.h"
+#include "policy/policy_list_cmd.h"
 #include "daemon/help_cmd.h"
+#include "enforcer/setup_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
 #include "policy/update_kasp_cmd.h"
@@ -409,6 +410,7 @@ cmd_funcs_avail(void)
         &update_all_funcblock,
         &update_kasp_funcblock,
         &update_keyzones_funcblock,
+        &policy_list_funcblock,
         NULL
     };
     return fb;

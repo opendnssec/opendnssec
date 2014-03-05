@@ -27,40 +27,44 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "policy/policy_list_cmd.h"
-#include "policy/policy_list_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
 
+#include "policy/policy_list_task.h"
+#include "policy/policy_list_cmd.h"
+
 static const char *module_str = "policy_list_cmd";
 
-void help_policy_list_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-			   "policy list            List policies.\n");
+	ods_printf(sockfd,
+		"policy list            List policies.\n");
 }
 
-int handled_policy_list_cmd(int sockfd, engine_type* engine, const char *cmd, 
-                                ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd =  "policy list";
+	return ods_check_command(cmd, n, policy_list_funcblock()->cmdname)?1:0;
+}
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	(void)cmd; (void)n;
+	ods_log_debug("[%s] %s command", module_str, policy_list_funcblock()->cmdname);
+	return perform_policy_list(sockfd, engine->config);
+}
 
-    ods_log_debug("[%s] %s command", module_str, scmd);
-    
-    time_t tstart = time(NULL);
+static struct cmd_func_block funcblock = {
+	"policy list", &usage, NULL, &handles, &run
+};
 
-    perform_policy_list(sockfd, engine->config);
-
-    ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+struct cmd_func_block*
+policy_list_funcblock(void)
+{
+	return &funcblock;
 }

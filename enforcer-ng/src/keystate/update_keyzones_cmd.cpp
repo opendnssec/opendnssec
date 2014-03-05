@@ -57,6 +57,7 @@ handles(const char *cmd, ssize_t n)
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
+	(void)cmd; (void)n;
 	int error;
 	ods_log_debug("[%s] %s command", module_str, update_keyzones_funcblock()->cmdname);
 	if (!perform_update_keyzones(sockfd,engine->config)) return 1;
