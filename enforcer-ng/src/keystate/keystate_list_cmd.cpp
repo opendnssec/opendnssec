@@ -27,72 +27,74 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "keystate/keystate_list_cmd.h"
+#include "daemon/engine.h"
 #include "keystate/keystate_list_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "keystate/keystate_list_cmd.h"
+
 
 static const char *module_str = "keystate_list_cmd";
 
-void help_keystate_list_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-               "key list               List the keys in the enforcer database.\n"
-               "      [--verbose]                (aka -v)  also show additional key parameters.\n"
-               "      [--debug]                  (aka -d)  print information about the keystate.\n"
-        );
+	ods_printf(sockfd,
+		"key list               List the keys in the enforcer database.\n"
+		"      [--verbose]                (aka -v)  also show additional key parameters.\n"
+		"      [--debug]                  (aka -d)  print information about the keystate.\n"
+	);
 }
 
-int handled_keystate_list_cmd(int sockfd, engine_type* engine, const char *cmd,
-                              ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, key_list_funcblock()->cmdname)?1:0;
+}
+
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
-    const int NARGV = sizeof(argv)/sizeof(char*);
+    const int NARGV = 8;
+    const char *argv[NARGV];
     int argc;
-    const char *scmd = "key list";
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
-    
-    ods_log_debug("[%s] %s command", module_str, scmd);
+    ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
     
     // Use buf as an intermediate buffer for the command.
-    strncpy(buf,cmd,sizeof(buf));
+    strncpy(buf, cmd, sizeof(buf));
     buf[sizeof(buf)-1] = '\0';
     
     // separate the arguments
-    argc = ods_str_explode(buf,NARGV,argv);
+    argc = ods_str_explode(buf, NARGV, argv);
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
-                        module_str,scmd);
+                        module_str,key_list_funcblock()->cmdname);
         ods_printf(sockfd,"too many arguments\n");
-		help_keystate_list_cmd(sockfd);
-        return 1; // errors, but handled
+        return -1;
     }
     
     bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
     bool bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
-                        module_str,scmd);
+                        module_str,key_list_funcblock()->cmdname);
         ods_printf(sockfd,"unknown arguments\n");
-		help_keystate_list_cmd(sockfd);
-        return 1; // errors, but handled
+        return -1;
     }
-    
-    time_t tstart = time(NULL);
+    return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug);
+}
 
-    perform_keystate_list(sockfd, engine->config, bVerbose, bDebug);
-	
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    
-    return 1;
+static struct cmd_func_block funcblock = {
+	"key list", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+key_list_funcblock(void)
+{
+	return &funcblock;
 }

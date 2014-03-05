@@ -47,19 +47,19 @@
 
 static const char *module_str = "update_hsmkeys_task";
 
-static void 
+static int 
 import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 {
     hsm_ctx_t * hsm_ctx = hsm_create_context();
     if (!hsm_ctx) {
         ods_log_error_and_printf(sockfd, module_str, "could not connect to HSM");
-        return;
+        return 1;
     }
     size_t nkeys;
     hsm_key_t **kl = hsm_list_keys(hsm_ctx, &nkeys);
     if (!kl) {
         ods_log_error_and_printf(sockfd, module_str, "could not list hsm keys");
-        return;
+        return 1;
     }
 
     ods_printf(sockfd,
@@ -77,9 +77,9 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 								 "could not start database transaction");
 		hsm_key_list_free(kl,nkeys);
 		hsm_destroy_context(hsm_ctx);
-        return;
+        return 1;
 	}
-	
+	int error = 0;
     for (int i=0; i<nkeys; ++i) {
         hsm_key_t *k = kl[i];
         hsm_key_info_t *kinf = hsm_get_key_info(hsm_ctx,k);
@@ -93,6 +93,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 
 			ods_log_error_and_printf(sockfd, module_str,
 									 "database query failed");
+			error = 1;
 			break;
 		}
 			
@@ -109,6 +110,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 				// This is an unexpected error !
 				ods_log_error_and_printf(sockfd, module_str,
 										 "database record retrieval failed");
+				error = 1;
 				break;
 			} else {
 				// release query result, we don't need it anymore.
@@ -169,6 +171,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 				
 				ods_log_error_and_printf(sockfd, module_str,
 										 "new HsmKey missing required fields");				
+				error = 1;
 				break;
 			}
 			
@@ -181,6 +184,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 				ods_log_error_and_printf(sockfd, module_str,
 										 "database record insertion failed");
 				
+				error = 1;
 				break;
 			} else {
 				
@@ -199,9 +203,10 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
     }
     hsm_key_list_free(kl,nkeys);
     hsm_destroy_context(hsm_ctx);
+    return error;
 }
 
-void 
+int 
 perform_update_hsmkeys(int sockfd, engineconfig_type *config, int bManual)
 {
 	// check that we are using a compatible protobuf version.
@@ -209,13 +214,14 @@ perform_update_hsmkeys(int sockfd, engineconfig_type *config, int bManual)
 	
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return; // errors have already been reported.
+		return 1; // errors have already been reported.
 	
 	// Go through all the keys in HSMs and import them if they are 
 	// not already present
 	if (bManual) {
 		ods_printf(sockfd, "Database set to: %s\n", config->datastore);
 		// DEPRECATED, key state import should selectively import keys.
-		import_all_keys_from_all_hsms(sockfd,conn);
+		return import_all_keys_from_all_hsms(sockfd,conn);
 	}
+	return 0;
 }

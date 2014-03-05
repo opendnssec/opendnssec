@@ -27,54 +27,54 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "keystate/keystate_export_cmd.h"
+#include "daemon/engine.h"
 #include "keystate/keystate_export_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "keystate/keystate_export_cmd.h"
 
 static const char *module_str = "keystate_export_cmd";
 
-void help_keystate_export_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
 	ods_printf(sockfd,
-               "key export             Export DNSKEY(s) for a given zone.\n"
-               "      --zone <zone>              (aka -z)  zone.\n"
-               "      [--ds]                     (aka -d)  export DS in BIND format.\n");
+		"key export             Export DNSKEY(s) for a given zone.\n"
+		"      --zone <zone>              (aka -z)  zone.\n"
+		"      [--ds]                     (aka -d)  export DS in BIND format.\n"
+	);
 }
 
-int handled_keystate_export_cmd(int sockfd, engine_type* engine,
-								const char *cmd, ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, key_export_funcblock()->cmdname)?1:0;
+}
+
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
-    const int NARGV = sizeof(argv)/sizeof(char*);
+    const int NARGV = 8;
+    const char *argv[NARGV];
     int argc;
-    const char *scmd = "key export";
-
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
     
-    ods_log_debug("[%s] %s command", module_str, scmd);
+    ods_log_debug("[%s] %s command", module_str, key_export_funcblock()->cmdname);
     
     // Use buf as an intermediate buffer for the command.
-    strncpy(buf,cmd,sizeof(buf));
+    strncpy(buf, cmd, sizeof(buf));
     buf[sizeof(buf)-1] = '\0';
     
     // separate the arguments
-    argc = ods_str_explode(buf,NARGV,argv);
+    argc = ods_str_explode(buf, NARGV, argv);
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
-                        module_str,scmd);
+                        module_str, key_export_funcblock()->cmdname);
         ods_printf(sockfd,"too many arguments\n");
-		help_keystate_export_cmd(sockfd);
-        return 1; // errors, but handled
+        return -1;
     }
     
     const char *zone = NULL;
@@ -83,21 +83,26 @@ int handled_keystate_export_cmd(int sockfd, engine_type* engine,
 	if (ods_find_arg(&argc,argv,"ds","d") >= 0) bds = 1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
-                        module_str,scmd);
+                        module_str, key_export_funcblock()->cmdname);
         ods_printf(sockfd,"unknown arguments\n");
-		help_keystate_export_cmd(sockfd);
-        return 1; // errors, but handled
+        return -1;
     }
     if (!zone) {
         ods_log_warning("[%s] expected option --zone <zone> for %s command",
-                        module_str,scmd);
+                        module_str, key_export_funcblock()->cmdname);
         ods_printf(sockfd,"expected --zone <zone> option\n");
-		help_keystate_export_cmd(sockfd);
-        return 1; // errors, but handled
+        return -1;
     }
-    
     /* perform task immediately */
-    perform_keystate_export(sockfd,engine->config,zone,bds?1:0);
+    return perform_keystate_export(sockfd,engine->config,zone,bds?1:0);
+}
 
-    return 1;
+static struct cmd_func_block funcblock = {
+	"key export", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+key_export_funcblock(void)
+{
+	return &funcblock;
 }

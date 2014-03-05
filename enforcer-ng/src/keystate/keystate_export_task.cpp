@@ -169,22 +169,22 @@ load_kasp_policy(OrmConn conn,const std::string &name,
 	return OrmGetMessage(rows, policy, true);
 }
 
-void 
+int 
 perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 						int bds)
 {
 	#define LOG_AND_RETURN(errmsg) do { ods_log_error_and_printf(\
-		sockfd,module_str,errmsg); return; } while (0)
+		sockfd,module_str,errmsg); return 1; } while (0)
 	#define LOG_AND_RETURN_1(errmsg,param) do { ods_log_error_and_printf(\
-		sockfd,module_str,errmsg,param); return; } while (0)
+		sockfd,module_str,errmsg,param); return 1; } while (0)
 	#define LOG_AND_RETURN_2(errmsg,param,param2) do { ods_log_error_and_printf(\
-		sockfd,module_str,errmsg,param,param2); return; } while (0)
+		sockfd,module_str,errmsg,param,param2); return 1; } while (0)
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return; // error already reported.
+		return 1;
 	
 	OrmTransactionRW transaction(conn);
 	if (!transaction.started())
@@ -202,7 +202,7 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 	
 	if (!OrmFirst(rows)) {
 		ods_printf(sockfd,"zone %s not found\n",zone);
-		return;
+		return 1;
 	}
 	
 	OrmContextRef context;
@@ -249,4 +249,5 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 			}
 		}
 	}
+	return 0;
 }

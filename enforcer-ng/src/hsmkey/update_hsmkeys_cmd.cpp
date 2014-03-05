@@ -27,45 +27,45 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "hsmkey/hsmkey.pb.h"
-
-#include "hsmkey/update_hsmkeys_cmd.h"
+#include "daemon/engine.h"
 #include "hsmkey/update_hsmkeys_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "hsmkey/update_hsmkeys_cmd.h"
 
 static const char *module_str = "keystate_import_cmd";
 
-void
-help_keystate_import_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-               "key import             Bulk import of all keys found in all HSMs.\n"
-        );
+	ods_printf(sockfd,
+		"key import             Bulk import of all keys found in all HSMs.\n"
+	);
 }
 
-int
-handled_keystate_import_cmd(int sockfd, engine_type* engine, const char *cmd,
-                           ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd = "key import";
+	return ods_check_command(cmd, n, key_import_funcblock()->cmdname)?1:0;
+}
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
 
-    ods_log_debug("[%s] %s command", module_str, scmd);
+    ods_log_debug("[%s] %s command", module_str, key_import_funcblock()->cmdname);
+    return perform_update_hsmkeys(sockfd,engine->config,true);
+}
 
-    time_t tstart = time(NULL);
+static struct cmd_func_block funcblock = {
+	"key import", &usage, NULL, &handles, &run
+};
 
-    perform_update_hsmkeys(sockfd,engine->config,true);
-	
-    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-	return 1;
+struct cmd_func_block*
+key_import_funcblock(void)
+{
+	return &funcblock;
 }

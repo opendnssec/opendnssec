@@ -110,7 +110,7 @@ map_keystate(const ::ods::keystate::KeyData &key)
  * @param zone: zone key belongs to
  * @param key: key to evaluate
  * @return: human readable transition time/event */
-char*
+static char*
 map_keytime(::ods::keystate::EnforcerZone zone, 
 	const ::ods::keystate::KeyData &key)
 {
@@ -131,7 +131,7 @@ map_keytime(::ods::keystate::EnforcerZone zone,
 	return strdup(ct);
 }
 
-void 
+static int
 perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -141,13 +141,13 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 	const char* fmt = "%-31s %-8s %-9s %s\n";
 
 	if (!ods_orm_connect(sockfd, config, conn))
-		return;
+		return 1;
 	OrmTransaction transaction(conn);
 	
 	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 		ods_log_error("[%s] error enumerating zones", module_str);
 		ods_printf(sockfd, "error enumerating zones\n");
-		return;
+		return 1;
 	}
 	
 	ods_printf(sockfd, "Keys:\n");
@@ -158,7 +158,7 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 		if (!OrmGetMessage(rows, zone, true)) {
 			ods_log_error("[%s] error reading zone", module_str);
 			ods_printf(sockfd, "error reading zone\n");
-			return;
+			return 1;
 		}
 			
 		for (int k=0; k<zone.keys_size(); ++k) {
@@ -171,9 +171,10 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 			free(tchange);
 		}
 	}
+	return 0;
 }
 
-void 
+static int
 perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -184,13 +185,13 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n";
 
 	if (!ods_orm_connect(sockfd, config, conn))
-		return;
+		return 1;
 	OrmTransaction transaction(conn);
 	
 	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 		ods_log_error("[%s] error enumerating zones", module_str);
 		ods_printf(sockfd, "error enumerating zones\n");
-		return;
+		return 1;
 	}
 	
 	ods_printf(sockfd, "Keys:\n");
@@ -205,7 +206,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 		if (!OrmGetMessage(rows, zone, true)) {
 			ods_log_error("[%s] error reading zone", module_str);
 			ods_printf(sockfd, "error reading zone\n");
-			return;
+			return 1;
 		}
 		
 		for (int k=0; k<zone.keys_size(); ++k) {
@@ -225,22 +226,23 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 			free(tchange);
 		}
 	}
+	return 0;
 }
 
-void 
+static int
 perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return; // error already reported.
+		return 1;
 	
 	{	OrmTransaction transaction(conn);
 		if (!transaction.started()) {
 			ods_log_error("[%s] Could not start database transaction", module_str);
 			ods_printf(sockfd, "error: Could not start database transaction\n");
-			return;
+			return 1;
 		}
 		
 		::ods::keystate::EnforcerZone zone;
@@ -249,7 +251,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 			if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 				ods_log_error("[%s] error enumerating zones", module_str);
 				ods_printf(sockfd, "error enumerating zones\n");
-				return;
+				return 1;
 			}
 			
 			ods_printf(sockfd,
@@ -273,7 +275,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 				if (!OrmGetMessage(rows, zone, true)) {
 					ods_log_error("[%s] error reading zone", module_str);
 					ods_printf(sockfd, "error reading zone\n");
-					return;
+					return 1;
 				}
 					
 				for (int k=0; k<zone.keys_size(); ++k) {
@@ -299,16 +301,17 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 			}
 		}
     }
+    return 0;
 }
 
-void 
+int 
 perform_keystate_list(int sockfd, engineconfig_type *config, 
 	bool bverbose, bool bdebug)
 {
 	if (bdebug)
-		perform_keystate_list_debug(sockfd, config);
+		return perform_keystate_list_debug(sockfd, config);
 	else if (bverbose)
-		perform_keystate_list_verbose(sockfd, config);
+		return perform_keystate_list_verbose(sockfd, config);
 	else
-		perform_keystate_list_compat(sockfd, config);
+		return perform_keystate_list_compat(sockfd, config);
 }

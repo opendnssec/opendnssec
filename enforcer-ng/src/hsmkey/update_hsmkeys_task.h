@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-void perform_update_hsmkeys(int sockfd, engineconfig_type *config, int bManual);
+int perform_update_hsmkeys(int sockfd, engineconfig_type *config, int bManual);
 
 #ifdef __cplusplus
 }

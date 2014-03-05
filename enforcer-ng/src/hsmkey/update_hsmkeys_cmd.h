@@ -30,19 +30,14 @@
 #ifndef _HSMKEY_UPDATE_HSMKEYS_CMD_H_
 #define _HSMKEY_UPDATE_HSMKEYS_CMD_H_
 
-#include "daemon/engine.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void help_keystate_import_cmd(int sockfd);
-
-int handled_keystate_import_cmd(int sockfd, engine_type* engine, const char *cmd,
-                           ssize_t n);
+struct cmd_func_block* key_import_funcblock(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* _HSMKEY_UPDATE_HSMKEYS_CMD_H_ */
