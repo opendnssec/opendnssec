@@ -33,8 +33,8 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void perform_backup_prepare(int sockfd, engineconfig_type *config, const char *repository);
-void perform_backup_commit(int sockfd, engineconfig_type *config, const char *repository);
-void perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repository);
-void perform_backup_list(int sockfd, engineconfig_type *config, const char *repository);
+int perform_backup_prepare(int sockfd, engineconfig_type *config, const char *repository);
+int perform_backup_commit(int sockfd, engineconfig_type *config, const char *repository);
+int perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repository);
+int perform_backup_list(int sockfd, engineconfig_type *config, const char *repository);
 #endif

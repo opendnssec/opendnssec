@@ -27,94 +27,102 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "hsmkey/hsmkey.pb.h"
-
-#include "hsmkey/backup_hsmkeys_cmd.h"
+#include "daemon/engine.h"
 #include "hsmkey/backup_hsmkeys_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "hsmkey/backup_hsmkeys_cmd.h"
 
 static const char *module_str = "backup_hsmkeys_cmd";
 
 
-void
-help_backup_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
 	ods_printf(sockfd,
-		       "backup list            Enumerate backup status of keys.\n"
-		       "      --repository <repository>  (aka -r)  Limit to this repository.\n");
+		"backup list            Enumerate backup status of keys.\n"
+		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
 	ods_printf(sockfd,
-		       "backup prepare         Flag the keys found in all configured HSMs as to be \n"
-			   "                       backed up.\n"
-		       "      --repository <repository>  (aka -r)  Limit to this repository.\n");
+		"backup prepare         Flag the keys found in all configured HSMs as to be \n"
+		"                       backed up.\n"
+		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
 	ods_printf(sockfd,
-		       "backup commit          Mark flagged keys found in all configured HSMs as\n"
-			   "                       backed up.\n"
-		       "      --repository <repository>  (aka -r)  Limit to this repository.\n");
+		"backup commit          Mark flagged keys found in all configured HSMs as\n"
+		"                       backed up.\n"
+		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
 	ods_printf(sockfd,
-		       "backup rollback        Cancel a 'backup prepare' action.\n"
-		       "      --repository <repository>  (aka -r)  Limit to this repository.\n");
+		"backup rollback        Cancel a 'backup prepare' action.\n"
+		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
+}
+
+static int
+handles(const char *cmd, ssize_t n)
+{
+	if (ods_check_command(cmd, n, "backup prepare")) return 1;
+	if (ods_check_command(cmd, n, "backup commit")) return 1;
+	if (ods_check_command(cmd, n, "backup rollback")) return 1;
+	if (ods_check_command(cmd, n, "backup list")) return 1;
+	return 0;
 }
 
 static int
 handled_backup_cmd(int sockfd, engine_type* engine, 
 		const char *scmd, ssize_t n, 
-		void task(int, engineconfig_type *, const char *)) {
+		int task(int, engineconfig_type *, const char *))
+{
 	char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
-    const int NARGV = sizeof(argv)/sizeof(char*);
+    const int NARGV = 8;
+    const char *argv[NARGV];
     int argc;
 	const char *repository = NULL;
 
 	ods_log_debug("[%s] %s command", module_str, scmd);
 
 	// Use buf as an intermediate buffer for the command.
-	strncpy(buf,scmd,sizeof(buf));
+	strncpy(buf, scmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
 	// separate the arguments
-	argc = ods_str_explode(buf,NARGV,argv);
+	argc = ods_str_explode(buf, NARGV, argv);
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str,scmd);
 		ods_printf(sockfd,"too many arguments\n");
-		help_backup_cmd(sockfd);
-		return 1; // errors, but handled
+		return -1;
 	}
 	(void)ods_find_arg_and_param(&argc,argv,"repository","r",&repository);
-
-	time_t tstart = time(NULL);
-	task(sockfd,engine->config, repository);
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",
-		scmd,time(NULL)-tstart);
-	return 1;
+	return task(sockfd,engine->config, repository);
 }
 
 
-int
-handled_backup_cmds(int sockfd, engine_type* engine, 
-		const char *cmd, ssize_t n)
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
-	int res;
-	       if (ods_check_command(cmd,n,"backup prepare")) {
-		res = handled_backup_cmd(sockfd, engine, 
+	if (ods_check_command(cmd,n,"backup prepare")) {
+		return handled_backup_cmd(sockfd, engine, 
 			cmd, n, &perform_backup_prepare);
 	} else if (ods_check_command(cmd,n,"backup commit")) {
-		res = handled_backup_cmd(sockfd, engine, 
+		return handled_backup_cmd(sockfd, engine, 
 			cmd, n, &perform_backup_commit);
 	} else if (ods_check_command(cmd,n,"backup rollback")) {
-		res = handled_backup_cmd(sockfd, engine, 
+		return handled_backup_cmd(sockfd, engine, 
 			cmd, n, &perform_backup_rollback);
 	} else if (ods_check_command(cmd,n,"backup list")) {
-		res = handled_backup_cmd(sockfd, engine, 
+		return handled_backup_cmd(sockfd, engine, 
 			cmd, n, &perform_backup_list);
 	} else {
-		return 0;
+		return -1;
 	}
-	return res;
+}
+
+static struct cmd_func_block funcblock = {
+	"backup", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+backup_funcblock(void)
+{
+	return &funcblock;
 }

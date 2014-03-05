@@ -66,6 +66,7 @@
 #include "enforcer/setup_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
+#include "enforcer/enforce_cmd.h"
 #include "policy/update_kasp_cmd.h"
 #include "policy/policy_import_cmd.h"
 #include "policy/policy_export_cmd.h"
@@ -79,6 +80,14 @@
 #include "keystate/keystate_ds_seen_cmd.h"
 #include "keystate/keystate_ds_retract_cmd.h"
 #include "keystate/keystate_ds_gone_cmd.h"
+#include "keystate/keystate_export_cmd.h"
+#include "keystate/keystate_list_cmd.h"
+#include "keystate/rollover_list_cmd.h"
+#include "keystate/keystate_rollover_cmd.h"
+#include "hsmkey/hsmkey_gen_cmd.h"
+#include "hsmkey/update_hsmkeys_cmd.h"
+#include "signconf/signconf_cmd.h"
+
 
 #include "daemon/cmdhandler.h"
 
@@ -414,26 +423,34 @@ static fbgetfunctype*
 cmd_funcs_avail(void)
 {
     static struct cmd_func_block* (*fb[])(void) = {
-        &resalt_funcblock,
-        &setup_funcblock,
+        &enforce_funcblock,
         &help_funcblock,
-        &update_repositorylist_funcblock,
+        &key_ds_gone_funcblock,
+        &key_ds_retract_funcblock,
+        &key_ds_seen_funcblock,
+        &key_ds_submit_funcblock,
+        &key_export_funcblock,
+        &key_gen_funcblock,
+        &key_import_funcblock,
+        &key_list_funcblock,
+        &key_rollover_funcblock,
+        &policy_export_funcblock,
+        &policy_import_funcblock,
+        &policy_list_funcblock,
+        &policy_purge_funcblock,
+        &resalt_funcblock,
+        &rollover_list_funcblock,
+        &setup_funcblock,
+        &signconf_funcblock,
         &update_all_funcblock,
         &update_kasp_funcblock,
         &update_keyzones_funcblock,
-        &policy_list_funcblock,
-        &policy_import_funcblock,
-        &policy_export_funcblock,
-        &policy_purge_funcblock,
-        &zone_list_funcblock,
+        &update_repositorylist_funcblock,
         &zone_add_funcblock,
         &zone_del_funcblock,
         &zonelist_export_funcblock,
+        &zone_list_funcblock,
         &zonelist_import_funcblock,
-        &key_ds_submit_funcblock,
-        &key_ds_seen_funcblock,
-        &key_ds_retract_funcblock,
-        &key_ds_gone_funcblock,
         NULL
     };
     return fb;

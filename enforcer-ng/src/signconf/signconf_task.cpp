@@ -215,7 +215,7 @@ write_signer_configuration_to_file(int sockfd,
  *      Write signer configuration XML file at the correct location taken
  *          from zonedata signerconfiguration field in the zone 
  */
-void 
+int 
 perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -223,13 +223,13 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
     
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return;
+		return 1;
 	
 	{	OrmTransactionRW transaction(conn);
 		if (!transaction.started()) {
 			ods_log_error_and_printf(sockfd, module_str,
 									 "could not start database transaction");
-			return;
+			return 1;
 		}
 		
 		{	OrmResultRef rows;
@@ -243,7 +243,7 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 			if (!ok) {
 				ods_log_error_and_printf(sockfd, module_str,
 										 "error enumerating zones");
-				return;
+				return 1;
 			}
 
 			// Go through all the enumerated zones that need to be written.
@@ -254,7 +254,7 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 				if (!OrmGetMessage(rows, zone, true,context)) {
 					ods_log_error_and_printf(sockfd, module_str,
 											 "error reading zone");
-					return;
+					return 1;
 				}
 
 				::ods::kasp::Policy policy;
@@ -310,10 +310,11 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 				}
 			}
 			else {
-				transaction.rollback();				
+				transaction.rollback();
 			}
 		}
 	}
+	return 0;
 }
 
 static task_type * 

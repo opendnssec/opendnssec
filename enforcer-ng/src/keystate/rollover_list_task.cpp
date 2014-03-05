@@ -77,7 +77,7 @@ map_keytime(const EnforcerZone zone, const KeyData key)
 	return strdup(ct);
 }
 
-void 
+int 
 perform_rollover_list(int sockfd, engineconfig_type *config, int bverbose)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -86,12 +86,12 @@ perform_rollover_list(int sockfd, engineconfig_type *config, int bverbose)
 	OrmResultRef rows;
 	const char* fmt = "%-31s %-8s %-30s\n";
 
-	if (!ods_orm_connect(sockfd, config, conn)) return;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
 	OrmTransaction transaction(conn);
 	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 		ods_log_error("[%s] error enumerating zones", module_str);
 		ods_printf(sockfd, "error enumerating zones\n");
-		return;
+		return 1;
 	}
 	
 	ods_printf(sockfd, "Keys:\n");
@@ -100,7 +100,7 @@ perform_rollover_list(int sockfd, engineconfig_type *config, int bverbose)
 		if (!OrmGetMessage(rows, zone, true)) {
 			ods_log_error("[%s] error reading zone", module_str);
 			ods_printf(sockfd, "error reading zone\n");
-			return;
+			return 1;
 		}
 		for (int k=0; k<zone.keys_size(); ++k) {
 			const KeyData &key = zone.keys(k);
@@ -110,4 +110,5 @@ perform_rollover_list(int sockfd, engineconfig_type *config, int bverbose)
 			free(tchange);
 		}
 	}
+	return 0;
 }

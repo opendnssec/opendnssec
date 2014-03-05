@@ -48,19 +48,19 @@
 
 static const char *module_str = "backup_hsmkeys_task";
 
-void 
+int 
 perform_backup_prepare(int sockfd, engineconfig_type *config, const char *repository)
 {
 	int keys_marked;
 	// check that we are using a compatible protobuf version.
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
 
 	OrmTransaction transaction(conn);
 	if (!transaction.started()) {
 		ods_printf(sockfd,"error: database transaction failed\n");
-		return;
+		return 1;
 	}
 
 	OrmResultRef rows;
@@ -71,7 +71,7 @@ perform_backup_prepare(int sockfd, engineconfig_type *config, const char *reposi
 			::ods::hsmkey::HsmKey::descriptor(), rows)))
 	{
 		ods_printf(sockfd,"error: key enumeration failed\n");
-		return;
+		return 1;
 	}
 
 	pb::uint64 keyid;
@@ -93,24 +93,25 @@ perform_backup_prepare(int sockfd, engineconfig_type *config, const char *reposi
 	rows.release();
 	if (!transaction.commit()) {
 		ods_printf(sockfd,"error committing transaction.");
-		return;
+		return 1;
 	}
 	ods_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
+	return 0;
 }
 
-void 
+int 
 perform_backup_commit(int sockfd, engineconfig_type *config, const char *repository)
 {
 	int keys_marked;
 	// check that we are using a compatible protobuf version.
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
 
 	OrmTransaction transaction(conn);
 	if (!transaction.started()) {
 		ods_printf(sockfd,"error: database transaction failed\n");
-		return;
+		return 1;
 	}
 
 	OrmResultRef rows;
@@ -121,7 +122,7 @@ perform_backup_commit(int sockfd, engineconfig_type *config, const char *reposit
 			::ods::hsmkey::HsmKey::descriptor(), rows)))
 	{
 		ods_printf(sockfd,"error: key enumeration failed\n");
-		return;
+		return 1;
 	}
 	OrmContextRef context;
 	keys_marked = 0;
@@ -143,24 +144,25 @@ perform_backup_commit(int sockfd, engineconfig_type *config, const char *reposit
 	rows.release();
 	if (!transaction.commit()) {
 		ods_printf(sockfd,"error committing transaction.");
-		return;
+		return 1;
 	}
 	ods_printf(sockfd,"info: keys flagged as backed up: %d\n", keys_marked);
+	return 0;
 }
 
-void 
+int 
 perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repository)
 {
 	int keys_marked;
 	// check that we are using a compatible protobuf version.
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
 
 	OrmTransaction transaction(conn);
 	if (!transaction.started()) {
 		ods_printf(sockfd,"error: database transaction failed\n");
-		return;
+		return 1;
 	}
 
 	OrmResultRef rows;
@@ -171,7 +173,7 @@ perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repos
 			::ods::hsmkey::HsmKey::descriptor(), rows)))
 	{
 		ods_printf(sockfd,"error: key enumeration failed\n");
-		return;
+		return 1;
 	}
 	OrmContextRef context;
 	keys_marked = 0;
@@ -192,12 +194,13 @@ perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repos
 	rows.release();
 	if (!transaction.commit()) {
 		ods_printf(sockfd,"error committing transaction.");
-		return;
+		return 1;
 	}
 	ods_printf(sockfd,"info: keys unflagged for backed up: %d\n", keys_marked);
+	return 0;
 }
 
-void 
+int 
 perform_backup_list(int sockfd, engineconfig_type *config, const char *repository)
 {
 	int keys_marked;
@@ -205,12 +208,12 @@ perform_backup_list(int sockfd, engineconfig_type *config, const char *repositor
 	// check that we are using a compatible protobuf version.
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
 
 	OrmTransaction transaction(conn);
 	if (!transaction.started()) {
 		ods_printf(sockfd,"error: database transaction failed\n");
-		return;
+		return 1;
 	}
 
 	OrmResultRef rows;
@@ -221,7 +224,7 @@ perform_backup_list(int sockfd, engineconfig_type *config, const char *repositor
 			::ods::hsmkey::HsmKey::descriptor(), rows)))
 	{
 		ods_printf(sockfd,"error: key enumeration failed\n");
-		return;
+		return 1;
 	}
 	
 	using namespace std;
@@ -264,6 +267,7 @@ perform_backup_list(int sockfd, engineconfig_type *config, const char *repositor
 
 	if (!transaction.commit()) {
 		ods_printf(sockfd,"error committing transaction.");
-		return;
+		return 1;
 	}
+	return 0;
 }
