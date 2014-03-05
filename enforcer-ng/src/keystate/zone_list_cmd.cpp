@@ -27,40 +27,44 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "keystate/zone_list_cmd.h"
-#include "keystate/zone_list_task.h"
-#include "shared/duration.h"
+#include "daemon/engine.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+#include "keystate/zone_list_task.h"
+
+#include "keystate/zone_list_cmd.h"
 
 static const char *module_str = "zone_list_cmd";
 
-void help_zone_list_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-               "zone list              List zones.\n");
+	ods_printf(sockfd,
+		"zone list              List zones.\n");
 }
 
-int handled_zone_list_cmd(int sockfd, engine_type* engine, const char *cmd, 
-						  ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd =  "zone list";
-    
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
-    
-    ods_log_debug("[%s] %s command", module_str, scmd);
+	return ods_check_command(cmd, n, zone_list_funcblock()->cmdname)?1:0;
+}
 
-    time_t tstart = time(NULL);
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	(void)cmd; (void)n;
+	ods_log_debug("[%s] %s command", module_str, zone_list_funcblock()->cmdname);
+	return perform_zone_list(sockfd,engine->config);
+}
 
-    perform_zone_list(sockfd,engine->config);
+static struct cmd_func_block funcblock = {
+	"policy resalt", &usage, NULL, &handles, &run
+};
 
-    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+struct cmd_func_block*
+zone_list_funcblock(void)
+{
+	return &funcblock;
 }

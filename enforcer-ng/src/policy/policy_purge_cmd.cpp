@@ -27,43 +27,46 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
+#include "daemon/engine.h"
 
-#include "policy/policy_purge_cmd.h"
-#include "policy/policy_purge_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+#include "policy/policy_purge_task.h"
+
+#include "policy/policy_purge_cmd.h"
 
 static const char *module_str = "policy_purge_cmd";
 
-void
-help_policy_purge_cmd(int sockfd){
-	 ods_printf(sockfd,
-			   "policy purge           Delete any policies with no zones and update kasp.xml. \n");
+static void
+usage(int sockfd)
+{
+	ods_printf(sockfd,
+		"policy purge           Delete any policies with no zones and update kasp.xml. \n");
+}
+
+static int
+handles(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, policy_purge_funcblock()->cmdname)?1:0;
 }
 
 /* Delete any policies with no zones  */
-int
-handled_policy_purge_cmd(int sockfd, engine_type* engine, const char *cmd,
-                          ssize_t n){
-	   const char *scmd =  "policy purge";
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	(void)cmd; (void)n;
+	// TODO: Should we require a confirmation here?
+	ods_log_debug("[%s] %s command", module_str, policy_purge_funcblock()->cmdname);
+	return !perform_policy_purge(sockfd, engine->config);
+}
 
-	    cmd = ods_check_command(cmd,n,scmd);
-	    if (!cmd)
-	        return 0; // not handled
-	
-		// TODO: Should we require a confirmation here?
+static struct cmd_func_block funcblock = {
+	"policy resalt", &usage, NULL, &handles, &run
+};
 
-	    ods_log_debug("[%s] %s command", module_str, scmd);
-
-	    time_t tstart = time(NULL);
-
-	    perform_policy_purge(sockfd, engine->config);
-
-	    ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-	    return 1;
+struct cmd_func_block*
+policy_purge_funcblock(void)
+{
+	return &funcblock;
 }

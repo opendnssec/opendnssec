@@ -46,7 +46,7 @@
 
 static const char *module_str = "zone_list_task";
 
-void 
+int 
 perform_zone_list(int sockfd, engineconfig_type *config)
 {
 	// Since the DB is leading, don't report info from the zonelist file
@@ -58,23 +58,23 @@ perform_zone_list(int sockfd, engineconfig_type *config)
 	const char* fmt = "%-31s %-13s %-26s %-34s\n";
 	char nctime[32];
 	
-	if (!ods_orm_connect(sockfd, config, conn)) return;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
 	if (!OrmMessageEnum(conn, zone.descriptor(),rows)) {
 		ods_log_error_and_printf(sockfd, module_str,
 			"failure during zone enumeration");
-		return;
+		return 1;
 	}
 	ods_printf(sockfd, /*"Zonelist filename set to: %s\n"*/
 		"Database set to: %s\n", /*zonelistfile,*/ config->datastore);
 	if (!OrmFirst(rows)) {
 		ods_printf(sockfd, "No zones configured in DB.\n");
-		return;
+		return 0;
 	}
 	ods_printf(sockfd, "Zones:\n");
 	ods_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:", 
 		"Signer Configuration:");
 	for (bool next=true; next; next=OrmNext(rows)) {
-		if (!OrmGetMessage(rows, zone, false)) return;
+		if (!OrmGetMessage(rows, zone, false)) return 1;
 		if (zone.next_change() > 0) {
 			if (!ods_ctime_r(nctime, sizeof nctime, zone.next_change())) {
 				strncpy(nctime, "invalid date/time", sizeof nctime);
@@ -88,4 +88,5 @@ perform_zone_list(int sockfd, engineconfig_type *config)
 			nctime, zone.signconf_path().c_str());
 	}
 	ods_log_debug("[%s] zone list completed", module_str);
+	return 0;
 }

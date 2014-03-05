@@ -65,7 +65,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
 
-	// separate the arguments
+	/* separate the arguments */
 	argc = ods_str_explode(buf, NARGV, argv);
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
@@ -87,7 +87,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
-						module_str, policy_export_funcblock()->cmdname);
+			module_str, policy_export_funcblock()->cmdname);
 		ods_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
