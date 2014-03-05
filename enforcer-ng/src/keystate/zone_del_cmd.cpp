@@ -54,8 +54,8 @@ bool get_arguments(int sockfd, const char *cmd,
                    int &need_write_xml)
 {
 	char buf[ODS_SE_MAXLINE];
-	const char *argv[16];
-	const int NARGV = sizeof(argv)/sizeof(char*);
+	const int NARGV = 16;
+	const char *argv[NARGV];
 	int argc;
 
 	// Use buf as an intermediate buffer for the command.
@@ -109,6 +109,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	ods_log_debug("[%s] %s command", module_str, zone_del_funcblock()->cmdname);
 	std::string zone;
 	int need_write_xml = 0;
+	cmd = ods_check_command(cmd, n, zone_del_funcblock()->cmdname);
 	if (!get_arguments(sockfd,cmd,zone, need_write_xml)) return -1;
 	return perform_zone_del(sockfd,engine->config, zone.c_str(), need_write_xml, false);
 }
