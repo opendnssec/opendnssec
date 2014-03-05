@@ -65,6 +65,7 @@
 #include "daemon/help_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
+#include "policy/update_kasp_cmd.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -405,6 +406,7 @@ cmd_funcs_avail(void)
         &help_funcblock,
         &update_repositorylist_funcblock,
         &update_all_funcblock,
+        &update_kasp_funcblock,
         NULL
     };
     return fb;

@@ -89,6 +89,7 @@ handles(const char *cmd, ssize_t n)
 int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
+	(void)cmd; (void)n;
 	ods_log_debug("[%s] %s command", module_str, update_all_funcblock()->cmdname);
 	int error = check_all_task(sockfd, engine);
 	if (!error) {

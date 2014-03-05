@@ -134,6 +134,7 @@ drop_database_tables(int sockfd, OrmConn conn, engineconfig_type* config)
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
+	(void)cmd; (void)n;
 	ods_log_debug("[%s] %s command", module_str, setup_funcblock()->cmdname);
 
 	lock_basic_lock(&engine->signal_lock);
