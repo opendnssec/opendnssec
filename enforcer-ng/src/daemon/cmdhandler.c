@@ -72,6 +72,8 @@
 #include "policy/policy_purge_cmd.h"
 #include "keystate/update_keyzones_cmd.h"
 #include "keystate/zone_list_cmd.h"
+#include "keystate/zone_del_cmd.h"
+#include "keystate/zone_add_cmd.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -419,6 +421,8 @@ cmd_funcs_avail(void)
         &policy_export_funcblock,
         &policy_purge_funcblock,
         &zone_list_funcblock,
+        &zone_add_funcblock,
+        &zone_del_funcblock,
         NULL
     };
     return fb;

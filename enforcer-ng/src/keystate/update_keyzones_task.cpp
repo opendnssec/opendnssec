@@ -280,7 +280,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 
 	for (item iterator = zones_delete.begin(); iterator != zones_delete.end(); iterator++) {
 		ods_printf(sockfd, "Zone %s not found in zonelist.xml\n", iterator->c_str());			
-		perform_zone_del(sockfd, config, iterator->c_str(), 0, true);
+		(void)perform_zone_del(sockfd, config, iterator->c_str(), 0, true);
 		ods_printf(sockfd, "Deleted zone %s from database\n", iterator->c_str());		
 	}
 

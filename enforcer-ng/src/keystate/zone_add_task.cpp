@@ -49,7 +49,7 @@
 
 static const char *module_str = "zone_add_task";
 
-void 
+int 
 perform_zone_add(int sockfd,
 				 engineconfig_type *config,
 				 const char *zone,
@@ -67,13 +67,13 @@ perform_zone_add(int sockfd,
 
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return;  // errors have already been reported.
+		return 1;  // errors have already been reported.
 
 	{	OrmTransactionRW transaction(conn);
 		if (!transaction.started()) {
 			ods_log_error_and_printf(sockfd, module_str,
 				"starting a database transaction for adding a zone failed");
-			return;
+			return 1;
 		}
 		
 		std::string qzone;
@@ -81,12 +81,12 @@ perform_zone_add(int sockfd,
 		if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
 			ods_log_error_and_printf(sockfd, module_str,
 									 "quoting a string failed");
-			return;
+			return 1;
 		}
 		if (!OrmQuoteStringValue(conn, std::string(policy), qpolicy)) {
 			ods_log_error_and_printf(sockfd, module_str,
 									 "quoting a string failed");
-			return;
+			return 1;
 		}		
 
 		{	OrmResultRef rows;
@@ -97,7 +97,7 @@ perform_zone_add(int sockfd,
 			{
 				ods_log_error_and_printf(sockfd, module_str,
 										 "zone lookup by name failed");
-				return;
+				return 1;
 			}
 		
 			// if OrmFirst succeeds, a zone with the queried name is 
@@ -108,7 +108,7 @@ perform_zone_add(int sockfd,
 										 "Failed to Import zone %s; "
                                          "it already exists",
 										 zone);
-				return;
+				return 1;
 			}
 
 			// Now lets query for the policy
@@ -120,7 +120,7 @@ perform_zone_add(int sockfd,
 			{
 				ods_log_error_and_printf(sockfd, module_str,
 										 "policy lookup by name for %s failed", qpolicy.c_str());
-				return;
+				return 1;
 			}
 		
 			// if OrmFirst failes, no policy with the queried name is 
@@ -131,7 +131,7 @@ perform_zone_add(int sockfd,
 										 "Failed to Import zone %s; "
 										 "Error, can't find policy : %s",
 										 zone, policy);
-				return;
+				return 1;
 			}
 
 
@@ -176,13 +176,13 @@ perform_zone_add(int sockfd,
 			if (!OrmMessageInsert(conn, ks_zone, zoneid)) {
 				ods_log_error_and_printf(sockfd, module_str,
 								"inserting zone into the database failed");
-				return;
+				return 1;
 			}
 			
 			if (!transaction.commit()) {
 				ods_log_error_and_printf(sockfd, module_str,
 								"committing zone to the database failed");
-				return;
+				return 1;
 			}
 		}
 	}
@@ -205,5 +205,5 @@ perform_zone_add(int sockfd,
 	}
 	
 	ods_log_info("[%s] added Zone: %s", module_str, zone);
-
+	return 0;
 }

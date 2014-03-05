@@ -48,14 +48,14 @@
 
 static const char *module_str = "zone_del_task";
 
-void 
+int 
 perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int need_write_xml, bool quiet)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return; // error already reported.
+		return 1; // error already reported.
 
 	std::string qzone;
     bool is_del_succeed = false;
@@ -63,7 +63,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
         if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
             const char *emsg = "quoting zone value failed";
             ods_log_error_and_printf(sockfd,module_str,emsg);
-            return;
+            return 1;
         }
     }
 	
@@ -71,7 +71,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
 		if (!transaction.started()) {
 			const char *emsg = "could not start database transaction";
 			ods_log_error_and_printf(sockfd,module_str,emsg);
-			return;
+			return 1;
 		}
 		
         if (qzone.empty()) {
@@ -82,7 +82,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
             if (!ok) {
                 transaction.rollback();
                 ods_log_error("[%s] enum enforcer zone failed", module_str);
-                return;
+                return 1;
             }
 
             for (bool next=OrmFirst(rows); next; next = OrmNext(rows)) {
@@ -91,7 +91,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
                     rows.release();
                     transaction.rollback();
                     ods_log_error("[%s] retrieving zone from database failed");
-                    return;
+                    return 1;
                 }
 
                 del_zones.push_back(enfzone.name());
@@ -105,7 +105,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
                     transaction.rollback();
                     const char *emsg = "quoting zone value failed";
                     ods_log_error_and_printf(sockfd,module_str,emsg);
-                    return;
+                    return 1;
                 }
                 if (!OrmMessageDeleteWhere(conn,
                             ::ods::keystate::EnforcerZone::descriptor(),
@@ -114,7 +114,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
                     transaction.rollback();
                     const char *emsg = "unable to delete zone %s";
                     ods_log_error_and_printf(sockfd,module_str,emsg, it->c_str());
-                    return;
+                    return 1;
                 }
 
                 is_del_succeed = true;
@@ -131,7 +131,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
                 transaction.rollback();
                 ods_log_error_and_printf(sockfd, module_str, 
                         "unable to find zone %s", qzone.c_str());
-                return;
+                return 1;
             }
 
             if (!OrmFirst(rows)) {
@@ -139,7 +139,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
                 transaction.rollback();
                 ods_log_error_and_printf(sockfd, module_str, 
                         "Couldn't find zone %s", qzone.c_str());
-                return;
+                return 1;
             }
 
             rows.release();
@@ -152,7 +152,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
                 transaction.rollback();
                 const char *emsg = "unable to delete zone %s";
                 ods_log_error_and_printf(sockfd,module_str,emsg,qzone.c_str());
-                return;
+                return 1;
             }
 
             is_del_succeed = true;
@@ -161,7 +161,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
 		if (!transaction.commit()) {
 			const char *emsg = "committing delete of zone %s to database failed";
 			ods_log_error_and_printf(sockfd,module_str,emsg,qzone.c_str());
-			return;
+			return 1;
 		}
     }
 
@@ -194,6 +194,5 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
 			}
 		}
 	}
-
-
+	return 0;
 }

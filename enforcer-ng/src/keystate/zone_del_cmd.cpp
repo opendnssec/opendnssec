@@ -27,27 +27,26 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
+#include <string>
 
-#include "keystate/zone_del_cmd.h"
-#include "keystate/zone_del_task.h"
-#include "shared/duration.h"
+#include "daemon/engine.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+#include "keystate/zone_del_task.h"
+
+#include "keystate/zone_del_cmd.h"
 
 static const char *module_str = "zone_del_cmd";
 
-void help_zone_del_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-			   "zone delete            Delete zones from the enforcer database.\n"
-			   "      --zone <zone> | --all      (aka -z | -a)  zone, or delete all zones.\n"
-               "      [--xml]                    (aka -u)       update zonelist.xml.\n"
-			   );
-	
+	ods_printf(sockfd,
+		"zone delete            Delete zones from the enforcer database.\n"
+		"      --zone <zone> | --all      (aka -z | -a)  zone, or delete all zones.\n"
+		"      [--xml]                    (aka -u)       update zonelist.xml.\n"
+	);
 }
 
 bool get_arguments(int sockfd, const char *cmd,
@@ -55,71 +54,71 @@ bool get_arguments(int sockfd, const char *cmd,
                    int &need_write_xml)
 {
 	char buf[ODS_SE_MAXLINE];
-    const char *argv[16];
-    const int NARGV = sizeof(argv)/sizeof(char*);
-    int argc;
-    
-    // Use buf as an intermediate buffer for the command.
-    strncpy(buf,cmd,sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-    
-    // separate the arguments
-    argc = ods_str_explode(buf,NARGV,argv);
-    if (argc > NARGV) {
-        ods_log_error_and_printf(sockfd,module_str,"too many arguments");
-        return false;
-    }
-    
-    const char *zone = NULL;
-    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    int del_all = 0;
-    if (ods_find_arg(&argc, argv, "all", "a") != -1) del_all = 1;
-    if (ods_find_arg(&argc, argv, "xml", "u") >= 0) need_write_xml = 1;
-	
-    if (argc) {
-		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
-        return false;
-    }
-	if (zone && del_all) {
-	    ods_log_error_and_printf(sockfd,module_str,
-							 "expected either --zone <zone> or --all, found both ");
-        return false;		
+	const char *argv[16];
+	const int NARGV = sizeof(argv)/sizeof(char*);
+	int argc;
+
+	// Use buf as an intermediate buffer for the command.
+	strncpy(buf,cmd,sizeof(buf));
+	buf[sizeof(buf)-1] = '\0';
+
+	// separate the arguments
+	argc = ods_str_explode(buf,NARGV,argv);
+	if (argc > NARGV) {
+		ods_log_error_and_printf(sockfd,module_str,"too many arguments");
+		return false;
 	}
-    if (!zone) {
-        if (!del_all) {
-		    ods_log_error_and_printf(sockfd,module_str,
+
+	const char *zone = NULL;
+	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+	int del_all = 0;
+	if (ods_find_arg(&argc, argv, "all", "a") != -1) del_all = 1;
+	if (ods_find_arg(&argc, argv, "xml", "u") >= 0) need_write_xml = 1;
+
+	if (argc) {
+		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");
+		return false;
+	}
+	if (zone && del_all) {
+		ods_log_error_and_printf(sockfd,module_str,
+							 "expected either --zone <zone> or --all, found both ");
+		return false;		
+	}
+	if (!zone) {
+		if (!del_all) {
+			ods_log_error_and_printf(sockfd,module_str,
 								 "expected option --zone <zone> or --all ");
-            return false;
-        }
-    }
-    else
-	    out_zone = zone;
+			return false;
+		}
+	}
+	else
+		out_zone = zone;
 
 	return true;
 }
 
-int handled_zone_del_cmd(int sockfd, engine_type* engine, const char *cmd, 
-						  ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd =  "zone delete";
-    
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
-    
-    ods_log_debug("[%s] %s command", module_str, scmd);
+	return ods_check_command(cmd, n, zone_del_funcblock()->cmdname)?1:0;
+}
 
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	ods_log_debug("[%s] %s command", module_str, zone_del_funcblock()->cmdname);
 	std::string zone;
-    int need_write_xml = 0;
-	if (!get_arguments(sockfd,cmd,zone, need_write_xml)) {
-		help_zone_del_cmd(sockfd);
-		return 1;
-	}
+	int need_write_xml = 0;
+	if (!get_arguments(sockfd,cmd,zone, need_write_xml)) return -1;
+	return perform_zone_del(sockfd,engine->config, zone.c_str(), need_write_xml, false);
+}
 
-    time_t tstart = time(NULL);
+static struct cmd_func_block funcblock = {
+	"zone delete", &usage, NULL, &handles, &run
+};
 
-    perform_zone_del(sockfd,engine->config, zone.c_str(), need_write_xml, false);
-
-    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+struct cmd_func_block*
+zone_del_funcblock(void)
+{
+	return &funcblock;
 }

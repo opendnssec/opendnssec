@@ -27,51 +27,48 @@
  *
  */
 
-#include <ctime>
-#include <cstring>
-#include <iostream>
-#include <cassert>
+#include "config.h"
+#include <string>
 
-#include "keystate/zone_add_cmd.h"
-#include "keystate/zone_add_task.h"
+#include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "shared/log.h"
-#include "daemon/engine.h"
+#include "keystate/zone_add_task.h"
+
+#include "keystate/zone_add_cmd.h"
 
 static const char *module_str = "zone_add_cmd";
 
-void
-help_zone_add_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-			   "zone add               Add a new zone to the enforcer database.\n"
-			   "      --zone <zone>              (aka -z)  zone.\n"
-			   "      [--policy <policy>]        (aka -p)  policy.\n"
-			   "      [--signerconf <path>]      (aka -s)  signer configuration file.\n"
-			   "      [--in-type <type>]         (aka -j)  input adapter type ('File' or 'DNS').\n"			
-			   "      [--input <path>]           (aka -i)  input adapter zone or config file.\n"
-			   "      [--out-type <type>]        (aka -q)  output adapter type ('File' or 'DNS')\n"			
-			   "      [--output <path>]          (aka -o)  output adapter zone or config file.\n"
-			   "      [--xml]                    (aka -u)  update the zonelist.xml file.\n"
-        );
+	ods_printf(sockfd,
+		"zone add               Add a new zone to the enforcer database.\n"
+		"      --zone <zone>              (aka -z)  zone.\n"
+		"      [--policy <policy>]        (aka -p)  policy.\n"
+		"      [--signerconf <path>]      (aka -s)  signer configuration file.\n"
+		"      [--in-type <type>]         (aka -j)  input adapter type ('File' or 'DNS').\n"
+		"      [--input <path>]           (aka -i)  input adapter zone or config file.\n"
+		"      [--out-type <type>]        (aka -q)  output adapter type ('File' or 'DNS')\n"
+		"      [--output <path>]          (aka -o)  output adapter zone or config file.\n"
+		"      [--xml]                    (aka -u)  update the zonelist.xml file.\n"
+	);
 }
 
 static inline void
 get_full_path(const std::string &input_file,
-                    const std::string &relative_dir,
-                    std::string &full_file_path)
+	const std::string &relative_dir, std::string &full_file_path)
 {
-    if (input_file[0] == '/')
-        full_file_path = input_file;
-    else {
-        full_file_path = relative_dir +
-                        std::string("/") +
-                        input_file;
-    }
+	if (input_file[0] == '/')
+		full_file_path = input_file;
+	else {
+		full_file_path = relative_dir +
+						std::string("/") +
+						input_file;
+	}
 }
 
 bool get_arguments(int sockfd, const char *cmd,
@@ -87,151 +84,149 @@ bool get_arguments(int sockfd, const char *cmd,
                    int &need_write_xml)
 {
 	char buf[ODS_SE_MAXLINE];
-    const char *argv[16];
-    const int NARGV = sizeof(argv)/sizeof(char*);
-    int argc;
-    
-    // Use buf as an intermediate buffer for the command.
-    strncpy(buf,cmd,sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-    
-    // separate the arguments
-    argc = ods_str_explode(buf,NARGV,argv);
-    if (argc > NARGV) {
-        ods_log_error_and_printf(sockfd,module_str,"too many arguments");
-		help_zone_add_cmd(sockfd);	
-        return false;
-    }
-    
-    const char *zone = NULL;
-    const char *policy = NULL;
+	const char *argv[16];
+	const int NARGV = sizeof(argv)/sizeof(char*);
+	int argc;
+
+	// Use buf as an intermediate buffer for the command.
+	strncpy(buf,cmd,sizeof(buf));
+	buf[sizeof(buf)-1] = '\0';
+
+	// separate the arguments
+	argc = ods_str_explode(buf,NARGV,argv);
+	if (argc > NARGV) {
+		ods_log_error_and_printf(sockfd,module_str,"too many arguments");
+		return false;
+	}
+
+	const char *zone = NULL;
+	const char *policy = NULL;
 	const char *signconf = NULL;
 	const char *input = NULL;
 	const char *output = NULL;
 	const char *intype = NULL;
 	const char *outtype = NULL;
-    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    (void)ods_find_arg_and_param(&argc,argv,"policy","p",&policy);
-    (void)ods_find_arg_and_param(&argc,argv,"signerconf","s",&signconf);
-    (void)ods_find_arg_and_param(&argc,argv,"input","i",&input);
-    (void)ods_find_arg_and_param(&argc,argv,"output","o",&output);
-    (void)ods_find_arg_and_param(&argc,argv,"in-type","j",&intype);
-    (void)ods_find_arg_and_param(&argc,argv,"out-type","q",&outtype);
-    if (ods_find_arg(&argc, argv, "xml", "u") >= 0) need_write_xml = 1;
+	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+	(void)ods_find_arg_and_param(&argc,argv,"policy","p",&policy);
+	(void)ods_find_arg_and_param(&argc,argv,"signerconf","s",&signconf);
+	(void)ods_find_arg_and_param(&argc,argv,"input","i",&input);
+	(void)ods_find_arg_and_param(&argc,argv,"output","o",&output);
+	(void)ods_find_arg_and_param(&argc,argv,"in-type","j",&intype);
+	(void)ods_find_arg_and_param(&argc,argv,"out-type","q",&outtype);
+	if (ods_find_arg(&argc, argv, "xml", "u") >= 0) need_write_xml = 1;
 
-    if (argc) {
+	if (argc) {
 		ods_log_error_and_printf(sockfd,module_str,"unknown arguments");	
-        return false;
-    }
-    if (!zone) {
+		return false;
+	}
+	if (!zone) {
 		ods_log_error_and_printf(sockfd,module_str,
 								 "expected option --zone <zone>");														
-        return false;
-    }
+		return false;
+	}
 	out_zone = zone;
-	
-    if (!policy) {
+
+	if (!policy) {
 		out_policy = "default";
-    } else {
+	} else {
 		out_policy = policy;
 	}
-	
-    if (!signconf) {
-        bool is_dot_ending = false;
-        if (zone[strlen(zone) - 1] == '.') is_dot_ending = true;
-        out_signconf = out_zone + 
-                        (is_dot_ending ? std::string("xml") 
-                                        : std::string(".xml"));
-    }
-    else {
-	    out_signconf = signconf;
+
+	if (!signconf) {
+		bool is_dot_ending = false;
+		if (zone[strlen(zone) - 1] == '.') is_dot_ending = true;
+		out_signconf = out_zone + 
+						(is_dot_ending ? std::string("xml") 
+										: std::string(".xml"));
 	}
-    get_full_path(out_signconf, OPENDNSSEC_STATE_DIR + std::string("/signconf"), out_signconf);
+	else {
+		out_signconf = signconf;
+	}
+	get_full_path(out_signconf, OPENDNSSEC_STATE_DIR + std::string("/signconf"), out_signconf);
 
 	//TODO: I think this can be simplified to remove the out_in/outconf variables.
-    if (!intype || (0 == strcasecmp(intype, "file"))) {
-        if (input)
-            out_infile = input; 
-        else
-            out_infile = out_zone;
-        get_full_path(out_infile, OPENDNSSEC_STATE_DIR + std::string("/unsigned"),
-                out_infile);
-    } else if (0 == strcasecmp(intype, "dns")) {
+	if (!intype || (0 == strcasecmp(intype, "file"))) {
+		if (input)
+			out_infile = input; 
+		else
+			out_infile = out_zone;
+		get_full_path(out_infile, OPENDNSSEC_STATE_DIR + std::string("/unsigned"),
+				out_infile);
+	} else if (0 == strcasecmp(intype, "dns")) {
 		out_intype = "DNS";
-        if (input)
-		    out_inconf = input;
-        else
-            out_inconf = "addns.xml";
-        get_full_path(out_inconf, std::string(OPENDNSSEC_CONFIG_DIR), out_inconf);
-    } else {
+		if (input)
+			out_inconf = input;
+		else
+			out_inconf = "addns.xml";
+		get_full_path(out_inconf, std::string(OPENDNSSEC_CONFIG_DIR), out_inconf);
+	} else {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "invalid parameter for --in-type");	
-        return false;
-    }
+		return false;
+	}
 
-    if (!outtype || (0 == strcasecmp(outtype, "file"))) {
-        if (output)
-            out_outfile = output; 
-        else
-            out_outfile = out_zone;
-        get_full_path(out_outfile, OPENDNSSEC_STATE_DIR + std::string("/signed"),
-                out_outfile);
-    } else if (0 == strcasecmp(outtype, "dns")) {
-        if (output)
-		    out_outconf = output;
-        else
-            out_outconf = "addns.xml";
+	if (!outtype || (0 == strcasecmp(outtype, "file"))) {
+		if (output)
+			out_outfile = output; 
+		else
+			out_outfile = out_zone;
+		get_full_path(out_outfile, OPENDNSSEC_STATE_DIR + std::string("/signed"),
+				out_outfile);
+	} else if (0 == strcasecmp(outtype, "dns")) {
+		if (output)
+			out_outconf = output;
+		else
+			out_outconf = "addns.xml";
 		out_outtype = outtype;
-        get_full_path(out_outconf, std::string(OPENDNSSEC_CONFIG_DIR), out_outconf);
-    } else {
+		get_full_path(out_outconf, std::string(OPENDNSSEC_CONFIG_DIR), out_outconf);
+	} else {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "invalid parameter for --out-type");	
-        return false;
-    }
+		return false;
+	}
 
 	return true;
 }
 
-int
-handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
-					 ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd = "zone add";
+	return ods_check_command(cmd, n, zone_add_funcblock()->cmdname)?1:0;
+}
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
-
-    ods_log_debug("[%s] %s command", module_str, scmd);
-
-	std::string zone,policy,signconf,infile,outfile,intype,outtype,inconf,outconf;
-    int need_write_xml = 0;
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	int error;
+	ods_log_debug("[%s] %s command", module_str, zone_add_funcblock()->cmdname);
+	std::string zone, policy, signconf, infile, 
+		outfile, intype, outtype, inconf, outconf;
+	int need_write_xml = 0;
 	if (!get_arguments(sockfd,cmd,zone,policy,signconf,infile,outfile,
-					   intype,outtype,inconf,outconf, need_write_xml)
-		) {
-		help_zone_add_cmd(sockfd);
-		return 1;
+		intype,outtype,inconf,outconf, need_write_xml))
+	{
+		return -1;
 	}
-	
-    time_t tstart = time(NULL);
-	
-    perform_zone_add(sockfd,engine->config,
-					 zone.c_str(),
-					 policy.c_str(),
-					 signconf.c_str(),
-					 infile.c_str(),
-					 outfile.c_str(),
-					 intype.c_str(),
-					 inconf.c_str(),
-					 outtype.c_str(),
-					 outconf.c_str(),
-					 need_write_xml);
-					
-	(void)perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
-					   engine->config->automatic_keygen_duration);					
-	
-    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 
-    flush_enforce_task(engine, 0);
-    return 1;
+	error = perform_zone_add(sockfd,engine->config,
+		zone.c_str(), policy.c_str(), signconf.c_str(), infile.c_str(),
+		outfile.c_str(), intype.c_str(), inconf.c_str(), outtype.c_str(),
+		outconf.c_str(), need_write_xml);
+
+	if (!error) {
+		error = perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+			engine->config->automatic_keygen_duration);
+		flush_enforce_task(engine, 0);
+	}
+	return error;
+}
+
+static struct cmd_func_block funcblock = {
+	"zone add", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+zone_add_funcblock(void)
+{
+	return &funcblock;
 }
