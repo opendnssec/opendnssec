@@ -64,6 +64,7 @@
 #include "enforcer/setup_cmd.h"
 #include "daemon/help_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
+#include "enforcer/update_all_cmd.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -403,6 +404,7 @@ cmd_funcs_avail(void)
         &setup_funcblock,
         &help_funcblock,
         &update_repositorylist_funcblock,
+        &update_all_funcblock,
         NULL
     };
     return fb;

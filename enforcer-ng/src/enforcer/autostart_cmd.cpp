@@ -27,22 +27,20 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "enforcer/autostart_cmd.h"
-
+#include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "policy/policy_resalt_task.h"
-
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
 #include "daemon/orm.h"
 #include "protobuf-orm/pb-orm.h"
 #include "policy/kasp.pb.h"
+
+#include "enforcer/autostart_cmd.h"
+
 
 static const char *module_str = "autostart_cmd";
 
