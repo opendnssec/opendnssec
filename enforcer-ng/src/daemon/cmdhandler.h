@@ -88,7 +88,8 @@ struct cmd_func_block {
 	const char* cmdname;
 	/* print usage information */
 	void (*usage)(int sockfd);
-	/* print help, more elaborate than usage */
+	/* print help, more elaborate than usage. Allowed to be
+	 * NULL to indicate no help is available */
 	void (*help)(int sockfd);
 	/* 1 if module claims responibility for command
 	 * 0 otherwise */
@@ -97,8 +98,12 @@ struct cmd_func_block {
 	 * -1 Errors parsing commandline / missing params
 	 * positive error code to return to user.
 	 * */
-	int (*run)(int sockfd, struct engine_struct* engine);
+	int (*run)(int sockfd, struct engine_struct* engine,
+		const char *cmd, ssize_t n);
 };
+
+void cmdhandler_get_usage(int sockfd);
+struct cmd_func_block* get_funcblock(const char *cmd, ssize_t n);
 
 #ifdef __cplusplus
 }

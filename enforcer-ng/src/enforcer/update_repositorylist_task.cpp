@@ -28,6 +28,7 @@
  */
 
 #include "config.h"
+
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
 #include "shared/allocator.h"
@@ -39,10 +40,6 @@
 #include "libhsm.h"
 
 #include "update_repositorylist_task.h"
-
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
 
 static const char *module_str = "update_repositorylist_task";
 

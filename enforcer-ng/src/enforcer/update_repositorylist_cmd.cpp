@@ -27,41 +27,53 @@
  *
  */
 
-#include "enforcer/update_repositorylist_cmd.h"
-#include "enforcer/update_repositorylist_task.h"
+#include "config.h"
 
-#include "hsmkey/update_hsmkeys_task.h"
-#include "hsmkey/hsmkey_gen_task.h"
-#include "hsmkey/hsmkey.pb.h"
 #include "shared/str.h"
 #include "shared/file.h"
+#include "daemon/engine.h"
+
+#include "enforcer/update_repositorylist_task.h"
+#include "enforcer/update_repositorylist_cmd.h"
+
 
 static const char *module_str = "update_repositorylist_cmd";
 
-void
-help_update_repositorylist_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
 	ods_printf(sockfd,
 		"update repositorylist  Import respositories from conf.xml "
 		"into the enforcer.\n");
 }
 
-int
-handled_update_repositorylist_cmd(int sockfd, engine_type* engine, 
-	const char *cmd, ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-	const char *scmd = "update repositorylist";
-	cmd = ods_check_command(cmd, n, scmd);
-	if (!cmd) return 0; // not handled
-	ods_log_debug("[%s] %s command", module_str, scmd);
-	time_t tstart = time(NULL);
+	return ods_check_command(cmd, n, update_repositorylist_funcblock()->cmdname)?1:0;
+}
+
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	ods_log_debug("[%s] %s command", module_str, 
+		update_repositorylist_funcblock()->cmdname);
 
 	if (!perform_update_repositorylist(sockfd, engine)) {
 		ods_log_error_and_printf(sockfd, module_str,
 			"unable to update repositorylist.");
+		return 1;
 	}
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-	return 1;
+	return 0;
 }
 
 
+static struct cmd_func_block funcblock = {
+	"update repositorylist", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+update_repositorylist_funcblock(void)
+{
+	return &funcblock;
+}

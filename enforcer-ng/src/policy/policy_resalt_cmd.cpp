@@ -27,9 +27,7 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -41,10 +39,9 @@
 
 #include "policy/policy_resalt_cmd.h"
 
-
 static const char *module_str = "policy_resalt_cmd";
 
-void
+static void
 usage(int sockfd)
 {
 	ods_printf(sockfd,
@@ -53,29 +50,26 @@ usage(int sockfd)
 	);
 }
 
-void
-help(int sockfd)
-{
-	
-}
-
-int handles(const char *cmd, ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
 	return ods_check_command(cmd, n, resalt_funcblock()->cmdname)?1:0;
 }
 
-int
-run(int sockfd, engine_type* engine)
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
 	ods_log_debug("[%s] %s command", module_str, resalt_funcblock()->cmdname);
-	perform_policy_resalt(sockfd, engine->config);
+	(void) perform_policy_resalt(sockfd, engine->config);
 	return 0;
 }
 
 static struct cmd_func_block funcblock = {
-	"policy resalt", &usage, &help, &handles, &run
+	"policy resalt", &usage, NULL, &handles, &run
 };
-struct cmd_func_block* resalt_funcblock(void)
+
+struct cmd_func_block*
+resalt_funcblock(void)
 {
 	return &funcblock;
 }

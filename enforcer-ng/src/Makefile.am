@@ -53,6 +53,7 @@ ods_enforcerd_SOURCES = \
 	daemon/signal.c daemon/signal.h \
 	daemon/worker.c daemon/worker.h \
 	daemon/orm.cpp daemon/orm.h \
+	daemon/help_cmd.c daemon/help_cmd.h \
 	parser/confparser.c parser/confparser.h \
 	scheduler/fifoq.c scheduler/fifoq.h \
 	scheduler/schedule.c scheduler/schedule.h \
