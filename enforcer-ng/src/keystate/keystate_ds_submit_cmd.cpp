@@ -27,86 +27,87 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "keystate/keystate_ds_submit_cmd.h"
+#include "daemon/engine.h"
 #include "keystate/keystate_ds_submit_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "keystate/keystate_ds_submit_cmd.h"
 
 static const char *module_str = "keystate_ds_submit_cmd";
 
-void
-help_keystate_ds_submit_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-               "key ds-submit          Issue a ds-submit to the enforcer for a KSK.\n"
-			   "                       (This command with no parameters lists eligible keys.)\n"
-               "      --zone <zone>              (aka -z)  zone.\n"
-               "      --cka_id <CKA_ID>          (aka -k)  cka_id <CKA_ID> of the key.\n"
-               "      [--auto]                   (aka -a)  perform submit for all keys that\n"
-			   "                                           have the submit flag set.\n"
-               "      [--force]                  (aka -f)  force even if there is no configured\n"
-			   "                                           DelegationSignerSubmitCommand.\n"
-        );
+	ods_printf(sockfd,
+		"key ds-submit          Issue a ds-submit to the enforcer for a KSK.\n"
+		"                       (This command with no parameters lists eligible keys.)\n"
+		"      --zone <zone>              (aka -z)  zone.\n"
+		"      --cka_id <CKA_ID>          (aka -k)  cka_id <CKA_ID> of the key.\n"
+		"      [--auto]                   (aka -a)  perform submit for all keys that\n"
+		"                                           have the submit flag set.\n"
+		"      [--force]                  (aka -f)  force even if there is no configured\n"
+		"                                           DelegationSignerSubmitCommand.\n"
+	);
 }
 
-int
-handled_keystate_ds_submit_cmd(int sockfd, engine_type* engine,
-                               const char *cmd, ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
-    const int NARGV = sizeof(argv)/sizeof(char*);
-    int argc;
-    task_type *task;
-    ods_status status;
-    const char *scmd = "key ds-submit";
+	return ods_check_command(cmd, n, key_ds_submit_funcblock()->cmdname)?1:0;
+}
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
-    
-    ods_log_debug("[%s] %s command", module_str, scmd);
-    
-    // Use buf as an intermediate buffer for the command.
-    strncpy(buf,cmd,sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-    
-    // separate the arguments
-    argc = ods_str_explode(&buf[0], NARGV, &argv[0]);
-    if (argc > NARGV) {
-        ods_log_warning("[%s] too many arguments for %s command",
-                        module_str,scmd);
-        ods_printf(sockfd,"too many arguments\n");
-        return 1; // errors, but handled
-    }
-    
-    const char *zone = NULL;
-    const char *cka_id = NULL;
-    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    (void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
-    bool force = ods_find_arg(&argc,argv,"force","f") != -1;
-    bool bAutomatic = ods_find_arg(&argc,argv,"auto","a") != -1;
-    if (argc) {
-        ods_log_warning("[%s] unknown arguments for %s command",
-                        module_str,scmd);
-        ods_printf(sockfd,"unknown arguments\n");
-		help_keystate_ds_submit_cmd(sockfd);
-        return 1; // errors, but handled
-    }
-    
-    /* perform task immediately */
-    time_t tstart = time(NULL);
-    perform_keystate_ds_submit(sockfd,engine->config,zone,cka_id,bAutomatic?1:0, force);
-    if (!zone && !cka_id) {
-        ods_printf(sockfd,"%s completed in %ld seconds.\n",
-				   scmd,time(NULL)-tstart);
-    }
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	char buf[ODS_SE_MAXLINE];
+	const int NARGV = 8;
+	const char *argv[NARGV];
+	int argc;
+	task_type *task;
+	ods_status status;
 
-    return 1;
+	ods_log_debug("[%s] %s command", module_str, key_ds_submit_funcblock()->cmdname);
+
+	// Use buf as an intermediate buffer for the command.
+	strncpy(buf, cmd, sizeof(buf));
+	buf[sizeof(buf)-1] = '\0';
+
+	// separate the arguments
+	argc = ods_str_explode(&buf[0], NARGV, &argv[0]);
+	if (argc > NARGV) {
+		ods_log_warning("[%s] too many arguments for %s command",
+						module_str, key_ds_submit_funcblock()->cmdname);
+		ods_printf(sockfd,"too many arguments\n");
+		return -1;
+	}
+
+	const char *zone = NULL;
+	const char *cka_id = NULL;
+	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+	(void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
+	bool force = ods_find_arg(&argc,argv,"force","f") != -1;
+	bool bAutomatic = ods_find_arg(&argc,argv,"auto","a") != -1;
+	if (argc) {
+		ods_log_warning("[%s] unknown arguments for %s command",
+						module_str, key_ds_submit_funcblock()->cmdname);
+		ods_printf(sockfd,"unknown arguments\n");
+		return -1;
+	}
+
+	/* perform task immediately */
+	perform_keystate_ds_submit(sockfd,engine->config,zone,cka_id,bAutomatic?1:0, force);
+	return 0;
+}
+
+static struct cmd_func_block funcblock = {
+	"key ds-submit", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+key_ds_submit_funcblock(void)
+{
+	return &funcblock;
 }

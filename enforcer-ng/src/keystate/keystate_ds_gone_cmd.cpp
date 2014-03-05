@@ -27,17 +27,15 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "keystate/keystate_ds_gone_cmd.h"
+#include "daemon/engine.h"
 #include "keystate/keystate_ds_gone_task.h"
 #include "enforcer/enforce_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "keystate/keystate_ds_gone_cmd.h"
 
 static const char *module_str = "keystate_ds_gone_cmd";
 
@@ -45,122 +43,122 @@ static const char *module_str = "keystate_ds_gone_cmd";
  * Print help for the 'key list' command
  *
  */
-void help_keystate_ds_gone_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
 	ods_printf(sockfd,
-		       "key ds-gone            Issue a ds-gone to the enforcer for a KSK. \n"
-			   "                       (This command with no parameters lists eligible keys.)\n"
-               "      --zone <zone>              (aka -z)  zone.\n"
-               "      --cka_id <cka_id>          (aka -k)  cka_id <CKA_ID> of the key.\n"
-               "      --keytag <keytag>          (aka -x)  keytag <keytag> of the key.\n"
-        );
+		"key ds-gone            Issue a ds-gone to the enforcer for a KSK. \n"
+		"                       (This command with no parameters lists eligible keys.)\n"
+		"      --zone <zone>              (aka -z)  zone.\n"
+		"      --cka_id <cka_id>          (aka -k)  cka_id <CKA_ID> of the key.\n"
+		"      --keytag <keytag>          (aka -x)  keytag <keytag> of the key.\n"
+	);
 }
 
-int handled_keystate_ds_gone_cmd(int sockfd, engine_type* engine,
-								 const char *cmd, ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
-    const int NARGV = sizeof(argv)/sizeof(char*);
-    int argc;
-    const char *scmd = "key ds-gone";
-    
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
+	return ods_check_command(cmd, n, key_ds_gone_funcblock()->cmdname)?1:0;
+}
 
-    ods_log_debug("[%s] %s command", module_str, scmd);
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	char buf[ODS_SE_MAXLINE];
+	const int NARGV = 8;
+	const char *argv[NARGV];
+	int argc;
 
-    // Use buf as an intermediate buffer for the command.
-    strncpy(buf,cmd,sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
+	ods_log_debug("[%s] %s command", module_str, key_ds_gone_funcblock()->cmdname);
 
-    // separate the arguments
-    argc = ods_str_explode(buf,NARGV,argv);
-    if (argc > NARGV) {
-        ods_log_warning("[%s] too many arguments for %s command",
-                        module_str,scmd);
-        ods_printf(sockfd,"too many arguments\n");
-		help_keystate_ds_gone_cmd(sockfd);
-        return 1; // errors, but handled
-    }
+	// Use buf as an intermediate buffer for the command.
+	strncpy(buf, cmd, sizeof(buf));
+	buf[sizeof(buf)-1] = '\0';
 
-    const char *zone = NULL;
-    const char *cka_id = NULL;
-    const char *keytag = NULL;
-    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-    (void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
-    (void)ods_find_arg_and_param(&argc,argv,"keytag","x",&keytag);
+	// separate the arguments
+	argc = ods_str_explode(buf, NARGV, argv);
+	if (argc > NARGV) {
+		ods_log_warning("[%s] too many arguments for %s command",
+						module_str, key_ds_gone_funcblock()->cmdname);
+		ods_printf(sockfd,"too many arguments\n");
+		return -1;
+	}
 
-    // Check for unknown parameters on the command line
-    if (argc) {
-        ods_log_warning("[%s] unknown arguments for %s command",
-                        module_str,scmd);
-        ods_printf(sockfd,"unknown arguments\n");
-		help_keystate_ds_gone_cmd(sockfd);
-        return 1; // errors, but handled
-    }
+	const char *zone = NULL;
+	const char *cka_id = NULL;
+	const char *keytag = NULL;
+	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+	(void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
+	(void)ods_find_arg_and_param(&argc,argv,"keytag","x",&keytag);
 
-    // Check for too many parameters on the command line
-    if (argc > NARGV) {
-        ods_log_warning("[%s] too many arguments for %s command",
-                        module_str,scmd);
-        ods_printf(sockfd,"too many arguments\n");
-		help_keystate_ds_gone_cmd(sockfd);
-        return 1; // errors, but handled
-    }
+	// Check for unknown parameters on the command line
+	if (argc) {
+		ods_log_warning("[%s] unknown arguments for %s command",
+						module_str, key_ds_gone_funcblock()->cmdname);
+		ods_printf(sockfd,"unknown arguments\n");
+		return -1;
+	}
 
-    // Either no option or combi of zone & cka_id or zone & keytag needs to be 
-    // present. But not both cka_id and keytag
-    uint16_t nkeytag = 0;
-    if (zone || cka_id || keytag) {
-        if (!zone) {
-            ods_log_warning("[%s] expected option --zone <zone> for %s command",
-                            module_str,scmd);
-            ods_printf(sockfd,"expected --zone <zone> option\n");
-		   help_keystate_ds_gone_cmd(sockfd);
-            return 1; // errors, but handled
-        }
-        if (!cka_id && !keytag) {
-            ods_log_warning("[%s] expected option --cka_id <cka_id> or "
-                            "--keytag <keytag> for %s command",
-                            module_str,scmd);
-            ods_printf(sockfd,"expected --cka_id <cka_id> or "
-                           "--keytag <keytag> option\n");
-		    help_keystate_ds_gone_cmd(sockfd);
-            return 1; // errors, but handled
-        } else {
-            if (cka_id && keytag) {
-                ods_log_warning("[%s] both --cka_id <cka_id> and --keytag <keytag> given, "
-                                "please only specify one for %s command",
-                                module_str,scmd);
-                ods_printf(sockfd,
-                               "both --cka_id <cka_id> and --keytag <keytag> given, "
-                               "please only specify one\n");
-				help_keystate_ds_gone_cmd(sockfd);
-                return 1; // errors, but handled
-            }
-        }
-        if (keytag) {
-            int kt = atoi(keytag);
-            if (kt<=0 || kt>=65536) {
-                ods_log_warning("[%s] value \"%s\" for --keytag is invalid",
-                                module_str,keytag);
-                ods_printf(sockfd,
-                               "value \"%s\" for --keytag is invalid\n",
-                               keytag);
-                return 1; // errors, but handled
-            }
-            nkeytag = (uint16_t )kt;
-        }
-    }
-    
-    time_t tstart = time(NULL);
+	// Check for too many parameters on the command line
+	if (argc > NARGV) {
+		ods_log_warning("[%s] too many arguments for %s command",
+						module_str, key_ds_gone_funcblock()->cmdname);
+		ods_printf(sockfd,"too many arguments\n");
+		return -1;
+	}
 
-    perform_keystate_ds_gone(sockfd,engine->config,zone,cka_id,nkeytag);
-    
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
+	// Either no option or combi of zone & cka_id or zone & keytag needs to be 
+	// present. But not both cka_id and keytag
+	uint16_t nkeytag = 0;
+	if (zone || cka_id || keytag) {
+		if (!zone) {
+			ods_log_warning("[%s] expected option --zone <zone> for %s command",
+							module_str, key_ds_gone_funcblock()->cmdname);
+			ods_printf(sockfd,"expected --zone <zone> option\n");
+			return -1;
+		}
+		if (!cka_id && !keytag) {
+			ods_log_warning("[%s] expected option --cka_id <cka_id> or "
+							"--keytag <keytag> for %s command",
+							module_str, key_ds_gone_funcblock()->cmdname);
+			ods_printf(sockfd,"expected --cka_id <cka_id> or "
+						   "--keytag <keytag> option\n");
+			return -1;
+		} else {
+			if (cka_id && keytag) {
+				ods_log_warning("[%s] both --cka_id <cka_id> and --keytag <keytag> given, "
+								"please only specify one for %s command",
+								module_str, key_ds_gone_funcblock()->cmdname);
+				ods_printf(sockfd,
+							   "both --cka_id <cka_id> and --keytag <keytag> given, "
+							   "please only specify one\n");
+				return -1;
+			}
+		}
+		if (keytag) {
+			int kt = atoi(keytag);
+			if (kt<=0 || kt>=65536) {
+				ods_log_warning("[%s] value \"%s\" for --keytag is invalid",
+								module_str,keytag);
+				ods_printf(sockfd,
+							   "value \"%s\" for --keytag is invalid\n",
+							   keytag);
+				return 1;
+			}
+			nkeytag = (uint16_t )kt;
+		}
+	}
+	perform_keystate_ds_gone(sockfd,engine->config,zone,cka_id,nkeytag);
+	flush_enforce_task(engine, 0);
+	return 0;
+}
 
-    flush_enforce_task(engine, 0);
-    return 1;
+static struct cmd_func_block funcblock = {
+	"key ds-gone", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+key_ds_gone_funcblock(void)
+{
+	return &funcblock;
 }

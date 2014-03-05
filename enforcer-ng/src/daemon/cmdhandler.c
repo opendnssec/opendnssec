@@ -75,6 +75,10 @@
 #include "keystate/zone_del_cmd.h"
 #include "keystate/zone_add_cmd.h"
 #include "keystate/zonelist_cmd.h"
+#include "keystate/keystate_ds_submit_cmd.h"
+#include "keystate/keystate_ds_seen_cmd.h"
+#include "keystate/keystate_ds_retract_cmd.h"
+#include "keystate/keystate_ds_gone_cmd.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -426,6 +430,10 @@ cmd_funcs_avail(void)
         &zone_del_funcblock,
         &zonelist_export_funcblock,
         &zonelist_import_funcblock,
+        &key_ds_submit_funcblock,
+        &key_ds_seen_funcblock,
+        &key_ds_retract_funcblock,
+        &key_ds_gone_funcblock,
         NULL
     };
     return fb;
