@@ -68,7 +68,7 @@ handled_policy_import_cmd(int sockfd, engine_type* engine, const char *cmd,
     perform_update_kasp(sockfd, engine->config);
 
 	//TODO: Need error checking so we only do this if the update succeeds
-	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+	(void)perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 					   engine->config->automatic_keygen_duration);
 
     flush_all_tasks(sockfd, engine);

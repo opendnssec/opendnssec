@@ -167,7 +167,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			error |= !perform_update_keyzones(sockfd, engine->config);
 		if (!error) {
 			perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
-			perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+			(void)perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 							   engine->config->automatic_keygen_duration);
 		}
 

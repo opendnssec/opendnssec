@@ -390,7 +390,7 @@ bool count_zones_for_policy(int sockfd,
 	return true;
 }
 
-void 
+int 
 perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
 				   time_t duration)
 {
@@ -405,12 +405,12 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
         ods_printf(sockfd,
 				   "not generating keys, because ManualKeyGeneration flag is "
 				   "set in conf.xml.\n");
-        return;
+        return 1;
     }
     
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return; // errors have already been reported.
+		return 1; // errors have already been reported.
 	
 	// load all policies into memory, we are going to be modifying the database 
 	// hsm key tables later on in multiple separate transactions. We therefore 
@@ -421,14 +421,14 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
 		if (!transaction.started()) {
 			ods_log_error_and_printf(sockfd, module_str,
 									 "starting transaction failed");
-			return;
+			return 1;
 		}
 		
 		{	OrmResultRef rows;
 			if (!OrmMessageEnum(conn,::ods::kasp::Policy::descriptor(),rows)) {
 				ods_log_error_and_printf(sockfd, module_str,
 										 "enumerating policies failed");
-				return;
+				return 1;
 			}
 			
 			for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
@@ -436,13 +436,13 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
 				if (!policy) {
 					ods_log_error_and_printf(sockfd, module_str,
 											 "out of memory allocating policy");
-					return;
+					return 1;
 				}
 				
 				if (!OrmGetMessage(rows, *policy, true)) {
 					ods_log_error_and_printf(sockfd, module_str,
 										"reading policy from database failed");
-					return;
+					return 1;
 				}
 			}
 		}
@@ -466,6 +466,7 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
 		generate_zsks(sockfd, conn, kasp.policies(i), duration, count, config->hsm);
 		generate_csks(sockfd, conn, kasp.policies(i), duration, count, config->hsm);
     }
+    return 0;
 }
 
 static task_type *
@@ -473,7 +474,7 @@ hsmkey_gen_task_perform(task_type *task)
 {
 	engineconfig_type *config = (engineconfig_type *)task->context;
 	time_t duration = config->automatic_keygen_duration;
-	perform_hsmkey_gen(-1, config, 0, duration);
+	(void)perform_hsmkey_gen(-1, config, 0, duration);
 	task_cleanup(task);
 	return NULL;
 }

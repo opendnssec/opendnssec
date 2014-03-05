@@ -86,7 +86,7 @@ handles(const char *cmd, ssize_t n)
 	return ods_check_command(cmd, n, update_all_funcblock()->cmdname)?1:0;
 }
 
-int
+static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
 	(void)cmd; (void)n;

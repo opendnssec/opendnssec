@@ -83,7 +83,7 @@ handled_zonelist_import_cmd(int sockfd, engine_type* engine, const char *cmd,
 
     perform_update_keyzones(sockfd, engine->config);
 	// TODO: Do error checking once we have the return codes sorted out...
-	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+	(void)perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 		engine->config->automatic_keygen_duration);
 
     flush_enforce_task(engine, 1);

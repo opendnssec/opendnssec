@@ -227,7 +227,7 @@ handled_zone_add_cmd(int sockfd, engine_type* engine, const char *cmd,
 					 outconf.c_str(),
 					 need_write_xml);
 					
-	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+	(void)perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 					   engine->config->automatic_keygen_duration);					
 	
     ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);

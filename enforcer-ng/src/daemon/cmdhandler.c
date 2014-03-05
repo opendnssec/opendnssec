@@ -66,6 +66,7 @@
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
 #include "policy/update_kasp_cmd.h"
+#include "keystate/update_keyzones_cmd.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -407,6 +408,7 @@ cmd_funcs_avail(void)
         &update_repositorylist_funcblock,
         &update_all_funcblock,
         &update_kasp_funcblock,
+        &update_keyzones_funcblock,
         NULL
     };
     return fb;

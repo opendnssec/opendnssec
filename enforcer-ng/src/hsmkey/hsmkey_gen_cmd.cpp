@@ -135,7 +135,7 @@ int handled_keystate_generate_cmd(int sockfd, engine_type* engine, const char *c
 
     time_t tstart = time(NULL);
 
-    perform_hsmkey_gen(sockfd,engine->config,1,period);
+    (void)perform_hsmkey_gen(sockfd,engine->config,1,period);
     
 	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
     return 1;
