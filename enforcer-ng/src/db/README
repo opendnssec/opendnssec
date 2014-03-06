@@ -1,0 +1,50 @@
+Usage
+
+DbConnection conn;
+
+DbTransaction t(conn);
+
+EnforcerZone zone(conn);
+zone.getByName(name);
+if (zone.empty()) {
+    // error
+    t.rollback();
+    return;
+}
+
+std::vector<KeyData> keys = zone.keys();
+for (std::vector<KeyData>::iterator i = keys.begin(); i != keys.end(); i++) {
+    // do stuff with key *i
+    cout << "Locator: " << (*i).locator() << endl;
+}
+
+KeyData key(conn);
+key.locator("ABC");
+key.create();
+zone.addKey(key);
+zone.update();
+
+t.commit();
+
+
+
+class KeyData {
+    DbObject data;
+    
+public:
+    void locator(const std::string new_value) {
+        data.setValue("locator", new_value);
+    }
+    
+    void create(void) {
+        data.create();
+    }
+}
+
+
+class EnforcerZone : DbObject {
+    void addKey(const KeyData &key) {
+        conn.linkObject(this, key);
+    }
+}
+
