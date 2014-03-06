@@ -32,6 +32,9 @@ class KeyData {
     DbObject data;
     
 public:
+    KeyData() : data("key_data");
+    KeyData(DbObject data) : data(data);
+    
     void locator(const std::string new_value) {
         data.setValue("locator", new_value);
     }
@@ -39,12 +42,21 @@ public:
     void create(void) {
         data.create();
     }
+
+    void getByName(const std::string name) {
+        data.query(new DbClause("name", DB_CLAUSE_EQ, name));
+    }
 }
 
 
-class EnforcerZone : DbObject {
+class EnforcerZone {
+    DbObject data;
+    
+public:
     void addKey(const KeyData &key) {
-        conn.linkObject(this, key);
+        conn.linkObject(data, key);
     }
+
+
 }
 
