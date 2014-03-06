@@ -30,19 +30,14 @@
 #ifndef _POLICY_POLICY_LIST_CMD_H_
 #define _POLICY_POLICY_LIST_CMD_H_
 
-#include "daemon/engine.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void help_policy_list_cmd(int sockfd);
-
-int handled_policy_list_cmd(int sockfd, engine_type* engine, const char *buf,
-                            ssize_t n);
+struct cmd_func_block* policy_list_funcblock(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* _POLICY_POLICY_LIST_CMD_H_ */

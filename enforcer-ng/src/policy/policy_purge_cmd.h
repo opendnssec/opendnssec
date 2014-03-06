@@ -30,18 +30,11 @@
 #ifndef POLICY_PURGE_CMD_H_
 #define POLICY_PURGE_CMD_H_
 
-#include "daemon/engine.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void
-help_policy_purge_cmd(int sockfd);
-
-int
-handled_policy_purge_cmd(int sockfd, engine_type* engine, const char *cmd,
-                          ssize_t n);
+struct cmd_func_block* policy_purge_funcblock(void);
 
 #ifdef __cplusplus
 }

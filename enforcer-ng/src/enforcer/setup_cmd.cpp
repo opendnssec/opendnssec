@@ -27,30 +27,25 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
+
+#include "daemon/cmdhandler.h"
 
 #include "enforcer/setup_cmd.h"
 #include "enforcer/autostart_cmd.h"
 #include "enforcer/update_repositorylist_task.h"
-
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
 #include "daemon/orm.h"
-
 #include "policy/update_kasp_task.h"
 #include "policy/kasp.pb.h"
-
 #include "keystate/update_keyzones_task.h"
 #include "keystate/keystate.pb.h"
-
 #include "hsmkey/update_hsmkeys_task.h"    
 #include "hsmkey/hsmkey_gen_task.h"    
 #include "hsmkey/hsmkey.pb.h"
-
 #include "protobuf-orm/pb-orm.h"
 
 static const char *module_str = "setup_cmd";
@@ -59,12 +54,19 @@ static const char *module_str = "setup_cmd";
  * Print help for the 'setup' command
  *
  */
-void help_setup_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-   ods_printf(sockfd,
-			   "setup                  Delete existing database contents and perform\n"
-			   "                       update kasp, zonelist and repositorylist.\n"
-        );
+	ods_printf(sockfd,
+		"setup                  Delete existing database contents and perform\n"
+		"                       update kasp, zonelist and repositorylist.\n"
+	);
+}
+
+static int
+handles(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, setup_funcblock()->cmdname)?1:0;
 }
 
 static bool
@@ -129,13 +131,11 @@ drop_database_tables(int sockfd, OrmConn conn, engineconfig_type* config)
  * Handle the 'setup' command.
  *
  */
-int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
-					  ssize_t n)
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
-	const char *scmd = "setup";
-	if (!ods_check_command(cmd, n, scmd)) return 0; // not handled
-	ods_log_debug("[%s] %s command", module_str, scmd);
-	time_t tstart = time(NULL);
+	(void)cmd; (void)n;
+	ods_log_debug("[%s] %s command", module_str, setup_funcblock()->cmdname);
 
 	lock_basic_lock(&engine->signal_lock);
 		/** we have got the lock, daemon thread is not going anywhere 
@@ -167,7 +167,7 @@ int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 			error |= !perform_update_keyzones(sockfd, engine->config);
 		if (!error) {
 			perform_update_hsmkeys(sockfd, engine->config, 0 /* automatic */);
-			perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+			(void)perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 							   engine->config->automatic_keygen_duration);
 		}
 
@@ -177,6 +177,15 @@ int handled_setup_cmd(int sockfd, engine_type* engine, const char *cmd,
 	lock_basic_unlock(&engine->signal_lock);
 	lock_basic_alarm(&engine->signal_cond);
 
-	ods_printf(sockfd, "%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-	return 1;
+	return error;
+}
+
+static struct cmd_func_block funcblock = {
+	"setup", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+setup_funcblock(void)
+{
+	return &funcblock;
 }

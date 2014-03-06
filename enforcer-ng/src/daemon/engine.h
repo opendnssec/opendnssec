@@ -115,8 +115,7 @@ ods_status engine_setup(engine_type* engine);
 void engine_teardown(engine_type* engine);
 
 void
-engine_init(engine_type* engine, int daemonize,
-    handled_xxxx_cmd_type *commands, help_xxxx_cmd_type *help);
+engine_init(engine_type* engine, int daemonize);
 
 typedef void (*start_cb_t)(engine_type* engine);
 

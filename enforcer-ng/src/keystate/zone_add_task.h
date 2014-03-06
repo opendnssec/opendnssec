@@ -32,7 +32,7 @@
 
 #include "daemon/cfg.h"
 
-void perform_zone_add(int sockfd,
+int perform_zone_add(int sockfd,
 					  engineconfig_type *config,
 					  const char *zone,
 					  const char *policy,

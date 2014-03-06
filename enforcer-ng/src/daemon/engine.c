@@ -454,8 +454,7 @@ engine_teardown(engine_type* engine)
 }
 
 void
-engine_init(engine_type* engine, int daemonize,
-    handled_xxxx_cmd_type *commands, help_xxxx_cmd_type *help)
+engine_init(engine_type* engine, int daemonize)
 {
     struct sigaction action;
 
@@ -471,8 +470,6 @@ engine_init(engine_type* engine, int daemonize,
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
     engine->daemonize = daemonize;
-    engine->commands = commands;
-    engine->help = help;
     /* catch signals */
     signal_set_engine(engine);
     action.sa_handler = signal_handler;

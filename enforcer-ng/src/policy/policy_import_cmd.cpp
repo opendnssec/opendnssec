@@ -27,52 +27,53 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
+#include "daemon/engine.h"
 
-#include "policy/kasp.pb.h"
-
-#include "policy/policy_import_cmd.h"
 #include "policy/update_kasp_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "policy/policy_import_cmd.h"
 
 static const char *module_str = "policy_import_cmd";
 
-void
-help_policy_import_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-			   "policy import          Import policies from kasp.xml into the enforcer database.\n");
+	ods_printf(sockfd,
+		"policy import          Import policies from kasp.xml into"
+		" the enforcer database.\n");
 }
 
-int
-handled_policy_import_cmd(int sockfd, engine_type* engine, const char *cmd,
-                        ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd = "policy import";
+	return ods_check_command(cmd, n, policy_import_funcblock()->cmdname)?1:0;
+}
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	(void)cmd; (void)n;
+	int error;
+	ods_log_debug("[%s] %s command", module_str, policy_import_funcblock()->cmdname);
+	if (!perform_update_kasp(sockfd, engine->config)) return 1;
 
-    ods_log_debug("[%s] %s command", module_str, scmd);
+	error = perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+		engine->config->automatic_keygen_duration);
 
-    time_t tstart = time(NULL);
-	
-   /* perform_policy_import(sockfd, engine->config); */
-    perform_update_kasp(sockfd, engine->config);
+	flush_all_tasks(sockfd, engine);
+	return error;
+}
 
-	//TODO: Need error checking so we only do this if the update succeeds
-	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
-					   engine->config->automatic_keygen_duration);
+static struct cmd_func_block funcblock = {
+	"policy import", &usage, NULL, &handles, &run
+};
 
-    flush_all_tasks(sockfd, engine);
-	
-    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+struct cmd_func_block*
+policy_import_funcblock(void)
+{
+	return &funcblock;
 }

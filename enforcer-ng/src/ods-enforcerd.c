@@ -30,57 +30,15 @@
  */
 
 #include "config.h"
+
+#include <getopt.h>
+#include <libxml/parser.h>
+
 #include "daemon/engine.h"
 #include "shared/protobuf.h"
 #include "daemon/orm.h"
 
-/* Pull in the commands that have been implemented for the enforcer */
 #include "enforcer/autostart_cmd.h"
-#include "enforcer/setup_cmd.h"
-#include "enforcer/update_repositorylist_cmd.h"
-#include "enforcer/update_all_cmd.h"
-
-#include "policy/update_kasp_cmd.h"
-#include "policy/policy_resalt_cmd.h"
-#include "keystate/update_keyzones_cmd.h"
-#include "hsmkey/update_hsmkeys_cmd.h"
-
-#include "policy/policy_export_cmd.h"
-#include "policy/policy_import_cmd.h"
-#include "policy/policy_list_cmd.h"
-#include "policy/policy_purge_cmd.h"
-#include "keystate/zone_list_cmd.h"
-#include "keystate/zone_add_cmd.h"
-#include "keystate/zone_del_cmd.h"
-#include "keystate/zonelist_cmd.h"
-
-#include "keystate/keystate_list_cmd.h"
-#include "keystate/rollover_list_cmd.h"
-#include "keystate/keystate_export_cmd.h"
-#include "keystate/keystate_ds_submit_cmd.h"
-#include "keystate/keystate_ds_seen_cmd.h"
-#include "keystate/keystate_ds_retract_cmd.h"
-#include "keystate/keystate_ds_gone_cmd.h"
-#include "keystate/keystate_rollover_cmd.h"
-
-#include "enforcer/enforce_cmd.h"
-#include "signconf/signconf_cmd.h"
-
-#include "hsmkey/hsmkey_gen_cmd.h"
-#include "hsmkey/backup_hsmkeys_cmd.h"
-
-#include "enforcer/update_repositorylist_task.h"
-#include "keystate/update_keyzones_task.h"
-#include "hsmkey/update_hsmkeys_task.h"
-#include "policy/update_kasp_task.h"
-#include "keystate/update_keyzones_task.h"
-
-/* System libraries last */
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <libxml/parser.h>
-
 
 #define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
 #define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
@@ -128,101 +86,6 @@ version(FILE* out)
     fprintf(out, "See source files for more license information\n");
     exit(0);
 }
-
-/**
- * Table with command help print functions for all the enforcer
- * specific commands that are supported.
- *
- */
-
-static help_xxxx_cmd_type enforcer_help[] = {
-    help_setup_cmd,
-    help_update_kasp_cmd,
-    help_update_keyzones_cmd,
-    help_update_repositorylist_cmd,
-    help_update_all_cmd,
-    
-    help_policy_list_cmd,
-    help_policy_export_cmd,
-    help_policy_import_cmd,
-    help_policy_purge_cmd,
-    help_policy_resalt_cmd,
-
-    help_zone_list_cmd,
-    help_zone_add_cmd,
-    help_zone_del_cmd,
-
-    help_zonelist_export_cmd,
-    help_zonelist_import_cmd,
-
-    help_keystate_list_cmd,
-    help_keystate_import_cmd,
-    help_keystate_export_cmd,
-    help_keystate_ds_submit_cmd,
-    help_keystate_ds_seen_cmd,
-    help_keystate_ds_retract_cmd,
-    help_keystate_ds_gone_cmd,
-    help_keystate_rollover_cmd,
-    help_keystate_generate_cmd,
-
-    help_rollover_list_cmd,
-
-    help_backup_cmd,
-
-    help_enforce_zones_cmd,
-    help_signconf_cmd,
-    
-    /* ! NULL TERMINATED ! */
-    NULL
-};
-
-
-/**
- * Table with command handler functions for all the enforcer
- * specific commands that are supported.
- *
- */
-static handled_xxxx_cmd_type 
-enforcer_commands[] = {
-    handled_setup_cmd,
-    handled_update_kasp_cmd,
-    handled_update_keyzones_cmd,
-    handled_update_repositorylist_cmd,
-    handled_update_all_cmd,
-    
-    handled_policy_list_cmd,
-    handled_policy_import_cmd,	
-    handled_policy_export_cmd,
-    handled_policy_purge_cmd,
-    handled_policy_resalt_cmd,
-
-    handled_zone_list_cmd,
-    handled_zone_add_cmd,
-    handled_zone_del_cmd,
-
-    handled_zonelist_export_cmd,
-    handled_zonelist_import_cmd,
-
-    handled_keystate_list_cmd,
-    handled_keystate_import_cmd,
-    handled_keystate_export_cmd,
-    handled_keystate_ds_submit_cmd,
-    handled_keystate_ds_seen_cmd,
-    handled_keystate_ds_retract_cmd,
-    handled_keystate_ds_gone_cmd,
-    handled_keystate_rollover_cmd,
-    handled_keystate_generate_cmd,
-
-    handled_rollover_list_cmd,
-
-    handled_backup_cmds,
-
-    handled_enforce_zones_cmd,
-    handled_signconf_cmd,
-
-    /* ! NULL TERMINATED ! */
-    NULL
-};
 
 void
 program_setup(int cmdline_verbosity)
@@ -339,7 +202,7 @@ main(int argc, char* argv[])
         program_teardown();
         return 1;
     }
-    engine_init(engine, daemonize, enforcer_commands, enforcer_help);
+    engine_init(engine, daemonize);
     
     returncode = 0;
     while (!engine->need_to_exit) {

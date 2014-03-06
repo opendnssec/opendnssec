@@ -33,6 +33,6 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void perform_policy_list(int sockfd, engineconfig_type *config);
+int perform_policy_list(int sockfd, engineconfig_type *config);
 
 #endif

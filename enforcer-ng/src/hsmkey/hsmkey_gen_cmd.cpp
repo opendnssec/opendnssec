@@ -27,16 +27,16 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "hsmkey/hsmkey_gen_cmd.h"
+#include "daemon/engine.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "hsmkey/hsmkey_gen_cmd.h"
+
 
 static const char *module_str = "keystate_generate";
 
@@ -44,15 +44,16 @@ static const char *module_str = "keystate_generate";
  * Print help for the 'hsmkey_gen' command
  *
  */
-void help_keystate_generate_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-               "key generate           Pre-generate keys.\n"
-	       	   "      --duration <duration>      (aka -d)  duration to generate keys for.\n"
-        );
+	ods_printf(sockfd,
+		"key generate           Pre-generate keys.\n"
+		"      --duration <duration>      (aka -d)  duration to generate keys for.\n"
+	);
 }
 
-static bool
+static int
 get_period(int sockfd,
 		   engineconfig_type *config,
 		   const char *scmd,
@@ -60,12 +61,12 @@ get_period(int sockfd,
 		   time_t &period)
 {
 	char buf[ODS_SE_MAXLINE];
-    const char *argv[8];
-    const int NARGV = sizeof(argv)/sizeof(char*);    
+    const int NARGV = 8;
+    const char *argv[NARGV];
     int argc;
 	
 	// Use buf as an intermediate buffer for the command.
-    strncpy(buf,cmd,sizeof(buf));
+    strncpy(buf, cmd, sizeof(buf));
     buf[sizeof(buf)-1] = '\0';
 
     // separate the arguments
@@ -74,20 +75,18 @@ get_period(int sockfd,
 		ods_log_error_and_printf(sockfd, module_str,
 								 "too many arguments for %s command",
 								 scmd);
-		help_keystate_generate_cmd(sockfd);						
-        return false; // errors, but handled
+        return -1;
     }
     
     const char *str = NULL;
-    (void)ods_find_arg_and_param(&argc,argv,"duration","d",&str);
+    (void)ods_find_arg_and_param(&argc, argv, "duration","d", &str);
 	
 	// fail on unhandled arguments;
     if (argc) {
 		ods_log_error_and_printf(sockfd, module_str,
 								 "unknown arguments for %s command",
 								 scmd);
-		help_keystate_generate_cmd(sockfd);									
-        return false; // errors, but handled
+        return -1;
     }
 
 	// Use the automatic keygen period when no period is specified 
@@ -101,7 +100,7 @@ get_period(int sockfd,
 			ods_log_error_and_printf(sockfd, module_str,
 									 "invalid duration argument %s",
 									 str);									
-			return false; // errors, but handled
+			return 1;
 		}
 		period = duration2time(duration);
 		duration_cleanup(duration);
@@ -109,34 +108,38 @@ get_period(int sockfd,
 			ods_log_error_and_printf(sockfd, module_str,
 									 "invalid period in duration argument %s",
 									 str);
-			return false; // errors, but handled
+			return 1;
 		}
 	}
 		
-	return true;
+	return 0;
 }
 
-
-
-int handled_keystate_generate_cmd(int sockfd, engine_type* engine, const char *cmd,
-						   ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd = "key generate";
-    
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
+	return ods_check_command(cmd, n, key_gen_funcblock()->cmdname)?1:0;
+}
 
-    ods_log_debug("[%s] %s command", module_str, scmd);
-
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	int error;
+	ods_log_debug("[%s] %s command", module_str, key_gen_funcblock()->cmdname);
 	time_t period;
-	if (!get_period(sockfd,engine->config, scmd, cmd, period))
-		return 1; // errors, but handled
+	error = get_period(sockfd,engine->config, 
+		key_gen_funcblock()->cmdname, cmd, period);
+	if (error != 0)
+		return error;
+	return perform_hsmkey_gen(sockfd,engine->config,1,period);
+}
 
-    time_t tstart = time(NULL);
+static struct cmd_func_block funcblock = {
+	"key generate", &usage, NULL, &handles, &run
+};
 
-    perform_hsmkey_gen(sockfd,engine->config,1,period);
-    
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+struct cmd_func_block*
+key_gen_funcblock(void)
+{
+	return &funcblock;
 }

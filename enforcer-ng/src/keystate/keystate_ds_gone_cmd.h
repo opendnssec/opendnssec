@@ -30,19 +30,14 @@
 #ifndef _KEYSTATE_DS_GONE_CMD_H_
 #define _KEYSTATE_DS_GONE_CMD_H_
 
-#include "daemon/engine.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void help_keystate_ds_gone_cmd(int sockfd);
-
-int handled_keystate_ds_gone_cmd(int sockfd, engine_type* engine,
-								 const char *cmd, ssize_t n);
+struct cmd_func_block* key_ds_gone_funcblock(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* _KEYSTATE_DS_GONE_CMD_H_ */

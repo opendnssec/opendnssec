@@ -27,50 +27,52 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "keystate/update_keyzones_cmd.h"
-#include "keystate/update_keyzones_task.h"
+#include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "keystate/update_keyzones_task.h"
+#include "keystate/update_keyzones_cmd.h"
 
 static const char *module_str = "update_keyzones_cmd";
 
-void
-help_update_keyzones_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-               "update zonelist        Import zones from zonelist.xml into enforcer.\n"
-        );
+	ods_printf(sockfd,
+		"update zonelist        Import zones from zonelist.xml into enforcer.\n"
+	);
 }
 
-int
-handled_update_keyzones_cmd(int sockfd, engine_type* engine, const char *cmd,
-                            ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd = "update zonelist";
+	return ods_check_command(cmd, n, update_keyzones_funcblock()->cmdname)?1:0;
+}
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
-
-    ods_log_debug("[%s] %s command", module_str, scmd);
-    
-    time_t tstart = time(NULL);
-	
-	perform_update_keyzones(sockfd,engine->config);
-	// TODO: Do error checking once we have the return codes sorted out...
-	perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	(void)cmd; (void)n;
+	int error;
+	ods_log_debug("[%s] %s command", module_str, update_keyzones_funcblock()->cmdname);
+	if (!perform_update_keyzones(sockfd,engine->config)) return 1;
+	error = perform_hsmkey_gen(sockfd, engine->config, 0,
 		engine->config->automatic_keygen_duration);
+	flush_enforce_task(engine, 1);
+	return error;
+}
 
-    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
+static struct cmd_func_block funcblock = {
+	"update zonelist", &usage, NULL, &handles, &run
+};
 
-    flush_enforce_task(engine, 1);
-    return 1;
+struct cmd_func_block*
+update_keyzones_funcblock(void)
+{
+	return &funcblock;
 }

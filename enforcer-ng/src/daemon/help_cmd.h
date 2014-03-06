@@ -1,17 +1,16 @@
 /*
- * Copyright (c) 2011 Surfnet 
- * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
- * Copyright (c) 2011 OpenDNSSEC AB (svb)
+ * Copyright (c) 2014 NLNet Labs
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ * notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -27,20 +26,9 @@
  *
  */
 
-#ifndef _HSMKEY_UPDATE_HSMKEYS_TASK_H_
-#define _HSMKEY_UPDATE_HSMKEYS_TASK_H_
+#ifndef _HELP_CMD_H_
+#define _HELP_CMD_H_
 
-#include "daemon/cfg.h"
-#include "scheduler/task.h"
+struct cmd_func_block* help_funcblock(void);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int perform_update_hsmkeys(int sockfd, engineconfig_type *config, int bManual);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif /* _HELP_CMD_H_ */

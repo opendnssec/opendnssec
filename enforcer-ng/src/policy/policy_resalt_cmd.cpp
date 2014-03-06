@@ -27,44 +27,50 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "policy/policy_resalt_cmd.h"
+#include "daemon/cmdhandler.h"
+
 #include "policy/policy_resalt_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
 
+#include "policy/policy_resalt_cmd.h"
+
 static const char *module_str = "policy_resalt_cmd";
 
-void
-help_policy_resalt_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
 	ods_printf(sockfd,
-			   "policy resalt          Generate new NSEC3 salts for policies that have salts\n"
-			   "                       older than the resalt duration.\n"
-             );
+		"policy resalt          Generate new NSEC3 salts for policies that have salts\n"
+		"                       older than the resalt duration.\n"
+	);
 }
 
-int
-handled_policy_resalt_cmd(int sockfd, engine_type* engine, const char *cmd,
-                          ssize_t n)
+static int
+handles(const char *cmd, ssize_t n)
 {
-    const char *scmd =  "policy resalt";
+	return ods_check_command(cmd, n, resalt_funcblock()->cmdname)?1:0;
+}
 
-    cmd = ods_check_command(cmd,n,scmd);
-    if (!cmd)
-        return 0; // not handled
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	(void)cmd; (void)n;
+	ods_log_debug("[%s] %s command", module_str, resalt_funcblock()->cmdname);
+	(void) perform_policy_resalt(sockfd, engine->config);
+	return 0;
+}
 
-    ods_log_debug("[%s] %s command", module_str, scmd);
+static struct cmd_func_block funcblock = {
+	"policy resalt", &usage, NULL, &handles, &run
+};
 
-    time_t tstart = time(NULL);
-	
-    perform_policy_resalt(sockfd, engine->config);
-	
-    ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-    return 1;
+struct cmd_func_block*
+resalt_funcblock(void)
+{
+	return &funcblock;
 }

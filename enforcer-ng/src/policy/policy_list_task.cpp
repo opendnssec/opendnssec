@@ -46,21 +46,21 @@
 
 static const char *module_str = "policy_list_task";
 
-void 
+int 
 perform_policy_list(int sockfd, engineconfig_type *config)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return; // errors have already been reported.
+		return 1; // errors have already been reported.
 	
 	{	OrmTransaction transaction(conn);
 		
 		if (!transaction.started()) {
 			ods_log_error_and_printf(sockfd, module_str,
 									 "database transaction failed");
-			return;
+			return 1;
 		}
 		
 		{	OrmResultRef rows;
@@ -68,7 +68,7 @@ perform_policy_list(int sockfd, engineconfig_type *config)
 			if (!OrmMessageEnum(conn,policy.descriptor(),rows)) {
 				ods_log_error_and_printf(sockfd, module_str,
 										"database policy enumeration failed\n");
-				return;
+				return 1;
 			}
 			
 			if (!OrmFirst(rows)) {
@@ -77,7 +77,7 @@ perform_policy_list(int sockfd, engineconfig_type *config)
 						   "Database set to: %s\n"
 						   "There are no policies configured\n"
 						   ,config->datastore);
-				return;
+				return 0;
 			}
 			
 			ods_printf(sockfd,
@@ -94,7 +94,7 @@ perform_policy_list(int sockfd, engineconfig_type *config)
 				if (!OrmGetMessage(rows, policy, true)) {
 					ods_log_error_and_printf(sockfd, module_str,
 										"reading policy from database failed");
-					return;
+					return 1;
 				}
 					
 				ods_printf(sockfd,"%-31s %-48s\n",policy.name().c_str(),
@@ -103,4 +103,5 @@ perform_policy_list(int sockfd, engineconfig_type *config)
         }
     }
     ods_log_debug("[%s] policy list completed", module_str);
+    return 0;
 }

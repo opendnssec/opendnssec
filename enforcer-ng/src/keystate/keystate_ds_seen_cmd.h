@@ -36,13 +36,10 @@
 extern "C" {
 #endif
 
-void help_keystate_ds_seen_cmd(int sockfd);
-
-int handled_keystate_ds_seen_cmd(int sockfd, engine_type* engine,
-								 const char *cmd, ssize_t n);
+struct cmd_func_block* key_ds_seen_funcblock(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* _KEYSTATE_DS_SEEN_CMD_H_ */

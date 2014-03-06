@@ -147,5 +147,5 @@ int perform_policy_purge(int sockfd, engineconfig_type *config)
 	// TODO: add error checking
 	perform_policy_export_to_file(config->policy_filename,config, NULL);
 	
-	
+	return 1;
 }

@@ -30,19 +30,14 @@
 #ifndef _ENFORCER_ENFORCE_CMD_H_
 #define _ENFORCER_ENFORCE_CMD_H_
 
-#include "daemon/engine.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void help_enforce_zones_cmd(int sockfd);
-
-int handled_enforce_zones_cmd(int sockfd, engine_type* engine, const char *cmd,
-							  ssize_t n);
+struct cmd_func_block* enforce_funcblock(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* _ENFORCER_ENFORCE_CMD_H_ */

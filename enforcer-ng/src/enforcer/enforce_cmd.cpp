@@ -27,21 +27,14 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
+#include "config.h"
 
-#include "policy/kasp.pb.h"
-#include "enforcer/enforcerdata.h"
-#include "enforcer/enforcer.h"
-
-#include "enforcer/enforce_cmd.h"
+#include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
-#include "signconf/signconf_task.h"
-#include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/engine.h"
+
+#include "enforcer/enforce_cmd.h"
 
 static const char *module_str = "enforce_cmd";
 
@@ -49,28 +42,39 @@ static const char *module_str = "enforce_cmd";
  * Print help for the 'enforce' command
  *
  */
-void help_enforce_zones_cmd(int sockfd)
+static void
+usage(int sockfd)
 {
-    ods_printf(sockfd,
-		       "enforce                Force the enforcer to run once for every zone.\n");
+	ods_printf(sockfd,
+		"enforce                Force the enforcer to run once for every zone.\n"
+	);
+}
+
+static int
+handles(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, enforce_funcblock()->cmdname)?1:0;
 }
 
 /**
  * Handle the 'enforce' command.
  *
  */
-int
-handled_enforce_zones_cmd(int sockfd, engine_type* engine,
-	const char *cmd, ssize_t n)
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
-	const char *scmd = "enforce";
-	cmd = ods_check_command(cmd, n, scmd);
-	if (!cmd) return 0; // not handled
-    ods_log_debug("[%s] %s command", module_str, scmd);
-	time_t tstart = time(NULL);
-
+	(void)cmd; (void)n;
+	ods_log_debug("[%s] %s command", module_str, enforce_funcblock()->cmdname);
 	perform_enforce_lock(sockfd, engine, 1, NULL);
+	return 0;
+}
 
-	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
-	return 1;
+static struct cmd_func_block funcblock = {
+	"enforce", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+enforce_funcblock(void)
+{
+	return &funcblock;
 }

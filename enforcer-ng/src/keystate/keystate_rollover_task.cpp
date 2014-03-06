@@ -48,17 +48,17 @@
 static const char *module_str = "keystate_rollover_task";
 
 #define ODS_LOG_AND_RETURN(errmsg) do { \
-ods_log_error_and_printf(sockfd,module_str,errmsg); return; } while (0)
+ods_log_error_and_printf(sockfd,module_str,errmsg); return 1; } while (0)
 #define ODS_LOG_AND_CONTINUE(errmsg) do { \
 ods_log_error_and_printf(sockfd,module_str,errmsg); continue; } while (0)
 
-void 
+int 
 perform_keystate_rollover(int sockfd, engineconfig_type *config,
                           const char *zone, int nkeyrole)
 {
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
-		return; // error already reported.
+		return 1;
 	
 	{	OrmTransactionRW transaction(conn);
 		if (!transaction.started())
@@ -77,7 +77,7 @@ perform_keystate_rollover(int sockfd, engineconfig_type *config,
 			
 			if (!OrmFirst(rows)) {
 				ods_printf(sockfd,"zone %s not found\n",zone);
-				return;
+				return 1;
 			}
 
 			OrmContextRef context;
@@ -124,4 +124,5 @@ perform_keystate_rollover(int sockfd, engineconfig_type *config,
 				ODS_LOG_AND_RETURN("commiting updated zone to the database failed");
 		}
 	}
+	return 0;
 }
