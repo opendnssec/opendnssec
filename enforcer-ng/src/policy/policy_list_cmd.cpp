@@ -29,11 +29,12 @@
 
 #include "config.h"
 
+#include "daemon/cmdhandler.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-
 #include "policy/policy_list_task.h"
+
 #include "policy/policy_list_cmd.h"
 
 static const char *module_str = "policy_list_cmd";

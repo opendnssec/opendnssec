@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "daemon/engine.h"
+#include "daemon/cmdhandler.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "policy/policy_export_task.h"

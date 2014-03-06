@@ -30,12 +30,13 @@
 #include "config.h"
 
 #include "daemon/engine.h"
+#include "daemon/cmdhandler.h"
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
-
 #include "keystate/update_keyzones_task.h"
+
 #include "keystate/update_keyzones_cmd.h"
 
 static const char *module_str = "update_keyzones_cmd";

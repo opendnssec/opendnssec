@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "daemon/engine.h"
+#include "daemon/cmdhandler.h"
 #include "keystate/rollover_list_task.h"
 #include "shared/file.h"
 #include "shared/str.h"

@@ -29,6 +29,7 @@
 
 #include "config.h"
 
+#include "daemon/cmdhandler.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
 #include "shared/allocator.h"

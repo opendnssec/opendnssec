@@ -28,8 +28,9 @@
  */
 
 #include "config.h"
-#include "daemon/engine.h"
 
+#include "daemon/engine.h"
+#include "daemon/cmdhandler.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "policy/policy_purge_task.h"

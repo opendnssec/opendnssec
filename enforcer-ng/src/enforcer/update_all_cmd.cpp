@@ -29,12 +29,13 @@
 
 #include "config.h"
 
+#include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "utils/kc_helper.h"
-
 #include "enforcer/update_repositorylist_task.h"
+
 #include "enforcer/update_all_cmd.h"
 
 static const char *module_str = "update_all_cmd";

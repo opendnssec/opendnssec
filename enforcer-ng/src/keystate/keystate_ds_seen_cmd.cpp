@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "daemon/engine.h"
+#include "daemon/cmdhandler.h"
 #include "keystate/keystate_ds_seen_task.h"
 #include "enforcer/enforce_task.h"
 #include "shared/file.h"
