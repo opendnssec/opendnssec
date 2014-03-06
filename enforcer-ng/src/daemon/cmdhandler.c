@@ -64,6 +64,7 @@
 #include "policy/policy_list_cmd.h"
 #include "daemon/help_cmd.h"
 #include "daemon/time_leap_cmd.h"
+#include "daemon/queue_cmd.h"
 #include "enforcer/setup_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
@@ -99,68 +100,6 @@
 
 static int count = 0;
 static char* module_str = "cmdhandler";
-
-/**
- * Handle the 'queue' command.
- *
- */
-int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    char* strtime = NULL;
-    char ctimebuf[32]; /* at least 26 according to docs */
-    char buf[ODS_SE_MAXLINE];
-    size_t i = 0;
-    time_t now = 0;
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* task = NULL;
-
-    if (n != 5 || strncmp(cmd, "queue", n) != 0) return 0;
-    ods_log_debug("[%s] list tasks command", module_str);
-
-    ods_log_assert(engine);
-    if (!engine->taskq || !engine->taskq->tasks) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
-        ods_writen(sockfd, buf, strlen(buf));
-        return 1;
-    }
-    
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-
-    /* current work */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        task = engine->workers[i]->task;
-        if (task) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Working with [%s] %s\n",
-                task_what2str(task->what), task_who2str(task->who));
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-    }
-
-    /* how many tasks */
-    now = time_now();
-    strtime = ctime_r(&now,ctimebuf);
-    (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "\nThere are %i tasks scheduled.\nIt is now %s",
-                   (int) engine->taskq->tasks->count,
-                   strtime?strtime:"(null)\n");
-    ods_writen(sockfd, buf, strlen(buf));
-    
-    /* list tasks */
-    node = ldns_rbtree_first(engine->taskq->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->data;
-        for (i=0; i < ODS_SE_MAXLINE; i++) {
-            buf[i] = 0;
-        }
-        (void)task2str(task, (char*) &buf[0]);
-        ods_writen(sockfd, buf, strlen(buf));
-        node = ldns_rbtree_next(node);
-    }
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-    return 1;
-}
 
 /**
  * Handle the 'flush' command.
@@ -310,6 +249,7 @@ cmd_funcs_avail(void)
     static struct cmd_func_block* (*fb[])(void) = {
         &enforce_funcblock,
         &help_funcblock,
+        &queue_funcblock,
 #ifdef ENFORCER_TIMESHIFT
         &time_leap_funcblock,
 #endif
@@ -393,7 +333,6 @@ handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     
     /* Generic commands */
     (void) snprintf(buf, ODS_SE_MAXLINE,
-               "queue                  Show the current task queue.\n"
                "flush                  Execute all scheduled tasks immediately.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
@@ -414,7 +353,6 @@ static int
 cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     handled_xxxx_cmd_type internal_handled_cmds[] = {
-        handled_queue_cmd,
         handled_flush_cmd,
         handled_running_cmd,
         handled_reload_cmd,
