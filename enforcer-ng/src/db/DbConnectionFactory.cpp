@@ -1,8 +1,8 @@
-#include <db/DbConnectionFactory.h>
+#include "db/DbConnectionFactory.h"
 
-void DbConnectionFactory::registerConnection(const std::string& name, const db_connection_configuration_t& configuration) {
+void DbConnectionFactory::registerConnection(const std::string& name, const db_configuration_t& configuration) {
 	std::pair<db_connection_t::iterator, bool> ret;
-	ret = connections.insert(std::pair<std::string, db_connection_configuration_t>(name, configuration));
+	ret = connections.insert(db_connection_pair_t(name, configuration));
 	if (ret.second == false) {
 		throw new DbConnectionFactoryException("Connection " + name + " already exists");
 	}
@@ -16,7 +16,7 @@ void DbConnectionFactory::unregisterConnection(const std::string& name) {
 	connections.erase(i);
 }
 
-const DbConnection* DbConnectionFactory::createConnection(const std::string& name) {
+DbConnection* DbConnectionFactory::createConnection(const std::string& name) {
 	db_connection_t::iterator i = connections.find(name);
 	if (i == connections.end()) {
 		throw new DbConnectionFactoryException("Connection " + name + " does not exist");

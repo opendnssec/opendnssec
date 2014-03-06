@@ -7,6 +7,9 @@ class DbBackendSQLite : public DbBackend {
 public:
 	DbBackendSQLite();
 	~DbBackendSQLite();
+	void configure(db_configuration_t& configuration);
+	void connect(void);
+	void disconnect(void);
 };
 
 #endif

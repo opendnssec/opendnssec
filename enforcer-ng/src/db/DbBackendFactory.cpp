@@ -2,7 +2,7 @@
 #include "db/DbBackendMySQL.h"
 #include "db/DbBackendSQLite.h"
 
-const DbBackend* createBackend(const std::string& name) {
+DbBackend* DbBackendFactory::createBackend(const std::string& name) {
 	if (name == "MySQL") {
 		return new DbBackendMySQL();
 	}

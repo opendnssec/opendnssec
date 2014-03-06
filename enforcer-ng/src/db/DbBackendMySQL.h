@@ -7,6 +7,9 @@ class DbBackendMySQL : public DbBackend {
 public:
 	DbBackendMySQL();
 	~DbBackendMySQL();
+	void configure(db_configuration_t& configuration);
+	void connect(void);
+	void disconnect(void);
 };
 
 #endif

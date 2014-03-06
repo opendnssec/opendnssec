@@ -14,7 +14,7 @@ public:
 
 class DbBackendFactory {
 public:
-	const DbBackend* createBackend(const std::string& name);
+	DbBackend* createBackend(const std::string& name);
 };
 
 #endif

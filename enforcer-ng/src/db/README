@@ -26,6 +26,48 @@ zone.update();
 
 t.commit();
 
+class DbData {
+};
+
+class DbObject {
+    map<std::string, DbData> data;
+    DbConnection& connection;
+protected:    
+    void query(...) {
+    }
+    const DbData& getData(const std::string& name) {
+    }
+    const std::string& getData(const std::string& name) {
+    }
+    const DbData& getData(const std::string& name) {
+    }
+    const DbData& getData(const std::string& name) {
+    }
+    const DbData& getData(const std::string& name) {
+    }
+    void setData(const std::string& name, const DbData& data) {
+    }
+public:
+    bool empty(void) {
+    }
+    void update(void) {
+    }
+    void create(void) {
+    }
+};
+
+class KeyData : public DbObject {
+    KeyData(DbConnection& connection) : DbObject(connection);
+    
+    void getById(const std::string& id) {
+        query(new DbClause());
+    }
+    
+    const std::string& locator(void) {
+        return getData("locator");
+    }
+};
+
 
 
 class KeyData {
