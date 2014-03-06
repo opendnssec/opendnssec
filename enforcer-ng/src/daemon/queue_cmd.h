@@ -30,5 +30,6 @@
 #define _QUEUE_CMD_H_
 
 struct cmd_func_block* queue_funcblock(void);
+struct cmd_func_block* flush_funcblock(void);
 
 #endif /* _QUEUE_CMD_H_ */

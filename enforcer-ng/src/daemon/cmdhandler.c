@@ -103,32 +103,6 @@
 static int count = 0;
 static char* module_str = "cmdhandler";
 
-/**
- * Handle the 'flush' command.
- *
- */
-int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    char buf[ODS_SE_MAXLINE];
-    if (n != 5 || strncmp(cmd, "flush", n) != 0) return 0;
-    ods_log_debug("[%s] flush tasks command", module_str);
-    ods_log_assert(engine);
-    ods_log_assert(engine->taskq);
-    
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-    schedule_flush(engine->taskq, TASK_NONE);
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-    
-    engine_wakeup_workers(engine);
-    
-    (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
-    ods_writen(sockfd, buf, strlen(buf));
-    ods_log_verbose("[%s] all tasks scheduled immediately", module_str);
-    return 1;
-}
-
 typedef struct cmd_func_block* (*fbgetfunctype)(void);
 
 static fbgetfunctype*
@@ -138,6 +112,7 @@ cmd_funcs_avail(void)
         &enforce_funcblock,
         &help_funcblock,
         &queue_funcblock,
+        &flush_funcblock,
         &verbosity_funcblock,
         &ctrl_funcblock,
 #ifdef ENFORCER_TIMESHIFT
@@ -205,26 +180,13 @@ get_funcblock(const char *cmd, ssize_t n)
 static int
 handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
-    char buf[ODS_SE_MAXLINE];
     (void) n;
     (void) engine;
 
     ods_log_debug("[%s] unknown command", module_str);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
-                   cmd?cmd:"(null)");
-    ods_writen(sockfd, buf, strlen(buf));
-
-    /* Anouncement */
-    (void) snprintf(buf, ODS_SE_MAXLINE,"Commands:\n");
-    ods_writen(sockfd, buf, strlen(buf));
-    
+    ods_printf(sockfd, "Unknown command %s.\n", cmd?cmd:"(null)");
+    ods_printf(sockfd, "Commands:\n");
     cmdhandler_get_usage(sockfd);
-    
-    /* Generic commands */
-    (void) snprintf(buf, ODS_SE_MAXLINE,
-               "flush                  Execute all scheduled tasks immediately.\n"
-        );
-    ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }
 
@@ -235,7 +197,6 @@ static int
 cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
     handled_xxxx_cmd_type internal_handled_cmds[] = {
-        handled_flush_cmd,
         handled_unknown_cmd /* unknown command allways matches, so last entry */
     };
     time_t tstart = time(NULL);

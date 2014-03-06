@@ -130,3 +130,48 @@ queue_funcblock(void)
 {
 	return &funcblock;
 }
+
+static void
+usage_flush(int sockfd)
+{
+	ods_printf(sockfd,
+		"queue                  Show the current task queue.\n"
+	);
+}
+
+static int
+handles_flush(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, flush_funcblock()->cmdname)?1:0;
+}
+
+static int
+run_flush(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+{
+	(void)cmd; (void)n;
+	ods_log_debug("[%s] flush tasks command", module_str);
+	ods_log_assert(engine);
+	ods_log_assert(engine->taskq);
+
+	lock_basic_lock(&engine->taskq->schedule_lock);
+	/* [LOCK] schedule */
+		schedule_flush(engine->taskq, TASK_NONE);
+	/* [UNLOCK] schedule */
+	lock_basic_unlock(&engine->taskq->schedule_lock);
+
+	engine_wakeup_workers(engine);
+
+	ods_printf(sockfd, "All tasks scheduled immediately.\n");
+	ods_log_verbose("[cmdhandler] all tasks scheduled immediately");
+	return 0;
+}
+
+static struct cmd_func_block funcblock_flush = {
+	"flush", &usage_flush, NULL, &handles_flush, &run_flush
+};
+
+struct cmd_func_block*
+flush_funcblock(void)
+{
+	return &funcblock_flush;
+}
