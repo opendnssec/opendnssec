@@ -40,27 +40,18 @@
 
 static const char *module_str = "str";
 
-int ods_str_explode(char *buf, int argc, const char *argv[])
+int
+ods_str_explode(char *buf, int argc, const char *argv[])
 {
     int narg = 0;
-    if (buf && strlen(buf)) { 
-        char *p = buf;
-        char *pend = p+strlen(p);
-        do {
-            for (; p<pend && isspace(*p); ++p) {
-                *p = '\0'; /* zero-out space characters */
-            }
-            if (p < pend) {
-                if (narg < argc) {
-                    argv[narg++] = p;
-                } else {
-                    ++narg;
-                }
-                for (; p<pend && !isspace(*p); ++p) {
-                    /* skip argv value itself */
-                }
-            }
-        } while (p<pend);
+    char *p = strtok(buf, " ");
+    while(p != NULL) {
+        if (narg < argc)
+            argv[narg] = p;
+        else
+            return narg+1;
+        p = strtok(NULL, " ");
+        narg++;
     }
     return narg;
 }

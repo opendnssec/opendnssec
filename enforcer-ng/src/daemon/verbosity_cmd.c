@@ -28,12 +28,16 @@
 
 #include "config.h"
 
+#include <limits.h>
+
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 
 #include "daemon/verbosity_cmd.h"
+
+#define MAX_ARGS 2
 
 static const char *module_str = "verbosity_cmd";
 
@@ -62,26 +66,58 @@ handles(const char *cmd, ssize_t n)
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
+	const int NARGV = MAX_ARGS;
+	const char *argv[MAX_ARGS];
+	char buf[ODS_SE_MAXLINE];
+	int argc;
+	long val;
+	char *endptr, *errorstr;
 	(void)n;
+
+	strncpy(buf, cmd, sizeof(buf));
+	buf[sizeof(buf)-1] = '\0';
+	argc = ods_str_explode(buf, NARGV, argv);
+
 	ods_log_debug("[%s] verbosity command", module_str);
-	if (cmd[9] == '\0') {
-		char buf[ODS_SE_MAXLINE];
-		(void)snprintf(buf, ODS_SE_MAXLINE, "Error: verbosity command missing "
-											"an argument (verbosity level).\n");
-		ods_writen(sockfd, buf, strlen(buf));
-		return -1;
-	} else if (cmd[9] != ' ') {
-		return 1; /* no match */
-	} else {
-		int val = atoi(&cmd[10]);
-		char buf[ODS_SE_MAXLINE];
+	if (argc == 1) {
+		ods_printf(sockfd, "Current verbosity is set to %d.\n", 
+			ods_log_verbosity());
+		ods_printf(sockfd,
+			"Available modes:\n"
+			"  0 - Critical\n"
+			"  1 - Error\n"
+			"  2 - Warning\n"
+			"  3 - Notice\n"
+			"  4 - Info\n"
+			"  5 - Debug\n"
+		);
+		return 0;
+	} else if (argc == 2) {
+		errno = 0;
+		val = strtol(argv[1], &endptr, 10);
+		if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
+			|| (errno != 0 && val == 0)) {
+			errorstr = strerror(errno);
+			ods_printf(sockfd, "Error parsing verbosity value: %s.\n", errorstr);
+			return -1;
+		}
+		if (endptr == argv[1]) {
+			ods_printf(sockfd, "Error parsing verbosity value: No digits were found.\n");
+			return -1;
+		}
+		if ((int)val < 0) { /* also catches wrapped longs */
+			ods_printf(sockfd, "Error parsing verbosity value: must be >= 0.\n");
+			return -1;
+		}
 		ods_log_assert(engine);
 		ods_log_assert(engine->config);
 		ods_log_init(engine->config->log_filename,
 					 engine->config->use_syslog, val);
-		(void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
-		ods_writen(sockfd, buf, strlen(buf));
+		ods_printf(sockfd, "Verbosity level set to %i.\n", val);
 		return 0;
+	} else {
+		ods_printf(sockfd, "Too many arguments.\n");
+		return -1;
 	}
 }
 

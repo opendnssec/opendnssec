@@ -141,6 +141,11 @@ ods_log_init(const char *filename, int use_syslog, int verbosity)
     return;
 }
 
+int
+ods_log_verbosity(void)
+{
+	return log_level-2;
+}
 
 /**
  * Close logging.
