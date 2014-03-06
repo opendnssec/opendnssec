@@ -66,6 +66,7 @@
 #include "daemon/time_leap_cmd.h"
 #include "daemon/queue_cmd.h"
 #include "daemon/verbosity_cmd.h"
+#include "daemon/ctrl_cmd.h"
 #include "enforcer/setup_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
@@ -128,91 +129,6 @@ int handled_flush_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     return 1;
 }
 
-
-/**
- * Handle the 'running' command.
- *
- */
-int handled_running_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    char buf[ODS_SE_MAXLINE];
-    (void) engine;
-    if (n != 7 || strncmp(cmd, "running", n) != 0) return 0;
-    ods_log_debug("[%s] running command", module_str);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
-    ods_writen(sockfd, buf, strlen(buf));
-    return 1;
-}
-
-/**
- * Handle the 'reload' command.
- *
- */
-int handled_reload_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    char buf[ODS_SE_MAXLINE];
-    if (n != 6 || strncmp(cmd, "reload", n) != 0) return 0;
-    ods_log_debug("[%s] reload command", module_str);
-
-    ods_log_assert(engine);
-
-    engine->need_to_reload = 1;
-
-    lock_basic_lock(&engine->signal_lock);
-    /* [LOCK] signal */
-    lock_basic_alarm(&engine->signal_cond);
-    /* [UNLOCK] signal */
-    lock_basic_unlock(&engine->signal_lock);
-
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Reloading engine.\n");
-    ods_writen(sockfd, buf, strlen(buf));
-    return 1;
-}
-
-/**
- * Handle the 'stop' command.
- *
- */
-int handled_stop_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    char buf[ODS_SE_MAXLINE];
-    if (n != 4 || strncmp(cmd, "stop", n) != 0) return 0;
-    ods_log_debug("[%s] stop command", module_str);
-    
-    ods_log_assert(engine);
-    
-    engine->need_to_exit = 1;
-    
-    lock_basic_lock(&engine->signal_lock);
-    /* [LOCK] signal */
-    lock_basic_alarm(&engine->signal_cond);
-    /* [UNLOCK] signal */
-    lock_basic_unlock(&engine->signal_lock);
-    
-    (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
-    ods_writen(sockfd, buf, strlen(buf));
-    return 2;
-}
-
-
-/**
- * Handle the 'start' command.
- *
- */
-int handled_start_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    char buf[ODS_SE_MAXLINE];
-    if (n != 5 || strncmp(cmd, "start", n) != 0) return 0;
-    ods_log_debug("[%s] start command", module_str);
-    
-    ods_log_assert(engine);
-    
-    (void)snprintf(buf, ODS_SE_MAXLINE-2, ODS_EN_START_RESPONSE);
-    (void)snprintf(buf+strlen(buf), 2, "\n "); /*last char is stripped*/
-    ods_writen(sockfd, buf, strlen(buf));
-    return 1;
-}
-
 typedef struct cmd_func_block* (*fbgetfunctype)(void);
 
 static fbgetfunctype*
@@ -223,6 +139,7 @@ cmd_funcs_avail(void)
         &help_funcblock,
         &queue_funcblock,
         &verbosity_funcblock,
+        &ctrl_funcblock,
 #ifdef ENFORCER_TIMESHIFT
         &time_leap_funcblock,
 #endif
@@ -308,12 +225,6 @@ handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
                "flush                  Execute all scheduled tasks immediately.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
-    (void) snprintf(buf, ODS_SE_MAXLINE,
-               "running                Returns acknowledgment that the engine is running.\n"
-               "reload                 Reload the engine.\n"
-               "stop                   Stop the engine and terminate the process.\n"
-        );
-    ods_writen(sockfd, buf, strlen(buf));
     return 1;
 }
 
@@ -325,10 +236,6 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, ssi
 {
     handled_xxxx_cmd_type internal_handled_cmds[] = {
         handled_flush_cmd,
-        handled_running_cmd,
-        handled_reload_cmd,
-        handled_start_cmd,
-        handled_stop_cmd,
         handled_unknown_cmd /* unknown command allways matches, so last entry */
     };
     time_t tstart = time(NULL);
