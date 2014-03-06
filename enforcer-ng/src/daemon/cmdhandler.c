@@ -65,6 +65,7 @@
 #include "daemon/help_cmd.h"
 #include "daemon/time_leap_cmd.h"
 #include "daemon/queue_cmd.h"
+#include "daemon/verbosity_cmd.h"
 #include "enforcer/setup_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
@@ -212,35 +213,6 @@ int handled_start_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     return 1;
 }
 
-
-/**
- * Handle the 'verbosity' command.
- *
- */
-int handled_verbosity_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    if (n < 9 || strncmp(cmd, "verbosity", 9) != 0) return 0;
-    ods_log_debug("[%s] verbosity command", module_str);
-    if (cmd[9] == '\0') {
-        char buf[ODS_SE_MAXLINE];
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Error: verbosity command missing "
-                                            "an argument (verbosity level).\n");
-        ods_writen(sockfd, buf, strlen(buf));
-    } else if (cmd[9] != ' ') {
-        return 0; /* no match */
-    } else {
-        int val = atoi(&cmd[10]);
-        char buf[ODS_SE_MAXLINE];
-        ods_log_assert(engine);
-        ods_log_assert(engine->config);
-        ods_log_init(engine->config->log_filename,
-                     engine->config->use_syslog, val);
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
-        ods_writen(sockfd, buf, strlen(buf));
-    }
-    return 1;
-}
-
 typedef struct cmd_func_block* (*fbgetfunctype)(void);
 
 static fbgetfunctype*
@@ -250,6 +222,7 @@ cmd_funcs_avail(void)
         &enforce_funcblock,
         &help_funcblock,
         &queue_funcblock,
+        &verbosity_funcblock,
 #ifdef ENFORCER_TIMESHIFT
         &time_leap_funcblock,
 #endif
@@ -328,7 +301,6 @@ handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     (void) snprintf(buf, ODS_SE_MAXLINE,"Commands:\n");
     ods_writen(sockfd, buf, strlen(buf));
     
-    (void) snprintf(buf, ODS_SE_MAXLINE, "PLACEHOLDER, print help\n");
     cmdhandler_get_usage(sockfd);
     
     /* Generic commands */
@@ -340,7 +312,6 @@ handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
                "running                Returns acknowledgment that the engine is running.\n"
                "reload                 Reload the engine.\n"
                "stop                   Stop the engine and terminate the process.\n"
-               "verbosity <nr>         Set verbosity.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
     return 1;
@@ -358,7 +329,6 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, ssi
         handled_reload_cmd,
         handled_start_cmd,
         handled_stop_cmd,
-        handled_verbosity_cmd,
         handled_unknown_cmd /* unknown command allways matches, so last entry */
     };
     time_t tstart = time(NULL);

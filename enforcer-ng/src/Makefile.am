@@ -56,6 +56,7 @@ ods_enforcerd_SOURCES = \
 	daemon/help_cmd.c daemon/help_cmd.h \
 	daemon/time_leap_cmd.c daemon/time_leap_cmd.h \
 	daemon/queue_cmd.c daemon/queue_cmd.h \
+	daemon/verbosity_cmd.c daemon/verbosity_cmd.h \
 	parser/confparser.c parser/confparser.h \
 	scheduler/fifoq.c scheduler/fifoq.h \
 	scheduler/schedule.c scheduler/schedule.h \
