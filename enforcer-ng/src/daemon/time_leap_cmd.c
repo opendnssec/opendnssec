@@ -93,30 +93,26 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	buf[sizeof(buf)-1] = '\0';
 	argc = ods_str_explode(buf, NARGV, argv);
 	if (argc > NARGV) {
-		ods_log_error_and_printf(sockfd,module_str,"too many arguments");
+		ods_log_error_and_printf(sockfd, module_str, "too many arguments");
 		return -1;
 	}
-	(void)ods_find_arg_and_param(&argc,argv,"time","t",&time);
+	(void)ods_find_arg_and_param(&argc, argv, "time", "t", &time);
 	if (time) {
 		if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
 			time_leap = mktime_from_utc(&tm);
-			(void)snprintf(buf, ODS_SE_MAXLINE,"Using %s parameter value as time to leap to\n",
-						 time);
-		   	ods_writen(sockfd, buf, strlen(buf));
-		}
-		else {
-			(void)snprintf(buf, ODS_SE_MAXLINE,
-						   "Time leap: Error - could not convert '%s' to a time. "
-						   "Format is YYYY-MM-DD-HH:MM:SS \n", time);
-			ods_writen(sockfd, buf, strlen(buf));
+			ods_printf(sockfd,
+				"Using %s parameter value as time to leap to\n", time);
+		} else {
+			ods_printf(sockfd, 
+				"Time leap: Error - could not convert '%s' to a time. "
+				"Format is YYYY-MM-DD-HH:MM:SS \n", time);
 			return -1;
 		}
 	}
 
 	ods_log_assert(engine);
 	if (!engine->taskq || !engine->taskq->tasks) {
-		(void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
-		ods_writen(sockfd, buf, strlen(buf));
+		ods_printf(sockfd, "There are no tasks scheduled.\n");
 		return 1;
 	}
 
@@ -126,11 +122,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	/* how many tasks */
 	now = time_now();
 	strtime = ctime_r(&now,ctimebuf);
-	(void)snprintf(buf, ODS_SE_MAXLINE,
-				   "There are %i tasks scheduled.\nIt is now       %s",
-				   (int) engine->taskq->tasks->count,
-				   strtime?strtime:"(null)\n");
-	ods_writen(sockfd, buf, strlen(buf));
+	ods_printf(sockfd, 
+		"There are %i tasks scheduled.\nIt is now       %s",
+		(int) engine->taskq->tasks->count,
+		strtime?strtime:"(null)\n");
 
 	/* Get first task in schedule, this one also features the earliest wake-up
 	   time of all tasks in the schedule. */
@@ -147,22 +142,18 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			if (strtime)
 				strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
 
-			(void)snprintf(buf, ODS_SE_MAXLINE, "Leaping to time %s\n",
-						   strtime?strtime:"(null)");
+			ods_printf(sockfd,  "Leaping to time %s\n", 
+				strtime?strtime:"(null)");
 			ods_log_info("Time leap: Leaping to time %s\n",
-						 strtime?strtime:"(null)");
-			ods_writen(sockfd, buf, strlen(buf));
+				 strtime?strtime:"(null)");
 
 			bShouldLeap = 1;
 		} else {
-			(void)snprintf(buf, ODS_SE_MAXLINE,
-						   "Already flushing tasks, unable to time leap\n");
-			ods_writen(sockfd, buf, strlen(buf));
+			ods_printf(sockfd, 
+				"Already flushing tasks, unable to time leap\n");
 		}
 	} else {
-		(void)snprintf(buf, ODS_SE_MAXLINE,
-					   "Task queue is empty, unable to time leap\n");
-		ods_writen(sockfd, buf, strlen(buf));
+		ods_printf(sockfd, "Task queue is empty, unable to time leap\n");
 	}
 
 	/* [UNLOCK] schedule */
@@ -171,8 +162,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (bShouldLeap) {
 		/* Wake up all workers and let them reevaluate wether their
 		 tasks need to be executed */
-		(void)snprintf(buf, ODS_SE_MAXLINE, "Waking up workers\n");
-		ods_writen(sockfd, buf, strlen(buf));
+		ods_printf(sockfd, "Waking up workers\n");
 		engine_wakeup_workers(engine);
 	}
 	return !bShouldLeap;
