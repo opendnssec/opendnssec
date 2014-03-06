@@ -63,6 +63,7 @@
 #include "policy/policy_resalt_cmd.h"
 #include "policy/policy_list_cmd.h"
 #include "daemon/help_cmd.h"
+#include "daemon/time_leap_cmd.h"
 #include "enforcer/setup_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
@@ -87,7 +88,6 @@
 #include "hsmkey/hsmkey_gen_cmd.h"
 #include "hsmkey/update_hsmkeys_cmd.h"
 #include "signconf/signconf_cmd.h"
-
 
 #include "daemon/cmdhandler.h"
 
@@ -161,121 +161,6 @@ int handled_queue_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t 
     lock_basic_unlock(&engine->taskq->schedule_lock);
     return 1;
 }
-
-
-/**
- * Handle the 'time leap' command.
- *
- */
-int handled_time_leap_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    int bShouldLeap = 0;
-    char* strtime = NULL;
-    char ctimebuf[32]; /* at least 26 according to docs */
-    char buf[ODS_SE_MAXLINE];
-    time_t now = time_now();
-    task_type* task = NULL;
-    const char *scmd = "time leap";
-    ssize_t ncmd = strlen(scmd);
-    const char *time = NULL;
-	time_t time_leap = 0;
-	struct tm tm;	
-    const char *argv[16];
-    const int NARGV = sizeof(argv)/sizeof(char*);
-    int argc;	
-    
-    if (n < ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
-    ods_log_debug("[%s] %s command", module_str, scmd);
-
-    strncpy(buf,cmd,sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-    argc = ods_str_explode(buf,NARGV,argv);
-    if (argc > NARGV) {
-        ods_log_error_and_printf(sockfd,module_str,"too many arguments");
-        return false;
-    }   
-    (void)ods_find_arg_and_param(&argc,argv,"time","t",&time);
-    if (time) {
-        if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {	
-            time_leap = mktime_from_utc(&tm);
-		    (void)snprintf(buf, ODS_SE_MAXLINE,"Using %s parameter value as time to leap to\n", 
-		                 time);	
-		   	ods_writen(sockfd, buf, strlen(buf));
-		}	
-		else {
-	        (void)snprintf(buf, ODS_SE_MAXLINE,
-	                       "Time leap: Error - could not convert '%s' to a time. "
-						   "Format is YYYY-MM-DD-HH:MM:SS \n", time);
-	        ods_writen(sockfd, buf, strlen(buf));	
-			return 1;				
-		}		
-	}
-    
-    ods_log_assert(engine);
-    if (!engine->taskq || !engine->taskq->tasks) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
-        ods_writen(sockfd, buf, strlen(buf));
-        return 1;
-    }
-    
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-    
-    /* how many tasks */
-    now = time_now();
-    strtime = ctime_r(&now,ctimebuf);
-    (void)snprintf(buf, ODS_SE_MAXLINE, 
-                   "There are %i tasks scheduled.\nIt is now       %s",
-                   (int) engine->taskq->tasks->count,
-                   strtime?strtime:"(null)\n");
-    ods_writen(sockfd, buf, strlen(buf));
-    
-    /* Get first task in schedule, this one also features the earliest wake-up 
-       time of all tasks in the schedule. */
-    task = schedule_get_first_task(engine->taskq);
-
-    if (task) {
-        if (!task->flush) {
-			/*Use the parameter vaule, or if not given use the time of the first task*/
-			if (!time_leap) 
-				time_leap = task->when;
-					
-	        set_time_now(time_leap);
-		    strtime = ctime_r(&time_leap,ctimebuf);		
-            if (strtime)
-                strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
-
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Leaping to time %s\n",
-                           strtime?strtime:"(null)");
-		    ods_log_info("Time leap: Leaping to time %s\n", 
-		                 strtime?strtime:"(null)");
-            ods_writen(sockfd, buf, strlen(buf));
-            
-            bShouldLeap = 1;
-        } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "Already flushing tasks, unable to time leap\n");
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-    } else {
-        (void)snprintf(buf, ODS_SE_MAXLINE,
-                       "Task queue is empty, unable to time leap\n");
-        ods_writen(sockfd, buf, strlen(buf));
-    }
-
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-
-    if (bShouldLeap) {
-        /* Wake up all workers and let them reevaluate wether their
-         tasks need to be executed */
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Waking up workers\n");
-        ods_writen(sockfd, buf, strlen(buf));
-        engine_wakeup_workers(engine);
-    }
-    return 1;
-}
-
 
 /**
  * Handle the 'flush' command.
@@ -425,6 +310,9 @@ cmd_funcs_avail(void)
     static struct cmd_func_block* (*fb[])(void) = {
         &enforce_funcblock,
         &help_funcblock,
+#ifdef ENFORCER_TIMESHIFT
+        &time_leap_funcblock,
+#endif
         &key_ds_gone_funcblock,
         &key_ds_retract_funcblock,
         &key_ds_seen_funcblock,
@@ -506,10 +394,6 @@ handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     /* Generic commands */
     (void) snprintf(buf, ODS_SE_MAXLINE,
                "queue                  Show the current task queue.\n"
-#ifdef ENFORCER_TIMESHIFT
-               "time leap              Simulate progression of time by leaping to the time of\n"
-               "                       the earliest scheduled task.\n"
-#endif
                "flush                  Execute all scheduled tasks immediately.\n"
         );
     ods_writen(sockfd, buf, strlen(buf));
@@ -531,9 +415,6 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, ssi
 {
     handled_xxxx_cmd_type internal_handled_cmds[] = {
         handled_queue_cmd,
-#ifdef ENFORCER_TIMESHIFT
-        handled_time_leap_cmd,
-#endif
         handled_flush_cmd,
         handled_running_cmd,
         handled_reload_cmd,
