@@ -41,7 +41,7 @@ int db_backend_not_empty(db_backend_t*);
 db_result_list_t* db_backend_query(db_backend_t*, db_object_t*);
 
 typedef struct {
-	db_backend_t* start;
+	db_backend_t* begin;
 } db_backend_list_t;
 
 db_backend_list_t* db_backend_list_new(void);

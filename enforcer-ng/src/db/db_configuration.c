@@ -100,8 +100,8 @@ db_configuration_list_t* db_configuration_list_new(void) {
 
 void db_configuration_list_free(db_configuration_list_t* configuration_list) {
 	if (configuration_list) {
-		if (configuration_list->start) {
-			db_configuration_t* this = configuration_list->start;
+		if (configuration_list->begin) {
+			db_configuration_t* this = configuration_list->begin;
 			db_configuration_t* next = NULL;
 
 			while (this) {
@@ -125,10 +125,10 @@ int db_configuration_list_add(db_configuration_list_t* configuration_list, db_co
 		return 1;
 	}
 
-	if (configuration_list->start) {
-		configuration->next = configuration_list->start;
+	if (configuration_list->begin) {
+		configuration->next = configuration_list->begin;
 	}
-	configuration_list->start = configuration;
+	configuration_list->begin = configuration;
 
 	return 0;
 }
@@ -143,7 +143,7 @@ const db_configuration_t* db_configuration_list_find(db_configuration_list_t* co
 		return NULL;
 	}
 
-	configuration = configuration_list->start;
+	configuration = configuration_list->begin;
 	while (configuration) {
 		if (db_configuration_not_empty(configuration)) {
 			return NULL;

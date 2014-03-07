@@ -17,7 +17,7 @@ int db_configuration_set_value(db_configuration_t*, const char*);
 int db_configuration_not_empty(db_configuration_t*);
 
 typedef struct {
-	db_configuration_t* start;
+	db_configuration_t* begin;
 } db_configuration_list_t;
 
 db_configuration_list_t* db_configuration_list_new(void);

@@ -185,8 +185,8 @@ db_backend_list_t* db_backend_list_new(void) {
 
 void db_backend_list_free(db_backend_list_t* backend_list) {
 	if (backend_list) {
-		if (backend_list->start) {
-			db_backend_t* this = backend_list->start;
+		if (backend_list->begin) {
+			db_backend_t* this = backend_list->begin;
 			db_backend_t* next = NULL;
 
 			while (this) {
@@ -210,10 +210,10 @@ int db_backend_list_add(db_backend_list_t* backend_list, db_backend_t* backend) 
 		return 1;
 	}
 
-	if (backend_list->start) {
-		backend->next = backend_list->start;
+	if (backend_list->begin) {
+		backend->next = backend_list->begin;
 	}
-	backend_list->start = backend;
+	backend_list->begin = backend;
 
 	return 0;
 }
@@ -228,7 +228,7 @@ const db_backend_t* db_backend_list_find(db_backend_list_t* backend_list, const 
 		return NULL;
 	}
 
-	backend = backend_list->start;
+	backend = backend_list->begin;
 	while (backend) {
 		if (db_backend_not_empty(backend)) {
 			return NULL;
@@ -286,7 +286,7 @@ const db_backend_t* db_backend_factory_get_backend(const char* name) {
 		return NULL;
 	}
 
-	backend = __backend_list->start;
+	backend = __backend_list->begin;
 	while (backend) {
 		if (db_backend_not_empty(backend)) {
 			return NULL;
