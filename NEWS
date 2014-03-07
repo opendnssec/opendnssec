@@ -1,5 +1,7 @@
-OpenDNSSEC 1.13.17rc1
+OpenDNSSEC 1.3.17rc1
 
+* SUPPORT-114: libhsm: Optimize storage in HSM by deleting the public 
+  key directly if SkipPublicKey is used [OPENDNSSEC-575].
 * Signer Engine: log serial of signed zone in STATS line.
 * OPENDNSSEC-569: Build compatibility with SoftHSMv2.
 

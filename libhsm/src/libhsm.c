@@ -2148,9 +2148,12 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     new_key->module = session->module;
 
     if (session->module->config->use_pubkey) {
-        new_key->public_key = publicKey;        
+        new_key->public_key = publicKey;
     } else {
-        new_key->public_key = 0;        
+        /* Destroy the object directly in order to optimize storage in HSM */
+        /* Ignore return value, it is just a session object and will be destroyed later */
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session, publicKey);
+        new_key->public_key = 0;
     }
 
     new_key->private_key = privateKey;
