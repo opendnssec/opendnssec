@@ -29,6 +29,8 @@
 
 #include "config.h"
 
+#include <ctype.h>
+
 #include "daemon/cmdhandler.h"
 #include "enforcer/autostart_cmd.h"
 #include "enforcer/update_repositorylist_task.h"
@@ -45,6 +47,7 @@
 #include "hsmkey/hsmkey_gen_task.h"    
 #include "hsmkey/hsmkey.pb.h"
 #include "protobuf-orm/pb-orm.h"
+#include "daemon/clientpipe.h"
 
 #include "enforcer/setup_cmd.h"
 
@@ -58,7 +61,7 @@ static const char *module_str = "setup_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"setup                  Delete existing database contents and perform\n"
 		"                       update kasp, zonelist and repositorylist.\n"
 	);
@@ -135,8 +138,19 @@ drop_database_tables(int sockfd, OrmConn conn, engineconfig_type* config)
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
+	char buf[ODS_SE_MAXLINE];
 	(void)cmd; (void)n;
+	
 	ods_log_debug("[%s] %s command", module_str, setup_funcblock()->cmdname);
+
+	if (!client_prompt_user(sockfd, 
+			"*WARNING* This will erase all data in the database;"
+			"are you sure? [y/N] ", buf))
+		return 1;
+	if (toupper(buf[0]) != 'Y') {
+		client_printf(sockfd, "Okay, quitting...\n");
+		return 1;
+	}
 
 	lock_basic_lock(&engine->signal_lock);
 		/** we have got the lock, daemon thread is not going anywhere 

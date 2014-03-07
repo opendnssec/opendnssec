@@ -34,6 +34,7 @@
 #include "shared/file.h"
 #include "daemon/engine.h"
 #include "enforcer/update_repositorylist_task.h"
+#include "daemon/clientpipe.h"
 
 #include "enforcer/update_repositorylist_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "update_repositorylist_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"update repositorylist  Import respositories from conf.xml "
 		"into the enforcer.\n");
 }

@@ -33,6 +33,7 @@
 
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
+#include "daemon/clientpipe.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "daemon/worker.h"
@@ -480,7 +481,7 @@ void
 flush_all_tasks(int sockfd, engine_type* engine)
 {
     ods_log_debug("[%s] flushing all tasks...", engine_str);
-    ods_printf(sockfd,"flushing all tasks...\n");
+    client_printf(sockfd,"flushing all tasks...\n");
 
     ods_log_assert(engine);
     ods_log_assert(engine->taskq);

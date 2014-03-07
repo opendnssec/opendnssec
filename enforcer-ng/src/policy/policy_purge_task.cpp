@@ -54,6 +54,7 @@
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
 #include "daemon/engine.h"
+#include "daemon/clientpipe.h"
 
 #include <fcntl.h>
 #include <memory>
@@ -130,7 +131,7 @@ int perform_policy_purge(int sockfd, engineconfig_type *config)
 										  ::ods::kasp::Policy::descriptor(),
 										  "name = %s",
 										  del_policy.c_str());
-					ods_printf(sockfd,"No zones on policy %s; purging...\n",it->c_str());
+					client_printf(sockfd,"No zones on policy %s; purging...\n",it->c_str());
 				}
 			}
 		}

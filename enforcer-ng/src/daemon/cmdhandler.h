@@ -42,8 +42,8 @@ extern "C" {
 /* Max number of not accepted connections before starting to drop. */
 #define ODS_SE_MAX_HANDLERS 5
 
-/* back reference to the engine */
 struct engine_struct;
+struct client_conn;
 
 typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {

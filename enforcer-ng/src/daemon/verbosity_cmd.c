@@ -34,6 +34,7 @@
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
+#include "daemon/clientpipe.h"
 
 #include "daemon/verbosity_cmd.h"
 
@@ -44,7 +45,7 @@ static const char *module_str = "verbosity_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"verbosity <nr>         Set verbosity.\n"
 	);
 }
@@ -52,7 +53,7 @@ usage(int sockfd)
 static void
 help(int sockfd)
 {
-	ods_printf(sockfd, ""
+	client_printf(sockfd, ""
 
 	);
 }
@@ -80,9 +81,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 
 	ods_log_debug("[%s] verbosity command", module_str);
 	if (argc == 1) {
-		ods_printf(sockfd, "Current verbosity is set to %d.\n", 
+		client_printf(sockfd, "Current verbosity is set to %d.\n", 
 			ods_log_verbosity());
-		ods_printf(sockfd,
+		client_printf(sockfd,
 			"Available modes:\n"
 			"  0 - Critical\n"
 			"  1 - Error\n"
@@ -98,25 +99,25 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
 			|| (errno != 0 && val == 0)) {
 			errorstr = strerror(errno);
-			ods_printf(sockfd, "Error parsing verbosity value: %s.\n", errorstr);
+			client_printf(sockfd, "Error parsing verbosity value: %s.\n", errorstr);
 			return -1;
 		}
 		if (endptr == argv[1]) {
-			ods_printf(sockfd, "Error parsing verbosity value: No digits were found.\n");
+			client_printf(sockfd, "Error parsing verbosity value: No digits were found.\n");
 			return -1;
 		}
 		if ((int)val < 0) { /* also catches wrapped longs */
-			ods_printf(sockfd, "Error parsing verbosity value: must be >= 0.\n");
+			client_printf(sockfd, "Error parsing verbosity value: must be >= 0.\n");
 			return -1;
 		}
 		ods_log_assert(engine);
 		ods_log_assert(engine->config);
 		ods_log_init(engine->config->log_filename,
 					 engine->config->use_syslog, val);
-		ods_printf(sockfd, "Verbosity level set to %i.\n", val);
+		client_printf(sockfd, "Verbosity level set to %i.\n", val);
 		return 0;
 	} else {
-		ods_printf(sockfd, "Too many arguments.\n");
+		client_printf(sockfd, "Too many arguments.\n");
 		return -1;
 	}
 }

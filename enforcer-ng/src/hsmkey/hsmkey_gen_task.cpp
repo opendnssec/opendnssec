@@ -39,7 +39,7 @@
 #include "policy/kasp.pb.h"
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
-
+#include "daemon/clientpipe.h"
 
 #include <fcntl.h>
 #include <string.h>
@@ -73,7 +73,7 @@ generate_keypair(int sockfd,
     
     ods_log_debug("[%s] Generating %d bit RSA key in repository: %s",
                   module_str,keysize,repository);
-    ods_printf(sockfd,"generating %d bit RSA key in repository: %s\n",
+    client_printf(sockfd,"generating %d bit RSA key in repository: %s\n",
 			   keysize, repository);
 
     key = hsm_generate_rsa_key(ctx, repository, keysize);
@@ -84,7 +84,7 @@ generate_keypair(int sockfd,
 
         ods_log_debug("[%s] Key generation successful: %s",
 					  module_str,locator.c_str());
-        ods_printf(sockfd,"key generation successful: %s\n",locator.c_str());
+        client_printf(sockfd,"key generation successful: %s\n",locator.c_str());
         
         hsm_key_info_free(key_info);
 #if 0
@@ -113,7 +113,7 @@ generate_keypairs(int sockfd,
 {
 	// nothing todo !
 	if (ngen<=0) {
-		ods_printf(sockfd,
+		client_printf(sockfd,
 				   "no %s keys of %d bits needed for policy '%s'.\n",
 				   ::ods::hsmkey::keyrole_Name(role).c_str(),
 				   nbits, policy_name);
@@ -122,7 +122,7 @@ generate_keypairs(int sockfd,
 	
     bool bkeysgenerated_and_stored = false;
     
-    ods_printf(sockfd,
+    client_printf(sockfd,
 			   "generating %d %ss of %d bits for policy '%s'.\n",
 			   ngen,
 			   ::ods::hsmkey::keyrole_Name(role).c_str(),
@@ -193,7 +193,7 @@ generate_keypairs(int sockfd,
     }
     
     if (ngen<=0) {
-        ods_printf(sockfd,
+        client_printf(sockfd,
 				   "finished generating %d bit %ss.\n",
 				   nbits,
 				   ::ods::hsmkey::keyrole_Name(role).c_str());
@@ -402,7 +402,7 @@ perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
         ods_log_debug("[%s] not generating keys, because ManualKeyGeneration "
                       "flag is set in conf.xml.",
                       module_str);
-        ods_printf(sockfd,
+        client_printf(sockfd,
 				   "not generating keys, because ManualKeyGeneration flag is "
 				   "set in conf.xml.\n");
         return 1;

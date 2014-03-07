@@ -26,26 +26,27 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include "config.h"
 
-#include "keystate/keystate_ds_submit_task.h"
+#include <memory>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <google/protobuf/descriptor.h>
+#include <google/protobuf/message.h>
+
+#include "daemon/clientpipe.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
 
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/message.h>
-
 #include "keystate/keystate.pb.h"
 #include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
-
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
 
-#include <memory>
-#include <fcntl.h>
-#include <sys/stat.h>
+#include "keystate/keystate_ds_submit_task.h"
 
 static const char *module_str = "keystate_ds_submit_task";
 
@@ -167,7 +168,7 @@ submit_dnskey_by_id(int sockfd,
 					"failed to close %s: %s", ds_submit_command,
 					strerror(errno));
 			} else {
-				ods_printf(sockfd, "key %s submitted to %s\n",
+				client_printf(sockfd, "key %s submitted to %s\n",
 				   id, ds_submit_command);
 			}
 		}
@@ -353,20 +354,20 @@ submit_keys(OrmConn conn,
 				LOG_AND_RETURN_1("unable to commit updated zone %s to the database",zone);
 			
 			ods_log_debug("[%s] key states have been updated",module_str);
-			ods_printf(sockfd,"update of key states completed.\n");
+			client_printf(sockfd,"update of key states completed.\n");
 		} else {
 			ods_log_debug("[%s] key states are unchanged",module_str);
 			if (id)
-				ods_printf(sockfd,
+				client_printf(sockfd,
 						   "No key state changes for id \"%s\"\n",
 						   id);
 			else
 				if (zone)
-					ods_printf(sockfd,
+					client_printf(sockfd,
 							   "No key state changes for zone \"%s\"\n",
 							   zone);
 				else
-					ods_printf(sockfd,"key states are unchanged\n");
+					client_printf(sockfd,"key states are unchanged\n");
 		}
 	}
 	
@@ -381,7 +382,7 @@ list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
 	
 	// List the keys with submit flags.
-	ods_printf(sockfd,
+	client_printf(sockfd,
 			   "Database set to: %s\n"
 			   "List of keys eligible to be submitted:\n"
 			   "Zone:                           "
@@ -417,7 +418,7 @@ list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
 					continue;
 				
 				std::string keyrole = keyrole_Name(key.role());
-				ods_printf(sockfd,
+				client_printf(sockfd,
 						   "%-31s %-13s %-40s\n",
 						   enfzone.name().c_str(),
 						   keyrole.c_str(),

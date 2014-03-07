@@ -34,6 +34,7 @@
 #include "signconf/signconf_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "signconf/signconf_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "signconf_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"signconf               Force write of signer configuration files for all zones.\n"
 	);
 }

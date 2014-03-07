@@ -35,7 +35,7 @@
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
-
+#include "daemon/clientpipe.h"
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
@@ -76,7 +76,7 @@ perform_keystate_rollover(int sockfd, engineconfig_type *config,
 				ODS_LOG_AND_RETURN("zone enumeration failed");
 			
 			if (!OrmFirst(rows)) {
-				ods_printf(sockfd,"zone %s not found\n",zone);
+				client_printf(sockfd,"zone %s not found\n",zone);
 				return 1;
 			}
 
@@ -93,25 +93,25 @@ perform_keystate_rollover(int sockfd, engineconfig_type *config,
 					enfzone.set_roll_zsk_now(true);
 					enfzone.set_roll_csk_now(true);
 					enfzone.set_next_change(0); // reschedule immediately
-					ods_printf(sockfd,"rolling all keys for zone %s\n",zone);
+					client_printf(sockfd,"rolling all keys for zone %s\n",zone);
 					ods_log_info("[%s] Manual rollover initiated for all keys on Zone: %s", module_str, zone);
 					break;
 				case ::ods::keystate::KSK:
 					enfzone.set_roll_ksk_now(true);
 					enfzone.set_next_change(0); // reschedule immediately
-					ods_printf(sockfd,"rolling KSK for zone %s\n",zone);
+					client_printf(sockfd,"rolling KSK for zone %s\n",zone);
 					ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zone);
 					break;
 				case ::ods::keystate::ZSK:
 					enfzone.set_roll_zsk_now(true);
 					enfzone.set_next_change(0); // reschedule immediately
-					ods_printf(sockfd,"rolling ZSK for zone %s\n",zone);
+					client_printf(sockfd,"rolling ZSK for zone %s\n",zone);
 					ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zone);
 					break;
 				case ::ods::keystate::CSK:
 					enfzone.set_roll_csk_now(true);
 					enfzone.set_next_change(0); // reschedule immediately
-					ods_printf(sockfd,"rolling CSK for zone %s\n",zone);
+					client_printf(sockfd,"rolling CSK for zone %s\n",zone);
 					ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zone);
 					break;
 				default:

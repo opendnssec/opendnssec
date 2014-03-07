@@ -38,6 +38,7 @@
 #include "hsmkey/hsmkey.pb.h"
 
 #include "xmlext-pb/xmlext-rd.h"
+#include "daemon/clientpipe.h"
 
 #include <map>
 #include <fcntl.h>
@@ -59,7 +60,7 @@ perform_backup_prepare(int sockfd, engineconfig_type *config, const char *reposi
 
 	OrmTransaction transaction(conn);
 	if (!transaction.started()) {
-		ods_printf(sockfd,"error: database transaction failed\n");
+		client_printf(sockfd,"error: database transaction failed\n");
 		return 1;
 	}
 
@@ -70,7 +71,7 @@ perform_backup_prepare(int sockfd, engineconfig_type *config, const char *reposi
 		(!repository && !OrmMessageEnum(conn,
 			::ods::hsmkey::HsmKey::descriptor(), rows)))
 	{
-		ods_printf(sockfd,"error: key enumeration failed\n");
+		client_printf(sockfd,"error: key enumeration failed\n");
 		return 1;
 	}
 
@@ -92,10 +93,10 @@ perform_backup_prepare(int sockfd, engineconfig_type *config, const char *reposi
 	}
 	rows.release();
 	if (!transaction.commit()) {
-		ods_printf(sockfd,"error committing transaction.");
+		client_printf(sockfd,"error committing transaction.");
 		return 1;
 	}
-	ods_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
+	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
 	return 0;
 }
 
@@ -110,7 +111,7 @@ perform_backup_commit(int sockfd, engineconfig_type *config, const char *reposit
 
 	OrmTransaction transaction(conn);
 	if (!transaction.started()) {
-		ods_printf(sockfd,"error: database transaction failed\n");
+		client_printf(sockfd,"error: database transaction failed\n");
 		return 1;
 	}
 
@@ -121,7 +122,7 @@ perform_backup_commit(int sockfd, engineconfig_type *config, const char *reposit
 		(!repository && !OrmMessageEnum(conn,
 			::ods::hsmkey::HsmKey::descriptor(), rows)))
 	{
-		ods_printf(sockfd,"error: key enumeration failed\n");
+		client_printf(sockfd,"error: key enumeration failed\n");
 		return 1;
 	}
 	OrmContextRef context;
@@ -143,10 +144,10 @@ perform_backup_commit(int sockfd, engineconfig_type *config, const char *reposit
 	}
 	rows.release();
 	if (!transaction.commit()) {
-		ods_printf(sockfd,"error committing transaction.");
+		client_printf(sockfd,"error committing transaction.");
 		return 1;
 	}
-	ods_printf(sockfd,"info: keys flagged as backed up: %d\n", keys_marked);
+	client_printf(sockfd,"info: keys flagged as backed up: %d\n", keys_marked);
 	return 0;
 }
 
@@ -161,7 +162,7 @@ perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repos
 
 	OrmTransaction transaction(conn);
 	if (!transaction.started()) {
-		ods_printf(sockfd,"error: database transaction failed\n");
+		client_printf(sockfd,"error: database transaction failed\n");
 		return 1;
 	}
 
@@ -172,7 +173,7 @@ perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repos
 		(!repository && !OrmMessageEnum(conn,
 			::ods::hsmkey::HsmKey::descriptor(), rows)))
 	{
-		ods_printf(sockfd,"error: key enumeration failed\n");
+		client_printf(sockfd,"error: key enumeration failed\n");
 		return 1;
 	}
 	OrmContextRef context;
@@ -193,10 +194,10 @@ perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repos
 	}
 	rows.release();
 	if (!transaction.commit()) {
-		ods_printf(sockfd,"error committing transaction.");
+		client_printf(sockfd,"error committing transaction.");
 		return 1;
 	}
-	ods_printf(sockfd,"info: keys unflagged for backed up: %d\n", keys_marked);
+	client_printf(sockfd,"info: keys unflagged for backed up: %d\n", keys_marked);
 	return 0;
 }
 
@@ -212,7 +213,7 @@ perform_backup_list(int sockfd, engineconfig_type *config, const char *repositor
 
 	OrmTransaction transaction(conn);
 	if (!transaction.started()) {
-		ods_printf(sockfd,"error: database transaction failed\n");
+		client_printf(sockfd,"error: database transaction failed\n");
 		return 1;
 	}
 
@@ -223,7 +224,7 @@ perform_backup_list(int sockfd, engineconfig_type *config, const char *repositor
 		(!repository && !OrmMessageEnum(conn,
 			::ods::hsmkey::HsmKey::descriptor(), rows)))
 	{
-		ods_printf(sockfd,"error: key enumeration failed\n");
+		client_printf(sockfd,"error: key enumeration failed\n");
 		return 1;
 	}
 	
@@ -255,18 +256,18 @@ perform_backup_list(int sockfd, engineconfig_type *config, const char *repositor
 	}
 	rows.release();
 	
-	ods_printf(sockfd, "Backups:\n");
+	client_printf(sockfd, "Backups:\n");
 	for (polit = pol.begin();  polit != pol.end(); polit++) {
 		string policyname = (*polit).first;
 		int backmeup = (*polit).second[0];
 		int backedup = (*polit).second[1];
 		int total = (*polit).second[2];
-		ods_printf(sockfd, "Repository %s has %d keys: %d backed up, %d unbacked "
+		client_printf(sockfd, "Repository %s has %d keys: %d backed up, %d unbacked "
 			"up, %d prepared.\n", policyname.c_str(), total, backedup, total - backedup, backmeup);
 	}
 
 	if (!transaction.commit()) {
-		ods_printf(sockfd,"error committing transaction.");
+		client_printf(sockfd,"error committing transaction.");
 		return 1;
 	}
 	return 0;
