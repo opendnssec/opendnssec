@@ -140,72 +140,6 @@ engine_start_cmdhandler(engine_type* engine)
         cmdhandler_thread_start, engine->cmdhandler);
     return;
 }
-/**
- * Self pipe trick (see Unix Network Programming).
- *
- */
-static int
-self_pipe_trick(engine_type* engine)
-{
-    int sockfd, ret;
-    struct sockaddr_un servaddr;
-    const char* servsock_filename = OPENDNSSEC_ENFORCER_SOCKETFILE;
-
-    ods_log_assert(engine);
-    ods_log_assert(engine->cmdhandler);
-
-    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd <= 0) {
-        ods_log_error("[%s] cannot connect to command handler: "
-            "socket() failed: %s\n", engine_str, strerror(errno));
-        return 1;
-    } else {
-        bzero(&servaddr, sizeof(servaddr));
-        servaddr.sun_family = AF_UNIX;
-        strncpy(servaddr.sun_path, servsock_filename,
-            sizeof(servaddr.sun_path) - 1);
-
-        ret = connect(sockfd, (const struct sockaddr*) &servaddr,
-            sizeof(servaddr));
-        if (ret != 0) {
-            ods_log_error("[%s] cannot connect to command handler: "
-                "connect() failed: %s\n", engine_str, strerror(errno));
-            close(sockfd);
-            return 1;
-        } else {
-            /* self-pipe trick */
-            ods_writen(sockfd, "", 1);
-            close(sockfd);
-        }
-    }
-    return 0;
-}
-/**
- * Stop command handler.
- *
- */
-static void
-engine_stop_cmdhandler(engine_type* engine)
-{
-    ods_log_assert(engine);
-    if (!engine->cmdhandler) {
-        return;
-    }
-    ods_log_debug("[%s] stop command handler", engine_str);
-    engine->cmdhandler->need_to_exit = 1;
-    if (self_pipe_trick(engine) == 0) {
-        while (!engine->cmdhandler_done) {
-            ods_log_debug("[%s] waiting for command handler to exit...",
-                engine_str);
-            sleep(1);
-        }
-    } else {
-        ods_log_error("[%s] command handler self pipe trick failed, "
-            "unclean shutdown", engine_str);
-    }
-    return;
-}
-
 
 /**
  * Drop privileges.
@@ -345,8 +279,7 @@ engine_setup(engine_type* engine)
         engine->config->use_syslog, engine->config->verbosity);
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->allocator,
-        engine->config->clisock_filename);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
             engine_str, engine->config->clisock_filename);
@@ -451,6 +384,7 @@ engine_teardown(engine_type* engine)
         allocator_deallocate(engine->allocator, (void*) engine->workers);
     }
     cmdhandler_cleanup(engine->cmdhandler);
+    engine->cmdhandler = NULL;
 }
 
 void
@@ -528,7 +462,7 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     }
     ods_log_debug("[%s] enforcer halted", engine_str);
     engine_stop_workers(engine);
-    engine_stop_cmdhandler(engine);
+    cmdhandler_stop(engine);
     (void) hsm_close();
     return 0;
 }

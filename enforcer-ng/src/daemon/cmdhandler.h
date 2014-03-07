@@ -32,17 +32,14 @@
 #ifndef DAEMON_CMDHANDLER_H
 #define DAEMON_CMDHANDLER_H
 
-#include "config.h"
-
 #include <sys/un.h>
-
-#include "shared/allocator.h"
 #include "shared/locks.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* Max number of not accepted connections before starting to drop. */
 #define ODS_SE_MAX_HANDLERS 5
 
 /* back reference to the engine */
@@ -50,7 +47,6 @@ struct engine_struct;
 
 typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
-    allocator_type* allocator;
     struct engine_struct* engine;
     struct sockaddr_un listen_addr;
     ods_thread_type thread_id;
@@ -59,22 +55,32 @@ struct cmdhandler_struct {
     int need_to_exit;
 };
 
+struct cmd_func_block {
+    /* Name of command */
+    const char* cmdname;
+    /* print usage information */
+    void (*usage)(int sockfd);
+    /* print help, more elaborate than usage. Allowed to be
+     * NULL to indicate no help is available */
+    void (*help)(int sockfd);
+    /* 1 if module claims responibility for command
+     * 0 otherwise */
+    int (*handles)(const char *cmd, ssize_t n);
+    /* 0 command executed, all OK
+     * -1 Errors parsing commandline / missing params
+     * positive error code to return to user.
+     * */
+    int (*run)(int sockfd, struct engine_struct* engine,
+        const char *cmd, ssize_t n);
+};
+
 /**
  * Create command handler.
- * \param[in] allocator memory allocator
  * \param[in] filename socket file name
  * \return cmdhandler_type* created command handler
  *
  */
-cmdhandler_type* cmdhandler_create(allocator_type* allocator,
-    const char* filename);
-
-/**
- * Start command handler.
- * \param[in] cmdhandler_type* command handler
- *
- */
-void cmdhandler_start(cmdhandler_type* cmdhandler);
+cmdhandler_type* cmdhandler_create(const char* filename);
 
 /**
  * Cleanup command handler.
@@ -83,26 +89,33 @@ void cmdhandler_start(cmdhandler_type* cmdhandler);
  */
 void cmdhandler_cleanup(cmdhandler_type* cmdhandler);
 
-struct cmd_func_block {
-	/* Name of command */
-	const char* cmdname;
-	/* print usage information */
-	void (*usage)(int sockfd);
-	/* print help, more elaborate than usage. Allowed to be
-	 * NULL to indicate no help is available */
-	void (*help)(int sockfd);
-	/* 1 if module claims responibility for command
-	 * 0 otherwise */
-	int (*handles)(const char *cmd, ssize_t n);
-	/* 0 command executed, all OK
-	 * -1 Errors parsing commandline / missing params
-	 * positive error code to return to user.
-	 * */
-	int (*run)(int sockfd, struct engine_struct* engine,
-		const char *cmd, ssize_t n);
-};
+/**
+ * Start command handler.
+ * \param[in] cmdhandler_type* command handler
+ *
+ */
+void cmdhandler_start(cmdhandler_type* cmdhandler);
+void cmdhandler_stop(struct engine_struct* engine);
 
+/**
+ * Print usage of all known commands to file descriptor
+ * 
+ * \param[in] sockfd, file descriptor to print to.
+ * 
+ */
 void cmdhandler_get_usage(int sockfd);
+
+/**
+ * Retrieve function block responsible for cmd
+ * 
+ * Loops over all known commands, first command to claim to be 
+ * responsible will have its function block returned. If not claimed
+ * return NULL.
+ * 
+ * \param[in] cmd, command to look for
+ * \param[in] n, length of cmd string.
+ * \return function block or NULL
+ */
 struct cmd_func_block* get_funcblock(const char *cmd, ssize_t n);
 
 #ifdef __cplusplus

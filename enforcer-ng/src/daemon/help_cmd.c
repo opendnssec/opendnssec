@@ -67,7 +67,6 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
 	struct cmd_func_block* fb;
-	char buf[ODS_SE_MAXLINE];
 	(void) engine;
 
 	ods_log_debug("[%s] help command", module_str);
@@ -76,32 +75,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (strncmp(cmd, help_funcblock()->cmdname, 4) != 0) return -1;
 	if (n < 6) {
 		/* Anouncement */
-		(void) snprintf(buf, ODS_SE_MAXLINE, "\nCommands:\n");
-		ods_writen(sockfd, buf, strlen(buf));
-
+		ods_printf(sockfd, "\nCommands:\n");
 		cmdhandler_get_usage(sockfd);
-
-		/* Generic commands */
-		(void) snprintf(buf, ODS_SE_MAXLINE,
-				   "queue                  Show the current task queue.\n"
-		#ifdef ENFORCER_TIMESHIFT
-				   "time leap              Simulate progression of time by leaping to the time of\n"
-				   "                       the earliest scheduled task.\n"
-		#endif
-				   "flush                  Execute all scheduled tasks immediately.\n"
-			);
-		ods_writen(sockfd, buf, strlen(buf));
-		(void) snprintf(buf, ODS_SE_MAXLINE,
-			"running                Returns acknowledgment that the engine is running.\n"
-			"reload                 Reload the engine.\n"
-			"stop                   Stop the engine and terminate the process.\n"
-			"verbosity <nr>         Set verbosity.\n"
-			);
-		ods_writen(sockfd, buf, strlen(buf));
 	} else {
-		cmd += 5;
-		n -= 5;
-		if ((fb = get_funcblock(cmd, n))) {
+		if ((fb = get_funcblock(cmd+5, n-5))) {
 			ods_printf(sockfd, "Usage:\n");
 			fb->usage(sockfd);
 			ods_printf(sockfd, "\nHelp:\n");
