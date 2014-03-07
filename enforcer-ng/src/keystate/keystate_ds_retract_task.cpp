@@ -38,7 +38,7 @@
 
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
-
+#include "daemon/clientpipe.h"
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
 
@@ -155,7 +155,7 @@ retract_dnskey_by_id(int sockfd,
 					strerror(errno));
 			} else {
 				bOK = true;
-				ods_printf(sockfd, "key %s retracted by %s\n", id,
+				client_printf(sockfd, "key %s retracted by %s\n", id,
 					ds_retract_command);
 			}
 		}
@@ -302,20 +302,20 @@ retract_keys(OrmConn conn,
 				LOG_AND_RETURN_1("unable to commit updated zone %s to the database",zone);
 			
 			ods_log_debug("[%s] key states have been updated",module_str);
-			ods_printf(sockfd,"update of key states completed.\n");
+			client_printf(sockfd,"update of key states completed.\n");
 		} else {
 			ods_log_debug("[%s] key states are unchanged",module_str);
 			if (id)
-				ods_printf(sockfd,
+				client_printf(sockfd,
 						   "No key state changes for id \"%s\"\n",
 						   id);
 			else
 				if (zone)
-					ods_printf(sockfd,
+					client_printf(sockfd,
 							   "No key state changes for zone \"%s\"\n",
 							   zone);
 				else
-					ods_printf(sockfd,"key states are unchanged\n");
+					client_printf(sockfd,"key states are unchanged\n");
 		}
 	}
 	
@@ -330,7 +330,7 @@ list_keys_retract(OrmConn conn, int sockfd, const char *datastore)
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
 	
 	// List the keys with retract flags.
-	ods_printf(sockfd,
+	client_printf(sockfd,
 			   "Database set to: %s\n"
 			   "Retract Keys:\n"
 			   "Zone:                           "
@@ -366,7 +366,7 @@ list_keys_retract(OrmConn conn, int sockfd, const char *datastore)
 					continue;
 				
 				std::string keyrole = keyrole_Name(key.role());
-				ods_printf(sockfd,
+				client_printf(sockfd,
 						   "%-31s %-13s %-40s\n",
 						   enfzone.name().c_str(),
 						   keyrole.c_str(),

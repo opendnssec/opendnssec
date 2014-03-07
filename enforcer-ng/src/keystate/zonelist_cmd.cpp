@@ -37,6 +37,7 @@
 #include "shared/str.h"
 #include "shared/file.h"
 #include "keystate/update_keyzones_task.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/zonelist_cmd.h"
 
@@ -45,7 +46,7 @@ static const char *module_str = "zonelist_cmd";
 static void
 import_usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"zonelist import        Sync database with contents of zonelist.xml.\n"
 	);
 }
@@ -53,7 +54,7 @@ import_usage(int sockfd)
 static void
 export_usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"zonelist export        Export zones from database in zonelist.xml format.\n"
 	);
 }

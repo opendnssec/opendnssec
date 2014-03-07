@@ -34,6 +34,7 @@
 #include "keystate/rollover_list_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/rollover_list_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "rollover_list_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd, 
+	client_printf(sockfd, 
 		"rollover list          List upcoming rollovers.\n"
 	);
 }
@@ -72,7 +73,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str, rollover_list_funcblock()->cmdname);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 	
@@ -80,7 +81,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str, rollover_list_funcblock()->cmdname);
-		ods_printf(sockfd,"unknown arguments\n");
+		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 	return perform_rollover_list(sockfd, engine->config, bVerbose?1:0);

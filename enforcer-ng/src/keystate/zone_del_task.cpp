@@ -38,7 +38,7 @@
 #include <google/protobuf/message.h>
 
 #include "keystate/keystate.pb.h"
-
+#include "daemon/clientpipe.h"
 #include "xmlext-pb/xmlext-rd.h"
 
 #include "protobuf-orm/pb-orm.h"
@@ -181,16 +181,16 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
 			}
 			if (!quiet) {
 				if (qzone.empty()) {
-					ods_printf(sockfd, "Deleted all zones in database and zonelist.xml updated.\n");
+					client_printf(sockfd, "Deleted all zones in database and zonelist.xml updated.\n");
 				} else {
-					ods_printf(sockfd, "Deleted zone: %s in database and zonelist.xml updated.\n", zone);
+					client_printf(sockfd, "Deleted zone: %s in database and zonelist.xml updated.\n", zone);
 				}
 			}
 		} else if (!quiet) {
 			if (qzone.empty()) {
-				ods_printf(sockfd, "Deleted all zones in database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
+				client_printf(sockfd, "Deleted all zones in database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
 			} else {
-				ods_printf(sockfd, "Deleted zone: %s in database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
+				client_printf(sockfd, "Deleted zone: %s in database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
 			}
 		}
 	}

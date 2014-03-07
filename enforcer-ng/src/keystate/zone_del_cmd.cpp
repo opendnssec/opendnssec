@@ -35,6 +35,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "keystate/zone_del_task.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/zone_del_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "zone_del_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"zone delete            Delete zones from the enforcer database.\n"
 		"      --zone <zone> | --all      (aka -z | -a)  zone, or delete all zones.\n"
 		"      [--xml]                    (aka -u)       update zonelist.xml.\n"
@@ -90,6 +91,13 @@ bool get_arguments(int sockfd, const char *cmd,
 			ods_log_error_and_printf(sockfd,module_str,
 								 "expected option --zone <zone> or --all ");
 			return false;
+		} else if (!client_prompt_user(sockfd, 
+				"*WARNING* This will delete all zone data in database;"
+				"are you sure? [y/N] ", buf)) {
+			return false;
+		} else if (toupper(buf[0]) != 'Y') {
+			client_printf(sockfd, "Okay, quitting...\n");
+			return false;
 		}
 	}
 	else
@@ -111,8 +119,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	std::string zone;
 	int need_write_xml = 0;
 	cmd = ods_check_command(cmd, n, zone_del_funcblock()->cmdname);
-	if (!get_arguments(sockfd,cmd,zone, need_write_xml)) return -1;
-	return perform_zone_del(sockfd,engine->config, zone.c_str(), need_write_xml, false);
+	if (!get_arguments(sockfd, cmd, zone, need_write_xml)) return 1;
+	return perform_zone_del(sockfd, engine->config, zone.c_str(),
+		need_write_xml, false);
 }
 
 static struct cmd_func_block funcblock = {

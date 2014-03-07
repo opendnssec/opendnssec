@@ -41,6 +41,7 @@
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
+#include "daemon/clientpipe.h"
 
 #include <memory>
 #include <fcntl.h>
@@ -86,7 +87,7 @@ load_kasp_xml(int sockfd, const char * policiesfile,
 	}
 	
 	ods_log_info("kasp loaded from %s", policiesfile);
-	ods_printf(sockfd,"kasp loaded from %s\n", policiesfile);
+	client_printf(sockfd,"kasp loaded from %s\n", policiesfile);
 	return true;
 }
 
@@ -162,6 +163,6 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 		return false;
 	}
 	ods_log_info("kasp update complete");
-	ods_printf(sockfd,"kasp update complete\n");
+	client_printf(sockfd,"kasp update complete\n");
 	return true;
 }

@@ -34,6 +34,7 @@
 #include "keystate/keystate_ds_submit_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/keystate_ds_submit_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "keystate_ds_submit_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key ds-submit          Issue a ds-submit to the enforcer for a KSK.\n"
 		"                       (This command with no parameters lists eligible keys.)\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
@@ -81,7 +82,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str, key_ds_submit_funcblock()->cmdname);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 
@@ -94,7 +95,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str, key_ds_submit_funcblock()->cmdname);
-		ods_printf(sockfd,"unknown arguments\n");
+		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 
