@@ -28,8 +28,9 @@
  */
 
 #include "config.h"
-#include "daemon/engine.h"
 
+#include "daemon/engine.h"
+#include "daemon/cmdhandler.h"
 #include "policy/update_kasp_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/file.h"

@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "daemon/engine.h"
+#include "daemon/cmdhandler.h"
 #include "enforcer/enforce_task.h"
 #include "policy/policy_resalt_task.h"
 #include "shared/duration.h"

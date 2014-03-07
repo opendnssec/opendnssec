@@ -30,8 +30,6 @@
 #include "config.h"
 
 #include "daemon/cmdhandler.h"
-
-#include "enforcer/setup_cmd.h"
 #include "enforcer/autostart_cmd.h"
 #include "enforcer/update_repositorylist_task.h"
 #include "shared/duration.h"
@@ -47,6 +45,9 @@
 #include "hsmkey/hsmkey_gen_task.h"    
 #include "hsmkey/hsmkey.pb.h"
 #include "protobuf-orm/pb-orm.h"
+
+#include "enforcer/setup_cmd.h"
+
 
 static const char *module_str = "setup_cmd";
 

@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <string>
 
+#include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "keystate/keystate_rollover_task.h"
 #include "shared/file.h"

@@ -29,6 +29,7 @@
 
 #include "config.h"
 
+#include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/duration.h"

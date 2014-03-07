@@ -29,6 +29,7 @@
 
 #include "config.h"
 
+#include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "keystate/keystate_ds_retract_task.h"
 #include "shared/file.h"

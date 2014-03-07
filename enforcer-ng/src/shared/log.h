@@ -51,6 +51,12 @@ extern "C" {
 void ods_log_init(const char *filename, int use_syslog, int verbosity);
 
 /**
+ * Current verbosity
+ * 
+ */
+int ods_log_verbosity(void);
+
+/**
  * Close logging.
  *
  */

@@ -30,6 +30,7 @@
 #include "config.h"
 #include <string>
 
+#include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "shared/file.h"
 #include "shared/str.h"
