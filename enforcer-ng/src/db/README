@@ -1,22 +1,29 @@
 Usage
 
 DbConnection conn;
-
 DbTransaction t(conn);
-
-EnforcerZone zone(conn);
+EnforcerZone zone(t);
 zone.getByName(name);
 if (zone.empty()) {
     // error
     t.rollback();
     return;
 }
+cout << zone.name << endl;
+
 
 std::vector<KeyData> keys = zone.keys();
 for (std::vector<KeyData>::iterator i = keys.begin(); i != keys.end(); i++) {
     // do stuff with key *i
-    cout << "Locator: " << (*i).locator() << endl;
+    cout << "Locator: " << (*i).locator << endl;
 }
+
+KeyData key(transaction);
+key.getByLocator("...");
+if (key.empty()) { return; }
+key.locator = "";
+key.update();
+
 
 KeyData key(conn);
 key.locator("ABC");
@@ -101,4 +108,52 @@ public:
 
 
 }
+
+
+
+class DbValue {
+    enum dbValueType;
+    void *dbValueData;
+public:
+    virtual operator=();
+};
+
+class DbObject {
+    std::string dbObjectClass;
+protected:
+    virtual setObjectValue();
+    virtual setObjectValues(db_values_t);
+    dbCreate();
+    dbRead();
+    dbUpdate();
+    dbDelete();
+public:
+    DbObject(std::string objectClass) : dbObjectClass(objectClass);
+    virtual create();
+    virtual update();
+    virtual delete();
+};
+
+class KeyData : public DbObject {
+protected:
+    setObjectValue(std::string name, DbValue value) {
+        if (name == "locator") {
+            locator = value;
+        }
+    }
+public:
+    std::string locator;
+    create() {
+        db_values_t values;
+        values.insert(db_value_t("locator", locator));
+        dbCreate(values);
+    }
+    getByLocator(std::string findLocator) {
+        db_clauses_t clauses;
+        clauses.insert(db_clause_t("locator", DB_CLAUSE_EQ, findLocator));
+        dbRead(clauses);
+    }
+};
+
+
 
