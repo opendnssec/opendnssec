@@ -62,16 +62,16 @@ int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_
 
 db_result_list_t* db_object_query(db_object_t* object) {
 	if (!object) {
-		return 1;
+		return NULL;
 	}
 	if (!object->connection) {
-		return 1;
+		return NULL;
 	}
 	if (!object->table) {
-		return 1;
+		return NULL;
 	}
 	if (!object->primary_key_name) {
-		return 1;
+		return NULL;
 	}
 
 	return db_connection_query(object->connection, object);

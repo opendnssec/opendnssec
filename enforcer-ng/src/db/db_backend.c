@@ -52,6 +52,21 @@ db_backend_handle_disconnect_t db_backend_handle_disconnect(db_backend_handle_t*
 	return backend_handle->disconnect;
 }
 
+db_result_list_t* __db_backend_handle_query(const db_backend_handle_t* backend_handle, const db_object_t* object) {
+	return NULL;
+}
+
+db_backend_handle_query_t db_backend_handle_query(db_backend_handle_t* backend_handle) {
+	if (!backend_handle) {
+		return __db_backend_handle_query;
+	}
+	if (!backend_handle->query) {
+		return __db_backend_handle_query;
+	}
+
+	return backend_handle->query;
+}
+
 int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t new_connect) {
 	if (!backend_handle) {
 		return 1;
@@ -70,6 +85,15 @@ int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_bac
 	return 0;
 }
 
+int db_backend_handle_set_query(db_backend_handle_t* backend_handle, db_backend_handle_query_t new_query) {
+	if (!backend_handle) {
+		return 1;
+	}
+
+	backend_handle->query = new_query;
+	return 0;
+}
+
 int db_backend_handle_not_empty(db_backend_handle_t* backend_handle) {
 	if (!backend_handle) {
 		return 1;
@@ -78,6 +102,9 @@ int db_backend_handle_not_empty(db_backend_handle_t* backend_handle) {
 		return 1;
 	}
 	if (!backend_handle->disconnect) {
+		return 1;
+	}
+	if (!backend_handle->query) {
 		return 1;
 	}
 	return 0;
@@ -163,12 +190,12 @@ int db_backend_not_empty(db_backend_t* backend) {
 	return 0;
 }
 
-db_result_list_t* db_backend_query(db_backend_t* backend, db_object_t* object) {
+db_result_list_t* db_backend_query(const db_backend_t* backend, const db_object_t* object) {
 	if (!backend) {
-		return 1;
+		return NULL;
 	}
 	if (!backend->handle) {
-		return 1;
+		return NULL;
 	}
 
 	return backend->handle->query(backend->handle, object);

@@ -8,7 +8,7 @@ OBJECTS=$(SOURCES:.cpp=.o)
 HEADERS=$(SOURCES:.cpp=.h)
 EXECUTABLE=test
 
-C_SOURCES=ctest.c db_backend.c db_backend_sqlite.c db_clause.c db_connection.c db_transaction.c db_value.c db_configuration.c db_result.c db_object.c
+C_SOURCES=ctest.c db_backend.c db_backend_sqlite.c db_clause.c db_connection.c db_transaction.c db_type.c db_configuration.c db_result.c db_object.c
 C_OBJECTS=$(C_SOURCES:.c=.o)
 C_HEADERS=$(C_SOURCES:.c=.h)
 C_EXECUTABLE=ctest

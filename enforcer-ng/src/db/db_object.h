@@ -1,10 +1,12 @@
 #ifndef __db_object_h
 #define __db_object_h
 
+typedef struct db_object db_object_t;
+
 #include "db_connection.h"
 #include "db_result.h"
 
-typedef struct {
+typedef struct db_object {
 	const db_connection_t* connection;
 	const char* table;
 	const char* primary_key_name;

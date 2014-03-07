@@ -33,12 +33,12 @@ int db_connection_set_configuration_list(db_connection_t* connection, db_configu
 	return 0;
 }
 
-db_result_list_t* db_connection_query(db_connection_t* connection, db_object_t* object) {
+db_result_list_t* db_connection_query(const db_connection_t* connection, const db_object_t* object) {
 	if (!connection) {
-		return 1;
+		return NULL;
 	}
 	if (!connection->backend) {
-		return 1;
+		return NULL;
 	}
 
 	return db_backend_query(connection->backend, object);

@@ -2,6 +2,8 @@
 #define __db_configuration_h
 
 typedef struct db_configuration db_configuration_t;
+typedef struct db_configuration_list db_configuration_list_t;
+
 typedef struct db_configuration {
 	db_configuration_t* next;
 	char* name;
@@ -16,7 +18,7 @@ int db_configuration_set_name(db_configuration_t*, const char*);
 int db_configuration_set_value(db_configuration_t*, const char*);
 int db_configuration_not_empty(db_configuration_t*);
 
-typedef struct {
+typedef struct db_configuration_list {
 	db_configuration_t* begin;
 } db_configuration_list_t;
 
