@@ -2,6 +2,8 @@ OpenDNSSEC 2.0.0a4 (EnforcerNG branch)
 
 * SUPPORT-72: Improve logging when failed to increment serial in case 
   of key rollover and serial value "keep" [OPENDNSSEC-461].
+* SUPPORT-114: libhsm: Optimize storage in HSM by deleting the public 
+  key directly if SkipPublicKey is used [OPENDNSSEC-573].
 * OPENDNSSEC-106: Add 'ods-enforcerd -p <policy>' option. This prompts the
   enforcer to run once and only process the specified policy and associated
   zones.
@@ -22,8 +24,6 @@ OpenDNSSEC 2.0.0a4 (EnforcerNG branch)
 * OPENDNSSEC-428: Add option for 'ods-ksmutil key generate' to take 
   number of zones as a parameter
 * OPENDNSSEC-515: Signer Engine: Don't replace tabs in RR with whitespace.
-* OPENDNSSEC-573: libhsm: Optimize storage in HSM by deleting the public 
-  key directly if SkipPublicKey is used.
 
 Bugfixes:
 * OPENDNSSEC-435: Signer Engine: Fix a serious memory leak in signature
