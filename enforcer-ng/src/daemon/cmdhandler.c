@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <sys/un.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ldns/ldns.h>
@@ -174,34 +175,14 @@ get_funcblock(const char *cmd, ssize_t n)
 }
 
 /**
- * Handle unknown command.
- *
- */
-static int
-handled_unknown_cmd(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
-{
-    (void) n;
-    (void) engine;
-
-    ods_log_debug("[%s] unknown command", module_str);
-    ods_printf(sockfd, "Unknown command %s.\n", cmd?cmd:"(null)");
-    ods_printf(sockfd, "Commands:\n");
-    cmdhandler_get_usage(sockfd);
-    return 1;
-}
-
-/**
  * Perform command
  */
 static int
-cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+cmdhandler_perform_command(int sockfd, engine_type* engine,
+    const char *cmd, ssize_t n)
 {
-    handled_xxxx_cmd_type internal_handled_cmds[] = {
-        handled_unknown_cmd /* unknown command allways matches, so last entry */
-    };
     time_t tstart = time(NULL);
     struct cmd_func_block* fb;
-    unsigned int cmdidx;
     int ret;
 
     ods_log_verbose("received command %s[%i]", cmd, n);
@@ -209,29 +190,20 @@ cmdhandler_perform_command(int sockfd, engine_type* engine, const char *cmd, ssi
     if ((fb = get_funcblock(cmd, n))) {
         ret = fb->run(sockfd, engine, cmd, n);
         if (ret == -1) {
-            ods_printf(sockfd, "Error parsing arguments\nUsage:\n\n", 
+            ods_printf(sockfd, "Error parsing arguments\nUsage:\n\n",
                 fb->cmdname, time(NULL) - tstart);
             fb->usage(sockfd);
         } else if (ret == 0) {
-            ods_printf(sockfd, "%s completed in %ld seconds.\n", 
+            ods_printf(sockfd, "%s completed in %ld seconds.\n",
                 fb->cmdname, time(NULL) - tstart);
         }
+        ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
         return ret;
     }
-
-    /* enumerate the list of internal commands and break from the loop
-     * when one of the handled_xxx_cmd entries inidicates the command
-     * was handled by returning 1 or 2 if enforcer is stopped
-     */
-    for (cmdidx=0;
-         cmdidx<sizeof(internal_handled_cmds)/sizeof(handled_xxxx_cmd_type);
-         ++cmdidx)
-    {
-        if ((ret = internal_handled_cmds[cmdidx](sockfd,engine,cmd,n))) break;
-    }
-
-    ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
-    return ret;
+    ods_printf(sockfd, "Unknown command %s.\n", cmd?cmd:"(null)");
+    ods_printf(sockfd, "Commands:\n");
+    cmdhandler_get_usage(sockfd);
+    return 1;
 }
 
 /**
@@ -250,23 +222,23 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
     if (!cmdc) return;
     sockfd = cmdc->client_fd;
 
-	while (!done) {
-		done = 1;
-		n = read(sockfd, buf, ODS_SE_MAXLINE);
-		if (n <= 0) {
-			if (n == 0 || errno == ECONNRESET) {
-				ods_log_error("[%s] done handling client: %s", module_str,
-					strerror(errno));
-			} else if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
-				done = 0;
-			else
-				ods_log_error("[%s] read error: %s", module_str, strerror(errno));
-		} else {
-			buf[--n] = '\0';
-			if (n > 0)
-				cmdhandler_perform_command(sockfd, cmdc->engine, buf, n);
-		}
-	}
+    while (!done) {
+        done = 1;
+        n = read(sockfd, buf, ODS_SE_MAXLINE);
+        if (n <= 0) {
+            if (n == 0 || errno == ECONNRESET) {
+                ods_log_error("[%s] done handling client: %s", module_str,
+                    strerror(errno));
+            } else if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
+                done = 0;
+            else
+                ods_log_error("[%s] read error: %s", module_str, strerror(errno));
+        } else {
+            buf[--n] = '\0';
+            if (n > 0)
+                cmdhandler_perform_command(sockfd, cmdc->engine, buf, n);
+        }
+    }
 }
 
 
@@ -288,29 +260,22 @@ cmdhandler_accept_client(void* arg)
         close(cmdc->client_fd);
     }
     free(cmdc);
-    count--;
+    count--; /* !not thread safe! */
     return NULL;
 }
-
 
 /**
  * Create command handler.
  *
  */
 cmdhandler_type*
-cmdhandler_create(allocator_type* allocator, const char* filename)
+cmdhandler_create(const char* filename)
 {
     cmdhandler_type* cmdh = NULL;
     struct sockaddr_un servaddr;
     int listenfd = 0;
     int flags = 0;
     int ret = 0;
-
-    if (!allocator) {
-        ods_log_error("[%s] unable to create: no allocator");
-        return NULL;
-    }
-    ods_log_assert(allocator);
 
     if (!filename) {
         ods_log_error("[%s] unable to create: no socket filename");
@@ -368,19 +333,26 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     }
 
     /* all ok */
-    cmdh = (cmdhandler_type*) allocator_alloc(allocator,
-        sizeof(cmdhandler_type));
+    cmdh = (cmdhandler_type*)malloc(sizeof (cmdhandler_type));
     if (!cmdh) {
         close(listenfd);
         return NULL;
     }
-    cmdh->allocator = allocator;
     cmdh->listen_fd = listenfd;
     cmdh->listen_addr = servaddr;
     cmdh->need_to_exit = 0;
     return cmdh;
 }
 
+/**
+ * Cleanup command handler.
+ *
+ */
+void
+cmdhandler_cleanup(cmdhandler_type* cmdhandler)
+{
+    free(cmdhandler);
+}
 
 /**
  * Start command handler.
@@ -448,13 +420,63 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 }
 
 /**
- * Cleanup command handler.
+ * Self pipe trick (see Unix Network Programming).
+ *
+ */
+static int
+self_pipe_trick()
+{
+    int sockfd, ret;
+    struct sockaddr_un servaddr;
+    const char* servsock_filename = OPENDNSSEC_ENFORCER_SOCKETFILE;
+
+    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sockfd <= 0) {
+        ods_log_error("[engine] cannot connect to command handler: "
+            "socket() failed: %s\n", strerror(errno));
+        return 1;
+    } else {
+        bzero(&servaddr, sizeof(servaddr));
+        servaddr.sun_family = AF_UNIX;
+        strncpy(servaddr.sun_path, servsock_filename,
+            sizeof(servaddr.sun_path) - 1);
+
+        ret = connect(sockfd, (const struct sockaddr*) &servaddr,
+            sizeof(servaddr));
+        if (ret != 0) {
+            ods_log_error("[engine] cannot connect to command handler: "
+                "connect() failed: %s\n", strerror(errno));
+            close(sockfd);
+            return 1;
+        } else {
+            /* self-pipe trick */
+            ods_writen(sockfd, "", 1);
+            close(sockfd);
+        }
+    }
+    return 0;
+}
+/**
+ * Stop command handler.
  *
  */
 void
-cmdhandler_cleanup(cmdhandler_type* cmdhandler)
+cmdhandler_stop(struct engine_struct* engine)
 {
-    if (cmdhandler)
-        allocator_deallocate(cmdhandler->allocator, (void*) cmdhandler);
+    ods_log_assert(engine);
+    if (!engine->cmdhandler) {
+        return;
+    }
+    ods_log_debug("[engine] stop command handler");
+    engine->cmdhandler->need_to_exit = 1;
+    if (self_pipe_trick() == 0) {
+        while (!engine->cmdhandler_done) {
+            ods_log_debug("[engine] waiting for command handler to exit...");
+            sleep(1);
+        }
+    } else {
+        ods_log_error("[engine] command handler self pipe trick failed, "
+            "unclean shutdown");
+    }
     return;
 }

@@ -55,19 +55,12 @@ extern "C" {
 
 typedef struct engine_struct engine_type;
 
-
-typedef void (*help_xxxx_cmd_type)(int sockfd);
-typedef int (*handled_xxxx_cmd_type)(int sockfd, engine_type* engine, 
-                                     const char *buf, ssize_t n);
-
 struct engine_struct {
     allocator_type* allocator;
     engineconfig_type* config;
     worker_type** workers;
     schedule_type* taskq;
     fifoq_type* signq;
-    help_xxxx_cmd_type *help;
-    handled_xxxx_cmd_type *commands;
     cmdhandler_type* cmdhandler;
     int cmdhandler_done;
     int init_setup_done;
@@ -85,17 +78,6 @@ struct engine_struct {
     lock_basic_type signal_lock;
     lock_basic_type enforce_lock;
 };
-
-/**
- * Start engine.
- * \param[in] cfgfile configuration file
- * \param[in] cmdline_verbosity how many -v on the command line
- * \param[in] daemonize to run as daemon or not
- * \param[in] info print info and exit
- * \param[in] single_run run once
- * \return engine_type* engine to use or NULL when engine couldn't start
- *
- */
 
 /**
  * Setup the engine started by engine_create

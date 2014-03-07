@@ -135,7 +135,7 @@ static void
 usage_flush(int sockfd)
 {
 	ods_printf(sockfd,
-		"queue                  Show the current task queue.\n"
+		"flush                  Execute all scheduled tasks immediately.\n"
 	);
 }
 
