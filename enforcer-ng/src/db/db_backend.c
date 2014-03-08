@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+ * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
 #include "db_backend.h"
 #include "db_backend_sqlite.h"
 
@@ -22,49 +51,118 @@ void db_backend_handle_free(db_backend_handle_t* backend_handle) {
 	}
 }
 
-int __db_backend_handle_connect(db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list) {
-	return 1;
+int db_backend_handle_initialize(const db_backend_handle_t* backend_handle) {
+	if (!backend_handle) {
+		return 1;
+	}
+	if (!backend_handle->initialize) {
+		return 1;
+	}
+
+	return backend_handle->initialize((void*)backend_handle->data);
 }
 
-db_backend_handle_connect_t db_backend_handle_connect(db_backend_handle_t* backend_handle) {
+int db_backend_handle_shutdown(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle) {
-		return __db_backend_handle_connect;
+		return 1;
+	}
+	if (!backend_handle->shutdown) {
+		return 1;
+	}
+
+	return backend_handle->shutdown((void*)backend_handle->data);
+}
+
+int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list) {
+	if (!backend_handle) {
+		return 1;
 	}
 	if (!backend_handle->connect) {
-		return __db_backend_handle_connect;
+		return 1;
 	}
 
-	return backend_handle->connect;
+	return backend_handle->connect((void*)backend_handle->data, configuration_list);
 }
 
-int __db_backend_handle_disconnect(db_backend_handle_t* backend_handle) {
-	return 1;
-}
-
-db_backend_handle_disconnect_t db_backend_handle_disconnect(db_backend_handle_t* backend_handle) {
+int db_backend_handle_disconnect(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle) {
-		return __db_backend_handle_disconnect;
+		return 1;
 	}
 	if (!backend_handle->disconnect) {
-		return __db_backend_handle_disconnect;
+		return 1;
 	}
 
-	return backend_handle->disconnect;
+	return backend_handle->disconnect((void*)backend_handle->data);
 }
 
-db_result_list_t* __db_backend_handle_query(const db_backend_handle_t* backend_handle, const db_object_t* object) {
-	return NULL;
-}
-
-db_backend_handle_query_t db_backend_handle_query(db_backend_handle_t* backend_handle) {
+int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object) {
 	if (!backend_handle) {
-		return __db_backend_handle_query;
+		return 1;
 	}
-	if (!backend_handle->query) {
-		return __db_backend_handle_query;
+	if (!backend_handle->create) {
+		return 1;
 	}
 
-	return backend_handle->query;
+	return backend_handle->create((void*)backend_handle->data, object);
+}
+
+db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object) {
+	if (!backend_handle) {
+		return NULL;
+	}
+	if (!backend_handle->read) {
+		return NULL;
+	}
+
+	return backend_handle->read((void*)backend_handle->data, object);
+}
+
+int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object) {
+	if (!backend_handle) {
+		return 1;
+	}
+	if (!backend_handle->update) {
+		return 1;
+	}
+
+	return backend_handle->update((void*)backend_handle->data, object);
+}
+
+int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object) {
+	if (!backend_handle) {
+		return 1;
+	}
+	if (!backend_handle->delete) {
+		return 1;
+	}
+
+	return backend_handle->delete((void*)backend_handle->data, object);
+}
+
+const void* db_backend_handle_data(const db_backend_handle_t* backend_handle) {
+	if (!backend_handle) {
+		return NULL;
+	}
+
+	return backend_handle->data;
+}
+
+int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t new_initialize) {
+	if (!backend_handle) {
+		return 1;
+	}
+
+	backend_handle->initialize = new_initialize;
+	return 0;
+}
+
+int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t new_shutdown) {
+	if (!backend_handle) {
+		return 1;
+	}
+
+	backend_handle->shutdown = new_shutdown;
+	return 0;
 }
 
 int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t new_connect) {
@@ -85,17 +183,62 @@ int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_bac
 	return 0;
 }
 
-int db_backend_handle_set_query(db_backend_handle_t* backend_handle, db_backend_handle_query_t new_query) {
+int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t new_create) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->query = new_query;
+	backend_handle->create = new_create;
 	return 0;
 }
 
-int db_backend_handle_not_empty(db_backend_handle_t* backend_handle) {
+int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t new_read) {
 	if (!backend_handle) {
+		return 1;
+	}
+
+	backend_handle->read = new_read;
+	return 0;
+}
+
+int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t new_update) {
+	if (!backend_handle) {
+		return 1;
+	}
+
+	backend_handle->update = new_update;
+	return 0;
+}
+
+int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t new_delete) {
+	if (!backend_handle) {
+		return 1;
+	}
+
+	backend_handle->delete = new_delete;
+	return 0;
+}
+
+int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* new_data) {
+	if (!backend_handle) {
+		return 1;
+	}
+	if (backend_handle->data) {
+		return 1;
+	}
+
+	backend_handle->data = new_data;
+	return 0;
+}
+
+int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
+	if (!backend_handle) {
+		return 1;
+	}
+	if (!backend_handle->initialize) {
+		return 1;
+	}
+	if (!backend_handle->shutdown) {
 		return 1;
 	}
 	if (!backend_handle->connect) {
@@ -104,7 +247,16 @@ int db_backend_handle_not_empty(db_backend_handle_t* backend_handle) {
 	if (!backend_handle->disconnect) {
 		return 1;
 	}
-	if (!backend_handle->query) {
+	if (!backend_handle->create) {
+		return 1;
+	}
+	if (!backend_handle->read) {
+		return 1;
+	}
+	if (!backend_handle->update) {
+		return 1;
+	}
+	if (!backend_handle->delete) {
 		return 1;
 	}
 	return 0;
@@ -131,7 +283,7 @@ void db_backend_free(db_backend_t* backend) {
 	}
 }
 
-const char* db_backend_name(db_backend_t* backend) {
+const char* db_backend_name(const db_backend_t* backend) {
 	if (!backend) {
 		return NULL;
 	}
@@ -139,7 +291,7 @@ const char* db_backend_name(db_backend_t* backend) {
 	return backend->name;
 }
 
-const db_backend_handle_t* db_backend_handle(db_backend_t* backend) {
+const db_backend_handle_t* db_backend_handle(const db_backend_t* backend) {
 	if (!backend) {
 		return NULL;
 	}
@@ -177,7 +329,7 @@ int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* new_handle
 	return 0;
 }
 
-int db_backend_not_empty(db_backend_t* backend) {
+int db_backend_not_empty(const db_backend_t* backend) {
 	if (!backend) {
 		return 1;
 	}
@@ -190,7 +342,65 @@ int db_backend_not_empty(db_backend_t* backend) {
 	return 0;
 }
 
-db_result_list_t* db_backend_query(const db_backend_t* backend, const db_object_t* object) {
+int db_backend_initialize(const db_backend_t* backend) {
+	if (!backend) {
+		return 1;
+	}
+	if (!backend->handle) {
+		return 1;
+	}
+
+	return db_backend_handle_initialize(backend->handle);
+}
+
+int db_backend_shutdown(const db_backend_t* backend) {
+	if (!backend) {
+		return 1;
+	}
+	if (!backend->handle) {
+		return 1;
+	}
+
+	return db_backend_handle_shutdown(backend->handle);
+}
+
+int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list) {
+	if (!backend) {
+		return 1;
+	}
+	if (!configuration_list) {
+		return 1;
+	}
+	if (!backend->handle) {
+		return 1;
+	}
+
+	return db_backend_handle_connect(backend->handle, configuration_list);
+}
+
+int db_backend_disconnect(const db_backend_t* backend) {
+	if (!backend) {
+		return 1;
+	}
+	if (!backend->handle) {
+		return 1;
+	}
+
+	return db_backend_handle_disconnect(backend->handle);
+}
+
+int db_backend_create(const db_backend_t* backend, const db_object_t* object) {
+	if (!backend) {
+		return 1;
+	}
+	if (!backend->handle) {
+		return 1;
+	}
+
+	return db_backend_handle_create(backend->handle, object);
+}
+
+db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object) {
 	if (!backend) {
 		return NULL;
 	}
@@ -198,7 +408,29 @@ db_result_list_t* db_backend_query(const db_backend_t* backend, const db_object_
 		return NULL;
 	}
 
-	return backend->handle->query(backend->handle, object);
+	return db_backend_handle_read(backend->handle, object);
+}
+
+int db_backend_update(const db_backend_t* backend, const db_object_t* object) {
+	if (!backend) {
+		return 1;
+	}
+	if (!backend->handle) {
+		return 1;
+	}
+
+	return db_backend_handle_update(backend->handle, object);
+}
+
+int db_backend_delete(const db_backend_t* backend, const db_object_t* object) {
+	if (!backend) {
+		return 1;
+	}
+	if (!backend->handle) {
+		return 1;
+	}
+
+	return db_backend_handle_delete(backend->handle, object);
 }
 
 /* DB BACKEND LIST */
@@ -226,6 +458,23 @@ void db_backend_list_free(db_backend_list_t* backend_list) {
 	}
 }
 
+void db_backend_list_free_shutdown(db_backend_list_t* backend_list) {
+	if (backend_list) {
+		if (backend_list->begin) {
+			db_backend_t* this = backend_list->begin;
+			db_backend_t* next = NULL;
+
+			while (this) {
+				next = this->next;
+				db_backend_shutdown(this);
+				db_backend_free(this);
+				this = next;
+			}
+		}
+		free(backend_list);
+	}
+}
+
 int db_backend_list_add(db_backend_list_t* backend_list, db_backend_t* backend) {
 	if (!backend_list) {
 		return 1;
@@ -245,7 +494,7 @@ int db_backend_list_add(db_backend_list_t* backend_list, db_backend_t* backend) 
 	return 0;
 }
 
-const db_backend_t* db_backend_list_find(db_backend_list_t* backend_list, const char* name) {
+const db_backend_t* db_backend_list_find(const db_backend_list_t* backend_list, const char* name) {
 	db_backend_t* backend;
 
 	if (!backend_list) {
@@ -263,6 +512,7 @@ const db_backend_t* db_backend_list_find(db_backend_list_t* backend_list, const 
 		if (!strcmp(backend->name, name)) {
 			break;
 		}
+		backend = backend->next;
 	}
 
 	return backend;
@@ -286,6 +536,7 @@ int db_backend_factory_init(void) {
 
 		if (db_backend_set_name(backend, "sqlite")
 			|| db_backend_set_handle(backend, db_backend_sqlite_new_handle())
+			|| db_backend_initialize(backend)
 			|| db_backend_list_add(__backend_list, backend))
 		{
 			db_backend_free(backend);
@@ -298,7 +549,7 @@ int db_backend_factory_init(void) {
 
 void db_backend_factory_end(void) {
 	if (__backend_list) {
-		db_backend_list_free(__backend_list);
+		db_backend_list_free_shutdown(__backend_list);
 		__backend_list = NULL;
 	}
 }
