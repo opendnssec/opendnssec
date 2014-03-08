@@ -110,8 +110,11 @@ int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_
 	return 0;
 }
 
-db_result_list_t* db_object_read(const db_object_t* object) {
+db_result_list_t* db_object_read(const db_object_t* object, const db_clause_list_t* clause_list) {
 	if (!object) {
+		return NULL;
+	}
+	if (!clause_list) {
 		return NULL;
 	}
 	if (!object->connection) {
@@ -124,5 +127,5 @@ db_result_list_t* db_object_read(const db_object_t* object) {
 		return NULL;
 	}
 
-	return db_connection_read(object->connection, object);
+	return db_connection_read(object->connection, object, clause_list);
 }

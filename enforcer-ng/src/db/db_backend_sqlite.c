@@ -143,8 +143,10 @@ int db_backend_sqlite_create(void* data, const db_object_t* object) {
 	return 1;
 }
 
-db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object) {
+db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+
+	printf("sqlite read %p %p\n", object, clause_list);
 
 	if (!__sqlite3_initialized) {
 		return NULL;
@@ -152,6 +154,14 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object) 
 	if (!backend_sqlite) {
 		return NULL;
 	}
+	if (!object) {
+		return NULL;
+	}
+	if (!clause_list) {
+		return NULL;
+	}
+
+	printf("  %s\n", db_object_table(object));
 
 	return NULL;
 }

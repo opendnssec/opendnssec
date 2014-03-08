@@ -37,6 +37,7 @@ typedef struct db_backend_list db_backend_list_t;
 #include "db_configuration.h"
 #include "db_result.h"
 #include "db_object.h"
+#include "db_clause.h"
 
 typedef struct db_backend_handle db_backend_handle_t;
 typedef int (*db_backend_handle_initialize_t)(void*);
@@ -44,7 +45,7 @@ typedef int (*db_backend_handle_shutdown_t)(void*);
 typedef int (*db_backend_handle_connect_t)(void*, const db_configuration_list_t*);
 typedef int (*db_backend_handle_disconnect_t)(void*);
 typedef int (*db_backend_handle_create_t)(void*, const db_object_t*);
-typedef db_result_list_t* (*db_backend_handle_read_t)(void*, const db_object_t*);
+typedef db_result_list_t* (*db_backend_handle_read_t)(void*, const db_object_t*, const db_clause_list_t*);
 typedef int (*db_backend_handle_update_t)(void*, const db_object_t*);
 typedef int (*db_backend_handle_delete_t)(void*, const db_object_t*);
 typedef struct db_backend_handle {
@@ -66,7 +67,7 @@ int db_backend_handle_shutdown(const db_backend_handle_t*);
 int db_backend_handle_connect(const db_backend_handle_t*, const db_configuration_list_t*);
 int db_backend_handle_disconnect(const db_backend_handle_t*);
 int db_backend_handle_create(const db_backend_handle_t*, const db_object_t*);
-db_result_list_t* db_backend_handle_read(const db_backend_handle_t*, const db_object_t*);
+db_result_list_t* db_backend_handle_read(const db_backend_handle_t*, const db_object_t*, const db_clause_list_t*);
 int db_backend_handle_update(const db_backend_handle_t*, const db_object_t*);
 int db_backend_handle_delete(const db_backend_handle_t*, const db_object_t*);
 const void* db_backend_handle_data(const db_backend_handle_t*);
@@ -99,7 +100,7 @@ int db_backend_shutdown(const db_backend_t*);
 int db_backend_connect(const db_backend_t*, const db_configuration_list_t*);
 int db_backend_disconnect(const db_backend_t*);
 int db_backend_create(const db_backend_t*, const db_object_t*);
-db_result_list_t* db_backend_read(const db_backend_t*, const db_object_t*);
+db_result_list_t* db_backend_read(const db_backend_t*, const db_object_t*, const db_clause_list_t*);
 int db_backend_update(const db_backend_t*, const db_object_t*);
 int db_backend_delete(const db_backend_t*, const db_object_t*);
 

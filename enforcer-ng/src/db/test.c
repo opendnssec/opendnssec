@@ -53,6 +53,7 @@ test_t* test_new(const db_connection_t* connection) {
 		}
 		db_object_set_connection(test->dbo, connection);
 		db_object_set_table(test->dbo, "test");
+		db_object_set_primary_key_name(test->dbo, "id");
 	}
 
 	return test;
@@ -113,12 +114,23 @@ int __test_db_object_query(void* test, const char* name, db_type_t type, void* v
 }
 
 int test_get_by_id(test_t* test, unsigned int id) {
+	db_clause_list_t* clause_list;
+	db_clause_t* clause;
+
 	if (!test) {
 		return 1;
 	}
 	if (!id) {
 		return 1;
 	}
+
+	clause_list = db_clause_list_new();
+	clause = db_clause_new();
+	db_clause_set_field(clause, "test_id");
+	db_clause_set_type(clause, DB_CLAUSE_EQUAL);
+	db_clause_list_add(clause_list, clause);
+
+	db_object_read(test->dbo, clause_list);
 	return 0;
 }
 

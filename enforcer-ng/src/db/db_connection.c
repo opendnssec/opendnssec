@@ -106,8 +106,14 @@ int db_connection_disconnect(const db_connection_t* connection) {
 	return db_backend_disconnect(connection->backend);
 }
 
-db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object) {
+db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object, const db_clause_list_t* clause_list) {
 	if (!connection) {
+		return NULL;
+	}
+	if (!object) {
+		return NULL;
+	}
+	if (!clause_list) {
 		return NULL;
 	}
 	if (!connection->backend) {
@@ -116,5 +122,5 @@ db_result_list_t* db_connection_read(const db_connection_t* connection, const db
 		}
 	}
 
-	return db_backend_read(connection->backend, object);
+	return db_backend_read(connection->backend, object, clause_list);
 }

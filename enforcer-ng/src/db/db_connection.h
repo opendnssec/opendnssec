@@ -36,6 +36,7 @@ typedef struct db_connection db_connection_t;
 #include "db_backend.h"
 #include "db_result.h"
 #include "db_object.h"
+#include "db_clause.h"
 
 typedef struct db_connection {
 	db_configuration_list_t* configuration_list;
@@ -48,6 +49,6 @@ int db_connection_set_configuration_list(db_connection_t*, db_configuration_list
 int db_connection_setup(db_connection_t*);
 int db_connection_connect(const db_connection_t*);
 int db_connection_disconnect(const db_connection_t*);
-db_result_list_t* db_connection_read(const db_connection_t*, const db_object_t*);
+db_result_list_t* db_connection_read(const db_connection_t*, const db_object_t*, const db_clause_list_t*);
 
 #endif
