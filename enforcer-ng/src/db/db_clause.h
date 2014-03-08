@@ -56,25 +56,30 @@ typedef struct db_clause {
 	db_clause_t* next;
 	char* field;
 	db_clause_type_t type;
+	db_type_t value_type;
+	void* value;
 } db_clause_t;
 
 db_clause_t* db_clause_new(void);
 void db_clause_free(db_clause_t*);
 const char* db_clause_field(const db_clause_t*);
 db_clause_type_t db_clause_type(const db_clause_t*);
+db_type_t db_clause_value_type(const db_clause_t*);
+const void* db_clause_value(const db_clause_t*);
 int db_clause_set_field(db_clause_t*, const char*);
 int db_clause_set_type(db_clause_t*, db_clause_type_t);
+int db_clause_set_value_type(db_clause_t*, db_type_t);
+int db_clause_set_value(db_clause_t*, void*);
 int db_clause_not_empty(const db_clause_t*);
+const db_clause_t* db_clause_next(const db_clause_t*);
 
 typedef struct db_clause_list {
 	db_clause_t* begin;
-	db_clause_t* cursor;
 } db_clause_list_t;
 
 db_clause_list_t* db_clause_list_new(void);
 void db_clause_list_free(db_clause_list_t*);
 int db_clause_list_add(db_clause_list_t*, db_clause_t*);
-const db_clause_t* db_clause_list_first(db_clause_list_t*);
-const db_clause_t* db_clause_list_next(db_clause_list_t*);
+const db_clause_t* db_clause_list_begin(const db_clause_list_t*);
 
 #endif

@@ -176,6 +176,14 @@ int db_result_not_empty(const db_result_t* result) {
 	return 0;
 }
 
+const db_result_t* db_result_next(const db_result_t* result) {
+	if (!result) {
+		return NULL;
+	}
+
+	return result->next;
+}
+
 /* DB RESULT LIST */
 
 db_result_list_t* db_result_list_new(void) {
@@ -220,23 +228,10 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
 	return 0;
 }
 
-const db_result_t* db_result_list_first(db_result_list_t* result_list) {
+const db_result_t* db_result_list_begin(const db_result_list_t* result_list) {
 	if (!result_list) {
 		return NULL;
 	}
 
-	result_list->cursor = result_list->begin;
-	return result_list->cursor;
-}
-
-const db_result_t* db_result_list_next(db_result_list_t* result_list) {
-	if (!result_list) {
-		return NULL;
-	}
-
-	if (!result_list->cursor) {
-		result_list->cursor = result_list->begin;
-	}
-	result_list->cursor = result_list->cursor->next;
-	return result_list->cursor;
+	return result_list->begin;
 }

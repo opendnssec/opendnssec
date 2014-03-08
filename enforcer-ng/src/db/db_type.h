@@ -32,8 +32,12 @@
 
 typedef enum {
 	DB_TYPE_UNKNOWN,
+	DB_TYPE_PRIMARY_KEY,
 	DB_TYPE_INTEGER,
 	DB_TYPE_STRING
 } db_type_t;
+
+/* TODO: encapsulate value */
+/* TODO: a lot of helper functions */
 
 #endif

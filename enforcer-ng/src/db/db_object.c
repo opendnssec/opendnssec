@@ -31,6 +31,140 @@
 
 #include <stdlib.h>
 
+/* DB OBJECT FIELD */
+
+db_object_field_t* db_object_field_new(void) {
+	db_object_field_t* object_field =
+		(db_object_field_t*)calloc(1, sizeof(db_object_field_t));
+
+	if (object_field) {
+		object_field->type = DB_TYPE_UNKNOWN;
+	}
+
+	return object_field;
+}
+
+void db_object_field_free(db_object_field_t* object_field) {
+	if (object_field) {
+		free(object_field);
+	}
+}
+
+const char* db_object_field_name(const db_object_field_t* object_field) {
+	if (!object_field) {
+		return NULL;
+	}
+
+	return object_field->name;
+}
+
+db_type_t db_object_field_type(const db_object_field_t* object_field) {
+	if (!object_field) {
+		return DB_TYPE_UNKNOWN;
+	}
+
+	return object_field->type;
+}
+
+int db_object_field_set_name(db_object_field_t* object_field, const char* new_name) {
+	if (!object_field) {
+		return 1;
+	}
+	if (!new_name) {
+		return 1;
+	}
+
+	object_field->name = new_name;
+	return 0;
+}
+
+int db_object_field_set_type(db_object_field_t* object_field, db_type_t new_type) {
+	if (!object_field) {
+		return 1;
+	}
+	if (new_type == DB_TYPE_UNKNOWN) {
+		return 1;
+	}
+
+	object_field->type = new_type;
+	return 0;
+}
+
+int db_object_field_not_empty(const db_object_field_t* object_field) {
+	if (!object_field) {
+		return 1;
+	}
+	if (!object_field->name) {
+		return 1;
+	}
+	if (object_field->type == DB_TYPE_UNKNOWN) {
+		return 1;
+	}
+	return 0;
+}
+
+const db_object_field_t* db_object_field_next(const db_object_field_t* object_field) {
+	if (!object_field) {
+		return NULL;
+	}
+
+	return object_field->next;
+}
+
+/* DB OBJECT FIELD LIST */
+
+db_object_field_list_t* db_object_field_list_new(void) {
+	db_object_field_list_t* object_field_list =
+		(db_object_field_list_t*)calloc(1, sizeof(db_object_field_list_t));
+
+	return object_field_list;
+}
+
+void db_object_field_list_free(db_object_field_list_t* object_field_list) {
+	if (object_field_list) {
+		if (object_field_list->begin) {
+			db_object_field_t* this = object_field_list->begin;
+			db_object_field_t* next = NULL;
+
+			while (this) {
+				next = this->next;
+				db_object_field_free(this);
+				this = next;
+			}
+		}
+		free(object_field_list);
+	}
+}
+
+int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field) {
+	if (!object_field_list) {
+		return 1;
+	}
+	if (!object_field) {
+		return 1;
+	}
+	if (db_object_field_not_empty(object_field)) {
+		return 1;
+	}
+
+	if (object_field_list->begin) {
+		object_field->next = object_field_list->begin;
+	}
+	object_field_list->begin = object_field;
+
+	return 0;
+}
+
+const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list) {
+	if (!object_field_list) {
+		return NULL;
+	}
+
+	return object_field_list->begin;
+}
+
+/* DB OBJECT */
+
 db_object_t* db_object_new(void) {
 	db_object_t* object =
 		(db_object_t*)calloc(1, sizeof(db_object_t));
@@ -40,6 +174,9 @@ db_object_t* db_object_new(void) {
 
 void db_object_free(db_object_t* object) {
 	if (object) {
+		if (object->object_field_list) {
+			db_object_field_list_free(object->object_field_list);
+		}
 		free(object);
 	}
 }
@@ -63,6 +200,13 @@ const char* db_object_primary_key_name(const db_object_t* object) {
 		return NULL;
 	}
 	return object->primary_key_name;
+}
+
+const db_object_field_list_t* db_object_object_field_list(const db_object_t* object) {
+	if (!object) {
+		return NULL;
+	}
+	return object->object_field_list;
 }
 
 int db_object_set_connection(db_object_t* object, const db_connection_t* connection) {
@@ -107,6 +251,21 @@ int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_
 	}
 
 	object->primary_key_name = primary_key_name;
+	return 0;
+}
+
+int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t* object_field_list) {
+	if (!object) {
+		return 1;
+	}
+	if (!object_field_list) {
+		return 1;
+	}
+	if (object->object_field_list) {
+		return 1;
+	}
+
+	object->object_field_list = object_field_list;
 	return 0;
 }
 

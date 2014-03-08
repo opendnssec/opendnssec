@@ -43,6 +43,8 @@ typedef struct {
 } test_t;
 
 test_t* test_new(const db_connection_t* connection) {
+	db_object_field_list_t* object_field_list;
+	db_object_field_t* object_field;
 	test_t* test =
 		(test_t*)calloc(1, sizeof(test_t));
 
@@ -54,6 +56,17 @@ test_t* test_new(const db_connection_t* connection) {
 		db_object_set_connection(test->dbo, connection);
 		db_object_set_table(test->dbo, "test");
 		db_object_set_primary_key_name(test->dbo, "id");
+
+		object_field_list = db_object_field_list_new();
+		object_field = db_object_field_new();
+		db_object_field_set_name(object_field, "id");
+		db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY);
+		db_object_field_list_add(object_field_list, object_field);
+		object_field = db_object_field_new();
+		db_object_field_set_name(object_field, "name");
+		db_object_field_set_type(object_field, DB_TYPE_STRING);
+		db_object_field_list_add(object_field_list, object_field);
+		db_object_set_object_field_list(test->dbo, object_field_list);
 	}
 
 	return test;
@@ -126,8 +139,10 @@ int test_get_by_id(test_t* test, unsigned int id) {
 
 	clause_list = db_clause_list_new();
 	clause = db_clause_new();
-	db_clause_set_field(clause, "test_id");
+	db_clause_set_field(clause, "id");
 	db_clause_set_type(clause, DB_CLAUSE_EQUAL);
+	db_clause_set_value_type(clause, DB_TYPE_INTEGER);
+	db_clause_set_value(clause, &id);
 	db_clause_list_add(clause_list, clause);
 
 	db_object_read(test->dbo, clause_list);

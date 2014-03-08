@@ -145,8 +145,12 @@ int db_backend_sqlite_create(void* data, const db_object_t* object) {
 
 db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
-
-	printf("sqlite read %p %p\n", object, clause_list);
+	const db_object_field_t* object_field;
+	const db_clause_t* clause;
+	char sql[4096];
+	char* sqlp;
+	int ret, left, bind, first;
+	sqlite3_stmt *stmt;
 
 	if (!__sqlite3_initialized) {
 		return NULL;
@@ -161,8 +165,127 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		return NULL;
 	}
 
-	printf("  %s\n", db_object_table(object));
+	left = 4096;
+	sqlp = sql;
 
+	if ((ret = snprintf(sqlp, left, "SELECT")) >= left) {
+		return NULL;
+	}
+	sqlp += ret;
+	left -= ret;
+
+	object_field = db_object_field_list_begin(db_object_object_field_list(object));
+	first = 1;
+	while (object_field) {
+		if (first) {
+			if ((ret = snprintf(sqlp, left, " %s_%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
+				return NULL;
+			}
+			first = 0;
+		}
+		else {
+			if ((ret = snprintf(sqlp, left, ", %s_%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
+				return NULL;
+			}
+		}
+		sqlp += ret;
+		left -= ret;
+
+		object_field = db_object_field_next(object_field);
+	}
+
+	if ((ret = snprintf(sqlp, left, " FROM %s", db_object_table(object))) >= left) {
+		return NULL;
+	}
+	sqlp += ret;
+	left -= ret;
+
+	clause = db_clause_list_begin(clause_list);
+	first = 1;
+
+	if (clause) {
+		if ((ret = snprintf(sqlp, left, " WHERE")) >= left) {
+			return NULL;
+		}
+		sqlp += ret;
+		left -= ret;
+	}
+
+	while (clause) {
+		if (first) {
+			first = 0;
+		}
+		else {
+			if ((ret = snprintf(sqlp, left, " AND")) >= left) {
+				return NULL;
+			}
+			sqlp += ret;
+			left -= ret;
+		}
+		switch (clause->type) {
+		case DB_CLAUSE_EQ:
+			switch (clause->value_type) {
+			case DB_TYPE_INTEGER:
+				if ((ret = snprintf(sqlp, left, " %s_%s = ?", db_object_table(object), db_clause_field(clause))) >= left) {
+					return NULL;
+				}
+				sqlp += ret;
+				left -= ret;
+				break;
+
+			default:
+				return NULL;
+			}
+			break;
+
+		default:
+			return NULL;
+		}
+		clause = db_clause_next(clause);
+	}
+
+	puts(sql);
+
+	ret = sqlite3_prepare_v2(backend_sqlite->db,
+		sql,
+		sizeof(sql),
+		&stmt,
+		NULL);
+	if (ret != SQLITE_OK) {
+		printf("%d\n", ret);
+		return NULL;
+	}
+
+	clause = db_clause_list_begin(clause_list);
+	bind = 1;
+	while (clause) {
+		switch (clause->type) {
+		case DB_CLAUSE_EQ:
+			switch (clause->value_type) {
+			case DB_TYPE_INTEGER:
+				ret = sqlite3_bind_int(stmt, bind++, *(int*)db_clause_value(clause));
+				if (ret != SQLITE_OK) {
+					sqlite3_finalize(stmt);
+					return NULL;
+				}
+				break;
+
+			default:
+				sqlite3_finalize(stmt);
+				return NULL;
+			}
+			break;
+
+		default:
+			sqlite3_finalize(stmt);
+			return NULL;
+		}
+		clause = db_clause_next(clause);
+	}
+
+	puts("bind");
+
+	sqlite3_finalize(stmt);
 	return NULL;
 }
 

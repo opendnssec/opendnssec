@@ -70,6 +70,22 @@ db_clause_type_t db_clause_type(const db_clause_t* clause) {
 	return clause->type;
 }
 
+db_type_t db_clause_value_type(const db_clause_t* clause) {
+	if (!clause) {
+		return DB_TYPE_UNKNOWN;
+	}
+
+	return clause->value_type;
+}
+
+const void* db_clause_value(const db_clause_t* clause) {
+	if (!clause) {
+		return NULL;
+	}
+
+	return clause->value;
+}
+
 int db_clause_set_field(db_clause_t* clause, const char* field) {
 	char* new_field;
 
@@ -97,6 +113,24 @@ int db_clause_set_type(db_clause_t* clause, db_clause_type_t new_type) {
 	return 0;
 }
 
+int db_clause_set_value_type(db_clause_t* clause, db_type_t new_value_type) {
+	if (!clause) {
+		return 1;
+	}
+
+	clause->value_type = new_value_type;
+	return 0;
+}
+
+int db_clause_set_value(db_clause_t* clause, void* value) {
+	if (!clause) {
+		return 1;
+	}
+
+	clause->value = value;
+	return 0;
+}
+
 int db_clause_not_empty(const db_clause_t* clause) {
 	if (!clause) {
 		return 1;
@@ -104,10 +138,18 @@ int db_clause_not_empty(const db_clause_t* clause) {
 	if (!clause->field) {
 		return 1;
 	}
-	if (clause->type != DB_CLAUSE_UNKNOWN) {
+	if (clause->type == DB_CLAUSE_UNKNOWN) {
 		return 1;
 	}
 	return 0;
+}
+
+const db_clause_t* db_clause_next(const db_clause_t* clause) {
+	if (!clause) {
+		return NULL;
+	}
+
+	return clause->next;
 }
 
 /* DB CLAUSE LIST */
@@ -154,23 +196,10 @@ int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause) {
 	return 0;
 }
 
-const db_clause_t* db_clause_list_first(db_clause_list_t* clause_list) {
+const db_clause_t* db_clause_list_begin(const db_clause_list_t* clause_list) {
 	if (!clause_list) {
 		return NULL;
 	}
 
-	clause_list->cursor = clause_list->begin;
-	return clause_list->cursor;
-}
-
-const db_clause_t* db_clause_list_next(db_clause_list_t* clause_list) {
-	if (!clause_list) {
-		return NULL;
-	}
-
-	if (!clause_list->cursor) {
-		clause_list->cursor = clause_list->begin;
-	}
-	clause_list->cursor = clause_list->cursor->next;
-	return clause_list->cursor;
+	return clause_list->begin;
 }
