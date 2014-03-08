@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* DB CONFIGURATION */
+/* DB CLAUSE */
 
 db_clause_t* db_clause_new(void) {
 	db_clause_t* clause =
@@ -110,7 +110,7 @@ int db_clause_not_empty(const db_clause_t* clause) {
 	return 0;
 }
 
-/* DB CONFIGURATION LIST */
+/* DB CLAUSE LIST */
 
 db_clause_list_t* db_clause_list_new(void) {
 	db_clause_list_t* clause_list =
