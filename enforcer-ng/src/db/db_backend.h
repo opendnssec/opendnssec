@@ -48,6 +48,7 @@ typedef int (*db_backend_handle_create_t)(void*, const db_object_t*);
 typedef db_result_list_t* (*db_backend_handle_read_t)(void*, const db_object_t*, const db_clause_list_t*);
 typedef int (*db_backend_handle_update_t)(void*, const db_object_t*);
 typedef int (*db_backend_handle_delete_t)(void*, const db_object_t*);
+typedef void (*db_backend_handle_free_t)(void*);
 typedef struct db_backend_handle {
 	void* data;
 	db_backend_handle_initialize_t initialize;
@@ -58,6 +59,7 @@ typedef struct db_backend_handle {
 	db_backend_handle_read_t read;
 	db_backend_handle_update_t update;
 	db_backend_handle_delete_t delete;
+	db_backend_handle_free_t free; /* TODO: everywhere */
 } db_backend_handle_t;
 
 db_backend_handle_t* db_backend_handle_new(void);

@@ -45,7 +45,10 @@ db_backend_handle_t* db_backend_handle_new(void) {
 void db_backend_handle_free(db_backend_handle_t* backend_handle) {
 	if (backend_handle) {
 		if (backend_handle->disconnect) {
-			(*backend_handle->disconnect)(backend_handle);
+			(*backend_handle->disconnect)((void*)backend_handle->data);
+		}
+		if (backend_handle->free) {
+			(*backend_handle->free)((void*)backend_handle->data);
 		}
 		free(backend_handle);
 	}
@@ -532,6 +535,12 @@ const db_backend_t* db_backend_list_find(const db_backend_list_t* backend_list, 
 
 /* DB BACKEND FACTORY */
 db_backend_list_t* __backend_list = NULL;
+
+/* TODO:
+ * backend factory does not need a list
+ * create new backend handle when requested
+ * handle initialize and shutdown outside of backend handle
+ */
 
 int db_backend_factory_init(void) {
 	db_backend_t* backend;

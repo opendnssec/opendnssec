@@ -146,6 +146,7 @@ int test_get_by_id(test_t* test, unsigned int id) {
 	db_clause_list_add(clause_list, clause);
 
 	db_object_read(test->dbo, clause_list);
+	db_clause_list_free(clause_list);
 	return 0;
 }
 
@@ -182,6 +183,7 @@ int main(void) {
 	test = test_new(connection);
 	if (test_get_by_id(test, 1)) {
 	}
+	test_free(test);
 
 	db_connection_free(connection);
 	db_backend_factory_end();
