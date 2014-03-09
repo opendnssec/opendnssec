@@ -299,8 +299,9 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 				break;
 
 			case DB_TYPE_STRING:
-				break
+				break;
 
+			case DB_TYPE_UNKNOWN:
 			default:
 				db_result_list_free(result_list);
 				sqlite3_finalize(stmt);
