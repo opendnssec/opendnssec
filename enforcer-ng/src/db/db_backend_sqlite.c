@@ -147,7 +147,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 	const db_object_field_t* object_field;
 	const db_clause_t* clause;
-	char sql[4096];
+	char sql[4*1024];
 	char* sqlp;
 	int ret, left, bind, first;
 	sqlite3_stmt *stmt;
@@ -165,7 +165,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		return NULL;
 	}
 
-	left = 4096;
+	left = sizeof(sql);
 	sqlp = sql;
 
 	if ((ret = snprintf(sqlp, left, "SELECT")) >= left) {
@@ -252,7 +252,6 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		&stmt,
 		NULL);
 	if (ret != SQLITE_OK) {
-		printf("%d\n", ret);
 		return NULL;
 	}
 
@@ -263,6 +262,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		case DB_CLAUSE_EQ:
 			switch (clause->value_type) {
 			case DB_TYPE_INTEGER:
+				printf("  %d: %d\n", bind, *(int*)db_clause_value(clause));
 				ret = sqlite3_bind_int(stmt, bind++, *(int*)db_clause_value(clause));
 				if (ret != SQLITE_OK) {
 					sqlite3_finalize(stmt);
@@ -282,8 +282,6 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		}
 		clause = db_clause_next(clause);
 	}
-
-	puts("bind");
 
 	sqlite3_finalize(stmt);
 	return NULL;
