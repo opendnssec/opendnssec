@@ -40,6 +40,7 @@ db_clause_t* db_clause_new(void) {
 
 	if (clause) {
 		clause->type = DB_CLAUSE_UNKNOWN;
+		clause->operator = DB_CLAUSE_OPERATOR_AND;
 	}
 
 	return clause;
@@ -86,6 +87,14 @@ const void* db_clause_value(const db_clause_t* clause) {
 	return clause->value;
 }
 
+db_clause_operator_t db_clause_operator(const db_clause_t* clause) {
+	if (!clause) {
+		return DB_CLAUSE_OPERATOR_UNKNOWN;
+	}
+
+	return clause->operator;
+}
+
 int db_clause_set_field(db_clause_t* clause, const char* field) {
 	char* new_field;
 
@@ -104,21 +113,21 @@ int db_clause_set_field(db_clause_t* clause, const char* field) {
 	return 0;
 }
 
-int db_clause_set_type(db_clause_t* clause, db_clause_type_t new_type) {
+int db_clause_set_type(db_clause_t* clause, db_clause_type_t type) {
 	if (!clause) {
 		return 1;
 	}
 
-	clause->type = new_type;
+	clause->type = type;
 	return 0;
 }
 
-int db_clause_set_value_type(db_clause_t* clause, db_type_t new_value_type) {
+int db_clause_set_value_type(db_clause_t* clause, db_type_t value_type) {
 	if (!clause) {
 		return 1;
 	}
 
-	clause->value_type = new_value_type;
+	clause->value_type = value_type;
 	return 0;
 }
 
@@ -128,6 +137,18 @@ int db_clause_set_value(db_clause_t* clause, void* value) {
 	}
 
 	clause->value = value;
+	return 0;
+}
+
+int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t operator) {
+	if (!clause) {
+		return 1;
+	}
+	if (operator == DB_CLAUSE_OPERATOR_UNKNOWN) {
+		return 1;
+	}
+
+	clause->operator = operator;
 	return 0;
 }
 
@@ -187,11 +208,21 @@ int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause) {
 	if (db_clause_not_empty(clause)) {
 		return 1;
 	}
+	if (clause->next) {
+		return 1;
+	}
 
 	if (clause_list->begin) {
-		clause->next = clause_list->begin;
+		if (!clause_list->end) {
+			return 1;
+		}
+		clause_list->end->next = clause;
+		clause_list->end = clause;
 	}
-	clause_list->begin = clause;
+	else {
+		clause_list->begin = clause;
+		clause_list->end = clause;
+	}
 
 	return 0;
 }

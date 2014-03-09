@@ -56,6 +56,7 @@ const db_object_field_t* db_object_field_next(const db_object_field_t*);
 
 typedef struct db_object_field_list {
 	db_object_field_t* begin;
+	db_object_field_t* end;
 } db_object_field_list_t;
 
 db_object_field_list_t* db_object_field_list_new(void);

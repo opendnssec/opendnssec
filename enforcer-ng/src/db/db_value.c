@@ -43,9 +43,9 @@ void db_value_free(db_value_t* value) {
 	}
 }
 
-db_value_type_t db_value_type(const db_value_t* value) {
+db_type_t db_value_type(const db_value_t* value) {
 	if (!value) {
-		return DB_VALUE_UNKNOWN;
+		return DB_TYPE_UNKNOWN;
 	}
 
 	return value->type;
@@ -59,27 +59,27 @@ const void* db_value_data(const db_value_t* value) {
 	return value->data;
 }
 
-int db_value_set_type(db_value_t* value, db_value_type_t new_type) {
+int db_value_set_type(db_value_t* value, db_type_t type) {
 	if (!value) {
 		return 1;
 	}
-	if (new_type != DB_VALUE_UNKNOWN) {
+	if (type != DB_TYPE_UNKNOWN) {
 		return 1;
 	}
 
-	value->type = new_type;
+	value->type = type;
 	return 0;
 }
 
-int db_value_set_data(db_value_t* value, void* new_data) {
+int db_value_set_data(db_value_t* value, void* data) {
 	if (!value) {
 		return 1;
 	}
-	if (!new_data) {
+	if (!data) {
 		return 1;
 	}
 
-	value->data = new_data;
+	value->data = data;
 	return 0;
 }
 
@@ -87,7 +87,7 @@ int db_value_empty(const db_value_t* value) {
 	if (!value) {
 		return 1;
 	}
-	if (value->type == DB_VALUE_UNKNOWN) {
+	if (value->type == DB_TYPE_UNKNOWN) {
 		return 1;
 	}
 	/* TODO: Shouldnt we be able to be null?

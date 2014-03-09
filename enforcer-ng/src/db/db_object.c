@@ -66,27 +66,27 @@ db_type_t db_object_field_type(const db_object_field_t* object_field) {
 	return object_field->type;
 }
 
-int db_object_field_set_name(db_object_field_t* object_field, const char* new_name) {
+int db_object_field_set_name(db_object_field_t* object_field, const char* name) {
 	if (!object_field) {
 		return 1;
 	}
-	if (!new_name) {
+	if (!name) {
 		return 1;
 	}
 
-	object_field->name = new_name;
+	object_field->name = name;
 	return 0;
 }
 
-int db_object_field_set_type(db_object_field_t* object_field, db_type_t new_type) {
+int db_object_field_set_type(db_object_field_t* object_field, db_type_t type) {
 	if (!object_field) {
 		return 1;
 	}
-	if (new_type == DB_TYPE_UNKNOWN) {
+	if (type == DB_TYPE_UNKNOWN) {
 		return 1;
 	}
 
-	object_field->type = new_type;
+	object_field->type = type;
 	return 0;
 }
 
@@ -146,11 +146,21 @@ int db_object_field_list_add(db_object_field_list_t* object_field_list, db_objec
 	if (db_object_field_not_empty(object_field)) {
 		return 1;
 	}
+	if (object_field->next) {
+		return 1;
+	}
 
 	if (object_field_list->begin) {
-		object_field->next = object_field_list->begin;
+		if (!object_field_list->end) {
+			return 1;
+		}
+		object_field_list->end->next = object_field;
+		object_field_list->end = object_field;
 	}
-	object_field_list->begin = object_field;
+	else {
+		object_field_list->begin = object_field;
+		object_field_list->end = object_field;
+	}
 
 	return 0;
 }

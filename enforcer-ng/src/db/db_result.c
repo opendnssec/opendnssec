@@ -219,11 +219,21 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
 	if (db_result_not_empty(result)) {
 		return 1;
 	}
+	if (result->next) {
+		return 1;
+	}
 
 	if (result_list->begin) {
-		result->next = result_list->begin;
+		if (!result_list->end) {
+			return 1;
+		}
+		result_list->end->next = result;
+		result_list->end = result;
 	}
-	result_list->begin = result;
+	else {
+		result_list->begin = result;
+		result_list->end = result;
+	}
 
 	return 0;
 }

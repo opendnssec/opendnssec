@@ -151,6 +151,8 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	char* sqlp;
 	int ret, left, bind, first;
 	sqlite3_stmt *stmt;
+	db_result_list_t* result_list;
+	db_result_t* result;
 
 	if (!__sqlite3_initialized) {
 		return NULL;
@@ -222,9 +224,9 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 			sqlp += ret;
 			left -= ret;
 		}
-		switch (clause->type) {
+		switch (db_clause_type(clause)) {
 		case DB_CLAUSE_EQ:
-			switch (clause->value_type) {
+			switch (db_clause_value_type(clause)) {
 			case DB_TYPE_INTEGER:
 				if ((ret = snprintf(sqlp, left, " %s_%s = ?", db_object_table(object), db_clause_field(clause))) >= left) {
 					return NULL;
@@ -258,9 +260,9 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	clause = db_clause_list_begin(clause_list);
 	bind = 1;
 	while (clause) {
-		switch (clause->type) {
+		switch (db_clause_type(clause)) {
 		case DB_CLAUSE_EQ:
-			switch (clause->value_type) {
+			switch (db_clause_value_type(clause)) {
 			case DB_TYPE_INTEGER:
 				printf("  %d: %d\n", bind, *(int*)db_clause_value(clause));
 				ret = sqlite3_bind_int(stmt, bind++, *(int*)db_clause_value(clause));
@@ -281,6 +283,38 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 			return NULL;
 		}
 		clause = db_clause_next(clause);
+	}
+
+	if (!(result_list = db_result_list_new())) {
+		sqlite3_finalize(stmt);
+		return NULL;
+	}
+	while ((ret = sqlite3_step(stmt)) == SQLITE_ROW) {
+		object_field = db_object_field_list_begin(db_object_object_field_list(object));
+		bind = 1;
+		while (object_field) {
+			switch (db_object_field_type(object_field)) {
+			case DB_TYPE_PRIMARY_KEY:
+			case DB_TYPE_INTEGER:
+				break;
+
+			case DB_TYPE_STRING:
+				break
+
+			default:
+				db_result_list_free(result_list);
+				sqlite3_finalize(stmt);
+				return NULL;
+				break;
+			}
+			object_field = db_object_field_next(object_field);
+			bind++;
+		}
+	}
+	if (ret != SQLITE_DONE) {
+		db_result_list_free(result_list);
+		sqlite3_finalize(stmt);
+		return NULL;
 	}
 
 	sqlite3_finalize(stmt);

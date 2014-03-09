@@ -153,11 +153,21 @@ int db_configuration_list_add(db_configuration_list_t* configuration_list, db_co
 	if (db_configuration_not_empty(configuration)) {
 		return 1;
 	}
+	if (configuration->next) {
+		return 1;
+	}
 
 	if (configuration_list->begin) {
-		configuration->next = configuration_list->begin;
+		if (!configuration_list->end) {
+			return 1;
+		}
+		configuration_list->end->next = configuration;
+		configuration_list->end = configuration;
 	}
-	configuration_list->begin = configuration;
+	else {
+		configuration_list->begin = configuration;
+		configuration_list->end = configuration;
+	}
 
 	return 0;
 }

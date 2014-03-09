@@ -108,6 +108,7 @@ int db_backend_delete(const db_backend_t*, const db_object_t*);
 
 typedef struct db_backend_list {
 	db_backend_t* begin;
+	db_backend_t* end;
 } db_backend_list_t;
 
 db_backend_list_t* db_backend_list_new(void);

@@ -74,6 +74,7 @@ const db_result_t* db_result_next(const db_result_t*);
 typedef struct db_result_list {
 	db_result_header_t* header;
 	db_result_t* begin;
+	db_result_t* end;
 } db_result_list_t;
 
 db_result_list_t* db_result_list_new(void);

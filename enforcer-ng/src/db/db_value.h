@@ -30,25 +30,20 @@
 #ifndef __db_value_h
 #define __db_value_h
 
+#include "db_type.h"
+
 #include <stdlib.h>
 
-typedef enum db_value_type {
-	DB_VALUE_UNKNOWN,
-	DB_VALUE_PRIMARY_KEY,
-	DB_VALUE_INTEGER,
-	DB_VALUE_STRING
-} db_value_type_t;
-
 typedef struct db_value {
-	db_value_type_t type;
+	db_type_t type;
 	void* data;
 } db_value_t;
 
 db_value_t* db_value_new();
 void db_value_free(db_value_t*);
-db_value_type_t db_value_type(const db_value_t*);
+db_type_t db_value_type(const db_value_t*);
 const void* db_value_data(const db_value_t*);
-int db_value_set_type(db_value_t*, db_value_type_t);
+int db_value_set_type(db_value_t*, db_type_t);
 int db_value_set_data(db_value_t*, void*);
 int db_value_empty(const db_value_t*);
 int db_value_to_int(const db_value_t*, int*);

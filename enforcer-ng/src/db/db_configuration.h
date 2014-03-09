@@ -49,6 +49,7 @@ int db_configuration_not_empty(const db_configuration_t*);
 
 typedef struct db_configuration_list {
 	db_configuration_t* begin;
+	db_configuration_t* end;
 } db_configuration_list_t;
 
 db_configuration_list_t* db_configuration_list_new(void);
