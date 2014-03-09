@@ -455,6 +455,7 @@ usage ()
     usage_keyimport ();
     usage_keyroll ();
     usage_keypurge ();
+    usage_keydelete ();
     usage_keygen ();
     usage_keykskretire ();
     usage_keydsseen ();
