@@ -171,7 +171,7 @@ int DtNumeric(const char* string, struct tm* datetime)
 
         /* Expand the character array to allow strptime to work */
 
-        memset(ebuffer, ' ', sizeof(ebuffer));
+        memset(ebuffer, '-', sizeof(ebuffer));
         ebuffer[sizeof(ebuffer) - 1] = '\0';
 
         COPY4(buffer,  0, ebuffer,  0);
@@ -182,8 +182,7 @@ int DtNumeric(const char* string, struct tm* datetime)
         COPY2(buffer, 12, ebuffer, 17);
 
         /* ... and convert */
-
-        ptr = strptime(ebuffer, "%Y %m %d %H %M %S", datetime);
+        ptr = strptime(ebuffer, "%Y-%m-%d-%H-%M-%S", datetime);
         status = ptr ? 0 : 1;
     }
     else {
