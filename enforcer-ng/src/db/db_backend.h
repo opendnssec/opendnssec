@@ -33,6 +33,7 @@
 typedef struct db_backend_handle db_backend_handle_t;
 typedef struct db_backend db_backend_t;
 typedef struct db_backend_list db_backend_list_t;
+/* TODO: db_backend_result(_list)_t: walkable results for backend that support it, tied into db_result_list_t */
 
 #include "db_configuration.h"
 #include "db_result.h"
