@@ -27,53 +27,12 @@
  *
  */
 
-#ifndef __enforcer_zone_h
-#define __enforcer_zone_h
+#ifndef __key_dependency_h
+#define __key_dependency_h
 
-struct enforcer_zone;
-struct enforcer_zone_list;
-typedef struct enforcer_zone enforcer_zone_t;
-typedef struct enforcer_zone_list enforcer_zone_list_t;
-
-#include "db_object.h"
-#include "key_data.h"
-#include "adapter.h"
-#include "key_dependency.h"
-
-struct enforcer_zone {
-	db_object_t* dbo;
-	char* name;
-	char* policy;
-	int signconf_needs_writing;
-    char* signconf_path;
-    int next_change;
-    int ttl_end_ds;
-    int ttl_end_dk;
-    int ttl_end_rs;
-    int roll_ksk_now;
-    int roll_zsk_now;
-    int roll_csk_now;
-	int next_ksk_roll;
-	int next_zsk_roll;
-	int next_csk_roll;
-};
-
-enforcer_zone_t* enforcer_zone_new(const db_connection_t*);
-void enforcer_zone_free(enforcer_zone_t*);
-key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t*);
-adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t*);
-key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t*);
-
-struct enforcer_zone_list {
-	db_object_t* dbo;
-	db_result_list_t* result_list;
-	db_result_t* result;
-};
-
-enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t*);
-void enforcer_zone_list_free(enforcer_zone_list_t*);
-int enforcer_zone_list_get(void);
-const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t*);
-const enforcer_zone_t* enforcer_zone_list_next(const enforcer_zone_list_t*);
+struct key_dependency;
+struct key_dependency_list;
+typedef struct key_dependency key_dependency_t;
+typedef struct key_dependency_list key_dependency_list_t;
 
 #endif
