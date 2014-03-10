@@ -27,36 +27,47 @@
  *
  */
 
-#ifndef __db_result_h
-#define __db_result_h
+#ifndef __enforcer_zone_h
+#define __enforcer_zone_h
 
-struct db_result;
-struct db_result_list;
-typedef struct db_result db_result_t;
-typedef struct db_result_list db_result_list_t;
+struct enforcer_zone;
+struct enforcer_zones;
+typedef struct enforcer_zone enforcer_zone_t;
+typedef struct enforcer_zones enforcer_zones_t;
 
-#include "db_value.h"
+#include "db_object.h"
 
-struct db_result {
-	db_result_t* next;
-	db_value_set_t* value_set;
+struct enforcer_zone {
+	db_object_t* dbo;
+	char* name;
+	char* policy;
+	int signconf_needs_writing;
+    char* signconf_path;
+    int next_change;
+    int ttl_end_ds;
+    int ttl_end_dk;
+    int ttl_end_rs;
+    int roll_ksk_now;
+    int roll_zsk_now;
+    int roll_csk_now;
+	int next_ksk_roll;
+	int next_zsk_roll;
+	int next_csk_roll;
 };
 
-db_result_t* db_result_new(void);
-void db_result_free(db_result_t*);
-const db_value_set_t* db_result_value_set(const db_result_t*);
-int db_result_set_value_set(db_result_t*, db_value_set_t*);
-int db_result_not_empty(const db_result_t*);
-const db_result_t* db_result_next(const db_result_t*);
+enforcer_zone_t* enforcer_zone_new(const db_connection_t*);
+void enforcer_zone_free(enforcer_zone_t*);
 
-struct db_result_list {
-	db_result_t* begin;
-	db_result_t* end;
+struct enforcer_zones {
+	db_object_t* dbo;
+	db_result_list_t* result_list;
+	db_result_t* result;
 };
 
-db_result_list_t* db_result_list_new(void);
-void db_result_list_free(db_result_list_t*);
-int db_result_list_add(db_result_list_t*, db_result_t*);
-const db_result_t* db_result_list_begin(const db_result_list_t*);
+enforcer_zones_t* enforcer_zones_new(const db_connection_t*);
+void enforcer_zones_free(enforcer_zones_t*);
+int enforcer_zones_get(void);
+const enforcer_zone_t* enforcer_zones_begin(enforcer_zones_t*);
+const enforcer_zone_t* enforcer_zones_next(const enforcer_zones_t*);
 
 #endif

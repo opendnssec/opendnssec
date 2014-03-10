@@ -30,9 +30,6 @@
 #ifndef __db_clause_h
 #define __db_clause_h
 
-#include "db_type.h"
-
-typedef struct db_clause db_clause_t;
 typedef enum {
 	DB_CLAUSE_UNKNOWN,
 	DB_CLAUSE_EQUAL,
@@ -55,9 +52,15 @@ typedef enum {
 #define DB_CLAUSE_LE DB_CLAUSE_LESS_OR_EQUAL
 #define DB_CLAUSE_GE DB_CLAUSE_GREATER_OR_EQUAL
 #define DB_CLAUSE_GT DB_CLAUSE_GREATER_THEN
+
+struct db_clause;
+struct db_clause_list;
+typedef struct db_clause db_clause_t;
 typedef struct db_clause_list db_clause_list_t;
 
-typedef struct db_clause {
+#include "db_type.h"
+
+struct db_clause {
 	db_clause_t* next;
 	char* field;
 	db_clause_type_t type;
@@ -65,7 +68,7 @@ typedef struct db_clause {
 	void* value;
 	db_clause_operator_t operator;
 	/* TODO: nested clauses, clause list inside clause */
-} db_clause_t;
+};
 
 db_clause_t* db_clause_new(void);
 void db_clause_free(db_clause_t*);
@@ -82,10 +85,10 @@ int db_clause_set_operator(db_clause_t*, db_clause_operator_t);
 int db_clause_not_empty(const db_clause_t*);
 const db_clause_t* db_clause_next(const db_clause_t*);
 
-typedef struct db_clause_list {
+struct db_clause_list {
 	db_clause_t* begin;
 	db_clause_t* end;
-} db_clause_list_t;
+};
 
 db_clause_list_t* db_clause_list_new(void);
 void db_clause_list_free(db_clause_list_t*);

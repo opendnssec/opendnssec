@@ -158,7 +158,27 @@ ods_enforcerd_SOURCES = \
 	protobuf-orm/pb-orm-transaction.cc protobuf-orm/pb-orm-transaction.h \
 	protobuf-orm/pb-orm-update.cc protobuf-orm/pb-orm-update.h \
 	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h \
-	utils/kc_helper.c utils/kc_helper.h 
+	utils/kc_helper.c utils/kc_helper.h \
+	db/db_backend.c \
+	db/db_backend.h \
+	db/db_backend_sqlite.c \
+	db/db_backend_sqlite.h \
+	db/db_clause.c \
+	db/db_clause.h \
+	db/db_configuration.c \
+	db/db_configuration.h \
+	db/db_connection.c \
+	db/db_connection.h \
+	db/db_object.c \
+	db/db_object.h \
+	db/db_result.c \
+	db/db_result.h \
+	db/db_transaction.c \
+	db/db_transaction.h \
+	db/db_type.c \
+	db/db_type.h \
+	db/db_value.c \
+	db/db_value.h
 	
 ods_enforcerd_LDADD = \
 	$(LIBHSM) \

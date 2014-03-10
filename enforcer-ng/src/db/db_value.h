@@ -30,14 +30,19 @@
 #ifndef __db_value_h
 #define __db_value_h
 
+struct db_value;
+struct db_value_set;
+typedef struct db_value db_value_t;
+typedef struct db_value_set db_value_set_t;
+
 #include "db_type.h"
 
 #include <stdlib.h>
 
-typedef struct db_value {
+struct db_value {
 	db_type_t type;
 	void* data;
-} db_value_t;
+};
 
 db_value_t* db_value_new();
 void db_value_free(db_value_t*);
@@ -52,10 +57,10 @@ int db_value_to_string(const db_value_t*, char**);
 int db_value_from_int(db_value_t*, int);
 int db_value_from_string(db_value_t*, const char*);
 
-typedef struct db_value_set {
+struct db_value_set {
 	db_value_t* values;
 	size_t size;
-} db_value_set_t;
+};
 
 db_value_set_t* db_value_set_new(size_t);
 void db_value_set_free(db_value_set_t*);

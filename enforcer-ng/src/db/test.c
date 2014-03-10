@@ -118,30 +118,6 @@ int test_set_name(test_t* test, const char* name) {
 	return 0;
 }
 
-int __test_db_object_query(void* test, const char* name, db_type_t type, void* value) {
-	if (!test) {
-		return 1;
-	}
-	if (!name) {
-		return 1;
-	}
-
-	if (!strcmp(name, "id")) {
-		if (type != DB_TYPE_INTEGER) {
-			return 1;
-		}
-		((test_t*)test)->id = *((unsigned int *)value);
-		return 0;
-	}
-	else if (!strcmp(name, "name")) {
-		if (type != DB_TYPE_STRING) {
-			return 1;
-		}
-		return test_set_name((test_t*)test, name);
-	}
-	return 1;
-}
-
 int test_get_by_id(test_t* test, int id) {
 	db_clause_list_t* clause_list;
 	db_clause_t* clause;

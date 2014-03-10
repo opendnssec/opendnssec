@@ -30,6 +30,7 @@
 #ifndef __db_connection_h
 #define __db_connection_h
 
+struct db_connection;
 typedef struct db_connection db_connection_t;
 
 #include "db_configuration.h"
@@ -38,10 +39,10 @@ typedef struct db_connection db_connection_t;
 #include "db_object.h"
 #include "db_clause.h"
 
-typedef struct db_connection {
+struct db_connection {
 	db_configuration_list_t* configuration_list;
 	const db_backend_t* backend;
-} db_connection_t;
+};
 
 db_connection_t* db_connection_new(void);
 void db_connection_free(db_connection_t*);

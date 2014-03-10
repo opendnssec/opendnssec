@@ -288,7 +288,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 					std::string dnskey_rrstate = rrstate_Name(key.dnskey().state());
 					std::string rrsigdnskey_rrstate = rrstate_Name(key.rrsigdnskey().state());
 					std::string rrsig_rrstate = rrstate_Name(key.rrsig().state());
-					client_printf(sockfd, 
+					/*client_printf(sockfd, 
 							   "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
 							   zone.name().c_str(),
 							   keyrole.c_str(),
@@ -299,7 +299,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 							   key.publish(),
 							   key.active_ksk()||key.active_zsk(),
 							   key.locator().c_str()
-							   );
+							   );*/
 				}
 			}
 		}

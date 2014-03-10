@@ -154,7 +154,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	sqlite3_stmt *statement;
 	db_result_list_t* result_list;
 	db_result_t* result;
-	db_value_set_t* value_set;
+	db_value_set_t* value_set = NULL;
 
 	if (!__sqlite3_initialized) {
 		return NULL;
@@ -398,7 +398,7 @@ int db_backend_sqlite_delete(void* data, const db_object_t* object) {
 }
 
 db_backend_handle_t* db_backend_sqlite_new_handle(void) {
-	db_backend_handle_t* backend_handle;
+	db_backend_handle_t* backend_handle = NULL;
 	db_backend_sqlite_t* backend_sqlite =
 		(db_backend_sqlite_t*)calloc(1, sizeof(db_backend_sqlite_t));
 

@@ -30,6 +30,9 @@
 #ifndef __db_backend_h
 #define __db_backend_h
 
+struct db_backend_handle;
+struct db_backend;
+struct db_backend_list;
 typedef struct db_backend_handle db_backend_handle_t;
 typedef struct db_backend db_backend_t;
 typedef struct db_backend_list db_backend_list_t;
@@ -40,7 +43,6 @@ typedef struct db_backend_list db_backend_list_t;
 #include "db_object.h"
 #include "db_clause.h"
 
-typedef struct db_backend_handle db_backend_handle_t;
 typedef int (*db_backend_handle_initialize_t)(void*);
 typedef int (*db_backend_handle_shutdown_t)(void*);
 typedef int (*db_backend_handle_connect_t)(void*, const db_configuration_list_t*);
@@ -50,7 +52,7 @@ typedef db_result_list_t* (*db_backend_handle_read_t)(void*, const db_object_t*,
 typedef int (*db_backend_handle_update_t)(void*, const db_object_t*);
 typedef int (*db_backend_handle_delete_t)(void*, const db_object_t*);
 typedef void (*db_backend_handle_free_t)(void*);
-typedef struct db_backend_handle {
+struct db_backend_handle {
 	void* data;
 	db_backend_handle_initialize_t initialize;
 	db_backend_handle_shutdown_t shutdown;
@@ -61,7 +63,7 @@ typedef struct db_backend_handle {
 	db_backend_handle_update_t update;
 	db_backend_handle_delete_t delete;
 	db_backend_handle_free_t free; /* TODO: everywhere */
-} db_backend_handle_t;
+};
 
 db_backend_handle_t* db_backend_handle_new(void);
 void db_backend_handle_free(db_backend_handle_t*);
@@ -85,11 +87,11 @@ int db_backend_handle_set_delete(db_backend_handle_t*, db_backend_handle_delete_
 int db_backend_handle_set_data(db_backend_handle_t*, void*);
 int db_backend_handle_not_empty(const db_backend_handle_t*);
 
-typedef struct db_backend {
+struct db_backend {
 	db_backend_t* next;
 	char* name;
 	db_backend_handle_t* handle;
-} db_backend_t;
+};
 
 db_backend_t* db_backend_new(void);
 void db_backend_free(db_backend_t*);
@@ -107,10 +109,10 @@ db_result_list_t* db_backend_read(const db_backend_t*, const db_object_t*, const
 int db_backend_update(const db_backend_t*, const db_object_t*);
 int db_backend_delete(const db_backend_t*, const db_object_t*);
 
-typedef struct db_backend_list {
+struct db_backend_list {
 	db_backend_t* begin;
 	db_backend_t* end;
-} db_backend_list_t;
+};
 
 db_backend_list_t* db_backend_list_new(void);
 void db_backend_list_free(db_backend_list_t*);
