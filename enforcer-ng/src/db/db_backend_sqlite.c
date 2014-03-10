@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <stdio.h>
+#include <unistd.h>
 
 int __sqlite3_initialized = 0;
 
@@ -150,11 +151,10 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	char sql[4*1024];
 	char* sqlp;
 	int ret, left, bind, first, fields;
-	sqlite3_stmt *stmt;
+	sqlite3_stmt *statement;
 	db_result_list_t* result_list;
 	db_result_t* result;
 	db_value_set_t* value_set;
-	db_value_t* value;
 
 	if (!__sqlite3_initialized) {
 		return NULL;
@@ -255,7 +255,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	ret = sqlite3_prepare_v2(backend_sqlite->db,
 		sql,
 		sizeof(sql),
-		&stmt,
+		&statement,
 		NULL);
 	if (ret != SQLITE_OK) {
 		return NULL;
@@ -269,67 +269,106 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 			switch (db_clause_value_type(clause)) {
 			case DB_TYPE_INTEGER:
 				printf("  %d: %d\n", bind, *(int*)db_clause_value(clause));
-				ret = sqlite3_bind_int(stmt, bind++, *(int*)db_clause_value(clause));
+				ret = sqlite3_bind_int(statement, bind++, *(int*)db_clause_value(clause));
 				if (ret != SQLITE_OK) {
-					sqlite3_finalize(stmt);
+					sqlite3_finalize(statement);
 					return NULL;
 				}
 				break;
 
 			default:
-				sqlite3_finalize(stmt);
+				sqlite3_finalize(statement);
 				return NULL;
 			}
 			break;
 
 		default:
-			sqlite3_finalize(stmt);
+			sqlite3_finalize(statement);
 			return NULL;
 		}
 		clause = db_clause_next(clause);
 	}
 
 	if (!(result_list = db_result_list_new())) {
-		sqlite3_finalize(stmt);
+		sqlite3_finalize(statement);
 		return NULL;
 	}
-	while ((ret = sqlite3_step(stmt)) == SQLITE_ROW) {
-		if (!(value_set = db_value_set_new(fields))) {
+	ret = sqlite3_step(statement);
+	while (ret == SQLITE_ROW || ret == SQLITE_BUSY) {
+		if (ret == SQLITE_BUSY) {
+			usleep(100);
+			ret = sqlite3_step(statement);
+			continue;
+		}
+		if (!(result = db_result_new())
+			|| !(value_set = db_value_set_new(fields))
+			|| db_result_set_value_set(result, value_set))
+		{
+			db_result_free(result);
+			db_value_set_free(value_set);
 			db_result_list_free(result_list);
-			sqlite3_finalize(stmt);
+			sqlite3_finalize(statement);
+			return NULL;
+		}
+		if (db_result_list_add(result_list, result)) {
+			db_result_free(result);
+			db_result_list_free(result_list);
+			sqlite3_finalize(statement);
 			return NULL;
 		}
 		object_field = db_object_field_list_begin(db_object_object_field_list(object));
-		bind = 1;
+		bind = 0;
 		while (object_field) {
+			int integer;
+			const char* string;
+
 			switch (db_object_field_type(object_field)) {
 			case DB_TYPE_PRIMARY_KEY:
 			case DB_TYPE_INTEGER:
+				integer = sqlite3_column_int(statement, bind);
+				ret = sqlite3_errcode(backend_sqlite->db);
+				if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+					|| db_value_from_int(db_value_set_get(value_set, bind), integer))
+				{
+					db_result_list_free(result_list);
+					sqlite3_finalize(statement);
+					return NULL;
+				}
 				break;
 
 			case DB_TYPE_STRING:
+				string = (const char*)sqlite3_column_text(statement, bind);
+				ret = sqlite3_errcode(backend_sqlite->db);
+				if (!string
+					|| (ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+					|| db_value_from_string(db_value_set_get(value_set, bind), string))
+				{
+					db_result_list_free(result_list);
+					sqlite3_finalize(statement);
+					return NULL;
+				}
 				break;
 
 			case DB_TYPE_UNKNOWN:
 			default:
-				db_value_set_free(value_set);
 				db_result_list_free(result_list);
-				sqlite3_finalize(stmt);
+				sqlite3_finalize(statement);
 				return NULL;
 				break;
 			}
 			object_field = db_object_field_next(object_field);
 			bind++;
 		}
+		ret = sqlite3_step(statement);
 	}
 	if (ret != SQLITE_DONE) {
 		db_result_list_free(result_list);
-		sqlite3_finalize(stmt);
+		sqlite3_finalize(statement);
 		return NULL;
 	}
 
-	sqlite3_finalize(stmt);
-	return NULL;
+	sqlite3_finalize(statement);
+	return result_list;
 }
 
 int db_backend_sqlite_update(void* data, const db_object_t* object) {

@@ -38,7 +38,7 @@
 
 typedef struct {
 	db_object_t* dbo;
-	unsigned int id;
+	int id;
 	char* name;
 } test_t;
 
@@ -84,6 +84,22 @@ void test_free(test_t* test) {
 	}
 }
 
+int test_id(const test_t* test) {
+	if (!test) {
+		return 0;
+	}
+
+	return test->id;
+}
+
+const char* test_name(const test_t* test) {
+	if (!test) {
+		return NULL;
+	}
+
+	return test->name;
+}
+
 int test_set_name(test_t* test, const char* name) {
 	char* new_name;
 
@@ -126,9 +142,11 @@ int __test_db_object_query(void* test, const char* name, db_type_t type, void* v
 	return 1;
 }
 
-int test_get_by_id(test_t* test, unsigned int id) {
+int test_get_by_id(test_t* test, int id) {
 	db_clause_list_t* clause_list;
 	db_clause_t* clause;
+	db_result_list_t* result_list;
+	const db_result_t* result;
 
 	if (!test) {
 		return 1;
@@ -137,15 +155,52 @@ int test_get_by_id(test_t* test, unsigned int id) {
 		return 1;
 	}
 
-	clause_list = db_clause_list_new();
-	clause = db_clause_new();
-	db_clause_set_field(clause, "id");
-	db_clause_set_type(clause, DB_CLAUSE_EQUAL);
-	db_clause_set_value_type(clause, DB_TYPE_INTEGER);
-	db_clause_set_value(clause, &id);
-	db_clause_list_add(clause_list, clause);
+	test->id = 0;
+	if (test->name) {
+		free(test->name);
+	}
+	test->name = NULL;
 
-	db_object_read(test->dbo, clause_list);
+	if (!(clause_list = db_clause_list_new())) {
+		return 1;
+	}
+	if (!(clause = db_clause_new())
+		|| db_clause_set_field(clause, "id")
+		|| db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+		|| db_clause_set_value_type(clause, DB_TYPE_INTEGER)
+		|| db_clause_set_value(clause, &id)
+		|| db_clause_list_add(clause_list, clause))
+	{
+		db_clause_free(clause);
+		db_clause_list_free(clause_list);
+		return 1;
+	}
+
+	result_list = db_object_read(test->dbo, clause_list);
+	if (result_list) {
+		result = db_result_list_begin(result_list);
+		if (db_result_next(result)) {
+			db_result_list_free(result_list);
+			db_clause_list_free(clause_list);
+			return 1;
+		}
+
+		if (result) {
+			const db_value_set_t* value_set = db_result_value_set(result);
+
+			if (!value_set
+				|| db_value_set_size(value_set) != 2
+				|| db_value_to_int(db_value_set_get(value_set, 0), &(test->id))
+				|| db_value_to_string(db_value_set_get(value_set, 1), &(test->name)))
+			{
+				db_result_list_free(result_list);
+				db_clause_list_free(clause_list);
+				return 1;
+			}
+		}
+	}
+
+	db_result_list_free(result_list);
 	db_clause_list_free(clause_list);
 	return 0;
 }
@@ -181,7 +236,8 @@ int main(void) {
 	}
 
 	test = test_new(connection);
-	if (test_get_by_id(test, 1)) {
+	if (!test_get_by_id(test, 1)) {
+		printf("%d %s\n", test_id(test), test_name(test));
 	}
 	test_free(test);
 

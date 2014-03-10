@@ -61,7 +61,7 @@ typedef struct db_clause {
 	db_clause_t* next;
 	char* field;
 	db_clause_type_t type;
-	db_type_t value_type;
+	db_type_t value_type; /* TODO: use db_value_t instead of this */
 	void* value;
 	db_clause_operator_t operator;
 	/* TODO: nested clauses, clause list inside clause */

@@ -155,7 +155,7 @@ int db_value_from_int(db_value_t* value, int from_int) {
 	if (!value) {
 		return 1;
 	}
-	if (db_value_not_empty(value)) {
+	if (!db_value_not_empty(value)) {
 		return 1;
 	}
 
@@ -173,7 +173,7 @@ int db_value_from_string(db_value_t* value, const char* from_string) {
 	if (!value) {
 		return 1;
 	}
-	if (db_value_not_empty(value)) {
+	if (!db_value_not_empty(value)) {
 		return 1;
 	}
 
@@ -201,6 +201,7 @@ db_value_set_t* db_value_set_new(size_t size) {
 			free(value_set);
 			return NULL;
 		}
+		value_set->size = size;
 	}
 
 	return value_set;
@@ -208,16 +209,26 @@ db_value_set_t* db_value_set_new(size_t size) {
 
 void db_value_set_free(db_value_set_t* value_set) {
 	if (value_set) {
-		size_t i;
-		for (i=0; i<value_set->size; i++) {
-			db_value_reset(&value_set->values[i]);
+		if (value_set->values) {
+			size_t i;
+			for (i=0; i<value_set->size; i++) {
+				db_value_reset(&value_set->values[i]);
+			}
+			free(value_set->values);
 		}
-		free(value_set->values);
 		free(value_set);
 	}
 }
 
-db_value_t* db_value_set_get(db_value_set_t* value_set, size_t at) {
+size_t db_value_set_size(const db_value_set_t* value_set) {
+	if (!value_set) {
+		return 0;
+	}
+
+	return value_set->size;
+}
+
+db_value_t* db_value_set_get(const db_value_set_t* value_set, size_t at) {
 	if (!value_set) {
 		return NULL;
 	}
