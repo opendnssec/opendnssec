@@ -29,148 +29,52 @@
 
 #include "db_result.h"
 
-/* DB RESULT HEADER */
-
-db_result_header_t* db_result_header_new(char** header, size_t size) {
-	db_result_header_t* result_header =
-		(db_result_header_t*)calloc(1, sizeof(db_result_header_t));
-
-	if (result_header) {
-		result_header->header = header;
-		result_header->size = size;
-	}
-
-	return result_header;
-}
-
-void db_result_header_free(db_result_header_t* result_header) {
-	if (result_header) {
-		if (result_header->header) {
-			if (result_header->size) {
-				int i;
-				for (i=0; i<result_header->size; i++) {
-					free(result_header->header[i]);
-				}
-			}
-			free(result_header->header);
-		}
-		free(result_header);
-	}
-}
-
-/* DB RESULT DATA */
-
-db_result_data_t* db_result_data_new(void) {
-	db_result_data_t* result_data =
-		(db_result_data_t*)calloc(1, sizeof(db_result_data_t));
-
-	if (result_data) {
-		result_data->type = DB_TYPE_UNKNOWN;
-	}
-
-	return result_data;
-}
-
-void db_result_data_free(db_result_data_t* result_data) {
-	if (result_data) {
-		if (result_data->value) {
-			free(result_data->value);
-		}
-		free(result_data);
-	}
-}
-
-db_type_t db_result_data_type(const db_result_data_t* result_data) {
-	if (!result_data) {
-		return DB_TYPE_UNKNOWN;
-	}
-
-	return result_data->type;
-}
-
-void* db_result_data_value(const db_result_data_t* result_data) {
-	if (!result_data) {
-		return NULL;
-	}
-
-	return result_data->value;
-}
-
-int db_result_data_set_type(db_result_data_t* result_data, db_type_t type) {
-	if (!result_data) {
-		return 1;
-	}
-	if (result_data->type == DB_TYPE_UNKNOWN) {
-		return 1;
-	}
-
-	result_data->type = type;
-	return 0;
-}
-
-int db_result_data_set_value(db_result_data_t* result_data, void* value) {
-	if (!result_data) {
-		return 1;
-	}
-	if (result_data->value) {
-		return 1;
-	}
-
-	result_data->value = value;
-	return 0;
-}
-
-int db_result_data_not_empty(const db_result_data_t* result_data) {
-	if (!result_data) {
-		return 1;
-	}
-	if (result_data->type == DB_TYPE_UNKNOWN) {
-		return 1;
-	}
-	if (result_data->value) {
-		return 1;
-	}
-
-	return 0;
-}
-
 /* DB RESULT */
 
-db_result_t* db_result_new(db_result_data_t** data, size_t size) {
+db_result_t* db_result_new(void) {
 	db_result_t* result =
 		(db_result_t*)calloc(1, sizeof(db_result_t));
-
-	if (result) {
-		result->data = data;
-		result->size = size;
-	}
 
 	return result;
 }
 
 void db_result_free(db_result_t* result) {
 	if (result) {
-		if (result->data) {
-			if (result->size) {
-				int i;
-				for (i=0; i<result->size; i++) {
-					db_result_data_free(result->data[i]);
-				}
-			}
-			free(result->data);
+		if (result->value_set) {
+			db_value_set_free(result->value_set);
 		}
 		free(result);
 	}
+}
+
+const db_value_set_t* db_result_value_set(const db_result_t* result) {
+	if (!result) {
+		return NULL;
+	}
+
+	return result->value_set;
+}
+
+int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set) {
+	if (!result) {
+		return 1;
+	}
+	if (!value_set) {
+		return 1;
+	}
+	if (result->value_set) {
+		return 1;
+	}
+
+	result->value_set = value_set;
+	return 0;
 }
 
 int db_result_not_empty(const db_result_t* result) {
 	if (!result) {
 		return 1;
 	}
-	if (!result->size) {
-		return 1;
-	}
-	if (!result->data) {
+	if (!result->value_set) {
 		return 1;
 	}
 	return 0;

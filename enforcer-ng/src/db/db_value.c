@@ -29,17 +29,37 @@
 
 #include "db_value.h"
 
+#include <string.h>
+
+/* DB VALUE */
+
 db_value_t* db_value_new() {
 	db_value_t* value =
 		(db_value_t*)calloc(1, sizeof(db_value_t));
+
+	if (value) {
+		value->type = DB_TYPE_UNKNOWN;
+	}
 
 	return value;
 }
 
 void db_value_free(db_value_t* value) {
 	if (value) {
-		/* TODO: free data? */
+		if (value->data) {
+			free(value->data);
+		}
 		free(value);
+	}
+}
+
+void db_value_reset(db_value_t* value) {
+	if (value) {
+		if (value->data) {
+			free(value->data);
+		}
+		value->data = NULL;
+		value->type = DB_TYPE_UNKNOWN;
 	}
 }
 
@@ -83,7 +103,7 @@ int db_value_set_data(db_value_t* value, void* data) {
 	return 0;
 }
 
-int db_value_empty(const db_value_t* value) {
+int db_value_not_empty(const db_value_t* value) {
 	if (!value) {
 		return 1;
 	}
@@ -99,9 +119,117 @@ int db_value_empty(const db_value_t* value) {
 }
 
 int db_value_to_int(const db_value_t* value, int* to_int) {
-	return 1;
+	if (!value) {
+		return 1;
+	}
+	if (!to_int) {
+		return 1;
+	}
+	if (value->type != DB_TYPE_INTEGER) {
+		return 1;
+	}
+
+	*to_int = *(int*)(value->data);
+	return 0;
 }
 
-int db_value_to_string(const db_value_t* value, char** to_string, size_t* max_size) {
-	return 1;
+int db_value_to_string(const db_value_t* value, char** to_string) {
+	if (!value) {
+		return 1;
+	}
+	if (!to_string) {
+		return 1;
+	}
+	if (value->type != DB_TYPE_STRING) {
+		return 1;
+	}
+
+	*to_string = strdup((char*)value->data);
+	if (!*to_string) {
+		return 1;
+	}
+	return 0;
+}
+
+int db_value_from_int(db_value_t* value, int from_int) {
+	if (!value) {
+		return 1;
+	}
+	if (db_value_not_empty(value)) {
+		return 1;
+	}
+
+	/* TODO: store it inside the void* if fit */
+	value->data = (void*)calloc(1, sizeof(int));
+	if (!value->data) {
+		return 1;
+	}
+	*(int*)(value->data) = from_int;
+	value->type = DB_TYPE_INTEGER;
+	return 0;
+}
+
+int db_value_from_string(db_value_t* value, const char* from_string) {
+	if (!value) {
+		return 1;
+	}
+	if (db_value_not_empty(value)) {
+		return 1;
+	}
+
+	value->data = (void*)strdup(from_string);
+	if (!value->data) {
+		return 1;
+	}
+	value->type = DB_TYPE_STRING;
+	return 0;
+}
+
+/* DB VALUE SET */
+
+db_value_set_t* db_value_set_new(size_t size) {
+	db_value_set_t* value_set;
+
+	if (size < 1) {
+		return NULL;
+	}
+
+	value_set = (db_value_set_t*)calloc(1, sizeof(db_value_set_t));
+	if (value_set) {
+		value_set->values = (db_value_t*)calloc(size, sizeof(db_value_t));
+		if (!value_set->values) {
+			free(value_set);
+			return NULL;
+		}
+	}
+
+	return value_set;
+}
+
+void db_value_set_free(db_value_set_t* value_set) {
+	if (value_set) {
+		size_t i;
+		for (i=0; i<value_set->size; i++) {
+			db_value_reset(&value_set->values[i]);
+		}
+		free(value_set->values);
+		free(value_set);
+	}
+}
+
+db_value_t* db_value_set_get(db_value_set_t* value_set, size_t at) {
+	if (!value_set) {
+		return NULL;
+	}
+	if (!value_set->values) {
+		return NULL;
+	}
+	if (at < 0) {
+		return NULL;
+	}
+	if (!(at < value_set->size)) {
+		return NULL;
+	}
+
+	return &value_set->values[at];
 }

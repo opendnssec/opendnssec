@@ -35,39 +35,19 @@ typedef struct db_result_data db_result_data_t;
 typedef struct db_result db_result_t;
 typedef struct db_result_list db_result_list_t;
 
-#include "db_type.h"
+#include "db_value.h"
 
 #include <stdlib.h>
 
-typedef struct db_result_header {
-	char** header;
-	size_t size;
-} db_result_header_t;
-
-db_result_header_t* db_result_header_new(char**, size_t);
-void db_result_header_free(db_result_header_t*);
-
-typedef struct db_result_data {
-	db_type_t type;
-	void* value;
-} db_result_data_t;
-
-db_result_data_t* db_result_data_new(void);
-void db_result_data_free(db_result_data_t*);
-db_type_t db_result_data_type(const db_result_data_t*);
-void* db_result_data_value(const db_result_data_t*);
-int db_result_data_set_type(db_result_data_t*, db_type_t);
-int db_result_data_set_value(db_result_data_t*, void*);
-int db_result_data_not_empty(const db_result_data_t*);
-
 typedef struct db_result {
 	db_result_t* next;
-	db_result_data_t** data;
-	size_t size;
+	db_value_set_t* value_set;
 } db_result_t;
 
-db_result_t* db_result_new(db_result_data_t**, size_t);
+db_result_t* db_result_new(void);
 void db_result_free(db_result_t*);
+const db_value_set_t* db_result_value_set(const db_result_t*);
+int db_result_set_value_set(db_result_t*, db_value_set_t*);
 int db_result_not_empty(const db_result_t*);
 const db_result_t* db_result_next(const db_result_t*);
 

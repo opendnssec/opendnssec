@@ -41,12 +41,24 @@ typedef struct db_value {
 
 db_value_t* db_value_new();
 void db_value_free(db_value_t*);
+void db_value_reset(db_value_t*);
 db_type_t db_value_type(const db_value_t*);
 const void* db_value_data(const db_value_t*);
 int db_value_set_type(db_value_t*, db_type_t);
 int db_value_set_data(db_value_t*, void*);
-int db_value_empty(const db_value_t*);
+int db_value_not_empty(const db_value_t*);
 int db_value_to_int(const db_value_t*, int*);
-int db_value_to_string(const db_value_t*, char**, size_t*);
+int db_value_to_string(const db_value_t*, char**);
+int db_value_from_int(db_value_t*, int);
+int db_value_from_string(db_value_t*, const char*);
+
+typedef struct db_value_set {
+	db_value_t* values;
+	size_t size;
+} db_value_set_t;
+
+db_value_set_t* db_value_set_new(size_t);
+void db_value_set_free(db_value_set_t*);
+db_value_t* db_value_set_get(db_value_set_t*, size_t);
 
 #endif

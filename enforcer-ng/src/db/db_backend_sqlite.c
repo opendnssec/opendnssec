@@ -149,10 +149,12 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	const db_clause_t* clause;
 	char sql[4*1024];
 	char* sqlp;
-	int ret, left, bind, first;
+	int ret, left, bind, first, fields;
 	sqlite3_stmt *stmt;
 	db_result_list_t* result_list;
 	db_result_t* result;
+	db_value_set_t* value_set;
+	db_value_t* value;
 
 	if (!__sqlite3_initialized) {
 		return NULL;
@@ -178,6 +180,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 
 	object_field = db_object_field_list_begin(db_object_object_field_list(object));
 	first = 1;
+	fields = 0;
 	while (object_field) {
 		if (first) {
 			if ((ret = snprintf(sqlp, left, " %s_%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
@@ -194,6 +197,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		left -= ret;
 
 		object_field = db_object_field_next(object_field);
+		fields++;
 	}
 
 	if ((ret = snprintf(sqlp, left, " FROM %s", db_object_table(object))) >= left) {
@@ -290,6 +294,11 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		return NULL;
 	}
 	while ((ret = sqlite3_step(stmt)) == SQLITE_ROW) {
+		if (!(value_set = db_value_set_new(fields))) {
+			db_result_list_free(result_list);
+			sqlite3_finalize(stmt);
+			return NULL;
+		}
 		object_field = db_object_field_list_begin(db_object_object_field_list(object));
 		bind = 1;
 		while (object_field) {
@@ -303,6 +312,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 
 			case DB_TYPE_UNKNOWN:
 			default:
+				db_value_set_free(value_set);
 				db_result_list_free(result_list);
 				sqlite3_finalize(stmt);
 				return NULL;
