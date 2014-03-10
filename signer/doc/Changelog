@@ -1,3 +1,6 @@
+10 March 2014: Matthijs
+- Fix ods_strcmp function
+
 27 February 2014: Matthijs
 - OPENDNSSEC-560: Don't crash when unsigned zone has no SOA.
 - Add tests for OPENDNSSEC-466, OPENDNSSEC-520, OPENDNSSEC-526, OPENDNSSEC-549.

@@ -124,7 +124,7 @@ time_t ods_file_lastmodified(const char* file);
  * Compare strings.
  * \param[in] s1 one string
  * \param[in] s2 another string
- * \return -1, 0 or 1
+ * \return <0, 0 or >0
  *
  */
 int ods_strcmp(const char* s1, const char* s2);
