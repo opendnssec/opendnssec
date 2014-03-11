@@ -294,13 +294,13 @@ ods_file_lastmodified(const char* file)
     if ((fd = ods_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
         if (ret == -1) {
-            ods_log_error("[%s] unable to stat file %s: %s", file_str,
+            ods_log_warning("[%s] unable to stat file %s: %s", file_str,
                 file, strerror(errno));
         }
         ods_fclose(fd);
         return buf.st_mtime;
     } else {
-        ods_log_error("[%s] unable to stat file %s: ods_fopen() failed",
+        ods_log_debug("[%s] unable to stat file %s: ods_fopen() failed",
             file_str, file);
     }
     return 0;
