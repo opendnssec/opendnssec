@@ -203,6 +203,8 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	sqlp += ret;
 	left -= ret;
 
+	/* TODO: handle join_list */
+
 	if (clause_list) {
 		clause = db_clause_list_begin(clause_list);
 		first = 1;
@@ -230,6 +232,8 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 			case DB_CLAUSE_EQ:
 				switch (db_clause_value_type(clause)) {
 				case DB_TYPE_INTEGER:
+					/* TODO: handle clause table */
+					/* TODO: dont do %s_%s */
 					if ((ret = snprintf(sqlp, left, " %s_%s = ?", db_object_table(object), db_clause_field(clause))) >= left) {
 						return NULL;
 					}
@@ -249,8 +253,6 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		}
 	}
 
-	puts(sql);
-
 	ret = sqlite3_prepare_v2(backend_sqlite->db,
 		sql,
 		sizeof(sql),
@@ -268,7 +270,6 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 			case DB_CLAUSE_EQ:
 				switch (db_clause_value_type(clause)) {
 				case DB_TYPE_INTEGER:
-					printf("  %d: %d\n", bind, *(int*)db_clause_value(clause));
 					ret = sqlite3_bind_int(statement, bind++, *(int*)db_clause_value(clause));
 					if (ret != SQLITE_OK) {
 						sqlite3_finalize(statement);

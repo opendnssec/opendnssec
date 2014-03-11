@@ -377,7 +377,7 @@ int enforcer_zone_list_get(enforcer_zone_list_t* enforcer_zone_list) {
 	if (enforcer_zone_list->result_list) {
 		db_result_list_free(enforcer_zone_list->result_list);
 	}
-	if (!(enforcer_zone_list->result_list = db_object_read(enforcer_zone_list->dbo, NULL))) {
+	if (!(enforcer_zone_list->result_list = db_object_read(enforcer_zone_list->dbo, NULL, NULL))) {
 		return 1;
 	}
 	return 0;
