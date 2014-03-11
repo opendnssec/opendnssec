@@ -42,6 +42,7 @@ typedef struct enforcer_zone_list enforcer_zone_list_t;
 
 struct enforcer_zone {
 	db_object_t* dbo;
+	int id;
 	char* name;
 	char* policy;
 	int signconf_needs_writing;
@@ -53,6 +54,7 @@ struct enforcer_zone {
     int roll_ksk_now;
     int roll_zsk_now;
     int roll_csk_now;
+    int adapters;
 	int next_ksk_roll;
 	int next_zsk_roll;
 	int next_csk_roll;
@@ -60,6 +62,7 @@ struct enforcer_zone {
 
 enforcer_zone_t* enforcer_zone_new(const db_connection_t*);
 void enforcer_zone_free(enforcer_zone_t*);
+int enforcer_zone_from_result(enforcer_zone_t*, const db_result_t*);
 key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t*);
 adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t*);
 key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t*);
@@ -67,13 +70,14 @@ key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t*
 struct enforcer_zone_list {
 	db_object_t* dbo;
 	db_result_list_t* result_list;
-	db_result_t* result;
+	const db_result_t* result;
+	enforcer_zone_t enforcer_zone;
 };
 
 enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t*);
 void enforcer_zone_list_free(enforcer_zone_list_t*);
-int enforcer_zone_list_get(void);
+int enforcer_zone_list_get(enforcer_zone_list_t*);
 const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t*);
-const enforcer_zone_t* enforcer_zone_list_next(const enforcer_zone_list_t*);
+const enforcer_zone_t* enforcer_zone_list_next(enforcer_zone_list_t*);
 
 #endif

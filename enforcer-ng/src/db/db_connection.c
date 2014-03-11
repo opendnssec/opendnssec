@@ -113,9 +113,6 @@ db_result_list_t* db_connection_read(const db_connection_t* connection, const db
 	if (!object) {
 		return NULL;
 	}
-	if (!clause_list) {
-		return NULL;
-	}
 	if (!connection->backend) {
 		if (db_connection_connect(connection)) {
 			return NULL;

@@ -283,9 +283,6 @@ db_result_list_t* db_object_read(const db_object_t* object, const db_clause_list
 	if (!object) {
 		return NULL;
 	}
-	if (!clause_list) {
-		return NULL;
-	}
 	if (!object->connection) {
 		return NULL;
 	}

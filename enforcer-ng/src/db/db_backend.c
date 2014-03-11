@@ -116,9 +116,6 @@ db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_hand
 	if (!object) {
 		return NULL;
 	}
-	if (!clause_list) {
-		return NULL;
-	}
 	if (!backend_handle->read) {
 		return NULL;
 	}
@@ -414,9 +411,6 @@ db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t
 		return NULL;
 	}
 	if (!object) {
-		return NULL;
-	}
-	if (!clause_list) {
 		return NULL;
 	}
 	if (!backend->handle) {
