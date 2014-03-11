@@ -102,7 +102,7 @@ int handled_rollover_list_cmd(int sockfd, engine_type* engine,
 
 	perform_rollover_list(sockfd, engine->config, zone.c_str(), bVerbose?1:0);
 	
-	ods_printf(sockfd,"%s completed in %ld seconds.",scmd,time(NULL)-tstart);
+	ods_printf(sockfd,"%s completed in %ld seconds.\n",scmd,time(NULL)-tstart);
 	
 	return 1;
 }
