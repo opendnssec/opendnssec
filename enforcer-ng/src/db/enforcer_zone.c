@@ -351,7 +351,6 @@ enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t* connection) 
 			free(enforcer_zone_list);
 			return NULL;
 		}
-		enforcer_zone_reset(&(enforcer_zone_list->enforcer_zone));
 	}
 
 	return enforcer_zone_list;
@@ -359,11 +358,14 @@ enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t* connection) 
 
 void enforcer_zone_list_free(enforcer_zone_list_t* enforcer_zone_list) {
 	if (enforcer_zone_list) {
-		if (enforcer_zone->dbo) {
-			db_object_free(enforcer_zone->dbo);
+		if (enforcer_zone_list->dbo) {
+			db_object_free(enforcer_zone_list->dbo);
 		}
-		if (enforcer_zone->result_list) {
-			db_result_list_free(enforcer_zone->result_list);
+		if (enforcer_zone_list->result_list) {
+			db_result_list_free(enforcer_zone_list->result_list);
+		}
+		if (enforcer_zone_list->enforcer_zone) {
+			enforcer_zone_free(enforcer_zone_list->enforcer_zone);
 		}
 		free(enforcer_zone_list);
 	}
@@ -394,10 +396,15 @@ const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t* enforcer_z
 	if (!(enforcer_zone_list->result = db_result_list_begin(enforcer_zone_list->result_list))) {
 		return NULL;
 	}
-	if (enforcer_zone_from_result(&(enforcer_zone_list->enforcer_zone), enforcer_zone_list->result)) {
+	if (!enforcer_zone_list->enforcer_zone) {
+		if (!(enforcer_zone_list->enforcer_zone = enforcer_zone_new(enforcer_zone_list->connection))) {
+			return NULL;
+		}
+	}
+	if (enforcer_zone_from_result(enforcer_zone_list->enforcer_zone, enforcer_zone_list->result)) {
 		return NULL;
 	}
-	return &(enforcer_zone_list->enforcer_zone);
+	return enforcer_zone_list->enforcer_zone;
 }
 
 const enforcer_zone_t* enforcer_zone_list_next(enforcer_zone_list_t* enforcer_zone_list) {
@@ -411,8 +418,13 @@ const enforcer_zone_t* enforcer_zone_list_next(enforcer_zone_list_t* enforcer_zo
 	if (!(enforcer_zone_list->result = db_result_next(enforcer_zone_list->result))) {
 		return NULL;
 	}
-	if (enforcer_zone_from_result(&(enforcer_zone_list->enforcer_zone), enforcer_zone_list->result)) {
+	if (!enforcer_zone_list->enforcer_zone) {
+		if (!(enforcer_zone_list->enforcer_zone = enforcer_zone_new(enforcer_zone_list->connection))) {
+			return NULL;
+		}
+	}
+	if (enforcer_zone_from_result(enforcer_zone_list->enforcer_zone, enforcer_zone_list->result)) {
 		return NULL;
 	}
-	return &(enforcer_zone_list->enforcer_zone);
+	return enforcer_zone_list->enforcer_zone;
 }

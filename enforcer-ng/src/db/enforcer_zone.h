@@ -62,6 +62,7 @@ struct enforcer_zone {
 
 enforcer_zone_t* enforcer_zone_new(const db_connection_t*);
 void enforcer_zone_free(enforcer_zone_t*);
+void enforcer_zone_reset(enforcer_zone_t*);
 int enforcer_zone_from_result(enforcer_zone_t*, const db_result_t*);
 key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t*);
 adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t*);
@@ -71,7 +72,7 @@ struct enforcer_zone_list {
 	db_object_t* dbo;
 	db_result_list_t* result_list;
 	const db_result_t* result;
-	enforcer_zone_t enforcer_zone;
+	enforcer_zone_t* enforcer_zone;
 };
 
 enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t*);
