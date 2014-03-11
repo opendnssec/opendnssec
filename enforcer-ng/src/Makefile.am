@@ -188,7 +188,9 @@ ods_enforcerd_SOURCES = \
     db/key_data.c \
     db/key_data.h \
     db/key_dependency.c \
-    db/key_dependency.h
+    db/key_dependency.h \
+    db/key_state.c \
+    db/key_state.h
 	
 ods_enforcerd_LDADD = \
 	$(LIBHSM) \

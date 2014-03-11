@@ -451,7 +451,26 @@ int enforcer_zone_next_csk_roll(const enforcer_zone_t* enforcer_zone) {
 }
 
 key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone) {
-	return NULL;
+	key_data_list_t* key_data_list
+
+	if (!enforcer_zone) {
+		return NULL;
+	}
+	if (!enforcer_zone->dbo) {
+		return NULL;
+	}
+	if (!enforcer_zone->id) {
+		return NULL;
+	}
+
+	key_data_list = key_data_list_new(db_object_connection(enforcer_zone->dbo));
+	if (key_data_list) {
+		if (key_data_list_get_by_enforcer_zone_id(key_data_list, enforcer_zone->id)) {
+			key_data_list_free(key_data_list);
+			return NULL;
+		}
+	}
+	return key_data_list;
 }
 
 adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone) {

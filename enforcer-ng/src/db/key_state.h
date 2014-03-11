@@ -27,86 +27,59 @@
  *
  */
 
-#ifndef __key_data_h
-#define __key_data_h
+#ifndef __key_state_h
+#define __key_state_h
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct key_data;
-struct key_data_list;
-typedef struct key_data key_data_t;
-typedef struct key_data_list key_data_list_t;
+struct key_state;
+struct key_state_list;
+typedef struct key_state key_state_t;
+typedef struct key_state_list key_state_list_t;
 
 #ifdef __cplusplus
 }
 #endif
 
 #include "db_object.h"
-#include "key_state.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct key_data {
+struct key_state {
 	db_object_t* dbo;
 	int id;
-	char* locator;
-	int algorithm;
-	int inception;
-	char* role;
-	int introducing;
-	int shouldrevoke;
-	int standby;
-	int active_zsk;
-	int publish;
-	int active_ksk;
-	char* ds_at_parent;
-	int keytag;
-
-	/* foreign key */
-	int ds;
-	int rrsig;
-	int dnskey;
-	int rrsigdnskey;
+	char* rrstate;
+	int last_change;
+	int minimize;
+	int ttl;
 };
 
-key_data_t* key_data_new(const db_connection_t*);
-void key_data_free(key_data_t*);
-void key_data_reset(key_data_t*);
-int key_data_from_result(key_data_t*, const db_result_t*);
-int key_data_id(const key_data_t*);
-const char* key_data_locator(const key_data_t*);
-int key_data_algorithm(const key_data_t*);
-int key_data_inception(const key_data_t*);
-const char* key_data_role(const key_data_t*);
-int key_data_introducing(const key_data_t*);
-int key_data_shouldrevoke(const key_data_t*);
-int key_data_standby(const key_data_t*);
-int key_data_active_zsk(const key_data_t*);
-int key_data_publish(const key_data_t*);
-int key_data_active_ksk(const key_data_t*);
-const char* key_data_ds_at_parent(const key_data_t*);
-int key_data_keytag(const key_data_t*);
-key_state_t* key_data_ds(const key_data_t*);
-key_state_t* key_data_rrsig(const key_data_t*);
-key_state_t* key_data_dnskey(const key_data_t*);
-key_state_t* key_data_rrsigdnskey(const key_data_t*);
+key_state_t* key_state_new(const db_connection_t*);
+void key_state_free(key_state_t*);
+void key_state_reset(key_state_t*);
+int key_state_from_result(key_state_t*, const db_result_t*);
+int key_state_id(const key_state_t*);
+const char* key_state_rrstate(const key_state_t*);
+int key_state_last_change(const key_state_t*);
+int key_state_minimize(const key_state_t*);
+int key_state_ttl(const key_state_t*);
+int key_state_get_by_id(key_state_t*, int);
 
-struct key_data_list {
+struct key_state_list {
 	db_object_t* dbo;
 	db_result_list_t* result_list;
 	const db_result_t* result;
-	key_data_t* key_data;
+	key_state_t* key_state;
 };
 
-key_data_list_t* key_data_list_new(const db_connection_t*);
-void key_data_list_free(key_data_list_t*);
-int key_data_list_get_by_enforcer_zone_id(key_data_list_t*, int);
-const key_data_t* key_data_list_begin(key_data_list_t*);
-const key_data_t* key_data_list_next(key_data_list_t*);
+key_state_list_t* key_state_list_new(const db_connection_t*);
+void key_state_list_free(key_state_list_t*);
+const key_state_t* key_state_list_begin(key_state_list_t*);
+const key_state_t* key_state_list_next(key_state_list_t*);
 
 #ifdef __cplusplus
 }

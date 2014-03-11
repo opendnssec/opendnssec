@@ -66,10 +66,12 @@ struct enforcer_zone {
     int roll_ksk_now;
     int roll_zsk_now;
     int roll_csk_now;
-    int adapters;
 	int next_ksk_roll;
 	int next_zsk_roll;
 	int next_csk_roll;
+
+	/* foreign key */
+    int adapters;
 };
 
 enforcer_zone_t* enforcer_zone_new(const db_connection_t*);
