@@ -40,14 +40,14 @@ db_connection_t* db_connection_new(void) {
 
 void db_connection_free(db_connection_t* connection) {
 	if (connection) {
-		if (connection->configuration_list) {
-			db_configuration_list_free(connection->configuration_list);
+		if (connection->backend) {
+			db_backend_free(connection->backend);
 		}
 		free(connection);
 	}
 }
 
-int db_connection_set_configuration_list(db_connection_t* connection, db_configuration_list_t* configuration_list) {
+int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list) {
 	if (!connection) {
 		return 1;
 	}

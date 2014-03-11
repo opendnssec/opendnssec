@@ -280,8 +280,9 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 					client_printf(sockfd, "error reading zone\n");
 					return 1;
 				}
-					
-				for (int k=0; k<zone.keys_size(); ++k) {
+
+				ods_printf(sockfd, "%s\n", zone.name().c_str());
+				/*for (int k=0; k<zone.keys_size(); ++k) {
 					const ::ods::keystate::KeyData &key = zone.keys(k);
 					std::string keyrole = keyrole_Name(key.role());
 					std::string ds_rrstate = rrstate_Name(key.ds().state());
@@ -300,7 +301,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 							   key.active_ksk()||key.active_zsk(),
 							   key.locator().c_str()
 							   );
-				}
+				}*/
 			}
 		}
     }
@@ -312,7 +313,9 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 
 static db_configuration_list_t* configuration_list = NULL;
 
-void perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
+int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
+	int ret;
+
 	if (!configuration_list) {
 		configuration_list = db_configuration_list_new();
 		if (configuration_list) {
@@ -336,32 +339,42 @@ void perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
 
 	if (!configuration_list) {
 		ods_printf(sockfd, "configuration list error\n");
-		return;
+		return 1;
 	}
 
 	db_connection_t* connection;
-	if (!(connection = db_connection_new())
-		|| db_connection_set_configuration_list(connection, configuration_list)
-		|| db_connection_setup(connection)
-		|| db_connection_connect(connection))
-	{
+	if (!(connection = db_connection_new())) {
+		ods_printf(sockfd, "connection error 1\n");
+		return 1;
+	}
+	if (db_connection_set_configuration_list(connection, configuration_list)) {
 		db_connection_free(connection);
-		ods_printf(sockfd, "connection error\n");
-		return;
+		ods_printf(sockfd, "connection error 2\n");
+		return 1;
+	}
+	if (db_connection_setup(connection)) {
+		db_connection_free(connection);
+		ods_printf(sockfd, "connection error 3\n");
+		return 1;
+	}
+	if ((ret = db_connection_connect(connection))) {
+		db_connection_free(connection);
+		ods_printf(sockfd, "connection error 4 %d\n", ret);
+		return 1;
 	}
 
 	enforcer_zone_list_t* enforcer_zone_list = enforcer_zone_list_new(connection);
 	if (!enforcer_zone_list) {
 		db_connection_free(connection);
 		ods_printf(sockfd, "enforcer_zone_list error\n");
-		return;
+		return 1;
 	}
 
 	if (enforcer_zone_list_get(enforcer_zone_list)) {
 		enforcer_zone_list_free(enforcer_zone_list);
 		db_connection_free(connection);
 		ods_printf(sockfd, "enforcer_zone_list_get error\n");
-		return;
+		return 1;
 	}
 
 	const enforcer_zone_t* enforcer_zone = enforcer_zone_list_begin(enforcer_zone_list);
@@ -375,7 +388,7 @@ void perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
 
 	enforcer_zone_list_free(enforcer_zone_list);
 	db_connection_free(connection);
-	return;
+	return 0;
 }
 
 int 

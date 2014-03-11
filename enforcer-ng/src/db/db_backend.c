@@ -45,10 +45,10 @@ db_backend_handle_t* db_backend_handle_new(void) {
 void db_backend_handle_free(db_backend_handle_t* backend_handle) {
 	if (backend_handle) {
 		if (backend_handle->disconnect_function) {
-			(*backend_handle->disconnect_function)(backend_handle);
+			(void)(*backend_handle->disconnect_function)(backend_handle->data);
 		}
 		if (backend_handle->free_function) {
-			(*backend_handle->free_function)(backend_handle);
+			(*backend_handle->free_function)(backend_handle->data);
 		}
 		free(backend_handle);
 	}
@@ -225,6 +225,15 @@ int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend
 	return 0;
 }
 
+int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_handle_free_t free_function) {
+	if (!backend_handle) {
+		return 1;
+	}
+
+	backend_handle->free_function = free_function;
+	return 0;
+}
+
 int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data) {
 	if (!backend_handle) {
 		return 1;
@@ -265,6 +274,9 @@ int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle->delete_function) {
 		return 1;
 	}
+	if (!backend_handle->free_function) {
+		return 1;
+	}
 	return 0;
 }
 
@@ -279,11 +291,11 @@ db_backend_t* db_backend_new(void) {
 
 void db_backend_free(db_backend_t* backend) {
 	if (backend) {
-		if (backend->name) {
-			free(backend->name);
-		}
 		if (backend->handle) {
 			db_backend_handle_free(backend->handle);
+		}
+		if (backend->name) {
+			free(backend->name);
 		}
 		free(backend);
 	}
@@ -442,160 +454,23 @@ int db_backend_delete(const db_backend_t* backend, const db_object_t* object) {
 	return db_backend_handle_delete(backend->handle, object);
 }
 
-/* DB BACKEND LIST */
+/* DB BACKEND FACTORY */
 
-db_backend_list_t* db_backend_list_new(void) {
-	db_backend_list_t* backend_list =
-		(db_backend_list_t*)calloc(1, sizeof(db_backend_list_t));
+db_backend_t* db_backend_factory_get_backend(const char* name) {
+	db_backend_t* backend = NULL;
 
-	return backend_list;
-}
-
-void db_backend_list_free(db_backend_list_t* backend_list) {
-	if (backend_list) {
-		if (backend_list->begin) {
-			db_backend_t* this = backend_list->begin;
-			db_backend_t* next = NULL;
-
-			while (this) {
-				next = this->next;
-				db_backend_free(this);
-				this = next;
-			}
-		}
-		free(backend_list);
-	}
-}
-
-void db_backend_list_free_shutdown(db_backend_list_t* backend_list) {
-	if (backend_list) {
-		if (backend_list->begin) {
-			db_backend_t* this = backend_list->begin;
-			db_backend_t* next = NULL;
-
-			while (this) {
-				next = this->next;
-				db_backend_shutdown(this);
-				db_backend_free(this);
-				this = next;
-			}
-		}
-		free(backend_list);
-	}
-}
-
-int db_backend_list_add(db_backend_list_t* backend_list, db_backend_t* backend) {
-	if (!backend_list) {
-		return 1;
-	}
-	if (!backend) {
-		return 1;
-	}
-	if (db_backend_not_empty(backend)) {
-		return 1;
-	}
-	if (backend->next) {
-		return 1;
-	}
-
-	if (backend_list->begin) {
-		if (!backend_list->end) {
-			return 1;
-		}
-		backend_list->end->next = backend;
-		backend_list->end = backend;
-	}
-	else {
-		backend_list->begin = backend;
-		backend_list->end = backend;
-	}
-
-	return 0;
-}
-
-const db_backend_t* db_backend_list_find(const db_backend_list_t* backend_list, const char* name) {
-	db_backend_t* backend;
-
-	if (!backend_list) {
-		return NULL;
-	}
 	if (!name) {
 		return NULL;
 	}
 
-	backend = backend_list->begin;
-	while (backend) {
-		if (db_backend_not_empty(backend)) {
-			return NULL;
-		}
-		if (!strcmp(backend->name, name)) {
-			break;
-		}
-		backend = backend->next;
-	}
-
-	return backend;
-}
-
-/* DB BACKEND FACTORY */
-db_backend_list_t* __backend_list = NULL;
-
-/* TODO:
- * backend factory does not need a list
- * create new backend handle when requested
- * handle initialize and shutdown outside of backend handle
- */
-
-int db_backend_factory_init(void) {
-	db_backend_t* backend;
-
-	if (!__backend_list) {
-		if (!(__backend_list = db_backend_list_new())) {
-			return 1;
-		}
-
-		if (!(backend = db_backend_new())) {
-			db_backend_factory_end();
-			return 1;
-		}
-
-		if (db_backend_set_name(backend, "sqlite")
+	if (!strcmp(name, "sqlite")) {
+		if (!(backend = db_backend_new())
+			|| db_backend_set_name(backend, "sqlite")
 			|| db_backend_set_handle(backend, db_backend_sqlite_new_handle())
-			|| db_backend_initialize(backend)
-			|| db_backend_list_add(__backend_list, backend))
+			|| db_backend_initialize(backend))
 		{
 			db_backend_free(backend);
-			db_backend_factory_end();
-			return 1;
-		}
-	}
-	return 0;
-}
-
-void db_backend_factory_end(void) {
-	if (__backend_list) {
-		db_backend_list_free_shutdown(__backend_list);
-		__backend_list = NULL;
-	}
-}
-
-const db_backend_t* db_backend_factory_get_backend(const char* name) {
-	db_backend_t* backend;
-
-	if (!__backend_list) {
-		return NULL;
-	}
-	if (!name) {
-		return NULL;
-	}
-
-	backend = __backend_list->begin;
-	while (backend) {
-		if (db_backend_not_empty(backend)) {
 			return NULL;
-		}
-		if (!strcmp(backend->name, name)) {
-			break;
 		}
 	}
 

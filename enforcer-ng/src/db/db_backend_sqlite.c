@@ -29,6 +29,8 @@
 
 #include "db_backend_sqlite.h"
 
+#include "shared/log.h"
+
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <stdio.h>
@@ -181,13 +183,13 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	fields = 0;
 	while (object_field) {
 		if (first) {
-			if ((ret = snprintf(sqlp, left, " %s_%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
+			if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(object_field))) >= left) {
 				return NULL;
 			}
 			first = 0;
 		}
 		else {
-			if ((ret = snprintf(sqlp, left, ", %s_%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
+			if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(object_field))) >= left) {
 				return NULL;
 			}
 		}
@@ -245,7 +247,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 				case DB_TYPE_INTEGER:
 					/* TODO: handle clause table */
 					/* TODO: dont do %s_%s */
-					if ((ret = snprintf(sqlp, left, " %s_%s = ?", db_object_table(object), db_clause_field(clause))) >= left) {
+					if ((ret = snprintf(sqlp, left, " %s = ?", db_clause_field(clause))) >= left) {
 						return NULL;
 					}
 					sqlp += ret;
@@ -263,6 +265,8 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 			clause = db_clause_next(clause);
 		}
 	}
+
+	ods_log_info("DB SQL %s", sql);
 
 	ret = sqlite3_prepare_v2(backend_sqlite->db,
 		sql,
@@ -410,6 +414,17 @@ int db_backend_sqlite_delete(void* data, const db_object_t* object) {
 	return 1;
 }
 
+void db_backend_sqlite_free(void* data) {
+	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+
+	if (backend_sqlite) {
+		if (backend_sqlite->db) {
+			(void)db_backend_sqlite_disconnect(backend_sqlite);
+		}
+		free(backend_sqlite);
+	}
+}
+
 db_backend_handle_t* db_backend_sqlite_new_handle(void) {
 	db_backend_handle_t* backend_handle = NULL;
 	db_backend_sqlite_t* backend_sqlite =
@@ -424,7 +439,8 @@ db_backend_handle_t* db_backend_sqlite_new_handle(void) {
 			|| db_backend_handle_set_create(backend_handle, db_backend_sqlite_create)
 			|| db_backend_handle_set_read(backend_handle, db_backend_sqlite_read)
 			|| db_backend_handle_set_update(backend_handle, db_backend_sqlite_update)
-			|| db_backend_handle_set_delete(backend_handle, db_backend_sqlite_delete))
+			|| db_backend_handle_set_delete(backend_handle, db_backend_sqlite_delete)
+			|| db_backend_handle_set_free(backend_handle, db_backend_sqlite_free))
 		{
 			db_backend_handle_free(backend_handle);
 			free(backend_sqlite);

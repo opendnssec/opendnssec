@@ -1,9 +1,0 @@
-CREATE TABLE test (
-    test_id INTEGER,
-    test_name VARCHAR(255),
-    PRIMARY KEY (test_id)
-);
-INSERT INTO test VALUES (1, "test1");
-INSERT INTO test VALUES (2, "test2");
-INSERT INTO test VALUES (3, "test3");
-INSERT INTO test VALUES (4, "test4");

@@ -43,4 +43,15 @@ typedef struct key_data_list key_data_list_t;
 }
 #endif
 
+#include "db_object.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

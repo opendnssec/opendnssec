@@ -75,7 +75,7 @@ struct db_backend_handle {
 	db_backend_handle_read_t read_function;
 	db_backend_handle_update_t update_function;
 	db_backend_handle_delete_t delete_function;
-	db_backend_handle_free_t free_function; /* TODO: everywhere */
+	db_backend_handle_free_t free_function;
 };
 
 db_backend_handle_t* db_backend_handle_new(void);
@@ -122,20 +122,7 @@ db_result_list_t* db_backend_read(const db_backend_t*, const db_object_t*, const
 int db_backend_update(const db_backend_t*, const db_object_t*);
 int db_backend_delete(const db_backend_t*, const db_object_t*);
 
-struct db_backend_list {
-	db_backend_t* begin;
-	db_backend_t* end;
-};
-
-db_backend_list_t* db_backend_list_new(void);
-void db_backend_list_free(db_backend_list_t*);
-void db_backend_list_free_shutdown(db_backend_list_t*);
-int db_backend_list_add(db_backend_list_t*, db_backend_t*);
-const db_backend_t* db_backend_list_find(const db_backend_list_t*, const char*);
-
-int db_backend_factory_init(void);
-void db_backend_factory_end(void);
-const db_backend_t* db_backend_factory_get_backend(const char*);
+db_backend_t* db_backend_factory_get_backend(const char*);
 
 #ifdef __cplusplus
 }
