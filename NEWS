@@ -8,6 +8,10 @@ OpenDNSSEC 1.4.4rc1
 
 Bugfixes:
 * SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512].
+* SUPPORT-116: ods-ksmutil key import. Date validation fails on certain 
+  dates [OPENDNSSEC-553].
+* SUPPORT-128: ods-ksmutil. Man page had incorrect formatting. 
+  [OPENDNSSEC-576].
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
 * OPENDNSSEC-520: Signer Engine: Don't replace tabs in RRs with whitespace.

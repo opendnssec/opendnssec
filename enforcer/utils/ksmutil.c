@@ -455,6 +455,7 @@ usage ()
     usage_keyimport ();
     usage_keyroll ();
     usage_keypurge ();
+    usage_keydelete ();
     usage_keygen ();
     usage_keykskretire ();
     usage_keydsseen ();
@@ -3311,6 +3312,7 @@ cmd_import ()
         snprintf(form_time, KSM_TIME_LENGTH, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
             datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday,
             datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
+            printf("Converted time is %s\n", form_time);
     }
 
     if (o_retire != NULL) {

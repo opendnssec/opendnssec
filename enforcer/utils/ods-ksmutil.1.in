@@ -16,11 +16,8 @@
 .br
 .B ods\-ksmutil zonelist import|export
 .br
-.B ods\-ksmutil key 
-.RS
-.B		generate|import|export|list|purge|rollover|ksk\-retire|ds\-seen|delete
+.B ods\-ksmutil key generate|import|export|list|purge|rollover|ksk\-retire|ds\-seen|delete
 .RB ...
-.RE
 .br
 .B ods\-ksmutil rollover list
 .RB ...
@@ -92,11 +89,12 @@ instead.
 .B update conf
 .TP
 .B update all
-Update the database with the contents of the respecive configuration
+Update the database with the contents of the respective configuration
 file, or all those files.  The result is comparable to the
 .B setup
 subcommand, except that management information about OpenDNSSEC is
-not deleted.
+not deleted.(Also note that update kasp does not remove any policies from the database, 
+policy purge can be used to remove unused policies).
 .SH "ZONE MANAGEMENT SUBCOMMANDS"
 .LP
 .TP
