@@ -279,7 +279,7 @@ int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t*
 	return 0;
 }
 
-db_result_list_t* db_object_read(const db_object_t* object, const db_clause_list_t* clause_list) {
+db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!object) {
 		return NULL;
 	}
@@ -293,5 +293,5 @@ db_result_list_t* db_object_read(const db_object_t* object, const db_clause_list
 		return NULL;
 	}
 
-	return db_connection_read(object->connection, object, clause_list);
+	return db_connection_read(object->connection, object, join_list, clause_list);
 }

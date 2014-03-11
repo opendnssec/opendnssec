@@ -109,7 +109,7 @@ int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db
 	return backend_handle->create((void*)backend_handle->data, object);
 }
 
-db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_clause_list_t* clause_list) {
+db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!backend_handle) {
 		return NULL;
 	}
@@ -120,7 +120,7 @@ db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_hand
 		return NULL;
 	}
 
-	return backend_handle->read((void*)backend_handle->data, object, clause_list);
+	return backend_handle->read((void*)backend_handle->data, object, join_list, clause_list);
 }
 
 int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object) {
@@ -406,7 +406,7 @@ int db_backend_create(const db_backend_t* backend, const db_object_t* object) {
 	return db_backend_handle_create(backend->handle, object);
 }
 
-db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object, const db_clause_list_t* clause_list) {
+db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!backend) {
 		return NULL;
 	}
@@ -417,7 +417,7 @@ db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t
 		return NULL;
 	}
 
-	return db_backend_handle_read(backend->handle, object, clause_list);
+	return db_backend_handle_read(backend->handle, object, join_list, clause_list);
 }
 
 int db_backend_update(const db_backend_t* backend, const db_object_t* object) {

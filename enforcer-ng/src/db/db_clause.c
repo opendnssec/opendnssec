@@ -48,11 +48,22 @@ db_clause_t* db_clause_new(void) {
 
 void db_clause_free(db_clause_t* clause) {
 	if (clause) {
+		if (clause->table) {
+			free(clause->table);
+		}
 		if (clause->field) {
 			free(clause->field);
 		}
 		free(clause);
 	}
+}
+
+const char* db_clause_table(const db_clause_t* clause) {
+	if (!clause) {
+		return NULL;
+	}
+
+	return clause->table;
 }
 
 const char* db_clause_field(const db_clause_t* clause) {
@@ -93,6 +104,24 @@ db_clause_operator_t db_clause_operator(const db_clause_t* clause) {
 	}
 
 	return clause->operator;
+}
+
+int db_clause_set_table(db_clause_t* clause, const char* table) {
+	char* new_table;
+
+	if (!clause) {
+		return 1;
+	}
+
+	if (!(new_table = strdup(table))) {
+		return 1;
+	}
+
+	if (clause->table) {
+		free(clause->table);
+	}
+	clause->table = new_table;
+	return 0;
 }
 
 int db_clause_set_field(db_clause_t* clause, const char* field) {

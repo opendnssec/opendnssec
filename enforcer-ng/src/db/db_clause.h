@@ -62,6 +62,7 @@ typedef struct db_clause_list db_clause_list_t;
 
 struct db_clause {
 	db_clause_t* next;
+	char* table;
 	char* field;
 	db_clause_type_t type;
 	db_type_t value_type; /* TODO: use db_value_t instead of this */
@@ -72,11 +73,13 @@ struct db_clause {
 
 db_clause_t* db_clause_new(void);
 void db_clause_free(db_clause_t*);
+const char* db_clause_table(const db_clause_t*);
 const char* db_clause_field(const db_clause_t*);
 db_clause_type_t db_clause_type(const db_clause_t*);
 db_type_t db_clause_value_type(const db_clause_t*);
 const void* db_clause_value(const db_clause_t*);
 db_clause_operator_t db_clause_operator(const db_clause_t*);
+int db_clause_set_table(db_clause_t*, const char*);
 int db_clause_set_field(db_clause_t*, const char*);
 int db_clause_set_type(db_clause_t*, db_clause_type_t);
 int db_clause_set_value_type(db_clause_t*, db_type_t);

@@ -152,7 +152,7 @@ int test_get_by_id(test_t* test, int id) {
 		return 1;
 	}
 
-	result_list = db_object_read(test->dbo, clause_list);
+	result_list = db_object_read(test->dbo, NULL, clause_list);
 	if (result_list) {
 		result = db_result_list_begin(result_list);
 		if (db_result_next(result)) {

@@ -144,7 +144,7 @@ int db_backend_sqlite_create(void* data, const db_object_t* object) {
 	return 1;
 }
 
-db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
+db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 	const db_object_field_t* object_field;
 	const db_clause_t* clause;

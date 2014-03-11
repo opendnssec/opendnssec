@@ -27,30 +27,45 @@
  *
  */
 
-#ifndef __db_connection_h
-#define __db_connection_h
+#ifndef __db_join_h
+#define __db_join_h
 
-struct db_connection;
-typedef struct db_connection db_connection_t;
+struct db_join;
+struct db_join_list;
+typedef struct db_join db_join_t;
+typedef struct db_join_list db_join_list_t;
 
-#include "db_configuration.h"
-#include "db_backend.h"
-#include "db_result.h"
-#include "db_object.h"
-#include "db_join.h"
-#include "db_clause.h"
+#include "db_type.h"
 
-struct db_connection {
-	db_configuration_list_t* configuration_list;
-	const db_backend_t* backend;
+struct db_join {
+	db_join_t* next;
+	char* from_table;
+	char* from_field;
+	char* to_table;
+	char* to_field;
 };
 
-db_connection_t* db_connection_new(void);
-void db_connection_free(db_connection_t*);
-int db_connection_set_configuration_list(db_connection_t*, db_configuration_list_t*);
-int db_connection_setup(db_connection_t*);
-int db_connection_connect(const db_connection_t*);
-int db_connection_disconnect(const db_connection_t*);
-db_result_list_t* db_connection_read(const db_connection_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
+db_join_t* db_join_new(void);
+void db_join_free(db_join_t*);
+const char* db_join_from_table(const db_join_t*);
+const char* db_join_from_field(const db_join_t*);
+const char* db_join_to_table(const db_join_t*);
+const char* db_join_to_field(const db_join_t*);
+int db_join_set_from_table(db_join_t*, const char*);
+int db_join_set_from_field(db_join_t*, const char*);
+int db_join_set_to_table(db_join_t*, const char*);
+int db_join_set_to_field(db_join_t*, const char*);
+int db_join_not_empty(const db_join_t*);
+const db_join_t* db_join_next(const db_join_t*);
+
+struct db_join_list {
+	db_join_t* begin;
+	db_join_t* end;
+};
+
+db_join_list_t* db_join_list_new(void);
+void db_join_list_free(db_join_list_t*);
+int db_join_list_add(db_join_list_t*, db_join_t*);
+const db_join_t* db_join_list_begin(const db_join_list_t*);
 
 #endif

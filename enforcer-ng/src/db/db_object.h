@@ -39,6 +39,7 @@ typedef struct db_object_field_list db_object_field_list_t;
 
 #include "db_connection.h"
 #include "db_result.h"
+#include "db_join.h"
 #include "db_clause.h"
 #include "db_type.h"
 
@@ -84,6 +85,6 @@ int db_object_set_connection(db_object_t*, const db_connection_t*);
 int db_object_set_table(db_object_t*, const char*);
 int db_object_set_primary_key_name(db_object_t*, const char*);
 int db_object_set_object_field_list(db_object_t*, db_object_field_list_t*);
-db_result_list_t* db_object_read(const db_object_t*, const db_clause_list_t*);
+db_result_list_t* db_object_read(const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
 
 #endif
