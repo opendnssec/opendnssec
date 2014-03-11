@@ -83,13 +83,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     
     bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
     bool bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
+    bool bNewdb = ods_find_arg(&argc,argv,"newdb","n") != -1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,key_list_funcblock()->cmdname);
         client_printf(sockfd,"unknown arguments\n");
         return -1;
     }
-    return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug);
+    return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug, bNewdb);
 }
 
 static struct cmd_func_block funcblock = {

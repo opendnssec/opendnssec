@@ -30,12 +30,24 @@
 #ifndef __db_join_h
 #define __db_join_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct db_join;
 struct db_join_list;
 typedef struct db_join db_join_t;
 typedef struct db_join_list db_join_list_t;
 
+#ifdef __cplusplus
+}
+#endif
+
 #include "db_type.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct db_join {
 	db_join_t* next;
@@ -67,5 +79,9 @@ db_join_list_t* db_join_list_new(void);
 void db_join_list_free(db_join_list_t*);
 int db_join_list_add(db_join_list_t*, db_join_t*);
 const db_join_t* db_join_list_begin(const db_join_list_t*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

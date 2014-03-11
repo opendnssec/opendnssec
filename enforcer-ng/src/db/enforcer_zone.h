@@ -30,15 +30,27 @@
 #ifndef __enforcer_zone_h
 #define __enforcer_zone_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct enforcer_zone;
 struct enforcer_zone_list;
 typedef struct enforcer_zone enforcer_zone_t;
 typedef struct enforcer_zone_list enforcer_zone_list_t;
 
+#ifdef __cplusplus
+}
+#endif
+
 #include "db_object.h"
 #include "key_data.h"
 #include "adapter.h"
 #include "key_dependency.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct enforcer_zone {
 	db_object_t* dbo;
@@ -64,6 +76,21 @@ enforcer_zone_t* enforcer_zone_new(const db_connection_t*);
 void enforcer_zone_free(enforcer_zone_t*);
 void enforcer_zone_reset(enforcer_zone_t*);
 int enforcer_zone_from_result(enforcer_zone_t*, const db_result_t*);
+int enforcer_zone_id(const enforcer_zone_t*);
+const char* enforcer_zone_name(const enforcer_zone_t*);
+const char* enforcer_zone_policy(const enforcer_zone_t*);
+int enforcer_zone_signconf_needs_writing(const enforcer_zone_t*);
+const char* enforcer_zone_signconf_path(const enforcer_zone_t*);
+int enforcer_zone_next_change(const enforcer_zone_t*);
+int enforcer_zone_ttl_end_ds(const enforcer_zone_t*);
+int enforcer_zone_ttl_end_dk(const enforcer_zone_t*);
+int enforcer_zone_ttl_end_rs(const enforcer_zone_t*);
+int enforcer_zone_roll_ksk_now(const enforcer_zone_t*);
+int enforcer_zone_roll_zsk_now(const enforcer_zone_t*);
+int enforcer_zone_roll_csk_now(const enforcer_zone_t*);
+int enforcer_zone_next_ksk_roll(const enforcer_zone_t*);
+int enforcer_zone_next_zsk_roll(const enforcer_zone_t*);
+int enforcer_zone_next_csk_roll(const enforcer_zone_t*);
 key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t*);
 adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t*);
 key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t*);
@@ -80,5 +107,9 @@ void enforcer_zone_list_free(enforcer_zone_list_t*);
 int enforcer_zone_list_get(enforcer_zone_list_t*);
 const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t*);
 const enforcer_zone_t* enforcer_zone_list_next(enforcer_zone_list_t*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -30,6 +30,10 @@
 #ifndef __db_type_h
 #define __db_type_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
 	DB_TYPE_UNKNOWN,
 	DB_TYPE_PRIMARY_KEY,
@@ -39,5 +43,9 @@ typedef enum {
 
 /* TODO: encapsulate value */
 /* TODO: a lot of helper functions */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

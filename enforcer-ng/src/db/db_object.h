@@ -30,6 +30,10 @@
 #ifndef __db_object_h
 #define __db_object_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct db_object;
 struct db_object_field;
 struct db_object_field_list;
@@ -37,11 +41,19 @@ typedef struct db_object db_object_t;
 typedef struct db_object_field db_object_field_t;
 typedef struct db_object_field_list db_object_field_list_t;
 
+#ifdef __cplusplus
+}
+#endif
+
 #include "db_connection.h"
 #include "db_result.h"
 #include "db_join.h"
 #include "db_clause.h"
 #include "db_type.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct db_object_field {
 	db_object_field_t* next;
@@ -86,5 +98,9 @@ int db_object_set_table(db_object_t*, const char*);
 int db_object_set_primary_key_name(db_object_t*, const char*);
 int db_object_set_object_field_list(db_object_t*, db_object_field_list_t*);
 db_result_list_t* db_object_read(const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

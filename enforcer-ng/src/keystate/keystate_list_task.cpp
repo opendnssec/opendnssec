@@ -288,7 +288,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 					std::string dnskey_rrstate = rrstate_Name(key.dnskey().state());
 					std::string rrsigdnskey_rrstate = rrstate_Name(key.rrsigdnskey().state());
 					std::string rrsig_rrstate = rrstate_Name(key.rrsig().state());
-					/*client_printf(sockfd, 
+					client_printf(sockfd, 
 							   "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
 							   zone.name().c_str(),
 							   keyrole.c_str(),
@@ -299,7 +299,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 							   key.publish(),
 							   key.active_ksk()||key.active_zsk(),
 							   key.locator().c_str()
-							   );*/
+							   );
 				}
 			}
 		}
@@ -307,14 +307,87 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
     return 0;
 }
 
+#include "db/db_connection.h"
+#include "db/enforcer_zone.h"
+
+static db_configuration_list_t* configuration_list = NULL;
+
+void perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
+	if (!configuration_list) {
+		configuration_list = db_configuration_list_new();
+		if (configuration_list) {
+			db_configuration_t* configuration = NULL;
+
+			if (!(configuration = db_configuration_new())
+				|| db_configuration_set_name(configuration, "backend")
+				|| db_configuration_set_value(configuration, "sqlite")
+				|| db_configuration_list_add(configuration_list, configuration)
+				|| !(configuration = db_configuration_new())
+				|| db_configuration_set_name(configuration, "file")
+				|| db_configuration_set_value(configuration, "/var/opendnssec/kasp.db")
+				|| db_configuration_list_add(configuration_list, configuration))
+			{
+				db_configuration_free(configuration);
+				db_configuration_list_free(configuration_list);
+				configuration_list = NULL;
+			}
+		}
+	}
+
+	if (!configuration_list) {
+		ods_printf(sockfd, "configuration list error\n");
+		return;
+	}
+
+	db_connection_t* connection;
+	if (!(connection = db_connection_new())
+		|| db_connection_set_configuration_list(connection, configuration_list)
+		|| db_connection_setup(connection)
+		|| db_connection_connect(connection))
+	{
+		db_connection_free(connection);
+		ods_printf(sockfd, "connection error\n");
+		return;
+	}
+
+	enforcer_zone_list_t* enforcer_zone_list = enforcer_zone_list_new(connection);
+	if (!enforcer_zone_list) {
+		db_connection_free(connection);
+		ods_printf(sockfd, "enforcer_zone_list error\n");
+		return;
+	}
+
+	if (enforcer_zone_list_get(enforcer_zone_list)) {
+		enforcer_zone_list_free(enforcer_zone_list);
+		db_connection_free(connection);
+		ods_printf(sockfd, "enforcer_zone_list_get error\n");
+		return;
+	}
+
+	const enforcer_zone_t* enforcer_zone = enforcer_zone_list_begin(enforcer_zone_list);
+	while (enforcer_zone) {
+		ods_printf(sockfd, "%s\n",
+			enforcer_zone_name(enforcer_zone)
+			);
+
+		enforcer_zone = enforcer_zone_list_next(enforcer_zone_list);
+	}
+
+	enforcer_zone_list_free(enforcer_zone_list);
+	db_connection_free(connection);
+	return;
+}
+
 int 
 perform_keystate_list(int sockfd, engineconfig_type *config, 
-	bool bverbose, bool bdebug)
+	bool bverbose, bool bdebug, bool bnewdb)
 {
 	if (bdebug)
 		return perform_keystate_list_debug(sockfd, config);
 	else if (bverbose)
 		return perform_keystate_list_verbose(sockfd, config);
+	else if (bnewdb)
+		return perform_keystate_list_newdb(sockfd, config);
 	else
 		return perform_keystate_list_compat(sockfd, config);
 }

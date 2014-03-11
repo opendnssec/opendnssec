@@ -30,6 +30,10 @@
 #ifndef __db_backend_h
 #define __db_backend_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct db_backend_handle;
 struct db_backend;
 struct db_backend_list;
@@ -38,11 +42,19 @@ typedef struct db_backend db_backend_t;
 typedef struct db_backend_list db_backend_list_t;
 /* TODO: db_backend_result(_list)_t: walkable results for backend that support it, tied into db_result_list_t */
 
+#ifdef __cplusplus
+}
+#endif
+
 #include "db_configuration.h"
 #include "db_result.h"
 #include "db_object.h"
 #include "db_join.h"
 #include "db_clause.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef int (*db_backend_handle_initialize_t)(void*);
 typedef int (*db_backend_handle_shutdown_t)(void*);
@@ -55,15 +67,15 @@ typedef int (*db_backend_handle_delete_t)(void*, const db_object_t*);
 typedef void (*db_backend_handle_free_t)(void*);
 struct db_backend_handle {
 	void* data;
-	db_backend_handle_initialize_t initialize;
-	db_backend_handle_shutdown_t shutdown;
-	db_backend_handle_connect_t connect;
-	db_backend_handle_disconnect_t disconnect;
-	db_backend_handle_create_t create;
-	db_backend_handle_read_t read;
-	db_backend_handle_update_t update;
-	db_backend_handle_delete_t delete;
-	db_backend_handle_free_t free; /* TODO: everywhere */
+	db_backend_handle_initialize_t initialize_function;
+	db_backend_handle_shutdown_t shutdown_function;
+	db_backend_handle_connect_t connect_function;
+	db_backend_handle_disconnect_t disconnect_function;
+	db_backend_handle_create_t create_function;
+	db_backend_handle_read_t read_function;
+	db_backend_handle_update_t update_function;
+	db_backend_handle_delete_t delete_function;
+	db_backend_handle_free_t free_function; /* TODO: everywhere */
 };
 
 db_backend_handle_t* db_backend_handle_new(void);
@@ -124,5 +136,9 @@ const db_backend_t* db_backend_list_find(const db_backend_list_t*, const char*);
 int db_backend_factory_init(void);
 void db_backend_factory_end(void);
 const db_backend_t* db_backend_factory_get_backend(const char*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

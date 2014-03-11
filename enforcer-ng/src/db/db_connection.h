@@ -30,8 +30,16 @@
 #ifndef __db_connection_h
 #define __db_connection_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct db_connection;
 typedef struct db_connection db_connection_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #include "db_configuration.h"
 #include "db_backend.h"
@@ -39,6 +47,10 @@ typedef struct db_connection db_connection_t;
 #include "db_object.h"
 #include "db_join.h"
 #include "db_clause.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct db_connection {
 	db_configuration_list_t* configuration_list;
@@ -52,5 +64,9 @@ int db_connection_setup(db_connection_t*);
 int db_connection_connect(const db_connection_t*);
 int db_connection_disconnect(const db_connection_t*);
 db_result_list_t* db_connection_read(const db_connection_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

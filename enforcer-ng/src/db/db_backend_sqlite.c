@@ -148,6 +148,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 	const db_object_field_t* object_field;
 	const db_clause_t* clause;
+	const db_join_t* join;
 	char sql[4*1024];
 	char* sqlp;
 	int ret, left, bind, first, fields;
@@ -203,7 +204,17 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	sqlp += ret;
 	left -= ret;
 
-	/* TODO: handle join_list */
+	if (join_list) {
+		join = db_join_list_begin(join_list);
+		while (join) {
+			if ((ret = snprintf(sqlp, left, " INNER JOIN %s ON %s.%s = %s.%s", db_join_to_table(join), db_join_to_table(join), db_join_to_field(join), db_join_from_table(join), db_join_from_field(join))) >= left) {
+				return NULL;
+			}
+			sqlp += ret;
+			left -= ret;
+			join = db_join_next(join);
+		}
+	}
 
 	if (clause_list) {
 		clause = db_clause_list_begin(clause_list);

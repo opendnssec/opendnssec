@@ -30,9 +30,17 @@
 #ifndef __adapter_h
 #define __adapter_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct adapter;
 struct adapter_list;
 typedef struct adapter adapter_t;
 typedef struct adapter_list adapter_list_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

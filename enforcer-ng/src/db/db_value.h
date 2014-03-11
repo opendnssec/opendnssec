@@ -30,14 +30,26 @@
 #ifndef __db_value_h
 #define __db_value_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct db_value;
 struct db_value_set;
 typedef struct db_value db_value_t;
 typedef struct db_value_set db_value_set_t;
 
+#ifdef __cplusplus
+}
+#endif
+
 #include "db_type.h"
 
 #include <stdlib.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct db_value {
 	db_type_t type;
@@ -66,5 +78,9 @@ db_value_set_t* db_value_set_new(size_t);
 void db_value_set_free(db_value_set_t*);
 size_t db_value_set_size(const db_value_set_t*);
 db_value_t* db_value_set_get(const db_value_set_t*, size_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

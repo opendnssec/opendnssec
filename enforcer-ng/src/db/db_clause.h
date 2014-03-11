@@ -30,6 +30,10 @@
 #ifndef __db_clause_h
 #define __db_clause_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
 	DB_CLAUSE_UNKNOWN,
 	DB_CLAUSE_EQUAL,
@@ -58,7 +62,15 @@ struct db_clause_list;
 typedef struct db_clause db_clause_t;
 typedef struct db_clause_list db_clause_list_t;
 
+#ifdef __cplusplus
+}
+#endif
+
 #include "db_type.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct db_clause {
 	db_clause_t* next;
@@ -67,7 +79,7 @@ struct db_clause {
 	db_clause_type_t type;
 	db_type_t value_type; /* TODO: use db_value_t instead of this */
 	void* value;
-	db_clause_operator_t operator;
+	db_clause_operator_t clause_operator;
 	/* TODO: nested clauses, clause list inside clause */
 };
 
@@ -97,5 +109,9 @@ db_clause_list_t* db_clause_list_new(void);
 void db_clause_list_free(db_clause_list_t*);
 int db_clause_list_add(db_clause_list_t*, db_clause_t*);
 const db_clause_t* db_clause_list_begin(const db_clause_list_t*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

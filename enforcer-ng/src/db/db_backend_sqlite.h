@@ -32,6 +32,14 @@
 
 #include "db_backend.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 db_backend_handle_t* db_backend_sqlite_new_handle(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

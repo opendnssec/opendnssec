@@ -37,6 +37,7 @@
 #include "daemon/engine.h"
 #include "shared/protobuf.h"
 #include "daemon/orm.h"
+#include "db/db_backend.h"
 
 #include "enforcer/autostart_cmd.h"
 
@@ -105,6 +106,7 @@ program_setup(int cmdline_verbosity)
     /* initialize protobuf and protobuf-orm */
     ods_protobuf_initialize();
     ods_orm_initialize();
+	db_backend_factory_init();
 }
 
 void
@@ -118,6 +120,7 @@ program_teardown()
     xmlCleanupParser();
     xmlCleanupGlobals();
     xmlCleanupThreads();
+	db_backend_factory_end();
 }
 
 /**

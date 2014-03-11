@@ -30,6 +30,10 @@
 #ifndef __db_configuration_h
 #define __db_configuration_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct db_configuration;
 struct db_configuration_list;
 typedef struct db_configuration db_configuration_t;
@@ -58,5 +62,9 @@ db_configuration_list_t* db_configuration_list_new(void);
 void db_configuration_list_free(db_configuration_list_t*);
 int db_configuration_list_add(db_configuration_list_t*, db_configuration_t*);
 const db_configuration_t* db_configuration_list_find(const db_configuration_list_t*, const char*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

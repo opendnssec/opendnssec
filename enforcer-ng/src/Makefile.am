@@ -178,7 +178,17 @@ ods_enforcerd_SOURCES = \
 	db/db_type.c \
 	db/db_type.h \
 	db/db_value.c \
-	db/db_value.h
+	db/db_value.h \
+    db/db_join.c \
+    db/db_join.h \
+    db/adapter.c \
+    db/adapter.h \
+    db/enforcer_zone.c \
+    db/enforcer_zone.h \
+    db/key_data.c \
+    db/key_data.h \
+    db/key_dependency.c \
+    db/key_dependency.h
 	
 ods_enforcerd_LDADD = \
 	$(LIBHSM) \

@@ -30,9 +30,17 @@
 #ifndef __key_data_h
 #define __key_data_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct key_data;
 struct key_data_list;
 typedef struct key_data key_data_t;
 typedef struct key_data_list key_data_list_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

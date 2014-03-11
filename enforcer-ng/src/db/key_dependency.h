@@ -30,9 +30,17 @@
 #ifndef __key_dependency_h
 #define __key_dependency_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct key_dependency;
 struct key_dependency_list;
 typedef struct key_dependency key_dependency_t;
 typedef struct key_dependency_list key_dependency_list_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -40,7 +40,7 @@ db_clause_t* db_clause_new(void) {
 
 	if (clause) {
 		clause->type = DB_CLAUSE_UNKNOWN;
-		clause->operator = DB_CLAUSE_OPERATOR_AND;
+		clause->clause_operator = DB_CLAUSE_OPERATOR_AND;
 	}
 
 	return clause;
@@ -103,7 +103,7 @@ db_clause_operator_t db_clause_operator(const db_clause_t* clause) {
 		return DB_CLAUSE_OPERATOR_UNKNOWN;
 	}
 
-	return clause->operator;
+	return clause->clause_operator;
 }
 
 int db_clause_set_table(db_clause_t* clause, const char* table) {
@@ -169,15 +169,15 @@ int db_clause_set_value(db_clause_t* clause, void* value) {
 	return 0;
 }
 
-int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t operator) {
+int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_operator) {
 	if (!clause) {
 		return 1;
 	}
-	if (operator == DB_CLAUSE_OPERATOR_UNKNOWN) {
+	if (clause_operator == DB_CLAUSE_OPERATOR_UNKNOWN) {
 		return 1;
 	}
 
-	clause->operator = operator;
+	clause->clause_operator = clause_operator;
 	return 0;
 }
 

@@ -30,12 +30,24 @@
 #ifndef __db_result_h
 #define __db_result_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct db_result;
 struct db_result_list;
 typedef struct db_result db_result_t;
 typedef struct db_result_list db_result_list_t;
 
+#ifdef __cplusplus
+}
+#endif
+
 #include "db_value.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct db_result {
 	db_result_t* next;
@@ -58,5 +70,9 @@ db_result_list_t* db_result_list_new(void);
 void db_result_list_free(db_result_list_t*);
 int db_result_list_add(db_result_list_t*, db_result_t*);
 const db_result_t* db_result_list_begin(const db_result_list_t*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -44,11 +44,11 @@ db_backend_handle_t* db_backend_handle_new(void) {
 
 void db_backend_handle_free(db_backend_handle_t* backend_handle) {
 	if (backend_handle) {
-		if (backend_handle->disconnect) {
-			(*backend_handle->disconnect)(backend_handle);
+		if (backend_handle->disconnect_function) {
+			(*backend_handle->disconnect_function)(backend_handle);
 		}
-		if (backend_handle->free) {
-			(*backend_handle->free)(backend_handle);
+		if (backend_handle->free_function) {
+			(*backend_handle->free_function)(backend_handle);
 		}
 		free(backend_handle);
 	}
@@ -58,55 +58,55 @@ int db_backend_handle_initialize(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle) {
 		return 1;
 	}
-	if (!backend_handle->initialize) {
+	if (!backend_handle->initialize_function) {
 		return 1;
 	}
 
-	return backend_handle->initialize((void*)backend_handle->data);
+	return backend_handle->initialize_function((void*)backend_handle->data);
 }
 
 int db_backend_handle_shutdown(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle) {
 		return 1;
 	}
-	if (!backend_handle->shutdown) {
+	if (!backend_handle->shutdown_function) {
 		return 1;
 	}
 
-	return backend_handle->shutdown((void*)backend_handle->data);
+	return backend_handle->shutdown_function((void*)backend_handle->data);
 }
 
 int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list) {
 	if (!backend_handle) {
 		return 1;
 	}
-	if (!backend_handle->connect) {
+	if (!backend_handle->connect_function) {
 		return 1;
 	}
 
-	return backend_handle->connect((void*)backend_handle->data, configuration_list);
+	return backend_handle->connect_function((void*)backend_handle->data, configuration_list);
 }
 
 int db_backend_handle_disconnect(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle) {
 		return 1;
 	}
-	if (!backend_handle->disconnect) {
+	if (!backend_handle->disconnect_function) {
 		return 1;
 	}
 
-	return backend_handle->disconnect((void*)backend_handle->data);
+	return backend_handle->disconnect_function((void*)backend_handle->data);
 }
 
 int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object) {
 	if (!backend_handle) {
 		return 1;
 	}
-	if (!backend_handle->create) {
+	if (!backend_handle->create_function) {
 		return 1;
 	}
 
-	return backend_handle->create((void*)backend_handle->data, object);
+	return backend_handle->create_function((void*)backend_handle->data, object);
 }
 
 db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -116,33 +116,33 @@ db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_hand
 	if (!object) {
 		return NULL;
 	}
-	if (!backend_handle->read) {
+	if (!backend_handle->read_function) {
 		return NULL;
 	}
 
-	return backend_handle->read((void*)backend_handle->data, object, join_list, clause_list);
+	return backend_handle->read_function((void*)backend_handle->data, object, join_list, clause_list);
 }
 
 int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object) {
 	if (!backend_handle) {
 		return 1;
 	}
-	if (!backend_handle->update) {
+	if (!backend_handle->update_function) {
 		return 1;
 	}
 
-	return backend_handle->update((void*)backend_handle->data, object);
+	return backend_handle->update_function((void*)backend_handle->data, object);
 }
 
 int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object) {
 	if (!backend_handle) {
 		return 1;
 	}
-	if (!backend_handle->delete) {
+	if (!backend_handle->delete_function) {
 		return 1;
 	}
 
-	return backend_handle->delete((void*)backend_handle->data, object);
+	return backend_handle->delete_function((void*)backend_handle->data, object);
 }
 
 const void* db_backend_handle_data(const db_backend_handle_t* backend_handle) {
@@ -153,75 +153,75 @@ const void* db_backend_handle_data(const db_backend_handle_t* backend_handle) {
 	return backend_handle->data;
 }
 
-int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize) {
+int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize_function) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->initialize = initialize;
+	backend_handle->initialize_function = initialize_function;
 	return 0;
 }
 
-int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t shutdown) {
+int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t shutdown_function) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->shutdown = shutdown;
+	backend_handle->shutdown_function = shutdown_function;
 	return 0;
 }
 
-int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t connect) {
+int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t connect_function) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->connect = connect;
+	backend_handle->connect_function = connect_function;
 	return 0;
 }
 
-int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect) {
+int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect_function) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->disconnect = disconnect;
+	backend_handle->disconnect_function = disconnect_function;
 	return 0;
 }
 
-int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t create) {
+int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t create_function) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->create = create;
+	backend_handle->create_function = create_function;
 	return 0;
 }
 
-int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t read) {
+int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t read_function) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->read = read;
+	backend_handle->read_function = read_function;
 	return 0;
 }
 
-int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t update) {
+int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t update_function) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->update = update;
+	backend_handle->update_function = update_function;
 	return 0;
 }
 
-int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete) {
+int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete_function) {
 	if (!backend_handle) {
 		return 1;
 	}
 
-	backend_handle->delete = delete;
+	backend_handle->delete_function = delete_function;
 	return 0;
 }
 
@@ -241,28 +241,28 @@ int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle) {
 		return 1;
 	}
-	if (!backend_handle->initialize) {
+	if (!backend_handle->initialize_function) {
 		return 1;
 	}
-	if (!backend_handle->shutdown) {
+	if (!backend_handle->shutdown_function) {
 		return 1;
 	}
-	if (!backend_handle->connect) {
+	if (!backend_handle->connect_function) {
 		return 1;
 	}
-	if (!backend_handle->disconnect) {
+	if (!backend_handle->disconnect_function) {
 		return 1;
 	}
-	if (!backend_handle->create) {
+	if (!backend_handle->create_function) {
 		return 1;
 	}
-	if (!backend_handle->read) {
+	if (!backend_handle->read_function) {
 		return 1;
 	}
-	if (!backend_handle->update) {
+	if (!backend_handle->update_function) {
 		return 1;
 	}
-	if (!backend_handle->delete) {
+	if (!backend_handle->delete_function) {
 		return 1;
 	}
 	return 0;
