@@ -15,12 +15,9 @@ if ENABLE_SIGNER
 SUBDIRS += signer
 endif
 
-migrationdir = $(datadir)/opendnssec/migration
-
-dist_migration_DATA = MIGRATION
-
 EXTRA_DIST =	$(srcdir)/LICENSE \
 		$(srcdir)/KNOWN_ISSUES \
+		$(srcdir)/MIGRATION \		
 		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 
