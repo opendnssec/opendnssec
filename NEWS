@@ -12,6 +12,7 @@ Bugfixes:
   dates [OPENDNSSEC-553].
 * SUPPORT-128: ods-ksmutil. Man page had incorrect formatting. 
   [OPENDNSSEC-576].
+* SUPPORT-127: Fix manpage sections.
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
 * OPENDNSSEC-520: Signer Engine: Don't replace tabs in RRs with whitespace.
