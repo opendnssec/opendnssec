@@ -48,7 +48,7 @@ void* mm_alloc_new(mm_alloc_t* alloc) {
 		void* block;
 
 		if (!(block = malloc(__mm_alloc_size))) {
-			pthread_mutex_unlock(&__mm_memory_lock);
+			pthread_mutex_unlock(&(alloc->lock));
 			return NULL;
 		}
 

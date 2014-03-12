@@ -52,7 +52,7 @@ extern "C" {
 struct key_state {
 	db_object_t* dbo;
 	int id;
-	char* rrstate;
+	char* state;
 	int last_change;
 	int minimize;
 	int ttl;
@@ -63,7 +63,7 @@ void key_state_free(key_state_t*);
 void key_state_reset(key_state_t*);
 int key_state_from_result(key_state_t*, const db_result_t*);
 int key_state_id(const key_state_t*);
-const char* key_state_rrstate(const key_state_t*);
+const char* key_state_state(const key_state_t*);
 int key_state_last_change(const key_state_t*);
 int key_state_minimize(const key_state_t*);
 int key_state_ttl(const key_state_t*);
@@ -78,6 +78,7 @@ struct key_state_list {
 
 key_state_list_t* key_state_list_new(const db_connection_t*);
 void key_state_list_free(key_state_list_t*);
+int key_state_list_get_4_by_id(key_state_list_t*, int, int, int, int);
 const key_state_t* key_state_list_begin(key_state_list_t*);
 const key_state_t* key_state_list_next(key_state_list_t*);
 

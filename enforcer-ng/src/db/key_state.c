@@ -58,7 +58,7 @@ db_object_t* __key_state_new_object(const db_connection_t* connection) {
 	}
 
 	if (!(object_field = db_object_field_new())
-		|| db_object_field_set_name(object_field, "rrstate")
+		|| db_object_field_set_name(object_field, "state")
 		|| db_object_field_set_type(object_field, DB_TYPE_STRING)
 		|| db_object_field_list_add(object_field_list, object_field))
 	{
@@ -131,8 +131,8 @@ void key_state_free(key_state_t* key_state) {
 		if (key_state->dbo) {
 			db_object_free(key_state->dbo);
 		}
-		if (key_state->rrstate) {
-			free(key_state->rrstate);
+		if (key_state->state) {
+			free(key_state->state);
 		}
 		free(key_state);
 	}
@@ -141,10 +141,10 @@ void key_state_free(key_state_t* key_state) {
 void key_state_reset(key_state_t* key_state) {
 	if (key_state) {
 		key_state->id = 0;
-		if (key_state->rrstate) {
-			free(key_state->rrstate);
+		if (key_state->state) {
+			free(key_state->state);
 		}
-		key_state->rrstate = NULL;
+		key_state->state = NULL;
 		key_state->last_change = 0;
 		key_state->minimize = 0;
 	    key_state->ttl = 0;
@@ -165,7 +165,7 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
 	if (!(value_set = db_result_value_set(result))
 		|| db_value_set_size(value_set) != 5
 		|| db_value_to_int(db_value_set_get(value_set, 0), &(key_state->id))
-		|| db_value_to_string(db_value_set_get(value_set, 1), &(key_state->rrstate))
+		|| db_value_to_string(db_value_set_get(value_set, 1), &(key_state->state))
 		|| db_value_to_int(db_value_set_get(value_set, 2), &(key_state->last_change))
 		|| db_value_to_int(db_value_set_get(value_set, 3), &(key_state->minimize))
 		|| db_value_to_int(db_value_set_get(value_set, 4), &(key_state->ttl)))
@@ -183,17 +183,17 @@ int key_state_id(const key_state_t* key_state) {
 	return key_state->id;
 }
 
-const char* key_state_rrstate(const key_state_t* key_state) {
+const char* key_state_state(const key_state_t* key_state) {
 	if (!key_state) {
 		return NULL;
 	}
 
-	return key_state->rrstate;
+	return key_state->state;
 }
 
 int key_state_last_change(const key_state_t* key_state) {
 	if (!key_state) {
-		return NULL;
+		return 1;
 	}
 
 	return key_state->last_change;
@@ -219,10 +219,14 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
 	db_clause_list_t* clause_list;
 	db_clause_t* clause;
 	db_result_list_t* result_list;
+	const db_result_t* result;
 	const db_value_set_t* value_set;
 
 	if (!key_state) {
 		return 1;
+	}
+	if (!key_state->dbo) {
+	    return 1;
 	}
 
 	if (!(clause_list = db_clause_list_new())) {
@@ -287,6 +291,91 @@ void key_state_list_free(key_state_list_t* key_state_list) {
 		}
 		free(key_state_list);
 	}
+}
+
+int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id2, int id3, int id4) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!key_state_list) {
+        return 1;
+    }
+    if (!key_state_list->dbo) {
+        return 1;
+    }
+    if (!id1) {
+        return 1;
+    }
+    if (!id2) {
+        return 1;
+    }
+    if (!id3) {
+        return 1;
+    }
+    if (!id4) {
+        return 1;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return 1;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "id")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
+        || db_clause_set_value(clause, &id1)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return 1;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "id")
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
+        || db_clause_set_value(clause, &id2)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return 1;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "id")
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
+        || db_clause_set_value(clause, &id3)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return 1;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "id")
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
+        || db_clause_set_value(clause, &id4)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return 1;
+    }
+
+    if (key_state_list->result_list) {
+        db_result_list_free(key_state_list->result_list);
+    }
+    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return 1;
+    }
+    db_clause_list_free(clause_list);
+    return 0;
 }
 
 const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {

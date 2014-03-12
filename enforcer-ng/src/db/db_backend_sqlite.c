@@ -183,13 +183,13 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	fields = 0;
 	while (object_field) {
 		if (first) {
-			if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(object_field))) >= left) {
+			if ((ret = snprintf(sqlp, left, " %s.%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
 				return NULL;
 			}
 			first = 0;
 		}
 		else {
-			if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(object_field))) >= left) {
+			if ((ret = snprintf(sqlp, left, ", %s.%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
 				return NULL;
 			}
 		}
@@ -209,7 +209,13 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	if (join_list) {
 		join = db_join_list_begin(join_list);
 		while (join) {
-			if ((ret = snprintf(sqlp, left, " INNER JOIN %s ON %s.%s = %s.%s", db_join_to_table(join), db_join_to_table(join), db_join_to_field(join), db_join_from_table(join), db_join_from_field(join))) >= left) {
+			if ((ret = snprintf(sqlp, left, " INNER JOIN %s ON %s.%s = %s.%s",
+				db_join_to_table(join),
+				db_join_to_table(join),
+				db_join_to_field(join),
+				db_join_from_table(join),
+				db_join_from_field(join))) >= left)
+			{
 				return NULL;
 			}
 			sqlp += ret;
@@ -235,19 +241,36 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 				first = 0;
 			}
 			else {
-				if ((ret = snprintf(sqlp, left, " AND")) >= left) {
-					return NULL;
-				}
-				sqlp += ret;
-				left -= ret;
+			    switch (db_clause_operator(clause)) {
+			    case DB_CLAUSE_OPERATOR_AND:
+                    if ((ret = snprintf(sqlp, left, " AND")) >= left) {
+                        return NULL;
+                    }
+                    sqlp += ret;
+                    left -= ret;
+                    break;
+
+			    case DB_CLAUSE_OPERATOR_OR:
+	                if ((ret = snprintf(sqlp, left, " OR")) >= left) {
+	                    return NULL;
+	                }
+	                sqlp += ret;
+	                left -= ret;
+	                break;
+
+			    default:
+			        return NULL;
+			    }
 			}
 			switch (db_clause_type(clause)) {
 			case DB_CLAUSE_EQ:
 				switch (db_clause_value_type(clause)) {
+				case DB_TYPE_PRIMARY_KEY:
 				case DB_TYPE_INTEGER:
-					/* TODO: handle clause table */
-					/* TODO: dont do %s_%s */
-					if ((ret = snprintf(sqlp, left, " %s = ?", db_clause_field(clause))) >= left) {
+					if ((ret = snprintf(sqlp, left, " %s.%s = ?",
+						(db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+						db_clause_field(clause))) >= left)
+					{
 						return NULL;
 					}
 					sqlp += ret;
@@ -266,14 +289,14 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 		}
 	}
 
-	ods_log_info("DB SQL %s", sql);
-
 	ret = sqlite3_prepare_v2(backend_sqlite->db,
 		sql,
 		sizeof(sql),
 		&statement,
 		NULL);
 	if (ret != SQLITE_OK) {
+	    ods_log_info("DB SQL %s", sql);
+		ods_log_info("DB Err %d\n", ret);
 		return NULL;
 	}
 
@@ -284,6 +307,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 			switch (db_clause_type(clause)) {
 			case DB_CLAUSE_EQ:
 				switch (db_clause_value_type(clause)) {
+				case DB_TYPE_PRIMARY_KEY:
 				case DB_TYPE_INTEGER:
 					ret = sqlite3_bind_int(statement, bind++, *(int*)db_clause_value(clause));
 					if (ret != SQLITE_OK) {

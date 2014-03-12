@@ -451,7 +451,7 @@ int enforcer_zone_next_csk_roll(const enforcer_zone_t* enforcer_zone) {
 }
 
 key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone) {
-	key_data_list_t* key_data_list
+	key_data_list_t* key_data_list;
 
 	if (!enforcer_zone) {
 		return NULL;
@@ -515,6 +515,9 @@ void enforcer_zone_list_free(enforcer_zone_list_t* enforcer_zone_list) {
 int enforcer_zone_list_get(enforcer_zone_list_t* enforcer_zone_list) {
 	if (!enforcer_zone_list) {
 		return 1;
+	}
+	if (!enforcer_zone_list->dbo) {
+	    return 1;
 	}
 
 	if (enforcer_zone_list->result_list) {

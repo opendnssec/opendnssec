@@ -71,6 +71,11 @@ struct key_data {
 	int rrsig;
 	int dnskey;
 	int rrsigdnskey;
+    key_state_t* key_state_ds;
+    key_state_t* key_state_rrsig;
+    key_state_t* key_state_dnskey;
+    key_state_t* key_state_rrsigdnskey;
+	key_state_list_t* key_state_list;
 };
 
 key_data_t* key_data_new(const db_connection_t*);
@@ -90,10 +95,11 @@ int key_data_publish(const key_data_t*);
 int key_data_active_ksk(const key_data_t*);
 const char* key_data_ds_at_parent(const key_data_t*);
 int key_data_keytag(const key_data_t*);
-key_state_t* key_data_get_ds(const key_data_t*);
-key_state_t* key_data_get_rrsig(const key_data_t*);
-key_state_t* key_data_get_dnskey(const key_data_t*);
-key_state_t* key_data_get_rrsigdnskey(const key_data_t*);
+int key_data_get_key_state_list(key_data_t*);
+const key_state_t* key_data_get_ds(key_data_t*);
+const key_state_t* key_data_get_rrsig(key_data_t*);
+const key_state_t* key_data_get_dnskey(key_data_t*);
+const key_state_t* key_data_get_rrsigdnskey(key_data_t*);
 
 struct key_data_list {
 	db_object_t* dbo;

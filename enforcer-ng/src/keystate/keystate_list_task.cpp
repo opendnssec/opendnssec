@@ -282,7 +282,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 				}
 
 				ods_printf(sockfd, "%s\n", zone.name().c_str());
-				/*for (int k=0; k<zone.keys_size(); ++k) {
+				for (int k=0; k<zone.keys_size(); ++k) {
 					const ::ods::keystate::KeyData &key = zone.keys(k);
 					std::string keyrole = keyrole_Name(key.role());
 					std::string ds_rrstate = rrstate_Name(key.ds().state());
@@ -301,7 +301,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 							   key.active_ksk()||key.active_zsk(),
 							   key.locator().c_str()
 							   );
-				}*/
+				}
 			}
 		}
     }
@@ -383,33 +383,33 @@ int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
 		if (key_data_list) {
 			const key_data_t* key_data = key_data_list_begin(key_data_list);
 			while (key_data) {
-				key_state_t* ds = key_data_get_ds(key_data);
-				key_state_t* rrsig = key_data_get_rrsig(key_data);
-				key_state_t* dnskey = key_data_get_dnskey(key_data);
-				key_state_t* rrsigdnskey = key_data_get_rrsigdnskey(key_data);
+			    if (key_data_get_key_state_list((key_data_t*)key_data)) {
+			        ods_printf(sockfd, "key_data_get_key_state_list error\n");
+			        return 1;
+			    }
+				const key_state_t* ds = key_data_get_ds((key_data_t*)key_data);
+				const key_state_t* rrsig = key_data_get_rrsig((key_data_t*)key_data);
+				const key_state_t* dnskey = key_data_get_dnskey((key_data_t*)key_data);
+				const key_state_t* rrsigdnskey = key_data_get_rrsigdnskey((key_data_t*)key_data);
 
-				ods_printf(sockfd, "%s %s %s %s %s %s\n",
+				ods_printf(sockfd, "%s %s %d %s %s %s %s\n",
 					enforcer_zone_name(enforcer_zone),
 					key_data_role(key_data),
-					key_state_role(ds),
-					key_state_role(rrsig),
-					key_state_role(dnskey),
-					key_state_role(rrsigdnskey)
+					key_data->ds,
+					key_state_state(ds),
+					key_state_state(rrsig),
+					key_state_state(dnskey),
+					key_state_state(rrsigdnskey)
 					);
 
-				key_state_free(ds);
-				key_state_free(rrsig);
-				key_state_free(dnskey);
-				key_state_free(rrsigdnskey);
 				key_data = key_data_list_next(key_data_list);
 			}
 			key_data_list_free(key_data_list);
 		}
-
 		enforcer_zone = enforcer_zone_list_next(enforcer_zone_list);
 	}
-
 	enforcer_zone_list_free(enforcer_zone_list);
+
 	db_connection_free(connection);
 	return 0;
 }
