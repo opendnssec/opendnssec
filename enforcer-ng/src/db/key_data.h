@@ -90,10 +90,10 @@ int key_data_publish(const key_data_t*);
 int key_data_active_ksk(const key_data_t*);
 const char* key_data_ds_at_parent(const key_data_t*);
 int key_data_keytag(const key_data_t*);
-key_state_t* key_data_ds(const key_data_t*);
-key_state_t* key_data_rrsig(const key_data_t*);
-key_state_t* key_data_dnskey(const key_data_t*);
-key_state_t* key_data_rrsigdnskey(const key_data_t*);
+key_state_t* key_data_get_ds(const key_data_t*);
+key_state_t* key_data_get_rrsig(const key_data_t*);
+key_state_t* key_data_get_dnskey(const key_data_t*);
+key_state_t* key_data_get_rrsigdnskey(const key_data_t*);
 
 struct key_data_list {
 	db_object_t* dbo;

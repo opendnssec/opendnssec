@@ -440,20 +440,96 @@ const char* key_data_ds_at_parent(const key_data_t* key_data) {
 	return key_data->ds_at_parent;
 }
 
-key_state_t* key_data_ds(const key_data_t* key_data) {
-	return NULL;
+key_state_t* key_data_get_ds(const key_data_t* key_data) {
+	key_state_t* key_state;
+
+	if (!key_data) {
+		return NULL;
+	}
+	if (!key_data->dbo) {
+		return NULL;
+	}
+	if (!key_data->ds) {
+		return NULL;
+	}
+
+	key_state = key_state_new(db_object_connection(key_data->dbo));
+	if (key_state) {
+		if (key_state_get_by_id(key_state, key_data->ds)) {
+			key_state_free(key_state);
+			return NULL;
+		}
+	}
+	return key_state;
 }
 
-key_state_t* key_data_rrsig(const key_data_t* key_data) {
-	return NULL;
+key_state_t* key_data_get_rrsig(const key_data_t* key_data) {
+	key_state_t* key_state;
+
+	if (!key_data) {
+		return NULL;
+	}
+	if (!key_data->dbo) {
+		return NULL;
+	}
+	if (!key_data->rrsig) {
+		return NULL;
+	}
+
+	key_state = key_state_new(db_object_connection(key_data->dbo));
+	if (key_state) {
+		if (key_state_get_by_id(key_state, key_data->rrsig)) {
+			key_state_free(key_state);
+			return NULL;
+		}
+	}
+	return key_state;
 }
 
-key_state_t* key_data_dnskey(const key_data_t* key_data) {
-	return NULL;
+key_state_t* key_data_get_dnskey(const key_data_t* key_data) {
+	key_state_t* key_state;
+
+	if (!key_data) {
+		return NULL;
+	}
+	if (!key_data->dbo) {
+		return NULL;
+	}
+	if (!key_data->dnskey) {
+		return NULL;
+	}
+
+	key_state = key_state_new(db_object_connection(key_data->dbo));
+	if (key_state) {
+		if (key_state_get_by_id(key_state, key_data->dnskey)) {
+			key_state_free(key_state);
+			return NULL;
+		}
+	}
+	return key_state;
 }
 
-key_state_t* key_data_rrsigdnskey(const key_data_t* key_data) {
-	return NULL;
+key_state_t* key_data_get_rrsigdnskey(const key_data_t* key_data) {
+	key_state_t* key_state;
+
+	if (!key_data) {
+		return NULL;
+	}
+	if (!key_data->dbo) {
+		return NULL;
+	}
+	if (!key_data->rrsigdnskey) {
+		return NULL;
+	}
+
+	key_state = key_state_new(db_object_connection(key_data->dbo));
+	if (key_state) {
+		if (key_state_get_by_id(key_state, key_data->rrsigdnskey)) {
+			key_state_free(key_state);
+			return NULL;
+		}
+	}
+	return key_state;
 }
 
 /* ENFORCER ZONE LIST */

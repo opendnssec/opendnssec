@@ -379,9 +379,32 @@ int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
 
 	const enforcer_zone_t* enforcer_zone = enforcer_zone_list_begin(enforcer_zone_list);
 	while (enforcer_zone) {
-		ods_printf(sockfd, "%s\n",
-			enforcer_zone_name(enforcer_zone)
-			);
+		key_data_list_t* key_data_list = enforcer_zone_get_keys(enforcer_zone);
+		if (key_data_list) {
+			const key_data_t* key_data = key_data_list_begin(key_data_list);
+			while (key_data) {
+				key_state_t* ds = key_data_get_ds(key_data);
+				key_state_t* rrsig = key_data_get_rrsig(key_data);
+				key_state_t* dnskey = key_data_get_dnskey(key_data);
+				key_state_t* rrsigdnskey = key_data_get_rrsigdnskey(key_data);
+
+				ods_printf(sockfd, "%s %s %s %s %s %s\n",
+					enforcer_zone_name(enforcer_zone),
+					key_data_role(key_data),
+					key_state_role(ds),
+					key_state_role(rrsig),
+					key_state_role(dnskey),
+					key_state_role(rrsigdnskey)
+					);
+
+				key_state_free(ds);
+				key_state_free(rrsig);
+				key_state_free(dnskey);
+				key_state_free(rrsigdnskey);
+				key_data = key_data_list_next(key_data_list);
+			}
+			key_data_list_free(key_data_list);
+		}
 
 		enforcer_zone = enforcer_zone_list_next(enforcer_zone_list);
 	}
