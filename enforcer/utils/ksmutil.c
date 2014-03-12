@@ -184,9 +184,9 @@ usage_zoneadd ()
 			"\t[--policy <policy>]                      aka -p\n"
 			"\t[--signerconf <signerconf.xml>]          aka -s\n"
 			"\t[--input <input>]                        aka -i\n"
-			"\t[--in-type <input type(File/DNS)>]       aka -j\n"
+			"\t[--in-type <input type>]                 aka -j\n"
 			"\t[--output <output>]                      aka -o\n"
-			"\t[--out-type <output type(File/DNS)>]     aka -q\n"
+			"\t[--out-type <output type>]               aka -q\n"
 			"\t[--no-xml]                               aka -m\n");
 }
 
@@ -6690,11 +6690,14 @@ int ListKeys(int zone_id)
             DbInt(row, 9, &temp_alg);
             DbInt(row, 10, &temp_size);
             DbString(row, 11, &temp_publish);
+            if (temp_zone == NULL){
+                temp_zone = "NOT ALLOCATED";
+            }
             done_row = 0;
 			/* key generate command will generate keys which keystate propetry is null */
             if (!temp_state){
                 if (all_flag || o_keystate != NULL) {
-                    printf("%-31s %-13s %-9s %-20s", temp_zone, "NULL", "generate", "(not scheduled)");
+                    printf("%-31s %-13s %-9s %-20s", temp_zone, "", "generate", "(not scheduled)");
                     if (verbose_flag) {
                         printf("(publish)  ");
                     }
@@ -6779,9 +6782,11 @@ int ListKeys(int zone_id)
             if (done_row == 1 && verbose_flag == 1) {
 				printf("%-7d %-12d", temp_size, temp_alg);
                 key = hsm_find_key_by_id(NULL, temp_loc);
-                if (!key || temp_zone == NULL) {
+                if (!key) {
                     printf("%-33s %s NOT IN repository\n", temp_loc, temp_hsm);
-                } else {
+                } else if (strncmp(temp_zone,"NOT ALLOCATED",13)){
+                    printf("%-33s %s\n",temp_loc,temp_hsm);
+                } else{
                     sign_params = hsm_sign_params_new();
                     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, temp_zone);
                     sign_params->algorithm = temp_alg;
@@ -6816,8 +6821,9 @@ int ListKeys(int zone_id)
 
     DusFree(sql);
     DbFreeRow(row);
-
-    DbStringFree(temp_zone);
+    if (strncmp(temp_zone,"NOT ALLOCATED",13)){
+        DbStringFree(temp_zone);
+    }
     DbStringFree(temp_ready);
     DbStringFree(temp_active);
     DbStringFree(temp_retire);

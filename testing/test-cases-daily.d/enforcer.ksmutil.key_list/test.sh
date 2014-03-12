@@ -70,15 +70,17 @@ log_grep ods-ksmutil-key-list-2 stdout "ods[[:space:]]*ZSK[[:space:]]*generate[[
 ################ 3. use the --keystate. ########################
 log_this ods-ksmutil-key-list-3 ods-ksmutil key list --keystate generate --verbose &&
 log_grep ods-ksmutil-key-list-3 stdout "ods[[:space:]]*ZSK[[:space:]]*generate[[:space:]]*(not scheduled)[[:space:]]*(publish)[[:space:]]*2048[[:space:]]*5[[:space:]]*123456[[:space:]]*SoftHSM NOT IN repository" &&
+! log_grep ods-ksmutil-key-list-3 stdout "active" &&
 log_this ods-ksmutil-key-list-4 ods-ksmutil key list --keystate active --verbose &&
 log_grep ods-ksmutil-key-list-4 stdout "ods[[:space:]]*ZSK[[:space:]]*active[[:space:]]*(not scheduled)[[:space:]]*(retire)[[:space:]]*2048[[:space:]]*5[[:space:]]*12345678[[:space:]]*SoftHSM NOT IN repository" &&
+! log_grep ods-ksmutil-key-list-4 stdout "publish" &&
 ################ 4. However either a keystate or the --all option can be given, not both. ######################## 
 ! log_this ods-ksmutil-key-list-5 ods-ksmutil key list --keystate generate --all &&
 log_grep ods-ksmutil-key-list-5 stdout "Error: --keystate and --all option cannot be given together" &&
 ################ 5. some of the filters can be used together e.g. ods-ksmutil --keystate active --keytype ZSK ########################
 log_this ods-ksmutil-key-list-6 ods-ksmutil key list --verbose --keystate active --keytype ZSK &&
 log_grep ods-ksmutil-key-list-6 stdout "ods[[:space:]]*ZSK[[:space:]]*active[[:space:]]*(not scheduled)[[:space:]]*(retire)[[:space:]]*2048[[:space:]]*5[[:space:]]*12345678[[:space:]]*SoftHSM NOT IN repository" &&
-
+! log_grep ods-ksmutil-key-list-6 stdout "KSK" &&
 ################ 6. start enforcer again. ########################
 export ENFORCER_TIMESHIFT='26-01-2014 14:20:20' &&
 log_this_timeout ods-control-enforcer-start $LONG_TIMEOUT ods-enforcerd -1 &&
@@ -92,9 +94,13 @@ log_this ods-ksmutil-key-list-9 ods-ksmutil key list --keystate dead --verbose &
 log_grep ods-ksmutil-key-list-9 stdout "ods[[:space:]]*ZSK[[:space:]]*dead[[:space:]]*to be deleted[[:space:]]*(deleted)[[:space:]]*2048[[:space:]]*5[[:space:]]*1234567[[:space:]]*SoftHSM NOT IN repository" &&
    
 ############### 8. purge the dead key. ########################
+# TODO: there fails because the key does not exist in the HSM. it's better to push a auto-generated ZSK to retire and dead and then purge that
 ! log_this ods-ksmutil-key-purge ods-ksmutil key purge --zone ods &&
 log_grep ods-ksmutil-key-purge stdout "Key not found: 1234567" &&
 
+############## 10. check the key is no longer in the output. #####################
+log_this ods-ksmutil-key-list-10 ods-ksmutil key list --all --verbose &&
+! log_grep ods-ksmutil-key-list-10 stdout "1234567[[:space:]]*SoftHSM" &&
 
 echo && 
 echo "************OK******************" &&
