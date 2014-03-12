@@ -63,7 +63,13 @@ int db_connection_set_configuration_list(db_connection_t*, const db_configuratio
 int db_connection_setup(db_connection_t*);
 int db_connection_connect(const db_connection_t*);
 int db_connection_disconnect(const db_connection_t*);
+int db_connection_create(const db_connection_t*, const db_object_t*);
 db_result_list_t* db_connection_read(const db_connection_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
+int db_connection_update(const db_connection_t*, const db_object_t*);
+int db_connection_delete(const db_connection_t*, const db_object_t*);
+int db_connection_transaction_begin(const db_connection_t*);
+int db_connection_transaction_commit(const db_connection_t*);
+int db_connection_transaction_rollback(const db_connection_t*);
 
 #ifdef __cplusplus
 }

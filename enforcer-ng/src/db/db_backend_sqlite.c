@@ -449,6 +449,24 @@ void db_backend_sqlite_free(void* data) {
 	}
 }
 
+int db_backend_sqlite_transaction_begin(void* data) {
+    db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+
+    return 1;
+}
+
+int db_backend_sqlite_transaction_commit(void* data) {
+    db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+
+    return 1;
+}
+
+int db_backend_sqlite_transaction_rollback(void* data) {
+    db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+
+    return 1;
+}
+
 db_backend_handle_t* db_backend_sqlite_new_handle(void) {
 	db_backend_handle_t* backend_handle = NULL;
 	db_backend_sqlite_t* backend_sqlite =
@@ -464,7 +482,10 @@ db_backend_handle_t* db_backend_sqlite_new_handle(void) {
 			|| db_backend_handle_set_read(backend_handle, db_backend_sqlite_read)
 			|| db_backend_handle_set_update(backend_handle, db_backend_sqlite_update)
 			|| db_backend_handle_set_delete(backend_handle, db_backend_sqlite_delete)
-			|| db_backend_handle_set_free(backend_handle, db_backend_sqlite_free))
+			|| db_backend_handle_set_free(backend_handle, db_backend_sqlite_free)
+            || db_backend_handle_set_transaction_begin(backend_handle, db_backend_sqlite_transaction_begin)
+            || db_backend_handle_set_transaction_commit(backend_handle, db_backend_sqlite_transaction_commit)
+            || db_backend_handle_set_transaction_rollback(backend_handle, db_backend_sqlite_transaction_rollback))
 		{
 			db_backend_handle_free(backend_handle);
 			free(backend_sqlite);

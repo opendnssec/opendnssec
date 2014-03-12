@@ -145,6 +145,39 @@ int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db
 	return backend_handle->delete_function((void*)backend_handle->data, object);
 }
 
+int db_backend_handle_transaction_begin(const db_backend_handle_t* backend_handle) {
+    if (!backend_handle) {
+        return 1;
+    }
+    if (!backend_handle->transaction_begin_function) {
+        return 1;
+    }
+
+    return backend_handle->transaction_begin_function((void*)backend_handle->data);
+}
+
+int db_backend_handle_transaction_commit(const db_backend_handle_t* backend_handle) {
+    if (!backend_handle) {
+        return 1;
+    }
+    if (!backend_handle->transaction_commit_function) {
+        return 1;
+    }
+
+    return backend_handle->transaction_commit_function((void*)backend_handle->data);
+}
+
+int db_backend_handle_transaction_rollback(const db_backend_handle_t* backend_handle) {
+    if (!backend_handle) {
+        return 1;
+    }
+    if (!backend_handle->transaction_rollback_function) {
+        return 1;
+    }
+
+    return backend_handle->transaction_rollback_function((void*)backend_handle->data);
+}
+
 const void* db_backend_handle_data(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle) {
 		return NULL;
@@ -234,6 +267,33 @@ int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_h
 	return 0;
 }
 
+int db_backend_handle_set_transaction_begin(db_backend_handle_t* backend_handle, db_backend_handle_transaction_begin_t transaction_begin_function) {
+    if (!backend_handle) {
+        return 1;
+    }
+
+    backend_handle->transaction_begin_function = transaction_begin_function;
+    return 0;
+}
+
+int db_backend_handle_set_transaction_commit(db_backend_handle_t* backend_handle, db_backend_handle_transaction_commit_t transaction_commit_function) {
+    if (!backend_handle) {
+        return 1;
+    }
+
+    backend_handle->transaction_commit_function = transaction_commit_function;
+    return 0;
+}
+
+int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_handle, db_backend_handle_transaction_rollback_t transaction_rollback_function) {
+    if (!backend_handle) {
+        return 1;
+    }
+
+    backend_handle->transaction_rollback_function = transaction_rollback_function;
+    return 0;
+}
+
 int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data) {
 	if (!backend_handle) {
 		return 1;
@@ -277,6 +337,15 @@ int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
 	if (!backend_handle->free_function) {
 		return 1;
 	}
+    if (!backend_handle->transaction_begin_function) {
+        return 1;
+    }
+    if (!backend_handle->transaction_commit_function) {
+        return 1;
+    }
+    if (!backend_handle->transaction_rollback_function) {
+        return 1;
+    }
 	return 0;
 }
 
@@ -452,6 +521,39 @@ int db_backend_delete(const db_backend_t* backend, const db_object_t* object) {
 	}
 
 	return db_backend_handle_delete(backend->handle, object);
+}
+
+int db_backend_transaction_begin(const db_backend_t* backend) {
+    if (!backend) {
+        return 1;
+    }
+    if (!backend->handle) {
+        return 1;
+    }
+
+    return db_backend_handle_transaction_begin(backend->handle);
+}
+
+int db_backend_transaction_commit(const db_backend_t* backend) {
+    if (!backend) {
+        return 1;
+    }
+    if (!backend->handle) {
+        return 1;
+    }
+
+    return db_backend_handle_transaction_commit(backend->handle);
+}
+
+int db_backend_transaction_rollback(const db_backend_t* backend) {
+    if (!backend) {
+        return 1;
+    }
+    if (!backend->handle) {
+        return 1;
+    }
+
+    return db_backend_handle_transaction_rollback(backend->handle);
 }
 
 /* DB BACKEND FACTORY */

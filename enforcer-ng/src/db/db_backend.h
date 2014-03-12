@@ -65,6 +65,10 @@ typedef db_result_list_t* (*db_backend_handle_read_t)(void*, const db_object_t*,
 typedef int (*db_backend_handle_update_t)(void*, const db_object_t*);
 typedef int (*db_backend_handle_delete_t)(void*, const db_object_t*);
 typedef void (*db_backend_handle_free_t)(void*);
+typedef int (*db_backend_handle_transaction_begin_t)(void*);
+typedef int (*db_backend_handle_transaction_commit_t)(void*);
+typedef int (*db_backend_handle_transaction_rollback_t)(void*);
+
 struct db_backend_handle {
 	void* data;
 	db_backend_handle_initialize_t initialize_function;
@@ -76,6 +80,9 @@ struct db_backend_handle {
 	db_backend_handle_update_t update_function;
 	db_backend_handle_delete_t delete_function;
 	db_backend_handle_free_t free_function;
+	db_backend_handle_transaction_begin_t transaction_begin_function;
+    db_backend_handle_transaction_commit_t transaction_commit_function;
+    db_backend_handle_transaction_rollback_t transaction_rollback_function;
 };
 
 db_backend_handle_t* db_backend_handle_new(void);
@@ -88,6 +95,9 @@ int db_backend_handle_create(const db_backend_handle_t*, const db_object_t*);
 db_result_list_t* db_backend_handle_read(const db_backend_handle_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
 int db_backend_handle_update(const db_backend_handle_t*, const db_object_t*);
 int db_backend_handle_delete(const db_backend_handle_t*, const db_object_t*);
+int db_backend_handle_transaction_begin(const db_backend_handle_t*);
+int db_backend_handle_transaction_commit(const db_backend_handle_t*);
+int db_backend_handle_transaction_rollback(const db_backend_handle_t*);
 const void* db_backend_handle_data(const db_backend_handle_t*);
 int db_backend_handle_set_initialize(db_backend_handle_t*, db_backend_handle_initialize_t);
 int db_backend_handle_set_shutdown(db_backend_handle_t*, db_backend_handle_shutdown_t);
@@ -97,6 +107,10 @@ int db_backend_handle_set_create(db_backend_handle_t*, db_backend_handle_create_
 int db_backend_handle_set_read(db_backend_handle_t*, db_backend_handle_read_t);
 int db_backend_handle_set_update(db_backend_handle_t*, db_backend_handle_update_t);
 int db_backend_handle_set_delete(db_backend_handle_t*, db_backend_handle_delete_t);
+int db_backend_handle_set_free(db_backend_handle_t*, db_backend_handle_free_t);
+int db_backend_handle_set_transaction_begin(db_backend_handle_t*, db_backend_handle_transaction_begin_t);
+int db_backend_handle_set_transaction_commit(db_backend_handle_t*, db_backend_handle_transaction_commit_t);
+int db_backend_handle_set_transaction_rollback(db_backend_handle_t*, db_backend_handle_transaction_rollback_t);
 int db_backend_handle_set_data(db_backend_handle_t*, void*);
 int db_backend_handle_not_empty(const db_backend_handle_t*);
 
@@ -121,6 +135,9 @@ int db_backend_create(const db_backend_t*, const db_object_t*);
 db_result_list_t* db_backend_read(const db_backend_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
 int db_backend_update(const db_backend_t*, const db_object_t*);
 int db_backend_delete(const db_backend_t*, const db_object_t*);
+int db_backend_transaction_begin(const db_backend_t*);
+int db_backend_transaction_commit(const db_backend_t*);
+int db_backend_transaction_rollback(const db_backend_t*);
 
 db_backend_t* db_backend_factory_get_backend(const char*);
 

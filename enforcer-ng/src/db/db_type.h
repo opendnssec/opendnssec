@@ -41,9 +41,6 @@ typedef enum {
 	DB_TYPE_STRING
 } db_type_t;
 
-/* TODO: encapsulate value */
-/* TODO: a lot of helper functions */
-
 #ifdef __cplusplus
 }
 #endif

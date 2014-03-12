@@ -106,6 +106,20 @@ int db_connection_disconnect(const db_connection_t* connection) {
 	return db_backend_disconnect(connection->backend);
 }
 
+int db_connection_create(const db_connection_t* connection, const db_object_t* object) {
+    if (!connection) {
+        return 1;
+    }
+    if (!object) {
+        return 1;
+    }
+    if (!connection->backend) {
+        return 1;
+    }
+
+    return db_backend_create(connection->backend, object);
+}
+
 db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!connection) {
 		return NULL;
@@ -114,10 +128,69 @@ db_result_list_t* db_connection_read(const db_connection_t* connection, const db
 		return NULL;
 	}
 	if (!connection->backend) {
-		if (db_connection_connect(connection)) {
-			return NULL;
-		}
+        return NULL;
 	}
 
 	return db_backend_read(connection->backend, object, join_list, clause_list);
+}
+
+int db_connection_update(const db_connection_t* connection, const db_object_t* object) {
+    if (!connection) {
+        return 1;
+    }
+    if (!object) {
+        return 1;
+    }
+    if (!connection->backend) {
+        return 1;
+    }
+
+    return db_backend_update(connection->backend, object);
+}
+
+int db_connection_delete(const db_connection_t* connection, const db_object_t* object) {
+    if (!connection) {
+        return 1;
+    }
+    if (!object) {
+        return 1;
+    }
+    if (!connection->backend) {
+        return 1;
+    }
+
+    return db_backend_delete(connection->backend, object);
+}
+
+int db_connection_transaction_begin(const db_connection_t* connection) {
+    if (!connection) {
+        return 1;
+    }
+    if (!connection->backend) {
+        return 1;
+    }
+
+    return db_backend_transaction_begin(connection->backend);
+}
+
+int db_connection_transaction_commit(const db_connection_t* connection) {
+    if (!connection) {
+        return 1;
+    }
+    if (!connection->backend) {
+        return 1;
+    }
+
+    return db_backend_transaction_commit(connection->backend);
+}
+
+int db_connection_transaction_rollback(const db_connection_t* connection) {
+    if (!connection) {
+        return 1;
+    }
+    if (!connection->backend) {
+        return 1;
+    }
+
+    return db_backend_transaction_rollback(connection->backend);
 }

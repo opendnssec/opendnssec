@@ -279,6 +279,23 @@ int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t*
 	return 0;
 }
 
+int db_object_create(const db_object_t* object) {
+    if (!object) {
+        return 1;
+    }
+    if (!object->connection) {
+        return 1;
+    }
+    if (!object->table) {
+        return 1;
+    }
+    if (!object->primary_key_name) {
+        return 1;
+    }
+
+    return db_connection_create(object->connection, object);
+}
+
 db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!object) {
 		return NULL;
@@ -294,4 +311,38 @@ db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t
 	}
 
 	return db_connection_read(object->connection, object, join_list, clause_list);
+}
+
+int db_object_update(const db_object_t* object) {
+    if (!object) {
+        return 1;
+    }
+    if (!object->connection) {
+        return 1;
+    }
+    if (!object->table) {
+        return 1;
+    }
+    if (!object->primary_key_name) {
+        return 1;
+    }
+
+    return db_connection_update(object->connection, object);
+}
+
+int db_object_delete(const db_object_t* object) {
+    if (!object) {
+        return 1;
+    }
+    if (!object->connection) {
+        return 1;
+    }
+    if (!object->table) {
+        return 1;
+    }
+    if (!object->primary_key_name) {
+        return 1;
+    }
+
+    return db_connection_delete(object->connection, object);
 }
