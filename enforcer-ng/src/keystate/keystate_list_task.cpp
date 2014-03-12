@@ -385,6 +385,9 @@ int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
 			while (key_data) {
 			    if (key_data_get_key_state_list((key_data_t*)key_data)) {
 			        ods_printf(sockfd, "key_data_get_key_state_list error\n");
+		            key_data_list_free(key_data_list);
+		            enforcer_zone_list_free(enforcer_zone_list);
+		            db_connection_free(connection);
 			        return 1;
 			    }
 				const key_state_t* ds = key_data_get_ds((key_data_t*)key_data);
@@ -392,10 +395,9 @@ int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
 				const key_state_t* dnskey = key_data_get_dnskey((key_data_t*)key_data);
 				const key_state_t* rrsigdnskey = key_data_get_rrsigdnskey((key_data_t*)key_data);
 
-				ods_printf(sockfd, "%s %s %d %s %s %s %s\n",
+				ods_printf(sockfd, "%s %s %s %s %s %s\n",
 					enforcer_zone_name(enforcer_zone),
 					key_data_role(key_data),
-					key_data->ds,
 					key_state_state(ds),
 					key_state_state(rrsig),
 					key_state_state(dnskey),
