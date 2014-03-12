@@ -28,6 +28,8 @@
 
 #include "mm.h"
 
+/* TODO: keep list of blocks, add freeing functionality */
+
 /* TODO: use page size * (something or option in struct) */
 #define __mm_alloc_size 65536
 
@@ -43,17 +45,17 @@ void* mm_alloc_new(mm_alloc_t* alloc) {
 
 	if (!alloc->next) {
 		unsigned int i;
-		void* batch;
+		void* block;
 
-		if (!(batch = malloc(__mm_alloc_size))) {
+		if (!(block = malloc(__mm_alloc_size))) {
 			pthread_mutex_unlock(&__mm_memory_lock);
 			return NULL;
 		}
 
 		for (i=0; i<(__mm_alloc_size / alloc->size); i++) {
-			*(void**)batch = alloc->next;
-			alloc->next = batch;
-			batch = ((char*)batch + alloc->size);
+			*(void**)block = alloc->next;
+			alloc->next = block;
+			block = ((char*)block + alloc->size);
 		}
 	}
 
