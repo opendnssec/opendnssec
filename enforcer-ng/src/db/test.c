@@ -36,12 +36,24 @@
 #include <string.h>
 #include <stdio.h>
 
+/*
+ * Define the test structure
+ *  - We need to create a db_object_t to describe this object
+ *  - We got a primary key colum called id
+ *  - We got a varchar colum called name
+ */
 typedef struct {
 	db_object_t* dbo;
 	int id;
 	char* name;
 } test_t;
 
+/*
+ * Create a new test structure
+ * - We require a connection object at creation
+ * - We setup the database object description (this will be done statically in
+ *   later version of the database layer)
+ */
 test_t* test_new(const db_connection_t* connection) {
 	db_object_field_list_t* object_field_list;
 	db_object_field_t* object_field;
@@ -53,25 +65,88 @@ test_t* test_new(const db_connection_t* connection) {
 			free(test);
 			return NULL;
 		}
-		db_object_set_connection(test->dbo, connection);
-		db_object_set_table(test->dbo, "test");
-		db_object_set_primary_key_name(test->dbo, "id");
 
-		object_field_list = db_object_field_list_new();
-		object_field = db_object_field_new();
-		db_object_field_set_name(object_field, "id");
-		db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY);
-		db_object_field_list_add(object_field_list, object_field);
-		object_field = db_object_field_new();
-		db_object_field_set_name(object_field, "name");
-		db_object_field_set_type(object_field, DB_TYPE_STRING);
-		db_object_field_list_add(object_field_list, object_field);
-		db_object_set_object_field_list(test->dbo, object_field_list);
+		/*
+		 * Setup the db_object_t
+		 * - Connect it to a connection
+		 * - Set the table name
+		 * - Set the primary key field name (this may be changed later since we
+		 *   set a db_object_field_t to DB_TYPE_PRIMARY_KEY)
+		 */
+		if (db_object_set_connection(test->dbo, connection)
+			|| db_object_set_table(test->dbo, "test")
+			|| db_object_set_primary_key_name(test->dbo, "id"))
+		{
+			db_object_free(test->dbo);
+			free(test);
+			return NULL;
+		}
+
+		/*
+		 * Create a new db_object_field_list for storing all database field
+		 * definitions in
+		 */
+		if (!(object_field_list = db_object_field_list_new())) {
+			db_object_free(test->dbo);
+			free(test);
+			return NULL;
+		}
+
+		/*
+		 * Create the definition of column id
+		 * - Create a new db_object_field_t
+		 * - Set the field name
+		 * - Set the field type
+		 * - Add it to the object field list
+		 */
+		if (!(object_field = db_object_field_new())
+			|| db_object_field_set_name(object_field, "id")
+			|| db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY)
+			|| db_object_field_list_add(object_field_list, object_field))
+		{
+			db_object_field_free(object_field);
+			db_object_field_list_free(object_field_list);
+			db_object_free(test->dbo);
+			free(test);
+			return NULL;
+		}
+
+		/*
+		 * Create the definition of column name
+		 * - Create a new db_object_field_t
+		 * - Set the field name
+		 * - Set the field type
+		 * - Add it to the object field list
+		 */
+		if (!(object_field = db_object_field_new())
+			|| db_object_field_set_name(object_field, "name")
+			|| db_object_field_set_type(object_field, DB_TYPE_STRING)
+			|| db_object_field_list_add(object_field_list, object_field))
+		{
+			db_object_field_free(object_field);
+			db_object_field_list_free(object_field_list);
+			db_object_free(test->dbo);
+			free(test);
+			return NULL;
+		}
+
+		/*
+		 * Add the object field list to the db_object_t
+		 */
+		if (db_object_set_object_field_list(test->dbo, object_field_list)) {
+			db_object_field_list_free(object_field_list);
+			db_object_free(test->dbo);
+			free(test);
+			return NULL;
+		}
 	}
 
 	return test;
 }
 
+/*
+ * Free the test object
+ */
 void test_free(test_t* test) {
 	if (test) {
 		if (test->dbo) {
@@ -84,6 +159,9 @@ void test_free(test_t* test) {
 	}
 }
 
+/*
+ * Return the test object id or 0 if not set
+ */
 int test_id(const test_t* test) {
 	if (!test) {
 		return 0;
@@ -92,6 +170,9 @@ int test_id(const test_t* test) {
 	return test->id;
 }
 
+/*
+ * Return the test object name or NULL if not set
+ */
 const char* test_name(const test_t* test) {
 	if (!test) {
 		return NULL;
@@ -100,24 +181,13 @@ const char* test_name(const test_t* test) {
 	return test->name;
 }
 
-int test_set_name(test_t* test, const char* name) {
-	char* new_name;
-
-	if (!test) {
-		return 1;
-	}
-
-	if (!(new_name = strdup(name))) {
-		return 1;
-	}
-
-	if (test->name) {
-		free(test->name);
-	}
-	test->name = new_name;
-	return 0;
-}
-
+/*
+ * Get a test object by an id
+ * - Create a clause list and add a clause for the id
+ * - Do a database read
+ * - Check the result and that we only got one row back
+ * - Retrieve the values from the result and set it in the test object
+ */
 int test_get_by_id(test_t* test, int id) {
 	db_clause_list_t* clause_list;
 	db_clause_t* clause;
@@ -131,12 +201,18 @@ int test_get_by_id(test_t* test, int id) {
 		return 1;
 	}
 
+	/*
+	 * Clear the test object from the previous values if any
+	 */
 	test->id = 0;
 	if (test->name) {
 		free(test->name);
 	}
 	test->name = NULL;
 
+	/*
+	 * Create the clause list and add the clause for id
+	 */
 	if (!(clause_list = db_clause_list_new())) {
 		return 1;
 	}
@@ -151,6 +227,9 @@ int test_get_by_id(test_t* test, int id) {
 		return 1;
 	}
 
+	/*
+	 * Do a database read, check the result and set the test object values
+	 */
 	result_list = db_object_read(test->dbo, NULL, clause_list);
 	if (result_list) {
 		result = db_result_list_begin(result_list);
@@ -180,6 +259,12 @@ int test_get_by_id(test_t* test, int id) {
 	return 0;
 }
 
+/*
+ * Get a test object by id
+ * - Setup the configuration
+ * - Connect to the database
+ * - Create a test object and get by id
+ */
 int main(void) {
 	db_configuration_list_t* configuration_list;
 	db_configuration_t* configuration;
@@ -187,36 +272,65 @@ int main(void) {
 	test_t* test;
 	int ret;
 
-	db_backend_factory_init();
+	/*
+	 * Setup the configuration for the connection
+	 */
+	if (!(configuration_list = db_configuration_list_new()) {
+		fprintf(STDERR, "db_configuraiton_list_new failed\n");
+		return 1;
+	}
+	if (!(configuration = db_configuration_new())
+		|| db_configuration_set_name(configuration, "backend")
+		|| db_configuration_set_value(configuration, "sqlite")
+		|| db_configuration_list_add(configuration_list, configuration))
+	{
+		db_configuration_free(configuration);
+		db_configuration_list_free(configuration_list);
+		fprintf(STDERR, "setup configuration backend failed\n");
+		return 1;
+	}
+	if (!(configuration = db_configuration_new())
+		|| db_configuration_set_name(configuration, "file")
+		|| db_configuration_set_value(configuration, "test.db")
+		|| db_configuration_list_add(configuration_list, configuration))
+	{
+		db_configuration_free(configuration);
+		db_configuration_list_free(configuration_list);
+		fprintf(STDERR, "setup configuration file failed\n");
+		return 1;
+	}
 
-	configuration_list = db_configuration_list_new();
-	configuration = db_configuration_new();
-	db_configuration_set_name(configuration, "backend");
-	db_configuration_set_value(configuration, "sqlite");
-	db_configuration_list_add(configuration_list, configuration);
-	configuration = db_configuration_new();
-	db_configuration_set_name(configuration, "file");
-	db_configuration_set_value(configuration, "test.db");
-	db_configuration_list_add(configuration_list, configuration);
-
-	connection = db_connection_new();
-	if ((ret = db_connection_set_configuration_list(connection, configuration_list))) {
-		printf("db_connection_set_configuration_list %d\n", ret);
-	}
-	if ((ret = db_connection_setup(connection))) {
-		printf("db_connection_setup %d\n", ret);
-	}
-	if ((ret = db_connection_connect(connection))) {
-		printf("db_connection_connect %d\n", ret);
+	/*
+	 * Connect to the database
+	 */
+	if (!(connection = db_connection_new())
+		|| db_connection_set_configuration_list(connection, configuration_list)
+		|| db_connection_setup(connection)
+		|| db_connection_connect(connection))
+	{
+		db_connection_free(connection);
+		db_configuration_list_free(configuration_list);
+		fprintf(STDERR, "database connection failed\n");
+		return 1;
 	}
 
-	test = test_new(connection);
-	if (!test_get_by_id(test, 1)) {
-		printf("%d %s\n", test_id(test), test_name(test));
+	/*
+	 * Create a test object and get by id
+	 */
+	if (!(test = test_new(connection))
+		|| test_get_by_id(test, 1))
+	{
+		test_free(test);
+		db_connection_free(connection);
+		db_configuration_list_free(configuration_list);
+		fprintf(STDERR, "test get by id failed\n");
+		return 1;
 	}
+
+	printf("test object %d name %s\n", test_id(test), test_name(test));
+
 	test_free(test);
-
 	db_connection_free(connection);
-	db_backend_factory_end();
+	db_configuration_list_free(configuration_list);
 	return 0;
 }

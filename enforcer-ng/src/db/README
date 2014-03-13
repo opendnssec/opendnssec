@@ -1,0 +1,71 @@
+About
+=====
+
+todo
+
+
+Object Descriptions
+===================
+
+db_configuration_t
+  Object holding a configuration value as a key and value.
+
+db_configuration_list_t
+  A list of db_configuration_t, used for configuring database connection and
+  backends.
+
+db_connection_t
+  Object holding a connection, used for connect/disconnect'ing to a backend and
+  handling transactions.
+  
+db_object_field_t
+  Object holding the definition of a database object field.
+  
+db_object_field_list_t
+  A list of db_object_field_t, used for describing all the fields in a database
+  object.
+  
+db_object_t
+  Object holding the definition of a database object and used for create/read/
+  update/delete the database object.
+  
+db_backend_handle_t
+  Object holding functions to a database backend, used by db_backend_t.
+
+db_backend_t
+  Object holding a backend, used by db_connection_t.
+  
+db_join_t
+  Object holding the definition of a join.
+  
+db_join_list_t
+  A list of db_join_t used to describe all joins in a query, used in read/update
+  and delete.
+  
+db_clause_t
+  Object holding the definition of a clause.
+  
+db_clause_list_t
+  A list of db_clause_t used to describe all the clauses in a query, used in
+  read/update/delete.
+  
+db_result_t
+  Object holding the result of a row from a query.
+  
+db_result_list_t
+  A list of db_result_t, used to hold all the result from a query.
+  
+db_value_t
+  Object holding a database value.
+  
+db_value_set_t
+  Object holding a fixed set of database values.
+  
+db_type_t
+  An enum describing all the different database value types.
+
+
+Code Example
+============
+
+Check test.c for an example.
