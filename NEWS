@@ -10,11 +10,18 @@ Bugfixes:
 * SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512].
 * SUPPORT-116: ods-ksmutil key import. Date validation fails on certain 
   dates [OPENDNSSEC-553].
+* SUPPORT-97: Signer Engine: Fix after restart signer thinks zone has expired
+  [OPENDNSSEC-526].
+* SUPPORT-101: Signer Engine: Fix multiple zone transfer to single file bug
+  [OPENDNSSEC-529].
+* SUPPORT-102: Signer Engine: Fix statistics (count can be negative)/
+* SUPPORT-108: Signer Engine: Don't replace tabs in RRs with whitespace
+  [OPENDNSSEC-520].
 * SUPPORT-128: ods-ksmutil. Man page had incorrect formatting. 
   [OPENDNSSEC-576].
+* SUPPORT-127: Fix manpage sections.
 * OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
-* OPENDNSSEC-520: Signer Engine: Don't replace tabs in RRs with whitespace.
 * OPENDNSSEC-537: libhsm: Possible memory corruption in hsm_get_slot_id.
 * SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512].
 * OPENDNSSEC-544: Signer Engine: Fix assertion error that happens on an IXFR
