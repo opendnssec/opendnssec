@@ -38,7 +38,7 @@ db_value_t* db_value_new() {
 		(db_value_t*)calloc(1, sizeof(db_value_t));
 
 	if (value) {
-		value->type = DB_TYPE_UNKNOWN;
+		value->type = DB_TYPE_EMPTY;
 	}
 
 	return value;
@@ -59,13 +59,13 @@ void db_value_reset(db_value_t* value) {
 			free(value->data);
 		}
 		value->data = NULL;
-		value->type = DB_TYPE_UNKNOWN;
+		value->type = DB_TYPE_EMPTY;
 	}
 }
 
 db_type_t db_value_type(const db_value_t* value) {
 	if (!value) {
-		return DB_TYPE_UNKNOWN;
+		return DB_TYPE_EMPTY;
 	}
 
 	return value->type;
@@ -83,7 +83,7 @@ int db_value_set_type(db_value_t* value, db_type_t type) {
 	if (!value) {
 		return 1;
 	}
-	if (type != DB_TYPE_UNKNOWN) {
+	if (type != DB_TYPE_EMPTY) {
 		return 1;
 	}
 
@@ -107,14 +107,9 @@ int db_value_not_empty(const db_value_t* value) {
 	if (!value) {
 		return 1;
 	}
-	if (value->type == DB_TYPE_UNKNOWN) {
+	if (value->type == DB_TYPE_EMPTY) {
 		return 1;
 	}
-	/* TODO: Shouldnt we be able to be null?
-	if (!value->data) {
-		return 1;
-	}
-	*/
 	return 0;
 }
 
@@ -155,7 +150,8 @@ int db_value_from_int(db_value_t* value, int from_int) {
 	if (!value) {
 		return 1;
 	}
-	if (!db_value_not_empty(value)) {
+	/* TODO: support converting int to value->type */
+	if (value->type != DB_TYPE_EMPTY) {
 		return 1;
 	}
 
@@ -173,7 +169,8 @@ int db_value_from_string(db_value_t* value, const char* from_string) {
 	if (!value) {
 		return 1;
 	}
-	if (!db_value_not_empty(value)) {
+	/* TODO: support converting char* to value->type */
+	if (value->type != DB_TYPE_EMPTY) {
 		return 1;
 	}
 

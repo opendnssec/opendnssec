@@ -235,8 +235,7 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
 	if (!(clause = db_clause_new())
 		|| db_clause_set_field(clause, "id")
 		|| db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-		|| db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
-		|| db_clause_set_value(clause, &id)
+		|| db_value_from_int(db_clause_value(clause), id)
 		|| db_clause_list_add(clause_list, clause))
 	{
 		db_clause_free(clause);
@@ -322,8 +321,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
-        || db_clause_set_value(clause, &id1)
+        || db_value_from_int(db_clause_value(clause), id1)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -334,8 +332,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
-        || db_clause_set_value(clause, &id2)
+        || db_value_from_int(db_clause_value(clause), id2)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -346,8 +343,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
-        || db_clause_set_value(clause, &id3)
+        || db_value_from_int(db_clause_value(clause), id3)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -358,8 +354,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_value_type(clause, DB_TYPE_PRIMARY_KEY)
-        || db_clause_set_value(clause, &id4)
+        || db_value_from_int(db_clause_value(clause), id4)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

@@ -309,7 +309,12 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 				switch (db_clause_value_type(clause)) {
 				case DB_TYPE_PRIMARY_KEY:
 				case DB_TYPE_INTEGER:
-					ret = sqlite3_bind_int(statement, bind++, *(int*)db_clause_value(clause));
+					int value;
+					if (db_value_to_int(db_clause_get_value(clause), &value)) {
+						sqlite3_finalize(statement);
+						return NULL;
+					}
+					ret = sqlite3_bind_int(statement, bind++, value);
 					if (ret != SQLITE_OK) {
 						sqlite3_finalize(statement);
 						return NULL;

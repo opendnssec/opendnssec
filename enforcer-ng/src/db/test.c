@@ -143,8 +143,7 @@ int test_get_by_id(test_t* test, int id) {
 	if (!(clause = db_clause_new())
 		|| db_clause_set_field(clause, "id")
 		|| db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-		|| db_clause_set_value_type(clause, DB_TYPE_INTEGER)
-		|| db_clause_set_value(clause, &id)
+		|| db_value_from_int(db_clause_value(clause), id)
 		|| db_clause_list_add(clause_list, clause))
 	{
 		db_clause_free(clause);

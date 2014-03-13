@@ -41,6 +41,7 @@ db_clause_t* db_clause_new(void) {
 	if (clause) {
 		clause->type = DB_CLAUSE_UNKNOWN;
 		clause->clause_operator = DB_CLAUSE_OPERATOR_AND;
+		db_value_reset(&(clause->value));
 	}
 
 	return clause;
@@ -54,6 +55,7 @@ void db_clause_free(db_clause_t* clause) {
 		if (clause->field) {
 			free(clause->field);
 		}
+		db_value_reset(&(clause->value));
 		free(clause);
 	}
 }
@@ -80,22 +82,6 @@ db_clause_type_t db_clause_type(const db_clause_t* clause) {
 	}
 
 	return clause->type;
-}
-
-db_type_t db_clause_value_type(const db_clause_t* clause) {
-	if (!clause) {
-		return DB_TYPE_UNKNOWN;
-	}
-
-	return clause->value_type;
-}
-
-const void* db_clause_value(const db_clause_t* clause) {
-	if (!clause) {
-		return NULL;
-	}
-
-	return clause->value;
 }
 
 db_clause_operator_t db_clause_operator(const db_clause_t* clause) {
@@ -151,24 +137,6 @@ int db_clause_set_type(db_clause_t* clause, db_clause_type_t type) {
 	return 0;
 }
 
-int db_clause_set_value_type(db_clause_t* clause, db_type_t value_type) {
-	if (!clause) {
-		return 1;
-	}
-
-	clause->value_type = value_type;
-	return 0;
-}
-
-int db_clause_set_value(db_clause_t* clause, void* value) {
-	if (!clause) {
-		return 1;
-	}
-
-	clause->value = value;
-	return 0;
-}
-
 int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_operator) {
 	if (!clause) {
 		return 1;
@@ -200,6 +168,14 @@ const db_clause_t* db_clause_next(const db_clause_t* clause) {
 	}
 
 	return clause->next;
+}
+
+db_value_t* db_clause_get_value(db_clause_t* clause) {
+	if (!clause) {
+		return NULL;
+	}
+
+	return &(clause->value);
 }
 
 /* DB CLAUSE LIST */

@@ -66,7 +66,7 @@ typedef struct db_clause_list db_clause_list_t;
 }
 #endif
 
-#include "db_type.h"
+#include "db_value.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,8 +77,7 @@ struct db_clause {
 	char* table;
 	char* field;
 	db_clause_type_t type;
-	db_type_t value_type; /* TODO: use db_value_t instead of this */
-	void* value;
+	db_value_t value;
 	db_clause_operator_t clause_operator;
 	/* TODO: nested clauses, clause list inside clause */
 };
@@ -88,17 +87,14 @@ void db_clause_free(db_clause_t*);
 const char* db_clause_table(const db_clause_t*);
 const char* db_clause_field(const db_clause_t*);
 db_clause_type_t db_clause_type(const db_clause_t*);
-db_type_t db_clause_value_type(const db_clause_t*);
-const void* db_clause_value(const db_clause_t*);
 db_clause_operator_t db_clause_operator(const db_clause_t*);
 int db_clause_set_table(db_clause_t*, const char*);
 int db_clause_set_field(db_clause_t*, const char*);
 int db_clause_set_type(db_clause_t*, db_clause_type_t);
-int db_clause_set_value_type(db_clause_t*, db_type_t);
-int db_clause_set_value(db_clause_t*, void*);
 int db_clause_set_operator(db_clause_t*, db_clause_operator_t);
 int db_clause_not_empty(const db_clause_t*);
 const db_clause_t* db_clause_next(const db_clause_t*);
+db_value_t* db_clause_get_value(db_clause_t*);
 
 struct db_clause_list {
 	db_clause_t* begin;

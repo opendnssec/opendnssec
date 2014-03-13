@@ -35,7 +35,7 @@ extern "C" {
 #endif
 
 typedef enum {
-	DB_TYPE_UNKNOWN,
+	DB_TYPE_EMPTY,
 	DB_TYPE_PRIMARY_KEY,
 	DB_TYPE_INTEGER,
 	DB_TYPE_STRING
