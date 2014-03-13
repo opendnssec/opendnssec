@@ -50,12 +50,12 @@ extern "C" {
 #endif
 
 struct key_state {
-	db_object_t* dbo;
-	int id;
-	char* state;
-	int last_change;
-	int minimize;
-	int ttl;
+    db_object_t* dbo;
+    int id;
+    char* state;
+    int last_change;
+    int minimize;
+    int ttl;
 };
 
 key_state_t* key_state_new(const db_connection_t*);
@@ -70,10 +70,10 @@ int key_state_ttl(const key_state_t*);
 int key_state_get_by_id(key_state_t*, int);
 
 struct key_state_list {
-	db_object_t* dbo;
-	db_result_list_t* result_list;
-	const db_result_t* result;
-	key_state_t* key_state;
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+    key_state_t* key_state;
 };
 
 key_state_list_t* key_state_list_new(const db_connection_t*);

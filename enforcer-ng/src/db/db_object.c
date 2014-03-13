@@ -35,249 +35,249 @@
 /* DB OBJECT FIELD */
 
 db_object_field_t* db_object_field_new(void) {
-	db_object_field_t* object_field =
-		(db_object_field_t*)calloc(1, sizeof(db_object_field_t));
+    db_object_field_t* object_field =
+        (db_object_field_t*)calloc(1, sizeof(db_object_field_t));
 
-	if (object_field) {
-		object_field->type = DB_TYPE_EMPTY;
-	}
+    if (object_field) {
+        object_field->type = DB_TYPE_EMPTY;
+    }
 
-	return object_field;
+    return object_field;
 }
 
 void db_object_field_free(db_object_field_t* object_field) {
-	if (object_field) {
-		free(object_field);
-	}
+    if (object_field) {
+        free(object_field);
+    }
 }
 
 const char* db_object_field_name(const db_object_field_t* object_field) {
-	if (!object_field) {
-		return NULL;
-	}
+    if (!object_field) {
+        return NULL;
+    }
 
-	return object_field->name;
+    return object_field->name;
 }
 
 db_type_t db_object_field_type(const db_object_field_t* object_field) {
-	if (!object_field) {
-		return DB_TYPE_EMPTY;
-	}
+    if (!object_field) {
+        return DB_TYPE_EMPTY;
+    }
 
-	return object_field->type;
+    return object_field->type;
 }
 
 int db_object_field_set_name(db_object_field_t* object_field, const char* name) {
-	if (!object_field) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!name) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!object_field) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!name) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	object_field->name = name;
-	return DB_OK;
+    object_field->name = name;
+    return DB_OK;
 }
 
 int db_object_field_set_type(db_object_field_t* object_field, db_type_t type) {
-	if (!object_field) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (type == DB_TYPE_EMPTY) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!object_field) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (type == DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	object_field->type = type;
-	return DB_OK;
+    object_field->type = type;
+    return DB_OK;
 }
 
 int db_object_field_not_empty(const db_object_field_t* object_field) {
-	if (!object_field) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!object_field->name) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (object_field->type == DB_TYPE_EMPTY) {
-		return DB_ERROR_UNKNOWN;
-	}
-	return DB_OK;
+    if (!object_field) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object_field->name) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object_field->type == DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
 }
 
 const db_object_field_t* db_object_field_next(const db_object_field_t* object_field) {
-	if (!object_field) {
-		return NULL;
-	}
+    if (!object_field) {
+        return NULL;
+    }
 
-	return object_field->next;
+    return object_field->next;
 }
 
 /* DB OBJECT FIELD LIST */
 
 db_object_field_list_t* db_object_field_list_new(void) {
-	db_object_field_list_t* object_field_list =
-		(db_object_field_list_t*)calloc(1, sizeof(db_object_field_list_t));
+    db_object_field_list_t* object_field_list =
+        (db_object_field_list_t*)calloc(1, sizeof(db_object_field_list_t));
 
-	return object_field_list;
+    return object_field_list;
 }
 
 void db_object_field_list_free(db_object_field_list_t* object_field_list) {
-	if (object_field_list) {
-		if (object_field_list->begin) {
-			db_object_field_t* this = object_field_list->begin;
-			db_object_field_t* next = NULL;
+    if (object_field_list) {
+        if (object_field_list->begin) {
+            db_object_field_t* this = object_field_list->begin;
+            db_object_field_t* next = NULL;
 
-			while (this) {
-				next = this->next;
-				db_object_field_free(this);
-				this = next;
-			}
-		}
-		free(object_field_list);
-	}
+            while (this) {
+                next = this->next;
+                db_object_field_free(this);
+                this = next;
+            }
+        }
+        free(object_field_list);
+    }
 }
 
 int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field) {
-	if (!object_field_list) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!object_field) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (db_object_field_not_empty(object_field)) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (object_field->next) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!object_field_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object_field) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_object_field_not_empty(object_field)) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object_field->next) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	if (object_field_list->begin) {
-		if (!object_field_list->end) {
-			return DB_ERROR_UNKNOWN;
-		}
-		object_field_list->end->next = object_field;
-		object_field_list->end = object_field;
-	}
-	else {
-		object_field_list->begin = object_field;
-		object_field_list->end = object_field;
-	}
+    if (object_field_list->begin) {
+        if (!object_field_list->end) {
+            return DB_ERROR_UNKNOWN;
+        }
+        object_field_list->end->next = object_field;
+        object_field_list->end = object_field;
+    }
+    else {
+        object_field_list->begin = object_field;
+        object_field_list->end = object_field;
+    }
 
-	return DB_OK;
+    return DB_OK;
 }
 
 const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list) {
-	if (!object_field_list) {
-		return NULL;
-	}
+    if (!object_field_list) {
+        return NULL;
+    }
 
-	return object_field_list->begin;
+    return object_field_list->begin;
 }
 
 /* DB OBJECT */
 
 db_object_t* db_object_new(void) {
-	db_object_t* object =
-		(db_object_t*)calloc(1, sizeof(db_object_t));
+    db_object_t* object =
+        (db_object_t*)calloc(1, sizeof(db_object_t));
 
-	return object;
+    return object;
 }
 
 void db_object_free(db_object_t* object) {
-	if (object) {
-		if (object->object_field_list) {
-			db_object_field_list_free(object->object_field_list);
-		}
-		free(object);
-	}
+    if (object) {
+        if (object->object_field_list) {
+            db_object_field_list_free(object->object_field_list);
+        }
+        free(object);
+    }
 }
 
 const db_connection_t* db_object_connection(const db_object_t* object) {
-	if (!object) {
-		return NULL;
-	}
-	return object->connection;
+    if (!object) {
+        return NULL;
+    }
+    return object->connection;
 }
 
 const char* db_object_table(const db_object_t* object) {
-	if (!object) {
-		return NULL;
-	}
-	return object->table;
+    if (!object) {
+        return NULL;
+    }
+    return object->table;
 }
 
 const char* db_object_primary_key_name(const db_object_t* object) {
-	if (!object) {
-		return NULL;
-	}
-	return object->primary_key_name;
+    if (!object) {
+        return NULL;
+    }
+    return object->primary_key_name;
 }
 
 const db_object_field_list_t* db_object_object_field_list(const db_object_t* object) {
-	if (!object) {
-		return NULL;
-	}
-	return object->object_field_list;
+    if (!object) {
+        return NULL;
+    }
+    return object->object_field_list;
 }
 
 int db_object_set_connection(db_object_t* object, const db_connection_t* connection) {
-	if (!object) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!connection) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (object->connection) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!connection) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object->connection) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	object->connection = connection;
-	return DB_OK;
+    object->connection = connection;
+    return DB_OK;
 }
 
 int db_object_set_table(db_object_t* object, const char* table) {
-	if (!object) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!table) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (object->table) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!table) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object->table) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	object->table = table;
-	return DB_OK;
+    object->table = table;
+    return DB_OK;
 }
 
 int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_name) {
-	if (!object) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!primary_key_name) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (object->primary_key_name) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!primary_key_name) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object->primary_key_name) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	object->primary_key_name = primary_key_name;
-	return DB_OK;
+    object->primary_key_name = primary_key_name;
+    return DB_OK;
 }
 
 int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t* object_field_list) {
-	if (!object) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!object_field_list) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (object->object_field_list) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object_field_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object->object_field_list) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	object->object_field_list = object_field_list;
-	return DB_OK;
+    object->object_field_list = object_field_list;
+    return DB_OK;
 }
 
 int db_object_create(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
@@ -285,7 +285,7 @@ int db_object_create(const db_object_t* object, const db_object_field_list_t* ob
         return DB_ERROR_UNKNOWN;
     }
     if (!value_set) {
-    	return DB_ERROR_UNKNOWN;
+        return DB_ERROR_UNKNOWN;
     }
     if (!object->connection) {
         return DB_ERROR_UNKNOWN;
@@ -298,26 +298,26 @@ int db_object_create(const db_object_t* object, const db_object_field_list_t* ob
     }
 
     if (object_field_list) {
-    	return db_connection_create(object->connection, object, object_field_list, value_set);
+        return db_connection_create(object->connection, object, object_field_list, value_set);
     }
-	return db_connection_create(object->connection, object, object->object_field_list, value_set);
+    return db_connection_create(object->connection, object, object->object_field_list, value_set);
 }
 
 db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
-	if (!object) {
-		return NULL;
-	}
-	if (!object->connection) {
-		return NULL;
-	}
-	if (!object->table) {
-		return NULL;
-	}
-	if (!object->primary_key_name) {
-		return NULL;
-	}
+    if (!object) {
+        return NULL;
+    }
+    if (!object->connection) {
+        return NULL;
+    }
+    if (!object->table) {
+        return NULL;
+    }
+    if (!object->primary_key_name) {
+        return NULL;
+    }
 
-	return db_connection_read(object->connection, object, join_list, clause_list);
+    return db_connection_read(object->connection, object, join_list, clause_list);
 }
 
 int db_object_update(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -325,7 +325,7 @@ int db_object_update(const db_object_t* object, const db_object_field_list_t* ob
         return DB_ERROR_UNKNOWN;
     }
     if (!value_set) {
-    	return DB_ERROR_UNKNOWN;
+        return DB_ERROR_UNKNOWN;
     }
     if (!object->connection) {
         return DB_ERROR_UNKNOWN;

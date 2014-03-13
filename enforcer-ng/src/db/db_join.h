@@ -50,11 +50,11 @@ extern "C" {
 #endif
 
 struct db_join {
-	db_join_t* next;
-	char* from_table;
-	char* from_field;
-	char* to_table;
-	char* to_field;
+    db_join_t* next;
+    char* from_table;
+    char* from_field;
+    char* to_table;
+    char* to_field;
 };
 
 db_join_t* db_join_new(void);
@@ -71,8 +71,8 @@ int db_join_not_empty(const db_join_t*);
 const db_join_t* db_join_next(const db_join_t*);
 
 struct db_join_list {
-	db_join_t* begin;
-	db_join_t* end;
+    db_join_t* begin;
+    db_join_t* end;
 };
 
 db_join_list_t* db_join_list_new(void);

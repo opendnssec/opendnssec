@@ -40,9 +40,9 @@ typedef struct db_configuration db_configuration_t;
 typedef struct db_configuration_list db_configuration_list_t;
 
 struct db_configuration {
-	db_configuration_t* next;
-	char* name;
-	char* value;
+    db_configuration_t* next;
+    char* name;
+    char* value;
 };
 
 db_configuration_t* db_configuration_new(void);
@@ -54,8 +54,8 @@ int db_configuration_set_value(db_configuration_t*, const char*);
 int db_configuration_not_empty(const db_configuration_t*);
 
 struct db_configuration_list {
-	db_configuration_t* begin;
-	db_configuration_t* end;
+    db_configuration_t* begin;
+    db_configuration_t* end;
 };
 
 db_configuration_list_t* db_configuration_list_new(void);

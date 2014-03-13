@@ -35,210 +35,210 @@
 /* DB VALUE */
 
 db_value_t* db_value_new() {
-	db_value_t* value =
-		(db_value_t*)calloc(1, sizeof(db_value_t));
+    db_value_t* value =
+        (db_value_t*)calloc(1, sizeof(db_value_t));
 
-	if (value) {
-		value->type = DB_TYPE_EMPTY;
-	}
+    if (value) {
+        value->type = DB_TYPE_EMPTY;
+    }
 
-	return value;
+    return value;
 }
 
 void db_value_free(db_value_t* value) {
-	if (value) {
-		if (value->data) {
-			free(value->data);
-		}
-		free(value);
-	}
+    if (value) {
+        if (value->data) {
+            free(value->data);
+        }
+        free(value);
+    }
 }
 
 void db_value_reset(db_value_t* value) {
-	if (value) {
-		if (value->data) {
-			free(value->data);
-		}
-		value->data = NULL;
-		value->type = DB_TYPE_EMPTY;
-	}
+    if (value) {
+        if (value->data) {
+            free(value->data);
+        }
+        value->data = NULL;
+        value->type = DB_TYPE_EMPTY;
+    }
 }
 
 db_type_t db_value_type(const db_value_t* value) {
-	if (!value) {
-		return DB_TYPE_EMPTY;
-	}
+    if (!value) {
+        return DB_TYPE_EMPTY;
+    }
 
-	return value->type;
+    return value->type;
 }
 
 const void* db_value_data(const db_value_t* value) {
-	if (!value) {
-		return NULL;
-	}
+    if (!value) {
+        return NULL;
+    }
 
-	return value->data;
+    return value->data;
 }
 
 int db_value_set_type(db_value_t* value, db_type_t type) {
-	if (!value) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (type != DB_TYPE_EMPTY) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	value->type = type;
-	return DB_OK;
+    value->type = type;
+    return DB_OK;
 }
 
 int db_value_set_data(db_value_t* value, void* data) {
-	if (!value) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!data) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!data) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	value->data = data;
-	return DB_OK;
+    value->data = data;
+    return DB_OK;
 }
 
 int db_value_not_empty(const db_value_t* value) {
-	if (!value) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (value->type == DB_TYPE_EMPTY) {
+    if (!value) {
         return DB_ERROR_UNKNOWN;
-	}
-	return DB_OK;
+    }
+    if (value->type == DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
 }
 
 int db_value_to_int(const db_value_t* value, int* to_int) {
-	if (!value) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!to_int) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (value->type != DB_TYPE_INTEGER) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!to_int) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (value->type != DB_TYPE_INTEGER) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	*to_int = *(int*)(value->data);
-	return DB_OK;
+    *to_int = *(int*)(value->data);
+    return DB_OK;
 }
 
 int db_value_to_string(const db_value_t* value, char** to_string) {
-	if (!value) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!to_string) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (value->type != DB_TYPE_STRING) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!to_string) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (value->type != DB_TYPE_STRING) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	*to_string = strdup((char*)value->data);
-	if (!*to_string) {
-		return DB_ERROR_UNKNOWN;
-	}
-	return DB_OK;
+    *to_string = strdup((char*)value->data);
+    if (!*to_string) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
 }
 
 int db_value_from_int(db_value_t* value, int from_int) {
-	if (!value) {
-		return DB_ERROR_UNKNOWN;
-	}
-	/* TODO: support converting int to value->type */
-	if (value->type != DB_TYPE_EMPTY) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: support converting int to value->type */
+    if (value->type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	/* TODO: store it inside the void* if fit */
-	value->data = (void*)calloc(1, sizeof(int));
-	if (!value->data) {
-		return DB_ERROR_UNKNOWN;
-	}
-	*(int*)(value->data) = from_int;
-	value->type = DB_TYPE_INTEGER;
-	return DB_OK;
+    /* TODO: store it inside the void* if fit */
+    value->data = (void*)calloc(1, sizeof(int));
+    if (!value->data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    *(int*)(value->data) = from_int;
+    value->type = DB_TYPE_INTEGER;
+    return DB_OK;
 }
 
 int db_value_from_string(db_value_t* value, const char* from_string) {
-	if (!value) {
-		return DB_ERROR_UNKNOWN;
-	}
-	/* TODO: support converting char* to value->type */
-	if (value->type != DB_TYPE_EMPTY) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: support converting char* to value->type */
+    if (value->type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	value->data = (void*)strdup(from_string);
-	if (!value->data) {
-		return DB_ERROR_UNKNOWN;
-	}
-	value->type = DB_TYPE_STRING;
-	return DB_OK;
+    value->data = (void*)strdup(from_string);
+    if (!value->data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    value->type = DB_TYPE_STRING;
+    return DB_OK;
 }
 
 /* DB VALUE SET */
 
 db_value_set_t* db_value_set_new(size_t size) {
-	db_value_set_t* value_set;
+    db_value_set_t* value_set;
 
-	if (size < 1) {
-		return NULL;
-	}
+    if (size < 1) {
+        return NULL;
+    }
 
-	value_set = (db_value_set_t*)calloc(1, sizeof(db_value_set_t));
-	if (value_set) {
-		value_set->values = (db_value_t*)calloc(size, sizeof(db_value_t));
-		if (!value_set->values) {
-			free(value_set);
-			return NULL;
-		}
-		value_set->size = size;
-	}
+    value_set = (db_value_set_t*)calloc(1, sizeof(db_value_set_t));
+    if (value_set) {
+        value_set->values = (db_value_t*)calloc(size, sizeof(db_value_t));
+        if (!value_set->values) {
+            free(value_set);
+            return NULL;
+        }
+        value_set->size = size;
+    }
 
-	return value_set;
+    return value_set;
 }
 
 void db_value_set_free(db_value_set_t* value_set) {
-	if (value_set) {
-		if (value_set->values) {
-			size_t i;
-			for (i=0; i<value_set->size; i++) {
-				db_value_reset(&value_set->values[i]);
-			}
-			free(value_set->values);
-		}
-		free(value_set);
-	}
+    if (value_set) {
+        if (value_set->values) {
+            size_t i;
+            for (i=0; i<value_set->size; i++) {
+                db_value_reset(&value_set->values[i]);
+            }
+            free(value_set->values);
+        }
+        free(value_set);
+    }
 }
 
 size_t db_value_set_size(const db_value_set_t* value_set) {
-	if (!value_set) {
-		return DB_OK;
-	}
+    if (!value_set) {
+        return DB_OK;
+    }
 
-	return value_set->size;
+    return value_set->size;
 }
 
 db_value_t* db_value_set_get(const db_value_set_t* value_set, size_t at) {
-	if (!value_set) {
-		return NULL;
-	}
-	if (!value_set->values) {
-		return NULL;
-	}
-	if (at < 0) {
-		return NULL;
-	}
-	if (!(at < value_set->size)) {
-		return NULL;
-	}
+    if (!value_set) {
+        return NULL;
+    }
+    if (!value_set->values) {
+        return NULL;
+    }
+    if (at < 0) {
+        return NULL;
+    }
+    if (!(at < value_set->size)) {
+        return NULL;
+    }
 
-	return &value_set->values[at];
+    return &value_set->values[at];
 }

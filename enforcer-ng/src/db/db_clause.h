@@ -35,20 +35,20 @@ extern "C" {
 #endif
 
 typedef enum {
-	DB_CLAUSE_UNKNOWN,
-	DB_CLAUSE_EQUAL,
-	DB_CLAUSE_NOT_EQUAL,
-	DB_CLAUSE_LESS_THEN,
-	DB_CLAUSE_LESS_OR_EQUAL,
-	DB_CLAUSE_GREATER_OR_EQUAL,
-	DB_CLAUSE_GREATER_THEN,
-	DB_CLAUSE_IS_NULL,
-	DB_CLAUSE_IS_NOT_NULL
+    DB_CLAUSE_UNKNOWN,
+    DB_CLAUSE_EQUAL,
+    DB_CLAUSE_NOT_EQUAL,
+    DB_CLAUSE_LESS_THEN,
+    DB_CLAUSE_LESS_OR_EQUAL,
+    DB_CLAUSE_GREATER_OR_EQUAL,
+    DB_CLAUSE_GREATER_THEN,
+    DB_CLAUSE_IS_NULL,
+    DB_CLAUSE_IS_NOT_NULL
 } db_clause_type_t;
 typedef enum {
-	DB_CLAUSE_OPERATOR_UNKNOWN,
-	DB_CLAUSE_OPERATOR_AND,
-	DB_CLAUSE_OPERATOR_OR
+    DB_CLAUSE_OPERATOR_UNKNOWN,
+    DB_CLAUSE_OPERATOR_AND,
+    DB_CLAUSE_OPERATOR_OR
 } db_clause_operator_t;
 #define DB_CLAUSE_EQ DB_CLAUSE_EQUAL
 #define DB_CLAUSE_NE DB_CLAUSE_NOT_EQUAL
@@ -73,13 +73,13 @@ extern "C" {
 #endif
 
 struct db_clause {
-	db_clause_t* next;
-	char* table;
-	char* field;
-	db_clause_type_t type;
-	db_value_t value;
-	db_clause_operator_t clause_operator;
-	/* TODO: nested clauses, clause list inside clause */
+    db_clause_t* next;
+    char* table;
+    char* field;
+    db_clause_type_t type;
+    db_value_t value;
+    db_clause_operator_t clause_operator;
+    /* TODO: nested clauses, clause list inside clause */
 };
 
 db_clause_t* db_clause_new(void);
@@ -97,8 +97,8 @@ const db_clause_t* db_clause_next(const db_clause_t*);
 db_value_t* db_clause_get_value(db_clause_t*);
 
 struct db_clause_list {
-	db_clause_t* begin;
-	db_clause_t* end;
+    db_clause_t* begin;
+    db_clause_t* end;
 };
 
 db_clause_list_t* db_clause_list_new(void);

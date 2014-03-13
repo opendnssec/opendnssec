@@ -33,120 +33,120 @@
 /* DB RESULT */
 
 db_result_t* db_result_new(void) {
-	db_result_t* result =
-		(db_result_t*)calloc(1, sizeof(db_result_t));
+    db_result_t* result =
+        (db_result_t*)calloc(1, sizeof(db_result_t));
 
-	return result;
+    return result;
 }
 
 void db_result_free(db_result_t* result) {
-	if (result) {
-		if (result->value_set) {
-			db_value_set_free(result->value_set);
-		}
-		free(result);
-	}
+    if (result) {
+        if (result->value_set) {
+            db_value_set_free(result->value_set);
+        }
+        free(result);
+    }
 }
 
 const db_value_set_t* db_result_value_set(const db_result_t* result) {
-	if (!result) {
-		return NULL;
-	}
+    if (!result) {
+        return NULL;
+    }
 
-	return result->value_set;
+    return result->value_set;
 }
 
 int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set) {
-	if (!result) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!value_set) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (result->value_set) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!result) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!value_set) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result->value_set) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	result->value_set = value_set;
-	return DB_OK;
+    result->value_set = value_set;
+    return DB_OK;
 }
 
 int db_result_not_empty(const db_result_t* result) {
-	if (!result) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!result->value_set) {
-		return DB_ERROR_UNKNOWN;
-	}
-	return DB_OK;
+    if (!result) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!result->value_set) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
 }
 
 const db_result_t* db_result_next(const db_result_t* result) {
-	if (!result) {
-		return NULL;
-	}
+    if (!result) {
+        return NULL;
+    }
 
-	return result->next;
+    return result->next;
 }
 
 /* DB RESULT LIST */
 
 db_result_list_t* db_result_list_new(void) {
-	db_result_list_t* result_list =
-		(db_result_list_t*)calloc(1, sizeof(db_result_list_t));
+    db_result_list_t* result_list =
+        (db_result_list_t*)calloc(1, sizeof(db_result_list_t));
 
-	return result_list;
+    return result_list;
 }
 
 void db_result_list_free(db_result_list_t* result_list) {
-	if (result_list) {
-		if (result_list->begin) {
-			db_result_t* this = result_list->begin;
-			db_result_t* next = NULL;
+    if (result_list) {
+        if (result_list->begin) {
+            db_result_t* this = result_list->begin;
+            db_result_t* next = NULL;
 
-			while (this) {
-				next = this->next;
-				db_result_free(this);
-				this = next;
-			}
-		}
-		free(result_list);
-	}
+            while (this) {
+                next = this->next;
+                db_result_free(this);
+                this = next;
+            }
+        }
+        free(result_list);
+    }
 }
 
 int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
-	if (!result_list) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!result) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (db_result_not_empty(result)) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (result->next) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!result) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_result_not_empty(result)) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result->next) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	if (result_list->begin) {
-		if (!result_list->end) {
-			return DB_ERROR_UNKNOWN;
-		}
-		result_list->end->next = result;
-		result_list->end = result;
-	}
-	else {
-		result_list->begin = result;
-		result_list->end = result;
-	}
+    if (result_list->begin) {
+        if (!result_list->end) {
+            return DB_ERROR_UNKNOWN;
+        }
+        result_list->end->next = result;
+        result_list->end = result;
+    }
+    else {
+        result_list->begin = result;
+        result_list->end = result;
+    }
 
-	return DB_OK;
+    return DB_OK;
 }
 
 const db_result_t* db_result_list_begin(const db_result_list_t* result_list) {
-	if (!result_list) {
-		return NULL;
-	}
+    if (!result_list) {
+        return NULL;
+    }
 
-	return result_list->begin;
+    return result_list->begin;
 }

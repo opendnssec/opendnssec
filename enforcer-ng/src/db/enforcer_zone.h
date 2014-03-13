@@ -53,11 +53,11 @@ extern "C" {
 #endif
 
 struct enforcer_zone {
-	db_object_t* dbo;
-	int id;
-	char* name;
-	char* policy;
-	int signconf_needs_writing;
+    db_object_t* dbo;
+    int id;
+    char* name;
+    char* policy;
+    int signconf_needs_writing;
     char* signconf_path;
     int next_change;
     int ttl_end_ds;
@@ -66,11 +66,11 @@ struct enforcer_zone {
     int roll_ksk_now;
     int roll_zsk_now;
     int roll_csk_now;
-	int next_ksk_roll;
-	int next_zsk_roll;
-	int next_csk_roll;
+    int next_ksk_roll;
+    int next_zsk_roll;
+    int next_csk_roll;
 
-	/* foreign key */
+    /* foreign key */
     int adapters;
 };
 
@@ -98,10 +98,10 @@ adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t*);
 key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t*);
 
 struct enforcer_zone_list {
-	db_object_t* dbo;
-	db_result_list_t* result_list;
-	const db_result_t* result;
-	enforcer_zone_t* enforcer_zone;
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+    enforcer_zone_t* enforcer_zone;
 };
 
 enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t*);

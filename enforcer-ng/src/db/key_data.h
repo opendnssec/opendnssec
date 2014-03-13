@@ -51,31 +51,31 @@ extern "C" {
 #endif
 
 struct key_data {
-	db_object_t* dbo;
-	int id;
-	char* locator;
-	int algorithm;
-	int inception;
-	char* role;
-	int introducing;
-	int shouldrevoke;
-	int standby;
-	int active_zsk;
-	int publish;
-	int active_ksk;
-	char* ds_at_parent;
-	int keytag;
+    db_object_t* dbo;
+    int id;
+    char* locator;
+    int algorithm;
+    int inception;
+    char* role;
+    int introducing;
+    int shouldrevoke;
+    int standby;
+    int active_zsk;
+    int publish;
+    int active_ksk;
+    char* ds_at_parent;
+    int keytag;
 
-	/* foreign key */
-	int ds;
-	int rrsig;
-	int dnskey;
-	int rrsigdnskey;
+    /* foreign key */
+    int ds;
+    int rrsig;
+    int dnskey;
+    int rrsigdnskey;
     key_state_t* key_state_ds;
     key_state_t* key_state_rrsig;
     key_state_t* key_state_dnskey;
     key_state_t* key_state_rrsigdnskey;
-	key_state_list_t* key_state_list;
+    key_state_list_t* key_state_list;
 };
 
 key_data_t* key_data_new(const db_connection_t*);
@@ -102,10 +102,10 @@ const key_state_t* key_data_get_dnskey(key_data_t*);
 const key_state_t* key_data_get_rrsigdnskey(key_data_t*);
 
 struct key_data_list {
-	db_object_t* dbo;
-	db_result_list_t* result_list;
-	const db_result_t* result;
-	key_data_t* key_data;
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+    key_data_t* key_data;
 };
 
 key_data_list_t* key_data_list_new(const db_connection_t*);

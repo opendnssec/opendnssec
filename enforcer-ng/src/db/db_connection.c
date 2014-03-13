@@ -33,78 +33,78 @@
 #include <stdlib.h>
 
 db_connection_t* db_connection_new(void) {
-	db_connection_t* connection =
-		(db_connection_t*)calloc(1, sizeof(db_connection_t));
+    db_connection_t* connection =
+        (db_connection_t*)calloc(1, sizeof(db_connection_t));
 
-	return connection;
+    return connection;
 }
 
 void db_connection_free(db_connection_t* connection) {
-	if (connection) {
-		if (connection->backend) {
-			db_backend_free(connection->backend);
-		}
-		free(connection);
-	}
+    if (connection) {
+        if (connection->backend) {
+            db_backend_free(connection->backend);
+        }
+        free(connection);
+    }
 }
 
 int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list) {
-	if (!connection) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (connection->configuration_list) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!connection) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (connection->configuration_list) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	connection->configuration_list = configuration_list;
-	return DB_OK;
+    connection->configuration_list = configuration_list;
+    return DB_OK;
 }
 
 int db_connection_setup(db_connection_t* connection) {
-	if (!connection) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!connection->configuration_list) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!connection) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!connection->configuration_list) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	if (!connection->backend) {
-		const db_configuration_t* backend = db_configuration_list_find(connection->configuration_list, "backend");
-		if (!backend) {
-			return DB_ERROR_UNKNOWN;
-		}
+    if (!connection->backend) {
+        const db_configuration_t* backend = db_configuration_list_find(connection->configuration_list, "backend");
+        if (!backend) {
+            return DB_ERROR_UNKNOWN;
+        }
 
-		connection->backend = db_backend_factory_get_backend(db_configuration_value(backend));
-		if (!connection->backend) {
-			return DB_ERROR_UNKNOWN;
-		}
-	}
-	return DB_OK;
+        connection->backend = db_backend_factory_get_backend(db_configuration_value(backend));
+        if (!connection->backend) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    return DB_OK;
 }
 
 int db_connection_connect(const db_connection_t* connection) {
-	if (!connection) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!connection->configuration_list) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!connection->backend) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!connection) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!connection->configuration_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!connection->backend) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	return db_backend_connect(connection->backend, connection->configuration_list);
+    return db_backend_connect(connection->backend, connection->configuration_list);
 }
 
 int db_connection_disconnect(const db_connection_t* connection) {
-	if (!connection) {
-		return DB_ERROR_UNKNOWN;
-	}
-	if (!connection->backend) {
-		return DB_ERROR_UNKNOWN;
-	}
+    if (!connection) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!connection->backend) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-	return db_backend_disconnect(connection->backend);
+    return db_backend_disconnect(connection->backend);
 }
 
 int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
@@ -115,10 +115,10 @@ int db_connection_create(const db_connection_t* connection, const db_object_t* o
         return DB_ERROR_UNKNOWN;
     }
     if (!object_field_list) {
-    	return DB_ERROR_UNKNOWN;
+        return DB_ERROR_UNKNOWN;
     }
     if (!value_set) {
-    	return DB_ERROR_UNKNOWN;
+        return DB_ERROR_UNKNOWN;
     }
     if (!connection->backend) {
         return DB_ERROR_UNKNOWN;
@@ -128,17 +128,17 @@ int db_connection_create(const db_connection_t* connection, const db_object_t* o
 }
 
 db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
-	if (!connection) {
-		return NULL;
-	}
-	if (!object) {
-		return NULL;
-	}
-	if (!connection->backend) {
+    if (!connection) {
         return NULL;
-	}
+    }
+    if (!object) {
+        return NULL;
+    }
+    if (!connection->backend) {
+        return NULL;
+    }
 
-	return db_backend_read(connection->backend, object, join_list, clause_list);
+    return db_backend_read(connection->backend, object, join_list, clause_list);
 }
 
 int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -149,10 +149,10 @@ int db_connection_update(const db_connection_t* connection, const db_object_t* o
         return DB_ERROR_UNKNOWN;
     }
     if (!object_field_list) {
-    	return DB_ERROR_UNKNOWN;
+        return DB_ERROR_UNKNOWN;
     }
     if (!value_set) {
-    	return DB_ERROR_UNKNOWN;
+        return DB_ERROR_UNKNOWN;
     }
     if (!connection->backend) {
         return DB_ERROR_UNKNOWN;

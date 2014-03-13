@@ -53,8 +53,8 @@ extern "C" {
 #endif
 
 struct db_connection {
-	const db_configuration_list_t* configuration_list;
-	db_backend_t* backend;
+    const db_configuration_list_t* configuration_list;
+    db_backend_t* backend;
 };
 
 db_connection_t* db_connection_new(void);

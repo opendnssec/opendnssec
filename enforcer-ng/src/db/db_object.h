@@ -57,9 +57,9 @@ extern "C" {
 #endif
 
 struct db_object_field {
-	db_object_field_t* next;
-	const char* name;
-	db_type_t type;
+    db_object_field_t* next;
+    const char* name;
+    db_type_t type;
 };
 
 db_object_field_t* db_object_field_new(void);
@@ -72,8 +72,8 @@ int db_object_field_not_empty(const db_object_field_t*);
 const db_object_field_t* db_object_field_next(const db_object_field_t*);
 
 struct db_object_field_list {
-	db_object_field_t* begin;
-	db_object_field_t* end;
+    db_object_field_t* begin;
+    db_object_field_t* end;
 };
 
 db_object_field_list_t* db_object_field_list_new(void);
@@ -82,10 +82,10 @@ int db_object_field_list_add(db_object_field_list_t*, db_object_field_t*);
 const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t*);
 
 struct db_object {
-	const db_connection_t* connection;
-	const char* table;
-	const char* primary_key_name;
-	db_object_field_list_t* object_field_list;
+    const db_connection_t* connection;
+    const char* table;
+    const char* primary_key_name;
+    db_object_field_list_t* object_field_list;
 };
 
 db_object_t* db_object_new(void);

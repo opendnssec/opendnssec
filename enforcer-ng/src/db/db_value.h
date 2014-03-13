@@ -52,8 +52,8 @@ extern "C" {
 #endif
 
 struct db_value {
-	db_type_t type;
-	void* data;
+    db_type_t type;
+    void* data;
 };
 
 db_value_t* db_value_new();
@@ -70,8 +70,8 @@ int db_value_from_int(db_value_t*, int);
 int db_value_from_string(db_value_t*, const char*);
 
 struct db_value_set {
-	db_value_t* values;
-	size_t size;
+    db_value_t* values;
+    size_t size;
 };
 
 db_value_set_t* db_value_set_new(size_t);

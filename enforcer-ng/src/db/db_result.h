@@ -50,8 +50,8 @@ extern "C" {
 #endif
 
 struct db_result {
-	db_result_t* next;
-	db_value_set_t* value_set;
+    db_result_t* next;
+    db_value_set_t* value_set;
 };
 
 db_result_t* db_result_new(void);
@@ -62,8 +62,8 @@ int db_result_not_empty(const db_result_t*);
 const db_result_t* db_result_next(const db_result_t*);
 
 struct db_result_list {
-	db_result_t* begin;
-	db_result_t* end;
+    db_result_t* begin;
+    db_result_t* end;
 };
 
 db_result_list_t* db_result_list_new(void);

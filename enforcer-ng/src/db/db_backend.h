@@ -70,17 +70,17 @@ typedef int (*db_backend_handle_transaction_commit_t)(void*);
 typedef int (*db_backend_handle_transaction_rollback_t)(void*);
 
 struct db_backend_handle {
-	void* data;
-	db_backend_handle_initialize_t initialize_function;
-	db_backend_handle_shutdown_t shutdown_function;
-	db_backend_handle_connect_t connect_function;
-	db_backend_handle_disconnect_t disconnect_function;
-	db_backend_handle_create_t create_function;
-	db_backend_handle_read_t read_function;
-	db_backend_handle_update_t update_function;
-	db_backend_handle_delete_t delete_function;
-	db_backend_handle_free_t free_function;
-	db_backend_handle_transaction_begin_t transaction_begin_function;
+    void* data;
+    db_backend_handle_initialize_t initialize_function;
+    db_backend_handle_shutdown_t shutdown_function;
+    db_backend_handle_connect_t connect_function;
+    db_backend_handle_disconnect_t disconnect_function;
+    db_backend_handle_create_t create_function;
+    db_backend_handle_read_t read_function;
+    db_backend_handle_update_t update_function;
+    db_backend_handle_delete_t delete_function;
+    db_backend_handle_free_t free_function;
+    db_backend_handle_transaction_begin_t transaction_begin_function;
     db_backend_handle_transaction_commit_t transaction_commit_function;
     db_backend_handle_transaction_rollback_t transaction_rollback_function;
 };
@@ -115,9 +115,9 @@ int db_backend_handle_set_data(db_backend_handle_t*, void*);
 int db_backend_handle_not_empty(const db_backend_handle_t*);
 
 struct db_backend {
-	db_backend_t* next;
-	char* name;
-	db_backend_handle_t* handle;
+    db_backend_t* next;
+    char* name;
+    db_backend_handle_t* handle;
 };
 
 db_backend_t* db_backend_new(void);
