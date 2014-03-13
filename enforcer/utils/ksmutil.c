@@ -6784,7 +6784,7 @@ int ListKeys(int zone_id)
                 key = hsm_find_key_by_id(NULL, temp_loc);
                 if (!key) {
                     printf("%-33s %s NOT IN repository\n", temp_loc, temp_hsm);
-                } else if (strncmp(temp_zone,"NOT ALLOCATED",13)){
+                } else if (strcmp(temp_zone,"NOT ALLOCATED")){
                     printf("%-33s %s\n",temp_loc,temp_hsm);
                 } else{
                     sign_params = hsm_sign_params_new();
@@ -6821,7 +6821,9 @@ int ListKeys(int zone_id)
 
     DusFree(sql);
     DbFreeRow(row);
-    if (strncmp(temp_zone,"NOT ALLOCATED",13)){
+    if (temp_zone == NULL){
+        DbStringFree(temp_zone);
+    }else if (strcmp(temp_zone,"NOT ALLOCATED")){
         DbStringFree(temp_zone);
     }
     DbStringFree(temp_ready);
