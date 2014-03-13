@@ -30,14 +30,18 @@
 #include "db_configuration.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
 #include <string.h>
 
 /* DB CONFIGURATION */
 
+mm_alloc_t __configuration_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_configuration_t));
+
 db_configuration_t* db_configuration_new(void) {
     db_configuration_t* configuration =
-        (db_configuration_t*)calloc(1, sizeof(db_configuration_t));
+        (db_configuration_t*)mm_alloc_new0(&__configuration_alloc);
 
     return configuration;
 }
@@ -50,7 +54,7 @@ void db_configuration_free(db_configuration_t* configuration) {
         if (configuration->value) {
             free(configuration->value);
         }
-        free(configuration);
+        mm_alloc_delete(&__configuration_alloc, configuration);
     }
 }
 
@@ -121,9 +125,11 @@ int db_configuration_not_empty(const db_configuration_t* configuration) {
 
 /* DB CONFIGURATION LIST */
 
+mm_alloc_t __configuration_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_configuration_list_t));
+
 db_configuration_list_t* db_configuration_list_new(void) {
     db_configuration_list_t* configuration_list =
-        (db_configuration_list_t*)calloc(1, sizeof(db_configuration_list_t));
+        (db_configuration_list_t*)mm_alloc_new0(&__configuration_list_alloc);
 
     return configuration_list;
 }
@@ -140,7 +146,7 @@ void db_configuration_list_free(db_configuration_list_t* configuration_list) {
                 this = next;
             }
         }
-        free(configuration_list);
+        mm_alloc_delete(&__configuration_list_alloc, configuration_list);
     }
 }
 

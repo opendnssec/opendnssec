@@ -30,6 +30,8 @@
 #include "enforcer_zone.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
 
 db_object_t* __enforcer_zone_new_object(const db_connection_t* connection) {
@@ -234,13 +236,15 @@ db_object_t* __enforcer_zone_new_object(const db_connection_t* connection) {
 
 /* ENFORCER ZONE */
 
+mm_alloc_t __enforcer_zone_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(enforcer_zone_t));
+
 enforcer_zone_t* enforcer_zone_new(const db_connection_t* connection) {
     enforcer_zone_t* enforcer_zone =
-        (enforcer_zone_t*)calloc(1, sizeof(enforcer_zone_t));
+        (enforcer_zone_t*)mm_alloc_new0(&__enforcer_zone_alloc);
 
     if (enforcer_zone) {
         if (!(enforcer_zone->dbo = __enforcer_zone_new_object(connection))) {
-            free(enforcer_zone);
+            mm_alloc_delete(&__enforcer_zone_alloc, enforcer_zone);
             return NULL;
         }
     }
@@ -262,7 +266,7 @@ void enforcer_zone_free(enforcer_zone_t* enforcer_zone) {
         if (enforcer_zone->signconf_path) {
             free(enforcer_zone->signconf_path);
         }
-        free(enforcer_zone);
+        mm_alloc_delete(&__enforcer_zone_alloc, enforcer_zone);
     }
 }
 
@@ -484,13 +488,15 @@ key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t*
 
 /* ENFORCER ZONE LIST */
 
+mm_alloc_t __enforcer_zone_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(enforcer_zone_list_t));
+
 enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t* connection) {
     enforcer_zone_list_t* enforcer_zone_list =
-        (enforcer_zone_list_t*)calloc(1, sizeof(enforcer_zone_list_t));
+        (enforcer_zone_list_t*)mm_alloc_new0(&__enforcer_zone_list_alloc);
 
     if (enforcer_zone_list) {
         if (!(enforcer_zone_list->dbo = __enforcer_zone_new_object(connection))) {
-            free(enforcer_zone_list);
+            mm_alloc_delete(&__enforcer_zone_list_alloc, enforcer_zone_list);
             return NULL;
         }
     }
@@ -509,7 +515,7 @@ void enforcer_zone_list_free(enforcer_zone_list_t* enforcer_zone_list) {
         if (enforcer_zone_list->enforcer_zone) {
             enforcer_zone_free(enforcer_zone_list->enforcer_zone);
         }
-        free(enforcer_zone_list);
+        mm_alloc_delete(&__enforcer_zone_list_alloc, enforcer_zone_list);
     }
 }
 

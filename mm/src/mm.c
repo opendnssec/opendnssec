@@ -28,16 +28,29 @@
 
 #include "mm.h"
 
+#include <strings.h>
+
 /* TODO: keep list of blocks, add freeing functionality */
 
 /* TODO: use page size * (something or option in struct) */
 #define __mm_alloc_size 65536
+
+mm_alloc_t mm_char_16 = MM_ALLOC_T_STATIC_NEW(16);
+mm_alloc_t mm_char_32 = MM_ALLOC_T_STATIC_NEW(32);
+mm_alloc_t mm_char_64 = MM_ALLOC_T_STATIC_NEW(64);
+mm_alloc_t mm_char_128 = MM_ALLOC_T_STATIC_NEW(128);
+mm_alloc_t mm_char_256 = MM_ALLOC_T_STATIC_NEW(256);
+mm_alloc_t mm_char_512 = MM_ALLOC_T_STATIC_NEW(512);
+mm_alloc_t mm_char_1024 = MM_ALLOC_T_STATIC_NEW(1024);
 
 void* mm_alloc_new(mm_alloc_t* alloc) {
 	void* ptr;
 
 	if (!alloc) {
 		return NULL;
+	}
+	if (alloc->size < 1) {
+	    return NULL;
 	}
 	if (pthread_mutex_lock(&(alloc->lock))) {
 		return NULL;
@@ -65,6 +78,16 @@ void* mm_alloc_new(mm_alloc_t* alloc) {
 
 	pthread_mutex_unlock(&(alloc->lock));
 	return ptr;
+}
+
+void* mm_alloc_new0(mm_alloc_t* alloc) {
+    void* ptr = mm_alloc_new(alloc);
+
+    if (ptr) {
+        bzero(ptr, alloc->size);
+    }
+
+    return ptr;
 }
 
 void mm_alloc_delete(mm_alloc_t* alloc, void* ptr) {

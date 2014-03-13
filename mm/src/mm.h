@@ -46,7 +46,16 @@ struct mm_alloc
 	pthread_mutex_t lock;
 };
 
+extern mm_alloc_t mm_char_16;
+extern mm_alloc_t mm_char_32;
+extern mm_alloc_t mm_char_64;
+extern mm_alloc_t mm_char_128;
+extern mm_alloc_t mm_char_256;
+extern mm_alloc_t mm_char_512;
+extern mm_alloc_t mm_char_1024;
+
 void* mm_alloc_new(mm_alloc_t*);
+void* mm_alloc_new0(mm_alloc_t*);
 void mm_alloc_delete(mm_alloc_t*, void*);
 
 #ifdef __cplusplus

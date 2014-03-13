@@ -22,6 +22,7 @@ EXTRA_DIST = \
 
 CLEANFILES = $(BUILT_SOURCES)
 
+LIBMM = ${top_builddir}/mm/src/libmm.a
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
 SUBDIRS = utils protobuf-orm/test
@@ -29,6 +30,8 @@ SUBDIRS = utils protobuf-orm/test
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
+    -I$(top_srcdir)/mm/src \
+    -I$(top_builddir)/mm/src \
 	-I$(srcdir)/../../libhsm/src/lib \
 	-I$(builddir)/../../libhsm/src/lib \
 	-I$(srcdir)/xmlext-pb \
@@ -177,6 +180,7 @@ ods_enforcerd_SOURCES = \
     db/key_state.c db/key_state.h
 	
 ods_enforcerd_LDADD = \
+    $(LIBMM) \
 	$(LIBHSM) \
     $(LIBCOMPAT) \
 	@LDNS_LIBS@ \

@@ -30,6 +30,8 @@
 #include "key_data.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
 
 db_object_t* __key_data_new_object(const db_connection_t* connection) {
@@ -245,13 +247,15 @@ db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
 /* ENFORCER ZONE */
 
+mm_alloc_t __key_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_t));
+
 key_data_t* key_data_new(const db_connection_t* connection) {
     key_data_t* key_data =
-        (key_data_t*)calloc(1, sizeof(key_data_t));
+        (key_data_t*)mm_alloc_new0(&__key_data_alloc);
 
     if (key_data) {
         if (!(key_data->dbo = __key_data_new_object(connection))) {
-            free(key_data);
+            mm_alloc_delete(&__key_data_alloc, key_data);
             return NULL;
         }
     }
@@ -286,7 +290,7 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->key_state_list) {
             key_state_list_free(key_data->key_state_list);
         }
-        free(key_data);
+        mm_alloc_delete(&__key_data_alloc, key_data);
     }
 }
 
@@ -644,13 +648,15 @@ const key_state_t* key_data_get_rrsigdnskey(key_data_t* key_data) {
 
 /* ENFORCER ZONE LIST */
 
+mm_alloc_t __key_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_list_t));
+
 key_data_list_t* key_data_list_new(const db_connection_t* connection) {
     key_data_list_t* key_data_list =
-        (key_data_list_t*)calloc(1, sizeof(key_data_list_t));
+        (key_data_list_t*)mm_alloc_new0(&__key_data_list_alloc);
 
     if (key_data_list) {
         if (!(key_data_list->dbo = __key_data_new_object(connection))) {
-            free(key_data_list);
+            mm_alloc_delete(&__key_data_list_alloc, key_data_list);
             return NULL;
         }
     }
@@ -669,7 +675,7 @@ void key_data_list_free(key_data_list_t* key_data_list) {
         if (key_data_list->key_data) {
             key_data_free(key_data_list->key_data);
         }
-        free(key_data_list);
+        mm_alloc_delete(&__key_data_list_alloc, key_data_list);
     }
 }
 

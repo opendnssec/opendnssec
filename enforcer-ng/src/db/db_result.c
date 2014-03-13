@@ -30,11 +30,15 @@
 #include "db_result.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 /* DB RESULT */
+
+mm_alloc_t __result_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_t));
 
 db_result_t* db_result_new(void) {
     db_result_t* result =
-        (db_result_t*)calloc(1, sizeof(db_result_t));
+        (db_result_t*)mm_alloc_new0(&__result_alloc);
 
     return result;
 }
@@ -44,7 +48,7 @@ void db_result_free(db_result_t* result) {
         if (result->value_set) {
             db_value_set_free(result->value_set);
         }
-        free(result);
+        mm_alloc_delete(&__result_alloc, result);
     }
 }
 
@@ -91,9 +95,11 @@ const db_result_t* db_result_next(const db_result_t* result) {
 
 /* DB RESULT LIST */
 
+mm_alloc_t __result_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_list_t));
+
 db_result_list_t* db_result_list_new(void) {
     db_result_list_t* result_list =
-        (db_result_list_t*)calloc(1, sizeof(db_result_list_t));
+        (db_result_list_t*)mm_alloc_new0(&__result_list_alloc);
 
     return result_list;
 }
@@ -110,7 +116,7 @@ void db_result_list_free(db_result_list_t* result_list) {
                 this = next;
             }
         }
-        free(result_list);
+        mm_alloc_delete(&__result_list_alloc, result_list);
     }
 }
 

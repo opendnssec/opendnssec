@@ -30,14 +30,18 @@
 #include "db_clause.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
 #include <string.h>
 
 /* DB CLAUSE */
 
+mm_alloc_t __clause_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_t));
+
 db_clause_t* db_clause_new(void) {
     db_clause_t* clause =
-        (db_clause_t*)calloc(1, sizeof(db_clause_t));
+        (db_clause_t*)mm_alloc_new0(&__clause_alloc);
 
     if (clause) {
         clause->type = DB_CLAUSE_UNKNOWN;
@@ -57,7 +61,7 @@ void db_clause_free(db_clause_t* clause) {
             free(clause->field);
         }
         db_value_reset(&(clause->value));
-        free(clause);
+        mm_alloc_delete(&__clause_alloc, clause);
     }
 }
 
@@ -189,9 +193,11 @@ db_value_t* db_clause_get_value(db_clause_t* clause) {
 
 /* DB CLAUSE LIST */
 
+mm_alloc_t __clause_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_list_t));
+
 db_clause_list_t* db_clause_list_new(void) {
     db_clause_list_t* clause_list =
-        (db_clause_list_t*)calloc(1, sizeof(db_clause_list_t));
+        (db_clause_list_t*)mm_alloc_new0(&__clause_list_alloc);
 
     return clause_list;
 }
@@ -208,7 +214,7 @@ void db_clause_list_free(db_clause_list_t* clause_list) {
                 this = next;
             }
         }
-        free(clause_list);
+        mm_alloc_delete(&__clause_list_alloc, clause_list);
     }
 }
 

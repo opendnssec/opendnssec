@@ -30,6 +30,8 @@
 #include "key_state.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
 
 db_object_t* __key_state_new_object(const db_connection_t* connection) {
@@ -113,13 +115,15 @@ db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
 /* ENFORCER ZONE */
 
+mm_alloc_t __key_state_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_t));
+
 key_state_t* key_state_new(const db_connection_t* connection) {
     key_state_t* key_state =
-        (key_state_t*)calloc(1, sizeof(key_state_t));
+        (key_state_t*)mm_alloc_new0(&__key_state_alloc);
 
     if (key_state) {
         if (!(key_state->dbo = __key_state_new_object(connection))) {
-            free(key_state);
+            mm_alloc_delete(&__key_state_alloc, key_state);
             return NULL;
         }
     }
@@ -135,7 +139,7 @@ void key_state_free(key_state_t* key_state) {
         if (key_state->state) {
             free(key_state->state);
         }
-        free(key_state);
+        mm_alloc_delete(&__key_state_alloc, key_state);
     }
 }
 
@@ -264,13 +268,15 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
 
 /* ENFORCER ZONE LIST */
 
+mm_alloc_t __key_state_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_list_t));
+
 key_state_list_t* key_state_list_new(const db_connection_t* connection) {
     key_state_list_t* key_state_list =
-        (key_state_list_t*)calloc(1, sizeof(key_state_list_t));
+        (key_state_list_t*)mm_alloc_new0(&__key_state_list_alloc);
 
     if (key_state_list) {
         if (!(key_state_list->dbo = __key_state_new_object(connection))) {
-            free(key_state_list);
+            mm_alloc_delete(&__key_state_list_alloc, key_state_list);
             return NULL;
         }
     }
@@ -289,7 +295,7 @@ void key_state_list_free(key_state_list_t* key_state_list) {
         if (key_state_list->key_state) {
             key_state_free(key_state_list->key_state);
         }
-        free(key_state_list);
+        mm_alloc_delete(&__key_state_list_alloc, key_state_list);
     }
 }
 

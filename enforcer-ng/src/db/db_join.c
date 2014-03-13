@@ -30,14 +30,18 @@
 #include "db_join.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
 #include <string.h>
 
-/* DB CLAUSE */
+/* DB JOIN */
+
+mm_alloc_t __join_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_t));
 
 db_join_t* db_join_new(void) {
     db_join_t* join =
-        (db_join_t*)calloc(1, sizeof(db_join_t));
+        (db_join_t*)mm_alloc_new0(&__join_alloc);
 
     return join;
 }
@@ -56,7 +60,7 @@ void db_join_free(db_join_t* join) {
         if (join->to_field) {
             free(join->to_field);
         }
-        free(join);
+        mm_alloc_delete(&__join_alloc, join);
     }
 }
 
@@ -191,11 +195,13 @@ const db_join_t* db_join_next(const db_join_t* join) {
     return join->next;
 }
 
-/* DB CLAUSE LIST */
+/* DB JOIN LIST */
+
+mm_alloc_t __join_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_list_t));
 
 db_join_list_t* db_join_list_new(void) {
     db_join_list_t* join_list =
-        (db_join_list_t*)calloc(1, sizeof(db_join_list_t));
+        (db_join_list_t*)mm_alloc_new0(&__join_list_alloc);
 
     return join_list;
 }
@@ -212,7 +218,7 @@ void db_join_list_free(db_join_list_t* join_list) {
                 this = next;
             }
         }
-        free(join_list);
+        mm_alloc_delete(&__join_list_alloc, join_list);
     }
 }
 

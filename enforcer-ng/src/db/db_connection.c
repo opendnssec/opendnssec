@@ -30,11 +30,15 @@
 #include "db_connection.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
+
+mm_alloc_t __connection_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_connection_t));
 
 db_connection_t* db_connection_new(void) {
     db_connection_t* connection =
-        (db_connection_t*)calloc(1, sizeof(db_connection_t));
+        (db_connection_t*)mm_alloc_new0(&__connection_alloc);
 
     return connection;
 }
@@ -44,7 +48,7 @@ void db_connection_free(db_connection_t* connection) {
         if (connection->backend) {
             db_backend_free(connection->backend);
         }
-        free(connection);
+        mm_alloc_delete(&__connection_alloc, connection);
     }
 }
 

@@ -30,13 +30,17 @@
 #include "db_object.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
 
 /* DB OBJECT FIELD */
 
+mm_alloc_t __object_field_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_field_t));
+
 db_object_field_t* db_object_field_new(void) {
     db_object_field_t* object_field =
-        (db_object_field_t*)calloc(1, sizeof(db_object_field_t));
+        (db_object_field_t*)mm_alloc_new0(&__object_field_alloc);
 
     if (object_field) {
         object_field->type = DB_TYPE_EMPTY;
@@ -47,7 +51,7 @@ db_object_field_t* db_object_field_new(void) {
 
 void db_object_field_free(db_object_field_t* object_field) {
     if (object_field) {
-        free(object_field);
+        mm_alloc_delete(&__object_field_alloc, object_field);
     }
 }
 
@@ -114,9 +118,11 @@ const db_object_field_t* db_object_field_next(const db_object_field_t* object_fi
 
 /* DB OBJECT FIELD LIST */
 
+mm_alloc_t __object_field_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_field_list_t));
+
 db_object_field_list_t* db_object_field_list_new(void) {
     db_object_field_list_t* object_field_list =
-        (db_object_field_list_t*)calloc(1, sizeof(db_object_field_list_t));
+        (db_object_field_list_t*)mm_alloc_new0(&__object_field_list_alloc);
 
     return object_field_list;
 }
@@ -133,7 +139,7 @@ void db_object_field_list_free(db_object_field_list_t* object_field_list) {
                 this = next;
             }
         }
-        free(object_field_list);
+        mm_alloc_delete(&__object_field_list_alloc, object_field_list);
     }
 }
 
@@ -176,9 +182,11 @@ const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t
 
 /* DB OBJECT */
 
+mm_alloc_t __object_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_t));
+
 db_object_t* db_object_new(void) {
     db_object_t* object =
-        (db_object_t*)calloc(1, sizeof(db_object_t));
+        (db_object_t*)mm_alloc_new0(&__object_alloc);
 
     return object;
 }
@@ -188,7 +196,7 @@ void db_object_free(db_object_t* object) {
         if (object->object_field_list) {
             db_object_field_list_free(object->object_field_list);
         }
-        free(object);
+        mm_alloc_delete(&__object_alloc, object);
     }
 }
 

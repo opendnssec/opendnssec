@@ -31,14 +31,18 @@
 #include "db_backend_sqlite.h"
 #include "db_error.h"
 
+#include "mm.h"
+
 #include <stdlib.h>
 #include <string.h>
 
 /* DB BACKEND HANDLE */
 
+mm_alloc_t __backend_handle_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_handle_t));
+
 db_backend_handle_t* db_backend_handle_new(void) {
     db_backend_handle_t* backend_handle =
-        (db_backend_handle_t*)calloc(1, sizeof(db_backend_handle_t));
+        (db_backend_handle_t*)mm_alloc_new0(&__backend_handle_alloc);
 
     return backend_handle;
 }
@@ -51,7 +55,7 @@ void db_backend_handle_free(db_backend_handle_t* backend_handle) {
         if (backend_handle->free_function) {
             (*backend_handle->free_function)(backend_handle->data);
         }
-        free(backend_handle);
+        mm_alloc_delete(&__backend_handle_alloc, backend_handle);
     }
 }
 
@@ -373,9 +377,11 @@ int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
 
 /* DB BACKEND */
 
+mm_alloc_t __backend_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_t));
+
 db_backend_t* db_backend_new(void) {
     db_backend_t* backend =
-        (db_backend_t*)calloc(1, sizeof(db_backend_t));
+        (db_backend_t*)mm_alloc_new0(&__backend_alloc);
 
     return backend;
 }
@@ -388,7 +394,7 @@ void db_backend_free(db_backend_t* backend) {
         if (backend->name) {
             free(backend->name);
         }
-        free(backend);
+        mm_alloc_delete(&__backend_alloc, backend);
     }
 }
 
