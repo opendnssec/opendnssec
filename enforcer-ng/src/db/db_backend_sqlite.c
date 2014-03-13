@@ -133,7 +133,7 @@ int db_backend_sqlite_disconnect(void* data) {
 	return 0;
 }
 
-int db_backend_sqlite_create(void* data, const db_object_t* object) {
+int db_backend_sqlite_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
 	if (!__sqlite3_initialized) {
@@ -417,7 +417,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 	return result_list;
 }
 
-int db_backend_sqlite_update(void* data, const db_object_t* object) {
+int db_backend_sqlite_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
 	if (!__sqlite3_initialized) {
@@ -430,7 +430,7 @@ int db_backend_sqlite_update(void* data, const db_object_t* object) {
 	return 1;
 }
 
-int db_backend_sqlite_delete(void* data, const db_object_t* object) {
+int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
 	if (!__sqlite3_initialized) {

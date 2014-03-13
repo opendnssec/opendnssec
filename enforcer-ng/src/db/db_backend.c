@@ -98,8 +98,17 @@ int db_backend_handle_disconnect(const db_backend_handle_t* backend_handle) {
 	return backend_handle->disconnect_function((void*)backend_handle->data);
 }
 
-int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object) {
+int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
 	if (!backend_handle) {
+		return 1;
+	}
+	if (!object) {
+		return 1;
+	}
+	if (!object_field_list) {
+		return 1;
+	}
+	if (!value_set) {
 		return 1;
 	}
 	if (!backend_handle->create_function) {
@@ -123,8 +132,17 @@ db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_hand
 	return backend_handle->read_function((void*)backend_handle->data, object, join_list, clause_list);
 }
 
-int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object) {
+int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!backend_handle) {
+		return 1;
+	}
+	if (!object) {
+		return 1;
+	}
+	if (!object_field_list) {
+		return 1;
+	}
+	if (!value_set) {
 		return 1;
 	}
 	if (!backend_handle->update_function) {
@@ -134,8 +152,11 @@ int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db
 	return backend_handle->update_function((void*)backend_handle->data, object);
 }
 
-int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object) {
+int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!backend_handle) {
+		return 1;
+	}
+	if (!object) {
 		return 1;
 	}
 	if (!backend_handle->delete_function) {
@@ -476,8 +497,17 @@ int db_backend_disconnect(const db_backend_t* backend) {
 	return db_backend_handle_disconnect(backend->handle);
 }
 
-int db_backend_create(const db_backend_t* backend, const db_object_t* object) {
+int db_backend_create(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
 	if (!backend) {
+		return 1;
+	}
+	if (!object) {
+		return 1;
+	}
+	if (!object_field_list) {
+		return 1;
+	}
+	if (!value_set) {
 		return 1;
 	}
 	if (!backend->handle) {
@@ -501,8 +531,17 @@ db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t
 	return db_backend_handle_read(backend->handle, object, join_list, clause_list);
 }
 
-int db_backend_update(const db_backend_t* backend, const db_object_t* object) {
+int db_backend_update(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!backend) {
+		return 1;
+	}
+	if (!object) {
+		return 1;
+	}
+	if (!object_field_list) {
+		return 1;
+	}
+	if (!value_set) {
 		return 1;
 	}
 	if (!backend->handle) {
@@ -512,8 +551,11 @@ int db_backend_update(const db_backend_t* backend, const db_object_t* object) {
 	return db_backend_handle_update(backend->handle, object);
 }
 
-int db_backend_delete(const db_backend_t* backend, const db_object_t* object) {
+int db_backend_delete(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	if (!backend) {
+		return 1;
+	}
+	if (!object) {
 		return 1;
 	}
 	if (!backend->handle) {

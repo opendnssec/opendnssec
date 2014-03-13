@@ -279,9 +279,12 @@ int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t*
 	return 0;
 }
 
-int db_object_create(const db_object_t* object) {
+int db_object_create(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     if (!object) {
         return 1;
+    }
+    if (!value_set) {
+    	return 1;
     }
     if (!object->connection) {
         return 1;
@@ -293,7 +296,10 @@ int db_object_create(const db_object_t* object) {
         return 1;
     }
 
-    return db_connection_create(object->connection, object);
+    if (object_field_list) {
+    	return db_connection_create(object->connection, object, object_field_list, value_set);
+    }
+	return db_connection_create(object->connection, object, object->object_field_list, value_set);
 }
 
 db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -313,9 +319,12 @@ db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t
 	return db_connection_read(object->connection, object, join_list, clause_list);
 }
 
-int db_object_update(const db_object_t* object) {
+int db_object_update(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     if (!object) {
         return 1;
+    }
+    if (!value_set) {
+    	return 1;
     }
     if (!object->connection) {
         return 1;
@@ -327,10 +336,13 @@ int db_object_update(const db_object_t* object) {
         return 1;
     }
 
-    return db_connection_update(object->connection, object);
+    if (object_field_list) {
+        return db_connection_update(object->connection, object, object_field_list, value_set, join_list, clause_list);
+    }
+    return db_connection_update(object->connection, object, object->object_field_list, value_set, join_list, clause_list);
 }
 
-int db_object_delete(const db_object_t* object) {
+int db_object_delete(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     if (!object) {
         return 1;
     }
@@ -344,5 +356,5 @@ int db_object_delete(const db_object_t* object) {
         return 1;
     }
 
-    return db_connection_delete(object->connection, object);
+    return db_connection_delete(object->connection, object, join_list, clause_list);
 }
