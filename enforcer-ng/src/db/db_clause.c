@@ -28,6 +28,7 @@
  */
 
 #include "db_clause.h"
+#include "db_error.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -96,70 +97,70 @@ int db_clause_set_table(db_clause_t* clause, const char* table) {
 	char* new_table;
 
 	if (!clause) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(new_table = strdup(table))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (clause->table) {
 		free(clause->table);
 	}
 	clause->table = new_table;
-	return 0;
+	return DB_OK;
 }
 
 int db_clause_set_field(db_clause_t* clause, const char* field) {
 	char* new_field;
 
 	if (!clause) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(new_field = strdup(field))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (clause->field) {
 		free(clause->field);
 	}
 	clause->field = new_field;
-	return 0;
+	return DB_OK;
 }
 
 int db_clause_set_type(db_clause_t* clause, db_clause_type_t type) {
 	if (!clause) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	clause->type = type;
-	return 0;
+	return DB_OK;
 }
 
 int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_operator) {
 	if (!clause) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (clause_operator == DB_CLAUSE_OPERATOR_UNKNOWN) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	clause->clause_operator = clause_operator;
-	return 0;
+	return DB_OK;
 }
 
 int db_clause_not_empty(const db_clause_t* clause) {
 	if (!clause) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!clause->field) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (clause->type == DB_CLAUSE_UNKNOWN) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 const db_clause_t* db_clause_next(const db_clause_t* clause) {
@@ -205,21 +206,21 @@ void db_clause_list_free(db_clause_list_t* clause_list) {
 
 int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause) {
 	if (!clause_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!clause) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (db_clause_not_empty(clause)) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (clause->next) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (clause_list->begin) {
 		if (!clause_list->end) {
-			return 1;
+			return DB_ERROR_UNKNOWN;
 		}
 		clause_list->end->next = clause;
 		clause_list->end = clause;
@@ -229,7 +230,7 @@ int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause) {
 		clause_list->end = clause;
 	}
 
-	return 0;
+	return DB_OK;
 }
 
 const db_clause_t* db_clause_list_begin(const db_clause_list_t* clause_list) {

@@ -31,6 +31,7 @@
 #include "db_backend.h"
 #include "db_connection.h"
 #include "db_object.h"
+#include "db_error.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -164,7 +165,7 @@ void test_free(test_t* test) {
  */
 int test_id(const test_t* test) {
 	if (!test) {
-		return 0;
+		return DB_OK;
 	}
 
 	return test->id;

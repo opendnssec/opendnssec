@@ -28,6 +28,7 @@
  */
 
 #include "db_value.h"
+#include "db_error.h"
 
 #include <string.h>
 
@@ -81,105 +82,105 @@ const void* db_value_data(const db_value_t* value) {
 
 int db_value_set_type(db_value_t* value, db_type_t type) {
 	if (!value) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (type != DB_TYPE_EMPTY) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	value->type = type;
-	return 0;
+	return DB_OK;
 }
 
 int db_value_set_data(db_value_t* value, void* data) {
 	if (!value) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	value->data = data;
-	return 0;
+	return DB_OK;
 }
 
 int db_value_not_empty(const db_value_t* value) {
 	if (!value) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (value->type == DB_TYPE_EMPTY) {
-		return 1;
+        return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 int db_value_to_int(const db_value_t* value, int* to_int) {
 	if (!value) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!to_int) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (value->type != DB_TYPE_INTEGER) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	*to_int = *(int*)(value->data);
-	return 0;
+	return DB_OK;
 }
 
 int db_value_to_string(const db_value_t* value, char** to_string) {
 	if (!value) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!to_string) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (value->type != DB_TYPE_STRING) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	*to_string = strdup((char*)value->data);
 	if (!*to_string) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 int db_value_from_int(db_value_t* value, int from_int) {
 	if (!value) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	/* TODO: support converting int to value->type */
 	if (value->type != DB_TYPE_EMPTY) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	/* TODO: store it inside the void* if fit */
 	value->data = (void*)calloc(1, sizeof(int));
 	if (!value->data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	*(int*)(value->data) = from_int;
 	value->type = DB_TYPE_INTEGER;
-	return 0;
+	return DB_OK;
 }
 
 int db_value_from_string(db_value_t* value, const char* from_string) {
 	if (!value) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	/* TODO: support converting char* to value->type */
 	if (value->type != DB_TYPE_EMPTY) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	value->data = (void*)strdup(from_string);
 	if (!value->data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	value->type = DB_TYPE_STRING;
-	return 0;
+	return DB_OK;
 }
 
 /* DB VALUE SET */
@@ -219,7 +220,7 @@ void db_value_set_free(db_value_set_t* value_set) {
 
 size_t db_value_set_size(const db_value_set_t* value_set) {
 	if (!value_set) {
-		return 0;
+		return DB_OK;
 	}
 
 	return value_set->size;

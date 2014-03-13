@@ -28,6 +28,7 @@
  */
 
 #include "db_backend_sqlite.h"
+#include "db_error.h"
 
 #include "shared/log.h"
 
@@ -46,34 +47,34 @@ int db_backend_sqlite_initialize(void* data) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
 	if (!backend_sqlite) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!__sqlite3_initialized) {
 		int ret = sqlite3_initialize();
 		if (ret != SQLITE_OK) {
-			return 1;
+			return DB_ERROR_UNKNOWN;
 		}
 		__sqlite3_initialized = 1;
 	}
-	return 0;
+	return DB_OK;
 }
 
 int db_backend_sqlite_shutdown(void* data) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
 	if (!backend_sqlite) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (__sqlite3_initialized) {
 		int ret = sqlite3_shutdown();
 		if (ret != SQLITE_OK) {
-			return 1;
+			return DB_ERROR_UNKNOWN;
 		}
 		__sqlite3_initialized = 0;
 	}
-	return 0;
+	return DB_OK;
 }
 
 int db_backend_sqlite_connect(void* data, const db_configuration_list_t* configuration_list) {
@@ -82,20 +83,20 @@ int db_backend_sqlite_connect(void* data, const db_configuration_list_t* configu
 	int ret;
 
 	if (!__sqlite3_initialized) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!backend_sqlite) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (backend_sqlite->db) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!configuration_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(file = db_configuration_list_find(configuration_list, "file"))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	ret = sqlite3_open_v2(
@@ -106,9 +107,9 @@ int db_backend_sqlite_connect(void* data, const db_configuration_list_t* configu
 		| SQLITE_OPEN_FULLMUTEX,
 		NULL);
 	if (ret != SQLITE_OK) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 int db_backend_sqlite_disconnect(void* data) {
@@ -116,34 +117,34 @@ int db_backend_sqlite_disconnect(void* data) {
 	int ret;
 
 	if (!__sqlite3_initialized) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!backend_sqlite) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!backend_sqlite->db) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	ret = sqlite3_close(backend_sqlite->db);
 	if (ret != SQLITE_OK) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	backend_sqlite->db = NULL;
-	return 0;
+	return DB_OK;
 }
 
 int db_backend_sqlite_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
 	if (!__sqlite3_initialized) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!backend_sqlite) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
-	return 1;
+	return DB_ERROR_UNKNOWN;
 }
 
 db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -421,26 +422,26 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
 	if (!__sqlite3_initialized) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!backend_sqlite) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
-	return 1;
+	return DB_ERROR_UNKNOWN;
 }
 
 int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
 	db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
 	if (!__sqlite3_initialized) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!backend_sqlite) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
-	return 1;
+	return DB_ERROR_UNKNOWN;
 }
 
 void db_backend_sqlite_free(void* data) {
@@ -457,19 +458,19 @@ void db_backend_sqlite_free(void* data) {
 int db_backend_sqlite_transaction_begin(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
-    return 1;
+    return DB_ERROR_UNKNOWN;
 }
 
 int db_backend_sqlite_transaction_commit(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
-    return 1;
+    return DB_ERROR_UNKNOWN;
 }
 
 int db_backend_sqlite_transaction_rollback(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
-    return 1;
+    return DB_ERROR_UNKNOWN;
 }
 
 db_backend_handle_t* db_backend_sqlite_new_handle(void) {

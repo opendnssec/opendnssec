@@ -28,6 +28,7 @@
  */
 
 #include "key_state.h"
+#include "db_error.h"
 
 #include <stdlib.h>
 
@@ -155,10 +156,10 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
 	const db_value_set_t* value_set;
 
 	if (!key_state) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!result) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	key_state_reset(key_state);
@@ -170,14 +171,14 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
 		|| db_value_to_int(db_value_set_get(value_set, 3), &(key_state->minimize))
 		|| db_value_to_int(db_value_set_get(value_set, 4), &(key_state->ttl)))
 	{
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 int key_state_id(const key_state_t* key_state) {
 	if (!key_state) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_state->id;
@@ -193,7 +194,7 @@ const char* key_state_state(const key_state_t* key_state) {
 
 int key_state_last_change(const key_state_t* key_state) {
 	if (!key_state) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_state->last_change;
@@ -201,7 +202,7 @@ int key_state_last_change(const key_state_t* key_state) {
 
 int key_state_minimize(const key_state_t* key_state) {
 	if (!key_state) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_state->minimize;
@@ -209,7 +210,7 @@ int key_state_minimize(const key_state_t* key_state) {
 
 int key_state_ttl(const key_state_t* key_state) {
 	if (!key_state) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_state->ttl;
@@ -223,14 +224,14 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
 	const db_value_set_t* value_set;
 
 	if (!key_state) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!key_state->dbo) {
-	    return 1;
+	    return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(clause_list = db_clause_list_new())) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!(clause = db_clause_new())
 		|| db_clause_set_field(clause, "id")
@@ -240,7 +241,7 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
 	{
 		db_clause_free(clause);
 		db_clause_list_free(clause_list);
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	result_list = db_object_read(key_state->dbo, NULL, clause_list);
@@ -253,12 +254,12 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
 	{
 		db_result_list_free(result_list);
 		db_clause_list_free(clause_list);
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	db_result_list_free(result_list);
 	db_clause_list_free(clause_list);
-	return 0;
+	return DB_OK;
 }
 
 /* ENFORCER ZONE LIST */
@@ -297,26 +298,26 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     db_clause_t* clause;
 
     if (!key_state_list) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!key_state_list->dbo) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!id1) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!id2) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!id3) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!id4) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     if (!(clause_list = db_clause_list_new())) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
@@ -326,7 +327,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     {
         db_clause_free(clause);
         db_clause_list_free(clause_list);
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
@@ -337,7 +338,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     {
         db_clause_free(clause);
         db_clause_list_free(clause_list);
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
@@ -348,7 +349,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     {
         db_clause_free(clause);
         db_clause_list_free(clause_list);
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
@@ -359,7 +360,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     {
         db_clause_free(clause);
         db_clause_list_free(clause_list);
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     if (key_state_list->result_list) {
@@ -367,10 +368,10 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     }
     if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, clause_list))) {
         db_clause_list_free(clause_list);
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     db_clause_list_free(clause_list);
-    return 0;
+    return DB_OK;
 }
 
 const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {

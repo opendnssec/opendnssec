@@ -28,6 +28,7 @@
  */
 
 #include "enforcer_zone.h"
+#include "db_error.h"
 
 #include <stdlib.h>
 
@@ -299,10 +300,10 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
 	const db_value_set_t* value_set;
 
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!result) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	enforcer_zone_reset(enforcer_zone);
@@ -325,14 +326,14 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
 		|| db_value_to_int(db_value_set_get(value_set, 14), &(enforcer_zone->next_zsk_roll))
 		|| db_value_to_int(db_value_set_get(value_set, 15), &(enforcer_zone->next_csk_roll)))
 	{
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 int enforcer_zone_id(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->id;
@@ -356,7 +357,7 @@ const char* enforcer_zone_policy(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_signconf_needs_writing(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->signconf_needs_writing;
@@ -372,7 +373,7 @@ const char* enforcer_zone_signconf_path(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_next_change(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->next_change;
@@ -380,7 +381,7 @@ int enforcer_zone_next_change(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_ttl_end_ds(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->ttl_end_ds;
@@ -388,7 +389,7 @@ int enforcer_zone_ttl_end_ds(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_ttl_end_dk(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->ttl_end_dk;
@@ -396,7 +397,7 @@ int enforcer_zone_ttl_end_dk(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_ttl_end_rs(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->ttl_end_rs;
@@ -404,7 +405,7 @@ int enforcer_zone_ttl_end_rs(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_roll_ksk_now(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->roll_ksk_now;
@@ -412,7 +413,7 @@ int enforcer_zone_roll_ksk_now(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_roll_zsk_now(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->roll_zsk_now;
@@ -420,7 +421,7 @@ int enforcer_zone_roll_zsk_now(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_roll_csk_now(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->roll_csk_now;
@@ -428,7 +429,7 @@ int enforcer_zone_roll_csk_now(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_next_ksk_roll(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->next_ksk_roll;
@@ -436,7 +437,7 @@ int enforcer_zone_next_ksk_roll(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_next_zsk_roll(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->next_zsk_roll;
@@ -444,7 +445,7 @@ int enforcer_zone_next_zsk_roll(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_next_csk_roll(const enforcer_zone_t* enforcer_zone) {
 	if (!enforcer_zone) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return enforcer_zone->next_csk_roll;
@@ -514,19 +515,19 @@ void enforcer_zone_list_free(enforcer_zone_list_t* enforcer_zone_list) {
 
 int enforcer_zone_list_get(enforcer_zone_list_t* enforcer_zone_list) {
 	if (!enforcer_zone_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!enforcer_zone_list->dbo) {
-	    return 1;
+	    return DB_ERROR_UNKNOWN;
 	}
 
 	if (enforcer_zone_list->result_list) {
 		db_result_list_free(enforcer_zone_list->result_list);
 	}
 	if (!(enforcer_zone_list->result_list = db_object_read(enforcer_zone_list->dbo, NULL, NULL))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t* enforcer_zone_list) {

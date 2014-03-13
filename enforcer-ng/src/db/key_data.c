@@ -28,6 +28,7 @@
  */
 
 #include "key_data.h"
+#include "db_error.h"
 
 #include <stdlib.h>
 
@@ -344,10 +345,10 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
 	const db_value_set_t* value_set;
 
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!result) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	key_data_reset(key_data);
@@ -371,14 +372,14 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
 		|| db_value_to_int(db_value_set_get(value_set, 15), &(key_data->dnskey))
 		|| db_value_to_int(db_value_set_get(value_set, 16), &(key_data->rrsigdnskey)))
 	{
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 int key_data_id(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->id;
@@ -394,7 +395,7 @@ const char* key_data_locator(const key_data_t* key_data) {
 
 int key_data_algorithm(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->algorithm;
@@ -402,7 +403,7 @@ int key_data_algorithm(const key_data_t* key_data) {
 
 int key_data_inception(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->inception;
@@ -418,7 +419,7 @@ const char* key_data_role(const key_data_t* key_data) {
 
 int key_data_introducing(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->introducing;
@@ -426,7 +427,7 @@ int key_data_introducing(const key_data_t* key_data) {
 
 int key_data_shouldrevoke(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->shouldrevoke;
@@ -434,7 +435,7 @@ int key_data_shouldrevoke(const key_data_t* key_data) {
 
 int key_data_standby(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->standby;
@@ -442,7 +443,7 @@ int key_data_standby(const key_data_t* key_data) {
 
 int key_data_active_zsk(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->active_zsk;
@@ -450,7 +451,7 @@ int key_data_active_zsk(const key_data_t* key_data) {
 
 int key_data_publish(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->publish;
@@ -458,7 +459,7 @@ int key_data_publish(const key_data_t* key_data) {
 
 int key_data_active_ksk(const key_data_t* key_data) {
 	if (!key_data) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return key_data->active_ksk;
@@ -477,36 +478,36 @@ const char* key_data_ds_at_parent(const key_data_t* key_data) {
 
 int key_data_get_key_state_list(key_data_t* key_data) {
     if (!key_data) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!key_data->dbo) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!key_data->ds) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!key_data->rrsig) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!key_data->dnskey) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!key_data->rrsigdnskey) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     if (!key_data->key_state_list) {
         key_data->key_state_list = key_state_list_new(db_object_connection(key_data->dbo));
         if (!key_data->key_state_list) {
-            return 1;
+            return DB_ERROR_UNKNOWN;
         }
         if (key_state_list_get_4_by_id(key_data->key_state_list, key_data->ds, key_data->rrsig, key_data->dnskey, key_data->rrsigdnskey)) {
             key_state_list_free(key_data->key_state_list);
             key_data->key_state_list = NULL;
-            return 1;
+            return DB_ERROR_UNKNOWN;
         }
     }
-    return 0;
+    return DB_OK;
 }
 
 const key_state_t* key_data_get_ds(key_data_t* key_data) {
@@ -679,11 +680,11 @@ int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int en
 	db_clause_t* clause;
 
 	if (!key_data_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(join_list = db_join_list_new())) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!(join = db_join_new())
 		|| db_join_set_from_table(join, "KeyData")
@@ -694,12 +695,12 @@ int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int en
 	{
 		db_join_free(join);
 		db_join_list_free(join_list);
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(clause_list = db_clause_list_new())) {
 		db_join_list_free(join_list);
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!(clause = db_clause_new())
 		|| db_clause_set_table(clause, "EnforcerZone_keys")
@@ -711,7 +712,7 @@ int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int en
 		db_join_list_free(join_list);
 		db_clause_free(clause);
 		db_clause_list_free(clause_list);
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (key_data_list->result_list) {
@@ -724,9 +725,9 @@ int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int en
 	db_clause_list_free(clause_list);
 
 	if (!key_data_list->result_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 const key_data_t* key_data_list_begin(key_data_list_t* key_data_list) {

@@ -28,6 +28,7 @@
  */
 
 #include "db_configuration.h"
+#include "db_error.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -73,49 +74,49 @@ int db_configuration_set_name(db_configuration_t* configuration, const char* nam
 	char* new_name;
 
 	if (!configuration) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(new_name = strdup(name))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (configuration->name) {
 		free(configuration->name);
 	}
 	configuration->name = new_name;
-	return 0;
+	return DB_OK;
 }
 
 int db_configuration_set_value(db_configuration_t* configuration, const char* value) {
 	char* new_value;
 
 	if (!configuration) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(new_value = strdup(value))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (configuration->value) {
 		free(configuration->value);
 	}
 	configuration->value = new_value;
-	return 0;
+	return DB_OK;
 }
 
 int db_configuration_not_empty(const db_configuration_t* configuration) {
 	if (!configuration) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!configuration->name) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!configuration->value) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 /* DB CONFIGURATION LIST */
@@ -145,21 +146,21 @@ void db_configuration_list_free(db_configuration_list_t* configuration_list) {
 
 int db_configuration_list_add(db_configuration_list_t* configuration_list, db_configuration_t* configuration) {
 	if (!configuration_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!configuration) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (db_configuration_not_empty(configuration)) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (configuration->next) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (configuration_list->begin) {
 		if (!configuration_list->end) {
-			return 1;
+			return DB_ERROR_UNKNOWN;
 		}
 		configuration_list->end->next = configuration;
 		configuration_list->end = configuration;
@@ -169,7 +170,7 @@ int db_configuration_list_add(db_configuration_list_t* configuration_list, db_co
 		configuration_list->end = configuration;
 	}
 
-	return 0;
+	return DB_OK;
 }
 
 const db_configuration_t* db_configuration_list_find(const db_configuration_list_t* configuration_list, const char* name) {

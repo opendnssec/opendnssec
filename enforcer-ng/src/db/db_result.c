@@ -28,6 +28,7 @@
  */
 
 #include "db_result.h"
+#include "db_error.h"
 
 /* DB RESULT */
 
@@ -57,27 +58,27 @@ const db_value_set_t* db_result_value_set(const db_result_t* result) {
 
 int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set) {
 	if (!result) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!value_set) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (result->value_set) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	result->value_set = value_set;
-	return 0;
+	return DB_OK;
 }
 
 int db_result_not_empty(const db_result_t* result) {
 	if (!result) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!result->value_set) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 const db_result_t* db_result_next(const db_result_t* result) {
@@ -115,21 +116,21 @@ void db_result_list_free(db_result_list_t* result_list) {
 
 int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
 	if (!result_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!result) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (db_result_not_empty(result)) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (result->next) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (result_list->begin) {
 		if (!result_list->end) {
-			return 1;
+			return DB_ERROR_UNKNOWN;
 		}
 		result_list->end->next = result;
 		result_list->end = result;
@@ -139,7 +140,7 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
 		result_list->end = result;
 	}
 
-	return 0;
+	return DB_OK;
 }
 
 const db_result_t* db_result_list_begin(const db_result_list_t* result_list) {

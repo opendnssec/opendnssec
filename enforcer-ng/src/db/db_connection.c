@@ -28,6 +28,7 @@
  */
 
 #include "db_connection.h"
+#include "db_error.h"
 
 #include <stdlib.h>
 
@@ -49,47 +50,47 @@ void db_connection_free(db_connection_t* connection) {
 
 int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list) {
 	if (!connection) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (connection->configuration_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	connection->configuration_list = configuration_list;
-	return 0;
+	return DB_OK;
 }
 
 int db_connection_setup(db_connection_t* connection) {
 	if (!connection) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!connection->configuration_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!connection->backend) {
 		const db_configuration_t* backend = db_configuration_list_find(connection->configuration_list, "backend");
 		if (!backend) {
-			return 1;
+			return DB_ERROR_UNKNOWN;
 		}
 
 		connection->backend = db_backend_factory_get_backend(db_configuration_value(backend));
 		if (!connection->backend) {
-			return 1;
+			return DB_ERROR_UNKNOWN;
 		}
 	}
-	return 0;
+	return DB_OK;
 }
 
 int db_connection_connect(const db_connection_t* connection) {
 	if (!connection) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!connection->configuration_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!connection->backend) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return db_backend_connect(connection->backend, connection->configuration_list);
@@ -97,10 +98,10 @@ int db_connection_connect(const db_connection_t* connection) {
 
 int db_connection_disconnect(const db_connection_t* connection) {
 	if (!connection) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!connection->backend) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	return db_backend_disconnect(connection->backend);
@@ -108,19 +109,19 @@ int db_connection_disconnect(const db_connection_t* connection) {
 
 int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     if (!connection) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!object) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!object_field_list) {
-    	return 1;
+    	return DB_ERROR_UNKNOWN;
     }
     if (!value_set) {
-    	return 1;
+    	return DB_ERROR_UNKNOWN;
     }
     if (!connection->backend) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     return db_backend_create(connection->backend, object, object_field_list, value_set);
@@ -142,19 +143,19 @@ db_result_list_t* db_connection_read(const db_connection_t* connection, const db
 
 int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     if (!connection) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!object) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!object_field_list) {
-    	return 1;
+    	return DB_ERROR_UNKNOWN;
     }
     if (!value_set) {
-    	return 1;
+    	return DB_ERROR_UNKNOWN;
     }
     if (!connection->backend) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     return db_backend_update(connection->backend, object, object_field_list, value_set, join_list, clause_list);
@@ -162,13 +163,13 @@ int db_connection_update(const db_connection_t* connection, const db_object_t* o
 
 int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     if (!connection) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!object) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!connection->backend) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     return db_backend_delete(connection->backend, object, join_list, clause_list);
@@ -176,10 +177,10 @@ int db_connection_delete(const db_connection_t* connection, const db_object_t* o
 
 int db_connection_transaction_begin(const db_connection_t* connection) {
     if (!connection) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!connection->backend) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     return db_backend_transaction_begin(connection->backend);
@@ -187,10 +188,10 @@ int db_connection_transaction_begin(const db_connection_t* connection) {
 
 int db_connection_transaction_commit(const db_connection_t* connection) {
     if (!connection) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!connection->backend) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     return db_backend_transaction_commit(connection->backend);
@@ -198,10 +199,10 @@ int db_connection_transaction_commit(const db_connection_t* connection) {
 
 int db_connection_transaction_rollback(const db_connection_t* connection) {
     if (!connection) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
     if (!connection->backend) {
-        return 1;
+        return DB_ERROR_UNKNOWN;
     }
 
     return db_backend_transaction_rollback(connection->backend);

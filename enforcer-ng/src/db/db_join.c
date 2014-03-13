@@ -28,6 +28,7 @@
  */
 
 #include "db_join.h"
+#include "db_error.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -95,91 +96,91 @@ int db_join_set_from_table(db_join_t* join, const char* from_table) {
 	char* new_from_table;
 
 	if (!join) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(new_from_table = strdup(from_table))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (join->from_table) {
 		free(join->from_table);
 	}
 	join->from_table = new_from_table;
-	return 0;
+	return DB_OK;
 }
 
 int db_join_set_from_field(db_join_t* join, const char* from_field) {
 	char* new_from_field;
 
 	if (!join) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(new_from_field = strdup(from_field))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (join->from_field) {
 		free(join->from_field);
 	}
 	join->from_field = new_from_field;
-	return 0;
+	return DB_OK;
 }
 
 int db_join_set_to_table(db_join_t* join, const char* to_table) {
 	char* new_to_table;
 
 	if (!join) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(new_to_table = strdup(to_table))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (join->to_table) {
 		free(join->to_table);
 	}
 	join->to_table = new_to_table;
-	return 0;
+	return DB_OK;
 }
 
 int db_join_set_to_field(db_join_t* join, const char* to_field) {
 	char* new_to_field;
 
 	if (!join) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (!(new_to_field = strdup(to_field))) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (join->to_field) {
 		free(join->to_field);
 	}
 	join->to_field = new_to_field;
-	return 0;
+	return DB_OK;
 }
 
 int db_join_not_empty(const db_join_t* join) {
 	if (!join) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!join->from_table) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!join->from_field) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!join->to_table) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!join->to_field) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
-	return 0;
+	return DB_OK;
 }
 
 const db_join_t* db_join_next(const db_join_t* join) {
@@ -217,21 +218,21 @@ void db_join_list_free(db_join_list_t* join_list) {
 
 int db_join_list_add(db_join_list_t* join_list, db_join_t* join) {
 	if (!join_list) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (!join) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (db_join_not_empty(join)) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 	if (join->next) {
-		return 1;
+		return DB_ERROR_UNKNOWN;
 	}
 
 	if (join_list->begin) {
 		if (!join_list->end) {
-			return 1;
+			return DB_ERROR_UNKNOWN;
 		}
 		join_list->end->next = join;
 		join_list->end = join;
@@ -241,7 +242,7 @@ int db_join_list_add(db_join_list_t* join_list, db_join_t* join) {
 		join_list->end = join;
 	}
 
-	return 0;
+	return DB_OK;
 }
 
 const db_join_t* db_join_list_begin(const db_join_list_t* join_list) {
