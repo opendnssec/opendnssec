@@ -116,7 +116,7 @@ int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db
         return DB_ERROR_UNKNOWN;
     }
 
-    return backend_handle->create_function((void*)backend_handle->data, object);
+    return backend_handle->create_function((void*)backend_handle->data, object, object_field_list, value_set);
 }
 
 db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -150,7 +150,7 @@ int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db
         return DB_ERROR_UNKNOWN;
     }
 
-    return backend_handle->update_function((void*)backend_handle->data, object);
+    return backend_handle->update_function((void*)backend_handle->data, object, object_field_list, value_set, join_list, clause_list);
 }
 
 int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -164,7 +164,7 @@ int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db
         return DB_ERROR_UNKNOWN;
     }
 
-    return backend_handle->delete_function((void*)backend_handle->data, object);
+    return backend_handle->delete_function((void*)backend_handle->data, object, join_list, clause_list);
 }
 
 int db_backend_handle_transaction_begin(const db_backend_handle_t* backend_handle) {
@@ -515,7 +515,7 @@ int db_backend_create(const db_backend_t* backend, const db_object_t* object, co
         return DB_ERROR_UNKNOWN;
     }
 
-    return db_backend_handle_create(backend->handle, object);
+    return db_backend_handle_create(backend->handle, object, object_field_list, value_set);
 }
 
 db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -549,7 +549,7 @@ int db_backend_update(const db_backend_t* backend, const db_object_t* object, co
         return DB_ERROR_UNKNOWN;
     }
 
-    return db_backend_handle_update(backend->handle, object);
+    return db_backend_handle_update(backend->handle, object, object_field_list, value_set, join_list, clause_list);
 }
 
 int db_backend_delete(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
@@ -563,7 +563,7 @@ int db_backend_delete(const db_backend_t* backend, const db_object_t* object, co
         return DB_ERROR_UNKNOWN;
     }
 
-    return db_backend_handle_delete(backend->handle, object);
+    return db_backend_handle_delete(backend->handle, object, join_list, clause_list);
 }
 
 int db_backend_transaction_begin(const db_backend_t* backend) {

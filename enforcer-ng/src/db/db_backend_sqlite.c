@@ -265,7 +265,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
             }
             switch (db_clause_type(clause)) {
             case DB_CLAUSE_EQ:
-                switch (db_clause_value_type(clause)) {
+                switch (db_value_type(db_clause_value(clause))) {
                 case DB_TYPE_PRIMARY_KEY:
                 case DB_TYPE_INTEGER:
                     if ((ret = snprintf(sqlp, left, " %s.%s = ?",
@@ -302,20 +302,20 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     }
 
     if (clause_list) {
+        int to_int;
         clause = db_clause_list_begin(clause_list);
         bind = 1;
         while (clause) {
             switch (db_clause_type(clause)) {
             case DB_CLAUSE_EQ:
-                switch (db_clause_value_type(clause)) {
+                switch (db_value_type(db_clause_value(clause))) {
                 case DB_TYPE_PRIMARY_KEY:
                 case DB_TYPE_INTEGER:
-                    int value;
-                    if (db_value_to_int(db_clause_get_value(clause), &value)) {
+                    if (db_value_to_int(db_clause_value(clause), &to_int)) {
                         sqlite3_finalize(statement);
                         return NULL;
                     }
-                    ret = sqlite3_bind_int(statement, bind++, value);
+                    ret = sqlite3_bind_int(statement, bind++, to_int);
                     if (ret != SQLITE_OK) {
                         sqlite3_finalize(statement);
                         return NULL;

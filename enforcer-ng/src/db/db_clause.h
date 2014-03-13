@@ -87,6 +87,7 @@ void db_clause_free(db_clause_t*);
 const char* db_clause_table(const db_clause_t*);
 const char* db_clause_field(const db_clause_t*);
 db_clause_type_t db_clause_type(const db_clause_t*);
+const db_value_t* db_clause_value(const db_clause_t*);
 db_clause_operator_t db_clause_operator(const db_clause_t*);
 int db_clause_set_table(db_clause_t*, const char*);
 int db_clause_set_field(db_clause_t*, const char*);

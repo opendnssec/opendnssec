@@ -85,6 +85,14 @@ db_clause_type_t db_clause_type(const db_clause_t* clause) {
     return clause->type;
 }
 
+const db_value_t* db_clause_value(const db_clause_t* clause) {
+    if (!clause) {
+        return NULL;
+    }
+
+    return &(clause->value);
+}
+
 db_clause_operator_t db_clause_operator(const db_clause_t* clause) {
     if (!clause) {
         return DB_CLAUSE_OPERATOR_UNKNOWN;

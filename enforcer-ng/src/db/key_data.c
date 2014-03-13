@@ -706,7 +706,7 @@ int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int en
         || db_clause_set_table(clause, "EnforcerZone_keys")
         || db_clause_set_field(clause, "parent_id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int(db_clause_value(clause), enforcer_zone_id)
+        || db_value_from_int(db_clause_get_value(clause), enforcer_zone_id)
         || db_clause_list_add(clause_list, clause))
     {
         db_join_list_free(join_list);
