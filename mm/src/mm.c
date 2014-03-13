@@ -29,6 +29,7 @@
 #include "mm.h"
 
 #include <strings.h>
+#include <unistd.h>
 
 /* TODO: keep list of blocks, add freeing functionality */
 
@@ -42,6 +43,17 @@ mm_alloc_t mm_char_128 = MM_ALLOC_T_STATIC_NEW(128);
 mm_alloc_t mm_char_256 = MM_ALLOC_T_STATIC_NEW(256);
 mm_alloc_t mm_char_512 = MM_ALLOC_T_STATIC_NEW(512);
 mm_alloc_t mm_char_1024 = MM_ALLOC_T_STATIC_NEW(1024);
+
+size_t __pagesize = __mm_alloc_size;
+
+void mm_init(void) {
+    /* TODO: will long => size_t be a problem somewhere? */
+#if defined(_SC_PAGESIZE)
+    __pagesize = sysconf(_SC_PAGESIZE);
+#elif defined(_SC_PAGE_SIZE)
+    __pagesize = sysconf(_SC_PAGE_SIZE);
+#endif
+}
 
 void* mm_alloc_new(mm_alloc_t* alloc) {
 	void* ptr;
@@ -60,7 +72,7 @@ void* mm_alloc_new(mm_alloc_t* alloc) {
 		unsigned int i;
 		void* block;
 
-		if (!(block = malloc(__mm_alloc_size))) {
+		if (!(block = malloc(__pagesize))) {
 			pthread_mutex_unlock(&(alloc->lock));
 			return NULL;
 		}

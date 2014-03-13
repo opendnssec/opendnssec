@@ -54,6 +54,7 @@ extern mm_alloc_t mm_char_256;
 extern mm_alloc_t mm_char_512;
 extern mm_alloc_t mm_char_1024;
 
+void mm_init(void);
 void* mm_alloc_new(mm_alloc_t*);
 void* mm_alloc_new0(mm_alloc_t*);
 void mm_alloc_delete(mm_alloc_t*, void*);

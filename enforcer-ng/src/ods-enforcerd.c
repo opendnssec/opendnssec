@@ -37,7 +37,7 @@
 #include "daemon/engine.h"
 #include "shared/protobuf.h"
 #include "daemon/orm.h"
-#include "db/db_backend.h"
+#include "mm.h"
 
 #include "enforcer/autostart_cmd.h"
 
@@ -196,6 +196,7 @@ main(int argc, char* argv[])
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", 
         PACKAGE_VERSION);
     
+    mm_init(); /* initialize memory management heap */
     program_setup(cmdline_verbosity); /* setup basic logging, xml, PB */
     engine = engine_alloc(); /* Let's create an engine only once */
     if (!engine) {
