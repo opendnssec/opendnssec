@@ -39,7 +39,7 @@ db_object_field_t* db_object_field_new(void) {
 		(db_object_field_t*)calloc(1, sizeof(db_object_field_t));
 
 	if (object_field) {
-		object_field->type = DB_TYPE_UNKNOWN;
+		object_field->type = DB_TYPE_EMPTY;
 	}
 
 	return object_field;
@@ -61,7 +61,7 @@ const char* db_object_field_name(const db_object_field_t* object_field) {
 
 db_type_t db_object_field_type(const db_object_field_t* object_field) {
 	if (!object_field) {
-		return DB_TYPE_UNKNOWN;
+		return DB_TYPE_EMPTY;
 	}
 
 	return object_field->type;
@@ -83,7 +83,7 @@ int db_object_field_set_type(db_object_field_t* object_field, db_type_t type) {
 	if (!object_field) {
 		return DB_ERROR_UNKNOWN;
 	}
-	if (type == DB_TYPE_UNKNOWN) {
+	if (type == DB_TYPE_EMPTY) {
 		return DB_ERROR_UNKNOWN;
 	}
 
@@ -98,7 +98,7 @@ int db_object_field_not_empty(const db_object_field_t* object_field) {
 	if (!object_field->name) {
 		return DB_ERROR_UNKNOWN;
 	}
-	if (object_field->type == DB_TYPE_UNKNOWN) {
+	if (object_field->type == DB_TYPE_EMPTY) {
 		return DB_ERROR_UNKNOWN;
 	}
 	return DB_OK;
