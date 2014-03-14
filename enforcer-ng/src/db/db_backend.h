@@ -38,7 +38,6 @@ struct db_backend_handle;
 struct db_backend;
 typedef struct db_backend_handle db_backend_handle_t;
 typedef struct db_backend db_backend_t;
-/* TODO: db_backend_result(_list)_t: walkable results for backend that support it, tied into db_result_list_t */
 
 #ifdef __cplusplus
 }
