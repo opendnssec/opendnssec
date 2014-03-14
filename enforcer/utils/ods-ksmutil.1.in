@@ -105,7 +105,7 @@ manually editing zonelist.xml and then running the
 subcommand.
 The \-\-zone option names the zone to add; the \-\-policy option names
 the policy to use instead of default; the \-\-in\-type and \-\-out\-type
-specify the type of input and output adapters (default is File); the \-\-input option specifies a
+specify the type of input and output adapters (should be DNS or File, default is File); the \-\-input option specifies a
 non\-standard location for the unsigned zone (default is 
 @OPENDNSSEC_STATE_DIR@/unsigned/ZONE) or the DNS input file(default is @OPENDNSSEC_CONFIG_DIR@/addns.xml); the \-\-output option specifies a non\-standard 
 location for the signed zone (default is @OPENDNSSEC_STATE_DIR@/signed/ZONE) or the DNS output file(default is @OPENDNSSEC_CONFIG_DIR@/addns.xml).
