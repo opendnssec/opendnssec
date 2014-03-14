@@ -48,48 +48,50 @@ size_t __pagesize = __mm_alloc_size;
 
 void mm_init(void) {
     /* TODO: will long => size_t be a problem somewhere? */
+    /* TODO: This isn't working
 #if defined(_SC_PAGESIZE)
     __pagesize = sysconf(_SC_PAGESIZE);
 #elif defined(_SC_PAGE_SIZE)
     __pagesize = sysconf(_SC_PAGE_SIZE);
 #endif
+*/
 }
 
 void* mm_alloc_new(mm_alloc_t* alloc) {
-	void* ptr;
+    void* ptr;
 
-	if (!alloc) {
-		return NULL;
-	}
-	if (alloc->size < 1) {
-	    return NULL;
-	}
-	if (pthread_mutex_lock(&(alloc->lock))) {
-		return NULL;
-	}
+    if (!alloc) {
+        return NULL;
+    }
+    if (alloc->size < 1) {
+        return NULL;
+    }
+    if (pthread_mutex_lock(&(alloc->lock))) {
+        return NULL;
+    }
 
-	if (!alloc->next) {
-		unsigned int i;
-		void* block;
+    if (!alloc->next) {
+        unsigned int i;
+        void* block;
 
-		if (!(block = malloc(__pagesize))) {
-			pthread_mutex_unlock(&(alloc->lock));
-			return NULL;
-		}
+        if (!(block = malloc(__pagesize))) {
+            pthread_mutex_unlock(&(alloc->lock));
+            return NULL;
+        }
 
-		for (i=0; i<(__mm_alloc_size / alloc->size); i++) {
-			*(void**)block = alloc->next;
-			alloc->next = block;
-			block = ((char*)block + alloc->size);
-		}
-	}
+        for (i=0; i<(__mm_alloc_size / alloc->size); i++) {
+            *(void**)block = alloc->next;
+            alloc->next = block;
+            block = ((char*)block + alloc->size);
+        }
+    }
 
-	ptr = alloc->next;
-	alloc->next = *(void**)ptr;
-	*(void**)ptr = NULL;
+    ptr = alloc->next;
+    alloc->next = *(void**)ptr;
+    *(void**)ptr = NULL;
 
-	pthread_mutex_unlock(&(alloc->lock));
-	return ptr;
+    pthread_mutex_unlock(&(alloc->lock));
+    return ptr;
 }
 
 void* mm_alloc_new0(mm_alloc_t* alloc) {
@@ -103,18 +105,18 @@ void* mm_alloc_new0(mm_alloc_t* alloc) {
 }
 
 void mm_alloc_delete(mm_alloc_t* alloc, void* ptr) {
-	if (!alloc) {
-		return;
-	}
-	if (!ptr) {
-		return;
-	}
-	if (pthread_mutex_lock(&(alloc->lock))) {
-		return;
-	}
+    if (!alloc) {
+        return;
+    }
+    if (!ptr) {
+        return;
+    }
+    if (pthread_mutex_lock(&(alloc->lock))) {
+        return;
+    }
 
-	*(void**)ptr = alloc->next;
-	alloc->next = ptr;
+    *(void**)ptr = alloc->next;
+    alloc->next = ptr;
 
-	pthread_mutex_unlock(&(alloc->lock));
+    pthread_mutex_unlock(&(alloc->lock));
 }
