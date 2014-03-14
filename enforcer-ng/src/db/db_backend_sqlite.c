@@ -30,6 +30,7 @@
 #include "db_backend_sqlite.h"
 #include "db_error.h"
 
+#include "mm.h"
 #include "shared/log.h"
 
 #include <stdlib.h>
@@ -42,6 +43,17 @@ int __sqlite3_initialized = 0;
 typedef struct db_backend_sqlite {
     sqlite3* db;
 } db_backend_sqlite_t;
+
+mm_alloc_t __sqlite_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_t));
+
+typedef struct db_backend_sqlite_statement {
+    db_backend_sqlite_t* backend_sqlite;
+    sqlite3_stmt* statement;
+    int fields;
+    const db_object_t* object;
+} db_backend_sqlite_statement_t;
+
+mm_alloc_t __statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_statement_t));
 
 int db_backend_sqlite_initialize(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
@@ -134,6 +146,90 @@ int db_backend_sqlite_disconnect(void* data) {
     return DB_OK;
 }
 
+db_result_t* db_backend_sqlite_next(void* data, int finish) {
+    db_backend_sqlite_statement_t* statement = (db_backend_sqlite_statement_t*)data;
+    int ret;
+    int bind;
+    db_result_t* result = NULL;
+    db_value_set_t* value_set;
+    const db_object_field_t* object_field;
+
+    if (!statement) {
+        return NULL;
+    }
+    if (!statement->object) {
+        return NULL;
+    }
+    if (!statement->statement) {
+        return NULL;
+    }
+
+    if (finish) {
+        sqlite3_finalize(statement->statement);
+        mm_alloc_delete(&__statement_alloc, statement);
+        return NULL;
+    }
+
+    ret = sqlite3_step(statement->statement);
+    while (ret == SQLITE_BUSY) {
+        usleep(100);
+        ret = sqlite3_step(statement->statement);
+    }
+    if (ret != SQLITE_ROW) {
+        return NULL;
+    }
+
+    if (!(result = db_result_new())
+        || !(value_set = db_value_set_new(statement->fields))
+        || db_result_set_value_set(result, value_set))
+    {
+        db_result_free(result);
+        db_value_set_free(value_set);
+        return NULL;
+    }
+    object_field = db_object_field_list_begin(db_object_object_field_list(statement->object));
+    bind = 0;
+    while (object_field) {
+        int integer;
+        const char* string;
+
+        switch (db_object_field_type(object_field)) {
+        case DB_TYPE_PRIMARY_KEY:
+        case DB_TYPE_INTEGER:
+            integer = sqlite3_column_int(statement->statement, bind);
+            ret = sqlite3_errcode(statement->backend_sqlite->db);
+            if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+                || db_value_from_int(db_value_set_get(value_set, bind), integer))
+            {
+                db_result_free(result);
+                return NULL;
+            }
+            break;
+
+        case DB_TYPE_ENUM:
+        case DB_TYPE_STRING:
+            string = (const char*)sqlite3_column_text(statement->statement, bind);
+            ret = sqlite3_errcode(statement->backend_sqlite->db);
+            if (!string
+                || (ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+                || db_value_from_string(db_value_set_get(value_set, bind), string))
+            {
+                db_result_free(result);
+                return NULL;
+            }
+            break;
+
+        default:
+            db_result_free(result);
+            return NULL;
+            break;
+        }
+        object_field = db_object_field_next(object_field);
+        bind++;
+    }
+    return result;
+}
+
 int db_backend_sqlite_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
@@ -155,10 +251,8 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     char sql[4*1024];
     char* sqlp;
     int ret, left, bind, first, fields;
-    sqlite3_stmt *statement;
     db_result_list_t* result_list;
-    db_result_t* result;
-    db_value_set_t* value_set = NULL;
+    db_backend_sqlite_statement_t* statement;
 
     if (!__sqlite3_initialized) {
         return NULL;
@@ -290,14 +384,23 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
         }
     }
 
+    statement = mm_alloc_new0(&__statement_alloc);
+    if (!statement) {
+        return NULL;
+    }
+    statement->backend_sqlite = backend_sqlite;
+    statement->object = object;
+    statement->fields = fields;
+
     ret = sqlite3_prepare_v2(backend_sqlite->db,
         sql,
         sizeof(sql),
-        &statement,
+        &(statement->statement),
         NULL);
     if (ret != SQLITE_OK) {
         ods_log_info("DB SQL %s", sql);
         ods_log_info("DB Err %d\n", ret);
+        mm_alloc_delete(&__statement_alloc, statement);
         return NULL;
     }
 
@@ -312,109 +415,41 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                 case DB_TYPE_PRIMARY_KEY:
                 case DB_TYPE_INTEGER:
                     if (db_value_to_int(db_clause_value(clause), &to_int)) {
-                        sqlite3_finalize(statement);
+                        sqlite3_finalize(statement->statement);
+                        mm_alloc_delete(&__statement_alloc, statement);
                         return NULL;
                     }
-                    ret = sqlite3_bind_int(statement, bind++, to_int);
+                    ret = sqlite3_bind_int(statement->statement, bind++, to_int);
                     if (ret != SQLITE_OK) {
-                        sqlite3_finalize(statement);
+                        sqlite3_finalize(statement->statement);
+                        mm_alloc_delete(&__statement_alloc, statement);
                         return NULL;
                     }
                     break;
 
                 default:
-                    sqlite3_finalize(statement);
+                    sqlite3_finalize(statement->statement);
+                    mm_alloc_delete(&__statement_alloc, statement);
                     return NULL;
                 }
                 break;
 
             default:
-                sqlite3_finalize(statement);
+                sqlite3_finalize(statement->statement);
+                mm_alloc_delete(&__statement_alloc, statement);
                 return NULL;
             }
             clause = db_clause_next(clause);
         }
     }
 
-    if (!(result_list = db_result_list_new())) {
-        sqlite3_finalize(statement);
+    if (!(result_list = db_result_list_new())
+        || db_result_list_set_next(result_list, db_backend_sqlite_next, statement))
+    {
+        sqlite3_finalize(statement->statement);
+        mm_alloc_delete(&__statement_alloc, statement);
         return NULL;
     }
-    ret = sqlite3_step(statement);
-    while (ret == SQLITE_ROW || ret == SQLITE_BUSY) {
-        if (ret == SQLITE_BUSY) {
-            usleep(100);
-            ret = sqlite3_step(statement);
-            continue;
-        }
-        if (!(result = db_result_new())
-            || !(value_set = db_value_set_new(fields))
-            || db_result_set_value_set(result, value_set))
-        {
-            db_result_free(result);
-            db_value_set_free(value_set);
-            db_result_list_free(result_list);
-            sqlite3_finalize(statement);
-            return NULL;
-        }
-        if (db_result_list_add(result_list, result)) {
-            db_result_free(result);
-            db_result_list_free(result_list);
-            sqlite3_finalize(statement);
-            return NULL;
-        }
-        object_field = db_object_field_list_begin(db_object_object_field_list(object));
-        bind = 0;
-        while (object_field) {
-            int integer;
-            const char* string;
-
-            switch (db_object_field_type(object_field)) {
-            case DB_TYPE_PRIMARY_KEY:
-            case DB_TYPE_INTEGER:
-                integer = sqlite3_column_int(statement, bind);
-                ret = sqlite3_errcode(backend_sqlite->db);
-                if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
-                    || db_value_from_int(db_value_set_get(value_set, bind), integer))
-                {
-                    db_result_list_free(result_list);
-                    sqlite3_finalize(statement);
-                    return NULL;
-                }
-                break;
-
-            case DB_TYPE_ENUM:
-            case DB_TYPE_STRING:
-                string = (const char*)sqlite3_column_text(statement, bind);
-                ret = sqlite3_errcode(backend_sqlite->db);
-                if (!string
-                    || (ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
-                    || db_value_from_string(db_value_set_get(value_set, bind), string))
-                {
-                    db_result_list_free(result_list);
-                    sqlite3_finalize(statement);
-                    return NULL;
-                }
-                break;
-
-            default:
-                db_result_list_free(result_list);
-                sqlite3_finalize(statement);
-                return NULL;
-                break;
-            }
-            object_field = db_object_field_next(object_field);
-            bind++;
-        }
-        ret = sqlite3_step(statement);
-    }
-    if (ret != SQLITE_DONE) {
-        db_result_list_free(result_list);
-        sqlite3_finalize(statement);
-        return NULL;
-    }
-
-    sqlite3_finalize(statement);
     return result_list;
 }
 
@@ -451,7 +486,7 @@ void db_backend_sqlite_free(void* data) {
         if (backend_sqlite->db) {
             (void)db_backend_sqlite_disconnect(backend_sqlite);
         }
-        free(backend_sqlite);
+        mm_alloc_delete(&__sqlite_alloc, backend_sqlite);
     }
 }
 
@@ -476,7 +511,7 @@ int db_backend_sqlite_transaction_rollback(void* data) {
 db_backend_handle_t* db_backend_sqlite_new_handle(void) {
     db_backend_handle_t* backend_handle = NULL;
     db_backend_sqlite_t* backend_sqlite =
-        (db_backend_sqlite_t*)calloc(1, sizeof(db_backend_sqlite_t));
+        (db_backend_sqlite_t*)mm_alloc_new0(&__sqlite_alloc);
 
     if (backend_sqlite && (backend_handle = db_backend_handle_new())) {
         if (db_backend_handle_set_data(backend_handle, (void*)backend_sqlite)
@@ -494,7 +529,7 @@ db_backend_handle_t* db_backend_sqlite_new_handle(void) {
             || db_backend_handle_set_transaction_rollback(backend_handle, db_backend_sqlite_transaction_rollback))
         {
             db_backend_handle_free(backend_handle);
-            free(backend_sqlite);
+            mm_alloc_delete(&__sqlite_alloc, backend_sqlite);
             return NULL;
         }
     }
