@@ -40,12 +40,12 @@ typedef struct key_state key_state_t;
 typedef struct key_state_list key_state_list_t;
 
 typedef enum key_state_rrstate {
-    invalid = -1,
-    hidden = 0,
-    rumoured = 1,
-    omnipresent = 2,
-    unretentive = 3,
-    NA = 4
+    KEY_STATE_RRSTATE_INVALID = -1,
+    KEY_STATE_RRSTATE_HIDDEN = 0,
+    KEY_STATE_RRSTATE_RUMOURED = 1,
+    KEY_STATE_RRSTATE_OMNIPRESENT = 2,
+    KEY_STATE_RRSTATE_UNRETENTIVE = 3,
+    KEY_STATE_RRSTATE_NA = 4
 } key_state_rrstate_t;
 
 #ifdef __cplusplus

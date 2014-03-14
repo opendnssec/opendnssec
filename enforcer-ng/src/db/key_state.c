@@ -36,11 +36,11 @@
 #include <string.h>
 
 const db_enum_t __enum_set_state[] = {
-    { "hidden", (key_state_rrstate_t)hidden },
-    { "rumoured", (key_state_rrstate_t)rumoured },
-    { "omnipresent", (key_state_rrstate_t)omnipresent },
-    { "unretentive", (key_state_rrstate_t)unretentive },
-    { "NA", (key_state_rrstate_t)NA },
+    { "hidden", (key_state_rrstate_t)KEY_STATE_RRSTATE_HIDDEN },
+    { "rumoured", (key_state_rrstate_t)KEY_STATE_RRSTATE_RUMOURED },
+    { "omnipresent", (key_state_rrstate_t)KEY_STATE_RRSTATE_OMNIPRESENT },
+    { "unretentive", (key_state_rrstate_t)KEY_STATE_RRSTATE_UNRETENTIVE },
+    { "NA", (key_state_rrstate_t)KEY_STATE_RRSTATE_NA },
     { NULL, 0 }
 };
 
@@ -137,6 +137,7 @@ key_state_t* key_state_new(const db_connection_t* connection) {
             mm_alloc_delete(&__key_state_alloc, key_state);
             return NULL;
         }
+        key_state->state = KEY_STATE_RRSTATE_HIDDEN;
     }
 
     return key_state;
@@ -154,7 +155,7 @@ void key_state_free(key_state_t* key_state) {
 void key_state_reset(key_state_t* key_state) {
     if (key_state) {
         key_state->id = 0;
-        key_state->state = hidden;
+        key_state->state = KEY_STATE_RRSTATE_HIDDEN;
         key_state->last_change = 0;
         key_state->minimize = 0;
         key_state->ttl = 0;
@@ -199,24 +200,26 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     {
         return DB_ERROR_UNKNOWN;
     }
-    if (state == (key_state_rrstate_t)hidden) {
-        key_state->state = hidden;
+
+    if (state == (key_state_rrstate_t)KEY_STATE_RRSTATE_HIDDEN) {
+        key_state->state = KEY_STATE_RRSTATE_HIDDEN;
     }
-    else if (state == (key_state_rrstate_t)rumoured) {
-        key_state->state = rumoured;
+    else if (state == (key_state_rrstate_t)KEY_STATE_RRSTATE_RUMOURED) {
+        key_state->state = KEY_STATE_RRSTATE_RUMOURED;
     }
-    else if (state == (key_state_rrstate_t)omnipresent) {
-        key_state->state = omnipresent;
+    else if (state == (key_state_rrstate_t)KEY_STATE_RRSTATE_OMNIPRESENT) {
+        key_state->state = KEY_STATE_RRSTATE_OMNIPRESENT;
     }
-    else if (state == (key_state_rrstate_t)unretentive) {
-        key_state->state = unretentive;
+    else if (state == (key_state_rrstate_t)KEY_STATE_RRSTATE_UNRETENTIVE) {
+        key_state->state = KEY_STATE_RRSTATE_UNRETENTIVE;
     }
-    else if (state == (key_state_rrstate_t)NA) {
-        key_state->state = NA;
+    else if (state == (key_state_rrstate_t)KEY_STATE_RRSTATE_NA) {
+        key_state->state = KEY_STATE_RRSTATE_NA;
     }
     else {
         return DB_ERROR_UNKNOWN;
     }
+
     return DB_OK;
 }
 
@@ -230,7 +233,7 @@ int key_state_id(const key_state_t* key_state) {
 
 key_state_rrstate_t key_state_state(const key_state_t* key_state) {
     if (!key_state) {
-        return invalid;
+        return KEY_STATE_RRSTATE_INVALID;
     }
 
     return key_state->state;

@@ -411,7 +411,7 @@ int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
                 ods_printf(sockfd,
                    "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
                     enforcer_zone_name(enforcer_zone),
-                    key_data_role(key_data),
+                    key_data_role_text(key_data),
                     key_state_state_text(ds),
                     key_state_state_text(dnskey),
                     key_state_state_text(rrsigdnskey),

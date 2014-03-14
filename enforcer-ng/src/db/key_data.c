@@ -34,6 +34,23 @@
 
 #include <stdlib.h>
 
+const db_enum_t __enum_set_keyrole[] = {
+    { "KSK", (key_data_keyrole_t)KEY_DATA_KEYROLE_KSK },
+    { "ZSK", (key_data_keyrole_t)KEY_DATA_KEYROLE_ZSK },
+    { "CSK", (key_data_keyrole_t)KEY_DATA_KEYROLE_CSK },
+    { NULL, 0 }
+};
+
+const db_enum_t __enum_set_dsatparent[] = {
+    { "unsubmitted", (key_data_dsatparent_t)KEY_DATA_DSATPARENT_UNSUBMITTED },
+    { "submit", (key_data_dsatparent_t)KEY_DATA_DSATPARENT_SUBMIT },
+    { "submitted", (key_data_dsatparent_t)KEY_DATA_DSATPARENT_SUBMITTED },
+    { "seen", (key_data_dsatparent_t)KEY_DATA_DSATPARENT_SEEN },
+    { "retract", (key_data_dsatparent_t)KEY_DATA_DSATPARENT_RETRACT },
+    { "retracted", (key_data_dsatparent_t)KEY_DATA_DSATPARENT_RETRACTED },
+    { NULL, 0 }
+};
+
 db_object_t* __key_data_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
@@ -95,7 +112,8 @@ db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "role")
-        || db_object_field_set_type(object_field, DB_TYPE_STRING)
+        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
+        || db_object_field_set_enum_set(object_field, __enum_set_keyrole)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -172,7 +190,8 @@ db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "ds_at_parent")
-        || db_object_field_set_type(object_field, DB_TYPE_STRING)
+        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
+        || db_object_field_set_enum_set(object_field, __enum_set_dsatparent)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -258,6 +277,8 @@ key_data_t* key_data_new(const db_connection_t* connection) {
             mm_alloc_delete(&__key_data_alloc, key_data);
             return NULL;
         }
+        key_data->role = KEY_DATA_KEYROLE_INVALID;
+        key_data->ds_at_parent = KEY_DATA_DSATPARENT_UNSUBMITTED;
     }
 
     return key_data;
@@ -270,9 +291,6 @@ void key_data_free(key_data_t* key_data) {
         }
         if (key_data->locator) {
             free(key_data->locator);
-        }
-        if (key_data->role) {
-            free(key_data->role);
         }
         key_data->introducing = 1;
         if (key_data->key_state_ds) {
@@ -300,20 +318,14 @@ void key_data_reset(key_data_t* key_data) {
         key_data->locator = NULL;
         key_data->algorithm = 0;
         key_data->inception = 0;
-        if (key_data->role) {
-            free(key_data->role);
-        }
-        key_data->role = NULL;
+        key_data->role = KEY_DATA_KEYROLE_INVALID;
         key_data->introducing = 1;
         key_data->shouldrevoke = 0;
         key_data->standby = 0;
         key_data->active_zsk = 0;
         key_data->publish = 0;
         key_data->active_ksk = 0;
-        if (key_data->ds_at_parent) {
-            free(key_data->ds_at_parent);
-        }
-        key_data->ds_at_parent = NULL;
+        key_data->ds_at_parent = KEY_DATA_DSATPARENT_UNSUBMITTED;
         key_data->keytag = 0;
         key_data->ds = 0;
         key_data->rrsig = 0;
@@ -340,6 +352,8 @@ void key_data_reset(key_data_t* key_data) {
 
 int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     const db_value_set_t* value_set;
+    int role;
+    int ds_at_parent;
 
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
@@ -355,14 +369,14 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
         || db_value_to_string(db_value_set_get(value_set, 1), &(key_data->locator))
         || db_value_to_int(db_value_set_get(value_set, 2), &(key_data->algorithm))
         || db_value_to_int(db_value_set_get(value_set, 3), &(key_data->inception))
-        || db_value_to_string(db_value_set_get(value_set, 4), &(key_data->role))
+        || db_value_to_enum_value(db_value_set_get(value_set, 4), &role, __enum_set_keyrole)
         || db_value_to_int(db_value_set_get(value_set, 5), &(key_data->introducing))
         || db_value_to_int(db_value_set_get(value_set, 6), &(key_data->shouldrevoke))
         || db_value_to_int(db_value_set_get(value_set, 7), &(key_data->standby))
         || db_value_to_int(db_value_set_get(value_set, 8), &(key_data->active_zsk))
         || db_value_to_int(db_value_set_get(value_set, 9), &(key_data->publish))
         || db_value_to_int(db_value_set_get(value_set, 10), &(key_data->active_ksk))
-        || db_value_to_string(db_value_set_get(value_set, 11), &(key_data->ds_at_parent))
+        || db_value_to_enum_value(db_value_set_get(value_set, 11), &ds_at_parent, __enum_set_dsatparent)
         || db_value_to_int(db_value_set_get(value_set, 12), &(key_data->keytag))
         || db_value_to_int(db_value_set_get(value_set, 13), &(key_data->ds))
         || db_value_to_int(db_value_set_get(value_set, 14), &(key_data->rrsig))
@@ -371,6 +385,42 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     {
         return DB_ERROR_UNKNOWN;
     }
+
+    if (role == (key_data_keyrole_t)KEY_DATA_KEYROLE_KSK) {
+        key_data->role = KEY_DATA_KEYROLE_KSK;
+    }
+    else if (role == (key_data_keyrole_t)KEY_DATA_KEYROLE_ZSK) {
+        key_data->role = KEY_DATA_KEYROLE_ZSK;
+    }
+    else if (role == (key_data_keyrole_t)KEY_DATA_KEYROLE_CSK) {
+        key_data->role = KEY_DATA_KEYROLE_CSK;
+    }
+    else {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (ds_at_parent == (key_data_dsatparent_t)KEY_DATA_DSATPARENT_UNSUBMITTED) {
+        key_data->ds_at_parent = KEY_DATA_DSATPARENT_UNSUBMITTED;
+    }
+    else if (ds_at_parent == (key_data_dsatparent_t)KEY_DATA_DSATPARENT_SUBMIT) {
+        key_data->ds_at_parent = KEY_DATA_DSATPARENT_SUBMIT;
+    }
+    else if (ds_at_parent == (key_data_dsatparent_t)KEY_DATA_DSATPARENT_SUBMITTED) {
+        key_data->ds_at_parent = KEY_DATA_DSATPARENT_SUBMITTED;
+    }
+    else if (ds_at_parent == (key_data_dsatparent_t)KEY_DATA_DSATPARENT_SEEN) {
+        key_data->ds_at_parent = KEY_DATA_DSATPARENT_SEEN;
+    }
+    else if (ds_at_parent == (key_data_dsatparent_t)KEY_DATA_DSATPARENT_RETRACT) {
+        key_data->ds_at_parent = KEY_DATA_DSATPARENT_RETRACT;
+    }
+    else if (ds_at_parent == (key_data_dsatparent_t)KEY_DATA_DSATPARENT_RETRACTED) {
+        key_data->ds_at_parent = KEY_DATA_DSATPARENT_RETRACTED;
+    }
+    else {
+        return DB_ERROR_UNKNOWN;
+    }
+
     return DB_OK;
 }
 
@@ -406,12 +456,28 @@ int key_data_inception(const key_data_t* key_data) {
     return key_data->inception;
 }
 
-const char* key_data_role(const key_data_t* key_data) {
+key_data_keyrole_t key_data_role(const key_data_t* key_data) {
+    if (!key_data) {
+        return KEY_DATA_KEYROLE_INVALID;
+    }
+
+    return key_data->role;
+}
+
+const char* key_data_role_text(const key_data_t* key_data) {
+    const db_enum_t* enum_set = __enum_set_keyrole;
+
     if (!key_data) {
         return NULL;
     }
 
-    return key_data->role;
+    while (enum_set->text) {
+        if (enum_set->value == key_data->role) {
+            return enum_set->text;
+        }
+        enum_set++;
+    }
+    return NULL;
 }
 
 int key_data_introducing(const key_data_t* key_data) {
@@ -462,15 +528,28 @@ int key_data_active_ksk(const key_data_t* key_data) {
     return key_data->active_ksk;
 }
 
-const char* key_data_ds_at_parent(const key_data_t* key_data) {
+key_data_dsatparent_t key_data_ds_at_parent(const key_data_t* key_data) {
     if (!key_data) {
-        return NULL;
-    }
-    if (!key_data->ds_at_parent) {
-        return "unsubmitted";
+        return KEY_DATA_DSATPARENT_INVALID;
     }
 
     return key_data->ds_at_parent;
+}
+
+const char* key_data_ds_at_parent_text(const key_data_t* key_data) {
+    const db_enum_t* enum_set = __enum_set_dsatparent;
+
+    if (!key_data) {
+        return NULL;
+    }
+
+    while (enum_set->text) {
+        if (enum_set->value == key_data->ds_at_parent) {
+            return enum_set->text;
+        }
+        enum_set++;
+    }
+    return NULL;
 }
 
 int key_data_get_key_state_list(key_data_t* key_data) {

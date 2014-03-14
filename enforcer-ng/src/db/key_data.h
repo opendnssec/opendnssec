@@ -39,6 +39,23 @@ struct key_data_list;
 typedef struct key_data key_data_t;
 typedef struct key_data_list key_data_list_t;
 
+typedef enum key_data_keyrole {
+    KEY_DATA_KEYROLE_INVALID = -1,
+    KEY_DATA_KEYROLE_KSK = 1,
+    KEY_DATA_KEYROLE_ZSK = 2,
+    KEY_DATA_KEYROLE_CSK = 3
+} key_data_keyrole_t;
+
+typedef enum key_data_dsatparent {
+    KEY_DATA_DSATPARENT_INVALID = -1,
+    KEY_DATA_DSATPARENT_UNSUBMITTED = 0,
+    KEY_DATA_DSATPARENT_SUBMIT = 1,
+    KEY_DATA_DSATPARENT_SUBMITTED = 2,
+    KEY_DATA_DSATPARENT_SEEN = 3,
+    KEY_DATA_DSATPARENT_RETRACT = 4,
+    KEY_DATA_DSATPARENT_RETRACTED = 5
+} key_data_dsatparent_t;
+
 #ifdef __cplusplus
 }
 #endif
@@ -56,14 +73,14 @@ struct key_data {
     char* locator;
     int algorithm;
     int inception;
-    char* role;
+    key_data_keyrole_t role;
     int introducing;
     int shouldrevoke;
     int standby;
     int active_zsk;
     int publish;
     int active_ksk;
-    char* ds_at_parent;
+    key_data_dsatparent_t ds_at_parent;
     int keytag;
 
     /* foreign key */
@@ -85,14 +102,16 @@ int key_data_id(const key_data_t*);
 const char* key_data_locator(const key_data_t*);
 int key_data_algorithm(const key_data_t*);
 int key_data_inception(const key_data_t*);
-const char* key_data_role(const key_data_t*);
+key_data_keyrole_t key_data_role(const key_data_t*);
+const char* key_data_role_text(const key_data_t*);
 int key_data_introducing(const key_data_t*);
 int key_data_shouldrevoke(const key_data_t*);
 int key_data_standby(const key_data_t*);
 int key_data_active_zsk(const key_data_t*);
 int key_data_publish(const key_data_t*);
 int key_data_active_ksk(const key_data_t*);
-const char* key_data_ds_at_parent(const key_data_t*);
+key_data_dsatparent_t key_data_ds_at_parent(const key_data_t*);
+const char* key_data_ds_at_parent_text(const key_data_t*);
 int key_data_keytag(const key_data_t*);
 int key_data_get_key_state_list(key_data_t*);
 const key_state_t* key_data_get_ds(key_data_t*);
