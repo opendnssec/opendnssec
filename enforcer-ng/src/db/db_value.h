@@ -44,6 +44,7 @@ typedef struct db_value_set db_value_set_t;
 #endif
 
 #include "db_type.h"
+#include "db_enum.h"
 
 #include <stdlib.h>
 
@@ -54,6 +55,8 @@ extern "C" {
 struct db_value {
     db_type_t type;
     void* data;
+    int enum_value;
+    const char* enum_text;
 };
 
 db_value_t* db_value_new();
@@ -61,13 +64,19 @@ void db_value_free(db_value_t*);
 void db_value_reset(db_value_t*);
 db_type_t db_value_type(const db_value_t*);
 const void* db_value_data(const db_value_t*);
+int db_value_enum_value(const db_value_t*);
+const char* db_value_enum_text(const db_value_t*);
 int db_value_set_type(db_value_t*, db_type_t);
 int db_value_set_data(db_value_t*, void*);
 int db_value_not_empty(const db_value_t*);
 int db_value_to_int(const db_value_t*, int*);
 int db_value_to_string(const db_value_t*, char**);
+int db_value_to_enum_value(const db_value_t*, int*, const db_enum_t*);
+int db_value_to_enum_text(const db_value_t*, const char**, const db_enum_t*);
 int db_value_from_int(db_value_t*, int);
 int db_value_from_string(db_value_t*, const char*);
+int db_value_from_enum_value(db_value_t*, int, const db_enum_t*);
+int db_value_from_enum_text(db_value_t*, const char*, const db_enum_t*);
 
 struct db_value_set {
     db_value_t* values;

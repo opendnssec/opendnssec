@@ -71,6 +71,14 @@ db_type_t db_object_field_type(const db_object_field_t* object_field) {
     return object_field->type;
 }
 
+const db_enum_t* db_object_field_enum_set(const db_object_field_t* object_field) {
+    if (!object_field) {
+        return NULL;
+    }
+
+    return object_field->enum_set;
+}
+
 int db_object_field_set_name(db_object_field_t* object_field, const char* name) {
     if (!object_field) {
         return DB_ERROR_UNKNOWN;
@@ -92,6 +100,18 @@ int db_object_field_set_type(db_object_field_t* object_field, db_type_t type) {
     }
 
     object_field->type = type;
+    return DB_OK;
+}
+
+int db_object_field_set_enum_set(db_object_field_t* object_field, const db_enum_t* enum_set) {
+    if (!object_field) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object_field->type != DB_TYPE_ENUM) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    object_field->enum_set = enum_set;
     return DB_OK;
 }
 

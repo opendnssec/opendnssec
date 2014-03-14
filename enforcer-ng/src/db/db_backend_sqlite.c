@@ -383,6 +383,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                 }
                 break;
 
+            case DB_TYPE_ENUM:
             case DB_TYPE_STRING:
                 string = (const char*)sqlite3_column_text(statement, bind);
                 ret = sqlite3_errcode(backend_sqlite->db);

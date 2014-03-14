@@ -39,6 +39,15 @@ struct key_state_list;
 typedef struct key_state key_state_t;
 typedef struct key_state_list key_state_list_t;
 
+typedef enum key_state_rrstate {
+    invalid = -1,
+    hidden = 0,
+    rumoured = 1,
+    omnipresent = 2,
+    unretentive = 3,
+    NA = 4
+} key_state_rrstate_t;
+
 #ifdef __cplusplus
 }
 #endif
@@ -52,7 +61,7 @@ extern "C" {
 struct key_state {
     db_object_t* dbo;
     int id;
-    char* state;
+    key_state_rrstate_t state;
     int last_change;
     int minimize;
     int ttl;
@@ -64,7 +73,8 @@ void key_state_reset(key_state_t*);
 int key_state_copy(key_state_t*, const key_state_t*);
 int key_state_from_result(key_state_t*, const db_result_t*);
 int key_state_id(const key_state_t*);
-const char* key_state_state(const key_state_t*);
+key_state_rrstate_t key_state_state(const key_state_t*);
+const char* key_state_state_text(const key_state_t*);
 int key_state_last_change(const key_state_t*);
 int key_state_minimize(const key_state_t*);
 int key_state_ttl(const key_state_t*);

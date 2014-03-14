@@ -65,6 +65,8 @@ void db_value_reset(db_value_t* value) {
         }
         value->data = NULL;
         value->type = DB_TYPE_EMPTY;
+        value->enum_value = 0;
+        value->enum_text = NULL;
     }
 }
 
@@ -82,6 +84,22 @@ const void* db_value_data(const db_value_t* value) {
     }
 
     return value->data;
+}
+
+int db_value_enum_value(const db_value_t* value) {
+    if (!value) {
+        return 0; /* TODO: this is not good */
+    }
+
+    return value->enum_value;
+}
+
+const char* db_value_enum_text(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+
+    return value->enum_text;
 }
 
 int db_value_set_type(db_value_t* value, db_type_t type) {
@@ -151,6 +169,88 @@ int db_value_to_string(const db_value_t* value, char** to_string) {
     return DB_OK;
 }
 
+int db_value_to_enum_value(const db_value_t* value, int* to_int, const db_enum_t* enum_set) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!to_int) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enum_set) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (value->type == DB_TYPE_ENUM) {
+        while (enum_set->text) {
+            if (enum_set->value == value->enum_value) {
+                *to_int = enum_set->value;
+                return DB_OK;
+            }
+            enum_set++;
+        }
+    }
+    else if (value->type == DB_TYPE_STRING) {
+        while (enum_set->text) {
+            if (!strcmp(enum_set->text, value->data)) {
+                *to_int = enum_set->value;
+                return DB_OK;
+            }
+            enum_set++;
+        }
+    }
+    else if (value->type == DB_TYPE_INTEGER) {
+        while (enum_set->text) {
+            if (enum_set->value == *(int*)(value->data)) {
+                *to_int = enum_set->value;
+                return DB_OK;
+            }
+            enum_set++;
+        }
+    }
+    return DB_ERROR_UNKNOWN;
+}
+
+int db_value_to_enum_text(const db_value_t* value, const char** to_string, const db_enum_t* enum_set) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!to_string) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enum_set) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (value->type == DB_TYPE_ENUM) {
+        while (enum_set->text) {
+            if (enum_set->value == value->enum_value) {
+                *to_string = value->enum_text;
+                return DB_OK;
+            }
+            enum_set++;
+        }
+    }
+    else if (value->type == DB_TYPE_STRING) {
+        while (enum_set->text) {
+            if (!strcmp(enum_set->text, value->data)) {
+                *to_string = value->enum_text;
+                return DB_OK;
+            }
+            enum_set++;
+        }
+    }
+    else if (value->type == DB_TYPE_INTEGER) {
+        while (enum_set->text) {
+            if (enum_set->value == *(int*)(value->data)) {
+                *to_string = value->enum_text;
+                return DB_OK;
+            }
+            enum_set++;
+        }
+    }
+    return DB_ERROR_UNKNOWN;
+}
+
 int db_value_from_int(db_value_t* value, int from_int) {
     if (!value) {
         return DB_ERROR_UNKNOWN;
@@ -185,6 +285,51 @@ int db_value_from_string(db_value_t* value, const char* from_string) {
     }
     value->type = DB_TYPE_STRING;
     return DB_OK;
+}
+
+int db_value_from_enum_value(db_value_t* value, int enum_value, const db_enum_t* enum_set) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: support converting to value->type */
+    if (value->type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    while (enum_set->text) {
+        if (enum_set->value == enum_value) {
+            value->enum_text = enum_set->text;
+            value->enum_value = enum_set->value;
+            value->type = DB_TYPE_ENUM;
+            return DB_OK;
+        }
+        enum_set++;
+    }
+    return DB_ERROR_UNKNOWN;
+}
+
+int db_value_from_enum_text(db_value_t* value, const char* enum_text, const db_enum_t* enum_set) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enum_text) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: support converting to value->type */
+    if (value->type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    while (enum_set->text) {
+        if (!strcmp(enum_set->text, enum_text)) {
+            value->enum_text = enum_set->text;
+            value->enum_value = enum_set->value;
+            value->type = DB_TYPE_ENUM;
+            return DB_OK;
+        }
+        enum_set++;
+    }
+    return DB_ERROR_UNKNOWN;
 }
 
 /* DB VALUE SET */

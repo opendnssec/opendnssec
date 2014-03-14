@@ -51,6 +51,7 @@ typedef struct db_object_field_list db_object_field_list_t;
 #include "db_clause.h"
 #include "db_type.h"
 #include "db_value.h"
+#include "db_enum.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,14 +61,17 @@ struct db_object_field {
     db_object_field_t* next;
     const char* name;
     db_type_t type;
+    const db_enum_t* enum_set;
 };
 
 db_object_field_t* db_object_field_new(void);
 void db_object_field_free(db_object_field_t*);
 const char* db_object_field_name(const db_object_field_t*);
 db_type_t db_object_field_type(const db_object_field_t*);
+const db_enum_t* db_object_field_enum_set(const db_object_field_t*);
 int db_object_field_set_name(db_object_field_t*, const char*);
 int db_object_field_set_type(db_object_field_t*, db_type_t);
+int db_object_field_set_enum_set(db_object_field_t*, const db_enum_t*);
 int db_object_field_not_empty(const db_object_field_t*);
 const db_object_field_t* db_object_field_next(const db_object_field_t*);
 
