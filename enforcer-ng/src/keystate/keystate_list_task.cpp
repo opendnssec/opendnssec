@@ -281,7 +281,6 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 					return 1;
 				}
 
-				ods_printf(sockfd, "%s\n", zone.name().c_str());
 				for (int k=0; k<zone.keys_size(); ++k) {
 					const ::ods::keystate::KeyData &key = zone.keys(k);
 					std::string keyrole = keyrole_Name(key.role());
@@ -377,6 +376,20 @@ int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
         return 1;
     }
 
+    ods_printf(sockfd,
+        "Database set to: %s\n"
+        "Keys:\n"
+        "Zone:                           "
+        "Key role:     "
+        "DS:          "
+        "DNSKEY:      "
+        "RRSIGDNSKEY: "
+        "RRSIG:       "
+        "Pub: "
+        "Act: "
+        "Id:"
+        "\n");
+
     const enforcer_zone_t* enforcer_zone = enforcer_zone_list_begin(enforcer_zone_list);
     while (enforcer_zone) {
         key_data_list_t* key_data_list = enforcer_zone_get_keys(enforcer_zone);
@@ -395,13 +408,17 @@ int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
                 const key_state_t* dnskey = key_data_get_dnskey((key_data_t*)key_data);
                 const key_state_t* rrsigdnskey = key_data_get_rrsigdnskey((key_data_t*)key_data);
 
-                ods_printf(sockfd, "%s %s %s %s %s %s\n",
+                ods_printf(sockfd,
+                   "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
                     enforcer_zone_name(enforcer_zone),
                     key_data_role(key_data),
                     key_state_state(ds),
-                    key_state_state(rrsig),
                     key_state_state(dnskey),
-                    key_state_state(rrsigdnskey)
+                    key_state_state(rrsigdnskey),
+                    key_state_state(rrsig),
+                    key_data_publish(key_data),
+                    key_data_active_ksk(key_data) || key_data_active_zsk(key_data),
+                    key_data_locator(key_data)
                     );
 
                 key_data = key_data_list_next(key_data_list);
