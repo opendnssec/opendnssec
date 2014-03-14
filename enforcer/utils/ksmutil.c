@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "config.h"
 
@@ -6555,6 +6556,7 @@ int ListKeys(int zone_id)
     int         temp_alg = 0;       /* place to store algorithm returned */
     int         temp_size = 0;      /* place to store size returned */
 
+    bool bool_temp_zone = false;    /* temp_zone was NULL or not */
     int state_id = -1;
     int keytype_id = KSM_TYPE_KSK;
     char *case_keystate = NULL;
@@ -6691,7 +6693,10 @@ int ListKeys(int zone_id)
             DbInt(row, 10, &temp_size);
             DbString(row, 11, &temp_publish);
             if (temp_zone == NULL){
+                bool_temp_zone = true;
                 temp_zone = "NOT ALLOCATED";
+            }else{
+                bool_temp_zone = false;
             }
             done_row = 0;
 			/* key generate command will generate keys which keystate propetry is null */
@@ -6784,7 +6789,7 @@ int ListKeys(int zone_id)
                 key = hsm_find_key_by_id(NULL, temp_loc);
                 if (!key) {
                     printf("%-33s %s NOT IN repository\n", temp_loc, temp_hsm);
-                } else if (strcmp(temp_zone,"NOT ALLOCATED")){
+                } else if (bool_temp_zone == true){
                     printf("%-33s %s\n",temp_loc,temp_hsm);
                 } else{
                     sign_params = hsm_sign_params_new();
@@ -6821,9 +6826,7 @@ int ListKeys(int zone_id)
 
     DusFree(sql);
     DbFreeRow(row);
-    if (temp_zone == NULL){
-        DbStringFree(temp_zone);
-    }else if (strcmp(temp_zone,"NOT ALLOCATED")){
+    if (bool_temp_zone = false){
         DbStringFree(temp_zone);
     }
     DbStringFree(temp_ready);
