@@ -85,14 +85,6 @@ int db_result_not_empty(const db_result_t* result) {
     return DB_OK;
 }
 
-const db_result_t* db_result_next(const db_result_t* result) {
-    if (!result) {
-        return NULL;
-    }
-
-    return result->next;
-}
-
 /* DB RESULT LIST */
 
 mm_alloc_t __result_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_list_t));
@@ -116,8 +108,44 @@ void db_result_list_free(db_result_list_t* result_list) {
                 this = next;
             }
         }
+        if (result_list->next_function) {
+            (void)result_list->next_function(result_list->next_data, 1);
+            if (result_list->current) {
+                db_result_free(result_list->current);
+            }
+        }
         mm_alloc_delete(&__result_list_alloc, result_list);
     }
+}
+
+int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function) {
+    if (!result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result_list->begin) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    result_list->next_function = next_function;
+    return 0;
+}
+
+int db_result_list_set_next_data(db_result_list_t* result_list, void* next_data) {
+    if (!result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!result_list->next_function) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!next_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result_list->next_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    result_list->next_data = next_data;
+    return 0;
 }
 
 int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
@@ -131,6 +159,9 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
     if (result->next) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result_list->next_function) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -149,10 +180,38 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
     return DB_OK;
 }
 
-const db_result_t* db_result_list_begin(const db_result_list_t* result_list) {
+const db_result_t* db_result_list_begin(db_result_list_t* result_list) {
     if (!result_list) {
         return NULL;
     }
 
-    return result_list->begin;
+    if (result_list->next_function) {
+        if (result_list->current) {
+            db_result_free(result_list->current);
+        }
+        result_list->current = result_list->next_function(result_list->next_data, 0);
+        return result_list->current;
+    }
+
+    result_list->current = result_list->begin;
+    return result_list->current;
+}
+
+const db_result_t* db_result_list_next(db_result_list_t* result_list) {
+    if (!result_list) {
+        return NULL;
+    }
+
+    if (result_list->next_function) {
+        if (result_list->current) {
+            db_result_free(result_list->current);
+        }
+        result_list->current = result_list->next_function(result_list->next_data, 0);
+        return result_list->current;
+    }
+
+    if (result_list->current) {
+        result_list->current = result_list->current->next;
+    }
+    return result_list->current;
 }

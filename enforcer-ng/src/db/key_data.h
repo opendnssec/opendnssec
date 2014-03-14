@@ -122,7 +122,6 @@ const key_state_t* key_data_get_rrsigdnskey(key_data_t*);
 struct key_data_list {
     db_object_t* dbo;
     db_result_list_t* result_list;
-    const db_result_t* result;
     key_data_t* key_data;
 };
 

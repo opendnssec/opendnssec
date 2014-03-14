@@ -100,7 +100,6 @@ key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t*
 struct enforcer_zone_list {
     db_object_t* dbo;
     db_result_list_t* result_list;
-    const db_result_t* result;
     enforcer_zone_t* enforcer_zone;
 };
 

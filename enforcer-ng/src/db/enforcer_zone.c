@@ -537,6 +537,8 @@ int enforcer_zone_list_get(enforcer_zone_list_t* enforcer_zone_list) {
 }
 
 const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t* enforcer_zone_list) {
+    const db_result_t* result;
+
     if (!enforcer_zone_list) {
         return NULL;
     }
@@ -544,7 +546,7 @@ const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t* enforcer_z
         return NULL;
     }
 
-    if (!(enforcer_zone_list->result = db_result_list_begin(enforcer_zone_list->result_list))) {
+    if (!(result = db_result_list_begin(enforcer_zone_list->result_list))) {
         return NULL;
     }
     if (!enforcer_zone_list->enforcer_zone) {
@@ -552,21 +554,20 @@ const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t* enforcer_z
             return NULL;
         }
     }
-    if (enforcer_zone_from_result(enforcer_zone_list->enforcer_zone, enforcer_zone_list->result)) {
+    if (enforcer_zone_from_result(enforcer_zone_list->enforcer_zone, result)) {
         return NULL;
     }
     return enforcer_zone_list->enforcer_zone;
 }
 
 const enforcer_zone_t* enforcer_zone_list_next(enforcer_zone_list_t* enforcer_zone_list) {
+    const db_result_t* result;
+
     if (!enforcer_zone_list) {
         return NULL;
     }
-    if (!enforcer_zone_list->result) {
-        return NULL;
-    }
 
-    if (!(enforcer_zone_list->result = db_result_next(enforcer_zone_list->result))) {
+    if (!(result = db_result_list_next(enforcer_zone_list->result_list))) {
         return NULL;
     }
     if (!enforcer_zone_list->enforcer_zone) {
@@ -574,7 +575,7 @@ const enforcer_zone_t* enforcer_zone_list_next(enforcer_zone_list_t* enforcer_zo
             return NULL;
         }
     }
-    if (enforcer_zone_from_result(enforcer_zone_list->enforcer_zone, enforcer_zone_list->result)) {
+    if (enforcer_zone_from_result(enforcer_zone_list->enforcer_zone, result)) {
         return NULL;
     }
     return enforcer_zone_list->enforcer_zone;

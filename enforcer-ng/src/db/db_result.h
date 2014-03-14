@@ -39,6 +39,8 @@ struct db_result_list;
 typedef struct db_result db_result_t;
 typedef struct db_result_list db_result_list_t;
 
+typedef db_result_t* (*db_result_list_next_t)(void*, int);
+
 #ifdef __cplusplus
 }
 #endif
@@ -59,17 +61,22 @@ void db_result_free(db_result_t*);
 const db_value_set_t* db_result_value_set(const db_result_t*);
 int db_result_set_value_set(db_result_t*, db_value_set_t*);
 int db_result_not_empty(const db_result_t*);
-const db_result_t* db_result_next(const db_result_t*);
 
 struct db_result_list {
     db_result_t* begin;
     db_result_t* end;
+    db_result_t* current;
+    db_result_list_next_t next_function;
+    void* next_data;
 };
 
 db_result_list_t* db_result_list_new(void);
 void db_result_list_free(db_result_list_t*);
+int db_result_list_set_next(db_result_list_t*, db_result_list_next_t);
+int db_result_list_set_next_data(db_result_list_t*, void*);
 int db_result_list_add(db_result_list_t*, db_result_t*);
-const db_result_t* db_result_list_begin(const db_result_list_t*);
+const db_result_t* db_result_list_begin(db_result_list_t*);
+const db_result_t* db_result_list_next(db_result_list_t*);
 
 #ifdef __cplusplus
 }

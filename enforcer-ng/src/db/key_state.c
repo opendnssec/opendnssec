@@ -310,11 +310,15 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
     result_list = db_object_read(key_state->dbo, NULL, clause_list);
     if (!result_list
         || !(result = db_result_list_begin(result_list))
-        || db_result_next(result)
-        || !result
         || !(value_set = db_result_value_set(result))
         || key_state_from_result(key_state, result))
     {
+        db_result_list_free(result_list);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_result_list_next(result_list)) {
+        key_state_reset(key_state);
         db_result_list_free(result_list);
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
@@ -440,6 +444,8 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
 }
 
 const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
+    const db_result_t* result;
+
     if (!key_state_list) {
         return NULL;
     }
@@ -447,7 +453,7 @@ const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
         return NULL;
     }
 
-    if (!(key_state_list->result = db_result_list_begin(key_state_list->result_list))) {
+    if (!(result = db_result_list_begin(key_state_list->result_list))) {
         return NULL;
     }
     if (!key_state_list->key_state) {
@@ -455,21 +461,20 @@ const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
             return NULL;
         }
     }
-    if (key_state_from_result(key_state_list->key_state, key_state_list->result)) {
+    if (key_state_from_result(key_state_list->key_state, result)) {
         return NULL;
     }
     return key_state_list->key_state;
 }
 
 const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {
+    const db_result_t* result;
+
     if (!key_state_list) {
         return NULL;
     }
-    if (!key_state_list->result) {
-        return NULL;
-    }
 
-    if (!(key_state_list->result = db_result_next(key_state_list->result))) {
+    if (!(result = db_result_list_next(key_state_list->result_list))) {
         return NULL;
     }
     if (!key_state_list->key_state) {
@@ -477,7 +482,7 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {
             return NULL;
         }
     }
-    if (key_state_from_result(key_state_list->key_state, key_state_list->result)) {
+    if (key_state_from_result(key_state_list->key_state, result)) {
         return NULL;
     }
     return key_state_list->key_state;

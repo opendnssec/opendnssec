@@ -856,6 +856,8 @@ int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int en
 }
 
 const key_data_t* key_data_list_begin(key_data_list_t* key_data_list) {
+    const db_result_t* result;
+
     if (!key_data_list) {
         return NULL;
     }
@@ -863,7 +865,7 @@ const key_data_t* key_data_list_begin(key_data_list_t* key_data_list) {
         return NULL;
     }
 
-    if (!(key_data_list->result = db_result_list_begin(key_data_list->result_list))) {
+    if (!(result = db_result_list_begin(key_data_list->result_list))) {
         return NULL;
     }
     if (!key_data_list->key_data) {
@@ -871,21 +873,20 @@ const key_data_t* key_data_list_begin(key_data_list_t* key_data_list) {
             return NULL;
         }
     }
-    if (key_data_from_result(key_data_list->key_data, key_data_list->result)) {
+    if (key_data_from_result(key_data_list->key_data, result)) {
         return NULL;
     }
     return key_data_list->key_data;
 }
 
 const key_data_t* key_data_list_next(key_data_list_t* key_data_list) {
+    const db_result_t* result;
+
     if (!key_data_list) {
         return NULL;
     }
-    if (!key_data_list->result) {
-        return NULL;
-    }
 
-    if (!(key_data_list->result = db_result_next(key_data_list->result))) {
+    if (!(result = db_result_list_next(key_data_list->result_list))) {
         return NULL;
     }
     if (!key_data_list->key_data) {
@@ -893,7 +894,7 @@ const key_data_t* key_data_list_next(key_data_list_t* key_data_list) {
             return NULL;
         }
     }
-    if (key_data_from_result(key_data_list->key_data, key_data_list->result)) {
+    if (key_data_from_result(key_data_list->key_data, result)) {
         return NULL;
     }
     return key_data_list->key_data;

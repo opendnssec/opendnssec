@@ -234,12 +234,6 @@ int test_get_by_id(test_t* test, int id) {
     result_list = db_object_read(test->dbo, NULL, clause_list);
     if (result_list) {
         result = db_result_list_begin(result_list);
-        if (db_result_next(result)) {
-            db_result_list_free(result_list);
-            db_clause_list_free(clause_list);
-            return 1;
-        }
-
         if (result) {
             const db_value_set_t* value_set = db_result_value_set(result);
 
@@ -252,6 +246,11 @@ int test_get_by_id(test_t* test, int id) {
                 db_clause_list_free(clause_list);
                 return 1;
             }
+        }
+        if (db_result_list_next(result_list)) {
+            db_result_list_free(result_list);
+            db_clause_list_free(clause_list);
+            return 1;
         }
     }
 
