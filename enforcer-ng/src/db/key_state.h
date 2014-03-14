@@ -61,6 +61,7 @@ struct key_state {
 key_state_t* key_state_new(const db_connection_t*);
 void key_state_free(key_state_t*);
 void key_state_reset(key_state_t*);
+int key_state_copy(key_state_t*, const key_state_t*);
 int key_state_from_result(key_state_t*, const db_result_t*);
 int key_state_id(const key_state_t*);
 const char* key_state_state(const key_state_t*);

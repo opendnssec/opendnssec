@@ -33,6 +33,7 @@
 #include "mm.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 db_object_t* __key_state_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
@@ -154,6 +155,33 @@ void key_state_reset(key_state_t* key_state) {
         key_state->minimize = 0;
         key_state->ttl = 0;
     }
+}
+
+int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
+    char* state = NULL;
+
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_state_copy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_state_copy->state) {
+        if (!(state = strdup(key_state_copy->state))) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
+    key_state->id = key_state_copy->id;
+    if (key_state->state) {
+        free(key_state->state);
+    }
+    key_state->state = state;
+    key_state->last_change = key_state_copy->last_change;
+    key_state->minimize = key_state_copy->minimize;
+    key_state->ttl = key_state_copy->ttl;
+    return DB_OK;
 }
 
 int key_state_from_result(key_state_t* key_state, const db_result_t* result) {

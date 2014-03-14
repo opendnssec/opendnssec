@@ -75,7 +75,6 @@ struct key_data {
     key_state_t* key_state_rrsig;
     key_state_t* key_state_dnskey;
     key_state_t* key_state_rrsigdnskey;
-    key_state_list_t* key_state_list;
 };
 
 key_data_t* key_data_new(const db_connection_t*);

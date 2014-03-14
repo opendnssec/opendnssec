@@ -287,9 +287,6 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->key_state_rrsigdnskey) {
             key_state_free(key_data->key_state_rrsigdnskey);
         }
-        if (key_data->key_state_list) {
-            key_state_list_free(key_data->key_state_list);
-        }
         mm_alloc_delete(&__key_data_alloc, key_data);
     }
 }
@@ -338,10 +335,6 @@ void key_data_reset(key_data_t* key_data) {
             key_state_free(key_data->key_state_rrsigdnskey);
         }
         key_data->key_state_rrsigdnskey = NULL;
-        if (key_data->key_state_list) {
-            key_state_list_free(key_data->key_state_list);
-        }
-        key_data->key_state_list = NULL;
     }
 }
 
@@ -481,6 +474,13 @@ const char* key_data_ds_at_parent(const key_data_t* key_data) {
 }
 
 int key_data_get_key_state_list(key_data_t* key_data) {
+    key_state_list_t* key_state_list;
+    const key_state_t* key_state;
+    key_state_t* key_state_ds = NULL;
+    key_state_t* key_state_rrsig = NULL;
+    key_state_t* key_state_dnskey = NULL;
+    key_state_t* key_state_rrsigdnskey = NULL;
+
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -500,17 +500,93 @@ int key_data_get_key_state_list(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!key_data->key_state_list) {
-        key_data->key_state_list = key_state_list_new(db_object_connection(key_data->dbo));
-        if (!key_data->key_state_list) {
-            return DB_ERROR_UNKNOWN;
-        }
-        if (key_state_list_get_4_by_id(key_data->key_state_list, key_data->ds, key_data->rrsig, key_data->dnskey, key_data->rrsigdnskey)) {
-            key_state_list_free(key_data->key_state_list);
-            key_data->key_state_list = NULL;
-            return DB_ERROR_UNKNOWN;
-        }
+    key_state_list = key_state_list_new(db_object_connection(key_data->dbo));
+    if (!key_state_list) {
+        return DB_ERROR_UNKNOWN;
     }
+    if (key_state_list_get_4_by_id(key_state_list, key_data->ds, key_data->rrsig, key_data->dnskey, key_data->rrsigdnskey)) {
+        key_state_list_free(key_state_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state = key_state_list_begin(key_state_list);
+    while (key_state) {
+        if (key_state_id(key_state) == key_data->ds) {
+            if (!(key_state_ds = key_state_new(db_object_connection(key_data->dbo)))
+                || key_state_copy(key_state_ds, key_state))
+            {
+                key_state_free(key_state_ds);
+                key_state_free(key_state_rrsig);
+                key_state_free(key_state_dnskey);
+                key_state_free(key_state_rrsigdnskey);
+                key_state_list_free(key_state_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        else if (key_state_id(key_state) == key_data->rrsig) {
+            if (!(key_state_rrsig = key_state_new(db_object_connection(key_data->dbo)))
+                || key_state_copy(key_state_rrsig, key_state))
+            {
+                key_state_free(key_state_ds);
+                key_state_free(key_state_rrsig);
+                key_state_free(key_state_dnskey);
+                key_state_free(key_state_rrsigdnskey);
+                key_state_list_free(key_state_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        else if (key_state_id(key_state) == key_data->dnskey) {
+            if (!(key_state_dnskey = key_state_new(db_object_connection(key_data->dbo)))
+                || key_state_copy(key_state_dnskey, key_state))
+            {
+                key_state_free(key_state_ds);
+                key_state_free(key_state_rrsig);
+                key_state_free(key_state_dnskey);
+                key_state_free(key_state_rrsigdnskey);
+                key_state_list_free(key_state_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        else if (key_state_id(key_state) == key_data->rrsigdnskey) {
+            if (!(key_state_rrsigdnskey = key_state_new(db_object_connection(key_data->dbo)))
+                || key_state_copy(key_state_rrsigdnskey, key_state))
+            {
+                key_state_free(key_state_ds);
+                key_state_free(key_state_rrsig);
+                key_state_free(key_state_dnskey);
+                key_state_free(key_state_rrsigdnskey);
+                key_state_list_free(key_state_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        key_state = key_state_list_next(key_state_list);
+    }
+    key_state_list_free(key_state_list);
+
+    if (!key_state_ds || !key_state_rrsig || !key_state_dnskey || !key_state_rrsigdnskey) {
+        key_state_free(key_state_ds);
+        key_state_free(key_state_rrsig);
+        key_state_free(key_state_dnskey);
+        key_state_free(key_state_rrsigdnskey);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_data->key_state_ds) {
+        key_state_free(key_data->key_state_ds);
+    }
+    key_data->key_state_ds = key_state_ds;
+    if (key_data->key_state_rrsig) {
+        key_state_free(key_data->key_state_rrsig);
+    }
+    key_data->key_state_rrsig = key_state_rrsig;
+    if (key_data->key_state_dnskey) {
+        key_state_free(key_data->key_state_dnskey);
+    }
+    key_data->key_state_dnskey = key_state_dnskey;
+    if (key_data->key_state_rrsigdnskey) {
+        key_state_free(key_data->key_state_rrsigdnskey);
+    }
+    key_data->key_state_rrsigdnskey = key_state_rrsigdnskey;
     return DB_OK;
 }
 
@@ -525,15 +601,6 @@ const key_state_t* key_data_get_ds(key_data_t* key_data) {
         return NULL;
     }
 
-    if (key_data->key_state_list) {
-        const key_state_t* key_state = key_state_list_begin(key_data->key_state_list);
-        while (key_state) {
-            if (key_state_id(key_state) == key_data->ds) {
-                return key_state;
-            }
-            key_state = key_state_list_next(key_data->key_state_list);
-        }
-    }
     if (!key_data->key_state_ds) {
         key_data->key_state_ds = key_state_new(db_object_connection(key_data->dbo));
         if (key_data->key_state_ds) {
@@ -558,15 +625,6 @@ const key_state_t* key_data_get_rrsig(key_data_t* key_data) {
         return NULL;
     }
 
-    if (key_data->key_state_list) {
-        const key_state_t* key_state = key_state_list_begin(key_data->key_state_list);
-        while (key_state) {
-            if (key_state_id(key_state) == key_data->rrsig) {
-                return key_state;
-            }
-            key_state = key_state_list_next(key_data->key_state_list);
-        }
-    }
     if (!key_data->key_state_rrsig) {
         key_data->key_state_rrsig = key_state_new(db_object_connection(key_data->dbo));
         if (key_data->key_state_rrsig) {
@@ -591,15 +649,6 @@ const key_state_t* key_data_get_dnskey(key_data_t* key_data) {
         return NULL;
     }
 
-    if (key_data->key_state_list) {
-        const key_state_t* key_state = key_state_list_begin(key_data->key_state_list);
-        while (key_state) {
-            if (key_state_id(key_state) == key_data->dnskey) {
-                return key_state;
-            }
-            key_state = key_state_list_next(key_data->key_state_list);
-        }
-    }
     if (!key_data->key_state_dnskey) {
         key_data->key_state_dnskey = key_state_new(db_object_connection(key_data->dbo));
         if (key_data->key_state_dnskey) {
@@ -624,15 +673,6 @@ const key_state_t* key_data_get_rrsigdnskey(key_data_t* key_data) {
         return NULL;
     }
 
-    if (key_data->key_state_list) {
-        const key_state_t* key_state = key_state_list_begin(key_data->key_state_list);
-        while (key_state) {
-            if (key_state_id(key_state) == key_data->rrsigdnskey) {
-                return key_state;
-            }
-            key_state = key_state_list_next(key_data->key_state_list);
-        }
-    }
     if (!key_data->key_state_rrsigdnskey) {
         key_data->key_state_rrsigdnskey = key_state_new(db_object_connection(key_data->dbo));
         if (key_data->key_state_rrsigdnskey) {
