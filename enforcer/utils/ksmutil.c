@@ -6826,7 +6826,7 @@ int ListKeys(int zone_id)
 
     DusFree(sql);
     DbFreeRow(row);
-    if (bool_temp_zone = false){
+    if (bool_temp_zone == false){
         DbStringFree(temp_zone);
     }
     DbStringFree(temp_ready);
