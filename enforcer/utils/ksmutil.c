@@ -271,8 +271,8 @@ usage_keylist ()
 {
     fprintf(stderr,
             "  key list\n"
-            "\t[--verbose]\n"
-            "\t--zone <zone>                            aka -z\n"
+            "\t[--verbose]                              aka -v\n"
+            "\t[--zone <zone>]                          aka -z\n"
             "\t[--keystate <state>| --all]              aka -e / -a\n"
             "\t[--keytype <type>]                       aka -t\n"
     );
