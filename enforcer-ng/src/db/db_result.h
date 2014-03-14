@@ -72,8 +72,7 @@ struct db_result_list {
 
 db_result_list_t* db_result_list_new(void);
 void db_result_list_free(db_result_list_t*);
-int db_result_list_set_next(db_result_list_t*, db_result_list_next_t);
-int db_result_list_set_next_data(db_result_list_t*, void*);
+int db_result_list_set_next(db_result_list_t*, db_result_list_next_t, void*);
 int db_result_list_add(db_result_list_t*, db_result_t*);
 const db_result_t* db_result_list_begin(db_result_list_t*);
 const db_result_t* db_result_list_next(db_result_list_t*);

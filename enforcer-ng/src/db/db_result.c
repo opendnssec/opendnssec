@@ -118,23 +118,14 @@ void db_result_list_free(db_result_list_t* result_list) {
     }
 }
 
-int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function) {
+int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data) {
     if (!result_list) {
         return DB_ERROR_UNKNOWN;
     }
     if (result_list->begin) {
         return DB_ERROR_UNKNOWN;
     }
-
-    result_list->next_function = next_function;
-    return 0;
-}
-
-int db_result_list_set_next_data(db_result_list_t* result_list, void* next_data) {
-    if (!result_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!result_list->next_function) {
+    if (result_list->next_function) {
         return DB_ERROR_UNKNOWN;
     }
     if (!next_data) {
@@ -144,6 +135,7 @@ int db_result_list_set_next_data(db_result_list_t* result_list, void* next_data)
         return DB_ERROR_UNKNOWN;
     }
 
+    result_list->next_function = next_function;
     result_list->next_data = next_data;
     return 0;
 }
