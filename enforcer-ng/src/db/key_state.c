@@ -84,7 +84,7 @@ db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "last_change")
-        || db_object_field_set_type(object_field, DB_TYPE_INTEGER)
+        || db_object_field_set_type(object_field, DB_TYPE_INT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -95,7 +95,7 @@ db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "minimize")
-        || db_object_field_set_type(object_field, DB_TYPE_INTEGER)
+        || db_object_field_set_type(object_field, DB_TYPE_INT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -106,7 +106,7 @@ db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_INTEGER)
+        || db_object_field_set_type(object_field, DB_TYPE_INT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -192,11 +192,11 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     key_state_reset(key_state);
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 5
-        || db_value_to_int(db_value_set_get(value_set, 0), &(key_state->id))
+        || db_value_to_int32(db_value_set_get(value_set, 0), &(key_state->id))
         || db_value_to_enum_value(db_value_set_get(value_set, 1), &state, __enum_set_state)
-        || db_value_to_int(db_value_set_get(value_set, 2), &(key_state->last_change))
-        || db_value_to_int(db_value_set_get(value_set, 3), &(key_state->minimize))
-        || db_value_to_int(db_value_set_get(value_set, 4), &(key_state->ttl)))
+        || db_value_to_int32(db_value_set_get(value_set, 2), &(key_state->last_change))
+        || db_value_to_int32(db_value_set_get(value_set, 3), &(key_state->minimize))
+        || db_value_to_int32(db_value_set_get(value_set, 4), &(key_state->ttl)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -299,7 +299,7 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int(db_clause_get_value(clause), id)
+        || db_value_from_int32(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -391,7 +391,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int(db_clause_get_value(clause), id1)
+        || db_value_from_int32(db_clause_get_value(clause), id1)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -402,7 +402,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int(db_clause_get_value(clause), id2)
+        || db_value_from_int32(db_clause_get_value(clause), id2)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -413,7 +413,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int(db_clause_get_value(clause), id3)
+        || db_value_from_int32(db_clause_get_value(clause), id3)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -424,7 +424,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int(db_clause_get_value(clause), id4)
+        || db_value_from_int32(db_clause_get_value(clause), id4)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

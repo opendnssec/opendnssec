@@ -151,7 +151,7 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
     int ret;
     int bind;
     db_result_t* result = NULL;
-    db_value_set_t* value_set;
+    db_value_set_t* value_set = NULL;
     const db_object_field_t* object_field;
 
     if (!statement) {
@@ -190,16 +190,16 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
     object_field = db_object_field_list_begin(db_object_object_field_list(statement->object));
     bind = 0;
     while (object_field) {
-        int integer;
-        const char* string;
+        db_type_int32_t integer;
+        const char* text;
 
         switch (db_object_field_type(object_field)) {
         case DB_TYPE_PRIMARY_KEY:
-        case DB_TYPE_INTEGER:
+        case DB_TYPE_INT32:
             integer = sqlite3_column_int(statement->statement, bind);
             ret = sqlite3_errcode(statement->backend_sqlite->db);
             if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
-                || db_value_from_int(db_value_set_get(value_set, bind), integer))
+                || db_value_from_int32(db_value_set_get(value_set, bind), integer))
             {
                 db_result_free(result);
                 return NULL;
@@ -207,12 +207,12 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
             break;
 
         case DB_TYPE_ENUM:
-        case DB_TYPE_STRING:
-            string = (const char*)sqlite3_column_text(statement->statement, bind);
+        case DB_TYPE_TEXT:
+            text = (const char*)sqlite3_column_text(statement->statement, bind);
             ret = sqlite3_errcode(statement->backend_sqlite->db);
-            if (!string
+            if (!text
                 || (ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
-                || db_value_from_string(db_value_set_get(value_set, bind), string))
+                || db_value_from_text(db_value_set_get(value_set, bind), text))
             {
                 db_result_free(result);
                 return NULL;
@@ -361,7 +361,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
             case DB_CLAUSE_EQ:
                 switch (db_value_type(db_clause_value(clause))) {
                 case DB_TYPE_PRIMARY_KEY:
-                case DB_TYPE_INTEGER:
+                case DB_TYPE_INT32:
                     if ((ret = snprintf(sqlp, left, " %s.%s = ?",
                         (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                         db_clause_field(clause))) >= left)
@@ -405,7 +405,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     }
 
     if (clause_list) {
-        int to_int;
+        db_type_int32_t to_int;
         clause = db_clause_list_begin(clause_list);
         bind = 1;
         while (clause) {
@@ -413,8 +413,8 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
             case DB_CLAUSE_EQ:
                 switch (db_value_type(db_clause_value(clause))) {
                 case DB_TYPE_PRIMARY_KEY:
-                case DB_TYPE_INTEGER:
-                    if (db_value_to_int(db_clause_value(clause), &to_int)) {
+                case DB_TYPE_INT32:
+                    if (db_value_to_int32(db_clause_value(clause), &to_int)) {
                         sqlite3_finalize(statement->statement);
                         mm_alloc_delete(&__statement_alloc, statement);
                         return NULL;

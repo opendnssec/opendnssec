@@ -30,15 +30,24 @@
 #ifndef __db_type_h
 #define __db_type_h
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef int32_t db_type_int32_t;
+typedef uint32_t db_type_uint32_t;
+typedef int64_t db_type_int64_t;
+typedef uint64_t db_type_uint64_t;
 typedef enum {
     DB_TYPE_EMPTY,
     DB_TYPE_PRIMARY_KEY,
-    DB_TYPE_INTEGER,
-    DB_TYPE_STRING,
+    DB_TYPE_INT32,
+    DB_TYPE_UINT32,
+    DB_TYPE_INT64,
+    DB_TYPE_UINT64,
+    DB_TYPE_TEXT,
     DB_TYPE_ENUM
 } db_type_t;
 

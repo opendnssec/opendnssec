@@ -43,6 +43,8 @@ typedef struct db_value_set db_value_set_t;
 }
 #endif
 
+#include "config.h"
+
 #include "db_type.h"
 #include "db_enum.h"
 
@@ -52,9 +54,15 @@ typedef struct db_value_set db_value_set_t;
 extern "C" {
 #endif
 
+#define DB_VALUE_DATA_SIZE (SIZEOF_INT64_T / SIZEOF_VOIDP)
+
 struct db_value {
     db_type_t type;
-    void* data;
+    char* text;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
     int enum_value;
     const char* enum_text;
 };
@@ -63,18 +71,21 @@ db_value_t* db_value_new();
 void db_value_free(db_value_t*);
 void db_value_reset(db_value_t*);
 db_type_t db_value_type(const db_value_t*);
-const void* db_value_data(const db_value_t*);
 int db_value_enum_value(const db_value_t*);
 const char* db_value_enum_text(const db_value_t*);
-int db_value_set_type(db_value_t*, db_type_t);
-int db_value_set_data(db_value_t*, void*);
 int db_value_not_empty(const db_value_t*);
-int db_value_to_int(const db_value_t*, int*);
-int db_value_to_string(const db_value_t*, char**);
+int db_value_to_int32(const db_value_t*, db_type_int32_t*);
+int db_value_to_uint32(const db_value_t*, db_type_uint32_t*);
+int db_value_to_int64(const db_value_t*, db_type_int64_t*);
+int db_value_to_uint64(const db_value_t*, db_type_uint64_t*);
+int db_value_to_text(const db_value_t*, char**);
 int db_value_to_enum_value(const db_value_t*, int*, const db_enum_t*);
 int db_value_to_enum_text(const db_value_t*, const char**, const db_enum_t*);
-int db_value_from_int(db_value_t*, int);
-int db_value_from_string(db_value_t*, const char*);
+int db_value_from_int32(db_value_t*, db_type_int32_t);
+int db_value_from_uint32(db_value_t*, db_type_uint32_t);
+int db_value_from_int64(db_value_t*, db_type_int64_t);
+int db_value_from_uint64(db_value_t*, db_type_uint64_t);
+int db_value_from_text(db_value_t*, const char*);
 int db_value_from_enum_value(db_value_t*, int, const db_enum_t*);
 int db_value_from_enum_text(db_value_t*, const char*, const db_enum_t*);
 
