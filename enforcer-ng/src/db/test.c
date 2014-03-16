@@ -121,7 +121,7 @@ test_t* test_new(const db_connection_t* connection) {
          */
         if (!(object_field = db_object_field_new())
             || db_object_field_set_name(object_field, "name")
-            || db_object_field_set_type(object_field, DB_TYPE_STRING)
+            || db_object_field_set_type(object_field, DB_TYPE_TEXT)
             || db_object_field_list_add(object_field_list, object_field))
         {
             db_object_field_free(object_field);
@@ -220,7 +220,7 @@ int test_get_by_id(test_t* test, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int(db_clause_value(clause), id)
+        || db_value_from_int32(db_clause_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -239,8 +239,8 @@ int test_get_by_id(test_t* test, int id) {
 
             if (!value_set
                 || db_value_set_size(value_set) != 2
-                || db_value_to_int(db_value_set_get(value_set, 0), &(test->id))
-                || db_value_to_string(db_value_set_get(value_set, 1), &(test->name)))
+                || db_value_to_int32(db_value_set_get(value_set, 0), &(test->id))
+                || db_value_to_text(db_value_set_get(value_set, 1), &(test->name)))
             {
                 db_result_list_free(result_list);
                 db_clause_list_free(clause_list);
