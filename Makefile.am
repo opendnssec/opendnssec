@@ -28,6 +28,7 @@ migrationdir = $(datadir)/opendnssec/migration
 dist_migration_DATA = MIGRATION
 
 EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \
+		$(srcdir)/README.md \
 		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 
