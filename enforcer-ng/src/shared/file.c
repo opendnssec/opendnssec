@@ -310,7 +310,7 @@ ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
 		client_printf_err(fd, "error: vsnprintf buffer too small\n"); 
 		return;
 	}
-	client_printf_err(fd, "%s", buf); 
+	client_printf(fd, "%s", buf); 
 }
 
 
