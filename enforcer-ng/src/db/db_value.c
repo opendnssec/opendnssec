@@ -170,7 +170,7 @@ int db_value_to_int64(const db_value_t* value, db_type_int64_t* to_int64) {
     return DB_OK;
 }
 
-int db_value_to_uin64(const db_value_t* value, db_type_uint64_t* to_uint64) {
+int db_value_to_uint64(const db_value_t* value, db_type_uint64_t* to_uint64) {
     if (!value) {
         return DB_ERROR_UNKNOWN;
     }
