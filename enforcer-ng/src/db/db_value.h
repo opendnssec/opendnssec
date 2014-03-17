@@ -72,6 +72,7 @@ void db_value_free(db_value_t*);
 void db_value_reset(db_value_t*);
 /* TODO: add db_value_copy and use it in all objects to copy the primary key */
 db_type_t db_value_type(const db_value_t*);
+const char* db_value_text(const db_value_t*);
 int db_value_enum_value(const db_value_t*);
 const char* db_value_enum_text(const db_value_t*);
 int db_value_not_empty(const db_value_t*);

@@ -82,8 +82,22 @@ db_type_t db_value_type(const db_value_t* value) {
     return value->type;
 }
 
+const char* db_value_text(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_TEXT) {
+        return NULL;
+    }
+
+    return value->text;
+}
+
 int db_value_enum_value(const db_value_t* value) {
     if (!value) {
+        return 0; /* TODO: this is not good */
+    }
+    if (value->type != DB_TYPE_EMPTY) {
         return 0; /* TODO: this is not good */
     }
 
@@ -92,6 +106,9 @@ int db_value_enum_value(const db_value_t* value) {
 
 const char* db_value_enum_text(const db_value_t* value) {
     if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_EMPTY) {
         return NULL;
     }
 
