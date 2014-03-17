@@ -1,4 +1,4 @@
-OpenDNSSEC 1.4.4rc1
+OpenDNSSEC 1.4.4rc1 - 2014-03-17
 
 * SUPPORT-114: libhsm: Optimize storage in HSM by deleting the public
   key directly if SkipPublicKey is used [OPENDNSSEC-574].
