@@ -239,8 +239,8 @@ int test_get_by_id(test_t* test, int id) {
 
             if (!value_set
                 || db_value_set_size(value_set) != 2
-                || db_value_to_int32(db_value_set_get(value_set, 0), &(test->id))
-                || db_value_to_text(db_value_set_get(value_set, 1), &(test->name)))
+                || db_value_to_int32(db_value_set_at(value_set, 0), &(test->id))
+                || db_value_to_text(db_value_set_at(value_set, 1), &(test->name)))
             {
                 db_result_list_free(result_list);
                 db_clause_list_free(clause_list);

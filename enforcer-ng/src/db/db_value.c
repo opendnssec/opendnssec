@@ -482,7 +482,21 @@ size_t db_value_set_size(const db_value_set_t* value_set) {
     return value_set->size;
 }
 
-db_value_t* db_value_set_get(const db_value_set_t* value_set, size_t at) {
+const db_value_t* db_value_set_at(const db_value_set_t* value_set, size_t at) {
+    if (!value_set) {
+        return NULL;
+    }
+    if (!value_set->values) {
+        return NULL;
+    }
+    if (!(at < value_set->size)) {
+        return NULL;
+    }
+
+    return &value_set->values[at];
+}
+
+db_value_t* db_value_set_get(db_value_set_t* value_set, size_t at) {
     if (!value_set) {
         return NULL;
     }

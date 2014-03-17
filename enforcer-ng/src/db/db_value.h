@@ -98,7 +98,8 @@ struct db_value_set {
 db_value_set_t* db_value_set_new(size_t);
 void db_value_set_free(db_value_set_t*);
 size_t db_value_set_size(const db_value_set_t*);
-db_value_t* db_value_set_get(const db_value_set_t*, size_t);
+const db_value_t* db_value_set_at(const db_value_set_t*, size_t);
+db_value_t* db_value_set_get(db_value_set_t*, size_t);
 
 #ifdef __cplusplus
 }

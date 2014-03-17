@@ -192,11 +192,11 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     key_state_reset(key_state);
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 5
-        || db_value_to_int32(db_value_set_get(value_set, 0), &(key_state->id))
-        || db_value_to_enum_value(db_value_set_get(value_set, 1), &state, __enum_set_state)
-        || db_value_to_int32(db_value_set_get(value_set, 2), &(key_state->last_change))
-        || db_value_to_int32(db_value_set_get(value_set, 3), &(key_state->minimize))
-        || db_value_to_int32(db_value_set_get(value_set, 4), &(key_state->ttl)))
+        || db_value_to_int32(db_value_set_at(value_set, 0), &(key_state->id))
+        || db_value_to_enum_value(db_value_set_at(value_set, 1), &state, __enum_set_state)
+        || db_value_to_int32(db_value_set_at(value_set, 2), &(key_state->last_change))
+        || db_value_to_int32(db_value_set_at(value_set, 3), &(key_state->minimize))
+        || db_value_to_int32(db_value_set_at(value_set, 4), &(key_state->ttl)))
     {
         return DB_ERROR_UNKNOWN;
     }
