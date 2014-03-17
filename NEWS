@@ -1,3 +1,7 @@
+OpenDNSSEC 1.4.4rc2 - 2014-03-17
+
+* Make/build: Include README.md in dist tar-ball.
+
 OpenDNSSEC 1.4.4rc1 - 2014-03-17
 
 * SUPPORT-114: libhsm: Optimize storage in HSM by deleting the public
