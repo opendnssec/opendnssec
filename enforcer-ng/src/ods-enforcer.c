@@ -214,7 +214,7 @@ interface_start(const char* cmd, const char* servsock_filename)
             ods_str_trim(userbuf);
             if (strlen(userbuf) > 0) add_history(userbuf);
 #else        
-            fprintf(stdout, PROMPT);
+            fprintf(stdout, "%s", PROMPT);
             fflush(stdout);
             n = read(fileno(stdin), userbuf, ODS_SE_MAXLINE);
             if (n == 0) { /* eof */
@@ -222,7 +222,7 @@ interface_start(const char* cmd, const char* servsock_filename)
                 break;
             } else if (n == -1) {
                 error = 205;
-                break
+                break;
             }
             ods_str_trim(userbuf);
 #endif
