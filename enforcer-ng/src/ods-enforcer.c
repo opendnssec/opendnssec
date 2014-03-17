@@ -180,8 +180,16 @@ interface_start(const char* cmd, const char* servsock_filename)
     strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path) - 1);
     
     if (connect(sockfd, (const struct sockaddr*) &servaddr, sizeof(servaddr)) == -1) {
+        if (cmd) {
+            if (strncmp(cmd, "start", 5) == 0) {
+                return system(ODS_EN_ENGINE);
+            } else if (strcmp(cmd, "running\n") == 0) {
+                fprintf(stdout, "Engine not running.\n");
+                return 209;
+            }
+        }
         fprintf(stderr, 
-            "Unable to connect to engine. socket() failed: "
+            "Unable to connect to engine. connect() failed: "
             "%s (\"%s\")\n", strerror(errno), servsock_filename);
         return 201;
     }
@@ -224,6 +232,7 @@ interface_start(const char* cmd, const char* servsock_filename)
                 error = 205;
                 break;
             }
+            userbuf[n] = 0;
             ods_str_trim(userbuf);
 #endif
             if (strlen(userbuf) == 0) continue;

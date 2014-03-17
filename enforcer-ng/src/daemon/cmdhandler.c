@@ -264,8 +264,8 @@ int sockfd, engine_type* engine)
             /* a complete message */
             memset(data, 0, ODS_SE_MAXLINE+1);
             memcpy(data, buf+3, datalen);
-            memmove(buf, buf+datalen+3, *pos-datalen-3);
-            *pos = 0;
+            *pos -= datalen+3;
+            memmove(buf, buf+datalen+3, *pos);
             ods_str_trim(data);
 
             if (opc == CLIENT_OPC_STDIN) {
