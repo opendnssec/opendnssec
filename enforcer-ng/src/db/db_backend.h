@@ -59,6 +59,7 @@ typedef int (*db_backend_handle_connect_t)(void*, const db_configuration_list_t*
 typedef int (*db_backend_handle_disconnect_t)(void*);
 typedef int (*db_backend_handle_create_t)(void*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
 typedef db_result_list_t* (*db_backend_handle_read_t)(void*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
+/* TODO: consider removing join_list for update and delete since many backends might not support it */
 typedef int (*db_backend_handle_update_t)(void*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_join_list_t*, const db_clause_list_t*);
 typedef int (*db_backend_handle_delete_t)(void*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
 typedef void (*db_backend_handle_free_t)(void*);
