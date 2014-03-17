@@ -450,6 +450,12 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     int ret, left, bind, first, fields;
     db_result_list_t* result_list;
     db_backend_sqlite_statement_t* statement;
+    int to_int;
+    sqlite3_int64 to_int64;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
 
     if (!__sqlite3_initialized) {
         return NULL;
@@ -663,12 +669,6 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     }
 
     if (clause_list) {
-        int to_int;
-        sqlite3_int64 to_int64;
-        db_type_int32_t int32;
-        db_type_uint32_t uint32;
-        db_type_int64_t int64;
-        db_type_uint64_t uint64;
         clause = db_clause_list_begin(clause_list);
         bind = 1;
         while (clause) {
@@ -688,7 +688,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                         return NULL;
                     }
                     to_int = int32;
-                    ret = sqlite3_bind_int(statement, bind++, to_int);
+                    ret = sqlite3_bind_int(statement->statement, bind++, to_int);
                     if (ret != SQLITE_OK) {
                         sqlite3_finalize(statement->statement);
                         mm_alloc_delete(&__statement_alloc, statement);
@@ -703,7 +703,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                         return NULL;
                     }
                     to_int = uint32;
-                    ret = sqlite3_bind_int(statement, bind++, to_int);
+                    ret = sqlite3_bind_int(statement->statement, bind++, to_int);
                     if (ret != SQLITE_OK) {
                         sqlite3_finalize(statement->statement);
                         mm_alloc_delete(&__statement_alloc, statement);
@@ -718,7 +718,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                         return NULL;
                     }
                     to_int64 = int64;
-                    ret = sqlite3_bind_int64(statement, bind++, to_int64);
+                    ret = sqlite3_bind_int64(statement->statement, bind++, to_int64);
                     if (ret != SQLITE_OK) {
                         sqlite3_finalize(statement->statement);
                         mm_alloc_delete(&__statement_alloc, statement);
@@ -733,7 +733,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                         return NULL;
                     }
                     to_int64 = uint64;
-                    ret = sqlite3_bind_int64(statement, bind++, to_int64);
+                    ret = sqlite3_bind_int64(statement->statement, bind++, to_int64);
                     if (ret != SQLITE_OK) {
                         sqlite3_finalize(statement->statement);
                         mm_alloc_delete(&__statement_alloc, statement);
@@ -742,7 +742,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                     break;
 
                 case DB_TYPE_TEXT:
-                    ret = sqlite3_bind_text(statement, bind++, db_value_text(db_clause_value(clause)), 0, SQLITE_STATIC);
+                    ret = sqlite3_bind_text(statement->statement, bind++, db_value_text(db_clause_value(clause)), 0, SQLITE_STATIC);
                     if (ret != SQLITE_OK) {
                         sqlite3_finalize(statement->statement);
                         mm_alloc_delete(&__statement_alloc, statement);
@@ -751,7 +751,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                     break;
 
                 case DB_TYPE_ENUM:
-                    ret = sqlite3_bind_int(statement, bind++, db_value_enum_value(db_clause_value(clause)));
+                    ret = sqlite3_bind_int(statement->statement, bind++, db_value_enum_value(db_clause_value(clause)));
                     if (ret != SQLITE_OK) {
                         sqlite3_finalize(statement->statement);
                         mm_alloc_delete(&__statement_alloc, statement);
@@ -791,6 +791,21 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 
 int db_backend_sqlite_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+    const db_object_field_t* object_field;
+    const db_value_t* value;
+    const db_clause_t* clause;
+    const db_join_t* join;
+    char sql[4*1024];
+    char* sqlp;
+    int ret, left, bind, first;
+    sqlite3_stmt* statement = NULL;
+    size_t value_pos;
+    int to_int;
+    sqlite3_int64 to_int64;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
 
     if (!__sqlite3_initialized) {
         return DB_ERROR_UNKNOWN;
@@ -798,8 +813,373 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
     if (!backend_sqlite) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object_field_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!value_set) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    return DB_ERROR_UNKNOWN;
+    left = sizeof(sql);
+    sqlp = sql;
+
+    if ((ret = snprintf(sqlp, left, "UPDATE %s SET", db_object_table(object))) >= left) {
+        return DB_ERROR_UNKNOWN;
+    }
+    sqlp += ret;
+    left -= ret;
+
+    object_field = db_object_field_list_begin(object_field_list);
+    first = 1;
+    while (object_field) {
+        /* TODO: Skip primary key? */
+        if (first) {
+            if ((ret = snprintf(sqlp, left, " %s = ?", db_object_field_name(object_field))) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            first = 0;
+        }
+        else {
+            if ((ret = snprintf(sqlp, left, ", %s = ?", db_object_field_name(object_field))) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        sqlp += ret;
+        left -= ret;
+
+        object_field = db_object_field_next(object_field);
+    }
+
+    if (clause_list) {
+        clause = db_clause_list_begin(clause_list);
+        first = 1;
+
+        if (clause) {
+            if ((ret = snprintf(sqlp, left, " WHERE")) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            sqlp += ret;
+            left -= ret;
+        }
+
+        while (clause) {
+            if (first) {
+                first = 0;
+            }
+            else {
+                switch (db_clause_operator(clause)) {
+                case DB_CLAUSE_OPERATOR_AND:
+                    if ((ret = snprintf(sqlp, left, " AND")) >= left) {
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    sqlp += ret;
+                    left -= ret;
+                    break;
+
+                case DB_CLAUSE_OPERATOR_OR:
+                    if ((ret = snprintf(sqlp, left, " OR")) >= left) {
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    sqlp += ret;
+                    left -= ret;
+                    break;
+
+                default:
+                    return DB_ERROR_UNKNOWN;
+                }
+            }
+
+            switch (db_clause_type(clause)) {
+            case DB_CLAUSE_EQUAL:
+                if ((ret = snprintf(sqlp, left, " %s.%s = ?",
+                    (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                    db_clause_field(clause))) >= left)
+                {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_NOT_EQUAL:
+                if ((ret = snprintf(sqlp, left, " %s.%s != ?",
+                    (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                    db_clause_field(clause))) >= left)
+                {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_LESS_THEN:
+                if ((ret = snprintf(sqlp, left, " %s.%s < ?",
+                    (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                    db_clause_field(clause))) >= left)
+                {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_LESS_OR_EQUAL:
+                if ((ret = snprintf(sqlp, left, " %s.%s <= ?",
+                    (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                    db_clause_field(clause))) >= left)
+                {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_GREATER_OR_EQUAL:
+                if ((ret = snprintf(sqlp, left, " %s.%s >= ?",
+                    (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                    db_clause_field(clause))) >= left)
+                {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_GREATER_THEN:
+                if ((ret = snprintf(sqlp, left, " %s.%s > ?",
+                    (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                    db_clause_field(clause))) >= left)
+                {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_IS_NULL:
+                if ((ret = snprintf(sqlp, left, " %s.%s IS NULL",
+                    (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                    db_clause_field(clause))) >= left)
+                {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_IS_NOT_NULL:
+                if ((ret = snprintf(sqlp, left, " %s.%s IS NOT NULL",
+                    (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                    db_clause_field(clause))) >= left)
+                {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            default:
+                return DB_ERROR_UNKNOWN;
+            }
+            sqlp += ret;
+            left -= ret;
+
+            clause = db_clause_next(clause);
+        }
+    }
+
+    ret = sqlite3_prepare_v2(backend_sqlite->db,
+        sql,
+        sizeof(sql),
+        &statement,
+        NULL);
+    if (ret != SQLITE_OK) {
+        ods_log_info("DB SQL %s", sql);
+        ods_log_info("DB Err %d\n", ret);
+        if (statement) {
+            sqlite3_finalize(statement);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+
+    bind = 1;
+    for (value_pos = 0; value_pos < db_value_set_size(value_set); value_pos++) {
+        if (!(value = db_value_set_at(value_set, value_pos))) {
+            sqlite3_finalize(statement);
+            return DB_ERROR_UNKNOWN;
+        }
+
+        switch (db_value_type(value)) {
+        case DB_TYPE_PRIMARY_KEY:
+        case DB_TYPE_INT32:
+            if (db_value_to_int32(value, &int32)) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            to_int = int32;
+            ret = sqlite3_bind_int(statement, bind++, to_int);
+            if (ret != SQLITE_OK) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_UINT32:
+            if (db_value_to_uint32(value, &uint32)) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            to_int = uint32;
+            ret = sqlite3_bind_int(statement, bind++, to_int);
+            if (ret != SQLITE_OK) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_INT64:
+            if (db_value_to_int64(value, &int64)) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            to_int64 = int64;
+            ret = sqlite3_bind_int64(statement, bind++, to_int64);
+            if (ret != SQLITE_OK) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_UINT64:
+            if (db_value_to_uint64(value, &uint64)) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            to_int64 = uint64;
+            ret = sqlite3_bind_int64(statement, bind++, to_int64);
+            if (ret != SQLITE_OK) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_TEXT:
+            ret = sqlite3_bind_text(statement, bind++, db_value_text(value), 0, SQLITE_STATIC);
+            if (ret != SQLITE_OK) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_ENUM:
+            ret = sqlite3_bind_int(statement, bind++, db_value_enum_value(value));
+            if (ret != SQLITE_OK) {
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    if (clause_list) {
+        clause = db_clause_list_begin(clause_list);
+        while (clause) {
+            switch (db_clause_type(clause)) {
+            case DB_CLAUSE_EQUAL:
+            case DB_CLAUSE_NOT_EQUAL:
+            case DB_CLAUSE_LESS_THEN:
+            case DB_CLAUSE_LESS_OR_EQUAL:
+            case DB_CLAUSE_GREATER_OR_EQUAL:
+            case DB_CLAUSE_GREATER_THEN:
+                switch (db_value_type(db_clause_value(clause))) {
+                case DB_TYPE_PRIMARY_KEY:
+                case DB_TYPE_INT32:
+                    if (db_value_to_int32(db_clause_value(clause), &int32)) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    to_int = int32;
+                    ret = sqlite3_bind_int(statement, bind++, to_int);
+                    if (ret != SQLITE_OK) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    break;
+
+                case DB_TYPE_UINT32:
+                    if (db_value_to_uint32(db_clause_value(clause), &uint32)) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    to_int = uint32;
+                    ret = sqlite3_bind_int(statement, bind++, to_int);
+                    if (ret != SQLITE_OK) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    break;
+
+                case DB_TYPE_INT64:
+                    if (db_value_to_int64(db_clause_value(clause), &int64)) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    to_int64 = int64;
+                    ret = sqlite3_bind_int64(statement, bind++, to_int64);
+                    if (ret != SQLITE_OK) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    break;
+
+                case DB_TYPE_UINT64:
+                    if (db_value_to_uint64(db_clause_value(clause), &uint64)) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    to_int64 = uint64;
+                    ret = sqlite3_bind_int64(statement, bind++, to_int64);
+                    if (ret != SQLITE_OK) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    break;
+
+                case DB_TYPE_TEXT:
+                    ret = sqlite3_bind_text(statement, bind++, db_value_text(db_clause_value(clause)), 0, SQLITE_STATIC);
+                    if (ret != SQLITE_OK) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    break;
+
+                case DB_TYPE_ENUM:
+                    ret = sqlite3_bind_int(statement, bind++, db_value_enum_value(db_clause_value(clause)));
+                    if (ret != SQLITE_OK) {
+                        sqlite3_finalize(statement);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    break;
+
+                default:
+                    sqlite3_finalize(statement);
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_IS_NULL:
+            case DB_CLAUSE_IS_NOT_NULL:
+                break;
+
+            default:
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+            }
+            clause = db_clause_next(clause);
+        }
+    }
+
+    ret = sqlite3_step(statement);
+    while (ret == SQLITE_BUSY) {
+        usleep(100);
+        ret = sqlite3_step(statement);
+    }
+    sqlite3_finalize(statement);
+    if (ret != SQLITE_DONE) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
 }
 
 int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
