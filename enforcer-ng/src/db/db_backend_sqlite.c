@@ -38,10 +38,13 @@
 #include <stdio.h>
 #include <unistd.h>
 
+int db_backend_sqlite_transaction_rollback(void*);
+
 int __sqlite3_initialized = 0;
 
 typedef struct db_backend_sqlite {
     sqlite3* db;
+    int transaction;
 } db_backend_sqlite_t;
 
 mm_alloc_t __sqlite_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_t));
@@ -138,6 +141,9 @@ int db_backend_sqlite_disconnect(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (backend_sqlite->transaction) {
+        db_backend_sqlite_transaction_rollback(backend_sqlite);
+    }
     ret = sqlite3_close(backend_sqlite->db);
     if (ret != SQLITE_OK) {
         return DB_ERROR_UNKNOWN;
@@ -391,6 +397,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     statement->backend_sqlite = backend_sqlite;
     statement->object = object;
     statement->fields = fields;
+    statement->statement = NULL;
 
     ret = sqlite3_prepare_v2(backend_sqlite->db,
         sql,
@@ -400,6 +407,9 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     if (ret != SQLITE_OK) {
         ods_log_info("DB SQL %s", sql);
         ods_log_info("DB Err %d\n", ret);
+        if (statement->statement) {
+            sqlite3_finalize(statement->statement);
+        }
         mm_alloc_delete(&__statement_alloc, statement);
         return NULL;
     }
@@ -492,20 +502,134 @@ void db_backend_sqlite_free(void* data) {
 
 int db_backend_sqlite_transaction_begin(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+    static const char* sql = "BEGIN TRANSACTION";
+    int ret;
+    sqlite3_stmt* statement = NULL;
 
-    return DB_ERROR_UNKNOWN;
+    if (!__sqlite3_initialized) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_sqlite) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (backend_sqlite->transaction) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ret = sqlite3_prepare_v2(backend_sqlite->db,
+        sql,
+        sizeof(sql),
+        &statement,
+        NULL);
+    if (ret != SQLITE_OK) {
+        ods_log_info("DB SQL %s", sql);
+        ods_log_info("DB Err %d\n", ret);
+        if (statement) {
+            sqlite3_finalize(statement);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ret = sqlite3_step(statement);
+    while (ret == SQLITE_BUSY) {
+        usleep(100);
+        ret = sqlite3_step(statement);
+    }
+    sqlite3_finalize(statement);
+    if (ret != SQLITE_DONE) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    backend_sqlite->transaction = 1;
+    return DB_OK;
 }
 
 int db_backend_sqlite_transaction_commit(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+    static const char* sql = "COMMIT TRANSACTION";
+    int ret;
+    sqlite3_stmt* statement = NULL;
 
-    return DB_ERROR_UNKNOWN;
+    if (!__sqlite3_initialized) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_sqlite) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_sqlite->transaction) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ret = sqlite3_prepare_v2(backend_sqlite->db,
+        sql,
+        sizeof(sql),
+        &statement,
+        NULL);
+    if (ret != SQLITE_OK) {
+        ods_log_info("DB SQL %s", sql);
+        ods_log_info("DB Err %d\n", ret);
+        if (statement) {
+            sqlite3_finalize(statement);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ret = sqlite3_step(statement);
+    while (ret == SQLITE_BUSY) {
+        usleep(100);
+        ret = sqlite3_step(statement);
+    }
+    sqlite3_finalize(statement);
+    if (ret != SQLITE_DONE) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    backend_sqlite->transaction = 0;
+    return DB_OK;
 }
 
 int db_backend_sqlite_transaction_rollback(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+    static const char* sql = "ROLLBACK TRANSACTION";
+    int ret;
+    sqlite3_stmt* statement = NULL;
 
-    return DB_ERROR_UNKNOWN;
+    if (!__sqlite3_initialized) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_sqlite) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_sqlite->transaction) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ret = sqlite3_prepare_v2(backend_sqlite->db,
+        sql,
+        sizeof(sql),
+        &statement,
+        NULL);
+    if (ret != SQLITE_OK) {
+        ods_log_info("DB SQL %s", sql);
+        ods_log_info("DB Err %d\n", ret);
+        if (statement) {
+            sqlite3_finalize(statement);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ret = sqlite3_step(statement);
+    while (ret == SQLITE_BUSY) {
+        usleep(100);
+        ret = sqlite3_step(statement);
+    }
+    sqlite3_finalize(statement);
+    if (ret != SQLITE_DONE) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    backend_sqlite->transaction = 0;
+    return DB_OK;
 }
 
 db_backend_handle_t* db_backend_sqlite_new_handle(void) {
