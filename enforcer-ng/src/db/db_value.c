@@ -74,6 +74,28 @@ void db_value_reset(db_value_t* value) {
     }
 }
 
+int db_value_copy(db_value_t* value, const db_value_t* from_value) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (from_value == DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    memcpy(value, from_value, sizeof(db_value_t));
+    if (from_value->text) {
+        value->text = strdup(from_value->text);
+        if (!value->text) {
+            db_value_reset(value);
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    return DB_OK;
+}
+
 db_type_t db_value_type(const db_value_t* value) {
     if (!value) {
         return DB_TYPE_EMPTY;
