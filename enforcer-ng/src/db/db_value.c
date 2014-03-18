@@ -93,15 +93,19 @@ const char* db_value_text(const db_value_t* value) {
     return value->text;
 }
 
-int db_value_enum_value(const db_value_t* value) {
+int db_value_enum_value(const db_value_t* value, int* enum_value) {
     if (!value) {
-        return 0; /* TODO: this is not good */
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enum_value) {
+        return DB_ERROR_UNKNOWN;
     }
     if (value->type != DB_TYPE_EMPTY) {
-        return 0; /* TODO: this is not good */
+        return DB_ERROR_UNKNOWN;
     }
 
-    return value->enum_value;
+    *enum_value = value->enum_value;
+    return DB_OK;
 }
 
 const char* db_value_enum_text(const db_value_t* value) {
