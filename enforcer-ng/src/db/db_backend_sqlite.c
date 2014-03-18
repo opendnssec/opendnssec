@@ -798,12 +798,11 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     return result_list;
 }
 
-int db_backend_sqlite_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
+int db_backend_sqlite_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_object_field_t* object_field;
     const db_value_t* value;
     const db_clause_t* clause;
-    const db_join_t* join;
     char sql[4*1024];
     char* sqlp;
     int ret, left, bind, first;
@@ -1199,10 +1198,9 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
     return DB_OK;
 }
 
-int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
+int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_clause_t* clause;
-    const db_join_t* join;
     char sql[4*1024];
     char* sqlp;
     int ret, left, bind, first;

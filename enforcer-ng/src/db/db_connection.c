@@ -145,7 +145,7 @@ db_result_list_t* db_connection_read(const db_connection_t* connection, const db
     return db_backend_read(connection->backend, object, join_list, clause_list);
 }
 
-int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
+int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
     if (!connection) {
         return DB_ERROR_UNKNOWN;
     }
@@ -162,10 +162,10 @@ int db_connection_update(const db_connection_t* connection, const db_object_t* o
         return DB_ERROR_UNKNOWN;
     }
 
-    return db_backend_update(connection->backend, object, object_field_list, value_set, join_list, clause_list);
+    return db_backend_update(connection->backend, object, object_field_list, value_set, clause_list);
 }
 
-int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
+int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_clause_list_t* clause_list) {
     if (!connection) {
         return DB_ERROR_UNKNOWN;
     }
@@ -176,7 +176,7 @@ int db_connection_delete(const db_connection_t* connection, const db_object_t* o
         return DB_ERROR_UNKNOWN;
     }
 
-    return db_backend_delete(connection->backend, object, join_list, clause_list);
+    return db_backend_delete(connection->backend, object, clause_list);
 }
 
 int db_connection_transaction_begin(const db_connection_t* connection) {

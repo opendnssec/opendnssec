@@ -104,8 +104,8 @@ int db_object_set_primary_key_name(db_object_t*, const char*);
 int db_object_set_object_field_list(db_object_t*, db_object_field_list_t*);
 int db_object_create(const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
 db_result_list_t* db_object_read(const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
-int db_object_update(const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_join_list_t*, const db_clause_list_t*);
-int db_object_delete(const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
+int db_object_update(const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
+int db_object_delete(const db_object_t*, const db_clause_list_t*);
 
 #ifdef __cplusplus
 }
