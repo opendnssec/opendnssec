@@ -422,6 +422,29 @@ int db_value_from_enum_text(db_value_t* value, const char* enum_text, const db_e
     return DB_ERROR_UNKNOWN;
 }
 
+int db_value_primary_key(const db_value_t* value) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return value->primary_key;
+}
+
+int db_value_set_primary_key(db_value_t* value) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (value->type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (value->type != DB_TYPE_ENUM) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    value->primary_key = 1;
+    return DB_OK;
+}
+
 /* DB VALUE SET */
 
 mm_alloc_t __value_set_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_set_t));

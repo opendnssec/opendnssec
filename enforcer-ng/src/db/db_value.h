@@ -58,6 +58,7 @@ extern "C" {
 
 struct db_value {
     db_type_t type;
+    int primary_key;
     char* text;
     db_type_int32_t int32;
     db_type_uint32_t uint32;
@@ -90,6 +91,8 @@ int db_value_from_uint64(db_value_t*, db_type_uint64_t);
 int db_value_from_text(db_value_t*, const char*);
 int db_value_from_enum_value(db_value_t*, int, const db_enum_t*);
 int db_value_from_enum_text(db_value_t*, const char*, const db_enum_t*);
+int db_value_primary_key(const db_value_t*);
+int db_value_set_primary_key(db_value_t*);
 
 struct db_value_set {
     db_value_t* values;
