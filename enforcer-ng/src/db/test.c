@@ -165,7 +165,7 @@ void test_free(test_t* test) {
  */
 int test_id(const test_t* test) {
     if (!test) {
-        return DB_OK;
+        return 0;
     }
 
     return test->id;
@@ -275,8 +275,8 @@ int main(void) {
     /*
      * Setup the configuration for the connection
      */
-    if (!(configuration_list = db_configuration_list_new()) {
-        fprintf(STDERR, "db_configuraiton_list_new failed\n");
+    if (!(configuration_list = db_configuration_list_new())) {
+        fprintf(stderr, "db_configuraiton_list_new failed\n");
         return 1;
     }
     if (!(configuration = db_configuration_new())
@@ -286,7 +286,7 @@ int main(void) {
     {
         db_configuration_free(configuration);
         db_configuration_list_free(configuration_list);
-        fprintf(STDERR, "setup configuration backend failed\n");
+        fprintf(stderr, "setup configuration backend failed\n");
         return 1;
     }
     if (!(configuration = db_configuration_new())
@@ -296,7 +296,7 @@ int main(void) {
     {
         db_configuration_free(configuration);
         db_configuration_list_free(configuration_list);
-        fprintf(STDERR, "setup configuration file failed\n");
+        fprintf(stderr, "setup configuration file failed\n");
         return 1;
     }
 
@@ -310,7 +310,7 @@ int main(void) {
     {
         db_connection_free(connection);
         db_configuration_list_free(configuration_list);
-        fprintf(STDERR, "database connection failed\n");
+        fprintf(stderr, "database connection failed\n");
         return 1;
     }
 
@@ -323,7 +323,7 @@ int main(void) {
         test_free(test);
         db_connection_free(connection);
         db_configuration_list_free(configuration_list);
-        fprintf(STDERR, "test get by id failed\n");
+        fprintf(stderr, "test get by id failed\n");
         return 1;
     }
 
