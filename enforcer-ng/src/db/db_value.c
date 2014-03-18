@@ -434,10 +434,10 @@ int db_value_set_primary_key(db_value_t* value) {
     if (!value) {
         return DB_ERROR_UNKNOWN;
     }
-    if (value->type != DB_TYPE_EMPTY) {
+    if (value->type == DB_TYPE_EMPTY) {
         return DB_ERROR_UNKNOWN;
     }
-    if (value->type != DB_TYPE_ENUM) {
+    if (value->type == DB_TYPE_ENUM) {
         return DB_ERROR_UNKNOWN;
     }
 
