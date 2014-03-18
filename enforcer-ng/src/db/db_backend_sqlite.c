@@ -159,6 +159,13 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
     db_result_t* result = NULL;
     db_value_set_t* value_set = NULL;
     const db_object_field_t* object_field;
+    int from_int;
+    sqlite3_int64 from_int64;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
+    const char* text;
 
     if (!statement) {
         return NULL;
@@ -196,16 +203,14 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
     object_field = db_object_field_list_begin(db_object_object_field_list(statement->object));
     bind = 0;
     while (object_field) {
-        db_type_int32_t integer;
-        const char* text;
-
         switch (db_object_field_type(object_field)) {
         case DB_TYPE_PRIMARY_KEY:
-        case DB_TYPE_INT32:
-            integer = sqlite3_column_int(statement->statement, bind);
+            from_int = sqlite3_column_int(statement->statement, bind);
+            int32 = from_int;
             ret = sqlite3_errcode(statement->backend_sqlite->db);
             if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
-                || db_value_from_int32(db_value_set_get(value_set, bind), integer))
+                || db_value_from_int32(db_value_set_get(value_set, bind), int32)
+                || db_value_set_primary_key(db_value_set_get(value_set, bind)))
             {
                 db_result_free(result);
                 return NULL;
@@ -213,6 +218,58 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
             break;
 
         case DB_TYPE_ENUM:
+            /*
+             * Enum needs to be handled elsewhere since we don't know the
+             * enum_set_t here.
+             */
+        case DB_TYPE_INT32:
+            from_int = sqlite3_column_int(statement->statement, bind);
+            int32 = from_int;
+            ret = sqlite3_errcode(statement->backend_sqlite->db);
+            if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+                || db_value_from_int32(db_value_set_get(value_set, bind), int32))
+            {
+                db_result_free(result);
+                return NULL;
+            }
+            break;
+
+        case DB_TYPE_UINT32:
+            from_int = sqlite3_column_int(statement->statement, bind);
+            uint32 = from_int;
+            ret = sqlite3_errcode(statement->backend_sqlite->db);
+            if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+                || db_value_from_uint32(db_value_set_get(value_set, bind), uint32))
+            {
+                db_result_free(result);
+                return NULL;
+            }
+            break;
+
+        case DB_TYPE_INT64:
+            from_int64 = sqlite3_column_int64(statement->statement, bind);
+            int64 = from_int64;
+            ret = sqlite3_errcode(statement->backend_sqlite->db);
+            if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+                || db_value_from_int64(db_value_set_get(value_set, bind), int64))
+            {
+                db_result_free(result);
+                return NULL;
+            }
+            break;
+
+        case DB_TYPE_UINT64:
+            from_int64 = sqlite3_column_int64(statement->statement, bind);
+            uint64 = from_int64;
+            ret = sqlite3_errcode(statement->backend_sqlite->db);
+            if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+                || db_value_from_uint64(db_value_set_get(value_set, bind), uint64))
+            {
+                db_result_free(result);
+                return NULL;
+            }
+            break;
+
         case DB_TYPE_TEXT:
             text = (const char*)sqlite3_column_text(statement->statement, bind);
             ret = sqlite3_errcode(statement->backend_sqlite->db);
