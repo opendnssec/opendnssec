@@ -218,11 +218,6 @@ void test_class_db_backend(void) {
     CU_ASSERT(!db_backend_transaction_begin(backend));
     CU_ASSERT(!db_backend_transaction_commit(backend));
     CU_ASSERT(!db_backend_transaction_rollback(backend));
-
-    db_backend_free(backend);
-    backend = NULL;
-    CU_PASS("db_backend_handle_free");
-    CU_PASS("db_backend_free");
 }
 
 void test_class_db_clause(void) {
@@ -311,4 +306,29 @@ void test_class_db_configuration_list(void) {
     configuration_list = NULL;
     CU_PASS("db_configuration_list_free");
     CU_PASS("db_configuration_free");
+}
+
+void test_class_db_connection(void) {
+/*
+db_connection_t* db_connection_new(void);
+void db_connection_free(db_connection_t*);
+int db_connection_set_configuration_list(db_connection_t*, const db_configuration_list_t*);
+int db_connection_setup(db_connection_t*);
+int db_connection_connect(const db_connection_t*);
+int db_connection_disconnect(const db_connection_t*);
+int db_connection_create(const db_connection_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
+db_result_list_t* db_connection_read(const db_connection_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
+int db_connection_update(const db_connection_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
+int db_connection_delete(const db_connection_t*, const db_object_t*, const db_clause_list_t*);
+int db_connection_transaction_begin(const db_connection_t*);
+int db_connection_transaction_commit(const db_connection_t*);
+int db_connection_transaction_rollback(const db_connection_t*);
+*/
+}
+
+void test_class_db_backend_free(void) {
+    db_backend_free(backend);
+    backend = NULL;
+    CU_PASS("db_backend_handle_free");
+    CU_PASS("db_backend_free");
 }
