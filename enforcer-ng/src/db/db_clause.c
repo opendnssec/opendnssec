@@ -206,12 +206,24 @@ int db_clause_not_empty(const db_clause_t* clause) {
     if (!clause) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!clause->field) {
-        return DB_ERROR_UNKNOWN;
-    }
     if (clause->type == DB_CLAUSE_UNKNOWN) {
         return DB_ERROR_UNKNOWN;
     }
+
+    if (clause->type == DB_CLAUSE_NESTED) {
+        if (!clause->clause_list) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    else {
+        if (!clause->field) {
+            return DB_ERROR_UNKNOWN;
+        }
+        if (db_value_type(&(clause->value)) == DB_TYPE_EMPTY) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
     return DB_OK;
 }
 
