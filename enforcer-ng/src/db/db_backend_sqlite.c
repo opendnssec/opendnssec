@@ -695,6 +695,11 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
                 }
                 break;
 
+            case DB_CLAUSE_NESTED:
+                /* TODO: Support nested clauses */
+                return NULL;
+                break;
+
             default:
                 return NULL;
             }
@@ -834,6 +839,13 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
 
             case DB_CLAUSE_IS_NULL:
             case DB_CLAUSE_IS_NOT_NULL:
+                break;
+
+            case DB_CLAUSE_NESTED:
+                /* TODO: Support nested clauses */
+                sqlite3_finalize(statement->statement);
+                mm_alloc_delete(&__statement_alloc, statement);
+                return NULL;
                 break;
 
             default:
@@ -1028,6 +1040,11 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
                 {
                     return DB_ERROR_UNKNOWN;
                 }
+                break;
+
+            case DB_CLAUSE_NESTED:
+                /* TODO: Support nested clauses */
+                return DB_ERROR_UNKNOWN;
                 break;
 
             default:
@@ -1234,6 +1251,12 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
             case DB_CLAUSE_IS_NOT_NULL:
                 break;
 
+            case DB_CLAUSE_NESTED:
+                /* TODO: Support nested clauses */
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
+                break;
+
             default:
                 sqlite3_finalize(statement);
                 return DB_ERROR_UNKNOWN;
@@ -1400,6 +1423,11 @@ int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_cla
                 }
                 break;
 
+            case DB_CLAUSE_NESTED:
+                /* TODO: Support nested clauses */
+                return DB_ERROR_UNKNOWN;
+                break;
+
             default:
                 return DB_ERROR_UNKNOWN;
             }
@@ -1517,6 +1545,12 @@ int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_cla
 
             case DB_CLAUSE_IS_NULL:
             case DB_CLAUSE_IS_NOT_NULL:
+                break;
+
+            case DB_CLAUSE_NESTED:
+                /* TODO: Support nested clauses */
+                sqlite3_finalize(statement);
+                return DB_ERROR_UNKNOWN;
                 break;
 
             default:

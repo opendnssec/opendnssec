@@ -39,6 +39,8 @@
 
 mm_alloc_t __clause_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_t));
 
+/* TODO: add more check for type and what value/list is set, maybe add type to new */
+
 db_clause_t* db_clause_new(void) {
     db_clause_t* clause =
         (db_clause_t*)mm_alloc_new0(&__clause_alloc);
@@ -61,6 +63,9 @@ void db_clause_free(db_clause_t* clause) {
             free(clause->field);
         }
         db_value_reset(&(clause->value));
+        if (clause->clause_list) {
+            db_clause_list_free(clause->clause_list);
+        }
         mm_alloc_delete(&__clause_alloc, clause);
     }
 }
@@ -105,10 +110,21 @@ db_clause_operator_t db_clause_operator(const db_clause_t* clause) {
     return clause->clause_operator;
 }
 
+const db_clause_list_t* db_clause_list(const db_clause_t* clause) {
+    if (!clause) {
+        return NULL;
+    }
+
+    return clause->clause_list;
+}
+
 int db_clause_set_table(db_clause_t* clause, const char* table) {
     char* new_table;
 
     if (!clause) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (clause->clause_list) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -127,6 +143,9 @@ int db_clause_set_field(db_clause_t* clause, const char* field) {
     char* new_field;
 
     if (!clause) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (clause->clause_list) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -162,6 +181,27 @@ int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_oper
     return DB_OK;
 }
 
+int db_clause_set_list(db_clause_t* clause, db_clause_list_t* clause_list) {
+    if (!clause) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (clause->table) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (clause->field) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (clause->clause_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_type(&(clause->value)) != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    clause->clause_list = clause_list;
+    return DB_OK;
+}
+
 int db_clause_not_empty(const db_clause_t* clause) {
     if (!clause) {
         return DB_ERROR_UNKNOWN;
@@ -185,6 +225,9 @@ const db_clause_t* db_clause_next(const db_clause_t* clause) {
 
 db_value_t* db_clause_get_value(db_clause_t* clause) {
     if (!clause) {
+        return NULL;
+    }
+    if (clause->clause_list) {
         return NULL;
     }
 
