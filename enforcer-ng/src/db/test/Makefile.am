@@ -8,7 +8,12 @@ AM_CPPFLAGS = \
 
 check_PROGRAMS = test
 
-test_SOURCES = test.c
+test_SOURCES = \
+	log.c \
+	test.c \
+	test_classes.c \
+	test_initialization.c \
+	test_database_operations.c
 
 test_LDADD = \
 	../../db_backend.o \
