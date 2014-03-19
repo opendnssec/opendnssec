@@ -36,6 +36,8 @@ void test_class_db_backend_handle(void);
 void test_class_db_backend(void);
 void test_class_db_clause(void);
 void test_class_db_clause_list(void);
+void test_class_db_configuration(void);
+void test_class_db_configuration_list(void);
 
 int init_suite_initialization(void);
 int clean_suite_initialization(void);

@@ -29,6 +29,7 @@
 
 #include "../db_backend.h"
 #include "../db_clause.h"
+#include "../db_configuration.h"
 
 #include "CUnit/Basic.h"
 
@@ -38,6 +39,9 @@ static db_backend_t* backend = NULL;
 static db_clause_t* clause = NULL;
 static db_clause_t* clause2 = NULL;
 static db_clause_list_t* clause_list = NULL;
+static db_configuration_t* configuration = NULL;
+static db_configuration_t* configuration2 = NULL;
+static db_configuration_list_t* configuration_list = NULL;
 
 int init_suite_classes(void) {
     if (backend_handle) {
@@ -55,6 +59,15 @@ int init_suite_classes(void) {
     if (clause_list) {
         return 1;
     }
+    if (configuration) {
+        return 1;
+    }
+    if (configuration2) {
+        return 1;
+    }
+    if (configuration_list) {
+        return 1;
+    }
     return 0;
 }
 
@@ -69,6 +82,12 @@ int clean_suite_classes(void) {
     clause2 = NULL;
     db_clause_list_free(clause_list);
     clause_list = NULL;
+    db_configuration_free(configuration);
+    configuration = NULL;
+    db_configuration_free(configuration2);
+    configuration2 = NULL;
+    db_configuration_list_free(configuration_list);
+    configuration_list = NULL;
     return 0;
 }
 
@@ -256,4 +275,40 @@ void test_class_db_clause_list(void) {
     clause_list = NULL;
     CU_PASS("db_clause_list_free");
     CU_PASS("db_clause_free");
+}
+
+void test_class_db_configuration(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((configuration = db_configuration_new()));
+    CU_ASSERT(!db_configuration_set_name(configuration, "name1"));
+    CU_ASSERT(!db_configuration_set_value(configuration, "value1"));
+    CU_ASSERT(!db_configuration_not_empty(configuration));
+    CU_ASSERT(!strcmp(db_configuration_name(configuration), "name1"));
+    CU_ASSERT(!strcmp(db_configuration_value(configuration), "value1"));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((configuration2 = db_configuration_new()));
+    CU_ASSERT(!db_configuration_set_name(configuration2, "name2"));
+    CU_ASSERT(!db_configuration_set_value(configuration2, "value2"));
+    CU_ASSERT(!db_configuration_not_empty(configuration2));
+    CU_ASSERT(!strcmp(db_configuration_name(configuration2), "name2"));
+    CU_ASSERT(!strcmp(db_configuration_value(configuration2), "value2"));
+}
+
+void test_class_db_configuration_list(void) {
+    db_configuration_t* local_configuration = configuration;
+    db_configuration_t* local_configuration2 = configuration2;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((configuration_list = db_configuration_list_new()));
+
+    CU_ASSERT_FATAL(!db_configuration_list_add(configuration_list, configuration));
+    configuration = NULL;
+    CU_ASSERT_FATAL(!db_configuration_list_add(configuration_list, configuration2));
+    configuration2 = NULL;
+
+    CU_ASSERT(db_configuration_list_find(configuration_list, "name1") == local_configuration);
+    CU_ASSERT(db_configuration_list_find(configuration_list, "name2") == local_configuration2);
+
+    db_configuration_list_free(configuration_list);
+    configuration_list = NULL;
+    CU_PASS("db_configuration_list_free");
+    CU_PASS("db_configuration_free");
 }
