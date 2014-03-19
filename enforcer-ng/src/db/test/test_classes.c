@@ -36,6 +36,7 @@ static int fake_pointer = 0;
 static db_backend_handle_t* backend_handle = NULL;
 static db_backend_t* backend = NULL;
 static db_clause_t* clause = NULL;
+static db_clause_t* clause2 = NULL;
 static db_clause_list_t* clause_list = NULL;
 
 int init_suite_classes(void) {
@@ -46,6 +47,9 @@ int init_suite_classes(void) {
         return 1;
     }
     if (clause) {
+        return 1;
+    }
+    if (clause2) {
         return 1;
     }
     if (clause_list) {
@@ -61,6 +65,8 @@ int clean_suite_classes(void) {
     backend = NULL;
     db_clause_free(clause);
     clause = NULL;
+    db_clause_free(clause2);
+    clause2 = NULL;
     db_clause_list_free(clause_list);
     clause_list = NULL;
     return 0;
@@ -218,32 +224,33 @@ void test_class_db_clause(void) {
     CU_ASSERT_PTR_NOT_NULL(db_clause_value(clause));
     CU_ASSERT_PTR_NULL(db_clause_next(clause));
 
-    db_clause_free(clause);
-    clause = NULL;
-    CU_PASS("db_clause_free");
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause2 = db_clause_new()));
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
+    CU_ASSERT(!db_clause_set_type(clause2, DB_CLAUSE_NESTED));
+    CU_ASSERT(!db_clause_set_operator(clause2, DB_CLAUSE_OPERATOR_OR));
+    CU_ASSERT(!db_clause_set_list(clause2, (db_clause_list_t*)&fake_pointer));
+    CU_ASSERT(!db_clause_not_empty(clause2));
 
-    CU_ASSERT(!db_clause_set_type(clause, DB_CLAUSE_NESTED));
-    CU_ASSERT(!db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR));
-    CU_ASSERT(!db_clause_set_list(clause, (db_clause_list_t*)&fake_pointer));
-    CU_ASSERT(!db_clause_not_empty(clause));
-
-    CU_ASSERT(db_clause_type(clause) == DB_CLAUSE_NESTED);
-    CU_ASSERT(db_clause_operator(clause) == DB_CLAUSE_OPERATOR_OR);
-    CU_ASSERT(db_clause_list(clause) == (db_clause_list_t*)&fake_pointer);
-    CU_ASSERT_PTR_NOT_NULL(db_clause_value(clause));
+    CU_ASSERT(db_clause_type(clause2) == DB_CLAUSE_NESTED);
+    CU_ASSERT(db_clause_operator(clause2) == DB_CLAUSE_OPERATOR_OR);
+    CU_ASSERT(db_clause_list(clause2) == (db_clause_list_t*)&fake_pointer);
+    CU_ASSERT_PTR_NOT_NULL(db_clause_value(clause2));
 }
 
 void test_class_db_clause_list(void) {
     db_clause_t* local_clause = clause;
+    db_clause_t* local_clause2 = clause2;
+    const db_clause_t* clause_walk;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
 
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
     clause = NULL;
+    CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause2));
+    clause2 = NULL;
 
-    CU_ASSERT(db_clause_list_begin(clause_list) == local_clause);
+    CU_ASSERT((clause_walk = db_clause_list_begin(clause_list)) == local_clause);
+    CU_ASSERT(db_clause_next(clause_walk) == local_clause2);
 
     db_clause_list_free(clause_list);
     clause_list = NULL;
