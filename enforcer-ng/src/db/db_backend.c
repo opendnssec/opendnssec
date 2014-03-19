@@ -85,6 +85,9 @@ int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const d
     if (!backend_handle) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!configuration_list) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (!backend_handle->connect_function) {
         return DB_ERROR_UNKNOWN;
     }
