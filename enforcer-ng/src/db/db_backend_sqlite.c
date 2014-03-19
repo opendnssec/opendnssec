@@ -603,7 +603,6 @@ int db_backend_sqlite_create(void* data, const db_object_t* object, const db_obj
     object_field = db_object_field_list_begin(object_field_list);
     first = 1;
     while (object_field) {
-        /* TODO: Skip primary key? */
         if (first) {
             if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(object_field))) >= left) {
                 return DB_ERROR_UNKNOWN;
@@ -630,7 +629,6 @@ int db_backend_sqlite_create(void* data, const db_object_t* object, const db_obj
     object_field = db_object_field_list_begin(object_field_list);
     first = 1;
     while (object_field) {
-        /* TODO: Skip primary key? */
         if (first) {
             if ((ret = snprintf(sqlp, left, " ?")) >= left) {
                 return DB_ERROR_UNKNOWN;
@@ -935,7 +933,6 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
     object_field = db_object_field_list_begin(object_field_list);
     first = 1;
     while (object_field) {
-        /* TODO: Skip primary key? */
         if (first) {
             if ((ret = snprintf(sqlp, left, " %s = ?", db_object_field_name(object_field))) >= left) {
                 return DB_ERROR_UNKNOWN;
