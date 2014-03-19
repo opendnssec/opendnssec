@@ -627,3 +627,8 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
 
     return backend;
 }
+
+int db_backend_factory_shutdown(void) {
+    /* TODO: Implement support for shutting down backends at exit/stop */
+    return 1;
+}

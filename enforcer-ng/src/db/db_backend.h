@@ -137,6 +137,7 @@ int db_backend_transaction_commit(const db_backend_t*);
 int db_backend_transaction_rollback(const db_backend_t*);
 
 db_backend_t* db_backend_factory_get_backend(const char*);
+int db_backend_factory_shutdown(void);
 
 #ifdef __cplusplus
 }
