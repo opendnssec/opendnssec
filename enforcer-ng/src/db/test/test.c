@@ -45,7 +45,9 @@ int main(void) {
     }
 
     if (!CU_add_test(pSuite, "test of db_backend_handle", test_class_db_backend_handle)
-        || !CU_add_test(pSuite, "test of db_backend", test_class_db_backend))
+        || !CU_add_test(pSuite, "test of db_backend", test_class_db_backend)
+        || !CU_add_test(pSuite, "test of db_clause", test_class_db_clause)
+        || !CU_add_test(pSuite, "test of db_clause_list", test_class_db_clause_list))
     {
         CU_cleanup_registry();
         return CU_get_error();
