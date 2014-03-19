@@ -72,6 +72,7 @@ db_value_t* db_value_new();
 void db_value_free(db_value_t*);
 void db_value_reset(db_value_t*);
 int db_value_copy(db_value_t*, const db_value_t*);
+int db_value_cmp(const db_value_t*, const db_value_t*, int*);
 db_type_t db_value_type(const db_value_t*);
 const char* db_value_text(const db_value_t*);
 int db_value_enum_value(const db_value_t*, int*);
