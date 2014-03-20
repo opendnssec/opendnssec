@@ -31,6 +31,7 @@
 
 #include "protobuf-orm/pb-orm.h"
 #include "xmlext-pb/xmlext-wr.h"
+#include "daemon/clientpipe.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/orm.h"
@@ -129,10 +130,26 @@ perform_zonelist_export(const std::string* filename, int sockfd, engineconfig_ty
 			    }			
 			
 			} else {
-	             if (!write_pb_message_to_xml_fd(zonelistdoc.get(), sockfd)) {
-	                 ods_log_error("[%s] writing zonelist xml to output failed", module_str);
-	                 return 0;
-	             }
+				char *buf = NULL;
+				size_t bufc;
+				FILE *fw = open_memstream(&buf, &bufc);
+				if (!fw) {
+					client_printf_err(sockfd, "Failed to allocate buffer.\n");
+					ods_log_error("[%s] Failed to allocate buffer while writing zonelist. (%s)", 
+						module_str, strerror(errno));
+					return 0;
+				}
+				if (!write_pb_message_to_xml_file(zonelistdoc.get(), fw, 0)) {
+					ods_log_error("[%s] writing zonelist xml to output failed", module_str);
+					free(buf);
+					return 0;
+				}
+				fclose(fw);
+				for (int i = 0; i < bufc; i++) {
+					/* todo: optimize this loop to read upto ODS_SE_MAXLINE */
+					client_printf(sockfd, "%c", buf[i]);
+				}
+				free(buf);
 			}
         }
     }
