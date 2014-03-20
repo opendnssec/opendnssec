@@ -51,7 +51,12 @@ int main(void) {
         || !CU_add_test(pSuite, "test of db_configuration", test_class_db_configuration)
         || !CU_add_test(pSuite, "test of db_configuration_list", test_class_db_configuration_list)
         || !CU_add_test(pSuite, "test of db_connection", test_class_db_connection)
-        || !CU_add_test(pSuite, "test of db_backend_free", test_class_db_backend_free))
+        || !CU_add_test(pSuite, "test of db_join", test_class_db_join)
+        || !CU_add_test(pSuite, "test of db_join_list", test_class_db_join_list)
+        || !CU_add_test(pSuite, "test of db_object_field", test_class_db_object_field)
+        || !CU_add_test(pSuite, "test of db_object_field_list", test_class_db_object_field_list)
+        || !CU_add_test(pSuite, "test of db_object", test_class_db_object)
+        || !CU_add_test(pSuite, "test of db_*_free", test_class_end))
     {
         CU_cleanup_registry();
         return CU_get_error();

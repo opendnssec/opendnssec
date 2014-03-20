@@ -39,7 +39,12 @@ void test_class_db_clause_list(void);
 void test_class_db_configuration(void);
 void test_class_db_configuration_list(void);
 void test_class_db_connection(void);
-void test_class_db_backend_free(void);
+void test_class_db_join(void);
+void test_class_db_join_list(void);
+void test_class_db_object_field(void);
+void test_class_db_object_field_list(void);
+void test_class_db_object(void);
+void test_class_end(void);
 
 int init_suite_initialization(void);
 int clean_suite_initialization(void);

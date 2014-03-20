@@ -30,6 +30,9 @@
 #include "../db_backend.h"
 #include "../db_clause.h"
 #include "../db_configuration.h"
+#include "../db_connection.h"
+#include "../db_join.h"
+#include "../db_object.h"
 
 #include "CUnit/Basic.h"
 
@@ -42,6 +45,14 @@ static db_clause_list_t* clause_list = NULL;
 static db_configuration_t* configuration = NULL;
 static db_configuration_t* configuration2 = NULL;
 static db_configuration_list_t* configuration_list = NULL;
+static db_connection_t* connection = NULL;
+static db_join_t* join = NULL;
+static db_join_t* join2 = NULL;
+static db_join_list_t* join_list = NULL;
+static db_object_field_t* object_field = NULL;
+static db_object_field_t* object_field2 = NULL;
+static db_object_field_list_t* object_field_list = NULL;
+static db_object_t* object = NULL;
 
 int init_suite_classes(void) {
     if (backend_handle) {
@@ -68,6 +79,30 @@ int init_suite_classes(void) {
     if (configuration_list) {
         return 1;
     }
+    if (connection) {
+        return 1;
+    }
+    if (join) {
+        return 1;
+    }
+    if (join2) {
+        return 1;
+    }
+    if (join_list) {
+        return 1;
+    }
+    if (object_field) {
+        return 1;
+    }
+    if (object_field2) {
+        return 1;
+    }
+    if (object_field_list) {
+        return 1;
+    }
+    if (object) {
+        return 1;
+    }
     return 0;
 }
 
@@ -88,6 +123,22 @@ int clean_suite_classes(void) {
     configuration2 = NULL;
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
+    db_connection_free(connection);
+    connection = NULL;
+    db_join_free(join);
+    join = NULL;
+    db_join_free(join2);
+    join2 = NULL;
+    db_join_list_free(join_list);
+    join_list = NULL;
+    db_object_field_free(object_field);
+    object_field = NULL;
+    db_object_field_free(object_field2);
+    object_field2 = NULL;
+    db_object_field_list_free(object_field_list);
+    object_field_list = NULL;
+    db_object_free(object);
+    object = NULL;
     return 0;
 }
 
@@ -112,34 +163,34 @@ int __db_backend_handle_disconnect(void* data) {
     return 0;
 }
 
-int __db_backend_handle_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
+int __db_backend_handle_create(void* data, const db_object_t* _object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     CU_ASSERT(data == &fake_pointer);
-    CU_ASSERT((void*)object == &fake_pointer);
+    CU_ASSERT((void*)_object == &fake_pointer || (object != NULL && _object == object));
     CU_ASSERT((void*)object_field_list == &fake_pointer);
     CU_ASSERT((void*)value_set == &fake_pointer);
     return 0;
 }
 
-db_result_list_t* __db_backend_handle_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
+db_result_list_t* __db_backend_handle_read(void* data, const db_object_t* _object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     CU_ASSERT(data == &fake_pointer);
-    CU_ASSERT((void*)object == &fake_pointer);
+    CU_ASSERT((void*)_object == &fake_pointer || (object != NULL && _object == object));
     CU_ASSERT((void*)join_list == &fake_pointer);
     CU_ASSERT((void*)clause_list == &fake_pointer);
     return (db_result_list_t*)&fake_pointer;
 }
 
-int __db_backend_handle_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
+int __db_backend_handle_update(void* data, const db_object_t* _object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
     CU_ASSERT(data == &fake_pointer);
-    CU_ASSERT((void*)object == &fake_pointer);
+    CU_ASSERT((void*)_object == &fake_pointer || (object != NULL && _object == object));
     CU_ASSERT((void*)object_field_list == &fake_pointer);
     CU_ASSERT((void*)value_set == &fake_pointer);
     CU_ASSERT((void*)clause_list == &fake_pointer);
     return 0;
 }
 
-int __db_backend_handle_delete(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
+int __db_backend_handle_delete(void* data, const db_object_t* _object, const db_clause_list_t* clause_list) {
     CU_ASSERT(data == &fake_pointer);
-    CU_ASSERT((void*)object == &fake_pointer);
+    CU_ASSERT((void*)_object == &fake_pointer || (object != NULL && _object == object));
     CU_ASSERT((void*)clause_list == &fake_pointer);
     return 0;
 }
@@ -306,27 +357,144 @@ void test_class_db_configuration_list(void) {
     configuration_list = NULL;
     CU_PASS("db_configuration_list_free");
     CU_PASS("db_configuration_free");
+
 }
 
 void test_class_db_connection(void) {
-/*
-db_connection_t* db_connection_new(void);
-void db_connection_free(db_connection_t*);
-int db_connection_set_configuration_list(db_connection_t*, const db_configuration_list_t*);
-int db_connection_setup(db_connection_t*);
-int db_connection_connect(const db_connection_t*);
-int db_connection_disconnect(const db_connection_t*);
-int db_connection_create(const db_connection_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
-db_result_list_t* db_connection_read(const db_connection_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
-int db_connection_update(const db_connection_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
-int db_connection_delete(const db_connection_t*, const db_object_t*, const db_clause_list_t*);
-int db_connection_transaction_begin(const db_connection_t*);
-int db_connection_transaction_commit(const db_connection_t*);
-int db_connection_transaction_rollback(const db_connection_t*);
-*/
+    CU_ASSERT_PTR_NOT_NULL_FATAL((connection = db_connection_new()));
+
+    CU_ASSERT_FATAL(!db_connection_set_configuration_list(connection, (db_configuration_list_t*)&fake_pointer));
+
+    connection->backend = backend;
+    backend = NULL;
+
+    CU_ASSERT_FATAL(!db_connection_setup(connection));
+    CU_ASSERT(!db_connection_connect(connection));
+    CU_ASSERT(!db_connection_disconnect(connection));
+    CU_ASSERT(!db_connection_create(connection, (db_object_t*)&fake_pointer, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer));
+    CU_ASSERT(db_connection_read(connection, (db_object_t*)&fake_pointer, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer) == (db_result_list_t*)&fake_pointer);
+    CU_ASSERT(!db_connection_update(connection, (db_object_t*)&fake_pointer, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
+    CU_ASSERT(!db_connection_delete(connection, (db_object_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
+    CU_ASSERT(!db_connection_transaction_begin(connection));
+    CU_ASSERT(!db_connection_transaction_commit(connection));
+    CU_ASSERT(!db_connection_transaction_rollback(connection));
 }
 
-void test_class_db_backend_free(void) {
+void test_class_db_join(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((join = db_join_new()));
+    CU_ASSERT(!db_join_set_from_table(join, "from_table1"));
+    CU_ASSERT(!db_join_set_from_field(join, "from_field1"));
+    CU_ASSERT(!db_join_set_to_table(join, "to_table1"));
+    CU_ASSERT(!db_join_set_to_field(join, "to_field1"));
+    CU_ASSERT(!db_join_not_empty(join));
+    CU_ASSERT(!strcmp(db_join_from_table(join), "from_table1"));
+    CU_ASSERT(!strcmp(db_join_from_field(join), "from_field1"));
+    CU_ASSERT(!strcmp(db_join_to_table(join), "to_table1"));
+    CU_ASSERT(!strcmp(db_join_to_field(join), "to_field1"));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((join2 = db_join_new()));
+    CU_ASSERT(!db_join_set_from_table(join2, "from_table2"));
+    CU_ASSERT(!db_join_set_from_field(join2, "from_field2"));
+    CU_ASSERT(!db_join_set_to_table(join2, "to_table2"));
+    CU_ASSERT(!db_join_set_to_field(join2, "to_field2"));
+    CU_ASSERT(!db_join_not_empty(join2));
+    CU_ASSERT(!strcmp(db_join_from_table(join2), "from_table2"));
+    CU_ASSERT(!strcmp(db_join_from_field(join2), "from_field2"));
+    CU_ASSERT(!strcmp(db_join_to_table(join2), "to_table2"));
+    CU_ASSERT(!strcmp(db_join_to_field(join2), "to_field2"));
+}
+
+void test_class_db_join_list(void) {
+    db_join_t* local_join = join;
+    db_join_t* local_join2 = join2;
+    const db_join_t* join_walk;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((join_list = db_join_list_new()));
+
+    CU_ASSERT_FATAL(!db_join_list_add(join_list, join));
+    join = NULL;
+    CU_ASSERT_FATAL(!db_join_list_add(join_list, join2));
+    join2 = NULL;
+
+    CU_ASSERT((join_walk = db_join_list_begin(join_list)) == local_join);
+    CU_ASSERT(db_join_next(join_walk) == local_join2);
+
+    db_join_list_free(join_list);
+    join_list = NULL;
+    CU_PASS("db_join_list_free");
+    CU_PASS("db_join_free");
+}
+
+void test_class_db_object_field(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
+    CU_ASSERT(!db_object_field_set_name(object_field, "field1"));
+    CU_ASSERT(!db_object_field_set_type(object_field, DB_TYPE_INT32));
+    CU_ASSERT(!db_object_field_not_empty(object_field));
+    CU_ASSERT(!strcmp(db_object_field_name(object_field), "field1"));
+    CU_ASSERT(db_object_field_type(object_field) == DB_TYPE_INT32);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field2 = db_object_field_new()));
+    CU_ASSERT(!db_object_field_set_name(object_field2, "field2"));
+    CU_ASSERT(!db_object_field_set_type(object_field2, DB_TYPE_ENUM));
+    CU_ASSERT(!db_object_field_set_enum_set(object_field2, (db_enum_t*)&fake_pointer));
+    CU_ASSERT(!db_object_field_not_empty(object_field2));
+    CU_ASSERT(!strcmp(db_object_field_name(object_field2), "field2"));
+    CU_ASSERT(db_object_field_type(object_field2) == DB_TYPE_ENUM);
+    CU_ASSERT(db_object_field_enum_set(object_field2) == (db_enum_t*)&fake_pointer);
+}
+
+void test_class_db_object_field_list(void) {
+    db_object_field_t* local_object_field = object_field;
+    db_object_field_t* local_object_field2 = object_field2;
+    const db_object_field_t* object_field_walk;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+
+    CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
+    object_field = NULL;
+    CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field2));
+    object_field2 = NULL;
+
+    CU_ASSERT((object_field_walk = db_object_field_list_begin(object_field_list)) == local_object_field);
+    CU_ASSERT(db_object_field_next(object_field_walk) == local_object_field2);
+}
+
+void test_class_db_object(void) {
+    db_object_field_list_t* local_object_field_list = object_field_list;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object = db_object_new()));
+
+    CU_ASSERT(!db_object_set_connection(object, connection));
+    CU_ASSERT(!db_object_set_table(object, "table"));
+    CU_ASSERT(!db_object_set_primary_key_name(object, "primary_key"));
+    CU_ASSERT(!db_object_set_object_field_list(object, object_field_list));
+    object_field_list = NULL;
+
+    CU_ASSERT(db_object_connection(object) == connection);
+    CU_ASSERT(!strcmp(db_object_table(object), "table"));
+    CU_ASSERT(!strcmp(db_object_primary_key_name(object), "primary_key"));
+    CU_ASSERT(db_object_object_field_list(object) == local_object_field_list);
+
+    CU_ASSERT(!db_object_create(object, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer));
+    CU_ASSERT(db_object_read(object, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer) == (db_result_list_t*)&fake_pointer);
+    CU_ASSERT(!db_object_update(object, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
+    CU_ASSERT(!db_object_delete(object, (db_clause_list_t*)&fake_pointer));
+
+    db_object_free(object);
+    object = NULL;
+    CU_PASS("db_object_free");
+}
+
+void test_class_end(void) {
+    db_object_field_list_free(object_field_list);
+    object_field_list = NULL;
+    CU_PASS("db_object_field_list_free");
+    CU_PASS("db_object_field_free");
+
+    db_connection_free(connection);
+    connection = NULL;
+    CU_PASS("db_connection_free");
+
     db_backend_free(backend);
     backend = NULL;
     CU_PASS("db_backend_handle_free");

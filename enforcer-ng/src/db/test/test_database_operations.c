@@ -135,7 +135,7 @@ int test_get_by_id(test_t* test, int id) {
             CU_ASSERT_FATAL(!db_value_to_text(db_value_set_at(value_set, 1), &(test->name)));
             ret = 0;
         }
-        result = db_result_list_next(result_list);
+        CU_ASSERT_PTR_NULL((result = db_result_list_next(result_list)));
         if (result) {
             db_result_list_free(result_list);
             db_clause_list_free(clause_list);
@@ -145,6 +145,7 @@ int test_get_by_id(test_t* test, int id) {
 
     db_result_list_free(result_list);
     db_clause_list_free(clause_list);
+    CU_ASSERT(!ret);
     return ret;
 }
 
