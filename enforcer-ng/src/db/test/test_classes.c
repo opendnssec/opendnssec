@@ -33,6 +33,8 @@
 #include "../db_connection.h"
 #include "../db_join.h"
 #include "../db_object.h"
+#include "../db_result.h"
+#include "../db_value.h"
 
 #include "CUnit/Basic.h"
 
@@ -53,6 +55,12 @@ static db_object_field_t* object_field = NULL;
 static db_object_field_t* object_field2 = NULL;
 static db_object_field_list_t* object_field_list = NULL;
 static db_object_t* object = NULL;
+static db_value_set_t* value_set = NULL;
+static db_value_set_t* value_set2 = NULL;
+static db_result_t* result = NULL;
+static db_result_t* result2 = NULL;
+static db_result_list_t* result_list = NULL;
+static db_value_t* value = NULL;
 
 int init_suite_classes(void) {
     if (backend_handle) {
@@ -103,6 +111,24 @@ int init_suite_classes(void) {
     if (object) {
         return 1;
     }
+    if (value_set) {
+        return 1;
+    }
+    if (value_set2) {
+        return 1;
+    }
+    if (result) {
+        return 1;
+    }
+    if (result2) {
+        return 1;
+    }
+    if (result_list) {
+        return 1;
+    }
+    if (value) {
+        return 1;
+    }
     return 0;
 }
 
@@ -139,6 +165,18 @@ int clean_suite_classes(void) {
     object_field_list = NULL;
     db_object_free(object);
     object = NULL;
+    db_value_set_free(value_set);
+    value_set = NULL;
+    db_value_set_free(value_set2);
+    value_set2 = NULL;
+    db_result_free(result);
+    result = NULL;
+    db_result_free(result2);
+    result2 = NULL;
+    db_result_list_free(result_list);
+    result_list = NULL;
+    db_value_free(value);
+    value = NULL;
     return 0;
 }
 
@@ -485,7 +523,164 @@ void test_class_db_object(void) {
     CU_PASS("db_object_free");
 }
 
+void test_class_db_value_set(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value_set = db_value_set_new(2)));
+    CU_ASSERT(db_value_set_size(value_set) == 2);
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set, 0));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set, 1));
+    CU_ASSERT_PTR_NULL(db_value_set_at(value_set, 2));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set, 0));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set, 1));
+    CU_ASSERT_PTR_NULL(db_value_set_get(value_set, 2));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value_set2 = db_value_set_new(6)));
+    CU_ASSERT(db_value_set_size(value_set2) == 6);
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set2, 0));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set2, 1));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set2, 2));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set2, 3));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set2, 4));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set2, 5));
+    CU_ASSERT_PTR_NULL(db_value_set_at(value_set2, 6));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set2, 0));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set2, 1));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set2, 2));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set2, 3));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set2, 4));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set2, 5));
+    CU_ASSERT_PTR_NULL(db_value_set_get(value_set2, 6));
+}
+
+void test_class_db_result(void) {
+    db_value_set_t* local_value_set = value_set;
+    db_value_set_t* local_value_set2 = value_set2;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((result = db_result_new()));
+    CU_ASSERT(!db_result_set_value_set(result, value_set));
+    value_set = NULL;
+    CU_ASSERT(db_result_value_set(result) == local_value_set);
+    CU_ASSERT(!db_result_not_empty(result));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((result2 = db_result_new()));
+    CU_ASSERT(!db_result_set_value_set(result2, value_set2));
+    value_set2 = NULL;
+    CU_ASSERT(db_result_value_set(result2) == local_value_set2);
+    CU_ASSERT(!db_result_not_empty(result2));
+}
+
+db_result_t* __db_result_list_next(void* data, int finish) {
+    db_value_set_t* value_set;
+    db_result_t* result;
+
+    CU_ASSERT_FATAL(data == &fake_pointer);
+
+    if (finish) {
+        return NULL;
+    }
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value_set = db_value_set_new(2)));
+    CU_ASSERT(db_value_set_size(value_set) == 2);
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set, 0));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_at(value_set, 1));
+    CU_ASSERT_PTR_NULL(db_value_set_at(value_set, 2));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set, 0));
+    CU_ASSERT_PTR_NOT_NULL(db_value_set_get(value_set, 1));
+    CU_ASSERT_PTR_NULL(db_value_set_get(value_set, 2));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((result = db_result_new()));
+    CU_ASSERT(!db_result_set_value_set(result, value_set));
+    CU_ASSERT(!db_result_not_empty(result));
+
+    return result;
+}
+
+void test_class_db_result_list(void) {
+    db_result_t* local_result = result;
+    db_result_t* local_result2 = result2;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((result_list = db_result_list_new()));
+
+    CU_ASSERT_FATAL(!db_result_list_add(result_list, result));
+    result = NULL;
+    CU_ASSERT_FATAL(!db_result_list_add(result_list, result2));
+    result2 = NULL;
+
+    CU_ASSERT(db_result_list_begin(result_list) == local_result);
+    CU_ASSERT(db_result_list_next(result_list) == local_result2);
+
+    db_result_list_free(result_list);
+    result_list = NULL;
+    CU_PASS("db_result_list_free");
+    CU_PASS("db_result_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((result_list = db_result_list_new()));
+
+    CU_ASSERT_FATAL(!db_result_list_set_next(result_list, __db_result_list_next, &fake_pointer));
+
+    CU_ASSERT_PTR_NOT_NULL(db_result_list_begin(result_list));
+    CU_ASSERT_PTR_NOT_NULL(db_result_list_next(result_list));
+
+    db_result_list_free(result_list);
+    result_list = NULL;
+    CU_PASS("db_result_list_free");
+    CU_PASS("db_result_free");
+}
+
+void test_class_db_value(void) {
+    char* text = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value = db_value_new()));
+
+    CU_ASSERT(!db_value_from_text(value, "test"));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_TEXT);
+    CU_ASSERT(!strcmp(db_value_text(value), "test"));
+    CU_ASSERT(!db_value_to_text(value, &text));
+    CU_ASSERT_PTR_NOT_NULL(text);
+    free(text);
+    text = NULL;
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_set_primary_key(value));
+    CU_ASSERT(db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    db_value_free(value);
+    value = NULL;
+    CU_PASS("db_value_free");
+/*
+int db_value_copy(db_value_t*, const db_value_t*);
+int db_value_cmp(const db_value_t*, const db_value_t*, int*);
+int db_value_enum_value(const db_value_t*, int*);
+const char* db_value_enum_text(const db_value_t*);
+int db_value_to_int32(const db_value_t*, db_type_int32_t*);
+int db_value_to_uint32(const db_value_t*, db_type_uint32_t*);
+int db_value_to_int64(const db_value_t*, db_type_int64_t*);
+int db_value_to_uint64(const db_value_t*, db_type_uint64_t*);
+int db_value_to_enum_value(const db_value_t*, int*, const db_enum_t*);
+int db_value_to_enum_text(const db_value_t*, const char**, const db_enum_t*);
+int db_value_from_int32(db_value_t*, db_type_int32_t);
+int db_value_from_uint32(db_value_t*, db_type_uint32_t);
+int db_value_from_int64(db_value_t*, db_type_int64_t);
+int db_value_from_uint64(db_value_t*, db_type_uint64_t);
+int db_value_from_enum_value(db_value_t*, int, const db_enum_t*);
+int db_value_from_enum_text(db_value_t*, const char*, const db_enum_t*);
+*/
+}
+
 void test_class_end(void) {
+    db_result_free(result);
+    result = NULL;
+    db_result_free(result2);
+    result2 = NULL;
+    CU_PASS("db_result_free");
+
+    db_value_set_free(value_set);
+    value_set = NULL;
+    db_value_set_free(value_set2);
+    value_set2 = NULL;
+    CU_PASS("db_value_set_free");
+
     db_object_field_list_free(object_field_list);
     object_field_list = NULL;
     CU_PASS("db_object_field_list_free");

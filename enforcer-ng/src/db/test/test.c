@@ -56,6 +56,10 @@ int main(void) {
         || !CU_add_test(pSuite, "test of db_object_field", test_class_db_object_field)
         || !CU_add_test(pSuite, "test of db_object_field_list", test_class_db_object_field_list)
         || !CU_add_test(pSuite, "test of db_object", test_class_db_object)
+        || !CU_add_test(pSuite, "test of db_value_set", test_class_db_value_set)
+        || !CU_add_test(pSuite, "test of db_result", test_class_db_result)
+        || !CU_add_test(pSuite, "test of db_result_list", test_class_db_result_list)
+        || !CU_add_test(pSuite, "test of db_value", test_class_db_value)
         || !CU_add_test(pSuite, "test of db_*_free", test_class_end))
     {
         CU_cleanup_registry();

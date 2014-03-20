@@ -44,6 +44,10 @@ void test_class_db_join_list(void);
 void test_class_db_object_field(void);
 void test_class_db_object_field_list(void);
 void test_class_db_object(void);
+void test_class_db_value_set(void);
+void test_class_db_result(void);
+void test_class_db_result_list(void);
+void test_class_db_value(void);
 void test_class_end(void);
 
 int init_suite_initialization(void);
