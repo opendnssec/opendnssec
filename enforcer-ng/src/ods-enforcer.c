@@ -85,11 +85,12 @@ usage(FILE* out)
  * is read. Messages larger than ODS_SE_MAXLINE can be handled but
  * will be truncated.
  * 
- * \param buf: buffer to read from.
- * \param pos: length of valid data in buffer, must never exeed buflen.
+ * \param buf: buffer to read from. Must not be NULL.
+ * \param pos: length of valid data in buffer, must never exceed buflen.
+ *           Must not be NULL.
  * \param buflen: Capacity of buf, must not exeed ODS_SE_MAXLINE.
  * \param exitcode[out]: Return code from the daemon, only valid
- *                       when returned 1
+ *                       when returned 1. Must not be NULL.
  * \return: -1 An error occured
  *           1 daemon done handling command, exitcode is set,
  *           0 otherwise 
@@ -101,6 +102,9 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, int sockfd)
     char data[ODS_SE_MAXLINE+1], opc;
     int datalen;
     
+    assert(buf);
+    assert(pos);
+    assert(exitcode);
     assert(*pos <= buflen);
     assert(ODS_SE_MAXLINE >= buflen);
     
@@ -158,7 +162,8 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, int sockfd)
  * Start interface - Set up connection and handle communication
  *
  * \param cmd: command to exec, NULL for interactive mode.
- * \param ervsock_filename: name of pipe to connect to daemon.
+ * \param servsock_filename: name of pipe to connect to daemon. Must 
+ *        not be NULL.
  * \return exit code for client
  */
 static int
@@ -169,6 +174,8 @@ interface_start(const char* cmd, const char* servsock_filename)
     int sockfd, flags, exitcode = 0;
     int ret, n, r, error = 0, inbuf_pos = 0;
     char userbuf[ODS_SE_MAXLINE], inbuf[ODS_SE_MAXLINE];
+
+    assert(servsock_filename);
 
     /* Create a socket */
     if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
@@ -295,33 +302,30 @@ interface_start(const char* cmd, const char* servsock_filename)
 int
 main(int argc, char* argv[])
 {
-    char* cmd = NULL;
-    int error, c, options_index = 0, i, argopc;
+    char* cmd = NULL, *socketfile = OPENDNSSEC_ENFORCER_SOCKETFILE;
+    int error, c, options_index = 0;
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
+        {"socket", required_argument, 0, 's'},
         { 0, 0, 0, 0}
     };
     
     ods_log_init(NULL, 0, 0);
     
-    /* Find out how many args are for the client. This may need
-     * improvement in the future in case the client want to support
-     * options with args. */
-    argopc = argc;
-    for (i = 1; i < argc; i++) {
-        if (argv[i][0] != '-') {
-            argopc = i;
-            break;
-        }
-    }
-
-    /* parse the commandline */
-    while ((c=getopt_long(argopc, argv, "h",
+    /* parse the commandline. The + in the arg string tells getopt
+     * to stop parsing when an unknown command is found not starting 
+     * with '-'. This is important for us, else switches inside commands
+     * would be consumed by getopt. */
+    while ((c=getopt_long(argc, argv, "+hs:",
         long_options, &options_index)) != -1) {
         switch (c) {
             case 'h':
                 usage(stdout);
                 exit(0);
+            case 's':
+                socketfile = optarg;
+                printf("sock set to %s\n", socketfile);
+                break;
             default:
                 /* unrecognized options 
                  * getopt will report an error */
@@ -330,9 +334,13 @@ main(int argc, char* argv[])
     }
     argc -= optind;
     argv += optind;
+    if (!socketfile) {
+        fprintf(stderr, "Enforcer socket file not set.\n");
+        return 101;
+    }
     if (argc != 0) 
         cmd = ods_strcat_delim(argc, argv, ' ');
-    error = interface_start(cmd, OPENDNSSEC_ENFORCER_SOCKETFILE);
+    error = interface_start(cmd, socketfile);
     free(cmd);
     return error;
 }

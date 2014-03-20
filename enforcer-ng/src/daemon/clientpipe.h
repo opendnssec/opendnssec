@@ -53,7 +53,7 @@ int client_handleprompt(int sockfd);
  * 
  * \param sockfd, pipe to client
  * \param question, string to prompt the client with
- * \param[out] answer, client response
+ * \param[out] answer, client response. MUST be at least ODS_SE_MAXLINE long.
  * \return 0 on failure, 1 on success and answer will be set
  * 
  *  TODO: don't let it fail on partial read. */

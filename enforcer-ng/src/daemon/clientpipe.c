@@ -31,6 +31,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
+
 #include "shared/log.h"
 #include "shared/file.h"
 #include "shared/str.h"
@@ -39,12 +41,14 @@
 
 /**
  * Create a message header
- * \param buf: buffer to write in, must be at least 3 octets.
+ * \param buf: buffer to write in, MUST be at least 3 octets.
  * \param opc: type of message
- * \param datalen: length of payload
+ * \param datalen: length of payload, MUST be in range 0..2^16-1
  * */
 static void
 header(char *buf, enum msg_type opc, int datalen) {
+	assert(buf);
+	assert(0 <= datalen && datalen <= 65535);
 	buf[0] = opc;
 	buf[1] = (datalen>>8) & 0xFF;
 	buf[2] = datalen & 0xFF;
@@ -102,6 +106,10 @@ client_printf(int sockfd, const char * format, ...)
 	va_start(ap, format);
 		msglen = vsnprintf(buf, ODS_SE_MAXLINE, format, ap);
 	va_end(ap);
+	if (msglen < 0) {
+		ods_log_error("Failed parsing vsnprintf format.");
+		return 0;
+	}
 
 	if (msglen >= ODS_SE_MAXLINE) {
 		ods_log_error("[file] vsnprintf buffer too small. "
@@ -122,6 +130,10 @@ client_printf_err(int sockfd, const char * format, ...)
 	va_start(ap, format);
 		msglen = vsnprintf(buf, ODS_SE_MAXLINE, format, ap);
 	va_end(ap);
+	if (msglen < 0) {
+		ods_log_error("Failed parsing vsnprintf format.");
+		return 0;
+	}
 
 	if (msglen >= ODS_SE_MAXLINE) {
 		ods_log_error("[file] vsnprintf buffer too small. "
@@ -149,6 +161,8 @@ client_prompt_user(int sockfd, char *question, char *answer)
 {
 	char buf[ODS_SE_MAXLINE];
 	int n, datalen;
+	
+	assert(answer);
 	
 	if (!question) return 0;
 	if (!client_prompt(sockfd, question, strlen(question))) return 0;

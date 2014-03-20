@@ -226,10 +226,12 @@ cmdhandler_perform_command(int sockfd, engine_type* engine,
  * truncated. On exit pos will indicate new position in buffer. when 
  * returning true an exit code is set.
  * 
- * \param buf, buffer containing user input.
- * \param[in|out] pos, count of meaningful octets in buf.
- * \param buflen, capacity of buf.
- * \param[out] exitcode, exit code for client, only meaningful on return 1.
+ * \param buf, buffer containing user input. Must not be NULL.
+ * \param[in|out] pos, count of meaningful octets in buf. Must not be 
+ *      NULL or exceed buflen.
+ * \param buflen, capacity of buf. Must not exceed ODS_SE_MAXLINE.
+ * \param[out] exitcode, exit code for client, only meaningful on 
+ *      return 1. Must not be NULL.
  * \param sockfd, pipe to client.
  * \param engine, central enigine object
  * \return 0: waiting for more data. 1: exit code is set.
@@ -241,6 +243,9 @@ int sockfd, engine_type* engine)
     char data[ODS_SE_MAXLINE+1], opc;
     int datalen;
     
+    assert(exitcode);
+    assert(buf);
+    assert(pos);
     assert(*pos <= buflen);
     assert(ODS_SE_MAXLINE >= buflen);
     
@@ -278,7 +283,7 @@ int sockfd, engine_type* engine)
 
 /**
  * Handle a client command.
- *
+ * \param cmdc, command handler data, must not be NULL
  */
 static void
 cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
@@ -287,6 +292,8 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
     char buf[ODS_SE_MAXLINE+4]; /* enough space for hdr and \0 */
     int bufpos = 0, r;
     int exitcode = 0;
+
+    assert(cmdc);
 
     while (1) {
         int n = read(cmdc->client_fd, buf+bufpos, ODS_SE_MAXLINE-bufpos+3);
