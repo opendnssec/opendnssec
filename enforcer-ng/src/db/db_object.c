@@ -125,6 +125,9 @@ int db_object_field_not_empty(const db_object_field_t* object_field) {
     if (object_field->type == DB_TYPE_EMPTY) {
         return DB_ERROR_UNKNOWN;
     }
+    if (object_field->type == DB_TYPE_ENUM && !object_field->enum_set) {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
