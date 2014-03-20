@@ -34,6 +34,7 @@
 #include "shared/log.h"
 
 #include <errno.h>
+#include <assert.h>
 #include <stdio.h> /* snprintf() */
 #include <string.h> /* strlen(), strcpy() */
 #include <ctype.h> /* isspace() */
@@ -93,7 +94,7 @@ ods_str_join(allocator_type* allocator, int argc, char *argv[], char cjoin)
  * result should always be freed by the caller.
  * 
  * \param[in] argc, number of strings in argv.
- * \param[in] argv, storage of strings.
+ * \param[in] argv, storage of strings. Must not be NULL;
  * \param[in] delim, delimiter used to join the strings.
  * \return string, may be empty string.
  */
@@ -102,6 +103,9 @@ ods_strcat_delim(int argc, char* argv[], char delim)
 {
     int i, pos = 0, len = 1;
     char *cat;
+    
+    assert(argv);
+    
     for (i = 0; i < argc; i++)
         len += strlen(argv[i]) + 1;
     cat = (char *) malloc(len * sizeof (char));

@@ -141,6 +141,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	char buf[ODS_SE_MAXLINE];
 	(void)cmd; (void)n;
 	
+	assert(engine);
+	
 	ods_log_debug("[%s] %s command", module_str, setup_funcblock()->cmdname);
 
 	if (!client_prompt_user(sockfd, 
