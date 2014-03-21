@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "shared/log.h"
 #include "shared/file.h"
@@ -155,45 +157,81 @@ client_handleprompt(int sockfd)
 	return 1;
 }
 
+/**
+ * Flush all bytes ready file descriptor.
+ * \param fd, file descriptor
+ * \return 1 success (flushed), 0 on error.
+ */
+static int
+flush_fd(int fd)
+{
+	char buf[ODS_SE_MAXLINE];
+	int flags;
+	/* set socket to non-blocking */
+	if ((flags = fcntl(fd, F_GETFL, 0)) == -1) {
+		ods_log_error("[clientpipe] failed to get fd flags.");
+		return 0;
+	} else if (fcntl(fd, F_SETFL, flags|O_NONBLOCK) == -1) {
+		ods_log_error("[clientpipe] failed to set fd non blocking.");
+		return 0;
+	}
+	while (read(fd, buf, ODS_SE_MAXLINE) > 0) {
+		/* discard */
+	}
+	if (fcntl(fd, F_SETFL, flags)) {
+		ods_log_error("[clientpipe] failed to reset fd flags.");
+		return 0;
+	}
+	return 1;
+}
+
 /*  TODO: don't let it fail on partial read. */
 int
 client_prompt_user(int sockfd, char *question, char *answer)
 {
 	char buf[ODS_SE_MAXLINE];
-	int n, datalen;
+	int n, datalen, bufpos = 0;
 	
 	assert(answer);
 	
 	if (!question) return 0;
 	if (!client_prompt(sockfd, question, strlen(question))) return 0;
-	n = read(sockfd, buf, ODS_SE_MAXLINE);
-	if (n == 0) {
-		ods_log_error("[clientpipe] client closed pipe before answering.");
-		return 0;/* eof */
-	} else if (n == -1) { /* Error */
-		ods_log_error("[clientpipe] Error processing user input.");
-		return 0;
-	} else if (n > ODS_SE_MAXLINE) {
-		ods_log_error("[clientpipe] User input exceeds buffer.");
-		return 0;
-	} else if (n < 3) {
-		/* partial msg */
-		ods_log_info("[clientpipe] partial message.");
-		return 0;
-	} else if (buf[0] != CLIENT_OPC_STDIN) {
+	while (1) {
+		n = read(sockfd, buf+bufpos, ODS_SE_MAXLINE-bufpos);
+		if (n == 0) {
+			ods_log_info("[clientpipe] client closed pipe before answering.");
+			return 0;/* eof */
+		} else if (n == -1) { /* Error */
+			ods_log_error("[clientpipe] Error processing user input.");
+			return 0;
+		} 
+		bufpos += n;
+		if (bufpos > ODS_SE_MAXLINE) {
+			ods_log_error("[clientpipe] User input exceeds buffer.");
+			(void)flush_fd(sockfd);
+			return 0;
+		} else if (bufpos < 3) {
+			ods_log_verbose("[clientpipe] waiting for header.");
+			/* partial msg */
+			continue;
+		}
+		datalen = (buf[1]<<8) | (buf[2]&0xFF);
+		if (datalen >= ODS_SE_MAXLINE) { /* leave an octet for /0 */
+			ods_log_error("[clientpipe] message to big.");
+			(void)flush_fd(sockfd);
+			return 0;
+		} 
+		if (datalen+3 <= bufpos) break; /* entire msg */
+		ods_log_verbose("[clientpipe] waiting for more data.");
+	}
+	
+	if (buf[0] == CLIENT_OPC_STDIN) {
+		ods_log_verbose("[clientpipe] entire message.");
+		strncpy(answer, buf+3, datalen);
+		answer[datalen] = 0;
+		ods_str_trim(answer);
+	} else {
 		ods_log_info("[clientpipe] unhandled message.");
-		return 0;
 	}
-	datalen = (buf[1]<<8) | (buf[2]&0xFF);
-	if (datalen >= ODS_SE_MAXLINE) { /* leave an octet for /0 */
-		ods_log_error("[clientpipe] message to big.");
-		return 0;
-	} else if (datalen+3 > n) {
-		ods_log_info("[clientpipe] partial message.");
-		return 0;
-	}
-	strncpy(answer, buf+3, datalen);
-	answer[datalen] = 0;
-	ods_str_trim(answer);
-	return 1;
+	return flush_fd(sockfd) && (buf[0] == CLIENT_OPC_STDIN);
 }
