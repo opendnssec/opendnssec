@@ -199,7 +199,8 @@ load_kasp_policy(OrmConn conn,const std::string &name,
 	return OrmGetMessage(rows, policy, true);
 }
 
-static void
+/* 1 on success, 0 on fail */
+static int
 submit_keys(OrmConn conn,
 			int sockfd,
 			const char *zone,
@@ -209,9 +210,9 @@ submit_keys(OrmConn conn,
 			bool force)
 {
 	#define LOG_AND_RETURN(errmsg)\
-		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return 0;}while(0)
 	#define LOG_AND_RETURN_1(errmsg,p)\
-		do{ods_log_error_and_printf(sockfd,module_str,errmsg,p);return;}while(0)
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg,p);return 0;}while(0)
 
 	OrmTransactionRW transaction(conn);
 	if (!transaction.started())
@@ -289,6 +290,8 @@ submit_keys(OrmConn conn,
 									enfzone.mutable_keys(k);
 								kd->set_ds_at_parent(::ods::keystate::submitted);
 								bKeyModified = true;
+							} else {
+								return 0;
 							}
 						}
 					} else {
@@ -310,6 +313,8 @@ submit_keys(OrmConn conn,
 										enfzone.mutable_keys(k);
 									kd->set_ds_at_parent(::ods::keystate::submitted);
 									bKeyModified = true;
+								} else {
+									return 0;
 								}
 							}
 						} else {
@@ -329,6 +334,8 @@ submit_keys(OrmConn conn,
 									enfzone.mutable_keys(k);
 								kd->set_ds_at_parent(::ods::keystate::submitted);
 								bKeyModified = true;
+							} else {
+								return 0;
 							}
 						}
 					}
@@ -373,13 +380,14 @@ submit_keys(OrmConn conn,
 	
 	#undef LOG_AND_RETURN
 	#undef LOG_AND_RETURN_1
+	return 1;
 }
 
-static void
+static int
 list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
 {
 	#define LOG_AND_RETURN(errmsg)\
-		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
+		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return 0;}while(0)
 	
 	// List the keys with submit flags.
 	client_printf(sockfd,
@@ -429,9 +437,10 @@ list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
 	}
 	
 	#undef LOG_AND_RETURN
+	return 1;
 }
 
-void 
+int 
 perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
 						   const char *zone, const char *id, int bauto,
 						   bool force)
@@ -441,11 +450,12 @@ perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
 	if (ods_orm_connect(sockfd, config, conn)) {
 		// Evaluate parameters and submit keys to the parent when instructed to.
 		if (zone || id || bauto)
-			submit_keys(conn,sockfd,zone,id,config->datastore,
+			return submit_keys(conn,sockfd,zone,id,config->datastore,
 						config->delegation_signer_submit_command, force);
 		else
-			list_keys_submit(conn,sockfd,config->datastore);
+			return list_keys_submit(conn,sockfd,config->datastore);
 	}
+	return 0; /* could not connect */
 }
 
 static task_type * 
