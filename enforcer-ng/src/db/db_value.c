@@ -60,11 +60,12 @@ void db_value_free(db_value_t* value) {
 
 void db_value_reset(db_value_t* value) {
     if (value) {
+        value->type = DB_TYPE_EMPTY;
+        value->primary_key = 0;
         if (value->text) {
             free(value->text);
         }
         value->text = NULL;
-        value->type = DB_TYPE_EMPTY;
         value->int32 = 0;
         value->uint32 = 0;
         value->int64 = 0;
@@ -224,7 +225,7 @@ int db_value_enum_value(const db_value_t* value, int* enum_value) {
     if (!enum_value) {
         return DB_ERROR_UNKNOWN;
     }
-    if (value->type != DB_TYPE_EMPTY) {
+    if (value->type != DB_TYPE_ENUM) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -236,7 +237,7 @@ const char* db_value_enum_text(const db_value_t* value) {
     if (!value) {
         return NULL;
     }
-    if (value->type != DB_TYPE_EMPTY) {
+    if (value->type != DB_TYPE_ENUM) {
         return NULL;
     }
 
