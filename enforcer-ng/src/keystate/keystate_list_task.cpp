@@ -50,9 +50,6 @@ namespace KeyTypes {enum {KSK = 1, ZSK, CSK}; };
 enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_DEA, KS_UNK, KS_MIX};
 const char* statenames[] = {"generate", "publish", "ready", 
 		"active", "retire", "dead", "unknown", "mixed"};
-namespace DSStates {
-		enum {DS_NSUB, DS_SUBM, DS_SBMD, DS_SEEN, DS_RETR, DS_RTRD};
-};
 
 /** Map 2.0 states to 1.x states
  * @param p: state of RR higher in the chain (e.g. DS)
@@ -60,38 +57,43 @@ namespace DSStates {
  * @param introducing: key goal
  * @return: state in 1.x speak
  **/
-int keystate(int p, int c, int introducing)
+static int
+keystate(int p, int c, int introducing, int dsseen)
 {
 	enum { HID = 0, RUM, OMN, UNR, NAV };
 	if (introducing) {
 		if (p == HID && c == HID) return KS_GEN;
 		if (p == HID || c == HID) return KS_PUB;
 		if (p == OMN && c == OMN) return KS_ACT;
+		if (p == RUM && dsseen && c == OMN) return KS_ACT;
 		if (p == RUM || c == RUM) return KS_RDY;
 		return KS_UNK;
 	} else {
-		if (p == HID && c == HID) return KS_DEA;
+		/* retire conforms better to 1.4 terminology than dead. */
+		if (p == HID && c == HID) return KS_RET; /* dead */
 		if (p == UNR || c == UNR) return KS_RET;
 		if (p == OMN && c == OMN) return KS_ACT;
 		return KS_RET;
 	}
 }
-int zskstate(const ::ods::keystate::KeyData &key)
+static int
+zskstate(const ::ods::keystate::KeyData &key)
 {
 	return keystate(key.dnskey().state(), key.rrsig().state(),
-		key.introducing());
+		key.introducing(), 0);
 }
-int kskstate(const ::ods::keystate::KeyData &key)
+static int
+kskstate(const ::ods::keystate::KeyData &key)
 {
 	return keystate(key.ds().state(), key.dnskey().state(),
-		key.introducing());
+		key.introducing(), key.ds_at_parent() == ::ods::keystate::seen);
 }
 
 /** Human readable keystate in 1.x speak
  * @param key: key to evaluate
  * @return: state as string
  **/
-const char*
+static const char*
 map_keystate(const ::ods::keystate::KeyData &key)
 {
 	int z,k;
@@ -116,10 +118,10 @@ map_keytime(::ods::keystate::EnforcerZone zone,
 	const ::ods::keystate::KeyData &key)
 {
 	switch(key.ds_at_parent()) {
-		case DSStates::DS_SUBM: return strdup("waiting for ds-submit");
-		case DSStates::DS_SBMD: return strdup("waiting for ds-seen");
-		case DSStates::DS_RETR: return strdup("waiting for ds-retract");
-		case DSStates::DS_RTRD: return strdup("waiting for ds-gone");
+		case ::ods::keystate::submit: return strdup("waiting for ds-submit");
+		case ::ods::keystate::submitted: return strdup("waiting for ds-seen");
+		case ::ods::keystate::retract: return strdup("waiting for ds-retract");
+		case ::ods::keystate::retracted: return strdup("waiting for ds-gone");
 	}
 	if ((signed int)zone.next_change() < 0)
 		return strdup("-");
