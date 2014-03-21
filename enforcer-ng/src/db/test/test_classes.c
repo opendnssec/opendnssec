@@ -61,6 +61,13 @@ static db_result_t* result = NULL;
 static db_result_t* result2 = NULL;
 static db_result_list_t* result_list = NULL;
 static db_value_t* value = NULL;
+static db_value_t* value2 = NULL;
+static const db_enum_t enum_set[] = {
+    { "enum1", 1 },
+    { "enum2", 2 },
+    { "enum3", 3 },
+    { NULL, 0 }
+};
 
 int init_suite_classes(void) {
     if (backend_handle) {
@@ -129,6 +136,9 @@ int init_suite_classes(void) {
     if (value) {
         return 1;
     }
+    if (value2) {
+        return 1;
+    }
     return 0;
 }
 
@@ -177,6 +187,8 @@ int clean_suite_classes(void) {
     result_list = NULL;
     db_value_free(value);
     value = NULL;
+    db_value_free(value2);
+    value2 = NULL;
     return 0;
 }
 
@@ -628,9 +640,15 @@ void test_class_db_result_list(void) {
 
 void test_class_db_value(void) {
     char* text = NULL;
+    const char* enum_text;
+    int ret;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value2 = db_value_new()));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((value = db_value_new()));
-
     CU_ASSERT(!db_value_from_text(value, "test"));
     CU_ASSERT(db_value_type(value) == DB_TYPE_TEXT);
     CU_ASSERT(!strcmp(db_value_text(value), "test"));
@@ -639,33 +657,250 @@ void test_class_db_value(void) {
     free(text);
     text = NULL;
     CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_TEXT);
+    CU_ASSERT(!strcmp(db_value_text(value2), "test"));
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(!db_value_set_primary_key(value));
     CU_ASSERT(db_value_primary_key(value));
 
     db_value_reset(value);
     CU_PASS("db_value_reset");
 
+    CU_ASSERT(!db_value_from_int32(value, -12345));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_INT32);
+    CU_ASSERT(!db_value_to_int32(value, &int32));
+    CU_ASSERT(int32 == -12345);
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_INT32);
+    CU_ASSERT(!db_value_to_int32(value2, &int32));
+    CU_ASSERT(int32 == -12345);
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_set_primary_key(value));
+    CU_ASSERT(db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_uint32(value, 12345));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_UINT32);
+    CU_ASSERT(!db_value_to_uint32(value, &uint32));
+    CU_ASSERT(uint32 == 12345);
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_UINT32);
+    CU_ASSERT(!db_value_to_uint32(value2, &uint32));
+    CU_ASSERT(uint32 == 12345);
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_set_primary_key(value));
+    CU_ASSERT(db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_int64(value, -9223372036854775800));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_INT64);
+    CU_ASSERT(!db_value_to_int64(value, &int64));
+    CU_ASSERT(int64 == -9223372036854775800);
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_INT64);
+    CU_ASSERT(!db_value_to_int64(value2, &int64));
+    CU_ASSERT(int64 == -9223372036854775800);
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_set_primary_key(value));
+    CU_ASSERT(db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_uint64(value, (db_type_uint64_t)17446744073709551615));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_UINT64);
+    CU_ASSERT(!db_value_to_uint64(value, &uint64));
+    CU_ASSERT(uint64 == (db_type_uint64_t)17446744073709551615);
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_UINT64);
+    CU_ASSERT(!db_value_to_uint64(value2, &uint64));
+    CU_ASSERT(uint64 == (db_type_uint64_t)17446744073709551615);
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_set_primary_key(value));
+    CU_ASSERT(db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_enum_value(value, 2, enum_set));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value, &ret));
+    CU_ASSERT(ret == 2);
+    CU_ASSERT(!strcmp(db_value_enum_text(value), "enum2"));
+    CU_ASSERT(!db_value_to_enum_value(value, &ret, enum_set));
+    CU_ASSERT(ret == 2);
+    CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum2"));
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value2, &ret));
+    CU_ASSERT(ret == 2);
+    CU_ASSERT(!strcmp(db_value_enum_text(value2), "enum2"));
+    CU_ASSERT(!db_value_to_enum_value(value2, &ret, enum_set));
+    CU_ASSERT(ret == 2);
+    CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum2"));
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(db_value_set_primary_key(value));
+    CU_ASSERT(!db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_enum_text(value, "enum2", enum_set));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value, &ret));
+    CU_ASSERT(ret == 2);
+    CU_ASSERT(!strcmp(db_value_enum_text(value), "enum2"));
+    CU_ASSERT(!db_value_to_enum_value(value, &ret, enum_set));
+    CU_ASSERT(ret == 2);
+    CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum2"));
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value2, &ret));
+    CU_ASSERT(ret == 2);
+    CU_ASSERT(!strcmp(db_value_enum_text(value2), "enum2"));
+    CU_ASSERT(!db_value_to_enum_value(value2, &ret, enum_set));
+    CU_ASSERT(ret == 2);
+    CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum2"));
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(db_value_set_primary_key(value));
+    CU_ASSERT(!db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_enum_value(value, 3, enum_set));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value, &ret));
+    CU_ASSERT(ret == 3);
+    CU_ASSERT(!strcmp(db_value_enum_text(value), "enum3"));
+    CU_ASSERT(!db_value_to_enum_value(value, &ret, enum_set));
+    CU_ASSERT(ret == 3);
+    CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum3"));
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value2, &ret));
+    CU_ASSERT(ret == 3);
+    CU_ASSERT(!strcmp(db_value_enum_text(value2), "enum3"));
+    CU_ASSERT(!db_value_to_enum_value(value2, &ret, enum_set));
+    CU_ASSERT(ret == 3);
+    CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum3"));
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(db_value_set_primary_key(value));
+    CU_ASSERT(!db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_enum_text(value, "enum3", enum_set));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value, &ret));
+    CU_ASSERT(ret == 3);
+    CU_ASSERT(!strcmp(db_value_enum_text(value), "enum3"));
+    CU_ASSERT(!db_value_to_enum_value(value, &ret, enum_set));
+    CU_ASSERT(ret == 3);
+    CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum3"));
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value2, &ret));
+    CU_ASSERT(ret == 3);
+    CU_ASSERT(!strcmp(db_value_enum_text(value2), "enum3"));
+    CU_ASSERT(!db_value_to_enum_value(value2, &ret, enum_set));
+    CU_ASSERT(ret == 3);
+    CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum3"));
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(db_value_set_primary_key(value));
+    CU_ASSERT(!db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_enum_value(value, 1, enum_set));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value, &ret));
+    CU_ASSERT(ret == 1);
+    CU_ASSERT(!strcmp(db_value_enum_text(value), "enum1"));
+    CU_ASSERT(!db_value_to_enum_value(value, &ret, enum_set));
+    CU_ASSERT(ret == 1);
+    CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum1"));
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value2, &ret));
+    CU_ASSERT(ret == 1);
+    CU_ASSERT(!strcmp(db_value_enum_text(value2), "enum1"));
+    CU_ASSERT(!db_value_to_enum_value(value2, &ret, enum_set));
+    CU_ASSERT(ret == 1);
+    CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum1"));
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(db_value_set_primary_key(value));
+    CU_ASSERT(!db_value_primary_key(value));
+
+    db_value_reset(value);
+    CU_PASS("db_value_reset");
+
+    CU_ASSERT(!db_value_from_enum_text(value, "enum1", enum_set));
+    CU_ASSERT(db_value_type(value) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value, &ret));
+    CU_ASSERT(ret == 1);
+    CU_ASSERT(!strcmp(db_value_enum_text(value), "enum1"));
+    CU_ASSERT(!db_value_to_enum_value(value, &ret, enum_set));
+    CU_ASSERT(ret == 1);
+    CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum1"));
+    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_copy(value2, value));
+    CU_ASSERT(db_value_type(value2) == DB_TYPE_ENUM);
+    CU_ASSERT(!db_value_enum_value(value2, &ret));
+    CU_ASSERT(ret == 1);
+    CU_ASSERT(!strcmp(db_value_enum_text(value2), "enum1"));
+    CU_ASSERT(!db_value_to_enum_value(value2, &ret, enum_set));
+    CU_ASSERT(ret == 1);
+    CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
+    CU_ASSERT(!strcmp(enum_text, "enum1"));
+    CU_ASSERT(!db_value_cmp(value, value2, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(db_value_set_primary_key(value));
+    CU_ASSERT(!db_value_primary_key(value));
+
     db_value_free(value);
     value = NULL;
     CU_PASS("db_value_free");
-/*
-int db_value_copy(db_value_t*, const db_value_t*);
-int db_value_cmp(const db_value_t*, const db_value_t*, int*);
-int db_value_enum_value(const db_value_t*, int*);
-const char* db_value_enum_text(const db_value_t*);
-int db_value_to_int32(const db_value_t*, db_type_int32_t*);
-int db_value_to_uint32(const db_value_t*, db_type_uint32_t*);
-int db_value_to_int64(const db_value_t*, db_type_int64_t*);
-int db_value_to_uint64(const db_value_t*, db_type_uint64_t*);
-int db_value_to_enum_value(const db_value_t*, int*, const db_enum_t*);
-int db_value_to_enum_text(const db_value_t*, const char**, const db_enum_t*);
-int db_value_from_int32(db_value_t*, db_type_int32_t);
-int db_value_from_uint32(db_value_t*, db_type_uint32_t);
-int db_value_from_int64(db_value_t*, db_type_int64_t);
-int db_value_from_uint64(db_value_t*, db_type_uint64_t);
-int db_value_from_enum_value(db_value_t*, int, const db_enum_t*);
-int db_value_from_enum_text(db_value_t*, const char*, const db_enum_t*);
-*/
+    db_value_free(value2);
+    value2 = NULL;
+    CU_PASS("db_value_free");
 }
 
 void test_class_end(void) {
