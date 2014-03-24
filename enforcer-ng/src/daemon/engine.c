@@ -339,6 +339,7 @@ engine_setup(engine_type* engine)
             if (setsid() == -1) {
                 ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
+                return ODS_STATUS_SETSID_ERR;
             }
         }
     }
