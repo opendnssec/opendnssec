@@ -57,6 +57,9 @@
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
 
+#define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
+#define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
+
 static const char* PROMPT = "cmd> ";
 static const char* cli_str = "client";
 
@@ -67,15 +70,37 @@ static const char* cli_str = "client";
 static void
 usage(FILE* out)
 {
-    fprintf(out, "Usage: %s [options] [cmd]\n", "ods-enforcer");
-    fprintf(out, "Simple command line interface to control the enforcer "
-                 "engine daemon.\nIf no cmd is given, the tool is going "
-                 "to interactive mode.\nWhen the daemon is running "
-                 "'ods-enforcer help' gives a full list of available commands.\n");
+    fprintf(out, "Usage: %s [OPTION]... [COMMAND]\n", "ods-enforcer");
+    fprintf(out, 
+"Simple command line interface to control the enforcer engine \n"
+"daemon. If no command  is given, the tool is going to interactive \n"
+"mode.When the daemon is running 'ods-enforcer help' gives a full \n"
+"list of available commands.\n\n");
+
+    fprintf(out, "Supported options:\n");
+    fprintf(out, " -h | --help             Show this help and exit.\n");
+    fprintf(out, " -V | --version          Show version and exit.\n");
+    fprintf(out, " -s | --socket <file>    Daemon socketfile \n"
+        "    |    (default %s).\n", OPENDNSSEC_ENFORCER_SOCKETFILE);
+
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
                  "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
         PACKAGE_VERSION, PACKAGE_BUGREPORT);
+}
+
+/**
+ * Prints version.
+ *
+ */
+static void
+version(FILE* out)
+{
+    fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+    fprintf(out, "Written by %s.\n\n", AUTHOR_NAME);
+    fprintf(out, "%s.  This is free software.\n", COPYRIGHT_STR);
+    fprintf(out, "See source files for more license information\n");
+    exit(0);
 }
 
 /**
@@ -307,6 +332,7 @@ main(int argc, char* argv[])
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"socket", required_argument, 0, 's'},
+        {"version", no_argument, 0, 'V'},
         { 0, 0, 0, 0}
     };
     
@@ -316,7 +342,7 @@ main(int argc, char* argv[])
      * to stop parsing when an unknown command is found not starting 
      * with '-'. This is important for us, else switches inside commands
      * would be consumed by getopt. */
-    while ((c=getopt_long(argc, argv, "+hs:",
+    while ((c=getopt_long(argc, argv, "+hVs:",
         long_options, &options_index)) != -1) {
         switch (c) {
             case 'h':
@@ -326,6 +352,9 @@ main(int argc, char* argv[])
                 socketfile = optarg;
                 printf("sock set to %s\n", socketfile);
                 break;
+            case 'V':
+                version(stdout);
+                exit(0);
             default:
                 /* unrecognized options 
                  * getopt will report an error */
