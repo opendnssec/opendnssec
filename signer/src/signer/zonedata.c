@@ -1094,15 +1094,9 @@ zonedata_nsecify3(zonedata_type* zd, ldns_rr_class klass,
         if (nsec3params->flags) {
             /* If Opt-Out is being used, owner names of unsigned delegations
                MAY be excluded. */
-            if (domain->dstatus == DOMAIN_STATUS_NS ||
-                domain_ent2unsigned(node)) {
-                if (domain->dstatus == DOMAIN_STATUS_NS) {
-                    log_rdf(domain->dname, "nsecify3: opt-out (unsigned "
-                        "delegation)", 5);
-                } else {
-                    log_rdf(domain->dname, "nsecify3: opt-out (empty "
-                        "non-terminal (to unsigned delegation))", 5);
-                }
+            if (domain->dstatus == DOMAIN_STATUS_NS) {
+                log_rdf(domain->dname, "nsecify3: opt-out (unsigned "
+                    "delegation)", 5);
                 if (domain->denial) {
                     if (zonedata_del_denial(zd, domain->denial) != NULL) {
                         ods_log_error("[%s] unable to nsecify3: failed to "
