@@ -145,10 +145,10 @@ perform_zonelist_export(const std::string* filename, int sockfd, engineconfig_ty
 					return 0;
 				}
 				fclose(fw);
-				for (int i = 0; i < bufc; i++) {
-					/* todo: optimize this loop to read upto ODS_SE_MAXLINE */
-					client_printf(sockfd, "%c", buf[i]);
-				}
+				//~ for (int i = 0; i < bufc; i++) {
+					//~ /* todo: optimize this loop to read upto ODS_SE_MAXLINE */
+					//~ client_printf(sockfd, "%c", buf[i]);
+				//~ }
 				free(buf);
 			}
         }
