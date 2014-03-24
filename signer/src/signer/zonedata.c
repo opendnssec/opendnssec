@@ -1417,12 +1417,16 @@ zonedata_examine(zonedata_type* zd, ldns_rdf* apex, adapter_mode mode)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         result =
+        /* Thou shall have exactly one SOA in your zone */
+        (domain->dstatus == DOMAIN_STATUS_APEX?
+        (domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_SOA)==1):
+        (domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_SOA)==0)) &&
         /* Thou shall not have other data next to CNAME */
         domain_examine_rrset_is_alone(domain, LDNS_RR_TYPE_CNAME) &&
         /* Thou shall have at most one CNAME per name */
-        domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_CNAME) &&
+        domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_CNAME) < 2 &&
         /* Thou shall have at most one DNAME per name */
-        domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_DNAME);
+        domain_examine_rrset_is_singleton(domain, LDNS_RR_TYPE_DNAME) < 2;
         if (!result) {
             status = ODS_STATUS_ERR;
         }
