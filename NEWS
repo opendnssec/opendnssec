@@ -1,4 +1,4 @@
-OpenDNSSEC 1.4.4rc1
+OpenDNSSEC 1.4.4 - 2014-03-25
 
 * SUPPORT-114: libhsm: Optimize storage in HSM by deleting the public
   key directly if SkipPublicKey is used [OPENDNSSEC-574].
@@ -10,6 +10,7 @@ OpenDNSSEC 1.4.4rc1
 * OPENDNSSEC-549: Signer Engine: Put NSEC3 records on empty non-terminals
   derived from unsigned delegations (be compatible with servers that are
   incompatible with RFC 5155 errata 3441).
+* Make/build: Include README.md in dist tar-ball.
 
 Bugfixes:
 * SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512].
