@@ -1,4 +1,40 @@
-14 November 2013: Matthijs
+12 March 2014: Matthijs
+- Update NEWS.
+
+11 March 2014: Matthijs
+- SUPPORT-127: Fix man page sections
+- SUPPORT-132: Change some level of log messages from error to informational
+
+10 March 2014: Matthijs
+- Fix ods_strcmp function
+
+27 February 2014: Matthijs
+- OPENDNSSEC-560: Don't crash when unsigned zone has no SOA.
+- Add tests for OPENDNSSEC-466, OPENDNSSEC-520, OPENDNSSEC-526, OPENDNSSEC-549.
+
+25 February 2014: Matthijs
+- OPENDNSSEC-544: Fix assertion error that happens on a IXFR + EDNS request.
+
+14 February 2014: Matthijs
+- Set NSEC3 on empty non-terminals to unsigned delegations: To be compatible
+  with validators that do not implement RFC 5155 Errata 3441 [OPENDNSSEC-549].
+- Fix race condition when stopping daemon (thanks Yuri).
+
+22 January 2014: Matthijs
+- OPENDNSSEC-526: Backup xfrd state.
+
+13 January 2014: Matthijs
+- OPENDNSSEC-529: Fix a bug where the zone transfer was not stored on disk
+  completely yet, and the restore failed.
+
+18 December 2013: Matthijs
+- Merged OPENDNSSEC-515 from 1.3 branch.
+
+16 December 2013: Matthijs
+- SUPPORT-101: If notify_acquired, then zone transfer in progress: don't
+  forward notify to xfr handler.
+
+15 November 2013: Matthijs
 - Fix task rescheduling for OPENDNSSEC-467.
 
 14 November 2013: Matthijs

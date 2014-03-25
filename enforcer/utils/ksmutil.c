@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2008-2009 Nominet UK. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +31,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "config.h"
 
@@ -272,14 +271,10 @@ usage_keylist ()
 {
     fprintf(stderr,
             "  key list\n"
-            "\t[--verbose]\n"
-            "\t--zone <zone> | --all                    aka -z / -a\n"
-#if 0
-            "\t(will appear soon:\n"
-            "\t[--keystate <state>]                     aka -e\n"
+            "\t[--verbose]                              aka -v\n"
+            "\t[--zone <zone>]                          aka -z\n"
+            "\t[--keystate <state>| --all]              aka -e / -a\n"
             "\t[--keytype <type>]                       aka -t\n"
-            "\t[--ds]                                   aka -d)\n"
-#endif
     );
 }
 
@@ -457,6 +452,7 @@ usage ()
     usage_keyimport ();
     usage_keyroll ();
     usage_keypurge ();
+    usage_keydelete ();
     usage_keygen ();
     usage_keykskretire ();
     usage_keydsseen ();
@@ -956,10 +952,13 @@ cmd_addzone ()
 
     /* in the case of a 'DNS' adapter using a default path */
     if (o_in_type == NULL) {
-   		StrAppend(&input_type, "File");
+      	StrAppend(&input_type, "File");
+    } else if (strncmp(o_in_type,"DNS",3)==0 || strncmp(o_in_type,"File",4)==0){
+        StrAppend(&input_type, o_in_type);
     } else {
-   		StrAppend(&input_type, o_in_type);
-   	}
+	      printf("Error: Unrecognised in-type %s; should be one of DNS or File\n",o_in_type);
+	      return(1);
+    }
 
     if (o_input == NULL) {
     	if(strcmp(input_type, "DNS")==0){
@@ -979,11 +978,14 @@ cmd_addzone ()
     	StrAppend(&input_name, o_input);
     }
 
-    if (o_out_type == NULL) {
-   		StrAppend(&output_type, "File");
-   	} else {
-   		StrAppend(&output_type, o_out_type);
-   	}
+	if (o_out_type == NULL) {
+		StrAppend(&output_type, "File");
+	} else if (strncmp(o_out_type,"DNS",3)==0 || strncmp(o_out_type,"File",4)==0){
+		StrAppend(&output_type, o_out_type);
+	} else {
+		printf("Error: Unrecognised out-type %s; should be one of DNS or File\n",o_out_type);
+		return(1);
+	}
 
     if (o_output == NULL) {
     	if(strcmp(output_type, "DNS") == 0){
@@ -3313,6 +3315,7 @@ cmd_import ()
         snprintf(form_time, KSM_TIME_LENGTH, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
             datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday,
             datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
+            printf("Converted time is %s\n", form_time);
     }
 
     if (o_retire != NULL) {
@@ -6543,6 +6546,7 @@ int ListKeys(int zone_id)
     char*       temp_zone = NULL;   /* place to store zone name returned */
     int         temp_type = 0;      /* place to store key type returned */
     int         temp_state = 0;     /* place to store key state returned */
+    char*       temp_publish = NULL;/* place to store publish date returned*/
     char*       temp_ready = NULL;  /* place to store ready date returned */
     char*       temp_active = NULL; /* place to store active date returned */
     char*       temp_retire = NULL; /* place to store retire date returned */
@@ -6551,6 +6555,12 @@ int ListKeys(int zone_id)
     char*       temp_hsm = NULL;    /* place to store hsm returned */
     int         temp_alg = 0;       /* place to store algorithm returned */
     int         temp_size = 0;      /* place to store size returned */
+
+    bool bool_temp_zone = false;    /* temp_zone was NULL or not */
+    int state_id = -1;
+    int keytype_id = KSM_TYPE_KSK;
+    char *case_keystate = NULL;
+    char *case_keytype = NULL;
 
     /* Key information */
     hsm_key_t *key = NULL;
@@ -6566,19 +6576,100 @@ int ListKeys(int zone_id)
         }
     }
 
+    /* check --keystate and --all option cannot be given together */
+    if ( all_flag && o_keystate != NULL) {    	
+        printf("Error: --keystate and --all option cannot be given together\n");
+        return(-1);
+    }
+	
     /* Select rows */
-    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm, k.size from securitymodules s, zones z, KEYDATA_VIEW k where z.id = k.zone_id and s.id = k.securitymodule_id and state != 6 and zone_id is not null ");
+    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm, k.size, k.publish from KEYDATA_VIEW k, securitymodules s left join zones z on k.zone_id = z.id where s.id = k.securitymodule_id ");
     if (zone_id != -1) {
         StrAppend(&sql, "and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
         StrAppend(&sql, stringval);
     }
-    StrAppend(&sql, " order by zone_id");
+	
+    /* check keystate  */
+    if (o_keystate != NULL) {
+        case_keystate = StrStrdup(o_keystate);
+        (void) StrToUpper(case_keystate);
+        if (strncmp(case_keystate, "GENERATE", 8) == 0 || strncmp(o_keystate, "1", 1) == 0) {
+            state_id =  KSM_STATE_GENERATE;
+        }
+        else if (strncmp(case_keystate, "KEYPUBLISH", 10) == 0 || strncmp(o_keystate, "10", 2) == 0) {
+            state_id =  KSM_STATE_KEYPUBLISH;
+        }
+        else if (strncmp(case_keystate, "PUBLISH", 7) == 0 || strncmp(o_keystate, "2", 1) == 0) {
+            state_id =  KSM_STATE_PUBLISH;
+        }
+        else if (strncmp(case_keystate, "READY", 5) == 0 || strncmp(o_keystate, "3", 1) == 0) {
+            state_id =  KSM_STATE_READY;
+        }
+        else if (strncmp(case_keystate, "ACTIVE", 6) == 0 || strncmp(o_keystate, "4", 1) == 0) {
+            state_id =  KSM_STATE_ACTIVE;
+        }
+        else if (strncmp(case_keystate, "RETIRE", 6) == 0 || strncmp(o_keystate, "5", 1) == 0) {
+            state_id =  KSM_STATE_RETIRE;
+        }
+        else if (strncmp(case_keystate, "DEAD", 4) == 0 || strncmp(o_keystate, "6", 1) == 0) {
+            state_id =  KSM_STATE_DEAD;
+        }
+        else if (strncmp(case_keystate, "DSSUB", 5) == 0 || strncmp(o_keystate, "7", 1) == 0) {
+            state_id =  KSM_STATE_DSSUB;
+        }
+        else if (strncmp(case_keystate, "DSPUBLISH", 9) == 0 || strncmp(o_keystate, "8", 1) == 0) {
+            state_id =  KSM_STATE_DSPUBLISH;
+        }
+        else if (strncmp(case_keystate, "DSREADY", 7) == 0 || strncmp(o_keystate, "9", 1) == 0) {
+            state_id =  KSM_STATE_DSREADY;
+        }
+        else {
+            printf("Error: Unrecognised state %s; should be one of GENERATE, PUBLISH, READY, ACTIVE, RETIRE, DEAD, DSSUB, DSPUBLISH, DSREADY or KEYPUBLISH\n", o_keystate);
+            StrFree(case_keystate);
+            return(-1);
+        }
+		
+        /* key generate command will generate keys which keystate propetry is null */
+        if (state_id != -1){
+            if (state_id == KSM_STATE_GENERATE){
+                StrAppend(&sql, " and (state = ");
+                snprintf(stringval, KSM_INT_STR_SIZE, "%d", state_id);
+                StrAppend(&sql, stringval);
+                StrAppend(&sql, " or state is NULL) ");
+            }else {
+                StrAppend(&sql, " and state = ");
+                snprintf(stringval, KSM_INT_STR_SIZE, "%d", state_id);
+                StrAppend(&sql, stringval);	
+            }
+        }
+        StrFree(case_keystate);
+    }
 
+    /* Check keytype */
+    if (o_keytype != NULL) {
+        case_keytype = StrStrdup(o_keytype);
+        (void) StrToUpper(case_keytype);
+        if (strncmp(case_keytype, "KSK", 3) == 0 || strncmp(o_keytype, "257", 3) == 0) {
+            keytype_id = KSM_TYPE_KSK;
+        }
+        else if (strncmp(case_keytype, "ZSK", 3) == 0 || strncmp(o_keytype, "256", 3) == 0) {
+            keytype_id = KSM_TYPE_ZSK;
+        }
+        else {
+            printf("Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", o_keytype);
+            StrFree(case_keytype);
+            return(-1);
+        }
+        StrAppend(&sql, " and keytype = ");
+        snprintf(stringval, KSM_INT_STR_SIZE, "%d", keytype_id);
+        StrAppend(&sql, stringval);
+        StrFree(case_keytype);
+    }		
+    StrAppend(&sql, " order by zone_id");
     DusEnd(&sql);
 
     status = DbExecuteSql(DbHandle(), sql, &result);
-
     if (status == 0) {
         status = DbFetchRow(result, &row);
         if (verbose_flag == 1) {
@@ -6600,9 +6691,34 @@ int ListKeys(int zone_id)
             DbString(row, 8, &temp_hsm);
             DbInt(row, 9, &temp_alg);
             DbInt(row, 10, &temp_size);
+            DbString(row, 11, &temp_publish);
+            if (temp_zone == NULL){
+                bool_temp_zone = true;
+                temp_zone = "NOT ALLOCATED";
+            }else{
+                bool_temp_zone = false;
+            }
             done_row = 0;
-
-            if (temp_state == KSM_STATE_PUBLISH) {
+			/* key generate command will generate keys which keystate propetry is null */
+            if (!temp_state){
+                if (all_flag || o_keystate != NULL) {
+                    printf("%-31s %-13s %-9s %-20s", temp_zone, "", "generate", "(not scheduled)");
+                    if (verbose_flag) {
+                        printf("(publish)  ");
+                    }
+                    done_row = 1;
+                }
+            }
+            else if (temp_state == KSM_STATE_GENERATE){
+                if (all_flag || o_keystate != NULL) {
+                    printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_publish== NULL) ? "(not scheduled)" : temp_publish);
+                    if (verbose_flag) {
+                        printf("(publish)  ");
+                    }
+                    done_row = 1;
+                }
+            }
+            else if (temp_state == KSM_STATE_PUBLISH) {
                 printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
 				if (verbose_flag) {
 					printf("(ready)    ");
@@ -6629,6 +6745,15 @@ int ListKeys(int zone_id)
 					printf("(dead)     ");
 				}
                 done_row = 1;
+            }
+            else if (temp_state == KSM_STATE_DEAD) {
+                if (all_flag || o_keystate != NULL) {
+                    printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), "to be deleted");
+					if (verbose_flag) {
+						printf("(deleted)  ");
+					}
+                    done_row = 1;
+                }
             }
             else if (temp_state == KSM_STATE_DSSUB) {
                 printf("%-31s %-13s %-9s %-20s", temp_zone, "KSK", KsmKeywordStateValueToName(temp_state), "waiting for ds-seen");
@@ -6664,7 +6789,9 @@ int ListKeys(int zone_id)
                 key = hsm_find_key_by_id(NULL, temp_loc);
                 if (!key) {
                     printf("%-33s %s NOT IN repository\n", temp_loc, temp_hsm);
-                } else {
+                } else if (bool_temp_zone == true){
+                    printf("%-33s %s\n",temp_loc,temp_hsm);
+                } else{
                     sign_params = hsm_sign_params_new();
                     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, temp_zone);
                     sign_params->algorithm = temp_alg;
@@ -6699,8 +6826,9 @@ int ListKeys(int zone_id)
 
     DusFree(sql);
     DbFreeRow(row);
-
-    DbStringFree(temp_zone);
+    if (bool_temp_zone == false){
+        DbStringFree(temp_zone);
+    }
     DbStringFree(temp_ready);
     DbStringFree(temp_active);
     DbStringFree(temp_retire);
@@ -7161,7 +7289,8 @@ int cmd_genkeys()
     /* Don't have to adjust the queue for shared keys as the prediction has already taken care of that.*/
 
     new_ksks = ksks_needed - ksks_in_queue;
-    /* fprintf(stderr, "keygen(ksk): new_ksks(%d) = ksks_needed(%d) - ksks_in_queue(%d)\n", new_ksks, ksks_needed, ksks_in_queue); */
+	printf("%d new KSK(s) (%d bits) need to be created for policy %s: keys_to_generate(%d) = keys_needed(%d) - keys_available(%d).\n", new_ksks, policy->ksk->bits, policy->name, new_ksks, ksks_needed, ksks_in_queue);
+
 
     /* Find out how many ZSKs are needed for the POLICY */
     status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, interval, &zsks_needed, 0, zone_count);
@@ -7196,7 +7325,8 @@ int cmd_genkeys()
      }
 
     new_zsks = zsks_needed - zsks_in_queue;
-    /* fprintf(stderr, "keygen(zsk): new_zsks(%d) = zsks_needed(%d) - zsks_in_queue(%d)\n", new_zsks, zsks_needed, zsks_in_queue); */
+	printf("%d new ZSK(s) (%d bits) need to be created for policy %s: keys_to_generate(%d) = keys_needed(%d) - keys_available(%d).\n", new_zsks, policy->zsk->bits, policy->name, new_zsks, zsks_needed, zsks_in_queue);
+
 	
     /* Check capacity of HSM will not be exceeded */
 	if (policy->ksk->sm == policy->zsk->sm) {
@@ -8778,7 +8908,8 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
     StrFree(datetime);
     new_keys = keys_needed - (keys_in_queue - keys_pending_retirement);
 
-    /* fprintf(stderr, "comm(%d) %s: new_keys(%d) = keys_needed(%d) - (keys_in_queue(%d) - keys_pending_retirement(%d))\n", key_type, zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement); */
+    /* TODO: add check that new_keys is more than 0 */
+    /*log_msg(NULL, LOG_DEBUG, "%s key allocation for zone %s: keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", key_type == KSM_TYPE_KSK ? "KSK" : "ZSK", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement); */
 
     /* Allocate keys */
     for (i=0 ; i < new_keys ; i++){
@@ -8787,11 +8918,13 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, zone_id, policy->keys->share_keys, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
-                    printf("Not enough keys to satisfy ksk policy for zone: %s", zone_name);
-                    printf("ods-enforcerd will create some more keys on its next run");
+                    printf("Not enough keys to satisfy ksk policy for zone: %s. keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement);
+					printf("Tried to allocate %d keys, failed on allocating key number %d", new_keys, i+1);
+                   	printf("ods-enforcerd will create some more keys on its next run");
                 }
                 else {
-                    printf("Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    printf("Not enough keys to satisfy ksk policy for zone: %s. keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement);
+					printf("Tried to allocate %d keys, failed on allocating key number %d", new_keys, i+1);
                     printf("please use \"ods-ksmutil key generate\" to create some more keys.");
                 }
                 return 2;
@@ -8804,11 +8937,13 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, zone_id, policy->keys->share_keys, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
-                    printf("Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    printf("Not enough keys to satisfy zsk policy for zone: %s. keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement);
+					printf("Tried to allocate %d keys, failed on allocating key number %d", new_keys, i+1);
                     printf("ods-enforcerd will create some more keys on its next run");
                 }
                 else {
-                    printf("Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    printf("Not enough keys to satisfy zsk policy for zone: %s. keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement);
+					printf("Tried to allocate %d keys, failed on allocating key number %d", new_keys, i+1);
                     printf("please use \"ods-ksmutil key generate\" to create some more keys.");
                 }
                 return 2;
@@ -8826,8 +8961,8 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             printf("KsmKeyGetUnallocated returned bad key_id %d for zone: %s; exiting...", key_pair_id, zone_name);
             exit(1);
         }
-
     }
+	printf("%s key allocation for zone %s: %d key(s) allocated\n", key_type == KSM_TYPE_KSK ? "KSK" : "ZSK", zone_name, new_keys);
 
     return status;
 }

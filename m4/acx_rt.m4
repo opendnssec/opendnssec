@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_RT],[
 	RT_LIBS="-lrt"
 

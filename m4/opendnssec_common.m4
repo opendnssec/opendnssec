@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([OPENDNSSEC_COMMON],[
 
 AC_MSG_NOTICE(Detecting common OpenDNSSEC settings)

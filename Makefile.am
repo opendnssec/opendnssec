@@ -1,5 +1,3 @@
-# $Id$
-
 ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = \
@@ -20,6 +18,7 @@ endif
 EXTRA_DIST =	$(srcdir)/LICENSE \
 		$(srcdir)/KNOWN_ISSUES \
 		$(srcdir)/MIGRATION \
+		$(srcdir)/README.md \
 		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 

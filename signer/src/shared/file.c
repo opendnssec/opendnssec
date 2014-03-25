@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -296,13 +294,13 @@ ods_file_lastmodified(const char* file)
     if ((fd = ods_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
         if (ret == -1) {
-            ods_log_error("[%s] unable to stat file %s: %s", file_str,
+            ods_log_warning("[%s] unable to stat file %s: %s", file_str,
                 file, strerror(errno));
         }
         ods_fclose(fd);
         return buf.st_mtime;
     } else {
-        ods_log_error("[%s] unable to stat file %s: ods_fopen() failed",
+        ods_log_debug("[%s] unable to stat file %s: ods_fopen() failed",
             file_str, file);
     }
     return 0;
@@ -321,7 +319,7 @@ ods_strcmp(const char* s1, const char* s2)
     } else if (!s1) {
         return -1;
     } else if (!s2) {
-        return -1;
+        return 1;
     } else if (strlen(s1) != strlen(s2)) {
         if (strncmp(s1, s2, strlen(s1)) == 0) {
             return strlen(s1) - strlen(s2);
@@ -425,7 +423,7 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
  *
  */
 ods_status
-ods_file_copy(const char* file1, const char* file2)
+ods_file_copy(const char* file1, const char* file2, long startpos, int append)
 {
     char buf[BUFFER_SIZE];
     int fin = 0;
@@ -437,9 +435,18 @@ ods_file_copy(const char* file1, const char* file2)
     if ((fin = open(file1, O_RDONLY|O_NONBLOCK)) < 0) {
         return ODS_STATUS_FOPEN_ERR;
     }
-    if ((fout = open(file2, O_WRONLY|O_TRUNC|O_CREAT, 0666)) < 0) {
+    if (append) {
+        fout = open(file2, O_WRONLY|O_APPEND|O_CREAT, 0666);
+    } else {
+        fout = open(file2, O_WRONLY|O_TRUNC|O_CREAT, 0666);
+    }
+    if (fout < 0) {
         close(fin);
         return ODS_STATUS_FOPEN_ERR;
+    }
+    ods_log_debug("[%s] lseek file %s pos %ld", file_str, file1, startpos);
+    if (lseek(fin, startpos, SEEK_SET) < 0) {
+        return ODS_STATUS_FSEEK_ERR;
     }
     while (1) {
         read_size = read(fin, buf, sizeof(buf));
@@ -447,11 +454,15 @@ ods_file_copy(const char* file1, const char* file2)
             break;
         }
         if (read_size < 0) {
+            ods_log_error("[%s] read file %s error %s", file_str, file1,
+                strerror(errno));
             close(fin);
             close(fout);
             return ODS_STATUS_FREAD_ERR;
         }
         if (write(fout, buf, (unsigned int) read_size) < 0) {
+            ods_log_error("[%s] write file %s error %s", file_str, file1,
+                strerror(errno));
             close(fin);
             close(fout);
             return ODS_STATUS_FWRITE_ERR;

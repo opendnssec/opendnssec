@@ -1,4 +1,42 @@
-$Id$
+OpenDNSSEC 1.4.4 - 2014-03-25
+
+* SUPPORT-114: libhsm: Optimize storage in HSM by deleting the public
+  key directly if SkipPublicKey is used [OPENDNSSEC-574].
+* OPENDNSSEC-358: ods-ksmutil:Extend 'key list' command with options to filter
+  on key type and state. This allows keys in the GENERATE and DEAD state to be
+  output.
+* OPENDNSSEC-457: ods-ksmutil: Add a check on the 'zone add' input/output
+  type parameter to allow only File or DNS.  
+* OPENDNSSEC-549: Signer Engine: Put NSEC3 records on empty non-terminals
+  derived from unsigned delegations (be compatible with servers that are
+  incompatible with RFC 5155 errata 3441).
+* Make/build: Include README.md in dist tar-ball.
+
+Bugfixes:
+* SUPPORT-86: Fixed build on OS X [OPENDNSSEC-512].
+* SUPPORT-97: Signer Engine: Fix after restart signer thinks zone has expired
+  [OPENDNSSEC-526].
+* SUPPORT-101: Signer Engine: Fix multiple zone transfer to single file bug
+  [OPENDNSSEC-529].
+* SUPPORT-102: Signer Engine: Fix statistics (count can be negative)/
+* SUPPORT-108: Signer Engine: Don't replace tabs in RRs with whitespace
+  [OPENDNSSEC-520].
+* SUPPORT-116: ods-ksmutil: 'key import' date validation fails on certain 
+  dates [OPENDNSSEC-553].
+* SUPPORT-128: ods-ksmutil. Man page had incorrect formatting [OPENDNSSEC-576].
+* SUPPORT-127: ods-signer: Fix manpage sections.
+* OPENDNSSEC-481: libhsm: Fix an off-by-one length check error.
+* OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
+* OPENDNSSEC-531: ods-ksmutil: Exported value of <Parent><SOA><TTL> in 
+  'policy export' output could be wrong on MySQL.
+* OPENDNSSEC-537: libhsm: Possible memory corruption in hsm_get_slot_id.
+* OPENDNSSEC-544: Signer Engine: Fix assertion error that happens on an IXFR
+  request with EDNS.
+* OPENDNSSEC-546: enforcer & ods-ksmutil: Improve logging on key creation
+  and alloctaion.
+* OPENDNSSEC-560: Signer Engine: Don't crash when unsigned zone has no SOA.
+* Signer Engine: Fix a race condition when stopping daemon.
+
 
 OpenDNSSEC 1.4.3 - 2013-12-04
 

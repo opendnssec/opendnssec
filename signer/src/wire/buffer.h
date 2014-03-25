@@ -1,6 +1,4 @@
 /*
- * $Id: buffer.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +42,7 @@
 
 #define BUFFER_PKT_HEADER_SIZE 12
 #define MAXDOMAINLEN 255
+#define MAXLABELLEN 63
 #define MAX_RDLENGTH    65535
 #define MAX_RR_SIZE \
         (MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)

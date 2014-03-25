@@ -29,8 +29,8 @@ syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 ## Retry NOTIFY
 syslog_waitfor 120 'ods-signerd: .*\[notify\] notify max retry for zone ods, 127\.0\.0\.1 unreachable' &&
 
-## SOA query
-log_this_timeout soa 10 drill -p 15354 @127.0.0.1 soa ods &&
+## SOA query (DO bit set)
+log_this_timeout soa 10 drill -D -p 15354 @127.0.0.1 soa ods &&
 log_grep soa stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 
 ## See if we can transfer the signed zone
@@ -45,9 +45,9 @@ log_grep axfr stdout 'below\.zonecut\.label4\.ods\..*600.*IN.*NS.*ns\.zonecut\.l
 log_this_timeout ixfr 10 drill -p 15354 @127.0.0.1 ixfr ods &&
 syslog_waitfor 10 'ods-signerd: .*\[axfr\] axfr fallback zone ods' &&
 syslog_waitfor 10 'ods-signerd: .*\[axfr\] axfr udp overflow zone ods' &&
-log_grep ixfr stdout 'ods\..*IN.*IXFR' &&
+{ log_grep ixfr stdout 'ods\..*IN.*TYPE251' || log_grep ixfr stdout 'ods\..*IN.*IXFR'; } &&
 log_grep ixfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
-! (log_grep ixfr stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.') &&
+! log_grep ixfr stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
 
 ## See if we fallback to AXFR if IXFR not available.
 log_this_timeout ixfr-tcp 10 drill -t -p 15354 @127.0.0.1 ixfr ods &&
@@ -57,7 +57,7 @@ log_grep ixfr-tcp stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
 ## Update zonefile to create journal
 cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
 ods-signer sign ods &&
-syslog_waitfor 10 'ods-signerd: .*\[STATS\] ods RR\[count=3 time*' &&
+syslog_waitfor 10 'ods-signerd: .*\[STATS\] ods 1002 RR\[count=3 time*' &&
 
 ## See if we can get an IXFR back
 log_this_timeout dig 10 dig -p 15354 @127.0.0.1 ixfr=1001 ods &&
@@ -66,13 +66,21 @@ log_grep dig stdout 'label35\.ods\..*3600.*IN.*NS.*ns1\.label35\.ods\.' &&
 log_grep dig stdout 'ns1\.label35\.ods\..*3600.*IN.*A.*192\.0\.2\.1' &&
 
 # Validate the output on redhat
-case "$DISTRIBUTION" in                                                                                 
+case "$DISTRIBUTION" in
         redhat )
                 dig -p 15354 @127.0.0.1 axfr ods > ods_axfr &&
                 log_this validate-zone-ods validns -s -p cname-other-data -p dname -p dnskey -p nsec3param-not-apex -p mx-alias -p ns-alias -p rp-txt-exists -p tlsa-host ods_axfr &&
                 log_grep validate-zone-ods stdout 'validation errors:   0'
                 ;;
 esac &&
+
+## Restart
+ods_stop_ods-control && 
+ods_start_ods-control && 
+
+## OPENDNSSEC-526: Do a SOA query (it should not be expired)
+log_this_timeout soa 10 drill -D -p 15354 @127.0.0.1 soa ods &&
+log_grep soa stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1002.*9000.*4500.*1209600.*3600' &&
 
 ## Stop
 ods_stop_ods-control && 

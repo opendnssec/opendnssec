@@ -1,6 +1,4 @@
 /*
- * $Id: query.c 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -342,27 +340,31 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
             return QUERY_DISCARDED;
         }
         lock_basic_lock(&q->zone->xfrd->serial_lock);
-        q->zone->xfrd->serial_notify = serial;
-        q->zone->xfrd->serial_notify_acquired = time_now();
-        if (!util_serial_gt(q->zone->xfrd->serial_notify,
-            q->zone->xfrd->serial_disk)) {
-            ods_log_debug("[%s] ignore notify: already got zone %s serial "
-                "%u on disk", query_str, q->zone->name,
-                q->zone->xfrd->serial_notify);
+        if (q->zone->xfrd->serial_notify_acquired) {
+            if (!util_serial_gt(q->zone->xfrd->serial_notify,
+                q->zone->xfrd->serial_disk)) {
+                ods_log_debug("[%s] ignore notify: already got zone %s serial "
+                    "%u on disk", query_str, q->zone->name,
+                    q->zone->xfrd->serial_notify);
+                q->zone->xfrd->serial_notify_acquired = 0;
+            } else {
+                ods_log_debug("[%s] ignore notify: zone %s transfer in process",
+                    query_str, q->zone->name);
+                /* update values */
+                q->zone->xfrd->serial_notify = serial;
+                q->zone->xfrd->serial_notify_acquired = time_now();
+            }
             lock_basic_unlock(&q->zone->xfrd->serial_lock);
             goto send_notify_ok;
         }
+        q->zone->xfrd->serial_notify = serial;
+        q->zone->xfrd->serial_notify_acquired = time_now();
         lock_basic_unlock(&q->zone->xfrd->serial_lock);
-    } else {
-        lock_basic_lock(&q->zone->xfrd->serial_lock);
-        q->zone->xfrd->serial_notify = 0;
-        q->zone->xfrd->serial_notify_acquired = 0;
-        lock_basic_unlock(&q->zone->xfrd->serial_lock);
+        /* forward notify to xfrd */
+        xfrd_set_timer_now(q->zone->xfrd);
+        dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
+            buffer_remaining(q->buffer));
     }
-    /* forward notify to xfrd */
-    xfrd_set_timer_now(q->zone->xfrd);
-    dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
-        buffer_remaining(q->buffer));
 
 send_notify_ok:
     /* send notify ok */
@@ -632,20 +634,15 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
             q->zone->name);
         return query_refused(q);
     }
+
+    query_prepare(q);
     /* ixfr? */
     if (qtype == LDNS_RR_TYPE_IXFR) {
-        if (query_process_ixfr(q) != QUERY_PROCESSED) {
-            buffer_pkt_set_flags(q->buffer, 0);
-            return query_formerr(q);
-        }
-        query_prepare(q);
         ods_log_assert(q->zone->name);
         ods_log_debug("[%s] incoming ixfr request serial=%u for zone %s",
             query_str, q->serial, q->zone->name);
         return ixfr(q, engine);
     }
-
-    query_prepare(q);
     /* axfr? */
     if (qtype == LDNS_RR_TYPE_AXFR) {
         ods_log_assert(q->zone->name);
@@ -850,6 +847,7 @@ query_process(query_type* q, void* engine)
         ldns_rr_get_class(rr));
     /* don't answer for zones that are just added */
     if (q->zone && q->zone->zl_status == ZONE_ZL_ADDED) {
+        ods_log_assert(q->zone->name);
         ods_log_warning("[%s] zone %s just added, don't answer for now",
             query_str, q->zone->name);
         q->zone = NULL;
@@ -865,6 +863,18 @@ query_process(query_type* q, void* engine)
     }
     /* else: valid tsig, or no tsig present */
     ods_log_debug("[%s] tsig %s", query_str, tsig_status2str(q->tsig_rr->status));
+    /* get opcode, qtype, ixfr=serial */
+    opcode = ldns_pkt_get_opcode(pkt);
+    qtype = ldns_rr_get_type(rr);
+    if (qtype == LDNS_RR_TYPE_IXFR) {
+        ods_log_assert(q->zone->name);
+        ods_log_debug("[%s] incoming ixfr request for zone %s",
+            query_str, q->zone->name);
+        if (query_process_ixfr(q) != QUERY_PROCESSED) {
+            return query_formerr(q);
+        }
+    }
+    /* process tsig */
     rcode = query_process_tsig(q);
     if (rcode != LDNS_RCODE_NOERROR) {
         return query_error(q, rcode);
@@ -878,12 +888,8 @@ query_process(query_type* q, void* engine)
          * Thus RCODE = NOERROR = NSD_RC_OK. */
         return query_error(q, LDNS_RCODE_NOERROR);
     }
-
     /* handle incoming request */
-    opcode = ldns_pkt_get_opcode(pkt);
-    qtype = ldns_rr_get_type(rr);
     ldns_pkt_free(pkt);
-
     switch (opcode) {
         case LDNS_PACKET_NOTIFY:
             return query_process_notify(q, qtype, engine);

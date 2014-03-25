@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 source `dirname "$0"`/lib.sh && init || exit 1
 
-require ldns
 require softhsm
 
 check_if_built opendnssec && exit 0
@@ -92,7 +91,7 @@ case "$DISTRIBUTION" in
 				--with-dbname=opendnssec-build-test \
 				--enable-timeshift &&
 			$MAKE &&
-			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
+			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&

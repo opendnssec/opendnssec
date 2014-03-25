@@ -1,5 +1,3 @@
-# $Id: Makefile.am 1441 2009-07-30 12:32:04Z jakob $
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
@@ -43,3 +41,4 @@ EXTRA_DIST = $(srcdir)/migrate_*.pl
 EXTRA_DIST += $(srcdir)/migrate_adapters_1.*
 EXTRA_DIST += $(srcdir)/convert_database.pl
 EXTRA_DIST += $(srcdir)/migrate_zone_delete.mysql
+

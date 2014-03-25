@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,14 +52,14 @@
  */
 typedef struct stats_struct stats_type;
 struct stats_struct {
-    uint32_t    sort_count;
+    int32_t     sort_count;
     time_t      sort_time;
     int         sort_done;
-    uint32_t    nsec_count;
+    int32_t     nsec_count;
     time_t      nsec_time;
-    uint32_t    sig_count;
-    uint32_t    sig_soa_count;
-    uint32_t    sig_reuse;
+    int32_t     sig_count;
+    int32_t     sig_soa_count;
+    int32_t     sig_reuse;
     time_t      sig_time;
     time_t      audit_time;
     time_t      start_time;
@@ -80,10 +78,12 @@ stats_type* stats_create(void);
  * Log statistics.
  * \param[in] stats statistics
  * \param[in] name zone name
+ * \param[in] serial serial
  * \param[in] nsec_type NSEC or NSEC3
  *
  */
-void stats_log(stats_type* stats, const char* name, ldns_rr_type nsec_type);
+void stats_log(stats_type* stats, const char* name, uint32_t serial,
+    ldns_rr_type nsec_type);
 
 /**
  * Clear statistics.

@@ -1,6 +1,4 @@
 /*
- * $Id: xfrd.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -177,8 +175,9 @@ socklen_t xfrd_acl_sockaddr_to(acl_type* acl,
 /**
  * Cleanup zone transfer structure.
  * \param[in] xfrd zone transfer structure.
+ * \param[in] backup backup transfer variables.
  *
  */
-void xfrd_cleanup(xfrd_type* xfrd);
+void xfrd_cleanup(xfrd_type* xfrd, int backup);
 
 #endif /* WIRE_XFRD_H */

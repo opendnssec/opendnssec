@@ -6,7 +6,6 @@
 #TEST: of the right kind of key. Tries to test algorithm and length mixtures
 #TEST: shared keys and standby
 
-#DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
 #DISABLED: ON SOLARIS T2000- as key generation takes too long!
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
@@ -19,20 +18,17 @@ add_zones() {
 	done 	
 }
 
-if [ -n "$HAVE_MYSQL" ]; then
-        ods_setup_conf conf.xml conf-mysql.xml
-fi &&
-
 case "$DISTRIBUTION" in
 	sunos )	
 		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
 			return 0	
 		fi
 		;;			
-	freebsd )	
-		return 0
-		;;
 esac
+
+if [ -n "$HAVE_MYSQL" ]; then
+        ods_setup_conf conf.xml conf-mysql.xml
+fi &&
 
 ods_reset_env &&
 
@@ -178,7 +174,7 @@ ods_setup_conf kasp.xml kasp_2.xml &&
 log_this ods-ksmutil-update-kasp ods-ksmutil update kasp && 
 
 # Again with some keys in the queue
-ods_start_enforcer_timeshift &&
+ods_start_enforcer_timeshift 120 &&
 
 syslog_grep_count 2  "ods-enforcerd: .*15 zone(s) found on policy \"Policy5\""  &&
 syslog_grep_count 2  'ods-enforcerd: .*9 new KSK(s) (2048 bits) need to be created.'  &&

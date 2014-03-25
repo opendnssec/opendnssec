@@ -3,12 +3,7 @@
 #TEST: Test to check the operation of the 'ods-ksmutil key generate' command
 #TEST: including the new -zonetotal parameter
 
-#DISABLED: ON FREEBSD - due to pthread seg fault on freebsd64
 #DISABLED: ON SOLARIS T2000- as key generation takes too long!
-
-if [ -n "$HAVE_MYSQL" ]; then
-        ods_setup_conf conf.xml conf-mysql.xml
-fi &&
 
 case "$DISTRIBUTION" in
 	sunos )	
@@ -16,10 +11,11 @@ case "$DISTRIBUTION" in
 			return 0	
 		fi
 		;;			
-	freebsd )	
-		return 0
-		;;
 esac
+
+if [ -n "$HAVE_MYSQL" ]; then
+        ods_setup_conf conf.xml conf-mysql.xml
+fi &&
 
 ods_reset_env &&
 

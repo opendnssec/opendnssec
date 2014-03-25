@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2009 NLNet Labs.
@@ -397,9 +395,19 @@ hsm_get_slot_id(hsm_ctx_t *ctx,
         hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
                           "No slots found in HSM");
         return HSM_ERROR;
+    } else if (slotCount > (SIZE_MAX / sizeof(CK_SLOT_ID))) {
+        hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
+                          "Too many slots found in HSM");
+        return HSM_ERROR;
     }
 
     slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
+    if(slotIds == NULL) {
+        hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
+                          "Could not allocate slot ID table");
+        return HSM_ERROR;
+    }
+
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
     if (hsm_pkcs11_check_error(ctx, rv, "get slot list")) {
         return HSM_ERROR;
@@ -981,6 +989,8 @@ hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
                                          1,
                                          &objectCount);
     if (hsm_pkcs11_check_error(ctx, rv, "Find object")) {
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+        hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
         return 0;
     }
 
@@ -1171,6 +1181,8 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
         if (hsm_pkcs11_check_error(ctx, rv, "Find first object")) {
             free(key_handles);
             *count = 0;
+            rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+            hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
             return NULL;
         }
 
@@ -1392,7 +1404,7 @@ hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
     hsm_remove_leading_zeroes(modulus, &modulus_len);
 
     data_size = public_exponent_len + modulus_len + 1;
-    if (public_exponent_len <= 256) {
+    if (public_exponent_len <= 255) {
         data = malloc(data_size);
         if (!data) {
             hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
@@ -2385,9 +2397,12 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     new_key->module = session->module;
 
     if (session->module->config->use_pubkey) {
-        new_key->public_key = publicKey;        
+        new_key->public_key = publicKey;
     } else {
-        new_key->public_key = 0;        
+        /* Destroy the object directly in order to optimize storage in HSM */
+        /* Ignore return value, it is just a session object and will be destroyed later */
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session, publicKey);
+        new_key->public_key = 0;
     }
 
     new_key->private_key = privateKey;

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2012 Nominet UK. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -84,6 +82,7 @@ void dual_log(const char *format, ...) {
 	}
 
 	vprintf(format, args2);
+	printf("\n");
 	
 	va_end(args);
 	va_end(args2);
@@ -99,13 +98,13 @@ int check_rng(const char *filename, const char *rngfilename) {
     xmlRelaxNGPtr schema = NULL;
 
 	if (verbose) {
-		dual_log("DEBUG: About to check XML validity in %s\n", filename);
+		dual_log("DEBUG: About to check XML validity in %s", filename);
 	}
 
    	/* Load XML document */
     doc = xmlParseFile(filename);
     if (doc == NULL) {
-        dual_log("ERROR: unable to parse file \"%s\"\n", filename);
+        dual_log("ERROR: unable to parse file \"%s\"", filename);
 		/* Maybe the file doesn't exist? */
 		check_file(filename, "Configuration file");
 
@@ -115,7 +114,7 @@ int check_rng(const char *filename, const char *rngfilename) {
     /* Load rng document */
     rngdoc = xmlParseFile(rngfilename);
     if (rngdoc == NULL) {
-        dual_log("ERROR: unable to parse file \"%s\"\n", rngfilename);
+        dual_log("ERROR: unable to parse file \"%s\"", rngfilename);
 		/* Maybe the file doesn't exist? */
 		check_file(rngfilename, "RNG file");
 
@@ -127,7 +126,7 @@ int check_rng(const char *filename, const char *rngfilename) {
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
     if (rngpctx == NULL) {
-        dual_log("ERROR: unable to create XML RelaxNGs parser context\n");
+        dual_log("ERROR: unable to create XML RelaxNGs parser context");
 
         xmlFreeDoc(doc);
         xmlFreeDoc(rngdoc);
@@ -143,7 +142,7 @@ int check_rng(const char *filename, const char *rngfilename) {
     /* parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances. */
     schema = xmlRelaxNGParse(rngpctx);
     if (schema == NULL) {
-        dual_log("ERROR: unable to parse a schema definition resource\n");
+        dual_log("ERROR: unable to parse a schema definition resource");
 
 		xmlRelaxNGFreeParserCtxt(rngpctx);
 		xmlFreeDoc(doc);
@@ -155,7 +154,7 @@ int check_rng(const char *filename, const char *rngfilename) {
     /* Create an XML RelaxNGs validation context based on the given schema */
     rngctx = xmlRelaxNGNewValidCtxt(schema);
     if (rngctx == NULL) {
-        dual_log("ERROR: unable to create RelaxNGs validation context based on the schema\n");
+        dual_log("ERROR: unable to create RelaxNGs validation context based on the schema");
 
 		xmlRelaxNGFree(schema);
 		xmlRelaxNGFreeParserCtxt(rngpctx);
@@ -172,7 +171,7 @@ int check_rng(const char *filename, const char *rngfilename) {
 
     /* Validate a document tree in memory. */
     if (xmlRelaxNGValidateDoc(rngctx,doc) != 0) {
-        dual_log("ERROR: %s fails to validate\n", filename);
+        dual_log("ERROR: %s fails to validate", filename);
 
 		xmlRelaxNGFreeValidCtxt(rngctx);
 		xmlRelaxNGFree(schema);
@@ -203,7 +202,7 @@ int check_file(const char *filename, const char *log_string) {
 			return 1;
 		}
 
-		dual_log("ERROR: %s (%s) does not exist\n", log_string, filename);
+		dual_log("ERROR: %s (%s) does not exist", log_string, filename);
 		return 1;
 	}
 
@@ -212,7 +211,7 @@ int check_file(const char *filename, const char *log_string) {
 		return 0;
     }
 
-	dual_log("ERROR: %s (%s) does not exist\n", log_string, filename);
+	dual_log("ERROR: %s (%s) does not exist", log_string, filename);
 	return 1;
 }
 
@@ -253,21 +252,22 @@ int check_path(const char *pathname, const char *log_string) {
 	struct stat stat_ret;
 
 	if (stat(pathname, &stat_ret) != 0) {
-
 		if (errno != ENOENT) {
 			dual_log("ERROR: cannot stat directory %s: %s",
 					pathname, strerror(errno));
 			return 1;
 		}
+
+		dual_log("ERROR: %s (%s) does not exist", log_string, pathname);
+		return 1;
 	}
 
-    if (S_ISDIR(stat_ret.st_mode)) {
-        /* The directory exists */
+	if (S_ISDIR(stat_ret.st_mode)) {
+		/* The directory exists */
 		return 0;
-    }
+	}
 
-	dual_log("ERROR: %s (%s) does not exist\n", log_string, pathname);
-
+	dual_log("ERROR: %s (%s) is not a directory", log_string, pathname);
 	return 1;
 }
 
@@ -315,7 +315,7 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
         temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 		if ((grp = getgrnam(temp_char)) == NULL) {
-            dual_log("ERROR: Group '%s' does not exist\n", temp_char);
+            dual_log("ERROR: Group '%s' does not exist", temp_char);
             status += 1;
         }
 		endgrent();
@@ -334,7 +334,7 @@ int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, co
         temp_char = (char*) xmlXPathCastToString(xpath_obj);
 
 		if ((pwd = getpwnam(temp_char)) == NULL) {
-            dual_log("ERROR: User '%s' does not exist\n", temp_char);
+            dual_log("ERROR: User '%s' does not exist", temp_char);
             status += 1;
         }
 		endpwent();
@@ -354,25 +354,25 @@ int check_time_def(const char *time_expr, const char *location, const char *fiel
 	if (status != 0) {
 		switch (status) {
 			case -1:
-				dual_log("WARNING: In %s M used in duration field for %s (%s) in %s - this will be interpreted as 31 days\n", location, field, time_expr, filename);
+				dual_log("WARNING: In %s M used in duration field for %s (%s) in %s - this will be interpreted as 31 days", location, field, time_expr, filename);
 				break;
 			case -2:
-				dual_log("WARNING: In %s Y used in duration field for %s (%s) in %s - this will be interpreted as 365 days\n", location, field, time_expr, filename);
+				dual_log("WARNING: In %s Y used in duration field for %s (%s) in %s - this will be interpreted as 365 days", location, field, time_expr, filename);
 				break;
 			case -3:
-				dual_log("WARNING: In %s M & Y used in duration field for %s (%s) in %s - these will be interpreted as 31 and 365 days respectively\n", location, field, time_expr, filename);
+				dual_log("WARNING: In %s M & Y used in duration field for %s (%s) in %s - these will be interpreted as 31 and 365 days respectively", location, field, time_expr, filename);
 				break;
 			case 2:
-				dual_log("ERROR: unable to translate %s (%s) to seconds.\n", field, time_expr);
+				dual_log("ERROR: unable to translate %s (%s) to seconds.", field, time_expr);
 				break;
 			case 3:
-				dual_log("ERROR: %s (%s) too long to be an int. E.g. Maximum is ~68 years on a system with 32-bit integers.\n", field, time_expr);
+				dual_log("ERROR: %s (%s) too long to be an int. E.g. Maximum is ~68 years on a system with 32-bit integers.", field, time_expr);
 				break;
 			case 4:
-				dual_log("ERROR: invalid pointers or text string NULL in %s (%s).\n", field, time_expr);
+				dual_log("ERROR: invalid pointers or text string NULL in %s (%s).", field, time_expr);
 				break;
 			default:
-				dual_log("ERROR: unknown error converting %s (%s) to seconds\n", field, time_expr);
+				dual_log("ERROR: unknown error converting %s (%s) to seconds", field, time_expr);
 		}
 	}
 
@@ -510,7 +510,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 									hash_algo = atoi(temp_char);
 									if (hash_algo != 1) {
 										dual_log("ERROR: NSEC3 Hash algorithm for %s Policy "
-											"in %s is %d but should be 1\n", policy_name,
+											"in %s is %d but should be 1", policy_name,
 											kasp, hash_algo);
 										status++;
 									}
@@ -634,7 +634,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	if (refresh && refresh <= resign) {
 		dual_log("ERROR: The Refresh interval (%d seconds) for "
 				"%s Policy in %s is less than or equal to the Resign interval "
-				"(%d seconds)\n", refresh, policy_name, kasp, resign);
+				"(%d seconds)", refresh, policy_name, kasp, resign);
 		status++;
 	}
 
@@ -643,13 +643,13 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	if (defalt <= refresh) {
 		dual_log("ERROR: Validity/Default (%d seconds) for "
 				"%s policy in %s is less than or equal to the Refresh interval "
-				"(%d seconds)\n", defalt, policy_name, kasp, refresh);
+				"(%d seconds)", defalt, policy_name, kasp, refresh);
 		status++;
 	}
 	if (denial <= refresh) {
 		dual_log("ERROR: Validity/Denial (%d seconds) for "
 				"%s policy in %s is less than or equal to the Refresh interval "
-				"(%d seconds)\n", denial, policy_name, kasp, refresh);
+				"(%d seconds)", denial, policy_name, kasp, refresh);
 		status++;
 	}
 
@@ -661,13 +661,13 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 		if (jitter > (defalt * 0.5)) {
 			dual_log("WARNING: Jitter time (%d seconds) is large " 
 					"compared to Validity/Default (%d seconds) " 
-					"for %s policy in %s\n", jitter, defalt, policy_name, kasp);
+					"for %s policy in %s", jitter, defalt, policy_name, kasp);
 		}
 	} else {
 		if (jitter > (denial * 0.5)) {
 			dual_log("WARNING: Jitter time (%d seconds) is large " 
 					"compared to Validity/Denial (%d seconds) " 
-					"for %s policy in %s\n", jitter, denial, policy_name, kasp);
+					"for %s policy in %s", jitter, denial, policy_name, kasp);
 		}
 	}
 	
@@ -677,7 +677,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	 *   than this?) */
 	if (inception > 3600) {
 		dual_log("WARNING: InceptionOffset is higher than expected "
-				"(%d seconds) for %s policy in %s\n", 
+				"(%d seconds) for %s policy in %s",
 				inception, policy_name, kasp);
 	}
 
@@ -685,23 +685,23 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	 * than 0.1 * TTL or more than 5 * TTL. */
 	if (publish < (ttl * 0.1)) {
 		dual_log("WARNING: Keys/PublishSafety (%d seconds) is less than "
-				"0.1 * TTL (%d seconds) for %s policy in %s\n", 
+				"0.1 * TTL (%d seconds) for %s policy in %s",
 				publish, ttl, policy_name, kasp);
 	}
 	else if (publish > (ttl * 5)) {
 		dual_log("WARNING: Keys/PublishSafety (%d seconds) is greater than "
-				"5 * TTL (%d seconds) for %s policy in %s\n", 
+				"5 * TTL (%d seconds) for %s policy in %s",
 				publish, ttl, policy_name, kasp);
 	}
 
 	if (retire < (ttl * 0.1)) {
 		dual_log("WARNING: Keys/RetireSafety (%d seconds) is less than "
-				"0.1 * TTL (%d seconds) for %s policy in %s\n", 
+				"0.1 * TTL (%d seconds) for %s policy in %s",
 				retire, ttl, policy_name, kasp);
 	}
 	else if (retire > (ttl * 5)) {
 		dual_log("WARNING: Keys/RetireSafety (%d seconds) is greater than "
-				"5 * TTL (%d seconds) for %s policy in %s\n", 
+				"5 * TTL (%d seconds) for %s policy in %s",
 				retire, ttl, policy_name, kasp);
 	}
 
@@ -712,19 +712,19 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	else if (nsec == 3) {
 		if (ksk_algo <= 5) {
 			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"KSK NSEC3 in %s. Policy must have id greater than 5.\n", policy_name, ksk_algo, kasp);
+					"KSK NSEC3 in %s. Policy must have id greater than 5.", policy_name, ksk_algo, kasp);
 			status++;
 		}
 		if (zsk_algo <= 5) {
 			dual_log("ERROR: In policy %s, incompatible algorithm (%d) used for "
-					"ZSK NSEC3 in %s. Policy must have id greater than 5.\n", policy_name, zsk_algo, kasp);
+					"ZSK NSEC3 in %s. Policy must have id greater than 5.", policy_name, zsk_algo, kasp);
 			status++;
 		}
 
 		/* Warn if resalt is less than resign interval. */
 		if (resalt < resign) {
 			dual_log("WARNING: NSEC3 resalt interval (%d secs) is less than "
-					"signature resign interval (%d secs) for %s Policy\n",
+					"signature resign interval (%d secs) for %s Policy",
 					resalt, resign, policy_name);
 		}
 
@@ -740,7 +740,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				dual_log("ERROR: In %s, policy %s, serial type datecounter used "
 						"but %d re-signs requested. No more than 99 re-signs per "
 						"day should be used with datecounter as only 2 digits are "
-						"allocated for the version number.\n", 
+						"allocated for the version number.",
 						kasp, policy_name, resigns_per_day);
 				status++;
 			}
@@ -753,22 +753,22 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	if (ksk_algo == 5 || ksk_algo == 7 || ksk_algo == 8 || ksk_algo == 10) {
 		if (ksk_length < 1024) {
 			dual_log("WARNING: Key length of %d used for KSK in %s policy in %s. Should "
-					"probably be 1024 or more\n", ksk_length, policy_name, kasp);
+					"probably be 1024 or more", ksk_length, policy_name, kasp);
 		}
 		else if (ksk_length > 4096) {
 			dual_log("ERROR: Key length of %d used for KSK in %s policy in %s. Should "
-					"be 4096 or less\n", ksk_length, policy_name, kasp);
+					"be 4096 or less", ksk_length, policy_name, kasp);
 			status++;
 		}
 	}
 	if (zsk_algo == 5 || zsk_algo == 7 || zsk_algo == 8 || zsk_algo == 10) {
 		if (zsk_length < 1024) {
 			dual_log("WARNING: Key length of %d used for ZSK in %s policy in %s. Should "
-					"probably be 1024 or more\n", zsk_length, policy_name, kasp);
+					"probably be 1024 or more", zsk_length, policy_name, kasp);
 		}
 		else if (zsk_length > 4096) {
 			dual_log("ERROR: Key length of %d used for ZSK in %s policy in %s. Should "
-					"be 4096 or less\n", zsk_length, policy_name, kasp);
+					"be 4096 or less", zsk_length, policy_name, kasp);
 			status++;
 		}
 	}
@@ -783,7 +783,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 		}
 		if (i >= repo_count) {
 			dual_log("ERROR: Unknown repository (%s) defined for KSK in "
-					"%s policy in %s\n", ksk_repo, policy_name, kasp);
+					"%s policy in %s", ksk_repo, policy_name, kasp);
 			status++;
 		}
 	}
@@ -796,7 +796,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 		}
 		if (i >= repo_count) {
 			dual_log("ERROR: Unknown repository (%s) defined for ZSK in "
-					"%s policy\n", zsk_repo, policy_name);
+					"%s policy", zsk_repo, policy_name);
 			status++;
 		}
 	}
@@ -804,7 +804,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	/* Warn if for any zone, the KSK lifetime is less than the ZSK lifetime. */
 	if (ksk_life < zsk_life) {
 		dual_log("WARNING: KSK minimum lifetime (%d seconds) is less than "
-				"ZSK minimum lifetime (%d seconds) for %s Policy in %s\n", 
+				"ZSK minimum lifetime (%d seconds) for %s Policy in %s",
 				ksk_life, zsk_life, policy_name, kasp);
 	}
 
@@ -813,13 +813,13 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	/* Error if Jitter is greater than either the Default or Denial Validity. */
 	if (jitter > defalt) {
 		dual_log("ERROR: Jitter time (%d seconds) is greater than the " 
-				"Default Validity (%d seconds) for %s policy in %s\n", 
+				"Default Validity (%d seconds) for %s policy in %s",
 				jitter, defalt, policy_name, kasp);
 		status++;
 	}
 	if (jitter > denial) {
 		dual_log("ERROR: Jitter time (%d seconds) is greater than the " 
-				"Denial Validity (%d seconds) for %s policy in %s\n", 
+				"Denial Validity (%d seconds) for %s policy in %s",
 				jitter, denial, policy_name, kasp);
 		status++;
 	}
@@ -1068,7 +1068,7 @@ int StrStrtoi(const char* string, int* value)
     int     status;     /* Status return */
 
     if (value == NULL) {
-        dual_log("ERROR: NULL value passed to StrStrtoi\n");
+        dual_log("ERROR: NULL value passed to StrStrtoi");
         return 1;
     }
     status = StrStrtol(string, &longval);
@@ -1114,7 +1114,7 @@ int StrStrtol(const char* string, long* value)
     char*   start;          /* Start of the trimmed string */
 
     if (value == NULL) {
-        dual_log("ERROR: NULL value passed to StrStrtol\n");
+        dual_log("ERROR: NULL value passed to StrStrtol");
         return 1;
     }
     if (string) {

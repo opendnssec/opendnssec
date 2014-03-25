@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2010-2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +49,7 @@ enum ods_enum_status {
     ODS_STATUS_CONFLICT_ERR,
     ODS_STATUS_ERR,
     ODS_STATUS_FOPEN_ERR,
+    ODS_STATUS_FSEEK_ERR,
     ODS_STATUS_FORK_ERR,
     ODS_STATUS_FREAD_ERR,
     ODS_STATUS_FWRITE_ERR,

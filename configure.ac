@@ -1,5 +1,3 @@
-# $Id$
-
 m4_sinclude([version.m4])
 
 AC_PREREQ(2.61)
@@ -196,12 +194,6 @@ AH_BOTTOM([
 	#if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
 	        || !defined (HAVE_CTIME_R_PROTO) \
 	        || defined (STRPTIME_NEEDS_DEFINES)
-	#  ifndef _XOPEN_SOURCE
-	#    define _XOPEN_SOURCE 600
-	#  endif
-	#  ifndef _POSIX_C_SOURCE
-	#    define _POSIX_C_SOURCE 200112
-	#  endif
 	#  ifndef _BSD_SOURCE
 	#    define _BSD_SOURCE 1
 	#  endif

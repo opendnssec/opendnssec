@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009-2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -162,9 +160,6 @@ adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
             if (depth == 0) {
                 break;
             }
-            line[li] = ' ';
-            li++;
-        } else if (c == '\t' && lc != '\\') {
             line[li] = ' ';
             li++;
         } else {

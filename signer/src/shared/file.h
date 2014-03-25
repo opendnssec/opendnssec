@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -126,7 +124,7 @@ time_t ods_file_lastmodified(const char* file);
  * Compare strings.
  * \param[in] s1 one string
  * \param[in] s2 another string
- * \return -1, 0 or 1
+ * \return <0, 0 or >0
  *
  */
 int ods_strcmp(const char* s1, const char* s2);
@@ -163,10 +161,13 @@ char* ods_dir_name(const char* file);
  * Copy file.
  * \param[in] file1 from file name
  * \param[in] file2 to file name
+ * \param[in] startpos starting file position in file1
+ * \param[in] append whether to append or do a regular copy
  * \return ods_status
  *
  */
-ods_status ods_file_copy(const char* file1, const char* file2);
+ods_status ods_file_copy(const char* file1, const char* file2, long startpos,
+    int append);
 
 /**
  * (Create) and change ownership of directories.
