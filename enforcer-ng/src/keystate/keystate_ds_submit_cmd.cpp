@@ -73,6 +73,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 
 	ods_log_debug("[%s] %s command", module_str, key_ds_submit_funcblock()->cmdname);
 
+	/* consume command */
+	cmd = ods_check_command(cmd, n, key_ds_submit_funcblock()->cmdname);
+
 	// Use buf as an intermediate buffer for the command.
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
@@ -100,8 +103,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	}
 
 	/* perform task immediately */
-	perform_keystate_ds_submit(sockfd,engine->config,zone,cka_id,bAutomatic?1:0, force);
-	return 0;
+	return !perform_keystate_ds_submit(sockfd,engine->config,zone,cka_id,bAutomatic?1:0, force);
 }
 
 static struct cmd_func_block funcblock = {
