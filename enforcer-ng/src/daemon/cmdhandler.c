@@ -439,8 +439,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     socklen_t clilen;
     cmdhandler_type* cmdc = NULL;
     fd_set rset;
-    int connfd = 0;
-    int ret = 0;
+    int flags, connfd = 0, ret = 0;
 
     ods_log_assert(cmdhandler);
     ods_log_assert(cmdhandler->engine);
@@ -467,6 +466,21 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
                     ods_log_warning("[%s] accept error: %s", module_str,
                         strerror(errno));
                 }
+                continue;
+            }
+            /* Explicitely set to blocking, on BSD they would inherit
+             * O_NONBLOCK from parent */
+            flags = fcntl(connfd, F_GETFL, 0);
+            if (flags < 0) {
+                ods_log_error("[%s] unable to create, fcntl(F_GETFL) failed: %s",
+                    module_str, strerror(errno));
+                close(connfd);
+                continue;
+            }
+            if (fcntl(connfd, F_SETFL, flags & ~O_NONBLOCK) < 0) {
+                ods_log_error("[%s] unable to create, fcntl(F_SETFL) failed: %s",
+                    module_str, strerror(errno));
+                close(connfd);
                 continue;
             }
             /* client accepted, create new thread */
