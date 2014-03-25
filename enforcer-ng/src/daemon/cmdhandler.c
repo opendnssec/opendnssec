@@ -50,6 +50,7 @@
 #include <sys/types.h>
 
 #include "daemon/engine.h"
+#include "daemon/clientpipe.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/allocator.h"
@@ -176,6 +177,12 @@ get_funcblock(const char *cmd, ssize_t n)
 
 /**
  * Perform command
+ * 
+ * \param sockfd, pipe to client
+ * \param engine, central enigine object
+ * \param cmd, command to evaluate
+ * \param n, length of command.
+ * \return exit code for client, 0 for no errors, -1 for syntax errors
  */
 static int
 cmdhandler_perform_command(int sockfd, engine_type* engine,
@@ -186,61 +193,128 @@ cmdhandler_perform_command(int sockfd, engine_type* engine,
     int ret;
 
     ods_log_verbose("received command %s[%i]", cmd, n);
+    if (n == 0) return 0;
 
+    /* Find function claiming responsibility */
     if ((fb = get_funcblock(cmd, n))) {
         ret = fb->run(sockfd, engine, cmd, n);
         if (ret == -1) {
-            ods_printf(sockfd, "Error parsing arguments\nUsage:\n\n",
+            /* Syntax error, print usage for cmd */
+            client_printf_err(sockfd, "Error parsing arguments\n",
                 fb->cmdname, time(NULL) - tstart);
+            client_printf(sockfd, "Usage:\n\n");
             fb->usage(sockfd);
-        } else if (ret == 0) {
-            ods_printf(sockfd, "%s completed in %ld seconds.\n",
+        } else if (ret == 0) { /* success */
+            client_printf_err(sockfd, "%s completed in %ld seconds.\n",
                 fb->cmdname, time(NULL) - tstart);
         }
         ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
         return ret;
     }
-    ods_printf(sockfd, "Unknown command %s.\n", cmd?cmd:"(null)");
-    ods_printf(sockfd, "Commands:\n");
+    /* Unhandled command, print general error */
+    client_printf_err(sockfd, "Unknown command %s.\n", cmd?cmd:"(null)");
+    client_printf(sockfd, "Commands:\n");
     cmdhandler_get_usage(sockfd);
     return 1;
 }
 
 /**
- * Handle a client command.
- *
+ * Consume a message from the buffer
+ * 
+ * Read all complete messages in the buffer or until exit code is set.
+ * Messages larger than ODS_SE_MAXLINE can be handled but will be 
+ * truncated. On exit pos will indicate new position in buffer. when 
+ * returning true an exit code is set.
+ * 
+ * \param buf, buffer containing user input. Must not be NULL.
+ * \param[in|out] pos, count of meaningful octets in buf. Must not be 
+ *      NULL or exceed buflen.
+ * \param buflen, capacity of buf. Must not exceed ODS_SE_MAXLINE.
+ * \param[out] exitcode, exit code for client, only meaningful on 
+ *      return 1. Must not be NULL.
+ * \param sockfd, pipe to client.
+ * \param engine, central enigine object
+ * \return 0: waiting for more data. 1: exit code is set.
  */
-static void
-cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
+static int
+extract_msg(char* buf, int *pos, int buflen, int *exitcode, 
+int sockfd, engine_type* engine)
 {
-    ssize_t n;
-    int sockfd;
-    char buf[ODS_SE_MAXLINE];
-    int done = 0;
+    char data[ODS_SE_MAXLINE+1], opc;
+    int datalen;
+    
+    assert(exitcode);
+    assert(buf);
+    assert(pos);
+    assert(*pos <= buflen);
+    assert(ODS_SE_MAXLINE >= buflen);
+    
+    while (1) {
+        if (*pos < 3) return 0;
+        opc = buf[0];
+        datalen = (buf[1]<<8) | (buf[2]&0xFF);
+        if (datalen+3 <= *pos) {
+            /* a complete message */
+            memset(data, 0, ODS_SE_MAXLINE+1);
+            memcpy(data, buf+3, datalen);
+            *pos -= datalen+3;
+            memmove(buf, buf+datalen+3, *pos);
+            ods_str_trim(data);
 
-    ods_log_assert(cmdc);
-    if (!cmdc) return;
-    sockfd = cmdc->client_fd;
-
-    while (!done) {
-        done = 1;
-        n = read(sockfd, buf, ODS_SE_MAXLINE);
-        if (n <= 0) {
-            if (n == 0 || errno == ECONNRESET) {
-                ods_log_error("[%s] done handling client: %s", module_str,
-                    strerror(errno));
-            } else if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
-                done = 0;
-            else
-                ods_log_error("[%s] read error: %s", module_str, strerror(errno));
+            if (opc == CLIENT_OPC_STDIN) {
+                *exitcode = cmdhandler_perform_command(sockfd,
+                    engine, data, strlen(data));
+                return 1;
+            }
+        } else if (datalen+3 > buflen) {
+            /* Message is not going to fit! Discard the data already recvd */
+            ods_log_error("[%s] Message received to big, truncating.", module_str);
+            datalen -= *pos - 3;
+            buf[1] = datalen >> 8;
+            buf[2] = datalen & 0xFF;
+            *pos = 3;
+            return 0;
         } else {
-            buf[--n] = '\0';
-            if (n > 0)
-                cmdhandler_perform_command(sockfd, cmdc->engine, buf, n);
+            /* waiting for more data */
+            return 0;
         }
     }
 }
 
+/**
+ * Handle a client command.
+ * \param cmdc, command handler data, must not be NULL
+ */
+static void
+cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
+{
+    /* read blocking */
+    char buf[ODS_SE_MAXLINE+4]; /* enough space for hdr and \0 */
+    int bufpos = 0, r;
+    int exitcode = 0;
+
+    assert(cmdc);
+
+    while (1) {
+        int n = read(cmdc->client_fd, buf+bufpos, ODS_SE_MAXLINE-bufpos+3);
+        /* client closed pipe */
+        if (n == 0) return;
+        if (n == -1) { /* an error */
+            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+            return;
+        }
+        bufpos += n;
+        r = extract_msg(buf, &bufpos, ODS_SE_MAXLINE, &exitcode, cmdc->client_fd, cmdc->engine);
+        if (r == -1) {
+            ods_log_error("[%s] Error receiving message from client.", module_str);
+            break;
+        } else if (r == 1) {
+            if (!client_exit(cmdc->client_fd, exitcode)) {
+                ods_log_error("[%s] Error sending message to client.", module_str);
+            }
+        }
+    }
+}
 
 /**
  * Accept client.
@@ -278,7 +352,7 @@ cmdhandler_create(const char* filename)
     int ret = 0;
 
     if (!filename) {
-        ods_log_error("[%s] unable to create: no socket filename");
+        ods_log_error("[%s] unable to create: no socket filename", module_str);
         return NULL;
     }
     ods_log_assert(filename);
@@ -365,8 +439,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     socklen_t clilen;
     cmdhandler_type* cmdc = NULL;
     fd_set rset;
-    int connfd = 0;
-    int ret = 0;
+    int flags, connfd = 0, ret = 0;
 
     ods_log_assert(cmdhandler);
     ods_log_assert(cmdhandler->engine);
@@ -393,6 +466,21 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
                     ods_log_warning("[%s] accept error: %s", module_str,
                         strerror(errno));
                 }
+                continue;
+            }
+            /* Explicitely set to blocking, on BSD they would inherit
+             * O_NONBLOCK from parent */
+            flags = fcntl(connfd, F_GETFL, 0);
+            if (flags < 0) {
+                ods_log_error("[%s] unable to create, fcntl(F_GETFL) failed: %s",
+                    module_str, strerror(errno));
+                close(connfd);
+                continue;
+            }
+            if (fcntl(connfd, F_SETFL, flags & ~O_NONBLOCK) < 0) {
+                ods_log_error("[%s] unable to create, fcntl(F_SETFL) failed: %s",
+                    module_str, strerror(errno));
+                close(connfd);
                 continue;
             }
             /* client accepted, create new thread */
@@ -450,7 +538,7 @@ self_pipe_trick()
             return 1;
         } else {
             /* self-pipe trick */
-            ods_writen(sockfd, "", 1);
+            client_printf(sockfd, "");
             close(sockfd);
         }
     }

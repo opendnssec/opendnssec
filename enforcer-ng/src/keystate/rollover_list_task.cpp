@@ -36,6 +36,7 @@
 
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
+#include "daemon/clientpipe.h"
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
@@ -90,22 +91,22 @@ perform_rollover_list(int sockfd, engineconfig_type *config, int bverbose)
 	OrmTransaction transaction(conn);
 	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 		ods_log_error("[%s] error enumerating zones", module_str);
-		ods_printf(sockfd, "error enumerating zones\n");
+		client_printf(sockfd, "error enumerating zones\n");
 		return 1;
 	}
 	
-	ods_printf(sockfd, "Keys:\n");
-	ods_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
+	client_printf(sockfd, "Keys:\n");
+	client_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
 	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
 		if (!OrmGetMessage(rows, zone, true)) {
 			ods_log_error("[%s] error reading zone", module_str);
-			ods_printf(sockfd, "error reading zone\n");
+			client_printf(sockfd, "error reading zone\n");
 			return 1;
 		}
 		for (int k=0; k<zone.keys_size(); ++k) {
 			const KeyData &key = zone.keys(k);
 			char* tchange = map_keytime(zone, key);
-			ods_printf(sockfd, fmt, zone.name().c_str(),
+			client_printf(sockfd, fmt, zone.name().c_str(),
 				keyrole_Name(key.role()).c_str(), tchange);
 			free(tchange);
 		}

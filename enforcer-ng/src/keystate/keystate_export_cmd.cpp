@@ -34,6 +34,7 @@
 #include "keystate/keystate_export_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/keystate_export_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "keystate_export_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key export             Export DNSKEY(s) for a given zone.\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
 		"      [--ds]                     (aka -d)  export DS in BIND format.\n"
@@ -74,7 +75,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str, key_export_funcblock()->cmdname);
-        ods_printf(sockfd,"too many arguments\n");
+        client_printf(sockfd,"too many arguments\n");
         return -1;
     }
     
@@ -85,13 +86,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str, key_export_funcblock()->cmdname);
-        ods_printf(sockfd,"unknown arguments\n");
+        client_printf(sockfd,"unknown arguments\n");
         return -1;
     }
     if (!zone) {
         ods_log_warning("[%s] expected option --zone <zone> for %s command",
                         module_str, key_export_funcblock()->cmdname);
-        ods_printf(sockfd,"expected --zone <zone> option\n");
+        client_printf(sockfd,"expected --zone <zone> option\n");
         return -1;
     }
     /* perform task immediately */

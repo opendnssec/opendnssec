@@ -35,6 +35,7 @@
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "policy/policy_import_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "policy_import_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"policy import          Import policies from kasp.xml into"
 		" the enforcer database.\n");
 }

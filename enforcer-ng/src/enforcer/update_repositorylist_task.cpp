@@ -39,6 +39,7 @@
 #include "utils/kc_helper.h"
 #include "daemon/engine.h"
 #include "libhsm.h"
+#include "daemon/clientpipe.h"
 
 #include "update_repositorylist_task.h"
 
@@ -80,13 +81,13 @@ int perform_update_repositorylist(int sockfd, engine_type* engine)
 		if (!new_reps) {
 			/* revert */
 			status = 0;
-			ods_printf(sockfd, "Could not load new repositories. Will continue with old.\n");
+			client_printf(sockfd, "Could not load new repositories. Will continue with old.\n");
 		} else {
 			/* succes */
 			engine_config_freehsms(engine->config->hsm);
 			engine->config->hsm = new_reps;
 			engine->need_to_reload = 1;
-			ods_printf(sockfd, "new repositories parsed successful.\n");
+			client_printf(sockfd, "new repositories parsed successful.\n");
 		}
 		engine_start_workers(engine);
 	lock_basic_unlock(&engine->signal_lock);
@@ -94,7 +95,7 @@ int perform_update_repositorylist(int sockfd, engine_type* engine)
 	if (status) {
 		lock_basic_alarm(&engine->signal_cond);
 		/* as if nothing happend from daemon's POV */
-		ods_printf(sockfd, "Notifying enforcer of new respositories.\n");
+		client_printf(sockfd, "Notifying enforcer of new respositories.\n");
 	}
 	return status;
 }

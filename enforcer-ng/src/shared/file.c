@@ -32,6 +32,7 @@
 #include "config.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "daemon/clientpipe.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -41,7 +42,6 @@
 #include <unistd.h>
 
 static const char* file_str = "file";
-
 
 /**
  * Convert file mode to readable string.
@@ -54,11 +54,11 @@ ods_file_mode2str(const char* mode)
         return "no mode";
     }
 
-    if (ods_strcmp(mode, "a") == 0) {
+    if (strcmp(mode, "a") == 0) {
         return "appending";
-    } else if (ods_strcmp(mode, "r") == 0) {
+    } else if (strcmp(mode, "r") == 0) {
         return "reading";
-    } else if (ods_strcmp(mode, "w") == 0) {
+    } else if (strcmp(mode, "w") == 0) {
         return "writing";
 	}
     return "unknown mode";
@@ -233,8 +233,8 @@ ods_writen(int fd, const void* vptr, size_t n)
     ptr = vptr;
     nleft = n;
     while (nleft > 0) {
-        if ((nwritten = write(fd, ptr, nleft)) <= 0) {
-            if (nwritten < 0 && errno == EINTR) {
+        if ((nwritten = write(fd, ptr, nleft)) < 0) {
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
                 nwritten = 0; /* and call write again */
             } else {
                 return -1; /* error */
@@ -281,14 +281,12 @@ ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
 	char fmt[128];
     char buf[ODS_SE_MAXLINE];
 	int ok;
-	size_t nbuf;
 	
 	/* first perform the ods_log_error */
 	ok = (snprintf(fmt, sizeof(fmt), "[%s] %s", mod, format) < (int)sizeof(fmt));
 	if (!ok) {
 		ods_log_error("[%s] snprintf buffer too small",file_str);
-		nbuf = strlen(strcpy(buf,"error: snprintf buffer too small\n"));
-		ods_writen(fd, buf, nbuf);
+		client_printf_err(fd, "error: snprintf buffer too small\n"); 
 		return;
 	}
 	va_start(ap, format);
@@ -300,8 +298,7 @@ ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
 	ok = (snprintf(fmt, sizeof(fmt), "error: %s\n", format) < (int)sizeof(fmt));
 	if (!ok) {
 		ods_log_error("[%s] snprintf buffer too small",file_str);
-		nbuf = strlen(strcpy(buf,"error: snprintf buffer too small\n"));
-		ods_writen(fd, buf, nbuf);
+		client_printf_err(fd, "error: snprintf buffer too small\n"); 
 		return;
 	}
 	
@@ -310,11 +307,10 @@ ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
 	va_end(ap);
 	if (!ok) {
 		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		nbuf = strlen(strcpy(buf,"error: vsnprintf buffer too small\n"));
-		ods_writen(fd, buf, nbuf);
+		client_printf_err(fd, "error: vsnprintf buffer too small\n"); 
 		return;
 	}
-	ods_writen(fd, buf, strlen(buf));
+	client_printf(fd, "%s", buf); 
 }
 
 
@@ -342,28 +338,6 @@ ods_file_lastmodified(const char* file)
         return buf.st_mtime;
     }
     return 0;
-}
-
-
-/**
- * Compare strings.
- *
- */
-int
-ods_strcmp(const char* s1, const char* s2)
-{
-    if (!s1 && !s2) {
-        return 0;
-    } else if (!s1) {
-        return -1;
-    } else if (!s2) {
-        return -1;
-    } else if (strlen(s1) != strlen(s2)) {
-        if (strncmp(s1, s2, strlen(s1)) == 0) {
-            return strlen(s1) - strlen(s2);
-        }
-    }
-    return strncmp(s1, s2, strlen(s1));
 }
 
 
@@ -512,44 +486,5 @@ ods_chown(const char* file, uid_t uid, gid_t gid, int getdir)
     } else {
         ods_log_warning("[%s] use of relative path: %s", file_str, file);
     }
-    return;
-}
-
-
-/**
- * Remove leading and trailing whitespace.
- *
- */
-void
-ods_str_trim(char* str)
-{
-    int i = strlen(str), nl = 0;
-
-    /* trailing */
-    while (i>0) {
-        --i;
-        if (str[i] == '\n') {
-            nl = 1;
-        }
-        if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n') {
-            str[i] = '\0';
-        } else {
-            break;
-        }
-    }
-    if (nl) {
-        str[++i] = '\n';
-    }
-
-    /* leading */
-    i = 0;
-    while (str[i] == ' ' || str[i] == '\t') {
-        i++;
-    }
-    while (*(str+i) != '\0') {
-        *str = *(str+i);
-        str++;
-    }
-    *str = '\0';
     return;
 }

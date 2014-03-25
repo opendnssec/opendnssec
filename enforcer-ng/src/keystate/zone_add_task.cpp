@@ -38,6 +38,7 @@
 #include "keystate/keystate.pb.h"
 #include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
+#include "daemon/clientpipe.h"
 
 #include <memory>
 #include <fcntl.h>
@@ -199,9 +200,9 @@ perform_zone_add(int sockfd,
         	ods_log_error_and_printf(sockfd, module_str, 
                 	"failed to write zonelist.xml");
 		}
-		ods_printf(sockfd, "Imported zone: %s into database and zonelist.xml updated.\n", zone);
+		client_printf(sockfd, "Imported zone: %s into database and zonelist.xml updated.\n", zone);
 	} else {
-		ods_printf(sockfd, "Imported zone: %s into database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
+		client_printf(sockfd, "Imported zone: %s into database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required.\n", zone);
 	}
 	
 	ods_log_info("[%s] added Zone: %s", module_str, zone);

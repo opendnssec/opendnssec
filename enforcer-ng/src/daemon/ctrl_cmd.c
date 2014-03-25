@@ -32,6 +32,7 @@
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
+#include "daemon/clientpipe.h"
 
 #include "daemon/ctrl_cmd.h"
 
@@ -40,10 +41,11 @@
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
-	   "running                Returns acknowledgment that the engine is running.\n"
-	   "reload                 Reload the engine.\n"
-	   "stop                   Stop the engine and terminate the process.\n"
+	client_printf(sockfd,
+		"running                Returns acknowledgment that the engine is running.\n"
+		"reload                 Reload the engine.\n"
+		"stop                   Stop the engine and terminate the process.\n"
+		/*"start                  Start the engine.\n"*/
 	);
 }
 
@@ -53,6 +55,7 @@ handles(const char *cmd, ssize_t n)
 	if (ods_check_command(cmd, n, "stop")) return 1;
 	if (ods_check_command(cmd, n, "reload")) return 1;
 	if (ods_check_command(cmd, n, "running")) return 1;
+	if (ods_check_command(cmd, n, "start")) return 1;
 	return 0;
 }
 
@@ -60,9 +63,13 @@ handles(const char *cmd, ssize_t n)
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
-	if (ods_check_command(cmd, n, "running")) {
+	if (ods_check_command(cmd, n, "start")) {
+		ods_log_debug("[cmdhandler] start command");
+		client_printf(sockfd, "Engine already running.\n");
+		return 0;
+	} else if (ods_check_command(cmd, n, "running")) {
 		ods_log_debug("[cmdhandler] running command");
-		ods_printf(sockfd, "Engine running.\n");
+		client_printf(sockfd, "Engine running.\n");
 		return 0;
 	} else if (ods_check_command(cmd, n, "reload")) {
 		ods_log_debug("[cmdhandler] reload command");
@@ -73,7 +80,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			lock_basic_alarm(&engine->signal_cond);
 		/* [UNLOCK] signal */
 		lock_basic_unlock(&engine->signal_lock);
-		ods_printf(sockfd, "Reloading engine.\n");
+		client_printf(sockfd, "Reloading engine.\n");
 		return 0;
 	} else if (ods_check_command(cmd, n, "stop")) {
 		ods_log_debug("[cmdhandler] stop command");
@@ -84,7 +91,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			lock_basic_alarm(&engine->signal_cond);
 		/* [UNLOCK] signal */
 		lock_basic_unlock(&engine->signal_lock);
-		ods_printf(sockfd, "%s\n", ODS_SE_STOP_RESPONSE);
+		client_printf(sockfd, "%s\n", ODS_SE_STOP_RESPONSE);
 		return 0;
 	} else {
 		return -1;

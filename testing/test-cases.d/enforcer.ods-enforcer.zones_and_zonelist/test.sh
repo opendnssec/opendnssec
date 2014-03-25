@@ -108,21 +108,18 @@ log_grep ods-enforcer-zone_add_list   stdout "ods10[[:space:]]*default" &&
 ##################  TEST:  Zone add failures/warnings ###########################
 
 # Test re-add of of existing zone
-#####TO FIX: ! This command should fail!
-log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods1 --policy Policy1 &&
+! log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods1 --policy Policy1 &&
 log_grep ods-enforcer-zone_add_bad stdout "Failed to Import zone ods1; it already exists" &&
 
 #3. Test noneexistent policy 
-##### TO FIX ! This command should fail!
-log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods11 --policy NonexistentPolicy &&
+! log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods11 --policy NonexistentPolicy &&
 log_grep ods-enforcer-zone_add_bad   stdout "Error, can't find policy : NonexistentPolicy" &&
 
 #4. Test bad parameter
-##### TO FIX !! This command should fail!
-log_this ods-enforcer-zone_add_bad   ods-enforcer zone &&
+! log_this ods-enforcer-zone_add_bad   ods-enforcer zone &&
 ##### TO FIX: 
 #log_grep ods-enforcer-zone_add_bad   stderr "usage: ods-enforcer \[-c <config> | --config <config>\] zone" &&
-log_grep ods-enforcer-zone_add_bad stdout "Unknown command zone" &&
+log_grep ods-enforcer-zone_add_bad stderr "Unknown command zone" &&
 
 
 ##### TO FIX: TO be implemented in 2.0
@@ -153,7 +150,6 @@ diff $ignore_whitespace  $ZONELIST_FILE zonelist.xml &&
 echo "Zonelist contents OK" && 
 
 # Check the export against a gold
-##### TO FIX:  Need a <xml version> comment at the top of the output???
 ods-enforcer zonelist export > zonelist.xml.temp &&
 diff $ignore_whitespace   zonelist.xml.temp zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" && 
@@ -212,8 +208,7 @@ $GREP -q -- "ods14" "$ZONELIST_FILE" &&
 $GREP -q -- "ods14" "$ZONES_FILE" &&
 
 # Test deleting a non-existant zone
-#### TO FIX: this should fail
-log_this ods-enforcer-zone_del_2  ods-enforcer zone delete -z ods1  &&
+! log_this ods-enforcer-zone_del_2  ods-enforcer zone delete -z ods1  &&
 log_grep ods-enforcer-zone_del_2 stdout  "Couldn't find zone 'ods1'" && 
 
 # Delete all remaining zones 
@@ -289,10 +284,6 @@ diff $ignore_whitespace   zonelist.xml.temp3 zonelist.xml.gold_export2_local &&
 echo "Zonelist export contents OK" &&
 diff $ignore_whitespace   $ZONES_FILE zonelist.xml.test_local &&
 echo "zones.xml contents OK" &&
-
-
-#### TO FIX: this shouldn't be needed
-log_this ods-enforcer-enforce ods-enforcer enforce &&
 
 # #Finally run the signer to check all is well
 syslog_waitfor 60 "update Zone: ods14" &&

@@ -49,6 +49,7 @@ ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \
 	daemon/cfg.c daemon/cfg.h \
 	daemon/cmdhandler.c daemon/cmdhandler.h \
+	daemon/clientpipe.c daemon/clientpipe.h \
 	daemon/engine.c daemon/engine.h \
 	daemon/signal.c daemon/signal.h \
 	daemon/worker.c daemon/worker.h \
@@ -171,6 +172,7 @@ ods_enforcerd_LDADD = \
 
 ods_enforcer_SOURCES = \
 	ods-enforcer.c \
+	daemon/clientpipe.c daemon/clientpipe.h \
 	shared/allocator.c shared/allocator.h \
 	shared/duration.c shared/duration.h \
 	shared/file.c shared/file.h \

@@ -72,7 +72,25 @@ int ods_str_explode(char *buf, int argc, const char *argv[]);
 char *ods_str_join(allocator_type* allocator, int argc, char *argv[], 
                    char cjoin);
 
+/**
+ * Concatenate characters without custom allocators.
+ * 
+ * Will always allocate at least 1 byte (when catting empty strings) so
+ * result should always be freed by the caller.
+ * 
+ * \param[in] argc, number of strings in argv.
+ * \param[in] argv, storage of strings.
+ * \param[in] delim, delimiter used to join the strings.
+ * \return string, may be empty string.
+ */
+char *ods_strcat_delim(int argc, char* argv[], char delim);
 
+/**
+ * Remove leading and trailing whitespace.
+ * \param[in] str string to trim
+ *
+ */
+void ods_str_trim(char* str);
 
 /**
  * Version of ctime_r that does not feature a trailing '\n' character

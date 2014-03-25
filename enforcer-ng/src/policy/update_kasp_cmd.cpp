@@ -35,6 +35,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "policy/update_kasp_task.h"
+#include "daemon/clientpipe.h"
 
 #include "policy/update_kasp_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "update_kasp_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd, "update kasp            Import policies from"
+	client_printf(sockfd, "update kasp            Import policies from"
 		" kasp.xml into the enforcer.\n");
 }
 

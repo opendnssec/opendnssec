@@ -37,6 +37,7 @@
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 #include "enforcer/hsmkeyfactory.h"
+#include "daemon/clientpipe.h"
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
@@ -49,9 +50,6 @@ namespace KeyTypes {enum {KSK = 1, ZSK, CSK}; };
 enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_DEA, KS_UNK, KS_MIX};
 const char* statenames[] = {"generate", "publish", "ready", 
 		"active", "retire", "dead", "unknown", "mixed"};
-namespace DSStates {
-		enum {DS_NSUB, DS_SUBM, DS_SBMD, DS_SEEN, DS_RETR, DS_RTRD};
-};
 
 /** Map 2.0 states to 1.x states
  * @param p: state of RR higher in the chain (e.g. DS)
@@ -59,38 +57,43 @@ namespace DSStates {
  * @param introducing: key goal
  * @return: state in 1.x speak
  **/
-int keystate(int p, int c, int introducing)
+static int
+keystate(int p, int c, int introducing, int dsseen)
 {
 	enum { HID = 0, RUM, OMN, UNR, NAV };
 	if (introducing) {
 		if (p == HID && c == HID) return KS_GEN;
 		if (p == HID || c == HID) return KS_PUB;
 		if (p == OMN && c == OMN) return KS_ACT;
+		if (p == RUM && dsseen && c == OMN) return KS_ACT;
 		if (p == RUM || c == RUM) return KS_RDY;
 		return KS_UNK;
 	} else {
-		if (p == HID && c == HID) return KS_DEA;
+		/* retire conforms better to 1.4 terminology than dead. */
+		if (p == HID && c == HID) return KS_RET; /* dead */
 		if (p == UNR || c == UNR) return KS_RET;
 		if (p == OMN && c == OMN) return KS_ACT;
 		return KS_RET;
 	}
 }
-int zskstate(const ::ods::keystate::KeyData &key)
+static int
+zskstate(const ::ods::keystate::KeyData &key)
 {
 	return keystate(key.dnskey().state(), key.rrsig().state(),
-		key.introducing());
+		key.introducing(), 0);
 }
-int kskstate(const ::ods::keystate::KeyData &key)
+static int
+kskstate(const ::ods::keystate::KeyData &key)
 {
 	return keystate(key.ds().state(), key.dnskey().state(),
-		key.introducing());
+		key.introducing(), key.ds_at_parent() == ::ods::keystate::seen);
 }
 
 /** Human readable keystate in 1.x speak
  * @param key: key to evaluate
  * @return: state as string
  **/
-const char*
+static const char*
 map_keystate(const ::ods::keystate::KeyData &key)
 {
 	int z,k;
@@ -115,10 +118,10 @@ map_keytime(::ods::keystate::EnforcerZone zone,
 	const ::ods::keystate::KeyData &key)
 {
 	switch(key.ds_at_parent()) {
-		case DSStates::DS_SUBM: return strdup("waiting for ds-submit");
-		case DSStates::DS_SBMD: return strdup("waiting for ds-seen");
-		case DSStates::DS_RETR: return strdup("waiting for ds-retract");
-		case DSStates::DS_RTRD: return strdup("waiting for ds-gone");
+		case ::ods::keystate::submit: return strdup("waiting for ds-submit");
+		case ::ods::keystate::submitted: return strdup("waiting for ds-seen");
+		case ::ods::keystate::retract: return strdup("waiting for ds-retract");
+		case ::ods::keystate::retracted: return strdup("waiting for ds-gone");
 	}
 	if ((signed int)zone.next_change() < 0)
 		return strdup("-");
@@ -146,18 +149,18 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 	
 	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 		ods_log_error("[%s] error enumerating zones", module_str);
-		ods_printf(sockfd, "error enumerating zones\n");
+		client_printf(sockfd, "error enumerating zones\n");
 		return 1;
 	}
 	
-	ods_printf(sockfd, "Keys:\n");
-	ods_printf(sockfd, fmt, "Zone:", "Keytype:", "State:", 
+	client_printf(sockfd, "Keys:\n");
+	client_printf(sockfd, fmt, "Zone:", "Keytype:", "State:", 
 		"Date of next transition:");
 
 	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
 		if (!OrmGetMessage(rows, zone, true)) {
 			ods_log_error("[%s] error reading zone", module_str);
-			ods_printf(sockfd, "error reading zone\n");
+			client_printf(sockfd, "error reading zone\n");
 			return 1;
 		}
 			
@@ -166,7 +169,7 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 			std::string keyrole = keyrole_Name(key.role());
 			const char* state = map_keystate(key);
 			char* tchange = map_keytime(zone, key);
-			ods_printf(sockfd, fmt, zone.name().c_str(),
+			client_printf(sockfd, fmt, zone.name().c_str(),
 				keyrole.c_str(), state, tchange);
 			free(tchange);
 		}
@@ -190,12 +193,12 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 	
 	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 		ods_log_error("[%s] error enumerating zones", module_str);
-		ods_printf(sockfd, "error enumerating zones\n");
+		client_printf(sockfd, "error enumerating zones\n");
 		return 1;
 	}
 	
-	ods_printf(sockfd, "Keys:\n");
-	ods_printf(sockfd, fmthdr, "Zone:", "Keytype:", "State:", 
+	client_printf(sockfd, "Keys:\n");
+	client_printf(sockfd, fmthdr, "Zone:", "Keytype:", "State:", 
 		"Date of next transition:", "Size:", "Algorithm:", "CKA_ID:", 
 		"Repository:", "KeyTag:");
 
@@ -205,7 +208,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
 		if (!OrmGetMessage(rows, zone, true)) {
 			ods_log_error("[%s] error reading zone", module_str);
-			ods_printf(sockfd, "error reading zone\n");
+			client_printf(sockfd, "error reading zone\n");
 			return 1;
 		}
 		
@@ -215,7 +218,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 			const char* state = map_keystate(key);
 			char* tchange = map_keytime(zone, key);
 			keyfactory.GetHsmKeyByLocator(key.locator(), &hsmkey);
-			ods_printf(sockfd, fmt, zone.name().c_str(),
+			client_printf(sockfd, fmt, zone.name().c_str(),
 				keyrole.c_str(), state, tchange,
 				hsmkey->bits(),
 				key.algorithm(),
@@ -241,7 +244,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 	{	OrmTransaction transaction(conn);
 		if (!transaction.started()) {
 			ods_log_error("[%s] Could not start database transaction", module_str);
-			ods_printf(sockfd, "error: Could not start database transaction\n");
+			client_printf(sockfd, "error: Could not start database transaction\n");
 			return 1;
 		}
 		
@@ -250,11 +253,11 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 		{	OrmResultRef rows;
 			if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 				ods_log_error("[%s] error enumerating zones", module_str);
-				ods_printf(sockfd, "error enumerating zones\n");
+				client_printf(sockfd, "error enumerating zones\n");
 				return 1;
 			}
 			
-			ods_printf(sockfd,
+			client_printf(sockfd,
 					   "Database set to: %s\n"
 					   "Keys:\n"
 					   "Zone:                           "
@@ -274,7 +277,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 				
 				if (!OrmGetMessage(rows, zone, true)) {
 					ods_log_error("[%s] error reading zone", module_str);
-					ods_printf(sockfd, "error reading zone\n");
+					client_printf(sockfd, "error reading zone\n");
 					return 1;
 				}
 					
@@ -285,7 +288,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 					std::string dnskey_rrstate = rrstate_Name(key.dnskey().state());
 					std::string rrsigdnskey_rrstate = rrstate_Name(key.rrsigdnskey().state());
 					std::string rrsig_rrstate = rrstate_Name(key.rrsig().state());
-					ods_printf(sockfd, 
+					client_printf(sockfd, 
 							   "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
 							   zone.name().c_str(),
 							   keyrole.c_str(),
