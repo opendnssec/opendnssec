@@ -10,20 +10,12 @@
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 
-add_zones() {
-	for (( ZONE_COUNT=$1; ZONE_COUNT<=$2; ZONE_COUNT++ ))
-	do
-		sed s/ods./ods_$ZONE_COUNT./g unsigned/ods > unsigned/ods_$ZONE_COUNT &&
-		log_this ods-zone-add_$3 ods-ksmutil zone add --zone ods_$ZONE_COUNT --policy Policy$3
-	done 	
-}
-
 case "$DISTRIBUTION" in
 	sunos )	
 		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
 			return 0	
 		fi
-		;;			
+		;;
 esac
 
 if [ -n "$HAVE_MYSQL" ]; then
@@ -40,7 +32,7 @@ ods_start_enforcer_timeshift &&
 syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*No zones on policy Policy1, skipping...' &&
 
 # Generate keys with algorithm 7, length 2048
-add_zones 1 1 1 && 
+log_this ods-zone-add-1 ods-ksmutil zone add --zone ods1 --policy Policy1 &&
 ods_start_enforcer_timeshift &&
 
 syslog_grep_count 1  "ods-enforcerd: .*1 zone(s) found on policy \"Policy1\""  &&
@@ -55,7 +47,9 @@ ods_reset_env &&
 
 # Generate keys on a policy where the keys have the same algorithm (7) and length (2048)
 # Firstly for an empty queue
-add_zones 2 4 2 && 
+log_this ods-zone-add-2 ods-ksmutil zone add --zone ods2 --policy Policy2 &&
+log_this ods-zone-add-3 ods-ksmutil zone add --zone ods3 --policy Policy2 &&
+log_this ods-zone-add-4 ods-ksmutil zone add --zone ods4 --policy Policy2 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
@@ -65,7 +59,12 @@ syslog_grep_count 1  'ods-enforcerd: .*9 new ZSK(s) (2048 bits) need to be creat
 log_this enforcer-keylist_1   ods-hsmutil list &&
 log_grep enforcer-keylist_1   stdout "15 keys found." && 
 
-add_zones 5 10 2 && 
+log_this ods-zone-add-5 ods-ksmutil zone add --zone ods5 --policy Policy2 &&
+log_this ods-zone-add-6 ods-ksmutil zone add --zone ods6 --policy Policy2 &&
+log_this ods-zone-add-7 ods-ksmutil zone add --zone ods7 --policy Policy2 &&
+log_this ods-zone-add-8 ods-ksmutil zone add --zone ods8 --policy Policy2 &&
+log_this ods-zone-add-9 ods-ksmutil zone add --zone ods9 --policy Policy2 &&
+log_this ods-zone-add-10 ods-ksmutil zone add --zone ods10 --policy Policy2 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
@@ -78,7 +77,13 @@ log_grep enforcer-keylist_1a   stdout "48 keys found." &&
 
 ##################
 # Then when there are some keys in the queue: more than the number of KSK needed but less than the total
-add_zones 11 17 2 && 
+log_this ods-zone-add-11 ods-ksmutil zone add --zone ods11 --policy Policy2 &&
+log_this ods-zone-add-12 ods-ksmutil zone add --zone ods12 --policy Policy2 &&
+log_this ods-zone-add-13 ods-ksmutil zone add --zone ods13 --policy Policy2 &&
+log_this ods-zone-add-14 ods-ksmutil zone add --zone ods14 --policy Policy2 &&
+log_this ods-zone-add-15 ods-ksmutil zone add --zone ods15 --policy Policy2 &&
+log_this ods-zone-add-16 ods-ksmutil zone add --zone ods16 --policy Policy2 &&
+log_this ods-zone-add-17 ods-ksmutil zone add --zone ods17 --policy Policy2 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
@@ -109,7 +114,9 @@ ods_reset_env &&
 
 # Generate keys where the algorithms/lengths are different - use algorithm 7/2048 and 8/2048 
 # Firstly for an empty queue
-add_zones 1 3 3 && 
+log_this ods-zone-add-1 ods-ksmutil zone add --zone ods1 --policy Policy3 &&
+log_this ods-zone-add-2 ods-ksmutil zone add --zone ods2 --policy Policy3 &&
+log_this ods-zone-add-3 ods-ksmutil zone add --zone ods3 --policy Policy3 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
@@ -121,7 +128,15 @@ log_grep enforcer-keylist_3   stdout "15 keys found." &&
 
 ##################
 # Then when there are some keys in the queue
-add_zones 4 12 3 && 
+log_this ods-zone-add-4 ods-ksmutil zone add --zone ods4 --policy Policy3 &&
+log_this ods-zone-add-5 ods-ksmutil zone add --zone ods5 --policy Policy3 &&
+log_this ods-zone-add-6 ods-ksmutil zone add --zone ods6 --policy Policy3 &&
+log_this ods-zone-add-7 ods-ksmutil zone add --zone ods7 --policy Policy3 &&
+log_this ods-zone-add-8 ods-ksmutil zone add --zone ods8 --policy Policy3 &&
+log_this ods-zone-add-9 ods-ksmutil zone add --zone ods9 --policy Policy3 &&
+log_this ods-zone-add-10 ods-ksmutil zone add --zone ods10 --policy Policy3 &&
+log_this ods-zone-add-11 ods-ksmutil zone add --zone ods11 --policy Policy3 &&
+log_this ods-zone-add-12 ods-ksmutil zone add --zone ods12 --policy Policy3 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
@@ -138,7 +153,9 @@ ods_setup_conf zonelist.xml zonelist.xml &&
 ods_reset_env &&
 
 # Generate keys where standby also is enabled on alg 7, length 2048
-add_zones 1 3 4 && 
+log_this ods-zone-add-1 ods-ksmutil zone add --zone ods1 --policy Policy4 &&
+log_this ods-zone-add-2 ods-ksmutil zone add --zone ods2 --policy Policy4 &&
+log_this ods-zone-add-3 ods-ksmutil zone add --zone ods3 --policy Policy4 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
@@ -154,9 +171,37 @@ ods_setup_conf zonelist.xml zonelist.xml &&
 ods_reset_env &&
 
 # Generate keys - now a policy with shared keys both with alg 7, length 2048
-add_zones 1 15 5 && 
+log_this ods-zone-add-1 ods-ksmutil zone add --zone ods1 --policy Policy5 &&
+log_this ods-zone-add-2 ods-ksmutil zone add --zone ods2 --policy Policy5 &&
+log_this ods-zone-add-3 ods-ksmutil zone add --zone ods3 --policy Policy5 &&
+log_this ods-zone-add-4 ods-ksmutil zone add --zone ods4 --policy Policy5 &&
+log_this ods-zone-add-5 ods-ksmutil zone add --zone ods5 --policy Policy5 &&
+log_this ods-zone-add-6 ods-ksmutil zone add --zone ods6 --policy Policy5 &&
+log_this ods-zone-add-7 ods-ksmutil zone add --zone ods7 --policy Policy5 &&
+log_this ods-zone-add-8 ods-ksmutil zone add --zone ods8 --policy Policy5 &&
+log_this ods-zone-add-9 ods-ksmutil zone add --zone ods9 --policy Policy5 &&
+log_this ods-zone-add-10 ods-ksmutil zone add --zone ods10 --policy Policy5 &&
+log_this ods-zone-add-11 ods-ksmutil zone add --zone ods11 --policy Policy5 &&
+log_this ods-zone-add-12 ods-ksmutil zone add --zone ods12 --policy Policy5 &&
+log_this ods-zone-add-13 ods-ksmutil zone add --zone ods13 --policy Policy5 &&
+log_this ods-zone-add-14 ods-ksmutil zone add --zone ods14 --policy Policy5 &&
+log_this ods-zone-add-15 ods-ksmutil zone add --zone ods15 --policy Policy5 &&
 # Now a policy with shared keys one with alg 7, length 1024 and one with alg 8, length 2048
-add_zones 16 30 6 && 
+log_this ods-zone-add-16 ods-ksmutil zone add --zone ods16 --policy Policy6 &&
+log_this ods-zone-add-17 ods-ksmutil zone add --zone ods17 --policy Policy6 &&
+log_this ods-zone-add-18 ods-ksmutil zone add --zone ods18 --policy Policy6 &&
+log_this ods-zone-add-19 ods-ksmutil zone add --zone ods19 --policy Policy6 &&
+log_this ods-zone-add-20 ods-ksmutil zone add --zone ods20 --policy Policy6 &&
+log_this ods-zone-add-21 ods-ksmutil zone add --zone ods21 --policy Policy6 &&
+log_this ods-zone-add-22 ods-ksmutil zone add --zone ods22 --policy Policy6 &&
+log_this ods-zone-add-23 ods-ksmutil zone add --zone ods23 --policy Policy6 &&
+log_this ods-zone-add-24 ods-ksmutil zone add --zone ods24 --policy Policy6 &&
+log_this ods-zone-add-25 ods-ksmutil zone add --zone ods25 --policy Policy6 &&
+log_this ods-zone-add-26 ods-ksmutil zone add --zone ods26 --policy Policy6 &&
+log_this ods-zone-add-27 ods-ksmutil zone add --zone ods27 --policy Policy6 &&
+log_this ods-zone-add-28 ods-ksmutil zone add --zone ods28 --policy Policy6 &&
+log_this ods-zone-add-29 ods-ksmutil zone add --zone ods29 --policy Policy6 &&
+log_this ods-zone-add-30 ods-ksmutil zone add --zone ods30 --policy Policy6 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
