@@ -1896,6 +1896,10 @@ syslog_grep_count ()
 
 	echo "syslog_grep_count: greping syslog, should find $count of: $grep_string"
 	count_found=`$GREP -- "$grep_string" "_syslog.$BUILD_TAG" 2>/dev/null | wc -l 2>/dev/null`
+	if [ "$count_found" -lt 0 ] 2>/dev/null; then
+		echo "syslog_grep_count: Invalid count returned from wc -l '$count_found'" >&2
+		exit 1
+	fi
 	syslog_grep_count_variable=$count_found
 	
 	if [ "$count_found" -eq "$count" ] 2>/dev/null; then
