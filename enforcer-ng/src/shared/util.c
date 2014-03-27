@@ -287,7 +287,7 @@ util_write_pidfile(const char* pidfile, pid_t pid)
 int
 util_pidfile_avail(const char* pidfile)
 {
-	int fd, available;
+	int fd, available, pid;
 	char pidbuf[32];
 	ssize_t n;
 	
@@ -302,8 +302,13 @@ util_pidfile_avail(const char* pidfile)
 		available = 1;
 	} else { /* PID */
 		pidbuf[31] = 0;
-		/* atoi can not fail */
-		available = (kill(atoi(pidbuf), 0) != 0);
+		/* atoi can not fail but we must not pass negative values to
+		 * kill */
+		pid = atoi(pidbuf);
+		if (pid > 0)
+			available = (kill(pid, 0) != 0);
+		else
+			available = 1;
 	}
 	(void) close(fd);
 	return available;
