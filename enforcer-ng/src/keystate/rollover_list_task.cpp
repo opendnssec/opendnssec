@@ -98,7 +98,7 @@ perform_rollover_list(int sockfd, engineconfig_type *config, const char *listed_
     if (NULL == listed_zone || 0 == strlen(listed_zone)) {
         if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
             ods_log_error("[%s] error enumerating zones", module_str);
-            ods_printf(sockfd, "error enumerating zones\n");
+            client_printf(sockfd, "error enumerating zones\n");
             return 1;
         }
     }
@@ -117,14 +117,14 @@ perform_rollover_list(int sockfd, engineconfig_type *config, const char *listed_
                     qzone.c_str())) {
             ods_log_error("[%s] unable to find zone:%s", 
                     module_str, qzone.c_str());
-            ods_printf(sockfd, "unable to find zone:%s\n", qzone.c_str());
+            client_printf(sockfd, "unable to find zone:%s\n", qzone.c_str());
             return 1;
         }
 
         if (!OrmFirst(rows)) {
             ods_log_error("[%s] zone:%s not found", 
                     module_str, qzone.c_str());
-            ods_printf(sockfd, "zone:%s not found\n", qzone.c_str());
+            client_printf(sockfd, "zone:%s not found\n", qzone.c_str());
             return 1;
         }
     }	
