@@ -31,7 +31,6 @@ test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
 
 # Count how many runs the enforcer has done
 ods_enforcer_count_starts &&
-local test_enforcer_start_count="$syslog_grep_count_variable" &&
 
 # Now issue the update command
 log_this ods-ksmutil-update ods-ksmutil update zonelist &&
@@ -41,7 +40,7 @@ log_grep ods-ksmutil-update stdout 'Notifying enforcer of new database...'
 ! log_grep ods-ksmutil-update stdout 'Could not HUP ods-enforcerd'
 
 # We should see the enforcer wake up and run
-ods_enforcer_waitfor_starts $(( test_enforcer_start_count + 1 )) &&
+ods_enforcer_waitfor_starts $(( ODS_ENFORCER_START_COUNT + 1 )) &&
 
 # Check the zone is there
 log_this ods-ksmutil-zone-list2 ods-ksmutil zone list &&
