@@ -30,12 +30,17 @@
  */
 
 #include "config.h"
+
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/util.h"
 
 #include <time.h>
 #include <ldns/ldns.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <signal.h>
+#include <fcntl.h>
 
 static const char* util_str = "util";
 
@@ -273,4 +278,38 @@ util_write_pidfile(const char* pidfile, pid_t pid)
         return -1;
     }
     return 0;
+}
+
+/**
+ * Check pidfile
+ * 
+ */
+int
+util_pidfile_avail(const char* pidfile)
+{
+	int fd, available, pid;
+	char pidbuf[32];
+	ssize_t n;
+	
+	if (!pidfile) return 0;
+	if ((fd = open(pidfile, O_RDONLY)) == -1) {
+		return (errno == ENOENT); /* Does not exist*/
+	}
+	n = read(fd, pidbuf, 32);
+	if (n == -1) { /* error */
+		available = 0;
+	} else if (n == 0) { /* EOF */
+		available = 1;
+	} else { /* PID */
+		pidbuf[31] = 0;
+		/* atoi can not fail but we must not pass negative values to
+		 * kill */
+		pid = atoi(pidbuf);
+		if (pid > 0)
+			available = (kill(pid, 0) != 0);
+		else
+			available = 1;
+	}
+	(void) close(fd);
+	return available;
 }

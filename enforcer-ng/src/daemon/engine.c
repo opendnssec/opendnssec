@@ -116,7 +116,7 @@ engine_dealloc(engine_type* engine)
     allocator_deallocate(allocator, (void*) engine);
     allocator_cleanup(allocator);
 }
-    
+
 /**
  * Start command handler.
  *
@@ -278,6 +278,11 @@ engine_setup(engine_type* engine)
     ods_log_init(engine->config->log_filename, 
         engine->config->use_syslog, engine->config->verbosity);
 
+    if (!util_pidfile_avail(engine->config->pid_filename)) {
+        ods_log_error("[%s] Pidfile exists and process with PID is running", engine_str);
+        return ODS_STATUS_WRITE_PIDFILE_ERR;
+    }
+
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
     if (!engine->cmdhandler) {
@@ -315,7 +320,6 @@ engine_setup(engine_type* engine)
                 case -1: /* error */
                     ods_log_error("[%s] unable to fork daemon: %s",
                         engine_str, strerror(errno));
-                    hsm_close();
                     return ODS_STATUS_FORK_ERR;
                 case 0: /* child */
                     if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
@@ -332,8 +336,6 @@ engine_setup(engine_type* engine)
             if (setsid() == -1) {
                 ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
-                hsm_close();
-                return ODS_STATUS_SETSID_ERR;
             }
         }
     }

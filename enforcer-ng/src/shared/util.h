@@ -98,6 +98,18 @@ ldns_status util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr);
  */
 int util_write_pidfile(const char* pidfile, pid_t pid);
 
+/**
+ * Check pidfile
+ * 
+ * Try to read PID file to see if an other instance is already running.
+ * If pidfile not found or process is not running exit success. Note:
+ * upon failures reading the file
+ * 
+ * \param pidfile: file to check.
+ * \return 1 pidfile does not exist or process not running. 0 otherwise.
+ */
+int util_pidfile_avail(const char* pidfile);
+
 #ifdef __cplusplus
 }
 #endif
