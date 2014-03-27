@@ -44,6 +44,7 @@ usage(int sockfd)
 {
 	ods_printf(sockfd, 
 		"rollover list          List upcoming rollovers.\n"
+		"     [--zone <zone>]              (aka -z)  zone.\n"
 	);
 }
 
@@ -60,8 +61,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	const int NARGV = 8;
 	const char *argv[NARGV];
 	int argc;
+	const char *zone = NULL;
 	
 	ods_log_debug("[%s] %s command", module_str, rollover_list_funcblock()->cmdname);
+	cmd = ods_check_command(cmd, n, rollover_list_funcblock()->cmdname);
 	
 	// Use buf as an intermediate buffer for the command.
 	strncpy(buf, cmd,sizeof(buf));
@@ -76,14 +79,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		return -1;
 	}
 	
-	bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
+    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str, rollover_list_funcblock()->cmdname);
 		ods_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
-	return perform_rollover_list(sockfd, engine->config, bVerbose?1:0);
+	return perform_rollover_list(sockfd, engine->config, zone);
 }
 
 static struct cmd_func_block funcblock = {

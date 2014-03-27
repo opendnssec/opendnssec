@@ -78,7 +78,7 @@ map_keytime(const EnforcerZone zone, const KeyData key)
 }
 
 int 
-perform_rollover_list(int sockfd, engineconfig_type *config, int bverbose)
+perform_rollover_list(int sockfd, engineconfig_type *config, const char *listed_zone)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
@@ -93,6 +93,41 @@ perform_rollover_list(int sockfd, engineconfig_type *config, int bverbose)
 		ods_printf(sockfd, "error enumerating zones\n");
 		return 1;
 	}
+	
+    if (NULL == listed_zone || 0 == strlen(listed_zone)) {
+        if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
+            ods_log_error("[%s] error enumerating zones", module_str);
+            ods_printf(sockfd, "error enumerating zones\n");
+            return 1;
+        }
+    }
+    else {
+        std::string qzone;
+        if (!OrmQuoteStringValue(conn, std::string(listed_zone), qzone)) {
+            const char *emsg = "quoting zone value failed";
+            ods_log_error_and_printf(sockfd,module_str,emsg);
+            return 1;
+        }
+
+        if (!OrmMessageEnumWhere(conn, 
+                    zone.descriptor(),
+                    rows,
+                    "name = %s",
+                    qzone.c_str())) {
+            ods_log_error("[%s] unable to find zone:%s", 
+                    module_str, qzone.c_str());
+            ods_printf(sockfd, "unable to find zone:%s\n", qzone.c_str());
+            return 1;
+        }
+
+        if (!OrmFirst(rows)) {
+            ods_log_error("[%s] zone:%s not found", 
+                    module_str, qzone.c_str());
+            ods_printf(sockfd, "zone:%s not found\n", qzone.c_str());
+            return 1;
+        }
+    }	
+	
 	
 	ods_printf(sockfd, "Keys:\n");
 	ods_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
