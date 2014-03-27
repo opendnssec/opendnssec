@@ -354,7 +354,7 @@ ods_enforcer_count_starts() {
 	echo "ods_enforcer_count_starts: Checking how many times enforcer has started already"
     syslog_grep_count 0 "$ODS_ENFORCER_START_LOG_STRING"
     echo "ods_enforcer_count_starts: Enforcer has started" $syslog_grep_count_variable "times so far"
-	
+	return 0
 }
 
 ods_enforcer_count_stops() {
@@ -364,7 +364,7 @@ ods_enforcer_count_stops() {
 	echo "ods_enforcer_count_stops: Checking how many times enforcer has stopped already"
     syslog_grep_count 0 "$ODS_ENFORCER_STOP_LOG_STRING"
     echo "ods_enforcer_count_stops: Enforcer has stopped" $syslog_grep_count_variable "times so far"
-
+	return 0
 }
 
 
@@ -534,37 +534,40 @@ ods_stop_enforcer() {
 }
 
 ods_start_enforcer_timeshift() {
-	
 	# Takes an optional parameter that will override the timeout on waiting for 
 	# the log to confirm the action	
-		
+	local timeout="$1"
+	local stop_count
+
 	if ods_is_enforcer_running; then
 		echo "ods_start_enforcer_timeshift: ERROR: ods-enforcerd is already running.." >&2
 		return 1
 	fi		
 		
-	echo "ods_start_enforcer_timeshift: Starting ods-enforcer now..." >&2 &&
+	echo "ods_start_enforcer_timeshift: Starting ods-enforcer now..."
 	
 	# When the enforcer runs in timeshift mode it runs to completion
 	# so it has to be measured as a stop
- 	ods_enforcer_count_stops &&
-    local ods_enforcer_stop_count="$syslog_grep_count_variable" &&
+ 	ods_enforcer_count_stops
+    stop_count=$(( syslog_grep_count_variable + 1 ))
+    
 	ods_enforcer_start_timeshift &&
-	ods_enforcer_waitfor_stops $(( ods_enforcer_stop_count + 1 )) $1 &&
+	ods_enforcer_waitfor_stops "$stop_count" "$timeout" &&
 	
 	# double check the process is killed as this seems to take a little while on some platforms
 	if ods_is_enforcer_running; then
 		sleep 1
-		echo "ods_stop_enforcer: waiting for process to terminate..." >&2 
+		echo "ods_stop_enforcer: waiting for process to terminate..."
 		if ods_is_enforcer_running; then
 				echo "ods_stop_enforcer: ERROR: ods-enforcerd process is still running..." >&2 
 				return 1
 		fi
 	fi &&
 	
-	echo "ods_start_enforcer_timeshift: ods-enforcer started OK..." >&2 &&
+	echo "ods_start_enforcer_timeshift: ods-enforcer started OK..." &&
 	return 0
 	
+	echo "ods_start_enforcer_timeshift: ods-enforcer start FAILED" >&2
 	return 1
 }
 
