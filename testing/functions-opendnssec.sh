@@ -550,7 +550,7 @@ ods_start_enforcer_timeshift() {
  	ods_enforcer_count_stops
     stop_count=$(( syslog_grep_count_variable + 1 ))
     
-	ods_enforcer_start_timeshift "$timeout" &&
+	ods_enforcer_start_timeshift &&
 	ods_enforcer_waitfor_stops "$stop_count" "$timeout" &&
 	
 	# double check the process is killed as this seems to take a little while on some platforms
