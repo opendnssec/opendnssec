@@ -32,7 +32,7 @@ ods_pre_test ()
 	ODS_SIGNER_START_COUNT=0
 	ODS_ENFORCER_STOP_COUNT=0
 	ODS_SIGNER_STOP_COUNT=0
-	
+
 	ods_nuke_env &&
 	ods_setup_conf &&
 	ods_setup_zone &&
@@ -312,7 +312,7 @@ ods_enforcer_start_timeshift ()
 		echo "usage: ods_enforcer_start_timeshift <timeout in seconds waiting for output>" >&2
 		exit 1
 	fi
-	
+
 	local time_start=`$DATE '+%s' 2>/dev/null`
 	local time_stop
 	local time_now
@@ -607,7 +607,7 @@ ods_start_enforcer ()
 
 	echo "ods_start_enforcer: Starting ods-enforcer now..."
 
- 	ods_enforcer_count_starts &&
+	ods_enforcer_count_starts &&
 	ods_ods-control_enforcer_start &&
 	ods_enforcer_waitfor_starts "$(( ODS_ENFORCER_START_COUNT + 1 ))" "$timeout" &&
 
@@ -632,7 +632,7 @@ ods_stop_enforcer ()
 
 	echo "ods_stop_enforcer: Stopping ods-enforcer now..."
 
- 	ods_enforcer_count_stops &&
+	ods_enforcer_count_stops &&
 	ods_ods-control_enforcer_stop &&
 	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$timeout" &&
 
@@ -674,7 +674,7 @@ ods_start_enforcer_timeshift ()
 
 	echo "ods_start_enforcer_timeshift: Starting ods-enforcer now..."
 
- 	ods_enforcer_count_stops &&
+	ods_enforcer_count_stops &&
 	ods_enforcer_start_timeshift "$ODS_ENFORCER_TIMESHIFT_WAIT" &&
 	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$ODS_ENFORCER_TIMESHIFT_WAIT" &&
 
@@ -715,7 +715,7 @@ ods_start_signer ()
 
 	echo "ods_start_signer: Starting ods-signer now..."
 
- 	ods_signer_count_starts &&
+	ods_signer_count_starts &&
 	ods_ods-control_signer_start &&
 	ods_signer_waitfor_starts "$(( ODS_SIGNER_START_COUNT + 1 ))" "$timeout" &&
 
@@ -739,7 +739,7 @@ ods_stop_signer ()
 
 	echo "ods_stop_signer: Stopping ods-signer now..."
 
- 	ods_signer_count_stops &&
+	ods_signer_count_stops &&
 	ods_ods-control_signer_stop	&&
 	ods_signer_waitfor_stops "$(( ODS_SIGNER_STOP_COUNT + 1 ))" "$timeout" &&
 
@@ -784,8 +784,8 @@ ods_start_ods-control ()
 
 	echo "ods_start_ods-control: Starting with ods-control now..."
 
- 	ods_signer_count_starts &&
- 	ods_enforcer_count_starts &&
+	ods_signer_count_starts &&
+	ods_enforcer_count_starts &&
 	ods_ods-control_start &&
 	ods_signer_waitfor_starts "$(( ODS_SIGNER_START_COUNT + 1 ))" "$timeout" &&
 	ods_enforcer_waitfor_starts "$(( ODS_ENFORCER_START_COUNT + 1 ))" "$timeout" &&
@@ -815,8 +815,8 @@ ods_stop_ods-control ()
 
 	echo "ods_stop_ods-control: Stopping with ods-control now..."
 
- 	ods_signer_count_stops &&
- 	ods_enforcer_count_stops &&
+	ods_signer_count_stops &&
+	ods_enforcer_count_stops &&
 	ods_ods-control_stop &&
 	ods_signer_waitfor_stops "$(( ODS_SIGNER_STOP_COUNT + 1 ))" "$timeout" &&
 	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$timeout" &&
