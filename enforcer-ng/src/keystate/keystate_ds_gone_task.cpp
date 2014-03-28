@@ -54,7 +54,7 @@ list_keys_retracted(OrmConn conn, int sockfd, const char *datastore)
 	// list all keys that have submitted flag set.
 	client_printf(sockfd,
 			   "Database set to: %s\n"
-			   "Retracted Keys:\n"
+			   "List of keys that have been retracted:\n"
 			   "Zone:                           "
 			   "Key role:     "
 			   "Keytag:       "

@@ -46,10 +46,11 @@ usage(int sockfd)
 	client_printf(sockfd,
 		"key ds-submit          Issue a ds-submit to the enforcer for a KSK.\n"
 		"                       (This command with no parameters lists eligible keys.)\n"
-		"      --zone <zone>              (aka -z)  zone.\n"
-		"      --cka_id <CKA_ID>          (aka -k)  cka_id <CKA_ID> of the key.\n"
-		"      [--auto]                   (aka -a)  perform submit for all keys that\n"
-		"                                           have the submit flag set.\n"
+		"      [--cka_id <CKA_ID>]        (aka -k)  cka_id <CKA_ID> of the key.\n"			
+		"      [--zone <zone> | --auto]   (aka -z | -a) specify a zone to submit keys\n"			
+		"                                           for or perform auto submit for all\n"
+		"                                           keys on all zones that have the\n"
+		"                                           submit flag set.\n"
 		"      [--force]                  (aka -f)  force even if there is no configured\n"
 		"                                           DelegationSignerSubmitCommand.\n"
 	);
@@ -72,6 +73,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	ods_status status;
 
 	ods_log_debug("[%s] %s command", module_str, key_ds_submit_funcblock()->cmdname);
+	cmd = ods_check_command(cmd, n, key_ds_submit_funcblock()->cmdname);
+	
 
 	/* consume command */
 	cmd = ods_check_command(cmd, n, key_ds_submit_funcblock()->cmdname);
@@ -101,6 +104,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
+	
+	//TODO: Need more validation of the permitted command line options combinatio
 
 	/* perform task immediately */
 	return !perform_keystate_ds_submit(sockfd,engine->config,zone,cka_id,bAutomatic?1:0, force);

@@ -162,7 +162,9 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 								 "committing policy to the database failed");
 		return false;
 	}
-	ods_log_info("kasp update complete");
-	client_printf(sockfd,"kasp update complete\n");
+	
+	ods_log_info("[%s] kasp loaded from %s", module_str, config->policy_filename);
+	client_printf(sockfd,"kasp loaded from %s\n", config->policy_filename);	
+
 	return true;
 }

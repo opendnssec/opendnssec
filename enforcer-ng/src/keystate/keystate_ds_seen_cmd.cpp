@@ -48,8 +48,7 @@ usage(int sockfd)
 		"key ds-seen            Issue a ds-seen to the enforcer for a KSK.\n"
 		"                       (This command with no parameters lists eligible keys.)\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
-		"      --cka_id <CKA_ID>          (aka -k)  cka_id <CKA_ID> of the key.\n"
-		"      --keytag <keytag>          (aka -x)  keytag <keytag> of the key.\n"
+		"      --keytag <keytag> | --cka_id <CKA_ID>      (aka -x | -k)\n"
 	);
 }
 
@@ -68,6 +67,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	int argc;
 
 	ods_log_debug("[%s] %s command", module_str, key_ds_seen_funcblock()->cmdname);
+	cmd = ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname);
 
 	/* consume command */
 	cmd = ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname);

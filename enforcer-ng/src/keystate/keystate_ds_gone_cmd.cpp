@@ -52,8 +52,8 @@ usage(int sockfd)
 		"key ds-gone            Issue a ds-gone to the enforcer for a KSK. \n"
 		"                       (This command with no parameters lists eligible keys.)\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
-		"      --cka_id <cka_id>          (aka -k)  cka_id <CKA_ID> of the key.\n"
-		"      --keytag <keytag>          (aka -x)  keytag <keytag> of the key.\n"
+		"      --keytag <keytag> | --cka_id <CKA_ID>    (aka -x | -k)\n"
+
 	);
 }
 
@@ -72,6 +72,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	int argc;
 
 	ods_log_debug("[%s] %s command", module_str, key_ds_gone_funcblock()->cmdname);
+	cmd = ods_check_command(cmd, n, key_ds_gone_funcblock()->cmdname);
 
 	/* consume command */
 	cmd = ods_check_command(cmd, n, key_ds_gone_funcblock()->cmdname);

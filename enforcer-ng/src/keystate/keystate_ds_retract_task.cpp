@@ -332,7 +332,7 @@ list_keys_retract(OrmConn conn, int sockfd, const char *datastore)
 	// List the keys with retract flags.
 	client_printf(sockfd,
 			   "Database set to: %s\n"
-			   "Retract Keys:\n"
+			   "List of keys eligible to be retracted:\n"
 			   "Zone:                           "
 			   "Key role:     "
 			   "Id:                                      "
