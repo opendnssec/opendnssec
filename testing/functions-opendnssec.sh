@@ -891,25 +891,25 @@ ods_stop_ods-control ()
 	return 1
 }
 
-ods_kill ()
+ods_process_kill ()
 {
-	if ! $PGREP -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
-		return 0
+	if [ -z "$1" ]; then
+		echo "usage: ods_process_kill <pgrep syntax>" >&2
+		exit 1
 	fi
 
-	echo "ods_kill: Killing OpenDNSSEC"
-	try_run 15 ods-control stop
+	local process="$1"
 
-	if $PGREP -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+	if $PGREP -u `id -u` "$process" >/dev/null 2>/dev/null; then
 		sleep 2
-		pkill -QUIT '(ods-enforcerd|ods-signerd)' 2>/dev/null
-		if $PGREP -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+		pkill -QUIT "$process" 2>/dev/null
+		if $PGREP -u `id -u` "$process" >/dev/null 2>/dev/null; then
 			sleep 2
-			pkill -TERM '(ods-enforcerd|ods-signerd)' 2>/dev/null
-			if $PGREP -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null; then
+			pkill -TERM "$process" 2>/dev/null
+			if $PGREP -u `id -u` "$process" >/dev/null 2>/dev/null; then
 				sleep 2
-				pkill -KILL '(ods-enforcerd|ods-signerd)' 2>/dev/null
-				$PGREP -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
+				pkill -KILL "$process" 2>/dev/null
+				$PGREP -u `id -u` "$process" >/dev/null 2>/dev/null &&
 				sleep 2
 			fi
 		fi
