@@ -85,8 +85,6 @@ load_kasp_xml(int sockfd, const char * policiesfile,
 		return false;
 	}
 	
-	ods_log_info("kasp loaded from %s", policiesfile);
-	ods_printf(sockfd,"kasp loaded from %s\n", policiesfile);
 	return true;
 }
 
@@ -161,7 +159,9 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 								 "committing policy to the database failed");
 		return false;
 	}
-	ods_log_info("kasp update complete");
-	ods_printf(sockfd,"kasp update complete\n");
+	
+	ods_log_info("[%s] kasp loaded from %s", module_str, config->policy_filename);
+	ods_printf(sockfd,"kasp loaded from %s\n", config->policy_filename);	
+
 	return true;
 }

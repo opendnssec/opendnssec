@@ -54,7 +54,7 @@ list_keys_submitted(OrmConn conn, int sockfd, const char *datastore)
 	// list all keys that have submitted flag set.
 	ods_printf(sockfd,
 			   "Database set to: %s\n"
-			   "Submitted Keys:\n"
+			   "List of keys that have been submitted:n"
 			   "Zone:                           "
 			   "Key role:     "
 			   "Keytag:       "

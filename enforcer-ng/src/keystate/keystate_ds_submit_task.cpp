@@ -270,6 +270,9 @@ submit_keys(OrmConn conn,
 					if (id) {
 						// --id <id>
 						//     Force submit key to the parent for specific key id.
+						// TODO: This looks like it could be made more efficient! At the moment
+						// if the user specifies a cka_id the code will walk every key in every zone
+						// till it finds that one key that matches and then acts on it.						
 						if (key.locator()==id) {
 							// submit key with this id to the parent
 							uint16_t keytag = 
@@ -380,7 +383,7 @@ list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
 	// List the keys with submit flags.
 	ods_printf(sockfd,
 			   "Database set to: %s\n"
-			   "Submit Keys:\n"
+			   "List of keys eligible to be submitted:\n"
 			   "Zone:                           "
 			   "Key role:     "
 			   "Id:                                      "
