@@ -139,10 +139,10 @@ cmd_funcs_avail(void)
         &key_ds_seen_funcblock,
         &key_ds_retract_funcblock,
         &key_ds_gone_funcblock,
-        &rollover_list_funcblock,
         &key_gen_funcblock,
 
         &key_rollover_funcblock,
+        &rollover_list_funcblock,
         
         &backup_funcblock,
 

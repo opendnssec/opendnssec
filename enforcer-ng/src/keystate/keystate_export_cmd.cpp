@@ -64,6 +64,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     int argc;
     
     ods_log_debug("[%s] %s command", module_str, key_export_funcblock()->cmdname);
+	cmd = ods_check_command(cmd, n, key_export_funcblock()->cmdname);
     
     // Use buf as an intermediate buffer for the command.
     strncpy(buf, cmd, sizeof(buf));
