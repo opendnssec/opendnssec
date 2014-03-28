@@ -219,7 +219,7 @@ ods_setup_conf kasp.xml kasp_2.xml &&
 log_this ods-ksmutil-update-kasp ods-ksmutil update kasp && 
 
 # Again with some keys in the queue
-ods_start_enforcer_timeshift 120 &&
+ods_start_enforcer_timeshift &&
 
 syslog_grep_count 2  "ods-enforcerd: .*15 zone(s) found on policy \"Policy5\""  &&
 syslog_grep_count 2  'ods-enforcerd: .*9 new KSK(s) (2048 bits) need to be created.'  &&

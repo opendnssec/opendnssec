@@ -24,6 +24,8 @@ ODS_ENFORCER_STOP_COUNT=0
 ODS_SIGNER_STOP_LOG_STRING='ods-signerd: .*\[engine\] signer shutdown'
 ODS_SIGNER_STOP_COUNT=0
 
+ODS_ENFORCER_TIMESHIFT_WAIT=30
+
 ods_pre_test ()
 {
 	ODS_ENFORCER_START_COUNT=0
@@ -287,17 +289,56 @@ ods_ods-control_enforcer_stop ()
 
 ods_enforcer_start_timeshift ()
 {
-	local enforcer_start_wait_timer="$ODS_ENFORCER_WAIT_START_LOG"
-
-	if [ -n "$1" ]; then
-		enforcer_start_wait_timer="$1"
+	if [ -z "$1" ]; then
+		echo "usage: ods_enforcer_start_timeshift <timeout in seconds waiting for output>" >&2
+		exit 1
 	fi
+	
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local time_stop
+	local time_now
+	local timeout="$1"
+	local pid
+	local last_count=`syslog_grep_count2 ods-enforcerd`
+	local count
 
-	if ! log_this_timeout ods_enforcer_start_timeshift "$enforcer_start_wait_timer" ods-enforcerd -1 ; then
-		echo "ods_enforcer_start_timeshift: Could not start ods-enforcerd" >&2
+	time_stop=$(( time_start + timeout ))
+
+	( log_this ods_enforcer_start_timeshift ods-enforcerd -1 ) &
+	pid="$!"
+
+	if [ -z "$pid" -o "$pid" -le 0 ] 2>/dev/null; then
+		echo "ods_enforcer_start_timeshift: No pid from backgrounded program?" >&2
 		return 1
 	fi
-	return 0
+
+	while true; do
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
+			echo "ods_enforcer_start_timeshift: Invalid timestamp from date!" >&2
+			exit 1
+		fi
+		if ! kill -0 "$pid" 2>/dev/null; then
+			wait "$pid"
+			return "$?"
+		fi
+		sleep 5
+		count=`syslog_grep_count2 ods-enforcerd`
+		if [ "$count" -gt "$last_count" ] 2>/dev/null; then
+			time_stop=$(( time_now + timeout ))
+		fi
+		last_count="$count"
+	done
+
+	kill -TERM "$pid"
+	sleep 1
+	if kill -0 "$pid" 2>/dev/null; then
+		kill -KILL "$pid"
+	fi
+	return 1
 }
 
 ods_ods-control_signer_start ()
@@ -615,8 +656,8 @@ ods_start_enforcer_timeshift ()
 	echo "ods_start_enforcer_timeshift: Starting ods-enforcer now..."
 
  	ods_enforcer_count_stops &&
-	ods_enforcer_start_timeshift "$timeout" &&
-	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$timeout" &&
+	ods_enforcer_start_timeshift "$ODS_ENFORCER_TIMESHIFT_WAIT" &&
+	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$ODS_ENFORCER_TIMESHIFT_WAIT" &&
 
 	# double check the process is killed as this seems to take a little while on some platforms
 	if ods_is_enforcer_running; then
