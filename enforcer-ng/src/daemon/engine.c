@@ -278,6 +278,8 @@ engine_setup(engine_type* engine)
     ods_log_init(engine->config->log_filename, 
         engine->config->use_syslog, engine->config->verbosity);
 
+    engine->pid = getpid(); /* We need to do this again after fork() */
+
     if (!util_pidfile_avail(engine->config->pid_filename)) {
         ods_log_error("[%s] Pidfile exists and process with PID is running", engine_str);
         return ODS_STATUS_WRITE_PIDFILE_ERR;
@@ -342,7 +344,7 @@ engine_setup(engine_type* engine)
     engine->init_setup_done = 1;
     
     engine->pid = getpid();
-    ods_log_verbose("[%s] running as pid %lu", engine_str,
+    ods_log_info("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
 
     /* create workers */

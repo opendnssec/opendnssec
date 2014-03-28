@@ -195,9 +195,10 @@ interface_start(const char* cmd_arg, const char* servsock_filename)
         /* These commands don't go through the pipe */
         if (ods_strcmp(cmd, "exit") == 0 || ods_strcmp(cmd, "quit") == 0)
             break;
-        /* FIXME: start must check on already running */
         if (ods_strcmp(cmd, "start") == 0) {
-            if (system(ODS_EN_ENGINE)) {
+            if (system(ODS_EN_ENGINE) != 0) {
+                fprintf(stderr, "Error: Daemon reported a failure starting. "
+                    "Please consult the logfiles.\n");
                 return_value = 1;
             }
             continue;
