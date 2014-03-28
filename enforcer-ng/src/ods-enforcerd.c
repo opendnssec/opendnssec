@@ -256,10 +256,10 @@ main(int argc, char* argv[])
             ods_log_info("[%s] enforcer reloading", enforcerd_str);
     }
     engine_config_cleanup(engine->config);
-    engine_dealloc(engine); /* antagonist of engine_alloc() */
     ods_log_info("[engine] enforcer shutdown"); /* needed for test */
-    ods_log_info("[%s] enforcerd stopped with exitcode %d", 
-        enforcerd_str, returncode);
+    ods_log_info("[%s] enforcerd (pid: %lu) stopped with exitcode %d",
+        enforcerd_str, (unsigned long) engine->pid, returncode);
+    engine_dealloc(engine); /* antagonist of engine_alloc() */
     if (returncode && daemonize) {
         fprintf(stderr, "enforcerd stopped with exitcode %d\n",
             returncode);
