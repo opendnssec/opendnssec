@@ -404,7 +404,7 @@ engine_init(engine_type* engine, int daemonize)
     engine->cmdhandler_done = 1;
     engine->init_setup_done = 0;
     engine->database_ready = 0;
-    engine->pid = -1;
+    engine->pid = getpid(); /* We need to do this again after fork() */
     engine->uid = -1;
     engine->gid = -1;
     engine->need_to_exit = 0;
