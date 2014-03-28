@@ -121,7 +121,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	cmd = ods_check_command(cmd, n, zone_del_funcblock()->cmdname);
 	if (!get_arguments(sockfd, cmd, zone, need_write_xml)) return 1;
 	return perform_zone_del(sockfd, engine->config, zone.c_str(),
-		need_write_xml, false);
+		need_write_xml, false, true);
 }
 
 static struct cmd_func_block funcblock = {

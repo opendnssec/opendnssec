@@ -34,11 +34,21 @@
 
 #include "daemon/cfg.h"
 
+namespace ods {
+	namespace keystate {
+		class ZoneListDocument;
+	}
+}
+
 // wrapper functions
 int perform_zonelist_export_to_fd(int sockfd, engineconfig_type *config);
 int perform_zonelist_export_to_file(const std::string& filename, engineconfig_type *config);
 // real work
 int perform_zonelist_export(const std::string* filename, int sockfd, engineconfig_type *config);
+
+// Helper
+bool write_zonelist_file_to_disk(::ods::keystate::ZoneListDocument &zone_list_doc, const std::string &filename, int sockfd);
+
 
 
 #endif

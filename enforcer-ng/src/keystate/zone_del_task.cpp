@@ -48,8 +48,57 @@
 
 static const char *module_str = "zone_del_task";
 
+static bool 
+delete_zone_from_zones_file(const std::string& zone_name, engineconfig_type *config, int sockfd) {
+
+	::ods::keystate::ZoneListDocument  zonelistDoc;
+	bool zone_not_found = true;
+	bool file_not_found = true;	
+
+	// The find out if the zones.xml file exists
+	// This may be the first ever zone, or something could have happened to the file...	
+	if (!load_zones_file(zonelistDoc, file_not_found, config, sockfd)) {
+		ods_log_info("[%s] Can't load internal zone list ", module_str);
+		if (file_not_found) {
+			// It simply doesn't exist, so do a bulk export instead and we are done
+			return perform_write_zones_file(sockfd, config);			
+		}
+		else {
+			// If we can't load it and it isn't because it doesn't exist then bail
+			ods_log_info("[%s] Can't load internal zone list ", module_str);
+			return false;
+		}			
+	}
+
+	// Now lets find the zone so we can remove it..
+	// TODO: Is there a better way to do this search (load into a set)?
+	::ods::keystate::ZoneList* zone_list = zonelistDoc.mutable_zonelist();
+	for (int i=0; i < zone_list->zones_size(); ++i) {
+		if (zone_name.compare(zone_list->zones(i).name())  == 0) {
+			// According to the Google protobuf documentation this is how you remove elements
+			// if you DON'T need to preserve the order. I don't believe the order matters
+			// in this internal zone list file so I will do it this way as it is more efficient
+			// than the alternative.
+			zone_list->mutable_zones()->SwapElements(i, zone_list->zones_size() - 1);
+			zone_list->mutable_zones()->RemoveLast();			
+			zone_not_found = false;
+			break;
+		}
+	}
+
+	if (zone_not_found) {
+		ods_log_error_and_printf(sockfd, module_str, "ERROR: Zone %s not found in zones.xml", zone_name.c_str());
+		return false;
+	}
+
+	// And now lets spit it out to disk
+	ods_log_debug("[%s] Incrementing contents of zone list to delete zone %s", module_str, zone_name.c_str());
+	return dump_zones_file(zonelistDoc, config, sockfd);
+}
+
+
 int 
-perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int need_write_xml, bool quiet)
+perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int need_write_xml, bool quiet, bool export_files)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -59,6 +108,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
 
 	std::string qzone;
     bool is_del_succeed = false;
+    ::ods::keystate::EnforcerZone enfzone;
     if (strlen(zone) > 0) {
         if (!OrmQuoteStringValue(conn, std::string(zone), qzone)) {
             const char *emsg = "quoting zone value failed";
@@ -76,7 +126,6 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
 		
         if (qzone.empty()) {
             OrmResultRef rows;
-            ::ods::keystate::EnforcerZone enfzone;
             std::vector<std::string> del_zones;
             bool ok = OrmMessageEnum(conn, enfzone.descriptor(), rows);
             if (!ok) {
@@ -166,14 +215,27 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
     }
 
 
-	// Now lets write out the required files - the internal list and optionally the zonelist.xml
-	// Note at the moment we re-export the whole file in zonelist.xml format here but this should be optimised....
-    if (is_del_succeed) {
-		if (!perform_write_signzone_file(sockfd, config)) {
-        	ods_log_error_and_printf(sockfd, module_str, 
-                "failed to write internal zonelist");
+    if (!is_del_succeed)
+		return 1; 
+
+	// TODO: In 1.4 the signconf is renamed to avoid future clashes
+
+	// Now lets write out the required files - the internal list and optionally the zonelist.xml	
+	if (export_files) {
+		// This command can be used to delete a specific zone or all zones
+		// If is it just for a single zone, we can do an incremental change
+		if (strlen(zone) > 0) {
+			if (!delete_zone_from_zones_file(std::string(zone), config, sockfd)) {
+	        	ods_log_error_and_printf(sockfd, module_str, 
+	                "failed to increment contents of internal zone list file");
+			}
+		}
+		else {
+			// we need to do a bulk export to empty out the zone list
+			perform_write_zones_file(sockfd, config);
 		}
 
+		// For the external list, we always to a bulk export 
  	   if (need_write_xml) {
 			if (!perform_zonelist_export_to_file(config->zonelist_filename,config)) {
 	        	ods_log_error_and_printf(sockfd, module_str, 
@@ -194,5 +256,7 @@ perform_zone_del(int sockfd, engineconfig_type *config, const char *zone, int ne
 			}
 		}
 	}
+
+	ods_log_info("[%s] deleted Zone: %s", module_str, zone);
 	return 0;
 }

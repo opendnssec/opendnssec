@@ -40,6 +40,27 @@
 
 static const char *module_str = "zonelist_task";
 
+bool
+write_zonelist_file_to_disk(::ods::keystate::ZoneListDocument &zone_list_doc, const std::string &filename, int sockfd) {
+
+	// TODO: As in 1.4, do some permissions checking here first
+	// TODO: As in 1.4, create a backup file. Need to implement a
+	// a copy function that doesn't use a system call! (unlike ods_file_copy)
+
+	// Do the write as an atomic operation i.e. write to a .tmp then rename it...
+	std::string filename_tmp(filename);
+	filename_tmp.append(".tmp");								
+    if (!write_pb_message_to_xml_file(&zone_list_doc, filename_tmp.c_str())) {
+         ods_log_error("[%s] writing zonelist xml to output failed", module_str);
+         return false;
+    }	
+    if (rename(filename_tmp.c_str(), filename.c_str()) != 0) {
+        ods_log_error("[%s] failed to rename %s to %s", module_str, filename_tmp.c_str(), filename.c_str());
+        return false;
+    }	
+	return true;
+}
+
 
 int
 perform_zonelist_export_to_file(const std::string& filename, engineconfig_type *config)
@@ -106,29 +127,10 @@ perform_zonelist_export(const std::string* filename, int sockfd, engineconfig_ty
 
 			// Where should we write the output?
             if (filename != NULL) {
-				// First create a backup file
-    			std::string filename_bak(*filename);
-    			filename_bak.append(".backup");	
-				// TDODO: Implement a copy function that doesn't use a system call!!!
-				// if (!ods_file_copy(filename->c_str(), filename_bak.c_str())) {
-				// 			        ods_log_error("[%s] failed to create backup %s to %s", module_str, filename->c_str(), filename_bak.c_str());
-				// 			        return 0;					
-				// }				
-				// Do the write as an atomic operation i.e. write to a .tmp then rename it...
-    			std::string filename_tmp(*filename);
-    			filename_tmp.append(".tmp");								
-	            if (!write_pb_message_to_xml_file(zonelistdoc.get(), filename_tmp.c_str())) {
+	             if (!write_zonelist_file_to_disk(*(zonelistdoc.get()), *filename, sockfd)) {
 	                 ods_log_error("[%s] writing zonelist xml to output failed", module_str);
 	                 return 0;
-	            }	
-			    if (rename(filename_tmp.c_str(), filename->c_str())) {
-			        ods_log_error("[%s] failed to rename %s to %s", module_str, filename_tmp.c_str(), filename->c_str());
-			        return 0;
-			    }
-			    if (!remove(filename_tmp.c_str())) {
-			        ods_log_error("[%s] failed to remove %s", module_str, filename_tmp.c_str());
-			    }			
-			
+	             }				
 			} else {
 				char *buf = NULL;
 				size_t bufc;

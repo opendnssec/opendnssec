@@ -29,9 +29,11 @@
 
 #include <memory>
 #include <string>
+#include <sys/stat.h>
 
 #include "protobuf-orm/pb-orm.h"
 #include "xmlext-pb/xmlext-wr.h"
+#include "xmlext-pb/xmlext-rd.h"
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/orm.h"
@@ -43,17 +45,72 @@ static const char *module_str = "write_signzone_task";
 
 
 
-int
-perform_write_signzone_file(int sockfd, engineconfig_type *config)
-{
-    //write signzone file
-    std::string signzone_file(config->working_dir);
-    signzone_file.append("/");
-    signzone_file.append(OPENDNSSEC_ENFORCER_ZONELIST);
+static void
+get_zones_file_name(std::string& filename, engineconfig_type *config) {
+	filename.assign(config->working_dir);
+    filename.append("/");
+    filename.append(OPENDNSSEC_ENFORCER_ZONELIST);
+}
 
-    if (!perform_zonelist_export_to_file(signzone_file,config)) {
-        ods_log_error_and_printf(sockfd, module_str, 
-                "failed to write %s", signzone_file.c_str());
-    }
+
+bool
+load_zones_file(::ods::keystate::ZoneListDocument &zonelistDoc, bool &file_not_found, engineconfig_type *config, int sockfd) {
+
+	// Find out if the zones.xml file exists
+	// This may be the first ever export, or something could have happened to the file...
+	file_not_found = false;
+    std::string zones_file;
+	get_zones_file_name(zones_file, config);
+
+	struct stat stat_ret;
+	if (stat(zones_file.c_str(), &stat_ret) != 0) {
+		if (errno != ENOENT) {
+			ods_log_error_and_printf(sockfd, module_str, "ERROR: cannot stat file %s: %s",
+					zones_file.c_str(), strerror(errno));
+			return false;
+		}
+		// This is a case where the file simply doesn't exist
+		file_not_found = true;
+		return false;
+	}
+	if (!S_ISREG(stat_ret.st_mode)) {
+		ods_log_error_and_printf(sockfd, module_str, "ERROR: %s is not a regular file \n", zones_file.c_str());
+		return false;
+	}
+
+	// The file exists, so lets load it 
+	if (!read_pb_message_from_xml_file(&zonelistDoc, zones_file.c_str())) {
+		ods_log_error_and_printf(sockfd,module_str,
+								 "Unable to read the %s file", zones_file.c_str());
+		return false;
+	}
+
+	// Note we don't do any validation or checking on this file as since it is an 'internal' file
+	return true;
+}
+
+bool
+dump_zones_file(::ods::keystate::ZoneListDocument &zonelistDoc, engineconfig_type *config, int sockfd) {
+
+    std::string zones_file;
+	get_zones_file_name(zones_file, config);
+	return write_zonelist_file_to_disk(zonelistDoc, zones_file, sockfd);
+
+}
+
+int
+perform_write_zones_file(int sockfd, engineconfig_type *config)
+{
+
+    //write signzone file
+    std::string signzone_file;
+	get_zones_file_name(signzone_file, config);
+
+	if (!perform_zonelist_export_to_file(signzone_file,config)) {
+    	ods_log_error_and_printf(sockfd, module_str, 
+            	"failed to write %s", signzone_file.c_str());
+	}
+
+	ods_log_debug("[%s] Exported internal zone list ", module_str);
     return 1;
 }
