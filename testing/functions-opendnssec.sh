@@ -32,7 +32,7 @@ ods_pre_test ()
 	ODS_SIGNER_START_COUNT=0
 	ODS_ENFORCER_STOP_COUNT=0
 	ODS_SIGNER_STOP_COUNT=0
-	
+
 	ods_nuke_env &&
 	ods_setup_conf &&
 	ods_setup_zone &&
@@ -132,7 +132,7 @@ ods_setup_conf ()
 		return 1
 	fi
 
-	# Conf files under /etc	
+	# Conf files under /etc
 	for conf_file in softhsm.conf; do
 		if [ -n "$conf" -a "$conf" != "$conf_file" ]; then
 			continue
@@ -293,7 +293,7 @@ ods_enforcer_start_timeshift ()
 		echo "usage: ods_enforcer_start_timeshift <timeout in seconds waiting for output>" >&2
 		exit 1
 	fi
-	
+
 	local time_start=`$DATE '+%s' 2>/dev/null`
 	local time_stop
 	local time_now
@@ -588,7 +588,7 @@ ods_start_enforcer ()
 
 	echo "ods_start_enforcer: Starting ods-enforcer now..."
 
- 	ods_enforcer_count_starts &&
+	ods_enforcer_count_starts &&
 	ods_ods-control_enforcer_start &&
 	ods_enforcer_waitfor_starts "$(( ODS_ENFORCER_START_COUNT + 1 ))" "$timeout" &&
 
@@ -613,7 +613,7 @@ ods_stop_enforcer ()
 
 	echo "ods_stop_enforcer: Stopping ods-enforcer now..."
 
- 	ods_enforcer_count_stops &&
+	ods_enforcer_count_stops &&
 	ods_ods-control_enforcer_stop &&
 	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$timeout" &&
 
@@ -655,7 +655,7 @@ ods_start_enforcer_timeshift ()
 
 	echo "ods_start_enforcer_timeshift: Starting ods-enforcer now..."
 
- 	ods_enforcer_count_stops &&
+	ods_enforcer_count_stops &&
 	ods_enforcer_start_timeshift "$ODS_ENFORCER_TIMESHIFT_WAIT" &&
 	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$ODS_ENFORCER_TIMESHIFT_WAIT" &&
 
@@ -696,7 +696,7 @@ ods_start_signer ()
 
 	echo "ods_start_signer: Starting ods-signer now..."
 
- 	ods_signer_count_starts &&
+	ods_signer_count_starts &&
 	ods_ods-control_signer_start &&
 	ods_signer_waitfor_starts "$(( ODS_SIGNER_START_COUNT + 1 ))" "$timeout" &&
 
@@ -720,7 +720,7 @@ ods_stop_signer ()
 
 	echo "ods_stop_signer: Stopping ods-signer now..."
 
- 	ods_signer_count_stops &&
+	ods_signer_count_stops &&
 	ods_ods-control_signer_stop	&&
 	ods_signer_waitfor_stops "$(( ODS_SIGNER_STOP_COUNT + 1 ))" "$timeout" &&
 
@@ -765,8 +765,8 @@ ods_start_ods-control ()
 
 	echo "ods_start_ods-control: Starting with ods-control now..."
 
- 	ods_signer_count_starts &&
- 	ods_enforcer_count_starts &&
+	ods_signer_count_starts &&
+	ods_enforcer_count_starts &&
 	ods_ods-control_start &&
 	ods_signer_waitfor_starts "$(( ODS_SIGNER_START_COUNT + 1 ))" "$timeout" &&
 	ods_enforcer_waitfor_starts "$(( ODS_ENFORCER_START_COUNT + 1 ))" "$timeout" &&
@@ -796,8 +796,8 @@ ods_stop_ods-control ()
 
 	echo "ods_stop_ods-control: Stopping with ods-control now..."
 
- 	ods_signer_count_stops &&
- 	ods_enforcer_count_stops &&
+	ods_signer_count_stops &&
+	ods_enforcer_count_stops &&
 	ods_ods-control_stop &&
 	ods_signer_waitfor_stops "$(( ODS_SIGNER_STOP_COUNT + 1 ))" "$timeout" &&
 	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$timeout" &&
@@ -960,15 +960,15 @@ ods_ldns_testns ()
 		echo "usage: ods_ldns_testns <port> <data file>" >&2
 		exit 1
 	fi
-	
+
 	local port="$1"
 	local datafile="$2"
 
 	log_init ldns-testns
-	
+
 	echo "ods_ldns_testns: starting ldns-testns port $port data file $datafile"
 	log_this ldns-testns ldns-testns -v -p "$port" "$datafile" &
-	
+
 	if log_waitfor ldns-testns stdout 5 "Listening on port"; then
 		return 0
 	fi
@@ -987,7 +987,7 @@ ods_bind9_start ()
 	local username=jenkins
 	local named_pid
 	local exit_code
-	
+
 	if [ -z "$BIND9_NAMED_PIDFILE" -o -z "$BIND9_NAMED_PORT" -o -z "$BIND9_NAMED_CONF" ]; then
 		echo "ods_bind9_start: one or more required environment variables missing: BIND9_NAMED_PIDFILE BIND9_NAMED_PORT BIND9_NAMED_CONF" >&2
 		return 1
@@ -1034,18 +1034,18 @@ ods_bind9_stop ()
 	local time_now
 	local timeout=60
 	local exit_code
-		
+
 	if [ -z "$BIND9_NAMED_PIDFILE" -o -z "$BIND9_NAMED_RNDC_PORT" -o -z "$BIND9_NAMED_CONFDIR" ]; then
 		echo "ods_bind9_stop: one or more required environment variables missing: BIND9_NAMED_PIDFILE BIND9_NAMED_RNDC_PORT BIND9_NAMED_CONFDIR" >&2
 		return 1
 	fi
-	
+
 	# check pidfile
 	if [ ! -f "$BIND9_NAMED_PIDFILE" ]; then
 		echo "ods_bind9_stop: cannot stop named, pidfile $BIND9_NAMED_PIDFILE does not exist" >&2
 		return 1
 	fi
-	
+
 	named_pid=`cat $BIND9_NAMED_PIDFILE`
 
 	if [ -z "$named_pid" -o "$named_pid" -lt 1 ] 2>/dev/null; then
@@ -1062,7 +1062,7 @@ ods_bind9_stop ()
 		echo "ods_bind9_stop: failed to stop named, rndc exit code $exit_code" >&2
 		return 1
 	fi
-	
+
 	# wait for it to finish & flush zonefile
 	time_start=`$DATE '+%s' 2>/dev/null`
 	time_stop=$(( time_start + timeout ))
@@ -1083,7 +1083,7 @@ ods_bind9_stop ()
 		fi
 		sleep 2
 	done
-	
+
 	echo "ods_bind9_stop: unable to stop named, timed out" >&2
 	return 1
 }
@@ -1146,21 +1146,21 @@ ods_bind9_dynupdate ()
 		# write file
 		echo "rr_add test$update_iter.$zone_name. 7200 NS ns1.test$update_iter.$zone_name." >> "$update_file"
 		echo "rr_add ns1.test$update_iter.$zone_name. 7200 A 1.2.3.4" >> "$update_file"
-		
+
 		# next update
 		update_iter=$(( update_iter + 1 ))
 		update_iterrun=$(( update_iterrun + 1 ))
-		
+
 		if [ "$update_iterrun" -ge "$update_perrun" ] 2>/dev/null; then
 			# call perl script
 			"$BIND9_TEST_ROOTDIR/send_update.pl" -z "$zone_name." -k "$BIND9_NAMED_CONF" -u "$update_file" -l "$log_file" >/dev/null 2>/dev/null
 			exit_code="$?"
-				
+
 			if [ "$exit_code" -ne 0 ] 2>/dev/null; then
 				echo "ods_bind9_dynupdate: send_update.pl failed, exit code $exit_code" >&2
 				return 1
 			fi
-			
+
 			update_iterrun=0
 			rm -rf "$update_file"
 		fi
@@ -1168,12 +1168,12 @@ ods_bind9_dynupdate ()
 
 	# check updates
 	echo "ods_bind9_dynupdate: check $update_total updates in zone $zone_name"
-	
+
 	if [ ! -f "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" ]; then
 		echo "ods_bind9_dynupdate: zone file $zone_name not found under $INSTALL_ROOT/var/opendnssec/signed" >&2
 		return 1
 	fi
-	
+
 	update_iter=0
 	while [ "$update_iter" -lt "$update_total" ] 2>/dev/null; do
 		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 10 "test$update_iter\.$zone_name\..*7200.*IN.*NS.*ns1\.test$update_iter\.$zone_name\." >/dev/null 2>/dev/null; then
