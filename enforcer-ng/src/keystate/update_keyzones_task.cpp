@@ -279,16 +279,22 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
     }
 
 	for (item iterator = zones_delete.begin(); iterator != zones_delete.end(); iterator++) {
-		ods_printf(sockfd, "Zone %s not found in zonelist.xml\n", iterator->c_str());			
-		(void)perform_zone_del(sockfd, config, iterator->c_str(), 0, true);
+		ods_printf(sockfd, "Zone %s not found in zonelist.xml\n", iterator->c_str());
+		// TODO: Clean this up. This method is re-used from the single zone delete
+		// so we need to specify not to log output and not to update the zones.files each time			
+		perform_zone_del(sockfd, config, iterator->c_str(), 0, true, false);
 		ods_printf(sockfd, "Deleted zone %s from database\n", iterator->c_str());		
 	}
 
 	/* write internal zonelist */
-	if (!perform_write_signzone_file(sockfd, config)) {
+	if (!perform_write_zones_file(sockfd, config)) {
 		ods_log_error_and_printf(sockfd, module_str, 
 			"failed to write internal zonelist");
 		return 0;
 	}
+	
+	ods_log_info("[%s] zonelist loaded from %s", module_str, config->zonelist_filename);
+	ods_printf(sockfd,"zonelist loaded from %s\n", config->zonelist_filename);	
+	
 	return 1;
 }

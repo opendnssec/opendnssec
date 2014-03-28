@@ -33,6 +33,6 @@
 #include "daemon/cfg.h"
 
 int perform_zone_del(int sockfd, engineconfig_type *config, 
-	const char *zone, int need_write_xml, bool quiet);
+	const char *zone, int need_write_xml, bool quiet, bool export_files);
 
 #endif /* _KEYSTATE_ZONE_DEL_TASK_H_ */

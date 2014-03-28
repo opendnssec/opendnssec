@@ -32,6 +32,19 @@
 
 #include "daemon/cfg.h"
 
-int perform_write_signzone_file(int sockfd, engineconfig_type *config);
+namespace ods {
+	namespace keystate {
+		class ZoneListDocument;
+	}
+}
+
+// This method performs a bulk export of the file be retriving the 
+// entire zone list from the database
+int perform_write_zones_file(int sockfd, engineconfig_type *config);
+
+// These methods load/dump from the zones file into the zonelistDoc structures
+// They are used in the cases where incremental updates to the zones file are needed
+bool load_zones_file(::ods::keystate::ZoneListDocument &zonelistDoc, bool &file_not_found, engineconfig_type *config, int sockfd);
+bool dump_zones_file(::ods::keystate::ZoneListDocument &zonelistDoc, engineconfig_type *config, int sockfd);
 
 #endif /* _KEYSTATE_WRITE_SIGNZONE_TASK_H_ */

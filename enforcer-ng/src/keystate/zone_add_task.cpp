@@ -49,6 +49,53 @@
 
 static const char *module_str = "zone_add_task";
 
+static bool 
+add_zone_to_zones_file(::ods::keystate::EnforcerZone &ks_zone, engineconfig_type *config, int sockfd) {
+
+	::ods::keystate::ZoneListDocument  zonelistDoc;
+	bool file_not_found = true;
+
+	// Find out if the zones.xml file exists
+	// This may be the first ever zone, or something could have happened to the file...	
+	if (!load_zones_file(zonelistDoc, file_not_found, config, sockfd)) {
+		if (file_not_found) {
+			// It simply doesn't exist, so do a bulk export instead and we are done
+			return perform_write_zones_file(sockfd, config);			
+		}
+		else {
+			// If we can't load it and it isn't because it doesn't exist then bail
+			ods_log_error("[%s] Can't load internal zone list ", module_str);
+			return false;
+		}			
+	}
+
+	// Now lets see if the zone exists. We must do this to make sure we don't add it twice
+	// TODO: Is there a better way to do this search (load data into a set)?
+	const ::ods::keystate::ZoneList &zonelist = zonelistDoc.zonelist();
+	for (int i=0; i < zonelist.zones_size(); ++i) {
+		if (ks_zone.name().compare(zonelist.zones(i).name())  == 0) {
+			// Found it, something is wrong. We could delete and re-add but lets bail with an error
+			ods_log_error_and_printf(sockfd, module_str, "ERROR: Zone %s already exists in zones.xml",
+					ks_zone.name().c_str());
+			return false;			
+		}
+	}
+
+	// All good, so lets add the new zone into the list
+    std::auto_ptr< ::ods::keystate::ZoneData > zonedata(new ::ods::keystate::ZoneData);
+    zonedata->set_name(ks_zone.name());
+    zonedata->set_policy(ks_zone.policy());
+    zonedata->set_signer_configuration( ks_zone.signconf_path());
+    zonedata->mutable_adapters()->CopyFrom(ks_zone.adapters());
+    ::ods::keystate::ZoneData *added_zonedata = zonelistDoc.mutable_zonelist()->add_zones();
+    added_zonedata->CopyFrom(*zonedata);
+
+	// And now lets spit it out to disk
+	ods_log_debug("[%s] Incrementing contents of zone list to add zone %s", module_str, ks_zone.name().c_str());	
+	return dump_zones_file(zonelistDoc, config, sockfd);
+}
+
+
 int 
 perform_zone_add(int sockfd,
 				 engineconfig_type *config,
@@ -64,6 +111,7 @@ perform_zone_add(int sockfd,
                  int need_write_xml)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	::ods::keystate::EnforcerZone ks_zone;
 
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
@@ -91,7 +139,6 @@ perform_zone_add(int sockfd,
 
 		{	OrmResultRef rows;
 			
-			::ods::keystate::EnforcerZone ks_zone;
 			if (!OrmMessageEnumWhere(conn, ks_zone.descriptor(), rows,
 									 "name = %s",qzone.c_str()))
 			{
@@ -187,13 +234,17 @@ perform_zone_add(int sockfd,
 		}
 	}
 
-	// Now lets write out the required files - the internal list and optionally the zonelist.xml
-	// Note at the moment we re-export the whole file in zonelist.xml format here but this should be optimised....
-    if (!perform_write_signzone_file(sockfd, config)) {
+	// Now lets write out the required files.
+	// Firstly lets do an incremental update on the internal zones.xml file. 
+	// We judge this as safe as only the enforcer should write to this file.
+    if (!add_zone_to_zones_file(ks_zone, config, sockfd)) {
         ods_log_error_and_printf(sockfd, module_str, 
-                "failed to write internal zonelist");
+                "failed to increment contents of internal zone list file");
+			return 1;
 	}
-
+	
+	// Then if the --xml flag was used do a bulk export to zonelist.xml. This is not efficient, but is the only way to
+	// ensure this file is a consistent with the database, which is what this flag means.	
     if (need_write_xml) {
 		if (!perform_zonelist_export_to_file(config->zonelist_filename,config)) {
         	ods_log_error_and_printf(sockfd, module_str, 
