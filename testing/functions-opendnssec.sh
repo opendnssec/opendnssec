@@ -344,7 +344,7 @@ ods_enforcer_start_timeshift ()
 		echo "usage: ods_enforcer_start_timeshift <timeout in seconds waiting for output>" >&2
 		exit 1
 	fi
-	
+
 	local time_start=`$DATE '+%s' 2>/dev/null`
 	local time_stop
 	local time_now
