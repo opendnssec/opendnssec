@@ -220,7 +220,7 @@ ods_setup_zone ()
 
 	if [ -n "$zone" ]; then
 		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
-			echo "ods_setup_conf: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
+			echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 			return 1
 		fi
 
@@ -231,7 +231,7 @@ ods_setup_zone ()
 		ls -1 unsigned/ | while read zone; do
 			if [ -f "unsigned/$zone" ]; then
 				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
-					echo "ods_setup_conf: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
+					echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 					return 1
 				fi
 			fi
