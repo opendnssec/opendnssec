@@ -214,7 +214,11 @@ interface_start(const char* cmd, const char* servsock_filename)
     if (connect(sockfd, (const struct sockaddr*) &servaddr, sizeof(servaddr)) == -1) {
         if (cmd) {
             if (strncmp(cmd, "start", 5) == 0) {
-                return system(ODS_EN_ENGINE);
+                exitcode = system(ODS_EN_ENGINE);
+                if (exitcode == 0) return 0;
+                fprintf(stderr, "Error: Daemon reported a failure "
+                    "starting. Please consult the logfiles.\n");
+                return exitcode;
             } else if (strcmp(cmd, "running\n") == 0) {
                 fprintf(stdout, "Engine not running.\n");
                 return 209;
