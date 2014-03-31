@@ -85,7 +85,16 @@ int main(void) {
         return CU_get_error();
     }
 
-    if (!CU_add_test(pSuite, "test of read object", test_database_operations_read_object))
+    if (!CU_add_test(pSuite, "test of read object 1", test_database_operations_read_object1)
+        || !CU_add_test(pSuite, "test of create object 2", test_database_operations_create_object2)
+        || !CU_add_test(pSuite, "test of read object 2", test_database_operations_read_object2)
+        || !CU_add_test(pSuite, "test of read object 1 (#2)", test_database_operations_read_object1)
+        || !CU_add_test(pSuite, "test of create object 3", test_database_operations_create_object3)
+        || !CU_add_test(pSuite, "test of update object 2", test_database_operations_update_object2)
+        || !CU_add_test(pSuite, "test of delete object 3", test_database_operations_delete_object3)
+        || !CU_add_test(pSuite, "test of read object 1 (#3)", test_database_operations_read_object1)
+        || !CU_add_test(pSuite, "test of delete object 2", test_database_operations_delete_object2)
+        || !CU_add_test(pSuite, "test of read object 1 (#4)", test_database_operations_read_object1))
     {
         CU_cleanup_registry();
         return CU_get_error();

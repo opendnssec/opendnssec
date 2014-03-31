@@ -32,6 +32,7 @@
 #include "../db_object.h"
 
 #include "CUnit/Basic.h"
+#include <string.h>
 
 typedef struct {
     db_object_t* dbo;
@@ -99,6 +100,18 @@ const char* test_name(const test_t* test) {
     return test->name;
 }
 
+int test_set_name(test_t* test, const char *name) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(name);
+
+    if (test->name) {
+        free(test->name);
+    }
+    test->name = strdup(name);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
+    return 0;
+}
+
 int test_get_by_id(test_t* test, int id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
@@ -121,6 +134,7 @@ int test_get_by_id(test_t* test, int id) {
     CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
     CU_ASSERT_FATAL(!db_value_from_int32(db_clause_get_value(clause), id));
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
+    clause = NULL;
 
     ret = 1;
     result_list = db_object_read(test->dbo, NULL, clause_list);
@@ -145,6 +159,110 @@ int test_get_by_id(test_t* test, int id) {
 
     db_result_list_free(result_list);
     db_clause_list_free(clause_list);
+    db_clause_free(clause);
+    return ret;
+}
+
+int test_create(test_t* test) {
+    db_object_field_list_t* object_field_list;
+    db_object_field_t* object_field;
+    db_value_set_t* value_set;
+    db_value_t* value;
+    int ret = 0;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test);
+    CU_ASSERT_FATAL(!test->id);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
+    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
+    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
+    object_field = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value_set = db_value_set_new(1)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value = db_value_set_get(value_set, 0)));
+    CU_ASSERT_FATAL(!db_value_from_text(value, test->name));
+
+    if (db_object_create(test->dbo, object_field_list, value_set)) {
+        ret = 1;
+    }
+
+    db_value_set_free(value_set);
+    db_object_field_free(object_field);
+    db_object_field_list_free(object_field_list);
+    CU_ASSERT(!ret);
+    return ret;
+}
+
+int test_update(test_t* test) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    db_object_field_list_t* object_field_list;
+    db_object_field_t* object_field;
+    db_value_set_t* value_set;
+    db_value_t* value;
+    int ret = 0;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test);
+    CU_ASSERT_FATAL(test->id);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
+    CU_ASSERT_FATAL(!db_clause_set_field(clause, "id"));
+    CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
+    CU_ASSERT_FATAL(!db_value_from_int32(db_clause_get_value(clause), test->id));
+    CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
+    clause = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
+    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
+    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
+    object_field = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value_set = db_value_set_new(1)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((value = db_value_set_get(value_set, 0)));
+    CU_ASSERT_FATAL(!db_value_from_text(value, test->name));
+
+    if (db_object_update(test->dbo, object_field_list, value_set, clause_list)) {
+        ret = 1;
+    }
+
+    db_clause_list_free(clause_list);
+    db_clause_free(clause);
+    db_value_set_free(value_set);
+    db_object_field_free(object_field);
+    db_object_field_list_free(object_field_list);
+    CU_ASSERT(!ret);
+    return ret;
+}
+
+int test_delete(test_t* test) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    int ret = 0;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test);
+    CU_ASSERT_FATAL(test->id);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
+    CU_ASSERT_FATAL(!db_clause_set_field(clause, "id"));
+    CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
+    CU_ASSERT_FATAL(!db_value_from_int32(db_clause_get_value(clause), test->id));
+    CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
+    clause = NULL;
+
+    if (db_object_delete(test->dbo, clause_list)) {
+        ret = 1;
+    }
+
+    db_clause_list_free(clause_list);
+    db_clause_free(clause);
     CU_ASSERT(!ret);
     return ret;
 }
@@ -216,8 +334,119 @@ int clean_suite_database_operations(void) {
     return 0;
 }
 
-void test_database_operations_read_object(void) {
+void test_database_operations_read_object1(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
     CU_ASSERT_FATAL(!test_get_by_id(test, 1));
-    CU_ASSERT_FATAL(test_id(test) == 1);
+    CU_ASSERT(test_id(test) == 1);
+    CU_ASSERT(!strcmp(test_name(test), "test"));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+}
+
+void test_database_operations_create_object2(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_set_name(test, "name 2"));
+    CU_ASSERT(!strcmp(test_name(test), "name 2"));
+    CU_ASSERT_FATAL(!test_create(test));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
+    CU_ASSERT(test_id(test) == 2);
+    CU_ASSERT(!strcmp(test_name(test), "name 2"));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+}
+
+void test_database_operations_read_object2(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
+    CU_ASSERT(test_id(test) == 2);
+    CU_ASSERT(!strcmp(test_name(test), "name 2"));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+}
+
+void test_database_operations_update_object2(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
+    CU_ASSERT_FATAL(!test_set_name(test, "name 3"));
+    CU_ASSERT(!strcmp(test_name(test), "name 3"));
+    CU_ASSERT_FATAL(!test_update(test));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
+    CU_ASSERT(test_id(test) == 2);
+    CU_ASSERT(!strcmp(test_name(test), "name 3"));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+}
+
+void test_database_operations_delete_object2(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
+    CU_ASSERT_FATAL(!test_delete(test));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(test_get_by_id(test, 2));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+}
+
+void test_database_operations_create_object3(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_set_name(test, "name 3"));
+    CU_ASSERT(!strcmp(test_name(test), "name 3"));
+    CU_ASSERT_FATAL(!test_create(test));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_get_by_id(test, 3));
+    CU_ASSERT(test_id(test) == 3);
+    CU_ASSERT(!strcmp(test_name(test), "name 3"));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+}
+
+void test_database_operations_delete_object3(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(!test_get_by_id(test, 3));
+    CU_ASSERT_FATAL(!test_delete(test));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT_FATAL(test_get_by_id(test, 3));
+
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
 }

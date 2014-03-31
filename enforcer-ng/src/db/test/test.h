@@ -57,6 +57,12 @@ void test_initialization_connection(void);
 
 int init_suite_database_operations(void);
 int clean_suite_database_operations(void);
-void test_database_operations_read_object(void);
+void test_database_operations_read_object1(void);
+void test_database_operations_create_object2(void);
+void test_database_operations_read_object2(void);
+void test_database_operations_update_object2(void);
+void test_database_operations_delete_object2(void);
+void test_database_operations_create_object3(void);
+void test_database_operations_delete_object3(void);
 
 #endif
