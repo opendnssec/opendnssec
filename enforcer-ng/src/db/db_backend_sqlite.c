@@ -379,7 +379,7 @@ int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_clause_lis
                 break;
 
             case DB_TYPE_TEXT:
-                ret = sqlite3_bind_text(statement, *bind++, db_value_text(db_clause_value(clause)), 0, SQLITE_STATIC);
+                ret = sqlite3_bind_text(statement, *bind++, db_value_text(db_clause_value(clause)), -1, SQLITE_STATIC);
                 if (ret != SQLITE_OK) {
                     return DB_ERROR_UNKNOWN;
                 }
@@ -728,7 +728,7 @@ int db_backend_sqlite_create(void* data, const db_object_t* object, const db_obj
             break;
 
         case DB_TYPE_TEXT:
-            ret = sqlite3_bind_text(statement, bind++, db_value_text(value), 0, SQLITE_STATIC);
+            ret = sqlite3_bind_text(statement, bind++, db_value_text(value), -1, SQLITE_STATIC);
             if (ret != SQLITE_OK) {
                 sqlite3_finalize(statement);
                 return DB_ERROR_UNKNOWN;
@@ -1032,7 +1032,7 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
             break;
 
         case DB_TYPE_TEXT:
-            ret = sqlite3_bind_text(statement, bind++, db_value_text(value), 0, SQLITE_STATIC);
+            ret = sqlite3_bind_text(statement, bind++, db_value_text(value), -1, SQLITE_STATIC);
             if (ret != SQLITE_OK) {
                 sqlite3_finalize(statement);
                 return DB_ERROR_UNKNOWN;
