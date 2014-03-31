@@ -63,6 +63,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	int argc;
 	ods_log_debug("[%s] %s command", module_str, policy_export_funcblock()->cmdname);
 
+	cmd = ods_check_command(cmd, n, policy_export_funcblock()->cmdname);
+
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
 
