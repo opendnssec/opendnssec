@@ -127,6 +127,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 {
 	int error;
 	ods_log_debug("[%s] %s command", module_str, key_gen_funcblock()->cmdname);
+	
+	cmd = ods_check_command(cmd, n, key_gen_funcblock()->cmdname);
+	
 	time_t period;
 	error = get_period(sockfd,engine->config, 
 		key_gen_funcblock()->cmdname, cmd, period);
