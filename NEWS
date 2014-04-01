@@ -1,3 +1,10 @@
+OpenDNSSEC 1.4 develop
+
+Bugfixes:
+* OPENDNSSEC-607: libhsm not using all mandatory attributes for GOST key
+  generation.
+
+
 OpenDNSSEC 1.4.4 - 2014-03-25
 
 * SUPPORT-114: libhsm: Optimize storage in HSM by deleting the public
