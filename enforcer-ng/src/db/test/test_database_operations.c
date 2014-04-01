@@ -40,39 +40,53 @@ typedef struct {
     char* name;
 } test_t;
 
+typedef struct {
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    test_t* test;
+} test_list_t;
+
 static db_configuration_list_t* configuration_list = NULL;
 static db_configuration_t* configuration = NULL;
 static db_connection_t* connection = NULL;
 static test_t* test = NULL;
+static test_list_t* test_list = NULL;
 static db_value_t object2_id, object3_id;
 
-test_t* test_new(const db_connection_t* connection) {
+db_object_t* __test_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
+    db_object_t* object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object = db_object_new()));
+
+    CU_ASSERT_FATAL(!db_object_set_connection(object, connection));
+    CU_ASSERT_FATAL(!db_object_set_table(object, "test"));
+    CU_ASSERT_FATAL(!db_object_set_primary_key_name(object, "id"));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
+    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "id"));
+    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY));
+    CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
+    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
+    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
+
+    CU_ASSERT_FATAL(!db_object_set_object_field_list(object, object_field_list));
+
+    return object;
+}
+
+test_t* test_new(const db_connection_t* connection) {
     test_t* test =
         (test_t*)calloc(1, sizeof(test_t));
 
     if (test) {
-        CU_ASSERT_PTR_NOT_NULL_FATAL((test->dbo = db_object_new()));
-
-        CU_ASSERT_FATAL(!db_object_set_connection(test->dbo, connection));
-        CU_ASSERT_FATAL(!db_object_set_table(test->dbo, "test"));
-        CU_ASSERT_FATAL(!db_object_set_primary_key_name(test->dbo, "id"));
-
-        CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
-
-        CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-        CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "id"));
-        CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY));
-        CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
-
-        CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-        CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
-        CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
-        CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
-
-        CU_ASSERT_FATAL(!db_object_set_object_field_list(test->dbo, object_field_list));
-
+        CU_ASSERT_PTR_NOT_NULL_FATAL((test->dbo = __test_new_object(connection)));
         CU_ASSERT_PTR_NOT_NULL_FATAL((test->id = db_value_new()));
     }
 
@@ -118,6 +132,27 @@ int test_set_name(test_t* test, const char *name) {
     return 0;
 }
 
+int test_from_result(test_t* test, const db_result_t* result) {
+    const db_value_set_t* value_set;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(result);
+
+    db_value_reset(test->id);
+    if (test->name) {
+        free(test->name);
+    }
+    test->name = NULL;
+
+    value_set = db_result_value_set(result);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(value_set);
+    CU_ASSERT_FATAL(db_value_set_size(value_set) == 2);
+    CU_ASSERT_FATAL(!db_value_copy(test->id, db_value_set_at(value_set, 0)));
+    CU_ASSERT_FATAL(!db_value_to_text(db_value_set_at(value_set, 1), &(test->name)));
+    return 0;
+}
+
 int test_get_by_name(test_t* test, const char* name) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
@@ -147,12 +182,7 @@ int test_get_by_name(test_t* test, const char* name) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            const db_value_set_t* value_set = db_result_value_set(result);
-
-            CU_ASSERT_PTR_NOT_NULL_FATAL(value_set);
-            CU_ASSERT_FATAL(db_value_set_size(value_set) == 2);
-            CU_ASSERT_FATAL(!db_value_copy(test->id, db_value_set_at(value_set, 0)));
-            CU_ASSERT_FATAL(!db_value_to_text(db_value_set_at(value_set, 1), &(test->name)));
+            test_from_result(test, result);
             ret = 0;
         }
         CU_ASSERT_PTR_NULL((result = db_result_list_next(result_list)));
@@ -324,6 +354,83 @@ int test_delete(test_t* test) {
     return ret;
 }
 
+test_list_t* test_list_new(const db_connection_t* connection) {
+    test_list_t* test_list =
+        (test_list_t*)calloc(1, sizeof(test_list_t));
+
+    if (test_list) {
+        CU_ASSERT_PTR_NOT_NULL_FATAL((test_list->dbo = __test_new_object(connection)));
+    }
+
+    return test_list;
+}
+
+void test_list_free(test_list_t* test_list) {
+    if (test_list) {
+        if (test_list->dbo) {
+            db_object_free(test_list->dbo);
+        }
+        if (test_list->result_list) {
+            db_result_list_free(test_list->result_list);
+        }
+        if (test_list->test) {
+            test_free(test_list->test);
+        }
+        free(test_list);
+    }
+}
+
+int test_list_get(test_list_t* test_list) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test_list);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test_list->dbo);
+
+    if (test_list->result_list) {
+        db_result_list_free(test_list->result_list);
+    }
+    CU_ASSERT_PTR_NOT_NULL((test_list->result_list = db_object_read(test_list->dbo, NULL, NULL)));
+    if (!test_list->result_list) {
+        return 1;
+    }
+    return 0;
+}
+
+const test_t* test_list_begin(test_list_t* test_list) {
+    const db_result_t* result;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test_list);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test_list->result_list);
+
+    result = db_result_list_begin(test_list->result_list);
+    if (!result) {
+        return NULL;
+    }
+    if (!test_list->test) {
+        CU_ASSERT_PTR_NOT_NULL_FATAL((test_list->test = test_new(db_object_connection(test_list->dbo))));
+    }
+    if (test_from_result(test_list->test, result)) {
+        return NULL;
+    }
+    return test_list->test;
+}
+
+const test_t* test_list_next(test_list_t* test_list) {
+    const db_result_t* result;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test_list);
+
+    result = db_result_list_next(test_list->result_list);
+    if (!result) {
+        return NULL;
+    }
+    if (!test_list->test) {
+        CU_ASSERT_PTR_NOT_NULL_FATAL((test_list->test = test_new(db_object_connection(test_list->dbo))));
+    }
+    if (test_from_result(test_list->test, result)) {
+        return NULL;
+    }
+    return test_list->test;
+}
+
 int init_suite_database_operations_sqlite(void) {
     if (configuration_list) {
         return 1;
@@ -467,6 +574,8 @@ int init_suite_database_operations_couchdb(void) {
 int clean_suite_database_operations(void) {
     test_free(test);
     test = NULL;
+    test_list_free(test_list);
+    test_list = NULL;
     db_connection_free(connection);
     connection = NULL;
     db_configuration_free(configuration);
@@ -637,4 +746,22 @@ void test_database_operations_delete_object3(void) {
     test_free(test);
     test = NULL;
     CU_PASS("test_free");
+}
+
+void test_database_operations_read_all(void) {
+    const test_t* local_test;
+    int count = 0;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test_list = test_list_new(connection)));
+    CU_ASSERT_FATAL(!test_list_get(test_list));
+    local_test = test_list_begin(test_list);
+    while (local_test) {
+        count++;
+        local_test = test_list_next(test_list);
+    }
+    CU_ASSERT(count == 3);
+
+    test_list_free(test_list);
+    test_list = NULL;
+    CU_PASS("test_list_free");
 }

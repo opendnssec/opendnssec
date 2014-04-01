@@ -65,5 +65,6 @@ void test_database_operations_update_object2(void);
 void test_database_operations_delete_object2(void);
 void test_database_operations_create_object3(void);
 void test_database_operations_delete_object3(void);
+void test_database_operations_read_all(void);
 
 #endif
