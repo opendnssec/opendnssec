@@ -1786,7 +1786,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                  digest);
             break;
         case LDNS_SIGN_ECC_GOST:
-            digest_len = 16;
+            digest_len = 32;
             digest = hsm_digest_through_hsm(ctx, session,
                                             CKM_GOSTR3411, digest_len,
                                             sign_buf);
@@ -2544,10 +2544,12 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
         CKM_GOSTR3410_KEY_PAIR_GEN, NULL_PTR, 0
     };
 
-    CK_BYTE oid[] = { 0x06, 0x07, 0x2A, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01 };
+    CK_BYTE oid1[] = { 0x06, 0x07, 0x2A, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01 };
+    CK_BYTE oid2[] = { 0x06, 0x07, 0x2A, 0x85, 0x03, 0x02, 0x02, 0x1E, 0x01 };
 
     CK_ATTRIBUTE publicKeyTemplate[] = {
-        { CKA_GOSTR3410PARAMS,     oid,      sizeof(oid)     },
+        { CKA_GOSTR3410PARAMS,     oid1,     sizeof(oid1)    },
+        { CKA_GOSTR3411PARAMS,     oid2,     sizeof(oid2)    },
         { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)  },
         { CKA_ID,                  id,       16              },
         { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
@@ -2587,7 +2589,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
                                                  &mechanism,
-                                                 publicKeyTemplate, 10,
+                                                 publicKeyTemplate, 9,
                                                  privateKeyTemplate, 10,
                                                  &publicKey,
                                                  &privateKey);
@@ -2750,10 +2752,10 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     ldns_buffer *sign_buf;
     ldns_rdf *b64_rdf;
     size_t i;
-    (void) ctx;
 
     if (!key) return NULL;
     if (!sign_params) return NULL;
+    if (!ctx) ctx = _hsm_ctx;
 
     signature = hsm_create_empty_rrsig((ldns_rr_list *)rrset,
                                        sign_params);
