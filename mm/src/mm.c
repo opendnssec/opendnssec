@@ -66,6 +66,9 @@ void* mm_alloc_new(mm_alloc_t* alloc) {
     if (alloc->size < 1) {
         return NULL;
     }
+    if (__pagesize < alloc->size) {
+        return NULL;
+    }
     if (pthread_mutex_lock(&(alloc->lock))) {
         return NULL;
     }
