@@ -16,7 +16,7 @@ fi &&
 test -f "$INSTALL_ROOT/var/opendnssec/signer/test-notify-command.sh" &&
 chmod a+x "$INSTALL_ROOT/var/opendnssec/signer/test-notify-command.sh" &&
 
-ods_reset_env 20 &&
+ods_reset_env &&
 
 ods_start_ods-control && 
 

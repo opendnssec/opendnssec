@@ -18,7 +18,7 @@ if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-ods_reset_env 20  &&
+ods_reset_env  &&
 
 ods_start_enforcer && 
 

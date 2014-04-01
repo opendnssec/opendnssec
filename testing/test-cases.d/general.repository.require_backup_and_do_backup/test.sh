@@ -18,11 +18,10 @@ log_this ods-ksmutil-backup-commit ods-ksmutil backup commit &&
 
 # Count how many times the enforcer has run
 ods_enforcer_count_starts &&
-local test_enforcer_start_count="$syslog_grep_count_variable" &&
 
 log_this ods-ksmutil-notify ods-ksmutil notify &&
 # We should see the enforcer wake up and run once more
-ods_enforcer_waitfor_starts $(( test_enforcer_start_count + 1 )) &&
+ods_enforcer_waitfor_starts $(( ODS_ENFORCER_START_COUNT + 1 )) &&
 
 ods_start_signer &&
 

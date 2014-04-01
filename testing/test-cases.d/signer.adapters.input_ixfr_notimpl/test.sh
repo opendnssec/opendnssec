@@ -9,7 +9,7 @@ if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-ods_reset_env 20 &&
+ods_reset_env &&
 
 ## Start master name server
 ods_ldns_testns 15353 ods.datafile &&
