@@ -149,8 +149,6 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     urlp += ret;
     left -= ret;
 
-    puts(url);
-
     curl_easy_setopt(backend_couchdb->curl, CURLOPT_URL, url);
     curl_easy_setopt(backend_couchdb->curl, CURLOPT_WRITEFUNCTION, __db_backend_couchdb_write_response);
     curl_easy_setopt(backend_couchdb->curl, CURLOPT_WRITEDATA, backend_couchdb);
@@ -267,7 +265,6 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
     size = 0;
     json_iter = json_object_iter(json_object);
     while (json_iter) {
-        puts(json_object_iter_key(json_iter));
         if (!strcmp(json_object_iter_key(json_iter), "_rev")) {
             json_iter = json_object_iter_next(json_object, json_iter);
             continue;
@@ -392,7 +389,7 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         return NULL;
     }
 
-    code = __db_backend_couchdb_request(backend_couchdb, "/abc123");
+    code = __db_backend_couchdb_request(backend_couchdb, "/1");
     if (code != 200) {
         return NULL;
     }
@@ -415,50 +412,41 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         }
 
         if (db_result_list_add(result_list, result)) {
+            json_decref(root);
             db_result_free(result);
             db_result_list_free(result_list);
             return NULL;
         }
     }
+    else if (json_is_array(root)) {
+        for (i = 0; i < json_array_size(root); i++) {
+            if (!json_is_object(json_array_get(root, i))) {
+                json_decref(root);
+                db_result_list_free(result_list);
+                return NULL;
+            }
 
-    return result_list;
+            if (!(result = __db_backend_couchdb_result_from_json_object(object, json_array_get(root, i)))) {
+                json_decref(root);
+                db_result_list_free(result_list);
+                return NULL;
+            }
 
-/*
-
-    if (!json_is_array(root)) {
-        fprintf(stderr, "error: root is not an array\n");
+            if (db_result_list_add(result_list, result)) {
+                json_decref(root);
+                db_result_free(result);
+                db_result_list_free(result_list);
+                return NULL;
+            }
+        }
+    }
+    else {
         json_decref(root);
+        db_result_list_free(result_list);
         return NULL;
     }
 
-    for (i = 0; i < json_array_size(root); i++) {
-        json_t *entry;
-        const char *message_text;
-
-        entry = json_array_get(root, i);
-        if (!json_is_object(entry)) {
-            fprintf(stderr, "error: entry %d is not an object\n", (int)(i + 1));
-            json_decref(root);
-            return NULL;
-        }
-
-        sha = json_object_get(data, "sha");
-        if(!json_is_string(sha))
-        {
-            fprintf(stderr, "error: commit %d: sha is not a string\n", (int)(i + 1));
-            return 1;
-        }
-
-
-        if (!(result = db_result_new())
-            || !(value_set = db_value_set_new(statement->fields))
-            || db_result_set_value_set(result, value_set))
-        {
-            db_result_free(result);
-            db_value_set_free(value_set);
-            return NULL;
-        }
-*/
+    return result_list;
 }
 
 int db_backend_couchdb_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
