@@ -40,14 +40,14 @@
 
 int db_backend_sqlite_transaction_rollback(void*);
 
-int __sqlite3_initialized = 0;
+static int __sqlite3_initialized = 0;
 
 typedef struct db_backend_sqlite {
     sqlite3* db;
     int transaction;
 } db_backend_sqlite_t;
 
-mm_alloc_t __sqlite_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_t));
+static mm_alloc_t __sqlite_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_t));
 
 typedef struct db_backend_sqlite_statement {
     db_backend_sqlite_t* backend_sqlite;
@@ -56,7 +56,7 @@ typedef struct db_backend_sqlite_statement {
     const db_object_t* object;
 } db_backend_sqlite_statement_t;
 
-mm_alloc_t __statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_statement_t));
+static mm_alloc_t __sqlite_statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_statement_t));
 
 int db_backend_sqlite_initialize(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
@@ -445,7 +445,7 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
 
     if (finish) {
         sqlite3_finalize(statement->statement);
-        mm_alloc_delete(&__statement_alloc, statement);
+        mm_alloc_delete(&__sqlite_statement_alloc, statement);
         return NULL;
     }
 
@@ -846,7 +846,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
         }
     }
 
-    statement = mm_alloc_new0(&__statement_alloc);
+    statement = mm_alloc_new0(&__sqlite_statement_alloc);
     if (!statement) {
         return NULL;
     }
@@ -866,7 +866,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
         if (statement->statement) {
             sqlite3_finalize(statement->statement);
         }
-        mm_alloc_delete(&__statement_alloc, statement);
+        mm_alloc_delete(&__sqlite_statement_alloc, statement);
         return NULL;
     }
 
@@ -874,7 +874,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
         bind = 1;
         if (__db_backend_sqlite_bind_clause(statement->statement, clause_list, &bind)) {
             sqlite3_finalize(statement->statement);
-            mm_alloc_delete(&__statement_alloc, statement);
+            mm_alloc_delete(&__sqlite_statement_alloc, statement);
             return NULL;
         }
     }
@@ -883,7 +883,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
         || db_result_list_set_next(result_list, db_backend_sqlite_next, statement))
     {
         sqlite3_finalize(statement->statement);
-        mm_alloc_delete(&__statement_alloc, statement);
+        mm_alloc_delete(&__sqlite_statement_alloc, statement);
         return NULL;
     }
     return result_list;
