@@ -44,6 +44,7 @@ static db_configuration_list_t* configuration_list = NULL;
 static db_configuration_t* configuration = NULL;
 static db_connection_t* connection = NULL;
 static test_t* test = NULL;
+static db_value_t object2_id, object3_id;
 
 test_t* test_new(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
@@ -168,7 +169,7 @@ int test_get_by_name(test_t* test, const char* name) {
     return ret;
 }
 
-int test_get_by_id(test_t* test, int id) {
+int test_get_by_id(test_t* test, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -176,7 +177,7 @@ int test_get_by_id(test_t* test, int id) {
     int ret;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
-    CU_ASSERT_FATAL(id);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(id);
 
     db_value_reset(test->id);
     if (test->name) {
@@ -188,7 +189,7 @@ int test_get_by_id(test_t* test, int id) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
     CU_ASSERT_FATAL(!db_clause_set_field(clause, "id"));
     CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
-    CU_ASSERT_FATAL(!db_value_from_int32(db_clause_get_value(clause), id));
+    CU_ASSERT_FATAL(!db_value_copy(db_clause_get_value(clause), id));
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
     clause = NULL;
 
@@ -472,6 +473,8 @@ int clean_suite_database_operations(void) {
     configuration = NULL;
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
+    db_value_reset(&object2_id);
+    db_value_reset(&object3_id);
     return 0;
 }
 
@@ -537,8 +540,9 @@ void test_database_operations_create_object2(void) {
     CU_PASS("test_free");
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
-    CU_ASSERT(test_id(test) == 2);
+    CU_ASSERT_FATAL(!test_get_by_name(test, "name 2"));
+    db_value_reset(&object2_id);
+    CU_ASSERT(!db_value_copy(&object2_id, test_id(test)));
     CU_ASSERT(!strcmp(test_name(test), "name 2"));
 
     test_free(test);
@@ -547,9 +551,12 @@ void test_database_operations_create_object2(void) {
 }
 
 void test_database_operations_read_object2(void) {
+    int cmp = 0;
+
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
-    CU_ASSERT(test_id(test) == 2);
+    CU_ASSERT_FATAL(!test_get_by_id(test, &object2_id));
+    CU_ASSERT(!db_value_cmp(test_id(test), &object2_id, &cmp));
+    CU_ASSERT(!cmp);
     CU_ASSERT(!strcmp(test_name(test), "name 2"));
 
     test_free(test);
@@ -559,7 +566,7 @@ void test_database_operations_read_object2(void) {
 
 void test_database_operations_update_object2(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
+    CU_ASSERT_FATAL(!test_get_by_id(test, &object2_id));
     CU_ASSERT_FATAL(!test_set_name(test, "name 3"));
     CU_ASSERT(!strcmp(test_name(test), "name 3"));
     CU_ASSERT_FATAL(!test_update(test));
@@ -569,8 +576,7 @@ void test_database_operations_update_object2(void) {
     CU_PASS("test_free");
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
-    CU_ASSERT(test_id(test) == 2);
+    CU_ASSERT_FATAL(!test_get_by_id(test, &object2_id));
     CU_ASSERT(!strcmp(test_name(test), "name 3"));
 
     test_free(test);
@@ -580,7 +586,7 @@ void test_database_operations_update_object2(void) {
 
 void test_database_operations_delete_object2(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(!test_get_by_id(test, 2));
+    CU_ASSERT_FATAL(!test_get_by_id(test, &object2_id));
     CU_ASSERT_FATAL(!test_delete(test));
 
     test_free(test);
@@ -588,7 +594,7 @@ void test_database_operations_delete_object2(void) {
     CU_PASS("test_free");
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(test_get_by_id(test, 2));
+    CU_ASSERT_FATAL(test_get_by_id(test, &object2_id));
 
     test_free(test);
     test = NULL;
@@ -606,8 +612,9 @@ void test_database_operations_create_object3(void) {
     CU_PASS("test_free");
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(!test_get_by_id(test, 3));
-    CU_ASSERT(test_id(test) == 3);
+    CU_ASSERT_FATAL(!test_get_by_name(test, "name 3"));
+    db_value_reset(&object3_id);
+    CU_ASSERT(!db_value_copy(&object3_id, test_id(test)));
     CU_ASSERT(!strcmp(test_name(test), "name 3"));
 
     test_free(test);
@@ -617,7 +624,7 @@ void test_database_operations_create_object3(void) {
 
 void test_database_operations_delete_object3(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(!test_get_by_id(test, 3));
+    CU_ASSERT_FATAL(!test_get_by_id(test, &object3_id));
     CU_ASSERT_FATAL(!test_delete(test));
 
     test_free(test);
@@ -625,7 +632,7 @@ void test_database_operations_delete_object3(void) {
     CU_PASS("test_free");
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(test_get_by_id(test, 3));
+    CU_ASSERT_FATAL(test_get_by_id(test, &object3_id));
 
     test_free(test);
     test = NULL;
