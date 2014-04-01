@@ -31,7 +31,11 @@ test_LDADD = \
 	../../db_value.o \
 	$(top_builddir)/mm/src/mm.o
 
-test_LDFLAGS = -no-install @CUNIT_LIBS@ @ENFORCER_DB_LIBS@
+test_LDFLAGS = -no-install \
+	@CUNIT_LIBS@ \
+	@ENFORCER_DB_LIBS@ \
+	`pkg-config --libs libcurl` \
+	`pkg-config --libs jansson`
 
 check: regress-db
 
@@ -43,4 +47,5 @@ regress-db: test
 	curl -X DELETE http://127.0.0.1:5984/opendnssec
 	curl -X PUT http://127.0.0.1:5984/opendnssec
 	curl -X PUT http://127.0.0.1:5984/opendnssec/_design/application -d @$(srcdir)/test.couchdb
+	curl -X PUT http://127.0.0.1:5984/opendnssec/1 -d '{"type":"test","test_name":"test"}'
 	./test

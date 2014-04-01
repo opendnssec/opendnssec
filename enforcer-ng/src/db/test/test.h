@@ -55,7 +55,8 @@ int clean_suite_initialization(void);
 void test_initialization_configuration(void);
 void test_initialization_connection(void);
 
-int init_suite_database_operations(void);
+int init_suite_database_operations_sqlite(void);
+int init_suite_database_operations_couchdb(void);
 int clean_suite_database_operations(void);
 void test_database_operations_read_object1(void);
 void test_database_operations_create_object2(void);

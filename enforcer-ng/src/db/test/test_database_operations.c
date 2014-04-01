@@ -36,7 +36,7 @@
 
 typedef struct {
     db_object_t* dbo;
-    int id;
+    db_value_t* id;
     char* name;
 } test_t;
 
@@ -71,6 +71,8 @@ test_t* test_new(const db_connection_t* connection) {
         CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
 
         CU_ASSERT_FATAL(!db_object_set_object_field_list(test->dbo, object_field_list));
+
+        CU_ASSERT_PTR_NOT_NULL_FATAL((test->id = db_value_new()));
     }
 
     return test;
@@ -81,6 +83,9 @@ void test_free(test_t* test) {
         if (test->dbo) {
             db_object_free(test->dbo);
         }
+        if (test->id) {
+            db_value_free(test->id);
+        }
         if (test->name) {
             free(test->name);
         }
@@ -88,7 +93,7 @@ void test_free(test_t* test) {
     }
 }
 
-int test_id(const test_t* test) {
+const db_value_t* test_id(const test_t* test) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
 
     return test->id;
@@ -112,6 +117,57 @@ int test_set_name(test_t* test, const char *name) {
     return 0;
 }
 
+int test_get_by_name(test_t* test, const char* name) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+    int ret;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(name);
+
+    db_value_reset(test->id);
+    if (test->name) {
+        free(test->name);
+    }
+    test->name = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
+    CU_ASSERT_FATAL(!db_clause_set_field(clause, "name"));
+    CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
+    CU_ASSERT_FATAL(!db_value_from_text(db_clause_get_value(clause), name));
+    CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
+    clause = NULL;
+
+    ret = 1;
+    result_list = db_object_read(test->dbo, NULL, clause_list);
+    if (result_list) {
+        result = db_result_list_begin(result_list);
+        if (result) {
+            const db_value_set_t* value_set = db_result_value_set(result);
+
+            CU_ASSERT_PTR_NOT_NULL_FATAL(value_set);
+            CU_ASSERT_FATAL(db_value_set_size(value_set) == 2);
+            CU_ASSERT_FATAL(!db_value_copy(test->id, db_value_set_at(value_set, 0)));
+            CU_ASSERT_FATAL(!db_value_to_text(db_value_set_at(value_set, 1), &(test->name)));
+            ret = 0;
+        }
+        CU_ASSERT_PTR_NULL((result = db_result_list_next(result_list)));
+        if (result) {
+            db_result_list_free(result_list);
+            db_clause_list_free(clause_list);
+            return 1;
+        }
+    }
+
+    db_result_list_free(result_list);
+    db_clause_list_free(clause_list);
+    db_clause_free(clause);
+    return ret;
+}
+
 int test_get_by_id(test_t* test, int id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
@@ -122,7 +178,7 @@ int test_get_by_id(test_t* test, int id) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
     CU_ASSERT_FATAL(id);
 
-    test->id = 0;
+    db_value_reset(test->id);
     if (test->name) {
         free(test->name);
     }
@@ -145,7 +201,7 @@ int test_get_by_id(test_t* test, int id) {
 
             CU_ASSERT_PTR_NOT_NULL_FATAL(value_set);
             CU_ASSERT_FATAL(db_value_set_size(value_set) == 2);
-            CU_ASSERT_FATAL(!db_value_to_int32(db_value_set_at(value_set, 0), &(test->id)));
+            CU_ASSERT_FATAL(!db_value_copy(test->id, db_value_set_at(value_set, 0)));
             CU_ASSERT_FATAL(!db_value_to_text(db_value_set_at(value_set, 1), &(test->name)));
             ret = 0;
         }
@@ -171,7 +227,7 @@ int test_create(test_t* test) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
-    CU_ASSERT_FATAL(!test->id);
+    CU_ASSERT_FATAL(db_value_not_empty(test->id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
@@ -206,14 +262,14 @@ int test_update(test_t* test) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
-    CU_ASSERT_FATAL(test->id);
+    CU_ASSERT_FATAL(!db_value_not_empty(test->id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
     CU_ASSERT_FATAL(!db_clause_set_field(clause, "id"));
     CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
-    CU_ASSERT_FATAL(!db_value_from_int32(db_clause_get_value(clause), test->id));
+    CU_ASSERT_FATAL(!db_value_copy(db_clause_get_value(clause), test->id));
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
     clause = NULL;
 
@@ -247,13 +303,13 @@ int test_delete(test_t* test) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
-    CU_ASSERT_FATAL(test->id);
+    CU_ASSERT_FATAL(!db_value_not_empty(test->id));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
     CU_ASSERT_FATAL(!db_clause_set_field(clause, "id"));
     CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
-    CU_ASSERT_FATAL(!db_value_from_int32(db_clause_get_value(clause), test->id));
+    CU_ASSERT_FATAL(!db_value_copy(db_clause_get_value(clause), test->id));
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
     clause = NULL;
 
@@ -267,7 +323,7 @@ int test_delete(test_t* test) {
     return ret;
 }
 
-int init_suite_database_operations(void) {
+int init_suite_database_operations_sqlite(void) {
     if (configuration_list) {
         return 1;
     }
@@ -293,29 +349,114 @@ int init_suite_database_operations(void) {
         || db_configuration_list_add(configuration_list, configuration))
     {
         db_configuration_free(configuration);
+        configuration = NULL;
         db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
         return 1;
     }
+    configuration = NULL;
     if (!(configuration = db_configuration_new())
         || db_configuration_set_name(configuration, "file")
         || db_configuration_set_value(configuration, "test.db")
         || db_configuration_list_add(configuration_list, configuration))
     {
         db_configuration_free(configuration);
+        configuration = NULL;
         db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
         return 1;
     }
+    configuration = NULL;
 
     /*
      * Connect to the database
      */
     if (!(connection = db_connection_new())
-        || db_connection_set_configuration_list(connection, configuration_list)
-        || db_connection_setup(connection)
+        || db_connection_set_configuration_list(connection, configuration_list))
+    {
+        db_connection_free(connection);
+        connection = NULL;
+        db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration_list = NULL;
+
+    if (db_connection_setup(connection)
         || db_connection_connect(connection))
     {
         db_connection_free(connection);
+        connection = NULL;
+        return 1;
+    }
+
+    return 0;
+}
+
+int init_suite_database_operations_couchdb(void) {
+    if (configuration_list) {
+        return 1;
+    }
+    if (configuration) {
+        return 1;
+    }
+    if (connection) {
+        return 1;
+    }
+    if (test) {
+        return 1;
+    }
+
+    /*
+     * Setup the configuration for the connection
+     */
+    if (!(configuration_list = db_configuration_list_new())) {
+        return 1;
+    }
+    if (!(configuration = db_configuration_new())
+        || db_configuration_set_name(configuration, "backend")
+        || db_configuration_set_value(configuration, "couchdb")
+        || db_configuration_list_add(configuration_list, configuration))
+    {
+        db_configuration_free(configuration);
+        configuration = NULL;
         db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration = NULL;
+    if (!(configuration = db_configuration_new())
+        || db_configuration_set_name(configuration, "url")
+        || db_configuration_set_value(configuration, "http://127.0.0.1:5984/opendnssec")
+        || db_configuration_list_add(configuration_list, configuration))
+    {
+        db_configuration_free(configuration);
+        configuration = NULL;
+        db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration = NULL;
+
+    /*
+     * Connect to the database
+     */
+    if (!(connection = db_connection_new())
+        || db_connection_set_configuration_list(connection, configuration_list))
+    {
+        db_connection_free(connection);
+        connection = NULL;
+        db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration_list = NULL;
+
+    if (db_connection_setup(connection)
+        || db_connection_connect(connection))
+    {
+        db_connection_free(connection);
+        connection = NULL;
         return 1;
     }
 
@@ -334,10 +475,50 @@ int clean_suite_database_operations(void) {
     return 0;
 }
 
+void __check_id(test_t* test, int id_int, const char* id_text) {
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
+    const char* text;
+
+    CU_ASSERT_PTR_NOT_NULL(test_id(test));
+    switch (db_value_type(test_id(test))) {
+    case DB_TYPE_INT32:
+        CU_ASSERT(!db_value_to_int32(test_id(test), &int32));
+        CU_ASSERT(int32 == (db_type_int32_t)id_int);
+        break;
+
+    case DB_TYPE_UINT32:
+        CU_ASSERT(!db_value_to_uint32(test_id(test), &uint32));
+        CU_ASSERT(uint32 == (db_type_uint32_t)id_int);
+        break;
+
+    case DB_TYPE_INT64:
+        CU_ASSERT(!db_value_to_int64(test_id(test), &int64));
+        CU_ASSERT(int64 == (db_type_int64_t)id_int);
+        break;
+
+    case DB_TYPE_UINT64:
+        CU_ASSERT(!db_value_to_uint64(test_id(test), &uint64));
+        CU_ASSERT(uint64 == (db_type_uint64_t)id_int);
+        break;
+
+    case DB_TYPE_TEXT:
+        CU_ASSERT_PTR_NOT_NULL_FATAL((text = db_value_text(test_id(test))));
+        CU_ASSERT(!strcmp(text, id_text));
+        break;
+
+    default:
+        CU_FAIL("db_value_type(test_id(test))");
+    }
+}
+
 void test_database_operations_read_object1(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
-    CU_ASSERT_FATAL(!test_get_by_id(test, 1));
-    CU_ASSERT(test_id(test) == 1);
+    CU_ASSERT_FATAL(!test_get_by_name(test, "test"));
+    __check_id(test, 1, "1");
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test_name(test));
     CU_ASSERT(!strcmp(test_name(test), "test"));
 
     test_free(test);

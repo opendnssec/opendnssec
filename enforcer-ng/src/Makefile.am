@@ -193,6 +193,10 @@ ods_enforcerd_LDADD = \
 	@PROTOBUF_LIBS@ \
 	@ENFORCER_DB_LIBS@
 
+ods_enforcerd_LDFLAGS = \
+	`pkg-config --libs libcurl` \
+	`pkg-config --libs jansson`
+
 ods_enforcer_SOURCES = \
 	ods-enforcer.c \
 	daemon/clientpipe.c daemon/clientpipe.h \
