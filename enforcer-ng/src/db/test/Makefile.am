@@ -15,9 +15,12 @@ test_SOURCES = \
 	test_initialization.c \
 	test_database_operations.c
 
+# TODO: if BACKEND test_LDADD+=backend.o
+
 test_LDADD = \
 	../../db_backend.o \
 	../../db_backend_sqlite.o \
+	../../db_backend_couchdb.o \
 	../../db_clause.o \
 	../../db_configuration.o \
 	../../db_connection.o \
@@ -33,6 +36,11 @@ test_LDFLAGS = -no-install @CUNIT_LIBS@ @ENFORCER_DB_LIBS@
 check: regress-db
 
 regress-db: test
+# TODO: if SQLITE
 	rm -f test.db
 	sqlite3 test.db < $(srcdir)/test.sqlite
+# TODO: if COUCHDB
+	curl -X DELETE http://127.0.0.1:5984/opendnssec
+	curl -X PUT http://127.0.0.1:5984/opendnssec
+	curl -X PUT http://127.0.0.1:5984/opendnssec/_design/application -d @$(srcdir)/test.couchdb
 	./test

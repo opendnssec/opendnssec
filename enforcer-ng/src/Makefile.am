@@ -164,6 +164,7 @@ ods_enforcerd_SOURCES = \
 	utils/kc_helper.c utils/kc_helper.h \
 	db/db_backend.c db/db_backend.h \
 	db/db_backend_sqlite.c db/db_backend_sqlite.h \
+	db/db_backend_couchdb.c db/db_backend_couchdb.h \
 	db/db_clause.c db/db_clause.h \
 	db/db_configuration.c db/db_configuration.h \
 	db/db_connection.c db/db_connection.h \
@@ -178,6 +179,8 @@ ods_enforcerd_SOURCES = \
     db/key_data.c db/key_data.h \
     db/key_dependency.c db/key_dependency.h \
     db/key_state.c db/key_state.h
+
+# TODO: if BACKEND ods_enforcerd_SOURCES+=backend.c/.h
 	
 ods_enforcerd_LDADD = \
     $(LIBMM) \
