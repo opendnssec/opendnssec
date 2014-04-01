@@ -79,10 +79,13 @@ int db_value_copy(db_value_t* value, const db_value_t* from_value) {
     if (!value) {
         return DB_ERROR_UNKNOWN;
     }
+    if (value->type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (!from_value) {
         return DB_ERROR_UNKNOWN;
     }
-    if (from_value == DB_TYPE_EMPTY) {
+    if (from_value->type == DB_TYPE_EMPTY) {
         return DB_ERROR_UNKNOWN;
     }
 
