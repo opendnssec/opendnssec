@@ -168,15 +168,6 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
 
     clause = db_clause_list_begin(clause_list);
     first = 1;
-
-    if (clause) {
-        if ((ret = snprintf(sqlp, *left, " WHERE")) >= *left) {
-            return DB_ERROR_UNKNOWN;
-        }
-        sqlp += ret;
-        *left -= ret;
-    }
-
     while (clause) {
         if (first) {
             first = 0;
@@ -841,6 +832,13 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     }
 
     if (clause_list) {
+        if (db_clause_list_begin(clause_list)) {
+            if ((ret = snprintf(sqlp, left, " WHERE")) >= left) {
+                return NULL;
+            }
+            sqlp += ret;
+            left -= ret;
+        }
         if (__db_backend_sqlite_build_clause(object, clause_list, sqlp, &left)) {
             return NULL;
         }
@@ -951,6 +949,13 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
     }
 
     if (clause_list) {
+        if (db_clause_list_begin(clause_list)) {
+            if ((ret = snprintf(sqlp, left, " WHERE")) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            sqlp += ret;
+            left -= ret;
+        }
         if (__db_backend_sqlite_build_clause(object, clause_list, sqlp, &left)) {
             return DB_ERROR_UNKNOWN;
         }
@@ -1103,6 +1108,13 @@ int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_cla
     left -= ret;
 
     if (clause_list) {
+        if (db_clause_list_begin(clause_list)) {
+            if ((ret = snprintf(sqlp, left, " WHERE")) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            sqlp += ret;
+            left -= ret;
+        }
         if (__db_backend_sqlite_build_clause(object, clause_list, sqlp, &left)) {
             return DB_ERROR_UNKNOWN;
         }
