@@ -370,14 +370,268 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
     return result;
 }
 
+int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, const db_object_t* object, db_result_list_t* result_list, int view) {
+    json_t *root;
+    json_t *rows;
+    json_error_t error;
+    size_t i;
+    db_result_t* result;
+
+    if (!(root = json_loads(backend_couchdb->buffer, 0, &error))) {
+        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (view) {
+        if (!json_is_object(root)) {
+            json_decref(root);
+            return DB_ERROR_UNKNOWN;
+        }
+        rows = json_object_get(root, "rows");
+        if (!rows) {
+            json_decref(root);
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    else {
+        rows = root;
+    }
+
+    if (json_is_object(rows)) {
+        if (!(result = __db_backend_couchdb_result_from_json_object(object, rows))) {
+            json_decref(root);
+            return DB_ERROR_UNKNOWN;
+        }
+
+        if (db_result_list_add(result_list, result)) {
+            json_decref(root);
+            db_result_free(result);
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    else if (json_is_array(rows)) {
+        for (i = 0; i < json_array_size(rows); i++) {
+            if (!json_is_object(json_array_get(rows, i))) {
+                json_decref(root);
+                return DB_ERROR_UNKNOWN;
+            }
+
+            if (!(result = __db_backend_couchdb_result_from_json_object(object, json_array_get(rows, i)))) {
+                json_decref(root);
+                return DB_ERROR_UNKNOWN;
+            }
+
+            if (db_result_list_add(result_list, result)) {
+                json_decref(root);
+                db_result_free(result);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+    }
+    else {
+        json_decref(root);
+        return DB_ERROR_UNKNOWN;
+    }
+    json_decref(root);
+    return DB_OK;
+}
+
+int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_clause_list_t* clause_list, char* stringp, int* left) {
+    const db_clause_t* clause;
+    int first, ret;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
+
+    if (!clause_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!stringp) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!left) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    clause = db_clause_list_begin(clause_list);
+    first = 1;
+    while (clause) {
+        if (first) {
+            first = 0;
+        }
+        else {
+            switch (db_clause_operator(clause)) {
+            case DB_CLAUSE_OPERATOR_AND:
+                if ((ret = snprintf(stringp, *left, " &&")) >= *left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            case DB_CLAUSE_OPERATOR_OR:
+                if ((ret = snprintf(stringp, *left, " ||")) >= *left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+                break;
+
+            default:
+                return DB_ERROR_UNKNOWN;
+            }
+            stringp += ret;
+            *left -= ret;
+        }
+
+        if ((ret = snprintf(stringp, *left, " %s_%s", db_object_table(object), db_clause_field(clause))) >= *left) {
+            return DB_ERROR_UNKNOWN;
+        }
+        stringp += ret;
+        *left -= ret;
+
+        switch (db_clause_type(clause)) {
+        case DB_CLAUSE_EQUAL:
+            if ((ret = snprintf(stringp, *left, " == ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_NOT_EQUAL:
+            if ((ret = snprintf(stringp, *left, " != ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_LESS_THEN:
+            if ((ret = snprintf(stringp, *left, " < ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_LESS_OR_EQUAL:
+            if ((ret = snprintf(stringp, *left, " <= ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_GREATER_OR_EQUAL:
+            if ((ret = snprintf(stringp, *left, " >= ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_GREATER_THEN:
+            if ((ret = snprintf(stringp, *left, " > ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_IS_NULL:
+            if ((ret = snprintf(stringp, *left, " == null")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            stringp += ret;
+            *left -= ret;
+            clause = db_clause_next(clause);
+            continue;
+            break;
+
+        case DB_CLAUSE_IS_NOT_NULL:
+            if ((ret = snprintf(stringp, *left, " != null")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            stringp += ret;
+            *left -= ret;
+            clause = db_clause_next(clause);
+            continue;
+            break;
+
+        case DB_CLAUSE_NESTED:
+            if ((ret = snprintf(stringp, *left, " (")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            stringp += ret;
+            *left -= ret;
+            if (__db_backend_couchdb_build_map_function(object, db_clause_list(clause), stringp, left)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, *left, " )")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        default:
+            return DB_ERROR_UNKNOWN;
+        }
+        stringp += ret;
+        *left -= ret;
+
+        switch (db_value_type(db_clause_value(clause))) {
+        case DB_TYPE_INT32:
+            if (db_value_to_int32(db_clause_value(clause), &int32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, *left, "%d", int32)) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_UINT32:
+            if (db_value_to_uint32(db_clause_value(clause), &uint32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, *left, "%u", uint32)) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_INT64:
+            if (db_value_to_int64(db_clause_value(clause), &int64)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, *left, "%ld", int64)) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_UINT64:
+            if (db_value_to_uint64(db_clause_value(clause), &uint64)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, *left, "%lu", uint64)) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_TEXT:
+            /* TODO: quote value */
+            return DB_ERROR_UNKNOWN;
+            if ((ret = snprintf(stringp, *left, "%s", db_value_text(db_clause_value(clause)))) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        default:
+            return DB_ERROR_UNKNOWN;
+        }
+        stringp += ret;
+        *left -= ret;
+
+        clause = db_clause_next(clause);
+    }
+    return DB_OK;
+}
+
 db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     long code;
-    json_t *root;
-    json_error_t error;
-    size_t i;
     db_result_list_t* result_list;
-    db_result_t* result;
+    char string[4096];
+    char* stringp;
+    int ret, left, only_ids, have_clauses;
+    const db_clause_t* clause;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
 
     if (!__couchdb_initialized) {
         return NULL;
@@ -389,61 +643,163 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         return NULL;
     }
 
-    code = __db_backend_couchdb_request(backend_couchdb, "/1");
-    if (code != 200) {
-        return NULL;
+    if (join_list) {
+        /*
+         * Joins is not supported by this backend, check if there are any and
+         * return error if so.
+         */
+        if (db_join_list_begin(join_list)) {
+            return NULL;
+        }
+    }
+
+    clause = db_clause_list_begin(clause_list);
+    only_ids = 1;
+    have_clauses = 0;
+    while (clause) {
+        if (db_clause_table(clause)) {
+            /*
+             * This backend only supports clauses on the objects table.
+             */
+            if (strcmp(db_clause_table(clause), db_object_table(object))) {
+                return NULL;
+            }
+        }
+
+        if (strcmp(db_clause_field(clause), db_object_primary_key_name(object))) {
+            only_ids = 0;
+            have_clauses = 1;
+        }
+        clause = db_clause_next(clause);
     }
 
     if (!(result_list = db_result_list_new())) {
         return NULL;
     }
 
-    if (!(root = json_loads(backend_couchdb->buffer, 0, &error))) {
-        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
-        db_result_list_free(result_list);
-        return NULL;
-    }
+    if (only_ids) {
+        clause = db_clause_list_begin(clause_list);
+        while (clause) {
+            left = sizeof(string);
+            stringp = string;
 
-    if (json_is_object(root)) {
-        if (!(result = __db_backend_couchdb_result_from_json_object(object, root))) {
-            json_decref(root);
+            switch (db_value_type(db_clause_value(clause))) {
+            case DB_TYPE_INT32:
+                if (db_value_to_int32(db_clause_value(clause), &int32)) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                if ((ret = snprintf(stringp, left, "/%d", int32)) >= left) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                break;
+
+            case DB_TYPE_UINT32:
+                if (db_value_to_uint32(db_clause_value(clause), &uint32)) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                if ((ret = snprintf(stringp, left, "/%u", uint32)) >= left) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                break;
+
+            case DB_TYPE_INT64:
+                if (db_value_to_int64(db_clause_value(clause), &int64)) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                if ((ret = snprintf(stringp, left, "/%ld", int64)) >= left) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                break;
+
+            case DB_TYPE_UINT64:
+                if (db_value_to_uint64(db_clause_value(clause), &uint64)) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                if ((ret = snprintf(stringp, left, "/%lu", uint64)) >= left) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                break;
+
+            case DB_TYPE_TEXT:
+                if ((ret = snprintf(stringp, left, "/%s", db_value_text(db_clause_value(clause)))) >= left) {
+                    db_result_list_free(result_list);
+                    return NULL;
+                }
+                break;
+
+            default:
+                db_result_list_free(result_list);
+                return NULL;
+            }
+            stringp += ret;
+            left -= ret;
+
+            code = __db_backend_couchdb_request(backend_couchdb, string);
+            if (code != 200) {
+                db_result_list_free(result_list);
+                return NULL;
+            }
+
+            if (__db_backend_couchdb_store_result(backend_couchdb, object, result_list, 0)) {
+                db_result_list_free(result_list);
+                return NULL;
+            }
+        }
+    }
+    else if (have_clauses) {
+        left = sizeof(string);
+        stringp = string;
+
+        if ((ret = snprintf(stringp, left, "function(doc) { if (doc.type == \"%s\"", db_object_table(object))) >= left) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
+        stringp += ret;
+        left -= ret;
+
+        if (__db_backend_couchdb_build_map_function(object, clause_list, stringp, &left)) {
             db_result_list_free(result_list);
             return NULL;
         }
 
-        if (db_result_list_add(result_list, result)) {
-            json_decref(root);
-            db_result_free(result);
+        if ((ret = snprintf(stringp, left, ") { emit(doc._id, doc.test_name); } }")) >= left) {
             db_result_list_free(result_list);
             return NULL;
         }
-    }
-    else if (json_is_array(root)) {
-        for (i = 0; i < json_array_size(root); i++) {
-            if (!json_is_object(json_array_get(root, i))) {
-                json_decref(root);
-                db_result_list_free(result_list);
-                return NULL;
-            }
+        stringp += ret;
+        left -= ret;
 
-            if (!(result = __db_backend_couchdb_result_from_json_object(object, json_array_get(root, i)))) {
-                json_decref(root);
-                db_result_list_free(result_list);
-                return NULL;
-            }
-
-            if (db_result_list_add(result_list, result)) {
-                json_decref(root);
-                db_result_free(result);
-                db_result_list_free(result_list);
-                return NULL;
-            }
-        }
+        puts(string);
     }
     else {
-        json_decref(root);
-        db_result_list_free(result_list);
-        return NULL;
+        left = sizeof(string);
+        stringp = string;
+
+        if ((ret = snprintf(stringp, left, "/_design/application/_view/%s?include_docs=true", db_object_table(object))) >= left) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
+        stringp += ret;
+        left -= ret;
+
+        code = __db_backend_couchdb_request(backend_couchdb, string);
+        if (code != 200) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
+
+        if (__db_backend_couchdb_store_result(backend_couchdb, object, result_list, 1)) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
     }
 
     return result_list;

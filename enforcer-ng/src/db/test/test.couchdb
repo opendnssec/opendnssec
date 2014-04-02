@@ -1,7 +1,7 @@
 {
   "views": {
     "test": {
-      "map": "function(doc) { if (doc.type == \"test\") { emit(doc, null); } }"
+      "map": "function(doc) { if (doc.type == \"test\") { emit(doc._id, doc.test_name); } }"
     }
   }
 }
