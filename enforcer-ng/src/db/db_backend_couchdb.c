@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <jansson.h>
 #include <string.h>
+#include <openssl/sha.h>
 
 #define REQUEST_BUFFER_SIZE (4*1024*1024)
 
@@ -51,6 +52,9 @@ typedef struct db_backend_couchdb {
     CURL* curl;
     char* buffer;
     size_t buffer_position;
+    char* write;
+    size_t write_length;
+    size_t write_position;
 } db_backend_couchdb_t;
 
 static mm_alloc_t __couchdb_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_couchdb_t));
@@ -93,8 +97,8 @@ int db_backend_couchdb_shutdown(void* data) {
     return DB_OK;
 }
 
-size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb, void* data) {
-    db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
+size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb, void* userdata) {
+    db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)userdata;
 
     if(backend_couchdb->buffer_position + size * nmemb >= REQUEST_BUFFER_SIZE - 1) {
         return 0;
@@ -106,12 +110,31 @@ size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb,
     return size * nmemb;
 }
 
-long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const char* request_url, int request_type) {
+size_t __db_backend_couchdb_read_request(void* ptr, size_t size, size_t nmemb, void* userdata) {
+    db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)userdata;
+    size_t write = 0;
+
+    if ((backend_couchdb->write_length - backend_couchdb->write_position) > (size * nmemb)) {
+        write = (size * nmemb);
+    }
+    else if ((backend_couchdb->write_length - backend_couchdb->write_position)) {
+        write = (backend_couchdb->write_length - backend_couchdb->write_position);
+    }
+
+    if (write) {
+        memcpy(ptr, backend_couchdb->write + backend_couchdb->write_position, write);
+        backend_couchdb->write_position += write;
+    }
+    return write;
+}
+
+long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const char* request_url, int request_type, json_t* root) {
     CURLcode status;
     long code;
     char url[1024];
     char* urlp;
     int ret, left;
+    struct curl_slist* headers = NULL;
 
     if (!backend_couchdb) {
         return DB_ERROR_UNKNOWN;
@@ -119,13 +142,17 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     if (!backend_couchdb->url) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!backend_couchdb->curl) {
-        return DB_ERROR_UNKNOWN;
-    }
     if (!backend_couchdb->buffer) {
         return DB_ERROR_UNKNOWN;
     }
     if (!request_url) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (backend_couchdb->curl) {
+        curl_easy_cleanup(backend_couchdb->curl);
+    }
+    if (!(backend_couchdb->curl = curl_easy_init())) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -165,21 +192,65 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
 
     switch (request_type) {
     case COUCHDB_REQUEST_GET:
-        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_CUSTOMREQUEST, "GET"))) {
-            puts(curl_easy_strerror(status));
-            return DB_ERROR_UNKNOWN;
-        }
         break;
 
     case COUCHDB_REQUEST_PUT:
-        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_CUSTOMREQUEST, "PUT"))) {
+        if (!root) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        if (backend_couchdb->write) {
+            return DB_ERROR_UNKNOWN;
+        }
+        backend_couchdb->write = json_dumps(root, JSON_ENSURE_ASCII);
+        if (!backend_couchdb->write) {
+            return DB_ERROR_UNKNOWN;
+        }
+        backend_couchdb->write_length = strlen(backend_couchdb->write);
+        backend_couchdb->write_position = 0;
+
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+
+        if (/*(status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_HTTPHEADER, headers))
+            ||*/ (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_INFILESIZE, (long)backend_couchdb->write_length))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READFUNCTION, __db_backend_couchdb_read_request))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READDATA, backend_couchdb))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_PUT, 1)))
+        {
+            curl_slist_free_all(headers);
+            free(backend_couchdb->write);
+            backend_couchdb->write = NULL;
             puts(curl_easy_strerror(status));
             return DB_ERROR_UNKNOWN;
         }
         break;
 
     case COUCHDB_REQUEST_POST:
-        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_CUSTOMREQUEST, "POST"))) {
+        if (!root) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        if (backend_couchdb->write) {
+            return DB_ERROR_UNKNOWN;
+        }
+        backend_couchdb->write = json_dumps(root, JSON_ENSURE_ASCII);
+        if (!backend_couchdb->write) {
+            return DB_ERROR_UNKNOWN;
+        }
+        backend_couchdb->write_length = strlen(backend_couchdb->write);
+        backend_couchdb->write_position = 0;
+
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+
+        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_HTTPHEADER, headers))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_INFILESIZE, (long)backend_couchdb->write_length))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READFUNCTION, __db_backend_couchdb_read_request))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READDATA, backend_couchdb))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_POST, 1)))
+        {
+            curl_slist_free_all(headers);
+            free(backend_couchdb->write);
+            backend_couchdb->write = NULL;
             puts(curl_easy_strerror(status));
             return DB_ERROR_UNKNOWN;
         }
@@ -204,6 +275,15 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     backend_couchdb->buffer[backend_couchdb->buffer_position] = 0;
 
     curl_easy_getinfo(backend_couchdb->curl, CURLINFO_RESPONSE_CODE, &code);
+
+    if (headers) {
+        curl_slist_free_all(headers);
+    }
+    if (backend_couchdb->write) {
+        free(backend_couchdb->write);
+        backend_couchdb->write = NULL;
+    }
+
     return code;
 }
 
@@ -224,9 +304,6 @@ int db_backend_couchdb_connect(void* data, const db_configuration_list_t* config
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(backend_couchdb->curl = curl_easy_init())) {
-        return DB_ERROR_UNKNOWN;
-    }
     if (!backend_couchdb->buffer) {
         if (!(backend_couchdb->buffer = calloc(REQUEST_BUFFER_SIZE, 1))) {
             return DB_ERROR_UNKNOWN;
@@ -266,6 +343,16 @@ int db_backend_couchdb_disconnect(void* data) {
 
 int db_backend_couchdb_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
+    json_t* root;
+    json_t* json_value;
+    const db_object_field_t* object_field;
+    const db_value_t* value;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
+    size_t value_pos;
+    long code;
 
     if (!__couchdb_initialized) {
         return DB_ERROR_UNKNOWN;
@@ -281,6 +368,90 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
     }
     if (!value_set) {
         return DB_ERROR_UNKNOWN;
+    }
+
+    root = json_object();
+    if (!root) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    object_field = db_object_field_list_begin(object_field_list);
+    value_pos = 0;
+    while (object_field) {
+        if (!(value = db_value_set_at(value_set, value_pos))) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        switch (db_value_type(value)) {
+        case DB_TYPE_INT32:
+            if (db_value_to_int32(value, &int32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!(json_value = json_integer(int32))) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_UINT32:
+            if (db_value_to_uint32(value, &uint32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!(json_value = json_integer(uint32))) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+#ifdef JSON_INTEGER_IS_LONG_LONG
+        case DB_TYPE_INT64:
+            if (db_value_to_int64(value, &int64)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!(json_value = json_integer(int64))) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_UINT64:
+            if (db_value_to_uint64(value, &uint64)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!(json_value = json_integer(uint64))) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+#endif
+
+        case DB_TYPE_TEXT:
+            if (!(json_value = json_string(db_value_text(value)))) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_ENUM:
+            if (db_value_enum_value(value, &int32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!(json_value = json_integer(int32))) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        default:
+            json_decref(root);
+            return DB_ERROR_UNKNOWN;
+        }
+
+        if (json_object_set_new(root, db_object_field_name(object_field), json_value)) {
+            json_decref(json_value);
+            json_decref(root);
+            return DB_ERROR_UNKNOWN;
+        }
+
+        code = __db_backend_couchdb_request(backend_couchdb, "", COUCHDB_REQUEST_POST, root);
+        json_decref(root);
+        if (code != 201 && code != 202) {
+            return DB_ERROR_UNKNOWN;
+        }
     }
 
     return DB_OK;
@@ -391,7 +562,7 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
 #ifdef JSON_INTEGER_IS_LONG_LONG
                 || db_value_from_int64(db_value_set_get(value_set, i), json_integer_value(json_value)))
 #else
-                || db_value_from_uint64(db_value_set_get(value_set, i), json_integer_value(json_value)))
+                || db_value_from_int32(db_value_set_get(value_set, i), json_integer_value(json_value)))
 #endif
             {
                 db_result_free(result);
@@ -402,7 +573,6 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
         default:
             db_result_free(result);
             return NULL;
-            break;
         }
 
         object_field = db_object_field_next(object_field);
@@ -545,7 +715,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
         *stringp += ret;
         *left -= ret;
 
-        if ((ret = snprintf(*stringp, *left, " %s_%s", db_object_table(object), db_clause_field(clause))) >= *left) {
+        if ((ret = snprintf(*stringp, *left, " doc.%s_%s", db_object_table(object), db_clause_field(clause))) >= *left) {
             return DB_ERROR_UNKNOWN;
         }
         *stringp += ret;
@@ -675,7 +845,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
                 return DB_ERROR_UNKNOWN;
             }
 
-            if ((ret = snprintf(*stringp, *left, "\\\"")) >= *left) {
+            if ((ret = snprintf(*stringp, *left, "\"")) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             *stringp += ret;
@@ -683,7 +853,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
 
             while (*text) {
                 if (*text == '"') {
-                    if ((ret = snprintf(*stringp, *left, "\\\\\\\"")) >= *left) {
+                    if ((ret = snprintf(*stringp, *left, "\\\"")) >= *left) {
                         return DB_ERROR_UNKNOWN;
                     }
                 }
@@ -697,7 +867,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
                 text++;
             }
 
-            if ((ret = snprintf(*stringp, *left, "\\\"")) >= *left) {
+            if ((ret = snprintf(*stringp, *left, "\"")) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -725,6 +895,9 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
     db_type_uint32_t uint32;
     db_type_int64_t int64;
     db_type_uint64_t uint64;
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    char hash_string[(SHA256_DIGEST_LENGTH*2)+1];
+    SHA256_CTX sha256;
 
     if (!__couchdb_initialized) {
         return NULL;
@@ -746,24 +919,27 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         }
     }
 
-    clause = db_clause_list_begin(clause_list);
-    only_ids = 1;
+    only_ids = 0;
     have_clauses = 0;
-    while (clause) {
-        if (db_clause_table(clause)) {
-            /*
-             * This backend only supports clauses on the objects table.
-             */
-            if (strcmp(db_clause_table(clause), db_object_table(object))) {
-                return NULL;
+    if (clause_list) {
+        clause = db_clause_list_begin(clause_list);
+        only_ids = 1;
+        while (clause) {
+            if (db_clause_table(clause)) {
+                /*
+                 * This backend only supports clauses on the objects table.
+                 */
+                if (strcmp(db_clause_table(clause), db_object_table(object))) {
+                    return NULL;
+                }
             }
-        }
 
-        if (strcmp(db_clause_field(clause), db_object_primary_key_name(object))) {
-            only_ids = 0;
-            have_clauses = 1;
+            if (strcmp(db_clause_field(clause), db_object_primary_key_name(object))) {
+                only_ids = 0;
+                have_clauses = 1;
+            }
+            clause = db_clause_next(clause);
         }
-        clause = db_clause_next(clause);
     }
 
     if (!(result_list = db_result_list_new())) {
@@ -835,7 +1011,7 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
             stringp += ret;
             left -= ret;
 
-            code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_GET);
+            code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_GET, NULL);
             if (code != 200) {
                 db_result_list_free(result_list);
                 return NULL;
@@ -848,10 +1024,15 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         }
     }
     else if (have_clauses) {
+        json_t* map = NULL;
+        json_t* view = NULL;
+        json_t* views = NULL;
+        json_t* root = NULL;
+
         left = sizeof(string);
         stringp = string;
 
-        if ((ret = snprintf(stringp, left, "function(doc) { if (doc.type == \\\"%s\\\"", db_object_table(object))) >= left) {
+        if ((ret = snprintf(stringp, left, "function(doc) { if (doc.type == \"%s\"", db_object_table(object))) >= left) {
             db_result_list_free(result_list);
             return NULL;
         }
@@ -870,10 +1051,93 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         stringp += ret;
         left -= ret;
 
-        puts(string);
+        SHA256_Init(&sha256);
+        SHA256_Update(&sha256, string, (unsigned long)(stringp - string));
+        SHA256_Final(hash, &sha256);
 
-        /* TODO: Hash function, check if it exists otherwise create it */
-        /* TODO: Run the new view */
+        for (ret = 0; ret < SHA256_DIGEST_LENGTH; ret++) {
+            sprintf(&hash_string[ret*2], "%02x", hash[ret]);
+        }
+        hash_string[(SHA256_DIGEST_LENGTH*2)] = 0;
+
+        if (!(map = json_string(string))
+            || !(view = json_object())
+            || !(views = json_object())
+            || !(root = json_object()))
+        {
+            json_decref(map);
+            json_decref(view);
+            json_decref(views);
+            json_decref(root);
+            db_result_list_free(result_list);
+            return NULL;
+        }
+
+        if (json_object_set(view, "map", map)) {
+            json_decref(map);
+            json_decref(view);
+            json_decref(views);
+            json_decref(root);
+            db_result_list_free(result_list);
+            return NULL;
+        }
+        json_decref(map);
+
+        if (json_object_set(views, "view", view)) {
+            json_decref(view);
+            json_decref(views);
+            json_decref(root);
+            db_result_list_free(result_list);
+            return NULL;
+        }
+        json_decref(view);
+
+        if (json_object_set(root, "views", views)) {
+            json_decref(views);
+            json_decref(root);
+            db_result_list_free(result_list);
+            return NULL;
+        }
+        json_decref(views);
+
+        left = sizeof(string);
+        stringp = string;
+
+        if ((ret = snprintf(stringp, left, "/_design/%s", hash_string)) >= left) {
+            json_decref(root);
+            db_result_list_free(result_list);
+            return NULL;
+        }
+        stringp += ret;
+        left -= ret;
+
+        code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_PUT, root);
+        json_decref(root);
+        if (code != 201 && code != 202 && code != 409) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
+
+        left = sizeof(string);
+        stringp = string;
+
+        if ((ret = snprintf(stringp, left, "/_design/%s/_view/view?include_docs=true", hash_string)) >= left) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
+        stringp += ret;
+        left -= ret;
+
+        code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_GET, NULL);
+        if (code != 200) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
+
+        if (__db_backend_couchdb_store_result(backend_couchdb, object, result_list, 1)) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
     }
     else {
         left = sizeof(string);
@@ -886,7 +1150,7 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         stringp += ret;
         left -= ret;
 
-        code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_GET);
+        code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_GET, NULL);
         if (code != 200) {
             db_result_list_free(result_list);
             return NULL;
@@ -1019,7 +1283,7 @@ int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_cl
         stringp += ret;
         left -= ret;
 
-        code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_DELETE);
+        code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_DELETE, NULL);
         if (code != 200 && code != 202) {
             return DB_ERROR_UNKNOWN;
         }
