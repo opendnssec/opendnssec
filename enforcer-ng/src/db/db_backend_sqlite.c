@@ -548,7 +548,6 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
         default:
             db_result_free(result);
             return NULL;
-            break;
         }
         object_field = db_object_field_next(object_field);
         bind++;
@@ -745,7 +744,8 @@ int db_backend_sqlite_create(void* data, const db_object_t* object, const db_obj
             break;
 
         default:
-            break;
+            sqlite3_finalize(statement);
+            return DB_ERROR_UNKNOWN;
         }
     }
 
@@ -1063,7 +1063,8 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
             break;
 
         default:
-            break;
+            sqlite3_finalize(statement);
+            return DB_ERROR_UNKNOWN;
         }
     }
 
