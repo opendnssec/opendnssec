@@ -373,6 +373,7 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
 int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, const db_object_t* object, db_result_list_t* result_list, int view) {
     json_t *root;
     json_t *rows;
+    json_t *entry;
     json_error_t error;
     size_t i;
     db_result_t* result;
@@ -398,7 +399,18 @@ int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, con
     }
 
     if (json_is_object(rows)) {
-        if (!(result = __db_backend_couchdb_result_from_json_object(object, rows))) {
+        if (view) {
+            entry = json_object_get(rows, "doc");
+            if (!entry) {
+                json_decref(root);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        else {
+            entry = rows;
+        }
+
+        if (!(result = __db_backend_couchdb_result_from_json_object(object, entry))) {
             json_decref(root);
             return DB_ERROR_UNKNOWN;
         }
@@ -411,12 +423,21 @@ int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, con
     }
     else if (json_is_array(rows)) {
         for (i = 0; i < json_array_size(rows); i++) {
-            if (!json_is_object(json_array_get(rows, i))) {
+            entry = json_array_get(rows, i);
+            if (!json_is_object(entry)) {
                 json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
 
-            if (!(result = __db_backend_couchdb_result_from_json_object(object, json_array_get(rows, i)))) {
+            if (view) {
+                entry = json_object_get(entry, "doc");
+                if (!entry) {
+                    json_decref(root);
+                    return DB_ERROR_UNKNOWN;
+                }
+            }
+
+            if (!(result = __db_backend_couchdb_result_from_json_object(object, entry))) {
                 json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
@@ -436,13 +457,14 @@ int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, con
     return DB_OK;
 }
 
-int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_clause_list_t* clause_list, char* stringp, int* left) {
+int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_clause_list_t* clause_list, char** stringp, int* left) {
     const db_clause_t* clause;
-    int first, ret;
+    int ret;
     db_type_int32_t int32;
     db_type_uint32_t uint32;
     db_type_int64_t int64;
     db_type_uint64_t uint64;
+    const char* text;
 
     if (!clause_list) {
         return DB_ERROR_UNKNOWN;
@@ -450,110 +472,27 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
     if (!stringp) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!*stringp) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (!left) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (*left < 1) {
         return DB_ERROR_UNKNOWN;
     }
 
     clause = db_clause_list_begin(clause_list);
-    first = 1;
     while (clause) {
-        if (first) {
-            first = 0;
-        }
-        else {
-            switch (db_clause_operator(clause)) {
-            case DB_CLAUSE_OPERATOR_AND:
-                if ((ret = snprintf(stringp, *left, " &&")) >= *left) {
-                    return DB_ERROR_UNKNOWN;
-                }
-                break;
-
-            case DB_CLAUSE_OPERATOR_OR:
-                if ((ret = snprintf(stringp, *left, " ||")) >= *left) {
-                    return DB_ERROR_UNKNOWN;
-                }
-                break;
-
-            default:
-                return DB_ERROR_UNKNOWN;
-            }
-            stringp += ret;
-            *left -= ret;
-        }
-
-        if ((ret = snprintf(stringp, *left, " %s_%s", db_object_table(object), db_clause_field(clause))) >= *left) {
-            return DB_ERROR_UNKNOWN;
-        }
-        stringp += ret;
-        *left -= ret;
-
-        switch (db_clause_type(clause)) {
-        case DB_CLAUSE_EQUAL:
-            if ((ret = snprintf(stringp, *left, " == ")) >= *left) {
+        switch (db_clause_operator(clause)) {
+        case DB_CLAUSE_OPERATOR_AND:
+            if ((ret = snprintf(*stringp, *left, " &&")) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
 
-        case DB_CLAUSE_NOT_EQUAL:
-            if ((ret = snprintf(stringp, *left, " != ")) >= *left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_CLAUSE_LESS_THEN:
-            if ((ret = snprintf(stringp, *left, " < ")) >= *left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_CLAUSE_LESS_OR_EQUAL:
-            if ((ret = snprintf(stringp, *left, " <= ")) >= *left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_CLAUSE_GREATER_OR_EQUAL:
-            if ((ret = snprintf(stringp, *left, " >= ")) >= *left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_CLAUSE_GREATER_THEN:
-            if ((ret = snprintf(stringp, *left, " > ")) >= *left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_CLAUSE_IS_NULL:
-            if ((ret = snprintf(stringp, *left, " == null")) >= *left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            stringp += ret;
-            *left -= ret;
-            clause = db_clause_next(clause);
-            continue;
-            break;
-
-        case DB_CLAUSE_IS_NOT_NULL:
-            if ((ret = snprintf(stringp, *left, " != null")) >= *left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            stringp += ret;
-            *left -= ret;
-            clause = db_clause_next(clause);
-            continue;
-            break;
-
-        case DB_CLAUSE_NESTED:
-            if ((ret = snprintf(stringp, *left, " (")) >= *left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            stringp += ret;
-            *left -= ret;
-            if (__db_backend_couchdb_build_map_function(object, db_clause_list(clause), stringp, left)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if ((ret = snprintf(stringp, *left, " )")) >= *left) {
+        case DB_CLAUSE_OPERATOR_OR:
+            if ((ret = snprintf(*stringp, *left, " ||")) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -561,7 +500,94 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
         default:
             return DB_ERROR_UNKNOWN;
         }
-        stringp += ret;
+        *stringp += ret;
+        *left -= ret;
+
+        if ((ret = snprintf(*stringp, *left, " %s_%s", db_object_table(object), db_clause_field(clause))) >= *left) {
+            return DB_ERROR_UNKNOWN;
+        }
+        *stringp += ret;
+        *left -= ret;
+
+        switch (db_clause_type(clause)) {
+        case DB_CLAUSE_EQUAL:
+            if ((ret = snprintf(*stringp, *left, " == ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_NOT_EQUAL:
+            if ((ret = snprintf(*stringp, *left, " != ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_LESS_THEN:
+            if ((ret = snprintf(*stringp, *left, " < ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_LESS_OR_EQUAL:
+            if ((ret = snprintf(*stringp, *left, " <= ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_GREATER_OR_EQUAL:
+            if ((ret = snprintf(*stringp, *left, " >= ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_GREATER_THEN:
+            if ((ret = snprintf(*stringp, *left, " > ")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_CLAUSE_IS_NULL:
+            if ((ret = snprintf(*stringp, *left, " == null")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            *stringp += ret;
+            *left -= ret;
+            clause = db_clause_next(clause);
+            continue;
+            break;
+
+        case DB_CLAUSE_IS_NOT_NULL:
+            if ((ret = snprintf(*stringp, *left, " != null")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            *stringp += ret;
+            *left -= ret;
+            clause = db_clause_next(clause);
+            continue;
+            break;
+
+        case DB_CLAUSE_NESTED:
+            if ((ret = snprintf(*stringp, *left, " (")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            *stringp += ret;
+            *left -= ret;
+            if (__db_backend_couchdb_build_map_function(object, db_clause_list(clause), stringp, left)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(*stringp, *left, " )")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            *stringp += ret;
+            *left -= ret;
+            clause = db_clause_next(clause);
+            continue;
+            break;
+
+        default:
+            return DB_ERROR_UNKNOWN;
+        }
+        *stringp += ret;
         *left -= ret;
 
         switch (db_value_type(db_clause_value(clause))) {
@@ -569,7 +595,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
             if (db_value_to_int32(db_clause_value(clause), &int32)) {
                 return DB_ERROR_UNKNOWN;
             }
-            if ((ret = snprintf(stringp, *left, "%d", int32)) >= *left) {
+            if ((ret = snprintf(*stringp, *left, "%d", int32)) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -578,7 +604,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
             if (db_value_to_uint32(db_clause_value(clause), &uint32)) {
                 return DB_ERROR_UNKNOWN;
             }
-            if ((ret = snprintf(stringp, *left, "%u", uint32)) >= *left) {
+            if ((ret = snprintf(*stringp, *left, "%u", uint32)) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -587,7 +613,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
             if (db_value_to_int64(db_clause_value(clause), &int64)) {
                 return DB_ERROR_UNKNOWN;
             }
-            if ((ret = snprintf(stringp, *left, "%ld", int64)) >= *left) {
+            if ((ret = snprintf(*stringp, *left, "%ld", int64)) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -596,15 +622,40 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
             if (db_value_to_uint64(db_clause_value(clause), &uint64)) {
                 return DB_ERROR_UNKNOWN;
             }
-            if ((ret = snprintf(stringp, *left, "%lu", uint64)) >= *left) {
+            if ((ret = snprintf(*stringp, *left, "%lu", uint64)) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
 
         case DB_TYPE_TEXT:
-            /* TODO: quote value */
-            return DB_ERROR_UNKNOWN;
-            if ((ret = snprintf(stringp, *left, "%s", db_value_text(db_clause_value(clause)))) >= *left) {
+            text = db_value_text(db_clause_value(clause));
+            if (!text) {
+                return DB_ERROR_UNKNOWN;
+            }
+
+            if ((ret = snprintf(*stringp, *left, "\\\"")) >= *left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            *stringp += ret;
+            *left -= ret;
+
+            while (*text) {
+                if (*text == '"') {
+                    if ((ret = snprintf(*stringp, *left, "\\\\\\\"")) >= *left) {
+                        return DB_ERROR_UNKNOWN;
+                    }
+                }
+                else {
+                    if ((ret = snprintf(*stringp, *left, "%c", *text)) >= *left) {
+                        return DB_ERROR_UNKNOWN;
+                    }
+                }
+                *stringp += ret;
+                *left -= ret;
+                text++;
+            }
+
+            if ((ret = snprintf(*stringp, *left, "\\\"")) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -612,7 +663,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
         default:
             return DB_ERROR_UNKNOWN;
         }
-        stringp += ret;
+        *stringp += ret;
         *left -= ret;
 
         clause = db_clause_next(clause);
@@ -758,14 +809,14 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         left = sizeof(string);
         stringp = string;
 
-        if ((ret = snprintf(stringp, left, "function(doc) { if (doc.type == \"%s\"", db_object_table(object))) >= left) {
+        if ((ret = snprintf(stringp, left, "function(doc) { if (doc.type == \\\"%s\\\"", db_object_table(object))) >= left) {
             db_result_list_free(result_list);
             return NULL;
         }
         stringp += ret;
         left -= ret;
 
-        if (__db_backend_couchdb_build_map_function(object, clause_list, stringp, &left)) {
+        if (__db_backend_couchdb_build_map_function(object, clause_list, &stringp, &left)) {
             db_result_list_free(result_list);
             return NULL;
         }
@@ -778,6 +829,9 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         left -= ret;
 
         puts(string);
+
+        /* TODO: Hash function, check if it exists otherwise create it */
+        /* TODO: Run the new view */
     }
     else {
         left = sizeof(string);
