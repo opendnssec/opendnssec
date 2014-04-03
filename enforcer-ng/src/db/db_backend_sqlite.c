@@ -152,7 +152,7 @@ int db_backend_sqlite_disconnect(void* data) {
     return DB_OK;
 }
 
-int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_list_t* clause_list, char* sqlp, int* left) {
+int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_list_t* clause_list, char** sqlp, int* left) {
     const db_clause_t* clause;
     int first, ret;
 
@@ -162,7 +162,13 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
     if (!sqlp) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!*sqlp) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (!left) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (*left < 1) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -175,13 +181,13 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
         else {
             switch (db_clause_operator(clause)) {
             case DB_CLAUSE_OPERATOR_AND:
-                if ((ret = snprintf(sqlp, *left, " AND")) >= *left) {
+                if ((ret = snprintf(*sqlp, *left, " AND")) >= *left) {
                     return DB_ERROR_UNKNOWN;
                 }
                 break;
 
             case DB_CLAUSE_OPERATOR_OR:
-                if ((ret = snprintf(sqlp, *left, " OR")) >= *left) {
+                if ((ret = snprintf(*sqlp, *left, " OR")) >= *left) {
                     return DB_ERROR_UNKNOWN;
                 }
                 break;
@@ -189,13 +195,13 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             default:
                 return DB_ERROR_UNKNOWN;
             }
-            sqlp += ret;
+            *sqlp += ret;
             *left -= ret;
         }
 
         switch (db_clause_type(clause)) {
         case DB_CLAUSE_EQUAL:
-            if ((ret = snprintf(sqlp, *left, " %s.%s = ?",
+            if ((ret = snprintf(*sqlp, *left, " %s.%s = ?",
                 (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                 db_clause_field(clause))) >= *left)
             {
@@ -204,7 +210,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             break;
 
         case DB_CLAUSE_NOT_EQUAL:
-            if ((ret = snprintf(sqlp, *left, " %s.%s != ?",
+            if ((ret = snprintf(*sqlp, *left, " %s.%s != ?",
                 (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                 db_clause_field(clause))) >= *left)
             {
@@ -213,7 +219,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             break;
 
         case DB_CLAUSE_LESS_THEN:
-            if ((ret = snprintf(sqlp, *left, " %s.%s < ?",
+            if ((ret = snprintf(*sqlp, *left, " %s.%s < ?",
                 (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                 db_clause_field(clause))) >= *left)
             {
@@ -222,7 +228,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             break;
 
         case DB_CLAUSE_LESS_OR_EQUAL:
-            if ((ret = snprintf(sqlp, *left, " %s.%s <= ?",
+            if ((ret = snprintf(*sqlp, *left, " %s.%s <= ?",
                 (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                 db_clause_field(clause))) >= *left)
             {
@@ -231,7 +237,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             break;
 
         case DB_CLAUSE_GREATER_OR_EQUAL:
-            if ((ret = snprintf(sqlp, *left, " %s.%s >= ?",
+            if ((ret = snprintf(*sqlp, *left, " %s.%s >= ?",
                 (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                 db_clause_field(clause))) >= *left)
             {
@@ -240,7 +246,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             break;
 
         case DB_CLAUSE_GREATER_THEN:
-            if ((ret = snprintf(sqlp, *left, " %s.%s > ?",
+            if ((ret = snprintf(*sqlp, *left, " %s.%s > ?",
                 (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                 db_clause_field(clause))) >= *left)
             {
@@ -249,7 +255,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             break;
 
         case DB_CLAUSE_IS_NULL:
-            if ((ret = snprintf(sqlp, *left, " %s.%s IS NULL",
+            if ((ret = snprintf(*sqlp, *left, " %s.%s IS NULL",
                 (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                 db_clause_field(clause))) >= *left)
             {
@@ -258,7 +264,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             break;
 
         case DB_CLAUSE_IS_NOT_NULL:
-            if ((ret = snprintf(sqlp, *left, " %s.%s IS NOT NULL",
+            if ((ret = snprintf(*sqlp, *left, " %s.%s IS NOT NULL",
                 (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
                 db_clause_field(clause))) >= *left)
             {
@@ -267,15 +273,15 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
             break;
 
         case DB_CLAUSE_NESTED:
-            if ((ret = snprintf(sqlp, *left, " (")) >= *left) {
+            if ((ret = snprintf(*sqlp, *left, " (")) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
-            sqlp += ret;
+            *sqlp += ret;
             *left -= ret;
             if (__db_backend_sqlite_build_clause(object, db_clause_list(clause), sqlp, left)) {
                 return DB_ERROR_UNKNOWN;
             }
-            if ((ret = snprintf(sqlp, *left, " )")) >= *left) {
+            if ((ret = snprintf(*sqlp, *left, " )")) >= *left) {
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -283,7 +289,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
         default:
             return DB_ERROR_UNKNOWN;
         }
-        sqlp += ret;
+        *sqlp += ret;
         *left -= ret;
 
         clause = db_clause_next(clause);
@@ -839,7 +845,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
             sqlp += ret;
             left -= ret;
         }
-        if (__db_backend_sqlite_build_clause(object, clause_list, sqlp, &left)) {
+        if (__db_backend_sqlite_build_clause(object, clause_list, &sqlp, &left)) {
             return NULL;
         }
     }
@@ -956,7 +962,7 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
             sqlp += ret;
             left -= ret;
         }
-        if (__db_backend_sqlite_build_clause(object, clause_list, sqlp, &left)) {
+        if (__db_backend_sqlite_build_clause(object, clause_list, &sqlp, &left)) {
             return DB_ERROR_UNKNOWN;
         }
     }
@@ -1115,7 +1121,7 @@ int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_cla
             sqlp += ret;
             left -= ret;
         }
-        if (__db_backend_sqlite_build_clause(object, clause_list, sqlp, &left)) {
+        if (__db_backend_sqlite_build_clause(object, clause_list, &sqlp, &left)) {
             return DB_ERROR_UNKNOWN;
         }
     }
