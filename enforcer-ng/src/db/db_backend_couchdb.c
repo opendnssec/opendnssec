@@ -39,6 +39,11 @@
 
 #define REQUEST_BUFFER_SIZE (4*1024*1024)
 
+#define COUCHDB_REQUEST_GET 1
+#define COUCHDB_REQUEST_PUT 2
+#define COUCHDB_REQUEST_POST 3
+#define COUCHDB_REQUEST_DELETE 4
+
 static int __couchdb_initialized = 0;
 
 typedef struct db_backend_couchdb {
@@ -101,7 +106,7 @@ size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb,
     return size * nmemb;
 }
 
-long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const char* request_url) {
+long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const char* request_url, int request_type) {
     CURLcode status;
     long code;
     char url[1024];
@@ -149,10 +154,47 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     urlp += ret;
     left -= ret;
 
-    curl_easy_setopt(backend_couchdb->curl, CURLOPT_URL, url);
-    curl_easy_setopt(backend_couchdb->curl, CURLOPT_WRITEFUNCTION, __db_backend_couchdb_write_response);
-    curl_easy_setopt(backend_couchdb->curl, CURLOPT_WRITEDATA, backend_couchdb);
+    if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_URL, url))
+        || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_WRITEFUNCTION, __db_backend_couchdb_write_response))
+        || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_WRITEDATA, backend_couchdb)))
+    {
+        puts(curl_easy_strerror(status));
+        return DB_ERROR_UNKNOWN;
+    }
     backend_couchdb->buffer_position = 0;
+
+    switch (request_type) {
+    case COUCHDB_REQUEST_GET:
+        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_CUSTOMREQUEST, "GET"))) {
+            puts(curl_easy_strerror(status));
+            return DB_ERROR_UNKNOWN;
+        }
+        break;
+
+    case COUCHDB_REQUEST_PUT:
+        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_CUSTOMREQUEST, "PUT"))) {
+            puts(curl_easy_strerror(status));
+            return DB_ERROR_UNKNOWN;
+        }
+        break;
+
+    case COUCHDB_REQUEST_POST:
+        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_CUSTOMREQUEST, "POST"))) {
+            puts(curl_easy_strerror(status));
+            return DB_ERROR_UNKNOWN;
+        }
+        break;
+
+    case COUCHDB_REQUEST_DELETE:
+        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_CUSTOMREQUEST, "DELETE"))) {
+            puts(curl_easy_strerror(status));
+            return DB_ERROR_UNKNOWN;
+        }
+        break;
+
+    default:
+        return DB_ERROR_UNKNOWN;
+    }
 
     if ((status = curl_easy_perform(backend_couchdb->curl))) {
         puts(curl_easy_strerror(status));
@@ -793,7 +835,7 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
             stringp += ret;
             left -= ret;
 
-            code = __db_backend_couchdb_request(backend_couchdb, string);
+            code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_GET);
             if (code != 200) {
                 db_result_list_free(result_list);
                 return NULL;
@@ -844,7 +886,7 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
         stringp += ret;
         left -= ret;
 
-        code = __db_backend_couchdb_request(backend_couchdb, string);
+        code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_GET);
         if (code != 200) {
             db_result_list_free(result_list);
             return NULL;
@@ -883,6 +925,15 @@ int db_backend_couchdb_update(void* data, const db_object_t* object, const db_ob
 
 int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
+    long code;
+    char string[4096];
+    char* stringp;
+    int ret, left;
+    const db_clause_t* clause;
+    db_type_int32_t int32;
+    db_type_uint32_t uint32;
+    db_type_int64_t int64;
+    db_type_uint64_t uint64;
 
     if (!__couchdb_initialized) {
         return DB_ERROR_UNKNOWN;
@@ -894,6 +945,85 @@ int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_cl
         return DB_ERROR_UNKNOWN;
     }
 
+    clause = db_clause_list_begin(clause_list);
+    while (clause) {
+        if (db_clause_table(clause)) {
+            /*
+             * This backend only supports clauses on the objects table.
+             */
+            if (strcmp(db_clause_table(clause), db_object_table(object))) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+
+        /*
+         * Only support deleting by id
+         */
+        if (strcmp(db_clause_field(clause), db_object_primary_key_name(object))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        clause = db_clause_next(clause);
+    }
+
+    clause = db_clause_list_begin(clause_list);
+    while (clause) {
+        left = sizeof(string);
+        stringp = string;
+
+        switch (db_value_type(db_clause_value(clause))) {
+        case DB_TYPE_INT32:
+            if (db_value_to_int32(db_clause_value(clause), &int32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, left, "/%d", int32)) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_UINT32:
+            if (db_value_to_uint32(db_clause_value(clause), &uint32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, left, "/%u", uint32)) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_INT64:
+            if (db_value_to_int64(db_clause_value(clause), &int64)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, left, "/%ld", int64)) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_UINT64:
+            if (db_value_to_uint64(db_clause_value(clause), &uint64)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if ((ret = snprintf(stringp, left, "/%lu", uint64)) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        case DB_TYPE_TEXT:
+            if ((ret = snprintf(stringp, left, "/%s", db_value_text(db_clause_value(clause)))) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            break;
+
+        default:
+            return DB_ERROR_UNKNOWN;
+        }
+        stringp += ret;
+        left -= ret;
+
+        code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_DELETE);
+        if (code != 200 && code != 202) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
     return DB_OK;
 }
 
