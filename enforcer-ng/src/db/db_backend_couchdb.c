@@ -1059,6 +1059,8 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
                 db_result_list_free(result_list);
                 return NULL;
             }
+
+            clause = db_clause_next(clause);
         }
     }
     else if (have_clauses) {
