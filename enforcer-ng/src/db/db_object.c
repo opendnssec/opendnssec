@@ -328,8 +328,9 @@ int db_object_set_backend_meta_data_list(db_object_t* object, db_backend_meta_da
     if (!backend_meta_data_list) {
         return DB_ERROR_UNKNOWN;
     }
+
     if (object->backend_meta_data_list) {
-        return DB_ERROR_UNKNOWN;
+        db_backend_meta_data_list_free(object->backend_meta_data_list);
     }
 
     object->backend_meta_data_list = backend_meta_data_list;
