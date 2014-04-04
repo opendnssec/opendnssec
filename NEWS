@@ -1,10 +1,11 @@
-OpenDNSSEC 1.4 develop
+OpenDNSSEC 1.4.5rc1 - 2014-04-04
 
 Bugfixes:
 * OPENDNSSEC-607: libhsm not using all mandatory attributes for GOST key
   generation.
 * OPENDNSSEC-609: ods-ksmutil: 'key list' command fails with error in 1.4.4
   on MySQL. Reported by Mark Elkins <mje@posix.co.za>
+
 
 OpenDNSSEC 1.4.4 - 2014-03-25
 
