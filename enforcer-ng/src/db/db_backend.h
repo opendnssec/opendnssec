@@ -36,8 +36,12 @@ extern "C" {
 
 struct db_backend_handle;
 struct db_backend;
+struct db_backend_meta_data;
+struct db_backend_meta_data_list;
 typedef struct db_backend_handle db_backend_handle_t;
 typedef struct db_backend db_backend_t;
+typedef struct db_backend_meta_data db_backend_meta_data_t;
+typedef struct db_backend_meta_data_list db_backend_meta_data_list_t;
 
 #ifdef __cplusplus
 }
@@ -48,6 +52,7 @@ typedef struct db_backend db_backend_t;
 #include "db_object.h"
 #include "db_join.h"
 #include "db_clause.h"
+#include "db_value.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -138,6 +143,30 @@ int db_backend_transaction_rollback(const db_backend_t*);
 
 db_backend_t* db_backend_factory_get_backend(const char*);
 int db_backend_factory_shutdown(void);
+
+struct db_backend_meta_data {
+    db_backend_meta_data_t* next;
+    char* name;
+    db_value_t* value;
+};
+
+db_backend_meta_data_t* db_backend_meta_data_new(void);
+void db_backend_meta_data_free(db_backend_meta_data_t*);
+const char* db_backend_meta_data_name(const db_backend_meta_data_t*);
+const db_value_t* db_backend_meta_data_value(const db_backend_meta_data_t*);
+int db_backend_meta_data_set_name(db_backend_meta_data_t*, const char*);
+int db_backend_meta_data_set_value(db_backend_meta_data_t*, db_value_t*);
+int db_backend_meta_data_not_empty(const db_backend_meta_data_t*);
+
+struct db_backend_meta_data_list {
+    db_backend_meta_data_t* begin;
+    db_backend_meta_data_t* end;
+};
+
+db_backend_meta_data_list_t* db_backend_meta_data_list_new(void);
+void db_backend_meta_data_list_free(db_backend_meta_data_list_t*);
+int db_backend_meta_data_list_add(db_backend_meta_data_list_t*, db_backend_meta_data_t*);
+const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t*, const char*);
 
 #ifdef __cplusplus
 }

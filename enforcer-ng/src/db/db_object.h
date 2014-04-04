@@ -52,6 +52,7 @@ typedef struct db_object_field_list db_object_field_list_t;
 #include "db_type.h"
 #include "db_value.h"
 #include "db_enum.h"
+#include "db_backend.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,6 +91,7 @@ struct db_object {
     const char* table;
     const char* primary_key_name;
     db_object_field_list_t* object_field_list;
+    db_backend_meta_data_list_t* backend_meta_data_list;
 };
 
 db_object_t* db_object_new(void);
@@ -98,10 +100,12 @@ const db_connection_t* db_object_connection(const db_object_t*);
 const char* db_object_table(const db_object_t*);
 const char* db_object_primary_key_name(const db_object_t*);
 const db_object_field_list_t* db_object_object_field_list(const db_object_t*);
+const db_backend_meta_data_list_t* db_object_backend_meta_data_list(const db_object_t*);
 int db_object_set_connection(db_object_t*, const db_connection_t*);
 int db_object_set_table(db_object_t*, const char*);
 int db_object_set_primary_key_name(db_object_t*, const char*);
 int db_object_set_object_field_list(db_object_t*, db_object_field_list_t*);
+int db_object_set_backend_meta_data_list(db_object_t*, db_backend_meta_data_list_t*);
 int db_object_create(const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
 db_result_list_t* db_object_read(const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
 int db_object_update(const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
