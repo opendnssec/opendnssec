@@ -73,4 +73,4 @@ Check test.c for an example.
 
 TODO
 ====
-- Use db_value_t for primary key
+- Maybe remove clause for update/delete and set object id in db_object_t
