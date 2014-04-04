@@ -6583,7 +6583,7 @@ int ListKeys(int zone_id)
     }
 	
     /* Select rows */
-    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm, k.size, k.publish from KEYDATA_VIEW k, securitymodules s left join zones z on k.zone_id = z.id where s.id = k.securitymodule_id ");
+    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm, k.size, k.publish from KEYDATA_VIEW k, securitymodules s, zones z where zone_id = z.id and s.id = k.securitymodule_id ");
     if (zone_id != -1) {
         StrAppend(&sql, "and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
