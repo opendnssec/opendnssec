@@ -62,6 +62,7 @@ db_result_t* db_result_new(void);
 void db_result_free(db_result_t*);
 const db_value_set_t* db_result_value_set(const db_result_t*);
 const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_result_t*);
+db_backend_meta_data_list_t* db_result_pop_backend_meta_data_list(db_result_t*);
 int db_result_set_value_set(db_result_t*, db_value_set_t*);
 int db_result_set_backend_meta_data_list(db_result_t*, db_backend_meta_data_list_t*);
 int db_result_not_empty(const db_result_t*);

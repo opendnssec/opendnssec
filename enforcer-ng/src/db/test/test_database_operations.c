@@ -144,6 +144,10 @@ int test_from_result(test_t* test, const db_result_t* result) {
     }
     test->name = NULL;
 
+    if (db_result_backend_meta_data_list(result)) {
+        CU_ASSERT_FATAL(!db_object_set_backend_meta_data_list(test->dbo, db_result_pop_backend_meta_data_list(result)));
+    }
+
     value_set = db_result_value_set(result);
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(value_set);
