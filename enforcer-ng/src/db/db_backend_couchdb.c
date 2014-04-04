@@ -268,7 +268,6 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
         return DB_ERROR_UNKNOWN;
     }
 
-    curl_easy_setopt(backend_couchdb->curl, CURLOPT_VERBOSE, 1);
     if ((status = curl_easy_perform(backend_couchdb->curl))) {
         puts(curl_easy_strerror(status));
         return DB_ERROR_UNKNOWN;
