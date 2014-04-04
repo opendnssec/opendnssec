@@ -211,8 +211,9 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
 
         headers = curl_slist_append(headers, "Content-Type: application/json");
 
-        if (/*(status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_HTTPHEADER, headers))
-            ||*/ (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_INFILESIZE, (long)backend_couchdb->write_length))
+        if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_HTTPHEADER, headers))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_POSTFIELDS, NULL))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_POSTFIELDSIZE, (long)backend_couchdb->write_length))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READFUNCTION, __db_backend_couchdb_read_request))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READDATA, backend_couchdb))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_PUT, 1)))
@@ -353,6 +354,9 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
     db_type_uint64_t uint64;
     size_t value_pos;
     long code;
+    char string[1024];
+    char* stringp;
+    int ret, left;
 
     if (!__couchdb_initialized) {
         return DB_ERROR_UNKNOWN;
@@ -379,24 +383,29 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
     value_pos = 0;
     while (object_field) {
         if (!(value = db_value_set_at(value_set, value_pos))) {
+            json_decref(root);
             return DB_ERROR_UNKNOWN;
         }
 
         switch (db_value_type(value)) {
         case DB_TYPE_INT32:
             if (db_value_to_int32(value, &int32)) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             if (!(json_value = json_integer(int32))) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             break;
 
         case DB_TYPE_UINT32:
             if (db_value_to_uint32(value, &uint32)) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             if (!(json_value = json_integer(uint32))) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -404,18 +413,22 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
 #ifdef JSON_INTEGER_IS_LONG_LONG
         case DB_TYPE_INT64:
             if (db_value_to_int64(value, &int64)) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             if (!(json_value = json_integer(int64))) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             break;
 
         case DB_TYPE_UINT64:
             if (db_value_to_uint64(value, &uint64)) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             if (!(json_value = json_integer(uint64))) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -423,15 +436,18 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
 
         case DB_TYPE_TEXT:
             if (!(json_value = json_string(db_value_text(value)))) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             break;
 
         case DB_TYPE_ENUM:
             if (db_value_enum_value(value, &int32)) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             if (!(json_value = json_integer(int32))) {
+                json_decref(root);
                 return DB_ERROR_UNKNOWN;
             }
             break;
@@ -441,17 +457,36 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
             return DB_ERROR_UNKNOWN;
         }
 
-        if (json_object_set_new(root, db_object_field_name(object_field), json_value)) {
+        left = sizeof(string);
+        stringp = string;
+
+        if ((ret = snprintf(stringp, left, "%s_%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
             json_decref(json_value);
             json_decref(root);
             return DB_ERROR_UNKNOWN;
         }
 
-        code = __db_backend_couchdb_request(backend_couchdb, "", COUCHDB_REQUEST_POST, root);
-        json_decref(root);
-        if (code != 201 && code != 202) {
+        if (json_object_set_new(root, string, json_value)) {
+            json_decref(json_value);
+            json_decref(root);
             return DB_ERROR_UNKNOWN;
         }
+    }
+
+    if (!(json_value = json_string(db_object_table(object)))) {
+        json_decref(root);
+        return DB_ERROR_UNKNOWN;
+    }
+    if (json_object_set_new(root, "type", json_value)) {
+        json_decref(json_value);
+        json_decref(root);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    code = __db_backend_couchdb_request(backend_couchdb, "", COUCHDB_REQUEST_POST, root);
+    json_decref(root);
+    if (code != 201 && code != 202) {
+        return DB_ERROR_UNKNOWN;
     }
 
     return DB_OK;
