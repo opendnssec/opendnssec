@@ -212,8 +212,7 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
         headers = curl_slist_append(headers, "Content-Type: application/json");
 
         if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_HTTPHEADER, headers))
-            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_POSTFIELDS, NULL))
-            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_POSTFIELDSIZE, (long)backend_couchdb->write_length))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_INFILESIZE, (long)backend_couchdb->write_length))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READFUNCTION, __db_backend_couchdb_read_request))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READDATA, backend_couchdb))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_PUT, 1)))
@@ -244,7 +243,8 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
         headers = curl_slist_append(headers, "Content-Type: application/json");
 
         if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_HTTPHEADER, headers))
-            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_INFILESIZE, (long)backend_couchdb->write_length))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_POSTFIELDS, NULL))
+            || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_POSTFIELDSIZE, (long)backend_couchdb->write_length))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READFUNCTION, __db_backend_couchdb_read_request))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_READDATA, backend_couchdb))
             || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_POST, 1)))
@@ -268,6 +268,7 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
         return DB_ERROR_UNKNOWN;
     }
 
+    curl_easy_setopt(backend_couchdb->curl, CURLOPT_VERBOSE, 1);
     if ((status = curl_easy_perform(backend_couchdb->curl))) {
         puts(curl_easy_strerror(status));
         return DB_ERROR_UNKNOWN;
