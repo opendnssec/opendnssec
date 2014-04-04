@@ -504,6 +504,9 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
     char key[1024];
     char* keyp;
     int ret, left;
+    db_backend_meta_data_list_t* backend_meta_data_list = NULL;
+    db_backend_meta_data_t* backend_meta_data = NULL;
+    db_value_t* value = NULL;
 
     if (!object) {
         return NULL;
@@ -536,6 +539,40 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
         db_value_set_free(value_set);
         return NULL;
     }
+
+    if (!(value = db_value_new())
+        || !(json_value = json_object_get(json_object, "_rev"))
+        || !json_is_string(json_value)
+        || db_value_from_text(value, json_string_value(json_value))
+        || !(backend_meta_data = db_backend_meta_data_new())
+        || db_backend_meta_data_set_name(backend_meta_data, "rev")
+        || db_backend_meta_data_set_value(backend_meta_data, value))
+    {
+        db_value_free(value);
+        json_decref(json_value);
+        db_backend_meta_data_free(backend_meta_data);
+        db_result_free(result);
+        return NULL;
+    }
+    value = NULL;
+    json_decref(json_value);
+
+    if (!(backend_meta_data_list = db_backend_meta_data_list_new())
+        || db_backend_meta_data_list_add(backend_meta_data_list, backend_meta_data))
+    {
+        db_backend_meta_data_free(backend_meta_data);
+        db_backend_meta_data_list_free(backend_meta_data_list);
+        db_result_free(result);
+        return NULL;
+    }
+    backend_meta_data = NULL;
+
+    if (db_result_set_backend_meta_data_list(result, backend_meta_data_list)) {
+        db_backend_meta_data_list_free(backend_meta_data_list);
+        db_result_free(result);
+        return NULL;
+    }
+    backend_meta_data_list = NULL;
 
     i = 0;
     object_field = db_object_field_list_begin(db_object_object_field_list(object));
