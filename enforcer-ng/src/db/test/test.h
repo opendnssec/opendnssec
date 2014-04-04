@@ -48,6 +48,8 @@ void test_class_db_value_set(void);
 void test_class_db_result(void);
 void test_class_db_result_list(void);
 void test_class_db_value(void);
+void test_class_db_backend_meta_data_list(void);
+void test_class_db_backend_meta_data(void);
 void test_class_end(void);
 
 int init_suite_initialization(void);
