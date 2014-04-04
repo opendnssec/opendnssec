@@ -471,6 +471,8 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
             json_decref(root);
             return DB_ERROR_UNKNOWN;
         }
+
+        object_field = db_object_field_next(object_field);
     }
 
     if (!(json_value = json_string(db_object_table(object)))) {
