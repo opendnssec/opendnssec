@@ -268,12 +268,22 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
         return DB_ERROR_UNKNOWN;
     }
 
+    /*
+    puts(url);
+    if (backend_couchdb->write) puts(backend_couchdb->write);
+    curl_easy_setopt(backend_couchdb->curl, CURLOPT_VERBOSE, 1);
+    */
+
     if ((status = curl_easy_perform(backend_couchdb->curl))) {
         puts(curl_easy_strerror(status));
         return DB_ERROR_UNKNOWN;
     }
 
     backend_couchdb->buffer[backend_couchdb->buffer_position] = 0;
+
+    /*
+    puts(backend_couchdb->buffer);
+    */
 
     curl_easy_getinfo(backend_couchdb->curl, CURLINFO_RESPONSE_CODE, &code);
 
@@ -1272,6 +1282,7 @@ int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_cl
     db_type_uint32_t uint32;
     db_type_int64_t int64;
     db_type_uint64_t uint64;
+    const db_backend_meta_data_t* rev;
 
     if (!__couchdb_initialized) {
         return DB_ERROR_UNKNOWN;
@@ -1280,6 +1291,17 @@ int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_cl
         return DB_ERROR_UNKNOWN;
     }
     if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    /*
+     * We need the rev from the backend_meta_data_list in order to delete
+     * objects in CouchDB
+     */
+    if (!db_object_backend_meta_data_list(object)) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(rev = db_backend_meta_data_list_find(db_object_backend_meta_data_list(object), "rev"))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1357,10 +1379,16 @@ int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_cl
         stringp += ret;
         left -= ret;
 
+        if ((ret = snprintf(stringp, left, "?rev=%s", db_value_text(db_backend_meta_data_value(rev)))) >= left) {
+            return DB_ERROR_UNKNOWN;
+        }
+
         code = __db_backend_couchdb_request(backend_couchdb, string, COUCHDB_REQUEST_DELETE, NULL);
         if (code != 200 && code != 202) {
             return DB_ERROR_UNKNOWN;
         }
+
+        clause = db_clause_next(clause);
     }
     return DB_OK;
 }

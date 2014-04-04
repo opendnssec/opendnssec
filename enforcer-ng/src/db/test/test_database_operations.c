@@ -232,12 +232,7 @@ int test_get_by_id(test_t* test, const db_value_t* id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            const db_value_set_t* value_set = db_result_value_set(result);
-
-            CU_ASSERT_PTR_NOT_NULL_FATAL(value_set);
-            CU_ASSERT_FATAL(db_value_set_size(value_set) == 2);
-            CU_ASSERT_FATAL(!db_value_copy(test->id, db_value_set_at(value_set, 0)));
-            CU_ASSERT_FATAL(!db_value_to_text(db_value_set_at(value_set, 1), &(test->name)));
+            test_from_result(test, result);
             ret = 0;
         }
         CU_ASSERT_PTR_NULL((result = db_result_list_next(result_list)));
