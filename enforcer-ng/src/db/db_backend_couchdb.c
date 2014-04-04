@@ -549,13 +549,11 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
         || db_backend_meta_data_set_value(backend_meta_data, value))
     {
         db_value_free(value);
-        json_decref(json_value);
         db_backend_meta_data_free(backend_meta_data);
         db_result_free(result);
         return NULL;
     }
     value = NULL;
-    json_decref(json_value);
 
     if (!(backend_meta_data_list = db_backend_meta_data_list_new())
         || db_backend_meta_data_list_add(backend_meta_data_list, backend_meta_data))
