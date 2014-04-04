@@ -27,21 +27,26 @@
 XMLLINT=@XMLLINT@
 XSLTPROC=@XSLTPROC@
 
+if [ ! -x "$XMLLINT" ]; then
+	XMLLINT=$(find ${PATH//:/ } -maxdepth 1 -name xmllint -print -quit)
+	if [ ! -x "$XMLLINT" ]; then
+		echo "error: xmllint required, but not found"
+		exit 1
+	fi
+fi
+
+if [ ! -x "$XSLTPROC" ]; then
+	XSLTPROC=$(find ${PATH//:/ } -maxdepth 1 -name xsltproc -print -quit)
+	if [ ! -x "$XSLTPROC" ]; then
+		echo "error: xsltproc required, but not found"
+		exit 1
+	fi
+fi
+
 KASP_SCHEMA=@OPENDNSSEC_DATA_DIR@/kasp.rng
 KASP_XSL=@OPENDNSSEC_DATA_DIR@/kasp2html.xsl
 
 KASP_XML=$1
-
-
-if [ ! -x "$XMLLINT" ]; then
-        echo "error: xmllint required, but not found"
-        exit 1
-fi
-
-if [ ! -x "$XSLTPROC" ]; then
-        echo "error: xsltproc required, but not found"
-        exit 1
-fi
 
 if [ -f "$KASP_XML" ]; then
         $XMLLINT --noout --relaxng $KASP_SCHEMA $KASP_XML && \
