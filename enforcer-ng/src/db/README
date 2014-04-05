@@ -74,3 +74,4 @@ Check test.c for an example.
 TODO
 ====
 - Maybe remove clause for update/delete and set object id in db_object_t
+- remove db_result_pop_backend_meta_data_list() and add db_backend_meta_data_list_copy()
