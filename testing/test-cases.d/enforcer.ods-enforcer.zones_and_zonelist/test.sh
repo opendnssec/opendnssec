@@ -10,17 +10,13 @@
 ZONES_FILE=$INSTALL_ROOT/var/opendnssec/enforcer/zones.xml
 ZONELIST_FILE=$INSTALL_ROOT/etc/opendnssec/zonelist.xml
 
-# First, fix up the install root in the gold files
-eval sed -e 's#@INSTALL_ROOT@#$INSTALL_ROOT#' zonelist.xml.gold > zonelist.xml.gold_local &&
-eval sed -e 's#@INSTALL_ROOT@#$INSTALL_ROOT#' zonelist.xml.test > zonelist.xml.test_local && 
-eval sed -e 's#@INSTALL_ROOT@#$INSTALL_ROOT#' zonelist.xml.gold_export > zonelist.xml.gold_export_local &&
-eval sed -e 's#@INSTALL_ROOT@#$INSTALL_ROOT#' zonelist.xml.gold_export2 > zonelist.xml.gold_export2_local &&
+local num_completed_updates
 
 # Cater for the fact that solaris and openbsd use different flags in diff
 # Use -w to ignore whitespace, but on those 2 platforms need -b instead
 # Note, since openbsd can't ignore entire blank lines, we need to get the gold
 # files just right to avoid having to fix this up during the test 
-local ignore_whitespace=" -w "
+local ignore_whitespace="-w"
 case "$DISTRIBUTION" in
 	sunos | \
 	openbsd )
@@ -28,9 +24,14 @@ case "$DISTRIBUTION" in
 		;;
 esac
 
+# First, fix up the install root in the gold files
+sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.gold > zonelist.xml.gold_local &&
+sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.test > zonelist.xml.test_local && 
+sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.gold_export > zonelist.xml.gold_export_local &&
+sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.gold_export2 > zonelist.xml.gold_export2_local &&
 
 if [ -n "$HAVE_MYSQL" ]; then
-        ods_setup_conf conf.xml conf-mysql.xml
+	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
 #### TO FIX: 
@@ -224,7 +225,10 @@ echo "Internal Zone file contents empty" &&
 ##################  TEST:  Zonelist.xml  import ###########################
 
 cp zonelist.xml.gold_local "$ZONELIST_FILE" &&
-log_this ods-enforcer-zonelist-import ods-enforcer zonelist import && 
+sleep 5 &&
+num_completed_updates=`syslog_grep_count2 "Completed updating all zones that need required action"` &&
+log_this ods-enforcer-zonelist-import ods-enforcer zonelist import &&
+syslog_waitfor_count 30 $(( num_completed_updates + 1 )) "Completed updating all zones that need required action" &&
 log_this ods-enforcer-zone_add_list_2  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_add_list_2   stdout "ods0[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_2   stdout "ods1[[:space:]]*Policy1" &&
@@ -249,19 +253,13 @@ echo "Zonelist export contents OK" &&
 diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local &&
 echo "zones.xml contents OK" &&
 
-# Hacky workaround for problem seen with database transactions locking
-case "$DISTRIBUTION" in
-	redhat | \
-	centos )
-		sleep 20 
-		;;
-esac &&
-
-
 # Now do another import with a file that has one extra zone and one zone removed
 # and some of the data changed
 cp zonelist.xml.test_local "$ZONELIST_FILE" &&
+sleep 5 &&
+num_completed_updates=`syslog_grep_count2 "Completed updating all zones that need required action"` &&
 log_this ods-enforcer-zonelist-import ods-enforcer zonelist import && 
+syslog_waitfor_count 30 $(( num_completed_updates + 1 )) "Completed updating all zones that need required action" &&
 log_this ods-enforcer-zone_add_list_3  ods-enforcer zone list  &&
 ! log_grep ods-enforcer-zone_add_list_3   stdout "ods0[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_3   stdout "ods1[[:space:]]*Policy1" &&
@@ -286,7 +284,6 @@ diff $ignore_whitespace   $ZONES_FILE zonelist.xml.test_local &&
 echo "zones.xml contents OK" &&
 
 # #Finally run the signer to check all is well
-syslog_waitfor 60 "update Zone: ods14" &&
 ods_start_signer &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods1' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods2' &&
@@ -337,6 +334,3 @@ echo "************ERROR******************"
 echo
 ods_kill
 return 1
-
-
-
