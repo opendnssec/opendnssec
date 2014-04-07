@@ -39,28 +39,102 @@ struct db_configuration_list;
 typedef struct db_configuration db_configuration_t;
 typedef struct db_configuration_list db_configuration_list_t;
 
+/**
+ * TODO
+ */
 struct db_configuration {
     db_configuration_t* next;
     char* name;
     char* value;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_configuration_t*` TODO
+ */
 db_configuration_t* db_configuration_new(void);
+
+/**
+ * TODO
+ * \param[in] configuration TODO 
+ * \return `void` TODO
+ */
 void db_configuration_free(db_configuration_t* configuration);
+
+/**
+ * TODO
+ * \param[in] configuration TODO 
+ * \return `const char*` TODO
+ */
 const char* db_configuration_name(const db_configuration_t* configuration);
+
+/**
+ * TODO
+ * \param[in] configuration TODO 
+ * \return `const char*` TODO
+ */
 const char* db_configuration_value(const db_configuration_t* configuration);
+
+/**
+ * TODO
+ * \param[in] configuration TODO 
+ * \param[in] name TODO 
+ * \return `int` TODO
+ */
 int db_configuration_set_name(db_configuration_t* configuration, const char* name);
+
+/**
+ * TODO
+ * \param[in] configuration TODO 
+ * \param[in] value TODO 
+ * \return `int` TODO
+ */
 int db_configuration_set_value(db_configuration_t* configuration, const char* value);
+
+/**
+ * TODO
+ * \param[in] configuration TODO 
+ * \return `int` TODO
+ */
 int db_configuration_not_empty(const db_configuration_t* configuration);
 
+/**
+ * TODO
+ */
 struct db_configuration_list {
     db_configuration_t* begin;
     db_configuration_t* end;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_configuration_list_t*` TODO
+ */
 db_configuration_list_t* db_configuration_list_new(void);
+
+/**
+ * TODO
+ * \param[in] configuration_list TODO 
+ * \return `void` TODO
+ */
 void db_configuration_list_free(db_configuration_list_t* configuration_list);
+
+/**
+ * TODO
+ * \param[in] configuration_list TODO 
+ * \param[in] configuration TODO 
+ * \return `int` TODO
+ */
 int db_configuration_list_add(db_configuration_list_t* configuration_list, db_configuration_t* configuration);
+
+/**
+ * TODO
+ * \param[in] configuration_list TODO 
+ * \param[in] name TODO 
+ * \return `const db_configuration_t*` TODO
+ */
 const db_configuration_t* db_configuration_list_find(const db_configuration_list_t* configuration_list, const char* name);
 
 #ifdef __cplusplus

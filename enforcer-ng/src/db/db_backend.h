@@ -58,19 +58,106 @@ typedef struct db_backend_meta_data_list db_backend_meta_data_list_t;
 extern "C" {
 #endif
 
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_initialize_t)(void* data);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_shutdown_t)(void* data);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \param[in] configuration_list TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_connect_t)(void* data, const db_configuration_list_t* configuration_list);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_disconnect_t)(void* data);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \param[in] object TODO 
+ * \param[in] object_field_list TODO 
+ * \param[in] value_set TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_create_t)(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \param[in] object TODO 
+ * \param[in] join_list TODO 
+ * \param[in] clause_list TODO 
+ * \return `typedef db_result_list_t*` TODO
+ */
 typedef db_result_list_t* (*db_backend_handle_read_t)(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \param[in] object TODO 
+ * \param[in] object_field_list TODO 
+ * \param[in] value_set TODO 
+ * \param[in] clause_list TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_update_t)(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \param[in] object TODO 
+ * \param[in] clause_list TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_delete_t)(void* data, const db_object_t* object, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \return `typedef void` TODO
+ */
 typedef void (*db_backend_handle_free_t)(void* data);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_transaction_begin_t)(void* data);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_transaction_commit_t)(void* data);
+
+/**
+ * TODO
+ * \param[in] data TODO 
+ * \return `typedef int` TODO
+ */
 typedef int (*db_backend_handle_transaction_rollback_t)(void* data);
 
+/**
+ * TODO
+ */
 struct db_backend_handle {
     void* data;
     db_backend_handle_initialize_t initialize_function;
@@ -87,87 +174,504 @@ struct db_backend_handle {
     db_backend_handle_transaction_rollback_t transaction_rollback_function;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_backend_handle_t*` TODO
+ */
 db_backend_handle_t* db_backend_handle_new(void);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `void` TODO
+ */
 void db_backend_handle_free(db_backend_handle_t* backend_handle);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_initialize(const db_backend_handle_t* backend_handle);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_shutdown(const db_backend_handle_t* backend_handle);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] configuration_list TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_disconnect(const db_backend_handle_t* backend_handle);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] object TODO 
+ * \param[in] object_field_list TODO 
+ * \param[in] value_set TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] object TODO 
+ * \param[in] join_list TODO 
+ * \param[in] clause_list TODO 
+ * \return `db_result_list_t*` TODO
+ */
 db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] object TODO 
+ * \param[in] object_field_list TODO 
+ * \param[in] value_set TODO 
+ * \param[in] clause_list TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] object TODO 
+ * \param[in] clause_list TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_transaction_begin(const db_backend_handle_t* backend_handle);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_transaction_commit(const db_backend_handle_t* backend_handle);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_transaction_rollback(const db_backend_handle_t* backend_handle);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `const void*` TODO
+ */
 const void* db_backend_handle_data(const db_backend_handle_t* backend_handle);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] initialize_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] shutdown_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t shutdown_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] connect_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t connect_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] disconnect_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] create_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t create_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] read_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t read_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] update_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t update_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] delete_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] free_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_handle_free_t free_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] transaction_begin_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_transaction_begin(db_backend_handle_t* backend_handle, db_backend_handle_transaction_begin_t transaction_begin_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] transaction_commit_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_transaction_commit(db_backend_handle_t* backend_handle, db_backend_handle_transaction_commit_t transaction_commit_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] transaction_rollback_function TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_handle, db_backend_handle_transaction_rollback_t transaction_rollback_function);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \param[in] data TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data);
+
+/**
+ * TODO
+ * \param[in] backend_handle TODO 
+ * \return `int` TODO
+ */
 int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle);
 
+/**
+ * TODO
+ */
 struct db_backend {
     db_backend_t* next;
     char* name;
     db_backend_handle_t* handle;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_backend_t*` TODO
+ */
 db_backend_t* db_backend_new(void);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `void` TODO
+ */
 void db_backend_free(db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `const char*` TODO
+ */
 const char* db_backend_name(const db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `const db_backend_handle_t*` TODO
+ */
 const db_backend_handle_t* db_backend_handle(const db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \param[in] name TODO 
+ * \return `int` TODO
+ */
 int db_backend_set_name(db_backend_t* backend, const char* name);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \param[in] handle TODO 
+ * \return `int` TODO
+ */
 int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* handle);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `int` TODO
+ */
 int db_backend_not_empty(const db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `int` TODO
+ */
 int db_backend_initialize(const db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `int` TODO
+ */
 int db_backend_shutdown(const db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \param[in] configuration_list TODO 
+ * \return `int` TODO
+ */
 int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `int` TODO
+ */
 int db_backend_disconnect(const db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \param[in] object TODO 
+ * \param[in] object_field_list TODO 
+ * \param[in] value_set TODO 
+ * \return `int` TODO
+ */
 int db_backend_create(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \param[in] object TODO 
+ * \param[in] join_list TODO 
+ * \param[in] clause_list TODO 
+ * \return `db_result_list_t*` TODO
+ */
 db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \param[in] object TODO 
+ * \param[in] object_field_list TODO 
+ * \param[in] value_set TODO 
+ * \param[in] clause_list TODO 
+ * \return `int` TODO
+ */
 int db_backend_update(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \param[in] object TODO 
+ * \param[in] clause_list TODO 
+ * \return `int` TODO
+ */
 int db_backend_delete(const db_backend_t* backend, const db_object_t* object, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `int` TODO
+ */
 int db_backend_transaction_begin(const db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `int` TODO
+ */
 int db_backend_transaction_commit(const db_backend_t* backend);
+
+/**
+ * TODO
+ * \param[in] backend TODO 
+ * \return `int` TODO
+ */
 int db_backend_transaction_rollback(const db_backend_t* backend);
 
+/**
+ * TODO
+ * \param[in] name TODO 
+ * \return `db_backend_t*` TODO
+ */
 db_backend_t* db_backend_factory_get_backend(const char* name);
+
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `int` TODO
+ */
 int db_backend_factory_shutdown(void);
 
+/**
+ * TODO
+ */
 struct db_backend_meta_data {
     db_backend_meta_data_t* next;
     char* name;
     db_value_t* value;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_backend_meta_data_t*` TODO
+ */
 db_backend_meta_data_t* db_backend_meta_data_new(void);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data TODO 
+ * \return `void` TODO
+ */
 void db_backend_meta_data_free(db_backend_meta_data_t* backend_meta_data);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data TODO 
+ * \param[in] from_backend_meta_data TODO 
+ * \return `int` TODO
+ */
 int db_backend_meta_data_copy(db_backend_meta_data_t* backend_meta_data, const db_backend_meta_data_t* from_backend_meta_data);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data TODO 
+ * \return `const char*` TODO
+ */
 const char* db_backend_meta_data_name(const db_backend_meta_data_t* backend_meta_data);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data TODO 
+ * \return `const db_value_t*` TODO
+ */
 const db_value_t* db_backend_meta_data_value(const db_backend_meta_data_t* backend_meta_data);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data TODO 
+ * \param[in] name TODO 
+ * \return `int` TODO
+ */
 int db_backend_meta_data_set_name(db_backend_meta_data_t* backend_meta_data, const char* name);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data TODO 
+ * \param[in] value TODO 
+ * \return `int` TODO
+ */
 int db_backend_meta_data_set_value(db_backend_meta_data_t* backend_meta_data, db_value_t* value);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data TODO 
+ * \return `int` TODO
+ */
 int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_data);
 
+/**
+ * TODO
+ */
 struct db_backend_meta_data_list {
     db_backend_meta_data_t* begin;
     db_backend_meta_data_t* end;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_backend_meta_data_list_t*` TODO
+ */
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data_list TODO 
+ * \return `void` TODO
+ */
 void db_backend_meta_data_list_free(db_backend_meta_data_list_t* backend_meta_data_list);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data_list TODO 
+ * \param[in] from_backend_meta_data_list TODO 
+ * \return `int` TODO
+ */
 int db_backend_meta_data_list_copy(db_backend_meta_data_list_t* backend_meta_data_list, const db_backend_meta_data_list_t* from_backend_meta_data_list);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data_list TODO 
+ * \param[in] backend_meta_data TODO 
+ * \return `int` TODO
+ */
 int db_backend_meta_data_list_add(db_backend_meta_data_list_t* backend_meta_data_list, db_backend_meta_data_t* backend_meta_data);
+
+/**
+ * TODO
+ * \param[in] backend_meta_data_list TODO 
+ * \param[in] name TODO 
+ * \return `const db_backend_meta_data_t*` TODO
+ */
 const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t* backend_meta_data_list, const char* name);
 
 #ifdef __cplusplus

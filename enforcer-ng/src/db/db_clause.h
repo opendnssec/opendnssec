@@ -73,6 +73,9 @@ typedef struct db_clause_list db_clause_list_t;
 extern "C" {
 #endif
 
+/**
+ * TODO
+ */
 struct db_clause {
     db_clause_t* next;
     char* table;
@@ -83,31 +86,158 @@ struct db_clause {
     db_clause_list_t* clause_list;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_clause_t*` TODO
+ */
 db_clause_t* db_clause_new(void);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `void` TODO
+ */
 void db_clause_free(db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `const char*` TODO
+ */
 const char* db_clause_table(const db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `const char*` TODO
+ */
 const char* db_clause_field(const db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `db_clause_type_t` TODO
+ */
 db_clause_type_t db_clause_type(const db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `const db_value_t*` TODO
+ */
 const db_value_t* db_clause_value(const db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `db_clause_operator_t` TODO
+ */
 db_clause_operator_t db_clause_operator(const db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `const db_clause_list_t*` TODO
+ */
 const db_clause_list_t* db_clause_list(const db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \param[in] table TODO 
+ * \return `int` TODO
+ */
 int db_clause_set_table(db_clause_t* clause, const char* table);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \param[in] field TODO 
+ * \return `int` TODO
+ */
 int db_clause_set_field(db_clause_t* clause, const char* field);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \param[in] type TODO 
+ * \return `int` TODO
+ */
 int db_clause_set_type(db_clause_t* clause, db_clause_type_t type);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \param[in] clause_operator TODO 
+ * \return `int` TODO
+ */
 int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_operator);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \param[in] clause_list TODO 
+ * \return `int` TODO
+ */
 int db_clause_set_list(db_clause_t* clause, db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `int` TODO
+ */
 int db_clause_not_empty(const db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `const db_clause_t*` TODO
+ */
 const db_clause_t* db_clause_next(const db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause TODO 
+ * \return `db_value_t*` TODO
+ */
 db_value_t* db_clause_get_value(db_clause_t* clause);
 
+/**
+ * TODO
+ */
 struct db_clause_list {
     db_clause_t* begin;
     db_clause_t* end;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_clause_list_t*` TODO
+ */
 db_clause_list_t* db_clause_list_new(void);
+
+/**
+ * TODO
+ * \param[in] clause_list TODO 
+ * \return `void` TODO
+ */
 void db_clause_list_free(db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] clause_list TODO 
+ * \param[in] clause TODO 
+ * \return `int` TODO
+ */
 int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause);
+
+/**
+ * TODO
+ * \param[in] clause_list TODO 
+ * \return `const db_clause_t*` TODO
+ */
 const db_clause_t* db_clause_list_begin(const db_clause_list_t* clause_list);
 
 #ifdef __cplusplus

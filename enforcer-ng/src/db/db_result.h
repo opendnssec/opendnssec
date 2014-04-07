@@ -39,6 +39,12 @@ struct db_result_list;
 typedef struct db_result db_result_t;
 typedef struct db_result_list db_result_list_t;
 
+/**
+ * TODO
+ * \param[in] void* TODO 
+ * \param[in] int TODO 
+ * \return `typedef db_result_t*` TODO
+ */
 typedef db_result_t* (*db_result_list_next_t)(void*, int);
 
 #ifdef __cplusplus
@@ -52,20 +58,69 @@ typedef db_result_t* (*db_result_list_next_t)(void*, int);
 extern "C" {
 #endif
 
+/**
+ * TODO
+ */
 struct db_result {
     db_result_t* next;
     db_value_set_t* value_set;
     db_backend_meta_data_list_t* backend_meta_data_list;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_result_t*` TODO
+ */
 db_result_t* db_result_new(void);
+
+/**
+ * TODO
+ * \param[in] result TODO 
+ * \return `void` TODO
+ */
 void db_result_free(db_result_t* result);
+
+/**
+ * TODO
+ * \param[in] result TODO 
+ * \return `const db_value_set_t*` TODO
+ */
 const db_value_set_t* db_result_value_set(const db_result_t* result);
+
+/**
+ * TODO
+ * \param[in] result TODO 
+ * \return `const db_backend_meta_data_list_t*` TODO
+ */
 const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_result_t* result);
+
+/**
+ * TODO
+ * \param[in] result TODO 
+ * \param[in] value_set TODO 
+ * \return `int` TODO
+ */
 int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set);
+
+/**
+ * TODO
+ * \param[in] result TODO 
+ * \param[in] backend_meta_data_list TODO 
+ * \return `int` TODO
+ */
 int db_result_set_backend_meta_data_list(db_result_t* result, db_backend_meta_data_list_t* backend_meta_data_list);
+
+/**
+ * TODO
+ * \param[in] result TODO 
+ * \return `int` TODO
+ */
 int db_result_not_empty(const db_result_t* result);
 
+/**
+ * TODO
+ */
 struct db_result_list {
     db_result_t* begin;
     db_result_t* end;
@@ -74,11 +129,49 @@ struct db_result_list {
     void* next_data;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_result_list_t*` TODO
+ */
 db_result_list_t* db_result_list_new(void);
+
+/**
+ * TODO
+ * \param[in] result_list TODO 
+ * \return `void` TODO
+ */
 void db_result_list_free(db_result_list_t* result_list);
+
+/**
+ * TODO
+ * \param[in] result_list TODO 
+ * \param[in] next_function TODO 
+ * \param[in] next_data TODO 
+ * \return `int` TODO
+ */
 int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data);
+
+/**
+ * TODO
+ * \param[in] result_list TODO 
+ * \param[in] result TODO 
+ * \return `int` TODO
+ */
 int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
+
+/**
+ * TODO
+ * \param[in] result_list TODO 
+ * \return `const db_result_t*` TODO
+ */
 const db_result_t* db_result_list_begin(db_result_list_t* result_list);
+
+/**
+ * TODO
+ * \param[in] result_list TODO 
+ * \return `const db_result_t*` TODO
+ */
 const db_result_t* db_result_list_next(db_result_list_t* result_list);
 
 #ifdef __cplusplus

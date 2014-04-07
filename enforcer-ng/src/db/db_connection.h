@@ -52,23 +52,116 @@ typedef struct db_connection db_connection_t;
 extern "C" {
 #endif
 
+/**
+ * TODO
+ */
 struct db_connection {
     const db_configuration_list_t* configuration_list;
     db_backend_t* backend;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_connection_t*` TODO
+ */
 db_connection_t* db_connection_new(void);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \return `void` TODO
+ */
 void db_connection_free(db_connection_t* connection);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \param[in] configuration_list TODO 
+ * \return `int` TODO
+ */
 int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \return `int` TODO
+ */
 int db_connection_setup(db_connection_t* connection);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \return `int` TODO
+ */
 int db_connection_connect(const db_connection_t* connection);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \return `int` TODO
+ */
 int db_connection_disconnect(const db_connection_t* connection);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \param[in] object TODO 
+ * \param[in] object_field_list TODO 
+ * \param[in] value_set TODO 
+ * \return `int` TODO
+ */
 int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \param[in] object TODO 
+ * \param[in] join_list TODO 
+ * \param[in] clause_list TODO 
+ * \return `db_result_list_t*` TODO
+ */
 db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \param[in] object TODO 
+ * \param[in] object_field_list TODO 
+ * \param[in] value_set TODO 
+ * \param[in] clause_list TODO 
+ * \return `int` TODO
+ */
 int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \param[in] object TODO 
+ * \param[in] clause_list TODO 
+ * \return `int` TODO
+ */
 int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_clause_list_t* clause_list);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \return `int` TODO
+ */
 int db_connection_transaction_begin(const db_connection_t* connection);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \return `int` TODO
+ */
 int db_connection_transaction_commit(const db_connection_t* connection);
+
+/**
+ * TODO
+ * \param[in] connection TODO 
+ * \return `int` TODO
+ */
 int db_connection_transaction_rollback(const db_connection_t* connection);
 
 #ifdef __cplusplus

@@ -36,6 +36,11 @@
 extern "C" {
 #endif
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_backend_handle_t*` TODO
+ */
 db_backend_handle_t* db_backend_couchdb_new_handle(void);
 
 #ifdef __cplusplus

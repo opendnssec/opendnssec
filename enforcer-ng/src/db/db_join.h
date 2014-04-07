@@ -49,6 +49,9 @@ typedef struct db_join_list db_join_list_t;
 extern "C" {
 #endif
 
+/**
+ * TODO
+ */
 struct db_join {
     db_join_t* next;
     char* from_table;
@@ -57,27 +60,129 @@ struct db_join {
     char* to_field;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_join_t*` TODO
+ */
 db_join_t* db_join_new(void);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \return `void` TODO
+ */
 void db_join_free(db_join_t* join);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \return `const char*` TODO
+ */
 const char* db_join_from_table(const db_join_t* join);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \return `const char*` TODO
+ */
 const char* db_join_from_field(const db_join_t* join);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \return `const char*` TODO
+ */
 const char* db_join_to_table(const db_join_t* join);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \return `const char*` TODO
+ */
 const char* db_join_to_field(const db_join_t* join);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \param[in] from_table TODO 
+ * \return `int` TODO
+ */
 int db_join_set_from_table(db_join_t* join, const char* from_table);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \param[in] from_field TODO 
+ * \return `int` TODO
+ */
 int db_join_set_from_field(db_join_t* join, const char* from_field);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \param[in] to_table TODO 
+ * \return `int` TODO
+ */
 int db_join_set_to_table(db_join_t* join, const char* to_table);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \param[in] to_field TODO 
+ * \return `int` TODO
+ */
 int db_join_set_to_field(db_join_t* join, const char* to_field);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \return `int` TODO
+ */
 int db_join_not_empty(const db_join_t* join);
+
+/**
+ * TODO
+ * \param[in] join TODO 
+ * \return `const db_join_t*` TODO
+ */
 const db_join_t* db_join_next(const db_join_t* join);
 
+/**
+ * TODO
+ */
 struct db_join_list {
     db_join_t* begin;
     db_join_t* end;
 };
 
+/**
+ * TODO
+ * \param[in] void TODO 
+ * \return `db_join_list_t*` TODO
+ */
 db_join_list_t* db_join_list_new(void);
+
+/**
+ * TODO
+ * \param[in] join_list TODO 
+ * \return `void` TODO
+ */
 void db_join_list_free(db_join_list_t* join_list);
+
+/**
+ * TODO
+ * \param[in] join_list TODO 
+ * \param[in] join TODO 
+ * \return `int` TODO
+ */
 int db_join_list_add(db_join_list_t* join_list, db_join_t* join);
+
+/**
+ * TODO
+ * \param[in] join_list TODO 
+ * \return `const db_join_t*` TODO
+ */
 const db_join_t* db_join_list_begin(const db_join_list_t* join_list);
 
 #ifdef __cplusplus
