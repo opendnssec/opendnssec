@@ -36,7 +36,7 @@
 
 /* DB VALUE */
 
-mm_alloc_t __value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t));
+static mm_alloc_t __value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t));
 
 db_value_t* db_value_new() {
     db_value_t* value =
@@ -553,15 +553,15 @@ int db_value_set_primary_key(db_value_t* value) {
 
 /* DB VALUE SET */
 
-mm_alloc_t __value_set_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_set_t));
-mm_alloc_t __4_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 4);
-mm_alloc_t __8_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 8);
-mm_alloc_t __12_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 12);
-mm_alloc_t __16_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 16);
-mm_alloc_t __24_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 24);
-mm_alloc_t __32_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 32);
-mm_alloc_t __64_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 64);
-mm_alloc_t __128_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 128);
+static mm_alloc_t __value_set_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_set_t));
+static mm_alloc_t __4_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 4);
+static mm_alloc_t __8_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 8);
+static mm_alloc_t __12_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 12);
+static mm_alloc_t __16_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 16);
+static mm_alloc_t __24_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 24);
+static mm_alloc_t __32_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 32);
+static mm_alloc_t __64_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 64);
+static mm_alloc_t __128_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 128);
 
 db_value_set_t* db_value_set_new(size_t size) {
     db_value_set_t* value_set;

@@ -34,7 +34,7 @@
 
 #include <stdlib.h>
 
-mm_alloc_t __connection_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_connection_t));
+static mm_alloc_t __connection_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_connection_t));
 
 db_connection_t* db_connection_new(void) {
     db_connection_t* connection =

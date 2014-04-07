@@ -37,7 +37,7 @@
 
 /* DB CLAUSE */
 
-mm_alloc_t __clause_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_t));
+static mm_alloc_t __clause_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_t));
 
 /* TODO: add more check for type and what value/list is set, maybe add type to new */
 
@@ -248,7 +248,7 @@ db_value_t* db_clause_get_value(db_clause_t* clause) {
 
 /* DB CLAUSE LIST */
 
-mm_alloc_t __clause_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_list_t));
+static mm_alloc_t __clause_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_list_t));
 
 db_clause_list_t* db_clause_list_new(void) {
     db_clause_list_t* clause_list =

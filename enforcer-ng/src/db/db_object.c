@@ -36,7 +36,7 @@
 
 /* DB OBJECT FIELD */
 
-mm_alloc_t __object_field_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_field_t));
+static mm_alloc_t __object_field_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_field_t));
 
 db_object_field_t* db_object_field_new(void) {
     db_object_field_t* object_field =
@@ -141,7 +141,7 @@ const db_object_field_t* db_object_field_next(const db_object_field_t* object_fi
 
 /* DB OBJECT FIELD LIST */
 
-mm_alloc_t __object_field_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_field_list_t));
+static mm_alloc_t __object_field_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_field_list_t));
 
 db_object_field_list_t* db_object_field_list_new(void) {
     db_object_field_list_t* object_field_list =
@@ -205,7 +205,7 @@ const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t
 
 /* DB OBJECT */
 
-mm_alloc_t __object_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_t));
+static mm_alloc_t __object_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_t));
 
 db_object_t* db_object_new(void) {
     db_object_t* object =

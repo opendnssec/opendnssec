@@ -41,7 +41,7 @@
 
 /* DB BACKEND HANDLE */
 
-mm_alloc_t __backend_handle_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_handle_t));
+static mm_alloc_t __backend_handle_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_handle_t));
 
 db_backend_handle_t* db_backend_handle_new(void) {
     db_backend_handle_t* backend_handle =
@@ -383,7 +383,7 @@ int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
 
 /* DB BACKEND */
 
-mm_alloc_t __backend_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_t));
+static mm_alloc_t __backend_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_t));
 
 db_backend_t* db_backend_new(void) {
     db_backend_t* backend =
@@ -655,7 +655,7 @@ int db_backend_factory_shutdown(void) {
 
 /* DB BACKEND META DATA */
 
-mm_alloc_t __backend_meta_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_meta_data_t));
+static mm_alloc_t __backend_meta_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_meta_data_t));
 
 db_backend_meta_data_t* db_backend_meta_data_new(void) {
     db_backend_meta_data_t* backend_meta_data =
@@ -778,7 +778,7 @@ int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_da
 
 /* DB BACKEND META DATA LIST */
 
-mm_alloc_t __backend_meta_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_meta_data_list_t));
+static mm_alloc_t __backend_meta_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_meta_data_list_t));
 
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void) {
     db_backend_meta_data_list_t* backend_meta_data_list =

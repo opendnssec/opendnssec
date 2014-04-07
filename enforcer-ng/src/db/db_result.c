@@ -34,7 +34,7 @@
 
 /* DB RESULT */
 
-mm_alloc_t __result_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_t));
+static mm_alloc_t __result_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_t));
 
 db_result_t* db_result_new(void) {
     db_result_t* result =
@@ -113,7 +113,7 @@ int db_result_not_empty(const db_result_t* result) {
 
 /* DB RESULT LIST */
 
-mm_alloc_t __result_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_list_t));
+static mm_alloc_t __result_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_list_t));
 
 db_result_list_t* db_result_list_new(void) {
     db_result_list_t* result_list =

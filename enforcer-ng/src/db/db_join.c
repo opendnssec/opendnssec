@@ -37,7 +37,7 @@
 
 /* DB JOIN */
 
-mm_alloc_t __join_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_t));
+static mm_alloc_t __join_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_t));
 
 db_join_t* db_join_new(void) {
     db_join_t* join =
@@ -197,7 +197,7 @@ const db_join_t* db_join_next(const db_join_t* join) {
 
 /* DB JOIN LIST */
 
-mm_alloc_t __join_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_list_t));
+static mm_alloc_t __join_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_list_t));
 
 db_join_list_t* db_join_list_new(void) {
     db_join_list_t* join_list =

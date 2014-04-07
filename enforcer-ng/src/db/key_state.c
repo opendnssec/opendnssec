@@ -126,7 +126,7 @@ db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
 /* ENFORCER ZONE */
 
-mm_alloc_t __key_state_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_t));
+static mm_alloc_t __key_state_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_t));
 
 key_state_t* key_state_new(const db_connection_t* connection) {
     key_state_t* key_state =
@@ -331,7 +331,7 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
 
 /* ENFORCER ZONE LIST */
 
-mm_alloc_t __key_state_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_list_t));
+static mm_alloc_t __key_state_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_list_t));
 
 key_state_list_t* key_state_list_new(const db_connection_t* connection) {
     key_state_list_t* key_state_list =

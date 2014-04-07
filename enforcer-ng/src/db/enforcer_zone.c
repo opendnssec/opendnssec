@@ -236,7 +236,7 @@ db_object_t* __enforcer_zone_new_object(const db_connection_t* connection) {
 
 /* ENFORCER ZONE */
 
-mm_alloc_t __enforcer_zone_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(enforcer_zone_t));
+static mm_alloc_t __enforcer_zone_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(enforcer_zone_t));
 
 enforcer_zone_t* enforcer_zone_new(const db_connection_t* connection) {
     enforcer_zone_t* enforcer_zone =
@@ -488,7 +488,7 @@ key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t*
 
 /* ENFORCER ZONE LIST */
 
-mm_alloc_t __enforcer_zone_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(enforcer_zone_list_t));
+static mm_alloc_t __enforcer_zone_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(enforcer_zone_list_t));
 
 enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t* connection) {
     enforcer_zone_list_t* enforcer_zone_list =

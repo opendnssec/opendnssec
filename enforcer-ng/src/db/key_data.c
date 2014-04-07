@@ -266,7 +266,7 @@ db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
 /* ENFORCER ZONE */
 
-mm_alloc_t __key_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_t));
+static mm_alloc_t __key_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_t));
 
 key_data_t* key_data_new(const db_connection_t* connection) {
     key_data_t* key_data =
@@ -767,7 +767,7 @@ const key_state_t* key_data_get_rrsigdnskey(key_data_t* key_data) {
 
 /* ENFORCER ZONE LIST */
 
-mm_alloc_t __key_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_list_t));
+static mm_alloc_t __key_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_list_t));
 
 key_data_list_t* key_data_list_new(const db_connection_t* connection) {
     key_data_list_t* key_data_list =

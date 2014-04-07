@@ -37,7 +37,7 @@
 
 /* DB CONFIGURATION */
 
-mm_alloc_t __configuration_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_configuration_t));
+static mm_alloc_t __configuration_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_configuration_t));
 
 db_configuration_t* db_configuration_new(void) {
     db_configuration_t* configuration =
@@ -125,7 +125,7 @@ int db_configuration_not_empty(const db_configuration_t* configuration) {
 
 /* DB CONFIGURATION LIST */
 
-mm_alloc_t __configuration_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_configuration_list_t));
+static mm_alloc_t __configuration_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_configuration_list_t));
 
 db_configuration_list_t* db_configuration_list_new(void) {
     db_configuration_list_t* configuration_list =
