@@ -41,6 +41,12 @@
 static int fake_pointer = 0;
 static db_backend_handle_t* backend_handle = NULL;
 static db_backend_t* backend = NULL;
+static db_backend_meta_data_t* backend_meta_data = NULL;
+static db_backend_meta_data_t* backend_meta_data2 = NULL;
+static db_backend_meta_data_t* backend_meta_data3 = NULL;
+static db_backend_meta_data_t* backend_meta_data4 = NULL;
+static db_backend_meta_data_list_t* backend_meta_data_list = NULL;
+static db_backend_meta_data_list_t* backend_meta_data_list2 = NULL;
 static db_clause_t* clause = NULL;
 static db_clause_t* clause2 = NULL;
 static db_clause_list_t* clause_list = NULL;
@@ -68,15 +74,30 @@ static const db_enum_t enum_set[] = {
     { "enum3", 3 },
     { NULL, 0 }
 };
-static db_backend_meta_data_t* backend_meta_data = NULL;
-static db_backend_meta_data_t* backend_meta_data2 = NULL;
-static db_backend_meta_data_list_t* backend_meta_data_list = NULL;
 
 int init_suite_classes(void) {
     if (backend_handle) {
         return 1;
     }
     if (backend) {
+        return 1;
+    }
+    if (backend_meta_data) {
+        return 1;
+    }
+    if (backend_meta_data2) {
+        return 1;
+    }
+    if (backend_meta_data3) {
+        return 1;
+    }
+    if (backend_meta_data4) {
+        return 1;
+    }
+    if (backend_meta_data_list) {
+        return 1;
+    }
+    if (backend_meta_data_list2) {
         return 1;
     }
     if (clause) {
@@ -142,15 +163,6 @@ int init_suite_classes(void) {
     if (value2) {
         return 1;
     }
-    if (backend_meta_data) {
-        return 1;
-    }
-    if (backend_meta_data2) {
-        return 1;
-    }
-    if (backend_meta_data_list) {
-        return 1;
-    }
     return 0;
 }
 
@@ -159,6 +171,18 @@ int clean_suite_classes(void) {
     backend_handle = NULL;
     db_backend_free(backend);
     backend = NULL;
+    db_backend_meta_data_free(backend_meta_data);
+    backend_meta_data = NULL;
+    db_backend_meta_data_free(backend_meta_data2);
+    backend_meta_data2 = NULL;
+    db_backend_meta_data_free(backend_meta_data3);
+    backend_meta_data3 = NULL;
+    db_backend_meta_data_free(backend_meta_data4);
+    backend_meta_data4 = NULL;
+    db_backend_meta_data_list_free(backend_meta_data_list);
+    backend_meta_data_list = NULL;
+    db_backend_meta_data_list_free(backend_meta_data_list2);
+    backend_meta_data_list2 = NULL;
     db_clause_free(clause);
     clause = NULL;
     db_clause_free(clause2);
@@ -201,12 +225,6 @@ int clean_suite_classes(void) {
     value = NULL;
     db_value_free(value2);
     value2 = NULL;
-    db_backend_meta_data_free(backend_meta_data);
-    backend_meta_data = NULL;
-    db_backend_meta_data_free(backend_meta_data2);
-    backend_meta_data2 = NULL;
-    db_backend_meta_data_list_free(backend_meta_data_list);
-    backend_meta_data_list = NULL;
     return 0;
 }
 
@@ -338,6 +356,96 @@ void test_class_db_backend(void) {
     CU_ASSERT(!db_backend_transaction_begin(backend));
     CU_ASSERT(!db_backend_transaction_commit(backend));
     CU_ASSERT(!db_backend_transaction_rollback(backend));
+}
+
+void test_class_db_backend_meta_data(void) {
+    db_value_t* local_value;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data = db_backend_meta_data_new()));
+    CU_ASSERT(!db_backend_meta_data_set_name(backend_meta_data, "name1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_value = db_value_new()));
+    CU_ASSERT(!db_value_from_text(local_value, "value1"));
+    CU_ASSERT(!db_backend_meta_data_set_value(backend_meta_data, local_value));
+    CU_ASSERT(!db_backend_meta_data_not_empty(backend_meta_data));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_name(backend_meta_data));
+    CU_ASSERT(!strcmp(db_backend_meta_data_name(backend_meta_data), "name1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_value(backend_meta_data));
+    CU_ASSERT(!strcmp(db_value_text(db_backend_meta_data_value(backend_meta_data)), "value1"));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data2 = db_backend_meta_data_new()));
+    CU_ASSERT_FATAL(!db_backend_meta_data_copy(backend_meta_data2, backend_meta_data));
+    CU_ASSERT(!db_backend_meta_data_not_empty(backend_meta_data2));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_name(backend_meta_data2));
+    CU_ASSERT(!strcmp(db_backend_meta_data_name(backend_meta_data2), "name1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_value(backend_meta_data2));
+    CU_ASSERT(!strcmp(db_value_text(db_backend_meta_data_value(backend_meta_data2)), "value1"));
+    db_backend_meta_data_free(backend_meta_data2);
+    backend_meta_data2 = NULL;
+    CU_PASS("db_backend_meta_data_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data2 = db_backend_meta_data_new()));
+    CU_ASSERT(!db_backend_meta_data_set_name(backend_meta_data2, "name2"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_value = db_value_new()));
+    CU_ASSERT(!db_value_from_text(local_value, "value2"));
+    CU_ASSERT(!db_backend_meta_data_set_value(backend_meta_data2, local_value));
+    CU_ASSERT(!db_backend_meta_data_not_empty(backend_meta_data2));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_name(backend_meta_data2));
+    CU_ASSERT(!strcmp(db_backend_meta_data_name(backend_meta_data2), "name2"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_value(backend_meta_data2));
+    CU_ASSERT(!strcmp(db_value_text(db_backend_meta_data_value(backend_meta_data2)), "value2"));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data3 = db_backend_meta_data_new()));
+    CU_ASSERT(!db_backend_meta_data_set_name(backend_meta_data3, "name3"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_value = db_value_new()));
+    CU_ASSERT(!db_value_from_text(local_value, "value3"));
+    CU_ASSERT(!db_backend_meta_data_set_value(backend_meta_data3, local_value));
+    CU_ASSERT(!db_backend_meta_data_not_empty(backend_meta_data3));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_name(backend_meta_data3));
+    CU_ASSERT(!strcmp(db_backend_meta_data_name(backend_meta_data3), "name3"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_value(backend_meta_data3));
+    CU_ASSERT(!strcmp(db_value_text(db_backend_meta_data_value(backend_meta_data3)), "value3"));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data4 = db_backend_meta_data_new()));
+    CU_ASSERT(!db_backend_meta_data_set_name(backend_meta_data4, "name4"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_value = db_value_new()));
+    CU_ASSERT(!db_value_from_text(local_value, "value4"));
+    CU_ASSERT(!db_backend_meta_data_set_value(backend_meta_data4, local_value));
+    CU_ASSERT(!db_backend_meta_data_not_empty(backend_meta_data4));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_name(backend_meta_data4));
+    CU_ASSERT(!strcmp(db_backend_meta_data_name(backend_meta_data4), "name4"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_value(backend_meta_data4));
+    CU_ASSERT(!strcmp(db_value_text(db_backend_meta_data_value(backend_meta_data4)), "value4"));
+}
+
+void test_class_db_backend_meta_data_list(void) {
+    db_backend_meta_data_t* local_backend_meta_data = backend_meta_data;
+    db_backend_meta_data_t* local_backend_meta_data2 = backend_meta_data2;
+    db_backend_meta_data_t* local_backend_meta_data3 = backend_meta_data3;
+    db_backend_meta_data_t* local_backend_meta_data4 = backend_meta_data4;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list = db_backend_meta_data_list_new()));
+    CU_ASSERT_FATAL(!db_backend_meta_data_list_add(backend_meta_data_list, backend_meta_data));
+    backend_meta_data = NULL;
+    CU_ASSERT_FATAL(!db_backend_meta_data_list_add(backend_meta_data_list, backend_meta_data2));
+    backend_meta_data2 = NULL;
+    CU_ASSERT(db_backend_meta_data_list_find(backend_meta_data_list, "name1") == local_backend_meta_data);
+    CU_ASSERT(db_backend_meta_data_list_find(backend_meta_data_list, "name2") == local_backend_meta_data2);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list2 = db_backend_meta_data_list_new()));
+    CU_ASSERT_FATAL(!db_backend_meta_data_list_copy(backend_meta_data_list2, backend_meta_data_list));
+    CU_ASSERT_PTR_NOT_NULL(db_backend_meta_data_list_find(backend_meta_data_list2, "name1"));
+    CU_ASSERT_PTR_NOT_NULL(db_backend_meta_data_list_find(backend_meta_data_list2, "name2"));
+    db_backend_meta_data_list_free(backend_meta_data_list2);
+    backend_meta_data_list2 = NULL;
+    CU_PASS("db_backend_meta_data_list_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list2 = db_backend_meta_data_list_new()));
+    CU_ASSERT_FATAL(!db_backend_meta_data_list_add(backend_meta_data_list2, backend_meta_data3));
+    backend_meta_data3 = NULL;
+    CU_ASSERT_FATAL(!db_backend_meta_data_list_add(backend_meta_data_list2, backend_meta_data4));
+    backend_meta_data4 = NULL;
+    CU_ASSERT(db_backend_meta_data_list_find(backend_meta_data_list2, "name3") == local_backend_meta_data3);
+    CU_ASSERT(db_backend_meta_data_list_find(backend_meta_data_list2, "name4") == local_backend_meta_data4);
 }
 
 void test_class_db_clause(void) {
@@ -545,6 +653,7 @@ void test_class_db_object_field_list(void) {
 
 void test_class_db_object(void) {
     db_object_field_list_t* local_object_field_list = object_field_list;
+    db_backend_meta_data_list_t* local_backend_meta_data_list = backend_meta_data_list;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object = db_object_new()));
 
@@ -553,6 +662,8 @@ void test_class_db_object(void) {
     CU_ASSERT(!db_object_set_primary_key_name(object, "primary_key"));
     CU_ASSERT(!db_object_set_object_field_list(object, object_field_list));
     object_field_list = NULL;
+    CU_ASSERT(!db_object_set_backend_meta_data_list(object, backend_meta_data_list));
+    backend_meta_data_list = NULL;
 
     CU_ASSERT(db_object_connection(object) == connection);
     CU_ASSERT_PTR_NOT_NULL_FATAL(db_object_table(object));
@@ -560,6 +671,7 @@ void test_class_db_object(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(db_object_primary_key_name(object));
     CU_ASSERT(!strcmp(db_object_primary_key_name(object), "primary_key"));
     CU_ASSERT(db_object_object_field_list(object) == local_object_field_list);
+    CU_ASSERT(db_object_backend_meta_data_list(object) == local_backend_meta_data_list);
 
     CU_ASSERT(!db_object_create(object, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer));
     CU_ASSERT(db_object_read(object, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer) == (db_result_list_t*)&fake_pointer);
@@ -602,11 +714,15 @@ void test_class_db_value_set(void) {
 void test_class_db_result(void) {
     db_value_set_t* local_value_set = value_set;
     db_value_set_t* local_value_set2 = value_set2;
+    db_backend_meta_data_list_t* local_backend_meta_data_list2 = backend_meta_data_list2;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((result = db_result_new()));
     CU_ASSERT(!db_result_set_value_set(result, value_set));
     value_set = NULL;
     CU_ASSERT(db_result_value_set(result) == local_value_set);
+    CU_ASSERT(!db_result_set_backend_meta_data_list(result, backend_meta_data_list2));
+    backend_meta_data_list2 = NULL;
+    CU_ASSERT(db_result_backend_meta_data_list(result) == local_backend_meta_data_list2);
     CU_ASSERT(!db_result_not_empty(result));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((result2 = db_result_new()));
@@ -983,52 +1099,6 @@ void test_class_db_value(void) {
     db_value_free(value2);
     value2 = NULL;
     CU_PASS("db_value_free");
-}
-
-void test_class_db_backend_meta_data(void) {
-    db_value_t* local_value;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data = db_backend_meta_data_new()));
-    CU_ASSERT(!db_backend_meta_data_set_name(backend_meta_data, "name1"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((local_value = db_value_new()));
-    CU_ASSERT(!db_value_from_text(local_value, "value1"));
-    CU_ASSERT(!db_backend_meta_data_set_value(backend_meta_data, local_value));
-    CU_ASSERT(!db_backend_meta_data_not_empty(backend_meta_data));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_name(backend_meta_data));
-    CU_ASSERT(!strcmp(db_backend_meta_data_name(backend_meta_data), "name1"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_value(backend_meta_data));
-    CU_ASSERT(!strcmp(db_value_text(db_backend_meta_data_value(backend_meta_data)), "value1"));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data2 = db_backend_meta_data_new()));
-    CU_ASSERT(!db_backend_meta_data_set_name(backend_meta_data2, "name2"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((local_value = db_value_new()));
-    CU_ASSERT(!db_value_from_text(local_value, "value2"));
-    CU_ASSERT(!db_backend_meta_data_set_value(backend_meta_data2, local_value));
-    CU_ASSERT(!db_backend_meta_data_not_empty(backend_meta_data2));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_name(backend_meta_data2));
-    CU_ASSERT(!strcmp(db_backend_meta_data_name(backend_meta_data2), "name2"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_backend_meta_data_value(backend_meta_data2));
-    CU_ASSERT(!strcmp(db_value_text(db_backend_meta_data_value(backend_meta_data2)), "value2"));
-}
-
-void test_class_db_backend_meta_data_list(void) {
-    db_backend_meta_data_t* local_backend_meta_data = backend_meta_data;
-    db_backend_meta_data_t* local_backend_meta_data2 = backend_meta_data2;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list = db_backend_meta_data_list_new()));
-
-    CU_ASSERT_FATAL(!db_backend_meta_data_list_add(backend_meta_data_list, backend_meta_data));
-    backend_meta_data = NULL;
-    CU_ASSERT_FATAL(!db_backend_meta_data_list_add(backend_meta_data_list, backend_meta_data2));
-    backend_meta_data2 = NULL;
-
-    CU_ASSERT(db_backend_meta_data_list_find(backend_meta_data_list, "name1") == local_backend_meta_data);
-    CU_ASSERT(db_backend_meta_data_list_find(backend_meta_data_list, "name2") == local_backend_meta_data2);
-
-    db_backend_meta_data_list_free(backend_meta_data_list);
-    backend_meta_data_list = NULL;
-    CU_PASS("db_backend_meta_data_list_free");
-    CU_PASS("db_backend_meta_data_free");
 }
 
 void test_class_end(void) {

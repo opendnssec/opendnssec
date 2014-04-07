@@ -71,18 +71,6 @@ const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_res
     return result->backend_meta_data_list;
 }
 
-db_backend_meta_data_list_t* db_result_pop_backend_meta_data_list(db_result_t* result) {
-    db_backend_meta_data_list_t* backend_meta_data_list;
-
-    if (!result) {
-        return NULL;
-    }
-
-    backend_meta_data_list = result->backend_meta_data_list;
-    result->backend_meta_data_list = NULL;
-    return backend_meta_data_list;
-}
-
 int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set) {
     if (!result) {
         return DB_ERROR_UNKNOWN;

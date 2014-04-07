@@ -145,7 +145,11 @@ int test_from_result(test_t* test, const db_result_t* result) {
     test->name = NULL;
 
     if (db_result_backend_meta_data_list(result)) {
-        CU_ASSERT_FATAL(!db_object_set_backend_meta_data_list(test->dbo, db_result_pop_backend_meta_data_list(result)));
+        db_backend_meta_data_list_t* backend_meta_data_list;
+
+        CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list = db_backend_meta_data_list_new()));
+        CU_ASSERT_FATAL(!db_backend_meta_data_list_copy(backend_meta_data_list, db_result_backend_meta_data_list(result)));
+        CU_ASSERT_FATAL(!db_object_set_backend_meta_data_list(test->dbo, backend_meta_data_list));
     }
 
     value_set = db_result_value_set(result);

@@ -152,6 +152,7 @@ struct db_backend_meta_data {
 
 db_backend_meta_data_t* db_backend_meta_data_new(void);
 void db_backend_meta_data_free(db_backend_meta_data_t*);
+int db_backend_meta_data_copy(db_backend_meta_data_t*, const db_backend_meta_data_t*);
 const char* db_backend_meta_data_name(const db_backend_meta_data_t*);
 const db_value_t* db_backend_meta_data_value(const db_backend_meta_data_t*);
 int db_backend_meta_data_set_name(db_backend_meta_data_t*, const char*);
@@ -165,6 +166,7 @@ struct db_backend_meta_data_list {
 
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void);
 void db_backend_meta_data_list_free(db_backend_meta_data_list_t*);
+int db_backend_meta_data_list_copy(db_backend_meta_data_list_t*, const db_backend_meta_data_list_t*);
 int db_backend_meta_data_list_add(db_backend_meta_data_list_t*, db_backend_meta_data_t*);
 const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t*, const char*);
 

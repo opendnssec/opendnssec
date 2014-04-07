@@ -46,6 +46,8 @@ int main(void) {
 
     if (!CU_add_test(pSuite, "test of db_backend_handle", test_class_db_backend_handle)
         || !CU_add_test(pSuite, "test of db_backend", test_class_db_backend)
+        || !CU_add_test(pSuite, "test of db_backend_meta_data", test_class_db_backend_meta_data)
+        || !CU_add_test(pSuite, "test of db_backend_meta_data_list", test_class_db_backend_meta_data_list)
         || !CU_add_test(pSuite, "test of db_clause", test_class_db_clause)
         || !CU_add_test(pSuite, "test of db_clause_list", test_class_db_clause_list)
         || !CU_add_test(pSuite, "test of db_configuration", test_class_db_configuration)
@@ -60,8 +62,6 @@ int main(void) {
         || !CU_add_test(pSuite, "test of db_result", test_class_db_result)
         || !CU_add_test(pSuite, "test of db_result_list", test_class_db_result_list)
         || !CU_add_test(pSuite, "test of db_value", test_class_db_value)
-        || !CU_add_test(pSuite, "test of db_backend_meta_data", test_class_db_backend_meta_data)
-        || !CU_add_test(pSuite, "test of db_backend_meta_data_list", test_class_db_backend_meta_data_list)
         || !CU_add_test(pSuite, "test of db_*_free", test_class_end))
     {
         CU_cleanup_registry();

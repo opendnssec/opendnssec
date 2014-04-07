@@ -676,6 +676,47 @@ void db_backend_meta_data_free(db_backend_meta_data_t* backend_meta_data) {
     }
 }
 
+int db_backend_meta_data_copy(db_backend_meta_data_t* backend_meta_data, const db_backend_meta_data_t* from_backend_meta_data) {
+    if (!backend_meta_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_backend_meta_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (backend_meta_data->name) {
+        free(backend_meta_data->name);
+        backend_meta_data->name = NULL;
+    }
+    if (from_backend_meta_data->name) {
+        if (!(backend_meta_data->name = strdup(from_backend_meta_data->name))) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
+    if (from_backend_meta_data->value) {
+        if (backend_meta_data->value) {
+            db_value_reset(backend_meta_data->value);
+        }
+        else {
+            if (!(backend_meta_data->value = db_value_new())) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        if (db_value_copy(backend_meta_data->value, from_backend_meta_data->value)) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    else {
+        if (backend_meta_data->value) {
+            db_value_free(backend_meta_data->value);
+            backend_meta_data->value = NULL;
+        }
+    }
+
+    return DB_OK;
+}
+
 const char* db_backend_meta_data_name(const db_backend_meta_data_t* backend_meta_data) {
     if (!backend_meta_data) {
         return NULL;
@@ -760,6 +801,50 @@ void db_backend_meta_data_list_free(db_backend_meta_data_list_t* backend_meta_da
         }
         mm_alloc_delete(&__backend_meta_data_list_alloc, backend_meta_data_list);
     }
+}
+
+int db_backend_meta_data_list_copy(db_backend_meta_data_list_t* backend_meta_data_list, const db_backend_meta_data_list_t* from_backend_meta_data_list) {
+    const db_backend_meta_data_t* backend_meta_data;
+    db_backend_meta_data_t* backend_meta_data_copy;
+
+    if (!backend_meta_data_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_backend_meta_data_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (backend_meta_data_list->begin) {
+        db_backend_meta_data_t* this = backend_meta_data_list->begin;
+        db_backend_meta_data_t* next = NULL;
+
+        while (this) {
+            next = this->next;
+            db_backend_meta_data_free(this);
+            this = next;
+        }
+    }
+
+    backend_meta_data_list->begin = NULL;;
+    backend_meta_data_list->end = NULL;
+
+    backend_meta_data = from_backend_meta_data_list->begin;
+    while (backend_meta_data) {
+        if (!(backend_meta_data_copy = db_backend_meta_data_new())) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        if (db_backend_meta_data_copy(backend_meta_data_copy, backend_meta_data)
+            || db_backend_meta_data_list_add(backend_meta_data_list, backend_meta_data_copy))
+        {
+            db_backend_meta_data_free(backend_meta_data_copy);
+            return DB_ERROR_UNKNOWN;
+        }
+
+        backend_meta_data = backend_meta_data->next;
+    }
+
+    return DB_OK;
 }
 
 int db_backend_meta_data_list_add(db_backend_meta_data_list_t* backend_meta_data_list, db_backend_meta_data_t* backend_meta_data) {
