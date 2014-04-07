@@ -103,7 +103,7 @@ int db_value_copy(db_value_t* value, const db_value_t* from_value);
  * or be greater than B.
  * \param[in] value_a a db_value_t pointer.
  * \param[in] value_b a db_value_t pointer.
- * \param[in] result a integer pointer.
+ * \param[out] result a integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* result);
@@ -125,7 +125,7 @@ const char* db_value_text(const db_value_t* value);
 /**
  * Sets `enum_value` with the integer value of an enumeration database value.
  * \param[in] value a db_value_t pointer.
- * \param[in] enum_value a integer pointer.
+ * \param[out] enum_value a integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_enum_value(const db_value_t* value, int* enum_value);
@@ -148,7 +148,7 @@ int db_value_not_empty(const db_value_t* value);
 /**
  * Get the 32bit integer representation of the database value.
  * \param[in] value a db_value_t pointer.
- * \param[in] to_int32 a db_type_int32_t pointer.
+ * \param[out] to_int32 a db_type_int32_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_int32(const db_value_t* value, db_type_int32_t* to_int32);
@@ -156,7 +156,7 @@ int db_value_to_int32(const db_value_t* value, db_type_int32_t* to_int32);
 /**
  * Get the unsigned 32bit integer representation of the database value.
  * \param[in] value a db_value_t pointer.
- * \param[in] to_uint32 a db_type_uint32_t pointer.
+ * \param[out] to_uint32 a db_type_uint32_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_uint32(const db_value_t* value, db_type_uint32_t* to_uint32);
@@ -164,7 +164,7 @@ int db_value_to_uint32(const db_value_t* value, db_type_uint32_t* to_uint32);
 /**
  * Get the 64bit integer representation of the database value.
  * \param[in] value a db_value_t pointer.
- * \param[in] to_int64 a db_type_int64_t pointer.
+ * \param[out] to_int64 a db_type_int64_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_int64(const db_value_t* value, db_type_int64_t* to_int64);
@@ -172,7 +172,7 @@ int db_value_to_int64(const db_value_t* value, db_type_int64_t* to_int64);
 /**
  * Get the unsigned 64bit integer representation of the database value.
  * \param[in] value a db_value_t pointer.
- * \param[in] to_uint64 a db_type_uint64_t pointer.
+ * \param[out] to_uint64 a db_type_uint64_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_uint64(const db_value_t* value, db_type_uint64_t* to_uint64);
@@ -180,7 +180,7 @@ int db_value_to_uint64(const db_value_t* value, db_type_uint64_t* to_uint64);
 /**
  * Get the character representation of the database value.
  * \param[in] value a db_value_t pointer.
- * \param[in] to_text a character pointer.
+ * \param[out] to_text a character pointer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_text(const db_value_t* value, char** to_text);
@@ -188,7 +188,7 @@ int db_value_to_text(const db_value_t* value, char** to_text);
 /**
  * Get the integer enumeration representation of the database value.
  * \param[in] value a db_value_t pointer.
- * \param[in] to_int a integer pointer.
+ * \param[out] to_int a integer pointer.
  * \param[in] enum_set a db_enum_t array that MUST end with NULL.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
@@ -197,7 +197,7 @@ int db_value_to_enum_value(const db_value_t* value, int* to_int, const db_enum_t
 /**
  * Get the character enumeration representation of the database value.
  * \param[in] value a db_value_t pointer.
- * \param[in] to_text a character pointer pointer.
+ * \param[out] to_text a character pointer pointer.
  * \param[in] enum_set a db_enum_t array that MUST end with NULL.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
