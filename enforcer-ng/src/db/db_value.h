@@ -57,7 +57,7 @@ extern "C" {
 #define DB_VALUE_DATA_SIZE (SIZEOF_INT64_T / SIZEOF_VOIDP)
 
 /**
- * TODO
+ * A container for a database value.
  */
 struct db_value {
     db_type_t type;
@@ -72,210 +72,211 @@ struct db_value {
 };
 
 /**
- * TODO
- * \return `db_value_t*` TODO
+ * Create a new database value.
+ * \return a db_value_t pointer or NULL on error.
  */
 db_value_t* db_value_new();
 
 /**
- * TODO
- * \param[in] value TODO 
- * \return `void` TODO
+ * Delete a database value.
+ * \param[in] value a db_value_t pointer.
  */
 void db_value_free(db_value_t* value);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \return `void` TODO
+ * Reset a database value, releasing all interal resources and marking it empty.
+ * \param[in] value a db_value_t pointer.
  */
 void db_value_reset(db_value_t* value);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] from_value TODO 
- * \return `int` TODO
+ * Copy the contant from one database value into another.
+ * \param[in] value a db_value_t pointer to copy to.
+ * \param[in] from_value a db_value_t pointer to copy from.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_copy(db_value_t* value, const db_value_t* from_value);
 
 /**
- * TODO
- * \param[in] value_a TODO 
- * \param[in] value_b TODO 
- * \param[in] result TODO 
- * \return `int` TODO
+ * Compare two database values A and B. Sets `result` with less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] value_a a db_value_t pointer.
+ * \param[in] value_b a db_value_t pointer.
+ * \param[in] result a integer pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* result);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \return `db_type_t` TODO
+ * Get the type of a database value.
+ * \param[in] value a db_value_t pointer.
+ * \return a db_type_t.
  */
 db_type_t db_value_type(const db_value_t* value);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \return `const char*` TODO
+ * Get a character pointer for the text in a database value.
+ * \param[in] value a db_value_t pointer.
+ * \return a character pointer or NULL if empty or not a text value.
  */
 const char* db_value_text(const db_value_t* value);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] enum_value TODO 
- * \return `int` TODO
+ * Sets `enum_value` with the integer value of an enumeration database value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] enum_value a integer pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_enum_value(const db_value_t* value, int* enum_value);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \return `const char*` TODO
+ * Get the character representation of the integer value of an enumeration
+ * database value.
+ * \param[in] value a db_value_t pointer.
+ * \return a character pointer or NULL if empty or not an enum value.
  */
 const char* db_value_enum_text(const db_value_t* value);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \return `int` TODO
+ * Check if a database value is empty.
+ * \param[in] value a db_value_t pointer.
+ * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
 int db_value_not_empty(const db_value_t* value);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] to_int32 TODO 
- * \return `int` TODO
+ * Get the 32bit integer representation of the database value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] to_int32 a db_type_int32_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_int32(const db_value_t* value, db_type_int32_t* to_int32);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] to_uint32 TODO 
- * \return `int` TODO
+ * Get the unsigned 32bit integer representation of the database value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] to_uint32 a db_type_uint32_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_uint32(const db_value_t* value, db_type_uint32_t* to_uint32);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] to_int64 TODO 
- * \return `int` TODO
+ * Get the 64bit integer representation of the database value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] to_int64 a db_type_int64_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_int64(const db_value_t* value, db_type_int64_t* to_int64);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] to_uint64 TODO 
- * \return `int` TODO
+ * Get the unsigned 64bit integer representation of the database value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] to_uint64 a db_type_uint64_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_uint64(const db_value_t* value, db_type_uint64_t* to_uint64);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] to_text TODO 
- * \return `int` TODO
+ * Get the character representation of the database value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] to_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_text(const db_value_t* value, char** to_text);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] to_int TODO 
- * \param[in] enum_set TODO 
- * \return `int` TODO
+ * Get the integer enumeration representation of the database value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] to_int a integer pointer.
+ * \param[in] enum_set a db_enum_t array that MUST end with NULL.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_enum_value(const db_value_t* value, int* to_int, const db_enum_t* enum_set);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] to_text TODO 
- * \param[in] enum_set TODO 
- * \return `int` TODO
+ * Get the character enumeration representation of the database value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] to_text a character pointer pointer.
+ * \param[in] enum_set a db_enum_t array that MUST end with NULL.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_to_enum_text(const db_value_t* value, const char** to_text, const db_enum_t* enum_set);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] from_int32 TODO 
- * \return `int` TODO
+ * Set the database value to a 32bit integer value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] from_int32 a db_type_int32_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_from_int32(db_value_t* value, db_type_int32_t from_int32);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] from_uint32 TODO 
- * \return `int` TODO
+ * Set the database value to an unsigned 32bit integer value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] from_uint32 a db_type_uint32_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_from_uint32(db_value_t* value, db_type_uint32_t from_uint32);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] from_int64 TODO 
- * \return `int` TODO
+ * Set the database value to a 64bit integer value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] from_int64 a db_type_int64_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_from_int64(db_value_t* value, db_type_int64_t from_int64);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] from_uint64 TODO 
- * \return `int` TODO
+ * Set the database value to an unsigned 64bit integer value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] from_uint64 a db_type_uint64_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_from_uint64(db_value_t* value, db_type_uint64_t from_uint64);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] from_text TODO 
- * \return `int` TODO
+ * Set the database value to a text value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] from_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_from_text(db_value_t* value, const char* from_text);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] enum_value TODO 
- * \param[in] enum_set TODO 
- * \return `int` TODO
+ * Set the database value to an enumeration value based on an integer value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] enum_value a integer pointer.
+ * \param[in] enum_set a db_enum_t array that MUST end with NULL.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_from_enum_value(db_value_t* value, int enum_value, const db_enum_t* enum_set);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \param[in] enum_text TODO 
- * \param[in] enum_set TODO 
- * \return `int` TODO
+ * Set the database value to an enumeration value based on a text value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] enum_text a character pointer.
+ * \param[in] enum_set a db_enum_t array that MUST end with NULL.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_from_enum_text(db_value_t* value, const char* enum_text, const db_enum_t* enum_set);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \return `int` TODO
+ * Check if the database value is a primary key.
+ * \param[in] value a db_value_t pointer.
+ * \return DB_ERROR_* if its not a primary key, otherwise DB_OK.
  */
 int db_value_primary_key(const db_value_t* value);
 
 /**
- * TODO
- * \param[in] value TODO 
- * \return `int` TODO
+ * Mark the database as a primary key.
+ * \param[in] value a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_set_primary_key(db_value_t* value);
 
 /**
- * TODO
+ * A container for a fixed set of database values.
  */
 struct db_value_set {
     db_value_t* values;
@@ -283,39 +284,38 @@ struct db_value_set {
 };
 
 /**
- * TODO
- * \param[in] size TODO 
- * \return `db_value_set_t*` TODO
+ * Create a new set of database value.
+ * \param[in] size a size_t.
+ * \return a db_value_set_t pointer or NULL on error.
  */
 db_value_set_t* db_value_set_new(size_t size);
 
 /**
- * TODO
- * \param[in] value_set TODO 
- * \return `void` TODO
+ * Delete a database value set.
+ * \param[in] value_set a db_value_set_t pointer.
  */
 void db_value_set_free(db_value_set_t* value_set);
 
 /**
- * TODO
- * \param[in] value_set TODO 
- * \return `size_t` TODO
+ * Get the size of database value set.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \return a size_t.
  */
 size_t db_value_set_size(const db_value_set_t* value_set);
 
 /**
- * TODO
- * \param[in] value_set TODO 
- * \param[in] at TODO 
- * \return `const db_value_t*` TODO
+ * Get a read only database value at a position in a database value set.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \param[in] at a size_t.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* db_value_set_at(const db_value_set_t* value_set, size_t at);
 
 /**
- * TODO
- * \param[in] value_set TODO 
- * \param[in] at TODO 
- * \return `db_value_t*` TODO
+ * Get a writable database value at a position in a database value set.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \param[in] at a size_t.
+ * \return a db_value_t pointer or NULL on error.
  */
 db_value_t* db_value_set_get(db_value_set_t* value_set, size_t at);
 
