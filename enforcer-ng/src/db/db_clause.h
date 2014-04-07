@@ -84,21 +84,21 @@ struct db_clause {
 };
 
 db_clause_t* db_clause_new(void);
-void db_clause_free(db_clause_t*);
-const char* db_clause_table(const db_clause_t*);
-const char* db_clause_field(const db_clause_t*);
-db_clause_type_t db_clause_type(const db_clause_t*);
-const db_value_t* db_clause_value(const db_clause_t*);
-db_clause_operator_t db_clause_operator(const db_clause_t*);
-const db_clause_list_t* db_clause_list(const db_clause_t*);
-int db_clause_set_table(db_clause_t*, const char*);
-int db_clause_set_field(db_clause_t*, const char*);
-int db_clause_set_type(db_clause_t*, db_clause_type_t);
-int db_clause_set_operator(db_clause_t*, db_clause_operator_t);
-int db_clause_set_list(db_clause_t*, db_clause_list_t*);
-int db_clause_not_empty(const db_clause_t*);
-const db_clause_t* db_clause_next(const db_clause_t*);
-db_value_t* db_clause_get_value(db_clause_t*);
+void db_clause_free(db_clause_t* clause);
+const char* db_clause_table(const db_clause_t* clause);
+const char* db_clause_field(const db_clause_t* clause);
+db_clause_type_t db_clause_type(const db_clause_t* clause);
+const db_value_t* db_clause_value(const db_clause_t* clause);
+db_clause_operator_t db_clause_operator(const db_clause_t* clause);
+const db_clause_list_t* db_clause_list(const db_clause_t* clause);
+int db_clause_set_table(db_clause_t* clause, const char* table);
+int db_clause_set_field(db_clause_t* clause, const char* field);
+int db_clause_set_type(db_clause_t* clause, db_clause_type_t type);
+int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_operator);
+int db_clause_set_list(db_clause_t* clause, db_clause_list_t* clause_list);
+int db_clause_not_empty(const db_clause_t* clause);
+const db_clause_t* db_clause_next(const db_clause_t* clause);
+db_value_t* db_clause_get_value(db_clause_t* clause);
 
 struct db_clause_list {
     db_clause_t* begin;
@@ -106,9 +106,9 @@ struct db_clause_list {
 };
 
 db_clause_list_t* db_clause_list_new(void);
-void db_clause_list_free(db_clause_list_t*);
-int db_clause_list_add(db_clause_list_t*, db_clause_t*);
-const db_clause_t* db_clause_list_begin(const db_clause_list_t*);
+void db_clause_list_free(db_clause_list_t* clause_list);
+int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause);
+const db_clause_t* db_clause_list_begin(const db_clause_list_t* clause_list);
 
 #ifdef __cplusplus
 }

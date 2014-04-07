@@ -66,15 +66,15 @@ struct db_object_field {
 };
 
 db_object_field_t* db_object_field_new(void);
-void db_object_field_free(db_object_field_t*);
-const char* db_object_field_name(const db_object_field_t*);
-db_type_t db_object_field_type(const db_object_field_t*);
-const db_enum_t* db_object_field_enum_set(const db_object_field_t*);
-int db_object_field_set_name(db_object_field_t*, const char*);
-int db_object_field_set_type(db_object_field_t*, db_type_t);
-int db_object_field_set_enum_set(db_object_field_t*, const db_enum_t*);
-int db_object_field_not_empty(const db_object_field_t*);
-const db_object_field_t* db_object_field_next(const db_object_field_t*);
+void db_object_field_free(db_object_field_t* object_field);
+const char* db_object_field_name(const db_object_field_t* object_field);
+db_type_t db_object_field_type(const db_object_field_t* object_field);
+const db_enum_t* db_object_field_enum_set(const db_object_field_t* object_field);
+int db_object_field_set_name(db_object_field_t* object_field, const char* name);
+int db_object_field_set_type(db_object_field_t* object_field, db_type_t type);
+int db_object_field_set_enum_set(db_object_field_t* object_field, const db_enum_t* enum_set);
+int db_object_field_not_empty(const db_object_field_t* object_field);
+const db_object_field_t* db_object_field_next(const db_object_field_t* object_field);
 
 struct db_object_field_list {
     db_object_field_t* begin;
@@ -82,9 +82,9 @@ struct db_object_field_list {
 };
 
 db_object_field_list_t* db_object_field_list_new(void);
-void db_object_field_list_free(db_object_field_list_t*);
-int db_object_field_list_add(db_object_field_list_t*, db_object_field_t*);
-const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t*);
+void db_object_field_list_free(db_object_field_list_t* object_field_list);
+int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field);
+const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list);
 
 struct db_object {
     const db_connection_t* connection;
@@ -95,21 +95,21 @@ struct db_object {
 };
 
 db_object_t* db_object_new(void);
-void db_object_free(db_object_t*);
-const db_connection_t* db_object_connection(const db_object_t*);
-const char* db_object_table(const db_object_t*);
-const char* db_object_primary_key_name(const db_object_t*);
-const db_object_field_list_t* db_object_object_field_list(const db_object_t*);
-const db_backend_meta_data_list_t* db_object_backend_meta_data_list(const db_object_t*);
-int db_object_set_connection(db_object_t*, const db_connection_t*);
-int db_object_set_table(db_object_t*, const char*);
-int db_object_set_primary_key_name(db_object_t*, const char*);
-int db_object_set_object_field_list(db_object_t*, db_object_field_list_t*);
-int db_object_set_backend_meta_data_list(db_object_t*, db_backend_meta_data_list_t*);
-int db_object_create(const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
-db_result_list_t* db_object_read(const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
-int db_object_update(const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
-int db_object_delete(const db_object_t*, const db_clause_list_t*);
+void db_object_free(db_object_t* object);
+const db_connection_t* db_object_connection(const db_object_t* object);
+const char* db_object_table(const db_object_t* object);
+const char* db_object_primary_key_name(const db_object_t* object);
+const db_object_field_list_t* db_object_object_field_list(const db_object_t* object);
+const db_backend_meta_data_list_t* db_object_backend_meta_data_list(const db_object_t* object);
+int db_object_set_connection(db_object_t* object, const db_connection_t* connection);
+int db_object_set_table(db_object_t* object, const char* table);
+int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_name);
+int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t* object_field_list);
+int db_object_set_backend_meta_data_list(db_object_t* object, db_backend_meta_data_list_t* backend_meta_data_list);
+int db_object_create(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+int db_object_update(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+int db_object_delete(const db_object_t* object, const db_clause_list_t* clause_list);
 
 #ifdef __cplusplus
 }

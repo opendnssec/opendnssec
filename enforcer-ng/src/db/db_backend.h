@@ -58,18 +58,18 @@ typedef struct db_backend_meta_data_list db_backend_meta_data_list_t;
 extern "C" {
 #endif
 
-typedef int (*db_backend_handle_initialize_t)(void*);
-typedef int (*db_backend_handle_shutdown_t)(void*);
-typedef int (*db_backend_handle_connect_t)(void*, const db_configuration_list_t*);
-typedef int (*db_backend_handle_disconnect_t)(void*);
-typedef int (*db_backend_handle_create_t)(void*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
-typedef db_result_list_t* (*db_backend_handle_read_t)(void*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
-typedef int (*db_backend_handle_update_t)(void*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
-typedef int (*db_backend_handle_delete_t)(void*, const db_object_t*, const db_clause_list_t*);
-typedef void (*db_backend_handle_free_t)(void*);
-typedef int (*db_backend_handle_transaction_begin_t)(void*);
-typedef int (*db_backend_handle_transaction_commit_t)(void*);
-typedef int (*db_backend_handle_transaction_rollback_t)(void*);
+typedef int (*db_backend_handle_initialize_t)(void* data);
+typedef int (*db_backend_handle_shutdown_t)(void* data);
+typedef int (*db_backend_handle_connect_t)(void* data, const db_configuration_list_t* configuration_list);
+typedef int (*db_backend_handle_disconnect_t)(void* data);
+typedef int (*db_backend_handle_create_t)(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+typedef db_result_list_t* (*db_backend_handle_read_t)(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+typedef int (*db_backend_handle_update_t)(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+typedef int (*db_backend_handle_delete_t)(void* data, const db_object_t* object, const db_clause_list_t* clause_list);
+typedef void (*db_backend_handle_free_t)(void* data);
+typedef int (*db_backend_handle_transaction_begin_t)(void* data);
+typedef int (*db_backend_handle_transaction_commit_t)(void* data);
+typedef int (*db_backend_handle_transaction_rollback_t)(void* data);
 
 struct db_backend_handle {
     void* data;
@@ -88,33 +88,33 @@ struct db_backend_handle {
 };
 
 db_backend_handle_t* db_backend_handle_new(void);
-void db_backend_handle_free(db_backend_handle_t*);
-int db_backend_handle_initialize(const db_backend_handle_t*);
-int db_backend_handle_shutdown(const db_backend_handle_t*);
-int db_backend_handle_connect(const db_backend_handle_t*, const db_configuration_list_t*);
-int db_backend_handle_disconnect(const db_backend_handle_t*);
-int db_backend_handle_create(const db_backend_handle_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
-db_result_list_t* db_backend_handle_read(const db_backend_handle_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
-int db_backend_handle_update(const db_backend_handle_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
-int db_backend_handle_delete(const db_backend_handle_t*, const db_object_t*, const db_clause_list_t*);
-int db_backend_handle_transaction_begin(const db_backend_handle_t*);
-int db_backend_handle_transaction_commit(const db_backend_handle_t*);
-int db_backend_handle_transaction_rollback(const db_backend_handle_t*);
-const void* db_backend_handle_data(const db_backend_handle_t*);
-int db_backend_handle_set_initialize(db_backend_handle_t*, db_backend_handle_initialize_t);
-int db_backend_handle_set_shutdown(db_backend_handle_t*, db_backend_handle_shutdown_t);
-int db_backend_handle_set_connect(db_backend_handle_t*, db_backend_handle_connect_t);
-int db_backend_handle_set_disconnect(db_backend_handle_t*, db_backend_handle_disconnect_t);
-int db_backend_handle_set_create(db_backend_handle_t*, db_backend_handle_create_t);
-int db_backend_handle_set_read(db_backend_handle_t*, db_backend_handle_read_t);
-int db_backend_handle_set_update(db_backend_handle_t*, db_backend_handle_update_t);
-int db_backend_handle_set_delete(db_backend_handle_t*, db_backend_handle_delete_t);
-int db_backend_handle_set_free(db_backend_handle_t*, db_backend_handle_free_t);
-int db_backend_handle_set_transaction_begin(db_backend_handle_t*, db_backend_handle_transaction_begin_t);
-int db_backend_handle_set_transaction_commit(db_backend_handle_t*, db_backend_handle_transaction_commit_t);
-int db_backend_handle_set_transaction_rollback(db_backend_handle_t*, db_backend_handle_transaction_rollback_t);
-int db_backend_handle_set_data(db_backend_handle_t*, void*);
-int db_backend_handle_not_empty(const db_backend_handle_t*);
+void db_backend_handle_free(db_backend_handle_t* backend_handle);
+int db_backend_handle_initialize(const db_backend_handle_t* backend_handle);
+int db_backend_handle_shutdown(const db_backend_handle_t* backend_handle);
+int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list);
+int db_backend_handle_disconnect(const db_backend_handle_t* backend_handle);
+int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_clause_list_t* clause_list);
+int db_backend_handle_transaction_begin(const db_backend_handle_t* backend_handle);
+int db_backend_handle_transaction_commit(const db_backend_handle_t* backend_handle);
+int db_backend_handle_transaction_rollback(const db_backend_handle_t* backend_handle);
+const void* db_backend_handle_data(const db_backend_handle_t* backend_handle);
+int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize_function);
+int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t shutdown_function);
+int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t connect_function);
+int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect_function);
+int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t create_function);
+int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t read_function);
+int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t update_function);
+int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete_function);
+int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_handle_free_t free_function);
+int db_backend_handle_set_transaction_begin(db_backend_handle_t* backend_handle, db_backend_handle_transaction_begin_t transaction_begin_function);
+int db_backend_handle_set_transaction_commit(db_backend_handle_t* backend_handle, db_backend_handle_transaction_commit_t transaction_commit_function);
+int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_handle, db_backend_handle_transaction_rollback_t transaction_rollback_function);
+int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data);
+int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle);
 
 struct db_backend {
     db_backend_t* next;
@@ -123,25 +123,25 @@ struct db_backend {
 };
 
 db_backend_t* db_backend_new(void);
-void db_backend_free(db_backend_t*);
-const char* db_backend_name(const db_backend_t*);
-const db_backend_handle_t* db_backend_handle(const db_backend_t*);
-int db_backend_set_name(db_backend_t*, const char*);
-int db_backend_set_handle(db_backend_t*, db_backend_handle_t*);
-int db_backend_not_empty(const db_backend_t*);
-int db_backend_initialize(const db_backend_t*);
-int db_backend_shutdown(const db_backend_t*);
-int db_backend_connect(const db_backend_t*, const db_configuration_list_t*);
-int db_backend_disconnect(const db_backend_t*);
-int db_backend_create(const db_backend_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
-db_result_list_t* db_backend_read(const db_backend_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
-int db_backend_update(const db_backend_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
-int db_backend_delete(const db_backend_t*, const db_object_t*, const db_clause_list_t*);
-int db_backend_transaction_begin(const db_backend_t*);
-int db_backend_transaction_commit(const db_backend_t*);
-int db_backend_transaction_rollback(const db_backend_t*);
+void db_backend_free(db_backend_t* backend);
+const char* db_backend_name(const db_backend_t* backend);
+const db_backend_handle_t* db_backend_handle(const db_backend_t* backend);
+int db_backend_set_name(db_backend_t* backend, const char* name);
+int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* handle);
+int db_backend_not_empty(const db_backend_t* backend);
+int db_backend_initialize(const db_backend_t* backend);
+int db_backend_shutdown(const db_backend_t* backend);
+int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list);
+int db_backend_disconnect(const db_backend_t* backend);
+int db_backend_create(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+int db_backend_update(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+int db_backend_delete(const db_backend_t* backend, const db_object_t* object, const db_clause_list_t* clause_list);
+int db_backend_transaction_begin(const db_backend_t* backend);
+int db_backend_transaction_commit(const db_backend_t* backend);
+int db_backend_transaction_rollback(const db_backend_t* backend);
 
-db_backend_t* db_backend_factory_get_backend(const char*);
+db_backend_t* db_backend_factory_get_backend(const char* name);
 int db_backend_factory_shutdown(void);
 
 struct db_backend_meta_data {
@@ -151,13 +151,13 @@ struct db_backend_meta_data {
 };
 
 db_backend_meta_data_t* db_backend_meta_data_new(void);
-void db_backend_meta_data_free(db_backend_meta_data_t*);
-int db_backend_meta_data_copy(db_backend_meta_data_t*, const db_backend_meta_data_t*);
-const char* db_backend_meta_data_name(const db_backend_meta_data_t*);
-const db_value_t* db_backend_meta_data_value(const db_backend_meta_data_t*);
-int db_backend_meta_data_set_name(db_backend_meta_data_t*, const char*);
-int db_backend_meta_data_set_value(db_backend_meta_data_t*, db_value_t*);
-int db_backend_meta_data_not_empty(const db_backend_meta_data_t*);
+void db_backend_meta_data_free(db_backend_meta_data_t* backend_meta_data);
+int db_backend_meta_data_copy(db_backend_meta_data_t* backend_meta_data, const db_backend_meta_data_t* from_backend_meta_data);
+const char* db_backend_meta_data_name(const db_backend_meta_data_t* backend_meta_data);
+const db_value_t* db_backend_meta_data_value(const db_backend_meta_data_t* backend_meta_data);
+int db_backend_meta_data_set_name(db_backend_meta_data_t* backend_meta_data, const char* name);
+int db_backend_meta_data_set_value(db_backend_meta_data_t* backend_meta_data, db_value_t* value);
+int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_data);
 
 struct db_backend_meta_data_list {
     db_backend_meta_data_t* begin;
@@ -165,10 +165,10 @@ struct db_backend_meta_data_list {
 };
 
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void);
-void db_backend_meta_data_list_free(db_backend_meta_data_list_t*);
-int db_backend_meta_data_list_copy(db_backend_meta_data_list_t*, const db_backend_meta_data_list_t*);
-int db_backend_meta_data_list_add(db_backend_meta_data_list_t*, db_backend_meta_data_t*);
-const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t*, const char*);
+void db_backend_meta_data_list_free(db_backend_meta_data_list_t* backend_meta_data_list);
+int db_backend_meta_data_list_copy(db_backend_meta_data_list_t* backend_meta_data_list, const db_backend_meta_data_list_t* from_backend_meta_data_list);
+int db_backend_meta_data_list_add(db_backend_meta_data_list_t* backend_meta_data_list, db_backend_meta_data_t* backend_meta_data);
+const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t* backend_meta_data_list, const char* name);
 
 #ifdef __cplusplus
 }

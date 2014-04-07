@@ -58,17 +58,17 @@ struct db_join {
 };
 
 db_join_t* db_join_new(void);
-void db_join_free(db_join_t*);
-const char* db_join_from_table(const db_join_t*);
-const char* db_join_from_field(const db_join_t*);
-const char* db_join_to_table(const db_join_t*);
-const char* db_join_to_field(const db_join_t*);
-int db_join_set_from_table(db_join_t*, const char*);
-int db_join_set_from_field(db_join_t*, const char*);
-int db_join_set_to_table(db_join_t*, const char*);
-int db_join_set_to_field(db_join_t*, const char*);
-int db_join_not_empty(const db_join_t*);
-const db_join_t* db_join_next(const db_join_t*);
+void db_join_free(db_join_t* join);
+const char* db_join_from_table(const db_join_t* join);
+const char* db_join_from_field(const db_join_t* join);
+const char* db_join_to_table(const db_join_t* join);
+const char* db_join_to_field(const db_join_t* join);
+int db_join_set_from_table(db_join_t* join, const char* from_table);
+int db_join_set_from_field(db_join_t* join, const char* from_field);
+int db_join_set_to_table(db_join_t* join, const char* to_table);
+int db_join_set_to_field(db_join_t* join, const char* to_field);
+int db_join_not_empty(const db_join_t* join);
+const db_join_t* db_join_next(const db_join_t* join);
 
 struct db_join_list {
     db_join_t* begin;
@@ -76,9 +76,9 @@ struct db_join_list {
 };
 
 db_join_list_t* db_join_list_new(void);
-void db_join_list_free(db_join_list_t*);
-int db_join_list_add(db_join_list_t*, db_join_t*);
-const db_join_t* db_join_list_begin(const db_join_list_t*);
+void db_join_list_free(db_join_list_t* join_list);
+int db_join_list_add(db_join_list_t* join_list, db_join_t* join);
+const db_join_t* db_join_list_begin(const db_join_list_t* join_list);
 
 #ifdef __cplusplus
 }

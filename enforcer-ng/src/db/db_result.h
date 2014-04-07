@@ -59,12 +59,12 @@ struct db_result {
 };
 
 db_result_t* db_result_new(void);
-void db_result_free(db_result_t*);
-const db_value_set_t* db_result_value_set(const db_result_t*);
-const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_result_t*);
-int db_result_set_value_set(db_result_t*, db_value_set_t*);
-int db_result_set_backend_meta_data_list(db_result_t*, db_backend_meta_data_list_t*);
-int db_result_not_empty(const db_result_t*);
+void db_result_free(db_result_t* result);
+const db_value_set_t* db_result_value_set(const db_result_t* result);
+const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_result_t* result);
+int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set);
+int db_result_set_backend_meta_data_list(db_result_t* result, db_backend_meta_data_list_t* backend_meta_data_list);
+int db_result_not_empty(const db_result_t* result);
 
 struct db_result_list {
     db_result_t* begin;
@@ -75,11 +75,11 @@ struct db_result_list {
 };
 
 db_result_list_t* db_result_list_new(void);
-void db_result_list_free(db_result_list_t*);
-int db_result_list_set_next(db_result_list_t*, db_result_list_next_t, void*);
-int db_result_list_add(db_result_list_t*, db_result_t*);
-const db_result_t* db_result_list_begin(db_result_list_t*);
-const db_result_t* db_result_list_next(db_result_list_t*);
+void db_result_list_free(db_result_list_t* result_list);
+int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data);
+int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
+const db_result_t* db_result_list_begin(db_result_list_t* result_list);
+const db_result_t* db_result_list_next(db_result_list_t* result_list);
 
 #ifdef __cplusplus
 }

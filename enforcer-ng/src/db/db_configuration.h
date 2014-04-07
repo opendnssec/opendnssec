@@ -46,12 +46,12 @@ struct db_configuration {
 };
 
 db_configuration_t* db_configuration_new(void);
-void db_configuration_free(db_configuration_t*);
-const char* db_configuration_name(const db_configuration_t*);
-const char* db_configuration_value(const db_configuration_t*);
-int db_configuration_set_name(db_configuration_t*, const char*);
-int db_configuration_set_value(db_configuration_t*, const char*);
-int db_configuration_not_empty(const db_configuration_t*);
+void db_configuration_free(db_configuration_t* configuration);
+const char* db_configuration_name(const db_configuration_t* configuration);
+const char* db_configuration_value(const db_configuration_t* configuration);
+int db_configuration_set_name(db_configuration_t* configuration, const char* name);
+int db_configuration_set_value(db_configuration_t* configuration, const char* value);
+int db_configuration_not_empty(const db_configuration_t* configuration);
 
 struct db_configuration_list {
     db_configuration_t* begin;
@@ -59,9 +59,9 @@ struct db_configuration_list {
 };
 
 db_configuration_list_t* db_configuration_list_new(void);
-void db_configuration_list_free(db_configuration_list_t*);
-int db_configuration_list_add(db_configuration_list_t*, db_configuration_t*);
-const db_configuration_t* db_configuration_list_find(const db_configuration_list_t*, const char*);
+void db_configuration_list_free(db_configuration_list_t* configuration_list);
+int db_configuration_list_add(db_configuration_list_t* configuration_list, db_configuration_t* configuration);
+const db_configuration_t* db_configuration_list_find(const db_configuration_list_t* configuration_list, const char* name);
 
 #ifdef __cplusplus
 }

@@ -58,18 +58,18 @@ struct db_connection {
 };
 
 db_connection_t* db_connection_new(void);
-void db_connection_free(db_connection_t*);
-int db_connection_set_configuration_list(db_connection_t*, const db_configuration_list_t*);
-int db_connection_setup(db_connection_t*);
-int db_connection_connect(const db_connection_t*);
-int db_connection_disconnect(const db_connection_t*);
-int db_connection_create(const db_connection_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*);
-db_result_list_t* db_connection_read(const db_connection_t*, const db_object_t*, const db_join_list_t*, const db_clause_list_t*);
-int db_connection_update(const db_connection_t*, const db_object_t*, const db_object_field_list_t*, const db_value_set_t*, const db_clause_list_t*);
-int db_connection_delete(const db_connection_t*, const db_object_t*, const db_clause_list_t*);
-int db_connection_transaction_begin(const db_connection_t*);
-int db_connection_transaction_commit(const db_connection_t*);
-int db_connection_transaction_rollback(const db_connection_t*);
+void db_connection_free(db_connection_t* connection);
+int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list);
+int db_connection_setup(db_connection_t* connection);
+int db_connection_connect(const db_connection_t* connection);
+int db_connection_disconnect(const db_connection_t* connection);
+int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_clause_list_t* clause_list);
+int db_connection_transaction_begin(const db_connection_t* connection);
+int db_connection_transaction_commit(const db_connection_t* connection);
+int db_connection_transaction_rollback(const db_connection_t* connection);
 
 #ifdef __cplusplus
 }

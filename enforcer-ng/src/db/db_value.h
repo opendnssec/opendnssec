@@ -69,42 +69,42 @@ struct db_value {
 };
 
 db_value_t* db_value_new();
-void db_value_free(db_value_t*);
-void db_value_reset(db_value_t*);
-int db_value_copy(db_value_t*, const db_value_t*);
-int db_value_cmp(const db_value_t*, const db_value_t*, int*);
-db_type_t db_value_type(const db_value_t*);
-const char* db_value_text(const db_value_t*);
-int db_value_enum_value(const db_value_t*, int*);
-const char* db_value_enum_text(const db_value_t*);
-int db_value_not_empty(const db_value_t*);
-int db_value_to_int32(const db_value_t*, db_type_int32_t*);
-int db_value_to_uint32(const db_value_t*, db_type_uint32_t*);
-int db_value_to_int64(const db_value_t*, db_type_int64_t*);
-int db_value_to_uint64(const db_value_t*, db_type_uint64_t*);
-int db_value_to_text(const db_value_t*, char**);
-int db_value_to_enum_value(const db_value_t*, int*, const db_enum_t*);
-int db_value_to_enum_text(const db_value_t*, const char**, const db_enum_t*);
-int db_value_from_int32(db_value_t*, db_type_int32_t);
-int db_value_from_uint32(db_value_t*, db_type_uint32_t);
-int db_value_from_int64(db_value_t*, db_type_int64_t);
-int db_value_from_uint64(db_value_t*, db_type_uint64_t);
-int db_value_from_text(db_value_t*, const char*);
-int db_value_from_enum_value(db_value_t*, int, const db_enum_t*);
-int db_value_from_enum_text(db_value_t*, const char*, const db_enum_t*);
-int db_value_primary_key(const db_value_t*);
-int db_value_set_primary_key(db_value_t*);
+void db_value_free(db_value_t* value);
+void db_value_reset(db_value_t* value);
+int db_value_copy(db_value_t* value, const db_value_t* from_value);
+int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* result);
+db_type_t db_value_type(const db_value_t* value);
+const char* db_value_text(const db_value_t* value);
+int db_value_enum_value(const db_value_t* value, int* enum_value);
+const char* db_value_enum_text(const db_value_t* value);
+int db_value_not_empty(const db_value_t* value);
+int db_value_to_int32(const db_value_t* value, db_type_int32_t* to_int32);
+int db_value_to_uint32(const db_value_t* value, db_type_uint32_t* to_uint32);
+int db_value_to_int64(const db_value_t* value, db_type_int64_t* to_int64);
+int db_value_to_uint64(const db_value_t* value, db_type_uint64_t* to_uint64);
+int db_value_to_text(const db_value_t* value, char** to_text);
+int db_value_to_enum_value(const db_value_t* value, int* to_int, const db_enum_t* enum_set);
+int db_value_to_enum_text(const db_value_t* value, const char** to_text, const db_enum_t* enum_set);
+int db_value_from_int32(db_value_t* value, db_type_int32_t from_int32);
+int db_value_from_uint32(db_value_t* value, db_type_uint32_t from_uint32);
+int db_value_from_int64(db_value_t* value, db_type_int64_t from_int64);
+int db_value_from_uint64(db_value_t* value, db_type_uint64_t from_uint64);
+int db_value_from_text(db_value_t* value, const char* from_text);
+int db_value_from_enum_value(db_value_t* value, int enum_value, const db_enum_t* enum_set);
+int db_value_from_enum_text(db_value_t* value, const char* enum_text, const db_enum_t* enum_set);
+int db_value_primary_key(const db_value_t* value);
+int db_value_set_primary_key(db_value_t* value);
 
 struct db_value_set {
     db_value_t* values;
     size_t size;
 };
 
-db_value_set_t* db_value_set_new(size_t);
-void db_value_set_free(db_value_set_t*);
-size_t db_value_set_size(const db_value_set_t*);
-const db_value_t* db_value_set_at(const db_value_set_t*, size_t);
-db_value_t* db_value_set_get(db_value_set_t*, size_t);
+db_value_set_t* db_value_set_new(size_t size);
+void db_value_set_free(db_value_set_t* value_set);
+size_t db_value_set_size(const db_value_set_t* value_set);
+const db_value_t* db_value_set_at(const db_value_set_t* value_set, size_t at);
+db_value_t* db_value_set_get(db_value_set_t* value_set, size_t at);
 
 #ifdef __cplusplus
 }
