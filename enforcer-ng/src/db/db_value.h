@@ -54,8 +54,6 @@ typedef struct db_value_set db_value_set_t;
 extern "C" {
 #endif
 
-#define DB_VALUE_DATA_SIZE (SIZEOF_INT64_T / SIZEOF_VOIDP)
-
 /**
  * A container for a database value.
  */
