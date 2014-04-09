@@ -254,14 +254,32 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 				time_t t_next = update(enfZone, t_now, keyfactory);
 				if (enfZone.signerConfNeedsWriting())
 					bSignerConfNeedsWriting = true;
-				
+
+				bool bSubmitThisZone = false;
+				bool bRetractThisZone = false;
 				KeyDataList &kdl = enfZone.keyDataList();
 				for (int k=0; k<kdl.numKeys(); ++k) {
 					if (kdl.key(k).dsAtParent() == DS_SUBMIT)
-						bSubmitToParent = true;
+						bSubmitThisZone = true;
 					if (kdl.key(k).dsAtParent() == DS_RETRACT)
-						bRetractFromParent = true;
+						bRetractThisZone = true;
 				}
+				if (bSubmitThisZone || bRetractThisZone) {
+					for (int k=0; k<kdl.numKeys(); ++k) {
+						if (kdl.key(k).dsAtParent() == DS_SUBMIT)
+							ods_log_warning("[%s] please submit DS "
+								"with keytag %d for zone %s",
+								module_str, kdl.key(k).keytag()&0xFFFF,
+								enfzone.name().c_str());
+						if (kdl.key(k).dsAtParent() == DS_RETRACT)
+							ods_log_warning("[%s] please retract"
+								" DS with keytag %d for zone %s",
+								module_str, kdl.key(k).keytag()&0xFFFF,
+								enfzone.name().c_str());
+					}
+				}
+				bSubmitToParent |= bSubmitThisZone;
+				bRetractFromParent |= bRetractThisZone;
 				
 				if (t_next == -1) {
 					ods_printf(sockfd,
