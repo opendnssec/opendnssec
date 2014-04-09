@@ -20,10 +20,10 @@ syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 # Testing OPENDNSSEC-515: Make sure tabs in <character-strings> are not replaces with space
-grep -P 'ods\..*600.*IN.*TXT.*"this\t\ttext\thas\ttabs"' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-grep 'ods\..*600.*IN.*TXT.*"this		text	has	tabs"' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+$GREP -P 'ods\..*600.*IN.*TXT.*"this\t\ttext\thas\ttabs"' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+$GREP 'ods\..*600.*IN.*TXT.*"this		text	has	tabs"' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 # Testing OPENDNSSEC-550: Deal with Errata 3441 of RFC 5155
-# grep 'uf2mp408g1lut654h2l08fh1s8a5uq45\.ods\..*300.*IN.*NSEC3.*1.*1.*5.*-.*1o9gk9h0majtcvsj4i0uarbd3q7eq8ia' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+# $GREP 'uf2mp408g1lut654h2l08fh1s8a5uq45\.ods\..*300.*IN.*NSEC3.*1.*1.*5.*-.*1o9gk9h0majtcvsj4i0uarbd3q7eq8ia' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 # Validate the output on redhat
 log_this validate-zone-ods validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
