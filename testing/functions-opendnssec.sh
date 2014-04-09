@@ -58,11 +58,15 @@ ods_nuke_env ()
 	local kasp_files=`cd "$INSTALL_ROOT/var/opendnssec/" && ls kasp*db* 2>/dev/null`
 	local tmp_files=`ls "$INSTALL_ROOT/var/opendnssec/signer/" 2>/dev/null`
 	local tmp_files2=`ls "$INSTALL_ROOT/var/opendnssec/tmp/" 2>/dev/null`
+	local tmp_files3=`ls "$INSTALL_ROOT/var/opendnssec/enforcer/" 2>/dev/null`
 	local unsigned_files=`ls "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null`
 	local signed_files=`ls "$INSTALL_ROOT/var/opendnssec/signed/" 2>/dev/null`
 	local signconf_files=`ls "$INSTALL_ROOT/var/opendnssec/signconf/" 2>/dev/null`
 	local softhsm_files=`ls "$INSTALL_ROOT/var/softhsm/" 2>/dev/null`
 	local softhsm_files2=`ls "$INSTALL_ROOT/var/lib/softhsm/" 2>/dev/null`
+	local tables
+	local drop_table_count
+	local drop_table_max_count=20
 
 	if [ -n "$kasp_files" ]; then
 		(
@@ -80,6 +84,12 @@ ods_nuke_env ()
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/tmp/" &&
 			rm -rf -- $tmp_files2 2>/dev/null
+		)
+	fi &&
+	if [ -n "$tmp_files3" ]; then
+		(
+			cd "$INSTALL_ROOT/var/opendnssec/enforcer/" &&
+			rm -rf -- $tmp_files3 2>/dev/null
 		)
 	fi &&
 	if [ -n "$unsigned_files" ]; then
@@ -111,6 +121,25 @@ ods_nuke_env ()
 			cd "$INSTALL_ROOT/var/lib/softhsm/" &&
 			rm -f -- $softhsm_files2 2>/dev/null
 		)
+	fi &&
+	if [ -n "$HAVE_MYSQL" ]; then
+		for database in test build; do
+			drop_table_count=0
+			while true; do
+				tables=`mysql -u $database -p$database $database -NBe 'show tables'`
+				if [ -z "$tables" ]; then
+					break;
+				fi
+				mysql -u $database -p$database $database -NBe 'show tables' | while read table; do
+					mysql -u $database -p$database $database -e "drop table $table" >/dev/null 2>/dev/null ||
+					mysql -u $database -p$database $database -e "drop view $table" >/dev/null 2>/dev/null
+				done
+				drop_table_count=$(( drop_table_count + 1 ))
+				if [ "$drop_table_count" -gt "$drop_table_max_count" ]; then
+					return 1
+				fi
+			done
+		done
 	fi &&
 	return 0
 

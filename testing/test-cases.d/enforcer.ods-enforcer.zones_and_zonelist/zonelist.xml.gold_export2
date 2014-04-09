@@ -158,7 +158,7 @@
 	</Zone>
 	<Zone name="ods14">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods13.xml</SignerConfiguration>
+		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods14.xml</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods14</Adapter>

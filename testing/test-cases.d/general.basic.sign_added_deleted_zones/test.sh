@@ -19,7 +19,7 @@ esac
 
 
 if [ -n "$HAVE_MYSQL" ]; then
-        ods_setup_conf conf.xml conf-mysql.xml
+	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
 
