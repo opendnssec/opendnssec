@@ -3,7 +3,11 @@ OpenDNSSEC 1.3.17rc1
 * SUPPORT-114: libhsm: Optimize storage in HSM by deleting the public 
   key directly if SkipPublicKey is used [OPENDNSSEC-575].
 * Signer Engine: log serial of signed zone in STATS line.
+* OPENDNSSEC-550: Signer Engine: Put NSEC3 records on empty non-terminals
+  derived from unsigned delegations (be compatible with servers that are
+  incompatible with RFC 5155 errata 3441).
 * OPENDNSSEC-569: Build compatibility with SoftHSMv2.
+* Signer Engine: Examine unsigned zone checks for SOA RRset existence.
 
 
 Bugfixes:
@@ -11,6 +15,7 @@ Bugfixes:
 * OPENDNSSEC-482: libhsm: Improved cleanup for C_FindObjects.
 * OPENDNSSEC-515: Signer Engine: Don't replace tabs in RRs with whitespace.
 * OPENDNSSEC-538: libhsm: Possible memory corruption in hsm_get_slot_id.
+* Signer Engine: Fix a race condition when stopping daemon.
 
 
 OpenDNSSEC 1.3.16 - 2013-12-04
@@ -28,7 +33,6 @@ OpenDNSSEC 1.3.16 - 2013-12-04
   check if there is a matching key in the repository before import.
 * OPENDNSSEC-473: ods-ksmutil: Improve 'zone add' - Support default <input>
   and <output> values for DNS adapters.
-
 
 Bugfixes:
 * OPENDNSSEC-451: Signer Engine: Prevent CKA_ID and DNSKEY mixup by using

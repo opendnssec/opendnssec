@@ -212,7 +212,7 @@ int domain_examine_rrset_is_alone(domain_type* domain, ldns_rr_type rrtype);
  * Examine domain and verify if the RRset is a singleton.
  * \param[in] domain domain
  * \param[in] rrtype RRtype
- * \return int 1 if the RRset is a singleton, 0 otherwise
+ * \return int number of RRs in RRset, >1 if the RRset is not a singleton.
  *
  */
 int domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype);
