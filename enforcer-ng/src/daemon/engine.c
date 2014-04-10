@@ -428,6 +428,7 @@ int
 engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
     int error;
+    task_type *task;
     ods_log_assert(engine);
     ods_log_info("[%s] enforcer started", engine_str);
     
@@ -470,8 +471,8 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     engine_stop_workers(engine);
     cmdhandler_stop(engine);
     /* Remove old tasks in queue */
-    while (schedule_pop_task(engine->taskq)) {
-        ods_log_crit("popping task from queue");
+    while ((task = schedule_pop_task(engine->taskq))) {
+        ods_log_verbose("popping task \"%s\" from queue", task->who);
     }
     (void) hsm_close();
     return 0;
