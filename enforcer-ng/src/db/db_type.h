@@ -36,18 +36,58 @@
 extern "C" {
 #endif
 
+/**
+ * A signed 32bit integer.
+ */
 typedef int32_t db_type_int32_t;
+/**
+ * An unsigned 32bit integer.
+ */
 typedef uint32_t db_type_uint32_t;
+/**
+ * A signed 64bit integer.
+ */
 typedef int64_t db_type_int64_t;
+/**
+ * An unsigned 64bit integer.
+ */
 typedef uint64_t db_type_uint64_t;
+/**
+ * The type of a database value.
+ */
 typedef enum {
+    /**
+     * No value, empty, not set.
+     */
     DB_TYPE_EMPTY,
+    /**
+     * Not a type per say, this marks the value as a primary key or id that can
+     * later be any other type.
+     */
     DB_TYPE_PRIMARY_KEY,
+    /**
+     * A db_type_int32_t.
+     */
     DB_TYPE_INT32,
+    /**
+     * A db_type_uint32_t.
+     */
     DB_TYPE_UINT32,
+    /**
+     * A db_type_int64_t.
+     */
     DB_TYPE_INT64,
+    /**
+     * A db_type_uint64_t.
+     */
     DB_TYPE_UINT64,
+    /**
+     * A null terminated character string.
+     */
     DB_TYPE_TEXT,
+    /**
+     * A enumerate value that can be represented as a integer or string.
+     */
     DB_TYPE_ENUM
 } db_type_t;
 

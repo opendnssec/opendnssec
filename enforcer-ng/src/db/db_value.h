@@ -101,7 +101,7 @@ int db_value_copy(db_value_t* value, const db_value_t* from_value);
  * or be greater than B.
  * \param[in] value_a a db_value_t pointer.
  * \param[in] value_b a db_value_t pointer.
- * \param[out] result a integer pointer.
+ * \param[out] result an integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* result);
@@ -123,7 +123,7 @@ const char* db_value_text(const db_value_t* value);
 /**
  * Sets `enum_value` with the integer value of an enumeration database value.
  * \param[in] value a db_value_t pointer.
- * \param[out] enum_value a integer pointer.
+ * \param[out] enum_value an integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_enum_value(const db_value_t* value, int* enum_value);
@@ -137,7 +137,7 @@ int db_value_enum_value(const db_value_t* value, int* enum_value);
 const char* db_value_enum_text(const db_value_t* value);
 
 /**
- * Check if a database value is empty.
+ * Check if a database value is not empty.
  * \param[in] value a db_value_t pointer.
  * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
@@ -186,7 +186,7 @@ int db_value_to_text(const db_value_t* value, char** to_text);
 /**
  * Get the integer enumeration representation of the database value.
  * \param[in] value a db_value_t pointer.
- * \param[out] to_int a integer pointer.
+ * \param[out] to_int an integer pointer.
  * \param[in] enum_set a db_enum_t array that MUST end with NULL.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
@@ -244,7 +244,7 @@ int db_value_from_text(db_value_t* value, const char* from_text);
 /**
  * Set the database value to an enumeration value based on an integer value.
  * \param[in] value a db_value_t pointer.
- * \param[in] enum_value a integer pointer.
+ * \param[in] enum_value an integer pointer.
  * \param[in] enum_set a db_enum_t array that MUST end with NULL.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
@@ -289,7 +289,7 @@ struct db_value_set {
 db_value_set_t* db_value_set_new(size_t size);
 
 /**
- * Delete a database value set.
+ * Delete a database value set and all values within the set.
  * \param[in] value_set a db_value_set_t pointer.
  */
 void db_value_set_free(db_value_set_t* value_set);

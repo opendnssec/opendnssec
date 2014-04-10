@@ -40,12 +40,14 @@ typedef struct db_result db_result_t;
 typedef struct db_result_list db_result_list_t;
 
 /**
- * TODO
- * \param[in] void* TODO 
- * \param[in] int TODO 
- * \return `typedef db_result_t*` TODO
+ * Function pointer for walking a db_result_list. The backend handle specific
+ * data is supplied in `data` and setting `finish` to non-zero tells the backend
+ * that we are finished with the db_result_list.
+ * \param[in] void* a void pointer.
+ * \param[in] int an integer.
+ * \return A pointer to the next db_result_t or NULL on error.
  */
-typedef db_result_t* (*db_result_list_next_t)(void*, int);
+typedef db_result_t* (*db_result_list_next_t)(void* data, int finish);
 
 #ifdef __cplusplus
 }
@@ -59,7 +61,8 @@ extern "C" {
 #endif
 
 /**
- * TODO
+ * A container for a database result, the data in the result is represented by
+ * a fixed size db_value_set_t.
  */
 struct db_result {
     db_result_t* next;
@@ -68,58 +71,57 @@ struct db_result {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_result_t*` TODO
+ * Create a new database result
+ * \return a db_result_t pointer or NULL on error.
  */
 db_result_t* db_result_new(void);
 
 /**
- * TODO
- * \param[in] result TODO 
- * \return `void` TODO
+ * Delete a database result.
+ * \param[in] result a db_result_t pointer.
  */
 void db_result_free(db_result_t* result);
 
 /**
- * TODO
- * \param[in] result TODO 
- * \return `const db_value_set_t*` TODO
+ * Get the value set of a database result.
+ * \param[in] result a db_result_t pointer.
+ * \return a db_value_set_t pointer or NULL on error.
  */
 const db_value_set_t* db_result_value_set(const db_result_t* result);
 
 /**
- * TODO
- * \param[in] result TODO 
- * \return `const db_backend_meta_data_list_t*` TODO
+ * Get the backend meta data list of a database result.
+ * \param[in] result a db_result_t pointer.
+ * \return a db_backend_meta_data_list_t pointer or NULL on error or if it has
+ * not been set.
  */
 const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_result_t* result);
 
 /**
- * TODO
- * \param[in] result TODO 
- * \param[in] value_set TODO 
- * \return `int` TODO
+ * Set the value set of a database result.
+ * \param[in] result a db_result_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set);
 
 /**
- * TODO
- * \param[in] result TODO 
- * \param[in] backend_meta_data_list TODO 
- * \return `int` TODO
+ * Set the backend meta data list of a database result.
+ * \param[in] result a db_result_t pointer.
+ * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_result_set_backend_meta_data_list(db_result_t* result, db_backend_meta_data_list_t* backend_meta_data_list);
 
 /**
- * TODO
- * \param[in] result TODO 
- * \return `int` TODO
+ * Check if a database result is not empty.
+ * \param[in] result a db_result_t pointer.
+ * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
 int db_result_not_empty(const db_result_t* result);
 
 /**
- * TODO
+ * A list of database results.
  */
 struct db_result_list {
     db_result_t* begin;
@@ -130,47 +132,49 @@ struct db_result_list {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_result_list_t*` TODO
+ * Create a new database result list.
+ * \return a db_result_list_t pointer or NULL on error.
  */
 db_result_list_t* db_result_list_new(void);
 
 /**
- * TODO
- * \param[in] result_list TODO 
- * \return `void` TODO
+ * Delete a database result list and all database results within the list.
+ * \param[in] result_list a db_result_list_t pointer.
  */
 void db_result_list_free(db_result_list_t* result_list);
 
 /**
- * TODO
- * \param[in] result_list TODO 
- * \param[in] next_function TODO 
- * \param[in] next_data TODO 
- * \return `int` TODO
+ * Set the function pointer for fetching the next database result for a database
+ * result list. The backend handle specific data is supplied in `next_data`
+ * \param[in] result_list a db_result_list_t pointer.
+ * \param[in] next_function a db_result_list_next_t function pointer.
+ * \param[in] next_data a void pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data);
 
 /**
- * TODO
- * \param[in] result_list TODO 
- * \param[in] result TODO 
- * \return `int` TODO
+ * Add a database result to the database result list, this will take over the
+ * ownership of the database result.
+ * \param[in] result_list a db_result_list_t pointer.
+ * \param[in] result a db_result_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
 
 /**
- * TODO
- * \param[in] result_list TODO 
- * \return `const db_result_t*` TODO
+ * Return the first database result in the database result list and reset the
+ * position of the list.
+ * \param[in] result_list a db_result_list_t pointer.
+ * \return a db_result_t pointer or NULL on error or if the list is empty.
  */
 const db_result_t* db_result_list_begin(db_result_list_t* result_list);
 
 /**
- * TODO
- * \param[in] result_list TODO 
- * \return `const db_result_t*` TODO
+ * Return the next database result in the database result list.
+ * \param[in] result_list a db_result_list_t pointer.
+ * \return a db_result_t pointer or NULL on error or if the end of the list has
+ * been reached.
  */
 const db_result_t* db_result_list_next(db_result_list_t* result_list);
 
