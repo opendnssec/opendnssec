@@ -90,16 +90,20 @@ database_ready(engineconfig_type* config)
 void
 autostart(engine_type* engine)
 {
-    task_type *resalt_task;
-    ods_log_debug("[%s] autostart", module_str);
-	
+	task_type *resalt_task, *task;
+	ods_log_debug("[%s] autostart", module_str);
+
+	/* Remove old tasks in queue */
+	while ((task = schedule_pop_task(engine->taskq))) {
+		ods_log_verbose("popping task \"%s\" from queue", task->who);
+	}
 	if (!engine->database_ready) return;
-    
-    if (resalt_task = policy_resalt_task(engine->config)) {
-	/* race condition at startup. Make sure resalt loses over
-	 * enforce. Not fatal but disturbs test. */
-	resalt_task->when += 3;
-    }
-    schedule_task(engine, resalt_task, "resalt");
-    schedule_task(engine, enforce_task(engine, 1), "enforce");
+
+	if (resalt_task = policy_resalt_task(engine)) {
+		/* race condition at startup. Make sure resalt loses over
+		 * enforce. Not fatal but disturbs test. */
+		resalt_task->when += 3;
+	}
+	schedule_task(engine, resalt_task, "resalt");
+	schedule_task(engine, enforce_task(engine, 1), "enforce");
 }

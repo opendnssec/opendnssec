@@ -33,6 +33,7 @@
 #include "policy/policy_resalt_task.h"
 #include "policy/resalt.h"
 #include "scheduler/task.h"
+#include "daemon/engine.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
@@ -72,7 +73,7 @@ load_kasp_policy(OrmConn conn,const std::string &name,
 }
 
 time_t 
-perform_policy_resalt(int sockfd, engineconfig_type *config)
+perform_policy_resalt(int sockfd, engine_type* engine)
 {
 	#define LOG_AND_RESCHEDULE(errmsg,resched) do {\
 		ods_log_error_and_printf(sockfd,module_str,errmsg);\
@@ -84,7 +85,7 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
     time_t time_resched = TIME_INFINITE;
 	
 	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) {
+	if (!ods_orm_connect(sockfd, engine->config, conn)) {
 		ods_log_error("[%s] retrying in %d seconds", module_str, 60);
 		return (time_now() + 60);
 	}
@@ -103,7 +104,7 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
 			ods_printf(sockfd, 
 					   "Database set to: %s\n"
 					   "There are no policies configured\n",
-					   config->datastore);
+					   engine->config->datastore);
 			return time_resched;
 		}
 		
@@ -114,7 +115,7 @@ perform_policy_resalt(int sockfd, engineconfig_type *config)
 				   "Updated:  "
 				   "Next resalt scheduled:"
 				   "\n",
-				   config->datastore);
+				   engine->config->datastore);
 
 		
 		bool bSomePoliciesUpdated = false;
@@ -186,7 +187,7 @@ static task_type *
 policy_resalt_task_perform(task_type *task)
 {
 	task->backoff = 0;
-    task->when = perform_policy_resalt(-1,(engineconfig_type *)task->context);
+    task->when = perform_policy_resalt(-1,(engine_type *)task->context);
     if (task->when == TIME_INFINITE) {
         // The resalt did not work, so we just try it again in 30 minutes.
         task->when = time_now() + 30*60;
@@ -195,12 +196,12 @@ policy_resalt_task_perform(task_type *task)
 }
 
 task_type *
-policy_resalt_task(engineconfig_type *config)
+policy_resalt_task(engine_type* engine)
 {
     const char *what = "resalt";
     const char *who = "policies";
     task_id what_id = task_register(what,
                                  "policy_resalt_task_perform", 
                                  policy_resalt_task_perform);
-	return task_create(what_id, time_now(), who, (void*)config);
+	return task_create(what_id, time_now(), who, (void*)engine);
 }
