@@ -67,8 +67,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	int argc;
 
 	ods_log_debug("[%s] %s command", module_str, key_ds_seen_funcblock()->cmdname);
-	cmd = ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname);
-
 	/* consume command */
 	cmd = ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname);
 
