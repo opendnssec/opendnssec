@@ -86,11 +86,8 @@ load_kasp_xml(int sockfd, const char * policiesfile,
 		return false;
 	}
 	
-<<<<<<< HEAD
 	ods_log_info("kasp loaded from %s", policiesfile);
 	client_printf(sockfd,"kasp loaded from %s\n", policiesfile);
-=======
->>>>>>> a9401f11264b4d5ac8177d785c54b263c1109d72
 	return true;
 }
 
