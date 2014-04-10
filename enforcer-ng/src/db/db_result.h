@@ -77,7 +77,7 @@ struct db_result {
 db_result_t* db_result_new(void);
 
 /**
- * Delete a database result.
+ * Delete a database result and the backend meta data list if set.
  * \param[in] result a db_result_t pointer.
  */
 void db_result_free(db_result_t* result);
@@ -85,15 +85,16 @@ void db_result_free(db_result_t* result);
 /**
  * Get the value set of a database result.
  * \param[in] result a db_result_t pointer.
- * \return a db_value_set_t pointer or NULL on error.
+ * \return a db_value_set_t pointer or NULL on error or if no value set has
+ * been set.
  */
 const db_value_set_t* db_result_value_set(const db_result_t* result);
 
 /**
  * Get the backend meta data list of a database result.
  * \param[in] result a db_result_t pointer.
- * \return a db_backend_meta_data_list_t pointer or NULL on error or if it has
- * not been set.
+ * \return a db_backend_meta_data_list_t pointer or NULL on error or if no
+ * backend meta data list has been set.
  */
 const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_result_t* result);
 
@@ -106,7 +107,8 @@ const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_res
 int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set);
 
 /**
- * Set the backend meta data list of a database result.
+ * Set the backend meta data list of a database result, this takes over the
+ * ownership of the backend meta data list.
  * \param[in] result a db_result_t pointer.
  * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -154,7 +156,7 @@ void db_result_list_free(db_result_list_t* result_list);
 int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data);
 
 /**
- * Add a database result to the database result list, this will take over the
+ * Add a database result to a database result list, this will takes over the
  * ownership of the database result.
  * \param[in] result_list a db_result_list_t pointer.
  * \param[in] result a db_result_t pointer.
@@ -163,7 +165,7 @@ int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t
 int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
 
 /**
- * Return the first database result in the database result list and reset the
+ * Return the first database result in a database result list and reset the
  * position of the list.
  * \param[in] result_list a db_result_list_t pointer.
  * \return a db_result_t pointer or NULL on error or if the list is empty.
@@ -171,7 +173,7 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
 const db_result_t* db_result_list_begin(db_result_list_t* result_list);
 
 /**
- * Return the next database result in the database result list.
+ * Return the next database result in a database result list.
  * \param[in] result_list a db_result_list_t pointer.
  * \return a db_result_t pointer or NULL on error or if the end of the list has
  * been reached.

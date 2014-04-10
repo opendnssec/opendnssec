@@ -59,7 +59,7 @@ extern "C" {
 #endif
 
 /**
- * TODO
+ * A representation of an field/value for a database object.
  */
 struct db_object_field {
     db_object_field_t* next;
@@ -69,80 +69,78 @@ struct db_object_field {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_object_field_t*` TODO
+ * Create a database object field.
+ * \return a db_object_field_t pointer or NULL on error.
  */
 db_object_field_t* db_object_field_new(void);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \return `void` TODO
+ * Delete a database object field.
+ * \param[in] object_field a db_object_field_t pointer.
  */
 void db_object_field_free(db_object_field_t* object_field);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \return `const char*` TODO
+ * Get the name of a database object field.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \return a character pointer or NULL if not set.
  */
 const char* db_object_field_name(const db_object_field_t* object_field);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \return `db_type_t` TODO
+ * Get the type of a database object field.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \return a db_type_t.
  */
 db_type_t db_object_field_type(const db_object_field_t* object_field);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \return `const db_enum_t*` TODO
+ * Get the enumerate set of a database object field.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \return a NULL terminated db_enum_t list or NULL if not set.
  */
 const db_enum_t* db_object_field_enum_set(const db_object_field_t* object_field);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \param[in] name TODO 
- * \return `int` TODO
+ * Set the name of a database object field.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \param[in] name a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_field_set_name(db_object_field_t* object_field, const char* name);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \param[in] type TODO 
- * \return `int` TODO
+ * Set the type of a database object field.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \param[in] type a db_type_t.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_field_set_type(db_object_field_t* object_field, db_type_t type);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \param[in] enum_set TODO 
- * \return `int` TODO
+ * Set the enumerate set of a database object field.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \param[in] enum_set a NULL terminated db_enum_t list.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_field_set_enum_set(db_object_field_t* object_field, const db_enum_t* enum_set);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \return `int` TODO
+ * Check if the object field is not empty.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
 int db_object_field_not_empty(const db_object_field_t* object_field);
 
 /**
- * TODO
- * \param[in] object_field TODO 
- * \return `const db_object_field_t*` TODO
+ * Get the next object field connected in a database object field list.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \return a db_object_field_t pointer or NULL if its the end of the list.
  */
 const db_object_field_t* db_object_field_next(const db_object_field_t* object_field);
 
 /**
- * TODO
+ * A list of object fields.
  */
 struct db_object_field_list {
     db_object_field_t* begin;
@@ -150,36 +148,35 @@ struct db_object_field_list {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_object_field_list_t*` TODO
+ * Create a new object field list.
+ * \return a db_object_field_list_t pointer or NULL on error.
  */
 db_object_field_list_t* db_object_field_list_new(void);
 
 /**
- * TODO
- * \param[in] object_field_list TODO 
- * \return `void` TODO
+ * Delete a object field list and all object fields within the list.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
  */
 void db_object_field_list_free(db_object_field_list_t* object_field_list);
 
 /**
- * TODO
- * \param[in] object_field_list TODO 
- * \param[in] object_field TODO 
- * \return `int` TODO
+ * Add a database object field to a database object field list, this will takes
+ * over the ownership of the object field.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field);
 
 /**
- * TODO
- * \param[in] object_field_list TODO 
- * \return `const db_object_field_t*` TODO
+ * Return the first object field in a database object field list.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \return a db_object_field_t pointer or NULL on error or if the list is empty.
  */
 const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list);
 
 /**
- * TODO
+ * A database object.
  */
 struct db_object {
     const db_connection_t* connection;
@@ -190,127 +187,136 @@ struct db_object {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_object_t*` TODO
+ * Create a new database object.
+ * \return a db_object_t pointer or NULL on error.
  */
 db_object_t* db_object_new(void);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \return `void` TODO
+ * Delete a database object and the object field list and backend meta data list
+ * if set.
+ * \param[in] object a db_object_t pointer.
  */
 void db_object_free(db_object_t* object);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \return `const db_connection_t*` TODO
+ * Get the database connection of a database object.
+ * \param[in] object a db_object_t pointer.
+ * \return a db_connection_t pointer or NULL on error or if no connection has
+ * been set.
  */
 const db_connection_t* db_object_connection(const db_object_t* object);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \return `const char*` TODO
+ * Get the table name of a database object.
+ * \param[in] object a db_object_t pointer.
+ * \return a character pointer or NULL on error or if no table name has been
+ * set.
  */
 const char* db_object_table(const db_object_t* object);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \return `const char*` TODO
+ * Get the primary key name of a database object.
+ * \param[in] object a db_object_t pointer.
+ * \return a character pointer or NULL on error or if no primary key name has
+ * been set.
  */
 const char* db_object_primary_key_name(const db_object_t* object);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \return `const db_object_field_list_t*` TODO
+ * Get the object field list of a database object.
+ * \param[in] object a db_object_t pointer.
+ * \return a db_object_field_list_t pointer or NULL on error or if no object
+ * field list has been set.
  */
 const db_object_field_list_t* db_object_object_field_list(const db_object_t* object);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \return `const db_backend_meta_data_list_t*` TODO
+ * Get the backend meta data list of a database object.
+ * \param[in] object a db_object_t pointer.
+ * \return a db_backend_meta_data_list_t pointer or NULL on error or if no
+ * backend meta data list has been set.
  */
 const db_backend_meta_data_list_t* db_object_backend_meta_data_list(const db_object_t* object);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] connection TODO 
- * \return `int` TODO
+ * Set the database connection of a database object.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] connection a db_connection_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_set_connection(db_object_t* object, const db_connection_t* connection);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] table TODO 
- * \return `int` TODO
+ * Set the table name of a database object.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] table a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_set_table(db_object_t* object, const char* table);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] primary_key_name TODO 
- * \return `int` TODO
+ * Set the primary key name of a database object.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] primary_key_name a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_name);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \return `int` TODO
+ * Set the object field list of a database object, this takes over the ownership
+ * of the object field list.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t* object_field_list);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] backend_meta_data_list TODO 
- * \return `int` TODO
+ * Set the backend meta data list of a database object, this takes over the
+ * ownership of the backend meta data list.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_set_backend_meta_data_list(db_object_t* object, db_backend_meta_data_list_t* backend_meta_data_list);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \return `int` TODO
+ * Create an object in the database. The `object_field_list` describes the
+ * fields that should be set in the object and the `value_set` has the values
+ * for each field.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_create(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] join_list TODO 
- * \param[in] clause_list TODO 
- * \return `db_result_list_t*` TODO
+ * Read an object or objects from the database.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a db_result_list_t pointer or NULL on error or if no objects where
+ * read.
  */
 db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \param[in] clause_list TODO 
- * \return `int` TODO
+ * Update an object or objects in the database.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_update(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] clause_list TODO 
- * \return `int` TODO
+ * Delete an object or objects from the database.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_delete(const db_object_t* object, const db_clause_list_t* clause_list);
 
