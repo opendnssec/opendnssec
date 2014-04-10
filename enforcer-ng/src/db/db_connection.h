@@ -53,7 +53,7 @@ extern "C" {
 #endif
 
 /**
- * TODO
+ * A database connection.
  */
 struct db_connection {
     const db_configuration_list_t* configuration_list;
@@ -61,106 +61,108 @@ struct db_connection {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_connection_t*` TODO
+ * Create a new database connection.
+ * \return a db_connection_t pointer or NULL on error.
  */
 db_connection_t* db_connection_new(void);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \return `void` TODO
+ * Delete a database connection and the database backend within.
+ * \param[in] connection a db_connection_t pointer.
  */
 void db_connection_free(db_connection_t* connection);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \param[in] configuration_list TODO 
- * \return `int` TODO
+ * Set the database configuration list for a database connection.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] configuration_list a db_configuration_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \return `int` TODO
+ * Setup the database connection, this verifies the information in the database
+ * configuration list and allocated a database backend.
+ * \param[in] connection a db_connection_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_setup(db_connection_t* connection);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \return `int` TODO
+ * Connect to the database.
+ * \param[in] connection a db_connection_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_connect(const db_connection_t* connection);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \return `int` TODO
+ * Disconnect from the database.
+ * \param[in] connection a db_connection_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_disconnect(const db_connection_t* connection);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \return `int` TODO
+ * Create an object in the database. The `object` refer to the database object
+ * begin created, the `object_field_list` describes the fields that should be
+ * set in the object and the `value_set` has the values for each field.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \param[in] object TODO 
- * \param[in] join_list TODO 
- * \param[in] clause_list TODO 
- * \return `db_result_list_t*` TODO
+ * Read an object or objects from the database.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a db_result_list_t pointer or NULL on error or if no objects where
+ * read.
  */
 db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \param[in] clause_list TODO 
- * \return `int` TODO
+ * Update an object or objects in the database.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \param[in] object TODO 
- * \param[in] clause_list TODO 
- * \return `int` TODO
+ * Delete an object or objects from the database.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \return `int` TODO
+ * Begin a transaction for a database connection.
+ * \param[in] connection a db_connection_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_transaction_begin(const db_connection_t* connection);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \return `int` TODO
+ * Commit a transaction for a database connection.
+ * \param[in] connection a db_connection_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_transaction_commit(const db_connection_t* connection);
 
 /**
- * TODO
- * \param[in] connection TODO 
- * \return `int` TODO
+ * Roll back a transaction for a database connection.
+ * \param[in] connection a db_connection_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_transaction_rollback(const db_connection_t* connection);
 

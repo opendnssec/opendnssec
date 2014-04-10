@@ -34,6 +34,11 @@
 extern "C" {
 #endif
 
+/**
+ * A enumerate value, represented by a character string and integer.
+ * Used for converting database enumerate values from/to text and integer and is
+ * often given as a NULL terminated list.
+ */
 typedef struct db_enum {
     const char* text;
     int value;

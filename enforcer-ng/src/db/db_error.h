@@ -30,7 +30,13 @@
 #ifndef __db_error_h
 #define __db_error_h
 
+/**
+ * A successful operation.
+ */
 #define DB_OK 0
+/**
+ * A failed operation with an unknown error.
+ */
 #define DB_ERROR_UNKNOWN 1
 
 #endif

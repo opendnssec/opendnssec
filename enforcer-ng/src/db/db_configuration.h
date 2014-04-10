@@ -40,7 +40,7 @@ typedef struct db_configuration db_configuration_t;
 typedef struct db_configuration_list db_configuration_list_t;
 
 /**
- * TODO
+ * A database configuration represented by a key and value.
  */
 struct db_configuration {
     db_configuration_t* next;
@@ -49,58 +49,58 @@ struct db_configuration {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_configuration_t*` TODO
+ * Create a new database configuration.
+ * \return a db_configuration_t pointer or NULL on error.
  */
 db_configuration_t* db_configuration_new(void);
 
 /**
- * TODO
- * \param[in] configuration TODO 
- * \return `void` TODO
+ * Delete a database configuration.
+ * \param[in] configuration a db_configuration_t pointer.
  */
 void db_configuration_free(db_configuration_t* configuration);
 
 /**
- * TODO
- * \param[in] configuration TODO 
- * \return `const char*` TODO
+ * Get the name of a database configuration.
+ * \param[in] configuration a db_configuration_t pointer.
+ * \return a character pointer or NULL on error or if no database configuration
+ * name has been set.
  */
 const char* db_configuration_name(const db_configuration_t* configuration);
 
 /**
- * TODO
- * \param[in] configuration TODO 
- * \return `const char*` TODO
+ * Get the value of a database configuration.
+ * \param[in] configuration a db_configuration_t pointer.
+ * \return a character pointer or NULL on error or if no database configuration
+ * value has been set.
  */
 const char* db_configuration_value(const db_configuration_t* configuration);
 
 /**
- * TODO
- * \param[in] configuration TODO 
- * \param[in] name TODO 
- * \return `int` TODO
+ * Set the name of a database configuration.
+ * \param[in] configuration a db_configuration_t pointer.
+ * \param[in] name a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_configuration_set_name(db_configuration_t* configuration, const char* name);
 
 /**
- * TODO
- * \param[in] configuration TODO 
- * \param[in] value TODO 
- * \return `int` TODO
+ * Set the value of a database configuration.
+ * \param[in] configuration a db_configuration_t pointer.
+ * \param[in] value a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_configuration_set_value(db_configuration_t* configuration, const char* value);
 
 /**
- * TODO
- * \param[in] configuration TODO 
- * \return `int` TODO
+ * Check if the database configuration is not empty.
+ * \param[in] configuration a db_configuration_t pointer.
+ * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
 int db_configuration_not_empty(const db_configuration_t* configuration);
 
 /**
- * TODO
+ * A list of database configurations.
  */
 struct db_configuration_list {
     db_configuration_t* begin;
@@ -108,32 +108,33 @@ struct db_configuration_list {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_configuration_list_t*` TODO
+ * Create a new database configuration list.
+ * \return a db_configuration_list_t pointer or NULL on error.
  */
 db_configuration_list_t* db_configuration_list_new(void);
 
 /**
- * TODO
- * \param[in] configuration_list TODO 
- * \return `void` TODO
+ * Delete a database configuration list and all database configurations in the
+ * list.
+ * \param[in] configuration_list a db_configuration_list_t pointer.
  */
 void db_configuration_list_free(db_configuration_list_t* configuration_list);
 
 /**
- * TODO
- * \param[in] configuration_list TODO 
- * \param[in] configuration TODO 
- * \return `int` TODO
+ * Add a database configuration to a database configuration list, this takes
+ * over the ownership of the database configuration.
+ * \param[in] configuration_list a db_configuration_list_t pointer.
+ * \param[in] configuration a db_configuration_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_configuration_list_add(db_configuration_list_t* configuration_list, db_configuration_t* configuration);
 
 /**
- * TODO
- * \param[in] configuration_list TODO 
- * \param[in] name TODO 
- * \return `const db_configuration_t*` TODO
+ * Find a database configuration by name within a database configuration list.
+ * \param[in] configuration_list a db_configuration_list_t pointer.
+ * \param[in] name a character pointer.
+ * \return a db_configuration_t pointer or NULL on error or if the database
+ * configuration does not exist.
  */
 const db_configuration_t* db_configuration_list_find(const db_configuration_list_t* configuration_list, const char* name);
 
