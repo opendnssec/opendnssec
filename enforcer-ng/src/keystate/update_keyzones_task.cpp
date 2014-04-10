@@ -294,7 +294,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 	}
 	
 	ods_log_info("[%s] zonelist loaded from %s", module_str, config->zonelist_filename);
-	ods_printf(sockfd,"zonelist loaded from %s\n", config->zonelist_filename);	
+	client_printf(sockfd,"zonelist loaded from %s\n", config->zonelist_filename);	
 	
 	return 1;
 }
