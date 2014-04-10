@@ -66,7 +66,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (ods_check_command(cmd, n, "start")) {
 		ods_log_debug("[cmdhandler] start command");
 		client_printf(sockfd, "Engine already running.\n");
-		return 0;
+		/* if you asked us to start, we are already started */
+		return 1; /* error */
 	} else if (ods_check_command(cmd, n, "running")) {
 		ods_log_debug("[cmdhandler] running command");
 		client_printf(sockfd, "Engine running.\n");

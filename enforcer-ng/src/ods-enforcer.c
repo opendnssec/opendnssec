@@ -272,18 +272,21 @@ interface_start(const char* cmd, const char* servsock_filename)
             ods_str_trim(userbuf);
 #endif
             if (strlen(userbuf) == 0) continue;
-            client_stdin(sockfd, userbuf, strlen(userbuf));
-        }
-        /* These commands don't go through the pipe */
-        if (ods_strcmp(cmd, "exit") == 0 || ods_strcmp(cmd, "quit") == 0)
-            break;
-        if (ods_strcmp(cmd, "start") == 0) {
-            if (system(ODS_EN_ENGINE) != 0) {
-                fprintf(stderr, "Error: Daemon reported a failure starting. "
-                    "Please consult the logfiles.\n");
-                return_value = 1;
+            /* These commands don't go through the pipe */
+            if (strcmp(userbuf, "exit") == 0 || strcmp(userbuf, "quit") == 0)
+                break;
+            /* send cmd through pipe */
+            if (!client_stdin(sockfd, userbuf, strlen(userbuf))) {
+                /* only try start on fail to send */
+                if (strcmp(userbuf, "start") == 0) {
+                    if (system(ODS_EN_ENGINE) != 0) {
+                        fprintf(stderr, "Error: Daemon reported a failure starting. "
+                            "Please consult the logfiles.\n");
+                        error = 209;
+                    }
+                    continue;
+                }
             }
-            continue;
         }
 
         while (1) {
