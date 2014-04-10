@@ -50,7 +50,7 @@ extern "C" {
 #endif
 
 /**
- * TODO
+ * A database join description.
  */
 struct db_join {
     db_join_t* next;
@@ -61,95 +61,98 @@ struct db_join {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_join_t*` TODO
+ * Create a new database join.
+ * \return a db_join_t pointer or NULL on error.
  */
 db_join_t* db_join_new(void);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \return `void` TODO
+ * Delete a database join.
+ * \param[in] join a db_join_t pointer.
  */
 void db_join_free(db_join_t* join);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \return `const char*` TODO
+ * Get the from table name of a database join.
+ * \param[in] join a db_join_t pointer.
+ * \return a character pointer or NULL on error or if no from table name has
+ * been set.
  */
 const char* db_join_from_table(const db_join_t* join);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \return `const char*` TODO
+ * Get the from field name of a database join.
+ * \param[in] join a db_join_t pointer.
+ * \return a character pointer or NULL on error or if no from field name has
+ * been set.
  */
 const char* db_join_from_field(const db_join_t* join);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \return `const char*` TODO
+ * Get the to table name of a database join.
+ * \param[in] join a db_join_t pointer.
+ * \return a character pointer or NULL on error or if no to table name has been
+ * set.
  */
 const char* db_join_to_table(const db_join_t* join);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \return `const char*` TODO
+ * Get the to field name of a database join.
+ * \param[in] join a db_join_t pointer.
+ * \return a character pointer or NULL on error or if no to field name has been
+ * set.
  */
 const char* db_join_to_field(const db_join_t* join);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \param[in] from_table TODO 
- * \return `int` TODO
+ * Set the from table name of a database join.
+ * \param[in] join a db_join_t pointer.
+ * \param[in] from_table a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_join_set_from_table(db_join_t* join, const char* from_table);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \param[in] from_field TODO 
- * \return `int` TODO
+ * Set the from field name of a database join.
+ * \param[in] join a db_join_t pointer.
+ * \param[in] from_field a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_join_set_from_field(db_join_t* join, const char* from_field);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \param[in] to_table TODO 
- * \return `int` TODO
+ * Set the to table name of a database join.
+ * \param[in] join a db_join_t pointer.
+ * \param[in] to_table a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_join_set_to_table(db_join_t* join, const char* to_table);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \param[in] to_field TODO 
- * \return `int` TODO
+ * Set the to field of a database join.
+ * \param[in] join a db_join_t pointer.
+ * \param[in] to_field a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_join_set_to_field(db_join_t* join, const char* to_field);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \return `int` TODO
+ * Check if the database join is not empty.
+ * \param[in] join a db_join_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_join_not_empty(const db_join_t* join);
 
 /**
- * TODO
- * \param[in] join TODO 
- * \return `const db_join_t*` TODO
+ * Get the next database join connected in a database join list.
+ * \param[in] join a db_join_t pointer.
+ * \return a db_join_t pointer or NULL on error or if there are no more database
+ * joins in the list.
  */
 const db_join_t* db_join_next(const db_join_t* join);
 
 /**
- * TODO
+ * A list of database joins.
  */
 struct db_join_list {
     db_join_t* begin;
@@ -157,31 +160,30 @@ struct db_join_list {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_join_list_t*` TODO
+ * Create a new database join list.
+ * \return a db_join_list_t pointer or NULL on error.
  */
 db_join_list_t* db_join_list_new(void);
 
 /**
- * TODO
- * \param[in] join_list TODO 
- * \return `void` TODO
+ * Delete a database join list and all database joins within the list.
+ * \param[in] join_list a db_join_list_t pointer.
  */
 void db_join_list_free(db_join_list_t* join_list);
 
 /**
- * TODO
- * \param[in] join_list TODO 
- * \param[in] join TODO 
- * \return `int` TODO
+ * Add a database join to a database join list, this takes over the ownership
+ * of the database join.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] join a db_join_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_join_list_add(db_join_list_t* join_list, db_join_t* join);
 
 /**
- * TODO
- * \param[in] join_list TODO 
- * \return `const db_join_t*` TODO
+ * Return the first database join in a database join list.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \return a db_join_t pointer or NULL on error or if the list is empty.
  */
 const db_join_t* db_join_list_begin(const db_join_list_t* join_list);
 

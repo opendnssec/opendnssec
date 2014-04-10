@@ -83,7 +83,7 @@ void db_object_field_free(db_object_field_t* object_field);
 /**
  * Get the name of a database object field.
  * \param[in] object_field a db_object_field_t pointer.
- * \return a character pointer or NULL if not set.
+ * \return a character pointer or NULL on error or if no field name has been set.
  */
 const char* db_object_field_name(const db_object_field_t* object_field);
 
@@ -97,7 +97,8 @@ db_type_t db_object_field_type(const db_object_field_t* object_field);
 /**
  * Get the enumerate set of a database object field.
  * \param[in] object_field a db_object_field_t pointer.
- * \return a NULL terminated db_enum_t list or NULL if not set.
+ * \return a NULL terminated db_enum_t list or NULL on error or if no enumerate
+ * set has been set.
  */
 const db_enum_t* db_object_field_enum_set(const db_object_field_t* object_field);
 
@@ -135,7 +136,8 @@ int db_object_field_not_empty(const db_object_field_t* object_field);
 /**
  * Get the next object field connected in a database object field list.
  * \param[in] object_field a db_object_field_t pointer.
- * \return a db_object_field_t pointer or NULL if its the end of the list.
+ * \return a db_object_field_t pointer or NULL on error or if there are no more
+ * object fields in the list.
  */
 const db_object_field_t* db_object_field_next(const db_object_field_t* object_field);
 
@@ -169,7 +171,7 @@ void db_object_field_list_free(db_object_field_list_t* object_field_list);
 int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field);
 
 /**
- * Return the first object field in a database object field list.
+ * Return the first database object field in a database object field list.
  * \param[in] object_field_list a db_object_field_list_t pointer.
  * \return a db_object_field_t pointer or NULL on error or if the list is empty.
  */

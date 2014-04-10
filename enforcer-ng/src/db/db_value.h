@@ -116,7 +116,7 @@ db_type_t db_value_type(const db_value_t* value);
 /**
  * Get a character pointer for the text in a database value.
  * \param[in] value a db_value_t pointer.
- * \return a character pointer or NULL if empty or not a text value.
+ * \return a character pointer or NULL on error, if empty or not a text value.
  */
 const char* db_value_text(const db_value_t* value);
 
@@ -132,7 +132,7 @@ int db_value_enum_value(const db_value_t* value, int* enum_value);
  * Get the character representation of the integer value of an enumeration
  * database value.
  * \param[in] value a db_value_t pointer.
- * \return a character pointer or NULL if empty or not an enum value.
+ * \return a character pointer or NULL on error, if empty or not an enum value.
  */
 const char* db_value_enum_text(const db_value_t* value);
 
