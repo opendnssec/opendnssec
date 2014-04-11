@@ -33,6 +33,7 @@
 
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
+#include "daemon/clientpipe.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "daemon/worker.h"
@@ -338,6 +339,10 @@ engine_setup(engine_type* engine)
             if (setsid() == -1) {
                 ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
+<<<<<<< HEAD
+=======
+                return ODS_STATUS_SETSID_ERR;
+>>>>>>> 1832073a52ea3cb619b6a6bcfa01a6d73b2be177
             }
         }
     }
@@ -402,7 +407,7 @@ engine_init(engine_type* engine, int daemonize)
     engine->cmdhandler_done = 1;
     engine->init_setup_done = 0;
     engine->database_ready = 0;
-    engine->pid = -1;
+    engine->pid = getpid(); /* We need to do this again after fork() */
     engine->uid = -1;
     engine->gid = -1;
     engine->need_to_exit = 0;
@@ -480,7 +485,7 @@ void
 flush_all_tasks(int sockfd, engine_type* engine)
 {
     ods_log_debug("[%s] flushing all tasks...", engine_str);
-    ods_printf(sockfd,"flushing all tasks...\n");
+    client_printf(sockfd,"flushing all tasks...\n");
 
     ods_log_assert(engine);
     ods_log_assert(engine->taskq);

@@ -141,15 +141,6 @@ void ods_log_error_and_printf(int fd, const char *mod, const char *format, ...);
 time_t ods_file_lastmodified(const char* file);
 
 /**
- * Compare strings.
- * \param[in] s1 one string
- * \param[in] s2 another string
- * \return -1, 0 or 1
- *
- */
-int ods_strcmp(const char* s1, const char* s2);
-
-/**
  * Replace a substring in string.
  * \param[in] str The string
  * \param[in] oldstr old substring
@@ -186,14 +177,6 @@ int ods_file_copy(const char* file1, const char* file2);
  *
  */
 void ods_chown(const char* file, uid_t uid, gid_t gid, int getdir);
-
-
-/**
- * Remove leading and trailing whitespace.
- * \param[in] str string to trim
- *
- */
-void ods_str_trim(char* str);
 
 #ifdef __cplusplus
 }

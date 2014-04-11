@@ -35,6 +35,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "keystate/zone_del_task.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/zone_del_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "zone_del_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"zone delete            Delete zones from the enforcer database.\n"
 		"      --zone <zone> | --all      (aka -z | -a)  zone, or delete all zones.\n"
 		"      [--xml]                    (aka -u)       update zonelist.xml.\n"
@@ -89,6 +90,13 @@ bool get_arguments(int sockfd, const char *cmd,
 		if (!del_all) {
 			ods_log_error_and_printf(sockfd,module_str,
 								 "expected option --zone <zone> or --all ");
+			return false;
+		} else if (!client_prompt_user(sockfd, 
+				"*WARNING* This will delete all zone data in database;"
+				"are you sure? [y/N] ", buf)) {
+			return false;
+		} else if (toupper(buf[0]) != 'Y') {
+			client_printf(sockfd, "Okay, quitting...\n");
 			return false;
 		}
 	}

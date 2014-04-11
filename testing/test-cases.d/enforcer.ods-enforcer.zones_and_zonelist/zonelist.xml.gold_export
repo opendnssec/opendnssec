@@ -1,17 +1,17 @@
 <?xml version="1.0"?>
 <ZoneList>
-	<Zone name="ods0">
-	    <Policy>default</Policy>
-	    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods0.xml</SignerConfiguration>
-	    <Adapters>
-	        <Input>
-	            <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods0</Adapter>
-	        </Input>
-	        <Output>
-	            <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods0</Adapter>
-	        </Output>
-	    </Adapters>
-	</Zone>
+    <Zone name="ods0">
+        <Policy>default</Policy>
+        <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods0.xml</SignerConfiguration>
+        <Adapters>
+            <Input>
+                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods0</Adapter>
+            </Input>
+            <Output>
+                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods0</Adapter>
+            </Output>
+        </Adapters>
+    </Zone>
     <Zone name="ods1">
         <Policy>Policy1</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods1.xml</SignerConfiguration>
@@ -169,4 +169,3 @@
         </Adapters>
     </Zone>
 </ZoneList>
-

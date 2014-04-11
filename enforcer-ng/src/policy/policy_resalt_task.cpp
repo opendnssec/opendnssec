@@ -44,6 +44,7 @@
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
+#include "daemon/clientpipe.h"
 
 #include <memory>
 #include <fcntl.h>
@@ -101,14 +102,14 @@ perform_policy_resalt(int sockfd, engine_type* engine)
 			LOG_AND_RESCHEDULE("unable to enumerate policies", 60);
 
 		if (!OrmFirst(rows)) {
-			ods_printf(sockfd, 
+			client_printf(sockfd, 
 					   "Database set to: %s\n"
 					   "There are no policies configured\n",
 					   engine->config->datastore);
 			return time_resched;
 		}
 		
-		ods_printf(sockfd,
+		client_printf(sockfd,
 				   "Database set to: %s\n"
 				   "Policies:\n"
 				   "Policy:                         "
@@ -154,7 +155,7 @@ perform_policy_resalt(int sockfd, engine_type* engine)
 				}
 			}
 
-			ods_printf(sockfd,
+			client_printf(sockfd,
 					   "%-31s %-9s %-48s\n",
 					   policy.name().c_str(),
 					   bCurrentPolicyUpdated ? "yes" : "no",
@@ -170,7 +171,7 @@ perform_policy_resalt(int sockfd, engine_type* engine)
 
 		if (!bSomePoliciesUpdated) {
 			ods_log_debug("[%s] policy resalt complete", module_str);
-			ods_printf(sockfd,"policy resalt complete\n");
+			client_printf(sockfd,"policy resalt complete\n");
 			return time_resched;
 		}
 	}
@@ -179,7 +180,7 @@ perform_policy_resalt(int sockfd, engine_type* engine)
 		LOG_AND_RESCHEDULE("committing policy changes failed", 60);
 
 	ods_log_debug("[%s] policies have been updated",module_str);
-	ods_printf(sockfd,"Policies have been updated.\n");
+	client_printf(sockfd,"Policies have been updated.\n");
 	return time_resched;
 }
 

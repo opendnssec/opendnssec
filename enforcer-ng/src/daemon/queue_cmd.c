@@ -33,6 +33,8 @@
 #include "shared/duration.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
+#include "daemon/clientpipe.h"
+#include "daemon/clientpipe.h"
 
 #include "daemon/queue_cmd.h"
 
@@ -41,7 +43,7 @@ static const char *module_str = "queue_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"queue                  Show the current task queue.\n"
 	);
 }
@@ -49,7 +51,7 @@ usage(int sockfd)
 static void
 help(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"queue shows all scheduled tasks with their time of earliest "
 		"execution. As well as all tasks currently being processed."
 		"\n"
@@ -78,8 +80,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 
 	ods_log_assert(engine);
 	if (!engine->taskq || !engine->taskq->tasks) {
-		(void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
-		ods_writen(sockfd, buf, strlen(buf));
+		client_printf(sockfd, "There are no tasks scheduled.\n");
 		return 0;
 	}
 	
@@ -90,20 +91,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
 		task = engine->workers[i]->task;
 		if (task) {
-			(void)snprintf(buf, ODS_SE_MAXLINE, "Working with [%s] %s\n",
+			client_printf(sockfd, "Working with [%s] %s\n",
 				task_what2str(task->what), task_who2str(task->who));
-			ods_writen(sockfd, buf, strlen(buf));
 		}
 	}
 
 	/* how many tasks */
 	now = time_now();
 	strtime = ctime_r(&now,ctimebuf);
-	(void)snprintf(buf, ODS_SE_MAXLINE, 
-				   "There are %i tasks scheduled.\nIt is now %s",
-				   (int) engine->taskq->tasks->count,
-				   strtime?strtime:"(null)\n");
-	ods_writen(sockfd, buf, strlen(buf));
+	client_printf(sockfd, "There are %i tasks scheduled.\nIt is now %s",
+		(int) engine->taskq->tasks->count,
+		strtime?strtime:"(null)\n");
 	
 	/* list tasks */
 	node = ldns_rbtree_first(engine->taskq->tasks);
@@ -113,7 +111,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			buf[i] = 0;
 		}
 		(void)task2str(task, (char*) &buf[0]);
-		ods_writen(sockfd, buf, strlen(buf));
+		client_printf(sockfd, "%s", buf);
 		node = ldns_rbtree_next(node);
 	}
 	/* [UNLOCK] schedule */
@@ -134,7 +132,7 @@ queue_funcblock(void)
 static void
 usage_flush(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"flush                  Execute all scheduled tasks immediately.\n"
 	);
 }
@@ -146,7 +144,7 @@ handles_flush(const char *cmd, ssize_t n)
 }
 
 static int
-run_flush(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n)
 {
 	(void)cmd; (void)n;
 	ods_log_debug("[%s] flush tasks command", module_str);
@@ -160,8 +158,7 @@ run_flush(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	lock_basic_unlock(&engine->taskq->schedule_lock);
 
 	engine_wakeup_workers(engine);
-
-	ods_printf(sockfd, "All tasks scheduled immediately.\n");
+	client_printf(sockfd, "All tasks scheduled immediately.\n");
 	ods_log_verbose("[cmdhandler] all tasks scheduled immediately");
 	return 0;
 }

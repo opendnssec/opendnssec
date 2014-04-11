@@ -42,8 +42,8 @@ extern "C" {
 /* Max number of not accepted connections before starting to drop. */
 #define ODS_SE_MAX_HANDLERS 5
 
-/* back reference to the engine */
 struct engine_struct;
+struct client_conn;
 
 typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
@@ -66,10 +66,16 @@ struct cmd_func_block {
     /* 1 if module claims responibility for command
      * 0 otherwise */
     int (*handles)(const char *cmd, ssize_t n);
-    /* 0 command executed, all OK
-     * -1 Errors parsing commandline / missing params
-     * positive error code to return to user.
-     * */
+    /** Run the handler
+     * 
+     * \param sockfd, pipe to client,
+     * \param engine, daemon information must not be NULL.
+     * \param cmd, command and args for additional parsing.
+     * \param n, length of cmd.
+     * \return 0 command executed, all OK
+     *      -1 Errors parsing commandline / missing params
+     *       positive error code to return to user.
+     */
     int (*run)(int sockfd, struct engine_struct* engine,
         const char *cmd, ssize_t n);
 };

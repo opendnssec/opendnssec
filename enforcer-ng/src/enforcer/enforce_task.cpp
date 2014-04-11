@@ -39,7 +39,7 @@
 
 #include "enforcer/enforcerdata.h"
 #include "enforcer/enforcer.h"
-
+#include "daemon/clientpipe.h"
 #include "daemon/engine.h"
 #include "daemon/orm.h"
 #include "enforcer/enforce_task.h"
@@ -76,13 +76,9 @@ schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what
         ods_status status = lock_and_schedule_task(engine->taskq, task, 0);
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] failed to create %s task", module_str, what);
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "Unable to schedule %s task.\n", what);
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, "Unable to schedule %s task.\n", what);
         } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE,
-                           "Scheduled %s task.\n", what);
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, "Scheduled %s task.\n", what);
             engine_wakeup_workers(engine);
         }
     }
@@ -243,7 +239,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			::ods::kasp::Policy policy;
 			if (!load_kasp_policy(conn, enfzone.policy(), policy)) {
 				/* Policy for this zone not found, don't reschedule */
-				ods_printf(sockfd, 
+				client_printf(sockfd, 
 					"Next update for zone %s NOT scheduled "
 					"because policy %s is missing !\n",
 					enfzone.name().c_str(),
@@ -282,7 +278,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 				bRetractFromParent |= bRetractThisZone;
 				
 				if (t_next == -1) {
-					ods_printf(sockfd,
+					client_printf(sockfd,
 						"Next update for zone %s NOT scheduled "
 						"by enforcer !\n", enfzone.name().c_str());
 				}
@@ -292,7 +288,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 					// Invalid schedule time then skip the zone.
 					char tbuf[32] = "date/time invalid\n"; // at least 26 bytes
 					ctime_r(&t_next,tbuf); // note that ctime_r inserts a \n
-					ods_printf(sockfd,
+					client_printf(sockfd,
 							   "Next update for zone %s scheduled at %s",
 							   enfzone.name().c_str(),
 							   tbuf);
@@ -390,7 +386,7 @@ time_t perform_enforce_lock(int sockfd, engine_type *engine,
 	time_t returntime;
 	int locked;
 	if (lock_basic_trylock(&engine->enforce_lock)) {
-		ods_printf(sockfd, "An other enforce task is already running."
+		client_printf(sockfd, "An other enforce task is already running."
 			" No action taken.\n");
 		return 0;
 	}

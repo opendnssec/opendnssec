@@ -35,6 +35,7 @@
 #include "enforcer/enforce_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/keystate_ds_seen_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "keystate_ds_seen_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key ds-seen            Issue a ds-seen to the enforcer for a KSK.\n"
 		"                       (This command with no parameters lists eligible keys.)\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
@@ -68,6 +69,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	ods_log_debug("[%s] %s command", module_str, key_ds_seen_funcblock()->cmdname);
 	cmd = ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname);
 
+	/* consume command */
+	cmd = ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname);
+
 	// Use buf as an intermediate buffer for the command.
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
@@ -77,7 +81,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str, key_ds_seen_funcblock()->cmdname);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 
@@ -92,7 +96,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str, key_ds_seen_funcblock()->cmdname);
-		ods_printf(sockfd,"unknown arguments\n");
+		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 
@@ -100,7 +104,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str, key_ds_seen_funcblock()->cmdname);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 
@@ -111,14 +115,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		if (!zone) {
 			ods_log_warning("[%s] expected option --zone <zone> for %s command",
 							module_str, key_ds_seen_funcblock()->cmdname);
-			ods_printf(sockfd,"expected --zone <zone> option\n");
+			client_printf(sockfd,"expected --zone <zone> option\n");
 			return -1;
 		}
 		if (!cka_id && !keytag) {
 			ods_log_warning("[%s] expected option --cka_id <cka_id> or "
 							"--keytag <keytag> for %s command",
 							module_str, key_ds_seen_funcblock()->cmdname);
-			ods_printf(sockfd,"expected --cka_id <cka_id> or "
+			client_printf(sockfd,"expected --cka_id <cka_id> or "
 						   "--keytag <keytag> option\n");
 			return -1;
 		} else {
@@ -126,7 +130,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 				ods_log_warning("[%s] both --cka_id <cka_id> and --keytag <keytag> given, "
 								"please only specify one for %s command",
 								module_str, key_ds_seen_funcblock()->cmdname);
-				ods_printf(sockfd,
+				client_printf(sockfd,
 							   "both --cka_id <cka_id> and --keytag <keytag> given, "
 							   "please only specify one\n");
 				return -1;
@@ -137,7 +141,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			if (kt<=0 || kt>=65536) {
 				ods_log_warning("[%s] value \"%s\" for --keytag is invalid",
 								module_str,keytag);
-				ods_printf(sockfd,
+				client_printf(sockfd,
 							   "value \"%s\" for --keytag is invalid\n",
 							   keytag);
 				return 1;
