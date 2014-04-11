@@ -34,6 +34,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "policy/policy_purge_task.h"
+#include "daemon/clientpipe.h"
 
 #include "policy/policy_purge_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "policy_purge_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"policy purge           Delete any policies with no zones and update kasp.xml. \n");
 }
 

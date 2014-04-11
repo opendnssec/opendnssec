@@ -36,6 +36,7 @@
 
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
+#include "daemon/clientpipe.h"
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
@@ -90,14 +91,14 @@ perform_rollover_list(int sockfd, engineconfig_type *config, const char *listed_
 	OrmTransaction transaction(conn);
 	if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
 		ods_log_error("[%s] error enumerating zones", module_str);
-		ods_printf(sockfd, "error enumerating zones\n");
+		client_printf(sockfd, "error enumerating zones\n");
 		return 1;
 	}
 	
     if (NULL == listed_zone || 0 == strlen(listed_zone)) {
         if (!OrmMessageEnum(conn, zone.descriptor(), rows)) {
             ods_log_error("[%s] error enumerating zones", module_str);
-            ods_printf(sockfd, "error enumerating zones\n");
+            client_printf(sockfd, "error enumerating zones\n");
             return 1;
         }
     }
@@ -116,31 +117,31 @@ perform_rollover_list(int sockfd, engineconfig_type *config, const char *listed_
                     qzone.c_str())) {
             ods_log_error("[%s] unable to find zone:%s", 
                     module_str, qzone.c_str());
-            ods_printf(sockfd, "unable to find zone:%s\n", qzone.c_str());
+            client_printf(sockfd, "unable to find zone:%s\n", qzone.c_str());
             return 1;
         }
 
         if (!OrmFirst(rows)) {
             ods_log_error("[%s] zone:%s not found", 
                     module_str, qzone.c_str());
-            ods_printf(sockfd, "zone:%s not found\n", qzone.c_str());
+            client_printf(sockfd, "zone:%s not found\n", qzone.c_str());
             return 1;
         }
     }	
 	
 	
-	ods_printf(sockfd, "Keys:\n");
-	ods_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
+	client_printf(sockfd, "Keys:\n");
+	client_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
 	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
 		if (!OrmGetMessage(rows, zone, true)) {
 			ods_log_error("[%s] error reading zone", module_str);
-			ods_printf(sockfd, "error reading zone\n");
+			client_printf(sockfd, "error reading zone\n");
 			return 1;
 		}
 		for (int k=0; k<zone.keys_size(); ++k) {
 			const KeyData &key = zone.keys(k);
 			char* tchange = map_keytime(zone, key);
-			ods_printf(sockfd, fmt, zone.name().c_str(),
+			client_printf(sockfd, fmt, zone.name().c_str(),
 				keyrole_Name(key.role()).c_str(), tchange);
 			free(tchange);
 		}

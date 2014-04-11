@@ -40,6 +40,7 @@
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
+#include "daemon/clientpipe.h"
 
 #include <fcntl.h>
 #include <memory>
@@ -73,14 +74,14 @@ perform_policy_list(int sockfd, engineconfig_type *config)
 			
 			if (!OrmFirst(rows)) {
 				ods_log_debug("[%s] policy list completed", module_str);
-				ods_printf(sockfd,
+				client_printf(sockfd,
 						   "Database set to: %s\n"
 						   "There are no policies configured\n"
 						   ,config->datastore);
 				return 0;
 			}
 			
-			ods_printf(sockfd,
+			client_printf(sockfd,
 						   "Database set to: %s\n"
 						   "Policies:\n"
 						   "Policy:                         "
@@ -97,7 +98,7 @@ perform_policy_list(int sockfd, engineconfig_type *config)
 					return 1;
 				}
 					
-				ods_printf(sockfd,"%-31s %-48s\n",policy.name().c_str(),
+				client_printf(sockfd,"%-31s %-48s\n",policy.name().c_str(),
 						   policy.description().c_str());
 			}
         }

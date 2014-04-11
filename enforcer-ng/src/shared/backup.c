@@ -75,7 +75,7 @@ backup_read_check_str(FILE* in, const char* str)
         ods_log_debug("[%s] cannot read check string \'%s\'", backup_str, str);
         return 0;
     }
-    if (ods_strcmp(p, str) != 0) {
+    if (strcmp(p, str) != 0) {
         ods_log_debug("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
         return 0;
     }

@@ -19,6 +19,9 @@ case "$DISTRIBUTION" in
 	opensuse )
 		append_ldflags "-lncurses -lpthread"
 		;;
+	debian )
+		append_ldflags "-lpthread"
+		;;
 	sunos )	
 		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
 			append_cflags "-std=gnu99"

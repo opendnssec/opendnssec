@@ -443,9 +443,20 @@ write_pb_message_to_xml_file(const google::protobuf::Message *document,
 }
 
 bool
+write_pb_message_to_xml_file(const google::protobuf::Message *document, 
+    FILE *fw, int lvl)
+{
+    if (!fw) return false;
+    fprintf(fw, "<?xml version=\"1.0\"?>\n");
+    write_msg(fw, document, lvl);
+    return true;
+}
+
+bool
 write_pb_message_to_xml_fd(const google::protobuf::Message *document, 
     int fd, int lvl)
 {
+    int success;
     if (fd<0) {
         ods_log_error("[%s] write_pb_message_to_xml_fd: invalid fd: %d",
                       module_str,fd);
@@ -459,10 +470,9 @@ write_pb_message_to_xml_fd(const google::protobuf::Message *document,
     }
     FILE *fw = fdopen(dfd,"w");
     if (!fw) return false;
-    fprintf(fw, "<?xml version=\"1.0\"?>\n");
-    write_msg(fw, document, lvl);
+    success = write_pb_message_to_xml_file(document, fw, lvl);
     ods_fclose(fw);
-    return true;
+    return success;
 }
 
 bool

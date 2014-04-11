@@ -36,6 +36,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "keystate/update_keyzones_task.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/update_keyzones_cmd.h"
 
@@ -44,7 +45,7 @@ static const char *module_str = "update_keyzones_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"update zonelist        Import zones from zonelist.xml into enforcer.\n"
 	);
 }

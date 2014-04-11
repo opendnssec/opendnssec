@@ -268,7 +268,7 @@ keylist_lookup(keylist_type* list, const char* locator)
     search = list->first_key;
     for (i=0; i < list->count; i++) {
         if (search && search->locator) {
-            if (ods_strcmp(search->locator, locator) == 0) {
+            if (strcmp(search->locator, locator) == 0) {
                 return search;
             }
             search = search->next;
