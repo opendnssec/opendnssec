@@ -336,7 +336,7 @@ bool HsmKeyFactoryPB::GetHsmKeyByLocator(const std::string loc, HsmKey **ppKey)
 		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
 			
 			if (!pbkey)
-				pbkey = new ::ods::hsmkey::HsmKey;
+				pbkey = new ::ods::hsmkey::HsmKey; /* LEAK */
 			
 			if (OrmGetMessage(rows, *pbkey, true)) {
 				if (pbkey->locator() == loc) {

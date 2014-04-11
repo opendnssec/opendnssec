@@ -34,6 +34,7 @@
 #include "hsmkey/backup_hsmkeys_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "hsmkey/backup_hsmkeys_cmd.h"
 
@@ -43,18 +44,18 @@ static const char *module_str = "backup_hsmkeys_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"backup list            Enumerate backup status of keys.\n"
 		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"backup prepare         Flag the keys found in all configured HSMs as to be \n"
 		"                       backed up.\n"
 		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"backup commit          Mark flagged keys found in all configured HSMs as\n"
 		"                       backed up.\n"
 		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"backup rollback        Cancel a 'backup prepare' action.\n"
 		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
 }
@@ -90,7 +91,7 @@ handled_backup_cmd(int sockfd, engine_type* engine,
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str,scmd);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 	(void)ods_find_arg_and_param(&argc,argv,"repository","r",&repository);

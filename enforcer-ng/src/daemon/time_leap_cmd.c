@@ -33,6 +33,7 @@
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
+#include "daemon/clientpipe.h"
 
 #include "daemon/time_leap_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "time_leap_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"time leap              Simulate progression of time by leaping to the time of\n"
 		"                       the earliest scheduled task.\n"
 		"    --time <time>      -t for short, leap to this exact time.\n"
@@ -53,7 +54,7 @@ usage(int sockfd)
 static void
 help(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"*WARNING* time leap is a debugging/testing tool, it should "
 		"NEVER be used in production! Without arguments the daemon "
 		"inspects the first task in the schedule and sets its internal "
@@ -100,10 +101,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (time) {
 		if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
 			time_leap = mktime_from_utc(&tm);
-			ods_printf(sockfd,
+			client_printf(sockfd,
 				"Using %s parameter value as time to leap to\n", time);
 		} else {
-			ods_printf(sockfd, 
+			client_printf(sockfd, 
 				"Time leap: Error - could not convert '%s' to a time. "
 				"Format is YYYY-MM-DD-HH:MM:SS \n", time);
 			return -1;
@@ -112,7 +113,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 
 	ods_log_assert(engine);
 	if (!engine->taskq || !engine->taskq->tasks) {
-		ods_printf(sockfd, "There are no tasks scheduled.\n");
+		client_printf(sockfd, "There are no tasks scheduled.\n");
 		return 1;
 	}
 
@@ -122,7 +123,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	/* how many tasks */
 	now = time_now();
 	strtime = ctime_r(&now,ctimebuf);
-	ods_printf(sockfd, 
+	client_printf(sockfd, 
 		"There are %i tasks scheduled.\nIt is now       %s",
 		(int) engine->taskq->tasks->count,
 		strtime?strtime:"(null)\n");
@@ -142,18 +143,18 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			if (strtime)
 				strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
 
-			ods_printf(sockfd,  "Leaping to time %s\n", 
+			client_printf(sockfd,  "Leaping to time %s\n", 
 				strtime?strtime:"(null)");
 			ods_log_info("Time leap: Leaping to time %s\n",
 				 strtime?strtime:"(null)");
 
 			bShouldLeap = 1;
 		} else {
-			ods_printf(sockfd, 
+			client_printf(sockfd, 
 				"Already flushing tasks, unable to time leap\n");
 		}
 	} else {
-		ods_printf(sockfd, "Task queue is empty, unable to time leap\n");
+		client_printf(sockfd, "Task queue is empty, unable to time leap\n");
 	}
 
 	/* [UNLOCK] schedule */
@@ -162,7 +163,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (bShouldLeap) {
 		/* Wake up all workers and let them reevaluate wether their
 		 tasks need to be executed */
-		ods_printf(sockfd, "Waking up workers\n");
+		client_printf(sockfd, "Waking up workers\n");
 		engine_wakeup_workers(engine);
 	}
 	return !bShouldLeap;

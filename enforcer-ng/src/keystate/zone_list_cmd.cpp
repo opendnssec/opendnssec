@@ -34,6 +34,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "keystate/zone_list_task.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/zone_list_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "zone_list_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"zone list              List zones.\n");
 }
 
