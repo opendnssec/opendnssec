@@ -250,6 +250,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 				time_t t_next = update(enfZone, t_now, keyfactory);
 				if (enfZone.signerConfNeedsWriting())
 					bSignerConfNeedsWriting = true;
+
 				bool bSubmitThisZone = false;
 				bool bRetractThisZone = false;
 				KeyDataList &kdl = enfZone.keyDataList();

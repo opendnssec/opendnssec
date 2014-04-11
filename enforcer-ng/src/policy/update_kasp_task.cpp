@@ -164,6 +164,7 @@ perform_update_kasp(int sockfd, engineconfig_type *config)
 	}
 	
 	ods_log_info("[%s] kasp loaded from %s", module_str, config->policy_filename);
-	client_printf(sockfd,"kasp update complete %s\n", config->policy_filename);
+	client_printf(sockfd,"kasp loaded from %s\n", config->policy_filename);	
+
 	return true;
 }

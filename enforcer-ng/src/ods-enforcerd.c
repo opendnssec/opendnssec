@@ -257,7 +257,7 @@ main(int argc, char* argv[])
     }
     engine_config_cleanup(engine->config);
     ods_log_info("[engine] enforcer shutdown"); /* needed for test */
-    ods_log_info("[%s] enforcerd (pid: %lu) stopped with exitcode %d", 
+    ods_log_info("[%s] enforcerd (pid: %lu) stopped with exitcode %d",
         enforcerd_str, (unsigned long) engine->pid, returncode);
     engine_dealloc(engine); /* antagonist of engine_alloc() */
     if (returncode && daemonize) {

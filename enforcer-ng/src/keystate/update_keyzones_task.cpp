@@ -282,7 +282,7 @@ perform_update_keyzones(int sockfd, engineconfig_type *config)
 		client_printf(sockfd, "Zone %s not found in zonelist.xml\n", iterator->c_str());			
 		// TODO: Clean this up. This method is re-used from the single zone delete
 		// so we need to specify not to log output and not to update the zones.files each time			
-		perform_zone_del(sockfd, config, iterator->c_str(), 0, true, false);
+		(void)perform_zone_del(sockfd, config, iterator->c_str(), 0, true, false);
 		client_printf(sockfd, "Deleted zone %s from database\n", iterator->c_str());		
 	}
 
