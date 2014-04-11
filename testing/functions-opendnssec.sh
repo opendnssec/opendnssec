@@ -303,7 +303,7 @@ ods_setup_env ()
 
 	ods_start_enforcer &&
 	echo "ods_setup_env: setting up opendnssec environment" &&
-	echo 'y' | ods-enforcer setup &&
+	echo 'y' | log_this ods-enforcer-setup 'ods-enforcer setup' &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer
