@@ -36,7 +36,7 @@
 #include <google/protobuf/message.h>
 
 #include "hsmkey/hsmkey.pb.h"
-
+#include "daemon/clientpipe.h"
 #include "xmlext-pb/xmlext-rd.h"
 
 #include <map>
@@ -62,7 +62,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
         return 1;
     }
 
-    ods_printf(sockfd,
+    client_printf(sockfd,
 				"HSM keys:\n"
 				"        "
 				"Algorithm: "
@@ -138,7 +138,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 						
 					} else {
 
-						ods_printf(sockfd,
+						client_printf(sockfd,
 									"%-7s %-10s %-7ld %-40s\n",
 									"update",
 									kinf->algorithm_name,
@@ -189,7 +189,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 			} else {
 				
 				// Key was inserted successfully
-				ods_printf(sockfd,
+				client_printf(sockfd,
 							"%-7s %-10s %-7ld %-40s\n",
 							"import",
 							kinf->algorithm_name,
@@ -219,7 +219,7 @@ perform_update_hsmkeys(int sockfd, engineconfig_type *config, int bManual)
 	// Go through all the keys in HSMs and import them if they are 
 	// not already present
 	if (bManual) {
-		ods_printf(sockfd, "Database set to: %s\n", config->datastore);
+		client_printf(sockfd, "Database set to: %s\n", config->datastore);
 		// DEPRECATED, key state import should selectively import keys.
 		return import_all_keys_from_all_hsms(sockfd,conn);
 	}

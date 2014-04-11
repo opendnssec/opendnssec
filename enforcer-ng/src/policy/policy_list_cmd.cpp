@@ -34,6 +34,7 @@
 #include "shared/str.h"
 #include "daemon/engine.h"
 #include "policy/policy_list_task.h"
+#include "daemon/clientpipe.h"
 
 #include "policy/policy_list_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "policy_list_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"policy list            List policies.\n");
 }
 

@@ -36,7 +36,7 @@
 #include <google/protobuf/message.h>
 
 #include "keystate/keystate.pb.h"
-
+#include "daemon/clientpipe.h"
 #include "xmlext-pb/xmlext-rd.h"
 
 #include "protobuf-orm/pb-orm.h"
@@ -64,14 +64,14 @@ perform_zone_list(int sockfd, engineconfig_type *config)
 			"failure during zone enumeration");
 		return 1;
 	}
-	ods_printf(sockfd, /*"Zonelist filename set to: %s\n"*/
+	client_printf(sockfd, /*"Zonelist filename set to: %s\n"*/
 		"Database set to: %s\n", /*zonelistfile,*/ config->datastore);
 	if (!OrmFirst(rows)) {
-		ods_printf(sockfd, "No zones configured in DB.\n");
+		client_printf(sockfd, "No zones configured in DB.\n");
 		return 0;
 	}
-	ods_printf(sockfd, "Zones:\n");
-	ods_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:", 
+	client_printf(sockfd, "Zones:\n");
+	client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:", 
 		"Signer Configuration:");
 	for (bool next=true; next; next=OrmNext(rows)) {
 		if (!OrmGetMessage(rows, zone, false)) return 1;
@@ -84,7 +84,7 @@ perform_zone_list(int sockfd, engineconfig_type *config)
 			strncpy(nctime, "as soon as possible", sizeof nctime);
 			nctime[sizeof(nctime)-1] = '\0';
 		}
-		ods_printf(sockfd, fmt, zone.name().c_str(), zone.policy().c_str(),
+		client_printf(sockfd, fmt, zone.name().c_str(), zone.policy().c_str(),
 			nctime, zone.signconf_path().c_str());
 	}
 	ods_log_debug("[%s] zone list completed", module_str);

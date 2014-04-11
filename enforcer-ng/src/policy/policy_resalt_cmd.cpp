@@ -35,6 +35,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
+#include "daemon/clientpipe.h"
 
 #include "policy/policy_resalt_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "policy_resalt_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"policy resalt          Generate new NSEC3 salts for policies that have salts\n"
 		"                       older than the resalt duration.\n"
 	);

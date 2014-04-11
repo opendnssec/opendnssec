@@ -33,7 +33,7 @@
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
-void
+int
 perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
                            const char *zone, const char *id, int bauto,
                            bool force);

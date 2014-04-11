@@ -303,13 +303,7 @@ ods_setup_env ()
 
 	ods_start_enforcer &&
 	echo "ods_setup_env: setting up opendnssec environment" &&
-	echo 'y' | log_this ods-enforcer-setup 'ods-enforcer setup' &&
-	log_waitfor ods-enforcer-setup stdout 30 'setup completed in' &&
-	! log_grep ods-enforcer-setup stdout 'failed' &&
-	! log_grep ods-enforcer-setup stdout 'error starting a database transaction' &&
-	! log_grep ods-enforcer-setup stdout 'could not' &&
-	! log_grep ods-enforcer-setup stdout 'missing required fields' &&
-	! log_grep ods-enforcer-setup stdout 'out of memory' &&
+	echo 'y' | log_this ods-enforcer-setup ods-enforcer setup &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer

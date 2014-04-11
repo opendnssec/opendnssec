@@ -34,6 +34,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "policy/policy_export_task.h"
+#include "daemon/clientpipe.h"
 
 #include "policy/policy_export_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "policy_export_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"policy export          Export policies in the kasp.xml format.\n"
 		"      --policy <policy_name> | --all  (aka -p | -a)  policy to export, or \n"
 		"                                                     export all polices.\n");
@@ -73,7 +74,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 			module_str, policy_export_funcblock()->cmdname);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 
@@ -84,14 +85,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (!policy && export_all == 0) {
 		ods_log_warning("[%s] expected option --policy <zone> | --all  for %s command",
 			module_str, policy_export_funcblock()->cmdname);
-		ods_printf(sockfd,"expected --policy <policy> | --all  option\n");
+		client_printf(sockfd,"expected --policy <policy> | --all  option\n");
 		return -1;
 	}
 
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 			module_str, policy_export_funcblock()->cmdname);
-		ods_printf(sockfd,"unknown arguments\n");
+		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 

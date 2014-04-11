@@ -34,42 +34,29 @@
 
 #include <stdlib.h>
 
-ods_lookup_table ods_status_str[] = {
-    { ODS_STATUS_OK, "All OK" },
-    { ODS_STATUS_ASSERT_ERR, "Assertion error"},
-    { ODS_STATUS_CFG_ERR, "Configuration error"},
-    { ODS_STATUS_CHDIR_ERR, "Change directory failed"},
-    { ODS_STATUS_CHROOT_ERR, "Change root failed"},
-    { ODS_STATUS_CMDHANDLER_ERR, "Command handler error"},
-    { ODS_STATUS_CONFLICT_ERR, "Conflict detected"},
-    { ODS_STATUS_ERR, "General error"},
-    { ODS_STATUS_FOPEN_ERR, "Unable to open file"},
-    { ODS_STATUS_FORK_ERR, "fork() failed"},
-    { ODS_STATUS_HSM_ERR, "HSM error"},
-    { ODS_STATUS_INSECURE, "Insecure"},
-    { ODS_STATUS_MALLOC_ERR, "Memory allocation error"},
-    { ODS_STATUS_PARSE_ERR, "Parse error"},
-    { ODS_STATUS_PRIVDROP_ERR, "Unable to drop privileges"},
-    { ODS_STATUS_RNG_ERR, "RelaxNG error"},
-    { ODS_STATUS_SETSID_ERR, "setsid() failed"},
-    { ODS_STATUS_UNCHANGED, "Status unchanged"},
-    { ODS_STATUS_WRITE_PIDFILE_ERR, "Unable to write process id to pidfile"},
-    { ODS_STATUS_XML_ERR, "XML error"},
-    { 0, NULL }
+static const char* ods_status_str[] = {
+  /* ODS_STATUS_OK                */ "All OK",
+  /* ODS_STATUS_ASSERT_ERR        */ "Assertion error",
+  /* ODS_STATUS_CFG_ERR           */ "Configuration error",
+  /* ODS_STATUS_CHDIR_ERR         */ "Change directory failed",
+  /* ODS_STATUS_CHROOT_ERR        */ "Change root failed",
+  /* ODS_STATUS_CMDHANDLER_ERR    */ "Command handler error",
+  /* ODS_STATUS_CONFLICT_ERR      */ "Conflict detected",
+  /* ODS_STATUS_ERR               */ "General error",
+  /* ODS_STATUS_FOPEN_ERR         */ "Unable to open file",
+  /* ODS_STATUS_FORK_ERR          */ "fork() failed",
+  /* ODS_STATUS_HSM_ERR           */ "HSM error",
+  /* ODS_STATUS_INSECURE          */ "Insecure",
+  /* ODS_STATUS_MALLOC_ERR        */ "Memory allocation error",
+  /* ODS_STATUS_PARSE_ERR         */ "Parse error",
+  /* ODS_STATUS_PRIVDROP_ERR      */ "Unable to drop privileges",
+  /* ODS_STATUS_RNG_ERR           */ "RelaxNG error",
+  /* ODS_STATUS_SETSID_ERR        */ "setsid() failed",
+  /* ODS_STATUS_UNCHANGED         */ "Status unchanged",
+  /* ODS_STATUS_WRITE_PIDFILE_ERR */ "Unable to write process id to pidfile",
+  /* ODS_STATUS_XML_ERR           */ "XML error"
+  /* ODS_STATUS_MAX               */ "(Error code unknown)"
 };
-
-ods_lookup_table*
-ods_lookup_by_id(ods_lookup_table *table, int id)
-{
-    while (table->name != NULL) {
-        if (table->id == id) {
-            return table;
-        }
-        table++;
-    }
-    return NULL;
-}
-
 
 /**
  * Look up a descriptive text by each status.
@@ -78,11 +65,8 @@ ods_lookup_by_id(ods_lookup_table *table, int id)
 const char *
 ods_status2str(ods_status status)
 {
-    ods_lookup_table *lt;
-    lt = ods_lookup_by_id(ods_status_str, status);
-    if (lt) {
-        return lt->name;
-    }
-    return NULL;
+    if (status < 0 || status >= ODS_STATUS_MAX)
+        return ods_status_str[ODS_STATUS_MAX];
+    return ods_status_str[status];
 }
 

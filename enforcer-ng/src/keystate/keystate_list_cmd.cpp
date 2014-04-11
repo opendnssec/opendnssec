@@ -34,6 +34,7 @@
 #include "keystate/keystate_list_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/keystate_list_cmd.h"
 
@@ -43,7 +44,7 @@ static const char *module_str = "keystate_list_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key list               List the keys in the enforcer database.\n"
 		"      [--verbose]                (aka -v)  also show additional key parameters.\n"
 		"      [--debug]                  (aka -d)  print information about the keystate.\n"
@@ -76,7 +77,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
                         module_str,key_list_funcblock()->cmdname);
-        ods_printf(sockfd,"too many arguments\n");
+        client_printf(sockfd,"too many arguments\n");
         return -1;
     }
     
@@ -85,7 +86,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,key_list_funcblock()->cmdname);
-        ods_printf(sockfd,"unknown arguments\n");
+        client_printf(sockfd,"unknown arguments\n");
         return -1;
     }
     return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug);

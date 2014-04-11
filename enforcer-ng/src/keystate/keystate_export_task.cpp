@@ -39,6 +39,7 @@
 #include "keystate/keystate.pb.h"
 #include "policy/kasp.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
+#include "daemon/clientpipe.h"
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
@@ -135,14 +136,14 @@ print_ds_from_id(int sockfd, const char *id, const char *zone,
 	/* DS record (SHA1) */
 	ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
 	rrstr = ldns_rr2str(ds_sha_rr);
-	ods_printf(sockfd, ";KSK DS record (SHA1):\n%s", rrstr);
+	client_printf(sockfd, ";KSK DS record (SHA1):\n%s", rrstr);
 	LDNS_FREE(rrstr);
 	ldns_rr_free(ds_sha_rr);
 	
 	/* DS record (SHA256) */
 	ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
 	rrstr = ldns_rr2str(ds_sha_rr);
-	ods_printf(sockfd, ";KSK DS record (SHA256):\n%s", rrstr);
+	client_printf(sockfd, ";KSK DS record (SHA256):\n%s", rrstr);
 	LDNS_FREE(rrstr);
 	ldns_rr_free(ds_sha_rr);
 
@@ -201,7 +202,7 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 		LOG_AND_RETURN("zone enumeration failed");
 	
 	if (!OrmFirst(rows)) {
-		ods_printf(sockfd,"zone %s not found\n",zone);
+		client_printf(sockfd,"zone %s not found\n",zone);
 		return 1;
 	}
 	
@@ -238,7 +239,7 @@ perform_keystate_export(int sockfd, engineconfig_type *config, const char *zone,
 					key.locator().c_str(), key.algorithm());
 				
 			} else {
-				ods_writen(sockfd, dnskey.c_str(), dnskey.size());
+				client_printf(sockfd, "%s", dnskey.c_str());
 			}
 		} else {
 			if (!print_ds_from_id(sockfd, key.locator().c_str(), 
