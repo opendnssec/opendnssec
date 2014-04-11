@@ -45,8 +45,15 @@
 #define COUCHDB_REQUEST_POST 3
 #define COUCHDB_REQUEST_DELETE 4
 
+/**
+ * Keep track of if we have initialized things needed for this backend such as
+ * CURL.
+ */
 static int __couchdb_initialized = 0;
 
+/**
+ * The CouchDB database backend specific data.
+ */
 typedef struct db_backend_couchdb {
     char* url;
     CURL* curl;
@@ -59,6 +66,7 @@ typedef struct db_backend_couchdb {
 
 static mm_alloc_t __couchdb_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_couchdb_t));
 
+/*
 typedef struct db_backend_couchdb_query {
     db_backend_couchdb_t* backend_couchdb;
     int fields;
@@ -66,12 +74,8 @@ typedef struct db_backend_couchdb_query {
 } db_backend_couchdb_query_t;
 
 static mm_alloc_t __couchdb_query_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_couchdb_query_t));
+*/
 
-/**
- * TODO
- * \param[in] data TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_initialize(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
@@ -88,11 +92,6 @@ int db_backend_couchdb_initialize(void* data) {
     return DB_OK;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_shutdown(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
@@ -108,12 +107,12 @@ int db_backend_couchdb_shutdown(void* data) {
 }
 
 /**
- * TODO
- * \param[in] ptr TODO 
- * \param[in] size TODO 
- * \param[in] nmemb TODO 
- * \param[in] userdata TODO 
- * \return `size_t` TODO
+ * Callback function for CURL to get the response from a HTTP request.
+ * \param[in] ptr a void pointer.
+ * \param[in] size a size_t.
+ * \param[in] nmemb a size_t.
+ * \param[in] userdata a void pointer.
+ * \return a size_t.
  */
 size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb, void* userdata) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)userdata;
@@ -129,12 +128,12 @@ size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb,
 }
 
 /**
- * TODO
- * \param[in] ptr TODO 
- * \param[in] size TODO 
- * \param[in] nmemb TODO 
- * \param[in] userdata TODO 
- * \return `size_t` TODO
+ * Callback function for CURL to write the HTTP request data.
+ * \param[in] ptr a void pointer.
+ * \param[in] size a size_t.
+ * \param[in] nmemb a size_t.
+ * \param[in] userdata a void pointer.
+ * \return a size_t.
  */
 size_t __db_backend_couchdb_read_request(void* ptr, size_t size, size_t nmemb, void* userdata) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)userdata;
@@ -155,12 +154,13 @@ size_t __db_backend_couchdb_read_request(void* ptr, size_t size, size_t nmemb, v
 }
 
 /**
- * TODO
- * \param[in] backend_couchdb TODO 
- * \param[in] request_url TODO 
- * \param[in] request_type TODO 
- * \param[in] root TODO 
- * \return `long` TODO
+ * Make a request to CouchDB. The URL is specified by `request_url`, the request
+ * type by `request_type` and the JSON data by `root`.
+ * \param[in] backend_couchdb a db_backend_couchdb_t pointer.
+ * \param[in] request_url a character pointer.
+ * \param[in] request_type a integer.
+ * \param[in] root a json_t pointer.
+ * \return a long with the HTTP response code or zero on error.
  */
 long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const char* request_url, int request_type, json_t* root) {
     CURLcode status;
@@ -171,30 +171,30 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     struct curl_slist* headers = NULL;
 
     if (!backend_couchdb) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
     if (!backend_couchdb->url) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
     if (!backend_couchdb->buffer) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
     if (!request_url) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     if (backend_couchdb->curl) {
         curl_easy_cleanup(backend_couchdb->curl);
     }
     if (!(backend_couchdb->curl = curl_easy_init())) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     left = sizeof(url);
     urlp = url;
 
     if ((ret = snprintf(urlp, left, "%s", backend_couchdb->url)) >= left) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
     urlp += ret;
     left -= ret;
@@ -202,7 +202,7 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     if (*(urlp - 1) != '/') {
         if (*request_url != '/') {
             if ((ret = snprintf(urlp, left, "/")) >= left) {
-                return DB_ERROR_UNKNOWN;
+                return 0;
             }
             urlp += ret;
             left -= ret;
@@ -210,7 +210,7 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     }
 
     if ((ret = snprintf(urlp, left, "%s", request_url)) >= left) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
     urlp += ret;
     left -= ret;
@@ -220,7 +220,7 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
         || (status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_WRITEDATA, backend_couchdb)))
     {
         puts(curl_easy_strerror(status));
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
     backend_couchdb->buffer_position = 0;
 
@@ -230,15 +230,15 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
 
     case COUCHDB_REQUEST_PUT:
         if (!root) {
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
 
         if (backend_couchdb->write) {
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
         backend_couchdb->write = json_dumps(root, JSON_ENSURE_ASCII);
         if (!backend_couchdb->write) {
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
         backend_couchdb->write_length = strlen(backend_couchdb->write);
         backend_couchdb->write_position = 0;
@@ -255,21 +255,21 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
             free(backend_couchdb->write);
             backend_couchdb->write = NULL;
             puts(curl_easy_strerror(status));
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
         break;
 
     case COUCHDB_REQUEST_POST:
         if (!root) {
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
 
         if (backend_couchdb->write) {
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
         backend_couchdb->write = json_dumps(root, JSON_ENSURE_ASCII);
         if (!backend_couchdb->write) {
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
         backend_couchdb->write_length = strlen(backend_couchdb->write);
         backend_couchdb->write_position = 0;
@@ -287,19 +287,19 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
             free(backend_couchdb->write);
             backend_couchdb->write = NULL;
             puts(curl_easy_strerror(status));
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
         break;
 
     case COUCHDB_REQUEST_DELETE:
         if ((status = curl_easy_setopt(backend_couchdb->curl, CURLOPT_CUSTOMREQUEST, "DELETE"))) {
             puts(curl_easy_strerror(status));
-            return DB_ERROR_UNKNOWN;
+            return 0;
         }
         break;
 
     default:
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     /*
@@ -310,7 +310,7 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
 
     if ((status = curl_easy_perform(backend_couchdb->curl))) {
         puts(curl_easy_strerror(status));
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     backend_couchdb->buffer[backend_couchdb->buffer_position] = 0;
@@ -332,12 +332,6 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     return code;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \param[in] configuration_list TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_connect(void* data, const db_configuration_list_t* configuration_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     const db_configuration_t* url;
@@ -374,11 +368,6 @@ int db_backend_couchdb_connect(void* data, const db_configuration_list_t* config
     return DB_OK;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_disconnect(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
@@ -397,14 +386,6 @@ int db_backend_couchdb_disconnect(void* data) {
     return DB_OK;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     json_t* root;
@@ -558,10 +539,10 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
 }
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] json_object TODO 
- * \return `db_result_t*` TODO
+ * Covert a JSON object to a database result.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] json_object a json_t pointer.
+ * \return a db_result_t pointer or NULL on error.
  */
 db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* object, json_t* json_object) {
     size_t size, i;
@@ -724,12 +705,14 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
 }
 
 /**
- * TODO
- * \param[in] backend_couchdb TODO 
- * \param[in] object TODO 
- * \param[in] result_list TODO 
- * \param[in] view TODO 
- * \return `int` TODO
+ * Store the response from a CouchDB request into a database result list
+ * specified by `result_list`. If the response comes from a CouchDB view then
+ * `view` must be non-zero.
+ * \param[in] backend_couchdb a db_backend_couchdb_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] result_list a db_result_list_t pointer.
+ * \param[in] view a integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, const db_object_t* object, db_result_list_t* result_list, int view) {
     json_t *root;
@@ -819,12 +802,14 @@ int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, con
 }
 
 /**
- * TODO
- * \param[in] object TODO 
- * \param[in] clause_list TODO 
- * \param[in] stringp TODO 
- * \param[in] left TODO 
- * \return `int` TODO
+ * Build parts of a map function from the database clause list specified by
+ * `clause_list`, append the result to `stringp`. How much that is left in the
+ * buffer pointed by `stringp` is specified by `left`.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \param[in] stringp a character pointer pointer.
+ * \param[in] left a integer pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_clause_list_t* clause_list, char** stringp, int* left) {
     const db_clause_t* clause;
@@ -1040,14 +1025,6 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
     return DB_OK;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \param[in] object TODO 
- * \param[in] join_list TODO 
- * \param[in] clause_list TODO 
- * \return `db_result_list_t*` TODO
- */
 db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     long code;
@@ -1332,15 +1309,6 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
     return result_list;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \param[in] clause_list TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     long code;
@@ -1592,13 +1560,6 @@ int db_backend_couchdb_update(void* data, const db_object_t* object, const db_ob
     return DB_OK;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \param[in] object TODO 
- * \param[in] clause_list TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     long code;
@@ -1721,11 +1682,6 @@ int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_cl
     return DB_OK;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \return `void` TODO
- */
 void db_backend_couchdb_free(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
@@ -1743,11 +1699,6 @@ void db_backend_couchdb_free(void* data) {
     }
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_transaction_begin(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
@@ -1761,11 +1712,6 @@ int db_backend_couchdb_transaction_begin(void* data) {
     return DB_OK;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_transaction_commit(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
@@ -1779,11 +1725,6 @@ int db_backend_couchdb_transaction_commit(void* data) {
     return DB_OK;
 }
 
-/**
- * TODO
- * \param[in] data TODO 
- * \return `int` TODO
- */
 int db_backend_couchdb_transaction_rollback(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
