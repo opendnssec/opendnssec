@@ -1,0 +1,294 @@
+$ORIGIN ods12.
+ods12. 600 IN SOA ns1.ods12. postmaster.ods12. 1000 1200 180 1209600 3600
+ods12. 600 IN MX 10 mail.ods12.
+ods12. 600 IN NS ns1.ods12.
+ods12. 600 IN NS ns2.ods12.
+ods12. 600 IN A 192.0.2.1
+mail.ods12. 600 IN A 192.0.2.1
+ns1.ods12. 600 IN A 192.0.2.1
+ns2.ods12. 600 IN A 192.0.2.1
+label1.ods12. IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label2.ods12. IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label3.ods12. IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+
+label4.ods12. IN NS ns1.label4.ods12.
+label4.ods12. IN NS ns2.label4.ods12.
+label4.ods12. IN NS ns3.label4.ods12.
+label4.ods12. IN NS ns4.label4.ods12.
+label4.ods12. IN NS ns5.label4.ods12.
+label4.ods12. IN NS ns6.label4.ods12.
+
+ns1.label4.ods12. IN A 192.0.2.1
+ns2.label4.ods12. IN A 192.0.2.1
+ns3.label4.ods12. IN A 192.0.2.1
+ns4.label4.ods12. IN A 192.0.2.1
+ns5.label4.ods12. IN A 192.0.2.1
+ns6.label4.ods12. IN A 192.0.2.1
+
+
+label5.ods12. IN NS ns1.label5.ods12.
+            IN NS ns2.label5.ods12.
+            IN NS ns3.label5.ods12.
+            IN NS ns4.label5.ods12.
+            IN NS ns5.label5.ods12.
+            IN NS ns6.label5.ods12.
+
+ns1.label5.ods12. IN A 192.0.2.1
+ns2.label5.ods12. IN A 192.0.2.1
+ns3.label5.ods12. IN A 192.0.2.1
+ns4.label5.ods12. IN A 192.0.2.1
+ns5.label5.ods12. IN A 192.0.2.1
+ns6.label5.ods12. IN A 192.0.2.1
+
+
+label6.ods12. IN NS ns1.label6.ods12.
+            IN NS ns2.label6.ods12.
+label6.ods12. IN NS ns3.label6.ods12.
+            IN NS ns4.label6.ods12.
+label6.ods12. IN NS ns5.label6.ods12.
+            IN NS ns6.label6.ods12.
+label6.ods12. IN DS 22922 7 1 f62411de95a5b7bcabe976c0e65034a35a9fa937
+
+ns1.label6.ods12. IN A 192.0.2.1
+ns2.label6.ods12. IN A 192.0.2.1
+ns3.label6.ods12. IN A 192.0.2.1
+ns4.label6.ods12. IN A 192.0.2.1
+ns5.label6.ods12. IN A 192.0.2.1
+ns6.label6.ods12. IN A 192.0.2.1
+ns6.label6.ods12. IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+
+
+label7.ods12. IN NS ns1.label7.ods12.
+            IN NS ns2.label7.ods12.
+            IN NS ns3.label7.ods12.
+            IN NS some.ns.at.ods12.
+            IN NS ns5.label7.ods12.
+            IN NS ns6.label7.ods12.
+
+;some.ns.at.label7.ods12. IN A 192.0.2.1
+
+
+$ORIGIN label8.ods12.
+
+label8.ods12. IN NS ns1.label8.ods12.
+            IN NS ns2.label8.ods12.
+            IN NS ns3.label8.ods12.
+            IN NS ns4.label8.ods12.
+            IN NS ns5.label8.ods12.
+            IN NS ns6.label8.ods12.
+
+ns1.label8.ods12. IN A 10.5.1.3
+ns2.label8.ods12. IN A 10.5.1.3
+ns3.label8.ods12. IN A 10.5.1.3
+ns4.label8.ods12. IN A 10.5.1.3
+ns5.label8.ods12. IN A 10.5.1.3
+ns6.label8.ods12. IN A 10.5.1.3
+
+
+$ORIGIN ods12.
+
+_register_._tcp IN SRV 0 0 43 whois.label8.ods12.
+_sip_._tcp.ods12. IN SRV 0 10 5060 sipserver1.ods12.
+_sip_._tcp.ods12. IN SRV 0 20 5060 sipserver2.ods12.
+
+
+label9.ods12.	IN	NS	ns1.label9.ods12.
+		IN	NS	ns2.label9.ods12.
+		IN	NS	ns3.label9.ods12.
+		IN	NS	ns4.label9.ods12.
+		IN	NS	ns5.label9.ods12.
+		IN	NS	ns6.label9.ods12.
+
+ns1.label9.ods12.	IN	A	10.5.1.9
+ns2.label9.ods12.	IN	A	10.5.1.9
+ns3.label9.ods12.	IN	A	10.5.1.9
+ns4.label9.ods12.	IN	A	10.5.1.9
+ns5.label9.ods12.	IN	A	10.5.1.9
+ns6.label9.ods12.	IN	A	10.5.1.9
+
+
+label9999	IN	CNAME	label9
+
+
+
+
+label10.ods12. 3600 IN NS ns1.label10.ods12.
+ns1.label10.ods12. 3600 IN A 192.0.2.1
+label10.ods12. 3600 IN NS ns2.label10.ods12.
+ns2.label10.ods12. 3600 IN A 192.0.2.1
+label10.ods12. 3600 IN NS ns3.label10.ods12.
+ns3.label10.ods12. 3600 IN A 192.0.2.1
+label10.ods12. 3600 IN NS ns4.label10.ods12.
+ns4.label10.ods12. 3600 IN A 192.0.2.1
+label10.ods12. 3600 IN NS ns5.label10.ods12.
+ns5.label10.ods12. 3600 IN A 192.0.2.1
+label10.ods12. 3600 IN NS ns6.label10.ods12.
+ns6.label10.ods12. 3600 IN A 192.0.2.1
+label11.ods12. 3600 IN NS ns1.label11.ods12.
+ns1.label11.ods12. 3600 IN A 192.0.2.1
+label11.ods12. 3600 IN NS ns2.label11.ods12.
+ns2.label11.ods12. 3600 IN A 192.0.2.1
+label11.ods12. 3600 IN NS ns3.label11.ods12.
+ns3.label11.ods12. 3600 IN A 192.0.2.1
+label11.ods12. 3600 IN NS ns4.label11.ods12.
+ns4.label11.ods12. 3600 IN A 192.0.2.1
+label11.ods12. 3600 IN NS ns5.label11.ods12.
+ns5.label11.ods12. 3600 IN A 192.0.2.1
+label11.ods12. 3600 IN NS ns6.label11.ods12.
+ns6.label11.ods12. 3600 IN A 192.0.2.1
+label12.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label13.ods12. 3600 IN NS ns1.label13.ods12.
+ns1.label13.ods12. 3600 IN A 192.0.2.1
+label13.ods12. 3600 IN NS ns2.label13.ods12.
+ns2.label13.ods12. 3600 IN A 192.0.2.1
+label13.ods12. 3600 IN NS ns3.label13.ods12.
+ns3.label13.ods12. 3600 IN A 192.0.2.1
+label13.ods12. 3600 IN NS ns4.label13.ods12.
+ns4.label13.ods12. 3600 IN A 192.0.2.1
+label13.ods12. 3600 IN NS ns5.label13.ods12.
+ns5.label13.ods12. 3600 IN A 192.0.2.1
+label13.ods12. 3600 IN NS ns6.label13.ods12.
+ns6.label13.ods12. 3600 IN A 192.0.2.1
+label14.ods12. 3600 IN NS ns1.label14.ods12.
+ns1.label14.ods12. 3600 IN A 192.0.2.1
+label14.ods12. 3600 IN NS ns2.label14.ods12.
+ns2.label14.ods12. 3600 IN A 192.0.2.1
+label14.ods12. 3600 IN NS ns3.label14.ods12.
+ns3.label14.ods12. 3600 IN A 192.0.2.1
+label14.ods12. 3600 IN NS ns4.label14.ods12.
+ns4.label14.ods12. 3600 IN A 192.0.2.1
+label14.ods12. 3600 IN NS ns5.label14.ods12.
+ns5.label14.ods12. 3600 IN A 192.0.2.1
+label14.ods12. 3600 IN NS ns6.label14.ods12.
+ns6.label14.ods12. 3600 IN A 192.0.2.1
+label15.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label16.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label17.ods12. 3600 IN NS ns1.label17.ods12.
+ns1.label17.ods12. 3600 IN A 192.0.2.1
+label17.ods12. 3600 IN NS ns2.label17.ods12.
+ns2.label17.ods12. 3600 IN A 192.0.2.1
+label17.ods12. 3600 IN NS ns3.label17.ods12.
+ns3.label17.ods12. 3600 IN A 192.0.2.1
+label17.ods12. 3600 IN NS ns4.label17.ods12.
+ns4.label17.ods12. 3600 IN A 192.0.2.1
+label17.ods12. 3600 IN NS ns5.label17.ods12.
+ns5.label17.ods12. 3600 IN A 192.0.2.1
+label17.ods12. 3600 IN NS ns6.label17.ods12.
+ns6.label17.ods12. 3600 IN A 192.0.2.1
+label18.ods12. 3600 IN NS ns1.label18.ods12.
+ns1.label18.ods12. 3600 IN A 192.0.2.1
+label18.ods12. 3600 IN NS ns2.label18.ods12.
+ns2.label18.ods12. 3600 IN A 192.0.2.1
+label18.ods12. 3600 IN NS ns3.label18.ods12.
+ns3.label18.ods12. 3600 IN A 192.0.2.1
+label18.ods12. 3600 IN NS ns4.label18.ods12.
+ns4.label18.ods12. 3600 IN A 192.0.2.1
+label18.ods12. 3600 IN NS ns5.label18.ods12.
+ns5.label18.ods12. 3600 IN A 192.0.2.1
+label18.ods12. 3600 IN NS ns6.label18.ods12.
+ns6.label18.ods12. 3600 IN A 192.0.2.1
+label19.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label20.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label21.ods12. 3600 IN NS ns1.label21.ods12.
+ns1.label21.ods12. 3600 IN A 192.0.2.1
+label21.ods12. 3600 IN NS ns2.label21.ods12.
+ns2.label21.ods12. 3600 IN A 192.0.2.1
+label21.ods12. 3600 IN NS ns3.label21.ods12.
+ns3.label21.ods12. 3600 IN A 192.0.2.1
+label21.ods12. 3600 IN NS ns4.label21.ods12.
+ns4.label21.ods12. 3600 IN A 192.0.2.1
+label21.ods12. 3600 IN NS ns5.label21.ods12.
+ns5.label21.ods12. 3600 IN A 192.0.2.1
+label21.ods12. 3600 IN NS ns6.label21.ods12.
+ns6.label21.ods12. 3600 IN A 192.0.2.1
+label22.ods12. 3600 IN NS ns1.label22.ods12.
+ns1.label22.ods12. 3600 IN A 192.0.2.1
+label22.ods12. 3600 IN NS ns2.label22.ods12.
+ns2.label22.ods12. 3600 IN A 192.0.2.1
+label22.ods12. 3600 IN NS ns3.label22.ods12.
+ns3.label22.ods12. 3600 IN A 192.0.2.1
+label22.ods12. 3600 IN NS ns4.label22.ods12.
+ns4.label22.ods12. 3600 IN A 192.0.2.1
+label22.ods12. 3600 IN NS ns5.label22.ods12.
+ns5.label22.ods12. 3600 IN A 192.0.2.1
+label22.ods12. 3600 IN NS ns6.label22.ods12.
+ns6.label22.ods12. 3600 IN A 192.0.2.1
+label23.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label24.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label25.ods12. 3600 IN NS ns1.label25.ods12.
+ns1.label25.ods12. 3600 IN A 192.0.2.1
+label25.ods12. 3600 IN NS ns2.label25.ods12.
+ns2.label25.ods12. 3600 IN A 192.0.2.1
+label25.ods12. 3600 IN NS ns3.label25.ods12.
+ns3.label25.ods12. 3600 IN A 192.0.2.1
+label25.ods12. 3600 IN NS ns4.label25.ods12.
+ns4.label25.ods12. 3600 IN A 192.0.2.1
+label25.ods12. 3600 IN NS ns5.label25.ods12.
+ns5.label25.ods12. 3600 IN A 192.0.2.1
+label25.ods12. 3600 IN NS ns6.label25.ods12.
+ns6.label25.ods12. 3600 IN A 192.0.2.1
+label26.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label27.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label28.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label29.ods12. 3600 IN NS ns1.label29.ods12.
+ns1.label29.ods12. 3600 IN A 192.0.2.1
+label29.ods12. 3600 IN NS ns2.label29.ods12.
+ns2.label29.ods12. 3600 IN A 192.0.2.1
+label29.ods12. 3600 IN NS ns3.label29.ods12.
+ns3.label29.ods12. 3600 IN A 192.0.2.1
+label29.ods12. 3600 IN NS ns4.label29.ods12.
+ns4.label29.ods12. 3600 IN A 192.0.2.1
+label29.ods12. 3600 IN NS ns5.label29.ods12.
+ns5.label29.ods12. 3600 IN A 192.0.2.1
+label29.ods12. 3600 IN NS ns6.label29.ods12.
+ns6.label29.ods12. 3600 IN A 192.0.2.1
+label29.ods12. 3600 IN DS 22922 7 1 f62411de95a5b7bcabe976c0e65034a35a9fa937
+label30.ods12. 3600 IN NS ns1.label30.ods12.
+ns1.label30.ods12. 3600 IN A 192.0.2.1
+label30.ods12. 3600 IN NS ns2.label30.ods12.
+ns2.label30.ods12. 3600 IN A 192.0.2.1
+label30.ods12. 3600 IN NS ns3.label30.ods12.
+ns3.label30.ods12. 3600 IN A 192.0.2.1
+label30.ods12. 3600 IN NS ns4.label30.ods12.
+ns4.label30.ods12. 3600 IN A 192.0.2.1
+label30.ods12. 3600 IN NS ns5.label30.ods12.
+ns5.label30.ods12. 3600 IN A 192.0.2.1
+label30.ods12. 3600 IN NS ns6.label30.ods12.
+ns6.label30.ods12. 3600 IN A 192.0.2.1
+label31.ods12. 3600 IN AAAA 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+label32.ods12. 3600 IN NS ns1.label32.ods12.
+ns1.label32.ods12. 3600 IN A 192.0.2.1
+label32.ods12. 3600 IN NS ns2.label32.ods12.
+ns2.label32.ods12. 3600 IN A 192.0.2.1
+label32.ods12. 3600 IN NS ns3.label32.ods12.
+ns3.label32.ods12. 3600 IN A 192.0.2.1
+label32.ods12. 3600 IN NS ns4.label32.ods12.
+ns4.label32.ods12. 3600 IN A 192.0.2.1
+label32.ods12. 3600 IN NS ns5.label32.ods12.
+ns5.label32.ods12. 3600 IN A 192.0.2.1
+label32.ods12. 3600 IN NS ns6.label32.ods12.
+ns6.label32.ods12. 3600 IN A 192.0.2.1
+label33.ods12. 3600 IN NS ns1.label33.ods12.
+ns1.label33.ods12. 3600 IN A 192.0.2.1
+label33.ods12. 3600 IN NS ns2.label33.ods12.
+ns2.label33.ods12. 3600 IN A 192.0.2.1
+label33.ods12. 3600 IN NS ns3.label33.ods12.
+ns3.label33.ods12. 3600 IN A 192.0.2.1
+label33.ods12. 3600 IN NS ns4.label33.ods12.
+ns4.label33.ods12. 3600 IN A 192.0.2.1
+label33.ods12. 3600 IN NS ns5.label33.ods12.
+ns5.label33.ods12. 3600 IN A 192.0.2.1
+label33.ods12. 3600 IN NS ns6.label33.ods12.
+ns6.label33.ods12. 3600 IN A 192.0.2.1
+label34.ods12. 3600 IN NS ns1.label34.ods12.
+ns1.label34.ods12. 3600 IN A 192.0.2.1
+label34.ods12. 3600 IN NS ns2.label34.ods12.
+ns2.label34.ods12. 3600 IN A 192.0.2.1
+label34.ods12. 3600 IN NS ns3.label34.ods12.
+ns3.label34.ods12. 3600 IN A 192.0.2.1
+label34.ods12. 3600 IN NS ns4.label34.ods12.
+ns4.label34.ods12. 3600 IN A 192.0.2.1
+label34.ods12. 3600 IN NS ns5.label34.ods12.
+ns5.label34.ods12. 3600 IN A 192.0.2.1
+label34.ods12. 3600 IN NS ns6.label34.ods12.
+ns6.label34.ods12. 3600 IN A 192.0.2.1
