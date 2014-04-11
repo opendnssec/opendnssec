@@ -45,6 +45,7 @@
 
 #include "protobuf-orm/pb-orm.h"
 #include "daemon/orm.h"
+#include "daemon/clientpipe.h"
 
 #include <fcntl.h>
 #include <memory>
@@ -95,7 +96,7 @@ perform_policy_export(const std::string *filename, int sockfd, engineconfig_type
 		ods_log_debug("[%s] policy list completed", module_str);
 		// We should still output an empty file in this case
 		// but reporting this on the command line is helpful
-		ods_printf(sockfd,
+		client_printf(sockfd,
 			"Database set to: %s\n"
 			"There are no policies configured\n"
 			,config->datastore);

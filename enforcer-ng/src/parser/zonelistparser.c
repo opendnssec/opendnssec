@@ -205,8 +205,8 @@ parse_zonelist_zones(struct zonelist_struct* zlist, const char* zlfile)
     ret = xmlTextReaderRead(reader);
     while (ret == XML_READER_TYPE_ELEMENT) {
         tag_name = (char*) xmlTextReaderLocalName(reader);
-        if (ods_strcmp(tag_name, "Zone") == 0 &&
-            ods_strcmp(tag_name, "ZoneList") != 0 &&
+        if (strcmp(tag_name, "Zone") == 0 &&
+            strcmp(tag_name, "ZoneList") != 0 &&
             xmlTextReaderNodeType(reader) == XML_READER_TYPE_ELEMENT) {
             /* Found a zone */
             zone_name = (char*) xmlTextReaderGetAttribute(reader,

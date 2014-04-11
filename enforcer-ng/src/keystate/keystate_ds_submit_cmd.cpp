@@ -34,6 +34,7 @@
 #include "keystate/keystate_ds_submit_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/keystate_ds_submit_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "keystate_ds_submit_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key ds-submit          Issue a ds-submit to the enforcer for a KSK.\n"
 		"                       (This command with no parameters lists eligible keys.)\n"
 		"      [--cka_id <CKA_ID>]        (aka -k)  cka_id <CKA_ID> of the key.\n"			
@@ -72,8 +73,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	ods_status status;
 
 	ods_log_debug("[%s] %s command", module_str, key_ds_submit_funcblock()->cmdname);
+	/* consume command */
 	cmd = ods_check_command(cmd, n, key_ds_submit_funcblock()->cmdname);
-	
 
 	// Use buf as an intermediate buffer for the command.
 	strncpy(buf, cmd, sizeof(buf));
@@ -84,7 +85,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str, key_ds_submit_funcblock()->cmdname);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 
@@ -97,15 +98,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str, key_ds_submit_funcblock()->cmdname);
-		ods_printf(sockfd,"unknown arguments\n");
+		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 	
 	//TODO: Need more validation of the permitted command line options combinatio
 
 	/* perform task immediately */
-	perform_keystate_ds_submit(sockfd,engine->config,zone,cka_id,bAutomatic?1:0, force);
-	return 0;
+	return !perform_keystate_ds_submit(sockfd,engine->config,zone,cka_id,bAutomatic?1:0, force);
 }
 
 static struct cmd_func_block funcblock = {

@@ -39,6 +39,7 @@
 #include "shared/str.h"
 #include "enforcer/enforce_task.h"
 #include "keystate/keystate.pb.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/keystate_rollover_cmd.h"
 
@@ -47,7 +48,7 @@ static const char *module_str = "keystate_rollover_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key rollover           Perform a manual key rollover.\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
 		"      [--keytype <keytype>]      (aka -t)  KSK or ZSK (default all).\n"
@@ -81,7 +82,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str, key_rollover_funcblock()->cmdname);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 
@@ -92,13 +93,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str, key_rollover_funcblock()->cmdname);
-		ods_printf(sockfd,"unknown arguments\n");
+		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 	if (!zone) {
 		ods_log_warning("[%s] expected option --zone <zone> for %s command",
 						module_str, key_rollover_funcblock()->cmdname);
-		ods_printf(sockfd,"expected --zone <zone> option\n");
+		client_printf(sockfd,"expected --zone <zone> option\n");
 		return -1;
 	}
 
@@ -116,7 +117,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		} else {
 			ods_log_warning("[%s] given keytype \"%s\" invalid",
 							module_str,keytype);
-			ods_printf(sockfd,"given keytype \"%s\" invalid\n",keytype);
+			client_printf(sockfd,"given keytype \"%s\" invalid\n",keytype);
 			return 1;
 		}
 	}

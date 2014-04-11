@@ -220,7 +220,7 @@ pb_assign_field(OrmResult result,
 			const char *value = RESULT->get_string_idx(field_idx);
 			if (RESULT->failed())
 				return false;
-			reflection->SetString(&message,field,value);
+			reflection->SetString(&message,field,value); /* LEAK */
 			return true;			
 		}
 		case pb::FieldDescriptor::TYPE_GROUP:

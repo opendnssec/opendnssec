@@ -38,6 +38,7 @@
 #include "shared/str.h"
 #include "shared/log.h"
 #include "keystate/zone_add_task.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/zone_add_cmd.h"
 
@@ -46,7 +47,7 @@ static const char *module_str = "zone_add_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"zone add               Add a new zone to the enforcer database.\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
 		"      [--policy <policy>]        (aka -p)  policy.\n"
