@@ -35,6 +35,7 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "hsmkey/hsmkey_gen_cmd.h"
 
@@ -48,7 +49,7 @@ static const char *module_str = "keystate_generate";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key generate           Pre-generate keys.\n"
 		"      --duration <duration>      (aka -d)  duration to generate keys for.\n"
 	);

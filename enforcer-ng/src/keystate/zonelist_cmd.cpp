@@ -37,6 +37,7 @@
 #include "shared/str.h"
 #include "shared/file.h"
 #include "keystate/update_keyzones_task.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/zonelist_cmd.h"
 
@@ -45,7 +46,7 @@ static const char *module_str = "zonelist_cmd";
 static void
 import_usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"zonelist import        Sync database with contents of zonelist.xml.\n"
 	);
 }
@@ -53,7 +54,7 @@ import_usage(int sockfd)
 static void
 export_usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"zonelist export        Export zones from database in zonelist.xml format.\n"
 	);
 }
@@ -90,10 +91,7 @@ export_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	int error;
 	ods_log_debug("[%s] %s command", module_str, zonelist_export_funcblock()->cmdname);
 	error = !perform_zonelist_export_to_fd(sockfd, engine->config);
-	/** A hack te prevent command handler print "zonelist export 
-	 * completed in 0 seconds.". To properly fix it the client should
-	 * distinguish between stdout and stderr (TODO) */
-	return error?error:99;
+	return error;
 }
 
 static struct cmd_func_block import_funcblock = {

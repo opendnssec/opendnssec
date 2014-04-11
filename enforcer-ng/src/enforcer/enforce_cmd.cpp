@@ -34,6 +34,7 @@
 #include "enforcer/enforce_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "enforcer/enforce_cmd.h"
 
@@ -46,7 +47,7 @@ static const char *module_str = "enforce_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"enforce                Force the enforcer to run once for every zone.\n"
 	);
 }

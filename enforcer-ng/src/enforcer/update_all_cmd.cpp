@@ -35,6 +35,7 @@
 #include "shared/str.h"
 #include "utils/kc_helper.h"
 #include "enforcer/update_repositorylist_task.h"
+#include "daemon/clientpipe.h"
 
 #include "enforcer/update_all_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "update_all_cmd";
 
 void usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"update all             Perform update kasp, zonelist and repositorylist.\n"
 	);
 }

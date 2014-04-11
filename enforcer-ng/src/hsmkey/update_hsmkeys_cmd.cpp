@@ -34,6 +34,7 @@
 #include "hsmkey/update_hsmkeys_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "hsmkey/update_hsmkeys_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "keystate_import_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key import             Bulk import of all keys found in all HSMs.\n"
 	);
 }

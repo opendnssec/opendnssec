@@ -33,7 +33,7 @@
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
-
+#include "daemon/clientpipe.h"
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
 
@@ -52,7 +52,7 @@ list_keys_retracted(OrmConn conn, int sockfd, const char *datastore)
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
 	
 	// list all keys that have submitted flag set.
-	ods_printf(sockfd,
+	client_printf(sockfd,
 			   "Database set to: %s\n"
 			   "List of keys that have been retracted:\n"
 			   "Zone:                           "
@@ -92,7 +92,7 @@ list_keys_retracted(OrmConn conn, int sockfd, const char *datastore)
 					continue;
 				
 				std::string keyrole = keyrole_Name(key.role());
-				ods_printf(sockfd,
+				client_printf(sockfd,
 						   "%-31s %-13s %-13u %-40s\n",
 						   enfzone.name().c_str(),
 						   keyrole.c_str(),
@@ -158,7 +158,7 @@ change_keys_retracted_to_unsubmitted(OrmConn conn, int sockfd,
 				bKeyStateMatched = true;
 				
 				if (key.ds_at_parent()!=::ods::keystate::retracted) {
-					ods_printf(sockfd,
+					client_printf(sockfd,
 							   "Key that matches id \"%s\" in zone "
 							   "\"%s\" is not retracted but %s\n",
 							   key.locator().c_str(), zone,
@@ -175,12 +175,12 @@ change_keys_retracted_to_unsubmitted(OrmConn conn, int sockfd,
 		// Report back the status of the operation.
 		if (!bKeyStateMatched) {
 			if (id)
-				ods_printf(sockfd,
+				client_printf(sockfd,
 						   "No KSK key matches id \"%s\" in zone \"%s\"\n",
 						   id,
 						   zone);
 			else
-				ods_printf(sockfd,
+				client_printf(sockfd,
 						   "No KSK key matches keytag \"%u\" in zone \"%s\"\n",
 						   keytag,
 						   zone);
@@ -195,10 +195,10 @@ change_keys_retracted_to_unsubmitted(OrmConn conn, int sockfd,
 					LOG_AND_RETURN_1("unable to commit updated zone %s to the database",zone);
 				
 				ods_log_debug("[%s] key states have been updated",module_str);
-				ods_printf(sockfd,"update of key states completed.\n");
+				client_printf(sockfd,"update of key states completed.\n");
 			} else {
 				ods_log_debug("[%s] key states are unchanged",module_str);
-				ods_printf(sockfd,"key states are unchanged\n");
+				client_printf(sockfd,"key states are unchanged\n");
 			}
 		}
 	}

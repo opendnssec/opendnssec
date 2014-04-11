@@ -34,6 +34,7 @@
 #include "keystate/keystate_ds_retract_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/keystate_ds_retract_cmd.h"
 
@@ -42,7 +43,7 @@ static const char *module_str = "keystate_ds_retract_cmd";
 static void
 usage(int sockfd)
 {
-	ods_printf(sockfd,
+	client_printf(sockfd,
 		"key ds-retract         Issue a ds-retract to the enforcer for a KSK.\n"
 		"                       (This command with no parameters lists eligible keys.)\n"
 		"      [--cka_id <CKA_ID>]        (aka -k)  cka_id <CKA_ID> of the key.\n"			
@@ -74,6 +75,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	ods_log_debug("[%s] %s command", module_str, key_ds_retract_funcblock()->cmdname);
 	cmd = ods_check_command(cmd, n, key_ds_retract_funcblock()->cmdname);
 
+	/* consume command */
+	cmd = ods_check_command(cmd, n, key_ds_retract_funcblock()->cmdname);
+
 	// Use buf as an intermediate buffer for the command.
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
@@ -83,7 +87,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 						module_str, key_ds_retract_funcblock()->cmdname);
-		ods_printf(sockfd,"too many arguments\n");
+		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
 
@@ -96,7 +100,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str, key_ds_retract_funcblock()->cmdname);
-		ods_printf(sockfd,"unknown arguments\n");
+		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 
