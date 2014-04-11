@@ -78,7 +78,7 @@ typedef int (*db_backend_handle_shutdown_t)(void* data);
  * Function pointer for connecting a database backend. The backend handle
  * specific data is supplied in `data`.
  * \param[in] data a void pointer.
- * \param[in] configuration_list TODO 
+ * \param[in] configuration_list a db_configuration_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 typedef int (*db_backend_handle_connect_t)(void* data, const db_configuration_list_t* configuration_list);
@@ -95,9 +95,9 @@ typedef int (*db_backend_handle_disconnect_t)(void* data);
  * Function pointer for creating a object in a database backend. The backend
  * handle specific data is supplied in `data`.
  * \param[in] data a void pointer.
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 typedef int (*db_backend_handle_create_t)(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
@@ -106,9 +106,9 @@ typedef int (*db_backend_handle_create_t)(void* data, const db_object_t* object,
  * Function pointer for reading objects from database backend. The backend
  * handle specific data is supplied in `data`.
  * \param[in] data a void pointer.
- * \param[in] object TODO 
- * \param[in] join_list TODO 
- * \param[in] clause_list TODO 
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return a db_result_list_t pointer or NULL on error or if no objects where
  * read.
  */
@@ -118,10 +118,10 @@ typedef db_result_list_t* (*db_backend_handle_read_t)(void* data, const db_objec
  * Function pointer for updating objects in a database backend. The backend
  * handle specific data is supplied in `data`.
  * \param[in] data a void pointer.
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \param[in] clause_list TODO 
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 typedef int (*db_backend_handle_update_t)(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
@@ -130,8 +130,8 @@ typedef int (*db_backend_handle_update_t)(void* data, const db_object_t* object,
  * Function pointer for deleting objects from database backend. The backend
  * handle specific data is supplied in `data`.
  * \param[in] data a void pointer.
- * \param[in] object TODO 
- * \param[in] clause_list TODO 
+ * \param[in] object a db_object_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 typedef int (*db_backend_handle_delete_t)(void* data, const db_object_t* object, const db_clause_list_t* clause_list);
@@ -139,7 +139,6 @@ typedef int (*db_backend_handle_delete_t)(void* data, const db_object_t* object,
 /**
  * Function pointer for freeing the backend handle specific data in `data`.
  * \param[in] data a void pointer.
- * \return `typedef void` TODO
  */
 typedef void (*db_backend_handle_free_t)(void* data);
 
@@ -224,179 +223,181 @@ int db_backend_handle_shutdown(const db_backend_handle_t* backend_handle);
 int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list);
 
 /**
- * TODO
+ * Disconnect from the database in a database backend.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_disconnect(const db_backend_handle_t* backend_handle);
 
 /**
- * TODO
+ * Create an object in the database. The `object` refer to the database object
+ * begin created, the `object_field_list` describes the fields that should be
+ * set in the object and the `value_set` has the values for each field.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
 
 /**
- * TODO
+ * Read an object or objects from the database.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] object TODO 
- * \param[in] join_list TODO 
- * \param[in] clause_list TODO 
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return a db_result_list_t pointer or NULL on error or if no objects where
  * read.
  */
 db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
 
 /**
- * TODO
+ * Update an object or objects in the database.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \param[in] clause_list TODO 
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
 
 /**
- * TODO
+ * Delete an object or objects from the database.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] object TODO 
- * \param[in] clause_list TODO 
+ * \param[in] object a db_object_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
- * TODO
+ * Begin a transaction for a database connection.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_transaction_begin(const db_backend_handle_t* backend_handle);
 
 /**
- * TODO
+ * Commit a transaction for a database connection.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_transaction_commit(const db_backend_handle_t* backend_handle);
 
 /**
- * TODO
+ * Roll back a transaction for a database connection.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_transaction_rollback(const db_backend_handle_t* backend_handle);
 
 /**
- * TODO
+ * Get the backend specific data of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \return `const void*` TODO
+ * \return a void pointer.
  */
 const void* db_backend_handle_data(const db_backend_handle_t* backend_handle);
 
 /**
- * TODO
+ * Set the initialize function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] initialize_function TODO 
+ * \param[in] initialize_function a db_backend_handle_initialize_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize_function);
 
 /**
- * TODO
+ * Set the shutdown function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] shutdown_function TODO 
+ * \param[in] shutdown_function a db_backend_handle_shutdown_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t shutdown_function);
 
 /**
- * TODO
+ * Set the connect function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] connect_function TODO 
+ * \param[in] connect_function a db_backend_handle_connect_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t connect_function);
 
 /**
- * TODO
+ * Set the disconnect function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] disconnect_function TODO 
+ * \param[in] disconnect_function a db_backend_handle_disconnect_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect_function);
 
 /**
- * TODO
+ * Set the create function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] create_function TODO 
+ * \param[in] create_function a db_backend_handle_create_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t create_function);
 
 /**
- * TODO
+ * Set the read function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] read_function TODO 
+ * \param[in] read_function a db_backend_handle_read_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t read_function);
 
 /**
- * TODO
+ * Set the update function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] update_function TODO 
+ * \param[in] update_function a db_backend_handle_update_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t update_function);
 
 /**
- * TODO
+ * Set the delete function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] delete_function TODO 
+ * \param[in] delete_function a db_backend_handle_delete_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete_function);
 
 /**
- * TODO
+ * Set the free function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] free_function TODO 
+ * \param[in] free_function a db_backend_handle_free_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_handle_free_t free_function);
 
 /**
- * TODO
+ * Set the transaction begin function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] transaction_begin_function TODO 
+ * \param[in] transaction_begin_function a db_backend_handle_transaction_begin_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_transaction_begin(db_backend_handle_t* backend_handle, db_backend_handle_transaction_begin_t transaction_begin_function);
 
 /**
- * TODO
+ * Set the transaction commit function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] transaction_commit_function TODO 
+ * \param[in] transaction_commit_function a db_backend_handle_transaction_commit_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_transaction_commit(db_backend_handle_t* backend_handle, db_backend_handle_transaction_commit_t transaction_commit_function);
 
 /**
- * TODO
+ * Set the transaction rollback function of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
- * \param[in] transaction_rollback_function TODO 
+ * \param[in] transaction_rollback_function a db_backend_handle_transaction_rollback_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_handle, db_backend_handle_transaction_rollback_t transaction_rollback_function);
 
 /**
- * TODO
+ * Set the backend specific data of a database backend handle.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  * \param[in] data a void pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -404,14 +405,14 @@ int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_hand
 int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data);
 
 /**
- * TODO
+ * Check if the database backend handle is not empty.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
 int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle);
 
 /**
- * TODO
+ * A database backend.
  */
 struct db_backend {
     db_backend_t* next;
@@ -420,163 +421,167 @@ struct db_backend {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_backend_t*` TODO
+ * Create a new database backend.
+ * \return a db_backend_t pointer or NULL on error.
  */
 db_backend_t* db_backend_new(void);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \return `void` TODO
+ * Delete a database backend.
+ * \param[in] backend a db_backend_t pointer.
  */
 void db_backend_free(db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \return `const char*` TODO
+ * Get the name of a database backend.
+ * \param[in] backend a db_backend_t pointer.
+ * \return a character pointer or NULL on error or if no name has been set.
  */
 const char* db_backend_name(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \return `const db_backend_handle_t*` TODO
+ * Get the database backend handle of a database backend.
+ * \param[in] backend a db_backend_t pointer.
+ * \return a db_backend_handle_t pointer or NULL on error or if no database
+ * backend handle has been set.
  */
 const db_backend_handle_t* db_backend_handle(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \param[in] name TODO 
+ * Set the name of a database backend.
+ * \param[in] backend a db_backend_t pointer.
+ * \param[in] name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_set_name(db_backend_t* backend, const char* name);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \param[in] handle TODO 
+ * Det the database backend handle of a database backend, this takes over the
+ * ownership of the database backend handle.
+ * \param[in] backend a db_backend_t pointer.
+ * \param[in] handle a db_backend_handle_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* handle);
 
 /**
- * TODO
- * \param[in] backend TODO 
+ * Check if a database backend is not empty.
+ * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
 int db_backend_not_empty(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
+ * Initiate the backend of a database backend.
+ * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_initialize(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
+ * Shutdown the backend of a database backend.
+ * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_shutdown(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \param[in] configuration_list TODO 
+ * Connect to the database of a database backend, the connection specific
+ * configuration is given by `configuration_list`.
+ * \param[in] backend a db_backend_t pointer.
+ * \param[in] configuration_list a db_configuration_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list);
 
 /**
- * TODO
- * \param[in] backend TODO 
+ * Disconnect from the database in a database backend.
+ * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_disconnect(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
+ * Create an object in the database. The `object` refer to the database object
+ * begin created, the `object_field_list` describes the fields that should be
+ * set in the object and the `value_set` has the values for each field.
+ * \param[in] backend a db_backend_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_create(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \param[in] object TODO 
- * \param[in] join_list TODO 
- * \param[in] clause_list TODO 
+ * Read an object or objects from the database.
+ * \param[in] backend a db_backend_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return a db_result_list_t pointer or NULL on error or if no objects where
  * read.
  */
 db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \param[in] object TODO 
- * \param[in] object_field_list TODO 
- * \param[in] value_set TODO 
- * \param[in] clause_list TODO 
+ * Update an object or objects in the database.
+ * \param[in] backend a db_backend_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] value_set a db_value_set_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_update(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
 
 /**
- * TODO
- * \param[in] backend TODO 
- * \param[in] object TODO 
- * \param[in] clause_list TODO 
+ * Delete an object or objects from the database.
+ * \param[in] backend a db_backend_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_delete(const db_backend_t* backend, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
- * TODO
- * \param[in] backend TODO 
+ * Begin a transaction for a database connection.
+ * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_transaction_begin(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
+ * Commit a transaction for a database connection.
+ * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_transaction_commit(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] backend TODO 
+ * Roll back a transaction for a database connection.
+ * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_transaction_rollback(const db_backend_t* backend);
 
 /**
- * TODO
- * \param[in] name TODO 
- * \return `db_backend_t*` TODO
+ * Get a new database backend by the name supplied in `name`.
+ * \param[in] name a character pointer.
+ * \return a db_backend_t pointer or NULL on error or if the database backend
+ * does not exist.
  */
 db_backend_t* db_backend_factory_get_backend(const char* name);
 
 /**
- * TODO
- * \param[in] void TODO 
+ * Shutdown the database backends created by the factory.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_factory_shutdown(void);
 
 /**
- * TODO
+ * A database backend meta data that may be used by backends to store backend
+ * specific data about objects and results.
  */
 struct db_backend_meta_data {
     db_backend_meta_data_t* next;
@@ -585,66 +590,67 @@ struct db_backend_meta_data {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_backend_meta_data_t*` TODO
+ * Create a new database backend meta data.
+ * \return a db_backend_meta_data_t pointer or NULL on error.
  */
 db_backend_meta_data_t* db_backend_meta_data_new(void);
 
 /**
- * TODO
- * \param[in] backend_meta_data TODO 
- * \return `void` TODO
+ * Delete a database backend meta data.
+ * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
  */
 void db_backend_meta_data_free(db_backend_meta_data_t* backend_meta_data);
 
 /**
- * TODO
- * \param[in] backend_meta_data TODO 
- * \param[in] from_backend_meta_data TODO 
+ * Copy a database backend meta data.
+ * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
+ * \param[in] from_backend_meta_data a db_backend_meta_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_meta_data_copy(db_backend_meta_data_t* backend_meta_data, const db_backend_meta_data_t* from_backend_meta_data);
 
 /**
- * TODO
- * \param[in] backend_meta_data TODO 
- * \return `const char*` TODO
+ * Get the name of a database backend meta data.
+ * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
+ * \return a character pointer or NULL on error or if no name has been set.
  */
 const char* db_backend_meta_data_name(const db_backend_meta_data_t* backend_meta_data);
 
 /**
- * TODO
- * \param[in] backend_meta_data TODO 
- * \return `const db_value_t*` TODO
+ * Get the database value of a database backend meta data.
+ * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
+ * \return a db_value_t pointer or NULL on error or if no database value has
+ * been set.
  */
 const db_value_t* db_backend_meta_data_value(const db_backend_meta_data_t* backend_meta_data);
 
 /**
- * TODO
- * \param[in] backend_meta_data TODO 
- * \param[in] name TODO 
+ * Set the name of a database backend meta data.
+ * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
+ * \param[in] name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_meta_data_set_name(db_backend_meta_data_t* backend_meta_data, const char* name);
 
 /**
- * TODO
- * \param[in] backend_meta_data TODO 
- * \param[in] value TODO 
+ * Set the database value of a database backend meta data, this takes over the
+ * ownership of the database value.
+ * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
+ * \param[in] value a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_meta_data_set_value(db_backend_meta_data_t* backend_meta_data, db_value_t* value);
 
 /**
- * TODO
- * \param[in] backend_meta_data TODO 
+ * Check if the database meta data is not empty.
+ * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
  * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
 int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_data);
 
 /**
- * TODO
+ * A list of database backend meta data that may be used by backends to store
+ * backend specific data about objects and results.
  */
 struct db_backend_meta_data_list {
     db_backend_meta_data_t* begin;
@@ -652,40 +658,42 @@ struct db_backend_meta_data_list {
 };
 
 /**
- * TODO
- * \param[in] void TODO 
- * \return `db_backend_meta_data_list_t*` TODO
+ * Create a new database backend meta data list.
+ * \return a db_backend_meta_data_list_t pointer or NULL on error.
  */
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void);
 
 /**
- * TODO
- * \param[in] backend_meta_data_list TODO 
- * \return `void` TODO
+ * Delete a database backend meta data list and all database backend meta data
+ * in the list.
+ * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
  */
 void db_backend_meta_data_list_free(db_backend_meta_data_list_t* backend_meta_data_list);
 
 /**
- * TODO
- * \param[in] backend_meta_data_list TODO 
- * \param[in] from_backend_meta_data_list TODO 
+ * Copy a database backend meta data list.
+ * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
+ * \param[in] from_backend_meta_data_list a db_backend_meta_data_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_meta_data_list_copy(db_backend_meta_data_list_t* backend_meta_data_list, const db_backend_meta_data_list_t* from_backend_meta_data_list);
 
 /**
- * TODO
- * \param[in] backend_meta_data_list TODO 
- * \param[in] backend_meta_data TODO 
+ * Add a database backend meta data to a database backend meta data list, this
+ * takes over the ownership of the database backend meta data.
+ * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
+ * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_meta_data_list_add(db_backend_meta_data_list_t* backend_meta_data_list, db_backend_meta_data_t* backend_meta_data);
 
 /**
- * TODO
- * \param[in] backend_meta_data_list TODO 
- * \param[in] name TODO 
- * \return `const db_backend_meta_data_t*` TODO
+ * Find a database backend meta data by name in a database backend meta data
+ * list.
+ * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
+ * \param[in] name a character pointer.
+ * \return a db_backend_meta_data_t pointer or NULL on error or if the database
+ * backend meta data does not exist.
  */
 const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t* backend_meta_data_list, const char* name);
 
