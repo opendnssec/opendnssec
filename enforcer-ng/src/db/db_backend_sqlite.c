@@ -67,7 +67,7 @@ typedef struct db_backend_sqlite_statement {
 
 static mm_alloc_t __sqlite_statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_statement_t));
 
-int db_backend_sqlite_initialize(void* data) {
+static int db_backend_sqlite_initialize(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
     if (!backend_sqlite) {
@@ -84,7 +84,7 @@ int db_backend_sqlite_initialize(void* data) {
     return DB_OK;
 }
 
-int db_backend_sqlite_shutdown(void* data) {
+static int db_backend_sqlite_shutdown(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
     if (!backend_sqlite) {
@@ -101,7 +101,7 @@ int db_backend_sqlite_shutdown(void* data) {
     return DB_OK;
 }
 
-int db_backend_sqlite_connect(void* data, const db_configuration_list_t* configuration_list) {
+static int db_backend_sqlite_connect(void* data, const db_configuration_list_t* configuration_list) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_configuration_t* file;
     int ret;
@@ -136,7 +136,7 @@ int db_backend_sqlite_connect(void* data, const db_configuration_list_t* configu
     return DB_OK;
 }
 
-int db_backend_sqlite_disconnect(void* data) {
+static int db_backend_sqlite_disconnect(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     int ret;
 
@@ -170,7 +170,7 @@ int db_backend_sqlite_disconnect(void* data) {
  * \param[in] left a integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_list_t* clause_list, char** sqlp, int* left) {
+static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_list_t* clause_list, char** sqlp, int* left) {
     const db_clause_t* clause;
     int first, ret;
 
@@ -323,7 +323,7 @@ int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_
  * \param[in] bind a integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_clause_list_t* clause_list, int* bind) {
+static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_clause_list_t* clause_list, int* bind) {
     const db_clause_t* clause;
     int ret;
     int to_int;
@@ -441,7 +441,7 @@ int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_clause_lis
     return DB_OK;
 }
 
-db_result_t* db_backend_sqlite_next(void* data, int finish) {
+static db_result_t* db_backend_sqlite_next(void* data, int finish) {
     db_backend_sqlite_statement_t* statement = (db_backend_sqlite_statement_t*)data;
     int ret;
     int bind;
@@ -581,7 +581,7 @@ db_result_t* db_backend_sqlite_next(void* data, int finish) {
     return result;
 }
 
-int db_backend_sqlite_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
+static int db_backend_sqlite_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_object_field_t* object_field;
     const db_value_t* value;
@@ -788,7 +788,7 @@ int db_backend_sqlite_create(void* data, const db_object_t* object, const db_obj
     return DB_OK;
 }
 
-db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
+static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_object_field_t* object_field;
     const db_join_t* join;
@@ -919,7 +919,7 @@ db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* object, 
     return result_list;
 }
 
-int db_backend_sqlite_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
+static int db_backend_sqlite_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_object_field_t* object_field;
     const db_value_t* value;
@@ -1114,7 +1114,7 @@ int db_backend_sqlite_update(void* data, const db_object_t* object, const db_obj
     return DB_OK;
 }
 
-int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
+static int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     char sql[4*1024];
     char* sqlp;
@@ -1188,7 +1188,7 @@ int db_backend_sqlite_delete(void* data, const db_object_t* object, const db_cla
     return DB_OK;
 }
 
-void db_backend_sqlite_free(void* data) {
+static void db_backend_sqlite_free(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
     if (backend_sqlite) {
@@ -1199,7 +1199,7 @@ void db_backend_sqlite_free(void* data) {
     }
 }
 
-int db_backend_sqlite_transaction_begin(void* data) {
+static int db_backend_sqlite_transaction_begin(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     static const char* sql = "BEGIN TRANSACTION";
     int ret;
@@ -1243,7 +1243,7 @@ int db_backend_sqlite_transaction_begin(void* data) {
     return DB_OK;
 }
 
-int db_backend_sqlite_transaction_commit(void* data) {
+static int db_backend_sqlite_transaction_commit(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     static const char* sql = "COMMIT TRANSACTION";
     int ret;
@@ -1287,7 +1287,7 @@ int db_backend_sqlite_transaction_commit(void* data) {
     return DB_OK;
 }
 
-int db_backend_sqlite_transaction_rollback(void* data) {
+static int db_backend_sqlite_transaction_rollback(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     static const char* sql = "ROLLBACK TRANSACTION";
     int ret;

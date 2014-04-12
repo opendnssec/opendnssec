@@ -76,7 +76,7 @@ typedef struct db_backend_couchdb_query {
 static mm_alloc_t __couchdb_query_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_couchdb_query_t));
 */
 
-int db_backend_couchdb_initialize(void* data) {
+static int db_backend_couchdb_initialize(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
     if (!backend_couchdb) {
@@ -92,7 +92,7 @@ int db_backend_couchdb_initialize(void* data) {
     return DB_OK;
 }
 
-int db_backend_couchdb_shutdown(void* data) {
+static int db_backend_couchdb_shutdown(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
     if (!backend_couchdb) {
@@ -114,7 +114,7 @@ int db_backend_couchdb_shutdown(void* data) {
  * \param[in] userdata a void pointer.
  * \return a size_t.
  */
-size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb, void* userdata) {
+static size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb, void* userdata) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)userdata;
 
     if(backend_couchdb->buffer_position + size * nmemb >= REQUEST_BUFFER_SIZE - 1) {
@@ -135,7 +135,7 @@ size_t __db_backend_couchdb_write_response(void* ptr, size_t size, size_t nmemb,
  * \param[in] userdata a void pointer.
  * \return a size_t.
  */
-size_t __db_backend_couchdb_read_request(void* ptr, size_t size, size_t nmemb, void* userdata) {
+static size_t __db_backend_couchdb_read_request(void* ptr, size_t size, size_t nmemb, void* userdata) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)userdata;
     size_t write = 0;
 
@@ -162,7 +162,7 @@ size_t __db_backend_couchdb_read_request(void* ptr, size_t size, size_t nmemb, v
  * \param[in] root a json_t pointer.
  * \return a long with the HTTP response code or zero on error.
  */
-long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const char* request_url, int request_type, json_t* root) {
+static long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const char* request_url, int request_type, json_t* root) {
     CURLcode status;
     long code;
     char url[1024];
@@ -332,7 +332,7 @@ long __db_backend_couchdb_request(db_backend_couchdb_t* backend_couchdb, const c
     return code;
 }
 
-int db_backend_couchdb_connect(void* data, const db_configuration_list_t* configuration_list) {
+static int db_backend_couchdb_connect(void* data, const db_configuration_list_t* configuration_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     const db_configuration_t* url;
 
@@ -368,7 +368,7 @@ int db_backend_couchdb_connect(void* data, const db_configuration_list_t* config
     return DB_OK;
 }
 
-int db_backend_couchdb_disconnect(void* data) {
+static int db_backend_couchdb_disconnect(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
     if (!__couchdb_initialized) {
@@ -386,7 +386,7 @@ int db_backend_couchdb_disconnect(void* data) {
     return DB_OK;
 }
 
-int db_backend_couchdb_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
+static int db_backend_couchdb_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     json_t* root;
     json_t* json_value;
@@ -544,7 +544,7 @@ int db_backend_couchdb_create(void* data, const db_object_t* object, const db_ob
  * \param[in] json_object a json_t pointer.
  * \return a db_result_t pointer or NULL on error.
  */
-db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* object, json_t* json_object) {
+static db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* object, json_t* json_object) {
     size_t size, i;
     db_result_t* result;
     db_value_set_t* value_set = NULL;
@@ -714,7 +714,7 @@ db_result_t* __db_backend_couchdb_result_from_json_object(const db_object_t* obj
  * \param[in] view a integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, const db_object_t* object, db_result_list_t* result_list, int view) {
+static int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, const db_object_t* object, db_result_list_t* result_list, int view) {
     json_t *root;
     json_t *rows;
     json_t *entry;
@@ -811,7 +811,7 @@ int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, con
  * \param[in] left a integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_clause_list_t* clause_list, char** stringp, int* left) {
+static int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_clause_list_t* clause_list, char** stringp, int* left) {
     const db_clause_t* clause;
     int ret;
     db_type_int32_t int32;
@@ -1025,7 +1025,7 @@ int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_
     return DB_OK;
 }
 
-db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
+static db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     long code;
     db_result_list_t* result_list;
@@ -1309,7 +1309,7 @@ db_result_list_t* db_backend_couchdb_read(void* data, const db_object_t* object,
     return result_list;
 }
 
-int db_backend_couchdb_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
+static int db_backend_couchdb_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     long code;
     char url[4096];
@@ -1560,7 +1560,7 @@ int db_backend_couchdb_update(void* data, const db_object_t* object, const db_ob
     return DB_OK;
 }
 
-int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
+static int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_clause_list_t* clause_list) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
     long code;
     char url[4096];
@@ -1682,7 +1682,7 @@ int db_backend_couchdb_delete(void* data, const db_object_t* object, const db_cl
     return DB_OK;
 }
 
-void db_backend_couchdb_free(void* data) {
+static void db_backend_couchdb_free(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
     if (backend_couchdb) {
@@ -1699,7 +1699,7 @@ void db_backend_couchdb_free(void* data) {
     }
 }
 
-int db_backend_couchdb_transaction_begin(void* data) {
+static int db_backend_couchdb_transaction_begin(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
     if (!__couchdb_initialized) {
@@ -1712,7 +1712,7 @@ int db_backend_couchdb_transaction_begin(void* data) {
     return DB_OK;
 }
 
-int db_backend_couchdb_transaction_commit(void* data) {
+static int db_backend_couchdb_transaction_commit(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
     if (!__couchdb_initialized) {
@@ -1725,7 +1725,7 @@ int db_backend_couchdb_transaction_commit(void* data) {
     return DB_OK;
 }
 
-int db_backend_couchdb_transaction_rollback(void* data) {
+static int db_backend_couchdb_transaction_rollback(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
     if (!__couchdb_initialized) {
