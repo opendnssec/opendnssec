@@ -27,6 +27,8 @@
  *
  */
 
+#include "config.h"
+
 #include "../db_configuration.h"
 #include "../db_connection.h"
 #include "../db_object.h"
@@ -434,6 +436,7 @@ const test_t* test_list_next(test_list_t* test_list) {
     return test_list->test;
 }
 
+#if defined(ENFORCER_DATABASE_SQLITE3)
 int init_suite_database_operations_sqlite(void) {
     if (configuration_list) {
         return 1;
@@ -503,7 +506,9 @@ int init_suite_database_operations_sqlite(void) {
 
     return 0;
 }
+#endif
 
+#if defined(ENFORCER_DATABASE_COUCHDB)
 int init_suite_database_operations_couchdb(void) {
     if (configuration_list) {
         return 1;
@@ -573,6 +578,7 @@ int init_suite_database_operations_couchdb(void) {
 
     return 0;
 }
+#endif
 
 int clean_suite_database_operations(void) {
     test_free(test);

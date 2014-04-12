@@ -27,11 +27,15 @@
  *
  */
 
+#include "config.h"
+
 #include "db_backend.h"
-/* TODO #ifdef SQLITE */
+#if defined(ENFORCER_DATABASE_SQLITE3)
 #include "db_backend_sqlite.h"
-/* TODO #ifdef COUCHDB */
+#endif
+#if defined(ENFORCER_DATABASE_COUCHDB)
 #include "db_backend_couchdb.h"
+#endif
 #include "db_error.h"
 
 #include "mm.h"
@@ -620,7 +624,7 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
         return NULL;
     }
 
-    /* TODO #ifdef SQLITE */
+#if defined(ENFORCER_DATABASE_SQLITE3)
     if (!strcmp(name, "sqlite")) {
         if (!(backend = db_backend_new())
             || db_backend_set_name(backend, "sqlite")
@@ -632,7 +636,8 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
         }
         return backend;
     }
-    /* TODO #ifdef COUCHDB */
+#endif
+#if defined(ENFORCER_DATABASE_COUCHDB)
     if (!strcmp(name, "couchdb")) {
         if (!(backend = db_backend_new())
             || db_backend_set_name(backend, "couchdb")
@@ -644,6 +649,7 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
         }
         return backend;
     }
+#endif
 
     return backend;
 }

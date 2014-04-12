@@ -15,12 +15,19 @@ test_SOURCES = \
 	test_initialization.c \
 	test_database_operations.c
 
-# TODO: if BACKEND test_LDADD+=backend.o
+if USE_SQLITE
+BACKEND_LDADD_CUSTOM = ../../db_backend_sqlite.o
+endif
+
+if USE_COUCHDB
+BACKEND_LDADD_CUSTOM = ../../db_backend_couchdb.o
+BACKEND_LDFLAGS_CUSTOM = \
+	`pkg-config --libs libcurl` \
+	`pkg-config --libs jansson`
+endif
 
 test_LDADD = \
 	../../db_backend.o \
-	../../db_backend_sqlite.o \
-	../../db_backend_couchdb.o \
 	../../db_clause.o \
 	../../db_configuration.o \
 	../../db_connection.o \
@@ -29,23 +36,25 @@ test_LDADD = \
 	../../db_result.o \
 	../../db_type.o \
 	../../db_value.o \
-	$(top_builddir)/mm/src/mm.o
+	$(top_builddir)/mm/src/mm.o \
+	$(BACKEND_LDADD_CUSTOM)
 
 test_LDFLAGS = -no-install \
 	@CUNIT_LIBS@ \
 	@ENFORCER_DB_LIBS@ \
-	`pkg-config --libs libcurl` \
-	`pkg-config --libs jansson`
+	$(BACKEND_LDFLAGS_CUSTOM)
 
 check: regress-db
 
 regress-db: test
-# TODO: if SQLITE
+if USE_SQLITE
 	rm -f test.db
 	sqlite3 test.db < $(srcdir)/test.sqlite
-# TODO: if COUCHDB
+endif
+if USE_COUCHDB
 	curl -X DELETE http://127.0.0.1:5984/opendnssec
 	curl -X PUT http://127.0.0.1:5984/opendnssec
 	curl -X PUT http://127.0.0.1:5984/opendnssec/_design/application -d @$(srcdir)/test.couchdb
 	curl -X PUT http://127.0.0.1:5984/opendnssec/1 -d '{"type":"test","test_name":"test"}'
+endif
 	./test

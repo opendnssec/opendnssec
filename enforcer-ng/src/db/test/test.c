@@ -81,6 +81,7 @@ int main(void) {
         return CU_get_error();
     }
 
+#if defined(ENFORCER_DATABASE_SQLITE3)
     pSuite = CU_add_suite("SQLite database operations", init_suite_database_operations_sqlite, clean_suite_database_operations);
     if (!pSuite) {
         CU_cleanup_registry();
@@ -102,7 +103,9 @@ int main(void) {
         CU_cleanup_registry();
         return CU_get_error();
     }
+#endif
 
+#if defined(ENFORCER_DATABASE_COUCHDB)
     pSuite = CU_add_suite("CouchDB database operations", init_suite_database_operations_couchdb, clean_suite_database_operations);
     if (!pSuite) {
         CU_cleanup_registry();
@@ -124,6 +127,7 @@ int main(void) {
         CU_cleanup_registry();
         return CU_get_error();
     }
+#endif
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();

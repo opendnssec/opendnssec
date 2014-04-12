@@ -27,6 +27,8 @@
  *
  */
 
+#include "config.h"
+
 #ifndef __test_test_h
 #define __test_test_h
 
@@ -57,8 +59,12 @@ int clean_suite_initialization(void);
 void test_initialization_configuration(void);
 void test_initialization_connection(void);
 
+#if defined(ENFORCER_DATABASE_SQLITE3)
 int init_suite_database_operations_sqlite(void);
+#endif
+#if defined(ENFORCER_DATABASE_COUCHDB)
 int init_suite_database_operations_couchdb(void);
+#endif
 int clean_suite_database_operations(void);
 void test_database_operations_read_object1(void);
 void test_database_operations_create_object2(void);
