@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-int db_backend_sqlite_transaction_rollback(void*);
+static int db_backend_sqlite_transaction_rollback(void*);
 
 /**
  * Keep track of if we have initialized the SQLite backend.
