@@ -307,142 +307,14 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
     return 0;
 }
 
-#include "db/db_connection.h"
-#include "db/enforcer_zone.h"
-
-static db_configuration_list_t* configuration_list = NULL;
-
-int perform_keystate_list_newdb(int sockfd, engineconfig_type *config) {
-    int ret;
-
-    if (!configuration_list) {
-        configuration_list = db_configuration_list_new();
-        if (configuration_list) {
-            db_configuration_t* configuration = NULL;
-
-            if (!(configuration = db_configuration_new())
-                || db_configuration_set_name(configuration, "backend")
-                || db_configuration_set_value(configuration, "sqlite")
-                || db_configuration_list_add(configuration_list, configuration)
-                || !(configuration = db_configuration_new())
-                || db_configuration_set_name(configuration, "file")
-                || db_configuration_set_value(configuration, "/var/opendnssec/kasp.db")
-                || db_configuration_list_add(configuration_list, configuration))
-            {
-                db_configuration_free(configuration);
-                db_configuration_list_free(configuration_list);
-                configuration_list = NULL;
-            }
-        }
-    }
-
-    if (!configuration_list) {
-        ods_printf(sockfd, "configuration list error\n");
-        return 1;
-    }
-
-    db_connection_t* connection;
-    if (!(connection = db_connection_new())) {
-        ods_printf(sockfd, "connection error 1\n");
-        return 1;
-    }
-    if (db_connection_set_configuration_list(connection, configuration_list)) {
-        db_connection_free(connection);
-        ods_printf(sockfd, "connection error 2\n");
-        return 1;
-    }
-    if (db_connection_setup(connection)) {
-        db_connection_free(connection);
-        ods_printf(sockfd, "connection error 3\n");
-        return 1;
-    }
-    if ((ret = db_connection_connect(connection))) {
-        db_connection_free(connection);
-        ods_printf(sockfd, "connection error 4 %d\n", ret);
-        return 1;
-    }
-
-    enforcer_zone_list_t* enforcer_zone_list = enforcer_zone_list_new(connection);
-    if (!enforcer_zone_list) {
-        db_connection_free(connection);
-        ods_printf(sockfd, "enforcer_zone_list error\n");
-        return 1;
-    }
-
-    if (enforcer_zone_list_get(enforcer_zone_list)) {
-        enforcer_zone_list_free(enforcer_zone_list);
-        db_connection_free(connection);
-        ods_printf(sockfd, "enforcer_zone_list_get error\n");
-        return 1;
-    }
-
-    ods_printf(sockfd,
-        "Database set to: %s\n"
-        "Keys:\n"
-        "Zone:                           "
-        "Key role:     "
-        "DS:          "
-        "DNSKEY:      "
-        "RRSIGDNSKEY: "
-        "RRSIG:       "
-        "Pub: "
-        "Act: "
-        "Id:"
-        "\n");
-
-    const enforcer_zone_t* enforcer_zone = enforcer_zone_list_begin(enforcer_zone_list);
-    while (enforcer_zone) {
-        key_data_list_t* key_data_list = enforcer_zone_get_keys(enforcer_zone);
-        if (key_data_list) {
-            const key_data_t* key_data = key_data_list_begin(key_data_list);
-            while (key_data) {
-                if (key_data_get_key_state_list((key_data_t*)key_data)) {
-                    ods_printf(sockfd, "key_data_get_key_state_list error\n");
-                    key_data_list_free(key_data_list);
-                    enforcer_zone_list_free(enforcer_zone_list);
-                    db_connection_free(connection);
-                    return 1;
-                }
-                const key_state_t* ds = key_data_get_ds((key_data_t*)key_data);
-                const key_state_t* rrsig = key_data_get_rrsig((key_data_t*)key_data);
-                const key_state_t* dnskey = key_data_get_dnskey((key_data_t*)key_data);
-                const key_state_t* rrsigdnskey = key_data_get_rrsigdnskey((key_data_t*)key_data);
-
-                ods_printf(sockfd,
-                   "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
-                    enforcer_zone_name(enforcer_zone),
-                    key_data_role_text(key_data),
-                    key_state_state_text(ds),
-                    key_state_state_text(dnskey),
-                    key_state_state_text(rrsigdnskey),
-                    key_state_state_text(rrsig),
-                    key_data_publish(key_data),
-                    key_data_active_ksk(key_data) || key_data_active_zsk(key_data),
-                    key_data_locator(key_data)
-                    );
-
-                key_data = key_data_list_next(key_data_list);
-            }
-            key_data_list_free(key_data_list);
-        }
-        enforcer_zone = enforcer_zone_list_next(enforcer_zone_list);
-    }
-    enforcer_zone_list_free(enforcer_zone_list);
-
-    db_connection_free(connection);
-    return 0;
-}
-
 int 
 perform_keystate_list(int sockfd, engineconfig_type *config, 
-	bool bverbose, bool bdebug, bool bnewdb)
+	bool bverbose, bool bdebug)
 {
 	if (bdebug)
 		return perform_keystate_list_debug(sockfd, config);
 	else if (bverbose)
 		return perform_keystate_list_verbose(sockfd, config);
-	else if (bnewdb)
-		return perform_keystate_list_newdb(sockfd, config);
 	else
 		return perform_keystate_list_compat(sockfd, config);
 }
