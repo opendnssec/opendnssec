@@ -26,6 +26,8 @@ fi &&
 ods_reset_env &&
 ods_start_ods-control &&
 
+sleep 2 &&
+
 # Start with an empty zonelist 
 log_this ods-enforcer-zone_none   ods-enforcer zone list &&
 log_grep ods-enforcer-zone_none   stdout "No zones configured in DB." &&
