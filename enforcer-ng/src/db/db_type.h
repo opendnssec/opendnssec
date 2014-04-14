@@ -86,7 +86,7 @@ typedef enum {
      */
     DB_TYPE_TEXT,
     /**
-     * A enumerate value that can be represented as a integer or string.
+     * A enumerate value that can be represented as an integer or string.
      */
     DB_TYPE_ENUM
 } db_type_t;

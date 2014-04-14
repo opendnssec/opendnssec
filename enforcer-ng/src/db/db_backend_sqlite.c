@@ -167,7 +167,7 @@ static int db_backend_sqlite_disconnect(void* data) {
  * \param[in] object a db_object_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
  * \param[in] sqlp a character pointer pointer.
- * \param[in] left a integer pointer.
+ * \param[in] left an integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_clause_list_t* clause_list, char** sqlp, int* left) {
@@ -320,7 +320,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
  * position of the bind value.
  * \param[in] statement a sqlite3_stmt pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
- * \param[in] bind a integer pointer.
+ * \param[in] bind an integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_clause_list_t* clause_list, int* bind) {

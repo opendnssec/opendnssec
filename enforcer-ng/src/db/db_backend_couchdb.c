@@ -158,7 +158,7 @@ static size_t __db_backend_couchdb_read_request(void* ptr, size_t size, size_t n
  * type by `request_type` and the JSON data by `root`.
  * \param[in] backend_couchdb a db_backend_couchdb_t pointer.
  * \param[in] request_url a character pointer.
- * \param[in] request_type a integer.
+ * \param[in] request_type an integer.
  * \param[in] root a json_t pointer.
  * \return a long with the HTTP response code or zero on error.
  */
@@ -711,7 +711,7 @@ static db_result_t* __db_backend_couchdb_result_from_json_object(const db_object
  * \param[in] backend_couchdb a db_backend_couchdb_t pointer.
  * \param[in] object a db_object_t pointer.
  * \param[in] result_list a db_result_list_t pointer.
- * \param[in] view a integer.
+ * \param[in] view an integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 static int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couchdb, const db_object_t* object, db_result_list_t* result_list, int view) {
@@ -808,7 +808,7 @@ static int __db_backend_couchdb_store_result(db_backend_couchdb_t* backend_couch
  * \param[in] object a db_object_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
  * \param[in] stringp a character pointer pointer.
- * \param[in] left a integer pointer.
+ * \param[in] left an integer pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 static int __db_backend_couchdb_build_map_function(const db_object_t* object, const db_clause_list_t* clause_list, char** stringp, int* left) {
