@@ -34,7 +34,12 @@
 
 #include <stdlib.h>
 
-db_object_t* __enforcer_zone_new_object(const db_connection_t* connection) {
+/**
+ * Create a new enforcer zone object.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a enforcer_zone_t pointer or NULL on error.
+ */
+static db_object_t* __enforcer_zone_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
     db_object_t* object;
@@ -337,7 +342,7 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
 
 int enforcer_zone_id(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->id;
@@ -361,7 +366,7 @@ const char* enforcer_zone_policy(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_signconf_needs_writing(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->signconf_needs_writing;
@@ -377,7 +382,7 @@ const char* enforcer_zone_signconf_path(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_next_change(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->next_change;
@@ -385,7 +390,7 @@ int enforcer_zone_next_change(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_ttl_end_ds(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->ttl_end_ds;
@@ -393,7 +398,7 @@ int enforcer_zone_ttl_end_ds(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_ttl_end_dk(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->ttl_end_dk;
@@ -401,7 +406,7 @@ int enforcer_zone_ttl_end_dk(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_ttl_end_rs(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->ttl_end_rs;
@@ -409,7 +414,7 @@ int enforcer_zone_ttl_end_rs(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_roll_ksk_now(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->roll_ksk_now;
@@ -417,7 +422,7 @@ int enforcer_zone_roll_ksk_now(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_roll_zsk_now(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->roll_zsk_now;
@@ -425,7 +430,7 @@ int enforcer_zone_roll_zsk_now(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_roll_csk_now(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->roll_csk_now;
@@ -433,7 +438,7 @@ int enforcer_zone_roll_csk_now(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_next_ksk_roll(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->next_ksk_roll;
@@ -441,7 +446,7 @@ int enforcer_zone_next_ksk_roll(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_next_zsk_roll(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->next_zsk_roll;
@@ -449,7 +454,7 @@ int enforcer_zone_next_zsk_roll(const enforcer_zone_t* enforcer_zone) {
 
 int enforcer_zone_next_csk_roll(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return enforcer_zone->next_csk_roll;
