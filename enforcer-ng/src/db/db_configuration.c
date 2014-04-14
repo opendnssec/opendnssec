@@ -80,6 +80,9 @@ int db_configuration_set_name(db_configuration_t* configuration, const char* nam
     if (!configuration) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!name) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(new_name = strdup(name))) {
         return DB_ERROR_UNKNOWN;
@@ -96,6 +99,9 @@ int db_configuration_set_value(db_configuration_t* configuration, const char* va
     char* new_value;
 
     if (!configuration) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!value) {
         return DB_ERROR_UNKNOWN;
     }
 
