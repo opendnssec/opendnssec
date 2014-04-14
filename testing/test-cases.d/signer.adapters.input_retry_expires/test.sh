@@ -44,7 +44,7 @@ syslog_waitfor 5 'ods-signerd: .*\[xfrd\] zone ods sets timer timeout retry 5' &
 ## See if it stops serving zone transfer after the SOA EXPIRE interval
 sleep 35 &&
 log_this_timeout drill 10 drill -p 15354 @127.0.0.1 axfr ods &&
-log_grep drill stderr 'Error in AXFR: SERVFAIL' &&
+(log_grep drill stderr 'Error in AXFR: SERVFAIL' || log_grep drill stderr 'AXFR failed.') &&
 
 ## Stop
 ods_stop_ods-control && 
