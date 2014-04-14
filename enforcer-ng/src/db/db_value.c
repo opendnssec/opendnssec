@@ -324,6 +324,9 @@ int db_value_to_text(const db_value_t* value, char** to_text) {
     if (!to_text) {
         return DB_ERROR_UNKNOWN;
     }
+    if (*to_text) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (value->type != DB_TYPE_TEXT) {
         return DB_ERROR_UNKNOWN;
     }
