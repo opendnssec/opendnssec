@@ -33,6 +33,7 @@
 #include "mm.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 /**
  * Create a new enforcer zone object.
@@ -458,6 +459,187 @@ int enforcer_zone_next_csk_roll(const enforcer_zone_t* enforcer_zone) {
     }
 
     return enforcer_zone->next_csk_roll;
+}
+
+int enforcer_zone_set_name(enforcer_zone_t* enforcer_zone, const char* name) {
+    char* new_name;
+
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!name) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(new_name = strdup(name))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (enforcer_zone->name) {
+        free(enforcer_zone->name);
+    }
+    enforcer_zone->name = new_name;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_policy(enforcer_zone_t* enforcer_zone, const char* policy) {
+    char* new_policy;
+
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(new_policy = strdup(policy))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (enforcer_zone->policy) {
+        free(enforcer_zone->policy);
+    }
+    enforcer_zone->policy = new_policy;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_signconf_needs_writing(enforcer_zone_t* enforcer_zone, int signconf_needs_writing) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (signconf_needs_writing) {
+        enforcer_zone->signconf_needs_writing = 1;
+    }
+    else {
+        enforcer_zone->signconf_needs_writing = 0;
+    }
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_signconf_path(enforcer_zone_t* enforcer_zone, const char* signconf_path) {
+    char* new_signconf_path;
+
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!signconf_path) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(new_signconf_path = strdup(signconf_path))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (enforcer_zone->signconf_path) {
+        free(enforcer_zone->signconf_path);
+    }
+    enforcer_zone->signconf_path = new_signconf_path;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_next_change(enforcer_zone_t* enforcer_zone, int next_change) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->next_change = next_change;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_ttl_end_ds(enforcer_zone_t* enforcer_zone, int ttl_end_ds) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->ttl_end_ds = ttl_end_ds;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_ttl_end_dk(enforcer_zone_t* enforcer_zone, int ttl_end_dk) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->ttl_end_dk = ttl_end_dk;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_ttl_end_rs(enforcer_zone_t* enforcer_zone, int ttl_end_rs) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->ttl_end_rs = ttl_end_rs;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_roll_ksk_now(enforcer_zone_t* enforcer_zone, int roll_ksk_now) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->roll_ksk_now = roll_ksk_now;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_roll_zsk_now(enforcer_zone_t* enforcer_zone, int roll_zsk_now) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->roll_zsk_now = roll_zsk_now;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_roll_csk_now(enforcer_zone_t* enforcer_zone, int roll_csk_now) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->roll_csk_now = roll_csk_now;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_next_ksk_roll(enforcer_zone_t* enforcer_zone, int next_ksk_roll) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->next_ksk_roll = next_ksk_roll;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_next_zsk_roll(enforcer_zone_t* enforcer_zone, int next_zsk_roll) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->next_zsk_roll = next_zsk_roll;
+
+    return DB_OK;
+}
+
+int enforcer_zone_set_next_csk_roll(enforcer_zone_t* enforcer_zone, int next_csk_roll) {
+    if (!enforcer_zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    enforcer_zone->next_csk_roll = next_csk_roll;
+
+    return DB_OK;
 }
 
 key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone) {
