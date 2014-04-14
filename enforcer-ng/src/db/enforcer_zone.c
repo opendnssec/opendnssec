@@ -37,7 +37,7 @@
 /**
  * Create a new enforcer zone object.
  * \param[in] connection a db_connection_t pointer.
- * \return a enforcer_zone_t pointer or NULL on error.
+ * \return an enforcer_zone_t pointer or NULL on error.
  */
 static db_object_t* __enforcer_zone_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
