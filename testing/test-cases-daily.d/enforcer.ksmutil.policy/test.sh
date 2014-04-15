@@ -111,14 +111,15 @@ echo &&
 # check the invalid XML won't import, and we should get the expected errors
 log_this ods-ksmutil-import-invalidXML cp -- "kasp_invalid.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 ! log_this ods-ksmutil-import-invalidXML ods-ksmutil policy import &&
-log_grep ods-ksmutil-import-invalidXML stderr 'ods-kaspcheck returned an error, please check your policy' &&
+log_grep ods-ksmutil-import-invalidXML stdout 'Error: unable to parse file ' &&
+log_grep ods-ksmutil-import-invalidXML stdout 'Failed to update policies' &&
 echo "****************check the invalid XML OK*********************" &&
 echo &&
 
 # check the file won't import if a repo does not exist, and we should get the expected errors
 log_this ods-ksmutil-import-invalidXML_1 cp -- "kasp_missing_repo.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 ! log_this ods-ksmutil-import-invalidXML_1 ods-ksmutil policy import &&
-log_grep ods-ksmutil-import-invalidXML_1 stdout "ERROR: Unknown repository (bob) defined for KSK in default policy in " &&
+log_grep ods-ksmutil-import-invalidXML_1 stdout "Error: unable to find repository bob" &&
 echo "****************check the invalid XML OK*********************" &&
 echo &&
 
