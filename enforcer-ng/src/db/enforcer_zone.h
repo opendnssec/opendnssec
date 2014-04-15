@@ -370,6 +370,43 @@ adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone)
 key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t* enforcer_zone);
 
 /**
+ * Create an enforcer zone object in the database.
+ * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int enforcer_zone_create(enforcer_zone_t* enforcer_zone);
+
+/**
+ * Get an enforcer zone object from the database by an id specified in `id`.
+ * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * \param[in] id an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, int id);
+
+/**
+ * Get an enforcer zone object from the database by a name specified in `name`.
+ * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * \param[in] name a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int enforcer_zone_get_by_name(enforcer_zone_t* enforcer_zone, const char* name);
+
+/**
+ * Update an enforcer zone object in the database.
+ * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int enforcer_zone_update(enforcer_zone_t* enforcer_zone);
+
+/**
+ * Delete an enforcer zone object from the database.
+ * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int enforcer_zone_delete(enforcer_zone_t* enforcer_zone);
+
+/**
  * A list of enforcer zone objects.
  */
 struct enforcer_zone_list {
