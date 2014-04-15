@@ -111,7 +111,8 @@ key_data_t* key_data_new(const db_connection_t* connection);
 void key_data_free(key_data_t* key_data);
 
 /**
- * Reset a key data object.
+ * Reset the content of a key data object making it as if its new. This does not
+ * change anything in the database.
  * \param[in] key_data a key_data_t pointer.
  */
 void key_data_reset(key_data_t* key_data);

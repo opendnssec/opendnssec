@@ -91,7 +91,8 @@ enforcer_zone_t* enforcer_zone_new(const db_connection_t* connection);
 void enforcer_zone_free(enforcer_zone_t* enforcer_zone);
 
 /**
- * Reset an enforcer zone object.
+ * Reset the content of an enforcer zone object making it as if its new. This
+ * does not change anything in the database.
  * \param[in] enforcer_zone an enforcer_zone_t pointer.
  */
 void enforcer_zone_reset(enforcer_zone_t* enforcer_zone);
