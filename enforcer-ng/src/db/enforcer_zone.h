@@ -232,7 +232,7 @@ int enforcer_zone_next_zsk_roll(const enforcer_zone_t* enforcer_zone);
 int enforcer_zone_next_csk_roll(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get the name of an enforcer zone object.
+ * Set the name of an enforcer zone object.
  * \param[in] enforcer_zone an enforcer_zone_t pointer.
  * \param[in] name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
