@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-const db_enum_t __enum_set_state[] = {
+static const db_enum_t __enum_set_state[] = {
     { "hidden", (key_state_rrstate_t)KEY_STATE_RRSTATE_HIDDEN },
     { "rumoured", (key_state_rrstate_t)KEY_STATE_RRSTATE_RUMOURED },
     { "omnipresent", (key_state_rrstate_t)KEY_STATE_RRSTATE_OMNIPRESENT },
@@ -44,7 +44,12 @@ const db_enum_t __enum_set_state[] = {
     { NULL, 0 }
 };
 
-db_object_t* __key_state_new_object(const db_connection_t* connection) {
+/**
+ * Create a new key state object.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a key_state_t pointer or NULL on error.
+ */
+static db_object_t* __key_state_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
     db_object_t* object;
@@ -277,6 +282,63 @@ int key_state_ttl(const key_state_t* key_state) {
     }
 
     return key_state->ttl;
+}
+
+int key_state_set_state(key_state_t* key_state, key_state_rrstate_t state) {
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state->state = state;
+
+    return DB_OK;
+}
+
+int key_state_set_state_text(key_state_t* key_state, const char* state) {
+    const db_enum_t* enum_set = __enum_set_state;
+
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    while (enum_set->text) {
+        if (!strcmp(enum_set->text, state)) {
+            key_state->state = enum_set->value;
+            return DB_OK;
+        }
+        enum_set++;
+    }
+    return DB_ERROR_UNKNOWN;
+}
+
+int key_state_set_last_change(key_state_t* key_state, int last_change) {
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state->last_change = last_change;
+
+    return DB_OK;
+}
+
+int key_state_set_minimize(key_state_t* key_state, int minimize) {
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state->minimize = minimize;
+
+    return DB_OK;
+}
+
+int key_state_set_ttl(key_state_t* key_state, int ttl) {
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state->ttl = ttl;
+
+    return DB_OK;
 }
 
 int key_state_get_by_id(key_state_t* key_state, int id) {

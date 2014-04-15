@@ -58,6 +58,9 @@ typedef enum key_state_rrstate {
 extern "C" {
 #endif
 
+/**
+ * TODO
+ */
 struct key_state {
     db_object_t* dbo;
     int id;
@@ -67,19 +70,137 @@ struct key_state {
     int ttl;
 };
 
-key_state_t* key_state_new(const db_connection_t*);
-void key_state_free(key_state_t*);
-void key_state_reset(key_state_t*);
-int key_state_copy(key_state_t*, const key_state_t*);
-int key_state_from_result(key_state_t*, const db_result_t*);
-int key_state_id(const key_state_t*);
-key_state_rrstate_t key_state_state(const key_state_t*);
-const char* key_state_state_text(const key_state_t*);
-int key_state_last_change(const key_state_t*);
-int key_state_minimize(const key_state_t*);
-int key_state_ttl(const key_state_t*);
-int key_state_get_by_id(key_state_t*, int);
+/**
+ * Create a new key state object.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a key_state_t pointer or NULL on error.
+ */
+key_state_t* key_state_new(const db_connection_t* connection);
 
+/**
+ * Delete a key state object, this does not delete it from the database.
+ * \param[in] key_state a key_state_t pointer.
+ */
+void key_state_free(key_state_t* key_state);
+
+/**
+ * Reset the content of a key state object making it as if its new. This does not
+ * change anything in the database.
+ * \param[in] key_state a key_state_t pointer.
+ */
+void key_state_reset(key_state_t* key_state);
+
+/**
+ * Copy the content of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] key_state_copy a key_state_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy);
+
+/**
+ * Set the content of a key state object based on a database result.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] result a db_result_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_from_result(key_state_t* key_state, const db_result_t* result);
+
+/**
+ * Get the ID of a key state object. Undefined behavior if `key_state` is NULL.
+ * \param[in] key_state a key_state_t pointer.
+ * \return an integer.
+ */
+int key_state_id(const key_state_t* key_state);
+
+/**
+ * Get the RR state of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return a key_state_rrstate_t.
+ */
+key_state_rrstate_t key_state_state(const key_state_t* key_state);
+
+/**
+ * Get the RR state as text of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return a character pointer.
+ */
+const char* key_state_state_text(const key_state_t* key_state);
+
+/**
+ * Get the last change of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return an integer.
+ */
+int key_state_last_change(const key_state_t* key_state);
+
+/**
+ * Get the minimize of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return an integer.
+ */
+int key_state_minimize(const key_state_t* key_state);
+
+/**
+ * Get the TTL of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return an integer.
+ */
+int key_state_ttl(const key_state_t* key_state);
+
+/**
+ * Set the RR state of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] state a key_state_rrstate_t.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_set_state(key_state_t* key_state, key_state_rrstate_t state);
+
+/**
+ * Set the RR state of a key state object from text.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] state a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_set_state_text(key_state_t* key_state, const char* state);
+
+/**
+ * Set the last change of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] last_change an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_set_last_change(key_state_t* key_state, int last_change);
+
+/**
+ * Set the minimize of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] minimize an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_set_minimize(key_state_t* key_state, int minimize);
+
+/**
+ * Set the TTL of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] ttl an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_set_ttl(key_state_t* key_state, int ttl);
+
+/**
+ * Get a key state object from the database by an id specified in `id`.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] id an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_get_by_id(key_state_t* key_state, int id);
+
+/* TODO: create/read/update/delete */
+
+/**
+ * A list of key state objects.
+ */
 struct key_state_list {
     db_object_t* dbo;
     db_result_list_t* result_list;
@@ -87,11 +208,46 @@ struct key_state_list {
     key_state_t* key_state;
 };
 
-key_state_list_t* key_state_list_new(const db_connection_t*);
-void key_state_list_free(key_state_list_t*);
-int key_state_list_get_4_by_id(key_state_list_t*, int, int, int, int);
-const key_state_t* key_state_list_begin(key_state_list_t*);
-const key_state_t* key_state_list_next(key_state_list_t*);
+/**
+ * Create a new key state object list.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a key_state_list_t pointer or NULL on error.
+ */
+key_state_list_t* key_state_list_new(const db_connection_t* connection);
+
+/**
+ * Delete a key state object list
+ * \param[in] key_state_list a key_state_list_t pointer.
+ */
+void key_state_list_free(key_state_list_t* key_state_list);
+
+/**
+ * Get 4 key state objects from the database.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \param[in] id1 an integer.
+ * \param[in] id2 an integer.
+ * \param[in] id3 an integer.
+ * \param[in] id4 an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id2, int id3, int id4);
+
+/**
+ * Get the first key state object in a key state object list. This will reset
+ * the position of the list.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \return a key_state_t pointer or NULL on error or if there are no
+ * key state objects in the key state object list.
+ */
+const key_state_t* key_state_list_begin(key_state_list_t* key_state_list);
+
+/**
+ * Get the next key state object in a key state object list.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \return a key_state_t pointer or NULL on error or if there are no more
+ * key state objects in the key state object list.
+ */
+const key_state_t* key_state_list_next(key_state_list_t* key_state_list);
 
 #ifdef __cplusplus
 }
