@@ -43,4 +43,180 @@ typedef struct key_dependency_list key_dependency_list_t;
 }
 #endif
 
+#include "db_object.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct key_dependency {
+    db_object_t* dbo;
+    int id;
+    int rrtype;
+    char* to_key;
+    char* from_key;
+};
+
+/**
+ * Create a new key dependency object.
+ * \param[in] connection a db_connection_t pointer.
+ * \return an key_dependency_t pointer or NULL on error.
+ */
+key_dependency_t* key_dependency_new(const db_connection_t* connection);
+
+/**
+ * Delete an key dependency object, this does not delete it from the database.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ */
+void key_dependency_free(key_dependency_t* key_dependency);
+
+/**
+ * Reset an key dependency object.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ */
+void key_dependency_reset(key_dependency_t* key_dependency);
+
+/**
+ * Set the content of an key dependency object based on a database result.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \param[in] result a db_result_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_from_result(key_dependency_t* key_dependency, const db_result_t* result);
+
+/**
+ * Get the ID of an key dependency object. Undefined behavior if
+ * `key_dependency` is NULL.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \return an integer.
+ */
+int key_dependency_id(const key_dependency_t* key_dependency);
+
+/**
+ * Get the rrtype of an key dependency object. Undefined behavior if
+ * `key_dependency` is NULL.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \return a character pointer.
+ */
+int key_dependency_rrtype(const key_dependency_t* key_dependency);
+
+/**
+ * Get the from key of an key dependency object. Undefined behavior if
+ * `key_dependency` is NULL.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \return a character pointer.
+ */
+const char* key_dependency_from_key(const key_dependency_t* key_dependency);
+
+/**
+ * Get the to key of an key dependency object. Undefined behavior if
+ * `key_dependency` is NULL.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \return an integer.
+ */
+const char* key_dependency_to_key(const key_dependency_t* key_dependency);
+
+/**
+ * Set the rrtype of an key dependency object.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \param[in] rrtype an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_set_rrtype(key_dependency_t* key_dependency, int rrtype);
+
+/**
+ * Set the from key of an key dependency object.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \param[in] from_key a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_set_from_key(key_dependency_t* key_dependency, const char* from_key);
+
+/**
+ * Set the to key needs writing of an key dependency object.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \param[in] to_key a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_set_to_key(key_dependency_t* key_dependency, const char* to_key);
+
+/**
+ * Create an key dependency object in the database.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_create(key_dependency_t* key_dependency);
+
+/**
+ * Get an key dependency object from the database by an id specified in `id`.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \param[in] id an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_get_by_id(key_dependency_t* key_dependency, int id);
+
+/**
+ * Update an key dependency object in the database.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_update(key_dependency_t* key_dependency);
+
+/**
+ * Delete an key dependency object from the database.
+ * \param[in] key_dependency an key_dependency_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_delete(key_dependency_t* key_dependency);
+
+/**
+ * A list of key dependencies objects.
+ */
+struct key_dependency_list {
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    key_dependency_t* key_dependency;
+};
+
+/**
+ * Create a new key dependency object list.
+ * \param[in] connection a db_connection_t pointer.
+ * \return an key_dependency_list_t pointer or NULL on error.
+ */
+key_dependency_list_t* key_dependency_list_new(const db_connection_t* connection);
+
+/**
+ * Delete an key dependency object list
+ * \param[in] key_dependency_list an key_dependency_list_t pointer.
+ */
+void key_dependency_list_free(key_dependency_list_t* key_dependency_list);
+
+/**
+ * Get all key dependency objects.
+ * \param[in] key_dependency_list an key_dependency_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_list_get(key_dependency_list_t* key_dependency_list);
+
+/**
+ * Get the first key dependency object in an key dependency object list. This
+ * will reset the position of the list.
+ * \param[in] key_dependency_list an key_dependency_list_t pointer.
+ * \return a key_dependency_t pointer or NULL on error or if there are no
+ * key dependency objects in the key dependency object list.
+ */
+const key_dependency_t* key_dependency_list_begin(key_dependency_list_t* key_dependency_list);
+
+/**
+ * Get the next key dependency object in an key dependency object list.
+ * \param[in] key_dependency_list an key_dependency_list_t pointer.
+ * \return a key_dependency_t pointer or NULL on error or if there are no more
+ * key dependency objects in the key dependency object list.
+ */
+const key_dependency_t* key_dependency_list_next(key_dependency_list_t* key_dependency_list);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
