@@ -268,7 +268,7 @@ int key_data_set_inception(key_data_t* key_data, int inception);
 int key_data_set_role(key_data_t* key_data, key_data_keyrole_t role);
 
 /**
- * Set the role as text of a key data object.
+ * Set the role of a key data object from text.
  * \param[in] key_data a key_data_t pointer.
  * \param[in] role a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -332,7 +332,7 @@ int key_data_set_active_ksk(key_data_t* key_data, int active_ksk);
 int key_data_set_ds_at_parent(key_data_t* key_data, key_data_dsatparent_t ds_at_parent);
 
 /**
- * Set the DS at parent as text of a key data object.
+ * Set the DS at parent of a key data object from text.
  * \param[in] key_data a key_data_t pointer.
  * \param[in] ds_at_parent a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
