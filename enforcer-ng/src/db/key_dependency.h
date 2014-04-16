@@ -52,7 +52,7 @@ extern "C" {
 struct key_dependency {
     db_object_t* dbo;
     int id;
-    int rrtype;
+    unsigned int rrtype;
     char* to_key;
     char* from_key;
 };
@@ -97,9 +97,9 @@ int key_dependency_id(const key_dependency_t* key_dependency);
  * Get the rrtype of a key dependency object. Undefined behavior if
  * `key_dependency` is NULL.
  * \param[in] key_dependency a key_dependency_t pointer.
- * \return a character pointer.
+ * \return an unsigned integer.
  */
-int key_dependency_rrtype(const key_dependency_t* key_dependency);
+unsigned int key_dependency_rrtype(const key_dependency_t* key_dependency);
 
 /**
  * Get the from key of a key dependency object.
@@ -118,10 +118,10 @@ const char* key_dependency_to_key(const key_dependency_t* key_dependency);
 /**
  * Set the rrtype of a key dependency object.
  * \param[in] key_dependency a key_dependency_t pointer.
- * \param[in] rrtype an integer.
+ * \param[in] rrtype an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_dependency_set_rrtype(key_dependency_t* key_dependency, int rrtype);
+int key_dependency_set_rrtype(key_dependency_t* key_dependency, unsigned int rrtype);
 
 /**
  * Set the from key of a key dependency object.

@@ -68,7 +68,7 @@ static db_object_t* __key_dependency_new_object(const db_connection_t* connectio
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "rrtype")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -170,7 +170,7 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 4
         || db_value_to_int32(db_value_set_at(value_set, 0), &(key_dependency->id))
-        || db_value_to_int32(db_value_set_at(value_set, 1), &(key_dependency->rrtype))
+        || db_value_to_uint32(db_value_set_at(value_set, 1), &(key_dependency->rrtype))
         || db_value_to_text(db_value_set_at(value_set, 2), &(key_dependency->from_key))
         || db_value_to_text(db_value_set_at(value_set, 3), &(key_dependency->to_key)))
     {
@@ -187,7 +187,7 @@ int key_dependency_id(const key_dependency_t* key_dependency) {
     return key_dependency->id;
 }
 
-int key_dependency_rrtype(const key_dependency_t* key_dependency) {
+unsigned int key_dependency_rrtype(const key_dependency_t* key_dependency) {
     if (!key_dependency) {
         return 0;
     }
@@ -211,7 +211,7 @@ const char* key_dependency_to_key(const key_dependency_t* key_dependency) {
     return key_dependency->to_key;
 }
 
-int key_dependency_set_rrtype(key_dependency_t* key_dependency, int rrtype) {
+int key_dependency_set_rrtype(key_dependency_t* key_dependency, unsigned int rrtype) {
     if (!key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
@@ -293,7 +293,7 @@ int key_dependency_create(key_dependency_t* key_dependency) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "rrtype")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -326,7 +326,7 @@ int key_dependency_create(key_dependency_t* key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), key_dependency->rrtype)
+    if (db_value_from_uint32(db_value_set_get(value_set, 0), key_dependency->rrtype)
         || db_value_from_text(db_value_set_get(value_set, 1), key_dependency->from_key)
         || db_value_from_text(db_value_set_get(value_set, 2), key_dependency->to_key))
     {
@@ -420,7 +420,7 @@ int key_dependency_update(key_dependency_t* key_dependency) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "rrtype")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -453,7 +453,7 @@ int key_dependency_update(key_dependency_t* key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), key_dependency->rrtype)
+    if (db_value_from_uint32(db_value_set_get(value_set, 0), key_dependency->rrtype)
         || db_value_from_text(db_value_set_get(value_set, 1), key_dependency->from_key)
         || db_value_from_text(db_value_set_get(value_set, 2), key_dependency->to_key))
     {

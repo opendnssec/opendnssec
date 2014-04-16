@@ -96,7 +96,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "algorithm")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -107,7 +107,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "inception")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -130,7 +130,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "introducing")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -141,7 +141,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "shouldrevoke")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -152,7 +152,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "standby")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -163,7 +163,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "active_zsk")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -174,7 +174,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "publish")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -185,7 +185,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "active_ksk")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -208,7 +208,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "keytag")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -373,17 +373,17 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
         || db_value_set_size(value_set) != 17
         || db_value_to_int32(db_value_set_at(value_set, 0), &(key_data->id))
         || db_value_to_text(db_value_set_at(value_set, 1), &(key_data->locator))
-        || db_value_to_int32(db_value_set_at(value_set, 2), &(key_data->algorithm))
-        || db_value_to_int32(db_value_set_at(value_set, 3), &(key_data->inception))
+        || db_value_to_uint32(db_value_set_at(value_set, 2), &(key_data->algorithm))
+        || db_value_to_uint32(db_value_set_at(value_set, 3), &(key_data->inception))
         || db_value_to_enum_value(db_value_set_at(value_set, 4), &role, __enum_set_keyrole)
-        || db_value_to_int32(db_value_set_at(value_set, 5), &(key_data->introducing))
-        || db_value_to_int32(db_value_set_at(value_set, 6), &(key_data->shouldrevoke))
-        || db_value_to_int32(db_value_set_at(value_set, 7), &(key_data->standby))
-        || db_value_to_int32(db_value_set_at(value_set, 8), &(key_data->active_zsk))
-        || db_value_to_int32(db_value_set_at(value_set, 9), &(key_data->publish))
-        || db_value_to_int32(db_value_set_at(value_set, 10), &(key_data->active_ksk))
+        || db_value_to_uint32(db_value_set_at(value_set, 5), &(key_data->introducing))
+        || db_value_to_uint32(db_value_set_at(value_set, 6), &(key_data->shouldrevoke))
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(key_data->standby))
+        || db_value_to_uint32(db_value_set_at(value_set, 8), &(key_data->active_zsk))
+        || db_value_to_uint32(db_value_set_at(value_set, 9), &(key_data->publish))
+        || db_value_to_uint32(db_value_set_at(value_set, 10), &(key_data->active_ksk))
         || db_value_to_enum_value(db_value_set_at(value_set, 11), &ds_at_parent, __enum_set_dsatparent)
-        || db_value_to_int32(db_value_set_at(value_set, 12), &(key_data->keytag))
+        || db_value_to_uint32(db_value_set_at(value_set, 12), &(key_data->keytag))
         || db_value_to_int32(db_value_set_at(value_set, 13), &(key_data->ds))
         || db_value_to_int32(db_value_set_at(value_set, 14), &(key_data->rrsig))
         || db_value_to_int32(db_value_set_at(value_set, 15), &(key_data->dnskey))
@@ -446,7 +446,7 @@ const char* key_data_locator(const key_data_t* key_data) {
     return key_data->locator;
 }
 
-int key_data_algorithm(const key_data_t* key_data) {
+unsigned int key_data_algorithm(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
     }
@@ -454,7 +454,7 @@ int key_data_algorithm(const key_data_t* key_data) {
     return key_data->algorithm;
 }
 
-int key_data_inception(const key_data_t* key_data) {
+unsigned int key_data_inception(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
     }
@@ -486,7 +486,7 @@ const char* key_data_role_text(const key_data_t* key_data) {
     return NULL;
 }
 
-int key_data_introducing(const key_data_t* key_data) {
+unsigned int key_data_introducing(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
     }
@@ -494,7 +494,7 @@ int key_data_introducing(const key_data_t* key_data) {
     return key_data->introducing;
 }
 
-int key_data_shouldrevoke(const key_data_t* key_data) {
+unsigned int key_data_shouldrevoke(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
     }
@@ -502,7 +502,7 @@ int key_data_shouldrevoke(const key_data_t* key_data) {
     return key_data->shouldrevoke;
 }
 
-int key_data_standby(const key_data_t* key_data) {
+unsigned int key_data_standby(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
     }
@@ -510,7 +510,7 @@ int key_data_standby(const key_data_t* key_data) {
     return key_data->standby;
 }
 
-int key_data_active_zsk(const key_data_t* key_data) {
+unsigned int key_data_active_zsk(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
     }
@@ -518,7 +518,7 @@ int key_data_active_zsk(const key_data_t* key_data) {
     return key_data->active_zsk;
 }
 
-int key_data_publish(const key_data_t* key_data) {
+unsigned int key_data_publish(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
     }
@@ -526,7 +526,7 @@ int key_data_publish(const key_data_t* key_data) {
     return key_data->publish;
 }
 
-int key_data_active_ksk(const key_data_t* key_data) {
+unsigned int key_data_active_ksk(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
     }
@@ -558,6 +558,14 @@ const char* key_data_ds_at_parent_text(const key_data_t* key_data) {
     return NULL;
 }
 
+unsigned int key_data_keytag(const key_data_t* key_data) {
+    if (!key_data) {
+        return 0;
+    }
+
+    return key_data->keytag;
+}
+
 int key_data_set_locator(key_data_t* key_data, const char* locator) {
     char* new_locator;
 
@@ -580,7 +588,7 @@ int key_data_set_locator(key_data_t* key_data, const char* locator) {
     return DB_OK;
 }
 
-int key_data_set_algorithm(key_data_t* key_data, int algorithm) {
+int key_data_set_algorithm(key_data_t* key_data, unsigned int algorithm) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -590,7 +598,7 @@ int key_data_set_algorithm(key_data_t* key_data, int algorithm) {
     return DB_OK;
 }
 
-int key_data_set_inception(key_data_t* key_data, int inception) {
+int key_data_set_inception(key_data_t* key_data, unsigned int inception) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -627,7 +635,7 @@ int key_data_set_role_text(key_data_t* key_data, const char* role) {
     return DB_ERROR_UNKNOWN;
 }
 
-int key_data_set_introducing(key_data_t* key_data, int introducing) {
+int key_data_set_introducing(key_data_t* key_data, unsigned int introducing) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -637,7 +645,7 @@ int key_data_set_introducing(key_data_t* key_data, int introducing) {
     return DB_OK;
 }
 
-int key_data_set_shouldrevoke(key_data_t* key_data, int shouldrevoke) {
+int key_data_set_shouldrevoke(key_data_t* key_data, unsigned int shouldrevoke) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -647,7 +655,7 @@ int key_data_set_shouldrevoke(key_data_t* key_data, int shouldrevoke) {
     return DB_OK;
 }
 
-int key_data_set_standby(key_data_t* key_data, int standby) {
+int key_data_set_standby(key_data_t* key_data, unsigned int standby) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -657,7 +665,7 @@ int key_data_set_standby(key_data_t* key_data, int standby) {
     return DB_OK;
 }
 
-int key_data_set_active_zsk(key_data_t* key_data, int active_zsk) {
+int key_data_set_active_zsk(key_data_t* key_data, unsigned int active_zsk) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -667,7 +675,7 @@ int key_data_set_active_zsk(key_data_t* key_data, int active_zsk) {
     return DB_OK;
 }
 
-int key_data_set_publish(key_data_t* key_data, int publish) {
+int key_data_set_publish(key_data_t* key_data, unsigned int publish) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -677,7 +685,7 @@ int key_data_set_publish(key_data_t* key_data, int publish) {
     return DB_OK;
 }
 
-int key_data_set_active_ksk(key_data_t* key_data, int active_ksk) {
+int key_data_set_active_ksk(key_data_t* key_data, unsigned int active_ksk) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -712,6 +720,16 @@ int key_data_set_ds_at_parent_text(key_data_t* key_data, const char* ds_at_paren
         enum_set++;
     }
     return DB_ERROR_UNKNOWN;
+}
+
+int key_data_set_keytag(key_data_t* key_data, unsigned int keytag) {
+    if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_data->keytag = keytag;
+
+    return DB_OK;
 }
 
 int key_data_get_key_state_list(key_data_t* key_data) {
@@ -962,7 +980,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "algorithm")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -972,7 +990,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "inception")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -993,7 +1011,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "introducing")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1003,7 +1021,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "shouldrevoke")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1013,7 +1031,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "standby")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1023,7 +1041,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "active_zsk")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1033,7 +1051,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "publish")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1043,7 +1061,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "active_ksk")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1064,7 +1082,7 @@ int key_data_create(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "keytag")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1118,17 +1136,17 @@ int key_data_create(key_data_t* key_data) {
     }
 
     if (db_value_from_text(db_value_set_get(value_set, 0), key_data->locator)
-        || db_value_from_int32(db_value_set_get(value_set, 1), key_data->algorithm)
-        || db_value_from_int32(db_value_set_get(value_set, 2), key_data->inception)
+        || db_value_from_uint32(db_value_set_get(value_set, 1), key_data->algorithm)
+        || db_value_from_uint32(db_value_set_get(value_set, 2), key_data->inception)
         || db_value_from_enum_value(db_value_set_get(value_set, 3), key_data->role, __enum_set_keyrole)
-        || db_value_from_int32(db_value_set_get(value_set, 4), key_data->introducing)
-        || db_value_from_int32(db_value_set_get(value_set, 5), key_data->shouldrevoke)
-        || db_value_from_int32(db_value_set_get(value_set, 6), key_data->standby)
-        || db_value_from_int32(db_value_set_get(value_set, 7), key_data->active_zsk)
-        || db_value_from_int32(db_value_set_get(value_set, 8), key_data->publish)
-        || db_value_from_int32(db_value_set_get(value_set, 9), key_data->active_ksk)
+        || db_value_from_uint32(db_value_set_get(value_set, 4), key_data->introducing)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), key_data->shouldrevoke)
+        || db_value_from_uint32(db_value_set_get(value_set, 6), key_data->standby)
+        || db_value_from_uint32(db_value_set_get(value_set, 7), key_data->active_zsk)
+        || db_value_from_uint32(db_value_set_get(value_set, 8), key_data->publish)
+        || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 10), key_data->ds_at_parent, __enum_set_dsatparent)
-        || db_value_from_int32(db_value_set_get(value_set, 11), key_data->keytag)
+        || db_value_from_uint32(db_value_set_get(value_set, 11), key_data->keytag)
         || db_value_from_int32(db_value_set_get(value_set, 12), key_data->ds)
         || db_value_from_int32(db_value_set_get(value_set, 13), key_data->rrsig)
         || db_value_from_int32(db_value_set_get(value_set, 14), key_data->dnskey)
@@ -1231,7 +1249,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "algorithm")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1241,7 +1259,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "inception")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1262,7 +1280,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "introducing")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1272,7 +1290,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "shouldrevoke")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1282,7 +1300,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "standby")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1292,7 +1310,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "active_zsk")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1302,7 +1320,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "publish")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1312,7 +1330,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "active_ksk")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1333,7 +1351,7 @@ int key_data_update(key_data_t* key_data) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "keytag")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1387,17 +1405,17 @@ int key_data_update(key_data_t* key_data) {
     }
 
     if (db_value_from_text(db_value_set_get(value_set, 0), key_data->locator)
-        || db_value_from_int32(db_value_set_get(value_set, 1), key_data->algorithm)
-        || db_value_from_int32(db_value_set_get(value_set, 2), key_data->inception)
+        || db_value_from_uint32(db_value_set_get(value_set, 1), key_data->algorithm)
+        || db_value_from_uint32(db_value_set_get(value_set, 2), key_data->inception)
         || db_value_from_enum_value(db_value_set_get(value_set, 3), key_data->role, __enum_set_keyrole)
-        || db_value_from_int32(db_value_set_get(value_set, 4), key_data->introducing)
-        || db_value_from_int32(db_value_set_get(value_set, 5), key_data->shouldrevoke)
-        || db_value_from_int32(db_value_set_get(value_set, 6), key_data->standby)
-        || db_value_from_int32(db_value_set_get(value_set, 7), key_data->active_zsk)
-        || db_value_from_int32(db_value_set_get(value_set, 8), key_data->publish)
-        || db_value_from_int32(db_value_set_get(value_set, 9), key_data->active_ksk)
+        || db_value_from_uint32(db_value_set_get(value_set, 4), key_data->introducing)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), key_data->shouldrevoke)
+        || db_value_from_uint32(db_value_set_get(value_set, 6), key_data->standby)
+        || db_value_from_uint32(db_value_set_get(value_set, 7), key_data->active_zsk)
+        || db_value_from_uint32(db_value_set_get(value_set, 8), key_data->publish)
+        || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 10), key_data->ds_at_parent, __enum_set_dsatparent)
-        || db_value_from_int32(db_value_set_get(value_set, 11), key_data->keytag)
+        || db_value_from_uint32(db_value_set_get(value_set, 11), key_data->keytag)
         || db_value_from_int32(db_value_set_get(value_set, 12), key_data->ds)
         || db_value_from_int32(db_value_set_get(value_set, 13), key_data->rrsig)
         || db_value_from_int32(db_value_set_get(value_set, 14), key_data->dnskey)

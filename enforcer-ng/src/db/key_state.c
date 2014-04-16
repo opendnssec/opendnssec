@@ -89,7 +89,7 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "last_change")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -100,7 +100,7 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "minimize")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -111,7 +111,7 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -199,9 +199,9 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
         || db_value_set_size(value_set) != 5
         || db_value_to_int32(db_value_set_at(value_set, 0), &(key_state->id))
         || db_value_to_enum_value(db_value_set_at(value_set, 1), &state, __enum_set_state)
-        || db_value_to_int32(db_value_set_at(value_set, 2), &(key_state->last_change))
-        || db_value_to_int32(db_value_set_at(value_set, 3), &(key_state->minimize))
-        || db_value_to_int32(db_value_set_at(value_set, 4), &(key_state->ttl)))
+        || db_value_to_uint32(db_value_set_at(value_set, 2), &(key_state->last_change))
+        || db_value_to_uint32(db_value_set_at(value_set, 3), &(key_state->minimize))
+        || db_value_to_uint32(db_value_set_at(value_set, 4), &(key_state->ttl)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -260,7 +260,7 @@ const char* key_state_state_text(const key_state_t* key_state) {
     return NULL;
 }
 
-int key_state_last_change(const key_state_t* key_state) {
+unsigned int key_state_last_change(const key_state_t* key_state) {
     if (!key_state) {
         return 0;
     }
@@ -268,7 +268,7 @@ int key_state_last_change(const key_state_t* key_state) {
     return key_state->last_change;
 }
 
-int key_state_minimize(const key_state_t* key_state) {
+unsigned int key_state_minimize(const key_state_t* key_state) {
     if (!key_state) {
         return 0;
     }
@@ -276,7 +276,7 @@ int key_state_minimize(const key_state_t* key_state) {
     return key_state->minimize;
 }
 
-int key_state_ttl(const key_state_t* key_state) {
+unsigned int key_state_ttl(const key_state_t* key_state) {
     if (!key_state) {
         return 0;
     }
@@ -311,7 +311,7 @@ int key_state_set_state_text(key_state_t* key_state, const char* state) {
     return DB_ERROR_UNKNOWN;
 }
 
-int key_state_set_last_change(key_state_t* key_state, int last_change) {
+int key_state_set_last_change(key_state_t* key_state, unsigned int last_change) {
     if (!key_state) {
         return DB_ERROR_UNKNOWN;
     }
@@ -321,7 +321,7 @@ int key_state_set_last_change(key_state_t* key_state, int last_change) {
     return DB_OK;
 }
 
-int key_state_set_minimize(key_state_t* key_state, int minimize) {
+int key_state_set_minimize(key_state_t* key_state, unsigned int minimize) {
     if (!key_state) {
         return DB_ERROR_UNKNOWN;
     }
@@ -331,7 +331,7 @@ int key_state_set_minimize(key_state_t* key_state, int minimize) {
     return DB_OK;
 }
 
-int key_state_set_ttl(key_state_t* key_state, int ttl) {
+int key_state_set_ttl(key_state_t* key_state, unsigned int ttl) {
     if (!key_state) {
         return DB_ERROR_UNKNOWN;
     }
@@ -374,7 +374,7 @@ int key_state_create(key_state_t* key_state) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "last_change")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -384,7 +384,7 @@ int key_state_create(key_state_t* key_state) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "minimize")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -394,7 +394,7 @@ int key_state_create(key_state_t* key_state) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -408,9 +408,9 @@ int key_state_create(key_state_t* key_state) {
     }
 
     if (db_value_from_int32(db_value_set_get(value_set, 0), key_state->state)
-        || db_value_from_int32(db_value_set_get(value_set, 1), key_state->last_change)
-        || db_value_from_int32(db_value_set_get(value_set, 2), key_state->minimize)
-        || db_value_from_int32(db_value_set_get(value_set, 3), key_state->ttl))
+        || db_value_from_uint32(db_value_set_get(value_set, 1), key_state->last_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 2), key_state->minimize)
+        || db_value_from_uint32(db_value_set_get(value_set, 3), key_state->ttl))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -506,7 +506,7 @@ int key_state_update(key_state_t* key_state) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "last_change")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -516,7 +516,7 @@ int key_state_update(key_state_t* key_state) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "minimize")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -526,7 +526,7 @@ int key_state_update(key_state_t* key_state) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -540,9 +540,9 @@ int key_state_update(key_state_t* key_state) {
     }
 
     if (db_value_from_int32(db_value_set_get(value_set, 0), key_state->state)
-        || db_value_from_int32(db_value_set_get(value_set, 1), key_state->last_change)
-        || db_value_from_int32(db_value_set_get(value_set, 2), key_state->minimize)
-        || db_value_from_int32(db_value_set_get(value_set, 3), key_state->ttl))
+        || db_value_from_uint32(db_value_set_get(value_set, 1), key_state->last_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 2), key_state->minimize)
+        || db_value_from_uint32(db_value_set_get(value_set, 3), key_state->ttl))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

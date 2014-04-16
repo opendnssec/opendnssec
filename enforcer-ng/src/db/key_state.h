@@ -65,9 +65,9 @@ struct key_state {
     db_object_t* dbo;
     int id;
     key_state_rrstate_t state;
-    int last_change;
-    int minimize;
-    int ttl;
+    unsigned int last_change;
+    unsigned int minimize;
+    unsigned int ttl;
 };
 
 /**
@@ -132,24 +132,24 @@ const char* key_state_state_text(const key_state_t* key_state);
  * Get the last change of a key state object. Undefined behavior if `key_state`
  * is NULL.
  * \param[in] key_state a key_state_t pointer.
- * \return an integer.
+ * \return an unsigned integer.
  */
-int key_state_last_change(const key_state_t* key_state);
+unsigned int key_state_last_change(const key_state_t* key_state);
 
 /**
  * Get the minimize of a key state object. Undefined behavior if `key_state` is
  * NULL.
  * \param[in] key_state a key_state_t pointer.
- * \return an integer.
+ * \return an unsigned integer.
  */
-int key_state_minimize(const key_state_t* key_state);
+unsigned int key_state_minimize(const key_state_t* key_state);
 
 /**
  * Get the TTL of a key state object. Undefined behavior if `key_state` is NULL.
  * \param[in] key_state a key_state_t pointer.
- * \return an integer.
+ * \return an unsigned integer.
  */
-int key_state_ttl(const key_state_t* key_state);
+unsigned int key_state_ttl(const key_state_t* key_state);
 
 /**
  * Set the RR state of a key state object.
@@ -170,26 +170,26 @@ int key_state_set_state_text(key_state_t* key_state, const char* state);
 /**
  * Set the last change of a key state object.
  * \param[in] key_state a key_state_t pointer.
- * \param[in] last_change an integer.
+ * \param[in] last_change an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_last_change(key_state_t* key_state, int last_change);
+int key_state_set_last_change(key_state_t* key_state, unsigned int last_change);
 
 /**
  * Set the minimize of a key state object.
  * \param[in] key_state a key_state_t pointer.
- * \param[in] minimize an integer.
+ * \param[in] minimize an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_minimize(key_state_t* key_state, int minimize);
+int key_state_set_minimize(key_state_t* key_state, unsigned int minimize);
 
 /**
  * Set the TTL of a key state object.
  * \param[in] key_state a key_state_t pointer.
- * \param[in] ttl an integer.
+ * \param[in] ttl an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_ttl(key_state_t* key_state, int ttl);
+int key_state_set_ttl(key_state_t* key_state, unsigned int ttl);
 
 /**
  * Create a key state object in the database.

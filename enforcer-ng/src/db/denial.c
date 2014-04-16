@@ -37,7 +37,7 @@
 /**
  * Create a new denial object.
  * \param[in] connection a db_connection_t pointer.
- * \return an denial_t pointer or NULL on error.
+ * \return a denial_t pointer or NULL on error.
  */
 static db_object_t* __denial_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;

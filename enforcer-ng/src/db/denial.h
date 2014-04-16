@@ -62,93 +62,93 @@ struct denial {
 /**
  * Create a new denial object.
  * \param[in] connection a db_connection_t pointer.
- * \return an denial_t pointer or NULL on error.
+ * \return a denial_t pointer or NULL on error.
  */
 denial_t* denial_new(const db_connection_t* connection);
 
 /**
- * Delete an denial object, this does not delete it from the database.
- * \param[in] denial an denial_t pointer.
+ * Delete a denial object, this does not delete it from the database.
+ * \param[in] denial a denial_t pointer.
  */
 void denial_free(denial_t* denial);
 
 /**
- * Reset the content of an denial object making it as if its new. This does not
+ * Reset the content of a denial object making it as if its new. This does not
  * change anything in the database.
- * \param[in] denial an denial_t pointer.
+ * \param[in] denial a denial_t pointer.
  */
 void denial_reset(denial_t* denial);
 
 /**
- * Set the content of an denial object based on a database result.
- * \param[in] denial an denial_t pointer.
+ * Set the content of a denial object based on a database result.
+ * \param[in] denial a denial_t pointer.
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int denial_from_result(denial_t* denial, const db_result_t* result);
 
 /**
- * Get the ID of an denial object. Undefined behavior if `denial` is NULL.
- * \param[in] denial an denial_t pointer.
+ * Get the ID of a denial object. Undefined behavior if `denial` is NULL.
+ * \param[in] denial a denial_t pointer.
  * \return an integer.
  */
 int denial_id(const denial_t* denial);
 
 /**
- * Get the nsec of an denial object. Undefined behavior if `denial` is NULL.
- * \param[in] denial an denial_t pointer.
+ * Get the nsec of a denial object. Undefined behavior if `denial` is NULL.
+ * \param[in] denial a denial_t pointer.
  * \return an integer.
  */
 int denial_nsec(const denial_t* denial);
 
 /**
- * Get the nsec3 of an denial object. Undefined behavior if `denial` is NULL.
- * \param[in] denial an denial_t pointer.
+ * Get the nsec3 of a denial object. Undefined behavior if `denial` is NULL.
+ * \param[in] denial a denial_t pointer.
  * \return an integer.
  */
 int denial_nsec3(const denial_t* denial);
 
 /**
- * Set the nsec of an denial object.
- * \param[in] denial an denial_t pointer.
+ * Set the nsec of a denial object.
+ * \param[in] denial a denial_t pointer.
  * \param[in] nsec an integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int denial_set_nsec(denial_t* denial, int nsec);
 
 /**
- * Set the nsec3 of an denial object.
- * \param[in] denial an denial_t pointer.
+ * Set the nsec3 of a denial object.
+ * \param[in] denial a denial_t pointer.
  * \param[in] nsec3 an integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int denial_set_nsec3(denial_t* denial, int nsec3);
 
 /**
- * Create an denial object in the database.
- * \param[in] denial an denial_t pointer.
+ * Create a denial object in the database.
+ * \param[in] denial a denial_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int denial_create(denial_t* denial);
 
 /**
- * Get an denial object from the database by an id specified in `id`.
- * \param[in] denial an denial_t pointer.
+ * Get a denial object from the database by an id specified in `id`.
+ * \param[in] denial a denial_t pointer.
  * \param[in] id an integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int denial_get_by_id(denial_t* denial, int id);
 
 /**
- * Update an denial object in the database.
- * \param[in] denial an denial_t pointer.
+ * Update a denial object in the database.
+ * \param[in] denial a denial_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int denial_update(denial_t* denial);
 
 /**
- * Delete an denial object from the database.
- * \param[in] denial an denial_t pointer.
+ * Delete a denial object from the database.
+ * \param[in] denial a denial_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int denial_delete(denial_t* denial);
