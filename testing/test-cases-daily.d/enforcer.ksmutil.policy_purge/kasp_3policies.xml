@@ -1,68 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
+<?xml version="1.0"  encoding="UTF-8"?>
 <KASP>
     <Policy name="default">
         <Description>default fast test policy</Description>
-        <Signatures>
-            <Resign>PT181S</Resign>
-            <Refresh>PT901S</Refresh>
-            <Validity>
-                <Default>PT3601S</Default>
-                <Denial>PT3601S</Denial>
-            </Validity>
-            <Jitter>PT61S</Jitter>
-            <InceptionOffset>PT60S</InceptionOffset>
-        </Signatures>
-        <Denial>
-            <NSEC3>
-                <OptOut/>
-                <Resalt>PT864001S</Resalt>
-                <Hash>
-                    <Algorithm>1</Algorithm>
-                    <Iterations>5</Iterations>
-                    <Salt length="8"/>
-                </Hash>
-            </NSEC3>
-        </Denial>
-        <Keys>
-            <TTL>PT601S</TTL>
-            <RetireSafety>PT600S</RetireSafety>
-            <PublishSafety>PT601S</PublishSafety>
-            <ShareKeys/>
-            <Purge>PT86400S</Purge>
-            <KSK>
-                <Algorithm length="1024">7</Algorithm>
-                <Lifetime>PT345601S</Lifetime>
-                <Repository>SoftHSM</Repository>
-            </KSK>
-            <ZSK>
-                <Algorithm length="2048">7</Algorithm>
-                <Lifetime>PT43201S</Lifetime>
-                <Repository>SoftHSM</Repository>
-
-            </ZSK>
-        </Keys>
-        <Zone>
-            <PropagationDelay>PT1801S</PropagationDelay>
-            <SOA>
-                <TTL>PT600S</TTL>
-                <Minimum>PT300S</Minimum>
-                <Serial>unixtime</Serial>
-            </SOA>
-        </Zone>
-        <Parent>
-            <PropagationDelay>PT1201S</PropagationDelay>
-            <DS>
-                <TTL>PT600S</TTL>
-            </DS>
-            <SOA>
-                <TTL>PT601S</TTL>
-                <Minimum>PT7200S</Minimum>
-            </SOA>
-        </Parent>
-    </Policy>
-    <Policy name="default2">
-        <Description>default fast test policy2</Description>
         <Signatures>
             <Resign>PT180S</Resign>
             <Refresh>PT900S</Refresh>
@@ -98,7 +37,68 @@
             </KSK>
             <ZSK>
                 <Algorithm length="1024">7</Algorithm>
-                <Lifetime>PT90000S</Lifetime>
+                <Lifetime>PT43200S</Lifetime>
+                <Repository>SoftHSM</Repository>
+                <Standby>0</Standby>
+            </ZSK>
+        </Keys>
+        <Zone>
+            <PropagationDelay>PT1800S</PropagationDelay>
+            <SOA>
+                <TTL>PT600S</TTL>
+                <Minimum>PT300S</Minimum>
+                <Serial>unixtime</Serial>
+            </SOA>
+        </Zone>
+        <Parent>
+            <PropagationDelay>PT1200S</PropagationDelay>
+            <DS>
+                <TTL>PT600S</TTL>
+            </DS>
+            <SOA>
+                <TTL>PT600S</TTL>
+                <Minimum>PT7200S</Minimum>
+            </SOA>
+        </Parent>
+    </Policy>
+    <Policy name="default2">
+        <Description>default fast test policy</Description>
+        <Signatures>
+            <Resign>PT180S</Resign>
+            <Refresh>PT900S</Refresh>
+            <Validity>
+                <Default>PT3600S</Default>
+                <Denial>PT3600S</Denial>
+            </Validity>
+            <Jitter>PT60S</Jitter>
+            <InceptionOffset>PT60S</InceptionOffset>
+        </Signatures>
+        <Denial>
+            <NSEC3>
+                <OptOut/>
+                <Resalt>PT864000S</Resalt>
+                <Hash>
+                    <Algorithm>1</Algorithm>
+                    <Iterations>5</Iterations>
+                    <Salt length="8"/>
+                </Hash>
+            </NSEC3>
+        </Denial>
+        <Keys>
+            <TTL>PT600S</TTL>
+            <RetireSafety>PT600S</RetireSafety>
+            <PublishSafety>PT600S</PublishSafety>
+            <ShareKeys/>
+            <Purge>PT86400S</Purge>
+            <KSK>
+                <Algorithm length="2048">7</Algorithm>
+                <Lifetime>PT345600S</Lifetime>
+                <Repository>SoftHSM</Repository>
+                <Standby>0</Standby>
+            </KSK>
+            <ZSK>
+                <Algorithm length="1024">7</Algorithm>
+                <Lifetime>PT43200S</Lifetime>
                 <Repository>SoftHSM</Repository>
                 <Standby>0</Standby>
             </ZSK>
@@ -123,7 +123,7 @@
         </Parent>
     </Policy>
     <Policy name="default3">
-        <Description>default fast test policy3</Description>
+        <Description>default fast test policy</Description>
         <Signatures>
             <Resign>PT180S</Resign>
             <Refresh>PT900S</Refresh>
@@ -159,7 +159,7 @@
             </KSK>
             <ZSK>
                 <Algorithm length="1024">7</Algorithm>
-                <Lifetime>PT90000S</Lifetime>
+                <Lifetime>PT43200S</Lifetime>
                 <Repository>SoftHSM</Repository>
                 <Standby>0</Standby>
             </ZSK>

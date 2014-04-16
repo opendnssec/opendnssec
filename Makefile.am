@@ -23,11 +23,8 @@ if ENABLE_EPPCLIENT
 SUBDIRS += plugins/eppclient
 endif
 
-migrationdir = $(datadir)/opendnssec/migration
-
-dist_migration_DATA = MIGRATION
-
 EXTRA_DIST =	$(srcdir)/KNOWN_ISSUES \
+		$(srcdir)/MIGRATION \
 		$(srcdir)/README.md \
 		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
