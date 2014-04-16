@@ -59,7 +59,7 @@ extern "C" {
 #endif
 
 /**
- * TODO
+ * A key state object.
  */
 struct key_state {
     db_object_t* dbo;
