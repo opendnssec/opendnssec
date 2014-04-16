@@ -120,6 +120,8 @@ adapter_t* adapter_new(const db_connection_t* connection) {
             mm_alloc_delete(&__adapter_alloc, adapter);
             return NULL;
         }
+
+        adapter->type = strdup("File");
     }
 
     return adapter;
@@ -153,7 +155,7 @@ void adapter_reset(adapter_t* adapter) {
         if (adapter->type) {
             free(adapter->type);
         }
-        adapter->type = NULL;
+        adapter->type = strdup("File");
         if (adapter->adapter) {
             free(adapter->adapter);
         }
