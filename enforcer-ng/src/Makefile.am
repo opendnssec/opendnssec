@@ -186,6 +186,7 @@ ods_enforcerd_SOURCES = \
 	db/db_error.h \
 	db/adapter.c db/adapter.h \
 	db/adapters.c db/adapters.h \
+	db/audit.c db/audit.h \
 	db/enforcer_zone.c db/enforcer_zone.h \
 	db/key_data.c db/key_data.h \
 	db/key_dependency.c db/key_dependency.h \
