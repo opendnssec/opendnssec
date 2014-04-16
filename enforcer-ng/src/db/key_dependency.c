@@ -108,7 +108,7 @@ static db_object_t* __key_dependency_new_object(const db_connection_t* connectio
     return object;
 }
 
-/* ENFORCER ZONE */
+/* KEY DEPENDENCY */
 
 static mm_alloc_t __key_dependency_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_dependency_t));
 
@@ -523,7 +523,7 @@ int key_dependency_delete(key_dependency_t* key_dependency) {
     return ret;
 }
 
-/* ENFORCER ZONE LIST */
+/* KEY DEPENDENCY LIST */
 
 static mm_alloc_t __key_dependency_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_dependency_list_t));
 

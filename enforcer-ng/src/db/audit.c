@@ -85,7 +85,7 @@ static db_object_t* __audit_new_object(const db_connection_t* connection) {
     return object;
 }
 
-/* ENFORCER ZONE */
+/* AUDIT */
 
 static mm_alloc_t __audit_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(audit_t));
 

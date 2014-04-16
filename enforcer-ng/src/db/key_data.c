@@ -270,7 +270,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
     return object;
 }
 
-/* ENFORCER ZONE */
+/* KEY DATA */
 
 static mm_alloc_t __key_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_t));
 
@@ -1469,7 +1469,7 @@ int key_data_delete(key_data_t* key_data) {
     return ret;
 }
 
-/* ENFORCER ZONE LIST */
+/* KEY DATA LIST */
 
 static mm_alloc_t __key_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_list_t));
 

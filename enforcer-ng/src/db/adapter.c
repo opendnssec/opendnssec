@@ -107,7 +107,7 @@ static db_object_t* __adapter_new_object(const db_connection_t* connection) {
     return object;
 }
 
-/* ENFORCER ZONE */
+/* ADAPTER */
 
 static mm_alloc_t __adapter_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(adapter_t));
 
