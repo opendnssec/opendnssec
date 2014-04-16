@@ -665,9 +665,24 @@ key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone) {
     return key_data_list;
 }
 
-adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone) {
-    /* TODO: this */
-    return NULL;
+adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone) {
+    adapters_t* adapters = NULL;
+
+    if (!enforcer_zone) {
+        return NULL;
+    }
+    if (!enforcer_zone->dbo) {
+        return NULL;
+    }
+
+    if ((adapters = adapters_new(db_object_connection(enforcer_zone->dbo)))) {
+        if (adapters_get_by_id(adapters, enforcer_zone->adapters)) {
+            adapters_free(adapters);
+            return NULL;
+        }
+    }
+
+    return adapters;
 }
 
 key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t* enforcer_zone) {

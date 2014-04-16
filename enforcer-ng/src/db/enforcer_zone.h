@@ -45,7 +45,7 @@ typedef struct enforcer_zone_list enforcer_zone_list_t;
 
 #include "db_object.h"
 #include "key_data.h"
-#include "adapter.h"
+#include "adapters.h"
 #include "key_dependency.h"
 
 #ifdef __cplusplus
@@ -353,12 +353,12 @@ int enforcer_zone_set_next_csk_roll(enforcer_zone_t* enforcer_zone, int next_csk
 key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get a list of adapters for an enforcer zone object.
+ * Get an adapters for an enforcer zone object.
  * \param[in] enforcer_zone an enforcer_zone_t pointer.
  * \return a adapter_list_t pointer or NULL on error or if there are no adapters
  * in the enforcer zone object.
  */
-adapter_list_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone);
+adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone);
 
 /* TODO: Set adapters? */
 
