@@ -189,6 +189,13 @@ int key_state_set_minimize(key_state_t* key_state, int minimize);
 int key_state_set_ttl(key_state_t* key_state, int ttl);
 
 /**
+ * Create a key state object in the database.
+ * \param[in] key_state a key_state_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_create(key_state_t* key_state);
+
+/**
  * Get a key state object from the database by an id specified in `id`.
  * \param[in] key_state a key_state_t pointer.
  * \param[in] id an integer.
@@ -196,7 +203,19 @@ int key_state_set_ttl(key_state_t* key_state, int ttl);
  */
 int key_state_get_by_id(key_state_t* key_state, int id);
 
-/* TODO: create/read/update/delete */
+/**
+ * Update a key state object in the database.
+ * \param[in] key_state a key_state_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_update(key_state_t* key_state);
+
+/**
+ * Delete a key state object from the database.
+ * \param[in] key_state a key_state_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_delete(key_state_t* key_state);
 
 /**
  * A list of key state objects.
