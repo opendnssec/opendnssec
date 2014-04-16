@@ -96,21 +96,21 @@ int adapter_id(const adapter_t* adapter);
 /**
  * Get the file of an adapter object.
  * \param[in] adapter an adapter_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no file has been set.
  */
 const char* adapter_file(const adapter_t* adapter);
 
 /**
  * Get the type of an adapter object.
  * \param[in] adapter an adapter_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no type has been set.
  */
 const char* adapter_type(const adapter_t* adapter);
 
 /**
  * Get the adapter of an adapter object.
  * \param[in] adapter an adapter_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no adapter has been set.
  */
 const char* adapter_adapter(const adapter_t* adapter);
 

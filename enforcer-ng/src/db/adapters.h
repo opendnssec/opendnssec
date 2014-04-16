@@ -95,14 +95,16 @@ int adapters_from_result(adapters_t* adapters, const db_result_t* result);
 int adapters_id(const adapters_t* adapters);
 
 /**
- * Get the input of an adapters object.
+ * Get the input of an adapters object. Undefined behavior if `adapters` is
+ * NULL.
  * \param[in] adapters an adapters_t pointer.
  * \return an integer.
  */
 int adapters_input(const adapters_t* adapters);
 
 /**
- * Get the output of an adapters object.
+ * Get the output of an adapters object. Undefined behavior if `adapters` is
+ * NULL.
  * \param[in] adapters an adapters_t pointer.
  * \return an integer.
  */

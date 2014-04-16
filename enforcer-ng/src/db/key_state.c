@@ -230,7 +230,7 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
 
 int key_state_id(const key_state_t* key_state) {
     if (!key_state) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_state->id;
@@ -262,7 +262,7 @@ const char* key_state_state_text(const key_state_t* key_state) {
 
 int key_state_last_change(const key_state_t* key_state) {
     if (!key_state) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_state->last_change;
@@ -270,7 +270,7 @@ int key_state_last_change(const key_state_t* key_state) {
 
 int key_state_minimize(const key_state_t* key_state) {
     if (!key_state) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_state->minimize;
@@ -278,7 +278,7 @@ int key_state_minimize(const key_state_t* key_state) {
 
 int key_state_ttl(const key_state_t* key_state) {
     if (!key_state) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_state->ttl;

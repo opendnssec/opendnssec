@@ -187,7 +187,7 @@ int adapter_from_result(adapter_t* adapter, const db_result_t* result) {
 
 int adapter_id(const adapter_t* adapter) {
     if (!adapter) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return adapter->id;

@@ -154,7 +154,7 @@ int adapters_from_result(adapters_t* adapters, const db_result_t* result) {
 
 int adapters_id(const adapters_t* adapters) {
     if (!adapters) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return adapters->id;
@@ -162,7 +162,7 @@ int adapters_id(const adapters_t* adapters) {
 
 int adapters_input(const adapters_t* adapters) {
     if (!adapters) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return adapters->input;
@@ -170,7 +170,7 @@ int adapters_input(const adapters_t* adapters) {
 
 int adapters_output(const adapters_t* adapters) {
     if (!adapters) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return adapters->output;

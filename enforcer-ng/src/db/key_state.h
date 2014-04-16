@@ -116,33 +116,36 @@ int key_state_id(const key_state_t* key_state);
 /**
  * Get the RR state of a key state object.
  * \param[in] key_state a key_state_t pointer.
- * \return a key_state_rrstate_t.
+ * \return a key_state_rrstate_t which may be KEY_STATE_RRSTATE_INVALID on error
+ * or if no RR state has been set.
  */
 key_state_rrstate_t key_state_state(const key_state_t* key_state);
 
 /**
  * Get the RR state as text of a key state object.
  * \param[in] key_state a key_state_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no RR state has been set.
  */
 const char* key_state_state_text(const key_state_t* key_state);
 
 /**
- * Get the last change of a key state object.
+ * Get the last change of a key state object. Undefined behavior if `key_state`
+ * is NULL.
  * \param[in] key_state a key_state_t pointer.
  * \return an integer.
  */
 int key_state_last_change(const key_state_t* key_state);
 
 /**
- * Get the minimize of a key state object.
+ * Get the minimize of a key state object. Undefined behavior if `key_state` is
+ * NULL.
  * \param[in] key_state a key_state_t pointer.
  * \return an integer.
  */
 int key_state_minimize(const key_state_t* key_state);
 
 /**
- * Get the TTL of a key state object.
+ * Get the TTL of a key state object. Undefined behavior if `key_state` is NULL.
  * \param[in] key_state a key_state_t pointer.
  * \return an integer.
  */

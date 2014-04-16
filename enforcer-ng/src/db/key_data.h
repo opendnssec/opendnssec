@@ -133,10 +133,9 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result);
 int key_data_id(const key_data_t* key_data);
 
 /**
- * Get the locator of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the locator of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no locator has been set.
  */
 const char* key_data_locator(const key_data_t* key_data);
 
@@ -157,17 +156,17 @@ int key_data_algorithm(const key_data_t* key_data);
 int key_data_inception(const key_data_t* key_data);
 
 /**
- * Get the role of a key data object. Undefined behavior if `key_data` is NULL.
+ * Get the role of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a key_data_keyrole_t.
+ * \return a key_data_keyrole_t which may be KEY_DATA_KEYROLE_INVALID on error
+ * or if no role has been set.
  */
 key_data_keyrole_t key_data_role(const key_data_t* key_data);
 
 /**
- * Get the role as text of a key data object. Undefined behavior if `key_data`
- * is NULL.
+ * Get the role as text of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no role has been set.
  */
 const char* key_data_role_text(const key_data_t* key_data);
 
@@ -220,18 +219,18 @@ int key_data_publish(const key_data_t* key_data);
 int key_data_active_ksk(const key_data_t* key_data);
 
 /**
- * Get the DS at parent of a key data object. Undefined behavior if `key_data`
- * is NULL.
+ * Get the DS at parent of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a key_data_dsatparent_t.
+ * \return a key_data_dsatparent_t which may be KEY_DATA_DSATPARENT_INVALID on
+ * error or if no DS at parent has been set.
  */
 key_data_dsatparent_t key_data_ds_at_parent(const key_data_t* key_data);
 
 /**
- * Get the DS at parent as text of a key data object. Undefined behavior if
- * `key_data` is NULL.
+ * Get the DS at parent as text of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no DS at parent has been
+ * set.
  */
 const char* key_data_ds_at_parent_text(const key_data_t* key_data);
 

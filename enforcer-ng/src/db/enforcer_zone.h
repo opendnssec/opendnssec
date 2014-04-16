@@ -114,18 +114,16 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
 int enforcer_zone_id(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get the name of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
+ * Get the name of an enforcer zone object.
  * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no name has been set.
  */
 const char* enforcer_zone_name(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get the policy of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
+ * Get the policy of an enforcer zone object.
  * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no policy has been set.
  */
 const char* enforcer_zone_policy(const enforcer_zone_t* enforcer_zone);
 
@@ -138,10 +136,10 @@ const char* enforcer_zone_policy(const enforcer_zone_t* enforcer_zone);
 int enforcer_zone_signconf_needs_writing(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get the signconf path of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
+ * Get the signconf path of an enforcer zone object.
  * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no signconf path has been
+ * set.
  */
 const char* enforcer_zone_signconf_path(const enforcer_zone_t* enforcer_zone);
 

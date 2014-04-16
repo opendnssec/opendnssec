@@ -102,18 +102,16 @@ int key_dependency_id(const key_dependency_t* key_dependency);
 int key_dependency_rrtype(const key_dependency_t* key_dependency);
 
 /**
- * Get the from key of a key dependency object. Undefined behavior if
- * `key_dependency` is NULL.
+ * Get the from key of a key dependency object.
  * \param[in] key_dependency a key_dependency_t pointer.
- * \return a character pointer.
+ * \return a character pointer or NULL on error or if no from key has been set.
  */
 const char* key_dependency_from_key(const key_dependency_t* key_dependency);
 
 /**
- * Get the to key of a key dependency object. Undefined behavior if
- * `key_dependency` is NULL.
+ * Get the to key of a key dependency object.
  * \param[in] key_dependency a key_dependency_t pointer.
- * \return an integer.
+ * \return a character pointer or NULL on error or if no to key has been set.
  */
 const char* key_dependency_to_key(const key_dependency_t* key_dependency);
 

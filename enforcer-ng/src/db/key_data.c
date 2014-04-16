@@ -432,7 +432,7 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
 
 int key_data_id(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->id;
@@ -448,7 +448,7 @@ const char* key_data_locator(const key_data_t* key_data) {
 
 int key_data_algorithm(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->algorithm;
@@ -456,7 +456,7 @@ int key_data_algorithm(const key_data_t* key_data) {
 
 int key_data_inception(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->inception;
@@ -488,7 +488,7 @@ const char* key_data_role_text(const key_data_t* key_data) {
 
 int key_data_introducing(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->introducing;
@@ -496,7 +496,7 @@ int key_data_introducing(const key_data_t* key_data) {
 
 int key_data_shouldrevoke(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->shouldrevoke;
@@ -504,7 +504,7 @@ int key_data_shouldrevoke(const key_data_t* key_data) {
 
 int key_data_standby(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->standby;
@@ -512,7 +512,7 @@ int key_data_standby(const key_data_t* key_data) {
 
 int key_data_active_zsk(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->active_zsk;
@@ -520,7 +520,7 @@ int key_data_active_zsk(const key_data_t* key_data) {
 
 int key_data_publish(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->publish;
@@ -528,7 +528,7 @@ int key_data_publish(const key_data_t* key_data) {
 
 int key_data_active_ksk(const key_data_t* key_data) {
     if (!key_data) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return key_data->active_ksk;
