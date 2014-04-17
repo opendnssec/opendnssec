@@ -965,11 +965,6 @@ int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            if (db_result_list_next(result_list)) {
-                db_result_list_free(result_list);
-                return DB_ERROR_UNKNOWN;
-            }
-
             enforcer_zone_from_result(enforcer_zone, result);
             db_result_list_free(result_list);
             return DB_OK;

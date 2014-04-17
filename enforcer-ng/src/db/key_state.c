@@ -455,11 +455,6 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            if (db_result_list_next(result_list)) {
-                db_result_list_free(result_list);
-                return DB_ERROR_UNKNOWN;
-            }
-
             key_state_from_result(key_state, result);
             db_result_list_free(result_list);
             return DB_OK;

@@ -212,11 +212,6 @@ int nsec_get_by_id(nsec_t* nsec, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            if (db_result_list_next(result_list)) {
-                db_result_list_free(result_list);
-                return DB_ERROR_UNKNOWN;
-            }
-
             nsec_from_result(nsec, result);
             db_result_list_free(result_list);
             return DB_OK;
