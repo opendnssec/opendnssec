@@ -37,7 +37,7 @@
 /**
  * Create a new audit object.
  * \param[in] connection a db_connection_t pointer.
- * \return an audit_t pointer or NULL on error.
+ * \return a audit_t pointer or NULL on error.
  */
 static db_object_t* __audit_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
@@ -67,7 +67,7 @@ static db_object_t* __audit_new_object(const db_connection_t* connection) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "partial")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -119,6 +119,19 @@ void audit_reset(audit_t* audit) {
     }
 }
 
+int audit_copy(audit_t* audit, const audit_t* audit_copy) {
+    if (!audit) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!audit_copy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    audit->id = audit_copy->id;
+    audit->partial = audit_copy->partial;
+    return DB_OK;
+}
+
 int audit_from_result(audit_t* audit, const db_result_t* result) {
     const db_value_set_t* value_set;
 
@@ -133,7 +146,7 @@ int audit_from_result(audit_t* audit, const db_result_t* result) {
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 2
         || db_value_to_int32(db_value_set_at(value_set, 0), &(audit->id))
-        || db_value_to_int32(db_value_set_at(value_set, 1), &(audit->partial)))
+        || db_value_to_uint32(db_value_set_at(value_set, 1), &(audit->partial)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -149,7 +162,7 @@ int audit_id(const audit_t* audit) {
     return audit->id;
 }
 
-int audit_partial(const audit_t* audit) {
+unsigned int audit_partial(const audit_t* audit) {
     if (!audit) {
         return 0;
     }
@@ -157,7 +170,7 @@ int audit_partial(const audit_t* audit) {
     return audit->partial;
 }
 
-int audit_set_partial(audit_t* audit, int partial) {
+int audit_set_partial(audit_t* audit, unsigned int partial) {
     if (!audit) {
         return DB_ERROR_UNKNOWN;
     }
@@ -182,6 +195,7 @@ int audit_create(audit_t* audit) {
     if (audit->id) {
         return DB_ERROR_UNKNOWN;
     }
+    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -189,7 +203,7 @@ int audit_create(audit_t* audit) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "partial")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -202,7 +216,8 @@ int audit_create(audit_t* audit) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), audit->partial)) {
+    if (db_value_from_uint32(db_value_set_get(value_set, 0), audit->partial))
+    {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
@@ -279,6 +294,7 @@ int audit_update(audit_t* audit) {
     if (!audit->id) {
         return DB_ERROR_UNKNOWN;
     }
+    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -286,7 +302,7 @@ int audit_update(audit_t* audit) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "partial")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -299,7 +315,8 @@ int audit_update(audit_t* audit) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), audit->partial)) {
+    if (db_value_from_uint32(db_value_set_get(value_set, 0), audit->partial))
+    {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
@@ -365,3 +382,99 @@ int audit_delete(audit_t* audit) {
     db_clause_list_free(clause_list);
     return ret;
 }
+
+/* AUDIT LIST */
+
+static mm_alloc_t __audit_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(audit_list_t));
+
+audit_list_t* audit_list_new(const db_connection_t* connection) {
+    audit_list_t* audit_list =
+        (audit_list_t*)mm_alloc_new0(&__audit_list_alloc);
+
+    if (audit_list) {
+        if (!(audit_list->dbo = __audit_new_object(connection))) {
+            mm_alloc_delete(&__audit_list_alloc, audit_list);
+            return NULL;
+        }
+    }
+
+    return audit_list;
+}
+
+void audit_list_free(audit_list_t* audit_list) {
+    if (audit_list) {
+        if (audit_list->dbo) {
+            db_object_free(audit_list->dbo);
+        }
+        if (audit_list->result_list) {
+            db_result_list_free(audit_list->result_list);
+        }
+        if (audit_list->audit) {
+            audit_free(audit_list->audit);
+        }
+        mm_alloc_delete(&__audit_list_alloc, audit_list);
+    }
+}
+
+int audit_list_get(audit_list_t* audit_list) {
+    if (!audit_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!audit_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (audit_list->result_list) {
+        db_result_list_free(audit_list->result_list);
+    }
+    if (!(audit_list->result_list = db_object_read(audit_list->dbo, NULL, NULL))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+const audit_t* audit_list_begin(audit_list_t* audit_list) {
+    const db_result_t* result;
+
+    if (!audit_list) {
+        return NULL;
+    }
+    if (!audit_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(audit_list->result_list))) {
+        return NULL;
+    }
+    if (!audit_list->audit) {
+        if (!(audit_list->audit = audit_new(db_object_connection(audit_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (audit_from_result(audit_list->audit, result)) {
+        return NULL;
+    }
+    return audit_list->audit;
+}
+
+const audit_t* audit_list_next(audit_list_t* audit_list) {
+    const db_result_t* result;
+
+    if (!audit_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(audit_list->result_list))) {
+        return NULL;
+    }
+    if (!audit_list->audit) {
+        if (!(audit_list->audit = audit_new(db_object_connection(audit_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (audit_from_result(audit_list->audit, result)) {
+        return NULL;
+    }
+    return audit_list->audit;
+}
+

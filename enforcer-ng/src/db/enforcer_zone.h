@@ -44,363 +44,328 @@ typedef struct enforcer_zone_list enforcer_zone_list_t;
 #endif
 
 #include "db_object.h"
-#include "key_data.h"
-#include "adapters.h"
-#include "key_dependency.h"
+#include "enforcer_zone_ext.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * An enforcer zone object.
+ * A enforcer zone object.
  */
 struct enforcer_zone {
     db_object_t* dbo;
     int id;
     char* name;
     char* policy;
-    int signconf_needs_writing;
+    unsigned int signconf_needs_writing;
     char* signconf_path;
     unsigned int next_change;
     unsigned int ttl_end_ds;
     unsigned int ttl_end_dk;
     unsigned int ttl_end_rs;
-    int roll_ksk_now;
-    int roll_zsk_now;
-    int roll_csk_now;
+    unsigned int roll_ksk_now;
+    unsigned int roll_zsk_now;
+    unsigned int roll_csk_now;
+    int adapters;
     unsigned int next_ksk_roll;
     unsigned int next_zsk_roll;
     unsigned int next_csk_roll;
-
-    /* foreign key */
-    int adapters;
+#include "enforcer_zone_struct_ext.h"
 };
 
 /**
  * Create a new enforcer zone object.
  * \param[in] connection a db_connection_t pointer.
- * \return an enforcer_zone_t pointer or NULL on error.
+ * \return a enforcer_zone_t pointer or NULL on error.
  */
 enforcer_zone_t* enforcer_zone_new(const db_connection_t* connection);
 
 /**
- * Delete an enforcer zone object, this does not delete it from the database.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Delete a enforcer zone object, this does not delete it from the database.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  */
 void enforcer_zone_free(enforcer_zone_t* enforcer_zone);
 
 /**
- * Reset the content of an enforcer zone object making it as if its new. This
- * does not change anything in the database.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Reset the content of a enforcer zone object making it as if its new. This does not change anything in the database.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  */
 void enforcer_zone_reset(enforcer_zone_t* enforcer_zone);
 
 /**
- * Set the content of an enforcer zone object based on a database result.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Copy the content of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] enforcer_zone_copy a enforcer_zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int enforcer_zone_copy(enforcer_zone_t* enforcer_zone, const enforcer_zone_t* enforcer_zone_copy);
+
+/**
+ * Set the content of a enforcer zone object based on a database result.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t* result);
 
 /**
- * Get the ID of an enforcer zone object. Undefined behavior if `enforcer_zone`
- * is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the ID of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return an integer.
  */
 int enforcer_zone_id(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get the name of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the name of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return a character pointer or NULL on error or if no name has been set.
  */
 const char* enforcer_zone_name(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get the policy of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the policy of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return a character pointer or NULL on error or if no policy has been set.
  */
 const char* enforcer_zone_policy(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Check if the signconf needs writing for an enforcer zone object. Undefined
- * behavior if `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return an integer.
+ * Get the signconf_needs_writing of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \return an unsigned integer.
  */
-int enforcer_zone_signconf_needs_writing(const enforcer_zone_t* enforcer_zone);
+unsigned int enforcer_zone_signconf_needs_writing(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get the signconf path of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return a character pointer or NULL on error or if no signconf path has been
- * set.
+ * Get the signconf_path of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \return a character pointer or NULL on error or if no signconf_path has been set.
  */
 const char* enforcer_zone_signconf_path(const enforcer_zone_t* enforcer_zone);
 
 /**
- * TODO: Describe next change.
- * Get the next change of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the next_change of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return an unsigned integer.
  */
 unsigned int enforcer_zone_next_change(const enforcer_zone_t* enforcer_zone);
 
 /**
- * TODO: Describe TTL End DS.
- * Get the TTL End DS of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the ttl_end_ds of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return an unsigned integer.
  */
 unsigned int enforcer_zone_ttl_end_ds(const enforcer_zone_t* enforcer_zone);
 
 /**
- * TODO: Describe TTL End DK.
- * Get the TTL End DK of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the ttl_end_dk of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return an unsigned integer.
  */
 unsigned int enforcer_zone_ttl_end_dk(const enforcer_zone_t* enforcer_zone);
 
 /**
- * TODO: Describe TTL End RS.
- * Get the TTL End RS of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the ttl_end_rs of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return an unsigned integer.
  */
 unsigned int enforcer_zone_ttl_end_rs(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Check if we should roll KSK for an enforcer zone object. Undefined behavior
- * if `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return an integer.
+ * Get the roll_ksk_now of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \return an unsigned integer.
  */
-int enforcer_zone_roll_ksk_now(const enforcer_zone_t* enforcer_zone);
+unsigned int enforcer_zone_roll_ksk_now(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Check if we should roll ZSK for an enforcer zone object. Undefined behavior
- * if `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return an integer.
+ * Get the roll_zsk_now of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \return an unsigned integer.
  */
-int enforcer_zone_roll_zsk_now(const enforcer_zone_t* enforcer_zone);
+unsigned int enforcer_zone_roll_zsk_now(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Check if we should roll CSK for an enforcer zone object. Undefined behavior
- * if `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return an integer.
+ * Get the roll_csk_now of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \return an unsigned integer.
  */
-int enforcer_zone_roll_csk_now(const enforcer_zone_t* enforcer_zone);
+unsigned int enforcer_zone_roll_csk_now(const enforcer_zone_t* enforcer_zone);
 
 /**
- * TODO: Describe next KSK roll.
- * Get the next KSK roll of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the adapters of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \return an integer.
+ */
+int enforcer_zone_adapters(const enforcer_zone_t* enforcer_zone);
+
+/**
+ * Get the next_ksk_roll of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return an unsigned integer.
  */
 unsigned int enforcer_zone_next_ksk_roll(const enforcer_zone_t* enforcer_zone);
 
 /**
- * TODO: Describe next ZSK roll.
- * Get the next ZSK roll of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the next_zsk_roll of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return an unsigned integer.
  */
 unsigned int enforcer_zone_next_zsk_roll(const enforcer_zone_t* enforcer_zone);
 
 /**
- * TODO: Describe next CSK roll.
- * Get the next CSK roll of an enforcer zone object. Undefined behavior if
- * `enforcer_zone` is NULL.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get the next_csk_roll of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return an unsigned integer.
  */
 unsigned int enforcer_zone_next_csk_roll(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Set the name of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \param[in] name a character pointer.
+ * Set the name of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] name_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_set_name(enforcer_zone_t* enforcer_zone, const char* name);
+int enforcer_zone_set_name(enforcer_zone_t* enforcer_zone, const char* name_text);
 
 /**
- * Set the policy of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \param[in] policy a character pointer.
+ * Set the policy of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] policy_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_set_policy(enforcer_zone_t* enforcer_zone, const char* policy);
+int enforcer_zone_set_policy(enforcer_zone_t* enforcer_zone, const char* policy_text);
 
 /**
- * Set the signconf needs writing of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \param[in] signconf_needs_writing an integer.
+ * Set the signconf_needs_writing of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] signconf_needs_writing an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_set_signconf_needs_writing(enforcer_zone_t* enforcer_zone, int signconf_needs_writing);
+int enforcer_zone_set_signconf_needs_writing(enforcer_zone_t* enforcer_zone, unsigned int signconf_needs_writing);
 
 /**
- * Set the signconf path of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \param[in] signconf_path a character pointer.
+ * Set the signconf_path of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] signconf_path_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_set_signconf_path(enforcer_zone_t* enforcer_zone, const char* signconf_path);
+int enforcer_zone_set_signconf_path(enforcer_zone_t* enforcer_zone, const char* signconf_path_text);
 
 /**
- * Set the next change of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Set the next_change of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] next_change an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_set_next_change(enforcer_zone_t* enforcer_zone, unsigned int next_change);
 
 /**
- * Set the TTL End DS of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Set the ttl_end_ds of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] ttl_end_ds an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_set_ttl_end_ds(enforcer_zone_t* enforcer_zone, unsigned int ttl_end_ds);
 
 /**
- * Set the TTL End DK of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Set the ttl_end_dk of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] ttl_end_dk an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_set_ttl_end_dk(enforcer_zone_t* enforcer_zone, unsigned int ttl_end_dk);
 
 /**
- * Set the TTL End RS of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Set the ttl_end_rs of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] ttl_end_rs an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_set_ttl_end_rs(enforcer_zone_t* enforcer_zone, unsigned int ttl_end_rs);
 
 /**
- * Set the roll KSK now of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \param[in] roll_ksk_now an integer.
+ * Set the roll_ksk_now of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] roll_ksk_now an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_set_roll_ksk_now(enforcer_zone_t* enforcer_zone, int roll_ksk_now);
+int enforcer_zone_set_roll_ksk_now(enforcer_zone_t* enforcer_zone, unsigned int roll_ksk_now);
 
 /**
- * Set the roll ZSK now of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \param[in] roll_zsk_now an integer.
+ * Set the roll_zsk_now of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] roll_zsk_now an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_set_roll_zsk_now(enforcer_zone_t* enforcer_zone, int roll_zsk_now);
+int enforcer_zone_set_roll_zsk_now(enforcer_zone_t* enforcer_zone, unsigned int roll_zsk_now);
 
 /**
- * Set the roll CSK now of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \param[in] roll_csk_now an integer.
+ * Set the roll_csk_now of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] roll_csk_now an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_set_roll_csk_now(enforcer_zone_t* enforcer_zone, int roll_csk_now);
+int enforcer_zone_set_roll_csk_now(enforcer_zone_t* enforcer_zone, unsigned int roll_csk_now);
 
 /**
- * Set the next KSK roll of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Set the adapters of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \param[in] adapters an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int enforcer_zone_set_adapters(enforcer_zone_t* enforcer_zone, int adapters);
+
+/**
+ * Set the next_ksk_roll of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] next_ksk_roll an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_set_next_ksk_roll(enforcer_zone_t* enforcer_zone, unsigned int next_ksk_roll);
 
 /**
- * Set the next ZSK roll of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Set the next_zsk_roll of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] next_zsk_roll an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_set_next_zsk_roll(enforcer_zone_t* enforcer_zone, unsigned int next_zsk_roll);
 
 /**
- * Set the next CSK roll of an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Set the next_csk_roll of a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] next_csk_roll an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_set_next_csk_roll(enforcer_zone_t* enforcer_zone, unsigned int next_csk_roll);
 
 /**
- * Get a list of keys for an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return a key_data_list_t pointer or NULL on error or if there are no keys
- * in the enforcer zone object.
- */
-key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone);
-
-/**
- * Get an adapters for an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return a adapter_list_t pointer or NULL on error or if there are no adapters
- * in the enforcer zone object.
- */
-adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone);
-
-/* TODO: Set adapters? */
-
-/**
- * Get a list of key dependencies for an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return a key_dependency_list_t pointer or NULL on error or if there are no
- * key dependencies in the enforcer zone object.
- */
-key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t* enforcer_zone);
-
-/**
- * Create an enforcer zone object in the database.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Create a enforcer zone object in the database.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_create(enforcer_zone_t* enforcer_zone);
 
 /**
- * Get an enforcer zone object from the database by an id specified in `id`.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Get a enforcer zone object from the database by an id specified in `id`.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \param[in] id an integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, int id);
 
 /**
- * Get an enforcer zone object from the database by a name specified in `name`.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \param[in] name a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int enforcer_zone_get_by_name(enforcer_zone_t* enforcer_zone, const char* name);
-
-/**
- * Update an enforcer zone object in the database.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Update a enforcer zone object in the database.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_update(enforcer_zone_t* enforcer_zone);
 
 /**
- * Delete an enforcer zone object from the database.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
+ * Delete a enforcer zone object from the database.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_delete(enforcer_zone_t* enforcer_zone);
@@ -411,41 +376,41 @@ int enforcer_zone_delete(enforcer_zone_t* enforcer_zone);
 struct enforcer_zone_list {
     db_object_t* dbo;
     db_result_list_t* result_list;
+    const db_result_t* result;
     enforcer_zone_t* enforcer_zone;
 };
 
 /**
  * Create a new enforcer zone object list.
  * \param[in] connection a db_connection_t pointer.
- * \return an enforcer_zone_list_t pointer or NULL on error.
+ * \return a enforcer_zone_list_t pointer or NULL on error.
  */
 enforcer_zone_list_t* enforcer_zone_list_new(const db_connection_t* connection);
 
 /**
- * Delete an enforcer zone object list
- * \param[in] enforcer_zone_list an enforcer_zone_list_t pointer.
+ * Delete a enforcer zone object list
+ * \param[in] enforcer_zone_list a enforcer_zone_list_t pointer.
  */
 void enforcer_zone_list_free(enforcer_zone_list_t* enforcer_zone_list);
 
 /**
  * Get all enforcer zone objects.
- * \param[in] enforcer_zone_list an enforcer_zone_list_t pointer.
+ * \param[in] enforcer_zone_list a enforcer_zone_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int enforcer_zone_list_get(enforcer_zone_list_t* enforcer_zone_list);
 
 /**
- * Get the first enforcer zone object in an enforcer zone object list. This will
- * reset the position of the list.
- * \param[in] enforcer_zone_list an enforcer_zone_list_t pointer.
+ * Get the first enforcer zone object in a enforcer zone object list. This will reset the position of the list.
+ * \param[in] enforcer_zone_list a enforcer_zone_list_t pointer.
  * \return a enforcer_zone_t pointer or NULL on error or if there are no
  * enforcer zone objects in the enforcer zone object list.
  */
 const enforcer_zone_t* enforcer_zone_list_begin(enforcer_zone_list_t* enforcer_zone_list);
 
 /**
- * Get the next enforcer zone object in an enforcer zone object list.
- * \param[in] enforcer_zone_list an enforcer_zone_list_t pointer.
+ * Get the next enforcer zone object in a enforcer zone object list.
+ * \param[in] enforcer_zone_list a enforcer_zone_list_t pointer.
  * \return a enforcer_zone_t pointer or NULL on error or if there are no more
  * enforcer zone objects in the enforcer zone object list.
  */

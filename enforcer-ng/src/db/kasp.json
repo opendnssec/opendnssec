@@ -78,7 +78,7 @@
   ]
 },
 {
-  "name": "hsm_key",
+  "name": "dbo_hsm_key",
   "table": "HsmKey",
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
@@ -152,7 +152,7 @@
   ]
 },
 {
-  "name": "keylist",
+  "name": "dbo_keylist",
   "table": "KeyList",
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },

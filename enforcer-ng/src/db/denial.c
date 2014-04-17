@@ -46,7 +46,7 @@ static db_object_t* __denial_new_object(const db_connection_t* connection) {
 
     if (!(object = db_object_new())
         || db_object_set_connection(object, connection)
-        || db_object_set_table(object, "Audit")
+        || db_object_set_table(object, "Denial")
         || db_object_set_primary_key_name(object, "id")
         || !(object_field_list = db_object_field_list_new()))
     {
@@ -131,6 +131,20 @@ void denial_reset(denial_t* denial) {
     }
 }
 
+int denial_copy(denial_t* denial, const denial_t* denial_copy) {
+    if (!denial) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!denial_copy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    denial->id = denial_copy->id;
+    denial->nsec = denial_copy->nsec;
+    denial->nsec3 = denial_copy->nsec3;
+    return DB_OK;
+}
+
 int denial_from_result(denial_t* denial, const db_result_t* result) {
     const db_value_set_t* value_set;
 
@@ -213,6 +227,7 @@ int denial_create(denial_t* denial) {
     if (denial->id) {
         return DB_ERROR_UNKNOWN;
     }
+    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -322,6 +337,7 @@ int denial_update(denial_t* denial) {
     if (!denial->id) {
         return DB_ERROR_UNKNOWN;
     }
+    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -420,3 +436,99 @@ int denial_delete(denial_t* denial) {
     db_clause_list_free(clause_list);
     return ret;
 }
+
+/* DENIAL LIST */
+
+static mm_alloc_t __denial_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(denial_list_t));
+
+denial_list_t* denial_list_new(const db_connection_t* connection) {
+    denial_list_t* denial_list =
+        (denial_list_t*)mm_alloc_new0(&__denial_list_alloc);
+
+    if (denial_list) {
+        if (!(denial_list->dbo = __denial_new_object(connection))) {
+            mm_alloc_delete(&__denial_list_alloc, denial_list);
+            return NULL;
+        }
+    }
+
+    return denial_list;
+}
+
+void denial_list_free(denial_list_t* denial_list) {
+    if (denial_list) {
+        if (denial_list->dbo) {
+            db_object_free(denial_list->dbo);
+        }
+        if (denial_list->result_list) {
+            db_result_list_free(denial_list->result_list);
+        }
+        if (denial_list->denial) {
+            denial_free(denial_list->denial);
+        }
+        mm_alloc_delete(&__denial_list_alloc, denial_list);
+    }
+}
+
+int denial_list_get(denial_list_t* denial_list) {
+    if (!denial_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!denial_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (denial_list->result_list) {
+        db_result_list_free(denial_list->result_list);
+    }
+    if (!(denial_list->result_list = db_object_read(denial_list->dbo, NULL, NULL))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+const denial_t* denial_list_begin(denial_list_t* denial_list) {
+    const db_result_t* result;
+
+    if (!denial_list) {
+        return NULL;
+    }
+    if (!denial_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(denial_list->result_list))) {
+        return NULL;
+    }
+    if (!denial_list->denial) {
+        if (!(denial_list->denial = denial_new(db_object_connection(denial_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (denial_from_result(denial_list->denial, result)) {
+        return NULL;
+    }
+    return denial_list->denial;
+}
+
+const denial_t* denial_list_next(denial_list_t* denial_list) {
+    const db_result_t* result;
+
+    if (!denial_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(denial_list->result_list))) {
+        return NULL;
+    }
+    if (!denial_list->denial) {
+        if (!(denial_list->denial = denial_new(db_object_connection(denial_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (denial_from_result(denial_list->denial, result)) {
+        return NULL;
+    }
+    return denial_list->denial;
+}
+

@@ -32,10 +32,12 @@
 
 #include "mm.h"
 
+#include <string.h>
+
 /**
  * Create a new adapters object.
  * \param[in] connection a db_connection_t pointer.
- * \return an adapters_t pointer or NULL on error.
+ * \return a adapters_t pointer or NULL on error.
  */
 static db_object_t* __adapters_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
@@ -129,6 +131,20 @@ void adapters_reset(adapters_t* adapters) {
     }
 }
 
+int adapters_copy(adapters_t* adapters, const adapters_t* adapters_copy) {
+    if (!adapters) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!adapters_copy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    adapters->id = adapters_copy->id;
+    adapters->input = adapters_copy->input;
+    adapters->output = adapters_copy->output;
+    return DB_OK;
+}
+
 int adapters_from_result(adapters_t* adapters, const db_result_t* result) {
     const db_value_set_t* value_set;
 
@@ -211,6 +227,7 @@ int adapters_create(adapters_t* adapters) {
     if (adapters->id) {
         return DB_ERROR_UNKNOWN;
     }
+    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -320,6 +337,7 @@ int adapters_update(adapters_t* adapters) {
     if (!adapters->id) {
         return DB_ERROR_UNKNOWN;
     }
+    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -418,3 +436,99 @@ int adapters_delete(adapters_t* adapters) {
     db_clause_list_free(clause_list);
     return ret;
 }
+
+/* ADAPTERS LIST */
+
+static mm_alloc_t __adapters_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(adapters_list_t));
+
+adapters_list_t* adapters_list_new(const db_connection_t* connection) {
+    adapters_list_t* adapters_list =
+        (adapters_list_t*)mm_alloc_new0(&__adapters_list_alloc);
+
+    if (adapters_list) {
+        if (!(adapters_list->dbo = __adapters_new_object(connection))) {
+            mm_alloc_delete(&__adapters_list_alloc, adapters_list);
+            return NULL;
+        }
+    }
+
+    return adapters_list;
+}
+
+void adapters_list_free(adapters_list_t* adapters_list) {
+    if (adapters_list) {
+        if (adapters_list->dbo) {
+            db_object_free(adapters_list->dbo);
+        }
+        if (adapters_list->result_list) {
+            db_result_list_free(adapters_list->result_list);
+        }
+        if (adapters_list->adapters) {
+            adapters_free(adapters_list->adapters);
+        }
+        mm_alloc_delete(&__adapters_list_alloc, adapters_list);
+    }
+}
+
+int adapters_list_get(adapters_list_t* adapters_list) {
+    if (!adapters_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!adapters_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (adapters_list->result_list) {
+        db_result_list_free(adapters_list->result_list);
+    }
+    if (!(adapters_list->result_list = db_object_read(adapters_list->dbo, NULL, NULL))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+const adapters_t* adapters_list_begin(adapters_list_t* adapters_list) {
+    const db_result_t* result;
+
+    if (!adapters_list) {
+        return NULL;
+    }
+    if (!adapters_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(adapters_list->result_list))) {
+        return NULL;
+    }
+    if (!adapters_list->adapters) {
+        if (!(adapters_list->adapters = adapters_new(db_object_connection(adapters_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (adapters_from_result(adapters_list->adapters, result)) {
+        return NULL;
+    }
+    return adapters_list->adapters;
+}
+
+const adapters_t* adapters_list_next(adapters_list_t* adapters_list) {
+    const db_result_t* result;
+
+    if (!adapters_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(adapters_list->result_list))) {
+        return NULL;
+    }
+    if (!adapters_list->adapters) {
+        if (!(adapters_list->adapters = adapters_new(db_object_connection(adapters_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (adapters_from_result(adapters_list->adapters, result)) {
+        return NULL;
+    }
+    return adapters_list->adapters;
+}
+

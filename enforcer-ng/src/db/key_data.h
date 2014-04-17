@@ -39,29 +39,29 @@ struct key_data_list;
 typedef struct key_data key_data_t;
 typedef struct key_data_list key_data_list_t;
 
-typedef enum key_data_keyrole {
-    KEY_DATA_KEYROLE_INVALID = -1,
-    KEY_DATA_KEYROLE_KSK = 1,
-    KEY_DATA_KEYROLE_ZSK = 2,
-    KEY_DATA_KEYROLE_CSK = 3
-} key_data_keyrole_t;
+typedef enum key_data_role {
+    KEY_DATA_ROLE_INVALID = -1,
+    KEY_DATA_ROLE_KSK = 1,
+    KEY_DATA_ROLE_ZSK = 2,
+    KEY_DATA_ROLE_CSK = 3
+} key_data_role_t;
 
-typedef enum key_data_dsatparent {
-    KEY_DATA_DSATPARENT_INVALID = -1,
-    KEY_DATA_DSATPARENT_UNSUBMITTED = 0,
-    KEY_DATA_DSATPARENT_SUBMIT = 1,
-    KEY_DATA_DSATPARENT_SUBMITTED = 2,
-    KEY_DATA_DSATPARENT_SEEN = 3,
-    KEY_DATA_DSATPARENT_RETRACT = 4,
-    KEY_DATA_DSATPARENT_RETRACTED = 5
-} key_data_dsatparent_t;
+typedef enum key_data_ds_at_parent {
+    KEY_DATA_DS_AT_PARENT_INVALID = -1,
+    KEY_DATA_DS_AT_PARENT_UNSUBMITTED = 0,
+    KEY_DATA_DS_AT_PARENT_SUBMIT = 1,
+    KEY_DATA_DS_AT_PARENT_SUBMITTED = 2,
+    KEY_DATA_DS_AT_PARENT_SEEN = 3,
+    KEY_DATA_DS_AT_PARENT_RETRACT = 4,
+    KEY_DATA_DS_AT_PARENT_RETRACTED = 5
+} key_data_ds_at_parent_t;
 
 #ifdef __cplusplus
 }
 #endif
 
 #include "db_object.h"
-#include "key_state.h"
+#include "key_data_ext.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,25 +76,20 @@ struct key_data {
     char* locator;
     unsigned int algorithm;
     unsigned int inception;
-    key_data_keyrole_t role;
+    int ds;
+    int rrsig;
+    int dnskey;
+    key_data_role_t role;
     unsigned int introducing;
     unsigned int shouldrevoke;
     unsigned int standby;
     unsigned int active_zsk;
     unsigned int publish;
-    unsigned int active_ksk;
-    key_data_dsatparent_t ds_at_parent;
-    unsigned int keytag;
-
-    /* foreign key */
-    int ds;
-    int rrsig;
-    int dnskey;
     int rrsigdnskey;
-    key_state_t* key_state_ds;
-    key_state_t* key_state_rrsig;
-    key_state_t* key_state_dnskey;
-    key_state_t* key_state_rrsigdnskey;
+    unsigned int active_ksk;
+    key_data_ds_at_parent_t ds_at_parent;
+    unsigned int keytag;
+#include "key_data_struct_ext.h"
 };
 
 /**
@@ -111,11 +106,18 @@ key_data_t* key_data_new(const db_connection_t* connection);
 void key_data_free(key_data_t* key_data);
 
 /**
- * Reset the content of a key data object making it as if its new. This does not
- * change anything in the database.
+ * Reset the content of a key data object making it as if its new. This does not change anything in the database.
  * \param[in] key_data a key_data_t pointer.
  */
 void key_data_reset(key_data_t* key_data);
+
+/**
+ * Copy the content of a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \param[in] key_data_copy a key_data_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy);
 
 /**
  * Set the content of a key data object based on a database result.
@@ -140,28 +142,46 @@ int key_data_id(const key_data_t* key_data);
 const char* key_data_locator(const key_data_t* key_data);
 
 /**
- * Get the algorithm of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the algorithm of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
 unsigned int key_data_algorithm(const key_data_t* key_data);
 
 /**
- * Get the inception of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the inception of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
 unsigned int key_data_inception(const key_data_t* key_data);
 
 /**
+ * Get the ds of a key data object. Undefined behavior if `key_data` is NULL.
+ * \param[in] key_data a key_data_t pointer.
+ * \return an integer.
+ */
+int key_data_ds(const key_data_t* key_data);
+
+/**
+ * Get the rrsig of a key data object. Undefined behavior if `key_data` is NULL.
+ * \param[in] key_data a key_data_t pointer.
+ * \return an integer.
+ */
+int key_data_rrsig(const key_data_t* key_data);
+
+/**
+ * Get the dnskey of a key data object. Undefined behavior if `key_data` is NULL.
+ * \param[in] key_data a key_data_t pointer.
+ * \return an integer.
+ */
+int key_data_dnskey(const key_data_t* key_data);
+
+/**
  * Get the role of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a key_data_keyrole_t which may be KEY_DATA_KEYROLE_INVALID on error
- * or if no role has been set.
+ * \return a key_data_role_t which may be KEY_DATA_ROLE_INVALID on error or if no role has been set.
  */
-key_data_keyrole_t key_data_role(const key_data_t* key_data);
+key_data_role_t key_data_role(const key_data_t* key_data);
 
 /**
  * Get the role as text of a key data object.
@@ -171,72 +191,70 @@ key_data_keyrole_t key_data_role(const key_data_t* key_data);
 const char* key_data_role_text(const key_data_t* key_data);
 
 /**
- * Get the introducing of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the introducing of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
 unsigned int key_data_introducing(const key_data_t* key_data);
 
 /**
- * Get the shouldrevoke of a key data object. Undefined behavior if `key_data`
- * is NULL.
+ * Get the shouldrevoke of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
 unsigned int key_data_shouldrevoke(const key_data_t* key_data);
 
 /**
- * Get the standby of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the standby of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
 unsigned int key_data_standby(const key_data_t* key_data);
 
 /**
- * Get the active ZSK of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the active_zsk of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
 unsigned int key_data_active_zsk(const key_data_t* key_data);
 
 /**
- * Get the publish of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the publish of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
 unsigned int key_data_publish(const key_data_t* key_data);
 
 /**
- * Get the active KSK of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the rrsigdnskey of a key data object. Undefined behavior if `key_data` is NULL.
+ * \param[in] key_data a key_data_t pointer.
+ * \return an integer.
+ */
+int key_data_rrsigdnskey(const key_data_t* key_data);
+
+/**
+ * Get the active_ksk of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
 unsigned int key_data_active_ksk(const key_data_t* key_data);
 
 /**
- * Get the DS at parent of a key data object.
+ * Get the ds_at_parent of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a key_data_dsatparent_t which may be KEY_DATA_DSATPARENT_INVALID on
- * error or if no DS at parent has been set.
+ * \return a key_data_ds_at_parent_t which may be KEY_DATA_DS_AT_PARENT_INVALID on error or if no ds_at_parent has been set.
  */
-key_data_dsatparent_t key_data_ds_at_parent(const key_data_t* key_data);
+key_data_ds_at_parent_t key_data_ds_at_parent(const key_data_t* key_data);
 
 /**
- * Get the DS at parent as text of a key data object.
+ * Get the ds_at_parent as text of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a character pointer or NULL on error or if no DS at parent has been
- * set.
+ * \return a character pointer or NULL on error or if no ds_at_parent has been set.
  */
 const char* key_data_ds_at_parent_text(const key_data_t* key_data);
 
 /**
- * Get the keytag of a key data object. Undefined behavior if `key_data` is
- * NULL.
+ * Get the keytag of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
@@ -245,10 +263,10 @@ unsigned int key_data_keytag(const key_data_t* key_data);
 /**
  * Set the locator of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \param[in] locator a character pointer.
+ * \param[in] locator_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_locator(key_data_t* key_data, const char* locator);
+int key_data_set_locator(key_data_t* key_data, const char* locator_text);
 
 /**
  * Set the algorithm of a key data object.
@@ -267,12 +285,36 @@ int key_data_set_algorithm(key_data_t* key_data, unsigned int algorithm);
 int key_data_set_inception(key_data_t* key_data, unsigned int inception);
 
 /**
- * Set the role of a key data object.
+ * Set the ds of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \param[in] role a key_data_keyrole_t.
+ * \param[in] ds an integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_role(key_data_t* key_data, key_data_keyrole_t role);
+int key_data_set_ds(key_data_t* key_data, int ds);
+
+/**
+ * Set the rrsig of a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \param[in] rrsig an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_set_rrsig(key_data_t* key_data, int rrsig);
+
+/**
+ * Set the dnskey of a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \param[in] dnskey an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_set_dnskey(key_data_t* key_data, int dnskey);
+
+/**
+ * Set the role of a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \param[in] role a key_data_role_t.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_set_role(key_data_t* key_data, key_data_role_t role);
 
 /**
  * Set the role of a key data object from text.
@@ -307,7 +349,7 @@ int key_data_set_shouldrevoke(key_data_t* key_data, unsigned int shouldrevoke);
 int key_data_set_standby(key_data_t* key_data, unsigned int standby);
 
 /**
- * Set the active ZSK of a key data object.
+ * Set the active_zsk of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \param[in] active_zsk an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -323,7 +365,15 @@ int key_data_set_active_zsk(key_data_t* key_data, unsigned int active_zsk);
 int key_data_set_publish(key_data_t* key_data, unsigned int publish);
 
 /**
- * Set the active KSK of a key data object.
+ * Set the rrsigdnskey of a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \param[in] rrsigdnskey an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_set_rrsigdnskey(key_data_t* key_data, int rrsigdnskey);
+
+/**
+ * Set the active_ksk of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \param[in] active_ksk an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -331,15 +381,15 @@ int key_data_set_publish(key_data_t* key_data, unsigned int publish);
 int key_data_set_active_ksk(key_data_t* key_data, unsigned int active_ksk);
 
 /**
- * Set the DS at parent of a key data object.
+ * Set the ds_at_parent of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \param[in] ds_at_parent a key_data_dsatparent_t.
+ * \param[in] ds_at_parent a key_data_ds_at_parent_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_ds_at_parent(key_data_t* key_data, key_data_dsatparent_t ds_at_parent);
+int key_data_set_ds_at_parent(key_data_t* key_data, key_data_ds_at_parent_t ds_at_parent);
 
 /**
- * Set the DS at parent of a key data object from text.
+ * Set the ds_at_parent of a key data object from text.
  * \param[in] key_data a key_data_t pointer.
  * \param[in] ds_at_parent a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -353,41 +403,6 @@ int key_data_set_ds_at_parent_text(key_data_t* key_data, const char* ds_at_paren
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_data_set_keytag(key_data_t* key_data, unsigned int keytag);
-
-/**
- * Get the key states objects for a key data object.
- * \param[in] key_data a key_data_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_data_get_key_state_list(key_data_t* key_data);
-
-/**
- * Get the DS key state object of a key data object.
- * \param[in] key_data a key_data_t pointer.
- * \return a key_state_t pointer.
- */
-const key_state_t* key_data_get_ds(key_data_t* key_data);
-
-/**
- * Get the RRSIG key state object of a key data object.
- * \param[in] key_data a key_data_t pointer.
- * \return a key_state_t pointer.
- */
-const key_state_t* key_data_get_rrsig(key_data_t* key_data);
-
-/**
- * Get the DNSKEY key state object of a key data object.
- * \param[in] key_data a key_data_t pointer.
- * \return a key_state_t pointer.
- */
-const key_state_t* key_data_get_dnskey(key_data_t* key_data);
-
-/**
- * Get the RRSIG DNSKEY key state object of a key data object.
- * \param[in] key_data a key_data_t pointer.
- * \return a key_state_t pointer.
- */
-const key_state_t* key_data_get_rrsigdnskey(key_data_t* key_data);
 
 /**
  * Create a key data object in the database.
@@ -424,43 +439,41 @@ int key_data_delete(key_data_t* key_data);
 struct key_data_list {
     db_object_t* dbo;
     db_result_list_t* result_list;
+    const db_result_t* result;
     key_data_t* key_data;
 };
 
 /**
  * Create a new key data object list.
  * \param[in] connection a db_connection_t pointer.
- * \return an key_data_list_t pointer or NULL on error.
+ * \return a key_data_list_t pointer or NULL on error.
  */
 key_data_list_t* key_data_list_new(const db_connection_t* connection);
 
 /**
- * Delete an key data object list
- * \param[in] key_data_list an key_data_list_t pointer.
+ * Delete a key data object list
+ * \param[in] key_data_list a key_data_list_t pointer.
  */
 void key_data_list_free(key_data_list_t* key_data_list);
 
 /**
- * Get all key data objects by an enforcer zone id specified in
- * `enforcer_zone_id`.
- * \param[in] key_data_list an key_data_list_t pointer.
- * \param[in] enforcer_zone_id an integer.
+ * Get all key data objects.
+ * \param[in] key_data_list a key_data_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int enforcer_zone_id);
+int key_data_list_get(key_data_list_t* key_data_list);
 
 /**
- * Get the first key data object in an key data object list. This will reset the
- * position of the list.
- * \param[in] key_data_list an key_data_list_t pointer.
+ * Get the first key data object in a key data object list. This will reset the position of the list.
+ * \param[in] key_data_list a key_data_list_t pointer.
  * \return a key_data_t pointer or NULL on error or if there are no
  * key data objects in the key data object list.
  */
 const key_data_t* key_data_list_begin(key_data_list_t* key_data_list);
 
 /**
- * Get the next key data object in an key data object list.
- * \param[in] key_data_list an key_data_list_t pointer.
+ * Get the next key data object in a key data object list.
+ * \param[in] key_data_list a key_data_list_t pointer.
  * \return a key_data_t pointer or NULL on error or if there are no more
  * key data objects in the key data object list.
  */

@@ -35,13 +35,16 @@ extern "C" {
 #endif
 
 struct adapter;
+struct adapter_list;
 typedef struct adapter adapter_t;
+typedef struct adapter_list adapter_list_t;
 
 #ifdef __cplusplus
 }
 #endif
 
 #include "db_object.h"
+#include "adapter_ext.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,119 +56,173 @@ extern "C" {
 struct adapter {
     db_object_t* dbo;
     int id;
-    char* file;
-    char* type;
     char* adapter;
+    char* type;
+    char* file;
+#include "adapter_struct_ext.h"
 };
 
 /**
  * Create a new adapter object.
  * \param[in] connection a db_connection_t pointer.
- * \return an adapter_t pointer or NULL on error.
+ * \return a adapter_t pointer or NULL on error.
  */
 adapter_t* adapter_new(const db_connection_t* connection);
 
 /**
- * Delete an adapter object, this does not delete it from the database.
- * \param[in] adapter an adapter_t pointer.
+ * Delete a adapter object, this does not delete it from the database.
+ * \param[in] adapter a adapter_t pointer.
  */
 void adapter_free(adapter_t* adapter);
 
 /**
- * Reset the content of an adapter object making it as if its new. This does not
- * change anything in the database.
- * \param[in] adapter an adapter_t pointer.
+ * Reset the content of a adapter object making it as if its new. This does not change anything in the database.
+ * \param[in] adapter a adapter_t pointer.
  */
 void adapter_reset(adapter_t* adapter);
 
 /**
- * Set the content of an adapter object based on a database result.
- * \param[in] adapter an adapter_t pointer.
+ * Copy the content of a adapter object.
+ * \param[in] adapter a adapter_t pointer.
+ * \param[in] adapter_copy a adapter_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int adapter_copy(adapter_t* adapter, const adapter_t* adapter_copy);
+
+/**
+ * Set the content of a adapter object based on a database result.
+ * \param[in] adapter a adapter_t pointer.
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int adapter_from_result(adapter_t* adapter, const db_result_t* result);
 
 /**
- * Get the ID of an adapter object. Undefined behavior if `adapter` is NULL.
- * \param[in] adapter an adapter_t pointer.
+ * Get the ID of a adapter object. Undefined behavior if `adapter` is NULL.
+ * \param[in] adapter a adapter_t pointer.
  * \return an integer.
  */
 int adapter_id(const adapter_t* adapter);
 
 /**
- * Get the file of an adapter object.
- * \param[in] adapter an adapter_t pointer.
- * \return a character pointer or NULL on error or if no file has been set.
- */
-const char* adapter_file(const adapter_t* adapter);
-
-/**
- * Get the type of an adapter object.
- * \param[in] adapter an adapter_t pointer.
- * \return a character pointer or NULL on error or if no type has been set.
- */
-const char* adapter_type(const adapter_t* adapter);
-
-/**
- * Get the adapter of an adapter object.
- * \param[in] adapter an adapter_t pointer.
+ * Get the adapter of a adapter object.
+ * \param[in] adapter a adapter_t pointer.
  * \return a character pointer or NULL on error or if no adapter has been set.
  */
 const char* adapter_adapter(const adapter_t* adapter);
 
 /**
- * Set the file of an adapter object.
- * \param[in] adapter an adapter_t pointer.
- * \param[in] file a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * Get the type of a adapter object.
+ * \param[in] adapter a adapter_t pointer.
+ * \return a character pointer or NULL on error or if no type has been set.
  */
-int adapter_set_file(adapter_t* adapter, const char* file);
+const char* adapter_type(const adapter_t* adapter);
 
 /**
- * Set the type of an adapter object.
- * \param[in] adapter an adapter_t pointer.
- * \param[in] type a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * Get the file of a adapter object.
+ * \param[in] adapter a adapter_t pointer.
+ * \return a character pointer or NULL on error or if no file has been set.
  */
-int adapter_set_type(adapter_t* adapter, const char* type);
+const char* adapter_file(const adapter_t* adapter);
 
 /**
- * Set the adapter of an adapter object.
- * \param[in] adapter an adapter_t pointer.
- * \param[in] adapter a character pointer.
+ * Set the adapter of a adapter object.
+ * \param[in] adapter a adapter_t pointer.
+ * \param[in] adapter_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int adapter_set_adapter(adapter_t* adapter, const char* adapter_text);
 
 /**
- * Create an adapter object in the database.
- * \param[in] adapter an adapter_t pointer.
+ * Set the type of a adapter object.
+ * \param[in] adapter a adapter_t pointer.
+ * \param[in] type_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int adapter_set_type(adapter_t* adapter, const char* type_text);
+
+/**
+ * Set the file of a adapter object.
+ * \param[in] adapter a adapter_t pointer.
+ * \param[in] file_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int adapter_set_file(adapter_t* adapter, const char* file_text);
+
+/**
+ * Create a adapter object in the database.
+ * \param[in] adapter a adapter_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int adapter_create(adapter_t* adapter);
 
 /**
- * Get an adapter object from the database by an id specified in `id`.
- * \param[in] adapter an adapter_t pointer.
+ * Get a adapter object from the database by an id specified in `id`.
+ * \param[in] adapter a adapter_t pointer.
  * \param[in] id an integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int adapter_get_by_id(adapter_t* adapter, int id);
 
 /**
- * Update an adapter object in the database.
- * \param[in] adapter an adapter_t pointer.
+ * Update a adapter object in the database.
+ * \param[in] adapter a adapter_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int adapter_update(adapter_t* adapter);
 
 /**
- * Delete an adapter object from the database.
- * \param[in] adapter an adapter_t pointer.
+ * Delete a adapter object from the database.
+ * \param[in] adapter a adapter_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int adapter_delete(adapter_t* adapter);
+
+/**
+ * A list of adapter objects.
+ */
+struct adapter_list {
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+    adapter_t* adapter;
+};
+
+/**
+ * Create a new adapter object list.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a adapter_list_t pointer or NULL on error.
+ */
+adapter_list_t* adapter_list_new(const db_connection_t* connection);
+
+/**
+ * Delete a adapter object list
+ * \param[in] adapter_list a adapter_list_t pointer.
+ */
+void adapter_list_free(adapter_list_t* adapter_list);
+
+/**
+ * Get all adapter objects.
+ * \param[in] adapter_list a adapter_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int adapter_list_get(adapter_list_t* adapter_list);
+
+/**
+ * Get the first adapter object in a adapter object list. This will reset the position of the list.
+ * \param[in] adapter_list a adapter_list_t pointer.
+ * \return a adapter_t pointer or NULL on error or if there are no
+ * adapter objects in the adapter object list.
+ */
+const adapter_t* adapter_list_begin(adapter_list_t* adapter_list);
+
+/**
+ * Get the next adapter object in a adapter object list.
+ * \param[in] adapter_list a adapter_list_t pointer.
+ * \return a adapter_t pointer or NULL on error or if there are no more
+ * adapter objects in the adapter object list.
+ */
+const adapter_t* adapter_list_next(adapter_list_t* adapter_list);
 
 #ifdef __cplusplus
 }

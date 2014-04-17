@@ -35,13 +35,16 @@ extern "C" {
 #endif
 
 struct denial;
+struct denial_list;
 typedef struct denial denial_t;
+typedef struct denial_list denial_list_t;
 
 #ifdef __cplusplus
 }
 #endif
 
 #include "db_object.h"
+#include "denial_ext.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,10 +56,9 @@ extern "C" {
 struct denial {
     db_object_t* dbo;
     int id;
-
-    /* foreign key */
     int nsec;
     int nsec3;
+#include "denial_struct_ext.h"
 };
 
 /**
@@ -73,11 +75,18 @@ denial_t* denial_new(const db_connection_t* connection);
 void denial_free(denial_t* denial);
 
 /**
- * Reset the content of a denial object making it as if its new. This does not
- * change anything in the database.
+ * Reset the content of a denial object making it as if its new. This does not change anything in the database.
  * \param[in] denial a denial_t pointer.
  */
 void denial_reset(denial_t* denial);
+
+/**
+ * Copy the content of a denial object.
+ * \param[in] denial a denial_t pointer.
+ * \param[in] denial_copy a denial_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int denial_copy(denial_t* denial, const denial_t* denial_copy);
 
 /**
  * Set the content of a denial object based on a database result.
@@ -152,6 +161,52 @@ int denial_update(denial_t* denial);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int denial_delete(denial_t* denial);
+
+/**
+ * A list of denial objects.
+ */
+struct denial_list {
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+    denial_t* denial;
+};
+
+/**
+ * Create a new denial object list.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a denial_list_t pointer or NULL on error.
+ */
+denial_list_t* denial_list_new(const db_connection_t* connection);
+
+/**
+ * Delete a denial object list
+ * \param[in] denial_list a denial_list_t pointer.
+ */
+void denial_list_free(denial_list_t* denial_list);
+
+/**
+ * Get all denial objects.
+ * \param[in] denial_list a denial_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int denial_list_get(denial_list_t* denial_list);
+
+/**
+ * Get the first denial object in a denial object list. This will reset the position of the list.
+ * \param[in] denial_list a denial_list_t pointer.
+ * \return a denial_t pointer or NULL on error or if there are no
+ * denial objects in the denial object list.
+ */
+const denial_t* denial_list_begin(denial_list_t* denial_list);
+
+/**
+ * Get the next denial object in a denial object list.
+ * \param[in] denial_list a denial_list_t pointer.
+ * \return a denial_t pointer or NULL on error or if there are no more
+ * denial objects in the denial object list.
+ */
+const denial_t* denial_list_next(denial_list_t* denial_list);
 
 #ifdef __cplusplus
 }

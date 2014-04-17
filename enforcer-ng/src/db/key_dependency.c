@@ -32,13 +32,12 @@
 
 #include "mm.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 /**
  * Create a new key dependency object.
  * \param[in] connection a db_connection_t pointer.
- * \return an key_dependency_t pointer or NULL on error.
+ * \return a key_dependency_t pointer or NULL on error.
  */
 static db_object_t* __key_dependency_new_object(const db_connection_t* connection) {
     db_object_field_list_t* object_field_list;
@@ -67,17 +66,6 @@ static db_object_t* __key_dependency_new_object(const db_connection_t* connectio
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "rrtype")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        db_object_free(object);
-        return NULL;
-    }
-
-    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "from_key")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
@@ -91,6 +79,17 @@ static db_object_t* __key_dependency_new_object(const db_connection_t* connectio
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "to_key")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rrtype")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -144,7 +143,6 @@ void key_dependency_free(key_dependency_t* key_dependency) {
 void key_dependency_reset(key_dependency_t* key_dependency) {
     if (key_dependency) {
         key_dependency->id = 0;
-        key_dependency->rrtype = 0;
         if (key_dependency->from_key) {
             free(key_dependency->from_key);
         }
@@ -153,7 +151,44 @@ void key_dependency_reset(key_dependency_t* key_dependency) {
             free(key_dependency->to_key);
         }
         key_dependency->to_key = NULL;
+        key_dependency->rrtype = 0;
     }
+}
+
+int key_dependency_copy(key_dependency_t* key_dependency, const key_dependency_t* key_dependency_copy) {
+    char* from_key_text = NULL;
+    char* to_key_text = NULL;
+    if (!key_dependency) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_dependency_copy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_dependency->from_key) {
+        if (!(from_key_text = strdup(key_dependency->from_key))) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    if (key_dependency->to_key) {
+        if (!(to_key_text = strdup(key_dependency->to_key))) {
+            if (from_key_text) {
+                free(from_key_text);
+            }
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    key_dependency->id = key_dependency_copy->id;
+    if (key_dependency->from_key) {
+        free(key_dependency->from_key);
+    }
+    key_dependency->from_key = from_key_text;
+    if (key_dependency->to_key) {
+        free(key_dependency->to_key);
+    }
+    key_dependency->to_key = to_key_text;
+    key_dependency->rrtype = key_dependency_copy->rrtype;
+    return DB_OK;
 }
 
 int key_dependency_from_result(key_dependency_t* key_dependency, const db_result_t* result) {
@@ -170,12 +205,13 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 4
         || db_value_to_int32(db_value_set_at(value_set, 0), &(key_dependency->id))
-        || db_value_to_uint32(db_value_set_at(value_set, 1), &(key_dependency->rrtype))
-        || db_value_to_text(db_value_set_at(value_set, 2), &(key_dependency->from_key))
-        || db_value_to_text(db_value_set_at(value_set, 3), &(key_dependency->to_key)))
+        || db_value_to_text(db_value_set_at(value_set, 1), &(key_dependency->from_key))
+        || db_value_to_text(db_value_set_at(value_set, 2), &(key_dependency->to_key))
+        || db_value_to_uint32(db_value_set_at(value_set, 3), &(key_dependency->rrtype)))
     {
         return DB_ERROR_UNKNOWN;
     }
+
     return DB_OK;
 }
 
@@ -185,14 +221,6 @@ int key_dependency_id(const key_dependency_t* key_dependency) {
     }
 
     return key_dependency->id;
-}
-
-unsigned int key_dependency_rrtype(const key_dependency_t* key_dependency) {
-    if (!key_dependency) {
-        return 0;
-    }
-
-    return key_dependency->rrtype;
 }
 
 const char* key_dependency_from_key(const key_dependency_t* key_dependency) {
@@ -211,27 +239,25 @@ const char* key_dependency_to_key(const key_dependency_t* key_dependency) {
     return key_dependency->to_key;
 }
 
-int key_dependency_set_rrtype(key_dependency_t* key_dependency, unsigned int rrtype) {
+unsigned int key_dependency_rrtype(const key_dependency_t* key_dependency) {
     if (!key_dependency) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
-    key_dependency->rrtype = rrtype;
-
-    return DB_OK;
+    return key_dependency->rrtype;
 }
 
-int key_dependency_set_from_key(key_dependency_t* key_dependency, const char* from_key) {
+int key_dependency_set_from_key(key_dependency_t* key_dependency, const char* from_key_text) {
     char* new_from_key;
 
     if (!key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!from_key) {
+    if (!from_key_text) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(new_from_key = strdup(from_key))) {
+    if (!(new_from_key = strdup(from_key_text))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -243,17 +269,17 @@ int key_dependency_set_from_key(key_dependency_t* key_dependency, const char* fr
     return DB_OK;
 }
 
-int key_dependency_set_to_key(key_dependency_t* key_dependency, const char* to_key) {
+int key_dependency_set_to_key(key_dependency_t* key_dependency, const char* to_key_text) {
     char* new_to_key;
 
     if (!key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!to_key) {
+    if (!to_key_text) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(new_to_key = strdup(to_key))) {
+    if (!(new_to_key = strdup(to_key_text))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -261,6 +287,16 @@ int key_dependency_set_to_key(key_dependency_t* key_dependency, const char* to_k
         free(key_dependency->to_key);
     }
     key_dependency->to_key = new_to_key;
+
+    return DB_OK;
+}
+
+int key_dependency_set_rrtype(key_dependency_t* key_dependency, unsigned int rrtype) {
+    if (!key_dependency) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_dependency->rrtype = rrtype;
 
     return DB_OK;
 }
@@ -280,24 +316,9 @@ int key_dependency_create(key_dependency_t* key_dependency) {
     if (key_dependency->id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_dependency->from_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_dependency->to_key) {
-        return DB_ERROR_UNKNOWN;
-    }
+    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "rrtype")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
@@ -321,14 +342,24 @@ int key_dependency_create(key_dependency_t* key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rrtype")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
     if (!(value_set = db_value_set_new(3))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_uint32(db_value_set_get(value_set, 0), key_dependency->rrtype)
-        || db_value_from_text(db_value_set_get(value_set, 1), key_dependency->from_key)
-        || db_value_from_text(db_value_set_get(value_set, 2), key_dependency->to_key))
+    if (db_value_from_text(db_value_set_get(value_set, 0), key_dependency->from_key)
+        || db_value_from_text(db_value_set_get(value_set, 1), key_dependency->to_key)
+        || db_value_from_uint32(db_value_set_get(value_set, 2), key_dependency->rrtype))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -357,7 +388,6 @@ int key_dependency_get_by_id(key_dependency_t* key_dependency, int id) {
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
     }
-
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
@@ -407,24 +437,9 @@ int key_dependency_update(key_dependency_t* key_dependency) {
     if (!key_dependency->id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_dependency->from_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_dependency->to_key) {
-        return DB_ERROR_UNKNOWN;
-    }
+    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "rrtype")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
@@ -448,14 +463,24 @@ int key_dependency_update(key_dependency_t* key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rrtype")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
     if (!(value_set = db_value_set_new(3))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_uint32(db_value_set_get(value_set, 0), key_dependency->rrtype)
-        || db_value_from_text(db_value_set_get(value_set, 1), key_dependency->from_key)
-        || db_value_from_text(db_value_set_get(value_set, 2), key_dependency->to_key))
+    if (db_value_from_text(db_value_set_get(value_set, 0), key_dependency->from_key)
+        || db_value_from_text(db_value_set_get(value_set, 1), key_dependency->to_key)
+        || db_value_from_uint32(db_value_set_get(value_set, 2), key_dependency->rrtype))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -617,3 +642,4 @@ const key_dependency_t* key_dependency_list_next(key_dependency_list_t* key_depe
     }
     return key_dependency_list->key_dependency;
 }
+
