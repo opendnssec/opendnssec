@@ -86,7 +86,9 @@ extern "C" {
 #endif
 
 struct ', $name, ';
+struct ', $name, '_list;
 typedef struct ', $name, ' ', $name, '_t;
+typedef struct ', $name, '_list ', $name, '_list_t;
 
 ';
 
@@ -154,6 +156,14 @@ void ', $name, '_free(', $name, '_t* ', $name, ');
  * \param[in] ', $name, ' a ', $name, '_t pointer.
  */
 void ', $name, '_reset(', $name, '_t* ', $name, ');
+
+/**
+ * Copy the content of a ', $tname, ' object.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \param[in] ', $name, '_copy a ', $name, '_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_copy(', $name, '_t* ', $name, ', const ', $name, '_t* ', $name, '_copy);
 
 /**
  * Set the content of a ', $tname, ' object based on a database result.
@@ -293,6 +303,52 @@ int ', $name, '_update(', $name, '_t* ', $name, ');
  */
 int ', $name, '_delete(', $name, '_t* ', $name, ');
 
+/**
+ * A list of ', $tname, ' objects.
+ */
+struct ', $name, '_list {
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+    ', $name, '_t* ', $name, ';
+};
+
+/**
+ * Create a new ', $tname, ' object list.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a ', $name, '_list_t pointer or NULL on error.
+ */
+', $name, '_list_t* ', $name, '_list_new(const db_connection_t* connection);
+
+/**
+ * Delete a ', $tname, ' object list
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ */
+void ', $name, '_list_free(', $name, '_list_t* ', $name, '_list);
+
+/**
+ * Get all ', $tname, ' objects.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list);
+
+/**
+ * Get the first ', $tname, ' object in a ', $tname, ' object list. This will reset the position of the list.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return a ', $name, '_t pointer or NULL on error or if there are no
+ * ', $tname, ' objects in the ', $tname, ' object list.
+ */
+const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list);
+
+/**
+ * Get the next ', $tname, ' object in a ', $tname, ' object list.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return a ', $name, '_t pointer or NULL on error or if there are no more
+ * ', $tname, ' objects in the ', $tname, ' object list.
+ */
+const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list);
+
 #ifdef __cplusplus
 }
 #endif
@@ -301,10 +357,58 @@ int ', $name, '_delete(', $name, '_t* ', $name, ');
 
 #endif
 ';
+close(HEADER);
+
+if (!-f $name.'_ext.h') {
+open(HEADER, '>:encoding(UTF-8)', $name.'_ext.h') or die;
+    
+    print HEADER '/*
+ * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+ * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS\'\' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+#ifndef __', $name, '_ext_h
+#define __', $name, '_ext_h
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+';
+close(HEADER);
+}
     
 ################################################################################
 
-close(HEADER);
 open(SOURCE, '>:encoding(UTF-8)', $name.'.c') or die;
 
 print SOURCE '/*
@@ -503,6 +607,56 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = 0;
     }
 }
 print SOURCE '    }
+}
+
+int ', $name, '_copy(', $name, '_t* ', $name, ', const ', $name, '_t* ', $name, '_copy) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    char* ', $field->{name}, '_text = NULL;
+';
+    }
+}
+print SOURCE '    if (!', $name, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '_copy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    if (', $name, '->', $field->{name}, ') {
+        if (!(', $field->{name}, '_text = strdup(', $name, '->', $field->{name}, '))) {
+';
+foreach my $field2 (@{$object->{fields}}) {
+    if ($field2->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '            if (', $field->{name}, '_text) {
+                free(', $field->{name}, '_text);
+            }
+';
+    }
+}
+print SOURCE '            return DB_ERROR_UNKNOWN;
+        }
+    }
+';
+    }
+}
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    if (', $name, '->', $field->{name}, ') {
+        free(', $name, '->', $field->{name}, ');
+    }
+    ', $name, '->', $field->{name}, ' = ', $field->{name}, '_text;
+';
+        next;
+    }
+print SOURCE '    ', $name, '->', $field->{name}, ' = ', $name, '_copy->', $field->{name}, ';
+';
+}
+print SOURCE '    return DB_OK;
 }
 
 int ', $name, '_from_result(', $name, '_t* ', $name, ', const db_result_t* result) {
@@ -967,8 +1121,139 @@ int ', $name, '_delete(', $name, '_t* ', $name, ') {
     return ret;
 }
 
+/* ', uc($tname), ' LIST */
+
+static mm_alloc_t __', $name, '_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $name, '_list_t));
+
+', $name, '_list_t* ', $name, '_list_new(const db_connection_t* connection) {
+    ', $name, '_list_t* ', $name, '_list =
+        (', $name, '_list_t*)mm_alloc_new0(&__', $name, '_list_alloc);
+
+    if (', $name, '_list) {
+        if (!(', $name, '_list->dbo = __', $name, '_new_object(connection))) {
+            mm_alloc_delete(&__', $name, '_list_alloc, ', $name, '_list);
+            return NULL;
+        }
+    }
+
+    return ', $name, '_list;
+}
+
+void ', $name, '_list_free(', $name, '_list_t* ', $name, '_list) {
+    if (', $name, '_list) {
+        if (', $name, '_list->dbo) {
+            db_object_free(', $name, '_list->dbo);
+        }
+        if (', $name, '_list->result_list) {
+            db_result_list_free(', $name, '_list->result_list);
+        }
+        if (', $name, '_list->', $name, ') {
+            ', $name, '_free(', $name, '_list->', $name, ');
+        }
+        mm_alloc_delete(&__', $name, '_list_alloc, ', $name, '_list);
+    }
+}
+
+int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list) {
+    if (!', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (', $name, '_list->result_list) {
+        db_result_list_free(', $name, '_list->result_list);
+    }
+    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, NULL))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list) {
+    const db_result_t* result;
+
+    if (!', $name, '_list) {
+        return NULL;
+    }
+    if (!', $name, '_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(', $name, '_list->result_list))) {
+        return NULL;
+    }
+    if (!', $name, '_list->', $name, ') {
+        if (!(', $name, '_list->', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (', $name, '_from_result(', $name, '_list->', $name, ', result)) {
+        return NULL;
+    }
+    return ', $name, '_list->', $name, ';
+}
+
+const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list) {
+    const db_result_t* result;
+
+    if (!', $name, '_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(', $name, '_list->result_list))) {
+        return NULL;
+    }
+    if (!', $name, '_list->', $name, ') {
+        if (!(', $name, '_list->', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (', $name, '_from_result(', $name, '_list->', $name, ', result)) {
+        return NULL;
+    }
+    return ', $name, '_list->', $name, ';
+}
+
 ';
+close(SOURCE);
 
+if (!-f $name.'_ext.c') {
+open(SOURCE, '>:encoding(UTF-8)', $name.'_ext.c') or die;
 
-    last;
+print SOURCE '/*
+ * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+ * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS\'\' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+#include "', $name, '.h"
+
+';
+close(SOURCE);
+}
 }
