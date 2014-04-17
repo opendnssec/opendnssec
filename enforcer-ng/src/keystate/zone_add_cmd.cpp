@@ -219,7 +219,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	if (!error) {
 		error = perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 			engine->config->automatic_keygen_duration);
+		ods_log_debug("[%s] Flushing enforce task", module_str);
 		flush_enforce_task(engine, 0);
+		ods_log_debug("[%s] Flushing enforce task done", module_str);
 	}
 	return error;
 }

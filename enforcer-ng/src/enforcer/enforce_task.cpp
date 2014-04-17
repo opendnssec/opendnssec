@@ -328,8 +328,11 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			if (!OrmMessageEnumWhere(conn,enfzone.descriptor(),rows,where))
 				LOG_AND_RESCHEDULE_15SECS("zone query failed");
 			
-			if (!OrmFirst(rows))
-				LOG_AND_RESCHEDULE("unable to determine next schedule time");
+			if (!OrmFirst(rows)) {
+				ods_log_error_and_printf(sockfd, module_str,
+					"No zones need updating ever.");
+				return -1;
+			}
 			
 			if (!OrmGetMessage(rows, enfzone, false))
 				LOG_AND_RESCHEDULE("unable to retriev zone from database");
@@ -427,12 +430,17 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
     lock_basic_lock(&engine->taskq->schedule_lock);
     /* [LOCK] schedule */
     task_type *running_enforcer = schedule_lookup_task(engine->taskq, enf);
-    task_cleanup(enf);
-    if (running_enforcer)
+
+    if (running_enforcer) {
         running_enforcer->flush = 1;
+        task_cleanup(enf);
+    } else {
+        if (schedule_task(engine->taskq, enf, 1) != ODS_STATUS_OK) {
+            ods_log_info("[%s] Unable to schedule enforce task.", module_str);
+        }
+    }
     /* [UNLOCK] schedule */
     lock_basic_unlock(&engine->taskq->schedule_lock);
-    if (running_enforcer)
-        engine_wakeup_workers(engine);
-    return running_enforcer ? 1 : 0;
+    engine_wakeup_workers(engine);
+    return 1;
 }
