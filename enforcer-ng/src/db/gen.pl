@@ -115,6 +115,7 @@ print HEADER '#ifdef __cplusplus
 #endif
 
 #include "db_object.h"
+#include "', $name, '_ext.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -136,7 +137,8 @@ foreach my $field (@{$object->{fields}}) {
     print HEADER '    ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ";\n";
 }
 
-print HEADER '};
+print HEADER '#include "', $name, '_struct_ext.h"
+};
 
 /**
  * Create a new ', $tname, ' object.
@@ -254,10 +256,10 @@ int ', $name, '_set_', $field->{name}, '_text(', $name, '_t* ', $name, ', const 
         print HEADER '/**
  * Set the ', $field->{name}, ' of a ', $tname, ' object.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
- * \param[in] ', $field->{name}, ' a character pointer.
+ * \param[in] ', $field->{name}, '_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', const char* ', $field->{name}, ');
+int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', const char* ', $field->{name}, '_text);
 
 ';
         next;
@@ -353,8 +355,6 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
 }
 #endif
 
-#include "', $name, '_ext.h"
-
 #endif
 ';
 close(HEADER);
@@ -403,6 +403,14 @@ extern "C" {
 #endif
 
 #endif
+';
+close(HEADER);
+}
+
+if (!-f $name.'_struct_ext.h') {
+open(HEADER, '>:encoding(UTF-8)', $name.'_struct_ext.h') or die;
+    
+    print HEADER '
 ';
 close(HEADER);
 }
