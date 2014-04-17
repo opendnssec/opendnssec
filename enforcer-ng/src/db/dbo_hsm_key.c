@@ -389,7 +389,22 @@ int dbo_hsm_key_from_result(dbo_hsm_key_t* dbo_hsm_key, const db_result_t* resul
         return DB_ERROR_UNKNOWN;
     }
 
-    dbo_hsm_key_reset(dbo_hsm_key);
+    if (dbo_hsm_key->locator) {
+        free(dbo_hsm_key->locator);
+    }
+    dbo_hsm_key->locator = NULL;
+    if (dbo_hsm_key->policy) {
+        free(dbo_hsm_key->policy);
+    }
+    dbo_hsm_key->policy = NULL;
+    if (dbo_hsm_key->key_type) {
+        free(dbo_hsm_key->key_type);
+    }
+    dbo_hsm_key->key_type = NULL;
+    if (dbo_hsm_key->repository) {
+        free(dbo_hsm_key->repository);
+    }
+    dbo_hsm_key->repository = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 14
         || db_value_to_int32(db_value_set_at(value_set, 0), &(dbo_hsm_key->id))

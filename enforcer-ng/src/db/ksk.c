@@ -258,7 +258,10 @@ int ksk_from_result(ksk_t* ksk, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
-    ksk_reset(ksk);
+    if (ksk->repository) {
+        free(ksk->repository);
+    }
+    ksk->repository = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 9
         || db_value_to_int32(db_value_set_at(value_set, 0), &(ksk->id))

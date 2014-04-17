@@ -201,7 +201,14 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
         return DB_ERROR_UNKNOWN;
     }
 
-    key_dependency_reset(key_dependency);
+    if (key_dependency->from_key) {
+        free(key_dependency->from_key);
+    }
+    key_dependency->from_key = NULL;
+    if (key_dependency->to_key) {
+        free(key_dependency->to_key);
+    }
+    key_dependency->to_key = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 4
         || db_value_to_int32(db_value_set_at(value_set, 0), &(key_dependency->id))

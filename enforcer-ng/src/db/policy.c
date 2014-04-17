@@ -253,7 +253,14 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
-    policy_reset(policy);
+    if (policy->name) {
+        free(policy->name);
+    }
+    policy->name = NULL;
+    if (policy->description) {
+        free(policy->description);
+    }
+    policy->description = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 8
         || db_value_to_int32(db_value_set_at(value_set, 0), &(policy->id))

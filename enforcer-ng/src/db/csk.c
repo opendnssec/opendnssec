@@ -260,7 +260,10 @@ int csk_from_result(csk_t* csk, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
-    csk_reset(csk);
+    if (csk->repository) {
+        free(csk->repository);
+    }
+    csk->repository = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 9
         || db_value_to_int32(db_value_set_at(value_set, 0), &(csk->id))

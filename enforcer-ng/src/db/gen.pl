@@ -698,8 +698,17 @@ print SOURCE '
         return DB_ERROR_UNKNOWN;
     }
 
-    ', $name, '_reset(', $name, ');
-    if (!(value_set = db_result_value_set(result))
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    if (', $name, '->', $field->{name}, ') {
+        free(', $name, '->', $field->{name}, ');
+    }
+    ', $name, '->', $field->{name}, ' = NULL;
+';
+    }
+}
+print SOURCE '    if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != ', (scalar @{$object->{fields}});
 my $count = 0;
 foreach my $field (@{$object->{fields}}) {

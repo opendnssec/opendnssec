@@ -248,7 +248,10 @@ int nsec3_from_result(nsec3_t* nsec3, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
-    nsec3_reset(nsec3);
+    if (nsec3->salt) {
+        free(nsec3->salt);
+    }
+    nsec3->salt = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 9
         || db_value_to_int32(db_value_set_at(value_set, 0), &(nsec3->id))

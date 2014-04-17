@@ -378,7 +378,18 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
         return DB_ERROR_UNKNOWN;
     }
 
-    enforcer_zone_reset(enforcer_zone);
+    if (enforcer_zone->name) {
+        free(enforcer_zone->name);
+    }
+    enforcer_zone->name = NULL;
+    if (enforcer_zone->policy) {
+        free(enforcer_zone->policy);
+    }
+    enforcer_zone->policy = NULL;
+    if (enforcer_zone->signconf_path) {
+        free(enforcer_zone->signconf_path);
+    }
+    enforcer_zone->signconf_path = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 16
         || db_value_to_int32(db_value_set_at(value_set, 0), &(enforcer_zone->id))

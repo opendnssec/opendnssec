@@ -142,7 +142,6 @@ int audit_from_result(audit_t* audit, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
-    audit_reset(audit);
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 2
         || db_value_to_int32(db_value_set_at(value_set, 0), &(audit->id))

@@ -376,7 +376,10 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
-    key_data_reset(key_data);
+    if (key_data->locator) {
+        free(key_data->locator);
+    }
+    key_data->locator = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 17
         || db_value_to_int32(db_value_set_at(value_set, 0), &(key_data->id))

@@ -223,7 +223,18 @@ int adapter_from_result(adapter_t* adapter, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
-    adapter_reset(adapter);
+    if (adapter->adapter) {
+        free(adapter->adapter);
+    }
+    adapter->adapter = NULL;
+    if (adapter->type) {
+        free(adapter->type);
+    }
+    adapter->type = NULL;
+    if (adapter->file) {
+        free(adapter->file);
+    }
+    adapter->file = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 4
         || db_value_to_int32(db_value_set_at(value_set, 0), &(adapter->id))

@@ -170,7 +170,10 @@ int hsm_key_used_by_zones_from_result(hsm_key_used_by_zones_t* hsm_key_used_by_z
         return DB_ERROR_UNKNOWN;
     }
 
-    hsm_key_used_by_zones_reset(hsm_key_used_by_zones);
+    if (hsm_key_used_by_zones->value) {
+        free(hsm_key_used_by_zones->value);
+    }
+    hsm_key_used_by_zones->value = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 3
         || db_value_to_int32(db_value_set_at(value_set, 0), &(hsm_key_used_by_zones->id))
