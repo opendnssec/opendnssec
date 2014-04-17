@@ -446,11 +446,10 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     }
     
     engine->need_to_reload = 0;
-    engine_start_cmdhandler(engine);
     engine_start_workers(engine);
-
     /* call the external start callback function */
-    start(engine);
+    start(engine); /* (autostart) */
+    engine_start_cmdhandler(engine);
     
     while (!engine->need_to_exit && !engine->need_to_reload) {
         if (single_run) {
