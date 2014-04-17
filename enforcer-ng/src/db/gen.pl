@@ -542,6 +542,18 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = ', uc($name.'_'.$field
         }
         next;
     }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+        if ($field->{default}) {
+print SOURCE '        ', $name, '->', $field->{name}, ' = strdup("', $field->{default}, '");
+';
+        }
+        next;
+    }
+    
+    if ($field->{default}) {
+print SOURCE '        ', $name, '->', $field->{name}, ' = ', $field->{default}, ';
+';
+    }
 }
 print SOURCE '    }
 
@@ -625,15 +637,16 @@ print SOURCE '    if (!', $name, ') {
     }
 
 ';
+my @free = ();
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_TEXT') {
 print SOURCE '    if (', $name, '->', $field->{name}, ') {
         if (!(', $field->{name}, '_text = strdup(', $name, '->', $field->{name}, '))) {
 ';
-foreach my $field2 (@{$object->{fields}}) {
+foreach my $field2 (@free) {
     if ($field2->{type} eq 'DB_TYPE_TEXT') {
-print SOURCE '            if (', $field->{name}, '_text) {
-                free(', $field->{name}, '_text);
+print SOURCE '            if (', $field2->{name}, '_text) {
+                free(', $field2->{name}, '_text);
             }
 ';
     }
@@ -642,6 +655,7 @@ print SOURCE '            return DB_ERROR_UNKNOWN;
         }
     }
 ';
+        push(@free, $field);
     }
 }
 foreach my $field (@{$object->{fields}}) {
