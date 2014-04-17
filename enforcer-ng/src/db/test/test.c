@@ -29,6 +29,26 @@
 
 #include "test.h"
 
+#include "test_adapter.h"
+#include "test_adapters.h"
+#include "test_audit.h"
+#include "test_dbo_hsm_key.h"
+#include "test_dbo_keylist.h"
+#include "test_denial.h"
+#include "test_enforcer_zone.h"
+#include "test_hsm_key_used_by_zones.h"
+#include "test_key_data.h"
+#include "test_key_dependency.h"
+#include "test_key_state.h"
+#include "test_ksk.h"
+#include "test_nsec3.h"
+#include "test_nsec.h"
+#include "test_parent.h"
+#include "test_policy.h"
+#include "test_signatures.h"
+#include "test_zone.h"
+#include "test_zsk.h"
+
 #include "CUnit/Basic.h"
 
 int main(void) {
@@ -128,6 +148,26 @@ int main(void) {
         return CU_get_error();
     }
 #endif
+
+    test_adapter_add_suite();
+    test_adapters_add_suite();
+    test_audit_add_suite();
+    test_dbo_hsm_key_add_suite();
+    test_dbo_keylist_add_suite();
+    test_denial_add_suite();
+    test_enforcer_zone_add_suite();
+    test_hsm_key_used_by_zones_add_suite();
+    test_key_data_add_suite();
+    test_key_dependency_add_suite();
+    test_key_state_add_suite();
+    test_ksk_add_suite();
+    test_nsec3_add_suite();
+    test_nsec_add_suite();
+    test_parent_add_suite();
+    test_policy_add_suite();
+    test_signatures_add_suite();
+    test_zone_add_suite();
+    test_zsk_add_suite();
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();
