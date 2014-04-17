@@ -55,7 +55,7 @@ extern "C" {
  */
 struct nsec3 {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     unsigned int optout;
     unsigned int ttl;
     unsigned int resalt;
@@ -103,11 +103,11 @@ int nsec3_copy(nsec3_t* nsec3, const nsec3_t* nsec3_copy);
 int nsec3_from_result(nsec3_t* nsec3, const db_result_t* result);
 
 /**
- * Get the ID of a nsec3 object. Undefined behavior if `nsec3` is NULL.
+ * Get the id of a nsec3 object. Undefined behavior if `nsec3` is NULL.
  * \param[in] nsec3 a nsec3_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int nsec3_id(const nsec3_t* nsec3);
+const db_value_t* nsec3_id(const nsec3_t* nsec3);
 
 /**
  * Get the optout of a nsec3 object. Undefined behavior if `nsec3` is NULL.
@@ -239,10 +239,10 @@ int nsec3_create(nsec3_t* nsec3);
 /**
  * Get a nsec3 object from the database by an id specified in `id`.
  * \param[in] nsec3 a nsec3_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int nsec3_get_by_id(nsec3_t* nsec3, int id);
+int nsec3_get_by_id(nsec3_t* nsec3, const db_value_t* id);
 
 /**
  * Update a nsec3 object in the database.

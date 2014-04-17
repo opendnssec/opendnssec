@@ -62,7 +62,7 @@ extern "C" {
  */
 struct zsk {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     unsigned int algorithm;
     unsigned int bits;
     int lifetime;
@@ -109,11 +109,11 @@ int zsk_copy(zsk_t* zsk, const zsk_t* zsk_copy);
 int zsk_from_result(zsk_t* zsk, const db_result_t* result);
 
 /**
- * Get the ID of a zsk object. Undefined behavior if `zsk` is NULL.
+ * Get the id of a zsk object. Undefined behavior if `zsk` is NULL.
  * \param[in] zsk a zsk_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int zsk_id(const zsk_t* zsk);
+const db_value_t* zsk_id(const zsk_t* zsk);
 
 /**
  * Get the algorithm of a zsk object. Undefined behavior if `zsk` is NULL.
@@ -245,10 +245,10 @@ int zsk_create(zsk_t* zsk);
 /**
  * Get a zsk object from the database by an id specified in `id`.
  * \param[in] zsk a zsk_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zsk_get_by_id(zsk_t* zsk, int id);
+int zsk_get_by_id(zsk_t* zsk, const db_value_t* id);
 
 /**
  * Update a zsk object in the database.

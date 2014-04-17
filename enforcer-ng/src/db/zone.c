@@ -140,6 +140,7 @@ zone_t* zone_new(const db_connection_t* connection) {
             mm_alloc_delete(&__zone_alloc, zone);
             return NULL;
         }
+        db_value_reset(&(zone->id));
         zone->serial = ZONE_SERIAL_INVALID;
     }
 
@@ -151,13 +152,14 @@ void zone_free(zone_t* zone) {
         if (zone->dbo) {
             db_object_free(zone->dbo);
         }
+        db_value_reset(&(zone->id));
         mm_alloc_delete(&__zone_alloc, zone);
     }
 }
 
 void zone_reset(zone_t* zone) {
     if (zone) {
-        zone->id = 0;
+        db_value_reset(&(zone->id));
         zone->propagationdelay = 0;
         zone->ttl = 0;
         zone->min = 0;
@@ -173,7 +175,9 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    zone->id = zone_copy->id;
+    if (db_value_copy(&(zone->id), &(zone_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     zone->propagationdelay = zone_copy->propagationdelay;
     zone->ttl = zone_copy->ttl;
     zone->min = zone_copy->min;
@@ -192,9 +196,10 @@ int zone_from_result(zone_t* zone, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(zone->id));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 5
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(zone->id))
+        || db_value_copy(&(zone->id), db_value_set_at(value_set, 0))
         || db_value_to_int32(db_value_set_at(value_set, 1), &(zone->propagationdelay))
         || db_value_to_int32(db_value_set_at(value_set, 2), &(zone->ttl))
         || db_value_to_int32(db_value_set_at(value_set, 3), &(zone->min))
@@ -206,13 +211,13 @@ int zone_from_result(zone_t* zone, const db_result_t* result) {
     if (serial == (zone_serial_t)ZONE_SERIAL_COUNTER) {
         zone->serial = ZONE_SERIAL_COUNTER;
     }
-    if (serial == (zone_serial_t)ZONE_SERIAL_DATECOUNTER) {
+    else if (serial == (zone_serial_t)ZONE_SERIAL_DATECOUNTER) {
         zone->serial = ZONE_SERIAL_DATECOUNTER;
     }
-    if (serial == (zone_serial_t)ZONE_SERIAL_UNIXTIME) {
+    else if (serial == (zone_serial_t)ZONE_SERIAL_UNIXTIME) {
         zone->serial = ZONE_SERIAL_UNIXTIME;
     }
-    if (serial == (zone_serial_t)ZONE_SERIAL_KEEP) {
+    else if (serial == (zone_serial_t)ZONE_SERIAL_KEEP) {
         zone->serial = ZONE_SERIAL_KEEP;
     }
     else {
@@ -222,12 +227,12 @@ int zone_from_result(zone_t* zone, const db_result_t* result) {
     return DB_OK;
 }
 
-int zone_id(const zone_t* zone) {
+const db_value_t* zone_id(const zone_t* zone) {
     if (!zone) {
-        return 0;
+        return NULL;
     }
 
-    return zone->id;
+    return &(zone->id);
 }
 
 int zone_propagationdelay(const zone_t* zone) {
@@ -347,7 +352,7 @@ int zone_create(zone_t* zone) {
     if (!zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (zone->id) {
+    if (!db_value_not_empty(&(zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -418,7 +423,7 @@ int zone_create(zone_t* zone) {
     return ret;
 }
 
-int zone_get_by_id(zone_t* zone, int id) {
+int zone_get_by_id(zone_t* zone, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -430,6 +435,12 @@ int zone_get_by_id(zone_t* zone, int id) {
     if (!zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -437,7 +448,7 @@ int zone_get_by_id(zone_t* zone, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -451,7 +462,11 @@ int zone_get_by_id(zone_t* zone, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            zone_from_result(zone, result);
+            if (zone_from_result(zone, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -475,7 +490,7 @@ int zone_update(zone_t* zone) {
     if (!zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!zone->id) {
+    if (db_value_not_empty(&(zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -549,7 +564,7 @@ int zone_update(zone_t* zone) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), zone->id)
+        || db_value_copy(db_clause_get_value(clause), &(zone->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -577,7 +592,7 @@ int zone_delete(zone_t* zone) {
     if (!zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!zone->id) {
+    if (db_value_not_empty(&(zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -588,7 +603,7 @@ int zone_delete(zone_t* zone) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), zone->id)
+        || db_value_copy(db_clause_get_value(clause), &(zone->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -695,4 +710,3 @@ const zone_t* zone_list_next(zone_list_t* zone_list) {
     }
     return zone_list->zone;
 }
-

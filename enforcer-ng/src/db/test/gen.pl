@@ -140,7 +140,7 @@ static db_connection_t* connection = NULL;
 
 static ', $name, '_t* object = NULL;
 static ', $name, '_list_t* object_list = NULL;
-static int id = 0;
+static db_value_t id;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_', $name, '_init_suite_sqlite(void) {
@@ -207,6 +207,7 @@ int test_', $name, '_init_suite_sqlite(void) {
         return 1;
     }
 
+    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -276,6 +277,7 @@ int test_', $name, '_init_suite_couchdb(void) {
         return 1;
     }
 
+    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -287,6 +289,7 @@ static int test_', $name, '_clean_suite(void) {
     configuration = NULL;
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
+    db_value_reset(&id);
     return 0;
 }
 
@@ -358,11 +361,11 @@ static void test_', $name, '_list(void) {
     const ', $name, '_t* item;
     CU_ASSERT_FATAL(!', $name, '_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = ', $name, '_list_begin(object_list)));
-    CU_ASSERT_FATAL((id = ', $name, '_id(item)));
+    CU_ASSERT_FATAL(!db_value_copy(&id, ', $name, '_id(item)));
 }
 
 static void test_', $name, '_read(void) {
-    CU_ASSERT_FATAL(!', $name, '_get_by_id(object, id));
+    CU_ASSERT_FATAL(!', $name, '_get_by_id(object, &id));
 }
 
 static void test_', $name, '_verify(void) {
@@ -430,7 +433,7 @@ print SOURCE '    CU_ASSERT_FATAL(!', $name, '_update(object));
 print SOURCE '}
 
 static void test_', $name, '_read2(void) {
-    CU_ASSERT_FATAL(!', $name, '_get_by_id(object, id));
+    CU_ASSERT_FATAL(!', $name, '_get_by_id(object, &id));
 }
 
 static void test_', $name, '_verify2(void) {

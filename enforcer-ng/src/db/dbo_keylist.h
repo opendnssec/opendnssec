@@ -55,7 +55,7 @@ extern "C" {
  */
 struct dbo_keylist {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     int ttl;
     int retiresafety;
     int publishsafety;
@@ -100,11 +100,11 @@ int dbo_keylist_copy(dbo_keylist_t* dbo_keylist, const dbo_keylist_t* dbo_keylis
 int dbo_keylist_from_result(dbo_keylist_t* dbo_keylist, const db_result_t* result);
 
 /**
- * Get the ID of a dbo keylist object. Undefined behavior if `dbo_keylist` is NULL.
+ * Get the id of a dbo keylist object. Undefined behavior if `dbo_keylist` is NULL.
  * \param[in] dbo_keylist a dbo_keylist_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int dbo_keylist_id(const dbo_keylist_t* dbo_keylist);
+const db_value_t* dbo_keylist_id(const dbo_keylist_t* dbo_keylist);
 
 /**
  * Get the ttl of a dbo keylist object. Undefined behavior if `dbo_keylist` is NULL.
@@ -191,10 +191,10 @@ int dbo_keylist_create(dbo_keylist_t* dbo_keylist);
 /**
  * Get a dbo keylist object from the database by an id specified in `id`.
  * \param[in] dbo_keylist a dbo_keylist_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int dbo_keylist_get_by_id(dbo_keylist_t* dbo_keylist, int id);
+int dbo_keylist_get_by_id(dbo_keylist_t* dbo_keylist, const db_value_t* id);
 
 /**
  * Update a dbo keylist object in the database.

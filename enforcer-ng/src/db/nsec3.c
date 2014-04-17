@@ -175,6 +175,7 @@ nsec3_t* nsec3_new(const db_connection_t* connection) {
             mm_alloc_delete(&__nsec3_alloc, nsec3);
             return NULL;
         }
+        db_value_reset(&(nsec3->id));
     }
 
     return nsec3;
@@ -185,6 +186,7 @@ void nsec3_free(nsec3_t* nsec3) {
         if (nsec3->dbo) {
             db_object_free(nsec3->dbo);
         }
+        db_value_reset(&(nsec3->id));
         if (nsec3->salt) {
             free(nsec3->salt);
         }
@@ -194,7 +196,7 @@ void nsec3_free(nsec3_t* nsec3) {
 
 void nsec3_reset(nsec3_t* nsec3) {
     if (nsec3) {
-        nsec3->id = 0;
+        db_value_reset(&(nsec3->id));
         nsec3->optout = 0;
         nsec3->ttl = 0;
         nsec3->resalt = 0;
@@ -218,12 +220,14 @@ int nsec3_copy(nsec3_t* nsec3, const nsec3_t* nsec3_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (nsec3->salt) {
-        if (!(salt_text = strdup(nsec3->salt))) {
+    if (nsec3_copy->salt) {
+        if (!(salt_text = strdup(nsec3_copy->salt))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    nsec3->id = nsec3_copy->id;
+    if (db_value_copy(&(nsec3->id), &(nsec3_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     nsec3->optout = nsec3_copy->optout;
     nsec3->ttl = nsec3_copy->ttl;
     nsec3->resalt = nsec3_copy->resalt;
@@ -248,13 +252,14 @@ int nsec3_from_result(nsec3_t* nsec3, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(nsec3->id));
     if (nsec3->salt) {
         free(nsec3->salt);
     }
     nsec3->salt = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 9
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(nsec3->id))
+        || db_value_copy(&(nsec3->id), db_value_set_at(value_set, 0))
         || db_value_to_uint32(db_value_set_at(value_set, 1), &(nsec3->optout))
         || db_value_to_uint32(db_value_set_at(value_set, 2), &(nsec3->ttl))
         || db_value_to_uint32(db_value_set_at(value_set, 3), &(nsec3->resalt))
@@ -270,12 +275,12 @@ int nsec3_from_result(nsec3_t* nsec3, const db_result_t* result) {
     return DB_OK;
 }
 
-int nsec3_id(const nsec3_t* nsec3) {
+const db_value_t* nsec3_id(const nsec3_t* nsec3) {
     if (!nsec3) {
-        return 0;
+        return NULL;
     }
 
-    return nsec3->id;
+    return &(nsec3->id);
 }
 
 unsigned int nsec3_optout(const nsec3_t* nsec3) {
@@ -446,7 +451,7 @@ int nsec3_create(nsec3_t* nsec3) {
     if (!nsec3->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (nsec3->id) {
+    if (!db_value_not_empty(&(nsec3->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -560,7 +565,7 @@ int nsec3_create(nsec3_t* nsec3) {
     return ret;
 }
 
-int nsec3_get_by_id(nsec3_t* nsec3, int id) {
+int nsec3_get_by_id(nsec3_t* nsec3, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -572,6 +577,12 @@ int nsec3_get_by_id(nsec3_t* nsec3, int id) {
     if (!nsec3->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -579,7 +590,7 @@ int nsec3_get_by_id(nsec3_t* nsec3, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -593,7 +604,11 @@ int nsec3_get_by_id(nsec3_t* nsec3, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            nsec3_from_result(nsec3, result);
+            if (nsec3_from_result(nsec3, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -617,7 +632,7 @@ int nsec3_update(nsec3_t* nsec3) {
     if (!nsec3->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!nsec3->id) {
+    if (db_value_not_empty(&(nsec3->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -734,7 +749,7 @@ int nsec3_update(nsec3_t* nsec3) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), nsec3->id)
+        || db_value_copy(db_clause_get_value(clause), &(nsec3->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -762,7 +777,7 @@ int nsec3_delete(nsec3_t* nsec3) {
     if (!nsec3->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!nsec3->id) {
+    if (db_value_not_empty(&(nsec3->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -773,7 +788,7 @@ int nsec3_delete(nsec3_t* nsec3) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), nsec3->id)
+        || db_value_copy(db_clause_get_value(clause), &(nsec3->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -880,4 +895,3 @@ const nsec3_t* nsec3_list_next(nsec3_list_t* nsec3_list) {
     }
     return nsec3_list->nsec3;
 }
-

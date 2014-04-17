@@ -109,6 +109,7 @@ hsm_key_used_by_zones_t* hsm_key_used_by_zones_new(const db_connection_t* connec
             mm_alloc_delete(&__hsm_key_used_by_zones_alloc, hsm_key_used_by_zones);
             return NULL;
         }
+        db_value_reset(&(hsm_key_used_by_zones->id));
     }
 
     return hsm_key_used_by_zones;
@@ -119,6 +120,7 @@ void hsm_key_used_by_zones_free(hsm_key_used_by_zones_t* hsm_key_used_by_zones) 
         if (hsm_key_used_by_zones->dbo) {
             db_object_free(hsm_key_used_by_zones->dbo);
         }
+        db_value_reset(&(hsm_key_used_by_zones->id));
         if (hsm_key_used_by_zones->value) {
             free(hsm_key_used_by_zones->value);
         }
@@ -128,7 +130,7 @@ void hsm_key_used_by_zones_free(hsm_key_used_by_zones_t* hsm_key_used_by_zones) 
 
 void hsm_key_used_by_zones_reset(hsm_key_used_by_zones_t* hsm_key_used_by_zones) {
     if (hsm_key_used_by_zones) {
-        hsm_key_used_by_zones->id = 0;
+        db_value_reset(&(hsm_key_used_by_zones->id));
         if (hsm_key_used_by_zones->value) {
             free(hsm_key_used_by_zones->value);
         }
@@ -146,12 +148,14 @@ int hsm_key_used_by_zones_copy(hsm_key_used_by_zones_t* hsm_key_used_by_zones, c
         return DB_ERROR_UNKNOWN;
     }
 
-    if (hsm_key_used_by_zones->value) {
-        if (!(value_text = strdup(hsm_key_used_by_zones->value))) {
+    if (hsm_key_used_by_zones_copy->value) {
+        if (!(value_text = strdup(hsm_key_used_by_zones_copy->value))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    hsm_key_used_by_zones->id = hsm_key_used_by_zones_copy->id;
+    if (db_value_copy(&(hsm_key_used_by_zones->id), &(hsm_key_used_by_zones_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (hsm_key_used_by_zones->value) {
         free(hsm_key_used_by_zones->value);
     }
@@ -170,13 +174,14 @@ int hsm_key_used_by_zones_from_result(hsm_key_used_by_zones_t* hsm_key_used_by_z
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(hsm_key_used_by_zones->id));
     if (hsm_key_used_by_zones->value) {
         free(hsm_key_used_by_zones->value);
     }
     hsm_key_used_by_zones->value = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 3
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(hsm_key_used_by_zones->id))
+        || db_value_copy(&(hsm_key_used_by_zones->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(hsm_key_used_by_zones->value))
         || db_value_to_int32(db_value_set_at(value_set, 2), &(hsm_key_used_by_zones->parent_id)))
     {
@@ -186,12 +191,12 @@ int hsm_key_used_by_zones_from_result(hsm_key_used_by_zones_t* hsm_key_used_by_z
     return DB_OK;
 }
 
-int hsm_key_used_by_zones_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones) {
+const db_value_t* hsm_key_used_by_zones_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones) {
     if (!hsm_key_used_by_zones) {
-        return 0;
+        return NULL;
     }
 
-    return hsm_key_used_by_zones->id;
+    return &(hsm_key_used_by_zones->id);
 }
 
 const char* hsm_key_used_by_zones_value(const hsm_key_used_by_zones_t* hsm_key_used_by_zones) {
@@ -254,7 +259,7 @@ int hsm_key_used_by_zones_create(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     if (!hsm_key_used_by_zones->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (hsm_key_used_by_zones->id) {
+    if (!db_value_not_empty(&(hsm_key_used_by_zones->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -302,7 +307,7 @@ int hsm_key_used_by_zones_create(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     return ret;
 }
 
-int hsm_key_used_by_zones_get_by_id(hsm_key_used_by_zones_t* hsm_key_used_by_zones, int id) {
+int hsm_key_used_by_zones_get_by_id(hsm_key_used_by_zones_t* hsm_key_used_by_zones, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -314,6 +319,12 @@ int hsm_key_used_by_zones_get_by_id(hsm_key_used_by_zones_t* hsm_key_used_by_zon
     if (!hsm_key_used_by_zones->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -321,7 +332,7 @@ int hsm_key_used_by_zones_get_by_id(hsm_key_used_by_zones_t* hsm_key_used_by_zon
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -335,7 +346,11 @@ int hsm_key_used_by_zones_get_by_id(hsm_key_used_by_zones_t* hsm_key_used_by_zon
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            hsm_key_used_by_zones_from_result(hsm_key_used_by_zones, result);
+            if (hsm_key_used_by_zones_from_result(hsm_key_used_by_zones, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -359,7 +374,7 @@ int hsm_key_used_by_zones_update(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     if (!hsm_key_used_by_zones->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!hsm_key_used_by_zones->id) {
+    if (db_value_not_empty(&(hsm_key_used_by_zones->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -410,7 +425,7 @@ int hsm_key_used_by_zones_update(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), hsm_key_used_by_zones->id)
+        || db_value_copy(db_clause_get_value(clause), &(hsm_key_used_by_zones->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -438,7 +453,7 @@ int hsm_key_used_by_zones_delete(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     if (!hsm_key_used_by_zones->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!hsm_key_used_by_zones->id) {
+    if (db_value_not_empty(&(hsm_key_used_by_zones->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -449,7 +464,7 @@ int hsm_key_used_by_zones_delete(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), hsm_key_used_by_zones->id)
+        || db_value_copy(db_clause_get_value(clause), &(hsm_key_used_by_zones->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -556,4 +571,3 @@ const hsm_key_used_by_zones_t* hsm_key_used_by_zones_list_next(hsm_key_used_by_z
     }
     return hsm_key_used_by_zones_list->hsm_key_used_by_zones;
 }
-

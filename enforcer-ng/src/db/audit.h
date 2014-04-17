@@ -55,7 +55,7 @@ extern "C" {
  */
 struct audit {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     unsigned int partial;
 #include "audit_struct_ext.h"
 };
@@ -96,11 +96,11 @@ int audit_copy(audit_t* audit, const audit_t* audit_copy);
 int audit_from_result(audit_t* audit, const db_result_t* result);
 
 /**
- * Get the ID of a audit object. Undefined behavior if `audit` is NULL.
+ * Get the id of a audit object. Undefined behavior if `audit` is NULL.
  * \param[in] audit a audit_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int audit_id(const audit_t* audit);
+const db_value_t* audit_id(const audit_t* audit);
 
 /**
  * Get the partial of a audit object. Undefined behavior if `audit` is NULL.
@@ -127,10 +127,10 @@ int audit_create(audit_t* audit);
 /**
  * Get a audit object from the database by an id specified in `id`.
  * \param[in] audit a audit_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int audit_get_by_id(audit_t* audit, int id);
+int audit_get_by_id(audit_t* audit, const db_value_t* id);
 
 /**
  * Update a audit object in the database.

@@ -55,7 +55,7 @@ extern "C" {
  */
 struct enforcer_zone {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     char* name;
     char* policy;
     unsigned int signconf_needs_writing;
@@ -110,11 +110,11 @@ int enforcer_zone_copy(enforcer_zone_t* enforcer_zone, const enforcer_zone_t* en
 int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t* result);
 
 /**
- * Get the ID of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * Get the id of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
  * \param[in] enforcer_zone a enforcer_zone_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int enforcer_zone_id(const enforcer_zone_t* enforcer_zone);
+const db_value_t* enforcer_zone_id(const enforcer_zone_t* enforcer_zone);
 
 /**
  * Get the name of a enforcer zone object.
@@ -351,10 +351,10 @@ int enforcer_zone_create(enforcer_zone_t* enforcer_zone);
 /**
  * Get a enforcer zone object from the database by an id specified in `id`.
  * \param[in] enforcer_zone a enforcer_zone_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, int id);
+int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, const db_value_t* id);
 
 /**
  * Update a enforcer zone object in the database.

@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static zone_t* object = NULL;
 static zone_list_t* object_list = NULL;
-static int id = 0;
+static db_value_t id;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_zone_init_suite_sqlite(void) {
@@ -108,6 +108,7 @@ int test_zone_init_suite_sqlite(void) {
         return 1;
     }
 
+    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -177,6 +178,7 @@ int test_zone_init_suite_couchdb(void) {
         return 1;
     }
 
+    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -188,6 +190,7 @@ static int test_zone_clean_suite(void) {
     configuration = NULL;
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
+    db_value_reset(&id);
     return 0;
 }
 
@@ -227,11 +230,11 @@ static void test_zone_list(void) {
     const zone_t* item;
     CU_ASSERT_FATAL(!zone_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = zone_list_begin(object_list)));
-    CU_ASSERT_FATAL((id = zone_id(item)));
+    CU_ASSERT_FATAL(!db_value_copy(&id, zone_id(item)));
 }
 
 static void test_zone_read(void) {
-    CU_ASSERT_FATAL(!zone_get_by_id(object, id));
+    CU_ASSERT_FATAL(!zone_get_by_id(object, &id));
 }
 
 static void test_zone_verify(void) {
@@ -256,7 +259,7 @@ static void test_zone_update(void) {
 }
 
 static void test_zone_read2(void) {
-    CU_ASSERT_FATAL(!zone_get_by_id(object, id));
+    CU_ASSERT_FATAL(!zone_get_by_id(object, &id));
 }
 
 static void test_zone_verify2(void) {

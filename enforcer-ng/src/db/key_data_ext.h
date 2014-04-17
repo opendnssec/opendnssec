@@ -75,10 +75,10 @@ const key_state_t* key_data_get_rrsigdnskey(key_data_t* key_data);
  * Get all key data objects by an enforcer zone id specified in
  * `enforcer_zone_id`.
  * \param[in] key_data_list an key_data_list_t pointer.
- * \param[in] enforcer_zone_id an integer.
+ * \param[in] enforcer_zone_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int enforcer_zone_id);
+int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, const db_value_t* enforcer_zone_id);
 
 #ifdef __cplusplus
 }

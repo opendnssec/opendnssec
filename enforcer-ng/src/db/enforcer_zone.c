@@ -252,6 +252,7 @@ enforcer_zone_t* enforcer_zone_new(const db_connection_t* connection) {
             mm_alloc_delete(&__enforcer_zone_alloc, enforcer_zone);
             return NULL;
         }
+        db_value_reset(&(enforcer_zone->id));
     }
 
     return enforcer_zone;
@@ -262,6 +263,7 @@ void enforcer_zone_free(enforcer_zone_t* enforcer_zone) {
         if (enforcer_zone->dbo) {
             db_object_free(enforcer_zone->dbo);
         }
+        db_value_reset(&(enforcer_zone->id));
         if (enforcer_zone->name) {
             free(enforcer_zone->name);
         }
@@ -277,7 +279,7 @@ void enforcer_zone_free(enforcer_zone_t* enforcer_zone) {
 
 void enforcer_zone_reset(enforcer_zone_t* enforcer_zone) {
     if (enforcer_zone) {
-        enforcer_zone->id = 0;
+        db_value_reset(&(enforcer_zone->id));
         if (enforcer_zone->name) {
             free(enforcer_zone->name);
         }
@@ -316,21 +318,21 @@ int enforcer_zone_copy(enforcer_zone_t* enforcer_zone, const enforcer_zone_t* en
         return DB_ERROR_UNKNOWN;
     }
 
-    if (enforcer_zone->name) {
-        if (!(name_text = strdup(enforcer_zone->name))) {
+    if (enforcer_zone_copy->name) {
+        if (!(name_text = strdup(enforcer_zone_copy->name))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (enforcer_zone->policy) {
-        if (!(policy_text = strdup(enforcer_zone->policy))) {
+    if (enforcer_zone_copy->policy) {
+        if (!(policy_text = strdup(enforcer_zone_copy->policy))) {
             if (name_text) {
                 free(name_text);
             }
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (enforcer_zone->signconf_path) {
-        if (!(signconf_path_text = strdup(enforcer_zone->signconf_path))) {
+    if (enforcer_zone_copy->signconf_path) {
+        if (!(signconf_path_text = strdup(enforcer_zone_copy->signconf_path))) {
             if (name_text) {
                 free(name_text);
             }
@@ -340,7 +342,9 @@ int enforcer_zone_copy(enforcer_zone_t* enforcer_zone, const enforcer_zone_t* en
             return DB_ERROR_UNKNOWN;
         }
     }
-    enforcer_zone->id = enforcer_zone_copy->id;
+    if (db_value_copy(&(enforcer_zone->id), &(enforcer_zone_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (enforcer_zone->name) {
         free(enforcer_zone->name);
     }
@@ -378,6 +382,7 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(enforcer_zone->id));
     if (enforcer_zone->name) {
         free(enforcer_zone->name);
     }
@@ -392,7 +397,7 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
     enforcer_zone->signconf_path = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 16
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(enforcer_zone->id))
+        || db_value_copy(&(enforcer_zone->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(enforcer_zone->name))
         || db_value_to_text(db_value_set_at(value_set, 2), &(enforcer_zone->policy))
         || db_value_to_uint32(db_value_set_at(value_set, 3), &(enforcer_zone->signconf_needs_writing))
@@ -415,12 +420,12 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
     return DB_OK;
 }
 
-int enforcer_zone_id(const enforcer_zone_t* enforcer_zone) {
+const db_value_t* enforcer_zone_id(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return 0;
+        return NULL;
     }
 
-    return enforcer_zone->id;
+    return &(enforcer_zone->id);
 }
 
 const char* enforcer_zone_name(const enforcer_zone_t* enforcer_zone) {
@@ -741,7 +746,7 @@ int enforcer_zone_create(enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (enforcer_zone->id) {
+    if (!db_value_not_empty(&(enforcer_zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -932,7 +937,7 @@ int enforcer_zone_create(enforcer_zone_t* enforcer_zone) {
     return ret;
 }
 
-int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, int id) {
+int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -944,6 +949,12 @@ int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, int id) {
     if (!enforcer_zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -951,7 +962,7 @@ int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -965,7 +976,11 @@ int enforcer_zone_get_by_id(enforcer_zone_t* enforcer_zone, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            enforcer_zone_from_result(enforcer_zone, result);
+            if (enforcer_zone_from_result(enforcer_zone, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -989,7 +1004,7 @@ int enforcer_zone_update(enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!enforcer_zone->id) {
+    if (db_value_not_empty(&(enforcer_zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -1183,7 +1198,7 @@ int enforcer_zone_update(enforcer_zone_t* enforcer_zone) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), enforcer_zone->id)
+        || db_value_copy(db_clause_get_value(clause), &(enforcer_zone->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1211,7 +1226,7 @@ int enforcer_zone_delete(enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!enforcer_zone->id) {
+    if (db_value_not_empty(&(enforcer_zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1222,7 +1237,7 @@ int enforcer_zone_delete(enforcer_zone_t* enforcer_zone) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), enforcer_zone->id)
+        || db_value_copy(db_clause_get_value(clause), &(enforcer_zone->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1329,4 +1344,3 @@ const enforcer_zone_t* enforcer_zone_list_next(enforcer_zone_list_t* enforcer_zo
     }
     return enforcer_zone_list->enforcer_zone;
 }
-

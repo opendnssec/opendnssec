@@ -62,7 +62,7 @@ extern "C" {
  */
 struct ksk {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     unsigned int algorithm;
     unsigned int bits;
     int lifetime;
@@ -110,11 +110,11 @@ int ksk_copy(ksk_t* ksk, const ksk_t* ksk_copy);
 int ksk_from_result(ksk_t* ksk, const db_result_t* result);
 
 /**
- * Get the ID of a ksk object. Undefined behavior if `ksk` is NULL.
+ * Get the id of a ksk object. Undefined behavior if `ksk` is NULL.
  * \param[in] ksk a ksk_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int ksk_id(const ksk_t* ksk);
+const db_value_t* ksk_id(const ksk_t* ksk);
 
 /**
  * Get the algorithm of a ksk object. Undefined behavior if `ksk` is NULL.
@@ -261,10 +261,10 @@ int ksk_create(ksk_t* ksk);
 /**
  * Get a ksk object from the database by an id specified in `id`.
  * \param[in] ksk a ksk_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int ksk_get_by_id(ksk_t* ksk, int id);
+int ksk_get_by_id(ksk_t* ksk, const db_value_t* id);
 
 /**
  * Update a ksk object in the database.

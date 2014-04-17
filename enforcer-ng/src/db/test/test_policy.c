@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static policy_t* object = NULL;
 static policy_list_t* object_list = NULL;
-static int id = 0;
+static db_value_t id;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_policy_init_suite_sqlite(void) {
@@ -108,6 +108,7 @@ int test_policy_init_suite_sqlite(void) {
         return 1;
     }
 
+    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -177,6 +178,7 @@ int test_policy_init_suite_couchdb(void) {
         return 1;
     }
 
+    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -188,6 +190,7 @@ static int test_policy_clean_suite(void) {
     configuration = NULL;
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
+    db_value_reset(&id);
     return 0;
 }
 
@@ -226,11 +229,11 @@ static void test_policy_list(void) {
     const policy_t* item;
     CU_ASSERT_FATAL(!policy_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = policy_list_begin(object_list)));
-    CU_ASSERT_FATAL((id = policy_id(item)));
+    CU_ASSERT_FATAL(!db_value_copy(&id, policy_id(item)));
 }
 
 static void test_policy_read(void) {
-    CU_ASSERT_FATAL(!policy_get_by_id(object, id));
+    CU_ASSERT_FATAL(!policy_get_by_id(object, &id));
 }
 
 static void test_policy_verify(void) {
@@ -260,7 +263,7 @@ static void test_policy_update(void) {
 }
 
 static void test_policy_read2(void) {
-    CU_ASSERT_FATAL(!policy_get_by_id(object, id));
+    CU_ASSERT_FATAL(!policy_get_by_id(object, &id));
 }
 
 static void test_policy_verify2(void) {

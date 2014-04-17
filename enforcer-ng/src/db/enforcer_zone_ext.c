@@ -39,13 +39,13 @@ key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone->dbo) {
         return NULL;
     }
-    if (!enforcer_zone->id) {
+    if (db_value_not_empty(&(enforcer_zone->id))) {
         return NULL;
     }
 
     key_data_list = key_data_list_new(db_object_connection(enforcer_zone->dbo));
     if (key_data_list) {
-        if (key_data_list_get_by_enforcer_zone_id(key_data_list, enforcer_zone->id)) {
+        if (key_data_list_get_by_enforcer_zone_id(key_data_list, &(enforcer_zone->id))) {
             key_data_list_free(key_data_list);
             return NULL;
         }
@@ -54,6 +54,7 @@ key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone) {
 }
 
 adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone) {
+    db_value_t* id = NULL;
     adapters_t* adapters = NULL;
 
     if (!enforcer_zone) {
@@ -63,12 +64,21 @@ adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone) {
         return NULL;
     }
 
+    if (!(id = db_value_new())) {
+        return NULL;
+    }
+    if (db_value_from_int32(id, enforcer_zone->adapters)) {
+        db_value_free(id);
+        return NULL;
+    }
     if ((adapters = adapters_new(db_object_connection(enforcer_zone->dbo)))) {
-        if (adapters_get_by_id(adapters, enforcer_zone->adapters)) {
+        if (adapters_get_by_id(adapters, id)) {
             adapters_free(adapters);
+            db_value_free(id);
             return NULL;
         }
     }
+    db_value_free(id);
 
     return adapters;
 }
@@ -115,11 +125,6 @@ int enforcer_zone_get_by_name(enforcer_zone_t* enforcer_zone, const char* name) 
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            if (db_result_list_next(result_list)) {
-                db_result_list_free(result_list);
-                return DB_ERROR_UNKNOWN;
-            }
-
             enforcer_zone_from_result(enforcer_zone, result);
             db_result_list_free(result_list);
             return DB_OK;

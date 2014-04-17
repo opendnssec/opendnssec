@@ -55,7 +55,7 @@ extern "C" {
  */
 struct key_dependency {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     char* from_key;
     char* to_key;
     unsigned int rrtype;
@@ -98,11 +98,11 @@ int key_dependency_copy(key_dependency_t* key_dependency, const key_dependency_t
 int key_dependency_from_result(key_dependency_t* key_dependency, const db_result_t* result);
 
 /**
- * Get the ID of a key dependency object. Undefined behavior if `key_dependency` is NULL.
+ * Get the id of a key dependency object. Undefined behavior if `key_dependency` is NULL.
  * \param[in] key_dependency a key_dependency_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int key_dependency_id(const key_dependency_t* key_dependency);
+const db_value_t* key_dependency_id(const key_dependency_t* key_dependency);
 
 /**
  * Get the from_key of a key dependency object.
@@ -159,10 +159,10 @@ int key_dependency_create(key_dependency_t* key_dependency);
 /**
  * Get a key dependency object from the database by an id specified in `id`.
  * \param[in] key_dependency a key_dependency_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_dependency_get_by_id(key_dependency_t* key_dependency, int id);
+int key_dependency_get_by_id(key_dependency_t* key_dependency, const db_value_t* id);
 
 /**
  * Update a key dependency object in the database.

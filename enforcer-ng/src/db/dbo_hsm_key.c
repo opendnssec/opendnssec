@@ -238,6 +238,7 @@ dbo_hsm_key_t* dbo_hsm_key_new(const db_connection_t* connection) {
             mm_alloc_delete(&__dbo_hsm_key_alloc, dbo_hsm_key);
             return NULL;
         }
+        db_value_reset(&(dbo_hsm_key->id));
         dbo_hsm_key->bits = 2048;
         dbo_hsm_key->policy = strdup("default");
         dbo_hsm_key->algorithm = 1;
@@ -252,6 +253,7 @@ void dbo_hsm_key_free(dbo_hsm_key_t* dbo_hsm_key) {
         if (dbo_hsm_key->dbo) {
             db_object_free(dbo_hsm_key->dbo);
         }
+        db_value_reset(&(dbo_hsm_key->id));
         if (dbo_hsm_key->locator) {
             free(dbo_hsm_key->locator);
         }
@@ -270,7 +272,7 @@ void dbo_hsm_key_free(dbo_hsm_key_t* dbo_hsm_key) {
 
 void dbo_hsm_key_reset(dbo_hsm_key_t* dbo_hsm_key) {
     if (dbo_hsm_key) {
-        dbo_hsm_key->id = 0;
+        db_value_reset(&(dbo_hsm_key->id));
         if (dbo_hsm_key->locator) {
             free(dbo_hsm_key->locator);
         }
@@ -311,21 +313,21 @@ int dbo_hsm_key_copy(dbo_hsm_key_t* dbo_hsm_key, const dbo_hsm_key_t* dbo_hsm_ke
         return DB_ERROR_UNKNOWN;
     }
 
-    if (dbo_hsm_key->locator) {
-        if (!(locator_text = strdup(dbo_hsm_key->locator))) {
+    if (dbo_hsm_key_copy->locator) {
+        if (!(locator_text = strdup(dbo_hsm_key_copy->locator))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (dbo_hsm_key->policy) {
-        if (!(policy_text = strdup(dbo_hsm_key->policy))) {
+    if (dbo_hsm_key_copy->policy) {
+        if (!(policy_text = strdup(dbo_hsm_key_copy->policy))) {
             if (locator_text) {
                 free(locator_text);
             }
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (dbo_hsm_key->key_type) {
-        if (!(key_type_text = strdup(dbo_hsm_key->key_type))) {
+    if (dbo_hsm_key_copy->key_type) {
+        if (!(key_type_text = strdup(dbo_hsm_key_copy->key_type))) {
             if (locator_text) {
                 free(locator_text);
             }
@@ -335,8 +337,8 @@ int dbo_hsm_key_copy(dbo_hsm_key_t* dbo_hsm_key, const dbo_hsm_key_t* dbo_hsm_ke
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (dbo_hsm_key->repository) {
-        if (!(repository_text = strdup(dbo_hsm_key->repository))) {
+    if (dbo_hsm_key_copy->repository) {
+        if (!(repository_text = strdup(dbo_hsm_key_copy->repository))) {
             if (locator_text) {
                 free(locator_text);
             }
@@ -349,7 +351,9 @@ int dbo_hsm_key_copy(dbo_hsm_key_t* dbo_hsm_key, const dbo_hsm_key_t* dbo_hsm_ke
             return DB_ERROR_UNKNOWN;
         }
     }
-    dbo_hsm_key->id = dbo_hsm_key_copy->id;
+    if (db_value_copy(&(dbo_hsm_key->id), &(dbo_hsm_key_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (dbo_hsm_key->locator) {
         free(dbo_hsm_key->locator);
     }
@@ -389,6 +393,7 @@ int dbo_hsm_key_from_result(dbo_hsm_key_t* dbo_hsm_key, const db_result_t* resul
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(dbo_hsm_key->id));
     if (dbo_hsm_key->locator) {
         free(dbo_hsm_key->locator);
     }
@@ -407,7 +412,7 @@ int dbo_hsm_key_from_result(dbo_hsm_key_t* dbo_hsm_key, const db_result_t* resul
     dbo_hsm_key->repository = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 14
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(dbo_hsm_key->id))
+        || db_value_copy(&(dbo_hsm_key->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(dbo_hsm_key->locator))
         || db_value_to_uint32(db_value_set_at(value_set, 2), &(dbo_hsm_key->candidate_for_sharing))
         || db_value_to_uint32(db_value_set_at(value_set, 3), &(dbo_hsm_key->bits))
@@ -428,10 +433,10 @@ int dbo_hsm_key_from_result(dbo_hsm_key_t* dbo_hsm_key, const db_result_t* resul
     if (role == (dbo_hsm_key_role_t)DBO_HSM_KEY_ROLE_KSK) {
         dbo_hsm_key->role = DBO_HSM_KEY_ROLE_KSK;
     }
-    if (role == (dbo_hsm_key_role_t)DBO_HSM_KEY_ROLE_ZSK) {
+    else if (role == (dbo_hsm_key_role_t)DBO_HSM_KEY_ROLE_ZSK) {
         dbo_hsm_key->role = DBO_HSM_KEY_ROLE_ZSK;
     }
-    if (role == (dbo_hsm_key_role_t)DBO_HSM_KEY_ROLE_CSK) {
+    else if (role == (dbo_hsm_key_role_t)DBO_HSM_KEY_ROLE_CSK) {
         dbo_hsm_key->role = DBO_HSM_KEY_ROLE_CSK;
     }
     else {
@@ -441,12 +446,12 @@ int dbo_hsm_key_from_result(dbo_hsm_key_t* dbo_hsm_key, const db_result_t* resul
     return DB_OK;
 }
 
-int dbo_hsm_key_id(const dbo_hsm_key_t* dbo_hsm_key) {
+const db_value_t* dbo_hsm_key_id(const dbo_hsm_key_t* dbo_hsm_key) {
     if (!dbo_hsm_key) {
-        return 0;
+        return NULL;
     }
 
-    return dbo_hsm_key->id;
+    return &(dbo_hsm_key->id);
 }
 
 const char* dbo_hsm_key_locator(const dbo_hsm_key_t* dbo_hsm_key) {
@@ -776,7 +781,7 @@ int dbo_hsm_key_create(dbo_hsm_key_t* dbo_hsm_key) {
     if (!dbo_hsm_key->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (dbo_hsm_key->id) {
+    if (!db_value_not_empty(&(dbo_hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -946,7 +951,7 @@ int dbo_hsm_key_create(dbo_hsm_key_t* dbo_hsm_key) {
     return ret;
 }
 
-int dbo_hsm_key_get_by_id(dbo_hsm_key_t* dbo_hsm_key, int id) {
+int dbo_hsm_key_get_by_id(dbo_hsm_key_t* dbo_hsm_key, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -958,6 +963,12 @@ int dbo_hsm_key_get_by_id(dbo_hsm_key_t* dbo_hsm_key, int id) {
     if (!dbo_hsm_key->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -965,7 +976,7 @@ int dbo_hsm_key_get_by_id(dbo_hsm_key_t* dbo_hsm_key, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -979,7 +990,11 @@ int dbo_hsm_key_get_by_id(dbo_hsm_key_t* dbo_hsm_key, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            dbo_hsm_key_from_result(dbo_hsm_key, result);
+            if (dbo_hsm_key_from_result(dbo_hsm_key, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1003,7 +1018,7 @@ int dbo_hsm_key_update(dbo_hsm_key_t* dbo_hsm_key) {
     if (!dbo_hsm_key->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!dbo_hsm_key->id) {
+    if (db_value_not_empty(&(dbo_hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -1176,7 +1191,7 @@ int dbo_hsm_key_update(dbo_hsm_key_t* dbo_hsm_key) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), dbo_hsm_key->id)
+        || db_value_copy(db_clause_get_value(clause), &(dbo_hsm_key->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1204,7 +1219,7 @@ int dbo_hsm_key_delete(dbo_hsm_key_t* dbo_hsm_key) {
     if (!dbo_hsm_key->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!dbo_hsm_key->id) {
+    if (db_value_not_empty(&(dbo_hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1215,7 +1230,7 @@ int dbo_hsm_key_delete(dbo_hsm_key_t* dbo_hsm_key) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), dbo_hsm_key->id)
+        || db_value_copy(db_clause_get_value(clause), &(dbo_hsm_key->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1322,4 +1337,3 @@ const dbo_hsm_key_t* dbo_hsm_key_list_next(dbo_hsm_key_list_t* dbo_hsm_key_list)
     }
     return dbo_hsm_key_list->dbo_hsm_key;
 }
-

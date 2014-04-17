@@ -164,6 +164,7 @@ signatures_t* signatures_new(const db_connection_t* connection) {
             mm_alloc_delete(&__signatures_alloc, signatures);
             return NULL;
         }
+        db_value_reset(&(signatures->id));
         signatures->max_zone_ttl = 86400;
     }
 
@@ -175,13 +176,14 @@ void signatures_free(signatures_t* signatures) {
         if (signatures->dbo) {
             db_object_free(signatures->dbo);
         }
+        db_value_reset(&(signatures->id));
         mm_alloc_delete(&__signatures_alloc, signatures);
     }
 }
 
 void signatures_reset(signatures_t* signatures) {
     if (signatures) {
-        signatures->id = 0;
+        db_value_reset(&(signatures->id));
         signatures->resign = 0;
         signatures->refresh = 0;
         signatures->jitter = 0;
@@ -200,7 +202,9 @@ int signatures_copy(signatures_t* signatures, const signatures_t* signatures_cop
         return DB_ERROR_UNKNOWN;
     }
 
-    signatures->id = signatures_copy->id;
+    if (db_value_copy(&(signatures->id), &(signatures_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     signatures->resign = signatures_copy->resign;
     signatures->refresh = signatures_copy->refresh;
     signatures->jitter = signatures_copy->jitter;
@@ -221,9 +225,10 @@ int signatures_from_result(signatures_t* signatures, const db_result_t* result) 
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(signatures->id));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 8
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(signatures->id))
+        || db_value_copy(&(signatures->id), db_value_set_at(value_set, 0))
         || db_value_to_int32(db_value_set_at(value_set, 1), &(signatures->resign))
         || db_value_to_int32(db_value_set_at(value_set, 2), &(signatures->refresh))
         || db_value_to_int32(db_value_set_at(value_set, 3), &(signatures->jitter))
@@ -238,12 +243,12 @@ int signatures_from_result(signatures_t* signatures, const db_result_t* result) 
     return DB_OK;
 }
 
-int signatures_id(const signatures_t* signatures) {
+const db_value_t* signatures_id(const signatures_t* signatures) {
     if (!signatures) {
-        return 0;
+        return NULL;
     }
 
-    return signatures->id;
+    return &(signatures->id);
 }
 
 int signatures_resign(const signatures_t* signatures) {
@@ -384,7 +389,7 @@ int signatures_create(signatures_t* signatures) {
     if (!signatures->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (signatures->id) {
+    if (!db_value_not_empty(&(signatures->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -487,7 +492,7 @@ int signatures_create(signatures_t* signatures) {
     return ret;
 }
 
-int signatures_get_by_id(signatures_t* signatures, int id) {
+int signatures_get_by_id(signatures_t* signatures, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -499,6 +504,12 @@ int signatures_get_by_id(signatures_t* signatures, int id) {
     if (!signatures->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -506,7 +517,7 @@ int signatures_get_by_id(signatures_t* signatures, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -520,7 +531,11 @@ int signatures_get_by_id(signatures_t* signatures, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            signatures_from_result(signatures, result);
+            if (signatures_from_result(signatures, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -544,7 +559,7 @@ int signatures_update(signatures_t* signatures) {
     if (!signatures->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!signatures->id) {
+    if (db_value_not_empty(&(signatures->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -650,7 +665,7 @@ int signatures_update(signatures_t* signatures) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), signatures->id)
+        || db_value_copy(db_clause_get_value(clause), &(signatures->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -678,7 +693,7 @@ int signatures_delete(signatures_t* signatures) {
     if (!signatures->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!signatures->id) {
+    if (db_value_not_empty(&(signatures->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -689,7 +704,7 @@ int signatures_delete(signatures_t* signatures) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), signatures->id)
+        || db_value_copy(db_clause_get_value(clause), &(signatures->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -796,4 +811,3 @@ const signatures_t* signatures_list_next(signatures_list_t* signatures_list) {
     }
     return signatures_list->signatures;
 }
-

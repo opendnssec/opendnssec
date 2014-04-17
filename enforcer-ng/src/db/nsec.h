@@ -55,7 +55,7 @@ extern "C" {
  */
 struct nsec {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
 #include "nsec_struct_ext.h"
 };
 
@@ -95,11 +95,11 @@ int nsec_copy(nsec_t* nsec, const nsec_t* nsec_copy);
 int nsec_from_result(nsec_t* nsec, const db_result_t* result);
 
 /**
- * Get the ID of a nsec object. Undefined behavior if `nsec` is NULL.
+ * Get the id of a nsec object. Undefined behavior if `nsec` is NULL.
  * \param[in] nsec a nsec_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int nsec_id(const nsec_t* nsec);
+const db_value_t* nsec_id(const nsec_t* nsec);
 
 /**
  * Create a nsec object in the database.
@@ -111,10 +111,10 @@ int nsec_create(nsec_t* nsec);
 /**
  * Get a nsec object from the database by an id specified in `id`.
  * \param[in] nsec a nsec_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int nsec_get_by_id(nsec_t* nsec, int id);
+int nsec_get_by_id(nsec_t* nsec, const db_value_t* id);
 
 /**
  * Update a nsec object in the database.

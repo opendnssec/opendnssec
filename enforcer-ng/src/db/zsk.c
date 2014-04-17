@@ -172,6 +172,7 @@ zsk_t* zsk_new(const db_connection_t* connection) {
             mm_alloc_delete(&__zsk_alloc, zsk);
             return NULL;
         }
+        db_value_reset(&(zsk->id));
         zsk->rollover_type = ZSK_ROLLOVER_TYPE_PREPUBLICATION;
     }
 
@@ -183,6 +184,7 @@ void zsk_free(zsk_t* zsk) {
         if (zsk->dbo) {
             db_object_free(zsk->dbo);
         }
+        db_value_reset(&(zsk->id));
         if (zsk->repository) {
             free(zsk->repository);
         }
@@ -192,7 +194,7 @@ void zsk_free(zsk_t* zsk) {
 
 void zsk_reset(zsk_t* zsk) {
     if (zsk) {
-        zsk->id = 0;
+        db_value_reset(&(zsk->id));
         zsk->algorithm = 0;
         zsk->bits = 0;
         zsk->lifetime = 0;
@@ -215,12 +217,14 @@ int zsk_copy(zsk_t* zsk, const zsk_t* zsk_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (zsk->repository) {
-        if (!(repository_text = strdup(zsk->repository))) {
+    if (zsk_copy->repository) {
+        if (!(repository_text = strdup(zsk_copy->repository))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    zsk->id = zsk_copy->id;
+    if (db_value_copy(&(zsk->id), &(zsk_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     zsk->algorithm = zsk_copy->algorithm;
     zsk->bits = zsk_copy->bits;
     zsk->lifetime = zsk_copy->lifetime;
@@ -245,13 +249,14 @@ int zsk_from_result(zsk_t* zsk, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(zsk->id));
     if (zsk->repository) {
         free(zsk->repository);
     }
     zsk->repository = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 8
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(zsk->id))
+        || db_value_copy(&(zsk->id), db_value_set_at(value_set, 0))
         || db_value_to_uint32(db_value_set_at(value_set, 1), &(zsk->algorithm))
         || db_value_to_uint32(db_value_set_at(value_set, 2), &(zsk->bits))
         || db_value_to_int32(db_value_set_at(value_set, 3), &(zsk->lifetime))
@@ -266,10 +271,10 @@ int zsk_from_result(zsk_t* zsk, const db_result_t* result) {
     if (rollover_type == (zsk_rollover_type_t)ZSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE) {
         zsk->rollover_type = ZSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE;
     }
-    if (rollover_type == (zsk_rollover_type_t)ZSK_ROLLOVER_TYPE_PREPUBLICATION) {
+    else if (rollover_type == (zsk_rollover_type_t)ZSK_ROLLOVER_TYPE_PREPUBLICATION) {
         zsk->rollover_type = ZSK_ROLLOVER_TYPE_PREPUBLICATION;
     }
-    if (rollover_type == (zsk_rollover_type_t)ZSK_ROLLOVER_TYPE_DOUBLE_RRSIG) {
+    else if (rollover_type == (zsk_rollover_type_t)ZSK_ROLLOVER_TYPE_DOUBLE_RRSIG) {
         zsk->rollover_type = ZSK_ROLLOVER_TYPE_DOUBLE_RRSIG;
     }
     else {
@@ -279,12 +284,12 @@ int zsk_from_result(zsk_t* zsk, const db_result_t* result) {
     return DB_OK;
 }
 
-int zsk_id(const zsk_t* zsk) {
+const db_value_t* zsk_id(const zsk_t* zsk) {
     if (!zsk) {
-        return 0;
+        return NULL;
     }
 
-    return zsk->id;
+    return &(zsk->id);
 }
 
 unsigned int zsk_algorithm(const zsk_t* zsk) {
@@ -470,7 +475,7 @@ int zsk_create(zsk_t* zsk) {
     if (!zsk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (zsk->id) {
+    if (!db_value_not_empty(&(zsk->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -574,7 +579,7 @@ int zsk_create(zsk_t* zsk) {
     return ret;
 }
 
-int zsk_get_by_id(zsk_t* zsk, int id) {
+int zsk_get_by_id(zsk_t* zsk, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -586,6 +591,12 @@ int zsk_get_by_id(zsk_t* zsk, int id) {
     if (!zsk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -593,7 +604,7 @@ int zsk_get_by_id(zsk_t* zsk, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -607,7 +618,11 @@ int zsk_get_by_id(zsk_t* zsk, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            zsk_from_result(zsk, result);
+            if (zsk_from_result(zsk, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -631,7 +646,7 @@ int zsk_update(zsk_t* zsk) {
     if (!zsk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!zsk->id) {
+    if (db_value_not_empty(&(zsk->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -738,7 +753,7 @@ int zsk_update(zsk_t* zsk) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), zsk->id)
+        || db_value_copy(db_clause_get_value(clause), &(zsk->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -766,7 +781,7 @@ int zsk_delete(zsk_t* zsk) {
     if (!zsk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!zsk->id) {
+    if (db_value_not_empty(&(zsk->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -777,7 +792,7 @@ int zsk_delete(zsk_t* zsk) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), zsk->id)
+        || db_value_copy(db_clause_get_value(clause), &(zsk->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -884,4 +899,3 @@ const zsk_t* zsk_list_next(zsk_list_t* zsk_list) {
     }
     return zsk_list->zsk;
 }
-

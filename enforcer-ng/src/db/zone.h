@@ -63,7 +63,7 @@ extern "C" {
  */
 struct zone {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     int propagationdelay;
     int ttl;
     int min;
@@ -107,11 +107,11 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy);
 int zone_from_result(zone_t* zone, const db_result_t* result);
 
 /**
- * Get the ID of a zone object. Undefined behavior if `zone` is NULL.
+ * Get the id of a zone object. Undefined behavior if `zone` is NULL.
  * \param[in] zone a zone_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int zone_id(const zone_t* zone);
+const db_value_t* zone_id(const zone_t* zone);
 
 /**
  * Get the propagationdelay of a zone object. Undefined behavior if `zone` is NULL.
@@ -198,10 +198,10 @@ int zone_create(zone_t* zone);
 /**
  * Get a zone object from the database by an id specified in `id`.
  * \param[in] zone a zone_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_get_by_id(zone_t* zone, int id);
+int zone_get_by_id(zone_t* zone, const db_value_t* id);
 
 /**
  * Update a zone object in the database.

@@ -72,7 +72,7 @@ extern "C" {
  */
 struct key_data {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     char* locator;
     unsigned int algorithm;
     unsigned int inception;
@@ -128,11 +128,11 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy);
 int key_data_from_result(key_data_t* key_data, const db_result_t* result);
 
 /**
- * Get the ID of a key data object. Undefined behavior if `key_data` is NULL.
+ * Get the id of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int key_data_id(const key_data_t* key_data);
+const db_value_t* key_data_id(const key_data_t* key_data);
 
 /**
  * Get the locator of a key data object.
@@ -414,10 +414,10 @@ int key_data_create(key_data_t* key_data);
 /**
  * Get a key data object from the database by an id specified in `id`.
  * \param[in] key_data a key_data_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_get_by_id(key_data_t* key_data, int id);
+int key_data_get_by_id(key_data_t* key_data, const db_value_t* id);
 
 /**
  * Update a key data object in the database.

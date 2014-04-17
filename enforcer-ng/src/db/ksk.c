@@ -183,6 +183,7 @@ ksk_t* ksk_new(const db_connection_t* connection) {
             mm_alloc_delete(&__ksk_alloc, ksk);
             return NULL;
         }
+        db_value_reset(&(ksk->id));
         ksk->rollover_type = KSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE;
     }
 
@@ -194,6 +195,7 @@ void ksk_free(ksk_t* ksk) {
         if (ksk->dbo) {
             db_object_free(ksk->dbo);
         }
+        db_value_reset(&(ksk->id));
         if (ksk->repository) {
             free(ksk->repository);
         }
@@ -203,7 +205,7 @@ void ksk_free(ksk_t* ksk) {
 
 void ksk_reset(ksk_t* ksk) {
     if (ksk) {
-        ksk->id = 0;
+        db_value_reset(&(ksk->id));
         ksk->algorithm = 0;
         ksk->bits = 0;
         ksk->lifetime = 0;
@@ -227,12 +229,14 @@ int ksk_copy(ksk_t* ksk, const ksk_t* ksk_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (ksk->repository) {
-        if (!(repository_text = strdup(ksk->repository))) {
+    if (ksk_copy->repository) {
+        if (!(repository_text = strdup(ksk_copy->repository))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    ksk->id = ksk_copy->id;
+    if (db_value_copy(&(ksk->id), &(ksk_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     ksk->algorithm = ksk_copy->algorithm;
     ksk->bits = ksk_copy->bits;
     ksk->lifetime = ksk_copy->lifetime;
@@ -258,13 +262,14 @@ int ksk_from_result(ksk_t* ksk, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(ksk->id));
     if (ksk->repository) {
         free(ksk->repository);
     }
     ksk->repository = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 9
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(ksk->id))
+        || db_value_copy(&(ksk->id), db_value_set_at(value_set, 0))
         || db_value_to_uint32(db_value_set_at(value_set, 1), &(ksk->algorithm))
         || db_value_to_uint32(db_value_set_at(value_set, 2), &(ksk->bits))
         || db_value_to_int32(db_value_set_at(value_set, 3), &(ksk->lifetime))
@@ -280,10 +285,10 @@ int ksk_from_result(ksk_t* ksk, const db_result_t* result) {
     if (rollover_type == (ksk_rollover_type_t)KSK_ROLLOVER_TYPE_DOUBLE_RRSET) {
         ksk->rollover_type = KSK_ROLLOVER_TYPE_DOUBLE_RRSET;
     }
-    if (rollover_type == (ksk_rollover_type_t)KSK_ROLLOVER_TYPE_DOUBLE_DS) {
+    else if (rollover_type == (ksk_rollover_type_t)KSK_ROLLOVER_TYPE_DOUBLE_DS) {
         ksk->rollover_type = KSK_ROLLOVER_TYPE_DOUBLE_DS;
     }
-    if (rollover_type == (ksk_rollover_type_t)KSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE) {
+    else if (rollover_type == (ksk_rollover_type_t)KSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE) {
         ksk->rollover_type = KSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE;
     }
     else {
@@ -293,12 +298,12 @@ int ksk_from_result(ksk_t* ksk, const db_result_t* result) {
     return DB_OK;
 }
 
-int ksk_id(const ksk_t* ksk) {
+const db_value_t* ksk_id(const ksk_t* ksk) {
     if (!ksk) {
-        return 0;
+        return NULL;
     }
 
-    return ksk->id;
+    return &(ksk->id);
 }
 
 unsigned int ksk_algorithm(const ksk_t* ksk) {
@@ -502,7 +507,7 @@ int ksk_create(ksk_t* ksk) {
     if (!ksk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (ksk->id) {
+    if (!db_value_not_empty(&(ksk->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -617,7 +622,7 @@ int ksk_create(ksk_t* ksk) {
     return ret;
 }
 
-int ksk_get_by_id(ksk_t* ksk, int id) {
+int ksk_get_by_id(ksk_t* ksk, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -629,6 +634,12 @@ int ksk_get_by_id(ksk_t* ksk, int id) {
     if (!ksk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -636,7 +647,7 @@ int ksk_get_by_id(ksk_t* ksk, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -650,7 +661,11 @@ int ksk_get_by_id(ksk_t* ksk, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            ksk_from_result(ksk, result);
+            if (ksk_from_result(ksk, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -674,7 +689,7 @@ int ksk_update(ksk_t* ksk) {
     if (!ksk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!ksk->id) {
+    if (db_value_not_empty(&(ksk->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -792,7 +807,7 @@ int ksk_update(ksk_t* ksk) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), ksk->id)
+        || db_value_copy(db_clause_get_value(clause), &(ksk->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -820,7 +835,7 @@ int ksk_delete(ksk_t* ksk) {
     if (!ksk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!ksk->id) {
+    if (db_value_not_empty(&(ksk->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -831,7 +846,7 @@ int ksk_delete(ksk_t* ksk) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), ksk->id)
+        || db_value_copy(db_clause_get_value(clause), &(ksk->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -938,4 +953,3 @@ const ksk_t* ksk_list_next(ksk_list_t* ksk_list) {
     }
     return ksk_list->ksk;
 }
-

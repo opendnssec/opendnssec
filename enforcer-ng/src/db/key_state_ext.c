@@ -30,7 +30,7 @@
 #include "key_state.h"
 #include "db_error.h"
 
-int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id2, int id3, int id4) {
+int key_state_list_get_4_by_id(key_state_list_t* key_state_list, const db_value_t* id1, const db_value_t* id2, const db_value_t* id3, const db_value_t* id4) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
 
@@ -52,6 +52,18 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     if (!id4) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(id1)) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id2)) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id3)) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id4)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -59,7 +71,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id1)
+        || db_value_copy(db_clause_get_value(clause), id1)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -70,7 +82,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id2)
+        || db_value_copy(db_clause_get_value(clause), id2)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -81,7 +93,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id3)
+        || db_value_copy(db_clause_get_value(clause), id3)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -92,7 +104,7 @@ int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id
         || db_clause_set_field(clause, "id")
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id4)
+        || db_value_copy(db_clause_get_value(clause), id4)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

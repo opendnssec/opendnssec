@@ -164,6 +164,7 @@ policy_t* policy_new(const db_connection_t* connection) {
             mm_alloc_delete(&__policy_alloc, policy);
             return NULL;
         }
+        db_value_reset(&(policy->id));
     }
 
     return policy;
@@ -174,6 +175,7 @@ void policy_free(policy_t* policy) {
         if (policy->dbo) {
             db_object_free(policy->dbo);
         }
+        db_value_reset(&(policy->id));
         if (policy->name) {
             free(policy->name);
         }
@@ -186,7 +188,7 @@ void policy_free(policy_t* policy) {
 
 void policy_reset(policy_t* policy) {
     if (policy) {
-        policy->id = 0;
+        db_value_reset(&(policy->id));
         if (policy->name) {
             free(policy->name);
         }
@@ -213,20 +215,22 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (policy->name) {
-        if (!(name_text = strdup(policy->name))) {
+    if (policy_copy->name) {
+        if (!(name_text = strdup(policy_copy->name))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (policy->description) {
-        if (!(description_text = strdup(policy->description))) {
+    if (policy_copy->description) {
+        if (!(description_text = strdup(policy_copy->description))) {
             if (name_text) {
                 free(name_text);
             }
             return DB_ERROR_UNKNOWN;
         }
     }
-    policy->id = policy_copy->id;
+    if (db_value_copy(&(policy->id), &(policy_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (policy->name) {
         free(policy->name);
     }
@@ -253,6 +257,7 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(policy->id));
     if (policy->name) {
         free(policy->name);
     }
@@ -263,7 +268,7 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
     policy->description = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 8
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(policy->id))
+        || db_value_copy(&(policy->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(policy->name))
         || db_value_to_text(db_value_set_at(value_set, 2), &(policy->description))
         || db_value_to_int32(db_value_set_at(value_set, 3), &(policy->signatures))
@@ -278,12 +283,12 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
     return DB_OK;
 }
 
-int policy_id(const policy_t* policy) {
+const db_value_t* policy_id(const policy_t* policy) {
     if (!policy) {
-        return 0;
+        return NULL;
     }
 
-    return policy->id;
+    return &(policy->id);
 }
 
 const char* policy_name(const policy_t* policy) {
@@ -448,7 +453,7 @@ int policy_create(policy_t* policy) {
     if (!policy->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (policy->id) {
+    if (!db_value_not_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -551,7 +556,7 @@ int policy_create(policy_t* policy) {
     return ret;
 }
 
-int policy_get_by_id(policy_t* policy, int id) {
+int policy_get_by_id(policy_t* policy, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -563,6 +568,12 @@ int policy_get_by_id(policy_t* policy, int id) {
     if (!policy->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -570,7 +581,7 @@ int policy_get_by_id(policy_t* policy, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -584,7 +595,11 @@ int policy_get_by_id(policy_t* policy, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            policy_from_result(policy, result);
+            if (policy_from_result(policy, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -608,7 +623,7 @@ int policy_update(policy_t* policy) {
     if (!policy->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!policy->id) {
+    if (db_value_not_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -714,7 +729,7 @@ int policy_update(policy_t* policy) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), policy->id)
+        || db_value_copy(db_clause_get_value(clause), &(policy->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -742,7 +757,7 @@ int policy_delete(policy_t* policy) {
     if (!policy->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!policy->id) {
+    if (db_value_not_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -753,7 +768,7 @@ int policy_delete(policy_t* policy) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), policy->id)
+        || db_value_copy(db_clause_get_value(clause), &(policy->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -860,4 +875,3 @@ const policy_t* policy_list_next(policy_list_t* policy_list) {
     }
     return policy_list->policy;
 }
-

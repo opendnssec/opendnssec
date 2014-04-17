@@ -55,7 +55,7 @@ extern "C" {
  */
 struct signatures {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     int resign;
     int refresh;
     int jitter;
@@ -102,11 +102,11 @@ int signatures_copy(signatures_t* signatures, const signatures_t* signatures_cop
 int signatures_from_result(signatures_t* signatures, const db_result_t* result);
 
 /**
- * Get the ID of a signatures object. Undefined behavior if `signatures` is NULL.
+ * Get the id of a signatures object. Undefined behavior if `signatures` is NULL.
  * \param[in] signatures a signatures_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int signatures_id(const signatures_t* signatures);
+const db_value_t* signatures_id(const signatures_t* signatures);
 
 /**
  * Get the resign of a signatures object. Undefined behavior if `signatures` is NULL.
@@ -223,10 +223,10 @@ int signatures_create(signatures_t* signatures);
 /**
  * Get a signatures object from the database by an id specified in `id`.
  * \param[in] signatures a signatures_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int signatures_get_by_id(signatures_t* signatures, int id);
+int signatures_get_by_id(signatures_t* signatures, const db_value_t* id);
 
 /**
  * Update a signatures object in the database.

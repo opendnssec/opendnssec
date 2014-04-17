@@ -55,7 +55,7 @@ extern "C" {
  */
 struct parent {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     int ttlds;
     int registrationdelay;
     int propagationdelay;
@@ -100,11 +100,11 @@ int parent_copy(parent_t* parent, const parent_t* parent_copy);
 int parent_from_result(parent_t* parent, const db_result_t* result);
 
 /**
- * Get the ID of a parent object. Undefined behavior if `parent` is NULL.
+ * Get the id of a parent object. Undefined behavior if `parent` is NULL.
  * \param[in] parent a parent_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int parent_id(const parent_t* parent);
+const db_value_t* parent_id(const parent_t* parent);
 
 /**
  * Get the ttlds of a parent object. Undefined behavior if `parent` is NULL.
@@ -191,10 +191,10 @@ int parent_create(parent_t* parent);
 /**
  * Get a parent object from the database by an id specified in `id`.
  * \param[in] parent a parent_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int parent_get_by_id(parent_t* parent, int id);
+int parent_get_by_id(parent_t* parent, const db_value_t* id);
 
 /**
  * Update a parent object in the database.

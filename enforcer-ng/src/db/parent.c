@@ -142,6 +142,7 @@ parent_t* parent_new(const db_connection_t* connection) {
             mm_alloc_delete(&__parent_alloc, parent);
             return NULL;
         }
+        db_value_reset(&(parent->id));
     }
 
     return parent;
@@ -152,13 +153,14 @@ void parent_free(parent_t* parent) {
         if (parent->dbo) {
             db_object_free(parent->dbo);
         }
+        db_value_reset(&(parent->id));
         mm_alloc_delete(&__parent_alloc, parent);
     }
 }
 
 void parent_reset(parent_t* parent) {
     if (parent) {
-        parent->id = 0;
+        db_value_reset(&(parent->id));
         parent->ttlds = 0;
         parent->registrationdelay = 0;
         parent->propagationdelay = 0;
@@ -175,7 +177,9 @@ int parent_copy(parent_t* parent, const parent_t* parent_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    parent->id = parent_copy->id;
+    if (db_value_copy(&(parent->id), &(parent_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     parent->ttlds = parent_copy->ttlds;
     parent->registrationdelay = parent_copy->registrationdelay;
     parent->propagationdelay = parent_copy->propagationdelay;
@@ -194,9 +198,10 @@ int parent_from_result(parent_t* parent, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(parent->id));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 6
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(parent->id))
+        || db_value_copy(&(parent->id), db_value_set_at(value_set, 0))
         || db_value_to_int32(db_value_set_at(value_set, 1), &(parent->ttlds))
         || db_value_to_int32(db_value_set_at(value_set, 2), &(parent->registrationdelay))
         || db_value_to_int32(db_value_set_at(value_set, 3), &(parent->propagationdelay))
@@ -209,12 +214,12 @@ int parent_from_result(parent_t* parent, const db_result_t* result) {
     return DB_OK;
 }
 
-int parent_id(const parent_t* parent) {
+const db_value_t* parent_id(const parent_t* parent) {
     if (!parent) {
-        return 0;
+        return NULL;
     }
 
-    return parent->id;
+    return &(parent->id);
 }
 
 int parent_ttlds(const parent_t* parent) {
@@ -319,7 +324,7 @@ int parent_create(parent_t* parent) {
     if (!parent->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (parent->id) {
+    if (!db_value_not_empty(&(parent->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -400,7 +405,7 @@ int parent_create(parent_t* parent) {
     return ret;
 }
 
-int parent_get_by_id(parent_t* parent, int id) {
+int parent_get_by_id(parent_t* parent, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -412,6 +417,12 @@ int parent_get_by_id(parent_t* parent, int id) {
     if (!parent->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -419,7 +430,7 @@ int parent_get_by_id(parent_t* parent, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -433,7 +444,11 @@ int parent_get_by_id(parent_t* parent, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            parent_from_result(parent, result);
+            if (parent_from_result(parent, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -457,7 +472,7 @@ int parent_update(parent_t* parent) {
     if (!parent->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!parent->id) {
+    if (db_value_not_empty(&(parent->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -541,7 +556,7 @@ int parent_update(parent_t* parent) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), parent->id)
+        || db_value_copy(db_clause_get_value(clause), &(parent->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -569,7 +584,7 @@ int parent_delete(parent_t* parent) {
     if (!parent->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!parent->id) {
+    if (db_value_not_empty(&(parent->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -580,7 +595,7 @@ int parent_delete(parent_t* parent) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), parent->id)
+        || db_value_copy(db_clause_get_value(clause), &(parent->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -687,4 +702,3 @@ const parent_t* parent_list_next(parent_list_t* parent_list) {
     }
     return parent_list->parent;
 }
-

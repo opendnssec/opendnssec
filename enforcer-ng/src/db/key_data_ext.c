@@ -37,6 +37,11 @@ int key_data_get_key_state_list(key_data_t* key_data) {
     key_state_t* key_state_rrsig = NULL;
     key_state_t* key_state_dnskey = NULL;
     key_state_t* key_state_rrsigdnskey = NULL;
+    db_value_t* id1 = NULL;
+    db_value_t* id2 = NULL;
+    db_value_t* id3 = NULL;
+    db_value_t* id4 = NULL;
+    int ret;
 
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
@@ -57,18 +62,69 @@ int key_data_get_key_state_list(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    key_state_list = key_state_list_new(db_object_connection(key_data->dbo));
-    if (!key_state_list) {
+    if (!(id1 = db_value_new())) {
         return DB_ERROR_UNKNOWN;
     }
-    if (key_state_list_get_4_by_id(key_state_list, key_data->ds, key_data->rrsig, key_data->dnskey, key_data->rrsigdnskey)) {
+    if (!(id2 = db_value_new())) {
+        db_value_free(id1);
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(id3 = db_value_new())) {
+        db_value_free(id1);
+        db_value_free(id2);
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(id4 = db_value_new())) {
+        db_value_free(id1);
+        db_value_free(id2);
+        db_value_free(id3);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (db_value_from_int32(id1, key_data->ds)
+        || db_value_from_int32(id2, key_data->rrsig)
+        || db_value_from_int32(id3, key_data->dnskey)
+        || db_value_from_int32(id4, key_data->rrsigdnskey))
+    {
+        db_value_free(id1);
+        db_value_free(id2);
+        db_value_free(id3);
+        db_value_free(id4);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state_list = key_state_list_new(db_object_connection(key_data->dbo));
+    if (!key_state_list) {
+        db_value_free(id1);
+        db_value_free(id2);
+        db_value_free(id3);
+        db_value_free(id4);
+        return DB_ERROR_UNKNOWN;
+    }
+    if (key_state_list_get_4_by_id(key_state_list, id1, id2, id3, id4)) {
         key_state_list_free(key_state_list);
+        db_value_free(id1);
+        db_value_free(id2);
+        db_value_free(id3);
+        db_value_free(id4);
         return DB_ERROR_UNKNOWN;
     }
 
     key_state = key_state_list_begin(key_state_list);
     while (key_state) {
-        if (key_state_id(key_state) == key_data->ds) {
+        if (db_value_cmp(key_state_id(key_state), id1, &ret)) {
+            key_state_free(key_state_ds);
+            key_state_free(key_state_rrsig);
+            key_state_free(key_state_dnskey);
+            key_state_free(key_state_rrsigdnskey);
+            key_state_list_free(key_state_list);
+            db_value_free(id1);
+            db_value_free(id2);
+            db_value_free(id3);
+            db_value_free(id4);
+            return DB_ERROR_UNKNOWN;
+        }
+        if (!ret) {
             if (!(key_state_ds = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_ds, key_state))
             {
@@ -77,10 +133,28 @@ int key_data_get_key_state_list(key_data_t* key_data) {
                 key_state_free(key_state_dnskey);
                 key_state_free(key_state_rrsigdnskey);
                 key_state_list_free(key_state_list);
+                db_value_free(id1);
+                db_value_free(id2);
+                db_value_free(id3);
+                db_value_free(id4);
                 return DB_ERROR_UNKNOWN;
             }
+            continue;
         }
-        else if (key_state_id(key_state) == key_data->rrsig) {
+
+        if (db_value_cmp(key_state_id(key_state), id2, &ret)) {
+            key_state_free(key_state_ds);
+            key_state_free(key_state_rrsig);
+            key_state_free(key_state_dnskey);
+            key_state_free(key_state_rrsigdnskey);
+            key_state_list_free(key_state_list);
+            db_value_free(id1);
+            db_value_free(id2);
+            db_value_free(id3);
+            db_value_free(id4);
+            return DB_ERROR_UNKNOWN;
+        }
+        if (!ret) {
             if (!(key_state_rrsig = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_rrsig, key_state))
             {
@@ -89,10 +163,27 @@ int key_data_get_key_state_list(key_data_t* key_data) {
                 key_state_free(key_state_dnskey);
                 key_state_free(key_state_rrsigdnskey);
                 key_state_list_free(key_state_list);
+                db_value_free(id1);
+                db_value_free(id2);
+                db_value_free(id3);
+                db_value_free(id4);
                 return DB_ERROR_UNKNOWN;
             }
         }
-        else if (key_state_id(key_state) == key_data->dnskey) {
+
+        if (db_value_cmp(key_state_id(key_state), id3, &ret)) {
+            key_state_free(key_state_ds);
+            key_state_free(key_state_rrsig);
+            key_state_free(key_state_dnskey);
+            key_state_free(key_state_rrsigdnskey);
+            key_state_list_free(key_state_list);
+            db_value_free(id1);
+            db_value_free(id2);
+            db_value_free(id3);
+            db_value_free(id4);
+            return DB_ERROR_UNKNOWN;
+        }
+        if (!ret) {
             if (!(key_state_dnskey = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_dnskey, key_state))
             {
@@ -101,10 +192,27 @@ int key_data_get_key_state_list(key_data_t* key_data) {
                 key_state_free(key_state_dnskey);
                 key_state_free(key_state_rrsigdnskey);
                 key_state_list_free(key_state_list);
+                db_value_free(id1);
+                db_value_free(id2);
+                db_value_free(id3);
+                db_value_free(id4);
                 return DB_ERROR_UNKNOWN;
             }
         }
-        else if (key_state_id(key_state) == key_data->rrsigdnskey) {
+
+        if (db_value_cmp(key_state_id(key_state), id4, &ret)) {
+            key_state_free(key_state_ds);
+            key_state_free(key_state_rrsig);
+            key_state_free(key_state_dnskey);
+            key_state_free(key_state_rrsigdnskey);
+            key_state_list_free(key_state_list);
+            db_value_free(id1);
+            db_value_free(id2);
+            db_value_free(id3);
+            db_value_free(id4);
+            return DB_ERROR_UNKNOWN;
+        }
+        if (!ret) {
             if (!(key_state_rrsigdnskey = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_rrsigdnskey, key_state))
             {
@@ -113,6 +221,10 @@ int key_data_get_key_state_list(key_data_t* key_data) {
                 key_state_free(key_state_dnskey);
                 key_state_free(key_state_rrsigdnskey);
                 key_state_list_free(key_state_list);
+                db_value_free(id1);
+                db_value_free(id2);
+                db_value_free(id3);
+                db_value_free(id4);
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -125,6 +237,10 @@ int key_data_get_key_state_list(key_data_t* key_data) {
         key_state_free(key_state_rrsig);
         key_state_free(key_state_dnskey);
         key_state_free(key_state_rrsigdnskey);
+        db_value_free(id1);
+        db_value_free(id2);
+        db_value_free(id3);
+        db_value_free(id4);
         return DB_ERROR_UNKNOWN;
     }
 
@@ -144,10 +260,16 @@ int key_data_get_key_state_list(key_data_t* key_data) {
         key_state_free(key_data->key_state_rrsigdnskey);
     }
     key_data->key_state_rrsigdnskey = key_state_rrsigdnskey;
+    db_value_free(id1);
+    db_value_free(id2);
+    db_value_free(id3);
+    db_value_free(id4);
     return DB_OK;
 }
 
 const key_state_t* key_data_get_ds(key_data_t* key_data) {
+    db_value_t* id = NULL;
+
     if (!key_data) {
         return NULL;
     }
@@ -159,19 +281,30 @@ const key_state_t* key_data_get_ds(key_data_t* key_data) {
     }
 
     if (!key_data->key_state_ds) {
+        if (!(id = db_value_new())) {
+            return NULL;
+        }
+        if (db_value_from_int32(id, key_data->ds)) {
+            db_value_free(id);
+            return NULL;
+        }
         key_data->key_state_ds = key_state_new(db_object_connection(key_data->dbo));
         if (key_data->key_state_ds) {
-            if (key_state_get_by_id(key_data->key_state_ds, key_data->ds)) {
+            if (key_state_get_by_id(key_data->key_state_ds, id)) {
                 key_state_free(key_data->key_state_ds);
                 key_data->key_state_ds = NULL;
+                db_value_free(id);
                 return NULL;
             }
         }
+        db_value_free(id);
     }
     return key_data->key_state_ds;
 }
 
 const key_state_t* key_data_get_rrsig(key_data_t* key_data) {
+    db_value_t* id = NULL;
+
     if (!key_data) {
         return NULL;
     }
@@ -183,19 +316,29 @@ const key_state_t* key_data_get_rrsig(key_data_t* key_data) {
     }
 
     if (!key_data->key_state_rrsig) {
+        if (!(id = db_value_new())) {
+            return NULL;
+        }
+        if (db_value_from_int32(id, key_data->rrsig)) {
+            db_value_free(id);
+            return NULL;
+        }
         key_data->key_state_rrsig = key_state_new(db_object_connection(key_data->dbo));
         if (key_data->key_state_rrsig) {
-            if (key_state_get_by_id(key_data->key_state_rrsig, key_data->rrsig)) {
+            if (key_state_get_by_id(key_data->key_state_rrsig, id)) {
                 key_state_free(key_data->key_state_rrsig);
                 key_data->key_state_rrsig = NULL;
                 return NULL;
             }
         }
+        db_value_free(id);
     }
     return key_data->key_state_rrsig;
 }
 
 const key_state_t* key_data_get_dnskey(key_data_t* key_data) {
+    db_value_t* id = NULL;
+
     if (!key_data) {
         return NULL;
     }
@@ -207,19 +350,29 @@ const key_state_t* key_data_get_dnskey(key_data_t* key_data) {
     }
 
     if (!key_data->key_state_dnskey) {
+        if (!(id = db_value_new())) {
+            return NULL;
+        }
+        if (db_value_from_int32(id, key_data->dnskey)) {
+            db_value_free(id);
+            return NULL;
+        }
         key_data->key_state_dnskey = key_state_new(db_object_connection(key_data->dbo));
         if (key_data->key_state_dnskey) {
-            if (key_state_get_by_id(key_data->key_state_dnskey, key_data->dnskey)) {
+            if (key_state_get_by_id(key_data->key_state_dnskey, id)) {
                 key_state_free(key_data->key_state_dnskey);
                 key_data->key_state_dnskey = NULL;
                 return NULL;
             }
         }
+        db_value_free(id);
     }
     return key_data->key_state_dnskey;
 }
 
 const key_state_t* key_data_get_rrsigdnskey(key_data_t* key_data) {
+    db_value_t* id = NULL;
+
     if (!key_data) {
         return NULL;
     }
@@ -231,19 +384,27 @@ const key_state_t* key_data_get_rrsigdnskey(key_data_t* key_data) {
     }
 
     if (!key_data->key_state_rrsigdnskey) {
+        if (!(id = db_value_new())) {
+            return NULL;
+        }
+        if (db_value_from_int32(id, key_data->rrsigdnskey)) {
+            db_value_free(id);
+            return NULL;
+        }
         key_data->key_state_rrsigdnskey = key_state_new(db_object_connection(key_data->dbo));
         if (key_data->key_state_rrsigdnskey) {
-            if (key_state_get_by_id(key_data->key_state_rrsigdnskey, key_data->rrsigdnskey)) {
+            if (key_state_get_by_id(key_data->key_state_rrsigdnskey, id)) {
                 key_state_free(key_data->key_state_rrsigdnskey);
                 key_data->key_state_rrsigdnskey = NULL;
                 return NULL;
             }
         }
+        db_value_free(id);
     }
     return key_data->key_state_rrsigdnskey;
 }
 
-int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int enforcer_zone_id) {
+int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, const db_value_t* enforcer_zone_id) {
     db_join_list_t* join_list;
     db_join_t* join;
     db_clause_list_t* clause_list;
@@ -276,7 +437,7 @@ int key_data_list_get_by_enforcer_zone_id(key_data_list_t* key_data_list, int en
         || db_clause_set_table(clause, "EnforcerZone_keys")
         || db_clause_set_field(clause, "parent_id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), enforcer_zone_id)
+        || db_value_copy(db_clause_get_value(clause), enforcer_zone_id)
         || db_clause_list_add(clause_list, clause))
     {
         db_join_list_free(join_list);

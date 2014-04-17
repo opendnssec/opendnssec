@@ -55,7 +55,7 @@ extern "C" {
  */
 struct adapter {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     char* adapter;
     char* type;
     char* file;
@@ -98,11 +98,11 @@ int adapter_copy(adapter_t* adapter, const adapter_t* adapter_copy);
 int adapter_from_result(adapter_t* adapter, const db_result_t* result);
 
 /**
- * Get the ID of a adapter object. Undefined behavior if `adapter` is NULL.
+ * Get the id of a adapter object. Undefined behavior if `adapter` is NULL.
  * \param[in] adapter a adapter_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int adapter_id(const adapter_t* adapter);
+const db_value_t* adapter_id(const adapter_t* adapter);
 
 /**
  * Get the adapter of a adapter object.
@@ -159,10 +159,10 @@ int adapter_create(adapter_t* adapter);
 /**
  * Get a adapter object from the database by an id specified in `id`.
  * \param[in] adapter a adapter_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int adapter_get_by_id(adapter_t* adapter, int id);
+int adapter_get_by_id(adapter_t* adapter, const db_value_t* id);
 
 /**
  * Update a adapter object in the database.

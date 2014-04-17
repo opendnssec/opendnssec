@@ -55,7 +55,7 @@ extern "C" {
  */
 struct policy {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     char* name;
     char* description;
     int signatures;
@@ -102,11 +102,11 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy);
 int policy_from_result(policy_t* policy, const db_result_t* result);
 
 /**
- * Get the ID of a policy object. Undefined behavior if `policy` is NULL.
+ * Get the id of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int policy_id(const policy_t* policy);
+const db_value_t* policy_id(const policy_t* policy);
 
 /**
  * Get the name of a policy object.
@@ -223,10 +223,10 @@ int policy_create(policy_t* policy);
 /**
  * Get a policy object from the database by an id specified in `id`.
  * \param[in] policy a policy_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_get_by_id(policy_t* policy, int id);
+int policy_get_by_id(policy_t* policy, const db_value_t* id);
 
 /**
  * Update a policy object in the database.

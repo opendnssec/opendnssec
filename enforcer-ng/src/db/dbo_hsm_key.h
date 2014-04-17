@@ -62,7 +62,7 @@ extern "C" {
  */
 struct dbo_hsm_key {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     char* locator;
     unsigned int candidate_for_sharing;
     unsigned int bits;
@@ -115,11 +115,11 @@ int dbo_hsm_key_copy(dbo_hsm_key_t* dbo_hsm_key, const dbo_hsm_key_t* dbo_hsm_ke
 int dbo_hsm_key_from_result(dbo_hsm_key_t* dbo_hsm_key, const db_result_t* result);
 
 /**
- * Get the ID of a dbo hsm key object. Undefined behavior if `dbo_hsm_key` is NULL.
+ * Get the id of a dbo hsm key object. Undefined behavior if `dbo_hsm_key` is NULL.
  * \param[in] dbo_hsm_key a dbo_hsm_key_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int dbo_hsm_key_id(const dbo_hsm_key_t* dbo_hsm_key);
+const db_value_t* dbo_hsm_key_id(const dbo_hsm_key_t* dbo_hsm_key);
 
 /**
  * Get the locator of a dbo hsm key object.
@@ -341,10 +341,10 @@ int dbo_hsm_key_create(dbo_hsm_key_t* dbo_hsm_key);
 /**
  * Get a dbo hsm key object from the database by an id specified in `id`.
  * \param[in] dbo_hsm_key a dbo_hsm_key_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int dbo_hsm_key_get_by_id(dbo_hsm_key_t* dbo_hsm_key, int id);
+int dbo_hsm_key_get_by_id(dbo_hsm_key_t* dbo_hsm_key, const db_value_t* id);
 
 /**
  * Update a dbo hsm key object in the database.

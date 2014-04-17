@@ -37,13 +37,13 @@ extern "C" {
 /**
  * Get 4 key state objects from the database.
  * \param[in] key_state_list a key_state_list_t pointer.
- * \param[in] id1 an integer.
- * \param[in] id2 an integer.
- * \param[in] id3 an integer.
- * \param[in] id4 an integer.
+ * \param[in] id1 a db_value_t pointer.
+ * \param[in] id2 a db_value_t pointer.
+ * \param[in] id3 a db_value_t pointer.
+ * \param[in] id4 a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_list_get_4_by_id(key_state_list_t* key_state_list, int id1, int id2, int id3, int id4);
+int key_state_list_get_4_by_id(key_state_list_t* key_state_list, const db_value_t* id1, const db_value_t* id2, const db_value_t* id3, const db_value_t* id4);
 
 #ifdef __cplusplus
 }

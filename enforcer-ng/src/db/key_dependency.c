@@ -120,6 +120,7 @@ key_dependency_t* key_dependency_new(const db_connection_t* connection) {
             mm_alloc_delete(&__key_dependency_alloc, key_dependency);
             return NULL;
         }
+        db_value_reset(&(key_dependency->id));
     }
 
     return key_dependency;
@@ -130,6 +131,7 @@ void key_dependency_free(key_dependency_t* key_dependency) {
         if (key_dependency->dbo) {
             db_object_free(key_dependency->dbo);
         }
+        db_value_reset(&(key_dependency->id));
         if (key_dependency->from_key) {
             free(key_dependency->from_key);
         }
@@ -142,7 +144,7 @@ void key_dependency_free(key_dependency_t* key_dependency) {
 
 void key_dependency_reset(key_dependency_t* key_dependency) {
     if (key_dependency) {
-        key_dependency->id = 0;
+        db_value_reset(&(key_dependency->id));
         if (key_dependency->from_key) {
             free(key_dependency->from_key);
         }
@@ -165,20 +167,22 @@ int key_dependency_copy(key_dependency_t* key_dependency, const key_dependency_t
         return DB_ERROR_UNKNOWN;
     }
 
-    if (key_dependency->from_key) {
-        if (!(from_key_text = strdup(key_dependency->from_key))) {
+    if (key_dependency_copy->from_key) {
+        if (!(from_key_text = strdup(key_dependency_copy->from_key))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (key_dependency->to_key) {
-        if (!(to_key_text = strdup(key_dependency->to_key))) {
+    if (key_dependency_copy->to_key) {
+        if (!(to_key_text = strdup(key_dependency_copy->to_key))) {
             if (from_key_text) {
                 free(from_key_text);
             }
             return DB_ERROR_UNKNOWN;
         }
     }
-    key_dependency->id = key_dependency_copy->id;
+    if (db_value_copy(&(key_dependency->id), &(key_dependency_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (key_dependency->from_key) {
         free(key_dependency->from_key);
     }
@@ -201,6 +205,7 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(key_dependency->id));
     if (key_dependency->from_key) {
         free(key_dependency->from_key);
     }
@@ -211,7 +216,7 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
     key_dependency->to_key = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 4
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(key_dependency->id))
+        || db_value_copy(&(key_dependency->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(key_dependency->from_key))
         || db_value_to_text(db_value_set_at(value_set, 2), &(key_dependency->to_key))
         || db_value_to_uint32(db_value_set_at(value_set, 3), &(key_dependency->rrtype)))
@@ -222,12 +227,12 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
     return DB_OK;
 }
 
-int key_dependency_id(const key_dependency_t* key_dependency) {
+const db_value_t* key_dependency_id(const key_dependency_t* key_dependency) {
     if (!key_dependency) {
-        return 0;
+        return NULL;
     }
 
-    return key_dependency->id;
+    return &(key_dependency->id);
 }
 
 const char* key_dependency_from_key(const key_dependency_t* key_dependency) {
@@ -320,7 +325,7 @@ int key_dependency_create(key_dependency_t* key_dependency) {
     if (!key_dependency->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (key_dependency->id) {
+    if (!db_value_not_empty(&(key_dependency->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -379,7 +384,7 @@ int key_dependency_create(key_dependency_t* key_dependency) {
     return ret;
 }
 
-int key_dependency_get_by_id(key_dependency_t* key_dependency, int id) {
+int key_dependency_get_by_id(key_dependency_t* key_dependency, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -391,6 +396,12 @@ int key_dependency_get_by_id(key_dependency_t* key_dependency, int id) {
     if (!key_dependency->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -398,7 +409,7 @@ int key_dependency_get_by_id(key_dependency_t* key_dependency, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -412,7 +423,11 @@ int key_dependency_get_by_id(key_dependency_t* key_dependency, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            key_dependency_from_result(key_dependency, result);
+            if (key_dependency_from_result(key_dependency, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -436,7 +451,7 @@ int key_dependency_update(key_dependency_t* key_dependency) {
     if (!key_dependency->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_dependency->id) {
+    if (db_value_not_empty(&(key_dependency->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -498,7 +513,7 @@ int key_dependency_update(key_dependency_t* key_dependency) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), key_dependency->id)
+        || db_value_copy(db_clause_get_value(clause), &(key_dependency->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -526,7 +541,7 @@ int key_dependency_delete(key_dependency_t* key_dependency) {
     if (!key_dependency->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_dependency->id) {
+    if (db_value_not_empty(&(key_dependency->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -537,7 +552,7 @@ int key_dependency_delete(key_dependency_t* key_dependency) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), key_dependency->id)
+        || db_value_copy(db_clause_get_value(clause), &(key_dependency->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -644,4 +659,3 @@ const key_dependency_t* key_dependency_list_next(key_dependency_list_t* key_depe
     }
     return key_dependency_list->key_dependency;
 }
-

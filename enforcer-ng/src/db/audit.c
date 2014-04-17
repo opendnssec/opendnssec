@@ -98,6 +98,7 @@ audit_t* audit_new(const db_connection_t* connection) {
             mm_alloc_delete(&__audit_alloc, audit);
             return NULL;
         }
+        db_value_reset(&(audit->id));
     }
 
     return audit;
@@ -108,13 +109,14 @@ void audit_free(audit_t* audit) {
         if (audit->dbo) {
             db_object_free(audit->dbo);
         }
+        db_value_reset(&(audit->id));
         mm_alloc_delete(&__audit_alloc, audit);
     }
 }
 
 void audit_reset(audit_t* audit) {
     if (audit) {
-        audit->id = 0;
+        db_value_reset(&(audit->id));
         audit->partial = 0;
     }
 }
@@ -127,7 +129,9 @@ int audit_copy(audit_t* audit, const audit_t* audit_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    audit->id = audit_copy->id;
+    if (db_value_copy(&(audit->id), &(audit_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     audit->partial = audit_copy->partial;
     return DB_OK;
 }
@@ -142,9 +146,10 @@ int audit_from_result(audit_t* audit, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(audit->id));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 2
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(audit->id))
+        || db_value_copy(&(audit->id), db_value_set_at(value_set, 0))
         || db_value_to_uint32(db_value_set_at(value_set, 1), &(audit->partial)))
     {
         return DB_ERROR_UNKNOWN;
@@ -153,12 +158,12 @@ int audit_from_result(audit_t* audit, const db_result_t* result) {
     return DB_OK;
 }
 
-int audit_id(const audit_t* audit) {
+const db_value_t* audit_id(const audit_t* audit) {
     if (!audit) {
-        return 0;
+        return NULL;
     }
 
-    return audit->id;
+    return &(audit->id);
 }
 
 unsigned int audit_partial(const audit_t* audit) {
@@ -191,7 +196,7 @@ int audit_create(audit_t* audit) {
     if (!audit->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (audit->id) {
+    if (!db_value_not_empty(&(audit->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -228,7 +233,7 @@ int audit_create(audit_t* audit) {
     return ret;
 }
 
-int audit_get_by_id(audit_t* audit, int id) {
+int audit_get_by_id(audit_t* audit, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -240,6 +245,12 @@ int audit_get_by_id(audit_t* audit, int id) {
     if (!audit->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -247,7 +258,7 @@ int audit_get_by_id(audit_t* audit, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -261,7 +272,11 @@ int audit_get_by_id(audit_t* audit, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            audit_from_result(audit, result);
+            if (audit_from_result(audit, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -285,7 +300,7 @@ int audit_update(audit_t* audit) {
     if (!audit->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!audit->id) {
+    if (db_value_not_empty(&(audit->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -325,7 +340,7 @@ int audit_update(audit_t* audit) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), audit->id)
+        || db_value_copy(db_clause_get_value(clause), &(audit->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -353,7 +368,7 @@ int audit_delete(audit_t* audit) {
     if (!audit->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!audit->id) {
+    if (db_value_not_empty(&(audit->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -364,7 +379,7 @@ int audit_delete(audit_t* audit) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), audit->id)
+        || db_value_copy(db_clause_get_value(clause), &(audit->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -471,4 +486,3 @@ const audit_t* audit_list_next(audit_list_t* audit_list) {
     }
     return audit_list->audit;
 }
-

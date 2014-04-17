@@ -64,7 +64,7 @@ extern "C" {
  */
 struct csk {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     unsigned int algorithm;
     unsigned int bits;
     int lifetime;
@@ -112,11 +112,11 @@ int csk_copy(csk_t* csk, const csk_t* csk_copy);
 int csk_from_result(csk_t* csk, const db_result_t* result);
 
 /**
- * Get the ID of a csk object. Undefined behavior if `csk` is NULL.
+ * Get the id of a csk object. Undefined behavior if `csk` is NULL.
  * \param[in] csk a csk_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int csk_id(const csk_t* csk);
+const db_value_t* csk_id(const csk_t* csk);
 
 /**
  * Get the algorithm of a csk object. Undefined behavior if `csk` is NULL.
@@ -263,10 +263,10 @@ int csk_create(csk_t* csk);
 /**
  * Get a csk object from the database by an id specified in `id`.
  * \param[in] csk a csk_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int csk_get_by_id(csk_t* csk, int id);
+int csk_get_by_id(csk_t* csk, const db_value_t* id);
 
 /**
  * Update a csk object in the database.

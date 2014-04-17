@@ -55,7 +55,7 @@ extern "C" {
  */
 struct denial {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     int nsec;
     int nsec3;
 #include "denial_struct_ext.h"
@@ -97,11 +97,11 @@ int denial_copy(denial_t* denial, const denial_t* denial_copy);
 int denial_from_result(denial_t* denial, const db_result_t* result);
 
 /**
- * Get the ID of a denial object. Undefined behavior if `denial` is NULL.
+ * Get the id of a denial object. Undefined behavior if `denial` is NULL.
  * \param[in] denial a denial_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int denial_id(const denial_t* denial);
+const db_value_t* denial_id(const denial_t* denial);
 
 /**
  * Get the nsec of a denial object. Undefined behavior if `denial` is NULL.
@@ -143,10 +143,10 @@ int denial_create(denial_t* denial);
 /**
  * Get a denial object from the database by an id specified in `id`.
  * \param[in] denial a denial_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int denial_get_by_id(denial_t* denial, int id);
+int denial_get_by_id(denial_t* denial, const db_value_t* id);
 
 /**
  * Update a denial object in the database.

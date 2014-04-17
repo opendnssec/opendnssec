@@ -282,6 +282,7 @@ key_data_t* key_data_new(const db_connection_t* connection) {
             mm_alloc_delete(&__key_data_alloc, key_data);
             return NULL;
         }
+        db_value_reset(&(key_data->id));
         key_data->role = KEY_DATA_ROLE_INVALID;
         key_data->introducing = 1;
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_UNSUBMITTED;
@@ -295,6 +296,7 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->dbo) {
             db_object_free(key_data->dbo);
         }
+        db_value_reset(&(key_data->id));
         if (key_data->locator) {
             free(key_data->locator);
         }
@@ -304,7 +306,7 @@ void key_data_free(key_data_t* key_data) {
 
 void key_data_reset(key_data_t* key_data) {
     if (key_data) {
-        key_data->id = 0;
+        db_value_reset(&(key_data->id));
         if (key_data->locator) {
             free(key_data->locator);
         }
@@ -336,12 +338,14 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (key_data->locator) {
-        if (!(locator_text = strdup(key_data->locator))) {
+    if (key_data_copy->locator) {
+        if (!(locator_text = strdup(key_data_copy->locator))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    key_data->id = key_data_copy->id;
+    if (db_value_copy(&(key_data->id), &(key_data_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (key_data->locator) {
         free(key_data->locator);
     }
@@ -376,13 +380,14 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(key_data->id));
     if (key_data->locator) {
         free(key_data->locator);
     }
     key_data->locator = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 17
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(key_data->id))
+        || db_value_copy(&(key_data->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(key_data->locator))
         || db_value_to_uint32(db_value_set_at(value_set, 2), &(key_data->algorithm))
         || db_value_to_uint32(db_value_set_at(value_set, 3), &(key_data->inception))
@@ -406,10 +411,10 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     if (role == (key_data_role_t)KEY_DATA_ROLE_KSK) {
         key_data->role = KEY_DATA_ROLE_KSK;
     }
-    if (role == (key_data_role_t)KEY_DATA_ROLE_ZSK) {
+    else if (role == (key_data_role_t)KEY_DATA_ROLE_ZSK) {
         key_data->role = KEY_DATA_ROLE_ZSK;
     }
-    if (role == (key_data_role_t)KEY_DATA_ROLE_CSK) {
+    else if (role == (key_data_role_t)KEY_DATA_ROLE_CSK) {
         key_data->role = KEY_DATA_ROLE_CSK;
     }
     else {
@@ -419,19 +424,19 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_UNSUBMITTED) {
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_UNSUBMITTED;
     }
-    if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_SUBMIT) {
+    else if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_SUBMIT) {
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_SUBMIT;
     }
-    if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_SUBMITTED) {
+    else if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_SUBMITTED) {
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_SUBMITTED;
     }
-    if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_SEEN) {
+    else if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_SEEN) {
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_SEEN;
     }
-    if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_RETRACT) {
+    else if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_RETRACT) {
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_RETRACT;
     }
-    if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_RETRACTED) {
+    else if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_RETRACTED) {
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_RETRACTED;
     }
     else {
@@ -441,12 +446,12 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     return DB_OK;
 }
 
-int key_data_id(const key_data_t* key_data) {
+const db_value_t* key_data_id(const key_data_t* key_data) {
     if (!key_data) {
-        return 0;
+        return NULL;
     }
 
-    return key_data->id;
+    return &(key_data->id);
 }
 
 const char* key_data_locator(const key_data_t* key_data) {
@@ -827,7 +832,7 @@ int key_data_create(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (key_data->id) {
+    if (!db_value_not_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -1031,7 +1036,7 @@ int key_data_create(key_data_t* key_data) {
     return ret;
 }
 
-int key_data_get_by_id(key_data_t* key_data, int id) {
+int key_data_get_by_id(key_data_t* key_data, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -1043,6 +1048,12 @@ int key_data_get_by_id(key_data_t* key_data, int id) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -1050,7 +1061,7 @@ int key_data_get_by_id(key_data_t* key_data, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1064,7 +1075,11 @@ int key_data_get_by_id(key_data_t* key_data, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            key_data_from_result(key_data, result);
+            if (key_data_from_result(key_data, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1088,7 +1103,7 @@ int key_data_update(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_data->id) {
+    if (db_value_not_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -1295,7 +1310,7 @@ int key_data_update(key_data_t* key_data) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), key_data->id)
+        || db_value_copy(db_clause_get_value(clause), &(key_data->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1323,7 +1338,7 @@ int key_data_delete(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_data->id) {
+    if (db_value_not_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1334,7 +1349,7 @@ int key_data_delete(key_data_t* key_data) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), key_data->id)
+        || db_value_copy(db_clause_get_value(clause), &(key_data->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1441,4 +1456,3 @@ const key_data_t* key_data_list_next(key_data_list_t* key_data_list) {
     }
     return key_data_list->key_data;
 }
-

@@ -129,6 +129,10 @@ struct ', $name, ' {
 ';
 
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    print HEADER '    db_value_t ', $field->{name}, ";\n";
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
         print HEADER '    ', $name, '_', $field->{name}, '_t ', $field->{name}, ";\n";
         next;
@@ -175,17 +179,18 @@ int ', $name, '_copy(', $name, '_t* ', $name, ', const ', $name, '_t* ', $name, 
  */
 int ', $name, '_from_result(', $name, '_t* ', $name, ', const db_result_t* result);
 
-/**
- * Get the ID of a ', $tname, ' object. Undefined behavior if `', $name, '` is NULL.
- * \param[in] ', $name, ' a ', $name, '_t pointer.
- * \return an integer.
- */
-int ', $name, '_id(const ', $name, '_t* ', $name, ');
-
 ';
 
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        print HEADER '/**
+ * Get the ', $field->{name}, ' of a ', $tname, ' object. Undefined behavior if `', $name, '` is NULL.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \return a db_value_t pointer.
+ */
+const db_value_t* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ');
+
+';
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -283,15 +288,21 @@ print HEADER '/**
  */
 int ', $name, '_create(', $name, '_t* ', $name, ');
 
-/**
- * Get a ', $tname, ' object from the database by an id specified in `id`.
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print HEADER '/**
+ * Get a ', $tname, ' object from the database by an ', $field->{name}, ' specified in `', $field->{name}, '`.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
- * \param[in] id an integer.
+ * \param[in] ', $field->{name}, ' a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int ', $name, '_get_by_id(', $name, '_t* ', $name, ', int id);
+int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', const db_value_t* ', $field->{name}, ');
 
-/**
+';
+    }
+}
+print HEADER '/**
  * Update a ', $tname, ' object in the database.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -539,6 +550,11 @@ static mm_alloc_t __', $name, '_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $name, '
         }
 ';
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
+';
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
         if ($field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = ', uc($name.'_'.$field->{name}), '_', $field->{default}, ';
@@ -575,6 +591,11 @@ void ', $name, '_free(', $name, '_t* ', $name, ') {
         }
 ';
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
+';
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_TEXT') {
 print SOURCE '        if (', $name, '->', $field->{name}, ') {
             free(', $name, '->', $field->{name}, ');
@@ -590,6 +611,11 @@ void ', $name, '_reset(', $name, '_t* ', $name, ') {
     if (', $name, ') {
 ';
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
+';
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
         if ($field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = ', uc($name.'_'.$field->{name}), '_', $field->{default}, ';
@@ -648,8 +674,8 @@ print SOURCE '    if (!', $name, ') {
 my @free = ();
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_TEXT') {
-print SOURCE '    if (', $name, '->', $field->{name}, ') {
-        if (!(', $field->{name}, '_text = strdup(', $name, '->', $field->{name}, '))) {
+print SOURCE '    if (', $name, '_copy->', $field->{name}, ') {
+        if (!(', $field->{name}, '_text = strdup(', $name, '_copy->', $field->{name}, '))) {
 ';
 foreach my $field2 (@free) {
     if ($field2->{type} eq 'DB_TYPE_TEXT') {
@@ -667,6 +693,13 @@ print SOURCE '            return DB_ERROR_UNKNOWN;
     }
 }
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '    if (db_value_copy(&(', $name, '->', $field->{name}, '), &(', $name, '_copy->', $field->{name}, '))) {
+        return DB_ERROR_UNKNOWN;
+    }
+';
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_TEXT') {
 print SOURCE '    if (', $name, '->', $field->{name}, ') {
         free(', $name, '->', $field->{name}, ');
@@ -700,6 +733,10 @@ print SOURCE '
 
 ';
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '    db_value_reset(&(', $name, '->', $field->{name}, '));
+';
+    }
     if ($field->{type} eq 'DB_TYPE_TEXT') {
 print SOURCE '    if (', $name, '->', $field->{name}, ') {
         free(', $name, '->', $field->{name}, ');
@@ -712,6 +749,11 @@ print SOURCE '    if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != ', (scalar @{$object->{fields}});
 my $count = 0;
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '
+        || db_value_copy(&(', $name, '->', $field->{name}, '), db_value_set_at(value_set, ', $count++, '))';
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
 print SOURCE '
         || db_value_to_enum_value(db_value_set_at(value_set, ', $count++, '), &', $field->{name}, ', __enum_set_', $field->{name}, ')';
@@ -731,10 +773,11 @@ foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_ENUM') {
         my $first = 1;
         foreach my $enum (@{$field->{enum}}) {
-print SOURCE '    if (', $field->{name}, ' == (', $name, '_', $field->{name}, '_t)', uc($name.'_'.$field->{name}), '_', $enum->{name}, ') {
+print SOURCE '    ', ($first ? '' : 'else '),'if (', $field->{name}, ' == (', $name, '_', $field->{name}, '_t)', uc($name.'_'.$field->{name}), '_', $enum->{name}, ') {
         ', $name, '->', $field->{name}, ' = ', uc($name.'_'.$field->{name}), '_', $enum->{name}, ';
     }
 ';
+            $first = 0;
         }
 print SOURCE '    else {
         return DB_ERROR_UNKNOWN;
@@ -750,6 +793,18 @@ print SOURCE '    return DB_OK;
 ';
 
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE 'const db_value_t* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ') {
+    if (!', $name, ') {
+        return NULL;
+    }
+
+    return &(', $name, '->', $field->{name}, ');
+}
+
+';
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
 print SOURCE $name, '_', $field->{name}, '_t ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ') {
     if (!', $name, ') {
@@ -889,10 +944,16 @@ print SOURCE 'int ', $name, '_create(', $name, '_t* ', $name, ') {
     if (!', $name, '->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (', $name, '->id) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '    if (!db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+';
+    }
+}
+print SOURCE '    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -960,7 +1021,10 @@ print SOURCE '    ret = db_object_create(', $name, '->dbo, object_field_list, va
     return ret;
 }
 
-int ', $name, '_get_by_id(', $name, '_t* ', $name, ', int id) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE 'int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', const db_value_t* ', $field->{name}, ') {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -972,14 +1036,20 @@ int ', $name, '_get_by_id(', $name, '_t* ', $name, ', int id) {
     if (!', $name, '->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!', $field->{name}, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(', $field->{name}, ')) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
     }
     if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "id")
+        || db_clause_set_field(clause, "', $field->{name}, '")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), ', $field->{name}, ')
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -993,7 +1063,11 @@ int ', $name, '_get_by_id(', $name, '_t* ', $name, ', int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            ', $name, '_from_result(', $name, ', result);
+            if (', $name, '_from_result(', $name, ', result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1003,7 +1077,10 @@ int ', $name, '_get_by_id(', $name, '_t* ', $name, ', int id) {
     return DB_ERROR_UNKNOWN;
 }
 
-int ', $name, '_update(', $name, '_t* ', $name, ') {
+';
+    }
+}
+print SOURCE 'int ', $name, '_update(', $name, '_t* ', $name, ') {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
     db_value_set_t* value_set;
@@ -1017,10 +1094,16 @@ int ', $name, '_update(', $name, '_t* ', $name, ') {
     if (!', $name, '->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!', $name, '->id) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '    if (db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+';
+    }
+}
+print SOURCE '    /* TODO: validate content */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -1090,10 +1173,13 @@ print SOURCE '    if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "id")
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "', $field->{name}, '")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), ', $name, '->id)
+        || db_value_copy(db_clause_get_value(clause), &(', $name, '->', $field->{name}, '))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1103,7 +1189,10 @@ print SOURCE '    if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
     }
 
-    ret = db_object_update(', $name, '->dbo, object_field_list, value_set, clause_list);
+';
+    }
+}
+print SOURCE '    ret = db_object_update(', $name, '->dbo, object_field_list, value_set, clause_list);
     db_value_set_free(value_set);
     db_object_field_list_free(object_field_list);
     db_clause_list_free(clause_list);
@@ -1121,18 +1210,27 @@ int ', $name, '_delete(', $name, '_t* ', $name, ') {
     if (!', $name, '->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!', $name, '->id) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '    if (db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
         return DB_ERROR_UNKNOWN;
     }
-
+';
+    }
+}
+print SOURCE '
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "id")
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+print SOURCE '    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "', $field->{name}, '")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), ', $name, '->id)
+        || db_value_copy(db_clause_get_value(clause), &(', $name, '->', $field->{name}, '))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1140,7 +1238,10 @@ int ', $name, '_delete(', $name, '_t* ', $name, ') {
         return DB_ERROR_UNKNOWN;
     }
 
-    ret = db_object_delete(', $name, '->dbo, clause_list);
+';
+    }
+}
+print SOURCE '    ret = db_object_delete(', $name, '->dbo, clause_list);
     db_clause_list_free(clause_list);
     return ret;
 }
@@ -1239,7 +1340,6 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
     }
     return ', $name, '_list->', $name, ';
 }
-
 ';
 close(SOURCE);
 

@@ -64,7 +64,7 @@ extern "C" {
  */
 struct key_state {
     db_object_t* dbo;
-    int id;
+    db_value_t id;
     key_state_state_t state;
     unsigned int last_change;
     unsigned int minimize;
@@ -108,11 +108,11 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy);
 int key_state_from_result(key_state_t* key_state, const db_result_t* result);
 
 /**
- * Get the ID of a key state object. Undefined behavior if `key_state` is NULL.
+ * Get the id of a key state object. Undefined behavior if `key_state` is NULL.
  * \param[in] key_state a key_state_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer.
  */
-int key_state_id(const key_state_t* key_state);
+const db_value_t* key_state_id(const key_state_t* key_state);
 
 /**
  * Get the state of a key state object.
@@ -199,10 +199,10 @@ int key_state_create(key_state_t* key_state);
 /**
  * Get a key state object from the database by an id specified in `id`.
  * \param[in] key_state a key_state_t pointer.
- * \param[in] id an integer.
+ * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_get_by_id(key_state_t* key_state, int id);
+int key_state_get_by_id(key_state_t* key_state, const db_value_t* id);
 
 /**
  * Update a key state object in the database.

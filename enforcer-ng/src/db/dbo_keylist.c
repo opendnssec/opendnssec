@@ -142,6 +142,7 @@ dbo_keylist_t* dbo_keylist_new(const db_connection_t* connection) {
             mm_alloc_delete(&__dbo_keylist_alloc, dbo_keylist);
             return NULL;
         }
+        db_value_reset(&(dbo_keylist->id));
     }
 
     return dbo_keylist;
@@ -152,13 +153,14 @@ void dbo_keylist_free(dbo_keylist_t* dbo_keylist) {
         if (dbo_keylist->dbo) {
             db_object_free(dbo_keylist->dbo);
         }
+        db_value_reset(&(dbo_keylist->id));
         mm_alloc_delete(&__dbo_keylist_alloc, dbo_keylist);
     }
 }
 
 void dbo_keylist_reset(dbo_keylist_t* dbo_keylist) {
     if (dbo_keylist) {
-        dbo_keylist->id = 0;
+        db_value_reset(&(dbo_keylist->id));
         dbo_keylist->ttl = 0;
         dbo_keylist->retiresafety = 0;
         dbo_keylist->publishsafety = 0;
@@ -175,7 +177,9 @@ int dbo_keylist_copy(dbo_keylist_t* dbo_keylist, const dbo_keylist_t* dbo_keylis
         return DB_ERROR_UNKNOWN;
     }
 
-    dbo_keylist->id = dbo_keylist_copy->id;
+    if (db_value_copy(&(dbo_keylist->id), &(dbo_keylist_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     dbo_keylist->ttl = dbo_keylist_copy->ttl;
     dbo_keylist->retiresafety = dbo_keylist_copy->retiresafety;
     dbo_keylist->publishsafety = dbo_keylist_copy->publishsafety;
@@ -194,9 +198,10 @@ int dbo_keylist_from_result(dbo_keylist_t* dbo_keylist, const db_result_t* resul
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(dbo_keylist->id));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 6
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(dbo_keylist->id))
+        || db_value_copy(&(dbo_keylist->id), db_value_set_at(value_set, 0))
         || db_value_to_int32(db_value_set_at(value_set, 1), &(dbo_keylist->ttl))
         || db_value_to_int32(db_value_set_at(value_set, 2), &(dbo_keylist->retiresafety))
         || db_value_to_int32(db_value_set_at(value_set, 3), &(dbo_keylist->publishsafety))
@@ -209,12 +214,12 @@ int dbo_keylist_from_result(dbo_keylist_t* dbo_keylist, const db_result_t* resul
     return DB_OK;
 }
 
-int dbo_keylist_id(const dbo_keylist_t* dbo_keylist) {
+const db_value_t* dbo_keylist_id(const dbo_keylist_t* dbo_keylist) {
     if (!dbo_keylist) {
-        return 0;
+        return NULL;
     }
 
-    return dbo_keylist->id;
+    return &(dbo_keylist->id);
 }
 
 int dbo_keylist_ttl(const dbo_keylist_t* dbo_keylist) {
@@ -319,7 +324,7 @@ int dbo_keylist_create(dbo_keylist_t* dbo_keylist) {
     if (!dbo_keylist->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (dbo_keylist->id) {
+    if (!db_value_not_empty(&(dbo_keylist->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -400,7 +405,7 @@ int dbo_keylist_create(dbo_keylist_t* dbo_keylist) {
     return ret;
 }
 
-int dbo_keylist_get_by_id(dbo_keylist_t* dbo_keylist, int id) {
+int dbo_keylist_get_by_id(dbo_keylist_t* dbo_keylist, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -412,6 +417,12 @@ int dbo_keylist_get_by_id(dbo_keylist_t* dbo_keylist, int id) {
     if (!dbo_keylist->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -419,7 +430,7 @@ int dbo_keylist_get_by_id(dbo_keylist_t* dbo_keylist, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -433,7 +444,11 @@ int dbo_keylist_get_by_id(dbo_keylist_t* dbo_keylist, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            dbo_keylist_from_result(dbo_keylist, result);
+            if (dbo_keylist_from_result(dbo_keylist, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -457,7 +472,7 @@ int dbo_keylist_update(dbo_keylist_t* dbo_keylist) {
     if (!dbo_keylist->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!dbo_keylist->id) {
+    if (db_value_not_empty(&(dbo_keylist->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -541,7 +556,7 @@ int dbo_keylist_update(dbo_keylist_t* dbo_keylist) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), dbo_keylist->id)
+        || db_value_copy(db_clause_get_value(clause), &(dbo_keylist->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -569,7 +584,7 @@ int dbo_keylist_delete(dbo_keylist_t* dbo_keylist) {
     if (!dbo_keylist->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!dbo_keylist->id) {
+    if (db_value_not_empty(&(dbo_keylist->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -580,7 +595,7 @@ int dbo_keylist_delete(dbo_keylist_t* dbo_keylist) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), dbo_keylist->id)
+        || db_value_copy(db_clause_get_value(clause), &(dbo_keylist->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -687,4 +702,3 @@ const dbo_keylist_t* dbo_keylist_list_next(dbo_keylist_list_t* dbo_keylist_list)
     }
     return dbo_keylist_list->dbo_keylist;
 }
-

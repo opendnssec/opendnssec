@@ -120,6 +120,7 @@ adapter_t* adapter_new(const db_connection_t* connection) {
             mm_alloc_delete(&__adapter_alloc, adapter);
             return NULL;
         }
+        db_value_reset(&(adapter->id));
         adapter->type = strdup("File");
     }
 
@@ -131,6 +132,7 @@ void adapter_free(adapter_t* adapter) {
         if (adapter->dbo) {
             db_object_free(adapter->dbo);
         }
+        db_value_reset(&(adapter->id));
         if (adapter->adapter) {
             free(adapter->adapter);
         }
@@ -146,7 +148,7 @@ void adapter_free(adapter_t* adapter) {
 
 void adapter_reset(adapter_t* adapter) {
     if (adapter) {
-        adapter->id = 0;
+        db_value_reset(&(adapter->id));
         if (adapter->adapter) {
             free(adapter->adapter);
         }
@@ -173,21 +175,21 @@ int adapter_copy(adapter_t* adapter, const adapter_t* adapter_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (adapter->adapter) {
-        if (!(adapter_text = strdup(adapter->adapter))) {
+    if (adapter_copy->adapter) {
+        if (!(adapter_text = strdup(adapter_copy->adapter))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (adapter->type) {
-        if (!(type_text = strdup(adapter->type))) {
+    if (adapter_copy->type) {
+        if (!(type_text = strdup(adapter_copy->type))) {
             if (adapter_text) {
                 free(adapter_text);
             }
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (adapter->file) {
-        if (!(file_text = strdup(adapter->file))) {
+    if (adapter_copy->file) {
+        if (!(file_text = strdup(adapter_copy->file))) {
             if (adapter_text) {
                 free(adapter_text);
             }
@@ -197,7 +199,9 @@ int adapter_copy(adapter_t* adapter, const adapter_t* adapter_copy) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    adapter->id = adapter_copy->id;
+    if (db_value_copy(&(adapter->id), &(adapter_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (adapter->adapter) {
         free(adapter->adapter);
     }
@@ -223,6 +227,7 @@ int adapter_from_result(adapter_t* adapter, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(adapter->id));
     if (adapter->adapter) {
         free(adapter->adapter);
     }
@@ -237,7 +242,7 @@ int adapter_from_result(adapter_t* adapter, const db_result_t* result) {
     adapter->file = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 4
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(adapter->id))
+        || db_value_copy(&(adapter->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(adapter->adapter))
         || db_value_to_text(db_value_set_at(value_set, 2), &(adapter->type))
         || db_value_to_text(db_value_set_at(value_set, 3), &(adapter->file)))
@@ -248,12 +253,12 @@ int adapter_from_result(adapter_t* adapter, const db_result_t* result) {
     return DB_OK;
 }
 
-int adapter_id(const adapter_t* adapter) {
+const db_value_t* adapter_id(const adapter_t* adapter) {
     if (!adapter) {
-        return 0;
+        return NULL;
     }
 
-    return adapter->id;
+    return &(adapter->id);
 }
 
 const char* adapter_adapter(const adapter_t* adapter) {
@@ -358,7 +363,7 @@ int adapter_create(adapter_t* adapter) {
     if (!adapter->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (adapter->id) {
+    if (!db_value_not_empty(&(adapter->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -417,7 +422,7 @@ int adapter_create(adapter_t* adapter) {
     return ret;
 }
 
-int adapter_get_by_id(adapter_t* adapter, int id) {
+int adapter_get_by_id(adapter_t* adapter, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -429,6 +434,12 @@ int adapter_get_by_id(adapter_t* adapter, int id) {
     if (!adapter->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -436,7 +447,7 @@ int adapter_get_by_id(adapter_t* adapter, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -450,7 +461,11 @@ int adapter_get_by_id(adapter_t* adapter, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            adapter_from_result(adapter, result);
+            if (adapter_from_result(adapter, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -474,7 +489,7 @@ int adapter_update(adapter_t* adapter) {
     if (!adapter->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!adapter->id) {
+    if (db_value_not_empty(&(adapter->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -536,7 +551,7 @@ int adapter_update(adapter_t* adapter) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), adapter->id)
+        || db_value_copy(db_clause_get_value(clause), &(adapter->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -564,7 +579,7 @@ int adapter_delete(adapter_t* adapter) {
     if (!adapter->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!adapter->id) {
+    if (db_value_not_empty(&(adapter->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -575,7 +590,7 @@ int adapter_delete(adapter_t* adapter) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), adapter->id)
+        || db_value_copy(db_clause_get_value(clause), &(adapter->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -682,4 +697,3 @@ const adapter_t* adapter_list_next(adapter_list_t* adapter_list) {
     }
     return adapter_list->adapter;
 }
-

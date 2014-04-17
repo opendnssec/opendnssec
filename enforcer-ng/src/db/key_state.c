@@ -141,6 +141,7 @@ key_state_t* key_state_new(const db_connection_t* connection) {
             mm_alloc_delete(&__key_state_alloc, key_state);
             return NULL;
         }
+        db_value_reset(&(key_state->id));
         key_state->state = KEY_STATE_STATE_HIDDEN;
     }
 
@@ -152,13 +153,14 @@ void key_state_free(key_state_t* key_state) {
         if (key_state->dbo) {
             db_object_free(key_state->dbo);
         }
+        db_value_reset(&(key_state->id));
         mm_alloc_delete(&__key_state_alloc, key_state);
     }
 }
 
 void key_state_reset(key_state_t* key_state) {
     if (key_state) {
-        key_state->id = 0;
+        db_value_reset(&(key_state->id));
         key_state->state = KEY_STATE_STATE_HIDDEN;
         key_state->last_change = 0;
         key_state->minimize = 0;
@@ -174,7 +176,9 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    key_state->id = key_state_copy->id;
+    if (db_value_copy(&(key_state->id), &(key_state_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     key_state->state = key_state_copy->state;
     key_state->last_change = key_state_copy->last_change;
     key_state->minimize = key_state_copy->minimize;
@@ -193,9 +197,10 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(key_state->id));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 5
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(key_state->id))
+        || db_value_copy(&(key_state->id), db_value_set_at(value_set, 0))
         || db_value_to_enum_value(db_value_set_at(value_set, 1), &state, __enum_set_state)
         || db_value_to_uint32(db_value_set_at(value_set, 2), &(key_state->last_change))
         || db_value_to_uint32(db_value_set_at(value_set, 3), &(key_state->minimize))
@@ -207,16 +212,16 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     if (state == (key_state_state_t)KEY_STATE_STATE_HIDDEN) {
         key_state->state = KEY_STATE_STATE_HIDDEN;
     }
-    if (state == (key_state_state_t)KEY_STATE_STATE_RUMOURED) {
+    else if (state == (key_state_state_t)KEY_STATE_STATE_RUMOURED) {
         key_state->state = KEY_STATE_STATE_RUMOURED;
     }
-    if (state == (key_state_state_t)KEY_STATE_STATE_OMNIPRESENT) {
+    else if (state == (key_state_state_t)KEY_STATE_STATE_OMNIPRESENT) {
         key_state->state = KEY_STATE_STATE_OMNIPRESENT;
     }
-    if (state == (key_state_state_t)KEY_STATE_STATE_UNRETENTIVE) {
+    else if (state == (key_state_state_t)KEY_STATE_STATE_UNRETENTIVE) {
         key_state->state = KEY_STATE_STATE_UNRETENTIVE;
     }
-    if (state == (key_state_state_t)KEY_STATE_STATE_NA) {
+    else if (state == (key_state_state_t)KEY_STATE_STATE_NA) {
         key_state->state = KEY_STATE_STATE_NA;
     }
     else {
@@ -226,12 +231,12 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     return DB_OK;
 }
 
-int key_state_id(const key_state_t* key_state) {
+const db_value_t* key_state_id(const key_state_t* key_state) {
     if (!key_state) {
-        return 0;
+        return NULL;
     }
 
-    return key_state->id;
+    return &(key_state->id);
 }
 
 key_state_state_t key_state_state(const key_state_t* key_state) {
@@ -351,7 +356,7 @@ int key_state_create(key_state_t* key_state) {
     if (!key_state->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (key_state->id) {
+    if (!db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -422,7 +427,7 @@ int key_state_create(key_state_t* key_state) {
     return ret;
 }
 
-int key_state_get_by_id(key_state_t* key_state, int id) {
+int key_state_get_by_id(key_state_t* key_state, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -434,6 +439,12 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
     if (!key_state->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -441,7 +452,7 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -455,7 +466,11 @@ int key_state_get_by_id(key_state_t* key_state, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            key_state_from_result(key_state, result);
+            if (key_state_from_result(key_state, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -479,7 +494,7 @@ int key_state_update(key_state_t* key_state) {
     if (!key_state->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_state->id) {
+    if (db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -553,7 +568,7 @@ int key_state_update(key_state_t* key_state) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), key_state->id)
+        || db_value_copy(db_clause_get_value(clause), &(key_state->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -581,7 +596,7 @@ int key_state_delete(key_state_t* key_state) {
     if (!key_state->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_state->id) {
+    if (db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -592,7 +607,7 @@ int key_state_delete(key_state_t* key_state) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), key_state->id)
+        || db_value_copy(db_clause_get_value(clause), &(key_state->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -699,4 +714,3 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {
     }
     return key_state_list->key_state;
 }
-

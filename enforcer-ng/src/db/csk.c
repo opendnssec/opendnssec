@@ -185,6 +185,7 @@ csk_t* csk_new(const db_connection_t* connection) {
             mm_alloc_delete(&__csk_alloc, csk);
             return NULL;
         }
+        db_value_reset(&(csk->id));
         csk->rollover_type = CSK_ROLLOVER_TYPE_PREPUBLICATION;
     }
 
@@ -196,6 +197,7 @@ void csk_free(csk_t* csk) {
         if (csk->dbo) {
             db_object_free(csk->dbo);
         }
+        db_value_reset(&(csk->id));
         if (csk->repository) {
             free(csk->repository);
         }
@@ -205,7 +207,7 @@ void csk_free(csk_t* csk) {
 
 void csk_reset(csk_t* csk) {
     if (csk) {
-        csk->id = 0;
+        db_value_reset(&(csk->id));
         csk->algorithm = 0;
         csk->bits = 0;
         csk->lifetime = 0;
@@ -229,12 +231,14 @@ int csk_copy(csk_t* csk, const csk_t* csk_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (csk->repository) {
-        if (!(repository_text = strdup(csk->repository))) {
+    if (csk_copy->repository) {
+        if (!(repository_text = strdup(csk_copy->repository))) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    csk->id = csk_copy->id;
+    if (db_value_copy(&(csk->id), &(csk_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     csk->algorithm = csk_copy->algorithm;
     csk->bits = csk_copy->bits;
     csk->lifetime = csk_copy->lifetime;
@@ -260,13 +264,14 @@ int csk_from_result(csk_t* csk, const db_result_t* result) {
         return DB_ERROR_UNKNOWN;
     }
 
+    db_value_reset(&(csk->id));
     if (csk->repository) {
         free(csk->repository);
     }
     csk->repository = NULL;
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 9
-        || db_value_to_int32(db_value_set_at(value_set, 0), &(csk->id))
+        || db_value_copy(&(csk->id), db_value_set_at(value_set, 0))
         || db_value_to_uint32(db_value_set_at(value_set, 1), &(csk->algorithm))
         || db_value_to_uint32(db_value_set_at(value_set, 2), &(csk->bits))
         || db_value_to_int32(db_value_set_at(value_set, 3), &(csk->lifetime))
@@ -282,16 +287,16 @@ int csk_from_result(csk_t* csk, const db_result_t* result) {
     if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_DOUBLE_RRSET) {
         csk->rollover_type = CSK_ROLLOVER_TYPE_DOUBLE_RRSET;
     }
-    if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_SINGLE_SIGNATURE) {
+    else if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_SINGLE_SIGNATURE) {
         csk->rollover_type = CSK_ROLLOVER_TYPE_SINGLE_SIGNATURE;
     }
-    if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_DOUBLE_DS) {
+    else if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_DOUBLE_DS) {
         csk->rollover_type = CSK_ROLLOVER_TYPE_DOUBLE_DS;
     }
-    if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE) {
+    else if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE) {
         csk->rollover_type = CSK_ROLLOVER_TYPE_DOUBLE_SIGNATURE;
     }
-    if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_PREPUBLICATION) {
+    else if (rollover_type == (csk_rollover_type_t)CSK_ROLLOVER_TYPE_PREPUBLICATION) {
         csk->rollover_type = CSK_ROLLOVER_TYPE_PREPUBLICATION;
     }
     else {
@@ -301,12 +306,12 @@ int csk_from_result(csk_t* csk, const db_result_t* result) {
     return DB_OK;
 }
 
-int csk_id(const csk_t* csk) {
+const db_value_t* csk_id(const csk_t* csk) {
     if (!csk) {
-        return 0;
+        return NULL;
     }
 
-    return csk->id;
+    return &(csk->id);
 }
 
 unsigned int csk_algorithm(const csk_t* csk) {
@@ -510,7 +515,7 @@ int csk_create(csk_t* csk) {
     if (!csk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (csk->id) {
+    if (!db_value_not_empty(&(csk->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -625,7 +630,7 @@ int csk_create(csk_t* csk) {
     return ret;
 }
 
-int csk_get_by_id(csk_t* csk, int id) {
+int csk_get_by_id(csk_t* csk, const db_value_t* id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     db_result_list_t* result_list;
@@ -637,6 +642,12 @@ int csk_get_by_id(csk_t* csk, int id) {
     if (!csk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     if (!(clause_list = db_clause_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -644,7 +655,7 @@ int csk_get_by_id(csk_t* csk, int id) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), id)
+        || db_value_copy(db_clause_get_value(clause), id)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -658,7 +669,11 @@ int csk_get_by_id(csk_t* csk, int id) {
     if (result_list) {
         result = db_result_list_begin(result_list);
         if (result) {
-            csk_from_result(csk, result);
+            if (csk_from_result(csk, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -682,7 +697,7 @@ int csk_update(csk_t* csk) {
     if (!csk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!csk->id) {
+    if (db_value_not_empty(&(csk->id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content */
@@ -800,7 +815,7 @@ int csk_update(csk_t* csk) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), csk->id)
+        || db_value_copy(db_clause_get_value(clause), &(csk->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -828,7 +843,7 @@ int csk_delete(csk_t* csk) {
     if (!csk->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!csk->id) {
+    if (db_value_not_empty(&(csk->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -839,7 +854,7 @@ int csk_delete(csk_t* csk) {
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_int32(db_clause_get_value(clause), csk->id)
+        || db_value_copy(db_clause_get_value(clause), &(csk->id))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -946,4 +961,3 @@ const csk_t* csk_list_next(csk_list_t* csk_list) {
     }
     return csk_list->csk;
 }
-
