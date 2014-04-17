@@ -616,63 +616,75 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
     left = sizeof(sql);
     sqlp = sql;
 
-    if ((ret = snprintf(sqlp, left, "INSERT INTO %s (", db_object_table(object))) >= left) {
-        return DB_ERROR_UNKNOWN;
-    }
-    sqlp += ret;
-    left -= ret;
-
-    object_field = db_object_field_list_begin(object_field_list);
-    first = 1;
-    while (object_field) {
-        if (first) {
-            if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(object_field))) >= left) {
-                return DB_ERROR_UNKNOWN;
-            }
-            first = 0;
+    if (!db_object_field_list_begin(object_field_list)) {
+        /*
+         * Special case when tables has no fields except maybe a primary key.
+         */
+        if ((ret = snprintf(sqlp, left, "INSERT INTO %s DEFAULT VALUES", db_object_table(object))) >= left) {
+            return DB_ERROR_UNKNOWN;
         }
-        else {
-            if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(object_field))) >= left) {
-                return DB_ERROR_UNKNOWN;
-            }
+        sqlp += ret;
+        left -= ret;
+    }
+    else {
+        if ((ret = snprintf(sqlp, left, "INSERT INTO %s (", db_object_table(object))) >= left) {
+            return DB_ERROR_UNKNOWN;
         }
         sqlp += ret;
         left -= ret;
 
-        object_field = db_object_field_next(object_field);
-    }
-
-    if ((ret = snprintf(sqlp, left, " ) VALUES (")) >= left) {
-        return DB_ERROR_UNKNOWN;
-    }
-    sqlp += ret;
-    left -= ret;
-
-    object_field = db_object_field_list_begin(object_field_list);
-    first = 1;
-    while (object_field) {
-        if (first) {
-            if ((ret = snprintf(sqlp, left, " ?")) >= left) {
-                return DB_ERROR_UNKNOWN;
+        object_field = db_object_field_list_begin(object_field_list);
+        first = 1;
+        while (object_field) {
+            if (first) {
+                if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(object_field))) >= left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+                first = 0;
             }
-            first = 0;
+            else {
+                if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(object_field))) >= left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+            }
+            sqlp += ret;
+            left -= ret;
+
+            object_field = db_object_field_next(object_field);
         }
-        else {
-            if ((ret = snprintf(sqlp, left, ", ?")) >= left) {
-                return DB_ERROR_UNKNOWN;
-            }
+
+        if ((ret = snprintf(sqlp, left, " ) VALUES (")) >= left) {
+            return DB_ERROR_UNKNOWN;
         }
         sqlp += ret;
         left -= ret;
 
-        object_field = db_object_field_next(object_field);
-    }
+        object_field = db_object_field_list_begin(object_field_list);
+        first = 1;
+        while (object_field) {
+            if (first) {
+                if ((ret = snprintf(sqlp, left, " ?")) >= left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+                first = 0;
+            }
+            else {
+                if ((ret = snprintf(sqlp, left, ", ?")) >= left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+            }
+            sqlp += ret;
+            left -= ret;
 
-    if ((ret = snprintf(sqlp, left, " )")) >= left) {
-        return DB_ERROR_UNKNOWN;
+            object_field = db_object_field_next(object_field);
+        }
+
+        if ((ret = snprintf(sqlp, left, " )")) >= left) {
+            return DB_ERROR_UNKNOWN;
+        }
+        sqlp += ret;
+        left -= ret;
     }
-    sqlp += ret;
-    left -= ret;
 
     ret = sqlite3_prepare_v2(backend_sqlite->db,
         sql,
@@ -782,6 +794,8 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
     }
     sqlite3_finalize(statement);
     if (ret != SQLITE_DONE) {
+        ods_log_info("DB SQL %s", sql);
+        ods_log_info("DB Err %d\n", ret);
         return DB_ERROR_UNKNOWN;
     }
 

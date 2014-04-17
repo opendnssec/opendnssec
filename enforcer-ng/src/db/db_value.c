@@ -569,9 +569,6 @@ static mm_alloc_t __128_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) *
 db_value_set_t* db_value_set_new(size_t size) {
     db_value_set_t* value_set;
 
-    if (size < 1) {
-        return NULL;
-    }
     if (size > 128) {
         return NULL;
     }

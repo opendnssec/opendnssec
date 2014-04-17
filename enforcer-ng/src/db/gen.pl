@@ -912,9 +912,7 @@ print SOURCE '        || db_object_field_list_add(object_field_list, object_fiel
 ';
 }
 my $fields = scalar @{$object->{fields}};
-if ($fields > 1) {
-    $fields--;
-}
+$fields--;
 print SOURCE '    if (!(value_set = db_value_set_new(', $fields, '))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;

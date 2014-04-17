@@ -169,7 +169,7 @@ int nsec_create(nsec_t* nsec) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(1))) {
+    if (!(value_set = db_value_set_new(0))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
