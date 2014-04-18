@@ -69,6 +69,8 @@ struct db_value {
     const char* enum_text;
 };
 
+#define DB_VALUE_EMPTY { DB_TYPE_EMPTY, 0, NULL, 0, 0, 0, 0, 0, NULL }
+
 /**
  * Create a new database value.
  * \return a db_value_t pointer or NULL on error.
