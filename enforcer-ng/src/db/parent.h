@@ -100,9 +100,9 @@ int parent_copy(parent_t* parent, const parent_t* parent_copy);
 int parent_from_result(parent_t* parent, const db_result_t* result);
 
 /**
- * Get the id of a parent object. Undefined behavior if `parent` is NULL.
+ * Get the id of a parent object.
  * \param[in] parent a parent_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* parent_id(const parent_t* parent);
 

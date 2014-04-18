@@ -45,6 +45,7 @@ typedef struct hsm_key_used_by_zones_list hsm_key_used_by_zones_list_t;
 
 #include "db_object.h"
 #include "hsm_key_used_by_zones_ext.h"
+#include "dbo_hsm_key.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +58,7 @@ struct hsm_key_used_by_zones {
     db_object_t* dbo;
     db_value_t id;
     char* value;
-    int parent_id;
+    db_value_t parent_id;
 #include "hsm_key_used_by_zones_struct_ext.h"
 };
 
@@ -97,9 +98,9 @@ int hsm_key_used_by_zones_copy(hsm_key_used_by_zones_t* hsm_key_used_by_zones, c
 int hsm_key_used_by_zones_from_result(hsm_key_used_by_zones_t* hsm_key_used_by_zones, const db_result_t* result);
 
 /**
- * Get the id of a hsm key used by zones object. Undefined behavior if `hsm_key_used_by_zones` is NULL.
+ * Get the id of a hsm key used by zones object.
  * \param[in] hsm_key_used_by_zones a hsm_key_used_by_zones_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* hsm_key_used_by_zones_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones);
 
@@ -111,11 +112,18 @@ const db_value_t* hsm_key_used_by_zones_id(const hsm_key_used_by_zones_t* hsm_ke
 const char* hsm_key_used_by_zones_value(const hsm_key_used_by_zones_t* hsm_key_used_by_zones);
 
 /**
- * Get the parent_id of a hsm key used by zones object. Undefined behavior if `hsm_key_used_by_zones` is NULL.
+ * Get the parent_id of a hsm key used by zones object.
  * \param[in] hsm_key_used_by_zones a hsm_key_used_by_zones_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int hsm_key_used_by_zones_parent_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones);
+const db_value_t* hsm_key_used_by_zones_parent_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones);
+
+/**
+ * Get the parent_id object related to a hsm key used by zones object.
+ * \param[in] hsm_key_used_by_zones a hsm_key_used_by_zones_t pointer.
+ * \return a dbo_hsm_key_t pointer or NULL on error or if no object could be found.
+ */
+dbo_hsm_key_t* hsm_key_used_by_zones_get_parent_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones);
 
 /**
  * Set the value of a hsm key used by zones object.
@@ -126,12 +134,12 @@ int hsm_key_used_by_zones_parent_id(const hsm_key_used_by_zones_t* hsm_key_used_
 int hsm_key_used_by_zones_set_value(hsm_key_used_by_zones_t* hsm_key_used_by_zones, const char* value_text);
 
 /**
- * Set the parent_id of a hsm key used by zones object.
+ * Set the parent_id of a hsm key used by zones object. If this fails the original value may have been lost.
  * \param[in] hsm_key_used_by_zones a hsm_key_used_by_zones_t pointer.
- * \param[in] parent_id an integer.
+ * \param[in] parent_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int hsm_key_used_by_zones_set_parent_id(hsm_key_used_by_zones_t* hsm_key_used_by_zones, int parent_id);
+int hsm_key_used_by_zones_set_parent_id(hsm_key_used_by_zones_t* hsm_key_used_by_zones, const db_value_t* parent_id);
 
 /**
  * Create a hsm key used by zones object in the database.

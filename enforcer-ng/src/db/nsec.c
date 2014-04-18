@@ -167,7 +167,7 @@ int nsec_create(nsec_t* nsec) {
     if (!db_value_not_empty(&(nsec->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -254,7 +254,7 @@ int nsec_update(nsec_t* nsec) {
     if (db_value_not_empty(&(nsec->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

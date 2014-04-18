@@ -328,7 +328,13 @@ int key_dependency_create(key_dependency_t* key_dependency) {
     if (!db_value_not_empty(&(key_dependency->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!key_dependency->from_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_dependency->to_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -454,7 +460,13 @@ int key_dependency_update(key_dependency_t* key_dependency) {
     if (db_value_not_empty(&(key_dependency->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!key_dependency->from_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_dependency->to_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

@@ -98,9 +98,9 @@ int key_dependency_copy(key_dependency_t* key_dependency, const key_dependency_t
 int key_dependency_from_result(key_dependency_t* key_dependency, const db_result_t* result);
 
 /**
- * Get the id of a key dependency object. Undefined behavior if `key_dependency` is NULL.
+ * Get the id of a key dependency object.
  * \param[in] key_dependency a key_dependency_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* key_dependency_id(const key_dependency_t* key_dependency);
 

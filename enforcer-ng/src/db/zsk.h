@@ -109,9 +109,9 @@ int zsk_copy(zsk_t* zsk, const zsk_t* zsk_copy);
 int zsk_from_result(zsk_t* zsk, const db_result_t* result);
 
 /**
- * Get the id of a zsk object. Undefined behavior if `zsk` is NULL.
+ * Get the id of a zsk object.
  * \param[in] zsk a zsk_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* zsk_id(const zsk_t* zsk);
 

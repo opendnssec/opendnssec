@@ -392,7 +392,7 @@ int signatures_create(signatures_t* signatures) {
     if (!db_value_not_empty(&(signatures->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -562,7 +562,7 @@ int signatures_update(signatures_t* signatures) {
     if (db_value_not_empty(&(signatures->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static nsec3_t* object = NULL;
 static nsec3_list_t* object_list = NULL;
-static db_value_t id;
+static db_value_t id = DB_VALUE_EMPTY;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_nsec3_init_suite_sqlite(void) {
@@ -108,7 +108,6 @@ int test_nsec3_init_suite_sqlite(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -178,7 +177,6 @@ int test_nsec3_init_suite_couchdb(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif

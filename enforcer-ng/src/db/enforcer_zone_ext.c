@@ -53,36 +53,6 @@ key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone) {
     return key_data_list;
 }
 
-adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone) {
-    db_value_t* id = NULL;
-    adapters_t* adapters = NULL;
-
-    if (!enforcer_zone) {
-        return NULL;
-    }
-    if (!enforcer_zone->dbo) {
-        return NULL;
-    }
-
-    if (!(id = db_value_new())) {
-        return NULL;
-    }
-    if (db_value_from_int32(id, enforcer_zone->adapters)) {
-        db_value_free(id);
-        return NULL;
-    }
-    if ((adapters = adapters_new(db_object_connection(enforcer_zone->dbo)))) {
-        if (adapters_get_by_id(adapters, id)) {
-            adapters_free(adapters);
-            db_value_free(id);
-            return NULL;
-        }
-    }
-    db_value_free(id);
-
-    return adapters;
-}
-
 key_dependency_list_t* enforcer_zone_get_key_dependencies(const enforcer_zone_t* enforcer_zone) {
     /* TODO: this */
     return NULL;

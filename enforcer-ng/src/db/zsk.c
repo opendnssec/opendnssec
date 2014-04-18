@@ -478,7 +478,10 @@ int zsk_create(zsk_t* zsk) {
     if (!db_value_not_empty(&(zsk->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!zsk->repository) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -649,7 +652,10 @@ int zsk_update(zsk_t* zsk) {
     if (db_value_not_empty(&(zsk->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!zsk->repository) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

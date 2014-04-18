@@ -98,9 +98,9 @@ int adapter_copy(adapter_t* adapter, const adapter_t* adapter_copy);
 int adapter_from_result(adapter_t* adapter, const db_result_t* result);
 
 /**
- * Get the id of a adapter object. Undefined behavior if `adapter` is NULL.
+ * Get the id of a adapter object.
  * \param[in] adapter a adapter_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* adapter_id(const adapter_t* adapter);
 

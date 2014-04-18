@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static enforcer_zone_t* object = NULL;
 static enforcer_zone_list_t* object_list = NULL;
-static db_value_t id;
+static db_value_t id = DB_VALUE_EMPTY;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_enforcer_zone_init_suite_sqlite(void) {
@@ -108,7 +108,6 @@ int test_enforcer_zone_init_suite_sqlite(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -178,7 +177,6 @@ int test_enforcer_zone_init_suite_couchdb(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -200,6 +198,8 @@ static void test_enforcer_zone_new(void) {
 }
 
 static void test_enforcer_zone_set(void) {
+    db_value_t adapters = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&adapters, 1));
     CU_ASSERT(!enforcer_zone_set_name(object, "name 1"));
     CU_ASSERT(!enforcer_zone_set_policy(object, "policy 1"));
     CU_ASSERT(!enforcer_zone_set_signconf_needs_writing(object, 1));
@@ -211,13 +211,17 @@ static void test_enforcer_zone_set(void) {
     CU_ASSERT(!enforcer_zone_set_roll_ksk_now(object, 1));
     CU_ASSERT(!enforcer_zone_set_roll_zsk_now(object, 1));
     CU_ASSERT(!enforcer_zone_set_roll_csk_now(object, 1));
-    CU_ASSERT(!enforcer_zone_set_adapters(object, 1));
+    CU_ASSERT(!enforcer_zone_set_adapters(object, &adapters));
     CU_ASSERT(!enforcer_zone_set_next_ksk_roll(object, 1));
     CU_ASSERT(!enforcer_zone_set_next_zsk_roll(object, 1));
     CU_ASSERT(!enforcer_zone_set_next_csk_roll(object, 1));
+    db_value_reset(&adapters);
 }
 
 static void test_enforcer_zone_get(void) {
+    int ret;
+    db_value_t adapters = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&adapters, 1));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enforcer_zone_name(object));
     CU_ASSERT(!strcmp(enforcer_zone_name(object), "name 1"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enforcer_zone_policy(object));
@@ -232,10 +236,12 @@ static void test_enforcer_zone_get(void) {
     CU_ASSERT(enforcer_zone_roll_ksk_now(object) == 1);
     CU_ASSERT(enforcer_zone_roll_zsk_now(object) == 1);
     CU_ASSERT(enforcer_zone_roll_csk_now(object) == 1);
-    CU_ASSERT(enforcer_zone_adapters(object) == 1);
+    CU_ASSERT(!db_value_cmp(enforcer_zone_adapters(object), &adapters, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(enforcer_zone_next_ksk_roll(object) == 1);
     CU_ASSERT(enforcer_zone_next_zsk_roll(object) == 1);
     CU_ASSERT(enforcer_zone_next_csk_roll(object) == 1);
+    db_value_reset(&adapters);
 }
 
 static void test_enforcer_zone_create(void) {
@@ -254,6 +260,9 @@ static void test_enforcer_zone_read(void) {
 }
 
 static void test_enforcer_zone_verify(void) {
+    int ret;
+    db_value_t adapters = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&adapters, 1));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enforcer_zone_name(object));
     CU_ASSERT(!strcmp(enforcer_zone_name(object), "name 1"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enforcer_zone_policy(object));
@@ -268,13 +277,17 @@ static void test_enforcer_zone_verify(void) {
     CU_ASSERT(enforcer_zone_roll_ksk_now(object) == 1);
     CU_ASSERT(enforcer_zone_roll_zsk_now(object) == 1);
     CU_ASSERT(enforcer_zone_roll_csk_now(object) == 1);
-    CU_ASSERT(enforcer_zone_adapters(object) == 1);
+    CU_ASSERT(!db_value_cmp(enforcer_zone_adapters(object), &adapters, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(enforcer_zone_next_ksk_roll(object) == 1);
     CU_ASSERT(enforcer_zone_next_zsk_roll(object) == 1);
     CU_ASSERT(enforcer_zone_next_csk_roll(object) == 1);
+    db_value_reset(&adapters);
 }
 
 static void test_enforcer_zone_change(void) {
+    db_value_t adapters = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&adapters, 2));
     CU_ASSERT(!enforcer_zone_set_name(object, "name 2"));
     CU_ASSERT(!enforcer_zone_set_policy(object, "policy 2"));
     CU_ASSERT(!enforcer_zone_set_signconf_needs_writing(object, 2));
@@ -286,10 +299,11 @@ static void test_enforcer_zone_change(void) {
     CU_ASSERT(!enforcer_zone_set_roll_ksk_now(object, 2));
     CU_ASSERT(!enforcer_zone_set_roll_zsk_now(object, 2));
     CU_ASSERT(!enforcer_zone_set_roll_csk_now(object, 2));
-    CU_ASSERT(!enforcer_zone_set_adapters(object, 2));
+    CU_ASSERT(!enforcer_zone_set_adapters(object, &adapters));
     CU_ASSERT(!enforcer_zone_set_next_ksk_roll(object, 2));
     CU_ASSERT(!enforcer_zone_set_next_zsk_roll(object, 2));
     CU_ASSERT(!enforcer_zone_set_next_csk_roll(object, 2));
+    db_value_reset(&adapters);
 }
 
 static void test_enforcer_zone_update(void) {
@@ -301,6 +315,9 @@ static void test_enforcer_zone_read2(void) {
 }
 
 static void test_enforcer_zone_verify2(void) {
+    int ret;
+    db_value_t adapters = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&adapters, 2));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enforcer_zone_name(object));
     CU_ASSERT(!strcmp(enforcer_zone_name(object), "name 2"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enforcer_zone_policy(object));
@@ -315,10 +332,12 @@ static void test_enforcer_zone_verify2(void) {
     CU_ASSERT(enforcer_zone_roll_ksk_now(object) == 2);
     CU_ASSERT(enforcer_zone_roll_zsk_now(object) == 2);
     CU_ASSERT(enforcer_zone_roll_csk_now(object) == 2);
-    CU_ASSERT(enforcer_zone_adapters(object) == 2);
+    CU_ASSERT(!db_value_cmp(enforcer_zone_adapters(object), &adapters, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(enforcer_zone_next_ksk_roll(object) == 2);
     CU_ASSERT(enforcer_zone_next_zsk_roll(object) == 2);
     CU_ASSERT(enforcer_zone_next_csk_roll(object) == 2);
+    db_value_reset(&adapters);
 }
 
 static void test_enforcer_zone_delete(void) {

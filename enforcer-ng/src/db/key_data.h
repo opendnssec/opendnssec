@@ -62,6 +62,7 @@ typedef enum key_data_ds_at_parent {
 
 #include "db_object.h"
 #include "key_data_ext.h"
+#include "key_state.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,16 +77,16 @@ struct key_data {
     char* locator;
     unsigned int algorithm;
     unsigned int inception;
-    int ds;
-    int rrsig;
-    int dnskey;
+    db_value_t ds;
+    db_value_t rrsig;
+    db_value_t dnskey;
     key_data_role_t role;
     unsigned int introducing;
     unsigned int shouldrevoke;
     unsigned int standby;
     unsigned int active_zsk;
     unsigned int publish;
-    int rrsigdnskey;
+    db_value_t rrsigdnskey;
     unsigned int active_ksk;
     key_data_ds_at_parent_t ds_at_parent;
     unsigned int keytag;
@@ -128,9 +129,9 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy);
 int key_data_from_result(key_data_t* key_data, const db_result_t* result);
 
 /**
- * Get the id of a key data object. Undefined behavior if `key_data` is NULL.
+ * Get the id of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* key_data_id(const key_data_t* key_data);
 
@@ -156,25 +157,46 @@ unsigned int key_data_algorithm(const key_data_t* key_data);
 unsigned int key_data_inception(const key_data_t* key_data);
 
 /**
- * Get the ds of a key data object. Undefined behavior if `key_data` is NULL.
+ * Get the ds of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int key_data_ds(const key_data_t* key_data);
+const db_value_t* key_data_ds(const key_data_t* key_data);
 
 /**
- * Get the rrsig of a key data object. Undefined behavior if `key_data` is NULL.
+ * Get the ds object related to a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return an integer.
+ * \return a key_state_t pointer or NULL on error or if no object could be found.
  */
-int key_data_rrsig(const key_data_t* key_data);
+key_state_t* key_data_get_ds(const key_data_t* key_data);
 
 /**
- * Get the dnskey of a key data object. Undefined behavior if `key_data` is NULL.
+ * Get the rrsig of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int key_data_dnskey(const key_data_t* key_data);
+const db_value_t* key_data_rrsig(const key_data_t* key_data);
+
+/**
+ * Get the rrsig object related to a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a key_state_t pointer or NULL on error or if no object could be found.
+ */
+key_state_t* key_data_get_rrsig(const key_data_t* key_data);
+
+/**
+ * Get the dnskey of a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* key_data_dnskey(const key_data_t* key_data);
+
+/**
+ * Get the dnskey object related to a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a key_state_t pointer or NULL on error or if no object could be found.
+ */
+key_state_t* key_data_get_dnskey(const key_data_t* key_data);
 
 /**
  * Get the role of a key data object.
@@ -226,11 +248,18 @@ unsigned int key_data_active_zsk(const key_data_t* key_data);
 unsigned int key_data_publish(const key_data_t* key_data);
 
 /**
- * Get the rrsigdnskey of a key data object. Undefined behavior if `key_data` is NULL.
+ * Get the rrsigdnskey of a key data object.
  * \param[in] key_data a key_data_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int key_data_rrsigdnskey(const key_data_t* key_data);
+const db_value_t* key_data_rrsigdnskey(const key_data_t* key_data);
+
+/**
+ * Get the rrsigdnskey object related to a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a key_state_t pointer or NULL on error or if no object could be found.
+ */
+key_state_t* key_data_get_rrsigdnskey(const key_data_t* key_data);
 
 /**
  * Get the active_ksk of a key data object. Undefined behavior if `key_data` is NULL.
@@ -285,28 +314,28 @@ int key_data_set_algorithm(key_data_t* key_data, unsigned int algorithm);
 int key_data_set_inception(key_data_t* key_data, unsigned int inception);
 
 /**
- * Set the ds of a key data object.
+ * Set the ds of a key data object. If this fails the original value may have been lost.
  * \param[in] key_data a key_data_t pointer.
- * \param[in] ds an integer.
+ * \param[in] ds a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_ds(key_data_t* key_data, int ds);
+int key_data_set_ds(key_data_t* key_data, const db_value_t* ds);
 
 /**
- * Set the rrsig of a key data object.
+ * Set the rrsig of a key data object. If this fails the original value may have been lost.
  * \param[in] key_data a key_data_t pointer.
- * \param[in] rrsig an integer.
+ * \param[in] rrsig a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_rrsig(key_data_t* key_data, int rrsig);
+int key_data_set_rrsig(key_data_t* key_data, const db_value_t* rrsig);
 
 /**
- * Set the dnskey of a key data object.
+ * Set the dnskey of a key data object. If this fails the original value may have been lost.
  * \param[in] key_data a key_data_t pointer.
- * \param[in] dnskey an integer.
+ * \param[in] dnskey a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_dnskey(key_data_t* key_data, int dnskey);
+int key_data_set_dnskey(key_data_t* key_data, const db_value_t* dnskey);
 
 /**
  * Set the role of a key data object.
@@ -365,12 +394,12 @@ int key_data_set_active_zsk(key_data_t* key_data, unsigned int active_zsk);
 int key_data_set_publish(key_data_t* key_data, unsigned int publish);
 
 /**
- * Set the rrsigdnskey of a key data object.
+ * Set the rrsigdnskey of a key data object. If this fails the original value may have been lost.
  * \param[in] key_data a key_data_t pointer.
- * \param[in] rrsigdnskey an integer.
+ * \param[in] rrsigdnskey a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_rrsigdnskey(key_data_t* key_data, int rrsigdnskey);
+int key_data_set_rrsigdnskey(key_data_t* key_data, const db_value_t* rrsigdnskey);
 
 /**
  * Set the active_ksk of a key data object.

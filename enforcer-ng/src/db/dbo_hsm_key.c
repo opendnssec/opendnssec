@@ -784,7 +784,19 @@ int dbo_hsm_key_create(dbo_hsm_key_t* dbo_hsm_key) {
     if (!db_value_not_empty(&(dbo_hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!dbo_hsm_key->locator) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!dbo_hsm_key->policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!dbo_hsm_key->key_type) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!dbo_hsm_key->repository) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -1021,7 +1033,19 @@ int dbo_hsm_key_update(dbo_hsm_key_t* dbo_hsm_key) {
     if (db_value_not_empty(&(dbo_hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!dbo_hsm_key->locator) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!dbo_hsm_key->policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!dbo_hsm_key->key_type) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!dbo_hsm_key->repository) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

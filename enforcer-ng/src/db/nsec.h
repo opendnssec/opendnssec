@@ -95,9 +95,9 @@ int nsec_copy(nsec_t* nsec, const nsec_t* nsec_copy);
 int nsec_from_result(nsec_t* nsec, const db_result_t* result);
 
 /**
- * Get the id of a nsec object. Undefined behavior if `nsec` is NULL.
+ * Get the id of a nsec object.
  * \param[in] nsec a nsec_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* nsec_id(const nsec_t* nsec);
 

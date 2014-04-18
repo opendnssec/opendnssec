@@ -103,9 +103,9 @@ int nsec3_copy(nsec3_t* nsec3, const nsec3_t* nsec3_copy);
 int nsec3_from_result(nsec3_t* nsec3, const db_result_t* result);
 
 /**
- * Get the id of a nsec3 object. Undefined behavior if `nsec3` is NULL.
+ * Get the id of a nsec3 object.
  * \param[in] nsec3 a nsec3_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* nsec3_id(const nsec3_t* nsec3);
 

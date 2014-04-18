@@ -110,6 +110,8 @@ adapters_t* adapters_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(adapters->id));
+        db_value_reset(&(adapters->input));
+        db_value_reset(&(adapters->output));
     }
 
     return adapters;
@@ -121,6 +123,8 @@ void adapters_free(adapters_t* adapters) {
             db_object_free(adapters->dbo);
         }
         db_value_reset(&(adapters->id));
+        db_value_reset(&(adapters->input));
+        db_value_reset(&(adapters->output));
         mm_alloc_delete(&__adapters_alloc, adapters);
     }
 }
@@ -128,8 +132,8 @@ void adapters_free(adapters_t* adapters) {
 void adapters_reset(adapters_t* adapters) {
     if (adapters) {
         db_value_reset(&(adapters->id));
-        adapters->input = 0;
-        adapters->output = 0;
+        db_value_reset(&(adapters->input));
+        db_value_reset(&(adapters->output));
     }
 }
 
@@ -144,8 +148,12 @@ int adapters_copy(adapters_t* adapters, const adapters_t* adapters_copy) {
     if (db_value_copy(&(adapters->id), &(adapters_copy->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    adapters->input = adapters_copy->input;
-    adapters->output = adapters_copy->output;
+    if (db_value_copy(&(adapters->input), &(adapters_copy->input))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(adapters->output), &(adapters_copy->output))) {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -160,11 +168,13 @@ int adapters_from_result(adapters_t* adapters, const db_result_t* result) {
     }
 
     db_value_reset(&(adapters->id));
+    db_value_reset(&(adapters->input));
+    db_value_reset(&(adapters->output));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 3
         || db_value_copy(&(adapters->id), db_value_set_at(value_set, 0))
-        || db_value_to_int32(db_value_set_at(value_set, 1), &(adapters->input))
-        || db_value_to_int32(db_value_set_at(value_set, 2), &(adapters->output)))
+        || db_value_copy(&(adapters->input), db_value_set_at(value_set, 1))
+        || db_value_copy(&(adapters->output), db_value_set_at(value_set, 2)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -180,38 +190,104 @@ const db_value_t* adapters_id(const adapters_t* adapters) {
     return &(adapters->id);
 }
 
-int adapters_input(const adapters_t* adapters) {
+const db_value_t* adapters_input(const adapters_t* adapters) {
     if (!adapters) {
-        return 0;
+        return NULL;
     }
 
-    return adapters->input;
+    return &(adapters->input);
 }
 
-int adapters_output(const adapters_t* adapters) {
+adapter_t* adapters_get_input(const adapters_t* adapters) {
+    adapter_t* input = NULL;
+    
     if (!adapters) {
-        return 0;
+        return NULL;
+    }
+    if (!adapters->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(adapters->input))) {
+        return NULL;
+    }
+    
+    if (!(input = adapter_new(db_object_connection(adapters->dbo)))) {
+        return NULL;
+    }
+    if (adapter_get_by_id(input, &(adapters->input))) {
+        adapter_free(input);
+        return NULL;
     }
 
-    return adapters->output;
+    return input;
 }
 
-int adapters_set_input(adapters_t* adapters, int input) {
+const db_value_t* adapters_output(const adapters_t* adapters) {
+    if (!adapters) {
+        return NULL;
+    }
+
+    return &(adapters->output);
+}
+
+adapter_t* adapters_get_output(const adapters_t* adapters) {
+    adapter_t* output = NULL;
+    
+    if (!adapters) {
+        return NULL;
+    }
+    if (!adapters->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(adapters->output))) {
+        return NULL;
+    }
+    
+    if (!(output = adapter_new(db_object_connection(adapters->dbo)))) {
+        return NULL;
+    }
+    if (adapter_get_by_id(output, &(adapters->output))) {
+        adapter_free(output);
+        return NULL;
+    }
+
+    return output;
+}
+
+int adapters_set_input(adapters_t* adapters, const db_value_t* input) {
     if (!adapters) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!input) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(input)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    adapters->input = input;
+    db_value_reset(&(adapters->input));
+    if (db_value_copy(&(adapters->input), input)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int adapters_set_output(adapters_t* adapters, int output) {
+int adapters_set_output(adapters_t* adapters, const db_value_t* output) {
     if (!adapters) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!output) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(output)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    adapters->output = output;
+    db_value_reset(&(adapters->output));
+    if (db_value_copy(&(adapters->output), output)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
@@ -231,7 +307,13 @@ int adapters_create(adapters_t* adapters) {
     if (!db_value_not_empty(&(adapters->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (db_value_not_empty(&(adapters->input))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(adapters->output))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -262,8 +344,8 @@ int adapters_create(adapters_t* adapters) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), adapters->input)
-        || db_value_from_int32(db_value_set_get(value_set, 1), adapters->output))
+    if (db_value_copy(db_value_set_get(value_set, 0), &(adapters->input))
+        || db_value_copy(db_value_set_get(value_set, 1), &(adapters->output)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -346,7 +428,13 @@ int adapters_update(adapters_t* adapters) {
     if (db_value_not_empty(&(adapters->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (db_value_not_empty(&(adapters->input))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(adapters->output))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -377,8 +465,8 @@ int adapters_update(adapters_t* adapters) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), adapters->input)
-        || db_value_from_int32(db_value_set_get(value_set, 1), adapters->output))
+    if (db_value_copy(db_value_set_get(value_set, 0), &(adapters->input))
+        || db_value_copy(db_value_set_get(value_set, 1), &(adapters->output)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

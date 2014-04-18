@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static key_data_t* object = NULL;
 static key_data_list_t* object_list = NULL;
-static db_value_t id;
+static db_value_t id = DB_VALUE_EMPTY;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_key_data_init_suite_sqlite(void) {
@@ -108,7 +108,6 @@ int test_key_data_init_suite_sqlite(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -178,7 +177,6 @@ int test_key_data_init_suite_couchdb(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -200,12 +198,20 @@ static void test_key_data_new(void) {
 }
 
 static void test_key_data_set(void) {
+    db_value_t ds = DB_VALUE_EMPTY;
+    db_value_t rrsig = DB_VALUE_EMPTY;
+    db_value_t dnskey = DB_VALUE_EMPTY;
+    db_value_t rrsigdnskey = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&ds, 1));
+    CU_ASSERT(!db_value_from_int32(&rrsig, 1));
+    CU_ASSERT(!db_value_from_int32(&dnskey, 1));
+    CU_ASSERT(!db_value_from_int32(&rrsigdnskey, 1));
     CU_ASSERT(!key_data_set_locator(object, "locator 1"));
     CU_ASSERT(!key_data_set_algorithm(object, 1));
     CU_ASSERT(!key_data_set_inception(object, 1));
-    CU_ASSERT(!key_data_set_ds(object, 1));
-    CU_ASSERT(!key_data_set_rrsig(object, 1));
-    CU_ASSERT(!key_data_set_dnskey(object, 1));
+    CU_ASSERT(!key_data_set_ds(object, &ds));
+    CU_ASSERT(!key_data_set_rrsig(object, &rrsig));
+    CU_ASSERT(!key_data_set_dnskey(object, &dnskey));
     CU_ASSERT(!key_data_set_role(object, KEY_DATA_ROLE_KSK));
     CU_ASSERT(!key_data_set_role_text(object, "KSK"));
     CU_ASSERT(!key_data_set_role(object, KEY_DATA_ROLE_ZSK));
@@ -217,7 +223,7 @@ static void test_key_data_set(void) {
     CU_ASSERT(!key_data_set_standby(object, 1));
     CU_ASSERT(!key_data_set_active_zsk(object, 1));
     CU_ASSERT(!key_data_set_publish(object, 1));
-    CU_ASSERT(!key_data_set_rrsigdnskey(object, 1));
+    CU_ASSERT(!key_data_set_rrsigdnskey(object, &rrsigdnskey));
     CU_ASSERT(!key_data_set_active_ksk(object, 1));
     CU_ASSERT(!key_data_set_ds_at_parent(object, KEY_DATA_DS_AT_PARENT_UNSUBMITTED));
     CU_ASSERT(!key_data_set_ds_at_parent_text(object, "unsubmitted"));
@@ -232,16 +238,32 @@ static void test_key_data_set(void) {
     CU_ASSERT(!key_data_set_ds_at_parent(object, KEY_DATA_DS_AT_PARENT_RETRACTED));
     CU_ASSERT(!key_data_set_ds_at_parent_text(object, "retracted"));
     CU_ASSERT(!key_data_set_keytag(object, 1));
+    db_value_reset(&ds);
+    db_value_reset(&rrsig);
+    db_value_reset(&dnskey);
+    db_value_reset(&rrsigdnskey);
 }
 
 static void test_key_data_get(void) {
+    int ret;
+    db_value_t ds = DB_VALUE_EMPTY;
+    db_value_t rrsig = DB_VALUE_EMPTY;
+    db_value_t dnskey = DB_VALUE_EMPTY;
+    db_value_t rrsigdnskey = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&ds, 1));
+    CU_ASSERT(!db_value_from_int32(&rrsig, 1));
+    CU_ASSERT(!db_value_from_int32(&dnskey, 1));
+    CU_ASSERT(!db_value_from_int32(&rrsigdnskey, 1));
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_locator(object));
     CU_ASSERT(!strcmp(key_data_locator(object), "locator 1"));
     CU_ASSERT(key_data_algorithm(object) == 1);
     CU_ASSERT(key_data_inception(object) == 1);
-    CU_ASSERT(key_data_ds(object) == 1);
-    CU_ASSERT(key_data_rrsig(object) == 1);
-    CU_ASSERT(key_data_dnskey(object) == 1);
+    CU_ASSERT(!db_value_cmp(key_data_ds(object), &ds, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_rrsig(object), &rrsig, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_dnskey(object), &dnskey, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_CSK);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_role_text(object));
     CU_ASSERT(!strcmp(key_data_role_text(object), "CSK"));
@@ -250,12 +272,17 @@ static void test_key_data_get(void) {
     CU_ASSERT(key_data_standby(object) == 1);
     CU_ASSERT(key_data_active_zsk(object) == 1);
     CU_ASSERT(key_data_publish(object) == 1);
-    CU_ASSERT(key_data_rrsigdnskey(object) == 1);
+    CU_ASSERT(!db_value_cmp(key_data_rrsigdnskey(object), &rrsigdnskey, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(key_data_active_ksk(object) == 1);
     CU_ASSERT(key_data_ds_at_parent(object) == KEY_DATA_DS_AT_PARENT_RETRACTED);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "retracted"));
     CU_ASSERT(key_data_keytag(object) == 1);
+    db_value_reset(&ds);
+    db_value_reset(&rrsig);
+    db_value_reset(&dnskey);
+    db_value_reset(&rrsigdnskey);
 }
 
 static void test_key_data_create(void) {
@@ -274,13 +301,25 @@ static void test_key_data_read(void) {
 }
 
 static void test_key_data_verify(void) {
+    int ret;
+    db_value_t ds = DB_VALUE_EMPTY;
+    db_value_t rrsig = DB_VALUE_EMPTY;
+    db_value_t dnskey = DB_VALUE_EMPTY;
+    db_value_t rrsigdnskey = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&ds, 1));
+    CU_ASSERT(!db_value_from_int32(&rrsig, 1));
+    CU_ASSERT(!db_value_from_int32(&dnskey, 1));
+    CU_ASSERT(!db_value_from_int32(&rrsigdnskey, 1));
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_locator(object));
     CU_ASSERT(!strcmp(key_data_locator(object), "locator 1"));
     CU_ASSERT(key_data_algorithm(object) == 1);
     CU_ASSERT(key_data_inception(object) == 1);
-    CU_ASSERT(key_data_ds(object) == 1);
-    CU_ASSERT(key_data_rrsig(object) == 1);
-    CU_ASSERT(key_data_dnskey(object) == 1);
+    CU_ASSERT(!db_value_cmp(key_data_ds(object), &ds, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_rrsig(object), &rrsig, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_dnskey(object), &dnskey, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_CSK);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_role_text(object));
     CU_ASSERT(!strcmp(key_data_role_text(object), "CSK"));
@@ -289,21 +328,34 @@ static void test_key_data_verify(void) {
     CU_ASSERT(key_data_standby(object) == 1);
     CU_ASSERT(key_data_active_zsk(object) == 1);
     CU_ASSERT(key_data_publish(object) == 1);
-    CU_ASSERT(key_data_rrsigdnskey(object) == 1);
+    CU_ASSERT(!db_value_cmp(key_data_rrsigdnskey(object), &rrsigdnskey, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(key_data_active_ksk(object) == 1);
     CU_ASSERT(key_data_ds_at_parent(object) == KEY_DATA_DS_AT_PARENT_RETRACTED);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "retracted"));
     CU_ASSERT(key_data_keytag(object) == 1);
+    db_value_reset(&ds);
+    db_value_reset(&rrsig);
+    db_value_reset(&dnskey);
+    db_value_reset(&rrsigdnskey);
 }
 
 static void test_key_data_change(void) {
+    db_value_t ds = DB_VALUE_EMPTY;
+    db_value_t rrsig = DB_VALUE_EMPTY;
+    db_value_t dnskey = DB_VALUE_EMPTY;
+    db_value_t rrsigdnskey = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&ds, 2));
+    CU_ASSERT(!db_value_from_int32(&rrsig, 2));
+    CU_ASSERT(!db_value_from_int32(&dnskey, 2));
+    CU_ASSERT(!db_value_from_int32(&rrsigdnskey, 2));
     CU_ASSERT(!key_data_set_locator(object, "locator 2"));
     CU_ASSERT(!key_data_set_algorithm(object, 2));
     CU_ASSERT(!key_data_set_inception(object, 2));
-    CU_ASSERT(!key_data_set_ds(object, 2));
-    CU_ASSERT(!key_data_set_rrsig(object, 2));
-    CU_ASSERT(!key_data_set_dnskey(object, 2));
+    CU_ASSERT(!key_data_set_ds(object, &ds));
+    CU_ASSERT(!key_data_set_rrsig(object, &rrsig));
+    CU_ASSERT(!key_data_set_dnskey(object, &dnskey));
     CU_ASSERT(!key_data_set_role(object, KEY_DATA_ROLE_KSK));
     CU_ASSERT(!key_data_set_role_text(object, "KSK"));
     CU_ASSERT(!key_data_set_introducing(object, 2));
@@ -311,11 +363,15 @@ static void test_key_data_change(void) {
     CU_ASSERT(!key_data_set_standby(object, 2));
     CU_ASSERT(!key_data_set_active_zsk(object, 2));
     CU_ASSERT(!key_data_set_publish(object, 2));
-    CU_ASSERT(!key_data_set_rrsigdnskey(object, 2));
+    CU_ASSERT(!key_data_set_rrsigdnskey(object, &rrsigdnskey));
     CU_ASSERT(!key_data_set_active_ksk(object, 2));
     CU_ASSERT(!key_data_set_ds_at_parent(object, KEY_DATA_DS_AT_PARENT_UNSUBMITTED));
     CU_ASSERT(!key_data_set_ds_at_parent_text(object, "unsubmitted"));
     CU_ASSERT(!key_data_set_keytag(object, 2));
+    db_value_reset(&ds);
+    db_value_reset(&rrsig);
+    db_value_reset(&dnskey);
+    db_value_reset(&rrsigdnskey);
 }
 
 static void test_key_data_update(void) {
@@ -327,13 +383,25 @@ static void test_key_data_read2(void) {
 }
 
 static void test_key_data_verify2(void) {
+    int ret;
+    db_value_t ds = DB_VALUE_EMPTY;
+    db_value_t rrsig = DB_VALUE_EMPTY;
+    db_value_t dnskey = DB_VALUE_EMPTY;
+    db_value_t rrsigdnskey = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&ds, 2));
+    CU_ASSERT(!db_value_from_int32(&rrsig, 2));
+    CU_ASSERT(!db_value_from_int32(&dnskey, 2));
+    CU_ASSERT(!db_value_from_int32(&rrsigdnskey, 2));
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_locator(object));
     CU_ASSERT(!strcmp(key_data_locator(object), "locator 2"));
     CU_ASSERT(key_data_algorithm(object) == 2);
     CU_ASSERT(key_data_inception(object) == 2);
-    CU_ASSERT(key_data_ds(object) == 2);
-    CU_ASSERT(key_data_rrsig(object) == 2);
-    CU_ASSERT(key_data_dnskey(object) == 2);
+    CU_ASSERT(!db_value_cmp(key_data_ds(object), &ds, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_rrsig(object), &rrsig, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_dnskey(object), &dnskey, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_KSK);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_role_text(object));
     CU_ASSERT(!strcmp(key_data_role_text(object), "KSK"));
@@ -342,12 +410,17 @@ static void test_key_data_verify2(void) {
     CU_ASSERT(key_data_standby(object) == 2);
     CU_ASSERT(key_data_active_zsk(object) == 2);
     CU_ASSERT(key_data_publish(object) == 2);
-    CU_ASSERT(key_data_rrsigdnskey(object) == 2);
+    CU_ASSERT(!db_value_cmp(key_data_rrsigdnskey(object), &rrsigdnskey, &ret));
+    CU_ASSERT(!ret);
     CU_ASSERT(key_data_active_ksk(object) == 2);
     CU_ASSERT(key_data_ds_at_parent(object) == KEY_DATA_DS_AT_PARENT_UNSUBMITTED);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "unsubmitted"));
     CU_ASSERT(key_data_keytag(object) == 2);
+    db_value_reset(&ds);
+    db_value_reset(&rrsig);
+    db_value_reset(&dnskey);
+    db_value_reset(&rrsigdnskey);
 }
 
 static void test_key_data_delete(void) {

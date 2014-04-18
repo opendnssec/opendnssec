@@ -45,6 +45,7 @@ typedef struct enforcer_zone_list enforcer_zone_list_t;
 
 #include "db_object.h"
 #include "enforcer_zone_ext.h"
+#include "adapters.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,7 +68,7 @@ struct enforcer_zone {
     unsigned int roll_ksk_now;
     unsigned int roll_zsk_now;
     unsigned int roll_csk_now;
-    int adapters;
+    db_value_t adapters;
     unsigned int next_ksk_roll;
     unsigned int next_zsk_roll;
     unsigned int next_csk_roll;
@@ -110,9 +111,9 @@ int enforcer_zone_copy(enforcer_zone_t* enforcer_zone, const enforcer_zone_t* en
 int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t* result);
 
 /**
- * Get the id of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * Get the id of a enforcer zone object.
  * \param[in] enforcer_zone a enforcer_zone_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* enforcer_zone_id(const enforcer_zone_t* enforcer_zone);
 
@@ -194,11 +195,18 @@ unsigned int enforcer_zone_roll_zsk_now(const enforcer_zone_t* enforcer_zone);
 unsigned int enforcer_zone_roll_csk_now(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get the adapters of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
+ * Get the adapters of a enforcer zone object.
  * \param[in] enforcer_zone a enforcer_zone_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int enforcer_zone_adapters(const enforcer_zone_t* enforcer_zone);
+const db_value_t* enforcer_zone_adapters(const enforcer_zone_t* enforcer_zone);
+
+/**
+ * Get the adapters object related to a enforcer zone object.
+ * \param[in] enforcer_zone a enforcer_zone_t pointer.
+ * \return a adapters_t pointer or NULL on error or if no object could be found.
+ */
+adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone);
 
 /**
  * Get the next_ksk_roll of a enforcer zone object. Undefined behavior if `enforcer_zone` is NULL.
@@ -310,12 +318,12 @@ int enforcer_zone_set_roll_zsk_now(enforcer_zone_t* enforcer_zone, unsigned int 
 int enforcer_zone_set_roll_csk_now(enforcer_zone_t* enforcer_zone, unsigned int roll_csk_now);
 
 /**
- * Set the adapters of a enforcer zone object.
+ * Set the adapters of a enforcer zone object. If this fails the original value may have been lost.
  * \param[in] enforcer_zone a enforcer_zone_t pointer.
- * \param[in] adapters an integer.
+ * \param[in] adapters a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int enforcer_zone_set_adapters(enforcer_zone_t* enforcer_zone, int adapters);
+int enforcer_zone_set_adapters(enforcer_zone_t* enforcer_zone, const db_value_t* adapters);
 
 /**
  * Set the next_ksk_roll of a enforcer zone object.

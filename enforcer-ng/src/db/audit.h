@@ -96,9 +96,9 @@ int audit_copy(audit_t* audit, const audit_t* audit_copy);
 int audit_from_result(audit_t* audit, const db_result_t* result);
 
 /**
- * Get the id of a audit object. Undefined behavior if `audit` is NULL.
+ * Get the id of a audit object.
  * \param[in] audit a audit_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* audit_id(const audit_t* audit);
 

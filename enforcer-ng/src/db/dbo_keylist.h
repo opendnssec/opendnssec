@@ -100,9 +100,9 @@ int dbo_keylist_copy(dbo_keylist_t* dbo_keylist, const dbo_keylist_t* dbo_keylis
 int dbo_keylist_from_result(dbo_keylist_t* dbo_keylist, const db_result_t* result);
 
 /**
- * Get the id of a dbo keylist object. Undefined behavior if `dbo_keylist` is NULL.
+ * Get the id of a dbo keylist object.
  * \param[in] dbo_keylist a dbo_keylist_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* dbo_keylist_id(const dbo_keylist_t* dbo_keylist);
 

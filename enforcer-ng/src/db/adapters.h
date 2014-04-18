@@ -45,6 +45,7 @@ typedef struct adapters_list adapters_list_t;
 
 #include "db_object.h"
 #include "adapters_ext.h"
+#include "adapter.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,8 +57,8 @@ extern "C" {
 struct adapters {
     db_object_t* dbo;
     db_value_t id;
-    int input;
-    int output;
+    db_value_t input;
+    db_value_t output;
 #include "adapters_struct_ext.h"
 };
 
@@ -97,41 +98,55 @@ int adapters_copy(adapters_t* adapters, const adapters_t* adapters_copy);
 int adapters_from_result(adapters_t* adapters, const db_result_t* result);
 
 /**
- * Get the id of a adapters object. Undefined behavior if `adapters` is NULL.
+ * Get the id of a adapters object.
  * \param[in] adapters a adapters_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* adapters_id(const adapters_t* adapters);
 
 /**
- * Get the input of a adapters object. Undefined behavior if `adapters` is NULL.
+ * Get the input of a adapters object.
  * \param[in] adapters a adapters_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int adapters_input(const adapters_t* adapters);
+const db_value_t* adapters_input(const adapters_t* adapters);
 
 /**
- * Get the output of a adapters object. Undefined behavior if `adapters` is NULL.
+ * Get the input object related to a adapters object.
  * \param[in] adapters a adapters_t pointer.
- * \return an integer.
+ * \return a adapter_t pointer or NULL on error or if no object could be found.
  */
-int adapters_output(const adapters_t* adapters);
+adapter_t* adapters_get_input(const adapters_t* adapters);
 
 /**
- * Set the input of a adapters object.
+ * Get the output of a adapters object.
  * \param[in] adapters a adapters_t pointer.
- * \param[in] input an integer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* adapters_output(const adapters_t* adapters);
+
+/**
+ * Get the output object related to a adapters object.
+ * \param[in] adapters a adapters_t pointer.
+ * \return a adapter_t pointer or NULL on error or if no object could be found.
+ */
+adapter_t* adapters_get_output(const adapters_t* adapters);
+
+/**
+ * Set the input of a adapters object. If this fails the original value may have been lost.
+ * \param[in] adapters a adapters_t pointer.
+ * \param[in] input a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int adapters_set_input(adapters_t* adapters, int input);
+int adapters_set_input(adapters_t* adapters, const db_value_t* input);
 
 /**
- * Set the output of a adapters object.
+ * Set the output of a adapters object. If this fails the original value may have been lost.
  * \param[in] adapters a adapters_t pointer.
- * \param[in] output an integer.
+ * \param[in] output a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int adapters_set_output(adapters_t* adapters, int output);
+int adapters_set_output(adapters_t* adapters, const db_value_t* output);
 
 /**
  * Create a adapters object in the database.

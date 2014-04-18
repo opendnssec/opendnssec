@@ -45,6 +45,8 @@ typedef struct denial_list denial_list_t;
 
 #include "db_object.h"
 #include "denial_ext.h"
+#include "nsec.h"
+#include "nsec3.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,8 +58,8 @@ extern "C" {
 struct denial {
     db_object_t* dbo;
     db_value_t id;
-    int nsec;
-    int nsec3;
+    db_value_t nsec;
+    db_value_t nsec3;
 #include "denial_struct_ext.h"
 };
 
@@ -97,41 +99,55 @@ int denial_copy(denial_t* denial, const denial_t* denial_copy);
 int denial_from_result(denial_t* denial, const db_result_t* result);
 
 /**
- * Get the id of a denial object. Undefined behavior if `denial` is NULL.
+ * Get the id of a denial object.
  * \param[in] denial a denial_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* denial_id(const denial_t* denial);
 
 /**
- * Get the nsec of a denial object. Undefined behavior if `denial` is NULL.
+ * Get the nsec of a denial object.
  * \param[in] denial a denial_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int denial_nsec(const denial_t* denial);
+const db_value_t* denial_nsec(const denial_t* denial);
 
 /**
- * Get the nsec3 of a denial object. Undefined behavior if `denial` is NULL.
+ * Get the nsec object related to a denial object.
  * \param[in] denial a denial_t pointer.
- * \return an integer.
+ * \return a nsec_t pointer or NULL on error or if no object could be found.
  */
-int denial_nsec3(const denial_t* denial);
+nsec_t* denial_get_nsec(const denial_t* denial);
 
 /**
- * Set the nsec of a denial object.
+ * Get the nsec3 of a denial object.
  * \param[in] denial a denial_t pointer.
- * \param[in] nsec an integer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* denial_nsec3(const denial_t* denial);
+
+/**
+ * Get the nsec3 object related to a denial object.
+ * \param[in] denial a denial_t pointer.
+ * \return a nsec3_t pointer or NULL on error or if no object could be found.
+ */
+nsec3_t* denial_get_nsec3(const denial_t* denial);
+
+/**
+ * Set the nsec of a denial object. If this fails the original value may have been lost.
+ * \param[in] denial a denial_t pointer.
+ * \param[in] nsec a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int denial_set_nsec(denial_t* denial, int nsec);
+int denial_set_nsec(denial_t* denial, const db_value_t* nsec);
 
 /**
- * Set the nsec3 of a denial object.
+ * Set the nsec3 of a denial object. If this fails the original value may have been lost.
  * \param[in] denial a denial_t pointer.
- * \param[in] nsec3 an integer.
+ * \param[in] nsec3 a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int denial_set_nsec3(denial_t* denial, int nsec3);
+int denial_set_nsec3(denial_t* denial, const db_value_t* nsec3);
 
 /**
  * Create a denial object in the database.

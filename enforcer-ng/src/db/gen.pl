@@ -116,7 +116,16 @@ print HEADER '#ifdef __cplusplus
 
 #include "db_object.h"
 #include "', $name, '_ext.h"
-
+';
+my %included = ();
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{foreign} and !exists $included{$field->{foreign}}) {
+print HEADER '#include "', $field->{foreign}, '.h"
+';        
+        $included{$field->{foreign}} = 1;
+    }
+}
+print HEADER '
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -137,7 +146,10 @@ foreach my $field (@{$object->{fields}}) {
         print HEADER '    ', $name, '_', $field->{name}, '_t ', $field->{name}, ";\n";
         next;
     }
-    
+    if ($field->{foreign}) {
+        print HEADER '    db_value_t ', $field->{name}, ";\n";
+        next;
+    }
     print HEADER '    ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ";\n";
 }
 
@@ -182,15 +194,26 @@ int ', $name, '_from_result(', $name, '_t* ', $name, ', const db_result_t* resul
 ';
 
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
         print HEADER '/**
- * Get the ', $field->{name}, ' of a ', $tname, ' object. Undefined behavior if `', $name, '` is NULL.
+ * Get the ', $field->{name}, ' of a ', $tname, ' object.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ');
 
 ';
+        if ($field->{foreign}) {
+        print HEADER '/**
+ * Get the ', $field->{name}, ' object related to a ', $tname, ' object.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \return a ', $field->{foreign}, '_t pointer or NULL on error or if no object could be found.
+ */
+', $field->{foreign}, '_t* ', $name, '_get_', $field->{name}, '(const ', $name, '_t* ', $name, ');
+
+';
+            
+        }
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -235,6 +258,18 @@ const char* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ');
 
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+    print HEADER '/**
+ * Set the ', $field->{name}, ' of a ', $tname, ' object. If this fails the original value may have been lost.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \param[in] ', $field->{name}, ' a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', const db_value_t* ', $field->{name}, ');
+
+';
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -550,7 +585,7 @@ static mm_alloc_t __', $name, '_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $name, '
         }
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
         next;
@@ -591,7 +626,7 @@ void ', $name, '_free(', $name, '_t* ', $name, ') {
         }
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
         next;
@@ -611,7 +646,7 @@ void ', $name, '_reset(', $name, '_t* ', $name, ') {
     if (', $name, ') {
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
         next;
@@ -693,7 +728,7 @@ print SOURCE '            return DB_ERROR_UNKNOWN;
     }
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE '    if (db_value_copy(&(', $name, '->', $field->{name}, '), &(', $name, '_copy->', $field->{name}, '))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -733,7 +768,7 @@ print SOURCE '
 
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE '    db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
     }
@@ -749,7 +784,7 @@ print SOURCE '    if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != ', (scalar @{$object->{fields}});
 my $count = 0;
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE '
         || db_value_copy(&(', $name, '->', $field->{name}, '), db_value_set_at(value_set, ', $count++, '))';
         next;
@@ -793,7 +828,7 @@ print SOURCE '    return DB_OK;
 ';
 
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE 'const db_value_t* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ') {
     if (!', $name, ') {
         return NULL;
@@ -803,6 +838,33 @@ print SOURCE 'const db_value_t* ', $name, '_', $field->{name}, '(const ', $name,
 }
 
 ';
+        if ($field->{foreign}) {
+print SOURCE $field->{foreign}, '_t* ', $name, '_get_', $field->{name}, '(const ', $name, '_t* ', $name, ') {
+    ', $field->{foreign}, '_t* ', $field->{name}, ' = NULL;
+    
+    if (!', $name, ') {
+        return NULL;
+    }
+    if (!', $name, '->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
+        return NULL;
+    }
+    
+    if (!(', $field->{name}, ' = ', $field->{foreign}, '_new(db_object_connection(', $name, '->dbo)))) {
+        return NULL;
+    }
+    if (', $field->{foreign}, '_get_by_id(', $field->{name}, ', &(', $name, '->', $field->{name}, '))) {
+        ', $field->{foreign}, '_free(', $field->{name}, ');
+        return NULL;
+    }
+
+    return ', $field->{name}, ';
+}
+
+';
+        }
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -919,6 +981,29 @@ print SOURCE 'int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, 
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
         next;
     }
+    if ($field->{foreign}) {
+print SOURCE 'int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', const db_value_t* ', $field->{name}, ') {
+    if (!', $name, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $field->{name}, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(', $field->{name}, ')) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    db_value_reset(&(', $name, '->', $field->{name}, '));
+    if (db_value_copy(&(', $name, '->', $field->{name}, '), ', $field->{name}, ')) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
+}
+
+';
+        next;
+    }
 print SOURCE 'int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ') {
     if (!', $name, ') {
         return DB_ERROR_UNKNOWN;
@@ -951,9 +1036,24 @@ print SOURCE '    if (!db_value_not_empty(&(', $name, '->', $field->{name}, ')))
         return DB_ERROR_UNKNOWN;
     }
 ';
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '    if (db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
+        return DB_ERROR_UNKNOWN;
+    }
+';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    if (!', $name, '->', $field->{name}, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+';
+        next;
     }
 }
-print SOURCE '    /* TODO: validate content */
+print SOURCE '    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -1002,6 +1102,10 @@ foreach my $field (@{$object->{fields}}) {
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
 print SOURCE 'db_value_from_enum_value(db_value_set_get(value_set, ', $count++, '), ', $name, '->', $field->{name}, ', __enum_set_', $field->{name}, ')';
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE 'db_value_copy(db_value_set_get(value_set, ', $count++, '), &(', $name, '->', $field->{name}, '))';
         next;
     }
 print SOURCE 'db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(db_value_set_get(value_set, ', $count++, '), ', $name, '->', $field->{name}, ')';
@@ -1096,14 +1200,22 @@ print SOURCE 'int ', $name, '_update(', $name, '_t* ', $name, ') {
     }
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE '    if (db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
         return DB_ERROR_UNKNOWN;
     }
 ';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    if (!', $name, '->', $field->{name}, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+';
+        next;
     }
 }
-print SOURCE '    /* TODO: validate content */
+print SOURCE '    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -1154,6 +1266,10 @@ foreach my $field (@{$object->{fields}}) {
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
 print SOURCE 'db_value_from_enum_value(db_value_set_get(value_set, ', $count++, '), ', $name, '->', $field->{name}, ', __enum_set_', $field->{name}, ')';
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE 'db_value_copy(db_value_set_get(value_set, ', $count++, '), &(', $name, '->', $field->{name}, '))';
         next;
     }
 print SOURCE 'db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(db_value_set_get(value_set, ', $count++, '), ', $name, '->', $field->{name}, ')';

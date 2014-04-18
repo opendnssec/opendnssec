@@ -165,6 +165,11 @@ policy_t* policy_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(policy->id));
+        db_value_reset(&(policy->signatures));
+        db_value_reset(&(policy->denial));
+        db_value_reset(&(policy->keylist));
+        db_value_reset(&(policy->zone));
+        db_value_reset(&(policy->parent));
     }
 
     return policy;
@@ -182,6 +187,11 @@ void policy_free(policy_t* policy) {
         if (policy->description) {
             free(policy->description);
         }
+        db_value_reset(&(policy->signatures));
+        db_value_reset(&(policy->denial));
+        db_value_reset(&(policy->keylist));
+        db_value_reset(&(policy->zone));
+        db_value_reset(&(policy->parent));
         mm_alloc_delete(&__policy_alloc, policy);
     }
 }
@@ -197,11 +207,11 @@ void policy_reset(policy_t* policy) {
             free(policy->description);
         }
         policy->description = NULL;
-        policy->signatures = 0;
-        policy->denial = 0;
-        policy->keylist = 0;
-        policy->zone = 0;
-        policy->parent = 0;
+        db_value_reset(&(policy->signatures));
+        db_value_reset(&(policy->denial));
+        db_value_reset(&(policy->keylist));
+        db_value_reset(&(policy->zone));
+        db_value_reset(&(policy->parent));
     }
 }
 
@@ -239,11 +249,21 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
         free(policy->description);
     }
     policy->description = description_text;
-    policy->signatures = policy_copy->signatures;
-    policy->denial = policy_copy->denial;
-    policy->keylist = policy_copy->keylist;
-    policy->zone = policy_copy->zone;
-    policy->parent = policy_copy->parent;
+    if (db_value_copy(&(policy->signatures), &(policy_copy->signatures))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(policy->denial), &(policy_copy->denial))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(policy->keylist), &(policy_copy->keylist))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(policy->zone), &(policy_copy->zone))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(policy->parent), &(policy_copy->parent))) {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -266,16 +286,21 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         free(policy->description);
     }
     policy->description = NULL;
+    db_value_reset(&(policy->signatures));
+    db_value_reset(&(policy->denial));
+    db_value_reset(&(policy->keylist));
+    db_value_reset(&(policy->zone));
+    db_value_reset(&(policy->parent));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 8
         || db_value_copy(&(policy->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(policy->name))
         || db_value_to_text(db_value_set_at(value_set, 2), &(policy->description))
-        || db_value_to_int32(db_value_set_at(value_set, 3), &(policy->signatures))
-        || db_value_to_int32(db_value_set_at(value_set, 4), &(policy->denial))
-        || db_value_to_int32(db_value_set_at(value_set, 5), &(policy->keylist))
-        || db_value_to_int32(db_value_set_at(value_set, 6), &(policy->zone))
-        || db_value_to_int32(db_value_set_at(value_set, 7), &(policy->parent)))
+        || db_value_copy(&(policy->signatures), db_value_set_at(value_set, 3))
+        || db_value_copy(&(policy->denial), db_value_set_at(value_set, 4))
+        || db_value_copy(&(policy->keylist), db_value_set_at(value_set, 5))
+        || db_value_copy(&(policy->zone), db_value_set_at(value_set, 6))
+        || db_value_copy(&(policy->parent), db_value_set_at(value_set, 7)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -307,44 +332,164 @@ const char* policy_description(const policy_t* policy) {
     return policy->description;
 }
 
-int policy_signatures(const policy_t* policy) {
+const db_value_t* policy_signatures(const policy_t* policy) {
     if (!policy) {
-        return 0;
+        return NULL;
     }
 
-    return policy->signatures;
+    return &(policy->signatures);
 }
 
-int policy_denial(const policy_t* policy) {
+signatures_t* policy_get_signatures(const policy_t* policy) {
+    signatures_t* signatures = NULL;
+    
     if (!policy) {
-        return 0;
+        return NULL;
+    }
+    if (!policy->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(policy->signatures))) {
+        return NULL;
+    }
+    
+    if (!(signatures = signatures_new(db_object_connection(policy->dbo)))) {
+        return NULL;
+    }
+    if (signatures_get_by_id(signatures, &(policy->signatures))) {
+        signatures_free(signatures);
+        return NULL;
     }
 
-    return policy->denial;
+    return signatures;
 }
 
-int policy_keylist(const policy_t* policy) {
+const db_value_t* policy_denial(const policy_t* policy) {
     if (!policy) {
-        return 0;
+        return NULL;
     }
 
-    return policy->keylist;
+    return &(policy->denial);
 }
 
-int policy_zone(const policy_t* policy) {
+denial_t* policy_get_denial(const policy_t* policy) {
+    denial_t* denial = NULL;
+    
     if (!policy) {
-        return 0;
+        return NULL;
+    }
+    if (!policy->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(policy->denial))) {
+        return NULL;
+    }
+    
+    if (!(denial = denial_new(db_object_connection(policy->dbo)))) {
+        return NULL;
+    }
+    if (denial_get_by_id(denial, &(policy->denial))) {
+        denial_free(denial);
+        return NULL;
     }
 
-    return policy->zone;
+    return denial;
 }
 
-int policy_parent(const policy_t* policy) {
+const db_value_t* policy_keylist(const policy_t* policy) {
     if (!policy) {
-        return 0;
+        return NULL;
     }
 
-    return policy->parent;
+    return &(policy->keylist);
+}
+
+dbo_keylist_t* policy_get_keylist(const policy_t* policy) {
+    dbo_keylist_t* keylist = NULL;
+    
+    if (!policy) {
+        return NULL;
+    }
+    if (!policy->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(policy->keylist))) {
+        return NULL;
+    }
+    
+    if (!(keylist = dbo_keylist_new(db_object_connection(policy->dbo)))) {
+        return NULL;
+    }
+    if (dbo_keylist_get_by_id(keylist, &(policy->keylist))) {
+        dbo_keylist_free(keylist);
+        return NULL;
+    }
+
+    return keylist;
+}
+
+const db_value_t* policy_zone(const policy_t* policy) {
+    if (!policy) {
+        return NULL;
+    }
+
+    return &(policy->zone);
+}
+
+zone_t* policy_get_zone(const policy_t* policy) {
+    zone_t* zone = NULL;
+    
+    if (!policy) {
+        return NULL;
+    }
+    if (!policy->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(policy->zone))) {
+        return NULL;
+    }
+    
+    if (!(zone = zone_new(db_object_connection(policy->dbo)))) {
+        return NULL;
+    }
+    if (zone_get_by_id(zone, &(policy->zone))) {
+        zone_free(zone);
+        return NULL;
+    }
+
+    return zone;
+}
+
+const db_value_t* policy_parent(const policy_t* policy) {
+    if (!policy) {
+        return NULL;
+    }
+
+    return &(policy->parent);
+}
+
+parent_t* policy_get_parent(const policy_t* policy) {
+    parent_t* parent = NULL;
+    
+    if (!policy) {
+        return NULL;
+    }
+    if (!policy->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(policy->parent))) {
+        return NULL;
+    }
+    
+    if (!(parent = parent_new(db_object_connection(policy->dbo)))) {
+        return NULL;
+    }
+    if (parent_get_by_id(parent, &(policy->parent))) {
+        parent_free(parent);
+        return NULL;
+    }
+
+    return parent;
 }
 
 int policy_set_name(policy_t* policy, const char* name_text) {
@@ -391,52 +536,97 @@ int policy_set_description(policy_t* policy, const char* description_text) {
     return DB_OK;
 }
 
-int policy_set_signatures(policy_t* policy, int signatures) {
+int policy_set_signatures(policy_t* policy, const db_value_t* signatures) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!signatures) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(signatures)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    policy->signatures = signatures;
+    db_value_reset(&(policy->signatures));
+    if (db_value_copy(&(policy->signatures), signatures)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int policy_set_denial(policy_t* policy, int denial) {
+int policy_set_denial(policy_t* policy, const db_value_t* denial) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!denial) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(denial)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    policy->denial = denial;
+    db_value_reset(&(policy->denial));
+    if (db_value_copy(&(policy->denial), denial)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int policy_set_keylist(policy_t* policy, int keylist) {
+int policy_set_keylist(policy_t* policy, const db_value_t* keylist) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!keylist) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(keylist)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    policy->keylist = keylist;
+    db_value_reset(&(policy->keylist));
+    if (db_value_copy(&(policy->keylist), keylist)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int policy_set_zone(policy_t* policy, int zone) {
+int policy_set_zone(policy_t* policy, const db_value_t* zone) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(zone)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    policy->zone = zone;
+    db_value_reset(&(policy->zone));
+    if (db_value_copy(&(policy->zone), zone)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int policy_set_parent(policy_t* policy, int parent) {
+int policy_set_parent(policy_t* policy, const db_value_t* parent) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!parent) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(parent)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    policy->parent = parent;
+    db_value_reset(&(policy->parent));
+    if (db_value_copy(&(policy->parent), parent)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
@@ -456,7 +646,28 @@ int policy_create(policy_t* policy) {
     if (!db_value_not_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!policy->name) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy->description) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->signatures))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->denial))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->keylist))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->zone))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->parent))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -539,11 +750,11 @@ int policy_create(policy_t* policy) {
 
     if (db_value_from_text(db_value_set_get(value_set, 0), policy->name)
         || db_value_from_text(db_value_set_get(value_set, 1), policy->description)
-        || db_value_from_int32(db_value_set_get(value_set, 2), policy->signatures)
-        || db_value_from_int32(db_value_set_get(value_set, 3), policy->denial)
-        || db_value_from_int32(db_value_set_get(value_set, 4), policy->keylist)
-        || db_value_from_int32(db_value_set_get(value_set, 5), policy->zone)
-        || db_value_from_int32(db_value_set_get(value_set, 6), policy->parent))
+        || db_value_copy(db_value_set_get(value_set, 2), &(policy->signatures))
+        || db_value_copy(db_value_set_get(value_set, 3), &(policy->denial))
+        || db_value_copy(db_value_set_get(value_set, 4), &(policy->keylist))
+        || db_value_copy(db_value_set_get(value_set, 5), &(policy->zone))
+        || db_value_copy(db_value_set_get(value_set, 6), &(policy->parent)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -626,7 +837,28 @@ int policy_update(policy_t* policy) {
     if (db_value_not_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!policy->name) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy->description) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->signatures))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->denial))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->keylist))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->zone))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(policy->parent))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -709,11 +941,11 @@ int policy_update(policy_t* policy) {
 
     if (db_value_from_text(db_value_set_get(value_set, 0), policy->name)
         || db_value_from_text(db_value_set_get(value_set, 1), policy->description)
-        || db_value_from_int32(db_value_set_get(value_set, 2), policy->signatures)
-        || db_value_from_int32(db_value_set_get(value_set, 3), policy->denial)
-        || db_value_from_int32(db_value_set_get(value_set, 4), policy->keylist)
-        || db_value_from_int32(db_value_set_get(value_set, 5), policy->zone)
-        || db_value_from_int32(db_value_set_get(value_set, 6), policy->parent))
+        || db_value_copy(db_value_set_get(value_set, 2), &(policy->signatures))
+        || db_value_copy(db_value_set_get(value_set, 3), &(policy->denial))
+        || db_value_copy(db_value_set_get(value_set, 4), &(policy->keylist))
+        || db_value_copy(db_value_set_get(value_set, 5), &(policy->zone))
+        || db_value_copy(db_value_set_get(value_set, 6), &(policy->parent)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

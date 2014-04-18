@@ -110,6 +110,7 @@ hsm_key_used_by_zones_t* hsm_key_used_by_zones_new(const db_connection_t* connec
             return NULL;
         }
         db_value_reset(&(hsm_key_used_by_zones->id));
+        db_value_reset(&(hsm_key_used_by_zones->parent_id));
     }
 
     return hsm_key_used_by_zones;
@@ -124,6 +125,7 @@ void hsm_key_used_by_zones_free(hsm_key_used_by_zones_t* hsm_key_used_by_zones) 
         if (hsm_key_used_by_zones->value) {
             free(hsm_key_used_by_zones->value);
         }
+        db_value_reset(&(hsm_key_used_by_zones->parent_id));
         mm_alloc_delete(&__hsm_key_used_by_zones_alloc, hsm_key_used_by_zones);
     }
 }
@@ -135,7 +137,7 @@ void hsm_key_used_by_zones_reset(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
             free(hsm_key_used_by_zones->value);
         }
         hsm_key_used_by_zones->value = NULL;
-        hsm_key_used_by_zones->parent_id = 0;
+        db_value_reset(&(hsm_key_used_by_zones->parent_id));
     }
 }
 
@@ -160,7 +162,9 @@ int hsm_key_used_by_zones_copy(hsm_key_used_by_zones_t* hsm_key_used_by_zones, c
         free(hsm_key_used_by_zones->value);
     }
     hsm_key_used_by_zones->value = value_text;
-    hsm_key_used_by_zones->parent_id = hsm_key_used_by_zones_copy->parent_id;
+    if (db_value_copy(&(hsm_key_used_by_zones->parent_id), &(hsm_key_used_by_zones_copy->parent_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -179,11 +183,12 @@ int hsm_key_used_by_zones_from_result(hsm_key_used_by_zones_t* hsm_key_used_by_z
         free(hsm_key_used_by_zones->value);
     }
     hsm_key_used_by_zones->value = NULL;
+    db_value_reset(&(hsm_key_used_by_zones->parent_id));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 3
         || db_value_copy(&(hsm_key_used_by_zones->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(hsm_key_used_by_zones->value))
-        || db_value_to_int32(db_value_set_at(value_set, 2), &(hsm_key_used_by_zones->parent_id)))
+        || db_value_copy(&(hsm_key_used_by_zones->parent_id), db_value_set_at(value_set, 2)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -207,12 +212,36 @@ const char* hsm_key_used_by_zones_value(const hsm_key_used_by_zones_t* hsm_key_u
     return hsm_key_used_by_zones->value;
 }
 
-int hsm_key_used_by_zones_parent_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones) {
+const db_value_t* hsm_key_used_by_zones_parent_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones) {
     if (!hsm_key_used_by_zones) {
-        return 0;
+        return NULL;
     }
 
-    return hsm_key_used_by_zones->parent_id;
+    return &(hsm_key_used_by_zones->parent_id);
+}
+
+dbo_hsm_key_t* hsm_key_used_by_zones_get_parent_id(const hsm_key_used_by_zones_t* hsm_key_used_by_zones) {
+    dbo_hsm_key_t* parent_id = NULL;
+    
+    if (!hsm_key_used_by_zones) {
+        return NULL;
+    }
+    if (!hsm_key_used_by_zones->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(hsm_key_used_by_zones->parent_id))) {
+        return NULL;
+    }
+    
+    if (!(parent_id = dbo_hsm_key_new(db_object_connection(hsm_key_used_by_zones->dbo)))) {
+        return NULL;
+    }
+    if (dbo_hsm_key_get_by_id(parent_id, &(hsm_key_used_by_zones->parent_id))) {
+        dbo_hsm_key_free(parent_id);
+        return NULL;
+    }
+
+    return parent_id;
 }
 
 int hsm_key_used_by_zones_set_value(hsm_key_used_by_zones_t* hsm_key_used_by_zones, const char* value_text) {
@@ -237,12 +266,21 @@ int hsm_key_used_by_zones_set_value(hsm_key_used_by_zones_t* hsm_key_used_by_zon
     return DB_OK;
 }
 
-int hsm_key_used_by_zones_set_parent_id(hsm_key_used_by_zones_t* hsm_key_used_by_zones, int parent_id) {
+int hsm_key_used_by_zones_set_parent_id(hsm_key_used_by_zones_t* hsm_key_used_by_zones, const db_value_t* parent_id) {
     if (!hsm_key_used_by_zones) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!parent_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(parent_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    hsm_key_used_by_zones->parent_id = parent_id;
+    db_value_reset(&(hsm_key_used_by_zones->parent_id));
+    if (db_value_copy(&(hsm_key_used_by_zones->parent_id), parent_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
@@ -262,7 +300,13 @@ int hsm_key_used_by_zones_create(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     if (!db_value_not_empty(&(hsm_key_used_by_zones->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!hsm_key_used_by_zones->value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(hsm_key_used_by_zones->parent_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -294,7 +338,7 @@ int hsm_key_used_by_zones_create(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     }
 
     if (db_value_from_text(db_value_set_get(value_set, 0), hsm_key_used_by_zones->value)
-        || db_value_from_int32(db_value_set_get(value_set, 1), hsm_key_used_by_zones->parent_id))
+        || db_value_copy(db_value_set_get(value_set, 1), &(hsm_key_used_by_zones->parent_id)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -377,7 +421,13 @@ int hsm_key_used_by_zones_update(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     if (db_value_not_empty(&(hsm_key_used_by_zones->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!hsm_key_used_by_zones->value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(hsm_key_used_by_zones->parent_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -409,7 +459,7 @@ int hsm_key_used_by_zones_update(hsm_key_used_by_zones_t* hsm_key_used_by_zones)
     }
 
     if (db_value_from_text(db_value_set_get(value_set, 0), hsm_key_used_by_zones->value)
-        || db_value_from_int32(db_value_set_get(value_set, 1), hsm_key_used_by_zones->parent_id))
+        || db_value_copy(db_value_set_get(value_set, 1), &(hsm_key_used_by_zones->parent_id)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

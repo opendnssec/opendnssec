@@ -253,6 +253,7 @@ enforcer_zone_t* enforcer_zone_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(enforcer_zone->id));
+        db_value_reset(&(enforcer_zone->adapters));
     }
 
     return enforcer_zone;
@@ -273,6 +274,7 @@ void enforcer_zone_free(enforcer_zone_t* enforcer_zone) {
         if (enforcer_zone->signconf_path) {
             free(enforcer_zone->signconf_path);
         }
+        db_value_reset(&(enforcer_zone->adapters));
         mm_alloc_delete(&__enforcer_zone_alloc, enforcer_zone);
     }
 }
@@ -300,7 +302,7 @@ void enforcer_zone_reset(enforcer_zone_t* enforcer_zone) {
         enforcer_zone->roll_ksk_now = 0;
         enforcer_zone->roll_zsk_now = 0;
         enforcer_zone->roll_csk_now = 0;
-        enforcer_zone->adapters = 0;
+        db_value_reset(&(enforcer_zone->adapters));
         enforcer_zone->next_ksk_roll = 0;
         enforcer_zone->next_zsk_roll = 0;
         enforcer_zone->next_csk_roll = 0;
@@ -365,7 +367,9 @@ int enforcer_zone_copy(enforcer_zone_t* enforcer_zone, const enforcer_zone_t* en
     enforcer_zone->roll_ksk_now = enforcer_zone_copy->roll_ksk_now;
     enforcer_zone->roll_zsk_now = enforcer_zone_copy->roll_zsk_now;
     enforcer_zone->roll_csk_now = enforcer_zone_copy->roll_csk_now;
-    enforcer_zone->adapters = enforcer_zone_copy->adapters;
+    if (db_value_copy(&(enforcer_zone->adapters), &(enforcer_zone_copy->adapters))) {
+        return DB_ERROR_UNKNOWN;
+    }
     enforcer_zone->next_ksk_roll = enforcer_zone_copy->next_ksk_roll;
     enforcer_zone->next_zsk_roll = enforcer_zone_copy->next_zsk_roll;
     enforcer_zone->next_csk_roll = enforcer_zone_copy->next_csk_roll;
@@ -395,6 +399,7 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
         free(enforcer_zone->signconf_path);
     }
     enforcer_zone->signconf_path = NULL;
+    db_value_reset(&(enforcer_zone->adapters));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 16
         || db_value_copy(&(enforcer_zone->id), db_value_set_at(value_set, 0))
@@ -409,7 +414,7 @@ int enforcer_zone_from_result(enforcer_zone_t* enforcer_zone, const db_result_t*
         || db_value_to_uint32(db_value_set_at(value_set, 9), &(enforcer_zone->roll_ksk_now))
         || db_value_to_uint32(db_value_set_at(value_set, 10), &(enforcer_zone->roll_zsk_now))
         || db_value_to_uint32(db_value_set_at(value_set, 11), &(enforcer_zone->roll_csk_now))
-        || db_value_to_int32(db_value_set_at(value_set, 12), &(enforcer_zone->adapters))
+        || db_value_copy(&(enforcer_zone->adapters), db_value_set_at(value_set, 12))
         || db_value_to_uint32(db_value_set_at(value_set, 13), &(enforcer_zone->next_ksk_roll))
         || db_value_to_uint32(db_value_set_at(value_set, 14), &(enforcer_zone->next_zsk_roll))
         || db_value_to_uint32(db_value_set_at(value_set, 15), &(enforcer_zone->next_csk_roll)))
@@ -516,12 +521,36 @@ unsigned int enforcer_zone_roll_csk_now(const enforcer_zone_t* enforcer_zone) {
     return enforcer_zone->roll_csk_now;
 }
 
-int enforcer_zone_adapters(const enforcer_zone_t* enforcer_zone) {
+const db_value_t* enforcer_zone_adapters(const enforcer_zone_t* enforcer_zone) {
     if (!enforcer_zone) {
-        return 0;
+        return NULL;
     }
 
-    return enforcer_zone->adapters;
+    return &(enforcer_zone->adapters);
+}
+
+adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone) {
+    adapters_t* adapters = NULL;
+    
+    if (!enforcer_zone) {
+        return NULL;
+    }
+    if (!enforcer_zone->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(enforcer_zone->adapters))) {
+        return NULL;
+    }
+    
+    if (!(adapters = adapters_new(db_object_connection(enforcer_zone->dbo)))) {
+        return NULL;
+    }
+    if (adapters_get_by_id(adapters, &(enforcer_zone->adapters))) {
+        adapters_free(adapters);
+        return NULL;
+    }
+
+    return adapters;
 }
 
 unsigned int enforcer_zone_next_ksk_roll(const enforcer_zone_t* enforcer_zone) {
@@ -694,12 +723,21 @@ int enforcer_zone_set_roll_csk_now(enforcer_zone_t* enforcer_zone, unsigned int 
     return DB_OK;
 }
 
-int enforcer_zone_set_adapters(enforcer_zone_t* enforcer_zone, int adapters) {
+int enforcer_zone_set_adapters(enforcer_zone_t* enforcer_zone, const db_value_t* adapters) {
     if (!enforcer_zone) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!adapters) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(adapters)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    enforcer_zone->adapters = adapters;
+    db_value_reset(&(enforcer_zone->adapters));
+    if (db_value_copy(&(enforcer_zone->adapters), adapters)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
@@ -749,7 +787,19 @@ int enforcer_zone_create(enforcer_zone_t* enforcer_zone) {
     if (!db_value_not_empty(&(enforcer_zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!enforcer_zone->name) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enforcer_zone->policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enforcer_zone->signconf_path) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(enforcer_zone->adapters))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -921,7 +971,7 @@ int enforcer_zone_create(enforcer_zone_t* enforcer_zone) {
         || db_value_from_uint32(db_value_set_get(value_set, 8), enforcer_zone->roll_ksk_now)
         || db_value_from_uint32(db_value_set_get(value_set, 9), enforcer_zone->roll_zsk_now)
         || db_value_from_uint32(db_value_set_get(value_set, 10), enforcer_zone->roll_csk_now)
-        || db_value_from_int32(db_value_set_get(value_set, 11), enforcer_zone->adapters)
+        || db_value_copy(db_value_set_get(value_set, 11), &(enforcer_zone->adapters))
         || db_value_from_uint32(db_value_set_get(value_set, 12), enforcer_zone->next_ksk_roll)
         || db_value_from_uint32(db_value_set_get(value_set, 13), enforcer_zone->next_zsk_roll)
         || db_value_from_uint32(db_value_set_get(value_set, 14), enforcer_zone->next_csk_roll))
@@ -1007,7 +1057,19 @@ int enforcer_zone_update(enforcer_zone_t* enforcer_zone) {
     if (db_value_not_empty(&(enforcer_zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!enforcer_zone->name) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enforcer_zone->policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enforcer_zone->signconf_path) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(enforcer_zone->adapters))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -1179,7 +1241,7 @@ int enforcer_zone_update(enforcer_zone_t* enforcer_zone) {
         || db_value_from_uint32(db_value_set_get(value_set, 8), enforcer_zone->roll_ksk_now)
         || db_value_from_uint32(db_value_set_get(value_set, 9), enforcer_zone->roll_zsk_now)
         || db_value_from_uint32(db_value_set_get(value_set, 10), enforcer_zone->roll_csk_now)
-        || db_value_from_int32(db_value_set_get(value_set, 11), enforcer_zone->adapters)
+        || db_value_copy(db_value_set_get(value_set, 11), &(enforcer_zone->adapters))
         || db_value_from_uint32(db_value_set_get(value_set, 12), enforcer_zone->next_ksk_roll)
         || db_value_from_uint32(db_value_set_get(value_set, 13), enforcer_zone->next_zsk_roll)
         || db_value_from_uint32(db_value_set_get(value_set, 14), enforcer_zone->next_csk_roll))

@@ -359,7 +359,7 @@ int key_state_create(key_state_t* key_state) {
     if (!db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -497,7 +497,7 @@ int key_state_update(key_state_t* key_state) {
     if (db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

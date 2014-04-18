@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static policy_t* object = NULL;
 static policy_list_t* object_list = NULL;
-static db_value_t id;
+static db_value_t id = DB_VALUE_EMPTY;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_policy_init_suite_sqlite(void) {
@@ -108,7 +108,6 @@ int test_policy_init_suite_sqlite(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -178,7 +177,6 @@ int test_policy_init_suite_couchdb(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -200,25 +198,61 @@ static void test_policy_new(void) {
 }
 
 static void test_policy_set(void) {
+    db_value_t signatures = DB_VALUE_EMPTY;
+    db_value_t denial = DB_VALUE_EMPTY;
+    db_value_t keylist = DB_VALUE_EMPTY;
+    db_value_t zone = DB_VALUE_EMPTY;
+    db_value_t parent = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&signatures, 1));
+    CU_ASSERT(!db_value_from_int32(&denial, 1));
+    CU_ASSERT(!db_value_from_int32(&keylist, 1));
+    CU_ASSERT(!db_value_from_int32(&zone, 1));
+    CU_ASSERT(!db_value_from_int32(&parent, 1));
     CU_ASSERT(!policy_set_name(object, "name 1"));
     CU_ASSERT(!policy_set_description(object, "description 1"));
-    CU_ASSERT(!policy_set_signatures(object, 1));
-    CU_ASSERT(!policy_set_denial(object, 1));
-    CU_ASSERT(!policy_set_keylist(object, 1));
-    CU_ASSERT(!policy_set_zone(object, 1));
-    CU_ASSERT(!policy_set_parent(object, 1));
+    CU_ASSERT(!policy_set_signatures(object, &signatures));
+    CU_ASSERT(!policy_set_denial(object, &denial));
+    CU_ASSERT(!policy_set_keylist(object, &keylist));
+    CU_ASSERT(!policy_set_zone(object, &zone));
+    CU_ASSERT(!policy_set_parent(object, &parent));
+    db_value_reset(&signatures);
+    db_value_reset(&denial);
+    db_value_reset(&keylist);
+    db_value_reset(&zone);
+    db_value_reset(&parent);
 }
 
 static void test_policy_get(void) {
+    int ret;
+    db_value_t signatures = DB_VALUE_EMPTY;
+    db_value_t denial = DB_VALUE_EMPTY;
+    db_value_t keylist = DB_VALUE_EMPTY;
+    db_value_t zone = DB_VALUE_EMPTY;
+    db_value_t parent = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&signatures, 1));
+    CU_ASSERT(!db_value_from_int32(&denial, 1));
+    CU_ASSERT(!db_value_from_int32(&keylist, 1));
+    CU_ASSERT(!db_value_from_int32(&zone, 1));
+    CU_ASSERT(!db_value_from_int32(&parent, 1));
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_name(object));
     CU_ASSERT(!strcmp(policy_name(object), "name 1"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_description(object));
     CU_ASSERT(!strcmp(policy_description(object), "description 1"));
-    CU_ASSERT(policy_signatures(object) == 1);
-    CU_ASSERT(policy_denial(object) == 1);
-    CU_ASSERT(policy_keylist(object) == 1);
-    CU_ASSERT(policy_zone(object) == 1);
-    CU_ASSERT(policy_parent(object) == 1);
+    CU_ASSERT(!db_value_cmp(policy_signatures(object), &signatures, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_denial(object), &denial, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_keylist(object), &keylist, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_zone(object), &zone, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_parent(object), &parent, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&signatures);
+    db_value_reset(&denial);
+    db_value_reset(&keylist);
+    db_value_reset(&zone);
+    db_value_reset(&parent);
 }
 
 static void test_policy_create(void) {
@@ -237,25 +271,61 @@ static void test_policy_read(void) {
 }
 
 static void test_policy_verify(void) {
+    int ret;
+    db_value_t signatures = DB_VALUE_EMPTY;
+    db_value_t denial = DB_VALUE_EMPTY;
+    db_value_t keylist = DB_VALUE_EMPTY;
+    db_value_t zone = DB_VALUE_EMPTY;
+    db_value_t parent = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&signatures, 1));
+    CU_ASSERT(!db_value_from_int32(&denial, 1));
+    CU_ASSERT(!db_value_from_int32(&keylist, 1));
+    CU_ASSERT(!db_value_from_int32(&zone, 1));
+    CU_ASSERT(!db_value_from_int32(&parent, 1));
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_name(object));
     CU_ASSERT(!strcmp(policy_name(object), "name 1"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_description(object));
     CU_ASSERT(!strcmp(policy_description(object), "description 1"));
-    CU_ASSERT(policy_signatures(object) == 1);
-    CU_ASSERT(policy_denial(object) == 1);
-    CU_ASSERT(policy_keylist(object) == 1);
-    CU_ASSERT(policy_zone(object) == 1);
-    CU_ASSERT(policy_parent(object) == 1);
+    CU_ASSERT(!db_value_cmp(policy_signatures(object), &signatures, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_denial(object), &denial, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_keylist(object), &keylist, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_zone(object), &zone, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_parent(object), &parent, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&signatures);
+    db_value_reset(&denial);
+    db_value_reset(&keylist);
+    db_value_reset(&zone);
+    db_value_reset(&parent);
 }
 
 static void test_policy_change(void) {
+    db_value_t signatures = DB_VALUE_EMPTY;
+    db_value_t denial = DB_VALUE_EMPTY;
+    db_value_t keylist = DB_VALUE_EMPTY;
+    db_value_t zone = DB_VALUE_EMPTY;
+    db_value_t parent = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&signatures, 2));
+    CU_ASSERT(!db_value_from_int32(&denial, 2));
+    CU_ASSERT(!db_value_from_int32(&keylist, 2));
+    CU_ASSERT(!db_value_from_int32(&zone, 2));
+    CU_ASSERT(!db_value_from_int32(&parent, 2));
     CU_ASSERT(!policy_set_name(object, "name 2"));
     CU_ASSERT(!policy_set_description(object, "description 2"));
-    CU_ASSERT(!policy_set_signatures(object, 2));
-    CU_ASSERT(!policy_set_denial(object, 2));
-    CU_ASSERT(!policy_set_keylist(object, 2));
-    CU_ASSERT(!policy_set_zone(object, 2));
-    CU_ASSERT(!policy_set_parent(object, 2));
+    CU_ASSERT(!policy_set_signatures(object, &signatures));
+    CU_ASSERT(!policy_set_denial(object, &denial));
+    CU_ASSERT(!policy_set_keylist(object, &keylist));
+    CU_ASSERT(!policy_set_zone(object, &zone));
+    CU_ASSERT(!policy_set_parent(object, &parent));
+    db_value_reset(&signatures);
+    db_value_reset(&denial);
+    db_value_reset(&keylist);
+    db_value_reset(&zone);
+    db_value_reset(&parent);
 }
 
 static void test_policy_update(void) {
@@ -267,15 +337,36 @@ static void test_policy_read2(void) {
 }
 
 static void test_policy_verify2(void) {
+    int ret;
+    db_value_t signatures = DB_VALUE_EMPTY;
+    db_value_t denial = DB_VALUE_EMPTY;
+    db_value_t keylist = DB_VALUE_EMPTY;
+    db_value_t zone = DB_VALUE_EMPTY;
+    db_value_t parent = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&signatures, 2));
+    CU_ASSERT(!db_value_from_int32(&denial, 2));
+    CU_ASSERT(!db_value_from_int32(&keylist, 2));
+    CU_ASSERT(!db_value_from_int32(&zone, 2));
+    CU_ASSERT(!db_value_from_int32(&parent, 2));
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_name(object));
     CU_ASSERT(!strcmp(policy_name(object), "name 2"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_description(object));
     CU_ASSERT(!strcmp(policy_description(object), "description 2"));
-    CU_ASSERT(policy_signatures(object) == 2);
-    CU_ASSERT(policy_denial(object) == 2);
-    CU_ASSERT(policy_keylist(object) == 2);
-    CU_ASSERT(policy_zone(object) == 2);
-    CU_ASSERT(policy_parent(object) == 2);
+    CU_ASSERT(!db_value_cmp(policy_signatures(object), &signatures, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_denial(object), &denial, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_keylist(object), &keylist, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_zone(object), &zone, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_parent(object), &parent, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&signatures);
+    db_value_reset(&denial);
+    db_value_reset(&keylist);
+    db_value_reset(&zone);
+    db_value_reset(&parent);
 }
 
 static void test_policy_delete(void) {

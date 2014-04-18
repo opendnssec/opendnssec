@@ -110,6 +110,8 @@ denial_t* denial_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(denial->id));
+        db_value_reset(&(denial->nsec));
+        db_value_reset(&(denial->nsec3));
     }
 
     return denial;
@@ -121,6 +123,8 @@ void denial_free(denial_t* denial) {
             db_object_free(denial->dbo);
         }
         db_value_reset(&(denial->id));
+        db_value_reset(&(denial->nsec));
+        db_value_reset(&(denial->nsec3));
         mm_alloc_delete(&__denial_alloc, denial);
     }
 }
@@ -128,8 +132,8 @@ void denial_free(denial_t* denial) {
 void denial_reset(denial_t* denial) {
     if (denial) {
         db_value_reset(&(denial->id));
-        denial->nsec = 0;
-        denial->nsec3 = 0;
+        db_value_reset(&(denial->nsec));
+        db_value_reset(&(denial->nsec3));
     }
 }
 
@@ -144,8 +148,12 @@ int denial_copy(denial_t* denial, const denial_t* denial_copy) {
     if (db_value_copy(&(denial->id), &(denial_copy->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    denial->nsec = denial_copy->nsec;
-    denial->nsec3 = denial_copy->nsec3;
+    if (db_value_copy(&(denial->nsec), &(denial_copy->nsec))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(denial->nsec3), &(denial_copy->nsec3))) {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -160,11 +168,13 @@ int denial_from_result(denial_t* denial, const db_result_t* result) {
     }
 
     db_value_reset(&(denial->id));
+    db_value_reset(&(denial->nsec));
+    db_value_reset(&(denial->nsec3));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 3
         || db_value_copy(&(denial->id), db_value_set_at(value_set, 0))
-        || db_value_to_int32(db_value_set_at(value_set, 1), &(denial->nsec))
-        || db_value_to_int32(db_value_set_at(value_set, 2), &(denial->nsec3)))
+        || db_value_copy(&(denial->nsec), db_value_set_at(value_set, 1))
+        || db_value_copy(&(denial->nsec3), db_value_set_at(value_set, 2)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -180,38 +190,104 @@ const db_value_t* denial_id(const denial_t* denial) {
     return &(denial->id);
 }
 
-int denial_nsec(const denial_t* denial) {
+const db_value_t* denial_nsec(const denial_t* denial) {
     if (!denial) {
-        return 0;
+        return NULL;
     }
 
-    return denial->nsec;
+    return &(denial->nsec);
 }
 
-int denial_nsec3(const denial_t* denial) {
+nsec_t* denial_get_nsec(const denial_t* denial) {
+    nsec_t* nsec = NULL;
+    
     if (!denial) {
-        return 0;
+        return NULL;
+    }
+    if (!denial->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(denial->nsec))) {
+        return NULL;
+    }
+    
+    if (!(nsec = nsec_new(db_object_connection(denial->dbo)))) {
+        return NULL;
+    }
+    if (nsec_get_by_id(nsec, &(denial->nsec))) {
+        nsec_free(nsec);
+        return NULL;
     }
 
-    return denial->nsec3;
+    return nsec;
 }
 
-int denial_set_nsec(denial_t* denial, int nsec) {
+const db_value_t* denial_nsec3(const denial_t* denial) {
+    if (!denial) {
+        return NULL;
+    }
+
+    return &(denial->nsec3);
+}
+
+nsec3_t* denial_get_nsec3(const denial_t* denial) {
+    nsec3_t* nsec3 = NULL;
+    
+    if (!denial) {
+        return NULL;
+    }
+    if (!denial->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(denial->nsec3))) {
+        return NULL;
+    }
+    
+    if (!(nsec3 = nsec3_new(db_object_connection(denial->dbo)))) {
+        return NULL;
+    }
+    if (nsec3_get_by_id(nsec3, &(denial->nsec3))) {
+        nsec3_free(nsec3);
+        return NULL;
+    }
+
+    return nsec3;
+}
+
+int denial_set_nsec(denial_t* denial, const db_value_t* nsec) {
     if (!denial) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!nsec) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(nsec)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    denial->nsec = nsec;
+    db_value_reset(&(denial->nsec));
+    if (db_value_copy(&(denial->nsec), nsec)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int denial_set_nsec3(denial_t* denial, int nsec3) {
+int denial_set_nsec3(denial_t* denial, const db_value_t* nsec3) {
     if (!denial) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!nsec3) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(nsec3)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    denial->nsec3 = nsec3;
+    db_value_reset(&(denial->nsec3));
+    if (db_value_copy(&(denial->nsec3), nsec3)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
@@ -231,7 +307,13 @@ int denial_create(denial_t* denial) {
     if (!db_value_not_empty(&(denial->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (db_value_not_empty(&(denial->nsec))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(denial->nsec3))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -262,8 +344,8 @@ int denial_create(denial_t* denial) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), denial->nsec)
-        || db_value_from_int32(db_value_set_get(value_set, 1), denial->nsec3))
+    if (db_value_copy(db_value_set_get(value_set, 0), &(denial->nsec))
+        || db_value_copy(db_value_set_get(value_set, 1), &(denial->nsec3)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -346,7 +428,13 @@ int denial_update(denial_t* denial) {
     if (db_value_not_empty(&(denial->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (db_value_not_empty(&(denial->nsec))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(denial->nsec3))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -377,8 +465,8 @@ int denial_update(denial_t* denial) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), denial->nsec)
-        || db_value_from_int32(db_value_set_get(value_set, 1), denial->nsec3))
+    if (db_value_copy(db_value_set_get(value_set, 0), &(denial->nsec))
+        || db_value_copy(db_value_set_get(value_set, 1), &(denial->nsec3)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

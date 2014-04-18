@@ -115,9 +115,9 @@ int dbo_hsm_key_copy(dbo_hsm_key_t* dbo_hsm_key, const dbo_hsm_key_t* dbo_hsm_ke
 int dbo_hsm_key_from_result(dbo_hsm_key_t* dbo_hsm_key, const db_result_t* result);
 
 /**
- * Get the id of a dbo hsm key object. Undefined behavior if `dbo_hsm_key` is NULL.
+ * Get the id of a dbo hsm key object.
  * \param[in] dbo_hsm_key a dbo_hsm_key_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* dbo_hsm_key_id(const dbo_hsm_key_t* dbo_hsm_key);
 

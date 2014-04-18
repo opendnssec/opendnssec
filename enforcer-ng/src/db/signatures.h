@@ -102,9 +102,9 @@ int signatures_copy(signatures_t* signatures, const signatures_t* signatures_cop
 int signatures_from_result(signatures_t* signatures, const db_result_t* result);
 
 /**
- * Get the id of a signatures object. Undefined behavior if `signatures` is NULL.
+ * Get the id of a signatures object.
  * \param[in] signatures a signatures_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* signatures_id(const signatures_t* signatures);
 

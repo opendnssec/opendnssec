@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static denial_t* object = NULL;
 static denial_list_t* object_list = NULL;
-static db_value_t id;
+static db_value_t id = DB_VALUE_EMPTY;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_denial_init_suite_sqlite(void) {
@@ -108,7 +108,6 @@ int test_denial_init_suite_sqlite(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -178,7 +177,6 @@ int test_denial_init_suite_couchdb(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -200,13 +198,28 @@ static void test_denial_new(void) {
 }
 
 static void test_denial_set(void) {
-    CU_ASSERT(!denial_set_nsec(object, 1));
-    CU_ASSERT(!denial_set_nsec3(object, 1));
+    db_value_t nsec = DB_VALUE_EMPTY;
+    db_value_t nsec3 = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&nsec, 1));
+    CU_ASSERT(!db_value_from_int32(&nsec3, 1));
+    CU_ASSERT(!denial_set_nsec(object, &nsec));
+    CU_ASSERT(!denial_set_nsec3(object, &nsec3));
+    db_value_reset(&nsec);
+    db_value_reset(&nsec3);
 }
 
 static void test_denial_get(void) {
-    CU_ASSERT(denial_nsec(object) == 1);
-    CU_ASSERT(denial_nsec3(object) == 1);
+    int ret;
+    db_value_t nsec = DB_VALUE_EMPTY;
+    db_value_t nsec3 = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&nsec, 1));
+    CU_ASSERT(!db_value_from_int32(&nsec3, 1));
+    CU_ASSERT(!db_value_cmp(denial_nsec(object), &nsec, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(denial_nsec3(object), &nsec3, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&nsec);
+    db_value_reset(&nsec3);
 }
 
 static void test_denial_create(void) {
@@ -225,13 +238,28 @@ static void test_denial_read(void) {
 }
 
 static void test_denial_verify(void) {
-    CU_ASSERT(denial_nsec(object) == 1);
-    CU_ASSERT(denial_nsec3(object) == 1);
+    int ret;
+    db_value_t nsec = DB_VALUE_EMPTY;
+    db_value_t nsec3 = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&nsec, 1));
+    CU_ASSERT(!db_value_from_int32(&nsec3, 1));
+    CU_ASSERT(!db_value_cmp(denial_nsec(object), &nsec, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(denial_nsec3(object), &nsec3, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&nsec);
+    db_value_reset(&nsec3);
 }
 
 static void test_denial_change(void) {
-    CU_ASSERT(!denial_set_nsec(object, 2));
-    CU_ASSERT(!denial_set_nsec3(object, 2));
+    db_value_t nsec = DB_VALUE_EMPTY;
+    db_value_t nsec3 = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&nsec, 2));
+    CU_ASSERT(!db_value_from_int32(&nsec3, 2));
+    CU_ASSERT(!denial_set_nsec(object, &nsec));
+    CU_ASSERT(!denial_set_nsec3(object, &nsec3));
+    db_value_reset(&nsec);
+    db_value_reset(&nsec3);
 }
 
 static void test_denial_update(void) {
@@ -243,8 +271,17 @@ static void test_denial_read2(void) {
 }
 
 static void test_denial_verify2(void) {
-    CU_ASSERT(denial_nsec(object) == 2);
-    CU_ASSERT(denial_nsec3(object) == 2);
+    int ret;
+    db_value_t nsec = DB_VALUE_EMPTY;
+    db_value_t nsec3 = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&nsec, 2));
+    CU_ASSERT(!db_value_from_int32(&nsec3, 2));
+    CU_ASSERT(!db_value_cmp(denial_nsec(object), &nsec, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(denial_nsec3(object), &nsec3, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&nsec);
+    db_value_reset(&nsec3);
 }
 
 static void test_denial_delete(void) {

@@ -110,9 +110,9 @@ int ksk_copy(ksk_t* ksk, const ksk_t* ksk_copy);
 int ksk_from_result(ksk_t* ksk, const db_result_t* result);
 
 /**
- * Get the id of a ksk object. Undefined behavior if `ksk` is NULL.
+ * Get the id of a ksk object.
  * \param[in] ksk a ksk_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* ksk_id(const ksk_t* ksk);
 

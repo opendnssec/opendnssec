@@ -327,7 +327,7 @@ int dbo_keylist_create(dbo_keylist_t* dbo_keylist) {
     if (!db_value_not_empty(&(dbo_keylist->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -475,7 +475,7 @@ int dbo_keylist_update(dbo_keylist_t* dbo_keylist) {
     if (db_value_not_empty(&(dbo_keylist->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

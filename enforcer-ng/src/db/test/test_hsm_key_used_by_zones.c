@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static hsm_key_used_by_zones_t* object = NULL;
 static hsm_key_used_by_zones_list_t* object_list = NULL;
-static db_value_t id;
+static db_value_t id = DB_VALUE_EMPTY;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_hsm_key_used_by_zones_init_suite_sqlite(void) {
@@ -108,7 +108,6 @@ int test_hsm_key_used_by_zones_init_suite_sqlite(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -178,7 +177,6 @@ int test_hsm_key_used_by_zones_init_suite_couchdb(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -200,14 +198,22 @@ static void test_hsm_key_used_by_zones_new(void) {
 }
 
 static void test_hsm_key_used_by_zones_set(void) {
+    db_value_t parent_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&parent_id, 1));
     CU_ASSERT(!hsm_key_used_by_zones_set_value(object, "value 1"));
-    CU_ASSERT(!hsm_key_used_by_zones_set_parent_id(object, 1));
+    CU_ASSERT(!hsm_key_used_by_zones_set_parent_id(object, &parent_id));
+    db_value_reset(&parent_id);
 }
 
 static void test_hsm_key_used_by_zones_get(void) {
+    int ret;
+    db_value_t parent_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&parent_id, 1));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_used_by_zones_value(object));
     CU_ASSERT(!strcmp(hsm_key_used_by_zones_value(object), "value 1"));
-    CU_ASSERT(hsm_key_used_by_zones_parent_id(object) == 1);
+    CU_ASSERT(!db_value_cmp(hsm_key_used_by_zones_parent_id(object), &parent_id, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&parent_id);
 }
 
 static void test_hsm_key_used_by_zones_create(void) {
@@ -226,14 +232,22 @@ static void test_hsm_key_used_by_zones_read(void) {
 }
 
 static void test_hsm_key_used_by_zones_verify(void) {
+    int ret;
+    db_value_t parent_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&parent_id, 1));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_used_by_zones_value(object));
     CU_ASSERT(!strcmp(hsm_key_used_by_zones_value(object), "value 1"));
-    CU_ASSERT(hsm_key_used_by_zones_parent_id(object) == 1);
+    CU_ASSERT(!db_value_cmp(hsm_key_used_by_zones_parent_id(object), &parent_id, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&parent_id);
 }
 
 static void test_hsm_key_used_by_zones_change(void) {
+    db_value_t parent_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&parent_id, 2));
     CU_ASSERT(!hsm_key_used_by_zones_set_value(object, "value 2"));
-    CU_ASSERT(!hsm_key_used_by_zones_set_parent_id(object, 2));
+    CU_ASSERT(!hsm_key_used_by_zones_set_parent_id(object, &parent_id));
+    db_value_reset(&parent_id);
 }
 
 static void test_hsm_key_used_by_zones_update(void) {
@@ -245,9 +259,14 @@ static void test_hsm_key_used_by_zones_read2(void) {
 }
 
 static void test_hsm_key_used_by_zones_verify2(void) {
+    int ret;
+    db_value_t parent_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&parent_id, 2));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_used_by_zones_value(object));
     CU_ASSERT(!strcmp(hsm_key_used_by_zones_value(object), "value 2"));
-    CU_ASSERT(hsm_key_used_by_zones_parent_id(object) == 2);
+    CU_ASSERT(!db_value_cmp(hsm_key_used_by_zones_parent_id(object), &parent_id, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&parent_id);
 }
 
 static void test_hsm_key_used_by_zones_delete(void) {

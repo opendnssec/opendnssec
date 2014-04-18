@@ -108,9 +108,9 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy);
 int key_state_from_result(key_state_t* key_state, const db_result_t* result);
 
 /**
- * Get the id of a key state object. Undefined behavior if `key_state` is NULL.
+ * Get the id of a key state object.
  * \param[in] key_state a key_state_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* key_state_id(const key_state_t* key_state);
 

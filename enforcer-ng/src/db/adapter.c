@@ -366,7 +366,16 @@ int adapter_create(adapter_t* adapter) {
     if (!db_value_not_empty(&(adapter->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!adapter->adapter) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!adapter->type) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!adapter->file) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -492,7 +501,16 @@ int adapter_update(adapter_t* adapter) {
     if (db_value_not_empty(&(adapter->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!adapter->adapter) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!adapter->type) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!adapter->file) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

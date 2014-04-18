@@ -45,6 +45,11 @@ typedef struct policy_list policy_list_t;
 
 #include "db_object.h"
 #include "policy_ext.h"
+#include "signatures.h"
+#include "denial.h"
+#include "dbo_keylist.h"
+#include "zone.h"
+#include "parent.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,11 +63,11 @@ struct policy {
     db_value_t id;
     char* name;
     char* description;
-    int signatures;
-    int denial;
-    int keylist;
-    int zone;
-    int parent;
+    db_value_t signatures;
+    db_value_t denial;
+    db_value_t keylist;
+    db_value_t zone;
+    db_value_t parent;
 #include "policy_struct_ext.h"
 };
 
@@ -102,9 +107,9 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy);
 int policy_from_result(policy_t* policy, const db_result_t* result);
 
 /**
- * Get the id of a policy object. Undefined behavior if `policy` is NULL.
+ * Get the id of a policy object.
  * \param[in] policy a policy_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* policy_id(const policy_t* policy);
 
@@ -123,39 +128,74 @@ const char* policy_name(const policy_t* policy);
 const char* policy_description(const policy_t* policy);
 
 /**
- * Get the signatures of a policy object. Undefined behavior if `policy` is NULL.
+ * Get the signatures of a policy object.
  * \param[in] policy a policy_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int policy_signatures(const policy_t* policy);
+const db_value_t* policy_signatures(const policy_t* policy);
 
 /**
- * Get the denial of a policy object. Undefined behavior if `policy` is NULL.
+ * Get the signatures object related to a policy object.
  * \param[in] policy a policy_t pointer.
- * \return an integer.
+ * \return a signatures_t pointer or NULL on error or if no object could be found.
  */
-int policy_denial(const policy_t* policy);
+signatures_t* policy_get_signatures(const policy_t* policy);
 
 /**
- * Get the keylist of a policy object. Undefined behavior if `policy` is NULL.
+ * Get the denial of a policy object.
  * \param[in] policy a policy_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int policy_keylist(const policy_t* policy);
+const db_value_t* policy_denial(const policy_t* policy);
 
 /**
- * Get the zone of a policy object. Undefined behavior if `policy` is NULL.
+ * Get the denial object related to a policy object.
  * \param[in] policy a policy_t pointer.
- * \return an integer.
+ * \return a denial_t pointer or NULL on error or if no object could be found.
  */
-int policy_zone(const policy_t* policy);
+denial_t* policy_get_denial(const policy_t* policy);
 
 /**
- * Get the parent of a policy object. Undefined behavior if `policy` is NULL.
+ * Get the keylist of a policy object.
  * \param[in] policy a policy_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int policy_parent(const policy_t* policy);
+const db_value_t* policy_keylist(const policy_t* policy);
+
+/**
+ * Get the keylist object related to a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a dbo_keylist_t pointer or NULL on error or if no object could be found.
+ */
+dbo_keylist_t* policy_get_keylist(const policy_t* policy);
+
+/**
+ * Get the zone of a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* policy_zone(const policy_t* policy);
+
+/**
+ * Get the zone object related to a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a zone_t pointer or NULL on error or if no object could be found.
+ */
+zone_t* policy_get_zone(const policy_t* policy);
+
+/**
+ * Get the parent of a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* policy_parent(const policy_t* policy);
+
+/**
+ * Get the parent object related to a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a parent_t pointer or NULL on error or if no object could be found.
+ */
+parent_t* policy_get_parent(const policy_t* policy);
 
 /**
  * Set the name of a policy object.
@@ -174,44 +214,44 @@ int policy_set_name(policy_t* policy, const char* name_text);
 int policy_set_description(policy_t* policy, const char* description_text);
 
 /**
- * Set the signatures of a policy object.
+ * Set the signatures of a policy object. If this fails the original value may have been lost.
  * \param[in] policy a policy_t pointer.
- * \param[in] signatures an integer.
+ * \param[in] signatures a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures(policy_t* policy, int signatures);
+int policy_set_signatures(policy_t* policy, const db_value_t* signatures);
 
 /**
- * Set the denial of a policy object.
+ * Set the denial of a policy object. If this fails the original value may have been lost.
  * \param[in] policy a policy_t pointer.
- * \param[in] denial an integer.
+ * \param[in] denial a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial(policy_t* policy, int denial);
+int policy_set_denial(policy_t* policy, const db_value_t* denial);
 
 /**
- * Set the keylist of a policy object.
+ * Set the keylist of a policy object. If this fails the original value may have been lost.
  * \param[in] policy a policy_t pointer.
- * \param[in] keylist an integer.
+ * \param[in] keylist a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_keylist(policy_t* policy, int keylist);
+int policy_set_keylist(policy_t* policy, const db_value_t* keylist);
 
 /**
- * Set the zone of a policy object.
+ * Set the zone of a policy object. If this fails the original value may have been lost.
  * \param[in] policy a policy_t pointer.
- * \param[in] zone an integer.
+ * \param[in] zone a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_zone(policy_t* policy, int zone);
+int policy_set_zone(policy_t* policy, const db_value_t* zone);
 
 /**
- * Set the parent of a policy object.
+ * Set the parent of a policy object. If this fails the original value may have been lost.
  * \param[in] policy a policy_t pointer.
- * \param[in] parent an integer.
+ * \param[in] parent a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_parent(policy_t* policy, int parent);
+int policy_set_parent(policy_t* policy, const db_value_t* parent);
 
 /**
  * Create a policy object in the database.

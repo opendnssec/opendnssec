@@ -199,7 +199,7 @@ int audit_create(audit_t* audit) {
     if (!db_value_not_empty(&(audit->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -303,7 +303,7 @@ int audit_update(audit_t* audit) {
     if (db_value_not_empty(&(audit->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

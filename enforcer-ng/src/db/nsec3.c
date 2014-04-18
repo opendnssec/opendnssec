@@ -454,7 +454,10 @@ int nsec3_create(nsec3_t* nsec3) {
     if (!db_value_not_empty(&(nsec3->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!nsec3->salt) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -635,7 +638,10 @@ int nsec3_update(nsec3_t* nsec3) {
     if (db_value_not_empty(&(nsec3->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!nsec3->salt) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;

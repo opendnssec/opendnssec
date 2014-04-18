@@ -112,9 +112,9 @@ int csk_copy(csk_t* csk, const csk_t* csk_copy);
 int csk_from_result(csk_t* csk, const db_result_t* result);
 
 /**
- * Get the id of a csk object. Undefined behavior if `csk` is NULL.
+ * Get the id of a csk object.
  * \param[in] csk a csk_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* csk_id(const csk_t* csk);
 

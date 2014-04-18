@@ -140,7 +140,7 @@ static db_connection_t* connection = NULL;
 
 static ', $name, '_t* object = NULL;
 static ', $name, '_list_t* object_list = NULL;
-static db_value_t id;
+static db_value_t id = DB_VALUE_EMPTY;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_', $name, '_init_suite_sqlite(void) {
@@ -207,7 +207,6 @@ int test_', $name, '_init_suite_sqlite(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -277,7 +276,6 @@ int test_', $name, '_init_suite_couchdb(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -301,7 +299,31 @@ static void test_', $name, '_new(void) {
 static void test_', $name, '_set(void) {
 ';
 foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_t ', $field->{name}, ' = DB_VALUE_EMPTY;
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $field->{name}, ' 1");
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(&', $field->{name}, ', 1));
+';
+}
+foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '    CU_ASSERT(!', $name, '_set_', $field->{name}, '(object, &', $field->{name}, '));
+';
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -321,12 +343,50 @@ print SOURCE '    CU_ASSERT(!', $name, '_set_', $field->{name}, '(object, "', $f
 print SOURCE '    CU_ASSERT(!', $name, '_set_', $field->{name}, '(object, 1));
 ';
 }
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_reset(&', $field->{name}, ');
+';
+}
 print SOURCE '}
 
 static void test_', $name, '_get(void) {
 ';
+my $ret = 0;
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if (!$ret) {
+print SOURCE '    int ret;
+';
+        $ret = 1;
+    }
+print SOURCE '    db_value_t ', $field->{name}, ' = DB_VALUE_EMPTY;
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $field->{name}, ' 1");
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(&', $field->{name}, ', 1));
+';
+}
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '    CU_ASSERT(!db_value_cmp(', $name, '_', $field->{name}, '(object), &', $field->{name}, ', &ret));
+    CU_ASSERT(!ret);
+';
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -349,6 +409,13 @@ print SOURCE '    CU_ASSERT(!strcmp(', $name, '_', $field->{name}, '(object), "'
         next;
     }
 print SOURCE '    CU_ASSERT(', $name, '_', $field->{name}, '(object) == 1);
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_reset(&', $field->{name}, ');
 ';
 }
 print SOURCE '}
@@ -370,8 +437,39 @@ static void test_', $name, '_read(void) {
 
 static void test_', $name, '_verify(void) {
 ';
+my $ret = 0;
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if (!$ret) {
+print SOURCE '    int ret;
+';
+        $ret = 1;
+    }
+print SOURCE '    db_value_t ', $field->{name}, ' = DB_VALUE_EMPTY;
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $field->{name}, ' 1");
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(&', $field->{name}, ', 1));
+';
+}
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '    CU_ASSERT(!db_value_cmp(', $name, '_', $field->{name}, '(object), &', $field->{name}, ', &ret));
+    CU_ASSERT(!ret);
+';
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -396,12 +494,43 @@ print SOURCE '    CU_ASSERT(!strcmp(', $name, '_', $field->{name}, '(object), "'
 print SOURCE '    CU_ASSERT(', $name, '_', $field->{name}, '(object) == 1);
 ';
 }
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_reset(&', $field->{name}, ');
+';
+}
 print SOURCE '}
 
 static void test_', $name, '_change(void) {
 ';
 foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_t ', $field->{name}, ' = DB_VALUE_EMPTY;
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $field->{name}, ' 2");
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(&', $field->{name}, ', 2));
+';
+}
+foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '    CU_ASSERT(!', $name, '_set_', $field->{name}, '(object, &', $field->{name}, '));
+';
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -422,6 +551,13 @@ print SOURCE '    CU_ASSERT(!', $name, '_set_', $field->{name}, '(object, "', $f
 print SOURCE '    CU_ASSERT(!', $name, '_set_', $field->{name}, '(object, 2));
 ';
 }
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_reset(&', $field->{name}, ');
+';
+}
 print SOURCE '}
 
 static void test_', $name, '_update(void) {
@@ -438,8 +574,39 @@ static void test_', $name, '_read2(void) {
 
 static void test_', $name, '_verify2(void) {
 ';
+my $ret = 0;
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if (!$ret) {
+print SOURCE '    int ret;
+';
+        $ret = 1;
+    }
+print SOURCE '    db_value_t ', $field->{name}, ' = DB_VALUE_EMPTY;
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $field->{name}, ' 2");
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(&', $field->{name}, ', 2));
+';
+}
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '    CU_ASSERT(!db_value_cmp(', $name, '_', $field->{name}, '(object), &', $field->{name}, ', &ret));
+    CU_ASSERT(!ret);
+';
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -462,6 +629,13 @@ print SOURCE '    CU_ASSERT(!strcmp(', $name, '_', $field->{name}, '(object), "'
         next;
     }
 print SOURCE '    CU_ASSERT(', $name, '_', $field->{name}, '(object) == 2);
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_reset(&', $field->{name}, ');
 ';
 }
 print SOURCE '}

@@ -107,9 +107,9 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy);
 int zone_from_result(zone_t* zone, const db_result_t* result);
 
 /**
- * Get the id of a zone object. Undefined behavior if `zone` is NULL.
+ * Get the id of a zone object.
  * \param[in] zone a zone_t pointer.
- * \return a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* zone_id(const zone_t* zone);
 

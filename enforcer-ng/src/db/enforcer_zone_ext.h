@@ -47,14 +47,6 @@ extern "C" {
 key_data_list_t* enforcer_zone_get_keys(const enforcer_zone_t* enforcer_zone);
 
 /**
- * Get an adapters for an enforcer zone object.
- * \param[in] enforcer_zone an enforcer_zone_t pointer.
- * \return a adapter_list_t pointer or NULL on error or if there are no adapters
- * in the enforcer zone object.
- */
-adapters_t* enforcer_zone_get_adapters(const enforcer_zone_t* enforcer_zone);
-
-/**
  * Get a list of key dependencies for an enforcer zone object.
  * \param[in] enforcer_zone an enforcer_zone_t pointer.
  * \return a key_dependency_list_t pointer or NULL on error or if there are no

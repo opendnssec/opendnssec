@@ -41,7 +41,7 @@ static db_connection_t* connection = NULL;
 
 static adapters_t* object = NULL;
 static adapters_list_t* object_list = NULL;
-static db_value_t id;
+static db_value_t id = DB_VALUE_EMPTY;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_adapters_init_suite_sqlite(void) {
@@ -108,7 +108,6 @@ int test_adapters_init_suite_sqlite(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -178,7 +177,6 @@ int test_adapters_init_suite_couchdb(void) {
         return 1;
     }
 
-    db_value_reset(&id);
     return 0;
 }
 #endif
@@ -200,13 +198,28 @@ static void test_adapters_new(void) {
 }
 
 static void test_adapters_set(void) {
-    CU_ASSERT(!adapters_set_input(object, 1));
-    CU_ASSERT(!adapters_set_output(object, 1));
+    db_value_t input = DB_VALUE_EMPTY;
+    db_value_t output = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&input, 1));
+    CU_ASSERT(!db_value_from_int32(&output, 1));
+    CU_ASSERT(!adapters_set_input(object, &input));
+    CU_ASSERT(!adapters_set_output(object, &output));
+    db_value_reset(&input);
+    db_value_reset(&output);
 }
 
 static void test_adapters_get(void) {
-    CU_ASSERT(adapters_input(object) == 1);
-    CU_ASSERT(adapters_output(object) == 1);
+    int ret;
+    db_value_t input = DB_VALUE_EMPTY;
+    db_value_t output = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&input, 1));
+    CU_ASSERT(!db_value_from_int32(&output, 1));
+    CU_ASSERT(!db_value_cmp(adapters_input(object), &input, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(adapters_output(object), &output, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&input);
+    db_value_reset(&output);
 }
 
 static void test_adapters_create(void) {
@@ -225,13 +238,28 @@ static void test_adapters_read(void) {
 }
 
 static void test_adapters_verify(void) {
-    CU_ASSERT(adapters_input(object) == 1);
-    CU_ASSERT(adapters_output(object) == 1);
+    int ret;
+    db_value_t input = DB_VALUE_EMPTY;
+    db_value_t output = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&input, 1));
+    CU_ASSERT(!db_value_from_int32(&output, 1));
+    CU_ASSERT(!db_value_cmp(adapters_input(object), &input, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(adapters_output(object), &output, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&input);
+    db_value_reset(&output);
 }
 
 static void test_adapters_change(void) {
-    CU_ASSERT(!adapters_set_input(object, 2));
-    CU_ASSERT(!adapters_set_output(object, 2));
+    db_value_t input = DB_VALUE_EMPTY;
+    db_value_t output = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&input, 2));
+    CU_ASSERT(!db_value_from_int32(&output, 2));
+    CU_ASSERT(!adapters_set_input(object, &input));
+    CU_ASSERT(!adapters_set_output(object, &output));
+    db_value_reset(&input);
+    db_value_reset(&output);
 }
 
 static void test_adapters_update(void) {
@@ -243,8 +271,17 @@ static void test_adapters_read2(void) {
 }
 
 static void test_adapters_verify2(void) {
-    CU_ASSERT(adapters_input(object) == 2);
-    CU_ASSERT(adapters_output(object) == 2);
+    int ret;
+    db_value_t input = DB_VALUE_EMPTY;
+    db_value_t output = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&input, 2));
+    CU_ASSERT(!db_value_from_int32(&output, 2));
+    CU_ASSERT(!db_value_cmp(adapters_input(object), &input, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(adapters_output(object), &output, &ret));
+    CU_ASSERT(!ret);
+    db_value_reset(&input);
+    db_value_reset(&output);
 }
 
 static void test_adapters_delete(void) {

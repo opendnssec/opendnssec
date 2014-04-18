@@ -283,8 +283,12 @@ key_data_t* key_data_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(key_data->id));
+        db_value_reset(&(key_data->ds));
+        db_value_reset(&(key_data->rrsig));
+        db_value_reset(&(key_data->dnskey));
         key_data->role = KEY_DATA_ROLE_INVALID;
         key_data->introducing = 1;
+        db_value_reset(&(key_data->rrsigdnskey));
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_UNSUBMITTED;
     }
 
@@ -300,6 +304,10 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->locator) {
             free(key_data->locator);
         }
+        db_value_reset(&(key_data->ds));
+        db_value_reset(&(key_data->rrsig));
+        db_value_reset(&(key_data->dnskey));
+        db_value_reset(&(key_data->rrsigdnskey));
         mm_alloc_delete(&__key_data_alloc, key_data);
     }
 }
@@ -313,16 +321,16 @@ void key_data_reset(key_data_t* key_data) {
         key_data->locator = NULL;
         key_data->algorithm = 0;
         key_data->inception = 0;
-        key_data->ds = 0;
-        key_data->rrsig = 0;
-        key_data->dnskey = 0;
+        db_value_reset(&(key_data->ds));
+        db_value_reset(&(key_data->rrsig));
+        db_value_reset(&(key_data->dnskey));
         key_data->role = KEY_DATA_ROLE_INVALID;
         key_data->introducing = 1;
         key_data->shouldrevoke = 0;
         key_data->standby = 0;
         key_data->active_zsk = 0;
         key_data->publish = 0;
-        key_data->rrsigdnskey = 0;
+        db_value_reset(&(key_data->rrsigdnskey));
         key_data->active_ksk = 0;
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_UNSUBMITTED;
         key_data->keytag = 0;
@@ -352,16 +360,24 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
     key_data->locator = locator_text;
     key_data->algorithm = key_data_copy->algorithm;
     key_data->inception = key_data_copy->inception;
-    key_data->ds = key_data_copy->ds;
-    key_data->rrsig = key_data_copy->rrsig;
-    key_data->dnskey = key_data_copy->dnskey;
+    if (db_value_copy(&(key_data->ds), &(key_data_copy->ds))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(key_data->rrsig), &(key_data_copy->rrsig))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(key_data->dnskey), &(key_data_copy->dnskey))) {
+        return DB_ERROR_UNKNOWN;
+    }
     key_data->role = key_data_copy->role;
     key_data->introducing = key_data_copy->introducing;
     key_data->shouldrevoke = key_data_copy->shouldrevoke;
     key_data->standby = key_data_copy->standby;
     key_data->active_zsk = key_data_copy->active_zsk;
     key_data->publish = key_data_copy->publish;
-    key_data->rrsigdnskey = key_data_copy->rrsigdnskey;
+    if (db_value_copy(&(key_data->rrsigdnskey), &(key_data_copy->rrsigdnskey))) {
+        return DB_ERROR_UNKNOWN;
+    }
     key_data->active_ksk = key_data_copy->active_ksk;
     key_data->ds_at_parent = key_data_copy->ds_at_parent;
     key_data->keytag = key_data_copy->keytag;
@@ -385,22 +401,26 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
         free(key_data->locator);
     }
     key_data->locator = NULL;
+    db_value_reset(&(key_data->ds));
+    db_value_reset(&(key_data->rrsig));
+    db_value_reset(&(key_data->dnskey));
+    db_value_reset(&(key_data->rrsigdnskey));
     if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != 17
         || db_value_copy(&(key_data->id), db_value_set_at(value_set, 0))
         || db_value_to_text(db_value_set_at(value_set, 1), &(key_data->locator))
         || db_value_to_uint32(db_value_set_at(value_set, 2), &(key_data->algorithm))
         || db_value_to_uint32(db_value_set_at(value_set, 3), &(key_data->inception))
-        || db_value_to_int32(db_value_set_at(value_set, 4), &(key_data->ds))
-        || db_value_to_int32(db_value_set_at(value_set, 5), &(key_data->rrsig))
-        || db_value_to_int32(db_value_set_at(value_set, 6), &(key_data->dnskey))
+        || db_value_copy(&(key_data->ds), db_value_set_at(value_set, 4))
+        || db_value_copy(&(key_data->rrsig), db_value_set_at(value_set, 5))
+        || db_value_copy(&(key_data->dnskey), db_value_set_at(value_set, 6))
         || db_value_to_enum_value(db_value_set_at(value_set, 7), &role, __enum_set_role)
         || db_value_to_uint32(db_value_set_at(value_set, 8), &(key_data->introducing))
         || db_value_to_uint32(db_value_set_at(value_set, 9), &(key_data->shouldrevoke))
         || db_value_to_uint32(db_value_set_at(value_set, 10), &(key_data->standby))
         || db_value_to_uint32(db_value_set_at(value_set, 11), &(key_data->active_zsk))
         || db_value_to_uint32(db_value_set_at(value_set, 12), &(key_data->publish))
-        || db_value_to_int32(db_value_set_at(value_set, 13), &(key_data->rrsigdnskey))
+        || db_value_copy(&(key_data->rrsigdnskey), db_value_set_at(value_set, 13))
         || db_value_to_uint32(db_value_set_at(value_set, 14), &(key_data->active_ksk))
         || db_value_to_enum_value(db_value_set_at(value_set, 15), &ds_at_parent, __enum_set_ds_at_parent)
         || db_value_to_uint32(db_value_set_at(value_set, 16), &(key_data->keytag)))
@@ -478,28 +498,100 @@ unsigned int key_data_inception(const key_data_t* key_data) {
     return key_data->inception;
 }
 
-int key_data_ds(const key_data_t* key_data) {
+const db_value_t* key_data_ds(const key_data_t* key_data) {
     if (!key_data) {
-        return 0;
+        return NULL;
     }
 
-    return key_data->ds;
+    return &(key_data->ds);
 }
 
-int key_data_rrsig(const key_data_t* key_data) {
+key_state_t* key_data_get_ds(const key_data_t* key_data) {
+    key_state_t* ds = NULL;
+    
     if (!key_data) {
-        return 0;
+        return NULL;
+    }
+    if (!key_data->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(key_data->ds))) {
+        return NULL;
+    }
+    
+    if (!(ds = key_state_new(db_object_connection(key_data->dbo)))) {
+        return NULL;
+    }
+    if (key_state_get_by_id(ds, &(key_data->ds))) {
+        key_state_free(ds);
+        return NULL;
     }
 
-    return key_data->rrsig;
+    return ds;
 }
 
-int key_data_dnskey(const key_data_t* key_data) {
+const db_value_t* key_data_rrsig(const key_data_t* key_data) {
     if (!key_data) {
-        return 0;
+        return NULL;
     }
 
-    return key_data->dnskey;
+    return &(key_data->rrsig);
+}
+
+key_state_t* key_data_get_rrsig(const key_data_t* key_data) {
+    key_state_t* rrsig = NULL;
+    
+    if (!key_data) {
+        return NULL;
+    }
+    if (!key_data->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(key_data->rrsig))) {
+        return NULL;
+    }
+    
+    if (!(rrsig = key_state_new(db_object_connection(key_data->dbo)))) {
+        return NULL;
+    }
+    if (key_state_get_by_id(rrsig, &(key_data->rrsig))) {
+        key_state_free(rrsig);
+        return NULL;
+    }
+
+    return rrsig;
+}
+
+const db_value_t* key_data_dnskey(const key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return &(key_data->dnskey);
+}
+
+key_state_t* key_data_get_dnskey(const key_data_t* key_data) {
+    key_state_t* dnskey = NULL;
+    
+    if (!key_data) {
+        return NULL;
+    }
+    if (!key_data->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(key_data->dnskey))) {
+        return NULL;
+    }
+    
+    if (!(dnskey = key_state_new(db_object_connection(key_data->dbo)))) {
+        return NULL;
+    }
+    if (key_state_get_by_id(dnskey, &(key_data->dnskey))) {
+        key_state_free(dnskey);
+        return NULL;
+    }
+
+    return dnskey;
 }
 
 key_data_role_t key_data_role(const key_data_t* key_data) {
@@ -566,12 +658,36 @@ unsigned int key_data_publish(const key_data_t* key_data) {
     return key_data->publish;
 }
 
-int key_data_rrsigdnskey(const key_data_t* key_data) {
+const db_value_t* key_data_rrsigdnskey(const key_data_t* key_data) {
     if (!key_data) {
-        return 0;
+        return NULL;
     }
 
-    return key_data->rrsigdnskey;
+    return &(key_data->rrsigdnskey);
+}
+
+key_state_t* key_data_get_rrsigdnskey(const key_data_t* key_data) {
+    key_state_t* rrsigdnskey = NULL;
+    
+    if (!key_data) {
+        return NULL;
+    }
+    if (!key_data->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(key_data->rrsigdnskey))) {
+        return NULL;
+    }
+    
+    if (!(rrsigdnskey = key_state_new(db_object_connection(key_data->dbo)))) {
+        return NULL;
+    }
+    if (key_state_get_by_id(rrsigdnskey, &(key_data->rrsigdnskey))) {
+        key_state_free(rrsigdnskey);
+        return NULL;
+    }
+
+    return rrsigdnskey;
 }
 
 unsigned int key_data_active_ksk(const key_data_t* key_data) {
@@ -656,32 +772,59 @@ int key_data_set_inception(key_data_t* key_data, unsigned int inception) {
     return DB_OK;
 }
 
-int key_data_set_ds(key_data_t* key_data, int ds) {
+int key_data_set_ds(key_data_t* key_data, const db_value_t* ds) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!ds) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(ds)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    key_data->ds = ds;
+    db_value_reset(&(key_data->ds));
+    if (db_value_copy(&(key_data->ds), ds)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int key_data_set_rrsig(key_data_t* key_data, int rrsig) {
+int key_data_set_rrsig(key_data_t* key_data, const db_value_t* rrsig) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!rrsig) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(rrsig)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    key_data->rrsig = rrsig;
+    db_value_reset(&(key_data->rrsig));
+    if (db_value_copy(&(key_data->rrsig), rrsig)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int key_data_set_dnskey(key_data_t* key_data, int dnskey) {
+int key_data_set_dnskey(key_data_t* key_data, const db_value_t* dnskey) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!dnskey) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(dnskey)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    key_data->dnskey = dnskey;
+    db_value_reset(&(key_data->dnskey));
+    if (db_value_copy(&(key_data->dnskey), dnskey)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
@@ -763,12 +906,21 @@ int key_data_set_publish(key_data_t* key_data, unsigned int publish) {
     return DB_OK;
 }
 
-int key_data_set_rrsigdnskey(key_data_t* key_data, int rrsigdnskey) {
+int key_data_set_rrsigdnskey(key_data_t* key_data, const db_value_t* rrsigdnskey) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!rrsigdnskey) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(rrsigdnskey)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    key_data->rrsigdnskey = rrsigdnskey;
+    db_value_reset(&(key_data->rrsigdnskey));
+    if (db_value_copy(&(key_data->rrsigdnskey), rrsigdnskey)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
@@ -835,7 +987,22 @@ int key_data_create(key_data_t* key_data) {
     if (!db_value_not_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!key_data->locator) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->ds))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->rrsig))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->dnskey))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->rrsigdnskey))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -1011,16 +1178,16 @@ int key_data_create(key_data_t* key_data) {
     if (db_value_from_text(db_value_set_get(value_set, 0), key_data->locator)
         || db_value_from_uint32(db_value_set_get(value_set, 1), key_data->algorithm)
         || db_value_from_uint32(db_value_set_get(value_set, 2), key_data->inception)
-        || db_value_from_int32(db_value_set_get(value_set, 3), key_data->ds)
-        || db_value_from_int32(db_value_set_get(value_set, 4), key_data->rrsig)
-        || db_value_from_int32(db_value_set_get(value_set, 5), key_data->dnskey)
+        || db_value_copy(db_value_set_get(value_set, 3), &(key_data->ds))
+        || db_value_copy(db_value_set_get(value_set, 4), &(key_data->rrsig))
+        || db_value_copy(db_value_set_get(value_set, 5), &(key_data->dnskey))
         || db_value_from_enum_value(db_value_set_get(value_set, 6), key_data->role, __enum_set_role)
         || db_value_from_uint32(db_value_set_get(value_set, 7), key_data->introducing)
         || db_value_from_uint32(db_value_set_get(value_set, 8), key_data->shouldrevoke)
         || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->standby)
         || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_zsk)
         || db_value_from_uint32(db_value_set_get(value_set, 11), key_data->publish)
-        || db_value_from_int32(db_value_set_get(value_set, 12), key_data->rrsigdnskey)
+        || db_value_copy(db_value_set_get(value_set, 12), &(key_data->rrsigdnskey))
         || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 14), key_data->ds_at_parent, __enum_set_ds_at_parent)
         || db_value_from_uint32(db_value_set_get(value_set, 15), key_data->keytag))
@@ -1106,7 +1273,22 @@ int key_data_update(key_data_t* key_data) {
     if (db_value_not_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    /* TODO: validate content */
+    if (!key_data->locator) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->ds))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->rrsig))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->dnskey))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->rrsigdnskey))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
         return DB_ERROR_UNKNOWN;
@@ -1282,16 +1464,16 @@ int key_data_update(key_data_t* key_data) {
     if (db_value_from_text(db_value_set_get(value_set, 0), key_data->locator)
         || db_value_from_uint32(db_value_set_get(value_set, 1), key_data->algorithm)
         || db_value_from_uint32(db_value_set_get(value_set, 2), key_data->inception)
-        || db_value_from_int32(db_value_set_get(value_set, 3), key_data->ds)
-        || db_value_from_int32(db_value_set_get(value_set, 4), key_data->rrsig)
-        || db_value_from_int32(db_value_set_get(value_set, 5), key_data->dnskey)
+        || db_value_copy(db_value_set_get(value_set, 3), &(key_data->ds))
+        || db_value_copy(db_value_set_get(value_set, 4), &(key_data->rrsig))
+        || db_value_copy(db_value_set_get(value_set, 5), &(key_data->dnskey))
         || db_value_from_enum_value(db_value_set_get(value_set, 6), key_data->role, __enum_set_role)
         || db_value_from_uint32(db_value_set_get(value_set, 7), key_data->introducing)
         || db_value_from_uint32(db_value_set_get(value_set, 8), key_data->shouldrevoke)
         || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->standby)
         || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_zsk)
         || db_value_from_uint32(db_value_set_get(value_set, 11), key_data->publish)
-        || db_value_from_int32(db_value_set_get(value_set, 12), key_data->rrsigdnskey)
+        || db_value_copy(db_value_set_get(value_set, 12), &(key_data->rrsigdnskey))
         || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 14), key_data->ds_at_parent, __enum_set_ds_at_parent)
         || db_value_from_uint32(db_value_set_get(value_set, 15), key_data->keytag))

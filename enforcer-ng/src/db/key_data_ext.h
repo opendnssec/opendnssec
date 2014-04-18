@@ -48,28 +48,28 @@ int key_data_get_key_state_list(key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_get_ds(key_data_t* key_data);
+const key_state_t* key_data_get_ds2(key_data_t* key_data);
 
 /**
  * Get the RRSIG key state object of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_get_rrsig(key_data_t* key_data);
+const key_state_t* key_data_get_rrsig2(key_data_t* key_data);
 
 /**
  * Get the DNSKEY key state object of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_get_dnskey(key_data_t* key_data);
+const key_state_t* key_data_get_dnskey2(key_data_t* key_data);
 
 /**
  * Get the RRSIG DNSKEY key state object of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_get_rrsigdnskey(key_data_t* key_data);
+const key_state_t* key_data_get_rrsigdnskey2(key_data_t* key_data);
 
 /**
  * Get all key data objects by an enforcer zone id specified in
