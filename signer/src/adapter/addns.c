@@ -243,7 +243,8 @@ begin_pkt:
             tmp_serial =
                 ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
             old_serial = adapi_get_serial(zone);
-            if (!util_serial_gt(tmp_serial, old_serial)) {
+            if (!util_serial_gt(tmp_serial, old_serial) &&
+                zone->db->is_initialized) {
                 ods_log_info("[%s] zone %s is already up to date, have "
                     "serial %u, got serial %u", adapter_str, zone->name,
                     old_serial, tmp_serial);

@@ -1,3 +1,7 @@
+22 April 2014: Matthijs
+- OPENDNSSEC-617: Fix DNS Input Adapter to not reject zone the first time
+  due to serial arethmetic (thanks Paul Wouters).
+
 12 March 2014: Matthijs
 - Update NEWS.
 
