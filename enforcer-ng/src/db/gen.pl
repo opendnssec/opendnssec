@@ -1638,15 +1638,6 @@ foreach my $field (@{$object->{fields}}) {
         next;
     }
         print SQLITE '    ', camelize($field->{name}), ' ', $DB_TYPE_TO_SQLITE{$field->{type}};
-
-    if ($field->{default}) {
-        if ($field->{type} eq 'DB_TYPE_TEXT') {
-            print SQLITE ' DEFAULT "', $field->{default}, '"';
-        }
-        else {
-            print SQLITE ' DEFAULT ', $field->{default};
-        }
-    }
 }
 print SQLITE '
 );

@@ -38,9 +38,9 @@ CREATE TABLE zone (
     rollKskNow UNSIGNED INT NOT NULL,
     rollZskNow UNSIGNED INT NOT NULL,
     rollCskNow UNSIGNED INT NOT NULL,
-    inputAdapterType TEXT NOT NULL DEFAULT "File",
+    inputAdapterType TEXT NOT NULL,
     inputAdapterUri TEXT NOT NULL,
-    outputAdapterType TEXT NOT NULL DEFAULT "File",
+    outputAdapterType TEXT NOT NULL,
     outputAdapterUri TEXT NOT NULL,
     nextKskRoll UNSIGNED INT NOT NULL,
     nextZskRoll UNSIGNED INT NOT NULL,
@@ -56,13 +56,13 @@ CREATE TABLE keyData (
     algorithm UNSIGNED INT NOT NULL,
     inception UNSIGNED INT NOT NULL,
     role INT NOT NULL,
-    introducing UNSIGNED INT NOT NULL DEFAULT 1,
+    introducing UNSIGNED INT NOT NULL,
     shouldRevoke UNSIGNED INT NOT NULL,
     standby UNSIGNED INT NOT NULL,
     activeZsk UNSIGNED INT NOT NULL,
     publish UNSIGNED INT NOT NULL,
     activeKsk UNSIGNED INT NOT NULL,
-    dsAtParent INT NOT NULL DEFAULT UNSUBMITTED,
+    dsAtParent INT NOT NULL,
     keytag UNSIGNED INT NOT NULL
 );
 CREATE INDEX keyDataZoneId ON keyData ( zoneId );
@@ -72,7 +72,7 @@ CREATE TABLE keyState (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     keyDataId INTEGER NOT NULL,
     type INT NOT NULL,
-    state INT NOT NULL DEFAULT HIDDEN,
+    state INT NOT NULL,
     lastChange UNSIGNED INT NOT NULL,
     minimize UNSIGNED INT NOT NULL,
     ttl UNSIGNED INT NOT NULL
@@ -84,15 +84,15 @@ CREATE TABLE hsmKey (
     policyId INTEGER NOT NULL,
     locator TEXT NOT NULL,
     candidateForSharing UNSIGNED INT NOT NULL,
-    bits UNSIGNED INT NOT NULL DEFAULT 2048,
-    policy TEXT NOT NULL DEFAULT "default",
-    algorithm UNSIGNED INT NOT NULL DEFAULT 1,
-    role INT NOT NULL DEFAULT ZSK,
+    bits UNSIGNED INT NOT NULL,
+    policy TEXT NOT NULL,
+    algorithm UNSIGNED INT NOT NULL,
+    role INT NOT NULL,
     inception UNSIGNED INT NOT NULL,
     isRevoked UNSIGNED INT NOT NULL,
     keyType TEXT NOT NULL,
     repository TEXT NOT NULL,
-    backup INT NOT NULL DEFAULT NO_BACKUP
+    backup INT NOT NULL
 );
 CREATE INDEX hsmKeyPolicyId ON hsmKey ( policyId );
 
@@ -106,7 +106,7 @@ CREATE TABLE policy (
     signaturesInceptionOffset UNSIGNED INT NOT NULL,
     signaturesValidityDefault UNSIGNED INT NOT NULL,
     signaturesValidityDenial UNSIGNED INT NOT NULL,
-    signaturesMaxZoneTtl UNSIGNED INT NOT NULL DEFAULT 86400,
+    signaturesMaxZoneTtl UNSIGNED INT NOT NULL,
     denialType INT NOT NULL,
     denialOptout UNSIGNED INT NOT NULL,
     denialTtl UNSIGNED INT NOT NULL,
