@@ -65,28 +65,6 @@ schedule_task(engine_type* engine, task_type *task, const char * what)
     }
 }
 
-int
-database_ready(engineconfig_type* config)
-{
-	/* Try to select from policies. This is only used to probe if the
-	 * database is already setup. If not, we don't schedule tasks which
-	 * would otherwise pollute the logs repeatedly.
-	 * TODO: I'd like to see a better probe which does not log an error */
-	OrmConnRef conn;
-	OrmResultRef rows;
-	::ods::kasp::Policy policy;
-
-	if (!config) return 0;
-
-	if (!ods_orm_connect(-1, config, conn) ||
-		!OrmMessageEnum(conn, policy.descriptor(), rows))
-	{
-		return 0;
-	}
-	rows.release();
-	return 1;
-}
-
 void
 autostart(engine_type* engine)
 {
@@ -97,7 +75,6 @@ autostart(engine_type* engine)
 	while ((task = schedule_pop_task(engine->taskq))) {
 		ods_log_verbose("popping task \"%s\" from queue", task->who);
 	}
-	if (!engine->database_ready) return;
 
 	if (resalt_task = policy_resalt_task(engine)) {
 		/* race condition at startup. Make sure resalt loses over

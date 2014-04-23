@@ -66,7 +66,6 @@ struct engine_struct {
     cmdhandler_type* cmdhandler;
     int cmdhandler_done;
     int init_setup_done;
-    int database_ready;
 
     pid_t pid;
     uid_t uid;

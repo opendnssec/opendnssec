@@ -30,7 +30,6 @@
 #include "config.h"
 
 #include "daemon/cmdhandler.h"
-#include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
 #include "daemon/clientpipe.h"
@@ -45,6 +44,14 @@ usage(int sockfd)
 {
 	client_printf(sockfd,
 		"policy list            List policies.\n");
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"List all policies in the database\n"
+	);
 }
 
 static int
@@ -69,11 +76,12 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 1;
 	}
 
-	policy = policy_list_begin(pol_list);
-	client_printf(sockfd, "Database set to: %s\nPolicies:\n",
-		engine->config->datastore);
+	/* May want to keep this for compatibility?
+	 * client_printf(sockfd, "Database set to: %s\nPolicies:\n",
+		engine->config->datastore);*/
 	client_printf(sockfd, fmt, "Policy:", "Description:");
 
+	policy = policy_list_begin(pol_list);
 	while (policy) {
 		client_printf(sockfd, fmt, policy_name(policy),
 			policy_description(policy));
@@ -84,7 +92,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"policy list", &usage, NULL, &handles, &run
+	"policy list", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*
