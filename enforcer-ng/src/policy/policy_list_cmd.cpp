@@ -35,6 +35,7 @@
 #include "daemon/engine.h"
 #include "policy/policy_list_task.h"
 #include "daemon/clientpipe.h"
+#include "db/policy.h"
 
 #include "policy/policy_list_cmd.h"
 
@@ -57,12 +58,33 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
+	const char *fmt = "%-31s %-48s\n";
+	policy_list_t *pol_list;
+	const policy_t *policy;
 	(void)cmd; (void)n;
 	ods_log_debug("[%s] %s command", module_str, policy_list_funcblock()->cmdname);
 
+	if (!(pol_list = policy_list_new(dbconn))) {
+		return 1;
+	}
 
-	
-	return perform_policy_list(sockfd, engine->config);
+	if (policy_list_get(pol_list)) {
+		policy_list_free(pol_list);
+		return 1;
+	}
+
+	policy = policy_list_begin(pol_list);
+	client_printf(sockfd, "Database set to: %s\nPolicies:\n",
+		engine->config->datastore);
+	client_printf(sockfd, fmt, "Policy:", "Description:");
+
+	while (policy) {
+		client_printf(sockfd, fmt, policy_name(policy),
+			policy_description(policy));
+		policy = policy_list_next(pol_list);
+	}
+	policy_list_free(pol_list);
+	return 0;
 }
 
 static struct cmd_func_block funcblock = {

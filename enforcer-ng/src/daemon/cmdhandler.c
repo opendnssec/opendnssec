@@ -121,9 +121,9 @@ cmd_funcs_avail(void)
         &update_keyzones_funcblock,
         &update_repositorylist_funcblock,
         &update_all_funcblock,
-
+*/
         &policy_list_funcblock,
-        &policy_export_funcblock,
+/*        &policy_export_funcblock,
         &policy_import_funcblock,
         &policy_purge_funcblock,
         &resalt_funcblock,
@@ -213,6 +213,7 @@ cmdhandler_perform_command(cmdhandler_type* cmdc, const char *cmd,
 
     /* Find function claiming responsibility */
     if ((fb = get_funcblock(cmd, n))) {
+        ods_log_debug("[%s] %s command", module_str, fb->cmdname);
         ret = fb->run(sockfd, cmdc->engine, cmd, n, cmdc->dbconn);
         if (ret == -1) {
             /* Syntax error, print usage for cmd */
