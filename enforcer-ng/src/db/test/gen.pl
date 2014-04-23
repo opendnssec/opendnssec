@@ -28,7 +28,8 @@ my %DB_TYPE_TO_FUNC = (
     DB_TYPE_UINT32 => 'uint32',
     DB_TYPE_INT64 => 'int64',
     DB_TYPE_UINT64 => 'uint64',
-    DB_TYPE_TEXT => 'text'
+    DB_TYPE_TEXT => 'text',
+    DB_TYPE_ANY => 'int32'
 );
 
 my %DB_TYPE_TO_TEXT = (

@@ -1,247 +1,157 @@
+-- Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+-- Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+-- Copyright (c) 2014 OpenDNSSEC AB (svb)
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+-- 1. Redistributions of source code must retain the above copyright
+--    notice, this list of conditions and the following disclaimer.
+-- 2. Redistributions in binary form must reproduce the above copyright
+--    notice, this list of conditions and the following disclaimer in the
+--    documentation and/or other materials provided with the distribution.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+-- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+-- ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+-- DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+-- DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+-- GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+-- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+-- IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+-- OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+-- IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 CREATE TABLE test (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(255)
 );
 INSERT INTO test ( name ) VALUES ( "test" );
 
-CREATE TABLE Adapter (
-    adapter VARCHAR(255),
-    type VARCHAR(255) DEFAULT 'File',
-    file VARCHAR(255),
-    id INTEGER PRIMARY KEY AUTOINCREMENT
+CREATE TABLE zone (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    policyId INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    policy TEXT NOT NULL,
+    signconfNeedsWriting UNSIGNED INT NOT NULL,
+    signconfPath TEXT NOT NULL,
+    nextChange UNSIGNED INT NOT NULL,
+    ttlEndDs UNSIGNED INT NOT NULL,
+    ttlEndDk UNSIGNED INT NOT NULL,
+    ttlEndRs UNSIGNED INT NOT NULL,
+    rollKskNow UNSIGNED INT NOT NULL,
+    rollZskNow UNSIGNED INT NOT NULL,
+    rollCskNow UNSIGNED INT NOT NULL,
+    inputAdapterType TEXT NOT NULL,
+    inputAdapterUri TEXT NOT NULL,
+    outputAdapterType TEXT NOT NULL,
+    outputAdapterUri TEXT NOT NULL,
+    nextKskRoll UNSIGNED INT NOT NULL,
+    nextZskRoll UNSIGNED INT NOT NULL,
+    nextCskRoll UNSIGNED INT NOT NULL
+);
+CREATE INDEX zonePolicyId ON zone ( policyId );
+
+CREATE TABLE keyData (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    zoneId INTEGER NOT NULL,
+    hsmKeyId INTEGER NOT NULL,
+    locator TEXT NOT NULL,
+    algorithm UNSIGNED INT NOT NULL,
+    inception UNSIGNED INT NOT NULL,
+    role INT NOT NULL,
+    introducing UNSIGNED INT NOT NULL,
+    shouldRevoke UNSIGNED INT NOT NULL,
+    standby UNSIGNED INT NOT NULL,
+    activeZsk UNSIGNED INT NOT NULL,
+    publish UNSIGNED INT NOT NULL,
+    activeKsk UNSIGNED INT NOT NULL,
+    dsAtParent INT NOT NULL,
+    keytag UNSIGNED INT NOT NULL
+);
+CREATE INDEX keyDataZoneId ON keyData ( zoneId );
+CREATE INDEX keyDataHsmKeyId ON keyData ( hsmKeyId );
+
+CREATE TABLE keyState (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    keyDataId INTEGER NOT NULL,
+    type INT NOT NULL,
+    state INT NOT NULL,
+    lastChange UNSIGNED INT NOT NULL,
+    minimize UNSIGNED INT NOT NULL,
+    ttl UNSIGNED INT NOT NULL
+);
+CREATE INDEX keyStateKeyDataId ON keyState ( keyDataId );
+
+CREATE TABLE hsmKey (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    policyId INTEGER NOT NULL,
+    locator TEXT NOT NULL,
+    candidateForSharing UNSIGNED INT NOT NULL,
+    bits UNSIGNED INT NOT NULL,
+    policy TEXT NOT NULL,
+    algorithm UNSIGNED INT NOT NULL,
+    role INT NOT NULL,
+    inception UNSIGNED INT NOT NULL,
+    isRevoked UNSIGNED INT NOT NULL,
+    keyType TEXT NOT NULL,
+    repository TEXT NOT NULL,
+    backup INT NOT NULL
+);
+CREATE INDEX hsmKeyPolicyId ON hsmKey ( policyId );
+
+CREATE TABLE policy (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    signaturesResign UNSIGNED INT NOT NULL,
+    signaturesRefresh UNSIGNED INT NOT NULL,
+    signaturesJitter UNSIGNED INT NOT NULL,
+    signaturesInceptionOffset UNSIGNED INT NOT NULL,
+    signaturesValidityDefault UNSIGNED INT NOT NULL,
+    signaturesValidityDenial UNSIGNED INT NOT NULL,
+    signaturesMaxZoneTtl UNSIGNED INT NOT NULL,
+    denialType INT NOT NULL,
+    denialOptout UNSIGNED INT NOT NULL,
+    denialTtl UNSIGNED INT NOT NULL,
+    denialResalt UNSIGNED INT NOT NULL,
+    denialAlgorithm UNSIGNED INT NOT NULL,
+    denialIterations UNSIGNED INT NOT NULL,
+    denialSaltLength UNSIGNED INT NOT NULL,
+    denialSalt TEXT NOT NULL,
+    denialSaltLastChange UNSIGNED INT NOT NULL,
+    keysTtl UNSIGNED INT NOT NULL,
+    keysRetireSafety UNSIGNED INT NOT NULL,
+    keysPublishSafety UNSIGNED INT NOT NULL,
+    keysShared UNSIGNED INT NOT NULL,
+    keysPurgeAfter UNSIGNED INT NOT NULL,
+    zonePropagationDelay UNSIGNED INT NOT NULL,
+    zoneSoaTtl UNSIGNED INT NOT NULL,
+    zoneSoaMinimum UNSIGNED INT NOT NULL,
+    zoneSoaSerial INT NOT NULL,
+    parentPropagationDelay UNSIGNED INT NOT NULL,
+    parentDsTtl UNSIGNED INT NOT NULL,
+    parentSoaTtl UNSIGNED INT NOT NULL,
+    parentSoaMinimum UNSIGNED INT NOT NULL
 );
 
-CREATE TABLE Adapters (
-    input INTEGER NOT NULL,
-    output INTEGER NOT NULL,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
+CREATE TABLE policyKey (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    policyId INTEGER NOT NULL,
+    algorithm UNSIGNED INT NOT NULL,
+    bits UNSIGNED INT NOT NULL,
+    lifetime UNSIGNED INT NOT NULL,
+    repository TEXT NOT NULL,
+    standby UNSIGNED INT NOT NULL,
+    manualRollover UNSIGNED INT NOT NULL,
+    rfc5011 UNSIGNED INT NOT NULL,
+    minimize UNSIGNED INT NOT NULL
 );
+CREATE INDEX policyKeyPolicyId ON policyKey ( policyId );
 
-CREATE TABLE Audit (
-    partial TINYINT UNSIGNED,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE Csk (
-    algorithm INT UNSIGNED NOT NULL,
-    bits INT UNSIGNED,
-    lifetime INT NOT NULL,
-    repository VARCHAR(255) NOT NULL,
-    standby INT UNSIGNED,
-    manual_rollover TINYINT UNSIGNED,
-    rfc5011 TINYINT UNSIGNED,
-    rollover_type VARCHAR(18) DEFAULT 'CskPrePublication',
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE Denial (
-    nsec INTEGER,
-    nsec3 INTEGER,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE EnforcerZone (
-    name VARCHAR(255) NOT NULL,
-    policy VARCHAR(255) NOT NULL,
-    signconf_needs_writing TINYINT UNSIGNED NOT NULL,
-    signconf_path VARCHAR(255) NOT NULL,
-    next_change INT UNSIGNED,
-    ttl_end_ds INT UNSIGNED,
-    ttl_end_dk INT UNSIGNED,
-    ttl_end_rs INT UNSIGNED,
-    roll_ksk_now TINYINT UNSIGNED DEFAULT 0,
-    roll_zsk_now TINYINT UNSIGNED DEFAULT 0,
-    roll_csk_now TINYINT UNSIGNED DEFAULT 0,
-    adapters INTEGER,
-    next_ksk_roll INT UNSIGNED DEFAULT 0,
-    next_zsk_roll INT UNSIGNED DEFAULT 0,
-    next_csk_roll INT UNSIGNED DEFAULT 0,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE EnforcerZone_dependencies (
-    parent_id INTEGER,
-    child_id INTEGER,
-    PRIMARY KEY(parent_id,
-    child_id)
-);
-
-CREATE TABLE EnforcerZone_keys (
-    parent_id INTEGER,
-    child_id INTEGER,
-    PRIMARY KEY(parent_id,
-    child_id)
-);
-
-CREATE TABLE HsmKey (
-    locator VARCHAR(255) NOT NULL,
-    candidate_for_sharing TINYINT UNSIGNED DEFAULT 0,
-    bits INT UNSIGNED DEFAULT 2048,
-    policy VARCHAR(255) DEFAULT 'default',
-    algorithm INT UNSIGNED DEFAULT 1,
-    role VARCHAR(3) DEFAULT 'ZSK',
-    inception INT UNSIGNED,
-    isrevoked TINYINT UNSIGNED DEFAULT 0,
-    key_type VARCHAR(255),
-    repository VARCHAR(255),
-    backmeup TINYINT UNSIGNED DEFAULT 0,
-    backedup TINYINT UNSIGNED DEFAULT 0,
-    requirebackup TINYINT UNSIGNED DEFAULT 0,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE HsmKey_used_by_zones (
-    value VARCHAR(255),
-    parent_id INTEGER,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE KeyData (
-    locator VARCHAR(255) NOT NULL,
-    algorithm INT UNSIGNED NOT NULL,
-    inception INT UNSIGNED NOT NULL,
-    ds INTEGER NOT NULL,
-    rrsig INTEGER NOT NULL,
-    dnskey INTEGER NOT NULL,
-    role VARCHAR(3) NOT NULL,
-    introducing TINYINT UNSIGNED DEFAULT 1,
-    shouldrevoke TINYINT UNSIGNED DEFAULT 0,
-    standby TINYINT UNSIGNED DEFAULT 0,
-    active_zsk TINYINT UNSIGNED DEFAULT 0,
-    publish TINYINT UNSIGNED DEFAULT 0,
-    rrsigdnskey INTEGER NOT NULL,
-    active_ksk TINYINT UNSIGNED DEFAULT 0,
-    ds_at_parent VARCHAR(11) DEFAULT 'unsubmitted',
-    keytag INT UNSIGNED,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE KeyDependency (
-    from_key VARCHAR(255) NOT NULL,
-    to_key VARCHAR(255) NOT NULL,
-    rrtype INT UNSIGNED NOT NULL,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE KeyList (
-    ttl INT NOT NULL,
-    retiresafety INT NOT NULL,
-    publishsafety INT NOT NULL,
-    zones_share_keys TINYINT UNSIGNED,
-    purgeafter INT,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE KeyList_csk (
-    parent_id INTEGER,
-    child_id INTEGER,
-    PRIMARY KEY(parent_id,
-    child_id)
-);
-
-CREATE TABLE KeyList_ksk (
-    parent_id INTEGER,
-    child_id INTEGER,
-    PRIMARY KEY(parent_id,
-    child_id)
-);
-
-CREATE TABLE KeyList_zsk (
-    parent_id INTEGER,
-    child_id INTEGER,
-    PRIMARY KEY(parent_id,
-    child_id)
-);
-
-CREATE TABLE KeyState (
-    state VARCHAR(11) DEFAULT 'hidden',
-    last_change INT UNSIGNED,
-    minimize TINYINT UNSIGNED DEFAULT 0,
-    ttl INT UNSIGNED,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE Ksk (
-    algorithm INT UNSIGNED NOT NULL,
-    bits INT UNSIGNED,
-    lifetime INT NOT NULL,
-    repository VARCHAR(255) NOT NULL,
-    standby INT UNSIGNED,
-    manual_rollover TINYINT UNSIGNED,
-    rfc5011 TINYINT UNSIGNED,
-    rollover_type VARCHAR(18) DEFAULT 'KskDoubleSignature',
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE NSEC (
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE NSEC3 (
-    optout TINYINT UNSIGNED,
-    ttl INT UNSIGNED,
-    resalt INT UNSIGNED NOT NULL,
-    algorithm INT UNSIGNED NOT NULL,
-    iterations INT UNSIGNED NOT NULL,
-    saltlength INT UNSIGNED NOT NULL,
-    salt VARCHAR(255),
-    salt_last_change INT UNSIGNED,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE Parent (
-    ttlds INT,
-    registrationdelay INT,
-    propagationdelay INT,
-    ttl INT,
-    min INT,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE Policy (
-    name VARCHAR(255) NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    signatures INTEGER NOT NULL,
-    denial INTEGER NOT NULL,
-    keylist INTEGER NOT NULL,
-    zone INTEGER NOT NULL,
-    parent INTEGER NOT NULL,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE Policy_audit (
-    parent_id INTEGER,
-    child_id INTEGER,
-    PRIMARY KEY(parent_id,
-    child_id)
-);
-
-CREATE TABLE Signatures (
-    resign INT,
-    refresh INT,
-    jitter INT,
-    inceptionOffset INT,
-    valdefault INT,
-    valdenial INT,
-    max_zone_ttl INT DEFAULT 86400,
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE Zone (
-    propagationdelay INT NOT NULL,
-    ttl INT,
-    min INT,
-    serial VARCHAR(11),
-    id INTEGER PRIMARY KEY AUTOINCREMENT
-);
-
-CREATE TABLE Zsk (
-    algorithm INT UNSIGNED NOT NULL,
-    bits INT UNSIGNED,
-    lifetime INT NOT NULL,
-    repository VARCHAR(255) NOT NULL,
-    standby INT UNSIGNED,
-    manual_rollover TINYINT UNSIGNED,
-    rollover_type VARCHAR(18) DEFAULT 'ZskPrePublication',
-    id INTEGER PRIMARY KEY AUTOINCREMENT
+CREATE TABLE databaseVersion (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    version UNSIGNED INT NOT NULL
 );

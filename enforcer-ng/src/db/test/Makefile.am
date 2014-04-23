@@ -13,7 +13,14 @@ test_SOURCES = \
 	test.c test.h \
 	test_classes.c \
 	test_initialization.c \
-	test_database_operations.c
+	test_database_operations.c \
+	test_hsm_key.c test_hsm_key.h \
+	test_key_data.c test_key_data.h \
+	test_key_state.c test_key_state.h \
+	test_policy.c test_policy.h \
+	test_policy_key.c test_policy_key.h \
+	test_database_version.c test_database_version.h \
+	test_zone.c test_zone.h
 
 if USE_SQLITE
 BACKEND_LDADD_CUSTOM = ../../db_backend_sqlite.o
@@ -37,6 +44,13 @@ test_LDADD = \
 	../../db_type.o \
 	../../db_value.o \
 	$(top_builddir)/mm/src/mm.o \
+	../../hsm_key.o ../../hsm_key_ext.o \
+	../../key_data.o ../../key_data_ext.o \
+	../../key_state.o ../../key_state_ext.o \
+	../../policy.o ../../policy_ext.o \
+	../../policy_key.o ../../policy_key_ext.o \
+	../../database_version.o ../../database_version_ext.o \
+	../../zone.o ../../zone_ext.o \
 	$(BACKEND_LDADD_CUSTOM)
 
 test_LDFLAGS = -no-install \

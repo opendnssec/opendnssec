@@ -29,6 +29,14 @@
 
 #include "test.h"
 
+#include "test_hsm_key.h"
+#include "test_key_data.h"
+#include "test_key_state.h"
+#include "test_policy.h"
+#include "test_policy_key.h"
+#include "test_database_version.h"
+#include "test_zone.h"
+
 #include "CUnit/Basic.h"
 
 int main(void) {
@@ -128,6 +136,14 @@ int main(void) {
         return CU_get_error();
     }
 #endif
+
+    test_hsm_key_add_suite();
+    test_key_data_add_suite();
+    test_key_state_add_suite();
+    test_policy_add_suite();
+    test_policy_key_add_suite();
+    test_database_version_add_suite();
+    test_zone_add_suite();
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();
