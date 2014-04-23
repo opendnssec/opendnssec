@@ -24,7 +24,7 @@ my %DB_TYPE_TO_C_TYPE = (
 );
 
 my %DB_TYPE_TO_SQLITE = (
-    DB_TYPE_PRIMARY_KEY => 'UNSIGNED BIGINT PRIMARY KEY NOT NULL',
+    DB_TYPE_PRIMARY_KEY => 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL',
     DB_TYPE_INT32 => 'INT NOT NULL',
     DB_TYPE_UINT32 => 'UNSIGNED INT NOT NULL',
     DB_TYPE_INT64 => 'BIGINT NOT NULL',
@@ -1643,7 +1643,7 @@ foreach my $field (@{$object->{fields}}) {
         next;
     }
     if ($field->{foreign}) {
-        print SQLITE '    ', camelize($field->{name}), ' ', $DB_TYPE_TO_SQLITE{'DB_TYPE_UINT64'};
+        print SQLITE '    ', camelize($field->{name}), ' INTEGER NOT NULL';
         next;
     }
         print SQLITE '    ', camelize($field->{name}), ' ', $DB_TYPE_TO_SQLITE{$field->{type}};
