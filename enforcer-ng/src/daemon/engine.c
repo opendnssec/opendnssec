@@ -48,6 +48,8 @@
 #include "shared/status.h"
 #include "shared/util.h"
 #include "shared/protobuf.h"
+#include "db/db_configuration.h"
+#include "db/db_connection.h"
 #include "libhsm.h"
 
 #include <errno.h>
@@ -265,6 +267,69 @@ engine_wakeup_workers(engine_type* engine)
     return;
 }
 
+static db_connection_t*
+get_database_connection(db_configuration_list_t* dbcfg_list)
+{
+    db_connection_t* dbconn;
+
+    if (!(dbconn = db_connection_new())
+        || db_connection_set_configuration_list(dbconn, dbcfg_list)
+        || db_connection_setup(dbconn)
+        || db_connection_connect(dbconn))
+    {
+        db_connection_free(dbconn);
+        fprintf(stderr, "database connection failed\n");
+        return NULL;
+    }
+    return dbconn;
+}
+
+/*
+ * 0 if we can connect to the database
+ */
+static int
+probe_database(db_configuration_list_t* dbcfg_list)
+{
+    db_connection_t *conn;
+    conn = get_database_connection(dbcfg_list);
+    if (!conn) return 1;
+    db_connection_free(conn);
+    return 0;
+}
+
+static int
+setup_database(engine_type* engine)
+{
+    db_configuration_t* dbcfg;
+
+    if (!(engine->dbcfg_list = db_configuration_list_new())) {
+        fprintf(stderr, "db_configuraiton_list_new failed\n");
+        return 1;
+    }
+    if (!(dbcfg = db_configuration_new())
+        || db_configuration_set_name(dbcfg, "backend")
+        || db_configuration_set_value(dbcfg, "sqlite")
+        || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+    {
+        db_configuration_free(dbcfg);
+        db_configuration_list_free(engine->dbcfg_list);
+        fprintf(stderr, "setup configuration backend failed\n");
+        return 1;
+    }
+    if (!(dbcfg = db_configuration_new())
+        || db_configuration_set_name(dbcfg, "file")
+        || db_configuration_set_value(dbcfg, engine->config->datastore)
+        || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+    {
+        db_configuration_free(dbcfg);
+        db_configuration_list_free(engine->dbcfg_list);
+        fprintf(stderr, "setup configuration file failed\n");
+        return 1;
+    }
+    dbcfg = NULL;
+    return 0;
+}
+
 /**
  * Set up engine and return the setup status.
  *
@@ -285,6 +350,10 @@ engine_setup(engine_type* engine)
         ods_log_error("[%s] Pidfile exists and process with PID is running", engine_str);
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
+    /* setup database configuration */
+    if (setup_database(engine)) return ODS_STATUS_CFG_ERR;
+    /* Probe the database, can we connect to it? */
+    if (probe_database(engine->dbcfg_list)) return ODS_STATUS_CFG_ERR;
 
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
@@ -391,6 +460,8 @@ engine_teardown(engine_type* engine)
     }
     cmdhandler_cleanup(engine->cmdhandler);
     engine->cmdhandler = NULL;
+    db_configuration_list_free(engine->dbcfg_list);
+    engine->dbcfg_list = NULL;
 }
 
 void
@@ -418,6 +489,7 @@ engine_init(engine_type* engine, int daemonize)
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
+    engine->dbcfg_list = NULL;
 }
 
 /**

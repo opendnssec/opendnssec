@@ -41,6 +41,8 @@
 #include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/locks.h"
+#include "db/db_configuration.h"
+#include "db/db_connection.h"
 
 #include <signal.h>
 
@@ -77,6 +79,8 @@ struct engine_struct {
     cond_basic_type signal_cond;
     lock_basic_type signal_lock;
     lock_basic_type enforce_lock;
+
+    db_configuration_list_t* dbcfg_list;
 };
 
 /**

@@ -211,7 +211,6 @@ main(int argc, char* argv[])
         /* Parse config file */
         cfg = engine_config(engine->allocator, cfgfile,
             cmdline_verbosity, engine->config);
-        engine->database_ready = database_ready(cfg);
         /* does it make sense? */
         if (engine_config_check(cfg) != ODS_STATUS_OK) {
             /* it does not, do we have a previous config loaded? */
