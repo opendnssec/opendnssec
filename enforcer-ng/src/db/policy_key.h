@@ -66,7 +66,6 @@ struct policy_key {
     unsigned int manual_rollover;
     unsigned int rfc5011;
     unsigned int minimize;
-#include "policy_key_struct_ext.h"
 };
 
 /**

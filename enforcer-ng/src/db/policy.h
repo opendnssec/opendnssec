@@ -101,7 +101,6 @@ struct policy {
     unsigned int parent_ds_ttl;
     unsigned int parent_soa_ttl;
     unsigned int parent_soa_minimum;
-#include "policy_struct_ext.h"
 };
 
 /**

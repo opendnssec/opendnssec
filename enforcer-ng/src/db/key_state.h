@@ -80,7 +80,6 @@ struct key_state {
     unsigned int last_change;
     unsigned int minimize;
     unsigned int ttl;
-#include "key_state_struct_ext.h"
 };
 
 /**

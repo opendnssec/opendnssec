@@ -56,7 +56,6 @@ extern "C" {
 struct version {
     db_object_t* dbo;
     unsigned int version;
-#include "version_struct_ext.h"
 };
 
 /**

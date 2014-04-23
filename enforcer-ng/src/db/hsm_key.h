@@ -84,7 +84,6 @@ struct hsm_key {
     char* key_type;
     char* repository;
     hsm_key_backup_t backup;
-#include "hsm_key_struct_ext.h"
 };
 
 /**

@@ -89,7 +89,6 @@ struct key_data {
     unsigned int active_ksk;
     key_data_ds_at_parent_t ds_at_parent;
     unsigned int keytag;
-#include "key_data_struct_ext.h"
 };
 
 /**

@@ -176,8 +176,7 @@ foreach my $field (@{$object->{fields}}) {
     print HEADER '    ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ";\n";
 }
 
-print HEADER '#include "', $name, '_struct_ext.h"
-};
+print HEADER '};
 
 /**
  * Create a new ', $tname, ' object.

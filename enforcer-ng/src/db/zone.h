@@ -76,7 +76,6 @@ struct zone {
     unsigned int next_ksk_roll;
     unsigned int next_zsk_roll;
     unsigned int next_csk_roll;
-#include "zone_struct_ext.h"
 };
 
 /**
