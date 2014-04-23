@@ -30,9 +30,27 @@
 #ifndef __zone_ext_h
 #define __zone_ext_h
 
+#include "key_data.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * Get a list of keys for an enforcer zone object.
+ * \param[in] zone an zone_t pointer.
+ * \return a key_data_list_t pointer or NULL on error or if there are no keys
+ * in the enforcer zone object.
+ */
+key_data_list_t* zone_get_keys(const zone_t* zone);
+
+/**
+ * Get an enforcer zone object from the database by a name specified in `name`.
+ * \param[in] zone an zone_t pointer.
+ * \param[in] name a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_get_by_name(zone_t* zone, const char* name);
 
 #ifdef __cplusplus
 }
