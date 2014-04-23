@@ -181,6 +181,27 @@ engine_privdrop(engine_type* engine)
     return status;
 }
 
+/*
+ * Try to open a connection to the database.
+ * \param dbcfg_list, database configuration list
+ * \return connection on success, NULL on failure.
+ */
+static db_connection_t*
+get_database_connection(db_configuration_list_t* dbcfg_list)
+{
+    db_connection_t* dbconn;
+
+    if (!(dbconn = db_connection_new())
+        || db_connection_set_configuration_list(dbconn, dbcfg_list)
+        || db_connection_setup(dbconn)
+        || db_connection_connect(dbconn))
+    {
+        db_connection_free(dbconn);
+        fprintf(stderr, "database connection failed\n");
+        return NULL;
+    }
+    return dbconn;
+}
 
 /**
  * Start/stop workers.
@@ -204,11 +225,22 @@ engine_create_workers(engine_type* engine)
 static void*
 worker_thread_start(void* arg)
 {
+    db_connection_t* dbconn;
     worker_type* worker = (worker_type*) arg;
     ods_thread_blocksigs();
+    
+
+    dbconn = get_database_connection(worker->engine->dbcfg_list);
+    if (!dbconn) {
+        fprintf(stderr, "D'OH! TODO");
+        return NULL;
+    }
     worker_start(worker);
+    db_connection_free(dbconn);
+    
     return NULL;
 }
+
 void
 engine_start_workers(engine_type* engine)
 {
@@ -265,28 +297,6 @@ engine_wakeup_workers(engine_type* engine)
         worker_wakeup(engine->workers[i]);
     }
     return;
-}
-
-/*
- * Try to open a connection to the database.
- * \param dbcfg_list, database configuration list
- * \return connection on success, NULL on failure.
- */
-static db_connection_t*
-get_database_connection(db_configuration_list_t* dbcfg_list)
-{
-    db_connection_t* dbconn;
-
-    if (!(dbconn = db_connection_new())
-        || db_connection_set_configuration_list(dbconn, dbcfg_list)
-        || db_connection_setup(dbconn)
-        || db_connection_connect(dbconn))
-    {
-        db_connection_free(dbconn);
-        fprintf(stderr, "database connection failed\n");
-        return NULL;
-    }
-    return dbconn;
 }
 
 /*
