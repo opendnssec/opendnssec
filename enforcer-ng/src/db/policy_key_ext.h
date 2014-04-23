@@ -27,8 +27,8 @@
  *
  */
 
-#ifndef __key_state_ext_h
-#define __key_state_ext_h
+#ifndef __policy_key_ext_h
+#define __policy_key_ext_h
 
 #ifdef __cplusplus
 extern "C" {

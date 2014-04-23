@@ -27,15 +27,5 @@
  *
  */
 
-#ifndef __key_state_ext_h
-#define __key_state_ext_h
+#include "policy_key.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

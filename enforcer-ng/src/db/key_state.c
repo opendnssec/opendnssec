@@ -34,6 +34,14 @@
 
 #include <string.h>
 
+static const db_enum_t __enum_set_type[] = {
+    { "DS", (key_state_type_t)KEY_STATE_TYPE_DS },
+    { "RRSIG", (key_state_type_t)KEY_STATE_TYPE_RRSIG },
+    { "DNSKEY", (key_state_type_t)KEY_STATE_TYPE_DNSKEY },
+    { "RRSIGDNSKEY", (key_state_type_t)KEY_STATE_TYPE_RRSIGDNSKEY },
+    { NULL, 0 }
+};
+
 static const db_enum_t __enum_set_state[] = {
     { "hidden", (key_state_state_t)KEY_STATE_STATE_HIDDEN },
     { "rumoured", (key_state_state_t)KEY_STATE_STATE_RUMOURED },
@@ -55,7 +63,7 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
     if (!(object = db_object_new())
         || db_object_set_connection(object, connection)
-        || db_object_set_table(object, "KeyState")
+        || db_object_set_table(object, "keyState")
         || db_object_set_primary_key_name(object, "id")
         || !(object_field_list = db_object_field_list_new()))
     {
@@ -66,6 +74,29 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "id")
         || db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "keyDataId")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "type")
+        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
+        || db_object_field_set_enum_set(object_field, __enum_set_type)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -87,7 +118,7 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "last_change")
+        || db_object_field_set_name(object_field, "lastChange")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -142,6 +173,8 @@ key_state_t* key_state_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(key_state->id));
+        db_value_reset(&(key_state->key_data_id));
+        key_state->type = KEY_STATE_TYPE_INVALID;
         key_state->state = KEY_STATE_STATE_HIDDEN;
     }
 
@@ -154,6 +187,7 @@ void key_state_free(key_state_t* key_state) {
             db_object_free(key_state->dbo);
         }
         db_value_reset(&(key_state->id));
+        db_value_reset(&(key_state->key_data_id));
         mm_alloc_delete(&__key_state_alloc, key_state);
     }
 }
@@ -161,6 +195,8 @@ void key_state_free(key_state_t* key_state) {
 void key_state_reset(key_state_t* key_state) {
     if (key_state) {
         db_value_reset(&(key_state->id));
+        db_value_reset(&(key_state->key_data_id));
+        key_state->type = KEY_STATE_TYPE_INVALID;
         key_state->state = KEY_STATE_STATE_HIDDEN;
         key_state->last_change = 0;
         key_state->minimize = 0;
@@ -179,6 +215,10 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
     if (db_value_copy(&(key_state->id), &(key_state_copy->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_copy(&(key_state->key_data_id), &(key_state_copy->key_data_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    key_state->type = key_state_copy->type;
     key_state->state = key_state_copy->state;
     key_state->last_change = key_state_copy->last_change;
     key_state->minimize = key_state_copy->minimize;
@@ -188,6 +228,7 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
 
 int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     const db_value_set_t* value_set;
+    int type;
     int state;
 
     if (!key_state) {
@@ -198,14 +239,33 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     }
 
     db_value_reset(&(key_state->id));
+    db_value_reset(&(key_state->key_data_id));
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 5
+        || db_value_set_size(value_set) != 7
         || db_value_copy(&(key_state->id), db_value_set_at(value_set, 0))
-        || db_value_to_enum_value(db_value_set_at(value_set, 1), &state, __enum_set_state)
-        || db_value_to_uint32(db_value_set_at(value_set, 2), &(key_state->last_change))
-        || db_value_to_uint32(db_value_set_at(value_set, 3), &(key_state->minimize))
-        || db_value_to_uint32(db_value_set_at(value_set, 4), &(key_state->ttl)))
+        || db_value_copy(&(key_state->key_data_id), db_value_set_at(value_set, 1))
+        || db_value_to_enum_value(db_value_set_at(value_set, 2), &type, __enum_set_type)
+        || db_value_to_enum_value(db_value_set_at(value_set, 3), &state, __enum_set_state)
+        || db_value_to_uint32(db_value_set_at(value_set, 4), &(key_state->last_change))
+        || db_value_to_uint32(db_value_set_at(value_set, 5), &(key_state->minimize))
+        || db_value_to_uint32(db_value_set_at(value_set, 6), &(key_state->ttl)))
     {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (type == (key_state_type_t)KEY_STATE_TYPE_DS) {
+        key_state->type = KEY_STATE_TYPE_DS;
+    }
+    else if (type == (key_state_type_t)KEY_STATE_TYPE_RRSIG) {
+        key_state->type = KEY_STATE_TYPE_RRSIG;
+    }
+    else if (type == (key_state_type_t)KEY_STATE_TYPE_DNSKEY) {
+        key_state->type = KEY_STATE_TYPE_DNSKEY;
+    }
+    else if (type == (key_state_type_t)KEY_STATE_TYPE_RRSIGDNSKEY) {
+        key_state->type = KEY_STATE_TYPE_RRSIGDNSKEY;
+    }
+    else {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -237,6 +297,62 @@ const db_value_t* key_state_id(const key_state_t* key_state) {
     }
 
     return &(key_state->id);
+}
+
+const db_value_t* key_state_key_data_id(const key_state_t* key_state) {
+    if (!key_state) {
+        return NULL;
+    }
+
+    return &(key_state->key_data_id);
+}
+
+key_data_t* key_state_get_key_data(const key_state_t* key_state) {
+    key_data_t* key_data_id = NULL;
+    
+    if (!key_state) {
+        return NULL;
+    }
+    if (!key_state->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(key_state->key_data_id))) {
+        return NULL;
+    }
+    
+    if (!(key_data_id = key_data_new(db_object_connection(key_state->dbo)))) {
+        return NULL;
+    }
+    if (key_data_get_by_id(key_data_id, &(key_state->key_data_id))) {
+        key_data_free(key_data_id);
+        return NULL;
+    }
+
+    return key_data_id;
+}
+
+key_state_type_t key_state_type(const key_state_t* key_state) {
+    if (!key_state) {
+        return KEY_STATE_TYPE_INVALID;
+    }
+
+    return key_state->type;
+}
+
+const char* key_state_type_text(const key_state_t* key_state) {
+    const db_enum_t* enum_set = __enum_set_type;
+
+    if (!key_state) {
+        return NULL;
+    }
+
+    while (enum_set->text) {
+        if (enum_set->value == key_state->type) {
+            return enum_set->text;
+        }
+        enum_set++;
+    }
+    return NULL;
 }
 
 key_state_state_t key_state_state(const key_state_t* key_state) {
@@ -285,6 +401,52 @@ unsigned int key_state_ttl(const key_state_t* key_state) {
     }
 
     return key_state->ttl;
+}
+
+int key_state_set_key_data_id(key_state_t* key_state, const db_value_t* key_data_id) {
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(key_data_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    db_value_reset(&(key_state->key_data_id));
+    if (db_value_copy(&(key_state->key_data_id), key_data_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
+}
+
+int key_state_set_type(key_state_t* key_state, key_state_type_t type) {
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state->type = type;
+
+    return DB_OK;
+}
+
+int key_state_set_type_text(key_state_t* key_state, const char* type) {
+    const db_enum_t* enum_set = __enum_set_type;
+
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    while (enum_set->text) {
+        if (!strcmp(enum_set->text, type)) {
+            key_state->type = enum_set->value;
+            return DB_OK;
+        }
+        enum_set++;
+    }
+    return DB_ERROR_UNKNOWN;
 }
 
 int key_state_set_state(key_state_t* key_state, key_state_state_t state) {
@@ -359,9 +521,33 @@ int key_state_create(key_state_t* key_state) {
     if (!db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(key_state->key_data_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "key_data_id")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "type")
+        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
+        || db_object_field_set_enum_set(object_field, __enum_set_type)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
@@ -406,15 +592,17 @@ int key_state_create(key_state_t* key_state) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(4))) {
+    if (!(value_set = db_value_set_new(6))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_enum_value(db_value_set_get(value_set, 0), key_state->state, __enum_set_state)
-        || db_value_from_uint32(db_value_set_get(value_set, 1), key_state->last_change)
-        || db_value_from_uint32(db_value_set_get(value_set, 2), key_state->minimize)
-        || db_value_from_uint32(db_value_set_get(value_set, 3), key_state->ttl))
+    if (db_value_copy(db_value_set_get(value_set, 0), &(key_state->key_data_id))
+        || db_value_from_enum_value(db_value_set_get(value_set, 1), key_state->type, __enum_set_type)
+        || db_value_from_enum_value(db_value_set_get(value_set, 2), key_state->state, __enum_set_state)
+        || db_value_from_uint32(db_value_set_get(value_set, 3), key_state->last_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 4), key_state->minimize)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), key_state->ttl))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -497,9 +685,33 @@ int key_state_update(key_state_t* key_state) {
     if (db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(key_state->key_data_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "key_data_id")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "type")
+        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
+        || db_object_field_set_enum_set(object_field, __enum_set_type)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
@@ -544,15 +756,17 @@ int key_state_update(key_state_t* key_state) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(4))) {
+    if (!(value_set = db_value_set_new(6))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_enum_value(db_value_set_get(value_set, 0), key_state->state, __enum_set_state)
-        || db_value_from_uint32(db_value_set_get(value_set, 1), key_state->last_change)
-        || db_value_from_uint32(db_value_set_get(value_set, 2), key_state->minimize)
-        || db_value_from_uint32(db_value_set_get(value_set, 3), key_state->ttl))
+    if (db_value_copy(db_value_set_get(value_set, 0), &(key_state->key_data_id))
+        || db_value_from_enum_value(db_value_set_get(value_set, 1), key_state->type, __enum_set_type)
+        || db_value_from_enum_value(db_value_set_get(value_set, 2), key_state->state, __enum_set_state)
+        || db_value_from_uint32(db_value_set_get(value_set, 3), key_state->last_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 4), key_state->minimize)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), key_state->ttl))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

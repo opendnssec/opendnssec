@@ -27,15 +27,27 @@
  *
  */
 
-#ifndef __key_state_ext_h
-#define __key_state_ext_h
+#include "version.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+int version_get_version(db_connection_t* connection) {
+    version_list_t* version_list;
+    version_t* version;
+    int ret;
 
-#ifdef __cplusplus
+    if (!(version_list = version_list_new(connection))) {
+        return 0;
+    }
+    if (version_list_get(version_list)
+        || !(version = version_list_begin(version_list)))
+    {
+        version_list_free(version_list);
+        return 0;
+    }
+    ret = version_version(version);
+    if (version_list_next(version_list)) {
+        version_list_free(version_list);
+        return 0;
+    }
+    version_list_free(version_list);
+    return ret;
 }
-#endif
-
-#endif

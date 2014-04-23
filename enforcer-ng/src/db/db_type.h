@@ -61,8 +61,7 @@ typedef enum {
      */
     DB_TYPE_EMPTY,
     /**
-     * Not a type per say, this marks the value as a primary key or id that can
-     * later be any other type.
+     * This will make the value a primary key / ID that can be any type.
      */
     DB_TYPE_PRIMARY_KEY,
     /**
@@ -88,7 +87,11 @@ typedef enum {
     /**
      * A enumerate value that can be represented as an integer or string.
      */
-    DB_TYPE_ENUM
+    DB_TYPE_ENUM,
+    /**
+     * This can be any type, primarily used for ID fields.
+     */
+    DB_TYPE_ANY
 } db_type_t;
 
 #ifdef __cplusplus

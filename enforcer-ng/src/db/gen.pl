@@ -3,6 +3,7 @@
 use common::sense;
 use JSON::XS;
 use utf8;
+use Carp;
 
 my $JSON = JSON::XS->new;
 
@@ -22,6 +23,16 @@ my %DB_TYPE_TO_C_TYPE = (
     DB_TYPE_TEXT => 'char*'
 );
 
+my %DB_TYPE_TO_SQLITE = (
+    DB_TYPE_PRIMARY_KEY => 'UNSIGNED BIGINT PRIMARY KEY',
+    DB_TYPE_INT32 => 'INT',
+    DB_TYPE_UINT32 => 'UNSIGNED INT',
+    DB_TYPE_INT64 => 'BIGINT',
+    DB_TYPE_UINT64 => 'UNSIGNED BIGINT',
+    DB_TYPE_TEXT => 'TEXT',
+    DB_TYPE_ENUM => 'INT'
+);
+
 my %DB_TYPE_TO_FUNC = (
     DB_TYPE_PRIMARY_KEY => 'int32',
     DB_TYPE_INT32 => 'int32',
@@ -39,6 +50,18 @@ my %DB_TYPE_TO_TEXT = (
     DB_TYPE_UINT64 => 'an unsigned long long',
     DB_TYPE_TEXT => 'a character pointer'
 );
+
+sub camelize {
+    my $string = shift || confess;
+    my $camelize = "";
+    my @parts = split(/_/o, $string);
+    
+    $camelize = shift(@parts);
+    foreach my $part (@parts) {
+        $camelize .= ucfirst($part);
+    }
+    return $camelize;
+}
 
 my $objects = $JSON->decode($file);
 
@@ -533,7 +556,7 @@ static db_object_t* __', $name, '_new_object(const db_connection_t* connection) 
 
     if (!(object = db_object_new())
         || db_object_set_connection(object, connection)
-        || db_object_set_table(object, "', $object->{table}, '")
+        || db_object_set_table(object, "', camelize($object->{name}), '")
         || db_object_set_primary_key_name(object, "id")
         || !(object_field_list = db_object_field_list_new()))
     {
@@ -544,7 +567,7 @@ static db_object_t* __', $name, '_new_object(const db_connection_t* connection) 
 ';
 foreach my $field (@{$object->{fields}}) {
 print SOURCE '    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "', $field->{name}, '")
+        || db_object_field_set_name(object_field, "', camelize($field->{name}), '")
         || db_object_field_set_type(object_field, ', $field->{type}, ')
 ';
 if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -730,7 +753,16 @@ print SOURCE '            return DB_ERROR_UNKNOWN;
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE '    if (db_value_copy(&(', $name, '->', $field->{name}, '), &(', $name, '_copy->', $field->{name}, '))) {
-        return DB_ERROR_UNKNOWN;
+';
+foreach my $field2 (@free) {
+    if ($field2->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '        if (', $field2->{name}, '_text) {
+            free(', $field2->{name}, '_text);
+        }
+';
+    }
+}
+print SOURCE '        return DB_ERROR_UNKNOWN;
     }
 ';
         next;
@@ -839,7 +871,9 @@ print SOURCE 'const db_value_t* ', $name, '_', $field->{name}, '(const ', $name,
 
 ';
         if ($field->{foreign}) {
-print SOURCE $field->{foreign}, '_t* ', $name, '_get_', $field->{name}, '(const ', $name, '_t* ', $name, ') {
+            my $func_name = $field->{name};
+            $func_name =~ s/_id//o;
+print SOURCE $field->{foreign}, '_t* ', $name, '_get_', $func_name, '(const ', $name, '_t* ', $name, ') {
     ', $field->{foreign}, '_t* ', $field->{name}, ' = NULL;
     
     if (!', $name, ') {
@@ -1497,3 +1531,69 @@ print SOURCE '/*
 close(SOURCE);
 }
 }
+
+
+open(SQLITE, '>:encoding(UTF-8)', 'schema.sqlite') or die;
+    
+    print SQLITE '-- Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+-- Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+-- Copyright (c) 2014 OpenDNSSEC AB (svb)
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+-- 1. Redistributions of source code must retain the above copyright
+--    notice, this list of conditions and the following disclaimer.
+-- 2. Redistributions in binary form must reproduce the above copyright
+--    notice, this list of conditions and the following disclaimer in the
+--    documentation and/or other materials provided with the distribution.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS\'\' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+-- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+-- ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+-- DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+-- DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+-- GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+-- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+-- IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+-- OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+-- IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+';
+foreach my $object (@$objects) {
+    my $name = $object->{name};
+    my $tname = $name;
+    $tname =~ s/_/ /go;
+
+print SQLITE '
+CREATE TABLE ', camelize($name), ' (
+';
+my $first = 1;
+foreach my $field (@{$object->{fields}}) {
+    if (!$first) {
+        print SQLITE ',
+';
+    }
+    $first = 0;
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        print SQLITE '    ', camelize($field->{name}), ' ', $DB_TYPE_TO_SQLITE{'DB_TYPE_PRIMARY_KEY'};
+        next;
+    }
+    if ($field->{foreign}) {
+        print SQLITE '    ', camelize($field->{name}), ' ', $DB_TYPE_TO_SQLITE{'DB_TYPE_UINT64'};
+        next;
+    }
+        print SQLITE '    ', camelize($field->{name}), ' ', $DB_TYPE_TO_SQLITE{$field->{type}};
+}
+print SQLITE '
+);
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{foreign}) {
+print SQLITE 'CREATE INDEX ', camelize($name.'_'.$field->{name}), ' ON ', camelize($name),' ( ', camelize($field->{name}), ' );
+';
+    }
+}
+}
+close(SQLITE);

@@ -1,0 +1,150 @@
+-- Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+-- Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+-- Copyright (c) 2014 OpenDNSSEC AB (svb)
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+-- 1. Redistributions of source code must retain the above copyright
+--    notice, this list of conditions and the following disclaimer.
+-- 2. Redistributions in binary form must reproduce the above copyright
+--    notice, this list of conditions and the following disclaimer in the
+--    documentation and/or other materials provided with the distribution.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+-- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+-- ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+-- DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+-- DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+-- GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+-- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+-- IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+-- OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+-- IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+CREATE TABLE zone (
+    id UNSIGNED BIGINT PRIMARY KEY,
+    policyId UNSIGNED BIGINT,
+    name TEXT,
+    policy TEXT,
+    signconfNeedsWriting UNSIGNED INT,
+    signconfPath TEXT,
+    nextChange UNSIGNED INT,
+    ttlEndDs UNSIGNED INT,
+    ttlEndDk UNSIGNED INT,
+    ttlEndRs UNSIGNED INT,
+    rollKskNow UNSIGNED INT,
+    rollZskNow UNSIGNED INT,
+    rollCskNow UNSIGNED INT,
+    inputAdapterType TEXT,
+    inputAdapterUri TEXT,
+    outputAdapterType TEXT,
+    outputAdapterUri TEXT,
+    nextKskRoll UNSIGNED INT,
+    nextZskRoll UNSIGNED INT,
+    nextCskRoll UNSIGNED INT
+);
+CREATE INDEX zonePolicyId ON zone ( policyId );
+
+CREATE TABLE keyData (
+    id UNSIGNED BIGINT PRIMARY KEY,
+    zoneId UNSIGNED BIGINT,
+    hsmKeyId UNSIGNED BIGINT,
+    locator TEXT,
+    algorithm UNSIGNED INT,
+    inception UNSIGNED INT,
+    role INT,
+    introducing UNSIGNED INT,
+    shouldRevoke UNSIGNED INT,
+    standby UNSIGNED INT,
+    activeZsk UNSIGNED INT,
+    publish UNSIGNED INT,
+    activeKsk UNSIGNED INT,
+    dsAtParent INT,
+    keytag UNSIGNED INT
+);
+CREATE INDEX keyDataZoneId ON keyData ( zoneId );
+CREATE INDEX keyDataHsmKeyId ON keyData ( hsmKeyId );
+
+CREATE TABLE keyState (
+    id UNSIGNED BIGINT PRIMARY KEY,
+    keyDataId UNSIGNED BIGINT,
+    type INT,
+    state INT,
+    lastChange UNSIGNED INT,
+    minimize UNSIGNED INT,
+    ttl UNSIGNED INT
+);
+CREATE INDEX keyStateKeyDataId ON keyState ( keyDataId );
+
+CREATE TABLE hsmKey (
+    id UNSIGNED BIGINT PRIMARY KEY,
+    policyId UNSIGNED BIGINT,
+    locator TEXT,
+    candidateForSharing UNSIGNED INT,
+    bits UNSIGNED INT,
+    policy TEXT,
+    algorithm UNSIGNED INT,
+    role INT,
+    inception UNSIGNED INT,
+    isRevoked UNSIGNED INT,
+    keyType TEXT,
+    repository TEXT,
+    backup INT
+);
+CREATE INDEX hsmKeyPolicyId ON hsmKey ( policyId );
+
+CREATE TABLE policy (
+    id UNSIGNED BIGINT PRIMARY KEY,
+    name TEXT,
+    description TEXT,
+    signaturesResign UNSIGNED INT,
+    signaturesRefresh UNSIGNED INT,
+    signaturesJitter UNSIGNED INT,
+    signaturesInceptionOffset UNSIGNED INT,
+    signaturesValidityDefault UNSIGNED INT,
+    signaturesValidityDenial UNSIGNED INT,
+    signaturesMaxZoneTtl UNSIGNED INT,
+    denialType INT,
+    denialOptout UNSIGNED INT,
+    denialTtl UNSIGNED INT,
+    denialResalt UNSIGNED INT,
+    denialAlgorithm UNSIGNED INT,
+    denialIterations UNSIGNED INT,
+    denialSaltLength UNSIGNED INT,
+    denialSalt TEXT,
+    denialSaltLastChange UNSIGNED INT,
+    keysTtl UNSIGNED INT,
+    keysRetireSafety UNSIGNED INT,
+    keysPublishSafety UNSIGNED INT,
+    keysShared UNSIGNED INT,
+    keysPurgeAfter UNSIGNED INT,
+    zonePropagationDelay UNSIGNED INT,
+    zoneSoaTtl UNSIGNED INT,
+    zoneSoaMinimum UNSIGNED INT,
+    zoneSoaSerial INT,
+    parentPropagationDelay UNSIGNED INT,
+    parentDsTtl UNSIGNED INT,
+    parentSoaTtl UNSIGNED INT,
+    parentSoaMinimum UNSIGNED INT
+);
+
+CREATE TABLE policyKey (
+    id UNSIGNED BIGINT PRIMARY KEY,
+    policyId UNSIGNED BIGINT,
+    algorithm UNSIGNED INT,
+    bits UNSIGNED INT,
+    lifetime UNSIGNED INT,
+    repository TEXT,
+    standby UNSIGNED INT,
+    manualRollover UNSIGNED INT,
+    rfc5011 UNSIGNED INT,
+    minimize UNSIGNED INT
+);
+CREATE INDEX policyKeyPolicyId ON policyKey ( policyId );
+
+CREATE TABLE version (
+    version UNSIGNED INT
+);

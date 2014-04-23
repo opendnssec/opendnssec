@@ -39,6 +39,14 @@ struct key_state_list;
 typedef struct key_state key_state_t;
 typedef struct key_state_list key_state_list_t;
 
+typedef enum key_state_type {
+    KEY_STATE_TYPE_INVALID = -1,
+    KEY_STATE_TYPE_DS = 0,
+    KEY_STATE_TYPE_RRSIG = 1,
+    KEY_STATE_TYPE_DNSKEY = 2,
+    KEY_STATE_TYPE_RRSIGDNSKEY = 3
+} key_state_type_t;
+
 typedef enum key_state_state {
     KEY_STATE_STATE_INVALID = -1,
     KEY_STATE_STATE_HIDDEN = 0,
@@ -54,6 +62,7 @@ typedef enum key_state_state {
 
 #include "db_object.h"
 #include "key_state_ext.h"
+#include "key_data.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,6 +74,8 @@ extern "C" {
 struct key_state {
     db_object_t* dbo;
     db_value_t id;
+    db_value_t key_data_id;
+    key_state_type_t type;
     key_state_state_t state;
     unsigned int last_change;
     unsigned int minimize;
@@ -115,6 +126,34 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result);
 const db_value_t* key_state_id(const key_state_t* key_state);
 
 /**
+ * Get the key_data_id of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* key_state_key_data_id(const key_state_t* key_state);
+
+/**
+ * Get the key_data_id object related to a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return a key_data_t pointer or NULL on error or if no object could be found.
+ */
+key_data_t* key_state_get_key_data_id(const key_state_t* key_state);
+
+/**
+ * Get the type of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return a key_state_type_t which may be KEY_STATE_TYPE_INVALID on error or if no type has been set.
+ */
+key_state_type_t key_state_type(const key_state_t* key_state);
+
+/**
+ * Get the type as text of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return a character pointer or NULL on error or if no type has been set.
+ */
+const char* key_state_type_text(const key_state_t* key_state);
+
+/**
  * Get the state of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a key_state_state_t which may be KEY_STATE_STATE_INVALID on error or if no state has been set.
@@ -148,6 +187,30 @@ unsigned int key_state_minimize(const key_state_t* key_state);
  * \return an unsigned integer.
  */
 unsigned int key_state_ttl(const key_state_t* key_state);
+
+/**
+ * Set the key_data_id of a key state object. If this fails the original value may have been lost.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] key_data_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_set_key_data_id(key_state_t* key_state, const db_value_t* key_data_id);
+
+/**
+ * Set the type of a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] type a key_state_type_t.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_set_type(key_state_t* key_state, key_state_type_t type);
+
+/**
+ * Set the type of a key state object from text.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] type a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_set_type_text(key_state_t* key_state, const char* type);
 
 /**
  * Set the state of a key state object.

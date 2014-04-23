@@ -34,14 +34,6 @@
 
 #include <string.h>
 
-static const db_enum_t __enum_set_serial[] = {
-    { "counter", (zone_serial_t)ZONE_SERIAL_COUNTER },
-    { "datecounter", (zone_serial_t)ZONE_SERIAL_DATECOUNTER },
-    { "unixtime", (zone_serial_t)ZONE_SERIAL_UNIXTIME },
-    { "keep", (zone_serial_t)ZONE_SERIAL_KEEP },
-    { NULL, 0 }
-};
-
 /**
  * Create a new zone object.
  * \param[in] connection a db_connection_t pointer.
@@ -54,7 +46,7 @@ static db_object_t* __zone_new_object(const db_connection_t* connection) {
 
     if (!(object = db_object_new())
         || db_object_set_connection(object, connection)
-        || db_object_set_table(object, "Zone")
+        || db_object_set_table(object, "zone")
         || db_object_set_primary_key_name(object, "id")
         || !(object_field_list = db_object_field_list_new()))
     {
@@ -74,8 +66,8 @@ static db_object_t* __zone_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "propagationdelay")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "policyId")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -85,8 +77,8 @@ static db_object_t* __zone_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "name")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -96,8 +88,8 @@ static db_object_t* __zone_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "min")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "policy")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -107,9 +99,173 @@ static db_object_t* __zone_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "serial")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_serial)
+        || db_object_field_set_name(object_field, "signconfNeedsWriting")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signconfPath")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "nextChange")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttlEndDs")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttlEndDk")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttlEndRs")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rollKskNow")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rollZskNow")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rollCskNow")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "inputAdapterType")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "inputAdapterUri")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "outputAdapterType")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "outputAdapterUri")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "nextKskRoll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "nextZskRoll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "nextCskRoll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -141,7 +297,9 @@ zone_t* zone_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(zone->id));
-        zone->serial = ZONE_SERIAL_INVALID;
+        db_value_reset(&(zone->policy_id));
+        zone->input_adapter_type = strdup("File");
+        zone->output_adapter_type = strdup("File");
     }
 
     return zone;
@@ -153,6 +311,28 @@ void zone_free(zone_t* zone) {
             db_object_free(zone->dbo);
         }
         db_value_reset(&(zone->id));
+        db_value_reset(&(zone->policy_id));
+        if (zone->name) {
+            free(zone->name);
+        }
+        if (zone->policy) {
+            free(zone->policy);
+        }
+        if (zone->signconf_path) {
+            free(zone->signconf_path);
+        }
+        if (zone->input_adapter_type) {
+            free(zone->input_adapter_type);
+        }
+        if (zone->input_adapter_uri) {
+            free(zone->input_adapter_uri);
+        }
+        if (zone->output_adapter_type) {
+            free(zone->output_adapter_type);
+        }
+        if (zone->output_adapter_uri) {
+            free(zone->output_adapter_uri);
+        }
         mm_alloc_delete(&__zone_alloc, zone);
     }
 }
@@ -160,14 +340,57 @@ void zone_free(zone_t* zone) {
 void zone_reset(zone_t* zone) {
     if (zone) {
         db_value_reset(&(zone->id));
-        zone->propagationdelay = 0;
-        zone->ttl = 0;
-        zone->min = 0;
-        zone->serial = ZONE_SERIAL_INVALID;
+        db_value_reset(&(zone->policy_id));
+        if (zone->name) {
+            free(zone->name);
+        }
+        zone->name = NULL;
+        if (zone->policy) {
+            free(zone->policy);
+        }
+        zone->policy = NULL;
+        zone->signconf_needs_writing = 0;
+        if (zone->signconf_path) {
+            free(zone->signconf_path);
+        }
+        zone->signconf_path = NULL;
+        zone->next_change = 0;
+        zone->ttl_end_ds = 0;
+        zone->ttl_end_dk = 0;
+        zone->ttl_end_rs = 0;
+        zone->roll_ksk_now = 0;
+        zone->roll_zsk_now = 0;
+        zone->roll_csk_now = 0;
+        if (zone->input_adapter_type) {
+            free(zone->input_adapter_type);
+        }
+        zone->input_adapter_type = strdup("File");
+        if (zone->input_adapter_uri) {
+            free(zone->input_adapter_uri);
+        }
+        zone->input_adapter_uri = NULL;
+        if (zone->output_adapter_type) {
+            free(zone->output_adapter_type);
+        }
+        zone->output_adapter_type = strdup("File");
+        if (zone->output_adapter_uri) {
+            free(zone->output_adapter_uri);
+        }
+        zone->output_adapter_uri = NULL;
+        zone->next_ksk_roll = 0;
+        zone->next_zsk_roll = 0;
+        zone->next_csk_roll = 0;
     }
 }
 
 int zone_copy(zone_t* zone, const zone_t* zone_copy) {
+    char* name_text = NULL;
+    char* policy_text = NULL;
+    char* signconf_path_text = NULL;
+    char* input_adapter_type_text = NULL;
+    char* input_adapter_uri_text = NULL;
+    char* output_adapter_type_text = NULL;
+    char* output_adapter_uri_text = NULL;
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
@@ -175,19 +398,196 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (zone_copy->name) {
+        if (!(name_text = strdup(zone_copy->name))) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    if (zone_copy->policy) {
+        if (!(policy_text = strdup(zone_copy->policy))) {
+            if (name_text) {
+                free(name_text);
+            }
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    if (zone_copy->signconf_path) {
+        if (!(signconf_path_text = strdup(zone_copy->signconf_path))) {
+            if (name_text) {
+                free(name_text);
+            }
+            if (policy_text) {
+                free(policy_text);
+            }
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    if (zone_copy->input_adapter_type) {
+        if (!(input_adapter_type_text = strdup(zone_copy->input_adapter_type))) {
+            if (name_text) {
+                free(name_text);
+            }
+            if (policy_text) {
+                free(policy_text);
+            }
+            if (signconf_path_text) {
+                free(signconf_path_text);
+            }
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    if (zone_copy->input_adapter_uri) {
+        if (!(input_adapter_uri_text = strdup(zone_copy->input_adapter_uri))) {
+            if (name_text) {
+                free(name_text);
+            }
+            if (policy_text) {
+                free(policy_text);
+            }
+            if (signconf_path_text) {
+                free(signconf_path_text);
+            }
+            if (input_adapter_type_text) {
+                free(input_adapter_type_text);
+            }
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    if (zone_copy->output_adapter_type) {
+        if (!(output_adapter_type_text = strdup(zone_copy->output_adapter_type))) {
+            if (name_text) {
+                free(name_text);
+            }
+            if (policy_text) {
+                free(policy_text);
+            }
+            if (signconf_path_text) {
+                free(signconf_path_text);
+            }
+            if (input_adapter_type_text) {
+                free(input_adapter_type_text);
+            }
+            if (input_adapter_uri_text) {
+                free(input_adapter_uri_text);
+            }
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    if (zone_copy->output_adapter_uri) {
+        if (!(output_adapter_uri_text = strdup(zone_copy->output_adapter_uri))) {
+            if (name_text) {
+                free(name_text);
+            }
+            if (policy_text) {
+                free(policy_text);
+            }
+            if (signconf_path_text) {
+                free(signconf_path_text);
+            }
+            if (input_adapter_type_text) {
+                free(input_adapter_type_text);
+            }
+            if (input_adapter_uri_text) {
+                free(input_adapter_uri_text);
+            }
+            if (output_adapter_type_text) {
+                free(output_adapter_type_text);
+            }
+            return DB_ERROR_UNKNOWN;
+        }
+    }
     if (db_value_copy(&(zone->id), &(zone_copy->id))) {
+        if (name_text) {
+            free(name_text);
+        }
+        if (policy_text) {
+            free(policy_text);
+        }
+        if (signconf_path_text) {
+            free(signconf_path_text);
+        }
+        if (input_adapter_type_text) {
+            free(input_adapter_type_text);
+        }
+        if (input_adapter_uri_text) {
+            free(input_adapter_uri_text);
+        }
+        if (output_adapter_type_text) {
+            free(output_adapter_type_text);
+        }
+        if (output_adapter_uri_text) {
+            free(output_adapter_uri_text);
+        }
         return DB_ERROR_UNKNOWN;
     }
-    zone->propagationdelay = zone_copy->propagationdelay;
-    zone->ttl = zone_copy->ttl;
-    zone->min = zone_copy->min;
-    zone->serial = zone_copy->serial;
+    if (db_value_copy(&(zone->policy_id), &(zone_copy->policy_id))) {
+        if (name_text) {
+            free(name_text);
+        }
+        if (policy_text) {
+            free(policy_text);
+        }
+        if (signconf_path_text) {
+            free(signconf_path_text);
+        }
+        if (input_adapter_type_text) {
+            free(input_adapter_type_text);
+        }
+        if (input_adapter_uri_text) {
+            free(input_adapter_uri_text);
+        }
+        if (output_adapter_type_text) {
+            free(output_adapter_type_text);
+        }
+        if (output_adapter_uri_text) {
+            free(output_adapter_uri_text);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+    if (zone->name) {
+        free(zone->name);
+    }
+    zone->name = name_text;
+    if (zone->policy) {
+        free(zone->policy);
+    }
+    zone->policy = policy_text;
+    zone->signconf_needs_writing = zone_copy->signconf_needs_writing;
+    if (zone->signconf_path) {
+        free(zone->signconf_path);
+    }
+    zone->signconf_path = signconf_path_text;
+    zone->next_change = zone_copy->next_change;
+    zone->ttl_end_ds = zone_copy->ttl_end_ds;
+    zone->ttl_end_dk = zone_copy->ttl_end_dk;
+    zone->ttl_end_rs = zone_copy->ttl_end_rs;
+    zone->roll_ksk_now = zone_copy->roll_ksk_now;
+    zone->roll_zsk_now = zone_copy->roll_zsk_now;
+    zone->roll_csk_now = zone_copy->roll_csk_now;
+    if (zone->input_adapter_type) {
+        free(zone->input_adapter_type);
+    }
+    zone->input_adapter_type = input_adapter_type_text;
+    if (zone->input_adapter_uri) {
+        free(zone->input_adapter_uri);
+    }
+    zone->input_adapter_uri = input_adapter_uri_text;
+    if (zone->output_adapter_type) {
+        free(zone->output_adapter_type);
+    }
+    zone->output_adapter_type = output_adapter_type_text;
+    if (zone->output_adapter_uri) {
+        free(zone->output_adapter_uri);
+    }
+    zone->output_adapter_uri = output_adapter_uri_text;
+    zone->next_ksk_roll = zone_copy->next_ksk_roll;
+    zone->next_zsk_roll = zone_copy->next_zsk_roll;
+    zone->next_csk_roll = zone_copy->next_csk_roll;
     return DB_OK;
 }
 
 int zone_from_result(zone_t* zone, const db_result_t* result) {
     const db_value_set_t* value_set;
-    int serial;
 
     if (!zone) {
         return DB_ERROR_UNKNOWN;
@@ -197,30 +597,58 @@ int zone_from_result(zone_t* zone, const db_result_t* result) {
     }
 
     db_value_reset(&(zone->id));
+    db_value_reset(&(zone->policy_id));
+    if (zone->name) {
+        free(zone->name);
+    }
+    zone->name = NULL;
+    if (zone->policy) {
+        free(zone->policy);
+    }
+    zone->policy = NULL;
+    if (zone->signconf_path) {
+        free(zone->signconf_path);
+    }
+    zone->signconf_path = NULL;
+    if (zone->input_adapter_type) {
+        free(zone->input_adapter_type);
+    }
+    zone->input_adapter_type = NULL;
+    if (zone->input_adapter_uri) {
+        free(zone->input_adapter_uri);
+    }
+    zone->input_adapter_uri = NULL;
+    if (zone->output_adapter_type) {
+        free(zone->output_adapter_type);
+    }
+    zone->output_adapter_type = NULL;
+    if (zone->output_adapter_uri) {
+        free(zone->output_adapter_uri);
+    }
+    zone->output_adapter_uri = NULL;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 5
+        || db_value_set_size(value_set) != 20
         || db_value_copy(&(zone->id), db_value_set_at(value_set, 0))
-        || db_value_to_int32(db_value_set_at(value_set, 1), &(zone->propagationdelay))
-        || db_value_to_int32(db_value_set_at(value_set, 2), &(zone->ttl))
-        || db_value_to_int32(db_value_set_at(value_set, 3), &(zone->min))
-        || db_value_to_enum_value(db_value_set_at(value_set, 4), &serial, __enum_set_serial))
+        || db_value_copy(&(zone->policy_id), db_value_set_at(value_set, 1))
+        || db_value_to_text(db_value_set_at(value_set, 2), &(zone->name))
+        || db_value_to_text(db_value_set_at(value_set, 3), &(zone->policy))
+        || db_value_to_uint32(db_value_set_at(value_set, 4), &(zone->signconf_needs_writing))
+        || db_value_to_text(db_value_set_at(value_set, 5), &(zone->signconf_path))
+        || db_value_to_uint32(db_value_set_at(value_set, 6), &(zone->next_change))
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(zone->ttl_end_ds))
+        || db_value_to_uint32(db_value_set_at(value_set, 8), &(zone->ttl_end_dk))
+        || db_value_to_uint32(db_value_set_at(value_set, 9), &(zone->ttl_end_rs))
+        || db_value_to_uint32(db_value_set_at(value_set, 10), &(zone->roll_ksk_now))
+        || db_value_to_uint32(db_value_set_at(value_set, 11), &(zone->roll_zsk_now))
+        || db_value_to_uint32(db_value_set_at(value_set, 12), &(zone->roll_csk_now))
+        || db_value_to_text(db_value_set_at(value_set, 13), &(zone->input_adapter_type))
+        || db_value_to_text(db_value_set_at(value_set, 14), &(zone->input_adapter_uri))
+        || db_value_to_text(db_value_set_at(value_set, 15), &(zone->output_adapter_type))
+        || db_value_to_text(db_value_set_at(value_set, 16), &(zone->output_adapter_uri))
+        || db_value_to_uint32(db_value_set_at(value_set, 17), &(zone->next_ksk_roll))
+        || db_value_to_uint32(db_value_set_at(value_set, 18), &(zone->next_zsk_roll))
+        || db_value_to_uint32(db_value_set_at(value_set, 19), &(zone->next_csk_roll)))
     {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (serial == (zone_serial_t)ZONE_SERIAL_COUNTER) {
-        zone->serial = ZONE_SERIAL_COUNTER;
-    }
-    else if (serial == (zone_serial_t)ZONE_SERIAL_DATECOUNTER) {
-        zone->serial = ZONE_SERIAL_DATECOUNTER;
-    }
-    else if (serial == (zone_serial_t)ZONE_SERIAL_UNIXTIME) {
-        zone->serial = ZONE_SERIAL_UNIXTIME;
-    }
-    else if (serial == (zone_serial_t)ZONE_SERIAL_KEEP) {
-        zone->serial = ZONE_SERIAL_KEEP;
-    }
-    else {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -235,109 +663,463 @@ const db_value_t* zone_id(const zone_t* zone) {
     return &(zone->id);
 }
 
-int zone_propagationdelay(const zone_t* zone) {
-    if (!zone) {
-        return 0;
-    }
-
-    return zone->propagationdelay;
-}
-
-int zone_ttl(const zone_t* zone) {
-    if (!zone) {
-        return 0;
-    }
-
-    return zone->ttl;
-}
-
-int zone_min(const zone_t* zone) {
-    if (!zone) {
-        return 0;
-    }
-
-    return zone->min;
-}
-
-zone_serial_t zone_serial(const zone_t* zone) {
-    if (!zone) {
-        return ZONE_SERIAL_INVALID;
-    }
-
-    return zone->serial;
-}
-
-const char* zone_serial_text(const zone_t* zone) {
-    const db_enum_t* enum_set = __enum_set_serial;
-
+const db_value_t* zone_policy_id(const zone_t* zone) {
     if (!zone) {
         return NULL;
     }
 
-    while (enum_set->text) {
-        if (enum_set->value == zone->serial) {
-            return enum_set->text;
-        }
-        enum_set++;
-    }
-    return NULL;
+    return &(zone->policy_id);
 }
 
-int zone_set_propagationdelay(zone_t* zone, int propagationdelay) {
+policy_t* zone_get_policy(const zone_t* zone) {
+    policy_t* policy_id = NULL;
+    
+    if (!zone) {
+        return NULL;
+    }
+    if (!zone->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(zone->policy_id))) {
+        return NULL;
+    }
+    
+    if (!(policy_id = policy_new(db_object_connection(zone->dbo)))) {
+        return NULL;
+    }
+    if (policy_get_by_id(policy_id, &(zone->policy_id))) {
+        policy_free(policy_id);
+        return NULL;
+    }
+
+    return policy_id;
+}
+
+const char* zone_name(const zone_t* zone) {
+    if (!zone) {
+        return NULL;
+    }
+
+    return zone->name;
+}
+
+const char* zone_policy(const zone_t* zone) {
+    if (!zone) {
+        return NULL;
+    }
+
+    return zone->policy;
+}
+
+unsigned int zone_signconf_needs_writing(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->signconf_needs_writing;
+}
+
+const char* zone_signconf_path(const zone_t* zone) {
+    if (!zone) {
+        return NULL;
+    }
+
+    return zone->signconf_path;
+}
+
+unsigned int zone_next_change(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->next_change;
+}
+
+unsigned int zone_ttl_end_ds(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->ttl_end_ds;
+}
+
+unsigned int zone_ttl_end_dk(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->ttl_end_dk;
+}
+
+unsigned int zone_ttl_end_rs(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->ttl_end_rs;
+}
+
+unsigned int zone_roll_ksk_now(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->roll_ksk_now;
+}
+
+unsigned int zone_roll_zsk_now(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->roll_zsk_now;
+}
+
+unsigned int zone_roll_csk_now(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->roll_csk_now;
+}
+
+const char* zone_input_adapter_type(const zone_t* zone) {
+    if (!zone) {
+        return NULL;
+    }
+
+    return zone->input_adapter_type;
+}
+
+const char* zone_input_adapter_uri(const zone_t* zone) {
+    if (!zone) {
+        return NULL;
+    }
+
+    return zone->input_adapter_uri;
+}
+
+const char* zone_output_adapter_type(const zone_t* zone) {
+    if (!zone) {
+        return NULL;
+    }
+
+    return zone->output_adapter_type;
+}
+
+const char* zone_output_adapter_uri(const zone_t* zone) {
+    if (!zone) {
+        return NULL;
+    }
+
+    return zone->output_adapter_uri;
+}
+
+unsigned int zone_next_ksk_roll(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->next_ksk_roll;
+}
+
+unsigned int zone_next_zsk_roll(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->next_zsk_roll;
+}
+
+unsigned int zone_next_csk_roll(const zone_t* zone) {
+    if (!zone) {
+        return 0;
+    }
+
+    return zone->next_csk_roll;
+}
+
+int zone_set_policy_id(zone_t* zone, const db_value_t* policy_id) {
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!policy_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(policy_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    zone->propagationdelay = propagationdelay;
+    db_value_reset(&(zone->policy_id));
+    if (db_value_copy(&(zone->policy_id), policy_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
 
-int zone_set_ttl(zone_t* zone, int ttl) {
+int zone_set_name(zone_t* zone, const char* name_text) {
+    char* new_name;
+
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!name_text) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    zone->ttl = ttl;
+    if (!(new_name = strdup(name_text))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->name) {
+        free(zone->name);
+    }
+    zone->name = new_name;
 
     return DB_OK;
 }
 
-int zone_set_min(zone_t* zone, int min) {
+int zone_set_policy(zone_t* zone, const char* policy_text) {
+    char* new_policy;
+
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!policy_text) {
+        return DB_ERROR_UNKNOWN;
+    }
 
-    zone->min = min;
+    if (!(new_policy = strdup(policy_text))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->policy) {
+        free(zone->policy);
+    }
+    zone->policy = new_policy;
 
     return DB_OK;
 }
 
-int zone_set_serial(zone_t* zone, zone_serial_t serial) {
+int zone_set_signconf_needs_writing(zone_t* zone, unsigned int signconf_needs_writing) {
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
 
-    zone->serial = serial;
+    zone->signconf_needs_writing = signconf_needs_writing;
 
     return DB_OK;
 }
 
-int zone_set_serial_text(zone_t* zone, const char* serial) {
-    const db_enum_t* enum_set = __enum_set_serial;
+int zone_set_signconf_path(zone_t* zone, const char* signconf_path_text) {
+    char* new_signconf_path;
 
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, serial)) {
-            zone->serial = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
+    if (!signconf_path_text) {
+        return DB_ERROR_UNKNOWN;
     }
-    return DB_ERROR_UNKNOWN;
+
+    if (!(new_signconf_path = strdup(signconf_path_text))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->signconf_path) {
+        free(zone->signconf_path);
+    }
+    zone->signconf_path = new_signconf_path;
+
+    return DB_OK;
+}
+
+int zone_set_next_change(zone_t* zone, unsigned int next_change) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->next_change = next_change;
+
+    return DB_OK;
+}
+
+int zone_set_ttl_end_ds(zone_t* zone, unsigned int ttl_end_ds) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->ttl_end_ds = ttl_end_ds;
+
+    return DB_OK;
+}
+
+int zone_set_ttl_end_dk(zone_t* zone, unsigned int ttl_end_dk) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->ttl_end_dk = ttl_end_dk;
+
+    return DB_OK;
+}
+
+int zone_set_ttl_end_rs(zone_t* zone, unsigned int ttl_end_rs) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->ttl_end_rs = ttl_end_rs;
+
+    return DB_OK;
+}
+
+int zone_set_roll_ksk_now(zone_t* zone, unsigned int roll_ksk_now) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->roll_ksk_now = roll_ksk_now;
+
+    return DB_OK;
+}
+
+int zone_set_roll_zsk_now(zone_t* zone, unsigned int roll_zsk_now) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->roll_zsk_now = roll_zsk_now;
+
+    return DB_OK;
+}
+
+int zone_set_roll_csk_now(zone_t* zone, unsigned int roll_csk_now) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->roll_csk_now = roll_csk_now;
+
+    return DB_OK;
+}
+
+int zone_set_input_adapter_type(zone_t* zone, const char* input_adapter_type_text) {
+    char* new_input_adapter_type;
+
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!input_adapter_type_text) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(new_input_adapter_type = strdup(input_adapter_type_text))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->input_adapter_type) {
+        free(zone->input_adapter_type);
+    }
+    zone->input_adapter_type = new_input_adapter_type;
+
+    return DB_OK;
+}
+
+int zone_set_input_adapter_uri(zone_t* zone, const char* input_adapter_uri_text) {
+    char* new_input_adapter_uri;
+
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!input_adapter_uri_text) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(new_input_adapter_uri = strdup(input_adapter_uri_text))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->input_adapter_uri) {
+        free(zone->input_adapter_uri);
+    }
+    zone->input_adapter_uri = new_input_adapter_uri;
+
+    return DB_OK;
+}
+
+int zone_set_output_adapter_type(zone_t* zone, const char* output_adapter_type_text) {
+    char* new_output_adapter_type;
+
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!output_adapter_type_text) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(new_output_adapter_type = strdup(output_adapter_type_text))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->output_adapter_type) {
+        free(zone->output_adapter_type);
+    }
+    zone->output_adapter_type = new_output_adapter_type;
+
+    return DB_OK;
+}
+
+int zone_set_output_adapter_uri(zone_t* zone, const char* output_adapter_uri_text) {
+    char* new_output_adapter_uri;
+
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!output_adapter_uri_text) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(new_output_adapter_uri = strdup(output_adapter_uri_text))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->output_adapter_uri) {
+        free(zone->output_adapter_uri);
+    }
+    zone->output_adapter_uri = new_output_adapter_uri;
+
+    return DB_OK;
+}
+
+int zone_set_next_ksk_roll(zone_t* zone, unsigned int next_ksk_roll) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->next_ksk_roll = next_ksk_roll;
+
+    return DB_OK;
+}
+
+int zone_set_next_zsk_roll(zone_t* zone, unsigned int next_zsk_roll) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->next_zsk_roll = next_zsk_roll;
+
+    return DB_OK;
+}
+
+int zone_set_next_csk_roll(zone_t* zone, unsigned int next_csk_roll) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->next_csk_roll = next_csk_roll;
+
+    return DB_OK;
 }
 
 int zone_create(zone_t* zone) {
@@ -355,6 +1137,30 @@ int zone_create(zone_t* zone) {
     if (!db_value_not_empty(&(zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(zone->policy_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->name) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->signconf_path) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->input_adapter_type) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->input_adapter_uri) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->output_adapter_type) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->output_adapter_uri) {
+        return DB_ERROR_UNKNOWN;
+    }
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
@@ -362,8 +1168,8 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "propagationdelay")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "policy_id")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -372,8 +1178,8 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "name")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -382,8 +1188,8 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "min")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "policy")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -392,9 +1198,8 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "serial")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_serial)
+        || db_object_field_set_name(object_field, "signconf_needs_writing")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -402,15 +1207,180 @@ int zone_create(zone_t* zone) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(4))) {
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signconf_path")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), zone->propagationdelay)
-        || db_value_from_int32(db_value_set_get(value_set, 1), zone->ttl)
-        || db_value_from_int32(db_value_set_get(value_set, 2), zone->min)
-        || db_value_from_enum_value(db_value_set_get(value_set, 3), zone->serial, __enum_set_serial))
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "next_change")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttl_end_ds")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttl_end_dk")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttl_end_rs")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "roll_ksk_now")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "roll_zsk_now")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "roll_csk_now")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "input_adapter_type")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "input_adapter_uri")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "output_adapter_type")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "output_adapter_uri")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "next_ksk_roll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "next_zsk_roll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "next_csk_roll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(value_set = db_value_set_new(19))) {
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (db_value_copy(db_value_set_get(value_set, 0), &(zone->policy_id))
+        || db_value_from_text(db_value_set_get(value_set, 1), zone->name)
+        || db_value_from_text(db_value_set_get(value_set, 2), zone->policy)
+        || db_value_from_uint32(db_value_set_get(value_set, 3), zone->signconf_needs_writing)
+        || db_value_from_text(db_value_set_get(value_set, 4), zone->signconf_path)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), zone->next_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 6), zone->ttl_end_ds)
+        || db_value_from_uint32(db_value_set_get(value_set, 7), zone->ttl_end_dk)
+        || db_value_from_uint32(db_value_set_get(value_set, 8), zone->ttl_end_rs)
+        || db_value_from_uint32(db_value_set_get(value_set, 9), zone->roll_ksk_now)
+        || db_value_from_uint32(db_value_set_get(value_set, 10), zone->roll_zsk_now)
+        || db_value_from_uint32(db_value_set_get(value_set, 11), zone->roll_csk_now)
+        || db_value_from_text(db_value_set_get(value_set, 12), zone->input_adapter_type)
+        || db_value_from_text(db_value_set_get(value_set, 13), zone->input_adapter_uri)
+        || db_value_from_text(db_value_set_get(value_set, 14), zone->output_adapter_type)
+        || db_value_from_text(db_value_set_get(value_set, 15), zone->output_adapter_uri)
+        || db_value_from_uint32(db_value_set_get(value_set, 16), zone->next_ksk_roll)
+        || db_value_from_uint32(db_value_set_get(value_set, 17), zone->next_zsk_roll)
+        || db_value_from_uint32(db_value_set_get(value_set, 18), zone->next_csk_roll))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -493,6 +1463,30 @@ int zone_update(zone_t* zone) {
     if (db_value_not_empty(&(zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(zone->policy_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->name) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->signconf_path) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->input_adapter_type) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->input_adapter_uri) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->output_adapter_type) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->output_adapter_uri) {
+        return DB_ERROR_UNKNOWN;
+    }
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
@@ -500,8 +1494,8 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "propagationdelay")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "policy_id")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -510,8 +1504,8 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "name")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -520,8 +1514,8 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "min")
-        || db_object_field_set_type(object_field, DB_TYPE_INT32)
+        || db_object_field_set_name(object_field, "policy")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -530,9 +1524,8 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "serial")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_serial)
+        || db_object_field_set_name(object_field, "signconf_needs_writing")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -540,15 +1533,180 @@ int zone_update(zone_t* zone) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(4))) {
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signconf_path")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_from_int32(db_value_set_get(value_set, 0), zone->propagationdelay)
-        || db_value_from_int32(db_value_set_get(value_set, 1), zone->ttl)
-        || db_value_from_int32(db_value_set_get(value_set, 2), zone->min)
-        || db_value_from_enum_value(db_value_set_get(value_set, 3), zone->serial, __enum_set_serial))
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "next_change")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttl_end_ds")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttl_end_dk")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "ttl_end_rs")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "roll_ksk_now")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "roll_zsk_now")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "roll_csk_now")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "input_adapter_type")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "input_adapter_uri")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "output_adapter_type")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "output_adapter_uri")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "next_ksk_roll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "next_zsk_roll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "next_csk_roll")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(value_set = db_value_set_new(19))) {
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (db_value_copy(db_value_set_get(value_set, 0), &(zone->policy_id))
+        || db_value_from_text(db_value_set_get(value_set, 1), zone->name)
+        || db_value_from_text(db_value_set_get(value_set, 2), zone->policy)
+        || db_value_from_uint32(db_value_set_get(value_set, 3), zone->signconf_needs_writing)
+        || db_value_from_text(db_value_set_get(value_set, 4), zone->signconf_path)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), zone->next_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 6), zone->ttl_end_ds)
+        || db_value_from_uint32(db_value_set_get(value_set, 7), zone->ttl_end_dk)
+        || db_value_from_uint32(db_value_set_get(value_set, 8), zone->ttl_end_rs)
+        || db_value_from_uint32(db_value_set_get(value_set, 9), zone->roll_ksk_now)
+        || db_value_from_uint32(db_value_set_get(value_set, 10), zone->roll_zsk_now)
+        || db_value_from_uint32(db_value_set_get(value_set, 11), zone->roll_csk_now)
+        || db_value_from_text(db_value_set_get(value_set, 12), zone->input_adapter_type)
+        || db_value_from_text(db_value_set_get(value_set, 13), zone->input_adapter_uri)
+        || db_value_from_text(db_value_set_get(value_set, 14), zone->output_adapter_type)
+        || db_value_from_text(db_value_set_get(value_set, 15), zone->output_adapter_uri)
+        || db_value_from_uint32(db_value_set_get(value_set, 16), zone->next_ksk_roll)
+        || db_value_from_uint32(db_value_set_get(value_set, 17), zone->next_zsk_roll)
+        || db_value_from_uint32(db_value_set_get(value_set, 18), zone->next_csk_roll))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

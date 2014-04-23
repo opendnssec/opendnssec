@@ -27,12 +27,21 @@
  *
  */
 
-#ifndef __key_state_ext_h
-#define __key_state_ext_h
+#ifndef __version_ext_h
+#define __version_ext_h
+
+#include "db_connection.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * Get the database version.
+ * \param[in] a db_connection_t pointer.
+ * \return an integer with the database version or zero on error.
+ */
+int version_get_version(db_connection_t* connection);
 
 #ifdef __cplusplus
 }

@@ -39,20 +39,13 @@ struct zone_list;
 typedef struct zone zone_t;
 typedef struct zone_list zone_list_t;
 
-typedef enum zone_serial {
-    ZONE_SERIAL_INVALID = -1,
-    ZONE_SERIAL_COUNTER = 1,
-    ZONE_SERIAL_DATECOUNTER = 2,
-    ZONE_SERIAL_UNIXTIME = 3,
-    ZONE_SERIAL_KEEP = 4
-} zone_serial_t;
-
 #ifdef __cplusplus
 }
 #endif
 
 #include "db_object.h"
 #include "zone_ext.h"
+#include "policy.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,10 +57,25 @@ extern "C" {
 struct zone {
     db_object_t* dbo;
     db_value_t id;
-    int propagationdelay;
-    int ttl;
-    int min;
-    zone_serial_t serial;
+    db_value_t policy_id;
+    char* name;
+    char* policy;
+    unsigned int signconf_needs_writing;
+    char* signconf_path;
+    unsigned int next_change;
+    unsigned int ttl_end_ds;
+    unsigned int ttl_end_dk;
+    unsigned int ttl_end_rs;
+    unsigned int roll_ksk_now;
+    unsigned int roll_zsk_now;
+    unsigned int roll_csk_now;
+    char* input_adapter_type;
+    char* input_adapter_uri;
+    char* output_adapter_type;
+    char* output_adapter_uri;
+    unsigned int next_ksk_roll;
+    unsigned int next_zsk_roll;
+    unsigned int next_csk_roll;
 #include "zone_struct_ext.h"
 };
 
@@ -114,79 +122,296 @@ int zone_from_result(zone_t* zone, const db_result_t* result);
 const db_value_t* zone_id(const zone_t* zone);
 
 /**
- * Get the propagationdelay of a zone object. Undefined behavior if `zone` is NULL.
+ * Get the policy_id of a zone object.
  * \param[in] zone a zone_t pointer.
- * \return an integer.
+ * \return a db_value_t pointer or NULL on error.
  */
-int zone_propagationdelay(const zone_t* zone);
+const db_value_t* zone_policy_id(const zone_t* zone);
 
 /**
- * Get the ttl of a zone object. Undefined behavior if `zone` is NULL.
+ * Get the policy_id object related to a zone object.
  * \param[in] zone a zone_t pointer.
- * \return an integer.
+ * \return a policy_t pointer or NULL on error or if no object could be found.
  */
-int zone_ttl(const zone_t* zone);
+policy_t* zone_get_policy_id(const zone_t* zone);
 
 /**
- * Get the min of a zone object. Undefined behavior if `zone` is NULL.
+ * Get the name of a zone object.
  * \param[in] zone a zone_t pointer.
- * \return an integer.
+ * \return a character pointer or NULL on error or if no name has been set.
  */
-int zone_min(const zone_t* zone);
+const char* zone_name(const zone_t* zone);
 
 /**
- * Get the serial of a zone object.
+ * Get the policy of a zone object.
  * \param[in] zone a zone_t pointer.
- * \return a zone_serial_t which may be ZONE_SERIAL_INVALID on error or if no serial has been set.
+ * \return a character pointer or NULL on error or if no policy has been set.
  */
-zone_serial_t zone_serial(const zone_t* zone);
+const char* zone_policy(const zone_t* zone);
 
 /**
- * Get the serial as text of a zone object.
+ * Get the signconf_needs_writing of a zone object. Undefined behavior if `zone` is NULL.
  * \param[in] zone a zone_t pointer.
- * \return a character pointer or NULL on error or if no serial has been set.
+ * \return an unsigned integer.
  */
-const char* zone_serial_text(const zone_t* zone);
+unsigned int zone_signconf_needs_writing(const zone_t* zone);
 
 /**
- * Set the propagationdelay of a zone object.
+ * Get the signconf_path of a zone object.
  * \param[in] zone a zone_t pointer.
- * \param[in] propagationdelay an integer.
+ * \return a character pointer or NULL on error or if no signconf_path has been set.
+ */
+const char* zone_signconf_path(const zone_t* zone);
+
+/**
+ * Get the next_change of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_next_change(const zone_t* zone);
+
+/**
+ * Get the ttl_end_ds of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_ttl_end_ds(const zone_t* zone);
+
+/**
+ * Get the ttl_end_dk of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_ttl_end_dk(const zone_t* zone);
+
+/**
+ * Get the ttl_end_rs of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_ttl_end_rs(const zone_t* zone);
+
+/**
+ * Get the roll_ksk_now of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_roll_ksk_now(const zone_t* zone);
+
+/**
+ * Get the roll_zsk_now of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_roll_zsk_now(const zone_t* zone);
+
+/**
+ * Get the roll_csk_now of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_roll_csk_now(const zone_t* zone);
+
+/**
+ * Get the input_adapter_type of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no input_adapter_type has been set.
+ */
+const char* zone_input_adapter_type(const zone_t* zone);
+
+/**
+ * Get the input_adapter_uri of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no input_adapter_uri has been set.
+ */
+const char* zone_input_adapter_uri(const zone_t* zone);
+
+/**
+ * Get the output_adapter_type of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no output_adapter_type has been set.
+ */
+const char* zone_output_adapter_type(const zone_t* zone);
+
+/**
+ * Get the output_adapter_uri of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no output_adapter_uri has been set.
+ */
+const char* zone_output_adapter_uri(const zone_t* zone);
+
+/**
+ * Get the next_ksk_roll of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_next_ksk_roll(const zone_t* zone);
+
+/**
+ * Get the next_zsk_roll of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_next_zsk_roll(const zone_t* zone);
+
+/**
+ * Get the next_csk_roll of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_next_csk_roll(const zone_t* zone);
+
+/**
+ * Set the policy_id of a zone object. If this fails the original value may have been lost.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_set_propagationdelay(zone_t* zone, int propagationdelay);
+int zone_set_policy_id(zone_t* zone, const db_value_t* policy_id);
 
 /**
- * Set the ttl of a zone object.
+ * Set the name of a zone object.
  * \param[in] zone a zone_t pointer.
- * \param[in] ttl an integer.
+ * \param[in] name_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_set_ttl(zone_t* zone, int ttl);
+int zone_set_name(zone_t* zone, const char* name_text);
 
 /**
- * Set the min of a zone object.
+ * Set the policy of a zone object.
  * \param[in] zone a zone_t pointer.
- * \param[in] min an integer.
+ * \param[in] policy_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_set_min(zone_t* zone, int min);
+int zone_set_policy(zone_t* zone, const char* policy_text);
 
 /**
- * Set the serial of a zone object.
+ * Set the signconf_needs_writing of a zone object.
  * \param[in] zone a zone_t pointer.
- * \param[in] serial a zone_serial_t.
+ * \param[in] signconf_needs_writing an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_set_serial(zone_t* zone, zone_serial_t serial);
+int zone_set_signconf_needs_writing(zone_t* zone, unsigned int signconf_needs_writing);
 
 /**
- * Set the serial of a zone object from text.
+ * Set the signconf_path of a zone object.
  * \param[in] zone a zone_t pointer.
- * \param[in] serial a character pointer.
+ * \param[in] signconf_path_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_set_serial_text(zone_t* zone, const char* serial);
+int zone_set_signconf_path(zone_t* zone, const char* signconf_path_text);
+
+/**
+ * Set the next_change of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_change an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_change(zone_t* zone, unsigned int next_change);
+
+/**
+ * Set the ttl_end_ds of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] ttl_end_ds an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_ttl_end_ds(zone_t* zone, unsigned int ttl_end_ds);
+
+/**
+ * Set the ttl_end_dk of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] ttl_end_dk an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_ttl_end_dk(zone_t* zone, unsigned int ttl_end_dk);
+
+/**
+ * Set the ttl_end_rs of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] ttl_end_rs an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_ttl_end_rs(zone_t* zone, unsigned int ttl_end_rs);
+
+/**
+ * Set the roll_ksk_now of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] roll_ksk_now an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_roll_ksk_now(zone_t* zone, unsigned int roll_ksk_now);
+
+/**
+ * Set the roll_zsk_now of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] roll_zsk_now an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_roll_zsk_now(zone_t* zone, unsigned int roll_zsk_now);
+
+/**
+ * Set the roll_csk_now of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] roll_csk_now an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_roll_csk_now(zone_t* zone, unsigned int roll_csk_now);
+
+/**
+ * Set the input_adapter_type of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] input_adapter_type_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_input_adapter_type(zone_t* zone, const char* input_adapter_type_text);
+
+/**
+ * Set the input_adapter_uri of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] input_adapter_uri_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_input_adapter_uri(zone_t* zone, const char* input_adapter_uri_text);
+
+/**
+ * Set the output_adapter_type of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] output_adapter_type_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_output_adapter_type(zone_t* zone, const char* output_adapter_type_text);
+
+/**
+ * Set the output_adapter_uri of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] output_adapter_uri_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_output_adapter_uri(zone_t* zone, const char* output_adapter_uri_text);
+
+/**
+ * Set the next_ksk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_ksk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_ksk_roll(zone_t* zone, unsigned int next_ksk_roll);
+
+/**
+ * Set the next_zsk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_zsk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_zsk_roll(zone_t* zone, unsigned int next_zsk_roll);
+
+/**
+ * Set the next_csk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_csk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_csk_roll(zone_t* zone, unsigned int next_csk_roll);
 
 /**
  * Create a zone object in the database.
