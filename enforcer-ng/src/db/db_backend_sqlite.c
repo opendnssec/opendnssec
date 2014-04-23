@@ -127,7 +127,6 @@ static int db_backend_sqlite_connect(void* data, const db_configuration_list_t* 
         db_configuration_value(file),
         &(backend_sqlite->db),
         SQLITE_OPEN_READWRITE
-        | SQLITE_OPEN_CREATE
         | SQLITE_OPEN_FULLMUTEX,
         NULL);
     if (ret != SQLITE_OK) {
