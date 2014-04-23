@@ -24,13 +24,13 @@ my %DB_TYPE_TO_C_TYPE = (
 );
 
 my %DB_TYPE_TO_SQLITE = (
-    DB_TYPE_PRIMARY_KEY => 'UNSIGNED BIGINT PRIMARY KEY',
-    DB_TYPE_INT32 => 'INT',
-    DB_TYPE_UINT32 => 'UNSIGNED INT',
-    DB_TYPE_INT64 => 'BIGINT',
-    DB_TYPE_UINT64 => 'UNSIGNED BIGINT',
-    DB_TYPE_TEXT => 'TEXT',
-    DB_TYPE_ENUM => 'INT'
+    DB_TYPE_PRIMARY_KEY => 'UNSIGNED BIGINT PRIMARY KEY NOT NULL',
+    DB_TYPE_INT32 => 'INT NOT NULL',
+    DB_TYPE_UINT32 => 'UNSIGNED INT NOT NULL',
+    DB_TYPE_INT64 => 'BIGINT NOT NULL',
+    DB_TYPE_UINT64 => 'UNSIGNED BIGINT NOT NULL',
+    DB_TYPE_TEXT => 'TEXT NOT NULL',
+    DB_TYPE_ENUM => 'INT NOT NULL'
 );
 
 my %DB_TYPE_TO_FUNC = (
@@ -1647,6 +1647,15 @@ foreach my $field (@{$object->{fields}}) {
         next;
     }
         print SQLITE '    ', camelize($field->{name}), ' ', $DB_TYPE_TO_SQLITE{$field->{type}};
+
+    if ($field->{default}) {
+        if ($field->{type} eq 'DB_TYPE_TEXT') {
+            print SQLITE ' DEFAULT "', $field->{default}, '"';
+        }
+        else {
+            print SQLITE ' DEFAULT ', $field->{default};
+        }
+    }
 }
 print SQLITE '
 );
