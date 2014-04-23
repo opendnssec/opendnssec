@@ -34,6 +34,7 @@
 
 #include <sys/un.h>
 #include "shared/locks.h"
+#include "db/db_connection.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,6 +54,7 @@ struct cmdhandler_struct {
     int listen_fd;
     int client_fd;
     int need_to_exit;
+    db_connection_t* dbconn;
 };
 
 struct cmd_func_block {

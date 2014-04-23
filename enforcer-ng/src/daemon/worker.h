@@ -35,6 +35,7 @@
 #include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/locks.h"
+#include "db/db_connection.h"
 
 #include <time.h>
 
@@ -60,6 +61,7 @@ struct worker_struct {
     int need_to_exit;
     cond_basic_type worker_alarm;
     lock_basic_type worker_lock;
+    db_connection_t* dbconn;
 };
 
 /**

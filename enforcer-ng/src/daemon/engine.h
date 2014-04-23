@@ -83,6 +83,13 @@ struct engine_struct {
     db_configuration_list_t* dbcfg_list;
 };
 
+/*
+ * Try to open a connection to the database.
+ * \param dbcfg_list, database configuration list
+ * \return connection on success, NULL on failure.
+ */
+db_connection_t* get_database_connection(db_configuration_list_t* dbcfg_list);
+
 /**
  * Setup the engine started by engine_create
  * \param[in] engine the engine returned from engine_start

@@ -74,6 +74,7 @@ worker_create(allocator_type* allocator, int num)
     worker->jobs_failed = 0;
     worker->sleeping = 0;
     worker->waiting = 0;
+    worker->dbconn = NULL;
     lock_basic_init(&worker->worker_lock);
     lock_basic_set(&worker->worker_alarm);
     return worker;

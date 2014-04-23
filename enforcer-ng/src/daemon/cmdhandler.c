@@ -60,6 +60,7 @@
 #include "shared/status.h"
 #include "shared/duration.h"
 #include "shared/str.h"
+#include "db/db_connection.h"
 
 /* commands to handle */
 #include "policy/policy_resalt_cmd.h"
@@ -343,10 +344,18 @@ cmdhandler_accept_client(void* arg)
     ods_thread_detach(cmdc->thread_id);
 
     ods_log_debug("[%s] accept client %i", module_str, cmdc->client_fd);
+
+    cmdc->dbconn = get_database_connection(cmdc->engine->dbcfg_list);
+    if (!cmdc->dbconn) {
+        fprintf(stderr, "D'OH! TODO");
+        return NULL;
+    }
+    
     cmdhandler_handle_client_conversation(cmdc);
     if (cmdc->client_fd) {
         close(cmdc->client_fd);
     }
+    db_connection_free(cmdc->dbconn);
     free(cmdc);
     count--; /* !not thread safe! */
     return NULL;
