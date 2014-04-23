@@ -126,6 +126,71 @@ int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* resu
 
     /* TODO: ability to compare different types to each other */
     if (value_a->type != value_b->type) {
+        switch (value_a->type) {
+        case DB_TYPE_INT32:
+            if (value_b->type == DB_TYPE_INT64) {
+                if ((db_type_int64_t)(value_a->int32) < value_b->int64) {
+                    *result = -1;
+                }
+                else if ((db_type_int64_t)(value_a->int32) > value_b->int64) {
+                    *result = 1;
+                }
+                else {
+                    *result = 0;
+                }
+                return DB_OK;
+            }
+            break;
+
+        case DB_TYPE_INT64:
+            if (value_b->type == DB_TYPE_INT32) {
+                if (value_a->int64 < (db_type_int64_t)(value_b->int32)) {
+                    *result = -1;
+                }
+                else if (value_a->int64 > (db_type_int64_t)(value_b->int32)) {
+                    *result = 1;
+                }
+                else {
+                    *result = 0;
+                }
+                return DB_OK;
+            }
+            break;
+
+        case DB_TYPE_UINT32:
+            if (value_b->type == DB_TYPE_UINT64) {
+                if ((db_type_uint64_t)(value_a->uint32) < value_b->uint64) {
+                    *result = -1;
+                }
+                else if ((db_type_uint64_t)(value_a->uint32) > value_b->uint64) {
+                    *result = 1;
+                }
+                else {
+                    *result = 0;
+                }
+                return DB_OK;
+            }
+            break;
+
+        case DB_TYPE_UINT64:
+            if (value_b->type == DB_TYPE_UINT32) {
+                if (value_a->uint64 < (db_type_uint64_t)(value_b->uint32)) {
+                    *result = -1;
+                }
+                else if (value_a->uint64 > (db_type_uint64_t)(value_b->uint32)) {
+                    *result = 1;
+                }
+                else {
+                    *result = 0;
+                }
+                return DB_OK;
+            }
+            break;
+
+        default:
+            break;
+        }
+
         return DB_ERROR_UNKNOWN;
     }
 
