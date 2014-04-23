@@ -1,3 +1,10 @@
+OpenDNSSEC 1.4.6
+
+Bugfixes:
+* OPENDNSSEC-617: Signer Engine: Fix DNS Input Adapter to not reject zone
+  the first time due to RFC 1982 serial arethmetic.
+
+
 OpenDNSSEC 1.4.5 - 2014-04-11
 
 Bugfixes:
