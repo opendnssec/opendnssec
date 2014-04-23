@@ -161,6 +161,7 @@
 {
   "name": "database_version",
   "fields": [
+    { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "version", "type": "DB_TYPE_UINT32" }
   ]
 }

@@ -55,6 +55,7 @@ extern "C" {
  */
 struct database_version {
     db_object_t* dbo;
+    db_value_t id;
     unsigned int version;
 };
 
@@ -94,6 +95,13 @@ int database_version_copy(database_version_t* database_version, const database_v
 int database_version_from_result(database_version_t* database_version, const db_result_t* result);
 
 /**
+ * Get the id of a database version object.
+ * \param[in] database_version a database_version_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* database_version_id(const database_version_t* database_version);
+
+/**
  * Get the version of a database version object. Undefined behavior if `database_version` is NULL.
  * \param[in] database_version a database_version_t pointer.
  * \return an unsigned integer.
@@ -114,6 +122,14 @@ int database_version_set_version(database_version_t* database_version, unsigned 
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int database_version_create(database_version_t* database_version);
+
+/**
+ * Get a database version object from the database by an id specified in `id`.
+ * \param[in] database_version a database_version_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int database_version_get_by_id(database_version_t* database_version, const db_value_t* id);
 
 /**
  * Update a database version object in the database.
