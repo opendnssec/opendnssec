@@ -21,6 +21,8 @@ Bugfixes:
 * OPENDNSSEC-515: Signer Engine: Don't replace tabs in RRs with whitespace.
 * OPENDNSSEC-538: libhsm: Possible memory corruption in hsm_get_slot_id.
 * Signer Engine: Fix a race condition when stopping daemon.
+* OPENDNSSEC-586: enforcer & ods-ksmutil: Improve logging on key creation
+  and alloctaion.
 * OPENDNSSEC-588: ods-ksmutil: Exported value of <Parent><SOA><TTL> in 
   'policy export' output could be wrong on MySQL.
 
