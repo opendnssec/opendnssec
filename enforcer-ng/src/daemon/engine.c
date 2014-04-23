@@ -50,6 +50,7 @@
 #include "shared/protobuf.h"
 #include "db/db_configuration.h"
 #include "db/db_connection.h"
+#include "db/version_ext.h"
 #include "libhsm.h"
 
 #include <errno.h>
@@ -300,10 +301,13 @@ static int
 probe_database(db_configuration_list_t* dbcfg_list)
 {
     db_connection_t *conn;
+    int version;
+
     conn = get_database_connection(dbcfg_list);
     if (!conn) return 1;
+    version = version_get_version(conn);
     db_connection_free(conn);
-    return 0;
+    return !version;
 }
 
 /*
