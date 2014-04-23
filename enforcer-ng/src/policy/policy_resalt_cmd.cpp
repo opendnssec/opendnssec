@@ -62,7 +62,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 {
 	(void)cmd; (void)n;
 	ods_log_debug("[%s] %s command", module_str, resalt_funcblock()->cmdname);
-	(void) perform_policy_resalt(sockfd, engine);
+	(void) perform_policy_resalt(sockfd, engine, dbconn);
 	return 0;
 }
 

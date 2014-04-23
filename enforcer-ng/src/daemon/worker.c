@@ -112,7 +112,9 @@ worker_perform_task(worker_type* worker)
        worker->thread_num, task_what2str(task->what),
        task_who2str(task->who), (uint32_t) worker->clock_in);
 
+	task->dbconn = worker->dbconn;
 	worker->task = task_perform(task);
+	task->dbconn = NULL;
 }
 
 

@@ -74,7 +74,8 @@ load_kasp_policy(OrmConn conn,const std::string &name,
 }
 
 time_t 
-perform_policy_resalt(int sockfd, engine_type* engine)
+perform_policy_resalt(int sockfd, engine_type* engine,
+	db_connection_t *dbconn)
 {
 	#define LOG_AND_RESCHEDULE(errmsg,resched) do {\
 		ods_log_error_and_printf(sockfd,module_str,errmsg);\
@@ -188,12 +189,13 @@ static task_type *
 policy_resalt_task_perform(task_type *task)
 {
 	task->backoff = 0;
-    task->when = perform_policy_resalt(-1,(engine_type *)task->context);
-    if (task->when == TIME_INFINITE) {
-        // The resalt did not work, so we just try it again in 30 minutes.
-        task->when = time_now() + 30*60;
-    }
-    return task; // return task, it needs to be rescheduled.
+	task->when = perform_policy_resalt(-1,(engine_type *)task->context,
+		task->dbconn);
+	if (task->when == TIME_INFINITE) {
+		// The resalt did not work, so we just try it again in 30 minutes.
+		task->when = time_now() + 30*60;
+	}
+	return task; // return task, it needs to be rescheduled.
 }
 
 task_type *
