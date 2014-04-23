@@ -89,6 +89,14 @@ struct key_data {
     unsigned int active_ksk;
     key_data_ds_at_parent_t ds_at_parent;
     unsigned int keytag;
+
+    /*
+     * Cached related non-writable key state objects
+     */
+    key_state_t* key_state_ds;
+    key_state_t* key_state_rrsig;
+    key_state_t* key_state_dnskey;
+    key_state_t* key_state_rrsigdnskey;
 };
 
 /**

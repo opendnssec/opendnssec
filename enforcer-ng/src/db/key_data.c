@@ -282,6 +282,18 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->locator) {
             free(key_data->locator);
         }
+        if (key_data->key_state_ds) {
+            key_state_free(key_data->key_state_ds);
+        }
+        if (key_data->key_state_rrsig) {
+            key_state_free(key_data->key_state_rrsig);
+        }
+        if (key_data->key_state_dnskey) {
+            key_state_free(key_data->key_state_dnskey);
+        }
+        if (key_data->key_state_rrsigdnskey) {
+            key_state_free(key_data->key_state_rrsigdnskey);
+        }
         mm_alloc_delete(&__key_data_alloc, key_data);
     }
 }
@@ -306,6 +318,22 @@ void key_data_reset(key_data_t* key_data) {
         key_data->active_ksk = 0;
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_UNSUBMITTED;
         key_data->keytag = 0;
+        if (key_data->key_state_ds) {
+            key_state_free(key_data->key_state_ds);
+        }
+        key_data->key_state_ds = NULL;
+        if (key_data->key_state_rrsig) {
+            key_state_free(key_data->key_state_rrsig);
+        }
+        key_data->key_state_rrsig = NULL;
+        if (key_data->key_state_dnskey) {
+            key_state_free(key_data->key_state_dnskey);
+        }
+        key_data->key_state_dnskey = NULL;
+        if (key_data->key_state_rrsigdnskey) {
+            key_state_free(key_data->key_state_rrsigdnskey);
+        }
+        key_data->key_state_rrsigdnskey = NULL;
     }
 }
 

@@ -28,4 +28,148 @@
  */
 
 #include "key_data.h"
+#include "db_error.h"
 
+int key_data_get_key_states(key_data_t* key_data) {
+    key_state_list_t* key_state_list;
+    const key_state_t* key_state;
+    key_state_t* key_state_ds = NULL;
+    key_state_t* key_state_rrsig = NULL;
+    key_state_t* key_state_dnskey = NULL;
+    key_state_t* key_state_rrsigdnskey = NULL;
+
+    if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state_list = key_state_list_new(db_object_connection(key_data->dbo));
+    if (!key_state_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (key_state_list_get_by_key_data_id(key_state_list, &(key_data->id))) {
+        key_state_list_free(key_state_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_state = key_state_list_begin(key_state_list);
+    while (key_state) {
+        if (key_state_type(key_state) == KEY_STATE_TYPE_DS) {
+            if (!(key_state_ds = key_state_new(db_object_connection(key_data->dbo)))
+                || key_state_copy(key_state_ds, key_state))
+            {
+                key_state_free(key_state_ds);
+                key_state_free(key_state_rrsig);
+                key_state_free(key_state_dnskey);
+                key_state_free(key_state_rrsigdnskey);
+                key_state_list_free(key_state_list);
+                return DB_ERROR_UNKNOWN;
+            }
+            continue;
+        }
+
+        if (key_state_type(key_state) == KEY_STATE_TYPE_RRSIG) {
+            if (!(key_state_rrsig = key_state_new(db_object_connection(key_data->dbo)))
+                || key_state_copy(key_state_rrsig, key_state))
+            {
+                key_state_free(key_state_ds);
+                key_state_free(key_state_rrsig);
+                key_state_free(key_state_dnskey);
+                key_state_free(key_state_rrsigdnskey);
+                key_state_list_free(key_state_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+
+        if (key_state_type(key_state) == KEY_STATE_TYPE_DNSKEY) {
+            if (!(key_state_dnskey = key_state_new(db_object_connection(key_data->dbo)))
+                || key_state_copy(key_state_dnskey, key_state))
+            {
+                key_state_free(key_state_ds);
+                key_state_free(key_state_rrsig);
+                key_state_free(key_state_dnskey);
+                key_state_free(key_state_rrsigdnskey);
+                key_state_list_free(key_state_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+
+        if (key_state_type(key_state) == KEY_STATE_TYPE_RRSIGDNSKEY) {
+            if (!(key_state_rrsigdnskey = key_state_new(db_object_connection(key_data->dbo)))
+                || key_state_copy(key_state_rrsigdnskey, key_state))
+            {
+                key_state_free(key_state_ds);
+                key_state_free(key_state_rrsig);
+                key_state_free(key_state_dnskey);
+                key_state_free(key_state_rrsigdnskey);
+                key_state_list_free(key_state_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        key_state = key_state_list_next(key_state_list);
+    }
+    key_state_list_free(key_state_list);
+
+    if (!key_state_ds || !key_state_rrsig || !key_state_dnskey || !key_state_rrsigdnskey) {
+        key_state_free(key_state_ds);
+        key_state_free(key_state_rrsig);
+        key_state_free(key_state_dnskey);
+        key_state_free(key_state_rrsigdnskey);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_data->key_state_ds) {
+        key_state_free(key_data->key_state_ds);
+    }
+    key_data->key_state_ds = key_state_ds;
+    if (key_data->key_state_rrsig) {
+        key_state_free(key_data->key_state_rrsig);
+    }
+    key_data->key_state_rrsig = key_state_rrsig;
+    if (key_data->key_state_dnskey) {
+        key_state_free(key_data->key_state_dnskey);
+    }
+    key_data->key_state_dnskey = key_state_dnskey;
+    if (key_data->key_state_rrsigdnskey) {
+        key_state_free(key_data->key_state_rrsigdnskey);
+    }
+    key_data->key_state_rrsigdnskey = key_state_rrsigdnskey;
+    return DB_OK;
+}
+
+const key_state_t* key_data_get_ds2(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->key_state_ds;
+}
+
+const key_state_t* key_data_get_rrsig2(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->key_state_rrsig;
+}
+
+const key_state_t* key_data_get_dnskey2(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->key_state_dnskey;
+}
+
+const key_state_t* key_data_get_rrsigdnskey2(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->key_state_rrsigdnskey;
+}
