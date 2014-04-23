@@ -74,7 +74,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	int argc;
 	long val;
 	char *endptr, *errorstr;
-	(void)n;
+	(void)n; (void)dbconn;
 
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';

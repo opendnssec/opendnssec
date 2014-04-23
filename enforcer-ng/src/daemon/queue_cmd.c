@@ -75,7 +75,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	time_t now = 0;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
 	task_type* task = NULL;
-	(void)cmd; (void)n;
+	(void)cmd; (void)n; (void)dbconn;
 
 	ods_log_debug("[%s] list tasks command", module_str);
 

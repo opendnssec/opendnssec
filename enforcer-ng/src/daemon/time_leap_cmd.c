@@ -87,7 +87,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
 	int argc;
-	(void)n;
+	(void)n; (void)dbconn;
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
 
