@@ -184,26 +184,12 @@ ods_enforcerd_SOURCES = \
 	db/db_value.c db/db_value.h \
 	db/db_join.c db/db_join.h \
 	db/db_error.h \
-	db/adapter.c db/adapter_ext.c db/adapter_ext.h db/adapter.h db/adapters.c \
-	db/adapters_ext.c db/adapters_ext.h db/adapters.h db/adapters_struct_ext.h db/adapter_struct_ext.h \
-	db/audit.c db/audit_ext.c db/audit_ext.h db/audit.h db/audit_struct_ext.h \
-	db/csk.c db/csk_ext.c db/csk_ext.h db/csk.h db/csk_struct_ext.h \
-	db/denial.c db/denial_ext.c db/denial_ext.h db/denial.h db/denial_struct_ext.h \
-	db/enforcer_zone.c db/enforcer_zone_ext.c db/enforcer_zone_ext.h db/enforcer_zone.h db/enforcer_zone_struct_ext.h \
-	db/dbo_hsm_key.c db/dbo_hsm_key_ext.c db/dbo_hsm_key_ext.h db/dbo_hsm_key.h db/dbo_hsm_key_struct_ext.h \
-	db/hsm_key_used_by_zones.c db/hsm_key_used_by_zones_ext.c db/hsm_key_used_by_zones_ext.h db/hsm_key_used_by_zones.h db/hsm_key_used_by_zones_struct_ext.h \
-	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h db/key_data_struct_ext.h \
-	db/key_dependency.c db/key_dependency_ext.c db/key_dependency_ext.h db/key_dependency.h db/key_dependency_struct_ext.h \
-	db/dbo_keylist.c db/dbo_keylist_ext.c db/dbo_keylist_ext.h db/dbo_keylist.h db/dbo_keylist_struct_ext.h \
-	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h db/key_state_struct_ext.h \
-	db/ksk.c db/ksk_ext.c db/ksk_ext.h db/ksk.h db/ksk_struct_ext.h \
-	db/nsec3.c db/nsec3_ext.c db/nsec3_ext.h db/nsec3.h db/nsec3_struct_ext.h \
-	db/nsec.c db/nsec_ext.c db/nsec_ext.h db/nsec.h db/nsec_struct_ext.h \
-	db/parent.c db/parent_ext.c db/parent_ext.h db/parent.h db/parent_struct_ext.h \
-	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h db/policy_struct_ext.h \
-	db/signatures.c db/signatures_ext.c db/signatures_ext.h db/signatures.h db/signatures_struct_ext.h \
 	db/zone.c db/zone_ext.c db/zone_ext.h db/zone.h db/zone_struct_ext.h \
-	db/zsk.c db/zsk_ext.c db/zsk_ext.h db/zsk.h db/zsk_struct_ext.h \
+	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h db/key_data_struct_ext.h \
+	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h db/key_state_struct_ext.h \
+	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h db/policy_struct_ext.h \
+	db/policy_key.c db/policy_key_ext.c db/policy_key_ext.h db/policy_key.h db/policy_key_struct_ext.h \
+	db/hsm_key.c db/hsm_key_ext.c db/hsm_key_ext.h db/hsm_key.h db/hsm_key_struct_ext.h \
 	$(BACKEND_SOURCES_CUSTOM)
 
 ods_enforcerd_LDADD = \
