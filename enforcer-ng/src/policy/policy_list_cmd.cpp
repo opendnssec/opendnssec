@@ -33,7 +33,6 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-#include "policy/policy_list_task.h"
 #include "daemon/clientpipe.h"
 #include "db/policy.h"
 
@@ -62,12 +61,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	policy_list_t *pol_list;
 	const policy_t *policy;
 	(void)cmd; (void)n;
-	ods_log_debug("[%s] %s command", module_str, policy_list_funcblock()->cmdname);
 
-	if (!(pol_list = policy_list_new(dbconn))) {
+	if (!(pol_list = policy_list_new(dbconn)))
 		return 1;
-	}
-
 	if (policy_list_get(pol_list)) {
 		policy_list_free(pol_list);
 		return 1;
