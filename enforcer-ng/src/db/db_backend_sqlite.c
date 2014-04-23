@@ -570,6 +570,38 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
             }
             break;
 
+        case DB_TYPE_ANY:
+            switch (sqlite3_column_type(statement->statement, bind)) {
+            case SQLITE_INTEGER:
+                from_int64 = sqlite3_column_int64(statement->statement, bind);
+                int64 = from_int64;
+                ret = sqlite3_errcode(statement->backend_sqlite->db);
+                if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+                    || db_value_from_int64(db_value_set_get(value_set, bind), int64))
+                {
+                    db_result_free(result);
+                    return NULL;
+                }
+                break;
+
+            case SQLITE_TEXT:
+                text = (const char*)sqlite3_column_text(statement->statement, bind);
+                ret = sqlite3_errcode(statement->backend_sqlite->db);
+                if (!text
+                    || (ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
+                    || db_value_from_text(db_value_set_get(value_set, bind), text))
+                {
+                    db_result_free(result);
+                    return NULL;
+                }
+                break;
+
+            default:
+                db_result_free(result);
+                return NULL;
+            }
+            break;
+
         default:
             db_result_free(result);
             return NULL;
