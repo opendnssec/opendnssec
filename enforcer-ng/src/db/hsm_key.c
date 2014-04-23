@@ -896,7 +896,7 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policy_id")
+        || db_object_field_set_name(object_field, "policyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -916,7 +916,7 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "candidate_for_sharing")
+        || db_object_field_set_name(object_field, "candidateForSharing")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -977,7 +977,7 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "is_revoked")
+        || db_object_field_set_name(object_field, "isRevoked")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -987,7 +987,7 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "key_type")
+        || db_object_field_set_name(object_field, "keyType")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1138,7 +1138,7 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policy_id")
+        || db_object_field_set_name(object_field, "policyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1158,7 +1158,7 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "candidate_for_sharing")
+        || db_object_field_set_name(object_field, "candidateForSharing")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1219,7 +1219,7 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "is_revoked")
+        || db_object_field_set_name(object_field, "isRevoked")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1229,7 +1229,7 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "key_type")
+        || db_object_field_set_name(object_field, "keyType")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1390,6 +1390,48 @@ int hsm_key_list_get(hsm_key_list_t* hsm_key_list) {
     if (!(hsm_key_list->result_list = db_object_read(hsm_key_list->dbo, NULL, NULL))) {
         return DB_ERROR_UNKNOWN;
     }
+    return DB_OK;
+}
+
+int hsm_key_list_get_by_policy_id(hsm_key_list_t* hsm_key_list, const db_value_t* policy_id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!hsm_key_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!hsm_key_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(policy_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "policyId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), policy_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (hsm_key_list->result_list) {
+        db_result_list_free(hsm_key_list->result_list);
+    }
+    if (!(hsm_key_list->result_list = db_object_read(hsm_key_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
     return DB_OK;
 }
 

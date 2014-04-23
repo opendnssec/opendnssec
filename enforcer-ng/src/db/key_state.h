@@ -312,6 +312,14 @@ void key_state_list_free(key_state_list_t* key_state_list);
 int key_state_list_get(key_state_list_t* key_state_list);
 
 /**
+ * Get key state objects from the database by an key_data_id specified in `key_data_id`.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \param[in] key_data_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db_value_t* key_data_id);
+
+/**
  * Get the first key state object in a key state object list. This will reset the position of the list.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return a key_state_t pointer or NULL on error or if there are no

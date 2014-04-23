@@ -473,6 +473,14 @@ void zone_list_free(zone_list_t* zone_list);
 int zone_list_get(zone_list_t* zone_list);
 
 /**
+ * Get zone objects from the database by an policy_id specified in `policy_id`.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_id);
+
+/**
  * Get the first zone object in a zone object list. This will reset the position of the list.
  * \param[in] zone_list a zone_list_t pointer.
  * \return a zone_t pointer or NULL on error or if there are no

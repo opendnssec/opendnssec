@@ -448,6 +448,22 @@ void key_data_list_free(key_data_list_t* key_data_list);
 int key_data_list_get(key_data_list_t* key_data_list);
 
 /**
+ * Get key data objects from the database by an zone_id specified in `zone_id`.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \param[in] zone_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_t* zone_id);
+
+/**
+ * Get key data objects from the database by an hsm_key_id specified in `hsm_key_id`.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \param[in] hsm_key_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_value_t* hsm_key_id);
+
+/**
  * Get the first key data object in a key data object list. This will reset the position of the list.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return a key_data_t pointer or NULL on error or if there are no

@@ -313,6 +313,14 @@ void policy_key_list_free(policy_key_list_t* policy_key_list);
 int policy_key_list_get(policy_key_list_t* policy_key_list);
 
 /**
+ * Get policy key objects from the database by an policy_id specified in `policy_id`.
+ * \param[in] policy_key_list a policy_key_list_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const db_value_t* policy_id);
+
+/**
  * Get the first policy key object in a policy key object list. This will reset the position of the list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \return a policy_key_t pointer or NULL on error or if there are no

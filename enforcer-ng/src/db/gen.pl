@@ -404,7 +404,21 @@ void ', $name, '_list_free(', $name, '_list_t* ', $name, '_list);
  */
 int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list);
 
-/**
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{foreign}) {
+print HEADER '/**
+ * Get ', $tname, ' objects from the database by an ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \param[in] ', $field->{name}, ' a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_t* ', $name, '_list, const db_value_t* ', $field->{name}, ');
+
+';
+    }
+}
+print HEADER '/**
  * Get the first ', $tname, ' object in a ', $tname, ' object list. This will reset the position of the list.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \return a ', $name, '_t pointer or NULL on error or if there are no
@@ -1099,7 +1113,7 @@ foreach my $field (@{$object->{fields}}) {
         next;
     }
 print SOURCE '    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "', $field->{name}, '")
+        || db_object_field_set_name(object_field, "', camelize($field->{name}), '")
         || db_object_field_set_type(object_field, ', $field->{type}, ')
 ';
 if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -1185,7 +1199,7 @@ print SOURCE 'int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $nam
         return DB_ERROR_UNKNOWN;
     }
     if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "', $field->{name}, '")
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_value_copy(db_clause_get_value(clause), ', $field->{name}, ')
         || db_clause_list_add(clause_list, clause))
@@ -1261,7 +1275,7 @@ foreach my $field (@{$object->{fields}}) {
         next;
     }
 print SOURCE '    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "', $field->{name}, '")
+        || db_object_field_set_name(object_field, "', camelize($field->{name}), '")
         || db_object_field_set_type(object_field, ', $field->{type}, ')
 ';
 if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -1327,7 +1341,7 @@ print SOURCE '    if (!(clause_list = db_clause_list_new())) {
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
 print SOURCE '    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "', $field->{name}, '")
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_value_copy(db_clause_get_value(clause), &(', $name, '->', $field->{name}, '))
         || db_clause_list_add(clause_list, clause))
@@ -1378,7 +1392,7 @@ print SOURCE '
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
 print SOURCE '    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "', $field->{name}, '")
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_value_copy(db_clause_get_value(clause), &(', $name, '->', $field->{name}, '))
         || db_clause_list_add(clause_list, clause))
@@ -1446,7 +1460,55 @@ int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list) {
     return DB_OK;
 }
 
-const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{foreign}) {
+print SOURCE 'int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_t* ', $name, '_list, const db_value_t* ', $field->{name}, ') {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $field->{name}, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(', $field->{name}, ')) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), ', $field->{name}, ')
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (', $name, '_list->result_list) {
+        db_result_list_free(', $name, '_list->result_list);
+    }
+    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+    return DB_OK;
+}
+
+';
+    }
+}
+print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list) {
     const db_result_t* result;
 
     if (!', $name, '_list) {

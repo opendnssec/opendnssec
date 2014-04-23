@@ -1168,7 +1168,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policy_id")
+        || db_object_field_set_name(object_field, "policyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1198,7 +1198,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signconf_needs_writing")
+        || db_object_field_set_name(object_field, "signconfNeedsWriting")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1208,7 +1208,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signconf_path")
+        || db_object_field_set_name(object_field, "signconfPath")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1218,7 +1218,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "next_change")
+        || db_object_field_set_name(object_field, "nextChange")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1228,7 +1228,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl_end_ds")
+        || db_object_field_set_name(object_field, "ttlEndDs")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1238,7 +1238,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl_end_dk")
+        || db_object_field_set_name(object_field, "ttlEndDk")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1248,7 +1248,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl_end_rs")
+        || db_object_field_set_name(object_field, "ttlEndRs")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1258,7 +1258,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "roll_ksk_now")
+        || db_object_field_set_name(object_field, "rollKskNow")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1268,7 +1268,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "roll_zsk_now")
+        || db_object_field_set_name(object_field, "rollZskNow")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1278,7 +1278,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "roll_csk_now")
+        || db_object_field_set_name(object_field, "rollCskNow")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1288,7 +1288,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "input_adapter_type")
+        || db_object_field_set_name(object_field, "inputAdapterType")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1298,7 +1298,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "input_adapter_uri")
+        || db_object_field_set_name(object_field, "inputAdapterUri")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1308,7 +1308,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "output_adapter_type")
+        || db_object_field_set_name(object_field, "outputAdapterType")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1318,7 +1318,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "output_adapter_uri")
+        || db_object_field_set_name(object_field, "outputAdapterUri")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1328,7 +1328,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "next_ksk_roll")
+        || db_object_field_set_name(object_field, "nextKskRoll")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1338,7 +1338,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "next_zsk_roll")
+        || db_object_field_set_name(object_field, "nextZskRoll")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1348,7 +1348,7 @@ int zone_create(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "next_csk_roll")
+        || db_object_field_set_name(object_field, "nextCskRoll")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1494,7 +1494,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policy_id")
+        || db_object_field_set_name(object_field, "policyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1524,7 +1524,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signconf_needs_writing")
+        || db_object_field_set_name(object_field, "signconfNeedsWriting")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1534,7 +1534,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signconf_path")
+        || db_object_field_set_name(object_field, "signconfPath")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1544,7 +1544,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "next_change")
+        || db_object_field_set_name(object_field, "nextChange")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1554,7 +1554,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl_end_ds")
+        || db_object_field_set_name(object_field, "ttlEndDs")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1564,7 +1564,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl_end_dk")
+        || db_object_field_set_name(object_field, "ttlEndDk")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1574,7 +1574,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl_end_rs")
+        || db_object_field_set_name(object_field, "ttlEndRs")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1584,7 +1584,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "roll_ksk_now")
+        || db_object_field_set_name(object_field, "rollKskNow")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1594,7 +1594,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "roll_zsk_now")
+        || db_object_field_set_name(object_field, "rollZskNow")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1604,7 +1604,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "roll_csk_now")
+        || db_object_field_set_name(object_field, "rollCskNow")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1614,7 +1614,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "input_adapter_type")
+        || db_object_field_set_name(object_field, "inputAdapterType")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1624,7 +1624,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "input_adapter_uri")
+        || db_object_field_set_name(object_field, "inputAdapterUri")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1634,7 +1634,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "output_adapter_type")
+        || db_object_field_set_name(object_field, "outputAdapterType")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1644,7 +1644,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "output_adapter_uri")
+        || db_object_field_set_name(object_field, "outputAdapterUri")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1654,7 +1654,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "next_ksk_roll")
+        || db_object_field_set_name(object_field, "nextKskRoll")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1664,7 +1664,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "next_zsk_roll")
+        || db_object_field_set_name(object_field, "nextZskRoll")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1674,7 +1674,7 @@ int zone_update(zone_t* zone) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "next_csk_roll")
+        || db_object_field_set_name(object_field, "nextCskRoll")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1821,6 +1821,48 @@ int zone_list_get(zone_list_t* zone_list) {
     if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, NULL))) {
         return DB_ERROR_UNKNOWN;
     }
+    return DB_OK;
+}
+
+int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!zone_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(policy_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "policyId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), policy_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone_list->result_list) {
+        db_result_list_free(zone_list->result_list);
+    }
+    if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
     return DB_OK;
 }
 

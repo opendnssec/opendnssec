@@ -872,7 +872,7 @@ int key_data_create(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_id")
+        || db_object_field_set_name(object_field, "zoneId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -882,7 +882,7 @@ int key_data_create(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "hsm_key_id")
+        || db_object_field_set_name(object_field, "hsmKeyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -943,7 +943,7 @@ int key_data_create(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "should_revoke")
+        || db_object_field_set_name(object_field, "shouldRevoke")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -963,7 +963,7 @@ int key_data_create(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "active_zsk")
+        || db_object_field_set_name(object_field, "activeZsk")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -983,7 +983,7 @@ int key_data_create(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "active_ksk")
+        || db_object_field_set_name(object_field, "activeKsk")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -993,7 +993,7 @@ int key_data_create(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ds_at_parent")
+        || db_object_field_set_name(object_field, "dsAtParent")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
         || db_object_field_set_enum_set(object_field, __enum_set_ds_at_parent)
         || db_object_field_list_add(object_field_list, object_field))
@@ -1130,7 +1130,7 @@ int key_data_update(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_id")
+        || db_object_field_set_name(object_field, "zoneId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1140,7 +1140,7 @@ int key_data_update(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "hsm_key_id")
+        || db_object_field_set_name(object_field, "hsmKeyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1201,7 +1201,7 @@ int key_data_update(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "should_revoke")
+        || db_object_field_set_name(object_field, "shouldRevoke")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1221,7 +1221,7 @@ int key_data_update(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "active_zsk")
+        || db_object_field_set_name(object_field, "activeZsk")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1241,7 +1241,7 @@ int key_data_update(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "active_ksk")
+        || db_object_field_set_name(object_field, "activeKsk")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1251,7 +1251,7 @@ int key_data_update(key_data_t* key_data) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ds_at_parent")
+        || db_object_field_set_name(object_field, "dsAtParent")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
         || db_object_field_set_enum_set(object_field, __enum_set_ds_at_parent)
         || db_object_field_list_add(object_field_list, object_field))
@@ -1404,6 +1404,90 @@ int key_data_list_get(key_data_list_t* key_data_list) {
     if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, NULL))) {
         return DB_ERROR_UNKNOWN;
     }
+    return DB_OK;
+}
+
+int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_t* zone_id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!key_data_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(zone_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "zoneId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), zone_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_data_list->result_list) {
+        db_result_list_free(key_data_list->result_list);
+    }
+    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+    return DB_OK;
+}
+
+int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_value_t* hsm_key_id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!key_data_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!hsm_key_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(hsm_key_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "hsmKeyId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), hsm_key_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_data_list->result_list) {
+        db_result_list_free(key_data_list->result_list);
+    }
+    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
     return DB_OK;
 }
 

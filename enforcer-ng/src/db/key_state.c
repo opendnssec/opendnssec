@@ -531,7 +531,7 @@ int key_state_create(key_state_t* key_state) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "key_data_id")
+        || db_object_field_set_name(object_field, "keyDataId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -563,7 +563,7 @@ int key_state_create(key_state_t* key_state) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "last_change")
+        || db_object_field_set_name(object_field, "lastChange")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -695,7 +695,7 @@ int key_state_update(key_state_t* key_state) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "key_data_id")
+        || db_object_field_set_name(object_field, "keyDataId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -727,7 +727,7 @@ int key_state_update(key_state_t* key_state) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "last_change")
+        || db_object_field_set_name(object_field, "lastChange")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -881,6 +881,48 @@ int key_state_list_get(key_state_list_t* key_state_list) {
     if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, NULL))) {
         return DB_ERROR_UNKNOWN;
     }
+    return DB_OK;
+}
+
+int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db_value_t* key_data_id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!key_state_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_state_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(key_data_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "keyDataId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), key_data_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_state_list->result_list) {
+        db_result_list_free(key_state_list->result_list);
+    }
+    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
     return DB_OK;
 }
 

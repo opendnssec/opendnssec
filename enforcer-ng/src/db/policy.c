@@ -1419,7 +1419,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_resign")
+        || db_object_field_set_name(object_field, "signaturesResign")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1429,7 +1429,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_refresh")
+        || db_object_field_set_name(object_field, "signaturesRefresh")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1439,7 +1439,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_jitter")
+        || db_object_field_set_name(object_field, "signaturesJitter")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1449,7 +1449,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_inception_offset")
+        || db_object_field_set_name(object_field, "signaturesInceptionOffset")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1459,7 +1459,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_validity_default")
+        || db_object_field_set_name(object_field, "signaturesValidityDefault")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1469,7 +1469,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_validity_denial")
+        || db_object_field_set_name(object_field, "signaturesValidityDenial")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1479,7 +1479,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_max_zone_ttl")
+        || db_object_field_set_name(object_field, "signaturesMaxZoneTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1489,7 +1489,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_type")
+        || db_object_field_set_name(object_field, "denialType")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
         || db_object_field_set_enum_set(object_field, __enum_set_denial_type)
         || db_object_field_list_add(object_field_list, object_field))
@@ -1500,7 +1500,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_optout")
+        || db_object_field_set_name(object_field, "denialOptout")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1510,7 +1510,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_ttl")
+        || db_object_field_set_name(object_field, "denialTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1520,7 +1520,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_resalt")
+        || db_object_field_set_name(object_field, "denialResalt")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1530,7 +1530,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_algorithm")
+        || db_object_field_set_name(object_field, "denialAlgorithm")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1540,7 +1540,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_iterations")
+        || db_object_field_set_name(object_field, "denialIterations")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1550,7 +1550,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_salt_length")
+        || db_object_field_set_name(object_field, "denialSaltLength")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1560,7 +1560,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_salt")
+        || db_object_field_set_name(object_field, "denialSalt")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1570,7 +1570,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_salt_last_change")
+        || db_object_field_set_name(object_field, "denialSaltLastChange")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1580,7 +1580,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_ttl")
+        || db_object_field_set_name(object_field, "keysTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1590,7 +1590,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_retire_safety")
+        || db_object_field_set_name(object_field, "keysRetireSafety")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1600,7 +1600,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_publish_safety")
+        || db_object_field_set_name(object_field, "keysPublishSafety")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1610,7 +1610,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_shared")
+        || db_object_field_set_name(object_field, "keysShared")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1620,7 +1620,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_purge_after")
+        || db_object_field_set_name(object_field, "keysPurgeAfter")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1630,7 +1630,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_propagation_delay")
+        || db_object_field_set_name(object_field, "zonePropagationDelay")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1640,7 +1640,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_soa_ttl")
+        || db_object_field_set_name(object_field, "zoneSoaTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1650,7 +1650,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_soa_minimum")
+        || db_object_field_set_name(object_field, "zoneSoaMinimum")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1660,7 +1660,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_soa_serial")
+        || db_object_field_set_name(object_field, "zoneSoaSerial")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
         || db_object_field_set_enum_set(object_field, __enum_set_zone_soa_serial)
         || db_object_field_list_add(object_field_list, object_field))
@@ -1671,7 +1671,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "parent_propagation_delay")
+        || db_object_field_set_name(object_field, "parentPropagationDelay")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1681,7 +1681,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "parent_ds_ttl")
+        || db_object_field_set_name(object_field, "parentDsTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1691,7 +1691,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "parent_soa_ttl")
+        || db_object_field_set_name(object_field, "parentSoaTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1701,7 +1701,7 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "parent_soa_minimum")
+        || db_object_field_set_name(object_field, "parentSoaMinimum")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1864,7 +1864,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_resign")
+        || db_object_field_set_name(object_field, "signaturesResign")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1874,7 +1874,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_refresh")
+        || db_object_field_set_name(object_field, "signaturesRefresh")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1884,7 +1884,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_jitter")
+        || db_object_field_set_name(object_field, "signaturesJitter")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1894,7 +1894,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_inception_offset")
+        || db_object_field_set_name(object_field, "signaturesInceptionOffset")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1904,7 +1904,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_validity_default")
+        || db_object_field_set_name(object_field, "signaturesValidityDefault")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1914,7 +1914,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_validity_denial")
+        || db_object_field_set_name(object_field, "signaturesValidityDenial")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1924,7 +1924,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "signatures_max_zone_ttl")
+        || db_object_field_set_name(object_field, "signaturesMaxZoneTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1934,7 +1934,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_type")
+        || db_object_field_set_name(object_field, "denialType")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
         || db_object_field_set_enum_set(object_field, __enum_set_denial_type)
         || db_object_field_list_add(object_field_list, object_field))
@@ -1945,7 +1945,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_optout")
+        || db_object_field_set_name(object_field, "denialOptout")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1955,7 +1955,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_ttl")
+        || db_object_field_set_name(object_field, "denialTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1965,7 +1965,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_resalt")
+        || db_object_field_set_name(object_field, "denialResalt")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1975,7 +1975,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_algorithm")
+        || db_object_field_set_name(object_field, "denialAlgorithm")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1985,7 +1985,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_iterations")
+        || db_object_field_set_name(object_field, "denialIterations")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1995,7 +1995,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_salt_length")
+        || db_object_field_set_name(object_field, "denialSaltLength")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2005,7 +2005,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_salt")
+        || db_object_field_set_name(object_field, "denialSalt")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2015,7 +2015,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "denial_salt_last_change")
+        || db_object_field_set_name(object_field, "denialSaltLastChange")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2025,7 +2025,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_ttl")
+        || db_object_field_set_name(object_field, "keysTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2035,7 +2035,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_retire_safety")
+        || db_object_field_set_name(object_field, "keysRetireSafety")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2045,7 +2045,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_publish_safety")
+        || db_object_field_set_name(object_field, "keysPublishSafety")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2055,7 +2055,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_shared")
+        || db_object_field_set_name(object_field, "keysShared")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2065,7 +2065,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keys_purge_after")
+        || db_object_field_set_name(object_field, "keysPurgeAfter")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2075,7 +2075,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_propagation_delay")
+        || db_object_field_set_name(object_field, "zonePropagationDelay")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2085,7 +2085,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_soa_ttl")
+        || db_object_field_set_name(object_field, "zoneSoaTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2095,7 +2095,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_soa_minimum")
+        || db_object_field_set_name(object_field, "zoneSoaMinimum")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2105,7 +2105,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zone_soa_serial")
+        || db_object_field_set_name(object_field, "zoneSoaSerial")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
         || db_object_field_set_enum_set(object_field, __enum_set_zone_soa_serial)
         || db_object_field_list_add(object_field_list, object_field))
@@ -2116,7 +2116,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "parent_propagation_delay")
+        || db_object_field_set_name(object_field, "parentPropagationDelay")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2126,7 +2126,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "parent_ds_ttl")
+        || db_object_field_set_name(object_field, "parentDsTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2136,7 +2136,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "parent_soa_ttl")
+        || db_object_field_set_name(object_field, "parentSoaTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2146,7 +2146,7 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "parent_soa_minimum")
+        || db_object_field_set_name(object_field, "parentSoaMinimum")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
