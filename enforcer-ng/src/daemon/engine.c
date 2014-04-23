@@ -208,7 +208,7 @@ worker_thread_start(void* arg)
     ods_thread_blocksigs();
     worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
     if (!worker->dbconn) {
-        fprintf(stderr, "D'OH! TODO");
+        ods_log_crit("Failed to start worker, could not connect to database");
         return NULL;
     }
     worker_start(worker);
