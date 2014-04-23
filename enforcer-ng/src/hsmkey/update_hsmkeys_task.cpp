@@ -56,7 +56,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
         return 1;
     }
     size_t nkeys;
-    hsm_key_t **kl = hsm_list_keys(hsm_ctx, &nkeys);
+    libhsm_key_t **kl = hsm_list_keys(hsm_ctx, &nkeys);
     if (!kl) {
         ods_log_error_and_printf(sockfd, module_str, "could not list hsm keys");
         return 1;
@@ -75,21 +75,21 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 	if (!transaction.started()) {
         ods_log_error_and_printf(sockfd, module_str,
 								 "could not start database transaction");
-		hsm_key_list_free(kl,nkeys);
+		libhsm_key_list_free(kl,nkeys);
 		hsm_destroy_context(hsm_ctx);
         return 1;
 	}
 	int error = 0;
     for (int i=0; i<nkeys; ++i) {
-        hsm_key_t *k = kl[i];
-        hsm_key_info_t *kinf = hsm_get_key_info(hsm_ctx,k);
+        libhsm_key_t *k = kl[i];
+        libhsm_key_info_t *kinf = hsm_get_key_info(hsm_ctx,k);
 
 		OrmResultRef result;
 		if (!OrmMessageEnumWhere(conn, ::ods::hsmkey::HsmKey::descriptor(),
 								 result, "locator='%s'",kinf->id))
 		{
 			// free allocated resources
-			hsm_key_info_free(kinf);
+			libhsm_key_info_free(kinf);
 
 			ods_log_error_and_printf(sockfd, module_str,
 									 "database query failed");
@@ -103,7 +103,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 			OrmContextRef context;
 			if (!OrmGetMessage(result,key,true,context)) {
 				// free allocated resources
-				hsm_key_info_free(kinf);
+				libhsm_key_info_free(kinf);
 				// release query result, we don't need it anymore.
 				result.release();
 				
@@ -167,7 +167,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 			// fully initialized.
 			if(!key.IsInitialized()) {
 				// free allocated resources
-				hsm_key_info_free(kinf);
+				libhsm_key_info_free(kinf);
 				
 				ods_log_error_and_printf(sockfd, module_str,
 										 "new HsmKey missing required fields");				
@@ -178,7 +178,7 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 			pb::uint64 keyid;
 			if (!OrmMessageInsert(conn, key, keyid)) {
 				// free allocated resources
-				hsm_key_info_free(kinf);
+				libhsm_key_info_free(kinf);
 
 				// This is an unexpected error !
 				ods_log_error_and_printf(sockfd, module_str,
@@ -199,9 +199,9 @@ import_all_keys_from_all_hsms(int sockfd, OrmConn conn)
 			}
 		}
 
-        hsm_key_info_free(kinf);
+        libhsm_key_info_free(kinf);
     }
-    hsm_key_list_free(kl,nkeys);
+    libhsm_key_list_free(kl,nkeys);
     hsm_destroy_context(hsm_ctx);
     return error;
 }

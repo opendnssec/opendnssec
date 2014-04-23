@@ -365,7 +365,7 @@ key_delfunc(key_type* key)
         key->dnskey = NULL;
     }
     if (key->hsmkey) {
-        hsm_key_free(key->hsmkey);
+        libhsm_key_free(key->hsmkey);
         key->hsmkey = NULL;
     }
     if (key->params) {

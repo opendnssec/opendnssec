@@ -101,7 +101,7 @@ cmd_list (int argc, char *argv[])
 
     size_t key_count = 0;
     size_t key_count_valid = 0;
-    hsm_key_t **keys;
+    libhsm_key_t **keys;
     hsm_ctx_t *ctx = NULL;
 
     const char *key_info_format = "%-20s  %-32s  %-10s\n";
@@ -137,8 +137,8 @@ cmd_list (int argc, char *argv[])
     fprintf(stdout, key_info_format, "----------", "--", "----");
 
     for (i = 0; i < key_count; i++) {
-        hsm_key_info_t *key_info;
-        hsm_key_t *key = NULL;
+        libhsm_key_info_t *key_info;
+        libhsm_key_t *key = NULL;
         char key_type[HSM_MAX_ALGONAME + 8];
         char *key_id = NULL;
 
@@ -163,9 +163,9 @@ cmd_list (int argc, char *argv[])
 
         printf(key_info_format, key->module->name, key_id, key_type);
 
-        hsm_key_info_free(key_info);
+        libhsm_key_info_free(key_info);
     }
-    hsm_key_list_free(keys, key_count);
+    libhsm_key_list_free(keys, key_count);
 
     if (key_count != key_count_valid) {
         size_t invalid_keys;
@@ -185,7 +185,7 @@ cmd_generate (int argc, char *argv[])
     char *algorithm = NULL;
     unsigned int keysize = 1024;
 
-    hsm_key_t *key = NULL;
+    libhsm_key_t *key = NULL;
     hsm_ctx_t *ctx = NULL;
 
     if (argc < 2 || argc > 3) {
@@ -243,14 +243,14 @@ cmd_generate (int argc, char *argv[])
     }
 
     if (key) {
-        hsm_key_info_t *key_info;
+        libhsm_key_info_t *key_info;
 
         key_info = hsm_get_key_info(NULL, key);
         printf("Key generation successful: %s\n",
             key_info ? key_info->id : "NULL");
-        hsm_key_info_free(key_info);
+        libhsm_key_info_free(key_info);
         if (verbose) hsm_print_key(key);
-        hsm_key_free(key);
+        libhsm_key_free(key);
     } else {
         printf("Key generation failed.\n");
         return -1;
@@ -265,7 +265,7 @@ cmd_remove (int argc, char *argv[])
     char *id;
     int result;
 
-    hsm_key_t *key = NULL;
+    libhsm_key_t *key = NULL;
 
     if (argc != 1) {
         usage();
@@ -289,7 +289,7 @@ cmd_remove (int argc, char *argv[])
         printf("Key remove failed.\n");
     }
 
-    hsm_key_free(key);
+    libhsm_key_free(key);
 
     return result;
 }
@@ -306,7 +306,7 @@ cmd_purge (int argc, char *argv[])
     char confirm[16];
 
     size_t key_count = 0;
-    hsm_key_t **keys;
+    libhsm_key_t **keys;
     hsm_ctx_t *ctx = NULL;
 
     if (argc != 1) {
@@ -342,15 +342,15 @@ cmd_purge (int argc, char *argv[])
     fresult = fgets(confirm, sizeof(confirm) - 1, stdin);
     if (fresult == NULL || strncasecmp(confirm, "yes", 3) != 0) {
         printf("\nPurge cancelled.\n");
-        hsm_key_list_free(keys, key_count);
+        libhsm_key_list_free(keys, key_count);
         return -1;
     } else {
         printf("\nStarting purge...\n");
     }
 
     for (i = 0; i < key_count; i++) {
-        hsm_key_info_t *key_info;
-        hsm_key_t *key = keys[i];
+        libhsm_key_info_t *key_info;
+        libhsm_key_t *key = keys[i];
 
         key_info = hsm_get_key_info(NULL, key);
         result = hsm_remove_key(NULL, key);
@@ -364,9 +364,9 @@ cmd_purge (int argc, char *argv[])
             final_result++;
         }
 
-        hsm_key_info_free(key_info);
+        libhsm_key_info_free(key_info);
     }
-    hsm_key_list_free(keys, key_count);
+    libhsm_key_list_free(keys, key_count);
 
     printf("Purge done.\n");
 
@@ -381,7 +381,7 @@ cmd_dnskey (int argc, char *argv[])
     int type;
     int algo;
 
-    hsm_key_t *key = NULL;
+    libhsm_key_t *key = NULL;
     ldns_rr *dnskey_rr;
     hsm_sign_params_t *sign_params;
 
@@ -412,7 +412,7 @@ cmd_dnskey (int argc, char *argv[])
         return -1;
     }
 
-    hsm_key_info_t *key_info = hsm_get_key_info(NULL, key);
+    libhsm_key_info_t *key_info = hsm_get_key_info(NULL, key);
     switch (algo) {
         case LDNS_SIGN_RSAMD5:
         case LDNS_SIGN_RSASHA1:
@@ -421,7 +421,7 @@ cmd_dnskey (int argc, char *argv[])
         case LDNS_SIGN_RSASHA512:
             if (strcmp(key_info->algorithm_name, "RSA") != 0) {
                 printf("Not an RSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
-                hsm_key_info_free(key_info);
+                libhsm_key_info_free(key_info);
                 free(name);
                 free(id);
                 return -1;
@@ -431,7 +431,7 @@ cmd_dnskey (int argc, char *argv[])
         case LDNS_SIGN_DSA_NSEC3:
             if (strcmp(key_info->algorithm_name, "DSA") != 0) {
                 printf("Not a DSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
-                hsm_key_info_free(key_info);
+                libhsm_key_info_free(key_info);
                 free(name);
                 free(id);
                 return -1;
@@ -440,7 +440,7 @@ cmd_dnskey (int argc, char *argv[])
         case LDNS_SIGN_ECC_GOST:
             if (strcmp(key_info->algorithm_name, "GOST") != 0) {
                 printf("Not a GOST key, the key is of algorithm %s.\n", key_info->algorithm_name);
-                hsm_key_info_free(key_info);
+                libhsm_key_info_free(key_info);
                 free(name);
                 free(id);
                 return -1;
@@ -451,14 +451,14 @@ cmd_dnskey (int argc, char *argv[])
         case LDNS_SIGN_ECDSAP256SHA256:
             if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
                 printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
-                hsm_key_info_free(key_info);
+                libhsm_key_info_free(key_info);
                 free(name);
                 free(id);
                 return -1;
             }
             if (key_info->keysize != 256) {
                 printf("The key is a ECDSA/%lu, expecting ECDSA/256 for this algorithm.\n", key_info->keysize);
-                hsm_key_info_free(key_info);
+                libhsm_key_info_free(key_info);
                 free(name);
                 free(id);
                 return -1;
@@ -467,14 +467,14 @@ cmd_dnskey (int argc, char *argv[])
         case LDNS_SIGN_ECDSAP384SHA384:
             if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
                 printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
-                hsm_key_info_free(key_info);
+                libhsm_key_info_free(key_info);
                 free(name);
                 free(id);
                 return -1;
             }
             if (key_info->keysize != 384) {
                 printf("The key is a ECDSA/%lu, expecting ECDSA/384 for this algorithm.\n", key_info->keysize);
-                hsm_key_info_free(key_info);
+                libhsm_key_info_free(key_info);
                 free(name);
                 free(id);
                 return -1;
@@ -483,12 +483,12 @@ cmd_dnskey (int argc, char *argv[])
 #endif
         default:
             printf("Invalid algorithm: %i\n", algo);
-            hsm_key_info_free(key_info);
+            libhsm_key_info_free(key_info);
             free(name);
             free(id);
             return -1;
     }
-    hsm_key_info_free(key_info);
+    libhsm_key_info_free(key_info);
 
     sign_params = hsm_sign_params_new();
     sign_params->algorithm = algo;
@@ -501,7 +501,7 @@ cmd_dnskey (int argc, char *argv[])
 
     hsm_sign_params_free(sign_params);
     ldns_rr_free(dnskey_rr);
-    hsm_key_free(key);
+    libhsm_key_free(key);
     free(name);
     free(id);
 

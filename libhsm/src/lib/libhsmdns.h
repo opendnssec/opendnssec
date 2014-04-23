@@ -82,7 +82,7 @@ The returned ldns_rr structure can be freed with ldns_rr_free()
 ldns_rr*
 hsm_sign_rrset(hsm_ctx_t *ctx,
                const ldns_rr_list* rrset,
-               const hsm_key_t *key,
+               const libhsm_key_t *key,
                const hsm_sign_params_t *sign_params);
 
 
@@ -115,7 +115,7 @@ The returned ldns_rr structure can be freed with ldns_rr_free()
 */
 ldns_rr*
 hsm_get_dnskey(hsm_ctx_t *ctx,
-               const hsm_key_t *key,
+               const libhsm_key_t *key,
                const hsm_sign_params_t *sign_params);
 
 

@@ -1215,14 +1215,14 @@ keytag(const char *loc, int alg, int ksk, bool *succes)
 	sign_params->flags = LDNS_KEY_ZONE_KEY;
 	if (ksk) sign_params->flags |= LDNS_KEY_SEP_KEY;
 	*succes = false;
-	hsm_key_t *hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
+	libhsm_key_t *hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
 	if (!hsmkey) return 0;
 	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
 	if (!dnskey_rr) return 0;
 	tag = ldns_calc_keytag(dnskey_rr);
 
 	hsm_sign_params_free(sign_params);
-	hsm_key_free(hsmkey);
+	libhsm_key_free(hsmkey);
 	ldns_rr_free(dnskey_rr);
 	hsm_destroy_context(hsm_ctx);
 	*succes = true;

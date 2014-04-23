@@ -58,7 +58,7 @@ struct key_struct {
     allocator_type* allocator;
     const char* locator;
     ldns_rr* dnskey;
-    hsm_key_t* hsmkey;
+    libhsm_key_t* hsmkey;
     hsm_sign_params_t* params;
     uint8_t algorithm;
     uint32_t flags;
