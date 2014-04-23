@@ -119,8 +119,8 @@ cmd_funcs_avail(void)
         &setup_funcblock,
         &update_kasp_funcblock,
         &update_keyzones_funcblock,
-        &update_repositorylist_funcblock,
-        &update_all_funcblock,
+*/        &update_repositorylist_funcblock,
+/*        &update_all_funcblock,
 */
         &policy_list_funcblock,
 /*        &policy_export_funcblock,

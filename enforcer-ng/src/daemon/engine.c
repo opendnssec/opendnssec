@@ -383,9 +383,13 @@ engine_setup(engine_type* engine)
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
     /* setup database configuration */
-    if (setup_database(engine)) return ODS_STATUS_CFG_ERR;
+    if (setup_database(engine)) return ODS_STATUS_DB_ERR;
     /* Probe the database, can we connect to it? */
-    if (probe_database(engine->dbcfg_list)) return ODS_STATUS_CFG_ERR;
+    if (probe_database(engine->dbcfg_list)) {
+        ods_log_crit("Could not connect to database or database not set"
+            " up properly.");
+        return ODS_STATUS_DB_ERR;
+    }
 
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
