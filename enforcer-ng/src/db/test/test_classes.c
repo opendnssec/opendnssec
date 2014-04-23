@@ -879,17 +879,18 @@ void test_class_db_value(void) {
     db_value_reset(value);
     CU_PASS("db_value_reset");
 
-    CU_ASSERT(!db_value_from_uint64(value, (db_type_uint64_t)17446744073709551615));
+
+    CU_ASSERT(!db_value_from_uint64(value, 17446744073709551615UL));
     CU_ASSERT(db_value_type(value) == DB_TYPE_UINT64);
     CU_ASSERT(!db_value_to_uint64(value, &uint64));
-    CU_ASSERT(uint64 == (db_type_uint64_t)17446744073709551615);
+    CU_ASSERT(uint64 == 17446744073709551615UL);
     CU_ASSERT(!db_value_not_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
     CU_ASSERT(!db_value_copy(value2, value));
     CU_ASSERT(db_value_type(value2) == DB_TYPE_UINT64);
     CU_ASSERT(!db_value_to_uint64(value2, &uint64));
-    CU_ASSERT(uint64 == (db_type_uint64_t)17446744073709551615);
+    CU_ASSERT(uint64 == 17446744073709551615UL);
     CU_ASSERT(!db_value_cmp(value, value2, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(!db_value_set_primary_key(value));
