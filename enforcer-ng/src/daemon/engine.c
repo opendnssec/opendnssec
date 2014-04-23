@@ -267,6 +267,11 @@ engine_wakeup_workers(engine_type* engine)
     return;
 }
 
+/*
+ * Try to open a connection to the database.
+ * \param dbcfg_list, database configuration list
+ * \return connection on success, NULL on failure.
+ */
 static db_connection_t*
 get_database_connection(db_configuration_list_t* dbcfg_list)
 {
@@ -285,7 +290,9 @@ get_database_connection(db_configuration_list_t* dbcfg_list)
 }
 
 /*
- * 0 if we can connect to the database
+ * Try to open a connection to the database and close it again.
+ * \param dbcfg_list, database configuration list
+ * \return 0 on success, 1 on failure.
  */
 static int
 probe_database(db_configuration_list_t* dbcfg_list)
@@ -297,6 +304,13 @@ probe_database(db_configuration_list_t* dbcfg_list)
     return 0;
 }
 
+/*
+ * Prepare for database connections and store dbcfg_list in engine
+ * if successfull the counterpart desetup_database() must be called
+ * when quitting the daemon.
+ * \param engine engine config where configuration list is stored
+ * \return 0 on succes, 1 on failure
+ */
 static int
 setup_database(engine_type* engine)
 {
@@ -328,6 +342,18 @@ setup_database(engine_type* engine)
     }
     dbcfg = NULL;
     return 0;
+}
+
+/*
+ * destroy database configuration. Call only after all connections
+ * are closed.
+ * \param engine engine config where configuration list is stored
+ */
+static void
+desetup_database(engine_type* engine)
+{
+    db_configuration_list_free(engine->dbcfg_list);
+    engine->dbcfg_list = NULL;
 }
 
 /**
@@ -460,8 +486,7 @@ engine_teardown(engine_type* engine)
     }
     cmdhandler_cleanup(engine->cmdhandler);
     engine->cmdhandler = NULL;
-    db_configuration_list_free(engine->dbcfg_list);
-    engine->dbcfg_list = NULL;
+    desetup_database(engine);
 }
 
 void
