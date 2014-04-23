@@ -179,7 +179,7 @@ ods_enforcerd_SOURCES = \
 	db/db_connection.c db/db_connection.h \
 	db/db_object.c db/db_object.h \
 	db/db_result.c db/db_result.h \
-	db/db_type.c db/db_type.h \
+	db/db_type.h \
 	db/db_value.c db/db_value.h \
 	db/db_join.c db/db_join.h \
 	db/db_error.h \
