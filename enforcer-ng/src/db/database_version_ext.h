@@ -27,8 +27,8 @@
  *
  */
 
-#ifndef __version_ext_h
-#define __version_ext_h
+#ifndef __database_version_ext_h
+#define __database_version_ext_h
 
 #include "db_connection.h"
 
@@ -41,7 +41,7 @@ extern "C" {
  * \param[in] a db_connection_t pointer.
  * \return an integer with the database version or zero on error.
  */
-int version_get_version(db_connection_t* connection);
+int database_version_get_version(db_connection_t* connection);
 
 #ifdef __cplusplus
 }

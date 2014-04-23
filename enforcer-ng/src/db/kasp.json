@@ -159,7 +159,7 @@
   ]
 },
 {
-  "name": "version",
+  "name": "database_version",
   "fields": [
     { "name": "version", "type": "DB_TYPE_UINT32" }
   ]

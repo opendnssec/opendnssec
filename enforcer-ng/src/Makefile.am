@@ -189,7 +189,7 @@ ods_enforcerd_SOURCES = \
 	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h db/policy_struct_ext.h \
 	db/policy_key.c db/policy_key_ext.c db/policy_key_ext.h db/policy_key.h db/policy_key_struct_ext.h \
 	db/hsm_key.c db/hsm_key_ext.c db/hsm_key_ext.h db/hsm_key.h db/hsm_key_struct_ext.h \
-	db/version.c db/version_ext.c db/version_ext.h db/version.h \
+	db/database_version.c db/database_version.h db/database_version_ext.c db/database_version_ext.h \
 	$(BACKEND_SOURCES_CUSTOM)
 
 ods_enforcerd_LDADD = \

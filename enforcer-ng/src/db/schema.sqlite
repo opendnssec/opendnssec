@@ -145,6 +145,6 @@ CREATE TABLE policyKey (
 );
 CREATE INDEX policyKeyPolicyId ON policyKey ( policyId );
 
-CREATE TABLE version (
+CREATE TABLE databaseVersion (
     version UNSIGNED INT NOT NULL
 );

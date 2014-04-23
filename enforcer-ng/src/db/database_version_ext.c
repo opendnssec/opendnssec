@@ -27,27 +27,27 @@
  *
  */
 
-#include "version.h"
+#include "database_version.h"
 
-int version_get_version(db_connection_t* connection) {
-    version_list_t* version_list;
-    version_t* version;
+int database_version_get_version(db_connection_t* connection) {
+    database_version_list_t* database_version_list;
+    const database_version_t* database_version;
     int ret;
 
-    if (!(version_list = version_list_new(connection))) {
+    if (!(database_version_list = database_version_list_new(connection))) {
         return 0;
     }
-    if (version_list_get(version_list)
-        || !(version = version_list_begin(version_list)))
+    if (database_version_list_get(database_version_list)
+        || !(database_version = database_version_list_begin(database_version_list)))
     {
-        version_list_free(version_list);
+        database_version_list_free(database_version_list);
         return 0;
     }
-    ret = version_version(version);
-    if (version_list_next(version_list)) {
-        version_list_free(version_list);
+    ret = database_version_version(database_version);
+    if (database_version_list_next(database_version_list)) {
+        database_version_list_free(database_version_list);
         return 0;
     }
-    version_list_free(version_list);
+    database_version_list_free(database_version_list);
     return ret;
 }

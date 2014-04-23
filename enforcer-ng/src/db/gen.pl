@@ -489,14 +489,6 @@ extern "C" {
 close(HEADER);
 }
 
-if (!-f $name.'_struct_ext.h') {
-open(HEADER, '>:encoding(UTF-8)', $name.'_struct_ext.h') or die;
-    
-    print HEADER '
-';
-close(HEADER);
-}
-    
 ################################################################################
 
 open(SOURCE, '>:encoding(UTF-8)', $name.'.c') or die;
