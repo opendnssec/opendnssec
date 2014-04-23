@@ -104,15 +104,15 @@ program_setup(int cmdline_verbosity)
     tzset(); /* for portability */
 
     /* initialize protobuf and protobuf-orm */
-    ods_protobuf_initialize();
+   /* ods_protobuf_initialize();*/
     ods_orm_initialize();
 }
 
 void
 program_teardown()
 {
-    ods_orm_shutdown();
-    ods_protobuf_shutdown();
+    /*ods_orm_shutdown();
+    ods_protobuf_shutdown();*/
 
     ods_log_close();
 
