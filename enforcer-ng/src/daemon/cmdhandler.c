@@ -200,19 +200,20 @@ get_funcblock(const char *cmd, ssize_t n)
  * \return exit code for client, 0 for no errors, -1 for syntax errors
  */
 static int
-cmdhandler_perform_command(int sockfd, engine_type* engine,
-    const char *cmd, ssize_t n)
+cmdhandler_perform_command(cmdhandler_type* cmdc, const char *cmd,
+    ssize_t n)
 {
     time_t tstart = time(NULL);
     struct cmd_func_block* fb;
     int ret;
+    int sockfd = cmdc->client_fd;
 
     ods_log_verbose("received command %s[%i]", cmd, n);
     if (n == 0) return 0;
 
     /* Find function claiming responsibility */
     if ((fb = get_funcblock(cmd, n))) {
-        ret = fb->run(sockfd, engine, cmd, n);
+        ret = fb->run(sockfd, cmdc->engine, cmd, n, cmdc->dbconn);
         if (ret == -1) {
             /* Syntax error, print usage for cmd */
             client_printf_err(sockfd, "Error parsing arguments\n",
@@ -253,7 +254,7 @@ cmdhandler_perform_command(int sockfd, engine_type* engine,
  */
 static int
 extract_msg(char* buf, int *pos, int buflen, int *exitcode, 
-int sockfd, engine_type* engine)
+cmdhandler_type* cmdc)
 {
     char data[ODS_SE_MAXLINE+1], opc;
     int datalen;
@@ -277,8 +278,7 @@ int sockfd, engine_type* engine)
             ods_str_trim(data);
 
             if (opc == CLIENT_OPC_STDIN) {
-                *exitcode = cmdhandler_perform_command(sockfd,
-                    engine, data, strlen(data));
+                *exitcode = cmdhandler_perform_command(cmdc, data, strlen(data));
                 return 1;
             }
         } else if (datalen+3 > buflen) {
@@ -319,7 +319,7 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
             return;
         }
         bufpos += n;
-        r = extract_msg(buf, &bufpos, ODS_SE_MAXLINE, &exitcode, cmdc->client_fd, cmdc->engine);
+        r = extract_msg(buf, &bufpos, ODS_SE_MAXLINE, &exitcode, cmdc);
         if (r == -1) {
             ods_log_error("[%s] Error receiving message from client.", module_str);
             break;

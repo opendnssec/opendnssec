@@ -136,7 +136,8 @@ drop_database_tables(int sockfd, OrmConn conn, engineconfig_type* config)
  *
  */
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
 	char buf[ODS_SE_MAXLINE];
 	(void)cmd; (void)n;

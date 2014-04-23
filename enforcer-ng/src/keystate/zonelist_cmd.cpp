@@ -72,7 +72,8 @@ export_handles(const char *cmd, ssize_t n)
 }
 
 static int
-import_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+import_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
 	(void)cmd; (void)n;
 	int error;
@@ -85,7 +86,8 @@ import_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 }
 
 static int
-export_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+export_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
 	(void)cmd; (void)n;
 	int error;

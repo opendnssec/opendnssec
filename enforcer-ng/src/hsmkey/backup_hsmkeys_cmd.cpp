@@ -100,7 +100,8 @@ handled_backup_cmd(int sockfd, engine_type* engine,
 
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
 	if (ods_check_command(cmd,n,"backup prepare")) {
 		return handled_backup_cmd(sockfd, engine, 
