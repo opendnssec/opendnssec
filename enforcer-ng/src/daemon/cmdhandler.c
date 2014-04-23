@@ -114,6 +114,7 @@ cmd_funcs_avail(void)
     static struct cmd_func_block* (*fb[])(void) = {
         /* Thoughts has gone into the ordering of this list, it affects 
          * the output of the help command */
+/*
         &setup_funcblock,
         &update_kasp_funcblock,
         &update_keyzones_funcblock,
@@ -149,6 +150,7 @@ cmd_funcs_avail(void)
 
         &enforce_funcblock,
         &signconf_funcblock,
+*/
 
         &queue_funcblock,
 #ifdef ENFORCER_TIMESHIFT
