@@ -739,7 +739,6 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
         }
 
         switch (db_value_type(value)) {
-        case DB_TYPE_PRIMARY_KEY:
         case DB_TYPE_INT32:
             if (db_value_to_int32(value, &int32)) {
                 sqlite3_finalize(statement);
@@ -1060,7 +1059,6 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
         }
 
         switch (db_value_type(value)) {
-        case DB_TYPE_PRIMARY_KEY:
         case DB_TYPE_INT32:
             if (db_value_to_int32(value, &int32)) {
                 sqlite3_finalize(statement);
