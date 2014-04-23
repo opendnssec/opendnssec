@@ -64,6 +64,7 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
+	(void) dbconn;
 	if (ods_check_command(cmd, n, "start")) {
 		ods_log_debug("[cmdhandler] start command");
 		client_printf(sockfd, "Engine already running.\n");

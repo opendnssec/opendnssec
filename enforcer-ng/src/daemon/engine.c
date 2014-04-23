@@ -285,7 +285,7 @@ get_database_connection(db_configuration_list_t* dbcfg_list)
         || db_connection_connect(dbconn))
     {
         db_connection_free(dbconn);
-        fprintf(stderr, "database connection failed\n");
+        ods_log_crit("database connection failed");
         return NULL;
     }
     return dbconn;

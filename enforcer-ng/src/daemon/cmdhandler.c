@@ -348,7 +348,8 @@ cmdhandler_accept_client(void* arg)
 
     cmdc->dbconn = get_database_connection(cmdc->engine->dbcfg_list);
     if (!cmdc->dbconn) {
-        fprintf(stderr, "D'OH! TODO");
+        client_printf_err(cmdc->client_fd, "Failed to open DB connection.\n");
+        client_exit(cmdc->client_fd, 1);
         return NULL;
     }
     

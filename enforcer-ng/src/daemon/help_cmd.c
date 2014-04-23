@@ -70,6 +70,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 {
 	struct cmd_func_block* fb;
 	(void) engine;
+	(void) dbconn;
 
 	ods_log_debug("[%s] help command", module_str);
 	
