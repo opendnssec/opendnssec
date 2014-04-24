@@ -44,14 +44,6 @@ extern "C" {
  */
 key_data_list_t* zone_get_keys(const zone_t* zone);
 
-/**
- * Get an enforcer zone object from the database by a name specified in `name`.
- * \param[in] zone an zone_t pointer.
- * \param[in] name a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_get_by_name(zone_t* zone, const char* name);
-
 #ifdef __cplusplus
 }
 #endif
