@@ -91,15 +91,6 @@ void worker_start(worker_type* worker);
 void worker_sleep(worker_type* worker, time_t timeout);
 
 /**
- * Put worker to sleep unless the worker has measured up to all appointed jobs.
- * \param[in] worker put this worker to sleep
- * \param[in] timeout time before alarm clock is going off,
- *            0 means no alarm clock is set.
- *
- */
-void worker_sleep_unless(worker_type* worker, time_t timeout);
-
-/**
  * Wake up worker.
  * \param[in] worker wake up this worker
  *

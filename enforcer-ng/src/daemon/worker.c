@@ -204,28 +204,6 @@ worker_sleep(worker_type* worker, time_t timeout)
     return;
 }
 
-
-/**
- * Put worker to sleep unless worker has measured up to all appointed jobs.
- *
- */
-void
-worker_sleep_unless(worker_type* worker, time_t timeout)
-{
-    ods_log_assert(worker);
-    lock_basic_lock(&worker->worker_lock);
-    /* [LOCK] worker */
-    if (!worker->need_to_exit && !worker_fulfilled(worker)) {
-        worker->sleeping = 1;
-        lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
-            timeout);
-    }
-    /* [UNLOCK] worker */
-    lock_basic_unlock(&worker->worker_lock);
-    return;
-}
-
-
 /**
  * Wake up worker.
  *

@@ -36,7 +36,7 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-
+ 
 #include "enforcer/autostart_cmd.h"
 
 
@@ -74,11 +74,16 @@ autostart(engine_type* engine)
 		ods_log_verbose("popping task \"%s\" from queue", task->who);
 	}
 
+	resalt_task = policy_resalt_task(engine);
+	/* NOTE: hopefully no longer needed
+	 *
+	 * race condition at startup. Make sure resalt loses over
+		 * enforce. Not fatal but disturbs test. 
 	if ((resalt_task = policy_resalt_task(engine))) {
-		/* race condition at startup. Make sure resalt loses over
-		 * enforce. Not fatal but disturbs test. */
 		resalt_task->when += 3;
 	}
+	*/
 	schedule_task_l(engine, resalt_task, "resalt");
-	schedule_task_l(engine, enforce_task(engine, 1), "enforce");
+	/* disable enforce task for now
+	 * schedule_task_l(engine, enforce_task(engine, 1), "enforce"); */
 }
