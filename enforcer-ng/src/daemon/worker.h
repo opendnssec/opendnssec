@@ -47,7 +47,6 @@ struct engine_struct;
 
 typedef struct worker_struct worker_type;
 struct worker_struct {
-    allocator_type* allocator;
     int thread_num;
     ods_thread_type thread_id;
     struct engine_struct* engine;
@@ -66,13 +65,12 @@ struct worker_struct {
 
 /**
  * Create worker.
- * \param[in] allocator memory allocator
  * \param[in] num thread number
  * \param[in] type type of worker
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(allocator_type* allocator, int num);
+worker_type* worker_create(int num);
 
 /**
  * Start working.

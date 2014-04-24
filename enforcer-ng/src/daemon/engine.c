@@ -196,7 +196,7 @@ engine_create_workers(engine_type* engine)
     engine->workers = (worker_type**) allocator_alloc(engine->allocator,
         ((size_t)engine->config->num_worker_threads) * sizeof(worker_type*));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(engine->allocator, i);
+        engine->workers[i] = worker_create(i);
     }
     return;
 }
