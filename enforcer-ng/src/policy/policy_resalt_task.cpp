@@ -2,6 +2,7 @@
  * Copyright (c) 2011 Surfnet 
  * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2011 OpenDNSSEC AB (svb)
+ * Copyright (c) 2014 NLnet Labs
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,12 +55,12 @@
 static const char *module_str = "policy_resalt_task";
 static const time_t TIME_INF = ((time_t)-1);
 
-/*
+/**
  * Generate salt of len bytes, make sure prng is seeded.
  * arc4random needs no seed.
  * \param buf, buffer at least len bytes wide
  * \param len, len of bytes of entropy to store in buf
- * */
+ */
 static void
 generate_salt(char *buf, int len)
 {
@@ -74,8 +75,14 @@ generate_salt(char *buf, int len)
 #endif
 }
 
+/**
+ * convert buf to hexstring
+ * \param buf, input
+ * \param len, lenght of buf
+ * \param[out] out, resulting hex string must be at least 2*len+1 lenght
+ */
 static void
-to_hex(char *buf, int len, char *out)
+to_hex(const char *buf, int len, char *out)
 {
 	const char *h = "0123456789abcdef";
 	int i;
@@ -113,6 +120,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	}
 	if (policy_list_get(pol_list)) {
 		policy_list_free(pol_list);
+		policy__free(rw_policy);
 		ods_log_error("[%s] retrying in 60 seconds", module_str);
 		return now + 60;
 	}
