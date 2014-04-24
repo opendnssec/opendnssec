@@ -104,6 +104,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	time_t schedule_time = TIME_INF, now = time_now(), resalt_time;
 	char salt[255], salthex[511];
 	int saltlength;
+	(void) engine; (void) sockfd;
 
 #ifndef HAVE_ARC4RANDOM
 	srand(now);

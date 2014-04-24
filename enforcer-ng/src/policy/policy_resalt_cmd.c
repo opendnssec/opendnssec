@@ -39,7 +39,7 @@
 
 #include "policy/policy_resalt_cmd.h"
 
-static const char *module_str = "policy_resalt_cmd";
+/* static const char *module_str = "policy_resalt_cmd"; */
 
 static void
 usage(int sockfd)
@@ -60,6 +60,8 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
+	/* TODO: this should actually create/schedule the resalt task
+	 * for *now* and return */
 	(void)cmd; (void)n;
 	(void) perform_policy_resalt(sockfd, engine, dbconn);
 	return 0;
