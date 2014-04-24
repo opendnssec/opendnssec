@@ -504,7 +504,94 @@ print SOURCE '    db_value_reset(&', $field->{name}, ');
 }
 print SOURCE '}
 
-static void test_', $name, '_change(void) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{unique}) {
+        next;
+    }
+print SOURCE 'static void test_', $name, '_read_by_', $field->{name}, '(void) {
+';
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT_FATAL(!', $name, '_get_by_', $field->{name}, '(object, "', $field->{name}, ' 1"));
+';
+    }
+    else {
+print SOURCE '    CU_ASSERT_FATAL(!', $name, '_get_by_', $field->{name}, '(object, 1));
+';
+    }
+print SOURCE '}
+
+static void test_', $name, '_verify_', $field->{name}, '(void) {
+';
+my $ret = 0;
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if (!$ret) {
+print SOURCE '    int ret;
+';
+        $ret = 1;
+    }
+print SOURCE '    db_value_t ', $field->{name}, ' = DB_VALUE_EMPTY;
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $field->{name}, ' 1");
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(&', $field->{name}, ', 1));
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '    CU_ASSERT(!db_value_cmp(', $name, '_', $field->{name}, '(object), &', $field->{name}, ', &ret));
+    CU_ASSERT(!ret);
+';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_ENUM') {
+        foreach my $enum (reverse @{$field->{enum}}) {
+print SOURCE '    CU_ASSERT(', $name, '_', $field->{name}, '(object) == ', uc($name.'_'.$field->{name}), '_', $enum->{name}, ');
+';
+print SOURCE '    CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_', $field->{name}, '_text(object));
+';
+print SOURCE '    CU_ASSERT(!strcmp(', $name, '_', $field->{name}, '_text(object), "', $enum->{text}, '"));
+';
+            last;
+        }
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_', $field->{name}, '(object));
+';
+print SOURCE '    CU_ASSERT(!strcmp(', $name, '_', $field->{name}, '(object), "', $field->{name}, ' 1"));
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(', $name, '_', $field->{name}, '(object) == 1);
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_reset(&', $field->{name}, ');
+';
+}
+print SOURCE '}
+
+';
+}
+print SOURCE 'static void test_', $name, '_change(void) {
 ';
 foreach my $field (@{$object->{fields}}) {
     if (!$field->{foreign}) {
@@ -641,7 +728,94 @@ print SOURCE '    db_value_reset(&', $field->{name}, ');
 }
 print SOURCE '}
 
-static void test_', $name, '_delete(void) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{unique}) {
+        next;
+    }
+print SOURCE 'static void test_', $name, '_read_by_', $field->{name}, '2(void) {
+';
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT_FATAL(!', $name, '_get_by_', $field->{name}, '(object, "', $field->{name}, ' 2"));
+';
+    }
+    else {
+print SOURCE '    CU_ASSERT_FATAL(!', $name, '_get_by_', $field->{name}, '(object, 2));
+';
+    }
+print SOURCE '}
+
+static void test_', $name, '_verify_', $field->{name}, '2(void) {
+';
+my $ret = 0;
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if (!$ret) {
+print SOURCE '    int ret;
+';
+        $ret = 1;
+    }
+print SOURCE '    db_value_t ', $field->{name}, ' = DB_VALUE_EMPTY;
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $field->{name}, ' 2");
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(&', $field->{name}, ', 2));
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '    CU_ASSERT(!db_value_cmp(', $name, '_', $field->{name}, '(object), &', $field->{name}, ', &ret));
+    CU_ASSERT(!ret);
+';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_ENUM') {
+        foreach my $enum (@{$field->{enum}}) {
+print SOURCE '    CU_ASSERT(', $name, '_', $field->{name}, '(object) == ', uc($name.'_'.$field->{name}), '_', $enum->{name}, ');
+';
+print SOURCE '    CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_', $field->{name}, '_text(object));
+';
+print SOURCE '    CU_ASSERT(!strcmp(', $name, '_', $field->{name}, '_text(object), "', $enum->{text}, '"));
+';
+            last;
+        }
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_', $field->{name}, '(object));
+';
+print SOURCE '    CU_ASSERT(!strcmp(', $name, '_', $field->{name}, '(object), "', $field->{name}, ' 2"));
+';
+        next;
+    }
+print SOURCE '    CU_ASSERT(', $name, '_', $field->{name}, '(object) == 2);
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{foreign}) {
+        next;
+    }
+print SOURCE '    db_value_reset(&', $field->{name}, ');
+';
+}
+print SOURCE '}
+
+';
+}
+print SOURCE 'static void test_', $name, '_delete(void) {
     CU_ASSERT_FATAL(!', $name, '_delete(object));
 }
 
@@ -669,11 +843,29 @@ static int test_', $name, '_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "list objects", test_', $name, '_list)
         || !CU_add_test(pSuite, "read object by id", test_', $name, '_read)
         || !CU_add_test(pSuite, "verify fields", test_', $name, '_verify)
-        || !CU_add_test(pSuite, "change object", test_', $name, '_change)
+';
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{unique}) {
+        next;
+    }
+print SOURCE '        || !CU_add_test(pSuite, "read object by ', $field->{name}, '", test_', $name, '_read_by_', $field->{name}, ')
+        || !CU_add_test(pSuite, "verify fields (', $field->{name}, ')", test_', $name, '_verify_', $field->{name}, ')
+';
+}
+print SOURCE '        || !CU_add_test(pSuite, "change object", test_', $name, '_change)
         || !CU_add_test(pSuite, "update object", test_', $name, '_update)
         || !CU_add_test(pSuite, "reread object by id", test_', $name, '_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_', $name, '_verify2)
-        || !CU_add_test(pSuite, "delete object", test_', $name, '_delete)
+';
+foreach my $field (@{$object->{fields}}) {
+    if (!$field->{unique}) {
+        next;
+    }
+print SOURCE '        || !CU_add_test(pSuite, "reread object by ', $field->{name}, '", test_', $name, '_read_by_', $field->{name}, '2)
+        || !CU_add_test(pSuite, "verify fields after update (', $field->{name}, ')", test_', $name, '_verify_', $field->{name}, '2)
+';
+}
+print SOURCE '        || !CU_add_test(pSuite, "delete object", test_', $name, '_delete)
         || !CU_add_test(pSuite, "list objects to verify delete", test_', $name, '_list2)
         || !CU_add_test(pSuite, "end test", test_', $name, '_end))
     {

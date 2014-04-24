@@ -305,6 +305,44 @@ static void test_zone_verify(void) {
     db_value_reset(&policy_id);
 }
 
+static void test_zone_read_by_name(void) {
+    CU_ASSERT_FATAL(!zone_get_by_name(object, "name 1"));
+}
+
+static void test_zone_verify_name(void) {
+    int ret;
+    db_value_t policy_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    CU_ASSERT(!db_value_cmp(zone_policy_id(object), &policy_id, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_name(object));
+    CU_ASSERT(!strcmp(zone_name(object), "name 1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_policy(object));
+    CU_ASSERT(!strcmp(zone_policy(object), "policy 1"));
+    CU_ASSERT(zone_signconf_needs_writing(object) == 1);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_signconf_path(object));
+    CU_ASSERT(!strcmp(zone_signconf_path(object), "signconf_path 1"));
+    CU_ASSERT(zone_next_change(object) == 1);
+    CU_ASSERT(zone_ttl_end_ds(object) == 1);
+    CU_ASSERT(zone_ttl_end_dk(object) == 1);
+    CU_ASSERT(zone_ttl_end_rs(object) == 1);
+    CU_ASSERT(zone_roll_ksk_now(object) == 1);
+    CU_ASSERT(zone_roll_zsk_now(object) == 1);
+    CU_ASSERT(zone_roll_csk_now(object) == 1);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_input_adapter_type(object));
+    CU_ASSERT(!strcmp(zone_input_adapter_type(object), "input_adapter_type 1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_input_adapter_uri(object));
+    CU_ASSERT(!strcmp(zone_input_adapter_uri(object), "input_adapter_uri 1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_output_adapter_type(object));
+    CU_ASSERT(!strcmp(zone_output_adapter_type(object), "output_adapter_type 1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_output_adapter_uri(object));
+    CU_ASSERT(!strcmp(zone_output_adapter_uri(object), "output_adapter_uri 1"));
+    CU_ASSERT(zone_next_ksk_roll(object) == 1);
+    CU_ASSERT(zone_next_zsk_roll(object) == 1);
+    CU_ASSERT(zone_next_csk_roll(object) == 1);
+    db_value_reset(&policy_id);
+}
+
 static void test_zone_change(void) {
     db_value_t policy_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&policy_id, 2));
@@ -372,6 +410,44 @@ static void test_zone_verify2(void) {
     db_value_reset(&policy_id);
 }
 
+static void test_zone_read_by_name2(void) {
+    CU_ASSERT_FATAL(!zone_get_by_name(object, "name 2"));
+}
+
+static void test_zone_verify_name2(void) {
+    int ret;
+    db_value_t policy_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&policy_id, 2));
+    CU_ASSERT(!db_value_cmp(zone_policy_id(object), &policy_id, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_name(object));
+    CU_ASSERT(!strcmp(zone_name(object), "name 2"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_policy(object));
+    CU_ASSERT(!strcmp(zone_policy(object), "policy 2"));
+    CU_ASSERT(zone_signconf_needs_writing(object) == 2);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_signconf_path(object));
+    CU_ASSERT(!strcmp(zone_signconf_path(object), "signconf_path 2"));
+    CU_ASSERT(zone_next_change(object) == 2);
+    CU_ASSERT(zone_ttl_end_ds(object) == 2);
+    CU_ASSERT(zone_ttl_end_dk(object) == 2);
+    CU_ASSERT(zone_ttl_end_rs(object) == 2);
+    CU_ASSERT(zone_roll_ksk_now(object) == 2);
+    CU_ASSERT(zone_roll_zsk_now(object) == 2);
+    CU_ASSERT(zone_roll_csk_now(object) == 2);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_input_adapter_type(object));
+    CU_ASSERT(!strcmp(zone_input_adapter_type(object), "input_adapter_type 2"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_input_adapter_uri(object));
+    CU_ASSERT(!strcmp(zone_input_adapter_uri(object), "input_adapter_uri 2"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_output_adapter_type(object));
+    CU_ASSERT(!strcmp(zone_output_adapter_type(object), "output_adapter_type 2"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_output_adapter_uri(object));
+    CU_ASSERT(!strcmp(zone_output_adapter_uri(object), "output_adapter_uri 2"));
+    CU_ASSERT(zone_next_ksk_roll(object) == 2);
+    CU_ASSERT(zone_next_zsk_roll(object) == 2);
+    CU_ASSERT(zone_next_csk_roll(object) == 2);
+    db_value_reset(&policy_id);
+}
+
 static void test_zone_delete(void) {
     CU_ASSERT_FATAL(!zone_delete(object));
 }
@@ -400,10 +476,14 @@ static int test_zone_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "list objects", test_zone_list)
         || !CU_add_test(pSuite, "read object by id", test_zone_read)
         || !CU_add_test(pSuite, "verify fields", test_zone_verify)
+        || !CU_add_test(pSuite, "read object by name", test_zone_read_by_name)
+        || !CU_add_test(pSuite, "verify fields (name)", test_zone_verify_name)
         || !CU_add_test(pSuite, "change object", test_zone_change)
         || !CU_add_test(pSuite, "update object", test_zone_update)
         || !CU_add_test(pSuite, "reread object by id", test_zone_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_zone_verify2)
+        || !CU_add_test(pSuite, "reread object by name", test_zone_read_by_name2)
+        || !CU_add_test(pSuite, "verify fields after update (name)", test_zone_verify_name2)
         || !CU_add_test(pSuite, "delete object", test_zone_delete)
         || !CU_add_test(pSuite, "list objects to verify delete", test_zone_list2)
         || !CU_add_test(pSuite, "end test", test_zone_end))

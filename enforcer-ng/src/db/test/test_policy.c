@@ -338,6 +338,51 @@ static void test_policy_verify(void) {
     CU_ASSERT(policy_parent_soa_minimum(object) == 1);
 }
 
+static void test_policy_read_by_name(void) {
+    CU_ASSERT_FATAL(!policy_get_by_name(object, "name 1"));
+}
+
+static void test_policy_verify_name(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_name(object));
+    CU_ASSERT(!strcmp(policy_name(object), "name 1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_description(object));
+    CU_ASSERT(!strcmp(policy_description(object), "description 1"));
+    CU_ASSERT(policy_signatures_resign(object) == 1);
+    CU_ASSERT(policy_signatures_refresh(object) == 1);
+    CU_ASSERT(policy_signatures_jitter(object) == 1);
+    CU_ASSERT(policy_signatures_inception_offset(object) == 1);
+    CU_ASSERT(policy_signatures_validity_default(object) == 1);
+    CU_ASSERT(policy_signatures_validity_denial(object) == 1);
+    CU_ASSERT(policy_signatures_max_zone_ttl(object) == 1);
+    CU_ASSERT(policy_denial_type(object) == POLICY_DENIAL_TYPE_NSEC3);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_type_text(object));
+    CU_ASSERT(!strcmp(policy_denial_type_text(object), "NSEC3"));
+    CU_ASSERT(policy_denial_optout(object) == 1);
+    CU_ASSERT(policy_denial_ttl(object) == 1);
+    CU_ASSERT(policy_denial_resalt(object) == 1);
+    CU_ASSERT(policy_denial_algorithm(object) == 1);
+    CU_ASSERT(policy_denial_iterations(object) == 1);
+    CU_ASSERT(policy_denial_salt_length(object) == 1);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_salt(object));
+    CU_ASSERT(!strcmp(policy_denial_salt(object), "denial_salt 1"));
+    CU_ASSERT(policy_denial_salt_last_change(object) == 1);
+    CU_ASSERT(policy_keys_ttl(object) == 1);
+    CU_ASSERT(policy_keys_retire_safety(object) == 1);
+    CU_ASSERT(policy_keys_publish_safety(object) == 1);
+    CU_ASSERT(policy_keys_shared(object) == 1);
+    CU_ASSERT(policy_keys_purge_after(object) == 1);
+    CU_ASSERT(policy_zone_propagation_delay(object) == 1);
+    CU_ASSERT(policy_zone_soa_ttl(object) == 1);
+    CU_ASSERT(policy_zone_soa_minimum(object) == 1);
+    CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_KEEP);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
+    CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "keep"));
+    CU_ASSERT(policy_parent_propagation_delay(object) == 1);
+    CU_ASSERT(policy_parent_ds_ttl(object) == 1);
+    CU_ASSERT(policy_parent_soa_ttl(object) == 1);
+    CU_ASSERT(policy_parent_soa_minimum(object) == 1);
+}
+
 static void test_policy_change(void) {
     CU_ASSERT(!policy_set_name(object, "name 2"));
     CU_ASSERT(!policy_set_description(object, "description 2"));
@@ -423,6 +468,51 @@ static void test_policy_verify2(void) {
     CU_ASSERT(policy_parent_soa_minimum(object) == 2);
 }
 
+static void test_policy_read_by_name2(void) {
+    CU_ASSERT_FATAL(!policy_get_by_name(object, "name 2"));
+}
+
+static void test_policy_verify_name2(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_name(object));
+    CU_ASSERT(!strcmp(policy_name(object), "name 2"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_description(object));
+    CU_ASSERT(!strcmp(policy_description(object), "description 2"));
+    CU_ASSERT(policy_signatures_resign(object) == 2);
+    CU_ASSERT(policy_signatures_refresh(object) == 2);
+    CU_ASSERT(policy_signatures_jitter(object) == 2);
+    CU_ASSERT(policy_signatures_inception_offset(object) == 2);
+    CU_ASSERT(policy_signatures_validity_default(object) == 2);
+    CU_ASSERT(policy_signatures_validity_denial(object) == 2);
+    CU_ASSERT(policy_signatures_max_zone_ttl(object) == 2);
+    CU_ASSERT(policy_denial_type(object) == POLICY_DENIAL_TYPE_NSEC);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_type_text(object));
+    CU_ASSERT(!strcmp(policy_denial_type_text(object), "NSEC"));
+    CU_ASSERT(policy_denial_optout(object) == 2);
+    CU_ASSERT(policy_denial_ttl(object) == 2);
+    CU_ASSERT(policy_denial_resalt(object) == 2);
+    CU_ASSERT(policy_denial_algorithm(object) == 2);
+    CU_ASSERT(policy_denial_iterations(object) == 2);
+    CU_ASSERT(policy_denial_salt_length(object) == 2);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_salt(object));
+    CU_ASSERT(!strcmp(policy_denial_salt(object), "denial_salt 2"));
+    CU_ASSERT(policy_denial_salt_last_change(object) == 2);
+    CU_ASSERT(policy_keys_ttl(object) == 2);
+    CU_ASSERT(policy_keys_retire_safety(object) == 2);
+    CU_ASSERT(policy_keys_publish_safety(object) == 2);
+    CU_ASSERT(policy_keys_shared(object) == 2);
+    CU_ASSERT(policy_keys_purge_after(object) == 2);
+    CU_ASSERT(policy_zone_propagation_delay(object) == 2);
+    CU_ASSERT(policy_zone_soa_ttl(object) == 2);
+    CU_ASSERT(policy_zone_soa_minimum(object) == 2);
+    CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_COUNTER);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
+    CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "counter"));
+    CU_ASSERT(policy_parent_propagation_delay(object) == 2);
+    CU_ASSERT(policy_parent_ds_ttl(object) == 2);
+    CU_ASSERT(policy_parent_soa_ttl(object) == 2);
+    CU_ASSERT(policy_parent_soa_minimum(object) == 2);
+}
+
 static void test_policy_delete(void) {
     CU_ASSERT_FATAL(!policy_delete(object));
 }
@@ -451,10 +541,14 @@ static int test_policy_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "list objects", test_policy_list)
         || !CU_add_test(pSuite, "read object by id", test_policy_read)
         || !CU_add_test(pSuite, "verify fields", test_policy_verify)
+        || !CU_add_test(pSuite, "read object by name", test_policy_read_by_name)
+        || !CU_add_test(pSuite, "verify fields (name)", test_policy_verify_name)
         || !CU_add_test(pSuite, "change object", test_policy_change)
         || !CU_add_test(pSuite, "update object", test_policy_update)
         || !CU_add_test(pSuite, "reread object by id", test_policy_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_policy_verify2)
+        || !CU_add_test(pSuite, "reread object by name", test_policy_read_by_name2)
+        || !CU_add_test(pSuite, "verify fields after update (name)", test_policy_verify_name2)
         || !CU_add_test(pSuite, "delete object", test_policy_delete)
         || !CU_add_test(pSuite, "list objects to verify delete", test_policy_list2)
         || !CU_add_test(pSuite, "end test", test_policy_end))

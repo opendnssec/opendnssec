@@ -298,6 +298,38 @@ static void test_hsm_key_verify(void) {
     db_value_reset(&policy_id);
 }
 
+static void test_hsm_key_read_by_locator(void) {
+    CU_ASSERT_FATAL(!hsm_key_get_by_locator(object, "locator 1"));
+}
+
+static void test_hsm_key_verify_locator(void) {
+    int ret;
+    db_value_t policy_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
+    CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
+    CU_ASSERT(hsm_key_candidate_for_sharing(object) == 1);
+    CU_ASSERT(hsm_key_bits(object) == 1);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_policy(object));
+    CU_ASSERT(!strcmp(hsm_key_policy(object), "policy 1"));
+    CU_ASSERT(hsm_key_algorithm(object) == 1);
+    CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_CSK);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_role_text(object));
+    CU_ASSERT(!strcmp(hsm_key_role_text(object), "CSK"));
+    CU_ASSERT(hsm_key_inception(object) == 1);
+    CU_ASSERT(hsm_key_is_revoked(object) == 1);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_key_type(object));
+    CU_ASSERT(!strcmp(hsm_key_key_type(object), "key_type 1"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_repository(object));
+    CU_ASSERT(!strcmp(hsm_key_repository(object), "repository 1"));
+    CU_ASSERT(hsm_key_backup(object) == HSM_KEY_BACKUP_BACKUP_DONE);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_backup_text(object));
+    CU_ASSERT(!strcmp(hsm_key_backup_text(object), "Backup Done"));
+    db_value_reset(&policy_id);
+}
+
 static void test_hsm_key_change(void) {
     db_value_t policy_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&policy_id, 2));
@@ -354,6 +386,38 @@ static void test_hsm_key_verify2(void) {
     db_value_reset(&policy_id);
 }
 
+static void test_hsm_key_read_by_locator2(void) {
+    CU_ASSERT_FATAL(!hsm_key_get_by_locator(object, "locator 2"));
+}
+
+static void test_hsm_key_verify_locator2(void) {
+    int ret;
+    db_value_t policy_id = DB_VALUE_EMPTY;
+    CU_ASSERT(!db_value_from_int32(&policy_id, 2));
+    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id, &ret));
+    CU_ASSERT(!ret);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
+    CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 2"));
+    CU_ASSERT(hsm_key_candidate_for_sharing(object) == 2);
+    CU_ASSERT(hsm_key_bits(object) == 2);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_policy(object));
+    CU_ASSERT(!strcmp(hsm_key_policy(object), "policy 2"));
+    CU_ASSERT(hsm_key_algorithm(object) == 2);
+    CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_KSK);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_role_text(object));
+    CU_ASSERT(!strcmp(hsm_key_role_text(object), "KSK"));
+    CU_ASSERT(hsm_key_inception(object) == 2);
+    CU_ASSERT(hsm_key_is_revoked(object) == 2);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_key_type(object));
+    CU_ASSERT(!strcmp(hsm_key_key_type(object), "key_type 2"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_repository(object));
+    CU_ASSERT(!strcmp(hsm_key_repository(object), "repository 2"));
+    CU_ASSERT(hsm_key_backup(object) == HSM_KEY_BACKUP_NO_BACKUP);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_backup_text(object));
+    CU_ASSERT(!strcmp(hsm_key_backup_text(object), "No Backup"));
+    db_value_reset(&policy_id);
+}
+
 static void test_hsm_key_delete(void) {
     CU_ASSERT_FATAL(!hsm_key_delete(object));
 }
@@ -382,10 +446,14 @@ static int test_hsm_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "list objects", test_hsm_key_list)
         || !CU_add_test(pSuite, "read object by id", test_hsm_key_read)
         || !CU_add_test(pSuite, "verify fields", test_hsm_key_verify)
+        || !CU_add_test(pSuite, "read object by locator", test_hsm_key_read_by_locator)
+        || !CU_add_test(pSuite, "verify fields (locator)", test_hsm_key_verify_locator)
         || !CU_add_test(pSuite, "change object", test_hsm_key_change)
         || !CU_add_test(pSuite, "update object", test_hsm_key_update)
         || !CU_add_test(pSuite, "reread object by id", test_hsm_key_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_hsm_key_verify2)
+        || !CU_add_test(pSuite, "reread object by locator", test_hsm_key_read_by_locator2)
+        || !CU_add_test(pSuite, "verify fields after update (locator)", test_hsm_key_verify_locator2)
         || !CU_add_test(pSuite, "delete object", test_hsm_key_delete)
         || !CU_add_test(pSuite, "list objects to verify delete", test_hsm_key_list2)
         || !CU_add_test(pSuite, "end test", test_hsm_key_end))
