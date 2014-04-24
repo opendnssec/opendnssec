@@ -349,7 +349,7 @@ int ', $name, '_create(', $name, '_t* ', $name, ');
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
 print HEADER '/**
- * Get a ', $tname, ' object from the database by an ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * Get a ', $tname, ' object from the database by a ', $field->{name}, ' specified in `', $field->{name}, '`.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
  * \param[in] ', $field->{name}, ' a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -357,6 +357,31 @@ print HEADER '/**
 int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', const db_value_t* ', $field->{name}, ');
 
 ';
+        next;
+    }
+    if ($field->{unique}) {
+        if ($field->{type} eq 'DB_TYPE_TEXT') {
+print HEADER '/**
+ * Get a ', $tname, ' object from the database by a ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \param[in] ', $field->{name}, ' ', $DB_TYPE_TO_TEXT{$field->{type}}, '.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', const ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ');
+
+';
+        next;
+        }
+print HEADER '/**
+ * Get a ', $tname, ' object from the database by a ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \param[in] ', $field->{name}, ' ', $DB_TYPE_TO_TEXT{$field->{type}}, '.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ');
+
+';
+        next;
     }
 }
 print HEADER '/**
@@ -407,7 +432,7 @@ int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list);
 foreach my $field (@{$object->{fields}}) {
     if ($field->{foreign}) {
 print HEADER '/**
- * Get ', $tname, ' objects from the database by an ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * Get ', $tname, ' objects from the database by a ', $field->{name}, ' specified in `', $field->{name}, '`.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \param[in] ', $field->{name}, ' a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -1221,6 +1246,71 @@ print SOURCE 'int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $nam
 }
 
 ';
+        next;
+    }
+    if ($field->{unique}) {
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE 'int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', const char* ', $field->{name}, ') {
+';
+    }
+    else {
+print SOURCE 'int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ') {
+';
+    }
+print SOURCE '    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+
+    if (!', $name, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+';
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    if (!', $field->{name}, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+';
+    }
+print SOURCE '
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(db_clause_get_value(clause), ', $field->{name}, ')
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    result_list = db_object_read(', $name, '->dbo, NULL, clause_list);
+    db_clause_list_free(clause_list);
+
+    if (result_list) {
+        result = db_result_list_begin(result_list);
+        if (result) {
+            if (', $name, '_from_result(', $name, ', result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
+            db_result_list_free(result_list);
+            return DB_OK;
+        }
+    }
+
+    db_result_list_free(result_list);
+    return DB_ERROR_UNKNOWN;
+}
+
+';
     }
 }
 print SOURCE 'int ', $name, '_update(', $name, '_t* ', $name, ') {
@@ -1646,6 +1736,12 @@ foreach my $field (@{$object->{fields}}) {
     if ($field->{foreign}) {
 print SQLITE 'CREATE INDEX ', camelize($name.'_'.$field->{name}), ' ON ', camelize($name),' ( ', camelize($field->{name}), ' );
 ';
+        next;
+    }
+    if ($field->{unique}) {
+print SQLITE 'CREATE UNIQUE INDEX ', camelize($name.'_'.$field->{name}), ' ON ', camelize($name),' ( ', camelize($field->{name}), ' );
+';
+        next;
     }
 }
 }

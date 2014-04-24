@@ -104,7 +104,7 @@
   "name": "policy",
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
-    { "name": "name", "type": "DB_TYPE_TEXT" },
+    { "name": "name", "type": "DB_TYPE_TEXT", "unique": 1 },
     { "name": "description", "type": "DB_TYPE_TEXT" },
     { "name": "signatures_resign", "type": "DB_TYPE_UINT32" },
     { "name": "signatures_refresh", "type": "DB_TYPE_UINT32" },

@@ -130,6 +130,7 @@ CREATE TABLE policy (
     parentSoaTtl UNSIGNED INT NOT NULL,
     parentSoaMinimum UNSIGNED INT NOT NULL
 );
+CREATE UNIQUE INDEX policyName ON policy ( name );
 
 CREATE TABLE policyKey (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

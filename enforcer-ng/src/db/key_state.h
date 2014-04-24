@@ -259,7 +259,7 @@ int key_state_set_ttl(key_state_t* key_state, unsigned int ttl);
 int key_state_create(key_state_t* key_state);
 
 /**
- * Get a key state object from the database by an id specified in `id`.
+ * Get a key state object from the database by a id specified in `id`.
  * \param[in] key_state a key_state_t pointer.
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -311,7 +311,7 @@ void key_state_list_free(key_state_list_t* key_state_list);
 int key_state_list_get(key_state_list_t* key_state_list);
 
 /**
- * Get key state objects from the database by an key_data_id specified in `key_data_id`.
+ * Get key state objects from the database by a key_data_id specified in `key_data_id`.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \param[in] key_data_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

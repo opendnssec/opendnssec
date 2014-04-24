@@ -124,7 +124,7 @@ int database_version_set_version(database_version_t* database_version, unsigned 
 int database_version_create(database_version_t* database_version);
 
 /**
- * Get a database version object from the database by an id specified in `id`.
+ * Get a database version object from the database by a id specified in `id`.
  * \param[in] database_version a database_version_t pointer.
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

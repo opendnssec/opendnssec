@@ -420,7 +420,7 @@ int zone_set_next_csk_roll(zone_t* zone, unsigned int next_csk_roll);
 int zone_create(zone_t* zone);
 
 /**
- * Get a zone object from the database by an id specified in `id`.
+ * Get a zone object from the database by a id specified in `id`.
  * \param[in] zone a zone_t pointer.
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -472,7 +472,7 @@ void zone_list_free(zone_list_t* zone_list);
 int zone_list_get(zone_list_t* zone_list);
 
 /**
- * Get zone objects from the database by an policy_id specified in `policy_id`.
+ * Get zone objects from the database by a policy_id specified in `policy_id`.
  * \param[in] zone_list a zone_list_t pointer.
  * \param[in] policy_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

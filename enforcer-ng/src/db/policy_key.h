@@ -260,7 +260,7 @@ int policy_key_set_minimize(policy_key_t* policy_key, unsigned int minimize);
 int policy_key_create(policy_key_t* policy_key);
 
 /**
- * Get a policy key object from the database by an id specified in `id`.
+ * Get a policy key object from the database by a id specified in `id`.
  * \param[in] policy_key a policy_key_t pointer.
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -312,7 +312,7 @@ void policy_key_list_free(policy_key_list_t* policy_key_list);
 int policy_key_list_get(policy_key_list_t* policy_key_list);
 
 /**
- * Get policy key objects from the database by an policy_id specified in `policy_id`.
+ * Get policy key objects from the database by a policy_id specified in `policy_id`.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \param[in] policy_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

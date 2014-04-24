@@ -648,12 +648,20 @@ int policy_set_parent_soa_minimum(policy_t* policy, unsigned int parent_soa_mini
 int policy_create(policy_t* policy);
 
 /**
- * Get a policy object from the database by an id specified in `id`.
+ * Get a policy object from the database by a id specified in `id`.
  * \param[in] policy a policy_t pointer.
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_get_by_id(policy_t* policy, const db_value_t* id);
+
+/**
+ * Get a policy object from the database by a name specified in `name`.
+ * \param[in] policy a policy_t pointer.
+ * \param[in] name a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_get_by_name(policy_t* policy, const char* name);
 
 /**
  * Update a policy object in the database.
