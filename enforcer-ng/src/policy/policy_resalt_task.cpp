@@ -120,7 +120,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	}
 	if (policy_list_get(pol_list)) {
 		policy_list_free(pol_list);
-		policy__free(rw_policy);
+		policy_free(rw_policy);
 		ods_log_error("[%s] retrying in 60 seconds", module_str);
 		return now + 60;
 	}
