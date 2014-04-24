@@ -12,7 +12,7 @@ them selves uses the database layer to describe them. The database layer is more
 or less just a container for the description of the database objects and a
 transporter for the information to the backend in use. The backend will perform
 the operations coming from the database objects and deliver the result of them
-using the classes of the database layer and that information will be interperted
+using the classes of the database layer and that information will be interpreted
 by the database objects and converted to be presentable as normal c value type
 for the logic.
 
