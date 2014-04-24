@@ -51,8 +51,6 @@ schedule_task_l(engine_type* engine, task_type *task, const char * what)
     if (!task) {
         ods_log_crit("[%s] failed to create %s task", module_str, what);
     } else {
-        task->when += 2; /* quick fix race condition at startup
-            Allow orm/database to come up fully and prevent backoff */
         status = lock_and_schedule_task(engine->taskq, task, 0);
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] failed to create %s task", module_str, what);
@@ -66,24 +64,14 @@ schedule_task_l(engine_type* engine, task_type *task, const char * what)
 void
 autostart(engine_type* engine)
 {
-	task_type *resalt_task, *task;
+	task_type *task;
 	ods_log_debug("[%s] autostart", module_str);
 
 	/* Remove old tasks in queue */
 	while ((task = schedule_pop_task(engine->taskq))) {
 		ods_log_verbose("popping task \"%s\" from queue", task->who);
 	}
-
-	resalt_task = policy_resalt_task(engine);
-	/* NOTE: hopefully no longer needed
-	 *
-	 * race condition at startup. Make sure resalt loses over
-		 * enforce. Not fatal but disturbs test. 
-	if ((resalt_task = policy_resalt_task(engine))) {
-		resalt_task->when += 3;
-	}
-	*/
-	schedule_task_l(engine, resalt_task, "resalt");
+	schedule_task_l(engine, policy_resalt_task(engine), "resalt");
 	/* disable enforce task for now
 	 * schedule_task_l(engine, enforce_task(engine, 1), "enforce"); */
 }
