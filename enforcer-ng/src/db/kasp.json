@@ -4,7 +4,7 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy" },
-    { "name": "name", "type": "DB_TYPE_TEXT" },
+    { "name": "name", "type": "DB_TYPE_TEXT", "unique": 1 },
     { "name": "policy", "type": "DB_TYPE_TEXT" },
     { "name": "signconf_needs_writing", "type": "DB_TYPE_UINT32" },
     { "name": "signconf_path", "type": "DB_TYPE_TEXT" },
@@ -80,7 +80,7 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy" },
-    { "name": "locator", "type": "DB_TYPE_TEXT" },
+    { "name": "locator", "type": "DB_TYPE_TEXT", "unique": 1 },
     { "name": "candidate_for_sharing", "type": "DB_TYPE_UINT32" },
     { "name": "bits", "type": "DB_TYPE_UINT32", "default": 2048 },
     { "name": "policy", "type": "DB_TYPE_TEXT", "default": "default" },

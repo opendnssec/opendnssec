@@ -1099,6 +1099,56 @@ int hsm_key_get_by_id(hsm_key_t* hsm_key, const db_value_t* id) {
     return DB_ERROR_UNKNOWN;
 }
 
+int hsm_key_get_by_locator(hsm_key_t* hsm_key, const char* locator) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+
+    if (!hsm_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!hsm_key->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!locator) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "locator")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_text(db_clause_get_value(clause), locator)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    result_list = db_object_read(hsm_key->dbo, NULL, clause_list);
+    db_clause_list_free(clause_list);
+
+    if (result_list) {
+        result = db_result_list_begin(result_list);
+        if (result) {
+            if (hsm_key_from_result(hsm_key, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+                
+            db_result_list_free(result_list);
+            return DB_OK;
+        }
+    }
+
+    db_result_list_free(result_list);
+    return DB_ERROR_UNKNOWN;
+}
+
 int hsm_key_update(hsm_key_t* hsm_key) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;

@@ -47,6 +47,7 @@ CREATE TABLE zone (
     nextCskRoll UNSIGNED INT NOT NULL
 );
 CREATE INDEX zonePolicyId ON zone ( policyId );
+CREATE UNIQUE INDEX zoneName ON zone ( name );
 
 CREATE TABLE keyData (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -95,6 +96,7 @@ CREATE TABLE hsmKey (
     backup INT NOT NULL
 );
 CREATE INDEX hsmKeyPolicyId ON hsmKey ( policyId );
+CREATE UNIQUE INDEX hsmKeyLocator ON hsmKey ( locator );
 
 CREATE TABLE policy (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

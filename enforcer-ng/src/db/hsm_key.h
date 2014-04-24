@@ -361,6 +361,14 @@ int hsm_key_create(hsm_key_t* hsm_key);
 int hsm_key_get_by_id(hsm_key_t* hsm_key, const db_value_t* id);
 
 /**
+ * Get a hsm key object from the database by a locator specified in `locator`.
+ * \param[in] hsm_key a hsm_key_t pointer.
+ * \param[in] locator a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int hsm_key_get_by_locator(hsm_key_t* hsm_key, const char* locator);
+
+/**
  * Update a hsm key object in the database.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

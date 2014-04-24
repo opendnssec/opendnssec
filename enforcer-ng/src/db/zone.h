@@ -428,6 +428,14 @@ int zone_create(zone_t* zone);
 int zone_get_by_id(zone_t* zone, const db_value_t* id);
 
 /**
+ * Get a zone object from the database by a name specified in `name`.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] name a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_get_by_name(zone_t* zone, const char* name);
+
+/**
  * Update a zone object in the database.
  * \param[in] zone a zone_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
