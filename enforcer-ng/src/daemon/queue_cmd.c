@@ -145,9 +145,10 @@ handles_flush(const char *cmd, ssize_t n)
 }
 
 static int
-run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n)
+run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
-	(void)cmd; (void)n;
+	(void)cmd; (void)n;  (void)dbconn;
 	ods_log_debug("[%s] flush tasks command", module_str);
 	ods_log_assert(engine);
 	ods_log_assert(engine->taskq);

@@ -101,8 +101,8 @@ ods_enforcerd_SOURCES = \
 	policy/policy_list_cmd.cpp policy/policy_list_cmd.h \
 	policy/policy_purge_cmd.cpp policy/policy_purge_cmd.h\
 	policy/policy_purge_task.cpp policy/policy_purge_task.h\
-	policy/policy_resalt_cmd.cpp policy/policy_resalt_cmd.h \
-	policy/policy_resalt_task.cpp policy/policy_resalt_task.h \
+	policy/policy_resalt_cmd.c policy/policy_resalt_cmd.h \
+	policy/policy_resalt_task.c policy/policy_resalt_task.h \
 	hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
 	hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
 	hsmkey/backup_hsmkeys_cmd.cpp hsmkey/backup_hsmkeys_cmd.h \
@@ -139,8 +139,7 @@ ods_enforcerd_SOURCES = \
 	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 	signconf/signconf_task.cpp signconf/signconf_task.h \
 	enforcer/enforcerdata.h \
-	enforcer/autostart_cmd.cpp enforcer/autostart_cmd.h \
-	enforcer/setup_cmd.cpp enforcer/setup_cmd.h \
+	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.cpp enforcer/enforce_cmd.h \
 	enforcer/enforce_task.cpp enforcer/enforce_task.h \
 	enforcer/enforcer.cpp enforcer/enforcer.h \

@@ -36,9 +36,6 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "daemon/orm.h"
-#include "protobuf-orm/pb-orm.h"
-#include "policy/kasp.pb.h"
 
 #include "enforcer/autostart_cmd.h"
 
@@ -46,16 +43,17 @@
 static const char *module_str = "autostart_cmd";
 
 static void 
-schedule_task(engine_type* engine, task_type *task, const char * what)
+schedule_task_l(engine_type* engine, task_type *task, const char * what)
 {
+    ods_status status;
+
     /* schedule task */
     if (!task) {
         ods_log_crit("[%s] failed to create %s task", module_str, what);
     } else {
         task->when += 2; /* quick fix race condition at startup
             Allow orm/database to come up fully and prevent backoff */
-        char buf[ODS_SE_MAXLINE];
-        ods_status status = lock_and_schedule_task(engine->taskq, task, 0);
+        status = lock_and_schedule_task(engine->taskq, task, 0);
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] failed to create %s task", module_str, what);
         } else {
@@ -76,11 +74,11 @@ autostart(engine_type* engine)
 		ods_log_verbose("popping task \"%s\" from queue", task->who);
 	}
 
-	if (resalt_task = policy_resalt_task(engine)) {
+	if ((resalt_task = policy_resalt_task(engine))) {
 		/* race condition at startup. Make sure resalt loses over
 		 * enforce. Not fatal but disturbs test. */
 		resalt_task->when += 3;
 	}
-	schedule_task(engine, resalt_task, "resalt");
-	schedule_task(engine, enforce_task(engine, 1), "enforce");
+	schedule_task_l(engine, resalt_task, "resalt");
+	schedule_task_l(engine, enforce_task(engine, 1), "enforce");
 }
