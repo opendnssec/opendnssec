@@ -75,7 +75,6 @@ ods_enforcerd_SOURCES = \
 	daemon/verbosity_cmd.c daemon/verbosity_cmd.h \
 	daemon/ctrl_cmd.c daemon/ctrl_cmd.h \
 	parser/confparser.c parser/confparser.h \
-	scheduler/fifoq.c scheduler/fifoq.h \
 	scheduler/schedule.c scheduler/schedule.h \
 	scheduler/task.c scheduler/task.h \
 	shared/allocator.c shared/allocator.h \

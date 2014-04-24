@@ -62,7 +62,6 @@ struct engine_struct {
     engineconfig_type* config;
     worker_type** workers;
     schedule_type* taskq;
-    fifoq_type* signq;
     cmdhandler_type* cmdhandler;
     int cmdhandler_done;
     int init_setup_done;

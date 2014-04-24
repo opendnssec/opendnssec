@@ -98,13 +98,6 @@ engine_alloc(void)
         allocator_deallocate(allocator, (void*) engine);
         return NULL;
     }
-    engine->signq = fifoq_create(engine->allocator);
-    if (!engine->signq) {
-        schedule_cleanup(engine->taskq);
-        allocator_deallocate(allocator, (void*) engine);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
     return engine;
 }
 
@@ -113,7 +106,6 @@ engine_dealloc(engine_type* engine)
 {
     allocator_type* allocator = engine->allocator;
     schedule_cleanup(engine->taskq);
-    fifoq_cleanup(engine->signq);
     lock_basic_destroy(&engine->enforce_lock);
     lock_basic_destroy(&engine->signal_lock);
     lock_basic_off(&engine->signal_cond);
