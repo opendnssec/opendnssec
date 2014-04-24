@@ -71,7 +71,7 @@ struct schedule_struct {
  * \return schedule_type* created schedule
  *
  */
-schedule_type* schedule_create(allocator_type* allocator);
+schedule_type* schedule_create();
 
 /**
  * Flush schedule.

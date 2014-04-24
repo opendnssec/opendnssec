@@ -46,25 +46,26 @@ static const char* schedule_str = "scheduler";
  *
  */
 schedule_type*
-schedule_create(allocator_type* allocator)
+schedule_create()
 {
     schedule_type* schedule;
-    if (!allocator) {
+    schedule->allocator = allocator_create(malloc, free);
+
+    if (!schedule->allocator) {
         ods_log_error("[%s] unable to create: no allocator available",
             schedule_str);
         return NULL;
     }
-    ods_log_assert(allocator);
 
-    schedule = (schedule_type*) allocator_alloc(allocator,
+    schedule = (schedule_type*) allocator_alloc(schedule->allocator,
         sizeof(schedule_type));
     if (!schedule) {
         ods_log_error("[%s] unable to create: allocator failed", schedule_str);
+        allocator_cleanup(schedule->allocator);
         return NULL;
     }
     ods_log_assert(schedule);
 
-    schedule->allocator = allocator;
     schedule->loading = 0;
     schedule->tasks = ldns_rbtree_create(task_compare);
     lock_basic_init(&schedule->schedule_lock);
@@ -377,7 +378,6 @@ task_delfunc(ldns_rbnode_t* elem)
 void
 schedule_cleanup(schedule_type* schedule)
 {
-    allocator_type* allocator;
     lock_basic_type schedule_lock;
 
     if (!schedule) {
@@ -390,10 +390,10 @@ schedule_cleanup(schedule_type* schedule)
         schedule->tasks = NULL;
     }
 
-    allocator = schedule->allocator;
     schedule_lock = schedule->schedule_lock;
 
-    allocator_deallocate(allocator, (void*) schedule);
+    allocator_deallocate(schedule->allocator, (void*) schedule);
+    allocator_cleanup(schedule->allocator);
     lock_basic_destroy(&schedule_lock);
     return;
 }
