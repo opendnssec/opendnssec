@@ -78,24 +78,16 @@ engine_type*
 engine_alloc(void)
 {
     engine_type* engine;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        return NULL;
-    }
-    engine = (engine_type*) allocator_alloc(allocator, sizeof(engine_type));
-    if (!engine) {
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    engine->allocator = allocator;
+    engine = (engine_type*) malloc(sizeof(engine_type));
+    if (!engine) return NULL;
 
     lock_basic_init(&engine->signal_lock);
     lock_basic_init(&engine->enforce_lock);
     lock_basic_set(&engine->signal_cond);
 
-    engine->taskq = schedule_create(engine->allocator);
+    engine->taskq = schedule_create();
     if (!engine->taskq) {
-        allocator_deallocate(allocator, (void*) engine);
+        free(engine);
         return NULL;
     }
     return engine;
@@ -104,13 +96,11 @@ engine_alloc(void)
 void
 engine_dealloc(engine_type* engine)
 {
-    allocator_type* allocator = engine->allocator;
     schedule_cleanup(engine->taskq);
     lock_basic_destroy(&engine->enforce_lock);
     lock_basic_destroy(&engine->signal_lock);
     lock_basic_off(&engine->signal_cond);
-    allocator_deallocate(allocator, (void*) engine);
-    allocator_cleanup(allocator);
+    free(engine);
 }
 
 /**
