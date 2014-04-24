@@ -1,7 +1,40 @@
 About
 =====
 
-todo
+This is a semi abstracted database layer meaning that the backend
+implementations used by the layer and the objects using the layer actually know
+a thing or two about each other. The layer is as abstract as it needs to be to
+be able to support multiple backends that operates in completely different ways.
+
+The basic idea is that you have database objects that represents the data model
+of the database, these objects are used by the application logic and the object
+them selves uses the database layer to describe them. The database layer is more
+or less just a container for the description of the database objects and a
+transporter for the information to the backend in use. The backend will perform
+the operations coming from the database objects and deliver the result of them
+using the classes of the database layer and that information will be interperted
+by the database objects and converted to be presentable as normal c value type
+for the logic.
+
+
+Object Revisions
+================
+
+All objects have a revision or something similar and when updating/deleting it
+will use the revision to verify that the object has not been updated by anyone
+else. If it has then the operation will fail with an error and the task that
+performed the operation should be rerun immediately or rescheduled.
+ 
+
+Backend Support
+===============
+
+SQLite     - supported and tested
+MySQL      - wip
+PostgreSQL - wip
+CouchDB    - experimental support
+LDAP       - wip
+MongoDB    - wip
 
 
 Object Descriptions
@@ -36,11 +69,11 @@ db_backend_t
   Object holding a backend, used by db_connection_t.
   
 db_join_t
-  Object holding the definition of a join.
+  Object holding the definition of a join. SUBJECT FOR DEPRECATION!
   
 db_join_list_t
   A list of db_join_t used to describe all joins in a query, used in read/update
-  and delete.
+  and delete. SUBJECT FOR DEPRECATION!
   
 db_clause_t
   Object holding the definition of a clause.
@@ -63,12 +96,6 @@ db_value_set_t
   
 db_type_t
   An enum describing all the different database value types.
-
-
-Code Example
-============
-
-Check test.c for an example.
 
 
 TODO
