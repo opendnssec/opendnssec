@@ -103,7 +103,6 @@ ods_enforcerd_SOURCES = \
 	policy/policy_purge_task.cpp policy/policy_purge_task.h\
 	policy/policy_resalt_cmd.cpp policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.cpp policy/policy_resalt_task.h \
-	policy/resalt.cpp policy/resalt.h \
 	hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
 	hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
 	hsmkey/backup_hsmkeys_cmd.cpp hsmkey/backup_hsmkeys_cmd.h \

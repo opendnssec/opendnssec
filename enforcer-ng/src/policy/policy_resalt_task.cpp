@@ -27,162 +27,135 @@
  *
  */
 
+#include "config.h"
+
+/* On MacOSX arc4random is only available when we 
+   undef _ANSI_SOURCE and define _DARWIN_C_SOURCE. */
+#ifdef __APPLE__
+	#undef _ANSI_SOURCE
+	#define _DARWIN_C_SOURCE 1
+#endif
+/* Make arc4random visible on FreeBSD */
+#ifndef __BSD_VISIBLE
+	#define __BSD_VISIBLE 1
+#endif
+
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/str.h"
-#include "policy/policy_resalt_task.h"
-#include "policy/resalt.h"
 #include "scheduler/task.h"
 #include "daemon/engine.h"
+#include "db/policy.h"
 
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/message.h>
+#include <stdlib.h>
 
-#include "kasp.pb.h"
-
-#include "xmlext-pb/xmlext-rd.h"
-
-#include "protobuf-orm/pb-orm.h"
-#include "daemon/orm.h"
-#include "daemon/clientpipe.h"
-
-#include <memory>
-#include <fcntl.h>
-#include <time.h>
+#include "policy/policy_resalt_task.h"
 
 static const char *module_str = "policy_resalt_task";
+static const time_t TIME_INF = ((time_t)-1);
 
-static const time_t TIME_INFINITE = ((time_t)-1);
-
-static bool
-load_kasp_policy(OrmConn conn,const std::string &name,
-				 ::ods::kasp::Policy &policy)
+/*
+ * Generate salt of len bytes, make sure prng is seeded.
+ * arc4random needs no seed.
+ * \param buf, buffer at least len bytes wide
+ * \param len, len of bytes of entropy to store in buf
+ * */
+static void
+generate_salt(char *buf, int len)
 {
-	std::string qname;
-	if (!OrmQuoteStringValue(conn, name, qname))
-		return false;
-	
-	OrmResultRef rows;
-	if (!OrmMessageEnumWhere(conn,policy.descriptor(),rows,
-							 "name=%s",qname.c_str()))
-		return false;
-	
-	if (!OrmFirst(rows))
-		return false;
-	
-	return OrmGetMessage(rows, policy, true);
+#ifdef HAVE_ARC4RANDOM
+	arc4random_buf(buf, len);
+#else
+	int i;
+	/* Not really sure how many bits we get, but pseudo randomness
+	 * is cheap. */
+	for (i = 0; i < len; i++)
+		buf[i] = rand() & 0xFF;
+#endif
+}
+
+static void
+to_hex(char *buf, int len, char *out)
+{
+	const char *h = "0123456789abcdef";
+	int i;
+
+	for (i = 0; i < len; i++) {
+		out[2*i] = h[(buf[i]>>4) & 0x0F];
+		out[2*i+1] = h[buf[i] & 0x0F];
+	}
+	out[2*len] = 0;
 }
 
 time_t 
 perform_policy_resalt(int sockfd, engine_type* engine,
 	db_connection_t *dbconn)
 {
-	#define LOG_AND_RESCHEDULE(errmsg,resched) do {\
-		ods_log_error_and_printf(sockfd,module_str,errmsg);\
-		ods_log_error("[%s] retrying in %d seconds", module_str, resched);\
-		return (time_now() + resched); } while (0)
-	
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	policy_list_t *pol_list;
+	const policy_t *ro_policy;
+	policy_t *rw_policy;
+	time_t schedule_time = TIME_INF, now = time_now(), resalt_time;
+	char salt[255], salthex[511];
+	int saltlength;
 
-    time_t time_resched = TIME_INFINITE;
-	
-	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, engine->config, conn)) {
-		ods_log_error("[%s] retrying in %d seconds", module_str, 60);
-		return (time_now() + 60);
+#ifndef HAVE_ARC4RANDOM
+	srand(now);
+#endif
+
+	if (!(pol_list = policy_list_new(dbconn))) {
+		ods_log_error("[%s] retrying in 60 seconds", module_str);
+		return now + 60;
 	}
-
-	OrmTransactionRW transaction(conn);
-	if (!transaction.started())
-		LOG_AND_RESCHEDULE("starting transaction failed", 60);
-
-	
-	{	OrmResultRef rows;
-		::ods::kasp::Policy policy;
-		if (!OrmMessageEnum(conn, policy.descriptor(), rows))
-			LOG_AND_RESCHEDULE("unable to enumerate policies", 60);
-
-		if (!OrmFirst(rows)) {
-			client_printf(sockfd, 
-					   "Database set to: %s\n"
-					   "There are no policies configured\n",
-					   engine->config->datastore);
-			return time_resched;
-		}
-		
-		client_printf(sockfd,
-				   "Database set to: %s\n"
-				   "Policies:\n"
-				   "Policy:                         "
-				   "Updated:  "
-				   "Next resalt scheduled:"
-				   "\n",
-				   engine->config->datastore);
-
-		
-		bool bSomePoliciesUpdated = false;
-		for (bool next=true; next; next=OrmNext(rows)) {
-
-			::ods::kasp::Policy policy;
-			OrmContextRef context;
-			if (!OrmGetMessage(rows, policy, true, context))
-				LOG_AND_RESCHEDULE("reading policy from database failed", 60);
-
-			// Update the salt for this policy when required
-			bool bCurrentPolicyUpdated = false;
-			if (PolicyUpdateSalt(policy) == 1) {
-				bCurrentPolicyUpdated = true;
-				bSomePoliciesUpdated = true;
-			}
-
-			// calculate the next resalt time for this policy
-			std::string text_resalt;
-			if (!policy.denial().has_nsec3()) {
-				text_resalt = "not applicable (no NSEC3)";
-			} else {
-				time_t time_resalt = policy.denial().nsec3().salt_last_change()
-									+policy.denial().nsec3().resalt();
-				char tbuf[32]; 
-				if (!ods_ctime_r(tbuf,sizeof(tbuf),time_resalt)) {
-					text_resalt = "invalid date/time";
-				} else {
-					text_resalt = tbuf;
-					if (time_resched==TIME_INFINITE)
-						time_resched = time_resalt;
-					else
-						if (time_resalt>time_now() && time_resalt<time_resched)
-							// Keep the earliest (future) reschedule time.
-							time_resched = time_resalt;
-				}
-			}
-
-			client_printf(sockfd,
-					   "%-31s %-9s %-48s\n",
-					   policy.name().c_str(),
-					   bCurrentPolicyUpdated ? "yes" : "no",
-					   text_resalt.c_str());
-			
-			if (bCurrentPolicyUpdated)
-				if (!OrmMessageUpdate(context))
-					LOG_AND_RESCHEDULE("updating policy in database failed",60);
-		}
-		
-		// query result no longer needed.
-		rows.release();
-
-		if (!bSomePoliciesUpdated) {
-			ods_log_debug("[%s] policy resalt complete", module_str);
-			client_printf(sockfd,"policy resalt complete\n");
-			return time_resched;
-		}
+	if (!(rw_policy = policy_new(dbconn))) {
+		policy_list_free(pol_list);
+		ods_log_error("[%s] retrying in 60 seconds", module_str);
+		return now + 60;
+	}
+	if (policy_list_get(pol_list)) {
+		policy_list_free(pol_list);
+		ods_log_error("[%s] retrying in 60 seconds", module_str);
+		return now + 60;
 	}
 	
-	if (!transaction.commit())
-		LOG_AND_RESCHEDULE("committing policy changes failed", 60);
+	ro_policy = policy_list_begin(pol_list);
+	do {
+		if (policy_denial_type(ro_policy) != POLICY_DENIAL_TYPE_NSEC3)
+			continue;
+		resalt_time = policy_denial_salt_last_change(ro_policy) +
+			policy_denial_resalt(ro_policy);
+		if (now > resalt_time) {
+			saltlength = policy_denial_salt_length(ro_policy);
+			if (saltlength <= 0 || saltlength > 255) {
+				ods_log_error("[%s] policy %s has an invalid salt length. "
+					"Must be in range [0..255]", module_str, policy_name(ro_policy));
+				continue; /* no need to schedule for this policy */
+			}
+			/* Yes, we need to resalt this policy */
+			if (policy_copy(rw_policy, ro_policy)) {
+				/* if db fails, bail */
+				ods_log_error("[%s] db error", module_str);
+				break;
+			}
+			generate_salt(salt, saltlength);
+			to_hex(salt, saltlength, salthex);
 
-	ods_log_debug("[%s] policies have been updated",module_str);
-	client_printf(sockfd,"Policies have been updated.\n");
-	return time_resched;
+			if(policy_set_denial_salt(rw_policy, salt) ||
+			   policy_set_denial_salt_last_change(rw_policy, now) ||
+			   policy_update(rw_policy))
+			{
+				ods_log_error("[%s] db error", module_str);
+				break;
+			}
+			policy_reset(rw_policy);
+			resalt_time = now + policy_denial_resalt(ro_policy);
+		}
+		if (resalt_time < schedule_time || schedule_time == TIME_INF)
+			schedule_time = resalt_time;
+	} while ((ro_policy = policy_list_next(pol_list)) != NULL);
+	policy_list_free(pol_list);
+	policy_free(rw_policy);
+	ods_log_debug("[%s] policies have been updated", module_str);
+	return schedule_time;
 }
 
 static task_type * 
@@ -191,20 +164,18 @@ policy_resalt_task_perform(task_type *task)
 	task->backoff = 0;
 	task->when = perform_policy_resalt(-1,(engine_type *)task->context,
 		task->dbconn);
-	if (task->when == TIME_INFINITE) {
-		// The resalt did not work, so we just try it again in 30 minutes.
+	if (task->when == TIME_INF) {
+		/* This means there is no need to schedule resalt again.
+		 * We do it anyway as it takes less administration. */
 		task->when = time_now() + 30*60;
 	}
-	return task; // return task, it needs to be rescheduled.
+	return task;
 }
 
 task_type *
 policy_resalt_task(engine_type* engine)
 {
-    const char *what = "resalt";
-    const char *who = "policies";
-    task_id what_id = task_register(what,
-                                 "policy_resalt_task_perform", 
-                                 policy_resalt_task_perform);
-	return task_create(what_id, time_now(), who, (void*)engine);
+	task_id what_id = task_register("resalt",
+		"policy_resalt_task_perform", policy_resalt_task_perform);
+	return task_create(what_id, time_now(), "policies", engine);
 }
