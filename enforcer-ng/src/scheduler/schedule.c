@@ -30,19 +30,54 @@
  */
 
 #include "config.h"
+
+#include <ldns/ldns.h>
+#include <pthread.h>
+#include <signal.h>
+
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/duration.h"
 #include "shared/log.h"
 
-#include <ldns/ldns.h>
-
 static const char* schedule_str = "scheduler";
 
+static pthread_cond_t *schedule_cond;
+static pthread_mutex_t *schedule_lock;
+
 static void
-set_alarm(schedule_type* schedule) {
-    /* TODO SET ALARM! */
-    pthread_cond_signal(&schedule->schedule_cond);
+alarm_handler(sig_atomic_t sig)
+{
+    switch (sig) {
+        case SIGALRM:
+            ods_log_debug("[%s] SIGALRM received", schedule_str);
+            pthread_mutex_lock(schedule_lock);
+                pthread_cond_signal(schedule_cond);
+            pthread_mutex_unlock(schedule_lock);
+            break;
+        default:
+            ods_log_debug("[%s] Spurious signal %d received", 
+                schedule_str, sig);
+    }
+}
+
+static task_type* schedule_get_first_task(schedule_type *schedule);
+static void
+set_alarm(schedule_type* schedule)
+{
+    time_t now = time_now();
+    task_type *task = schedule_get_first_task(schedule);
+    if (!task || task->when == -1) {
+        ods_log_debug("[%s] no alarm set", schedule_str);
+        return;
+    }
+    if (task->when == 0 || task->when <= now) {
+        ods_log_debug("[%s] signal now", schedule_str);
+        pthread_cond_signal(&schedule->schedule_cond);
+    } else {
+        ods_log_debug("[%s] SIGALRM set", schedule_str);
+         alarm(task->when - now);
+    }
 }
 
 
@@ -157,6 +192,7 @@ schedule_type*
 schedule_create()
 {
     schedule_type* schedule;
+    struct sigaction action;
 
     schedule = (schedule_type*) malloc(sizeof(schedule_type));
     if (!schedule) {
@@ -167,6 +203,14 @@ schedule_create()
     schedule->tasks = ldns_rbtree_create(task_compare);
     pthread_mutex_init(&schedule->schedule_lock, NULL);
     pthread_cond_init(&schedule->schedule_cond, NULL);
+    /* static condition for alarm */
+    schedule_cond = &schedule->schedule_cond;
+    schedule_lock = &schedule->schedule_lock;
+
+    action.sa_handler = &alarm_handler;
+    sigfillset(&action.sa_mask);
+    action.sa_flags = 0;
+    sigaction(SIGALRM, &action, NULL);
     
     return schedule;
 }
