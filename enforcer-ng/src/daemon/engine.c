@@ -546,13 +546,14 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
             /* FIXME: all tasks need to terminate, then set need_to_exit to 1 */
         }
 
+        /* We must use locking here to avoid race conditions. We want
+         * to sleep indefinitely and want to wake up on signal. This
+         * is to make sure we never mis the signal. */
         lock_basic_lock(&engine->signal_lock);
-        /* [LOCK] signal, recheck reload and lock */
         if (!engine->need_to_exit && !engine->need_to_reload && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
            lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 0);
         }
-        /* [UNLOCK] signal */
         lock_basic_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] enforcer halted", engine_str);
