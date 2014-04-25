@@ -51,9 +51,11 @@ alarm_handler(sig_atomic_t sig)
     switch (sig) {
         case SIGALRM:
             ods_log_debug("[%s] SIGALRM received", schedule_str);
-            pthread_mutex_lock(schedule_lock);
-                pthread_cond_signal(schedule_cond);
-            pthread_mutex_unlock(schedule_lock);
+            /* normally a signal is locked to prevent race conditions.
+             * We MUST NOT lock this. This function is called by the
+             * main thread as interrupt which might have acquired
+             * the lock. */
+            pthread_cond_signal(schedule_cond);
             break;
         default:
             ods_log_debug("[%s] Spurious signal %d received", 
