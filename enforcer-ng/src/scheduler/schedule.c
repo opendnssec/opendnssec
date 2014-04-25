@@ -144,65 +144,6 @@ lock_and_schedule_task(schedule_type* schedule, task_type* task,
 }
 
 /**
- * Unschedule task.
- * \param[in] schedule schedule
- * \param[in] task task to delete
- * \return task_type* task, if it was scheduled
- *
- */
-/*static task_type*
-unschedule_task(schedule_type* schedule, task_type* task)
-{
-    ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
-    task_type* del_task = NULL;
-
-    if (!task) {
-        *//* we are done *//*
-        return NULL;
-    }
-    ods_log_assert(task);
-    if (!schedule) {
-        ods_log_error("[%s] unable to unschedule task: no schedule",
-            schedule_str);
-        return task;
-    }
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
-
-    ods_log_debug("[%s] unschedule task [%s] for %s",
-        schedule_str, task_what2str(task->what), task_who2str(task->who));
-    del_node = ldns_rbtree_delete(schedule->tasks, (const void*) task);
-    if (del_node) {
-        del_task = (task_type*) del_node->data;
-        free((void*)del_node);
-    } else {
-        ods_log_warning("[%s] unable to unschedule task [%s] for %s: not "
-            "scheduled", schedule_str, task_what2str(task->what),
-            task_who2str(task->who));
-    }
-    return del_task;
-}*/
-
-/**
- * Reschedule task.
- *
- */
-/*ods_status
-reschedule_task(schedule_type* schedule, task_type* task, task_id what,
-    time_t when)
-{
-    task_type* del_task;
-
-    del_task = unschedule_task(schedule, task);
-    if (del_task) {
-        del_task->what = what;
-        del_task->when = when;
-    }
-    return schedule_task(schedule, del_task, 1);
-}*/
-
-
-/**
  * Get the first scheduled task.
  * \param[in] schedule schedule
  * \return task_type* first scheduled task

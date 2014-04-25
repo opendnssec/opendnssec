@@ -114,17 +114,6 @@ ods_status schedule_task(schedule_type* schedule, task_type* task, int log);
  */
 ods_status lock_and_schedule_task(schedule_type* schedule, task_type* task,
                                   int log);
-/**
- * Reschedule task.
- * \param[in] schedule schedule
- * \param[in] task task to delete
- * \param[in] what new task
- * \param[in] when new time
- * \return ods_status status
- *
- */
-/*ods_status reschedule_task(schedule_type* schedule, task_type* task,
-    task_id what, time_t when);*/
 
 /**
  * Pop the first scheduled task that is due.

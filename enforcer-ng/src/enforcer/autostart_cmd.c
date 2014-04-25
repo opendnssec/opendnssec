@@ -46,7 +46,8 @@ autostart(engine_type* engine)
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 
-	status = lock_and_schedule_task(engine->taskq, policy_resalt_task(engine), 0);
+	status = lock_and_schedule_task(engine->taskq,
+		policy_resalt_task(engine), 0);
 	if (status != ODS_STATUS_OK)
 		ods_log_crit("[%s] failed to create resalt task", module_str);
 	
