@@ -59,7 +59,6 @@ extern "C" {
 typedef struct schedule_struct schedule_type;
 struct schedule_struct {
     ldns_rbtree_t* tasks;
-    int loading; /* to determine backoff */
     pthread_mutex_t schedule_lock;
     pthread_cond_t schedule_cond;
 };
