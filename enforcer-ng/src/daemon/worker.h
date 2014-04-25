@@ -58,8 +58,6 @@ struct worker_struct {
     int sleeping;
     int waiting;
     int need_to_exit;
-    cond_basic_type worker_alarm;
-    lock_basic_type worker_lock;
     db_connection_t* dbconn;
 };
 
@@ -93,22 +91,6 @@ void worker_wakeup(worker_type* worker);
  *
  */
 void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
-
-/**
- * Notify a worker.
- * \param[in] lock lock to use
- * \param[in] condition condition that has been met
- *
- */
-void worker_notify(lock_basic_type* lock, cond_basic_type* condition);
-
-/**
- * Notify all workers.
- * \param[in] lock lock to use
- * \param[in] condition condition that has been met
- *
- */
-void worker_notify_all(lock_basic_type* lock, cond_basic_type* condition);
 
 /**
  * Clean up worker.

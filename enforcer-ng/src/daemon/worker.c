@@ -68,8 +68,6 @@ worker_create(int num)
     worker->sleeping = 0;
     worker->waiting = 0;
     worker->dbconn = NULL;
-    lock_basic_init(&worker->worker_lock);
-    lock_basic_set(&worker->worker_alarm);
     return worker;
 }
 
@@ -134,58 +132,6 @@ worker_start(worker_type* worker)
 }
 
 /**
- * Wake up worker.
- *
- */
-void
-worker_wakeup(worker_type* worker)
-{
-    ods_log_assert(worker);
-    if (worker && worker->sleeping && !worker->waiting) {
-        ods_log_debug("[worker[%i]] wake up", worker->thread_num);
-        lock_basic_lock(&worker->worker_lock);
-        /* [LOCK] worker */
-        lock_basic_alarm(&worker->worker_alarm);
-        worker->sleeping = 0;
-        /* [UNLOCK] worker */
-        lock_basic_unlock(&worker->worker_lock);
-    }
-    return;
-}
-
-/**
- * Notify a worker.
- *
- */
-void
-worker_notify(lock_basic_type* lock, cond_basic_type* condition)
-{
-    lock_basic_lock(lock);
-    /* [LOCK] lock */
-    lock_basic_alarm(condition);
-    /* [UNLOCK] lock */
-    lock_basic_unlock(lock);
-    return;
-}
-
-
-/**
- * Notify all workers.
- *
- */
-void
-worker_notify_all(lock_basic_type* lock, cond_basic_type* condition)
-{
-    lock_basic_lock(lock);
-    /* [LOCK] lock */
-    lock_basic_broadcast(condition);
-    /* [UNLOCK] lock */
-    lock_basic_unlock(lock);
-    return;
-}
-
-
-/**
  * Clean up worker.
  *
  */
@@ -193,8 +139,6 @@ void
 worker_cleanup(worker_type* worker)
 {
     if (!worker) return;
-    lock_basic_destroy(&worker->worker_lock);
-    lock_basic_off(&worker->worker_alarm);
     free(worker);
     return;
 }
