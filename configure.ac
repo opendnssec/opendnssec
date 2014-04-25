@@ -169,6 +169,10 @@ ACX_PKCS11_MODULES
 ACX_RT
 ACX_LIBC
 ACX_SSL
+ACX_CUNIT
+
+# cunit
+AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])
 
 # libhsm
 ACX_DLOPEN
@@ -246,6 +250,7 @@ AC_CONFIG_FILES([
 	enforcer-ng/src/utils/Makefile
 	enforcer-ng/man/Makefile
 	enforcer-ng/src/protobuf-orm/test/Makefile
+	enforcer-ng/src/db/test/Makefile
 	enforcer-ng/man/ods-enforcer.8
 	enforcer-ng/man/ods-enforcerd.8
 	libhsm/Makefile
@@ -276,6 +281,8 @@ AC_CONFIG_FILES([
 	tools/opendnssec.7
 	tools/ods-control.8
 	tools/ods-kasp2html
+	mm/Makefile
+	mm/src/Makefile
 ])
 
 AC_OUTPUT

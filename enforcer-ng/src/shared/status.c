@@ -54,7 +54,8 @@ static const char* ods_status_str[] = {
   /* ODS_STATUS_SETSID_ERR        */ "setsid() failed",
   /* ODS_STATUS_UNCHANGED         */ "Status unchanged",
   /* ODS_STATUS_WRITE_PIDFILE_ERR */ "Unable to write process id to pidfile",
-  /* ODS_STATUS_XML_ERR           */ "XML error"
+  /* ODS_STATUS_XML_ERR           */ "XML error",
+  /* ODS_STATUS_DB_ERR            */ "Database error",
   /* ODS_STATUS_MAX               */ "(Error code unknown)"
 };
 

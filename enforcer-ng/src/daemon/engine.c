@@ -40,7 +40,6 @@
 #include "daemon/orm.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/locks.h"
 #include "shared/log.h"
@@ -48,6 +47,9 @@
 #include "shared/status.h"
 #include "shared/util.h"
 #include "shared/protobuf.h"
+#include "db/db_configuration.h"
+#include "db/db_connection.h"
+#include "db/database_version.h"
 #include "libhsm.h"
 
 #include <errno.h>
@@ -75,31 +77,16 @@ engine_type*
 engine_alloc(void)
 {
     engine_type* engine;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        return NULL;
-    }
-    engine = (engine_type*) allocator_alloc(allocator, sizeof(engine_type));
-    if (!engine) {
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    engine->allocator = allocator;
+    engine = (engine_type*) malloc(sizeof(engine_type));
+    if (!engine) return NULL;
 
     lock_basic_init(&engine->signal_lock);
     lock_basic_init(&engine->enforce_lock);
     lock_basic_set(&engine->signal_cond);
 
-    engine->taskq = schedule_create(engine->allocator);
+    engine->taskq = schedule_create();
     if (!engine->taskq) {
-        allocator_deallocate(allocator, (void*) engine);
-        return NULL;
-    }
-    engine->signq = fifoq_create(engine->allocator);
-    if (!engine->signq) {
-        schedule_cleanup(engine->taskq);
-        allocator_deallocate(allocator, (void*) engine);
-        allocator_cleanup(allocator);
+        free(engine);
         return NULL;
     }
     return engine;
@@ -108,14 +95,11 @@ engine_alloc(void)
 void
 engine_dealloc(engine_type* engine)
 {
-    allocator_type* allocator = engine->allocator;
     schedule_cleanup(engine->taskq);
-    fifoq_cleanup(engine->signq);
     lock_basic_destroy(&engine->enforce_lock);
     lock_basic_destroy(&engine->signal_lock);
     lock_basic_off(&engine->signal_cond);
-    allocator_deallocate(allocator, (void*) engine);
-    allocator_cleanup(allocator);
+    free(engine);
 }
 
 /**
@@ -179,7 +163,6 @@ engine_privdrop(engine_type* engine)
     return status;
 }
 
-
 /**
  * Start/stop workers.
  *
@@ -190,11 +173,10 @@ engine_create_workers(engine_type* engine)
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_assert(engine->allocator);
-    engine->workers = (worker_type**) allocator_alloc(engine->allocator,
-        ((size_t)engine->config->num_worker_threads) * sizeof(worker_type*));
+    engine->workers = (worker_type**) malloc(
+        (size_t)engine->config->num_worker_threads * sizeof(worker_type*));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(engine->allocator, i);
+        engine->workers[i] = worker_create(i);
     }
     return;
 }
@@ -203,10 +185,18 @@ static void*
 worker_thread_start(void* arg)
 {
     worker_type* worker = (worker_type*) arg;
+
     ods_thread_blocksigs();
+    worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
+    if (!worker->dbconn) {
+        ods_log_crit("Failed to start worker, could not connect to database");
+        return NULL;
+    }
     worker_start(worker);
+    db_connection_free(worker->dbconn);
     return NULL;
 }
+
 void
 engine_start_workers(engine_type* engine)
 {
@@ -265,6 +255,93 @@ engine_wakeup_workers(engine_type* engine)
     return;
 }
 
+db_connection_t*
+get_database_connection(db_configuration_list_t* dbcfg_list)
+{
+    db_connection_t* dbconn;
+
+    if (!(dbconn = db_connection_new())
+        || db_connection_set_configuration_list(dbconn, dbcfg_list)
+        || db_connection_setup(dbconn)
+        || db_connection_connect(dbconn))
+    {
+        db_connection_free(dbconn);
+        ods_log_crit("database connection failed");
+        return NULL;
+    }
+    return dbconn;
+}
+
+/*
+ * Try to open a connection to the database and close it again.
+ * \param dbcfg_list, database configuration list
+ * \return 0 on success, 1 on failure.
+ */
+static int
+probe_database(db_configuration_list_t* dbcfg_list)
+{
+    db_connection_t *conn;
+    int version;
+
+    conn = get_database_connection(dbcfg_list);
+    if (!conn) return 1;
+    version = database_version_get_version(conn);
+    db_connection_free(conn);
+    return !version;
+}
+
+/*
+ * Prepare for database connections and store dbcfg_list in engine
+ * if successfull the counterpart desetup_database() must be called
+ * when quitting the daemon.
+ * \param engine engine config where configuration list is stored
+ * \return 0 on succes, 1 on failure
+ */
+static int
+setup_database(engine_type* engine)
+{
+    db_configuration_t* dbcfg;
+
+    if (!(engine->dbcfg_list = db_configuration_list_new())) {
+        fprintf(stderr, "db_configuraiton_list_new failed\n");
+        return 1;
+    }
+    if (!(dbcfg = db_configuration_new())
+        || db_configuration_set_name(dbcfg, "backend")
+        || db_configuration_set_value(dbcfg, "sqlite")
+        || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+    {
+        db_configuration_free(dbcfg);
+        db_configuration_list_free(engine->dbcfg_list);
+        fprintf(stderr, "setup configuration backend failed\n");
+        return 1;
+    }
+    if (!(dbcfg = db_configuration_new())
+        || db_configuration_set_name(dbcfg, "file")
+        || db_configuration_set_value(dbcfg, engine->config->datastore)
+        || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+    {
+        db_configuration_free(dbcfg);
+        db_configuration_list_free(engine->dbcfg_list);
+        fprintf(stderr, "setup configuration file failed\n");
+        return 1;
+    }
+    dbcfg = NULL;
+    return 0;
+}
+
+/*
+ * destroy database configuration. Call only after all connections
+ * are closed.
+ * \param engine engine config where configuration list is stored
+ */
+static void
+desetup_database(engine_type* engine)
+{
+    db_configuration_list_free(engine->dbcfg_list);
+    engine->dbcfg_list = NULL;
+}
+
 /**
  * Set up engine and return the setup status.
  *
@@ -284,6 +361,14 @@ engine_setup(engine_type* engine)
     if (!util_pidfile_avail(engine->config->pid_filename)) {
         ods_log_error("[%s] Pidfile exists and process with PID is running", engine_str);
         return ODS_STATUS_WRITE_PIDFILE_ERR;
+    }
+    /* setup database configuration */
+    if (setup_database(engine)) return ODS_STATUS_DB_ERR;
+    /* Probe the database, can we connect to it? */
+    if (probe_database(engine->dbcfg_list)) {
+        ods_log_crit("Could not connect to database or database not set"
+            " up properly.");
+        return ODS_STATUS_DB_ERR;
     }
 
     /* create command handler (before chowning socket file) */
@@ -387,10 +472,11 @@ engine_teardown(engine_type* engine)
         for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
             worker_cleanup(engine->workers[i]);
         }
-        allocator_deallocate(engine->allocator, (void*) engine->workers);
+        free(engine->workers);
     }
     cmdhandler_cleanup(engine->cmdhandler);
     engine->cmdhandler = NULL;
+    desetup_database(engine);
 }
 
 void
@@ -403,7 +489,6 @@ engine_init(engine_type* engine, int daemonize)
     engine->cmdhandler = NULL;
     engine->cmdhandler_done = 1;
     engine->init_setup_done = 0;
-    engine->database_ready = 0;
     engine->pid = getpid(); /* We need to do this again after fork() */
     engine->uid = -1;
     engine->gid = -1;
@@ -418,6 +503,7 @@ engine_init(engine_type* engine, int daemonize)
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
+    engine->dbcfg_list = NULL;
 }
 
 /**
@@ -428,7 +514,6 @@ int
 engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
     int error;
-    task_type *task;
     ods_log_assert(engine);
     ods_log_info("[%s] enforcer started", engine_str);
     
@@ -457,22 +542,20 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
             /* FIXME: all tasks need to terminate, then set need_to_exit to 1 */
         }
 
+        /* We must use locking here to avoid race conditions. We want
+         * to sleep indefinitely and want to wake up on signal. This
+         * is to make sure we never mis the signal. */
         lock_basic_lock(&engine->signal_lock);
-        /* [LOCK] signal, recheck reload and lock */
         if (!engine->need_to_exit && !engine->need_to_reload && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
            lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 0);
         }
-        /* [UNLOCK] signal */
         lock_basic_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] enforcer halted", engine_str);
     engine_stop_workers(engine);
     cmdhandler_stop(engine);
-    /* Remove old tasks in queue */
-    while ((task = schedule_pop_task(engine->taskq))) {
-        ods_log_verbose("popping task \"%s\" from queue", task->who);
-    }
+    schedule_purge(engine->taskq); /* Remove old tasks in queue */
     (void) hsm_close();
     return 0;
 }
@@ -485,10 +568,6 @@ flush_all_tasks(int sockfd, engine_type* engine)
 
     ods_log_assert(engine);
     ods_log_assert(engine->taskq);
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-    schedule_flush(engine->taskq, TASK_NONE);
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
+    schedule_flush(engine->taskq);
     engine_wakeup_workers(engine);
 }

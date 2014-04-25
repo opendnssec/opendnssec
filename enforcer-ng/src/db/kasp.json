@@ -1,0 +1,168 @@
+[
+{
+  "name": "zone",
+  "fields": [
+    { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
+    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy" },
+    { "name": "name", "type": "DB_TYPE_TEXT", "unique": 1 },
+    { "name": "policy", "type": "DB_TYPE_TEXT" },
+    { "name": "signconf_needs_writing", "type": "DB_TYPE_UINT32" },
+    { "name": "signconf_path", "type": "DB_TYPE_TEXT" },
+    { "name": "next_change", "type": "DB_TYPE_UINT32" },
+    { "name": "ttl_end_ds", "type": "DB_TYPE_UINT32" },
+    { "name": "ttl_end_dk", "type": "DB_TYPE_UINT32" },
+    { "name": "ttl_end_rs", "type": "DB_TYPE_UINT32" },
+    { "name": "roll_ksk_now", "type": "DB_TYPE_UINT32" },
+    { "name": "roll_zsk_now", "type": "DB_TYPE_UINT32" },
+    { "name": "roll_csk_now", "type": "DB_TYPE_UINT32" },
+    { "name": "input_adapter_type", "type": "DB_TYPE_TEXT", "default": "File" },
+    { "name": "input_adapter_uri", "type": "DB_TYPE_TEXT" },
+    { "name": "output_adapter_type", "type": "DB_TYPE_TEXT", "default": "File" },
+    { "name": "output_adapter_uri", "type": "DB_TYPE_TEXT" },
+    { "name": "next_ksk_roll", "type": "DB_TYPE_UINT32" },
+    { "name": "next_zsk_roll", "type": "DB_TYPE_UINT32" },
+    { "name": "next_csk_roll", "type": "DB_TYPE_UINT32" }
+  ]
+},
+{
+  "name": "key_data",
+  "fields": [
+    { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
+    { "name": "zone_id", "type": "DB_TYPE_ANY", "foreign": "zone" },
+    { "name": "hsm_key_id", "type": "DB_TYPE_ANY", "foreign": "hsm_key" },
+    { "name": "locator", "type": "DB_TYPE_TEXT" },
+    { "name": "algorithm", "type": "DB_TYPE_UINT32" },
+    { "name": "inception", "type": "DB_TYPE_UINT32" },
+    { "name": "role", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "KSK", "value": 0, "text": "KSK" },
+      { "name": "ZSK", "value": 1, "text": "ZSK" },
+      { "name": "CSK", "value": 2, "text": "CSK" } ] },
+    { "name": "introducing", "type": "DB_TYPE_UINT32", "default": 1 },
+    { "name": "should_revoke", "type": "DB_TYPE_UINT32" },
+    { "name": "standby", "type": "DB_TYPE_UINT32" },
+    { "name": "active_zsk", "type": "DB_TYPE_UINT32" },
+    { "name": "publish", "type": "DB_TYPE_UINT32" },
+    { "name": "active_ksk", "type": "DB_TYPE_UINT32" },
+    { "name": "ds_at_parent", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "UNSUBMITTED", "value": 0, "text": "unsubmitted" },
+      { "name": "SUBMIT", "value": 1, "text": "submit" },
+      { "name": "SUBMITTED", "value": 2, "text": "submitted" },
+      { "name": "SEEN", "value": 3, "text": "seen" },
+      { "name": "RETRACT", "value": 4, "text": "retract" },
+      { "name": "RETRACTED", "value": 5, "text": "retracted" } ], "default": "UNSUBMITTED" },
+    { "name": "keytag", "type": "DB_TYPE_UINT32" }
+  ]
+},
+{
+  "name": "key_state",
+  "fields": [
+    { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
+    { "name": "key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data" },
+    { "name": "type", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "DS", "value": 0, "text": "DS" },
+      { "name": "RRSIG", "value": 1, "text": "RRSIG" },
+      { "name": "DNSKEY", "value": 2, "text": "DNSKEY" },
+      { "name": "RRSIGDNSKEY", "value": 3, "text": "RRSIGDNSKEY" }
+    ] },
+    { "name": "state", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "HIDDEN", "value": 0, "text": "hidden" },
+      { "name": "RUMOURED", "value": 1, "text": "rumoured" },
+      { "name": "OMNIPRESENT", "value": 2, "text": "omnipresent" },
+      { "name": "UNRETENTIVE", "value": 3, "text": "unretentive" },
+      { "name": "NA", "value": 4, "text": "NA" } ], "default": "HIDDEN" },
+    { "name": "last_change", "type": "DB_TYPE_UINT32" },
+    { "name": "minimize", "type": "DB_TYPE_UINT32" },
+    { "name": "ttl", "type": "DB_TYPE_UINT32" }
+  ]
+},
+{
+  "name": "hsm_key",
+  "fields": [
+    { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
+    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy" },
+    { "name": "locator", "type": "DB_TYPE_TEXT", "unique": 1 },
+    { "name": "candidate_for_sharing", "type": "DB_TYPE_UINT32" },
+    { "name": "bits", "type": "DB_TYPE_UINT32", "default": 2048 },
+    { "name": "policy", "type": "DB_TYPE_TEXT", "default": "default" },
+    { "name": "algorithm", "type": "DB_TYPE_UINT32", "default": 1 },
+    { "name": "role", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "KSK", "value": 0, "text": "KSK" },
+      { "name": "ZSK", "value": 1, "text": "ZSK" },
+      { "name": "CSK", "value": 2, "text": "CSK" } ], "default": "ZSK" },
+    { "name": "inception", "type": "DB_TYPE_UINT32" },
+    { "name": "is_revoked", "type": "DB_TYPE_UINT32" },
+    { "name": "key_type", "type": "DB_TYPE_TEXT" },
+    { "name": "repository", "type": "DB_TYPE_TEXT" },
+    { "name": "backup", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "NO_BACKUP", "value": 0, "text": "No Backup" },
+      { "name": "BACKUP_REQUIRED", "value": 1, "text": "Backup Required" },
+      { "name": "BACKUP_REQUESTED", "value": 2, "text": "Backup Requested" },
+      { "name": "BACKUP_DONE", "value": 3, "text": "Backup Done" } ], "default": "NO_BACKUP" }
+  ]
+},
+{
+  "name": "policy",
+  "fields": [
+    { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
+    { "name": "name", "type": "DB_TYPE_TEXT", "unique": 1 },
+    { "name": "description", "type": "DB_TYPE_TEXT" },
+    { "name": "signatures_resign", "type": "DB_TYPE_UINT32" },
+    { "name": "signatures_refresh", "type": "DB_TYPE_UINT32" },
+    { "name": "signatures_jitter", "type": "DB_TYPE_UINT32" },
+    { "name": "signatures_inception_offset", "type": "DB_TYPE_UINT32" },
+    { "name": "signatures_validity_default", "type": "DB_TYPE_UINT32" },
+    { "name": "signatures_validity_denial", "type": "DB_TYPE_UINT32" },
+    { "name": "signatures_max_zone_ttl", "type": "DB_TYPE_UINT32", "default": 86400 },
+    { "name": "denial_type", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "NSEC", "value": 0, "text": "NSEC" },
+      { "name": "NSEC3", "value": 1, "text": "NSEC3" } ] },
+    { "name": "denial_optout", "type": "DB_TYPE_UINT32" },
+    { "name": "denial_ttl", "type": "DB_TYPE_UINT32" },
+    { "name": "denial_resalt", "type": "DB_TYPE_UINT32" },
+    { "name": "denial_algorithm", "type": "DB_TYPE_UINT32" },
+    { "name": "denial_iterations", "type": "DB_TYPE_UINT32" },
+    { "name": "denial_salt_length", "type": "DB_TYPE_UINT32" },
+    { "name": "denial_salt", "type": "DB_TYPE_TEXT" },
+    { "name": "denial_salt_last_change", "type": "DB_TYPE_UINT32" },
+    { "name": "keys_ttl", "type": "DB_TYPE_UINT32" },
+    { "name": "keys_retire_safety", "type": "DB_TYPE_UINT32" },
+    { "name": "keys_publish_safety", "type": "DB_TYPE_UINT32" },
+    { "name": "keys_shared", "type": "DB_TYPE_UINT32" },
+    { "name": "keys_purge_after", "type": "DB_TYPE_UINT32" },
+    { "name": "zone_propagation_delay", "type": "DB_TYPE_UINT32" },
+    { "name": "zone_soa_ttl", "type": "DB_TYPE_UINT32" },
+    { "name": "zone_soa_minimum", "type": "DB_TYPE_UINT32" },
+    { "name": "zone_soa_serial", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "COUNTER", "value": 0, "text": "counter" },
+      { "name": "DATECOUNTER", "value": 1, "text": "datecounter" },
+      { "name": "UNIXTIME", "value": 2, "text": "unixtime" },
+      { "name": "KEEP", "value": 3, "text": "keep" } ] },
+    { "name": "parent_propagation_delay", "type": "DB_TYPE_UINT32" },
+    { "name": "parent_ds_ttl", "type": "DB_TYPE_UINT32" },
+    { "name": "parent_soa_ttl", "type": "DB_TYPE_UINT32" },
+    { "name": "parent_soa_minimum", "type": "DB_TYPE_UINT32" }
+  ]
+},
+{
+  "name": "policy_key",
+  "fields": [
+    { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
+    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy" },
+    { "name": "algorithm", "type": "DB_TYPE_UINT32" },
+    { "name": "bits", "type": "DB_TYPE_UINT32" },
+    { "name": "lifetime", "type": "DB_TYPE_UINT32" },
+    { "name": "repository", "type": "DB_TYPE_TEXT" },
+    { "name": "standby", "type": "DB_TYPE_UINT32" },
+    { "name": "manual_rollover", "type": "DB_TYPE_UINT32" },
+    { "name": "rfc5011", "type": "DB_TYPE_UINT32" },
+    { "name": "minimize", "type": "DB_TYPE_UINT32" }
+  ]
+},
+{
+  "name": "database_version",
+  "fields": [
+    { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
+    { "name": "version", "type": "DB_TYPE_UINT32" }
+  ]
+}
+]

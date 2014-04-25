@@ -49,23 +49,23 @@ static const char* conf_str = "config";
  *
  */
 engineconfig_type*
-engine_config(allocator_type* allocator, const char* cfgfile,
+engine_config(const char* cfgfile,
     int cmdline_verbosity, engineconfig_type* oldcfg)
 {
     engineconfig_type* ecfg;
+    allocator_type *allocator;
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
-    if (!allocator) {
+    if (!(allocator = allocator_create(malloc, free))) {
         ods_log_error("[%s] failed to read: no allocator available", conf_str);
         return NULL;
     }
-    ods_log_assert(allocator);
     if (!cfgfile) {
         ods_log_error("[%s] failed to read: no filename given", conf_str);
+        allocator_cleanup(allocator);
         return NULL;
     }
-    ods_log_assert(cfgfile);
     ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
 
     ecfg = (engineconfig_type*) allocator_alloc(allocator,
@@ -318,6 +318,7 @@ engine_config_cleanup(engineconfig_type* config)
 	engine_config_freehsms(config->hsm);
 	config->hsm = NULL;
     allocator_deallocate(allocator, (void*) config);
+    allocator_cleanup(allocator);
     return;
 }
 

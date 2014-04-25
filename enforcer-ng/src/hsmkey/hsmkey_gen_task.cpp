@@ -57,7 +57,7 @@ generate_keypair(int sockfd,
 				 unsigned int keysize,
 				 std::string &locator)
 {
-    hsm_key_t *key = NULL;
+    libhsm_key_t *key = NULL;
     hsm_ctx_t *ctx = hsm_create_context();
     if (!ctx) {
 		ods_log_error_and_printf(sockfd,module_str,"could not connect to HSM");
@@ -78,7 +78,7 @@ generate_keypair(int sockfd,
 
     key = hsm_generate_rsa_key(ctx, repository, keysize);
     if (key) {
-        hsm_key_info_t *key_info;
+        libhsm_key_info_t *key_info;
         key_info = hsm_get_key_info(ctx, key);
         locator.assign(key_info ? key_info->id : "NULL");
 
@@ -86,11 +86,11 @@ generate_keypair(int sockfd,
 					  module_str,locator.c_str());
         client_printf(sockfd,"key generation successful: %s\n",locator.c_str());
         
-        hsm_key_info_free(key_info);
+        libhsm_key_info_free(key_info);
 #if 0
         hsm_print_key(key);
 #endif
-        hsm_key_free(key);
+        libhsm_key_free(key);
     } else {
         ods_log_error_and_printf(sockfd, module_str, "key generation failed");
         hsm_destroy_context(ctx);

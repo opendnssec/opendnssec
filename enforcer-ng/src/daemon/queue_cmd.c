@@ -65,7 +65,8 @@ handles(const char *cmd, ssize_t n)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
 	char* strtime = NULL;
 	char ctimebuf[32]; /* at least 26 according to docs */
@@ -74,7 +75,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	time_t now = 0;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
 	task_type* task = NULL;
-	(void)cmd; (void)n;
+	(void)cmd; (void)n; (void)dbconn;
 
 	ods_log_debug("[%s] list tasks command", module_str);
 
@@ -144,22 +145,19 @@ handles_flush(const char *cmd, ssize_t n)
 }
 
 static int
-run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n)
+run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
-	(void)cmd; (void)n;
+	(void)cmd; (void)n;  (void)dbconn;
 	ods_log_debug("[%s] flush tasks command", module_str);
 	ods_log_assert(engine);
 	ods_log_assert(engine->taskq);
 
-	lock_basic_lock(&engine->taskq->schedule_lock);
-	/* [LOCK] schedule */
-		schedule_flush(engine->taskq, TASK_NONE);
-	/* [UNLOCK] schedule */
-	lock_basic_unlock(&engine->taskq->schedule_lock);
+	schedule_flush(engine->taskq);
 
-	engine_wakeup_workers(engine);
 	client_printf(sockfd, "All tasks scheduled immediately.\n");
 	ods_log_verbose("[cmdhandler] all tasks scheduled immediately");
+	engine_wakeup_workers(engine);
 	return 0;
 }
 

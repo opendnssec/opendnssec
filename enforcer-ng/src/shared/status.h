@@ -59,6 +59,7 @@ enum ods_enum_status {
     ODS_STATUS_UNCHANGED,
     ODS_STATUS_WRITE_PIDFILE_ERR,
     ODS_STATUS_XML_ERR,
+    ODS_STATUS_DB_ERR,
     ODS_STATUS_MAX
 };
 typedef enum ods_enum_status ods_status;

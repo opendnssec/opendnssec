@@ -22,13 +22,16 @@ EXTRA_DIST = \
 
 CLEANFILES = $(BUILT_SOURCES)
 
+LIBMM = ${top_builddir}/mm/src/libmm.a
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
-SUBDIRS = utils protobuf-orm/test
+SUBDIRS = utils protobuf-orm/test db/test
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
+	-I$(top_srcdir)/mm/src \
+	-I$(top_builddir)/mm/src \
 	-I$(srcdir)/../../libhsm/src/lib \
 	-I$(builddir)/../../libhsm/src/lib \
 	-I$(srcdir)/xmlext-pb \
@@ -45,6 +48,18 @@ sbin_PROGRAMS =	ods-enforcerd ods-enforcer
 
 nodist_ods_enforcerd_SOURCES = $(BUILT_SOURCES)
 
+if USE_SQLITE
+BACKEND_SOURCES_CUSTOM = db/db_backend_sqlite.c db/db_backend_sqlite.h
+endif
+
+if USE_COUCHDB
+BACKEND_SOURCES_CUSTOM = db/db_backend_couchdb.c db/db_backend_couchdb.h
+# TODO: This needs depends in configure:
+BACKEND_LDFLAGS_CUSTOM = \
+	`pkg-config --libs libcurl` \
+	`pkg-config --libs jansson`
+endif
+
 ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \
 	daemon/cfg.c daemon/cfg.h \
@@ -60,13 +75,11 @@ ods_enforcerd_SOURCES = \
 	daemon/verbosity_cmd.c daemon/verbosity_cmd.h \
 	daemon/ctrl_cmd.c daemon/ctrl_cmd.h \
 	parser/confparser.c parser/confparser.h \
-	scheduler/fifoq.c scheduler/fifoq.h \
 	scheduler/schedule.c scheduler/schedule.h \
 	scheduler/task.c scheduler/task.h \
 	shared/allocator.c shared/allocator.h \
 	shared/duration.c shared/duration.h \
 	shared/file.c shared/file.h \
-	shared/hsm.c shared/hsm.h \
 	shared/locks.c shared/locks.h \
 	shared/log.c shared/log.h \
 	shared/privdrop.c shared/privdrop.h \
@@ -74,7 +87,6 @@ ods_enforcerd_SOURCES = \
 	shared/util.c shared/util.h \
 	shared/str.c shared/str.h \
 	shared/backup.c shared/backup.h \
-	shared/keys.c shared/keys.h \
 	shared/protobuf.cpp shared/protobuf.h \
 	xmlext-pb/xmlext-rd.cpp xmlext-pb/xmlext-rd.h \
 	xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \
@@ -83,13 +95,11 @@ ods_enforcerd_SOURCES = \
 	policy/policy_import_cmd.cpp policy/policy_import_cmd.h \
 	policy/update_kasp_cmd.cpp policy/update_kasp_cmd.h \
 	policy/update_kasp_task.cpp policy/update_kasp_task.h \
-	policy/policy_list_cmd.cpp policy/policy_list_cmd.h \
-	policy/policy_list_task.cpp policy/policy_list_task.h \
+	policy/policy_list_cmd.c policy/policy_list_cmd.h \
 	policy/policy_purge_cmd.cpp policy/policy_purge_cmd.h\
 	policy/policy_purge_task.cpp policy/policy_purge_task.h\
-	policy/policy_resalt_cmd.cpp policy/policy_resalt_cmd.h \
-	policy/policy_resalt_task.cpp policy/policy_resalt_task.h \
-	policy/resalt.cpp policy/resalt.h \
+	policy/policy_resalt_cmd.c policy/policy_resalt_cmd.h \
+	policy/policy_resalt_task.c policy/policy_resalt_task.h \
 	hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
 	hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
 	hsmkey/backup_hsmkeys_cmd.cpp hsmkey/backup_hsmkeys_cmd.h \
@@ -126,8 +136,7 @@ ods_enforcerd_SOURCES = \
 	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 	signconf/signconf_task.cpp signconf/signconf_task.h \
 	enforcer/enforcerdata.h \
-	enforcer/autostart_cmd.cpp enforcer/autostart_cmd.h \
-	enforcer/setup_cmd.cpp enforcer/setup_cmd.h \
+	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.cpp enforcer/enforce_cmd.h \
 	enforcer/enforce_task.cpp enforcer/enforce_task.h \
 	enforcer/enforcer.cpp enforcer/enforcer.h \
@@ -158,17 +167,39 @@ ods_enforcerd_SOURCES = \
 	protobuf-orm/pb-orm-transaction.cc protobuf-orm/pb-orm-transaction.h \
 	protobuf-orm/pb-orm-update.cc protobuf-orm/pb-orm-update.h \
 	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h \
-	utils/kc_helper.c utils/kc_helper.h 
-	
+	utils/kc_helper.c utils/kc_helper.h \
+	db/db_backend.c db/db_backend.h \
+	db/db_clause.c db/db_clause.h \
+	db/db_configuration.c db/db_configuration.h \
+	db/db_connection.c db/db_connection.h \
+	db/db_object.c db/db_object.h \
+	db/db_result.c db/db_result.h \
+	db/db_type.h \
+	db/db_value.c db/db_value.h \
+	db/db_join.c db/db_join.h \
+	db/db_error.h \
+	db/zone.c db/zone_ext.c db/zone_ext.h db/zone.h db/zone_struct_ext.h \
+	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h db/key_data_struct_ext.h \
+	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h db/key_state_struct_ext.h \
+	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h db/policy_struct_ext.h \
+	db/policy_key.c db/policy_key_ext.c db/policy_key_ext.h db/policy_key.h db/policy_key_struct_ext.h \
+	db/hsm_key.c db/hsm_key_ext.c db/hsm_key_ext.h db/hsm_key.h db/hsm_key_struct_ext.h \
+	db/database_version.c db/database_version.h db/database_version_ext.c db/database_version_ext.h \
+	$(BACKEND_SOURCES_CUSTOM)
+
 ods_enforcerd_LDADD = \
+	$(LIBMM) \
 	$(LIBHSM) \
-    $(LIBCOMPAT) \
+	$(LIBCOMPAT) \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@PTHREAD_LIBS@ \
 	@RT_LIBS@ \
 	@PROTOBUF_LIBS@ \
 	@ENFORCER_DB_LIBS@
+
+ods_enforcerd_LDFLAGS = \
+	$(BACKEND_LDFLAGS_CUSTOM)
 
 ods_enforcer_SOURCES = \
 	ods-enforcer.c \

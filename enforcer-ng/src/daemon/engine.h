@@ -36,11 +36,12 @@
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/worker.h"
-#include "scheduler/fifoq.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/allocator.h"
 #include "shared/locks.h"
+#include "db/db_configuration.h"
+#include "db/db_connection.h"
 
 #include <signal.h>
 
@@ -56,15 +57,12 @@ extern "C" {
 typedef struct engine_struct engine_type;
 
 struct engine_struct {
-    allocator_type* allocator;
     engineconfig_type* config;
     worker_type** workers;
     schedule_type* taskq;
-    fifoq_type* signq;
     cmdhandler_type* cmdhandler;
     int cmdhandler_done;
     int init_setup_done;
-    int database_ready;
 
     pid_t pid;
     uid_t uid;
@@ -77,7 +75,16 @@ struct engine_struct {
     cond_basic_type signal_cond;
     lock_basic_type signal_lock;
     lock_basic_type enforce_lock;
+
+    db_configuration_list_t* dbcfg_list;
 };
+
+/*
+ * Try to open a connection to the database.
+ * \param dbcfg_list, database configuration list
+ * \return connection on success, NULL on failure.
+ */
+db_connection_t* get_database_connection(db_configuration_list_t* dbcfg_list);
 
 /**
  * Setup the engine started by engine_create

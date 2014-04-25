@@ -55,7 +55,8 @@ handles(const char *cmd, ssize_t n)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
 	ods_log_debug("[%s] %s command", module_str, signconf_funcblock()->cmdname);
 

@@ -37,6 +37,7 @@
 #include "daemon/engine.h"
 #include "shared/protobuf.h"
 #include "daemon/orm.h"
+#include "mm.h"
 
 #include "enforcer/autostart_cmd.h"
 
@@ -103,15 +104,15 @@ program_setup(int cmdline_verbosity)
     tzset(); /* for portability */
 
     /* initialize protobuf and protobuf-orm */
-    ods_protobuf_initialize();
+   /* ods_protobuf_initialize();*/
     ods_orm_initialize();
 }
 
 void
 program_teardown()
 {
-    ods_orm_shutdown();
-    ods_protobuf_shutdown();
+    /*ods_orm_shutdown();
+    ods_protobuf_shutdown();*/
 
     ods_log_close();
 
@@ -195,6 +196,7 @@ main(int argc, char* argv[])
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", 
         PACKAGE_VERSION);
     
+    mm_init(); /* initialize memory management heap */
     program_setup(cmdline_verbosity); /* setup basic logging, xml, PB */
     engine = engine_alloc(); /* Let's create an engine only once */
     if (!engine) {
@@ -207,9 +209,7 @@ main(int argc, char* argv[])
     returncode = 0;
     while (!engine->need_to_exit) {
         /* Parse config file */
-        cfg = engine_config(engine->allocator, cfgfile,
-            cmdline_verbosity, engine->config);
-        engine->database_ready = database_ready(cfg);
+        cfg = engine_config(cfgfile, cmdline_verbosity, engine->config);
         /* does it make sense? */
         if (engine_config_check(cfg) != ODS_STATUS_OK) {
             /* it does not, do we have a previous config loaded? */

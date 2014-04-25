@@ -280,7 +280,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 					client_printf(sockfd, "error reading zone\n");
 					return 1;
 				}
-					
+
 				for (int k=0; k<zone.keys_size(); ++k) {
 					const ::ods::keystate::KeyData &key = zone.keys(k);
 					std::string keyrole = keyrole_Name(key.role());

@@ -32,75 +32,12 @@
 #include "config.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
 #include "shared/duration.h"
 #include "shared/log.h"
 
 #include <ldns/ldns.h>
 
 static const char* schedule_str = "scheduler";
-
-
-/**
- * Create new schedule.
- *
- */
-schedule_type*
-schedule_create(allocator_type* allocator)
-{
-    schedule_type* schedule;
-    if (!allocator) {
-        ods_log_error("[%s] unable to create: no allocator available",
-            schedule_str);
-        return NULL;
-    }
-    ods_log_assert(allocator);
-
-    schedule = (schedule_type*) allocator_alloc(allocator,
-        sizeof(schedule_type));
-    if (!schedule) {
-        ods_log_error("[%s] unable to create: allocator failed", schedule_str);
-        return NULL;
-    }
-    ods_log_assert(schedule);
-
-    schedule->allocator = allocator;
-    schedule->loading = 0;
-    schedule->tasks = ldns_rbtree_create(task_compare);
-    lock_basic_init(&schedule->schedule_lock);
-    return schedule;
-}
-
-
-/**
- * Flush schedule.
- *
- */
-void
-schedule_flush(schedule_type* schedule, task_id override)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* task = NULL;
-
-    ods_log_debug("[%s] flush all tasks", schedule_str);
-    if (!schedule || !schedule->tasks) {
-        return;
-    }
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
-
-    node = ldns_rbtree_first(schedule->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->data;
-        task->flush = 1;
-        if (override != TASK_NONE) {
-            task->what = override;
-        }
-        node = ldns_rbtree_next(node);
-    }
-    return;
-}
-
 
 /**
  * Convert task to a tree node.
@@ -206,12 +143,14 @@ lock_and_schedule_task(schedule_type* schedule, task_type* task,
     return status;
 }
 
-
 /**
  * Unschedule task.
+ * \param[in] schedule schedule
+ * \param[in] task task to delete
+ * \return task_type* task, if it was scheduled
  *
  */
-task_type*
+static task_type*
 unschedule_task(schedule_type* schedule, task_type* task)
 {
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
@@ -244,7 +183,6 @@ unschedule_task(schedule_type* schedule, task_type* task)
     return del_task;
 }
 
-
 /**
  * Reschedule task.
  *
@@ -266,26 +204,21 @@ reschedule_task(schedule_type* schedule, task_type* task, task_id what,
 
 /**
  * Get the first scheduled task.
- *
+ * \param[in] schedule schedule
+ * \return task_type* first scheduled task
  */
-task_type*
+static task_type*
 schedule_get_first_task(schedule_type* schedule)
 {
-    ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
-    task_type* pop = NULL;
+    ldns_rbnode_t* first_node;
 
-    if (!schedule) {
-        return NULL;
-    }
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
-
+    if (!schedule || !schedule->tasks) return NULL;
+    
     first_node = ldns_rbtree_first(schedule->tasks);
-    if (!first_node) {
-        pop = NULL;
-    }
-    pop = (task_type*) first_node->data;
-    return pop;
+    
+    if (first_node)
+        return (task_type*) first_node->data;
+    return NULL;
 }
 
 
@@ -369,6 +302,28 @@ task_delfunc(ldns_rbnode_t* elem)
     return;
 }
 
+/**
+ * Create new schedule.
+ *
+ */
+schedule_type*
+schedule_create()
+{
+    schedule_type* schedule;
+
+    schedule = (schedule_type*) malloc(sizeof(schedule_type));
+    if (!schedule) {
+        ods_log_error("[%s] unable to create: malloc failed", schedule_str);
+        return NULL;
+    }
+
+    schedule->loading = 0;
+    schedule->tasks = ldns_rbtree_create(task_compare);
+    pthread_mutex_init(&schedule->schedule_lock, NULL);
+    pthread_cond_init(&schedule->schedule_cond, NULL);
+    
+    return schedule;
+}
 
 /**
  * Clean up schedule.
@@ -377,23 +332,88 @@ task_delfunc(ldns_rbnode_t* elem)
 void
 schedule_cleanup(schedule_type* schedule)
 {
-    allocator_type* allocator;
-    lock_basic_type schedule_lock;
-
-    if (!schedule) {
-        return;
-    }
+    if (!schedule) return;
     ods_log_debug("[%s] cleanup schedule", schedule_str);
     if (schedule->tasks) {
         task_delfunc(schedule->tasks->root);
         ldns_rbtree_free(schedule->tasks);
         schedule->tasks = NULL;
     }
-
-    allocator = schedule->allocator;
-    schedule_lock = schedule->schedule_lock;
-
-    allocator_deallocate(allocator, (void*) schedule);
-    lock_basic_destroy(&schedule_lock);
-    return;
+    pthread_mutex_destroy(&schedule->schedule_lock);
+    free(schedule);
 }
+
+/**
+ * exported convinience functions should all be thread safe
+ */
+
+time_t
+schedule_time_first(schedule_type* schedule)
+{
+    task_type* task;
+    time_t when;
+    
+    if (!schedule || !schedule->tasks) return -1;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        task = schedule_get_first_task(schedule);
+        if (!task)
+            when = -1;
+        else if (task->flush)
+            when = 0;
+        else 
+            when = task->when;
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return when;
+}
+
+size_t
+schedule_taskcount(schedule_type* schedule)
+{
+    if (!schedule || !schedule->tasks) return 0;
+    return schedule->tasks->count;
+}
+
+void
+schedule_flush(schedule_type* schedule)
+{
+    ldns_rbnode_t* node;
+    task_type* task;
+    
+    ods_log_debug("[%s] flush all tasks", schedule_str);
+    if (!schedule || !schedule->tasks) return;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        node = ldns_rbtree_first(schedule->tasks);
+        while (node && node != LDNS_RBTREE_NULL) {
+            task = (task_type*) node->data;
+            task->flush = 1;
+            node = ldns_rbtree_next(node);
+        }
+        /* wakeup! work to do! */
+        pthread_cond_signal(&schedule->schedule_cond);
+    pthread_mutex_unlock(&schedule->schedule_lock);
+}
+
+void
+schedule_purge(schedule_type* schedule)
+{
+    ldns_rbnode_t* node;
+    task_type* task;
+    
+    if (!schedule || !schedule->tasks) return;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        while ((node = ldns_rbtree_first(schedule->tasks)) !=
+            LDNS_RBTREE_NULL)
+        {
+            node = ldns_rbtree_delete(schedule->tasks, node->data);
+            task = (task_type*) node->data;
+            task_cleanup(task);
+            free(node);
+        }
+        /* wakeup! work to do! */
+        pthread_cond_signal(&schedule->schedule_cond);
+    pthread_mutex_unlock(&schedule->schedule_lock);
+}
+

@@ -38,7 +38,6 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "shared/hsm.h"
 #include "shared/duration.h"
 
 #include <time.h> /* time() */
@@ -48,22 +47,16 @@
  *
  */
 worker_type*
-worker_create(allocator_type* allocator, int num)
+worker_create(int num)
 {
     worker_type* worker;
 
-    if (!allocator) {
-        return NULL;
-    }
-    ods_log_assert(allocator);
-
-    worker = (worker_type*) allocator_alloc(allocator, sizeof(worker_type));
+    worker = (worker_type*) malloc( sizeof(worker_type) );
     if (!worker) {
         return NULL;
     }
 
     ods_log_debug("create worker[%i]", num +1);
-    worker->allocator = allocator;
     worker->thread_num = num +1;
     worker->engine = NULL;
     worker->task = NULL;
@@ -74,6 +67,7 @@ worker_create(allocator_type* allocator, int num)
     worker->jobs_failed = 0;
     worker->sleeping = 0;
     worker->waiting = 0;
+    worker->dbconn = NULL;
     lock_basic_init(&worker->worker_lock);
     lock_basic_set(&worker->worker_alarm);
     return worker;
@@ -111,7 +105,9 @@ worker_perform_task(worker_type* worker)
        worker->thread_num, task_what2str(task->what),
        task_who2str(task->who), (uint32_t) worker->clock_in);
 
+	task->dbconn = worker->dbconn;
 	worker->task = task_perform(task);
+	task->dbconn = NULL;
 }
 
 
@@ -122,7 +118,6 @@ worker_perform_task(worker_type* worker)
 void
 worker_start(worker_type* worker)
 {
-    time_t now, timeout = 1;
     task_type *task_that_was_worked_on;
 
     ods_log_assert(worker);
@@ -152,27 +147,12 @@ worker_start(worker_type* worker)
             if (task_that_was_worked_on)
                 (void) lock_and_schedule_task(worker->engine->taskq,
                                                  task_that_was_worked_on, 1);
-            
-            timeout = 1;
         } else {
-            ods_log_debug("[worker[%i]] nothing to do", worker->thread_num);
-
-            worker->task = schedule_get_first_task(worker->engine->taskq);
-
-            /* [UNLOCK] schedule */
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
-            now = time_now();
-            if (worker->task && !worker->engine->taskq->loading) {
-                timeout = (worker->task->when - now);
-            } else {
-                timeout *= 2;
-                if (timeout > ODS_SE_MAX_BACKOFF) {
-                    timeout = ODS_SE_MAX_BACKOFF;
-                }
-            }
-            worker->task = NULL;
-            worker_sleep(worker, timeout);
+            ods_log_debug("[worker[%i]] nothing to do", worker->thread_num);
+            /* sleep indefinitely for now */
+            worker_sleep(worker, 0);
         }
     }
     return;
@@ -200,28 +180,6 @@ worker_sleep(worker_type* worker, time_t timeout)
     lock_basic_unlock(&worker->worker_lock);
     return;
 }
-
-
-/**
- * Put worker to sleep unless worker has measured up to all appointed jobs.
- *
- */
-void
-worker_sleep_unless(worker_type* worker, time_t timeout)
-{
-    ods_log_assert(worker);
-    lock_basic_lock(&worker->worker_lock);
-    /* [LOCK] worker */
-    if (!worker->need_to_exit && !worker_fulfilled(worker)) {
-        worker->sleeping = 1;
-        lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
-            timeout);
-    }
-    /* [UNLOCK] worker */
-    lock_basic_unlock(&worker->worker_lock);
-    return;
-}
-
 
 /**
  * Wake up worker.
@@ -299,19 +257,9 @@ worker_notify_all(lock_basic_type* lock, cond_basic_type* condition)
 void
 worker_cleanup(worker_type* worker)
 {
-    allocator_type* allocator;
-    cond_basic_type worker_cond;
-    lock_basic_type worker_lock;
-
-    if (!worker) {
-        return;
-    }
-    allocator = worker->allocator;
-    worker_cond = worker->worker_alarm;
-    worker_lock = worker->worker_lock;
-
-    allocator_deallocate(allocator, (void*) worker);
-    lock_basic_destroy(&worker_lock);
-    lock_basic_off(&worker_cond);
+    if (!worker) return;
+    lock_basic_destroy(&worker->worker_lock);
+    lock_basic_off(&worker->worker_alarm);
+    free(worker);
     return;
 }

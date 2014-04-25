@@ -34,6 +34,7 @@
 
 #include <sys/un.h>
 #include "shared/locks.h"
+#include "db/db_connection.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,6 +54,7 @@ struct cmdhandler_struct {
     int listen_fd;
     int client_fd;
     int need_to_exit;
+    db_connection_t* dbconn;
 };
 
 struct cmd_func_block {
@@ -72,12 +74,13 @@ struct cmd_func_block {
      * \param engine, daemon information must not be NULL.
      * \param cmd, command and args for additional parsing.
      * \param n, length of cmd.
+     * \param dbconn, connection to the database.
      * \return 0 command executed, all OK
      *      -1 Errors parsing commandline / missing params
      *       positive error code to return to user.
      */
     int (*run)(int sockfd, struct engine_struct* engine,
-        const char *cmd, ssize_t n);
+        const char *cmd, ssize_t n, db_connection_t *dbconn);
 };
 
 /**

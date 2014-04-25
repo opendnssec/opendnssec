@@ -90,8 +90,8 @@ struct engineconfig_struct {
  * \return engineconfig_type* engine configuration
  *
  */
-engineconfig_type* engine_config(allocator_type* allocator,
-    const char* cfgfile, int cmdline_verbosity, engineconfig_type* oldcfg);
+engineconfig_type* engine_config(const char* cfgfile,
+	int cmdline_verbosity, engineconfig_type* oldcfg);
 
 /**
  * Check configuration.
