@@ -369,12 +369,8 @@ schedule_time_first(schedule_type* schedule)
 size_t
 schedule_taskcount(schedule_type* schedule)
 {
-    size_t count;
     if (!schedule || !schedule->tasks) return 0;
-    pthread_mutex_lock(&schedule->schedule_lock);
-        count = schedule->tasks->count;
-    pthread_mutex_unlock(&schedule->schedule_lock);
-    return count;
+    return schedule->tasks->count;
 }
 
 /**
