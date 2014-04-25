@@ -227,6 +227,7 @@ engine_stop_workers(engine_type* engine)
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
+    pthread_cond_broadcast(&engine->taskq->schedule_cond);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);

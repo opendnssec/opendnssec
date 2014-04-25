@@ -293,7 +293,7 @@ schedule_pop_task(schedule_type* schedule)
 
     pthread_mutex_lock(&schedule->schedule_lock);
         task = schedule_get_first_task(schedule);
-        if (!task || task->when == -1 || task->when > now) {
+        if (!task || (!task->flush && (task->when == -1 || task->when > now))) {
             /* nothing to do now, sleep and wait for signal */
             pthread_cond_wait(&schedule->schedule_cond,
                 &schedule->schedule_lock);
