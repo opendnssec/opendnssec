@@ -32,48 +32,12 @@
 #include "config.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
 #include "shared/duration.h"
 #include "shared/log.h"
 
 #include <ldns/ldns.h>
 
 static const char* schedule_str = "scheduler";
-
-
-/**
- * Create new schedule.
- *
- */
-schedule_type*
-schedule_create()
-{
-    schedule_type* schedule;
-    allocator_type* allocator;
-
-    if (!(allocator = allocator_create(malloc, free))) {
-        ods_log_error("[%s] unable to create: no allocator available",
-            schedule_str);
-        return NULL;
-    }
-
-    schedule = (schedule_type*) allocator_alloc(allocator,
-        sizeof(schedule_type));
-    if (!schedule) {
-        ods_log_error("[%s] unable to create: allocator failed", schedule_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-
-    schedule->allocator = allocator;
-    schedule->loading = 0;
-    schedule->tasks = ldns_rbtree_create(task_compare);
-    pthread_mutex_init(&schedule->schedule_lock, NULL);
-    pthread_cond_init(&schedule->schedule_cond, NULL);
-    
-    return schedule;
-}
-
 
 /**
  * Flush schedule.
@@ -372,6 +336,28 @@ task_delfunc(ldns_rbnode_t* elem)
     return;
 }
 
+/**
+ * Create new schedule.
+ *
+ */
+schedule_type*
+schedule_create()
+{
+    schedule_type* schedule;
+
+    schedule = (schedule_type*) malloc(sizeof(schedule_type));
+    if (!schedule) {
+        ods_log_error("[%s] unable to create: malloc failed", schedule_str);
+        return NULL;
+    }
+
+    schedule->loading = 0;
+    schedule->tasks = ldns_rbtree_create(task_compare);
+    pthread_mutex_init(&schedule->schedule_lock, NULL);
+    pthread_cond_init(&schedule->schedule_cond, NULL);
+    
+    return schedule;
+}
 
 /**
  * Clean up schedule.
@@ -380,24 +366,14 @@ task_delfunc(ldns_rbnode_t* elem)
 void
 schedule_cleanup(schedule_type* schedule)
 {
-    lock_basic_type schedule_lock;
-    allocator_type* allocator;
-
-    if (!schedule) {
-        return;
-    }
+    if (!schedule) return;
     ods_log_debug("[%s] cleanup schedule", schedule_str);
     if (schedule->tasks) {
         task_delfunc(schedule->tasks->root);
         ldns_rbtree_free(schedule->tasks);
         schedule->tasks = NULL;
     }
-
-    schedule_lock = schedule->schedule_lock;
-    allocator = schedule->allocator;
-
-    allocator_deallocate(allocator, (void*) schedule);
-    allocator_cleanup(allocator);
-    lock_basic_destroy(&schedule_lock);
-    return;
+    lock_basic_destroy(&schedule->schedule_lock);
+    free(schedule);
 }
+
