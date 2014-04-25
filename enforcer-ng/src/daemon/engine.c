@@ -82,7 +82,7 @@ engine_alloc(void)
     if (!engine) return NULL;
 
     engine->allocator = allocator_create(malloc, free);
-    if (engine->allocator) {
+    if (!engine->allocator) {
         free(engine);
         return NULL;
     }
