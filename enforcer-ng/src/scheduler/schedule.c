@@ -68,7 +68,9 @@ schedule_create()
     schedule->allocator = allocator;
     schedule->loading = 0;
     schedule->tasks = ldns_rbtree_create(task_compare);
-    lock_basic_init(&schedule->schedule_lock);
+    pthread_mutex_init(&schedule->schedule_lock, NULL);
+    pthread_cond_init(&schedule->schedule_cond, NULL);
+    
     return schedule;
 }
 

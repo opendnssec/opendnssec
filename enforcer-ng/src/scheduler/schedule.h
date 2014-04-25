@@ -62,7 +62,8 @@ struct schedule_struct {
     allocator_type* allocator;
     ldns_rbtree_t* tasks;
     int loading; /* to determine backoff */
-    lock_basic_type schedule_lock;
+    pthread_mutex_t schedule_lock;
+    pthread_cond_t schedule_cond;
 };
 
 /**
@@ -136,10 +137,10 @@ ods_status reschedule_task(schedule_type* schedule, task_type* task,
     task_id what, time_t when);
 
 /**
- * Pop the first scheduled task.
+ * Pop the first scheduled task that is due.
  * \param[in] schedule schedule
- * \return task_type* popped task
- *
+ * \return task_type* popped task, or NULL when no task available or
+ * no task due
  */
 task_type* schedule_pop_task(schedule_type* schedule);
 
