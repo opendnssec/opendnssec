@@ -150,6 +150,13 @@ task_type* schedule_pop_task(schedule_type* schedule);
 time_t schedule_time_first(schedule_type* schedule);
 
 /**
+ * Number of task in schedule
+ * \param[in] schedule schedule
+ * \return task count, 0 on empty or error;
+ */
+size_t schedule_taskcount(schedule_type* schedule);
+
+/**
  * Print schedule.
  * \param[in] out file descriptor
  * \param[in] schedule schedule

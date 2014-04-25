@@ -37,7 +37,7 @@
 
 #include "policy/policy_list_cmd.h"
 
-static const char *module_str = "policy_list_cmd";
+/* static const char *module_str = "policy_list_cmd"; */
 
 static void
 usage(int sockfd)
@@ -67,7 +67,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const char *fmt = "%-31s %-48s\n";
 	policy_list_t *pol_list;
 	const policy_t *policy;
-	(void)cmd; (void)n;
+	(void)cmd; (void)n; (void)engine;
 
 	if (!(pol_list = policy_list_new(dbconn)))
 		return 1;

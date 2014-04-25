@@ -120,12 +120,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	/* how many tasks */
 	now = time_now();
 	strtime = ctime_r(&now,ctimebuf);
-	lock_basic_lock(&engine->taskq->schedule_lock);
-		client_printf(sockfd, 
-			"There are %i tasks scheduled.\nIt is now       %s",
-			(int) engine->taskq->tasks->count,
-			strtime?strtime:"(null)\n");
-	lock_basic_unlock(&engine->taskq->schedule_lock);
+	client_printf(sockfd, 
+		"There are %i tasks scheduled.\nIt is now       %s",
+		(int) schedule_taskcount(engine->taskq),
+		strtime?strtime:"(null)\n");
 	
 	time_leap = schedule_time_first(engine->taskq);
 	if (time_leap > 0) {
