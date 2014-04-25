@@ -79,7 +79,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	char ctimebuf[32]; /* at least 26 according to docs */
 	char buf[ODS_SE_MAXLINE];
 	time_t now = time_now();
-	task_type* task = NULL;
 	const char *time = NULL;
 	time_t time_leap = 0;
 	struct tm tm;

@@ -51,7 +51,7 @@ static taskreg_type taskreg[16];
 static int ntaskreg = 0;
 const int NUM_HOW_REG = sizeof(taskreg)/sizeof(taskreg_type);
 
-static bool task_id_from_long_name(const char *long_name, task_id *pwhat)
+bool task_id_from_long_name(const char *long_name, task_id *pwhat)
 {
 	int i;
 	for (i=0; i<ntaskreg; ++i) {

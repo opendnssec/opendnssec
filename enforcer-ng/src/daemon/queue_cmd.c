@@ -84,7 +84,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		client_printf(sockfd, "There are no tasks scheduled.\n");
 		return 0;
 	}
-	
+
 	lock_basic_lock(&engine->taskq->schedule_lock);
 	/* [LOCK] schedule */
 

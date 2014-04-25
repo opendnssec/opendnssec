@@ -179,6 +179,8 @@ void task_log(task_type* task);
  */
 task_type *task_perform(task_type *task);
 
+bool task_id_from_long_name(const char *long_name, task_id *pwhat);
+
 #ifdef __cplusplus
 }
 #endif

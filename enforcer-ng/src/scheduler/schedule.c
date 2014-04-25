@@ -52,97 +52,6 @@ task2node(task_type* task)
     return node;
 }
 
-
-/**
- * Look up task.
- *
- */
-task_type*
-schedule_lookup_task(schedule_type* schedule, task_type* task)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* lookup = NULL;
-
-    if (!schedule || !task) {
-        return NULL;
-    }
-    ods_log_assert(task);
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
-
-    node = ldns_rbtree_search(schedule->tasks, task);
-    if (node && node != LDNS_RBTREE_NULL) {
-        lookup = (task_type*) node->data;
-    }
-    return lookup;
-}
-
-
-/**
- * Schedule task.
- *
- */
-ods_status
-schedule_task(schedule_type* schedule, task_type* task, int log)
-{
-    ldns_rbnode_t* new_node = NULL;
-    ldns_rbnode_t* ins_node = NULL;
-
-    if (!task) {
-        ods_log_error("[%s] unable to schedule task: no task", schedule_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    task->flush = 0;
-    ods_log_assert(task);
-    if (!schedule) {
-        ods_log_error("[%s] unable to schedule task: no schedule",
-            schedule_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
-
-    ods_log_debug("[%s] schedule task [%s] for %s", schedule_str,
-        task_what2str(task->what), task_who2str(task->who));
-    if (schedule_lookup_task(schedule, task) != NULL) {
-        ods_log_error("[%s] unable to schedule task [%s] for %s: "
-            " already present", schedule_str, task_what2str(task->what),
-            task_who2str(task->who));
-        return ODS_STATUS_ERR;
-    }
-    new_node = task2node(task);
-    ins_node = ldns_rbtree_insert(schedule->tasks, new_node);
-    if (!ins_node) {
-        ods_log_error("[%s] unable to schedule task [%s] for %s: "
-            " insert failed", schedule_str, task_what2str(task->what),
-            task_who2str(task->who));
-        free((void*)new_node);
-        return ODS_STATUS_ERR;
-    }
-    if (log) {
-        task_log(task);
-    }
-    return ODS_STATUS_OK;
-}
-
-
-/**
- * Lock the schedule lock and then schedule a task.
- *
- */
-ods_status 
-lock_and_schedule_task(schedule_type* schedule, task_type* task,
-                                     int log)
-{
-    ods_status status;
-    lock_basic_lock(&schedule->schedule_lock);
-    /* [LOCK] schedule */
-    status = schedule_task(schedule, task, log);
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&schedule->schedule_lock);
-    return status;
-}
-
 /**
  * Get the first scheduled task.
  * \param[in] schedule schedule
@@ -324,6 +233,35 @@ schedule_flush(schedule_type* schedule)
 }
 
 void
+schedule_flush_type(schedule_type* schedule, task_id id)
+{
+    ldns_rbnode_t* node;
+    task_type* task;
+    
+    ods_log_debug("[%s] flush task", schedule_str);
+    if (!schedule || !schedule->tasks) return;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        node = ldns_rbtree_first(schedule->tasks);
+        while (node && node != LDNS_RBTREE_NULL) {
+            task = (task_type*) node->data;
+            if (task->what == id) {
+                /* we must get it to front */
+                node = ldns_rbtree_delete(schedule->tasks, node->data);
+                task = (task_type*) node->data;
+                free(node);
+                task->flush = 1;
+                task->when = 0;
+                node = ldns_rbtree_insert(schedule->tasks, task2node(task)); /*check for NULL*/
+            }
+            node = ldns_rbtree_next(node);
+        }
+        /* wakeup! work to do! */
+        pthread_cond_signal(&schedule->schedule_cond);
+    pthread_mutex_unlock(&schedule->schedule_lock);
+}
+
+void
 schedule_purge(schedule_type* schedule)
 {
     ldns_rbnode_t* node;
@@ -350,12 +288,12 @@ schedule_purge(schedule_type* schedule)
 task_type*
 schedule_pop_task(schedule_type* schedule)
 {
-    time_t when, now = time_now();
+    time_t now = time_now();
     task_type* task;
 
     pthread_mutex_lock(&schedule->schedule_lock);
-        when = schedule_time_first(schedule);
-        if (when == -1 || when > now) {
+        task = schedule_get_first_task(schedule);
+        if (!task || task->when == -1 || task->when > now) {
             /* nothing to do now, sleep and wait for signal */
             pthread_cond_wait(&schedule->schedule_cond,
                 &schedule->schedule_lock);
@@ -365,4 +303,39 @@ schedule_pop_task(schedule_type* schedule)
         }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
+}
+
+
+/**
+ * Schedule task.
+ *
+ */
+ods_status
+schedule_task(schedule_type* schedule, task_type* task)
+{
+    ods_status status = ODS_STATUS_OK;
+
+    if (!task) {
+        ods_log_error("[%s] unable to schedule task: no task", schedule_str);
+        return ODS_STATUS_ERR;
+    }
+    task->flush = 0;
+    if (!schedule || !schedule->tasks) {
+        ods_log_error("[%s] unable to schedule task: no schedule",
+            schedule_str);
+        return ODS_STATUS_ERR;
+    }
+
+    ods_log_debug("[%s] schedule task [%s] for %s", schedule_str,
+        task_what2str(task->what), task_who2str(task->who));
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        if (ldns_rbtree_insert(schedule->tasks, task2node(task)) == NULL) {
+            ods_log_error("[%s] unable to schedule task [%s] for %s: "
+                " already present", schedule_str, task_what2str(task->what),
+                task_who2str(task->who));
+            status = ODS_STATUS_ERR;
+        }
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return status;
 }

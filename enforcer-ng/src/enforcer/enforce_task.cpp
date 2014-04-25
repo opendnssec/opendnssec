@@ -50,6 +50,8 @@
 #include "shared/duration.h"
 #include "shared/file.h"
 #include "shared/allocator.h"
+#include "scheduler/schedule.h"
+#include "scheduler/task.h"
 
 #include "enforcer/enforcerzone.h"
 #include "enforcer/hsmkeyfactory.h"
@@ -73,7 +75,7 @@ schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what
         ods_log_crit("[%s] failed to create %s task", module_str, what);
     } else {
         char buf[ODS_SE_MAXLINE];
-        ods_status status = lock_and_schedule_task(engine->taskq, task, 0);
+        ods_status status = schedule_task(engine->taskq, task);
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] failed to create %s task", module_str, what);
             client_printf(sockfd, "Unable to schedule %s task.\n", what);
@@ -413,26 +415,20 @@ enforce_task(engine_type *engine, bool all)
 	const char *who = "next zone";
 	enforce_all = all;
 	task_id what_id = task_register(what, 
-		"enforce_task_perform", enforce_task_perform);
+		module_str, enforce_task_perform);
 	return task_create(what_id, time_now(), who, (void*)engine);
 }
-
 
 int
 flush_enforce_task(engine_type *engine, bool enforce_all)
 {
-    /* flush (force to run) the enforcer task when it is waiting in the 
-     task list. */
-    task_type *enf = enforce_task(engine, enforce_all);
-    lock_basic_lock(&engine->taskq->schedule_lock);
-    /* [LOCK] schedule */
-    task_type *running_enforcer = schedule_lookup_task(engine->taskq, enf);
-    task_cleanup(enf);
-    if (running_enforcer)
-        running_enforcer->flush = 1;
-    /* [UNLOCK] schedule */
-    lock_basic_unlock(&engine->taskq->schedule_lock);
-    if (running_enforcer)
-        engine_wakeup_workers(engine);
-    return running_enforcer ? 1 : 0;
+	task_id what_id;
+	/* flush (force to run) the enforcer task when it is waiting in the 
+	 task list. */
+	if (!task_id_from_long_name(module_str, &what_id)) {
+		/* no such task */
+		return 0;
+	}
+	schedule_flush_type(engine->taskq, what_id);
+	return 1;
 }

@@ -76,7 +76,7 @@ schedule_type* schedule_create();
  * \param[in] schedule schedule to be flushed
  */
 void schedule_flush(schedule_type* schedule);
-
+void schedule_flush_type(schedule_type* schedule, task_id id);
 /**
  * purge schedule.
  * \param[in] schedule schedule to be purged
@@ -84,36 +84,13 @@ void schedule_flush(schedule_type* schedule);
 void schedule_purge(schedule_type* schedule);
 
 /**
- * Look up task.
- * \param[in] schedule schedule
- * \param[in] task task
- * \return task_type* task, if found
- *
- */
-task_type* schedule_lookup_task(schedule_type* schedule, task_type* task);
-
-/**
  * Schedule task.
  * \param[in] schedule schedule
  * \param[in] task task
- * \param[in] log add entry in log for this
  * \return ods_status status
  *
  */
-ods_status schedule_task(schedule_type* schedule, task_type* task, int log);
-
-
-/**
- * Schedule task from thread uses the schedule_lock from schedule to lock the 
- * schedule first before adding the task.
- * \param[in] schedule schedule
- * \param[in] task task
- * \param[in] log add entry in log for this
- * \return ods_status status
- *
- */
-ods_status lock_and_schedule_task(schedule_type* schedule, task_type* task,
-                                  int log);
+ods_status schedule_task(schedule_type* schedule, task_type* task);
 
 /**
  * Pop the first scheduled task that is due.

@@ -32,6 +32,7 @@
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "policy/policy_resalt_task.h"
+#include "shared/status.h"
  
 #include "enforcer/autostart_cmd.h"
 
@@ -46,8 +47,7 @@ autostart(engine_type* engine)
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 
-	status = lock_and_schedule_task(engine->taskq,
-		policy_resalt_task(engine), 0);
+	status = schedule_task(engine->taskq, policy_resalt_task(engine));
 	if (status != ODS_STATUS_OK)
 		ods_log_crit("[%s] failed to create resalt task", module_str);
 	

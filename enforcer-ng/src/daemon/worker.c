@@ -121,8 +121,12 @@ worker_start(worker_type* worker)
             worker_perform_task(worker);
             ods_log_debug("[worker[%i]] finished working", worker->thread_num);
             if (worker->task) {
-                (void) lock_and_schedule_task(worker->engine->taskq,
-                     worker->task, 1);
+                if (schedule_task(worker->engine->taskq, worker->task) !=
+                    ODS_STATUS_OK)
+                {
+                    ods_log_error("[worker[%i]] unable to schedule task",
+                        worker->thread_num);
+                }
                 worker->task = NULL;
             }
         }
