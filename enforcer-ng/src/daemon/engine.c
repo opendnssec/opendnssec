@@ -40,7 +40,6 @@
 #include "daemon/orm.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/locks.h"
 #include "shared/log.h"
@@ -81,12 +80,6 @@ engine_alloc(void)
     engine = (engine_type*) malloc(sizeof(engine_type));
     if (!engine) return NULL;
 
-    engine->allocator = allocator_create(malloc, free);
-    if (!engine->allocator) {
-        free(engine);
-        return NULL;
-    }
-
     lock_basic_init(&engine->signal_lock);
     lock_basic_init(&engine->enforce_lock);
     lock_basic_set(&engine->signal_cond);
@@ -103,7 +96,6 @@ void
 engine_dealloc(engine_type* engine)
 {
     schedule_cleanup(engine->taskq);
-    allocator_cleanup(engine->allocator);
     lock_basic_destroy(&engine->enforce_lock);
     lock_basic_destroy(&engine->signal_lock);
     lock_basic_off(&engine->signal_cond);
@@ -181,9 +173,8 @@ engine_create_workers(engine_type* engine)
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_assert(engine->allocator);
-    engine->workers = (worker_type**) allocator_alloc(engine->allocator,
-        ((size_t)engine->config->num_worker_threads) * sizeof(worker_type*));
+    engine->workers = (worker_type**) malloc(
+        (size_t)engine->config->num_worker_threads * sizeof(worker_type*));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i] = worker_create(i);
     }
@@ -481,7 +472,7 @@ engine_teardown(engine_type* engine)
         for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
             worker_cleanup(engine->workers[i]);
         }
-        allocator_deallocate(engine->allocator, (void*) engine->workers);
+        free(engine->workers);
     }
     cmdhandler_cleanup(engine->cmdhandler);
     engine->cmdhandler = NULL;

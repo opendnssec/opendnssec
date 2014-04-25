@@ -209,8 +209,7 @@ main(int argc, char* argv[])
     returncode = 0;
     while (!engine->need_to_exit) {
         /* Parse config file */
-        cfg = engine_config(engine->allocator, cfgfile,
-            cmdline_verbosity, engine->config);
+        cfg = engine_config(cfgfile, cmdline_verbosity, engine->config);
         /* does it make sense? */
         if (engine_config_check(cfg) != ODS_STATUS_OK) {
             /* it does not, do we have a previous config loaded? */
