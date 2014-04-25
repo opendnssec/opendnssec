@@ -80,7 +80,6 @@ ods_enforcerd_SOURCES = \
 	shared/allocator.c shared/allocator.h \
 	shared/duration.c shared/duration.h \
 	shared/file.c shared/file.h \
-	shared/hsm.c shared/hsm.h \
 	shared/locks.c shared/locks.h \
 	shared/log.c shared/log.h \
 	shared/privdrop.c shared/privdrop.h \
@@ -88,7 +87,6 @@ ods_enforcerd_SOURCES = \
 	shared/util.c shared/util.h \
 	shared/str.c shared/str.h \
 	shared/backup.c shared/backup.h \
-	shared/keys.c shared/keys.h \
 	shared/protobuf.cpp shared/protobuf.h \
 	xmlext-pb/xmlext-rd.cpp xmlext-pb/xmlext-rd.h \
 	xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \

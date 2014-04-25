@@ -38,7 +38,6 @@
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
-#include "shared/hsm.h"
 #include "shared/duration.h"
 
 #include <time.h> /* time() */
