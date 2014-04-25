@@ -75,7 +75,6 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	int bShouldLeap = 0;
 	char* strtime = NULL;
 	char ctimebuf[32]; /* at least 26 according to docs */
 	char buf[ODS_SE_MAXLINE];
@@ -118,56 +117,34 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 1;
 	}
 
-	lock_basic_lock(&engine->taskq->schedule_lock);
-	/* [LOCK] schedule */
-
 	/* how many tasks */
 	now = time_now();
 	strtime = ctime_r(&now,ctimebuf);
-	client_printf(sockfd, 
-		"There are %i tasks scheduled.\nIt is now       %s",
-		(int) engine->taskq->tasks->count,
-		strtime?strtime:"(null)\n");
-
-	/* Get first task in schedule, this one also features the earliest wake-up
-	   time of all tasks in the schedule. */
-	task = schedule_get_first_task(engine->taskq);
-
-	if (task) {
-		if (!task->flush) {
-			/*Use the parameter vaule, or if not given use the time of the first task*/
-			if (!time_leap)
-				time_leap = task->when;
-
-			set_time_now(time_leap);
-			strtime = ctime_r(&time_leap,ctimebuf);
-			if (strtime)
-				strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
-
-			client_printf(sockfd,  "Leaping to time %s\n", 
-				strtime?strtime:"(null)");
-			ods_log_info("Time leap: Leaping to time %s\n",
-				 strtime?strtime:"(null)");
-
-			bShouldLeap = 1;
-		} else {
-			client_printf(sockfd, 
-				"Already flushing tasks, unable to time leap\n");
-		}
-	} else {
-		client_printf(sockfd, "Task queue is empty, unable to time leap\n");
-	}
-
-	/* [UNLOCK] schedule */
+	lock_basic_lock(&engine->taskq->schedule_lock);
+		client_printf(sockfd, 
+			"There are %i tasks scheduled.\nIt is now       %s",
+			(int) engine->taskq->tasks->count,
+			strtime?strtime:"(null)\n");
 	lock_basic_unlock(&engine->taskq->schedule_lock);
+	
+	time_leap = schedule_time_first(engine->taskq);
+	if (time_leap > 0) {
+		set_time_now(time_leap);
+		strtime = ctime_r(&time_leap,ctimebuf);
+		if (strtime)
+			strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
 
-	if (bShouldLeap) {
+		client_printf(sockfd,  "Leaping to time %s\n", 
+			strtime?strtime:"(null)");
+		ods_log_info("Time leap: Leaping to time %s\n",
+			 strtime?strtime:"(null)");
 		/* Wake up all workers and let them reevaluate wether their
 		 tasks need to be executed */
 		client_printf(sockfd, "Waking up workers\n");
 		engine_wakeup_workers(engine);
+		return 0;
 	}
-	return !bShouldLeap;
+	return 1;
 }
 
 

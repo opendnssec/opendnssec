@@ -203,26 +203,21 @@ reschedule_task(schedule_type* schedule, task_type* task, task_id what,
 
 /**
  * Get the first scheduled task.
- *
+ * \param[in] schedule schedule
+ * \return task_type* first scheduled task
  */
-task_type*
+static task_type*
 schedule_get_first_task(schedule_type* schedule)
 {
-    ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
-    task_type* pop = NULL;
+    ldns_rbnode_t* first_node;
 
-    if (!schedule) {
-        return NULL;
-    }
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
-
+    if (!schedule || !schedule->tasks) return NULL;
+    
     first_node = ldns_rbtree_first(schedule->tasks);
-    if (!first_node) {
-        pop = NULL;
-    }
-    pop = (task_type*) first_node->data;
-    return pop;
+    
+    if (first_node)
+        return (task_type*) first_node->data;
+    return NULL;
 }
 
 
@@ -350,6 +345,26 @@ schedule_cleanup(schedule_type* schedule)
 /**
  * exported convinience functions should all be thread safe
  */
+
+time_t
+schedule_time_first(schedule_type* schedule)
+{
+    task_type* task;
+    time_t when;
+    
+    if (!schedule || !schedule->tasks) return -1;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        task = schedule_get_first_task(schedule);
+        if (!task)
+            when = -1;
+        else if (task->flush)
+            when = 0;
+        else 
+            when = task->when;
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return when;
+}
 
 /**
  * Flush all tasks in schedule. thread safe.

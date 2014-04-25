@@ -142,12 +142,12 @@ ods_status reschedule_task(schedule_type* schedule, task_type* task,
 task_type* schedule_pop_task(schedule_type* schedule);
 
 /**
- * Get the first scheduled task.
+ * Time of first task in schedule.
  * \param[in] schedule schedule
- * \return task_type* first scheduled task
- *
+ * \return Time of first task, 0 if task->flush is set,
+ * 		-1 if no task available
  */
-task_type* schedule_get_first_task(schedule_type* schedule);
+time_t schedule_time_first(schedule_type* schedule);
 
 /**
  * Print schedule.

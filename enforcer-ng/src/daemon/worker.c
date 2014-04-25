@@ -118,7 +118,6 @@ worker_perform_task(worker_type* worker)
 void
 worker_start(worker_type* worker)
 {
-    time_t now, timeout = 1;
     task_type *task_that_was_worked_on;
 
     ods_log_assert(worker);
@@ -148,27 +147,12 @@ worker_start(worker_type* worker)
             if (task_that_was_worked_on)
                 (void) lock_and_schedule_task(worker->engine->taskq,
                                                  task_that_was_worked_on, 1);
-            
-            timeout = 1;
         } else {
-            ods_log_debug("[worker[%i]] nothing to do", worker->thread_num);
-
-            worker->task = schedule_get_first_task(worker->engine->taskq);
-
-            /* [UNLOCK] schedule */
             lock_basic_unlock(&worker->engine->taskq->schedule_lock);
 
-            now = time_now();
-            if (worker->task && !worker->engine->taskq->loading) {
-                timeout = (worker->task->when - now);
-            } else {
-                timeout *= 2;
-                if (timeout > ODS_SE_MAX_BACKOFF) {
-                    timeout = ODS_SE_MAX_BACKOFF;
-                }
-            }
-            worker->task = NULL;
-            worker_sleep(worker, timeout);
+            ods_log_debug("[worker[%i]] nothing to do", worker->thread_num);
+            /* sleep indefinitely for now */
+            worker_sleep(worker, 0);
         }
     }
     return;
