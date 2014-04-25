@@ -75,9 +75,14 @@ schedule_type* schedule_create();
 /**
  * Flush schedule.
  * \param[in] schedule schedule to be flushed
- *
  */
 void schedule_flush(schedule_type* schedule);
+
+/**
+ * purge schedule.
+ * \param[in] schedule schedule to be purged
+ */
+void schedule_purge(schedule_type* schedule);
 
 /**
  * Look up task.
@@ -110,17 +115,6 @@ ods_status schedule_task(schedule_type* schedule, task_type* task, int log);
  */
 ods_status lock_and_schedule_task(schedule_type* schedule, task_type* task,
                                   int log);
-
-
-/**
- * Unschedule task.
- * \param[in] schedule schedule
- * \param[in] task task to delete
- * \return task_type* task, if it was scheduled
- *
- */
-task_type* unschedule_task(schedule_type* schedule, task_type* task);
-
 /**
  * Reschedule task.
  * \param[in] schedule schedule

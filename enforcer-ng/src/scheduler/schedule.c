@@ -143,12 +143,14 @@ lock_and_schedule_task(schedule_type* schedule, task_type* task,
     return status;
 }
 
-
 /**
  * Unschedule task.
+ * \param[in] schedule schedule
+ * \param[in] task task to delete
+ * \return task_type* task, if it was scheduled
  *
  */
-task_type*
+static task_type*
 unschedule_task(schedule_type* schedule, task_type* task)
 {
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
@@ -180,7 +182,6 @@ unschedule_task(schedule_type* schedule, task_type* task)
     }
     return del_task;
 }
-
 
 /**
  * Reschedule task.
@@ -373,9 +374,6 @@ schedule_taskcount(schedule_type* schedule)
     return schedule->tasks->count;
 }
 
-/**
- * Flush all tasks in schedule. thread safe.
- */
 void
 schedule_flush(schedule_type* schedule)
 {
@@ -391,6 +389,28 @@ schedule_flush(schedule_type* schedule)
             task = (task_type*) node->data;
             task->flush = 1;
             node = ldns_rbtree_next(node);
+        }
+        /* wakeup! work to do! */
+        pthread_cond_signal(&schedule->schedule_cond);
+    pthread_mutex_unlock(&schedule->schedule_lock);
+}
+
+void
+schedule_purge(schedule_type* schedule)
+{
+    ldns_rbnode_t* node;
+    task_type* task;
+    
+    if (!schedule || !schedule->tasks) return;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        while ((node = ldns_rbtree_first(schedule->tasks)) !=
+            LDNS_RBTREE_NULL)
+        {
+            node = ldns_rbtree_delete(schedule->tasks, node->data);
+            task = (task_type*) node->data;
+            task_cleanup(task);
+            free(node);
         }
         /* wakeup! work to do! */
         pthread_cond_signal(&schedule->schedule_cond);

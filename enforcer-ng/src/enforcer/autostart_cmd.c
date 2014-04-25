@@ -64,13 +64,9 @@ schedule_task_l(engine_type* engine, task_type *task, const char * what)
 void
 autostart(engine_type* engine)
 {
-	task_type *task;
 	ods_log_debug("[%s] autostart", module_str);
 
-	/* Remove old tasks in queue */
-	while ((task = schedule_pop_task(engine->taskq))) {
-		ods_log_verbose("popping task \"%s\" from queue", task->who);
-	}
+	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 	schedule_task_l(engine, policy_resalt_task(engine), "resalt");
 	/* disable enforce task for now
 	 * schedule_task_l(engine, enforce_task(engine, 1), "enforce"); */
