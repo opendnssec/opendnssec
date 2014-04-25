@@ -81,6 +81,12 @@ engine_alloc(void)
     engine = (engine_type*) malloc(sizeof(engine_type));
     if (!engine) return NULL;
 
+    engine->allocator = allocator_create(malloc, free);
+    if (engine->allocator) {
+        free(engine);
+        return NULL;
+    }
+
     lock_basic_init(&engine->signal_lock);
     lock_basic_init(&engine->enforce_lock);
     lock_basic_set(&engine->signal_cond);
@@ -97,6 +103,7 @@ void
 engine_dealloc(engine_type* engine)
 {
     schedule_cleanup(engine->taskq);
+    allocator_cleanup(engine->allocator);
     lock_basic_destroy(&engine->enforce_lock);
     lock_basic_destroy(&engine->signal_lock);
     lock_basic_off(&engine->signal_cond);
@@ -516,7 +523,6 @@ int
 engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
     int error;
-    task_type *task;
     ods_log_assert(engine);
     ods_log_info("[%s] enforcer started", engine_str);
     
