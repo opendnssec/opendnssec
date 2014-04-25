@@ -39,6 +39,13 @@
 
 static const char* schedule_str = "scheduler";
 
+static void
+set_alarm(schedule_type* schedule) {
+    /* TODO SET ALARM! */
+    pthread_cond_signal(&schedule->schedule_cond);
+}
+
+
 /**
  * Convert task to a tree node.
  * NULL on malloc failure
@@ -91,7 +98,7 @@ schedule_pop_first_task(schedule_type* schedule)
     if (!node) return NULL;
     task = (task_type*) node->data;
     free(node);
-    /* TODO SET ALARM! */
+    set_alarm(schedule);
     return task;
 }
 
@@ -340,7 +347,7 @@ schedule_task(schedule_type* schedule, task_type* task)
                 task_who2str(task->who));
             status = ODS_STATUS_ERR;
         } else {
-            pthread_cond_signal(&schedule->schedule_cond);
+            set_alarm(schedule);
         }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return status;
