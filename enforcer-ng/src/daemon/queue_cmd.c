@@ -153,9 +153,7 @@ run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	ods_log_assert(engine);
 	ods_log_assert(engine->taskq);
 
-	lock_basic_lock(&engine->taskq->schedule_lock);
-		schedule_flush(engine->taskq, TASK_NONE);
-	lock_basic_unlock(&engine->taskq->schedule_lock);
+	schedule_flush(engine->taskq);
 
 	client_printf(sockfd, "All tasks scheduled immediately.\n");
 	ods_log_verbose("[cmdhandler] all tasks scheduled immediately");

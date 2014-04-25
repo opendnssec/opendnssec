@@ -40,36 +40,6 @@
 static const char* schedule_str = "scheduler";
 
 /**
- * Flush schedule.
- *
- */
-void
-schedule_flush(schedule_type* schedule, task_id override)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* task = NULL;
-
-    ods_log_debug("[%s] flush all tasks", schedule_str);
-    if (!schedule || !schedule->tasks) {
-        return;
-    }
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
-
-    node = ldns_rbtree_first(schedule->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->data;
-        task->flush = 1;
-        if (override != TASK_NONE) {
-            task->what = override;
-        }
-        node = ldns_rbtree_next(node);
-    }
-    return;
-}
-
-
-/**
  * Convert task to a tree node.
  *
  */
@@ -373,7 +343,34 @@ schedule_cleanup(schedule_type* schedule)
         ldns_rbtree_free(schedule->tasks);
         schedule->tasks = NULL;
     }
-    lock_basic_destroy(&schedule->schedule_lock);
+    pthread_mutex_destroy(&schedule->schedule_lock);
     free(schedule);
 }
 
+/**
+ * exported convinience functions should all be thread safe
+ */
+
+/**
+ * Flush all tasks in schedule. thread safe.
+ */
+void
+schedule_flush(schedule_type* schedule)
+{
+    ldns_rbnode_t* node;
+    task_type* task;
+    
+    ods_log_debug("[%s] flush all tasks", schedule_str);
+    if (!schedule || !schedule->tasks) return;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        node = ldns_rbtree_first(schedule->tasks);
+        while (node && node != LDNS_RBTREE_NULL) {
+            task = (task_type*) node->data;
+            task->flush = 1;
+            node = ldns_rbtree_next(node);
+        }
+        /* wakeup! work to do! */
+        pthread_cond_signal(&schedule->schedule_cond);
+    pthread_mutex_unlock(&schedule->schedule_lock);
+}

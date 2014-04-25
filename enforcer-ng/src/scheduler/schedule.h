@@ -75,10 +75,9 @@ schedule_type* schedule_create();
 /**
  * Flush schedule.
  * \param[in] schedule schedule to be flushed
- * \param[in] override override task
  *
  */
-void schedule_flush(schedule_type* schedule, task_id override);
+void schedule_flush(schedule_type* schedule);
 
 /**
  * Look up task.
