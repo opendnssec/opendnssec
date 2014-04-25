@@ -30,44 +30,26 @@
 #include "config.h"
 
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
 #include "enforcer/enforce_task.h"
 #include "policy/policy_resalt_task.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/str.h"
  
 #include "enforcer/autostart_cmd.h"
 
-
 static const char *module_str = "autostart_cmd";
-
-static void 
-schedule_task_l(engine_type* engine, task_type *task, const char * what)
-{
-    ods_status status;
-
-    /* schedule task */
-    if (!task) {
-        ods_log_crit("[%s] failed to create %s task", module_str, what);
-    } else {
-        status = lock_and_schedule_task(engine->taskq, task, 0);
-        if (status != ODS_STATUS_OK) {
-            ods_log_crit("[%s] failed to create %s task", module_str, what);
-        } else {
-            ods_log_debug("[%s] scheduled %s task", module_str, what);
-            engine_wakeup_workers(engine);
-        }
-    }
-}
 
 void
 autostart(engine_type* engine)
 {
+	ods_status status;
+
 	ods_log_debug("[%s] autostart", module_str);
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
-	schedule_task_l(engine, policy_resalt_task(engine), "resalt");
+
+	status = lock_and_schedule_task(engine->taskq, policy_resalt_task(engine), 0);
+	if (status != ODS_STATUS_OK)
+		ods_log_crit("[%s] failed to create resalt task", module_str);
+	
 	/* disable enforce task for now
 	 * schedule_task_l(engine, enforce_task(engine, 1), "enforce"); */
 }

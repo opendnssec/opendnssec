@@ -123,8 +123,8 @@ ods_status lock_and_schedule_task(schedule_type* schedule, task_type* task,
  * \return ods_status status
  *
  */
-ods_status reschedule_task(schedule_type* schedule, task_type* task,
-    task_id what, time_t when);
+/*ods_status reschedule_task(schedule_type* schedule, task_type* task,
+    task_id what, time_t when);*/
 
 /**
  * Pop the first scheduled task that is due.

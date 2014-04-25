@@ -74,17 +74,6 @@ worker_create(int num)
 }
 
 /**
- * Has this worker measured up to all appointed jobs?
- *
- */
-static int
-worker_fulfilled(worker_type* worker)
-{
-    return (worker->jobs_completed + worker->jobs_failed) ==
-        worker->jobs_appointed;
-}
-
-/**
  * Perform task.
  *
  */
@@ -118,44 +107,26 @@ worker_perform_task(worker_type* worker)
 void
 worker_start(worker_type* worker)
 {
-    task_type *task_that_was_worked_on;
-
     ods_log_assert(worker);
 
     while (worker->need_to_exit == 0) {
         ods_log_debug("[worker[%i]]: report for duty", worker->thread_num);
 
-        lock_basic_lock(&worker->engine->taskq->schedule_lock);
-        /* [LOCK] schedule */
-
+        /* When no task available this call blocks and waits for event.
+         * Then it will return NULL; */
         worker->task = schedule_pop_task(worker->engine->taskq);
         if (worker->task) {
-
-            /* [UNLOCK] schedule */
-            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
-
             ods_log_debug("[worker[%i]] start working", worker->thread_num);
-
             worker->clock_in = time(NULL);
             worker_perform_task(worker);
-
-            task_that_was_worked_on = worker->task;
-            worker->task = NULL;
-            
             ods_log_debug("[worker[%i]] finished working", worker->thread_num);
-            
-            if (task_that_was_worked_on)
+            if (worker->task) {
                 (void) lock_and_schedule_task(worker->engine->taskq,
-                                                 task_that_was_worked_on, 1);
-        } else {
-            lock_basic_unlock(&worker->engine->taskq->schedule_lock);
-
-            ods_log_debug("[worker[%i]] nothing to do", worker->thread_num);
-            /* sleep indefinitely for now */
-            worker_sleep(worker, 0);
+                     worker->task, 1);
+                worker->task = NULL;
+            }
         }
     }
-    return;
 }
 
 /**

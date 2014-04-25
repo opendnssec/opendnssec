@@ -150,14 +150,14 @@ lock_and_schedule_task(schedule_type* schedule, task_type* task,
  * \return task_type* task, if it was scheduled
  *
  */
-static task_type*
+/*static task_type*
 unschedule_task(schedule_type* schedule, task_type* task)
 {
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
     task_type* del_task = NULL;
 
     if (!task) {
-        /* we are done */
+        *//* we are done *//*
         return NULL;
     }
     ods_log_assert(task);
@@ -181,13 +181,13 @@ unschedule_task(schedule_type* schedule, task_type* task)
             task_who2str(task->who));
     }
     return del_task;
-}
+}*/
 
 /**
  * Reschedule task.
  *
  */
-ods_status
+/*ods_status
 reschedule_task(schedule_type* schedule, task_type* task, task_id what,
     time_t when)
 {
@@ -199,7 +199,7 @@ reschedule_task(schedule_type* schedule, task_type* task, task_id what,
         del_task->when = when;
     }
     return schedule_task(schedule, del_task, 1);
-}
+}*/
 
 
 /**
@@ -221,39 +221,27 @@ schedule_get_first_task(schedule_type* schedule)
     return NULL;
 }
 
-
 /**
- * Pop the first scheduled task.
- *
+ * pop the first scheduled task.
+ * \param[in] schedule schedule
+ * \return task_type* first scheduled task
  */
-task_type*
-schedule_pop_task(schedule_type* schedule)
+static task_type*
+schedule_pop_first_task(schedule_type* schedule)
 {
-    task_type* pop = NULL;
-    time_t now = 0;
+    ldns_rbnode_t *node;
+    task_type *task;
 
-    if (!schedule) {
-        ods_log_error("[%s] unable to pop task: no schedule", schedule_str);
-        return NULL;
-    }
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
-
-    now = time_now();
-    pop = schedule_get_first_task(schedule);
-    if (pop && (pop->flush || pop->when <= now)) {
-        if (pop->flush) {
-            ods_log_debug("[%s] flush task for %s", schedule_str,
-                pop->who?pop->who:"(null)");
-        } else {
-            ods_log_debug("[%s] pop task for %s", schedule_str,
-                pop->who?pop->who:"(null)");
-        }
-        return unschedule_task(schedule, pop);
-    }
-    return NULL;
+    if (!schedule || !schedule->tasks) return NULL;
+    node = ldns_rbtree_first(schedule->tasks);
+    if (!node) return NULL;
+    node = ldns_rbtree_delete(schedule->tasks, node->data);
+    if (!node) return NULL;
+    task = (task_type*) node->data;
+    free(node);
+    /* TODO SET ALARM! */
+    return task;
 }
-
 
 /**
  * Print schedule.
@@ -411,8 +399,29 @@ schedule_purge(schedule_type* schedule)
             task_cleanup(task);
             free(node);
         }
-        /* wakeup! work to do! */
-        pthread_cond_signal(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
+/**
+ * Pop the first scheduled task.
+ *
+ */
+task_type*
+schedule_pop_task(schedule_type* schedule)
+{
+    time_t when, now = time_now();
+    task_type* task;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        when = schedule_time_first(schedule);
+        if (when == -1 || when > now) {
+            /* nothing to do now, sleep and wait for signal */
+            pthread_cond_wait(&schedule->schedule_cond,
+                &schedule->schedule_lock);
+            task = NULL;
+        } else {
+            task = schedule_pop_first_task(schedule);
+        }
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return task;
+}
