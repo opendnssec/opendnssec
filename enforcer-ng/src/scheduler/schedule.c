@@ -41,14 +41,16 @@ static const char* schedule_str = "scheduler";
 
 /**
  * Convert task to a tree node.
- *
+ * NULL on malloc failure
  */
 static ldns_rbnode_t*
 task2node(task_type* task)
 {
     ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
-    node->key = task;
-    node->data = task;
+    if (node) {
+        node->key = task;
+        node->data = task;
+    }
     return node;
 }
 
@@ -252,7 +254,8 @@ schedule_flush_type(schedule_type* schedule, task_id id)
                 free(node);
                 task->flush = 1;
                 task->when = 0;
-                node = ldns_rbtree_insert(schedule->tasks, task2node(task)); /*check for NULL*/
+                if ((node = task2node(task)))
+                    node = ldns_rbtree_insert(schedule->tasks, node); /*check for NULL*/
             }
             node = ldns_rbtree_next(node);
         }
@@ -312,6 +315,7 @@ schedule_pop_task(schedule_type* schedule)
 ods_status
 schedule_task(schedule_type* schedule, task_type* task)
 {
+    ldns_rbnode_t* node;
     ods_status status = ODS_STATUS_OK;
 
     if (!task) {
@@ -329,7 +333,8 @@ schedule_task(schedule_type* schedule, task_type* task)
         task_what2str(task->what), task_who2str(task->who));
 
     pthread_mutex_lock(&schedule->schedule_lock);
-        if (ldns_rbtree_insert(schedule->tasks, task2node(task)) == NULL) {
+        node = task2node(task);
+        if (!node || ldns_rbtree_insert(schedule->tasks, node) == NULL) {
             ods_log_error("[%s] unable to schedule task [%s] for %s: "
                 " already present", schedule_str, task_what2str(task->what),
                 task_who2str(task->who));
