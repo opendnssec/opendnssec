@@ -225,9 +225,8 @@ engine_stop_workers(engine_type* engine)
     /* tell them to exit and wake up sleepyheads */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 1;
-        worker_wakeup(engine->workers[i]);
     }
-    pthread_cond_broadcast(&engine->taskq->schedule_cond);
+    engine_wakeup_workers(engine);
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
@@ -244,16 +243,10 @@ engine_stop_workers(engine_type* engine)
 void
 engine_wakeup_workers(engine_type* engine)
 {
-    size_t i = 0;
-
     ods_log_assert(engine);
-    ods_log_assert(engine->config);
     ods_log_debug("[%s] wake up workers", engine_str);
     /* wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        worker_wakeup(engine->workers[i]);
-    }
-    return;
+    pthread_cond_broadcast(&engine->taskq->schedule_cond);
 }
 
 db_connection_t*
@@ -560,16 +553,4 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     schedule_purge(engine->taskq); /* Remove old tasks in queue */
     (void) hsm_close();
     return 0;
-}
-
-void
-flush_all_tasks(int sockfd, engine_type* engine)
-{
-    ods_log_debug("[%s] flushing all tasks...", engine_str);
-    client_printf(sockfd,"flushing all tasks...\n");
-
-    ods_log_assert(engine);
-    ods_log_assert(engine->taskq);
-    schedule_flush(engine->taskq);
-    engine_wakeup_workers(engine);
 }

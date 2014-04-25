@@ -67,7 +67,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	error = perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 		engine->config->automatic_keygen_duration);
 
-	flush_all_tasks(sockfd, engine);
+	schedule_flush(engine->taskq);
 	return error;
 }
 

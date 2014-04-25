@@ -142,14 +142,6 @@ void engine_start_workers(engine_type* engine);
 engine_type* engine_alloc(void);
 void engine_dealloc(engine_type* engine);
 
-/**
- * Set all task to immediate execution and wake up all workers.
- * \param[in] sockfd fd to print to user
- * \param[in] engine engine
- *
- */
-void flush_all_tasks(int sockfd, engine_type* engine);
-
 #ifdef __cplusplus
 }
 #endif

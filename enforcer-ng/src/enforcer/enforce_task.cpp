@@ -81,7 +81,6 @@ schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what
             client_printf(sockfd, "Unable to schedule %s task.\n", what);
         } else {
             client_printf(sockfd, "Scheduled %s task.\n", what);
-            engine_wakeup_workers(engine);
         }
     }
 }

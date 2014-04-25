@@ -305,7 +305,6 @@ schedule_pop_task(schedule_type* schedule)
     return task;
 }
 
-
 /**
  * Schedule task.
  *
@@ -335,6 +334,8 @@ schedule_task(schedule_type* schedule, task_type* task)
                 " already present", schedule_str, task_what2str(task->what),
                 task_who2str(task->who));
             status = ODS_STATUS_ERR;
+        } else {
+            pthread_cond_signal(&schedule->schedule_cond);
         }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return status;

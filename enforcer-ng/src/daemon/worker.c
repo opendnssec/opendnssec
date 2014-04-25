@@ -134,29 +134,6 @@ worker_start(worker_type* worker)
 }
 
 /**
- * Put worker to sleep.
- *
- */
-void
-worker_sleep(worker_type* worker, time_t timeout)
-{
-    ods_log_assert(worker);
-    lock_basic_lock(&worker->worker_lock);
-    /* [LOCK] worker */
-    /** need_to_exit may be set after check in worker start
-     * and alarm might be fired before worker_lock. This check
-     * prevents possible deadlock */
-    if (!worker->need_to_exit) {
-        worker->sleeping = 1;
-        lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
-            timeout);
-    }
-    /* [UNLOCK] worker */
-    lock_basic_unlock(&worker->worker_lock);
-    return;
-}
-
-/**
  * Wake up worker.
  *
  */
@@ -175,23 +152,6 @@ worker_wakeup(worker_type* worker)
     }
     return;
 }
-
-
-/**
- * Worker waiting.
- *
- */
-void
-worker_wait(lock_basic_type* lock, cond_basic_type* condition)
-{
-    lock_basic_lock(lock);
-    /* [LOCK] worker */
-    lock_basic_sleep(condition, lock, 0);
-    /* [UNLOCK] worker */
-    lock_basic_unlock(lock);
-    return;
-}
-
 
 /**
  * Notify a worker.

@@ -157,7 +157,6 @@ run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 
 	client_printf(sockfd, "All tasks scheduled immediately.\n");
 	ods_log_verbose("[cmdhandler] all tasks scheduled immediately");
-	engine_wakeup_workers(engine);
 	return 0;
 }
 

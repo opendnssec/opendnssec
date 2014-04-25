@@ -80,15 +80,6 @@ worker_type* worker_create(int num);
 void worker_start(worker_type* worker);
 
 /**
- * Put worker to sleep.
- * \param[in] worker put this worker to sleep
- * \param[in] timeout time before alarm clock is going off,
- *            0 means no alarm clock is set.
- *
- */
-void worker_sleep(worker_type* worker, time_t timeout);
-
-/**
  * Wake up worker.
  * \param[in] worker wake up this worker
  *
