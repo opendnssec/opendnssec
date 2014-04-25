@@ -36,7 +36,6 @@
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/worker.h"
-#include "scheduler/fifoq.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/allocator.h"
