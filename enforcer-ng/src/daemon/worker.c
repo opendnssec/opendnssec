@@ -31,10 +31,8 @@
 
 #include "daemon/engine.h"
 #include "daemon/worker.h"
-#include "shared/allocator.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/util.h"
@@ -78,25 +76,23 @@ worker_create(int num)
 static void
 worker_perform_task(worker_type* worker)
 {
-    task_type* task = NULL;
+    task_type* task;
 
     if (!worker || !worker->task || !worker->task->context || !worker->engine) {
         return;
     }
-    ods_log_assert(worker);
-    ods_log_assert(worker->task);
-    ods_log_assert(worker->task->context);
 
     task = (task_type*) worker->task;
     ods_log_debug("[worker[%i]]: perform task [%s] for %s at %u",
        worker->thread_num, task_what2str(task->what),
        task_who2str(task->who), (uint32_t) worker->clock_in);
 
-	task->dbconn = worker->dbconn;
-	worker->task = task_perform(task);
-	task->dbconn = NULL;
+    /* We temporarily assign the database connection to the task so
+     * it is accessable from the task function */
+    task->dbconn = worker->dbconn;
+    worker->task = task_perform(task);
+    task->dbconn = NULL;
 }
-
 
 /**
  * Work.

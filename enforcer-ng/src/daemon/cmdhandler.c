@@ -41,6 +41,7 @@
 #include <strings.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <pthread.h>
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
@@ -53,9 +54,7 @@
 #include "daemon/clientpipe.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
 #include "shared/file.h"
-#include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/duration.h"
@@ -70,7 +69,6 @@
 #include "daemon/queue_cmd.h"
 #include "daemon/verbosity_cmd.h"
 #include "daemon/ctrl_cmd.h"
-#include "enforcer/setup_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
 #include "enforcer/enforce_cmd.h"
@@ -339,10 +337,15 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
 static void*
 cmdhandler_accept_client(void* arg)
 {
+    int err;
+    sigset_t sigset;
     cmdhandler_type* cmdc = (cmdhandler_type*) arg;
 
-    ods_thread_blocksigs();
-    ods_thread_detach(cmdc->thread_id);
+    sigfillset(&sigset);
+    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
+        ods_fatal_exit("[%s] pthread_sigmask: %s", module_str, strerror(err));
+
+    pthread_detach(cmdc->thread_id);
 
     ods_log_debug("[%s] accept client %i", module_str, cmdc->client_fd);
 
@@ -470,7 +473,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     ods_log_assert(cmdhandler->engine);
     ods_log_debug("[%s] start", module_str);
 
-    ods_thread_detach(cmdhandler->thread_id);
+    pthread_detach(cmdhandler->thread_id);
     FD_ZERO(&rset);
     while (cmdhandler->need_to_exit == 0) {
         clilen = sizeof(cliaddr);
@@ -520,7 +523,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdc->listen_addr = cmdhandler->listen_addr;
             cmdc->engine = cmdhandler->engine;
             cmdc->need_to_exit = cmdhandler->need_to_exit;
-            ods_thread_create(&cmdc->thread_id, &cmdhandler_accept_client,
+            pthread_create(&cmdc->thread_id, NULL, &cmdhandler_accept_client,
                 (void*) cmdc);
             count++;
             ods_log_debug("[%s] %i clients in progress...", module_str, count);

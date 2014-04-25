@@ -27,7 +27,10 @@
   *
   */
 
+#include "config.h"
+
 #include <memory>
+#include <errno.h>
 #include <string>
 #include <sys/stat.h>
 
@@ -35,6 +38,7 @@
 #include "xmlext-pb/xmlext-wr.h"
 #include "xmlext-pb/xmlext-rd.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/orm.h"
 #include "keystate/keystate.pb.h"

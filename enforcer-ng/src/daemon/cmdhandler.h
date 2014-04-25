@@ -33,7 +33,7 @@
 #define DAEMON_CMDHANDLER_H
 
 #include <sys/un.h>
-#include "shared/locks.h"
+#include "scheduler/schedule.h"
 #include "db/db_connection.h"
 
 #ifdef __cplusplus
@@ -50,7 +50,7 @@ typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
     struct engine_struct* engine;
     struct sockaddr_un listen_addr;
-    ods_thread_type thread_id;
+    pthread_t thread_id;
     int listen_fd;
     int client_fd;
     int need_to_exit;

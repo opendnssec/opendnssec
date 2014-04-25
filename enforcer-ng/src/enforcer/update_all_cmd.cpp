@@ -29,9 +29,12 @@
 
 #include "config.h"
 
+#include <pthread.h>
+
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "utils/kc_helper.h"
 #include "enforcer/update_repositorylist_task.h"
@@ -97,7 +100,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	int error = check_all_task(sockfd, engine);
 	if (!error) {
 		engine->need_to_reload = 1;
-		lock_basic_alarm(&engine->signal_cond);
+		pthread_cond_signal(&engine->signal_cond);
 	}
 	return error;
 }

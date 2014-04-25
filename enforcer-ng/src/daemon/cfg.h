@@ -34,7 +34,6 @@
 
 #include "config.h"
 #include "shared/allocator.h"
-#include "shared/locks.h"
 #include "shared/status.h"
 
 #include <stdio.h>

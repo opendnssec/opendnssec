@@ -33,6 +33,7 @@
 #include "policy/policy_resalt_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
 #include "daemon/clientpipe.h"

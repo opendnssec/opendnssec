@@ -43,6 +43,7 @@
 
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "scheduler/task.h"
 #include "daemon/engine.h"

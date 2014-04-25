@@ -386,13 +386,13 @@ time_t perform_enforce_lock(int sockfd, engine_type *engine,
 {
 	time_t returntime;
 	int locked;
-	if (lock_basic_trylock(&engine->enforce_lock)) {
+	if (pthread_mutex_trylock(&engine->enforce_lock)) {
 		client_printf(sockfd, "An other enforce task is already running."
 			" No action taken.\n");
 		return 0;
 	}
 	returntime = perform_enforce(sockfd, engine, bForceUpdate, task);
-	lock_basic_unlock(&engine->enforce_lock);
+	pthread_mutex_unlock(&engine->enforce_lock);
 	return returntime;
 }
 

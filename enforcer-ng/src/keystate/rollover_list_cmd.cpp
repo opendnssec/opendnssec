@@ -33,6 +33,7 @@
 #include "daemon/cmdhandler.h"
 #include "keystate/rollover_list_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
 

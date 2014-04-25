@@ -35,6 +35,7 @@
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/file.h"
 #include "shared/str.h"
+#include "shared/log.h"
 #include "daemon/clientpipe.h"
 
 #include "policy/policy_import_cmd.h"

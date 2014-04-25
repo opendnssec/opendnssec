@@ -35,6 +35,7 @@
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/str.h"
+#include "shared/log.h"
 #include "shared/file.h"
 #include "keystate/update_keyzones_task.h"
 #include "daemon/clientpipe.h"

@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
@@ -78,22 +79,18 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		ods_log_debug("[cmdhandler] reload command");
 		ods_log_assert(engine);
 		engine->need_to_reload = 1;
-		lock_basic_lock(&engine->signal_lock);
-		/* [LOCK] signal */
-			lock_basic_alarm(&engine->signal_cond);
-		/* [UNLOCK] signal */
-		lock_basic_unlock(&engine->signal_lock);
+		pthread_mutex_lock(&engine->signal_lock);
+			pthread_cond_signal(&engine->signal_cond);
+		pthread_mutex_unlock(&engine->signal_lock);
 		client_printf(sockfd, "Reloading engine.\n");
 		return 0;
 	} else if (ods_check_command(cmd, n, "stop")) {
 		ods_log_debug("[cmdhandler] stop command");
 		ods_log_assert(engine);
 		engine->need_to_exit = 1;
-		lock_basic_lock(&engine->signal_lock);
-		/* [LOCK] signal */
-			lock_basic_alarm(&engine->signal_cond);
-		/* [UNLOCK] signal */
-		lock_basic_unlock(&engine->signal_lock);
+		pthread_mutex_lock(&engine->signal_lock);
+			pthread_cond_signal(&engine->signal_cond);
+		pthread_mutex_unlock(&engine->signal_lock);
 		client_printf(sockfd, "%s\n", ODS_SE_STOP_RESPONSE);
 		return 0;
 	} else {

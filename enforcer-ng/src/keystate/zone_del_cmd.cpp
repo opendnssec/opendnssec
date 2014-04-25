@@ -33,6 +33,7 @@
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "keystate/zone_del_task.h"
 #include "daemon/clientpipe.h"

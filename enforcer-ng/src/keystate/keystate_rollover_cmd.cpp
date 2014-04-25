@@ -36,6 +36,7 @@
 #include "daemon/engine.h"
 #include "keystate/keystate_rollover_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "enforcer/enforce_task.h"
 #include "keystate/keystate.pb.h"

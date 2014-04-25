@@ -30,6 +30,7 @@
 #include "keystate/update_keyzones_task.h"
 #include "keystate/zone_del_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/duration.h"
 
 #include <google/protobuf/descriptor.h>

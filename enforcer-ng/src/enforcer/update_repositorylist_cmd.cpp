@@ -31,6 +31,7 @@
 
 #include "daemon/cmdhandler.h"
 #include "shared/str.h"
+#include "shared/log.h"
 #include "shared/file.h"
 #include "daemon/engine.h"
 #include "enforcer/update_repositorylist_task.h"

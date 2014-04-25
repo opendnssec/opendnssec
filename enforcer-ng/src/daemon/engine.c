@@ -31,6 +31,8 @@
 
 #include "config.h"
 
+#include <pthread.h>
+
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/clientpipe.h"
@@ -41,7 +43,6 @@
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "shared/file.h"
-#include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/privdrop.h"
 #include "shared/status.h"
@@ -68,7 +69,6 @@
 
 static const char* engine_str = "engine";
 
-
 /**
  * Create engine.
  *
@@ -80,9 +80,9 @@ engine_alloc(void)
     engine = (engine_type*) malloc(sizeof(engine_type));
     if (!engine) return NULL;
 
-    lock_basic_init(&engine->signal_lock);
-    lock_basic_init(&engine->enforce_lock);
-    lock_basic_set(&engine->signal_cond);
+    pthread_mutex_init(&engine->signal_lock, NULL);
+    pthread_mutex_init(&engine->enforce_lock, NULL);
+    pthread_cond_init(&engine->signal_cond, NULL);
 
     engine->taskq = schedule_create();
     if (!engine->taskq) {
@@ -96,9 +96,9 @@ void
 engine_dealloc(engine_type* engine)
 {
     schedule_cleanup(engine->taskq);
-    lock_basic_destroy(&engine->enforce_lock);
-    lock_basic_destroy(&engine->signal_lock);
-    lock_basic_off(&engine->signal_cond);
+    pthread_mutex_destroy(&engine->enforce_lock);
+    pthread_mutex_destroy(&engine->signal_lock);
+    pthread_cond_destroy(&engine->signal_cond);
     free(engine);
 }
 
@@ -109,8 +109,14 @@ engine_dealloc(engine_type* engine)
 static void*
 cmdhandler_thread_start(void* arg)
 {
+    int err;
+    sigset_t sigset;
     cmdhandler_type* cmd = (cmdhandler_type*) arg;
-    ods_thread_blocksigs();
+
+    sigfillset(&sigset);
+    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
+        ods_fatal_exit("[%s] pthread_sigmask: %s", engine_str, strerror(err));
+
     cmdhandler_start(cmd);
     return NULL;
 }
@@ -121,9 +127,8 @@ engine_start_cmdhandler(engine_type* engine)
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
     engine->cmdhandler->engine = engine;
-    ods_thread_create(&engine->cmdhandler->thread_id,
+    pthread_create(&engine->cmdhandler->thread_id, NULL,
         cmdhandler_thread_start, engine->cmdhandler);
-    return;
 }
 
 /**
@@ -178,15 +183,19 @@ engine_create_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i] = worker_create(i);
     }
-    return;
 }
 
 static void*
 worker_thread_start(void* arg)
 {
+    int err;
+    sigset_t sigset;
     worker_type* worker = (worker_type*) arg;
 
-    ods_thread_blocksigs();
+    sigfillset(&sigset);
+    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
+        ods_fatal_exit("[%s] pthread_sigmask: %s", engine_str, strerror(err));
+
     worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
     if (!worker->dbconn) {
         ods_log_crit("Failed to start worker, could not connect to database");
@@ -208,8 +217,8 @@ engine_start_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (struct engine_struct*) engine;
-        ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
-            engine->workers[i]);
+        pthread_create(&engine->workers[i]->thread_id, NULL,
+            worker_thread_start, engine->workers[i]);
     }
     return;
 }
@@ -230,7 +239,7 @@ engine_stop_workers(engine_type* engine)
     /* head count */
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
-        ods_thread_join(engine->workers[i]->thread_id);
+        pthread_join(engine->workers[i]->thread_id, NULL);
         engine->workers[i]->engine = NULL;
     }
     return;
@@ -245,7 +254,6 @@ engine_wakeup_workers(engine_type* engine)
 {
     ods_log_assert(engine);
     ods_log_debug("[%s] wake up workers", engine_str);
-    /* wake up sleepyheads */
     pthread_cond_broadcast(&engine->taskq->schedule_cond);
 }
 
@@ -540,12 +548,12 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
         /* We must use locking here to avoid race conditions. We want
          * to sleep indefinitely and want to wake up on signal. This
          * is to make sure we never mis the signal. */
-        lock_basic_lock(&engine->signal_lock);
+        pthread_mutex_lock(&engine->signal_lock);
         if (!engine->need_to_exit && !engine->need_to_reload && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
-           lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 0);
+           pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
         }
-        lock_basic_unlock(&engine->signal_lock);
+        pthread_mutex_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] enforcer halted", engine_str);
     engine_stop_workers(engine);

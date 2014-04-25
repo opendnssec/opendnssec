@@ -28,7 +28,10 @@
 
 #include "config.h"
 
+#include <pthread.h>
+
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "shared/duration.h"
 #include "daemon/cmdhandler.h"
@@ -85,7 +88,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 0;
 	}
 
-	lock_basic_lock(&engine->taskq->schedule_lock);
+	pthread_mutex_lock(&engine->taskq->schedule_lock);
 	/* [LOCK] schedule */
 
 	/* current work */
@@ -116,7 +119,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		node = ldns_rbtree_next(node);
 	}
 	/* [UNLOCK] schedule */
-	lock_basic_unlock(&engine->taskq->schedule_lock);
+	pthread_mutex_unlock(&engine->taskq->schedule_lock);
 	return 0;
 }
 

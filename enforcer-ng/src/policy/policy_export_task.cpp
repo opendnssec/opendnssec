@@ -32,6 +32,7 @@
  /**/
 
 #include "shared/duration.h"
+#include "shared/log.h"
 #include "shared/file.h"
 #include "policy/policy_export_task.h"
 

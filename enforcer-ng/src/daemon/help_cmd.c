@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"

@@ -29,6 +29,7 @@
 
 #include "keystate/keystate_ds_seen_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/duration.h"
 
 #include <google/protobuf/descriptor.h>

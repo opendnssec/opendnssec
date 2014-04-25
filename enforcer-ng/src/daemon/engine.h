@@ -36,10 +36,7 @@
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/worker.h"
-#include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
 #include "db/db_configuration.h"
 #include "db/db_connection.h"
 
@@ -72,9 +69,9 @@ struct engine_struct {
     int need_to_exit;
     int need_to_reload;
 
-    cond_basic_type signal_cond;
-    lock_basic_type signal_lock;
-    lock_basic_type enforce_lock;
+    pthread_cond_t signal_cond;
+    pthread_mutex_t signal_lock;
+    pthread_mutex_t enforce_lock;
 
     db_configuration_list_t* dbcfg_list;
 };

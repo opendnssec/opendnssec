@@ -28,6 +28,7 @@
  */
 
 #include "keystate/keystate_rollover_task.h"
+#include "shared/log.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 #include "libhsm.h"

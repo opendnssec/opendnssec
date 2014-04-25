@@ -80,7 +80,6 @@ ods_enforcerd_SOURCES = \
 	shared/allocator.c shared/allocator.h \
 	shared/duration.c shared/duration.h \
 	shared/file.c shared/file.h \
-	shared/locks.c shared/locks.h \
 	shared/log.c shared/log.h \
 	shared/privdrop.c shared/privdrop.h \
 	shared/status.c shared/status.h \

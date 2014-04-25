@@ -33,6 +33,7 @@
 #include "daemon/engine.h"
 #include "keystate/keystate_ds_retract_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
 

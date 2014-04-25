@@ -32,6 +32,7 @@
 
 #include "signconf/signconf_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/duration.h"
 
 #include <google/protobuf/descriptor.h>

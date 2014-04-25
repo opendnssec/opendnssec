@@ -35,6 +35,7 @@
 #include <google/protobuf/message.h>
 
 #include "daemon/clientpipe.h"
+#include "shared/log.h"
 #include "shared/file.h"
 #include "shared/duration.h"
 #include "libhsm.h"

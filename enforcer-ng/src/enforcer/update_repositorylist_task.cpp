@@ -29,6 +29,8 @@
 
 #include "config.h"
 
+#include <pthread.h>
+
 #include "daemon/cmdhandler.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
@@ -72,7 +74,7 @@ int perform_update_repositorylist(int sockfd, engine_type* engine)
 	
 	/* key gen tasks must be stopped, hsm connections must be closed
 	 * easiest way is to stop all workers,  */
-	lock_basic_lock(&engine->signal_lock);
+	pthread_mutex_lock(&engine->signal_lock);
 		/** we have got the lock, daemon thread is not going anywhere 
 		 * we can safely stop all workers */
 		engine_stop_workers(engine);
@@ -90,10 +92,10 @@ int perform_update_repositorylist(int sockfd, engine_type* engine)
 			client_printf(sockfd, "new repositories parsed successful.\n");
 		}
 		engine_start_workers(engine);
-	lock_basic_unlock(&engine->signal_lock);
+	pthread_mutex_unlock(&engine->signal_lock);
 	/* kick daemon thread so it will reload the hsms */
 	if (status) {
-		lock_basic_alarm(&engine->signal_cond);
+		pthread_cond_signal(&engine->signal_cond);
 		/* as if nothing happend from daemon's POV */
 		client_printf(sockfd, "Notifying enforcer of new respositories.\n");
 	}

@@ -33,6 +33,7 @@
 #include "daemon/cmdhandler.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "policy/update_kasp_task.h"
 #include "daemon/clientpipe.h"

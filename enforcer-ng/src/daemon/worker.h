@@ -33,8 +33,6 @@
 #define DAEMON_WORKER_H
 
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
 #include "db/db_connection.h"
 
 #include <time.h>
@@ -48,7 +46,7 @@ struct engine_struct;
 typedef struct worker_struct worker_type;
 struct worker_struct {
     int thread_num;
-    ods_thread_type thread_id;
+    pthread_t thread_id;
     struct engine_struct* engine;
     task_type* task;
     time_t clock_in;
@@ -76,21 +74,6 @@ worker_type* worker_create(int num);
  *
  */
 void worker_start(worker_type* worker);
-
-/**
- * Wake up worker.
- * \param[in] worker wake up this worker
- *
- */
-void worker_wakeup(worker_type* worker);
-
-/**
- * Let worker wait.
- * \param[in] lock lock to use
- * \param[in] condition condition to be met
- *
- */
-void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
 
 /**
  * Clean up worker.

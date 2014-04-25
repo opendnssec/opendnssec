@@ -29,6 +29,7 @@
 
 #include "shared/duration.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "keystate/zone_del_task.h"
 #include "keystate/write_signzone_task.h"

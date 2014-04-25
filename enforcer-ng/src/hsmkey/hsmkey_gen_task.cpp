@@ -29,6 +29,7 @@
 
 #include "hsmkey/hsmkey_gen_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/duration.h"
 #include "libhsm.h"
 

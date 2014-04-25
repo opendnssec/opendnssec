@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "daemon/cmdhandler.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
 #include "daemon/clientpipe.h"
