@@ -187,7 +187,7 @@ flush_fd(int fd)
 
 /*  TODO: don't let it fail on partial read. */
 int
-client_prompt_user(int sockfd, char *question, char *answer)
+client_prompt_user(int sockfd, const char *question, char *answer)
 {
 	char buf[ODS_SE_MAXLINE];
 	int n, datalen, bufpos = 0;

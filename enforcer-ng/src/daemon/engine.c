@@ -48,6 +48,7 @@
 #include "shared/status.h"
 #include "shared/util.h"
 #include "shared/protobuf.h"
+#include "shared/log.h"
 #include "db/db_configuration.h"
 #include "db/db_connection.h"
 #include "db/database_version.h"

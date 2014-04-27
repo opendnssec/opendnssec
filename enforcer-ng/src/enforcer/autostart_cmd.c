@@ -33,7 +33,8 @@
 #include "enforcer/enforce_task.h"
 #include "policy/policy_resalt_task.h"
 #include "shared/status.h"
- 
+#include "shared/log.h"
+
 #include "enforcer/autostart_cmd.h"
 
 static const char *module_str = "autostart_cmd";

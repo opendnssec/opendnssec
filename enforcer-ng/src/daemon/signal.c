@@ -35,6 +35,7 @@
 #include "shared/log.h"
 
 #include <signal.h>
+#include <pthread.h>
 
 static engine_type* signal_engine = NULL;
 static const char* signal_str = "signal";

@@ -40,6 +40,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pthread.h>
 
 static const char* file_str = "file";
 
