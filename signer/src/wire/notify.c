@@ -276,20 +276,21 @@ notify_handle_reply(notify_type* notify)
     ods_log_assert(zone->name);
     if ((buffer_pkt_opcode(xfrhandler->packet) != LDNS_PACKET_NOTIFY) ||
         (buffer_pkt_qr(xfrhandler->packet) == 0)) {
-        ods_log_error("[%s] zone %s received bad notify reply opcode/qr",
-            notify_str, zone->name);
+        ods_log_error("[%s] zone %s received bad notify reply opcode/qr from %s",
+            notify_str, zone->name, notify->secondary->address);
         return 0;
     }
     if (buffer_pkt_id(xfrhandler->packet) != notify->query_id) {
-        ods_log_error("[%s] zone %s received bad notify reply id",
-            notify_str, zone->name);
+        ods_log_error("[%s] zone %s received bad notify reply id from %s",
+            notify_str, zone->name, notify->secondary->address);
         return 0;
     }
     /* could check tsig */
     if (buffer_pkt_rcode(xfrhandler->packet) != LDNS_RCODE_NOERROR) {
         const char* str = buffer_rcode2str(buffer_pkt_rcode(xfrhandler->packet));
-        ods_log_error("[%s] zone %s received bad notify rcode %s",
-            notify_str, zone->name, str?str:"UNKNOWN" );
+        ods_log_error("[%s] zone %s received bad notify rcode %s from %s",
+            notify_str, zone->name, str?str:"UNKNOWN",
+            notify->secondary->address);
         if (buffer_pkt_rcode(xfrhandler->packet) != LDNS_RCODE_NOTIMPL) {
             return 1;
         }

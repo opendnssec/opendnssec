@@ -1,3 +1,7 @@
+28 April 2014: Matthijs
+- Show secondary address in NOTIFY error logs.
+- Fix locks bug (thanks Yuri).
+
 22 April 2014: Matthijs
 - OPENDNSSEC-617: Fix DNS Input Adapter to not reject zone the first time
   due to serial arethmetic (thanks Paul Wouters).
