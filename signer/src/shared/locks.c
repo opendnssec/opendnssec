@@ -147,13 +147,13 @@ ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
 void
 ods_thread_blocksigs(void)
 {
-#ifndef HAVE_PTHREAD
+#ifdef HAVE_PTHREAD
     int err = 0;
 #endif
     sigset_t sigset;
     sigfillset(&sigset);
 
-#ifndef HAVE_PTHREAD
+#ifdef HAVE_PTHREAD
     if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
         ods_fatal_exit("[%s] pthread_sigmask: %s", lock_str, strerror(err));
 #else /* !HAVE_PTHREAD */
