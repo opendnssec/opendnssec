@@ -41,7 +41,6 @@
 #include <libxml/xmlreader.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 static const char* parser_str = "parser";
 

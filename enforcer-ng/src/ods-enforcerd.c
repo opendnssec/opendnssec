@@ -36,6 +36,7 @@
 
 #include "daemon/engine.h"
 #include "shared/protobuf.h"
+#include "shared/log.h"
 #include "daemon/orm.h"
 #include "mm.h"
 

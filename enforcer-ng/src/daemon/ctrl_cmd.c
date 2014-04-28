@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+#include <pthread.h>
+
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
