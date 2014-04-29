@@ -90,15 +90,12 @@ int perform_update_repositorylist(int sockfd, engine_type* engine)
 			engine->config->hsm = new_reps;
 			engine->need_to_reload = 1;
 			client_printf(sockfd, "new repositories parsed successful.\n");
+			client_printf(sockfd, "Notifying enforcer of new respositories.\n");
+			/* kick daemon thread so it will reload the hsms */
+			pthread_cond_signal(&engine->signal_cond);
 		}
 		engine_start_workers(engine);
 	pthread_mutex_unlock(&engine->signal_lock);
-	/* kick daemon thread so it will reload the hsms */
-	if (status) {
-		pthread_cond_signal(&engine->signal_cond);
-		/* as if nothing happend from daemon's POV */
-		client_printf(sockfd, "Notifying enforcer of new respositories.\n");
-	}
 	return status;
 }
 
