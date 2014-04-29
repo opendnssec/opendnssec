@@ -26,7 +26,13 @@
 
 /**
  * Task scheduling.
+ * 
+ * This module maintains a collection of tasks. All external functions
+ * should be thread safe. Beware not to call an external function from
+ * within this module, it will cause deadlocks.
  *
+ * In principle the calling function should never need to lock the
+ * scheduler.
  */
 
 #include "config.h"
@@ -45,7 +51,7 @@ static const char* schedule_str = "scheduler";
 /* Condition must be accessible from ISR */
 static pthread_cond_t *schedule_cond;
 
-static task_type* schedule_get_first_task(schedule_type *schedule);
+static task_type* get_first_task(schedule_type *schedule);
 
 /**
  * Interrupt service routine on SIGALRM. When caught such signal one of
@@ -81,7 +87,7 @@ static void
 set_alarm(schedule_type* schedule)
 {
     time_t now = time_now();
-    task_type *task = schedule_get_first_task(schedule);
+    task_type *task = get_first_task(schedule);
     if (!task || task->when == -1) {
         ods_log_debug("[%s] no alarm set", schedule_str);
     } else if (task->when == 0 || task->when <= now) {
@@ -116,7 +122,7 @@ task2node(task_type* task)
  * \return task_type* first scheduled task, NULL on no task or error.
  */
 static task_type*
-schedule_get_first_task(schedule_type* schedule)
+get_first_task(schedule_type* schedule)
 {
     ldns_rbnode_t* first_node;
 
@@ -134,7 +140,7 @@ schedule_get_first_task(schedule_type* schedule)
  * \return task_type* first scheduled task, NULL on no task or error.
  */
 static task_type*
-schedule_pop_first_task(schedule_type* schedule)
+pop_first_task(schedule_type* schedule)
 {
     ldns_rbnode_t *node;
     task_type *task;
@@ -258,7 +264,7 @@ schedule_time_first(schedule_type* schedule)
     if (!schedule || !schedule->tasks) return -1;
 
     pthread_mutex_lock(&schedule->schedule_lock);
-        task = schedule_get_first_task(schedule);
+        task = get_first_task(schedule);
         if (!task)
             when = -1;
         else if (task->flush)
@@ -366,14 +372,14 @@ schedule_pop_task(schedule_type* schedule)
     task_type* task;
 
     pthread_mutex_lock(&schedule->schedule_lock);
-        task = schedule_get_first_task(schedule);
+        task = get_first_task(schedule);
         if (!task || (!task->flush && (task->when == -1 || task->when > now))) {
             /* nothing to do now, sleep and wait for signal */
             pthread_cond_wait(&schedule->schedule_cond,
                 &schedule->schedule_lock);
             task = NULL;
         } else {
-            task = schedule_pop_first_task(schedule);
+            task = pop_first_task(schedule);
         }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
