@@ -412,7 +412,6 @@ task_print(FILE* out, task_type* task)
         fprintf(out, "On %s I will [%s] %s\n", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task->who));
     }
-    return;
 }
 
 

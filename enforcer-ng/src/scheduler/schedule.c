@@ -155,26 +155,21 @@ schedule_pop_first_task(schedule_type* schedule)
  *
  */
 void
-schedule_print(FILE* out, schedule_type* schedule)
+schedule_print(FILE *out, schedule_type *schedule)
 {
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* task = NULL;
+    ldns_rbnode_t *node;
+    task_type* task;
 
-    if (!out || !schedule || !schedule->tasks) {
-        return;
-    }
-    ods_log_assert(out);
-    ods_log_assert(schedule);
-    ods_log_assert(schedule->tasks);
+    if (!out || !schedule || !schedule->tasks) return;
 
-    node = ldns_rbtree_first(schedule->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->data;
-        task_print(out, task);
-        node = ldns_rbtree_next(node);
-    }
-    fprintf(out, "\n");
-    return;
+    pthread_mutex_lock(&schedule->schedule_lock);
+        node = ldns_rbtree_first(schedule->tasks);
+        while (node != LDNS_RBTREE_NULL) {
+            task = (task_type*) node->data;
+            task_print(out, task);
+            node = ldns_rbtree_next(node);
+        }
+    pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
 
@@ -194,7 +189,6 @@ task_delfunc(ldns_rbnode_t* elem)
         task_cleanup(task);
         free((void*)elem);
     }
-    return;
 }
 
 /**

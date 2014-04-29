@@ -72,10 +72,10 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	char* strtime = NULL;
+	char* strtime;
 	char ctimebuf[32]; /* at least 26 according to docs */
 	char buf[ODS_SE_MAXLINE];
-	size_t i = 0;
+	size_t i = 0, count;
 	time_t now = 0;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
 	task_type* task = NULL;
@@ -89,38 +89,36 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 0;
 	}
 
-	pthread_mutex_lock(&engine->taskq->schedule_lock);
-	/* [LOCK] schedule */
-
 	/* current work */
-	for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-		task = engine->workers[i]->task;
-		if (task) {
-			/* TODO: even holding that lock, this is not safe! */
-			client_printf(sockfd, "Working with [%s] %s\n",
-				task_what2str(task->what), task_who2str(task->who));
+	pthread_mutex_lock(&engine->taskq->schedule_lock);
+		for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+			task = engine->workers[i]->task;
+			if (task) {
+				/* TODO: even holding that lock, this is not safe! */
+				client_printf(sockfd, "Working with [%s] %s\n",
+					task_what2str(task->what), task_who2str(task->who));
+			}
 		}
-	}
+	pthread_mutex_unlock(&engine->taskq->schedule_lock);
 
 	/* how many tasks */
 	now = time_now();
 	strtime = ctime_r(&now,ctimebuf);
-	client_printf(sockfd, "There are %i tasks scheduled.\nIt is now %s",
-		(int) engine->taskq->tasks->count,
+	count = schedule_taskcount(engine->taskq);
+	client_printf(sockfd, "There %s %i %s scheduled.\nIt is now %s",
+		(count==1)?"is":"are", (int) count, (count==1)?"task":"tasks",
 		strtime?strtime:"(null)\n");
 	
 	/* list tasks */
-	node = ldns_rbtree_first(engine->taskq->tasks);
-	while (node && node != LDNS_RBTREE_NULL) {
-		task = (task_type*) node->data;
-		for (i=0; i < ODS_SE_MAXLINE; i++) {
-			buf[i] = 0;
+	pthread_mutex_lock(&engine->taskq->schedule_lock);
+		node = ldns_rbtree_first(engine->taskq->tasks);
+		while (node && node != LDNS_RBTREE_NULL) {
+			task = (task_type*) node->data;
+			memset(buf, 0, ODS_SE_MAXLINE);
+			(void)task2str(task, buf);
+			client_printf(sockfd, "%s", buf);
+			node = ldns_rbtree_next(node);
 		}
-		(void)task2str(task, (char*) &buf[0]);
-		client_printf(sockfd, "%s", buf);
-		node = ldns_rbtree_next(node);
-	}
-	/* [UNLOCK] schedule */
 	pthread_mutex_unlock(&engine->taskq->schedule_lock);
 	return 0;
 }
