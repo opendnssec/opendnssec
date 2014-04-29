@@ -69,14 +69,16 @@ struct engine_struct {
     int need_to_exit;
     int need_to_reload;
 
+    /* Main thread blocks on this condition when there is nothing to do */
     pthread_cond_t signal_cond;
     pthread_mutex_t signal_lock;
+    /* To prevent having 2 enforce tasks running simultaneously. */
     pthread_mutex_t enforce_lock;
 
     db_configuration_list_t* dbcfg_list;
 };
 
-/*
+/**
  * Try to open a connection to the database.
  * \param dbcfg_list, database configuration list
  * \return connection on success, NULL on failure.
@@ -93,6 +95,7 @@ db_connection_t* get_database_connection(db_configuration_list_t* dbcfg_list);
  */
 
 ods_status engine_setup(engine_type* engine);
+
 /**
  * Clean up engine.
  * \param[in] engine engine
@@ -100,8 +103,7 @@ ods_status engine_setup(engine_type* engine);
  */
 void engine_teardown(engine_type* engine);
 
-void
-engine_init(engine_type* engine, int daemonize);
+void engine_init(engine_type* engine, int daemonize);
 
 typedef void (*start_cb_t)(engine_type* engine);
 

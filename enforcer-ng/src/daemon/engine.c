@@ -550,8 +550,12 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
          * is to make sure we never mis the signal. */
         pthread_mutex_lock(&engine->signal_lock);
         if (!engine->need_to_exit && !engine->need_to_reload && !single_run) {
-           ods_log_debug("[%s] taking a break", engine_str);
-           pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
+            /* TODO: this silly. We should be handling the commandhandler
+             * connections. No reason to spawn that as a thread.
+             * Also it would be easier to wake up the command hander
+             * as signals will reach it if it is the main thread! */
+            ods_log_debug("[%s] taking a break", engine_str);
+            pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
         }
         pthread_mutex_unlock(&engine->signal_lock);
     }
