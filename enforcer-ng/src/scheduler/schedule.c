@@ -42,9 +42,18 @@
 
 static const char* schedule_str = "scheduler";
 
+/* Condition must be accessible from ISR */
 static pthread_cond_t *schedule_cond;
-static pthread_mutex_t *schedule_lock;
 
+static task_type* schedule_get_first_task(schedule_type *schedule);
+
+/**
+ * Interrupt service routine on SIGALRM. When caught such signal one of
+ * the threads waiting for a task is notified. Unfortunately we can not
+ * put the notify in a lock. When we have just a single worker thread
+ * there is a rare race condition where the thread just misses this
+ * event. Having multiple threads the race condition is not a problem.
+ */
 static void
 alarm_handler(sig_atomic_t sig)
 {
@@ -63,7 +72,11 @@ alarm_handler(sig_atomic_t sig)
     }
 }
 
-static task_type* schedule_get_first_task(schedule_type *schedule);
+/**
+ * Inspect head of queue and wakeup a worker now or set alarm.
+ * Caller SHOULD hold schedule->schedule_lock. Failing to do so
+ * could possibly cause a thread to miss the wakeup.
+ */
 static void
 set_alarm(schedule_type* schedule)
 {
@@ -71,17 +84,14 @@ set_alarm(schedule_type* schedule)
     task_type *task = schedule_get_first_task(schedule);
     if (!task || task->when == -1) {
         ods_log_debug("[%s] no alarm set", schedule_str);
-        return;
-    }
-    if (task->when == 0 || task->when <= now) {
+    } else if (task->when == 0 || task->when <= now) {
         ods_log_debug("[%s] signal now", schedule_str);
         pthread_cond_signal(&schedule->schedule_cond);
     } else {
         ods_log_debug("[%s] SIGALRM set", schedule_str);
-         alarm(task->when - now);
+        alarm(task->when - now);
     }
 }
-
 
 /**
  * Convert task to a tree node.
@@ -99,9 +109,11 @@ task2node(task_type* task)
 }
 
 /**
- * Get the first scheduled task.
+ * Get the first scheduled task. As long as return value is used
+ * caller should hold schedule->schedule_lock.
+ * 
  * \param[in] schedule schedule
- * \return task_type* first scheduled task
+ * \return task_type* first scheduled task, NULL on no task or error.
  */
 static task_type*
 schedule_get_first_task(schedule_type* schedule)
@@ -109,18 +121,17 @@ schedule_get_first_task(schedule_type* schedule)
     ldns_rbnode_t* first_node;
 
     if (!schedule || !schedule->tasks) return NULL;
-    
     first_node = ldns_rbtree_first(schedule->tasks);
-    
-    if (first_node)
-        return (task_type*) first_node->data;
-    return NULL;
+    if (!first_node) return NULL;
+    return (task_type*) first_node->data;
 }
 
 /**
- * pop the first scheduled task.
+ * pop the first scheduled task. Caller must hold
+ * schedule->schedule_lock. Result is safe to use outside lock.
+ * 
  * \param[in] schedule schedule
- * \return task_type* first scheduled task
+ * \return task_type* first scheduled task, NULL on no task or error.
  */
 static task_type*
 schedule_pop_first_task(schedule_type* schedule)
@@ -187,8 +198,8 @@ task_delfunc(ldns_rbnode_t* elem)
 }
 
 /**
- * Create new schedule.
- *
+ * Create new schedule. Allocate and initialise scheduler. To clean
+ * up schedule_cleanup() should be called.
  */
 schedule_type*
 schedule_create()
@@ -205,9 +216,8 @@ schedule_create()
     schedule->tasks = ldns_rbtree_create(task_compare);
     pthread_mutex_init(&schedule->schedule_lock, NULL);
     pthread_cond_init(&schedule->schedule_cond, NULL);
-    /* static condition for alarm */
+    /* static condition for alarm. Must be accessible from interrupt */
     schedule_cond = &schedule->schedule_cond;
-    schedule_lock = &schedule->schedule_lock;
 
     action.sa_handler = &alarm_handler;
     sigfillset(&action.sa_mask);
@@ -218,25 +228,31 @@ schedule_create()
 }
 
 /**
- * Clean up schedule.
- *
+ * Clean up schedule. deinitialise and free scheduler.
+ * Threads MUST be stopped before calling this function.
  */
 void
 schedule_cleanup(schedule_type* schedule)
 {
     if (!schedule) return;
     ods_log_debug("[%s] cleanup schedule", schedule_str);
+
+    /* Disable any pending alarm before we destroy the pthread stuff
+     * to prevent segfaults */
+    alarm(0);
+    
     if (schedule->tasks) {
         task_delfunc(schedule->tasks->root);
         ldns_rbtree_free(schedule->tasks);
         schedule->tasks = NULL;
     }
     pthread_mutex_destroy(&schedule->schedule_lock);
+    pthread_cond_destroy(&schedule->schedule_cond);
     free(schedule);
 }
 
 /**
- * exported convinience functions should all be thread safe
+ * exported convenience functions should all be thread safe
  */
 
 time_t
@@ -290,27 +306,40 @@ schedule_flush(schedule_type* schedule)
 void
 schedule_flush_type(schedule_type* schedule, task_id id)
 {
-    ldns_rbnode_t* node;
-    task_type* task;
+    ldns_rbnode_t *node, *prevnode;
     
     ods_log_debug("[%s] flush task", schedule_str);
     if (!schedule || !schedule->tasks) return;
 
     pthread_mutex_lock(&schedule->schedule_lock);
         node = ldns_rbtree_first(schedule->tasks);
+        prevnode = NULL;
         while (node && node != LDNS_RBTREE_NULL) {
-            task = (task_type*) node->data;
-            if (task->what == id) {
-                /* we must get it to front */
+            if (node->data && ((task_type*)node->data)->what == id) {
+                /* Merely setting flush is not enough. We must set it
+                 * to the front of the queue as well. */
                 node = ldns_rbtree_delete(schedule->tasks, node->data);
-                task = (task_type*) node->data;
-                free(node);
-                task->flush = 1;
-                task->when = 0;
-                if ((node = task2node(task)))
-                    node = ldns_rbtree_insert(schedule->tasks, node); /*check for NULL*/
+                if (!node) break; /* stange, bail out */
+                if (node->data) { /* task */
+                    ((task_type*)node->data)->flush = 1;
+                    ((task_type*)node->data)->when = 0;
+                    if (!ldns_rbtree_insert(schedule->tasks, node)) {
+                        ods_log_crit("[%s] Could not reschedule task "
+                            "after flush. A task has been lost!",
+                            schedule_str);
+                        break;
+                    }
+                }
+                /* node pushed to front, prevnode doesn't change. */
+            } else {
+                /* We didn't move anything around, prevnode advances */
+                prevnode = node;
             }
-            node = ldns_rbtree_next(node);
+            
+            if (!prevnode)
+                node = ldns_rbtree_first(schedule->tasks);
+            else
+                node = ldns_rbtree_next(prevnode);
         }
         /* wakeup! work to do! */
         pthread_cond_signal(&schedule->schedule_cond);
@@ -321,7 +350,6 @@ void
 schedule_purge(schedule_type* schedule)
 {
     ldns_rbnode_t* node;
-    task_type* task;
     
     if (!schedule || !schedule->tasks) return;
 
@@ -330,17 +358,13 @@ schedule_purge(schedule_type* schedule)
             LDNS_RBTREE_NULL)
         {
             node = ldns_rbtree_delete(schedule->tasks, node->data);
-            task = (task_type*) node->data;
-            task_cleanup(task);
+            if (node == LDNS_RBTREE_NULL) break; 
+            task_cleanup((task_type*) node->data);
             free(node);
         }
     pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
-/**
- * Pop the first scheduled task.
- *
- */
 task_type*
 schedule_pop_task(schedule_type* schedule)
 {
@@ -361,10 +385,6 @@ schedule_pop_task(schedule_type* schedule)
     return task;
 }
 
-/**
- * Schedule task.
- *
- */
 ods_status
 schedule_task(schedule_type* schedule, task_type* task)
 {
@@ -397,4 +417,12 @@ schedule_task(schedule_type* schedule, task_type* task)
         }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return status;
+}
+
+void
+schedule_release_all(schedule_type* schedule)
+{
+    pthread_mutex_lock(&schedule->schedule_lock);
+        pthread_cond_broadcast(&schedule->schedule_cond);
+    pthread_mutex_unlock(&schedule->schedule_lock);
 }

@@ -254,9 +254,7 @@ engine_wakeup_workers(engine_type* engine)
 {
     ods_log_assert(engine);
     ods_log_debug("[%s] wake up workers", engine_str);
-    pthread_mutex_lock(&engine->taskq->schedule_lock);
-		pthread_cond_broadcast(&engine->taskq->schedule_cond);
-    pthread_mutex_unlock(&engine->taskq->schedule_lock);
+    schedule_release_all(engine->taskq);
 }
 
 db_connection_t*

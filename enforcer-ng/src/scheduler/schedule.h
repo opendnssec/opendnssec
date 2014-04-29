@@ -33,20 +33,12 @@
 #define SCHEDULER_SCHEDULE_H
 
 #include "config.h"
+
+#include <time.h>
+#include <ldns/ldns.h>
+
 #include "scheduler/task.h"
 #include "shared/status.h"
-
-#include <stdio.h>
-#include <time.h>
-
-#ifdef HAVE_SYS_TYPES_H
-# include <sys/types.h>
-#endif
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-
-#include <ldns/ldns.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,26 +50,38 @@ extern "C" {
 typedef struct schedule_struct schedule_type;
 struct schedule_struct {
     ldns_rbtree_t* tasks;
-    pthread_mutex_t schedule_lock;
     pthread_cond_t schedule_cond;
+    pthread_mutex_t schedule_lock;
 };
 
 /**
  * Create new schedule.
  * \param[in] allocator memory allocator
  * \return schedule_type* created schedule
- *
  */
 schedule_type* schedule_create();
+
+/**
+ * Clean up schedule.
+ * \param[in] schedule schedule to be cleaned up
+ *
+ */
+void schedule_cleanup(schedule_type* schedule);
 
 /**
  * Flush schedule.
  * \param[in] schedule schedule to be flushed
  */
 void schedule_flush(schedule_type* schedule);
-void schedule_flush_type(schedule_type* schedule, task_id id);
+
 /**
- * purge schedule.
+ * Flush schedule for a specific type of task.
+ * \param[in] schedule schedule to be flushed
+ */
+void schedule_flush_type(schedule_type* schedule, task_id id);
+
+/**
+ * purge schedule. All tasks will be thrashed.
  * \param[in] schedule schedule to be purged
  */
 void schedule_purge(schedule_type* schedule);
@@ -92,7 +96,10 @@ void schedule_purge(schedule_type* schedule);
 ods_status schedule_task(schedule_type* schedule, task_type* task);
 
 /**
- * Pop the first scheduled task that is due.
+ * Pop the first scheduled task that is due. If an item is directly
+ * available it will be returned. Else the call will block and return
+ * NULL when the caller is awoken. 
+ *
  * \param[in] schedule schedule
  * \return task_type* popped task, or NULL when no task available or
  * no task due
@@ -123,11 +130,9 @@ size_t schedule_taskcount(schedule_type* schedule);
 void schedule_print(FILE* out, schedule_type* schedule);
 
 /**
- * Clean up schedule.
- * \param[in] schedule schedule to be cleaned up
- *
+ * Wake up all threads waiting for tasks. Useful to on program teardown.
  */
-void schedule_cleanup(schedule_type* schedule);
+void schedule_release_all(schedule_type* schedule);
 
 #ifdef __cplusplus
 }

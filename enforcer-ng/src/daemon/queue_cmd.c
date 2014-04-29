@@ -34,6 +34,7 @@
 #include "shared/log.h"
 #include "shared/str.h"
 #include "shared/duration.h"
+#include "scheduler/schedule.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "daemon/clientpipe.h"
@@ -95,6 +96,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
 		task = engine->workers[i]->task;
 		if (task) {
+			/* TODO: even holding that lock, this is not safe! */
 			client_printf(sockfd, "Working with [%s] %s\n",
 				task_what2str(task->what), task_who2str(task->who));
 		}

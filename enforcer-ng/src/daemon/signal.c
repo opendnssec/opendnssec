@@ -30,12 +30,15 @@
  */
 
 #include "config.h"
+
+#include <pthread.h>
+#include <signal.h>
+
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "shared/log.h"
 
-#include <signal.h>
-#include <pthread.h>
+#include "signal.h"
 
 static engine_type* signal_engine = NULL;
 static const char* signal_str = "signal";
