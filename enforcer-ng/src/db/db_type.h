@@ -91,7 +91,14 @@ typedef enum {
     /**
      * This can be any type, primarily used for ID fields.
      */
-    DB_TYPE_ANY
+    DB_TYPE_ANY,
+    /**
+     * This is a special revision type that can be used to track revisions of
+     * objects and only do changes against the current revision and in so will
+     * fail if someone else has changed the object. The revision type can be
+     * any type.
+     */
+    DB_TYPE_REVISION
 } db_type_t;
 
 #ifdef __cplusplus
