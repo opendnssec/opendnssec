@@ -30,6 +30,13 @@ CREATE TABLE test (
 );
 INSERT INTO test ( name ) VALUES ( "test" );
 
+CREATE TABLE test2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rev INTEGER NOT NULL,
+    name VARCHAR(255)
+);
+INSERT INTO test2 ( rev, name ) VALUES ( 1, "test" );
+
 CREATE TABLE zone (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     policyId INTEGER NOT NULL,

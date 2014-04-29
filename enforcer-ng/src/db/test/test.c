@@ -106,7 +106,9 @@ int main(void) {
         || !CU_add_test(pSuite, "test of delete object 3", test_database_operations_delete_object3)
         || !CU_add_test(pSuite, "test of read object 1 (#3)", test_database_operations_read_object1)
         || !CU_add_test(pSuite, "test of delete object 2", test_database_operations_delete_object2)
-        || !CU_add_test(pSuite, "test of read object 1 (#4)", test_database_operations_read_object1))
+        || !CU_add_test(pSuite, "test of read object 1 (#4)", test_database_operations_read_object1)
+
+        || !CU_add_test(pSuite, "test of read object 1 (REV)", test_database_operations_read_object1_2))
     {
         CU_cleanup_registry();
         return CU_get_error();
@@ -130,7 +132,9 @@ int main(void) {
         || !CU_add_test(pSuite, "test of delete object 3", test_database_operations_delete_object3)
         || !CU_add_test(pSuite, "test of read object 1 (#3)", test_database_operations_read_object1)
         || !CU_add_test(pSuite, "test of delete object 2", test_database_operations_delete_object2)
-        || !CU_add_test(pSuite, "test of read object 1 (#4)", test_database_operations_read_object1))
+        || !CU_add_test(pSuite, "test of read object 1 (#4)", test_database_operations_read_object1)
+
+        || !CU_add_test(pSuite, "test of read object 1 (REV)", test_database_operations_read_object1_2))
     {
         CU_cleanup_registry();
         return CU_get_error();
