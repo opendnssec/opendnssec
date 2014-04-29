@@ -479,6 +479,9 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
         clilen = sizeof(cliaddr);
         FD_SET(cmdhandler->listen_fd, &rset);
         ret = select(cmdhandler->listen_fd+1, &rset, NULL, NULL, NULL);
+        /* Don't handle new connections when need to exit, this
+         * removes the delay of the self_pipe_trick*/
+        if (cmdhandler->need_to_exit) break;
         if (ret < 0) {
             if (errno != EINTR && errno != EWOULDBLOCK) {
                 ods_log_warning("[%s] select() error: %s", module_str,
