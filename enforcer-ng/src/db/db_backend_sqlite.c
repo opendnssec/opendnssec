@@ -571,6 +571,7 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
             break;
 
         case DB_TYPE_ANY:
+        case DB_TYPE_REVISION:
             switch (sqlite3_column_type(statement->statement, bind)) {
             case SQLITE_INTEGER:
                 from_int64 = sqlite3_column_int64(statement->statement, bind);
