@@ -102,7 +102,6 @@ ods_enforcerd_SOURCES = \
 	hsmkey/hsmkey_gen_cmd.cpp hsmkey/hsmkey_gen_cmd.h \
 	hsmkey/hsmkey_gen_task.cpp hsmkey/hsmkey_gen_task.h \
 	hsmkey/backup_hsmkeys_cmd.cpp hsmkey/backup_hsmkeys_cmd.h \
-	hsmkey/backup_hsmkeys_task.cpp hsmkey/backup_hsmkeys_task.h \
 	hsmkey/update_hsmkeys_cmd.cpp hsmkey/update_hsmkeys_cmd.h \
 	hsmkey/update_hsmkeys_task.cpp hsmkey/update_hsmkeys_task.h \
 	keystate/zone_list_cmd.cpp keystate/zone_list_cmd.h \

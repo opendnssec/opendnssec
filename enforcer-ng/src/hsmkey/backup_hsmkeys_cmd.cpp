@@ -29,18 +29,253 @@
 
 #include "config.h"
 
+#include <map>
+#include <fcntl.h>
+#include <utility>
+
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "hsmkey/backup_hsmkeys_task.h"
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
+#include "shared/duration.h"
 #include "daemon/clientpipe.h"
+#include "libhsm.h"
+
+#include <google/protobuf/descriptor.h>
+#include <google/protobuf/message.h>
+#include "hsmkey/hsmkey.pb.h"
+#include "xmlext-pb/xmlext-rd.h"
+#include "protobuf-orm/pb-orm.h"
+#include "daemon/orm.h"
 
 #include "hsmkey/backup_hsmkeys_cmd.h"
 
 static const char *module_str = "backup_hsmkeys_cmd";
 
+int 
+perform_backup_prepare(int sockfd, engineconfig_type *config, const char *repository)
+{
+	int keys_marked;
+	// check that we are using a compatible protobuf version.
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
+
+	OrmTransaction transaction(conn);
+	if (!transaction.started()) {
+		client_printf(sockfd,"error: database transaction failed\n");
+		return 1;
+	}
+
+	OrmResultRef rows;
+	if ((repository && !OrmMessageEnumWhere(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows, 
+			"repository='%s'", repository)) ||
+		(!repository && !OrmMessageEnum(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows)))
+	{
+		client_printf(sockfd,"error: key enumeration failed\n");
+		return 1;
+	}
+
+	pb::uint64 keyid;
+	keys_marked = 0;
+	OrmContextRef context;
+	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		::ods::hsmkey::HsmKey key;
+		if (OrmGetMessage(rows, key, true, context)) {
+			key.set_backmeup(true);
+			keys_marked++;
+			pb::uint64 keyid;
+			if (!OrmMessageUpdate(context)) {
+				ods_log_error_and_printf(sockfd, module_str,
+					"database record update failed");
+			}
+			context.release();
+		}
+	}
+	rows.release();
+	if (!transaction.commit()) {
+		client_printf(sockfd,"error committing transaction.");
+		return 1;
+	}
+	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
+	return 0;
+}
+
+int 
+perform_backup_commit(int sockfd, engineconfig_type *config, const char *repository)
+{
+	int keys_marked;
+	// check that we are using a compatible protobuf version.
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
+
+	OrmTransaction transaction(conn);
+	if (!transaction.started()) {
+		client_printf(sockfd,"error: database transaction failed\n");
+		return 1;
+	}
+
+	OrmResultRef rows;
+	if ((repository && !OrmMessageEnumWhere(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows, 
+			"repository='%s'", repository)) ||
+		(!repository && !OrmMessageEnum(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows)))
+	{
+		client_printf(sockfd,"error: key enumeration failed\n");
+		return 1;
+	}
+	OrmContextRef context;
+	keys_marked = 0;
+	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		::ods::hsmkey::HsmKey key;
+		if (OrmGetMessage(rows, key, true, context)) {
+			if (key.backmeup()) {
+				key.set_backedup(true);
+				key.set_backmeup(false);
+				keys_marked++;
+				if (!OrmMessageUpdate(context)) {
+					ods_log_error_and_printf(sockfd, module_str,
+						"database record update failed");
+				}
+			}
+			context.release();
+		}
+	}
+	rows.release();
+	if (!transaction.commit()) {
+		client_printf(sockfd,"error committing transaction.");
+		return 1;
+	}
+	client_printf(sockfd,"info: keys flagged as backed up: %d\n", keys_marked);
+	return 0;
+}
+
+int 
+perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repository)
+{
+	int keys_marked;
+	// check that we are using a compatible protobuf version.
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
+
+	OrmTransaction transaction(conn);
+	if (!transaction.started()) {
+		client_printf(sockfd,"error: database transaction failed\n");
+		return 1;
+	}
+
+	OrmResultRef rows;
+	if ((repository && !OrmMessageEnumWhere(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows, 
+			"repository='%s'", repository)) ||
+		(!repository && !OrmMessageEnum(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows)))
+	{
+		client_printf(sockfd,"error: key enumeration failed\n");
+		return 1;
+	}
+	OrmContextRef context;
+	keys_marked = 0;
+	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		::ods::hsmkey::HsmKey key;
+		if (OrmGetMessage(rows, key, true, context)) {
+			if (key.backmeup()) {
+				key.set_backmeup(false);
+				keys_marked++;
+				if (!OrmMessageUpdate(context)) {
+					ods_log_error_and_printf(sockfd, module_str,
+						"database record update failed");
+				}
+			}
+			context.release();
+		}
+	}
+	rows.release();
+	if (!transaction.commit()) {
+		client_printf(sockfd,"error committing transaction.");
+		return 1;
+	}
+	client_printf(sockfd,"info: keys unflagged for backed up: %d\n", keys_marked);
+	return 0;
+}
+
+int 
+perform_backup_list(int sockfd, engineconfig_type *config, const char *repository)
+{
+	int keys_marked;
+	struct engineconfig_repository* hsm;
+	// check that we are using a compatible protobuf version.
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
+	OrmConnRef conn;
+	if (!ods_orm_connect(sockfd, config, conn)) return 1;
+
+	OrmTransaction transaction(conn);
+	if (!transaction.started()) {
+		client_printf(sockfd,"error: database transaction failed\n");
+		return 1;
+	}
+
+	OrmResultRef rows;
+	if ((repository && !OrmMessageEnumWhere(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows, 
+			"repository='%s'", repository)) ||
+		(!repository && !OrmMessageEnum(conn,
+			::ods::hsmkey::HsmKey::descriptor(), rows)))
+	{
+		client_printf(sockfd,"error: key enumeration failed\n");
+		return 1;
+	}
+	
+	using namespace std;
+	typedef std::vector<int> Val;
+	typedef map<string, Val> Policy;
+	
+	Policy::iterator polit;
+	Val val;
+	Policy pol;
+	
+	OrmContextRef context;
+	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
+		::ods::hsmkey::HsmKey key;
+		if (OrmGetMessage(rows, key, true, context)) {
+			val = pol[key.policy()];
+			if (val.empty()) {
+				val.push_back(key.backmeup());
+				val.push_back(key.backedup());
+				val.push_back(1);
+			} else {
+				val[0] += key.backmeup();
+				val[1] += key.backedup();
+				val[2]++;
+			}
+			pol[key.policy()] = val;
+			context.release();
+		}
+	}
+	rows.release();
+	
+	client_printf(sockfd, "Backups:\n");
+	for (polit = pol.begin();  polit != pol.end(); polit++) {
+		string policyname = (*polit).first;
+		int backmeup = (*polit).second[0];
+		int backedup = (*polit).second[1];
+		int total = (*polit).second[2];
+		client_printf(sockfd, "Repository %s has %d keys: %d backed up, %d unbacked "
+			"up, %d prepared.\n", policyname.c_str(), total, backedup, total - backedup, backmeup);
+	}
+
+	if (!transaction.commit()) {
+		client_printf(sockfd,"error committing transaction.");
+		return 1;
+	}
+	return 0;
+}
 
 static void
 usage(int sockfd)
