@@ -41,6 +41,7 @@
 #include "shared/duration.h"
 #include "daemon/clientpipe.h"
 #include "libhsm.h"
+#include "db/hsm_key.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
@@ -53,228 +54,107 @@
 
 static const char *module_str = "backup_hsmkeys_cmd";
 
-int 
-perform_backup_prepare(int sockfd, engineconfig_type *config, const char *repository)
+enum {
+	PREPARE,
+	COMMIT,
+	ROLLBACK,
+	LIST,
+};
+
+static void
+prepare(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
 {
-	int keys_marked;
-	// check that we are using a compatible protobuf version.
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return 1;
+	const hsm_key_t *ro_hsmkey;
+	hsm_key_backup_t backup;
+	int keys_marked = 0;
 
-	OrmTransaction transaction(conn);
-	if (!transaction.started()) {
-		client_printf(sockfd,"error: database transaction failed\n");
-		return 1;
-	}
-
-	OrmResultRef rows;
-	if ((repository && !OrmMessageEnumWhere(conn,
-			::ods::hsmkey::HsmKey::descriptor(), rows, 
-			"repository='%s'", repository)) ||
-		(!repository && !OrmMessageEnum(conn,
-			::ods::hsmkey::HsmKey::descriptor(), rows)))
-	{
-		client_printf(sockfd,"error: key enumeration failed\n");
-		return 1;
-	}
-
-	pb::uint64 keyid;
-	keys_marked = 0;
-	OrmContextRef context;
-	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-		::ods::hsmkey::HsmKey key;
-		if (OrmGetMessage(rows, key, true, context)) {
-			key.set_backmeup(true);
-			keys_marked++;
-			pb::uint64 keyid;
-			if (!OrmMessageUpdate(context)) {
-				ods_log_error_and_printf(sockfd, module_str,
-					"database record update failed");
+	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
+	while (ro_hsmkey) {
+		backup = hsm_key_backup(ro_hsmkey);
+		if (backup == HSM_KEY_BACKUP_BACKUP_REQUIRED) {
+			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
+				ods_log_error("[%s] err4", module_str);
+				break;
 			}
-			context.release();
+			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_REQUESTED) ||
+				hsm_key_update(rw_hsmkey))
+			{
+				ods_log_error("[%s] err5", module_str);
+			}
+			hsm_key_reset(rw_hsmkey);
 		}
-	}
-	rows.release();
-	if (!transaction.commit()) {
-		client_printf(sockfd,"error committing transaction.");
-		return 1;
+		ro_hsmkey = hsm_key_list_next(hsmkey_list);
 	}
 	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
-	return 0;
 }
 
-int 
-perform_backup_commit(int sockfd, engineconfig_type *config, const char *repository)
+static void
+commit(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
 {
-	int keys_marked;
-	// check that we are using a compatible protobuf version.
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return 1;
+	const hsm_key_t *ro_hsmkey;
+	hsm_key_backup_t backup;
+	int keys_marked = 0;
 
-	OrmTransaction transaction(conn);
-	if (!transaction.started()) {
-		client_printf(sockfd,"error: database transaction failed\n");
-		return 1;
-	}
-
-	OrmResultRef rows;
-	if ((repository && !OrmMessageEnumWhere(conn,
-			::ods::hsmkey::HsmKey::descriptor(), rows, 
-			"repository='%s'", repository)) ||
-		(!repository && !OrmMessageEnum(conn,
-			::ods::hsmkey::HsmKey::descriptor(), rows)))
-	{
-		client_printf(sockfd,"error: key enumeration failed\n");
-		return 1;
-	}
-	OrmContextRef context;
-	keys_marked = 0;
-	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-		::ods::hsmkey::HsmKey key;
-		if (OrmGetMessage(rows, key, true, context)) {
-			if (key.backmeup()) {
-				key.set_backedup(true);
-				key.set_backmeup(false);
-				keys_marked++;
-				if (!OrmMessageUpdate(context)) {
-					ods_log_error_and_printf(sockfd, module_str,
-						"database record update failed");
-				}
+	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
+	while (ro_hsmkey) {
+		backup = hsm_key_backup(ro_hsmkey);
+		if (backup == HSM_KEY_BACKUP_BACKUP_REQUESTED) {
+			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
+				ods_log_error("[%s] err4", module_str);
+				break;
 			}
-			context.release();
+			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_DONE) ||
+				hsm_key_update(rw_hsmkey))
+			{
+				ods_log_error("[%s] err5", module_str);
+			}
+			hsm_key_reset(rw_hsmkey);
 		}
+		ro_hsmkey = hsm_key_list_next(hsmkey_list);
 	}
-	rows.release();
-	if (!transaction.commit()) {
-		client_printf(sockfd,"error committing transaction.");
-		return 1;
-	}
-	client_printf(sockfd,"info: keys flagged as backed up: %d\n", keys_marked);
-	return 0;
+	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
 }
 
-int 
-perform_backup_rollback(int sockfd, engineconfig_type *config, const char *repository)
+static void
+rollback(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
 {
-	int keys_marked;
-	// check that we are using a compatible protobuf version.
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return 1;
+	const hsm_key_t *ro_hsmkey;
+	hsm_key_backup_t backup;
+	int keys_marked = 0;
 
-	OrmTransaction transaction(conn);
-	if (!transaction.started()) {
-		client_printf(sockfd,"error: database transaction failed\n");
-		return 1;
-	}
-
-	OrmResultRef rows;
-	if ((repository && !OrmMessageEnumWhere(conn,
-			::ods::hsmkey::HsmKey::descriptor(), rows, 
-			"repository='%s'", repository)) ||
-		(!repository && !OrmMessageEnum(conn,
-			::ods::hsmkey::HsmKey::descriptor(), rows)))
-	{
-		client_printf(sockfd,"error: key enumeration failed\n");
-		return 1;
-	}
-	OrmContextRef context;
-	keys_marked = 0;
-	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-		::ods::hsmkey::HsmKey key;
-		if (OrmGetMessage(rows, key, true, context)) {
-			if (key.backmeup()) {
-				key.set_backmeup(false);
-				keys_marked++;
-				if (!OrmMessageUpdate(context)) {
-					ods_log_error_and_printf(sockfd, module_str,
-						"database record update failed");
-				}
+	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
+	while (ro_hsmkey) {
+		backup = hsm_key_backup(ro_hsmkey);
+		if (backup == HSM_KEY_BACKUP_BACKUP_REQUESTED) {
+			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
+				ods_log_error("[%s] err4", module_str);
+				break;
 			}
-			context.release();
+			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_REQUIRED) ||
+				hsm_key_update(rw_hsmkey))
+			{
+				ods_log_error("[%s] err5", module_str);
+			}
+			hsm_key_reset(rw_hsmkey);
 		}
+		ro_hsmkey = hsm_key_list_next(hsmkey_list);
 	}
-	rows.release();
-	if (!transaction.commit()) {
-		client_printf(sockfd,"error committing transaction.");
-		return 1;
-	}
-	client_printf(sockfd,"info: keys unflagged for backed up: %d\n", keys_marked);
-	return 0;
+	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
 }
 
-int 
-perform_backup_list(int sockfd, engineconfig_type *config, const char *repository)
+static void
+list(int sockfd, hsm_key_list_t *hsmkey_list)
 {
-	int keys_marked;
-	struct engineconfig_repository* hsm;
-	// check that we are using a compatible protobuf version.
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, config, conn)) return 1;
+	const hsm_key_t *ro_hsmkey;
+	hsm_key_backup_t backup;
+	int keys_marked = 0;
 
-	OrmTransaction transaction(conn);
-	if (!transaction.started()) {
-		client_printf(sockfd,"error: database transaction failed\n");
-		return 1;
+	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
+	while (ro_hsmkey) {
+		/*  TODO  */
+		ro_hsmkey = hsm_key_list_next(hsmkey_list);
 	}
-
-	OrmResultRef rows;
-	if ((repository && !OrmMessageEnumWhere(conn,
-			::ods::hsmkey::HsmKey::descriptor(), rows, 
-			"repository='%s'", repository)) ||
-		(!repository && !OrmMessageEnum(conn,
-			::ods::hsmkey::HsmKey::descriptor(), rows)))
-	{
-		client_printf(sockfd,"error: key enumeration failed\n");
-		return 1;
-	}
-	
-	using namespace std;
-	typedef std::vector<int> Val;
-	typedef map<string, Val> Policy;
-	
-	Policy::iterator polit;
-	Val val;
-	Policy pol;
-	
-	OrmContextRef context;
-	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-		::ods::hsmkey::HsmKey key;
-		if (OrmGetMessage(rows, key, true, context)) {
-			val = pol[key.policy()];
-			if (val.empty()) {
-				val.push_back(key.backmeup());
-				val.push_back(key.backedup());
-				val.push_back(1);
-			} else {
-				val[0] += key.backmeup();
-				val[1] += key.backedup();
-				val[2]++;
-			}
-			pol[key.policy()] = val;
-			context.release();
-		}
-	}
-	rows.release();
-	
-	client_printf(sockfd, "Backups:\n");
-	for (polit = pol.begin();  polit != pol.end(); polit++) {
-		string policyname = (*polit).first;
-		int backmeup = (*polit).second[0];
-		int backedup = (*polit).second[1];
-		int total = (*polit).second[2];
-		client_printf(sockfd, "Repository %s has %d keys: %d backed up, %d unbacked "
-			"up, %d prepared.\n", policyname.c_str(), total, backedup, total - backedup, backmeup);
-	}
-
-	if (!transaction.commit()) {
-		client_printf(sockfd,"error committing transaction.");
-		return 1;
-	}
-	return 0;
+	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
 }
 
 static void
@@ -306,54 +186,74 @@ handles(const char *cmd, ssize_t n)
 	return 0;
 }
 
-static int
-handled_backup_cmd(int sockfd, engine_type* engine, 
-		const char *scmd, ssize_t n, 
-		int task(int, engineconfig_type *, const char *))
+const char *
+get_repo_param(const char *cmd, ssize_t n, char *buf, size_t buflen)
 {
-	char buf[ODS_SE_MAXLINE];
-    const int NARGV = 8;
-    const char *argv[NARGV];
-    int argc;
+	const int NARGV = 8;
+	const char *argv[NARGV];
+	int argc;
 	const char *repository = NULL;
 
-	ods_log_debug("[%s] %s command", module_str, scmd);
-
-	// Use buf as an intermediate buffer for the command.
-	strncpy(buf, scmd, sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
-	// separate the arguments
+	strncpy(buf, cmd, buflen);
 	argc = ods_str_explode(buf, NARGV, argv);
+	buf[sizeof(buf)-1] = '\0';
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
-						module_str,scmd);
-		client_printf(sockfd,"too many arguments\n");
-		return -1;
+			module_str,cmd);
+		return NULL;
 	}
-	(void)ods_find_arg_and_param(&argc,argv,"repository","r",&repository);
-	return task(sockfd,engine->config, repository);
+	(void)ods_find_arg_and_param(&argc, argv, "repository", "r",
+		&repository);
+	return repository; /* ptr in buf */
 }
-
 
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	if (ods_check_command(cmd,n,"backup prepare")) {
-		return handled_backup_cmd(sockfd, engine, 
-			cmd, n, &perform_backup_prepare);
-	} else if (ods_check_command(cmd,n,"backup commit")) {
-		return handled_backup_cmd(sockfd, engine, 
-			cmd, n, &perform_backup_commit);
-	} else if (ods_check_command(cmd,n,"backup rollback")) {
-		return handled_backup_cmd(sockfd, engine, 
-			cmd, n, &perform_backup_rollback);
-	} else if (ods_check_command(cmd,n,"backup list")) {
-		return handled_backup_cmd(sockfd, engine, 
-			cmd, n, &perform_backup_list);
-	} else {
-		return -1;
+	char buf[ODS_SE_MAXLINE];
+	int status;
+	hsm_key_list_t *hsmkey_list;
+	hsm_key_t *rw_hsmkey;
+	const char *repository;
+
+	if (!handles(cmd, n)) return -1;
+	repository = get_repo_param(cmd, n, buf, ODS_SE_MAXLINE);
+
+	/* iterate the keys */
+	if (!(hsmkey_list = hsm_key_list_new(dbconn))) {
+		ods_log_error("[%s] err1", module_str);
+		return 1;
 	}
+	if (!(rw_hsmkey = hsm_key_new(dbconn))) {
+		hsm_key_list_free(hsmkey_list);
+		ods_log_error("[%s] err2", module_str);
+		return 1;
+	}
+	if (repository)
+		status = hsm_key_list_get_by_repository(hsmkey_list, repository);
+	else
+		status = hsm_key_list_get(hsmkey_list);
+	if (status) {
+		hsm_key_list_free(hsmkey_list);
+		hsm_key_free(rw_hsmkey);
+		ods_log_error("[%s] err3", module_str);
+		return 1;
+	}
+	
+	/* Find out what we need to do */
+	if (ods_check_command(cmd,n,"backup prepare"))
+			prepare(sockfd, hsmkey_list, rw_hsmkey);
+	else if (ods_check_command(cmd,n,"backup commit"))
+			commit(sockfd, hsmkey_list, rw_hsmkey);
+	else if (ods_check_command(cmd,n,"backup rollback"))
+			rollback(sockfd, hsmkey_list, rw_hsmkey);
+	else if (ods_check_command(cmd,n,"backup list"))
+			list(sockfd, hsmkey_list);
+
+	hsm_key_free(rw_hsmkey);
+	hsm_key_list_free(hsmkey_list);
+	return 0;
 }
 
 static struct cmd_func_block funcblock = {

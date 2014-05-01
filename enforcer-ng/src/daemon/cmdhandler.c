@@ -114,7 +114,6 @@ cmd_funcs_avail(void)
         /* Thoughts has gone into the ordering of this list, it affects 
          * the output of the help command */
 /*
-        &setup_funcblock,
         &update_kasp_funcblock,
         &update_keyzones_funcblock,
 */        &update_repositorylist_funcblock,
@@ -144,9 +143,9 @@ cmd_funcs_avail(void)
 
         &key_rollover_funcblock,
         &rollover_list_funcblock,
-        
+*/        
         &backup_funcblock,
-
+/*
         &enforce_funcblock,
         &signconf_funcblock,
 */
