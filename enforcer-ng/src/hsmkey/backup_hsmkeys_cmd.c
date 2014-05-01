@@ -29,10 +29,6 @@
 
 #include "config.h"
 
-#include <map>
-#include <fcntl.h>
-#include <utility>
-
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "shared/file.h"
@@ -43,13 +39,6 @@
 #include "libhsm.h"
 #include "db/hsm_key.h"
 
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/message.h>
-#include "hsmkey/hsmkey.pb.h"
-#include "xmlext-pb/xmlext-rd.h"
-#include "protobuf-orm/pb-orm.h"
-#include "daemon/orm.h"
-
 #include "hsmkey/backup_hsmkeys_cmd.h"
 
 static const char *module_str = "backup_hsmkeys_cmd";
@@ -58,7 +47,7 @@ enum {
 	PREPARE,
 	COMMIT,
 	ROLLBACK,
-	LIST,
+	LIST
 };
 
 static void
@@ -146,7 +135,6 @@ static void
 list(int sockfd, hsm_key_list_t *hsmkey_list)
 {
 	const hsm_key_t *ro_hsmkey;
-	hsm_key_backup_t backup;
 	int keys_marked = 0;
 
 	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
@@ -189,10 +177,11 @@ handles(const char *cmd, ssize_t n)
 const char *
 get_repo_param(const char *cmd, ssize_t n, char *buf, size_t buflen)
 {
-	const int NARGV = 8;
+	#define NARGV 8
 	const char *argv[NARGV];
 	int argc;
 	const char *repository = NULL;
+	(void)n;
 
 	strncpy(buf, cmd, buflen);
 	argc = ods_str_explode(buf, NARGV, argv);
@@ -216,6 +205,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	hsm_key_list_t *hsmkey_list;
 	hsm_key_t *rw_hsmkey;
 	const char *repository;
+	(void)engine;
 
 	if (!handles(cmd, n)) return -1;
 	repository = get_repo_param(cmd, n, buf, ODS_SE_MAXLINE);
