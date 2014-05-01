@@ -127,8 +127,9 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 		return now + 60;
 	}
 	
-	ro_policy = policy_list_begin(pol_list);
-	while (ro_policy) {
+	for (ro_policy = policy_list_begin(pol_list); ro_policy;
+		ro_policy = policy_list_next(pol_list))
+	{
 		if (policy_denial_type(ro_policy) != POLICY_DENIAL_TYPE_NSEC3)
 			continue;
 		resalt_time = policy_denial_salt_last_change(ro_policy) +
@@ -161,7 +162,6 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 		}
 		if (resalt_time < schedule_time || schedule_time == TIME_INF)
 			schedule_time = resalt_time;
-		ro_policy = policy_list_next(pol_list);
 	}
 	policy_list_free(pol_list);
 	policy_free(rw_policy);
