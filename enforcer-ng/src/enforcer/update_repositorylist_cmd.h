@@ -30,14 +30,6 @@
 #ifndef UPDATE_REPOSITORYLIST_CMD_H_
 #define UPDATE_REPOSITORYLIST_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* update_repositorylist_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* UPDATE_REPOSITORYLIST_CMD_H_ */

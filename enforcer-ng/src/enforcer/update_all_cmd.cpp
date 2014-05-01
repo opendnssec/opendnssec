@@ -37,7 +37,6 @@
 #include "shared/log.h"
 #include "shared/str.h"
 #include "utils/kc_helper.h"
-#include "enforcer/update_repositorylist_task.h"
 #include "daemon/clientpipe.h"
 
 #include "enforcer/update_all_cmd.h"
