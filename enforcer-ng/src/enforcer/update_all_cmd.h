@@ -30,14 +30,6 @@
 #ifndef UPDATE_ALL_CMD_H_
 #define UPDATE_ALL_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* update_all_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* UPDATE_ALL_CMD_H_ */

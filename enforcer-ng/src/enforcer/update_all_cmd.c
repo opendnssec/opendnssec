@@ -94,9 +94,9 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	(void)cmd; (void)n;
-	ods_log_debug("[%s] %s command", module_str, update_all_funcblock()->cmdname);
 	int error = check_all_task(sockfd, engine);
+	(void)cmd; (void)n; (void)dbconn;
+	ods_log_debug("[%s] %s command", module_str, update_all_funcblock()->cmdname);
 	if (!error) {
 		engine->need_to_reload = 1;
 		pthread_cond_signal(&engine->signal_cond);
