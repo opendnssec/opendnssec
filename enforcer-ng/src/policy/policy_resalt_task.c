@@ -128,7 +128,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	}
 	
 	ro_policy = policy_list_begin(pol_list);
-	do {
+	while (ro_policy) {
 		if (policy_denial_type(ro_policy) != POLICY_DENIAL_TYPE_NSEC3)
 			continue;
 		resalt_time = policy_denial_salt_last_change(ro_policy) +
@@ -161,7 +161,8 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 		}
 		if (resalt_time < schedule_time || schedule_time == TIME_INF)
 			schedule_time = resalt_time;
-	} while ((ro_policy = policy_list_next(pol_list)) != NULL);
+		ro_policy = policy_list_next(pol_list);
+	}
 	policy_list_free(pol_list);
 	policy_free(rw_policy);
 	ods_log_debug("[%s] policies have been updated", module_str);
