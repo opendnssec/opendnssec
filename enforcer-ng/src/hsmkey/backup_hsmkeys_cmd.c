@@ -73,13 +73,13 @@ prepare(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
 		backup = hsm_key_backup(ro_hsmkey);
 		if (backup == HSM_KEY_BACKUP_BACKUP_REQUIRED) {
 			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
-				ods_log_error("[%s] err4", module_str);
+				ods_log_error("[%s] database error", module_str);
 				break;
 			}
 			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_REQUESTED) ||
 				hsm_key_update(rw_hsmkey))
 			{
-				ods_log_error("[%s] err5", module_str);
+				ods_log_error("[%s] database error", module_str);
 			}
 			hsm_key_reset(rw_hsmkey);
 		}
@@ -100,13 +100,13 @@ commit(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
 		backup = hsm_key_backup(ro_hsmkey);
 		if (backup == HSM_KEY_BACKUP_BACKUP_REQUESTED) {
 			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
-				ods_log_error("[%s] err4", module_str);
+				ods_log_error("[%s] database error", module_str);
 				break;
 			}
 			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_DONE) ||
 				hsm_key_update(rw_hsmkey))
 			{
-				ods_log_error("[%s] err5", module_str);
+				ods_log_error("[%s] database error", module_str);
 			}
 			hsm_key_reset(rw_hsmkey);
 		}
@@ -127,13 +127,13 @@ rollback(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
 		backup = hsm_key_backup(ro_hsmkey);
 		if (backup == HSM_KEY_BACKUP_BACKUP_REQUESTED) {
 			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
-				ods_log_error("[%s] err4", module_str);
+				ods_log_error("[%s] database error", module_str);
 				break;
 			}
 			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_REQUIRED) ||
 				hsm_key_update(rw_hsmkey))
 			{
-				ods_log_error("[%s] err5", module_str);
+				ods_log_error("[%s] database error", module_str);
 			}
 			hsm_key_reset(rw_hsmkey);
 		}
@@ -222,12 +222,12 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
 	/* iterate the keys */
 	if (!(hsmkey_list = hsm_key_list_new(dbconn))) {
-		ods_log_error("[%s] err1", module_str);
+		ods_log_error("[%s] database error", module_str);
 		return 1;
 	}
 	if (!(rw_hsmkey = hsm_key_new(dbconn))) {
 		hsm_key_list_free(hsmkey_list);
-		ods_log_error("[%s] err2", module_str);
+		ods_log_error("[%s] database error", module_str);
 		return 1;
 	}
 	if (repository)
@@ -237,7 +237,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	if (status) {
 		hsm_key_list_free(hsmkey_list);
 		hsm_key_free(rw_hsmkey);
-		ods_log_error("[%s] err3", module_str);
+		ods_log_error("[%s] Could not get key list", module_str);
 		return 1;
 	}
 	
