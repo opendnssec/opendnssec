@@ -17,6 +17,36 @@ by the database objects and converted to be presentable as normal c value type
 for the logic.
 
 
+Design
+======
+
+    +------------------------------+
+    |         Application          |
+    +------------------------------+
+    |       Database Objects       |
+    +------------------------------+
+    |        Database Layer        |
+    +------------------------------+
+    |      Database Backends       |
+    +------------------------------+
+
+Application - is the application/logic code that uses database objects to access
+the data in the database.
+
+Database Objects - encapsulate the data from the database using the database
+layer and provides functions for accessing and modifying the data. There are
+also function for retrieving object from the database based on fields and
+related objects.
+
+Database Layer - provides objects for encapsulating database values and for
+describing database operations such as a clause list which contains a list of
+fields, an operation and a value. CRUD operations can be executed through a
+database connect to an underlying database backend.
+
+Database Backends - executes the given operations according to how that specific
+database backend handles data.
+
+
 Object Revisions
 ================
 
