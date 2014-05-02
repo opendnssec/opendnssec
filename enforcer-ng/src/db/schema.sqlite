@@ -26,6 +26,7 @@
 
 CREATE TABLE zone (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    rev INTEGER NOT NULL DEFAULT 1,
     policyId INTEGER NOT NULL,
     name TEXT NOT NULL,
     policy TEXT NOT NULL,
@@ -51,6 +52,7 @@ CREATE UNIQUE INDEX zoneName ON zone ( name );
 
 CREATE TABLE keyData (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    rev INTEGER NOT NULL DEFAULT 1,
     zoneId INTEGER NOT NULL,
     hsmKeyId INTEGER NOT NULL,
     locator TEXT NOT NULL,
@@ -71,6 +73,7 @@ CREATE INDEX keyDataHsmKeyId ON keyData ( hsmKeyId );
 
 CREATE TABLE keyState (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    rev INTEGER NOT NULL DEFAULT 1,
     keyDataId INTEGER NOT NULL,
     type INT NOT NULL,
     state INT NOT NULL,
@@ -82,6 +85,7 @@ CREATE INDEX keyStateKeyDataId ON keyState ( keyDataId );
 
 CREATE TABLE hsmKey (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    rev INTEGER NOT NULL DEFAULT 1,
     policyId INTEGER NOT NULL,
     locator TEXT NOT NULL,
     candidateForSharing UNSIGNED INT NOT NULL,
@@ -100,6 +104,7 @@ CREATE UNIQUE INDEX hsmKeyLocator ON hsmKey ( locator );
 
 CREATE TABLE policy (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    rev INTEGER NOT NULL DEFAULT 1,
     name TEXT NOT NULL,
     description TEXT NOT NULL,
     signaturesResign UNSIGNED INT NOT NULL,
@@ -136,6 +141,7 @@ CREATE UNIQUE INDEX policyName ON policy ( name );
 
 CREATE TABLE policyKey (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    rev INTEGER NOT NULL DEFAULT 1,
     policyId INTEGER NOT NULL,
     algorithm UNSIGNED INT NOT NULL,
     bits UNSIGNED INT NOT NULL,
@@ -150,5 +156,6 @@ CREATE INDEX policyKeyPolicyId ON policyKey ( policyId );
 
 CREATE TABLE databaseVersion (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    rev INTEGER NOT NULL DEFAULT 1,
     version UNSIGNED INT NOT NULL
 );

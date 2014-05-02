@@ -81,6 +81,17 @@ static db_object_t* __hsm_key_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rev")
+        || db_object_field_set_type(object_field, DB_TYPE_REVISION)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "policyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
@@ -237,6 +248,7 @@ hsm_key_t* hsm_key_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(hsm_key->id));
+        db_value_reset(&(hsm_key->rev));
         db_value_reset(&(hsm_key->policy_id));
         hsm_key->bits = 2048;
         hsm_key->policy = strdup("default");
@@ -254,6 +266,7 @@ void hsm_key_free(hsm_key_t* hsm_key) {
             db_object_free(hsm_key->dbo);
         }
         db_value_reset(&(hsm_key->id));
+        db_value_reset(&(hsm_key->rev));
         db_value_reset(&(hsm_key->policy_id));
         if (hsm_key->locator) {
             free(hsm_key->locator);
@@ -274,6 +287,7 @@ void hsm_key_free(hsm_key_t* hsm_key) {
 void hsm_key_reset(hsm_key_t* hsm_key) {
     if (hsm_key) {
         db_value_reset(&(hsm_key->id));
+        db_value_reset(&(hsm_key->rev));
         db_value_reset(&(hsm_key->policy_id));
         if (hsm_key->locator) {
             free(hsm_key->locator);
@@ -366,6 +380,21 @@ int hsm_key_copy(hsm_key_t* hsm_key, const hsm_key_t* hsm_key_copy) {
         }
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_copy(&(hsm_key->rev), &(hsm_key_copy->rev))) {
+        if (locator_text) {
+            free(locator_text);
+        }
+        if (policy_text) {
+            free(policy_text);
+        }
+        if (key_type_text) {
+            free(key_type_text);
+        }
+        if (repository_text) {
+            free(repository_text);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_copy(&(hsm_key->policy_id), &(hsm_key_copy->policy_id))) {
         if (locator_text) {
             free(locator_text);
@@ -420,6 +449,7 @@ int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
     }
 
     db_value_reset(&(hsm_key->id));
+    db_value_reset(&(hsm_key->rev));
     db_value_reset(&(hsm_key->policy_id));
     if (hsm_key->locator) {
         free(hsm_key->locator);
@@ -438,20 +468,21 @@ int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
     }
     hsm_key->repository = NULL;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 13
+        || db_value_set_size(value_set) != 14
         || db_value_copy(&(hsm_key->id), db_value_set_at(value_set, 0))
-        || db_value_copy(&(hsm_key->policy_id), db_value_set_at(value_set, 1))
-        || db_value_to_text(db_value_set_at(value_set, 2), &(hsm_key->locator))
-        || db_value_to_uint32(db_value_set_at(value_set, 3), &(hsm_key->candidate_for_sharing))
-        || db_value_to_uint32(db_value_set_at(value_set, 4), &(hsm_key->bits))
-        || db_value_to_text(db_value_set_at(value_set, 5), &(hsm_key->policy))
-        || db_value_to_uint32(db_value_set_at(value_set, 6), &(hsm_key->algorithm))
-        || db_value_to_enum_value(db_value_set_at(value_set, 7), &role, __enum_set_role)
-        || db_value_to_uint32(db_value_set_at(value_set, 8), &(hsm_key->inception))
-        || db_value_to_uint32(db_value_set_at(value_set, 9), &(hsm_key->is_revoked))
-        || db_value_to_text(db_value_set_at(value_set, 10), &(hsm_key->key_type))
-        || db_value_to_text(db_value_set_at(value_set, 11), &(hsm_key->repository))
-        || db_value_to_enum_value(db_value_set_at(value_set, 12), &backup, __enum_set_backup))
+        || db_value_copy(&(hsm_key->rev), db_value_set_at(value_set, 1))
+        || db_value_copy(&(hsm_key->policy_id), db_value_set_at(value_set, 2))
+        || db_value_to_text(db_value_set_at(value_set, 3), &(hsm_key->locator))
+        || db_value_to_uint32(db_value_set_at(value_set, 4), &(hsm_key->candidate_for_sharing))
+        || db_value_to_uint32(db_value_set_at(value_set, 5), &(hsm_key->bits))
+        || db_value_to_text(db_value_set_at(value_set, 6), &(hsm_key->policy))
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(hsm_key->algorithm))
+        || db_value_to_enum_value(db_value_set_at(value_set, 8), &role, __enum_set_role)
+        || db_value_to_uint32(db_value_set_at(value_set, 9), &(hsm_key->inception))
+        || db_value_to_uint32(db_value_set_at(value_set, 10), &(hsm_key->is_revoked))
+        || db_value_to_text(db_value_set_at(value_set, 11), &(hsm_key->key_type))
+        || db_value_to_text(db_value_set_at(value_set, 12), &(hsm_key->repository))
+        || db_value_to_enum_value(db_value_set_at(value_set, 13), &backup, __enum_set_backup))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -874,6 +905,9 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     if (!db_value_not_empty(&(hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!db_value_not_empty(&(hsm_key->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_not_empty(&(hsm_key->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -1166,6 +1200,9 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     if (db_value_not_empty(&(hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(hsm_key->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_not_empty(&(hsm_key->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -1351,6 +1388,19 @@ int hsm_key_update(hsm_key_t* hsm_key) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(hsm_key->rev))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        db_value_set_free(value_set);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
     ret = db_object_update(hsm_key->dbo, object_field_list, value_set, clause_list);
     db_value_set_free(value_set);
     db_object_field_list_free(object_field_list);
@@ -1381,6 +1431,17 @@ int hsm_key_delete(hsm_key_t* hsm_key) {
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_value_copy(db_clause_get_value(clause), &(hsm_key->id))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(hsm_key->rev))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

@@ -56,6 +56,7 @@ extern "C" {
 struct database_version {
     db_object_t* dbo;
     db_value_t id;
+    db_value_t rev;
     unsigned int version;
 };
 

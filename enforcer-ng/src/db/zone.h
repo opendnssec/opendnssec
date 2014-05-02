@@ -57,6 +57,7 @@ extern "C" {
 struct zone {
     db_object_t* dbo;
     db_value_t id;
+    db_value_t rev;
     db_value_t policy_id;
     char* name;
     char* policy;

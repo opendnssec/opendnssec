@@ -80,6 +80,17 @@ static db_object_t* __policy_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rev")
+        || db_object_field_set_type(object_field, DB_TYPE_REVISION)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "name")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
@@ -445,6 +456,7 @@ policy_t* policy_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(policy->id));
+        db_value_reset(&(policy->rev));
         policy->signatures_max_zone_ttl = 86400;
         policy->denial_type = POLICY_DENIAL_TYPE_INVALID;
         policy->zone_soa_serial = POLICY_ZONE_SOA_SERIAL_INVALID;
@@ -459,6 +471,7 @@ void policy_free(policy_t* policy) {
             db_object_free(policy->dbo);
         }
         db_value_reset(&(policy->id));
+        db_value_reset(&(policy->rev));
         if (policy->name) {
             free(policy->name);
         }
@@ -475,6 +488,7 @@ void policy_free(policy_t* policy) {
 void policy_reset(policy_t* policy) {
     if (policy) {
         db_value_reset(&(policy->id));
+        db_value_reset(&(policy->rev));
         if (policy->name) {
             free(policy->name);
         }
@@ -565,6 +579,18 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
         }
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_copy(&(policy->rev), &(policy_copy->rev))) {
+        if (name_text) {
+            free(name_text);
+        }
+        if (description_text) {
+            free(description_text);
+        }
+        if (denial_salt_text) {
+            free(denial_salt_text);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
     if (policy->name) {
         free(policy->name);
     }
@@ -621,6 +647,7 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
     }
 
     db_value_reset(&(policy->id));
+    db_value_reset(&(policy->rev));
     if (policy->name) {
         free(policy->name);
     }
@@ -634,39 +661,40 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
     }
     policy->denial_salt = NULL;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 32
+        || db_value_set_size(value_set) != 33
         || db_value_copy(&(policy->id), db_value_set_at(value_set, 0))
-        || db_value_to_text(db_value_set_at(value_set, 1), &(policy->name))
-        || db_value_to_text(db_value_set_at(value_set, 2), &(policy->description))
-        || db_value_to_uint32(db_value_set_at(value_set, 3), &(policy->signatures_resign))
-        || db_value_to_uint32(db_value_set_at(value_set, 4), &(policy->signatures_refresh))
-        || db_value_to_uint32(db_value_set_at(value_set, 5), &(policy->signatures_jitter))
-        || db_value_to_uint32(db_value_set_at(value_set, 6), &(policy->signatures_inception_offset))
-        || db_value_to_uint32(db_value_set_at(value_set, 7), &(policy->signatures_validity_default))
-        || db_value_to_uint32(db_value_set_at(value_set, 8), &(policy->signatures_validity_denial))
-        || db_value_to_uint32(db_value_set_at(value_set, 9), &(policy->signatures_max_zone_ttl))
-        || db_value_to_enum_value(db_value_set_at(value_set, 10), &denial_type, __enum_set_denial_type)
-        || db_value_to_uint32(db_value_set_at(value_set, 11), &(policy->denial_optout))
-        || db_value_to_uint32(db_value_set_at(value_set, 12), &(policy->denial_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 13), &(policy->denial_resalt))
-        || db_value_to_uint32(db_value_set_at(value_set, 14), &(policy->denial_algorithm))
-        || db_value_to_uint32(db_value_set_at(value_set, 15), &(policy->denial_iterations))
-        || db_value_to_uint32(db_value_set_at(value_set, 16), &(policy->denial_salt_length))
-        || db_value_to_text(db_value_set_at(value_set, 17), &(policy->denial_salt))
-        || db_value_to_uint32(db_value_set_at(value_set, 18), &(policy->denial_salt_last_change))
-        || db_value_to_uint32(db_value_set_at(value_set, 19), &(policy->keys_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 20), &(policy->keys_retire_safety))
-        || db_value_to_uint32(db_value_set_at(value_set, 21), &(policy->keys_publish_safety))
-        || db_value_to_uint32(db_value_set_at(value_set, 22), &(policy->keys_shared))
-        || db_value_to_uint32(db_value_set_at(value_set, 23), &(policy->keys_purge_after))
-        || db_value_to_uint32(db_value_set_at(value_set, 24), &(policy->zone_propagation_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 25), &(policy->zone_soa_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 26), &(policy->zone_soa_minimum))
-        || db_value_to_enum_value(db_value_set_at(value_set, 27), &zone_soa_serial, __enum_set_zone_soa_serial)
-        || db_value_to_uint32(db_value_set_at(value_set, 28), &(policy->parent_propagation_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 29), &(policy->parent_ds_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_soa_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_soa_minimum)))
+        || db_value_copy(&(policy->rev), db_value_set_at(value_set, 1))
+        || db_value_to_text(db_value_set_at(value_set, 2), &(policy->name))
+        || db_value_to_text(db_value_set_at(value_set, 3), &(policy->description))
+        || db_value_to_uint32(db_value_set_at(value_set, 4), &(policy->signatures_resign))
+        || db_value_to_uint32(db_value_set_at(value_set, 5), &(policy->signatures_refresh))
+        || db_value_to_uint32(db_value_set_at(value_set, 6), &(policy->signatures_jitter))
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(policy->signatures_inception_offset))
+        || db_value_to_uint32(db_value_set_at(value_set, 8), &(policy->signatures_validity_default))
+        || db_value_to_uint32(db_value_set_at(value_set, 9), &(policy->signatures_validity_denial))
+        || db_value_to_uint32(db_value_set_at(value_set, 10), &(policy->signatures_max_zone_ttl))
+        || db_value_to_enum_value(db_value_set_at(value_set, 11), &denial_type, __enum_set_denial_type)
+        || db_value_to_uint32(db_value_set_at(value_set, 12), &(policy->denial_optout))
+        || db_value_to_uint32(db_value_set_at(value_set, 13), &(policy->denial_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 14), &(policy->denial_resalt))
+        || db_value_to_uint32(db_value_set_at(value_set, 15), &(policy->denial_algorithm))
+        || db_value_to_uint32(db_value_set_at(value_set, 16), &(policy->denial_iterations))
+        || db_value_to_uint32(db_value_set_at(value_set, 17), &(policy->denial_salt_length))
+        || db_value_to_text(db_value_set_at(value_set, 18), &(policy->denial_salt))
+        || db_value_to_uint32(db_value_set_at(value_set, 19), &(policy->denial_salt_last_change))
+        || db_value_to_uint32(db_value_set_at(value_set, 20), &(policy->keys_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 21), &(policy->keys_retire_safety))
+        || db_value_to_uint32(db_value_set_at(value_set, 22), &(policy->keys_publish_safety))
+        || db_value_to_uint32(db_value_set_at(value_set, 23), &(policy->keys_shared))
+        || db_value_to_uint32(db_value_set_at(value_set, 24), &(policy->keys_purge_after))
+        || db_value_to_uint32(db_value_set_at(value_set, 25), &(policy->zone_propagation_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 26), &(policy->zone_soa_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 27), &(policy->zone_soa_minimum))
+        || db_value_to_enum_value(db_value_set_at(value_set, 28), &zone_soa_serial, __enum_set_zone_soa_serial)
+        || db_value_to_uint32(db_value_set_at(value_set, 29), &(policy->parent_propagation_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_ds_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_soa_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_soa_minimum)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -1383,6 +1411,9 @@ int policy_create(policy_t* policy) {
     if (!db_value_not_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!db_value_not_empty(&(policy->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (!policy->name) {
         return DB_ERROR_UNKNOWN;
     }
@@ -1878,6 +1909,9 @@ int policy_update(policy_t* policy) {
     if (db_value_not_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(policy->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (!policy->name) {
         return DB_ERROR_UNKNOWN;
     }
@@ -2266,6 +2300,19 @@ int policy_update(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(policy->rev))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        db_value_set_free(value_set);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
     ret = db_object_update(policy->dbo, object_field_list, value_set, clause_list);
     db_value_set_free(value_set);
     db_object_field_list_free(object_field_list);
@@ -2296,6 +2343,17 @@ int policy_delete(policy_t* policy) {
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_value_copy(db_clause_get_value(clause), &(policy->id))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(policy->rev))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

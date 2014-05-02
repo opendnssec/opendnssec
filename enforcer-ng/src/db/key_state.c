@@ -83,6 +83,17 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rev")
+        || db_object_field_set_type(object_field, DB_TYPE_REVISION)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "keyDataId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
@@ -173,6 +184,7 @@ key_state_t* key_state_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(key_state->id));
+        db_value_reset(&(key_state->rev));
         db_value_reset(&(key_state->key_data_id));
         key_state->type = KEY_STATE_TYPE_INVALID;
         key_state->state = KEY_STATE_STATE_HIDDEN;
@@ -187,6 +199,7 @@ void key_state_free(key_state_t* key_state) {
             db_object_free(key_state->dbo);
         }
         db_value_reset(&(key_state->id));
+        db_value_reset(&(key_state->rev));
         db_value_reset(&(key_state->key_data_id));
         mm_alloc_delete(&__key_state_alloc, key_state);
     }
@@ -195,6 +208,7 @@ void key_state_free(key_state_t* key_state) {
 void key_state_reset(key_state_t* key_state) {
     if (key_state) {
         db_value_reset(&(key_state->id));
+        db_value_reset(&(key_state->rev));
         db_value_reset(&(key_state->key_data_id));
         key_state->type = KEY_STATE_TYPE_INVALID;
         key_state->state = KEY_STATE_STATE_HIDDEN;
@@ -213,6 +227,9 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
     }
 
     if (db_value_copy(&(key_state->id), &(key_state_copy->id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(key_state->rev), &(key_state_copy->rev))) {
         return DB_ERROR_UNKNOWN;
     }
     if (db_value_copy(&(key_state->key_data_id), &(key_state_copy->key_data_id))) {
@@ -239,16 +256,18 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     }
 
     db_value_reset(&(key_state->id));
+    db_value_reset(&(key_state->rev));
     db_value_reset(&(key_state->key_data_id));
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 7
+        || db_value_set_size(value_set) != 8
         || db_value_copy(&(key_state->id), db_value_set_at(value_set, 0))
-        || db_value_copy(&(key_state->key_data_id), db_value_set_at(value_set, 1))
-        || db_value_to_enum_value(db_value_set_at(value_set, 2), &type, __enum_set_type)
-        || db_value_to_enum_value(db_value_set_at(value_set, 3), &state, __enum_set_state)
-        || db_value_to_uint32(db_value_set_at(value_set, 4), &(key_state->last_change))
-        || db_value_to_uint32(db_value_set_at(value_set, 5), &(key_state->minimize))
-        || db_value_to_uint32(db_value_set_at(value_set, 6), &(key_state->ttl)))
+        || db_value_copy(&(key_state->rev), db_value_set_at(value_set, 1))
+        || db_value_copy(&(key_state->key_data_id), db_value_set_at(value_set, 2))
+        || db_value_to_enum_value(db_value_set_at(value_set, 3), &type, __enum_set_type)
+        || db_value_to_enum_value(db_value_set_at(value_set, 4), &state, __enum_set_state)
+        || db_value_to_uint32(db_value_set_at(value_set, 5), &(key_state->last_change))
+        || db_value_to_uint32(db_value_set_at(value_set, 6), &(key_state->minimize))
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(key_state->ttl)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -521,6 +540,9 @@ int key_state_create(key_state_t* key_state) {
     if (!db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!db_value_not_empty(&(key_state->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_not_empty(&(key_state->key_data_id))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -685,6 +707,9 @@ int key_state_update(key_state_t* key_state) {
     if (db_value_not_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(key_state->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_not_empty(&(key_state->key_data_id))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -792,6 +817,19 @@ int key_state_update(key_state_t* key_state) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(key_state->rev))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        db_value_set_free(value_set);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
     ret = db_object_update(key_state->dbo, object_field_list, value_set, clause_list);
     db_value_set_free(value_set);
     db_object_field_list_free(object_field_list);
@@ -822,6 +860,17 @@ int key_state_delete(key_state_t* key_state) {
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_value_copy(db_clause_get_value(clause), &(key_state->id))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(key_state->rev))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

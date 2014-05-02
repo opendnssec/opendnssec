@@ -66,6 +66,17 @@ static db_object_t* __policy_key_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "rev")
+        || db_object_field_set_type(object_field, DB_TYPE_REVISION)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "policyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
@@ -187,6 +198,7 @@ policy_key_t* policy_key_new(const db_connection_t* connection) {
             return NULL;
         }
         db_value_reset(&(policy_key->id));
+        db_value_reset(&(policy_key->rev));
         db_value_reset(&(policy_key->policy_id));
     }
 
@@ -199,6 +211,7 @@ void policy_key_free(policy_key_t* policy_key) {
             db_object_free(policy_key->dbo);
         }
         db_value_reset(&(policy_key->id));
+        db_value_reset(&(policy_key->rev));
         db_value_reset(&(policy_key->policy_id));
         if (policy_key->repository) {
             free(policy_key->repository);
@@ -210,6 +223,7 @@ void policy_key_free(policy_key_t* policy_key) {
 void policy_key_reset(policy_key_t* policy_key) {
     if (policy_key) {
         db_value_reset(&(policy_key->id));
+        db_value_reset(&(policy_key->rev));
         db_value_reset(&(policy_key->policy_id));
         policy_key->algorithm = 0;
         policy_key->bits = 0;
@@ -240,6 +254,12 @@ int policy_key_copy(policy_key_t* policy_key, const policy_key_t* policy_key_cop
         }
     }
     if (db_value_copy(&(policy_key->id), &(policy_key_copy->id))) {
+        if (repository_text) {
+            free(repository_text);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(policy_key->rev), &(policy_key_copy->rev))) {
         if (repository_text) {
             free(repository_text);
         }
@@ -276,23 +296,25 @@ int policy_key_from_result(policy_key_t* policy_key, const db_result_t* result) 
     }
 
     db_value_reset(&(policy_key->id));
+    db_value_reset(&(policy_key->rev));
     db_value_reset(&(policy_key->policy_id));
     if (policy_key->repository) {
         free(policy_key->repository);
     }
     policy_key->repository = NULL;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 10
+        || db_value_set_size(value_set) != 11
         || db_value_copy(&(policy_key->id), db_value_set_at(value_set, 0))
-        || db_value_copy(&(policy_key->policy_id), db_value_set_at(value_set, 1))
-        || db_value_to_uint32(db_value_set_at(value_set, 2), &(policy_key->algorithm))
-        || db_value_to_uint32(db_value_set_at(value_set, 3), &(policy_key->bits))
-        || db_value_to_uint32(db_value_set_at(value_set, 4), &(policy_key->lifetime))
-        || db_value_to_text(db_value_set_at(value_set, 5), &(policy_key->repository))
-        || db_value_to_uint32(db_value_set_at(value_set, 6), &(policy_key->standby))
-        || db_value_to_uint32(db_value_set_at(value_set, 7), &(policy_key->manual_rollover))
-        || db_value_to_uint32(db_value_set_at(value_set, 8), &(policy_key->rfc5011))
-        || db_value_to_uint32(db_value_set_at(value_set, 9), &(policy_key->minimize)))
+        || db_value_copy(&(policy_key->rev), db_value_set_at(value_set, 1))
+        || db_value_copy(&(policy_key->policy_id), db_value_set_at(value_set, 2))
+        || db_value_to_uint32(db_value_set_at(value_set, 3), &(policy_key->algorithm))
+        || db_value_to_uint32(db_value_set_at(value_set, 4), &(policy_key->bits))
+        || db_value_to_uint32(db_value_set_at(value_set, 5), &(policy_key->lifetime))
+        || db_value_to_text(db_value_set_at(value_set, 6), &(policy_key->repository))
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(policy_key->standby))
+        || db_value_to_uint32(db_value_set_at(value_set, 8), &(policy_key->manual_rollover))
+        || db_value_to_uint32(db_value_set_at(value_set, 9), &(policy_key->rfc5011))
+        || db_value_to_uint32(db_value_set_at(value_set, 10), &(policy_key->minimize)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -530,6 +552,9 @@ int policy_key_create(policy_key_t* policy_key) {
     if (!db_value_not_empty(&(policy_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!db_value_not_empty(&(policy_key->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_not_empty(&(policy_key->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -728,6 +753,9 @@ int policy_key_update(policy_key_t* policy_key) {
     if (db_value_not_empty(&(policy_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(policy_key->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_not_empty(&(policy_key->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -869,6 +897,19 @@ int policy_key_update(policy_key_t* policy_key) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(policy_key->rev))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        db_value_set_free(value_set);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
     ret = db_object_update(policy_key->dbo, object_field_list, value_set, clause_list);
     db_value_set_free(value_set);
     db_object_field_list_free(object_field_list);
@@ -899,6 +940,17 @@ int policy_key_delete(policy_key_t* policy_key) {
         || db_clause_set_field(clause, "id")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_value_copy(db_clause_get_value(clause), &(policy_key->id))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(policy_key->rev))
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

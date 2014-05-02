@@ -72,6 +72,7 @@ extern "C" {
 struct hsm_key {
     db_object_t* dbo;
     db_value_t id;
+    db_value_t rev;
     db_value_t policy_id;
     char* locator;
     unsigned int candidate_for_sharing;

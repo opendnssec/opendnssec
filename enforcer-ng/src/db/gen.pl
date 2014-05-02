@@ -30,7 +30,8 @@ my %DB_TYPE_TO_SQLITE = (
     DB_TYPE_INT64 => 'BIGINT NOT NULL',
     DB_TYPE_UINT64 => 'UNSIGNED BIGINT NOT NULL',
     DB_TYPE_TEXT => 'TEXT NOT NULL',
-    DB_TYPE_ENUM => 'INT NOT NULL'
+    DB_TYPE_ENUM => 'INT NOT NULL',
+    DB_TYPE_REVISION => 'INTEGER NOT NULL DEFAULT 1'
 );
 
 my %DB_TYPE_TO_FUNC = (
@@ -161,7 +162,7 @@ struct ', $name, ' {
 ';
 
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
     print HEADER '    db_value_t ', $field->{name}, ";\n";
         next;
     }
@@ -216,6 +217,9 @@ int ', $name, '_from_result(', $name, '_t* ', $name, ', const db_result_t* resul
 ';
 
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
         print HEADER '/**
  * Get the ', $field->{name}, ' of a ', $tname, ' object.
@@ -279,6 +283,9 @@ const char* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ');
 }
 
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
         next;
     }
@@ -638,7 +645,7 @@ static mm_alloc_t __', $name, '_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $name, '
         }
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
         next;
@@ -679,7 +686,7 @@ void ', $name, '_free(', $name, '_t* ', $name, ') {
         }
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
         next;
@@ -699,7 +706,7 @@ void ', $name, '_reset(', $name, '_t* ', $name, ') {
     if (', $name, ') {
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
         next;
@@ -781,7 +788,7 @@ print SOURCE '            return DB_ERROR_UNKNOWN;
     }
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '    if (db_value_copy(&(', $name, '->', $field->{name}, '), &(', $name, '_copy->', $field->{name}, '))) {
 ';
 foreach my $field2 (@free) {
@@ -830,7 +837,7 @@ print SOURCE '
 
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '    db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
     }
@@ -846,7 +853,7 @@ print SOURCE '    if (!(value_set = db_result_value_set(result))
         || db_value_set_size(value_set) != ', (scalar @{$object->{fields}});
 my $count = 0;
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '
         || db_value_copy(&(', $name, '->', $field->{name}, '), db_value_set_at(value_set, ', $count++, '))';
         next;
@@ -890,6 +897,9 @@ print SOURCE '    return DB_OK;
 ';
 
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
 print SOURCE 'const db_value_t* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ') {
     if (!', $name, ') {
@@ -984,6 +994,9 @@ print SOURCE $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $name, '_', $field->{name}
 }
 
 foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
 print SOURCE 'int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', ', $name, '_', $field->{name}, '_t ', $field->{name}, ') {
     if (!', $name, ') {
@@ -1095,7 +1108,7 @@ print SOURCE 'int ', $name, '_create(', $name, '_t* ', $name, ') {
     }
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '    if (!db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -1124,8 +1137,9 @@ print SOURCE '    /* TODO: validate content more */
     }
 
 ';
+my $fields = 0;
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
 print SOURCE '    if (!(object_field = db_object_field_new())
@@ -1144,20 +1158,22 @@ print SOURCE '        || db_object_field_list_add(object_field_list, object_fiel
     }
 
 ';
+    $fields++;
 }
-my $fields = scalar @{$object->{fields}};
-$fields--;
+if (!$fields) {
+    $fields = 1;
+}
 print SOURCE '    if (!(value_set = db_value_set_new(', $fields, '))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
 ';
-if (scalar @{$object->{fields}} > 1) {
+if ($fields) {
 print SOURCE '    if (';
 my $count = 0;
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($count) {
@@ -1329,7 +1345,7 @@ print SOURCE 'int ', $name, '_update(', $name, '_t* ', $name, ') {
     }
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '    if (db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -1351,8 +1367,9 @@ print SOURCE '    /* TODO: validate content more */
     }
 
 ';
+my $fields = 0;
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
 print SOURCE '    if (!(object_field = db_object_field_new())
@@ -1371,10 +1388,10 @@ print SOURCE '        || db_object_field_list_add(object_field_list, object_fiel
     }
 
 ';
+    $fields++;
 }
-my $fields = scalar @{$object->{fields}};
-if ($fields > 1) {
-    $fields--;
+if (!$fields) {
+    $fields = 1;
 }
 print SOURCE '    if (!(value_set = db_value_set_new(', $fields, '))) {
         db_object_field_list_free(object_field_list);
@@ -1382,11 +1399,11 @@ print SOURCE '    if (!(value_set = db_value_set_new(', $fields, '))) {
     }
 
 ';
-if (scalar @{$object->{fields}} > 1) {
+if ($fields) {
 print SOURCE '    if (';
 my $count = 0;
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($count) {
@@ -1420,7 +1437,7 @@ print SOURCE '    if (!(clause_list = db_clause_list_new())) {
 
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '    if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "', camelize($field->{name}), '")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
@@ -1471,7 +1488,7 @@ print SOURCE '
 
 ';
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '    if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "', camelize($field->{name}), '")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)

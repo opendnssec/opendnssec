@@ -75,6 +75,7 @@ extern "C" {
 struct key_data {
     db_object_t* dbo;
     db_value_t id;
+    db_value_t rev;
     db_value_t zone_id;
     db_value_t hsm_key_id;
     char* locator;

@@ -74,6 +74,7 @@ extern "C" {
 struct key_state {
     db_object_t* dbo;
     db_value_t id;
+    db_value_t rev;
     db_value_t key_data_id;
     key_state_type_t type;
     key_state_state_t state;

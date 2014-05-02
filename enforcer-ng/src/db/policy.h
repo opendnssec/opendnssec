@@ -70,6 +70,7 @@ extern "C" {
 struct policy {
     db_object_t* dbo;
     db_value_t id;
+    db_value_t rev;
     char* name;
     char* description;
     unsigned int signatures_resign;
