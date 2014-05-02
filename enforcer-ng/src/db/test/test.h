@@ -77,5 +77,11 @@ void test_database_operations_read_all(void);
 
 void test_database_operations_read_object1_2(void);
 void test_database_operations_create_object2_2(void);
+void test_database_operations_read_object2_2(void);
+void test_database_operations_update_object2_2(void);
+void test_database_operations_delete_object2_2(void);
+void test_database_operations_create_object3_2(void);
+void test_database_operations_delete_object3_2(void);
+void test_database_operations_update_objects_revisions(void);
 
 #endif

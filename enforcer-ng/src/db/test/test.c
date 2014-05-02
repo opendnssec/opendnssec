@@ -109,7 +109,16 @@ int main(void) {
         || !CU_add_test(pSuite, "test of read object 1 (#4)", test_database_operations_read_object1)
 
         || !CU_add_test(pSuite, "test of read object 1 (REV)", test_database_operations_read_object1_2)
-        || !CU_add_test(pSuite, "test of create object 2 (REV)", test_database_operations_create_object2_2))
+        || !CU_add_test(pSuite, "test of create object 2 (REV)", test_database_operations_create_object2_2)
+        || !CU_add_test(pSuite, "test of read object 2 (REV)", test_database_operations_read_object2_2)
+        || !CU_add_test(pSuite, "test of read object 1 (#2) (REV)", test_database_operations_read_object1_2)
+        || !CU_add_test(pSuite, "test of create object 3 (REV)", test_database_operations_create_object3_2)
+        || !CU_add_test(pSuite, "test of update object 2 (REV)", test_database_operations_update_object2_2)
+        || !CU_add_test(pSuite, "test of updates revisions (REV)", test_database_operations_update_objects_revisions)
+        || !CU_add_test(pSuite, "test of delete object 3 (REV)", test_database_operations_delete_object3_2)
+        || !CU_add_test(pSuite, "test of read object 1 (#3) (REV)", test_database_operations_read_object1_2)
+        || !CU_add_test(pSuite, "test of delete object 2 (REV)", test_database_operations_delete_object2_2)
+        || !CU_add_test(pSuite, "test of read object 1 (#4) (REV)", test_database_operations_read_object1_2))
     {
         CU_cleanup_registry();
         return CU_get_error();
@@ -136,7 +145,16 @@ int main(void) {
         || !CU_add_test(pSuite, "test of read object 1 (#4)", test_database_operations_read_object1)
 
         || !CU_add_test(pSuite, "test of read object 1 (REV)", test_database_operations_read_object1_2)
-        || !CU_add_test(pSuite, "test of create object 2 (REV)", test_database_operations_create_object2_2))
+        || !CU_add_test(pSuite, "test of create object 2 (REV)", test_database_operations_create_object2_2)
+        || !CU_add_test(pSuite, "test of read object 2 (REV)", test_database_operations_read_object2_2)
+        || !CU_add_test(pSuite, "test of read object 1 (#2) (REV)", test_database_operations_read_object1_2)
+        || !CU_add_test(pSuite, "test of create object 3 (REV)", test_database_operations_create_object3_2)
+        || !CU_add_test(pSuite, "test of update object 2 (REV)", test_database_operations_update_object2_2)
+        || !CU_add_test(pSuite, "test of updates revisions (REV)", test_database_operations_update_objects_revisions)
+        || !CU_add_test(pSuite, "test of delete object 3 (REV)", test_database_operations_delete_object3_2)
+        || !CU_add_test(pSuite, "test of read object 1 (#3) (REV)", test_database_operations_read_object1_2)
+        || !CU_add_test(pSuite, "test of delete object 2 (REV)", test_database_operations_delete_object2_2)
+        || !CU_add_test(pSuite, "test of read object 1 (#4) (REV)", test_database_operations_read_object1_2))
     {
         CU_cleanup_registry();
         return CU_get_error();

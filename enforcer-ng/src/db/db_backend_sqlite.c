@@ -37,6 +37,7 @@
 #include <sqlite3.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 static int db_backend_sqlite_transaction_rollback(void*);
 
@@ -1055,6 +1056,10 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
 static int db_backend_sqlite_update(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_object_field_t* object_field;
+    const db_object_field_t* revision_field = NULL;
+    const db_clause_t* clause;
+    const db_clause_t* revision_clause = NULL;
+    sqlite3_int64 revision_number = -1;
     const db_value_t* value;
     char sql[4*1024];
     char* sqlp;
@@ -1084,6 +1089,73 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
         return DB_ERROR_UNKNOWN;
     }
 
+    /*
+     * Check if the object has a revision field and keep it for later use.
+     */
+    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    while (object_field) {
+        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+            if (revision_field) {
+                /*
+                 * We do not support multiple revision fields.
+                 */
+                return DB_ERROR_UNKNOWN;
+            }
+
+            revision_field = object_field;
+        }
+        object_field = db_object_field_next(object_field);
+    }
+    if (revision_field) {
+        /*
+         * If we have a revision field we should also have it in the clause,
+         * find it and get the value for later use or return error if not found.
+         */
+        clause = db_clause_list_begin(clause_list);
+        while (clause) {
+            if (!strcmp(db_clause_field(clause), db_object_field_name(revision_field))) {
+                revision_clause = clause;
+                break;
+            }
+            clause = db_clause_next(clause);
+        }
+        if (!revision_clause) {
+            return DB_ERROR_UNKNOWN;
+        }
+        switch (db_value_type(db_clause_value(revision_clause))) {
+        case DB_TYPE_INT32:
+            if (db_value_to_int32(db_clause_value(revision_clause), &int32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            revision_number = int32;
+            break;
+
+        case DB_TYPE_UINT32:
+            if (db_value_to_uint32(db_clause_value(revision_clause), &uint32)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            revision_number = uint32;
+            break;
+
+        case DB_TYPE_INT64:
+            if (db_value_to_int64(db_clause_value(revision_clause), &int64)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            revision_number = int64;
+            break;
+
+        case DB_TYPE_UINT64:
+            if (db_value_to_uint64(db_clause_value(revision_clause), &uint64)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            revision_number = uint64;
+            break;
+
+        default:
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
     left = sizeof(sql);
     sqlp = sql;
 
@@ -1093,6 +1165,9 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
     sqlp += ret;
     left -= ret;
 
+    /*
+     * Build the update SQL from the object_field_list.
+     */
     object_field = db_object_field_list_begin(object_field_list);
     first = 1;
     while (object_field) {
@@ -1113,6 +1188,28 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
         object_field = db_object_field_next(object_field);
     }
 
+    /*
+     * Add a new revision if we have any.
+     */
+    if (revision_field) {
+        if (first) {
+            if ((ret = snprintf(sqlp, left, " %s = ?", db_object_field_name(revision_field))) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            first = 0;
+        }
+        else {
+            if ((ret = snprintf(sqlp, left, ", %s = ?", db_object_field_name(revision_field))) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        sqlp += ret;
+        left -= ret;
+    }
+
+    /*
+     * Build the clauses.
+     */
     if (clause_list) {
         if (db_clause_list_begin(clause_list)) {
             if ((ret = snprintf(sqlp, left, " WHERE")) >= left) {
@@ -1126,6 +1223,9 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
         }
     }
 
+    /*
+     * Prepare the SQL.
+     */
     ret = sqlite3_prepare_v2(backend_sqlite->db,
         sql,
         sizeof(sql),
@@ -1140,6 +1240,9 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
         return DB_ERROR_UNKNOWN;
     }
 
+    /*
+     * Bind all the values from value_set.
+     */
     bind = 1;
     for (value_pos = 0; value_pos < db_value_set_size(value_set); value_pos++) {
         if (!(value = db_value_set_at(value_set, value_pos))) {
@@ -1226,6 +1329,20 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
         }
     }
 
+    /*
+     * Bind the new revision if we have any.
+     */
+    if (revision_field) {
+        ret = sqlite3_bind_int64(statement, bind++, revision_number + 1);
+        if (ret != SQLITE_OK) {
+            sqlite3_finalize(statement);
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
+    /*
+     * Bind the clauses values.
+     */
     if (clause_list) {
         if (__db_backend_sqlite_bind_clause(statement, clause_list, &bind)) {
             sqlite3_finalize(statement);
@@ -1233,6 +1350,9 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
         }
     }
 
+    /*
+     * Execute the SQL.
+     */
     ret = sqlite3_step(statement);
     if (ret == SQLITE_BUSY) {
         ods_log_deeebug("db_backend_sqlite: Database busy, waiting for it...");
@@ -1246,6 +1366,16 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
         return DB_ERROR_UNKNOWN;
     }
 
+    /*
+     * If we are using revision we have to have a positive number of changes
+     * otherwise its a failure.
+     */
+    if (revision_field) {
+        if (sqlite3_changes(backend_sqlite->db) < 1) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
     return DB_OK;
 }
 
@@ -1255,6 +1385,9 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
     char* sqlp;
     int ret, left, bind;
     sqlite3_stmt* statement = NULL;
+    const db_object_field_t* revision_field = NULL;
+    const db_object_field_t* object_field;
+    const db_clause_t* clause;
 
     if (!__sqlite3_initialized) {
         return DB_ERROR_UNKNOWN;
@@ -1264,6 +1397,40 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
     }
     if (!object) {
         return DB_ERROR_UNKNOWN;
+    }
+
+    /*
+     * Check if the object has a revision field and keep it for later use.
+     */
+    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    while (object_field) {
+        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+            if (revision_field) {
+                /*
+                 * We do not support multiple revision fields.
+                 */
+                return DB_ERROR_UNKNOWN;
+            }
+
+            revision_field = object_field;
+        }
+        object_field = db_object_field_next(object_field);
+    }
+    if (revision_field) {
+        /*
+         * If we have a revision field we should also have it in the clause,
+         * find it or return error if not found.
+         */
+        clause = db_clause_list_begin(clause_list);
+        while (clause) {
+            if (!strcmp(db_clause_field(clause), db_object_field_name(revision_field))) {
+                break;
+            }
+            clause = db_clause_next(clause);
+        }
+        if (!clause) {
+            return DB_ERROR_UNKNOWN;
+        }
     }
 
     left = sizeof(sql);
@@ -1321,6 +1488,16 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
     sqlite3_finalize(statement);
     if (ret != SQLITE_DONE) {
         return DB_ERROR_UNKNOWN;
+    }
+
+    /*
+     * If we are using revision we have to have a positive number of changes
+     * otherwise its a failure.
+     */
+    if (revision_field) {
+        if (sqlite3_changes(backend_sqlite->db) < 1) {
+            return DB_ERROR_UNKNOWN;
+        }
     }
 
     return DB_OK;
