@@ -361,7 +361,7 @@ static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_cla
                     return DB_ERROR_UNKNOWN;
                 }
                 to_int = int32;
-                ret = sqlite3_bind_int(statement, *bind++, to_int);
+                ret = sqlite3_bind_int(statement, (*bind)++, to_int);
                 if (ret != SQLITE_OK) {
                     return DB_ERROR_UNKNOWN;
                 }
@@ -372,7 +372,7 @@ static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_cla
                     return DB_ERROR_UNKNOWN;
                 }
                 to_int = uint32;
-                ret = sqlite3_bind_int(statement, *bind++, to_int);
+                ret = sqlite3_bind_int(statement, (*bind)++, to_int);
                 if (ret != SQLITE_OK) {
                     return DB_ERROR_UNKNOWN;
                 }
@@ -383,8 +383,9 @@ static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_cla
                     return DB_ERROR_UNKNOWN;
                 }
                 to_int64 = int64;
-                ret = sqlite3_bind_int64(statement, *bind++, to_int64);
+                ret = sqlite3_bind_int64(statement, (*bind)++, to_int64);
                 if (ret != SQLITE_OK) {
+                    printf("%d\n", ret);
                     return DB_ERROR_UNKNOWN;
                 }
                 break;
@@ -394,14 +395,14 @@ static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_cla
                     return DB_ERROR_UNKNOWN;
                 }
                 to_int64 = uint64;
-                ret = sqlite3_bind_int64(statement, *bind++, to_int64);
+                ret = sqlite3_bind_int64(statement, (*bind)++, to_int64);
                 if (ret != SQLITE_OK) {
                     return DB_ERROR_UNKNOWN;
                 }
                 break;
 
             case DB_TYPE_TEXT:
-                ret = sqlite3_bind_text(statement, *bind++, db_value_text(db_clause_value(clause)), -1, SQLITE_TRANSIENT);
+                ret = sqlite3_bind_text(statement, (*bind)++, db_value_text(db_clause_value(clause)), -1, SQLITE_TRANSIENT);
                 if (ret != SQLITE_OK) {
                     return DB_ERROR_UNKNOWN;
                 }
@@ -411,7 +412,7 @@ static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_cla
                 if (db_value_enum_value(db_clause_value(clause), &to_int)) {
                     return DB_ERROR_UNKNOWN;
                 }
-                ret = sqlite3_bind_int(statement, *bind++, to_int);
+                ret = sqlite3_bind_int(statement, (*bind)++, to_int);
                 if (ret != SQLITE_OK) {
                     return DB_ERROR_UNKNOWN;
                 }
