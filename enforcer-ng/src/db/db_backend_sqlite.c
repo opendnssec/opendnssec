@@ -616,6 +616,7 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
 static int db_backend_sqlite_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_object_field_t* object_field;
+    const db_object_field_t* revision_field = NULL;
     const db_value_t* value;
     char sql[4*1024];
     char* sqlp;
@@ -645,10 +646,28 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
         return DB_ERROR_UNKNOWN;
     }
 
+    /*
+     * Check if the object has a revision field and keep it for later use.
+     */
+    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    while (object_field) {
+        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+            if (revision_field) {
+                /*
+                 * We do not support multiple revision fields.
+                 */
+                return DB_ERROR_UNKNOWN;
+            }
+
+            revision_field = object_field;
+        }
+        object_field = db_object_field_next(object_field);
+    }
+
     left = sizeof(sql);
     sqlp = sql;
 
-    if (!db_object_field_list_begin(object_field_list)) {
+    if (!db_object_field_list_begin(object_field_list) && !revision_field) {
         /*
          * Special case when tables has no fields except maybe a primary key.
          */
@@ -665,6 +684,9 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
         sqlp += ret;
         left -= ret;
 
+        /*
+         * Add the fields from the given object_field_list.
+         */
         object_field = db_object_field_list_begin(object_field_list);
         first = 1;
         while (object_field) {
@@ -685,12 +707,34 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
             object_field = db_object_field_next(object_field);
         }
 
+        /*
+         * Add the revision field if we have one.
+         */
+        if (revision_field) {
+            if (first) {
+                if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(revision_field))) >= left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+                first = 0;
+            }
+            else {
+                if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(revision_field))) >= left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+            }
+            sqlp += ret;
+            left -= ret;
+        }
+
         if ((ret = snprintf(sqlp, left, " ) VALUES (")) >= left) {
             return DB_ERROR_UNKNOWN;
         }
         sqlp += ret;
         left -= ret;
 
+        /*
+         * Mark all the fields for binding from the object_field_list.
+         */
         object_field = db_object_field_list_begin(object_field_list);
         first = 1;
         while (object_field) {
@@ -711,6 +755,25 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
             object_field = db_object_field_next(object_field);
         }
 
+        /*
+         * Mark revision field for binding if we have one.
+         */
+        if (revision_field) {
+            if (first) {
+                if ((ret = snprintf(sqlp, left, " ?")) >= left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+                first = 0;
+            }
+            else {
+                if ((ret = snprintf(sqlp, left, ", ?")) >= left) {
+                    return DB_ERROR_UNKNOWN;
+                }
+            }
+            sqlp += ret;
+            left -= ret;
+        }
+
         if ((ret = snprintf(sqlp, left, " )")) >= left) {
             return DB_ERROR_UNKNOWN;
         }
@@ -718,6 +781,9 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
         left -= ret;
     }
 
+    /*
+     * Prepare the SQL, create a SQLite statement.
+     */
     ret = sqlite3_prepare_v2(backend_sqlite->db,
         sql,
         sizeof(sql),
@@ -732,6 +798,9 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
         return DB_ERROR_UNKNOWN;
     }
 
+    /*
+     * Bind all the values from value_set.
+     */
     bind = 1;
     for (value_pos = 0; value_pos < db_value_set_size(value_set); value_pos++) {
         if (!(value = db_value_set_at(value_set, value_pos))) {
@@ -818,6 +887,20 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
         }
     }
 
+    /*
+     * Bind the revision field value if we have one.
+     */
+    if (revision_field) {
+        ret = sqlite3_bind_int(statement, bind++, 1);
+        if (ret != SQLITE_OK) {
+            sqlite3_finalize(statement);
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
+    /*
+     * Execute the SQL.
+     */
     ret = sqlite3_step(statement);
     while (ret == SQLITE_BUSY) {
         usleep(100);

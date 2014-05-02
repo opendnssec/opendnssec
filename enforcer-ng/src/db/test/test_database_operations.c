@@ -1106,3 +1106,24 @@ void test_database_operations_read_object1_2(void) {
     test2 = NULL;
     CU_PASS("test2_free");
 }
+
+void test_database_operations_create_object2_2(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test2 = test2_new(connection)));
+    CU_ASSERT_FATAL(!test2_set_name(test2, "name 2"));
+    CU_ASSERT(!strcmp(test2_name(test2), "name 2"));
+    CU_ASSERT_FATAL(!test2_create(test2));
+
+    test2_free(test2);
+    test2 = NULL;
+    CU_PASS("test2_free");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test2 = test2_new(connection)));
+    CU_ASSERT_FATAL(!test2_get_by_name(test2, "name 2"));
+    db_value_reset(&object2_id);
+    CU_ASSERT(!db_value_copy(&object2_id, test2_id(test2)));
+    CU_ASSERT(!strcmp(test2_name(test2), "name 2"));
+
+    test2_free(test2);
+    test2 = NULL;
+    CU_PASS("test2_free");
+}
