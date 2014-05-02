@@ -79,7 +79,7 @@ INSERT INTO hsmKey (
     backup
 ) VALUES (
 	1,
-	'foo',
+	'foo3',
 	0,
 	0,
 	'foo',
@@ -107,7 +107,7 @@ INSERT INTO hsmKey (
     backup
 ) VALUES (
 	1,
-	'foo',
+	'foo2',
 	0,
 	0,
 	'foo',
@@ -135,7 +135,7 @@ INSERT INTO hsmKey (
     backup
 ) VALUES (
 	1,
-	'foo',
+	'foo1',
 	0,
 	0,
 	'foo',
