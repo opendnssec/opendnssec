@@ -494,7 +494,7 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
             if (time(NULL) > (busy_begin + statement->backend_sqlite->timeout)) {
                 break;
             }
-            usleep(10000);
+            usleep(DB_BACKEND_SQLITE_BUSY_USLEEP);
             ret = sqlite3_step(statement->statement);
         }
     }
@@ -933,7 +933,7 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
             if (time(NULL) > (busy_begin + backend_sqlite->timeout)) {
                 break;
             }
-            usleep(10000);
+            usleep(DB_BACKEND_SQLITE_BUSY_USLEEP);
             ret = sqlite3_step(statement);
         }
     }
@@ -1386,7 +1386,7 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
             if (time(NULL) > (busy_begin + backend_sqlite->timeout)) {
                 break;
             }
-            usleep(10000);
+            usleep(DB_BACKEND_SQLITE_BUSY_USLEEP);
             ret = sqlite3_step(statement);
         }
     }
@@ -1516,7 +1516,7 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
             if (time(NULL) > (busy_begin + backend_sqlite->timeout)) {
                 break;
             }
-            usleep(10000);
+            usleep(DB_BACKEND_SQLITE_BUSY_USLEEP);
             ret = sqlite3_step(statement);
         }
     }
@@ -1589,7 +1589,7 @@ static int db_backend_sqlite_transaction_begin(void* data) {
             if (time(NULL) > (busy_begin + backend_sqlite->timeout)) {
                 break;
             }
-            usleep(10000);
+            usleep(DB_BACKEND_SQLITE_BUSY_USLEEP);
             ret = sqlite3_step(statement);
         }
     }
@@ -1642,7 +1642,7 @@ static int db_backend_sqlite_transaction_commit(void* data) {
             if (time(NULL) > (busy_begin + backend_sqlite->timeout)) {
                 break;
             }
-            usleep(10000);
+            usleep(DB_BACKEND_SQLITE_BUSY_USLEEP);
             ret = sqlite3_step(statement);
         }
     }
@@ -1695,7 +1695,7 @@ static int db_backend_sqlite_transaction_rollback(void* data) {
             if (time(NULL) > (busy_begin + backend_sqlite->timeout)) {
                 break;
             }
-            usleep(10000);
+            usleep(DB_BACKEND_SQLITE_BUSY_USLEEP);
             ret = sqlite3_step(statement);
         }
     }
