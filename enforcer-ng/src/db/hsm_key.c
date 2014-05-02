@@ -1485,48 +1485,6 @@ int hsm_key_list_get_by_policy_id(hsm_key_list_t* hsm_key_list, const db_value_t
     return DB_OK;
 }
 
-int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list,
-    const char*repository)
-{
-    db_clause_list_t* clause_list;
-    db_clause_t* clause;
-
-    if (!hsm_key_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!hsm_key_list->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!repository) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause_list = db_clause_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "repository")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_text(db_clause_get_value(clause), repository)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (hsm_key_list->result_list) {
-        db_result_list_free(hsm_key_list->result_list);
-    }
-    if (!(hsm_key_list->result_list = db_object_read(hsm_key_list->dbo,
-            NULL, clause_list))) {
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-    db_clause_list_free(clause_list);
-    return DB_OK;
-}
-
 const hsm_key_t* hsm_key_list_begin(hsm_key_list_t* hsm_key_list) {
     const db_result_t* result;
 

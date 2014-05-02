@@ -421,14 +421,6 @@ int hsm_key_list_get(hsm_key_list_t* hsm_key_list);
 int hsm_key_list_get_by_policy_id(hsm_key_list_t* hsm_key_list, const db_value_t* policy_id);
 
 /**
- * Get hsm key objects from the database by a repository specified in `repository`.
- * \param[in] hsm_key_list initialised but empty hms key list.
- * \param[in] repository HSM name.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list, const char* repository);
-
-/**
  * Get the first hsm key object in a hsm key object list. This will reset the position of the list.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  * \return a hsm_key_t pointer or NULL on error or if there are no
