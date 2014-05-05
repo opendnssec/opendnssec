@@ -39,6 +39,13 @@ struct policy_key_list;
 typedef struct policy_key policy_key_t;
 typedef struct policy_key_list policy_key_list_t;
 
+typedef enum policy_key_role {
+    POLICY_KEY_ROLE_INVALID = -1,
+    POLICY_KEY_ROLE_KSK = 0,
+    POLICY_KEY_ROLE_ZSK = 1,
+    POLICY_KEY_ROLE_CSK = 2
+} policy_key_role_t;
+
 #ifdef __cplusplus
 }
 #endif
@@ -59,6 +66,7 @@ struct policy_key {
     db_value_t id;
     db_value_t rev;
     db_value_t policy_id;
+    policy_key_role_t role;
     unsigned int algorithm;
     unsigned int bits;
     unsigned int lifetime;
@@ -126,6 +134,20 @@ const db_value_t* policy_key_policy_id(const policy_key_t* policy_key);
 policy_t* policy_key_get_policy_id(const policy_key_t* policy_key);
 
 /**
+ * Get the role of a policy key object.
+ * \param[in] policy_key a policy_key_t pointer.
+ * \return a policy_key_role_t which may be POLICY_KEY_ROLE_INVALID on error or if no role has been set.
+ */
+policy_key_role_t policy_key_role(const policy_key_t* policy_key);
+
+/**
+ * Get the role as text of a policy key object.
+ * \param[in] policy_key a policy_key_t pointer.
+ * \return a character pointer or NULL on error or if no role has been set.
+ */
+const char* policy_key_role_text(const policy_key_t* policy_key);
+
+/**
  * Get the algorithm of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
  * \return an unsigned integer.
@@ -188,6 +210,22 @@ unsigned int policy_key_minimize(const policy_key_t* policy_key);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_key_set_policy_id(policy_key_t* policy_key, const db_value_t* policy_id);
+
+/**
+ * Set the role of a policy key object.
+ * \param[in] policy_key a policy_key_t pointer.
+ * \param[in] role a policy_key_role_t.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_key_set_role(policy_key_t* policy_key, policy_key_role_t role);
+
+/**
+ * Set the role of a policy key object from text.
+ * \param[in] policy_key a policy_key_t pointer.
+ * \param[in] role a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_key_set_role_text(policy_key_t* policy_key, const char* role);
 
 /**
  * Set the algorithm of a policy key object.

@@ -459,6 +459,7 @@ policy_t* policy_new(const db_connection_t* connection) {
         db_value_reset(&(policy->rev));
         policy->signatures_max_zone_ttl = 86400;
         policy->denial_type = POLICY_DENIAL_TYPE_INVALID;
+        policy->denial_salt = strdup("");
         policy->zone_soa_serial = POLICY_ZONE_SOA_SERIAL_INVALID;
     }
 
@@ -514,7 +515,7 @@ void policy_reset(policy_t* policy) {
         if (policy->denial_salt) {
             free(policy->denial_salt);
         }
-        policy->denial_salt = NULL;
+        policy->denial_salt = strdup("");
         policy->denial_salt_last_change = 0;
         policy->keys_ttl = 0;
         policy->keys_retire_safety = 0;

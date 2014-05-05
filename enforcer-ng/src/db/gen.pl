@@ -662,14 +662,14 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = ', uc($name.'_'.$field
         next;
     }
     if ($field->{type} eq 'DB_TYPE_TEXT') {
-        if ($field->{default}) {
+        if (exists $field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = strdup("', $field->{default}, '");
 ';
         }
         next;
     }
     
-    if ($field->{default}) {
+    if (exists $field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = ', $field->{default}, ';
 ';
     }
@@ -727,7 +727,7 @@ print SOURCE '        if (', $name, '->', $field->{name}, ') {
             free(', $name, '->', $field->{name}, ');
         }
 ';
-        if ($field->{default}) {
+        if (exists $field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = strdup("', $field->{default}, '");
 ';
         }
@@ -738,7 +738,7 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = NULL;
         next;
     }
     
-    if ($field->{default}) {
+    if (exists $field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = ', $field->{default}, ';
 ';
     }
