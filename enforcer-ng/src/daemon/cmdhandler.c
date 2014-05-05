@@ -113,8 +113,8 @@ cmd_funcs_avail(void)
     static struct cmd_func_block* (*fb[])(void) = {
         /* Thoughts has gone into the ordering of this list, it affects 
          * the output of the help command */
-/*
         &update_kasp_funcblock,
+/*
         &update_keyzones_funcblock,
 */        &update_repositorylist_funcblock,
 /*        &update_all_funcblock,

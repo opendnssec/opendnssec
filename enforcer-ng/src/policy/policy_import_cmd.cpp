@@ -63,7 +63,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	(void)cmd; (void)n;
 	int error;
 	ods_log_debug("[%s] %s command", module_str, policy_import_funcblock()->cmdname);
-	if (!perform_update_kasp(sockfd, engine->config)) return 1;
+	/*if (!perform_update_kasp(sockfd, engine->config))*/ return 1;
 
 	error = perform_hsmkey_gen(sockfd, engine->config, 0 /* automatic */,
 		engine->config->automatic_keygen_duration);

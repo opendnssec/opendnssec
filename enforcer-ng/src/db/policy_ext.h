@@ -30,9 +30,14 @@
 #ifndef __policy_ext_h
 #define __policy_ext_h
 
+#include <libxml/tree.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+int policy_create_from_xmlNode(policy_t* policy, xmlNodePtr policy_node);
+int policy_update_from_xmlNode(policy_t* policy, xmlNodePtr policy_node, int* updated);
 
 #ifdef __cplusplus
 }
