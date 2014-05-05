@@ -39,6 +39,9 @@
 #include <string.h> /* strlen(), strcpy() */
 #include <ctype.h> /* isspace() */
 
+#include <unistd.h>
+#include <getopt.h>
+
 static const char *module_str = "str";
 
 int
@@ -190,6 +193,8 @@ const char *ods_check_command(const char *cmd, int cmdsize, const char *scmd)
     return cmd;
 }
 
+/* -1 not found, otherwise index of arg (param is removed from argv)
+ * */
 int ods_find_arg(int *pargc, const char *argv[],
                  const char *longname, const char *shortname)
 {
@@ -216,6 +221,9 @@ int ods_find_arg(int *pargc, const char *argv[],
     return -1;
 }
 
+/**
+ * -1 on not found
+ * */
 int ods_find_arg_and_param(int *pargc, const char *argv[],
                            const char *longname, const char *shortname,
                            const char **pvalue)
@@ -224,7 +232,7 @@ int ods_find_arg_and_param(int *pargc, const char *argv[],
     const char *a;
     int i = ods_find_arg(pargc,argv,longname,shortname);
     if (i<0)
-        return i;
+        return -1;
     a = argv[i];
     /* check that the argv entry is not an option itself. */
     if (a[0] == '-') {
@@ -239,4 +247,3 @@ int ods_find_arg_and_param(int *pargc, const char *argv[],
         argv[j] = argv[j+1];
     return i;
 }
-

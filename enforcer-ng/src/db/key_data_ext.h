@@ -71,6 +71,20 @@ const key_state_t* key_data_get_dnskey2(key_data_t* key_data);
  */
 const key_state_t* key_data_get_rrsigdnskey2(key_data_t* key_data);
 
+/**
+ * Tests if key has KSK role (includes CSK)
+ * \param[in] key_data a key_data_t pointer.
+ * \return 1 if ksk, 0 otherwise or error
+ */
+int key_data_is_ksk(const key_data_t* key_data);
+
+/**
+ * Tests if key has ZSK role (includes CSK)
+ * \param[in] key_data a key_data_t pointer.
+ * \return 1 if zsk, 0 otherwise or error
+ */
+int key_data_is_zsk(const key_data_t* key_data);
+
 #ifdef __cplusplus
 }
 #endif

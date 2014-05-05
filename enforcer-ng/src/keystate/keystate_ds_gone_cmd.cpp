@@ -37,6 +37,8 @@
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
 #include "shared/duration.h"
+#include "db/key_data.h"
+#include "db/zone.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
@@ -51,71 +53,66 @@
 
 static const char *module_str = "keystate_ds_gone_cmd";
 
-static void
-list_keys_retracted(OrmConn conn, int sockfd, const char *datastore)
+static int
+list_keys_retracted(db_connection_t *dbconn, int sockfd)
 {
-	#define LOG_AND_RETURN(errmsg)\
-		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
-	
-	// list all keys that have submitted flag set.
-	client_printf(sockfd,
-			   "Database set to: %s\n"
-			   "List of keys that have been retracted:\n"
-			   "Zone:                           "
-			   "Key role:     "
-			   "Keytag:       "
-			   "Id:                                      "
-			   "\n"
-			   ,datastore
-			   );
-	
-	OrmTransaction transaction(conn);
-	if (!transaction.started())
-		LOG_AND_RETURN("transaction not started");
-	
-	{	OrmResultRef rows;
-		::ods::keystate::EnforcerZone enfzone;
-		if (!OrmMessageEnum(conn,enfzone.descriptor(),rows))
-			LOG_AND_RETURN("zone enumeration failed");
-		
-		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-			
-			if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true))
-				LOG_AND_RETURN("retrieving zone from database failed");
-			
-			for (int k=0; k<enfzone.keys_size(); ++k) {
-				const ::ods::keystate::KeyData &key = enfzone.keys(k);
-				
-				// ZSKs are never trust anchors so skip them.
-				if (key.role() == ::ods::keystate::ZSK)
-					continue;
-				
-				// Skip KSKs with a zero length id, they are placeholder keys.
-				if (key.locator().size()==0)
-					continue;
-				
-				if (key.ds_at_parent()!=::ods::keystate::retracted)
-					continue;
-				
-				std::string keyrole = keyrole_Name(key.role());
-				client_printf(sockfd,
-						   "%-31s %-13s %-13u %-40s\n",
-						   enfzone.name().c_str(),
-						   keyrole.c_str(),
-						   key.keytag(),
-						   key.locator().c_str()
-						   );
-			}
-			
-		}		
+	const char *fmth = "%-31s %-13s %-13s %-40s\n";
+	const char *fmtl = "%-31s %-13s %-13u %-40s\n";
+
+	key_data_list_t *key_list;
+	const key_data_t *key;
+	zone_t *zone;
+
+	if (!(key_list = key_data_list_new(dbconn)))
+		return 10;
+	if (key_data_list_get(key_list)) {
+		key_data_list_free(key_list);
+		return 11;
 	}
-	
-	#undef LOG_AND_RETURN
+	if (!(zone = zone_new(dbconn))) {
+		key_data_list_free(key_list);
+		return 12;
+	}
+
+	/*client_printf(sockfd, "Database set to: %s\n", datastore);*/
+	client_printf(sockfd, "List of keys that have been retracted:\n");
+	client_printf(sockfd, fmth, "Zone:", "Key role:", "Keytag:", "Id:");
+
+	/* This is horrible, we have many of this key_data's!
+	 *
+	 * I want to have something like:
+	 * SELECT zone.name, tag, locator
+	 * FROM key_data
+	 * JOIN zone ON zone.id == zoneid
+	 * WHERE locator IS NOT NULL AND
+	 * 		(role == KSK OR role == CSK) AND
+	 * 		ds_at_parent == KEY_DATA_DS_AT_PARENT_RETRACTED
+	 * */
+
+	for (key = key_data_list_begin(key_list); key;
+		key = key_data_list_next(key_list))
+	{
+		if (!key_data_is_ksk(key)) continue; /* skip ZSK */
+		if (!key_data_locator(key)) continue; /* placeholder */
+		if (key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_RETRACTED)
+			continue;
+
+		if(!zone_get_by_id(zone, key_data_zone_id(key))) {
+			client_printf(sockfd, fmtl, zone_name(zone),
+				key_data_role_text(key), key_data_keytag(key),
+				key_data_locator(key)
+			);
+			zone_reset(zone);
+		}
+	}
+	key_data_list_free(key_list);
+	zone_free(zone);
+	return 0;
 }
 
 static void
 change_keys_retracted_to_unsubmitted(OrmConn conn, int sockfd,
-									 const char *zone, const char *id, uint16_t keytag)
+	const char *zone, const char *id, uint16_t keytag)
 {
 	#define LOG_AND_RETURN(errmsg)\
 		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
@@ -213,21 +210,6 @@ change_keys_retracted_to_unsubmitted(OrmConn conn, int sockfd,
 	#undef LOG_AND_RETURN_1
 }
 
-void 
-perform_keystate_ds_gone(int sockfd, engineconfig_type *config,
-                         const char *zone, const char *id, uint16_t keytag)
-{
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	OrmConnRef conn;
-	if (ods_orm_connect(sockfd, config, conn)) {
-		// list key states with ds-seen state
-		if (!(zone && (id || keytag)))
-			list_keys_retracted(conn, sockfd, config->datastore);
-		else
-			change_keys_retracted_to_unsubmitted(conn, sockfd, zone, id, keytag);
-	}
-}
-
 /**
  * Print help for the 'key list' command
  *
@@ -240,7 +222,6 @@ usage(int sockfd)
 		"                       (This command with no parameters lists eligible keys.)\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
 		"      --keytag <keytag> | --cka_id <CKA_ID>    (aka -x | -k)\n"
-
 	);
 }
 
@@ -254,93 +235,62 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	char buf[ODS_SE_MAXLINE];
-	const int NARGV = 8;
+	#define NARGV 16
 	const char *argv[NARGV];
-	int argc;
-
-	ods_log_debug("[%s] %s command", module_str, key_ds_gone_funcblock()->cmdname);
-	/* consume command */
-	cmd = ods_check_command(cmd, n, key_ds_gone_funcblock()->cmdname);
-
-	// Use buf as an intermediate buffer for the command.
-	strncpy(buf, cmd, sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
-
-	// separate the arguments
-	argc = ods_str_explode(buf, NARGV, argv);
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-						module_str, key_ds_gone_funcblock()->cmdname);
-		client_printf(sockfd,"too many arguments\n");
-		return -1;
-	}
-
-	const char *zone = NULL;
-	const char *cka_id = NULL;
-	const char *keytag = NULL;
-	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-	(void)ods_find_arg_and_param(&argc,argv,"cka_id","k",&cka_id);
-	(void)ods_find_arg_and_param(&argc,argv,"keytag","x",&keytag);
-
-	// Check for unknown parameters on the command line
-	if (argc) {
-		ods_log_warning("[%s] unknown arguments for %s command",
-						module_str, key_ds_gone_funcblock()->cmdname);
-		client_printf(sockfd,"unknown arguments\n");
-		return -1;
-	}
-
-	// Check for too many parameters on the command line
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-						module_str, key_ds_gone_funcblock()->cmdname);
-		client_printf(sockfd,"too many arguments\n");
-		return -1;
-	}
-
-	// Either no option or combi of zone & cka_id or zone & keytag needs to be 
-	// present. But not both cka_id and keytag
+	char buf[ODS_SE_MAXLINE];
+	int have_zone, have_id, have_tag, argc;
+	const char *zone, *cka_id, *keytag;
 	uint16_t nkeytag = 0;
-	if (zone || cka_id || keytag) {
-		if (!zone) {
-			ods_log_warning("[%s] expected option --zone <zone> for %s command",
-							module_str, key_ds_gone_funcblock()->cmdname);
-			client_printf(sockfd,"expected --zone <zone> option\n");
-			return -1;
-		}
-		if (!cka_id && !keytag) {
-			ods_log_warning("[%s] expected option --cka_id <cka_id> or "
-							"--keytag <keytag> for %s command",
-							module_str, key_ds_gone_funcblock()->cmdname);
-			client_printf(sockfd,"expected --cka_id <cka_id> or "
-						   "--keytag <keytag> option\n");
-			return -1;
-		} else {
-			if (cka_id && keytag) {
-				ods_log_warning("[%s] both --cka_id <cka_id> and --keytag <keytag> given, "
-								"please only specify one for %s command",
-								module_str, key_ds_gone_funcblock()->cmdname);
-				client_printf(sockfd,
-							   "both --cka_id <cka_id> and --keytag <keytag> given, "
-							   "please only specify one\n");
-				return -1;
-			}
-		}
-		if (keytag) {
-			int kt = atoi(keytag);
-			if (kt<=0 || kt>=65536) {
-				ods_log_warning("[%s] value \"%s\" for --keytag is invalid",
-								module_str,keytag);
-				client_printf(sockfd,
-							   "value \"%s\" for --keytag is invalid\n",
-							   keytag);
-				return 1;
-			}
-			nkeytag = (uint16_t )kt;
-		}
+	
+	strncpy(buf, cmd, ODS_SE_MAXLINE);
+	argc = ods_str_explode(buf, NARGV, argv);
+	buf[sizeof(buf)-1] = '\0';
+	if (argc > NARGV) {
+		ods_log_warning("[%s] too many arguments for %s command",
+			module_str, cmd);
+		return -1;
 	}
-	perform_keystate_ds_gone(sockfd,engine->config,zone,cka_id,nkeytag);
+	have_zone = (ods_find_arg_and_param(&argc, argv, "zone", "z",
+		&zone) != -1);
+	have_id = (ods_find_arg_and_param(&argc, argv, "cka_id", "k",
+		&cka_id) != -1);
+	have_tag = (ods_find_arg_and_param(&argc, argv, "keytag", "x",
+		&keytag) != -1);
+
+	if (!have_zone && !have_id && !have_tag) {
+		return list_keys_retracted(dbconn, sockfd);
+	} else if (!have_zone) {
+		ods_log_warning("[%s] expected option --zone <zone> for %s command",
+			module_str, key_ds_gone_funcblock()->cmdname);
+		client_printf(sockfd,"expected --zone <zone> option\n");
+		return -1;
+	} else if (!have_id && !have_tag) {
+		ods_log_warning("[%s] expected option --cka_id <cka_id> or "
+			"--keytag <keytag> for %s command",
+			module_str, key_ds_gone_funcblock()->cmdname);
+		client_printf(sockfd,"expected --cka_id <cka_id> or "
+			"--keytag <keytag> option\n");
+		return -1;
+	} else if (have_id && have_tag) {
+		ods_log_warning("[%s] both --cka_id <cka_id> and --keytag <keytag> given, "
+			"please only specify one for %s command",
+			module_str, key_ds_gone_funcblock()->cmdname);
+		client_printf(sockfd,
+			"both --cka_id <cka_id> and --keytag <keytag> given, "
+			"please only specify one\n");
+		return -1;
+	} else if (have_tag) {
+		int kt = atoi(keytag);
+		if (kt <= 0 || kt >= 65536) {
+			ods_log_warning("[%s] value \"%s\" for --keytag is invalid",
+				module_str, keytag);
+			client_printf(sockfd, "value \"%s\" for --keytag is invalid\n",
+				keytag);
+			return -1;
+		}
+		nkeytag = (uint16_t )kt;
+	}
+	//~ change_keys_retracted_to_unsubmitted(conn, sockfd, zone, id, keytag);
 	flush_enforce_task(engine, 0);
 	return 0;
 }

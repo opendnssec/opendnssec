@@ -173,3 +173,21 @@ const key_state_t* key_data_get_rrsigdnskey2(key_data_t* key_data) {
 
     return key_data->key_state_rrsigdnskey;
 }
+
+int key_data_is_ksk(const key_data_t* key_data) {
+    if (!key_data) {
+        return 0;
+    }
+
+    return key_data_role(key_data) == KEY_DATA_ROLE_KSK ||
+        key_data_role(key_data) == KEY_DATA_ROLE_CSK;
+}
+
+int key_data_is_zsk(const key_data_t* key_data) {
+    if (!key_data) {
+        return 0;
+    }
+
+    return key_data_role(key_data) == KEY_DATA_ROLE_ZSK ||
+        key_data_role(key_data) == KEY_DATA_ROLE_CSK;
+}
