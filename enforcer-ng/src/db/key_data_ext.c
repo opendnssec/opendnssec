@@ -192,10 +192,9 @@ int key_data_is_zsk(const key_data_t* key_data) {
         key_data_role(key_data) == KEY_DATA_ROLE_CSK;
 }
 
-int key_data_list_get_for_ds_gone(key_data_list_t* key_data_list,
-    const db_value_t* zone_id, key_data_role_t role,
-    key_data_ds_at_parent_t ds_at_parent, const char* locator,
-    unsigned int keytag)
+int key_data_list_get_for_ds(key_data_list_t* key_data_list,
+    const db_value_t* zone_id, key_data_ds_at_parent_t ds_at_parent,
+    const char* locator, unsigned int keytag)
 {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
@@ -228,8 +227,8 @@ int key_data_list_get_for_ds_gone(key_data_list_t* key_data_list,
     }
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "role")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_enum_value(db_clause_get_value(clause), role, key_data_enum_set_role)
+        || db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL)
+        || db_value_from_enum_value(db_clause_get_value(clause), KEY_DATA_ROLE_ZSK, key_data_enum_set_role)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

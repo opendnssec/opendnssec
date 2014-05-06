@@ -86,21 +86,19 @@ int key_data_is_ksk(const key_data_t* key_data);
 int key_data_is_zsk(const key_data_t* key_data);
 
 /**
- * Get key data objects from the database for the ds gone command. Theses are
+ * Get key data objects from the database for the ds commands. Theses are
  * filtered by `zone_id`, `role`, `ds_at_parent` and either `locator` or
  * `keytag`.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \param[in] zone_id a db_value_t pointer.
- * \param[in] role a key_data_role_t.
  * \param[in] ds_at_parent a key_data_ds_at_parent_t.
  * \param[in] locator a character pointer.
  * \param[in] keytag an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_list_get_for_ds_gone(key_data_list_t* key_data_list,
-    const db_value_t* zone_id, key_data_role_t role,
-    key_data_ds_at_parent_t ds_at_parent, const char* locator,
-    unsigned int keytag);
+int key_data_list_get_for_ds(key_data_list_t* key_data_list,
+    const db_value_t* zone_id, key_data_ds_at_parent_t ds_at_parent,
+    const char* locator, unsigned int keytag);
 
 #ifdef __cplusplus
 }
