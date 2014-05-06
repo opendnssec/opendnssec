@@ -78,22 +78,12 @@ list_keys_retracted(db_connection_t *dbconn, int sockfd)
 	client_printf(sockfd, "List of keys that have been retracted:\n");
 	client_printf(sockfd, fmth, "Zone:", "Key role:", "Keytag:", "Id:");
 
-	/* This is horrible, we have many of this key_data's!
-	 *
-	 * I want to have something like:
-	 * SELECT zone.name, tag, locator
-	 * FROM key_data
-	 * JOIN zone ON zone.id == zoneid
-	 * WHERE locator IS NOT NULL AND
-	 * 		(role == KSK OR role == CSK) AND
-	 * 		ds_at_parent == KEY_DATA_DS_AT_PARENT_RETRACTED
-	 * */
-
+	/* We should consider filtering this in the DB. */
 	for (key = key_data_list_begin(key_list); key;
 		key = key_data_list_next(key_list))
 	{
 		if (!key_data_is_ksk(key)) continue; /* skip ZSK */
-		if (!key_data_locator(key)) continue; /* placeholder */
+		if (!key_data_locator(key)) continue; /* placeholder key */
 		if (key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_RETRACTED)
 			continue;
 
@@ -110,104 +100,86 @@ list_keys_retracted(db_connection_t *dbconn, int sockfd)
 	return 0;
 }
 
-static void
-change_keys_retracted_to_unsubmitted(OrmConn conn, int sockfd,
-	const char *zone, const char *id, uint16_t keytag)
+static int
+change_keys_retracted_to_unsubmitted(db_connection_t *dbconn, int sockfd,
+	const char *zonename, const char *id, uint16_t keytag)
 {
-	#define LOG_AND_RETURN(errmsg)\
-		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return;}while(0)
-	#define LOG_AND_RETURN_1(errmsg,p)\
-		do{ods_log_error_and_printf(sockfd,module_str,errmsg,p);return;}while(0)
-	
-	OrmTransactionRW transaction(conn);
-	if (!transaction.started())
-		LOG_AND_RETURN("transaction not started");
-	
-	std::string qzone;
-	if (!OrmQuoteStringValue(conn, std::string(zone), qzone))
-		LOG_AND_RETURN("quoting string value failed");
-	
-	{	OrmResultRef rows;
-		::ods::keystate::EnforcerZone enfzone;
-		if (!OrmMessageEnumWhere(conn,enfzone.descriptor(),
-								 rows,"name = %s",qzone.c_str()))
-			LOG_AND_RETURN("zone enumeration failed");
-		
-		if (!OrmFirst(rows))
-			LOG_AND_RETURN_1("zone %s not found",zone);
-		
-		OrmContextRef context;
-		if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
-			LOG_AND_RETURN("retrieving zone from database failed");
-		
-		// we no longer need the query result, so release it.
-		rows.release();
-		
-		// Try to change the state of a specific 'retracted' key to 'unsubmitted'.
-		bool bKeyStateMatched = false;
-		bool bZoneModified = false;
-		for (int k=0; k<enfzone.keys_size(); ++k) {
-			const ::ods::keystate::KeyData &key = enfzone.keys(k);
-			
-			// ZSKs are never trust anchors so skip them.
-			if (key.role() == ::ods::keystate::ZSK)
-				continue;
-			
-			// Skip KSKs with a zero length id, they are placeholder keys.
-			if (key.locator().size()==0)
-				continue;
-			
-			if ((id && key.locator()==id) || (keytag && key.keytag()==keytag)) {
-				bKeyStateMatched = true;
-				
-				if (key.ds_at_parent()!=::ods::keystate::retracted) {
-					client_printf(sockfd,
-							   "Key that matches id \"%s\" in zone "
-							   "\"%s\" is not retracted but %s\n",
-							   key.locator().c_str(), zone,
-							   dsatparent_Name(key.ds_at_parent()).c_str());
-					break;
-				}
-				
-				enfzone.mutable_keys(k)->set_ds_at_parent(::ods::keystate::unsubmitted);
-				enfzone.set_next_change(0); // reschedule immediately
-				bZoneModified = true;
-			}
+	key_data_list_t *key_list;
+	const key_data_t *key;
+	key_data_t *rw_key;
+	zone_t *zone;
+	int status = 0, key_match = 0, key_mod = 0;
+
+	if (!(key_list = key_data_list_new(dbconn))) {
+		return 10;
+	} else if (!(zone = zone_new(dbconn))) {
+		key_data_list_free(key_list);
+		return 12;
+	} else if (zone_get_by_name(zone, zonename)){
+		zone_free(zone);
+		key_data_list_free(key_list);
+		return 13;
+	} else if (!(key_list = zone_get_keys(zone))) {
+		zone_free(zone);
+		key_data_list_free(key_list);
+		return 14;
+	}
+
+	/* We should consider filtering this in the DB. */
+	for (key = key_data_list_begin(key_list); key;
+		key = key_data_list_next(key_list))
+	{
+		/* Filter conditions */
+		if (!key_data_is_ksk(key)) continue; /* skip ZSK */
+		if (!key_data_locator(key)) continue; /* placeholder key */
+		if (key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_RETRACTED)
+			continue;
+		if ((id && strcmp(key_data_locator(key), id) != 0) ||
+			key_data_keytag(key) != keytag) continue;
+
+		key_match = 1;
+
+		/* error conditions */
+		if (key_data_copy(rw_key, key)) {
+			ods_log_error("[%s] db error", module_str);
+			break;
 		}
-		
-		// Report back the status of the operation.
-		if (!bKeyStateMatched) {
-			if (id)
-				client_printf(sockfd,
-						   "No KSK key matches id \"%s\" in zone \"%s\"\n",
-						   id,
-						   zone);
-			else
-				client_printf(sockfd,
-						   "No KSK key matches keytag \"%u\" in zone \"%s\"\n",
-						   keytag,
-						   zone);
+		if (key_data_set_ds_at_parent(rw_key,
+			KEY_DATA_DS_AT_PARENT_UNSUBMITTED) ||
+			key_data_update(rw_key))
+		{
+			ods_log_error("[%s] db error", module_str);
+			break;
+		}
+		key_mod = 1;
+		key_data_reset(rw_key);
+	}
+	key_data_list_free(key_list);
+
+	if (!key_match) {
+		status = 1;
+		if (id) {
+			client_printf(sockfd, "No KSK key matches id \"%s\" in "
+				"zone \"%s\"\n", id, zone);
 		} else {
-			if (bZoneModified) {
-				// Update key states for the zone in the database.
-				if (!OrmMessageUpdate(context))
-					LOG_AND_RETURN_1("unable to update zone %s in the database",zone);
-				
-				// Commit updated records to the database.
-				if (!transaction.commit())
-					LOG_AND_RETURN_1("unable to commit updated zone %s to the database",zone);
-				
-				ods_log_debug("[%s] key states have been updated",module_str);
-				client_printf(sockfd,"update of key states completed.\n");
-			} else {
-				ods_log_debug("[%s] key states are unchanged",module_str);
-				client_printf(sockfd,"key states are unchanged\n");
-			}
+			client_printf(sockfd, "No KSK key matches keytag \"%u\" in "
+				"zone \"%s\"\n", keytag, zone);
+		}
+	} else if (!key_mod) {
+		status = 2;
+		ods_log_debug("[%s] key states are unchanged",module_str);
+		client_printf(sockfd,"key states are unchanged\n");
+	} else {
+		ods_log_debug("[%s] key states have been updated",module_str);
+		client_printf(sockfd,"update of key states completed.\n");
+		if (zone_set_next_change(zone, 0) || zone_update(zone)) {
+			ods_log_error("[%s] error updating zone in DB.", module_str);
+			status = 3;
 		}
 	}
-	
-	#undef LOG_AND_RETURN
-	#undef LOG_AND_RETURN_1
+
+	zone_free(zone);
+	return status;
 }
 
 /**
@@ -238,7 +210,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	#define NARGV 16
 	const char *argv[NARGV];
 	char buf[ODS_SE_MAXLINE];
-	int have_zone, have_id, have_tag, argc;
+	int have_zone, have_id, have_tag, argc, error;
 	const char *zone, *cka_id, *keytag;
 	uint16_t nkeytag = 0;
 	
@@ -290,9 +262,12 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		}
 		nkeytag = (uint16_t )kt;
 	}
-	//~ change_keys_retracted_to_unsubmitted(conn, sockfd, zone, id, keytag);
-	flush_enforce_task(engine, 0);
-	return 0;
+	error = change_keys_retracted_to_unsubmitted(dbconn, sockfd, zone,
+		cka_id, nkeytag);
+	if (!error) {
+		flush_enforce_task(engine, 0);
+	}
+	return error;
 }
 
 static struct cmd_func_block funcblock = {
