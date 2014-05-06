@@ -194,7 +194,7 @@ int key_data_is_zsk(const key_data_t* key_data) {
 
 int key_data_list_get_for_ds(key_data_list_t* key_data_list,
     const db_value_t* zone_id, key_data_ds_at_parent_t ds_at_parent,
-    const char* locator, unsigned int keytag)
+    const char* locator, int keytag)
 {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
@@ -257,7 +257,7 @@ int key_data_list_get_for_ds(key_data_list_t* key_data_list,
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (keytag) {
+    if (keytag >= 0) {
         if (!(clause = db_clause_new())
             || db_clause_set_field(clause, "keytag")
             || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
