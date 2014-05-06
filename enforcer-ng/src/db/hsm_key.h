@@ -30,6 +30,8 @@
 #ifndef __hsm_key_h
 #define __hsm_key_h
 
+#include "db_object.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,6 +47,7 @@ typedef enum hsm_key_role {
     HSM_KEY_ROLE_ZSK = 1,
     HSM_KEY_ROLE_CSK = 2
 } hsm_key_role_t;
+extern const db_enum_t hsm_key_enum_set_role[];
 
 typedef enum hsm_key_backup {
     HSM_KEY_BACKUP_INVALID = -1,
@@ -53,12 +56,12 @@ typedef enum hsm_key_backup {
     HSM_KEY_BACKUP_BACKUP_REQUESTED = 2,
     HSM_KEY_BACKUP_BACKUP_DONE = 3
 } hsm_key_backup_t;
+extern const db_enum_t hsm_key_enum_set_backup[];
 
 #ifdef __cplusplus
 }
 #endif
 
-#include "db_object.h"
 #include "hsm_key_ext.h"
 #include "policy.h"
 

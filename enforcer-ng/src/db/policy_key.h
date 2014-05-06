@@ -30,6 +30,8 @@
 #ifndef __policy_key_h
 #define __policy_key_h
 
+#include "db_object.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,12 +47,12 @@ typedef enum policy_key_role {
     POLICY_KEY_ROLE_ZSK = 1,
     POLICY_KEY_ROLE_CSK = 2
 } policy_key_role_t;
+extern const db_enum_t policy_key_enum_set_role[];
 
 #ifdef __cplusplus
 }
 #endif
 
-#include "db_object.h"
 #include "policy_key_ext.h"
 #include "policy.h"
 
@@ -103,6 +105,16 @@ void policy_key_reset(policy_key_t* policy_key);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_key_copy(policy_key_t* policy_key, const policy_key_t* policy_key_copy);
+
+/**
+ * Compare two policy key objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] policy_key_a a policy_key_t pointer.
+ * \param[in] policy_key_b a policy_key_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_key_cmp(const policy_key_t* policy_key_a, const policy_key_t* policy_key_b);
 
 /**
  * Set the content of a policy key object based on a database result.

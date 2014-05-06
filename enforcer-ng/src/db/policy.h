@@ -30,6 +30,8 @@
 #ifndef __policy_h
 #define __policy_h
 
+#include "db_object.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -44,6 +46,7 @@ typedef enum policy_denial_type {
     POLICY_DENIAL_TYPE_NSEC = 0,
     POLICY_DENIAL_TYPE_NSEC3 = 1
 } policy_denial_type_t;
+extern const db_enum_t policy_enum_set_denial_type[];
 
 typedef enum policy_zone_soa_serial {
     POLICY_ZONE_SOA_SERIAL_INVALID = -1,
@@ -52,12 +55,12 @@ typedef enum policy_zone_soa_serial {
     POLICY_ZONE_SOA_SERIAL_UNIXTIME = 2,
     POLICY_ZONE_SOA_SERIAL_KEEP = 3
 } policy_zone_soa_serial_t;
+extern const db_enum_t policy_enum_set_zone_soa_serial[];
 
 #ifdef __cplusplus
 }
 #endif
 
-#include "db_object.h"
 #include "policy_ext.h"
 
 #ifdef __cplusplus

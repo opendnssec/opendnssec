@@ -34,7 +34,7 @@
 
 #include <string.h>
 
-static const db_enum_t __enum_set_role[] = {
+const db_enum_t policy_key_enum_set_role[] = {
     { "KSK", (policy_key_role_t)POLICY_KEY_ROLE_KSK },
     { "ZSK", (policy_key_role_t)POLICY_KEY_ROLE_ZSK },
     { "CSK", (policy_key_role_t)POLICY_KEY_ROLE_CSK },
@@ -97,7 +97,7 @@ static db_object_t* __policy_key_new_object(const db_connection_t* connection) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "role")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_role)
+        || db_object_field_set_enum_set(object_field, policy_key_enum_set_role)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -307,6 +307,73 @@ int policy_key_copy(policy_key_t* policy_key, const policy_key_t* policy_key_cop
     return DB_OK;
 }
 
+int policy_key_cmp(const policy_key_t* policy_key_a, const policy_key_t* policy_key_b) {
+    int ret;
+
+    if (!policy_key_a && !policy_key_b) {
+        return 0;
+    }
+    if (!policy_key_a && policy_key_b) {
+        return -1;
+    }
+    if (policy_key_a && !policy_key_b) {
+        return 1;
+    }
+
+    ret = 0;
+    db_value_cmp(&(policy_key_a->policy_id), &(policy_key_b->policy_id), &ret);
+    if (ret) {
+        return ret;
+    }
+
+    if (policy_key_a->role != policy_key_b->role) {
+        return policy_key_a->role < policy_key_b->role ? -1 : 1;
+    }
+
+    if (policy_key_a->algorithm != policy_key_b->algorithm) {
+        return policy_key_a->algorithm < policy_key_b->algorithm ? -1 : 1;
+    }
+
+    if (policy_key_a->bits != policy_key_b->bits) {
+        return policy_key_a->bits < policy_key_b->bits ? -1 : 1;
+    }
+
+    if (policy_key_a->lifetime != policy_key_b->lifetime) {
+        return policy_key_a->lifetime < policy_key_b->lifetime ? -1 : 1;
+    }
+
+    if (policy_key_a->repository && policy_key_b->repository) {
+        if ((ret = strcmp(policy_key_a->repository, policy_key_b->repository))) {
+            return ret;
+        }
+    }
+    else {
+        if (!policy_key_a->repository && policy_key_b->repository) {
+            return -1;
+        }
+        if (policy_key_a->repository && !policy_key_b->repository) {
+            return -1;
+        }
+    }
+
+    if (policy_key_a->standby != policy_key_b->standby) {
+        return policy_key_a->standby < policy_key_b->standby ? -1 : 1;
+    }
+
+    if (policy_key_a->manual_rollover != policy_key_b->manual_rollover) {
+        return policy_key_a->manual_rollover < policy_key_b->manual_rollover ? -1 : 1;
+    }
+
+    if (policy_key_a->rfc5011 != policy_key_b->rfc5011) {
+        return policy_key_a->rfc5011 < policy_key_b->rfc5011 ? -1 : 1;
+    }
+
+    if (policy_key_a->minimize != policy_key_b->minimize) {
+        return policy_key_a->minimize < policy_key_b->minimize ? -1 : 1;
+    }
+    return 0;
+}
+
 int policy_key_from_result(policy_key_t* policy_key, const db_result_t* result) {
     const db_value_set_t* value_set;
     int role;
@@ -330,7 +397,7 @@ int policy_key_from_result(policy_key_t* policy_key, const db_result_t* result) 
         || db_value_copy(&(policy_key->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(policy_key->rev), db_value_set_at(value_set, 1))
         || db_value_copy(&(policy_key->policy_id), db_value_set_at(value_set, 2))
-        || db_value_to_enum_value(db_value_set_at(value_set, 3), &role, __enum_set_role)
+        || db_value_to_enum_value(db_value_set_at(value_set, 3), &role, policy_key_enum_set_role)
         || db_value_to_uint32(db_value_set_at(value_set, 4), &(policy_key->algorithm))
         || db_value_to_uint32(db_value_set_at(value_set, 5), &(policy_key->bits))
         || db_value_to_uint32(db_value_set_at(value_set, 6), &(policy_key->lifetime))
@@ -408,7 +475,7 @@ policy_key_role_t policy_key_role(const policy_key_t* policy_key) {
 }
 
 const char* policy_key_role_text(const policy_key_t* policy_key) {
-    const db_enum_t* enum_set = __enum_set_role;
+    const db_enum_t* enum_set = policy_key_enum_set_role;
 
     if (!policy_key) {
         return NULL;
@@ -517,7 +584,7 @@ int policy_key_set_role(policy_key_t* policy_key, policy_key_role_t role) {
 }
 
 int policy_key_set_role_text(policy_key_t* policy_key, const char* role) {
-    const db_enum_t* enum_set = __enum_set_role;
+    const db_enum_t* enum_set = policy_key_enum_set_role;
 
     if (!policy_key) {
         return DB_ERROR_UNKNOWN;
@@ -668,7 +735,7 @@ int policy_key_create(policy_key_t* policy_key) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "role")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_role)
+        || db_object_field_set_enum_set(object_field, policy_key_enum_set_role)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -762,7 +829,7 @@ int policy_key_create(policy_key_t* policy_key) {
     }
 
     if (db_value_copy(db_value_set_get(value_set, 0), &(policy_key->policy_id))
-        || db_value_from_enum_value(db_value_set_get(value_set, 1), policy_key->role, __enum_set_role)
+        || db_value_from_enum_value(db_value_set_get(value_set, 1), policy_key->role, policy_key_enum_set_role)
         || db_value_from_uint32(db_value_set_get(value_set, 2), policy_key->algorithm)
         || db_value_from_uint32(db_value_set_get(value_set, 3), policy_key->bits)
         || db_value_from_uint32(db_value_set_get(value_set, 4), policy_key->lifetime)
@@ -881,7 +948,7 @@ int policy_key_update(policy_key_t* policy_key) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "role")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_role)
+        || db_object_field_set_enum_set(object_field, policy_key_enum_set_role)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -975,7 +1042,7 @@ int policy_key_update(policy_key_t* policy_key) {
     }
 
     if (db_value_copy(db_value_set_get(value_set, 0), &(policy_key->policy_id))
-        || db_value_from_enum_value(db_value_set_get(value_set, 1), policy_key->role, __enum_set_role)
+        || db_value_from_enum_value(db_value_set_get(value_set, 1), policy_key->role, policy_key_enum_set_role)
         || db_value_from_uint32(db_value_set_get(value_set, 2), policy_key->algorithm)
         || db_value_from_uint32(db_value_set_get(value_set, 3), policy_key->bits)
         || db_value_from_uint32(db_value_set_get(value_set, 4), policy_key->lifetime)

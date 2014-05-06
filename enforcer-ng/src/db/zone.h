@@ -30,6 +30,8 @@
 #ifndef __zone_h
 #define __zone_h
 
+#include "db_object.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,7 +45,6 @@ typedef struct zone_list zone_list_t;
 }
 #endif
 
-#include "db_object.h"
 #include "zone_ext.h"
 #include "policy.h"
 

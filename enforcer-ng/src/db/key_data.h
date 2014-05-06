@@ -30,6 +30,8 @@
 #ifndef __key_data_h
 #define __key_data_h
 
+#include "db_object.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,6 +47,7 @@ typedef enum key_data_role {
     KEY_DATA_ROLE_ZSK = 1,
     KEY_DATA_ROLE_CSK = 2
 } key_data_role_t;
+extern const db_enum_t key_data_enum_set_role[];
 
 typedef enum key_data_ds_at_parent {
     KEY_DATA_DS_AT_PARENT_INVALID = -1,
@@ -55,12 +58,12 @@ typedef enum key_data_ds_at_parent {
     KEY_DATA_DS_AT_PARENT_RETRACT = 4,
     KEY_DATA_DS_AT_PARENT_RETRACTED = 5
 } key_data_ds_at_parent_t;
+extern const db_enum_t key_data_enum_set_ds_at_parent[];
 
 #ifdef __cplusplus
 }
 #endif
 
-#include "db_object.h"
 #include "key_data_ext.h"
 #include "zone.h"
 #include "hsm_key.h"

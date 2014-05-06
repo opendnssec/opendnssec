@@ -30,6 +30,8 @@
 #ifndef __database_version_h
 #define __database_version_h
 
+#include "db_object.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,7 +45,6 @@ typedef struct database_version_list database_version_list_t;
 }
 #endif
 
-#include "db_object.h"
 #include "database_version_ext.h"
 
 #ifdef __cplusplus

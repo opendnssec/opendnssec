@@ -105,6 +105,8 @@ open(HEADER, '>:encoding(UTF-8)', $name.'.h') or die;
 #ifndef __', $name, '_h
 #define __', $name, '_h
 
+#include "db_object.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -130,6 +132,7 @@ foreach my $field (@{$object->{fields}}) {
     
     print HEADER '
 } ', $name, '_', $field->{name}, '_t;
+extern const db_enum_t ', $name, '_enum_set_', $field->{name}, '[];
 
 ';
 }
@@ -138,7 +141,6 @@ print HEADER '#ifdef __cplusplus
 }
 #endif
 
-#include "db_object.h"
 #include "', $name, '_ext.h"
 ';
 my %included = ();
@@ -579,7 +581,7 @@ foreach my $field (@{$object->{fields}}) {
     }
 
 print SOURCE
-'static const db_enum_t __enum_set_', $field->{name}, '[] = {
+'const db_enum_t ', $name, '_enum_set_', $field->{name}, '[] = {
 ';
     foreach my $enum (@{$field->{enum}}) {
 print SOURCE '    { "', $enum->{text}, '", (', $name, '_', $field->{name}, '_t)', uc($name.'_'.$field->{name}), '_', $enum->{name}, ' },
@@ -618,7 +620,7 @@ print SOURCE '    if (!(object_field = db_object_field_new())
         || db_object_field_set_type(object_field, ', $field->{type}, ')
 ';
 if ($field->{type} eq 'DB_TYPE_ENUM') {
-    print SOURCE '        || db_object_field_set_enum_set(object_field, __enum_set_', $field->{name}, ')
+    print SOURCE '        || db_object_field_set_enum_set(object_field, ', $name, '_enum_set_', $field->{name}, ')
 ';
 }
 print SOURCE '        || db_object_field_list_add(object_field_list, object_field))
@@ -924,7 +926,7 @@ print SOURCE '
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
 print SOURCE '
-        || db_value_to_enum_value(db_value_set_at(value_set, ', $count++, '), &', $field->{name}, ', __enum_set_', $field->{name}, ')';
+        || db_value_to_enum_value(db_value_set_at(value_set, ', $count++, '), &', $field->{name}, ', ', $name, '_enum_set_', $field->{name}, ')';
         next;
     }
 print SOURCE '
@@ -1015,7 +1017,7 @@ print SOURCE $name, '_', $field->{name}, '_t ', $name, '_', $field->{name}, '(co
 }
 
 const char* ', $name, '_', $field->{name}, '_text(const ', $name, '_t* ', $name, ') {
-    const db_enum_t* enum_set = __enum_set_', $field->{name}, ';
+    const db_enum_t* enum_set = ', $name, '_enum_set_', $field->{name}, ';
 
     if (!', $name, ') {
         return NULL;
@@ -1073,7 +1075,7 @@ print SOURCE 'int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, 
 }
 
 int ', $name, '_set_', $field->{name}, '_text(', $name, '_t* ', $name, ', const char* ', $field->{name}, ') {
-    const db_enum_t* enum_set = __enum_set_', $field->{name}, ';
+    const db_enum_t* enum_set = ', $name, '_enum_set_', $field->{name}, ';
 
     if (!', $name, ') {
         return DB_ERROR_UNKNOWN;
@@ -1211,7 +1213,7 @@ print SOURCE '    if (!(object_field = db_object_field_new())
         || db_object_field_set_type(object_field, ', $field->{type}, ')
 ';
 if ($field->{type} eq 'DB_TYPE_ENUM') {
-    print SOURCE '        || db_object_field_set_enum_set(object_field, __enum_set_', $field->{name}, ')
+    print SOURCE '        || db_object_field_set_enum_set(object_field, ', $name, '_enum_set_', $field->{name}, ')
 ';
 }
 print SOURCE '        || db_object_field_list_add(object_field_list, object_field))
@@ -1245,7 +1247,7 @@ foreach my $field (@{$object->{fields}}) {
         || ';
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
-print SOURCE 'db_value_from_enum_value(db_value_set_get(value_set, ', $count++, '), ', $name, '->', $field->{name}, ', __enum_set_', $field->{name}, ')';
+print SOURCE 'db_value_from_enum_value(db_value_set_get(value_set, ', $count++, '), ', $name, '->', $field->{name}, ', ', $name, '_enum_set_', $field->{name}, ')';
         next;
     }
     if ($field->{foreign}) {
@@ -1441,7 +1443,7 @@ print SOURCE '    if (!(object_field = db_object_field_new())
         || db_object_field_set_type(object_field, ', $field->{type}, ')
 ';
 if ($field->{type} eq 'DB_TYPE_ENUM') {
-    print SOURCE '        || db_object_field_set_enum_set(object_field, __enum_set_', $field->{name}, ')
+    print SOURCE '        || db_object_field_set_enum_set(object_field, ', $name, '_enum_set_', $field->{name}, ')
 ';
 }
 print SOURCE '        || db_object_field_list_add(object_field_list, object_field))
@@ -1475,7 +1477,7 @@ foreach my $field (@{$object->{fields}}) {
         || ';
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
-print SOURCE 'db_value_from_enum_value(db_value_set_get(value_set, ', $count++, '), ', $name, '->', $field->{name}, ', __enum_set_', $field->{name}, ')';
+print SOURCE 'db_value_from_enum_value(db_value_set_get(value_set, ', $count++, '), ', $name, '->', $field->{name}, ', ', $name, '_enum_set_', $field->{name}, ')';
         next;
     }
     if ($field->{foreign}) {

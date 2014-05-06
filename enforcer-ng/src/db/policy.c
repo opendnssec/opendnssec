@@ -34,13 +34,13 @@
 
 #include <string.h>
 
-static const db_enum_t __enum_set_denial_type[] = {
+const db_enum_t policy_enum_set_denial_type[] = {
     { "NSEC", (policy_denial_type_t)POLICY_DENIAL_TYPE_NSEC },
     { "NSEC3", (policy_denial_type_t)POLICY_DENIAL_TYPE_NSEC3 },
     { NULL, 0 }
 };
 
-static const db_enum_t __enum_set_zone_soa_serial[] = {
+const db_enum_t policy_enum_set_zone_soa_serial[] = {
     { "counter", (policy_zone_soa_serial_t)POLICY_ZONE_SOA_SERIAL_COUNTER },
     { "datecounter", (policy_zone_soa_serial_t)POLICY_ZONE_SOA_SERIAL_DATECOUNTER },
     { "unixtime", (policy_zone_soa_serial_t)POLICY_ZONE_SOA_SERIAL_UNIXTIME },
@@ -192,7 +192,7 @@ static db_object_t* __policy_new_object(const db_connection_t* connection) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "denialType")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_denial_type)
+        || db_object_field_set_enum_set(object_field, policy_enum_set_denial_type)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -380,7 +380,7 @@ static db_object_t* __policy_new_object(const db_connection_t* connection) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "zoneSoaSerial")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_zone_soa_serial)
+        || db_object_field_set_enum_set(object_field, policy_enum_set_zone_soa_serial)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -843,7 +843,7 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 8), &(policy->signatures_validity_default))
         || db_value_to_uint32(db_value_set_at(value_set, 9), &(policy->signatures_validity_denial))
         || db_value_to_uint32(db_value_set_at(value_set, 10), &(policy->signatures_max_zone_ttl))
-        || db_value_to_enum_value(db_value_set_at(value_set, 11), &denial_type, __enum_set_denial_type)
+        || db_value_to_enum_value(db_value_set_at(value_set, 11), &denial_type, policy_enum_set_denial_type)
         || db_value_to_uint32(db_value_set_at(value_set, 12), &(policy->denial_optout))
         || db_value_to_uint32(db_value_set_at(value_set, 13), &(policy->denial_ttl))
         || db_value_to_uint32(db_value_set_at(value_set, 14), &(policy->denial_resalt))
@@ -860,7 +860,7 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 25), &(policy->zone_propagation_delay))
         || db_value_to_uint32(db_value_set_at(value_set, 26), &(policy->zone_soa_ttl))
         || db_value_to_uint32(db_value_set_at(value_set, 27), &(policy->zone_soa_minimum))
-        || db_value_to_enum_value(db_value_set_at(value_set, 28), &zone_soa_serial, __enum_set_zone_soa_serial)
+        || db_value_to_enum_value(db_value_set_at(value_set, 28), &zone_soa_serial, policy_enum_set_zone_soa_serial)
         || db_value_to_uint32(db_value_set_at(value_set, 29), &(policy->parent_propagation_delay))
         || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_ds_ttl))
         || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_soa_ttl))
@@ -987,7 +987,7 @@ policy_denial_type_t policy_denial_type(const policy_t* policy) {
 }
 
 const char* policy_denial_type_text(const policy_t* policy) {
-    const db_enum_t* enum_set = __enum_set_denial_type;
+    const db_enum_t* enum_set = policy_enum_set_denial_type;
 
     if (!policy) {
         return NULL;
@@ -1139,7 +1139,7 @@ policy_zone_soa_serial_t policy_zone_soa_serial(const policy_t* policy) {
 }
 
 const char* policy_zone_soa_serial_text(const policy_t* policy) {
-    const db_enum_t* enum_set = __enum_set_zone_soa_serial;
+    const db_enum_t* enum_set = policy_enum_set_zone_soa_serial;
 
     if (!policy) {
         return NULL;
@@ -1311,7 +1311,7 @@ int policy_set_denial_type(policy_t* policy, policy_denial_type_t denial_type) {
 }
 
 int policy_set_denial_type_text(policy_t* policy, const char* denial_type) {
-    const db_enum_t* enum_set = __enum_set_denial_type;
+    const db_enum_t* enum_set = policy_enum_set_denial_type;
 
     if (!policy) {
         return DB_ERROR_UNKNOWN;
@@ -1510,7 +1510,7 @@ int policy_set_zone_soa_serial(policy_t* policy, policy_zone_soa_serial_t zone_s
 }
 
 int policy_set_zone_soa_serial_text(policy_t* policy, const char* zone_soa_serial) {
-    const db_enum_t* enum_set = __enum_set_zone_soa_serial;
+    const db_enum_t* enum_set = policy_enum_set_zone_soa_serial;
 
     if (!policy) {
         return DB_ERROR_UNKNOWN;
@@ -1692,7 +1692,7 @@ int policy_create(policy_t* policy) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "denialType")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_denial_type)
+        || db_object_field_set_enum_set(object_field, policy_enum_set_denial_type)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1863,7 +1863,7 @@ int policy_create(policy_t* policy) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "zoneSoaSerial")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_zone_soa_serial)
+        || db_object_field_set_enum_set(object_field, policy_enum_set_zone_soa_serial)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1925,7 +1925,7 @@ int policy_create(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 6), policy->signatures_validity_default)
         || db_value_from_uint32(db_value_set_get(value_set, 7), policy->signatures_validity_denial)
         || db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_max_zone_ttl)
-        || db_value_from_enum_value(db_value_set_get(value_set, 9), policy->denial_type, __enum_set_denial_type)
+        || db_value_from_enum_value(db_value_set_get(value_set, 9), policy->denial_type, policy_enum_set_denial_type)
         || db_value_from_uint32(db_value_set_get(value_set, 10), policy->denial_optout)
         || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_resalt)
@@ -1942,7 +1942,7 @@ int policy_create(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 23), policy->zone_propagation_delay)
         || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_soa_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_minimum)
-        || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, __enum_set_zone_soa_serial)
+        || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
         || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_propagation_delay)
         || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_ds_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_soa_ttl)
@@ -2190,7 +2190,7 @@ int policy_update(policy_t* policy) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "denialType")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_denial_type)
+        || db_object_field_set_enum_set(object_field, policy_enum_set_denial_type)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -2361,7 +2361,7 @@ int policy_update(policy_t* policy) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "zoneSoaSerial")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_zone_soa_serial)
+        || db_object_field_set_enum_set(object_field, policy_enum_set_zone_soa_serial)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -2423,7 +2423,7 @@ int policy_update(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 6), policy->signatures_validity_default)
         || db_value_from_uint32(db_value_set_get(value_set, 7), policy->signatures_validity_denial)
         || db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_max_zone_ttl)
-        || db_value_from_enum_value(db_value_set_get(value_set, 9), policy->denial_type, __enum_set_denial_type)
+        || db_value_from_enum_value(db_value_set_get(value_set, 9), policy->denial_type, policy_enum_set_denial_type)
         || db_value_from_uint32(db_value_set_get(value_set, 10), policy->denial_optout)
         || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_resalt)
@@ -2440,7 +2440,7 @@ int policy_update(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 23), policy->zone_propagation_delay)
         || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_soa_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_minimum)
-        || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, __enum_set_zone_soa_serial)
+        || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
         || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_propagation_delay)
         || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_ds_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_soa_ttl)

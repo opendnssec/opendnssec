@@ -34,14 +34,14 @@
 
 #include <string.h>
 
-static const db_enum_t __enum_set_role[] = {
+const db_enum_t hsm_key_enum_set_role[] = {
     { "KSK", (hsm_key_role_t)HSM_KEY_ROLE_KSK },
     { "ZSK", (hsm_key_role_t)HSM_KEY_ROLE_ZSK },
     { "CSK", (hsm_key_role_t)HSM_KEY_ROLE_CSK },
     { NULL, 0 }
 };
 
-static const db_enum_t __enum_set_backup[] = {
+const db_enum_t hsm_key_enum_set_backup[] = {
     { "No Backup", (hsm_key_backup_t)HSM_KEY_BACKUP_NO_BACKUP },
     { "Backup Required", (hsm_key_backup_t)HSM_KEY_BACKUP_BACKUP_REQUIRED },
     { "Backup Requested", (hsm_key_backup_t)HSM_KEY_BACKUP_BACKUP_REQUESTED },
@@ -160,7 +160,7 @@ static db_object_t* __hsm_key_new_object(const db_connection_t* connection) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "role")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_role)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_role)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -216,7 +216,7 @@ static db_object_t* __hsm_key_new_object(const db_connection_t* connection) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "backup")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_backup)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_backup)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -582,12 +582,12 @@ int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 5), &(hsm_key->bits))
         || db_value_to_text(db_value_set_at(value_set, 6), &(hsm_key->policy))
         || db_value_to_uint32(db_value_set_at(value_set, 7), &(hsm_key->algorithm))
-        || db_value_to_enum_value(db_value_set_at(value_set, 8), &role, __enum_set_role)
+        || db_value_to_enum_value(db_value_set_at(value_set, 8), &role, hsm_key_enum_set_role)
         || db_value_to_uint32(db_value_set_at(value_set, 9), &(hsm_key->inception))
         || db_value_to_uint32(db_value_set_at(value_set, 10), &(hsm_key->is_revoked))
         || db_value_to_text(db_value_set_at(value_set, 11), &(hsm_key->key_type))
         || db_value_to_text(db_value_set_at(value_set, 12), &(hsm_key->repository))
-        || db_value_to_enum_value(db_value_set_at(value_set, 13), &backup, __enum_set_backup))
+        || db_value_to_enum_value(db_value_set_at(value_set, 13), &backup, hsm_key_enum_set_backup))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -713,7 +713,7 @@ hsm_key_role_t hsm_key_role(const hsm_key_t* hsm_key) {
 }
 
 const char* hsm_key_role_text(const hsm_key_t* hsm_key) {
-    const db_enum_t* enum_set = __enum_set_role;
+    const db_enum_t* enum_set = hsm_key_enum_set_role;
 
     if (!hsm_key) {
         return NULL;
@@ -769,7 +769,7 @@ hsm_key_backup_t hsm_key_backup(const hsm_key_t* hsm_key) {
 }
 
 const char* hsm_key_backup_text(const hsm_key_t* hsm_key) {
-    const db_enum_t* enum_set = __enum_set_backup;
+    const db_enum_t* enum_set = hsm_key_enum_set_backup;
 
     if (!hsm_key) {
         return NULL;
@@ -888,7 +888,7 @@ int hsm_key_set_role(hsm_key_t* hsm_key, hsm_key_role_t role) {
 }
 
 int hsm_key_set_role_text(hsm_key_t* hsm_key, const char* role) {
-    const db_enum_t* enum_set = __enum_set_role;
+    const db_enum_t* enum_set = hsm_key_enum_set_role;
 
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;
@@ -979,7 +979,7 @@ int hsm_key_set_backup(hsm_key_t* hsm_key, hsm_key_backup_t backup) {
 }
 
 int hsm_key_set_backup_text(hsm_key_t* hsm_key, const char* backup) {
-    const db_enum_t* enum_set = __enum_set_backup;
+    const db_enum_t* enum_set = hsm_key_enum_set_backup;
 
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;
@@ -1097,7 +1097,7 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "role")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_role)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_role)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1148,7 +1148,7 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "backup")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_backup)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_backup)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1167,12 +1167,12 @@ int hsm_key_create(hsm_key_t* hsm_key) {
         || db_value_from_uint32(db_value_set_get(value_set, 3), hsm_key->bits)
         || db_value_from_text(db_value_set_get(value_set, 4), hsm_key->policy)
         || db_value_from_uint32(db_value_set_get(value_set, 5), hsm_key->algorithm)
-        || db_value_from_enum_value(db_value_set_get(value_set, 6), hsm_key->role, __enum_set_role)
+        || db_value_from_enum_value(db_value_set_get(value_set, 6), hsm_key->role, hsm_key_enum_set_role)
         || db_value_from_uint32(db_value_set_get(value_set, 7), hsm_key->inception)
         || db_value_from_uint32(db_value_set_get(value_set, 8), hsm_key->is_revoked)
         || db_value_from_text(db_value_set_get(value_set, 9), hsm_key->key_type)
         || db_value_from_text(db_value_set_get(value_set, 10), hsm_key->repository)
-        || db_value_from_enum_value(db_value_set_get(value_set, 11), hsm_key->backup, __enum_set_backup))
+        || db_value_from_enum_value(db_value_set_get(value_set, 11), hsm_key->backup, hsm_key_enum_set_backup))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -1392,7 +1392,7 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "role")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_role)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_role)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1443,7 +1443,7 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "backup")
         || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, __enum_set_backup)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_backup)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1462,12 +1462,12 @@ int hsm_key_update(hsm_key_t* hsm_key) {
         || db_value_from_uint32(db_value_set_get(value_set, 3), hsm_key->bits)
         || db_value_from_text(db_value_set_get(value_set, 4), hsm_key->policy)
         || db_value_from_uint32(db_value_set_get(value_set, 5), hsm_key->algorithm)
-        || db_value_from_enum_value(db_value_set_get(value_set, 6), hsm_key->role, __enum_set_role)
+        || db_value_from_enum_value(db_value_set_get(value_set, 6), hsm_key->role, hsm_key_enum_set_role)
         || db_value_from_uint32(db_value_set_get(value_set, 7), hsm_key->inception)
         || db_value_from_uint32(db_value_set_get(value_set, 8), hsm_key->is_revoked)
         || db_value_from_text(db_value_set_get(value_set, 9), hsm_key->key_type)
         || db_value_from_text(db_value_set_get(value_set, 10), hsm_key->repository)
-        || db_value_from_enum_value(db_value_set_get(value_set, 11), hsm_key->backup, __enum_set_backup))
+        || db_value_from_enum_value(db_value_set_get(value_set, 11), hsm_key->backup, hsm_key_enum_set_backup))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

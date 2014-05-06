@@ -30,6 +30,8 @@
 #ifndef __key_state_h
 #define __key_state_h
 
+#include "db_object.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +48,7 @@ typedef enum key_state_type {
     KEY_STATE_TYPE_DNSKEY = 2,
     KEY_STATE_TYPE_RRSIGDNSKEY = 3
 } key_state_type_t;
+extern const db_enum_t key_state_enum_set_type[];
 
 typedef enum key_state_state {
     KEY_STATE_STATE_INVALID = -1,
@@ -55,12 +58,12 @@ typedef enum key_state_state {
     KEY_STATE_STATE_UNRETENTIVE = 3,
     KEY_STATE_STATE_NA = 4
 } key_state_state_t;
+extern const db_enum_t key_state_enum_set_state[];
 
 #ifdef __cplusplus
 }
 #endif
 
-#include "db_object.h"
 #include "key_state_ext.h"
 #include "key_data.h"
 
