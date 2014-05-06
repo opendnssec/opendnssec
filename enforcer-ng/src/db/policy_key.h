@@ -43,9 +43,9 @@ typedef struct policy_key_list policy_key_list_t;
 
 typedef enum policy_key_role {
     POLICY_KEY_ROLE_INVALID = -1,
-    POLICY_KEY_ROLE_KSK = 0,
-    POLICY_KEY_ROLE_ZSK = 1,
-    POLICY_KEY_ROLE_CSK = 2
+    POLICY_KEY_ROLE_KSK = 1,
+    POLICY_KEY_ROLE_ZSK = 2,
+    POLICY_KEY_ROLE_CSK = 3
 } policy_key_role_t;
 extern const db_enum_t policy_key_enum_set_role[];
 

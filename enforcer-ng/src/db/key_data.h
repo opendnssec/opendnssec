@@ -43,9 +43,9 @@ typedef struct key_data_list key_data_list_t;
 
 typedef enum key_data_role {
     KEY_DATA_ROLE_INVALID = -1,
-    KEY_DATA_ROLE_KSK = 0,
-    KEY_DATA_ROLE_ZSK = 1,
-    KEY_DATA_ROLE_CSK = 2
+    KEY_DATA_ROLE_KSK = 1,
+    KEY_DATA_ROLE_ZSK = 2,
+    KEY_DATA_ROLE_CSK = 3
 } key_data_role_t;
 extern const db_enum_t key_data_enum_set_role[];
 

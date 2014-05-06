@@ -43,9 +43,9 @@ typedef struct hsm_key_list hsm_key_list_t;
 
 typedef enum hsm_key_role {
     HSM_KEY_ROLE_INVALID = -1,
-    HSM_KEY_ROLE_KSK = 0,
-    HSM_KEY_ROLE_ZSK = 1,
-    HSM_KEY_ROLE_CSK = 2
+    HSM_KEY_ROLE_KSK = 1,
+    HSM_KEY_ROLE_ZSK = 2,
+    HSM_KEY_ROLE_CSK = 3
 } hsm_key_role_t;
 extern const db_enum_t hsm_key_enum_set_role[];
 
