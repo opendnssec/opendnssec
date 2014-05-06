@@ -40,15 +40,6 @@
 #include "db/key_data.h"
 #include "db/zone.h"
 
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/message.h>
-#include "keystate/keystate.pb.h"
-#include "xmlext-pb/xmlext-rd.h"
-#include "protobuf-orm/pb-orm.h"
-#include "daemon/orm.h"
-#include <memory>
-#include <fcntl.h>
-
 #include "keystate/keystate_ds_gone_cmd.h"
 
 static const char *module_str = "keystate_ds_gone_cmd";
@@ -115,6 +106,10 @@ change_keys_retracted_to_unsubmitted(db_connection_t *dbconn, int sockfd,
 	} else if (!(zone = zone_new(dbconn))) {
 		key_data_list_free(key_list);
 		return 12;
+	} else if (!(rw_key = key_data_new(dbconn))) {
+		key_data_list_free(key_list);
+		zone_free(zone);
+		return 15;
 	} else if (zone_get_by_name(zone, zonename)){
 		zone_free(zone);
 		key_data_list_free(key_list);
@@ -213,6 +208,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	int have_zone, have_id, have_tag, argc, error;
 	const char *zone, *cka_id, *keytag;
 	uint16_t nkeytag = 0;
+	(void)n;
 	
 	strncpy(buf, cmd, ODS_SE_MAXLINE);
 	argc = ods_str_explode(buf, NARGV, argv);
