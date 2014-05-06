@@ -191,3 +191,93 @@ int key_data_is_zsk(const key_data_t* key_data) {
     return key_data_role(key_data) == KEY_DATA_ROLE_ZSK ||
         key_data_role(key_data) == KEY_DATA_ROLE_CSK;
 }
+
+int key_data_list_get_for_ds_gone(key_data_list_t* key_data_list,
+    const db_value_t* zone_id, key_data_role_t role,
+    key_data_ds_at_parent_t ds_at_parent, const char* locator,
+    unsigned int keytag)
+{
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!key_data_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!locator && !keytag) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "zoneId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), zone_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "role")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_enum_value(db_clause_get_value(clause), role, key_data_enum_set_role)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "dsAtParent")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_enum_value(db_clause_get_value(clause), ds_at_parent, key_data_enum_set_ds_at_parent)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    if (locator) {
+        if (!(clause = db_clause_new())
+            || db_clause_set_field(clause, "locator")
+            || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+            || db_value_from_text(db_clause_get_value(clause), locator)
+            || db_clause_list_add(clause_list, clause))
+        {
+            db_clause_free(clause);
+            db_clause_list_free(clause_list);
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+    if (keytag) {
+        if (!(clause = db_clause_new())
+            || db_clause_set_field(clause, "keytag")
+            || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+            || db_value_from_uint32(db_clause_get_value(clause), keytag)
+            || db_clause_list_add(clause_list, clause))
+        {
+            db_clause_free(clause);
+            db_clause_list_free(clause_list);
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
+    if (key_data_list->result_list) {
+        db_result_list_free(key_data_list->result_list);
+    }
+    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+    return DB_OK;
+}
