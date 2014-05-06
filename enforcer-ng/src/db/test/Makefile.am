@@ -4,7 +4,8 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
 	@ENFORCER_DB_INCLUDES@ \
-	@CUNIT_INCLUDES@
+	@CUNIT_INCLUDES@ \
+	@XML2_INCLUDES@
 
 check_PROGRAMS = test
 
@@ -50,9 +51,14 @@ test_LDADD = \
 	../../policy_key.o ../../policy_key_ext.o \
 	../../database_version.o ../../database_version_ext.o \
 	../../zone.o ../../zone_ext.o \
+	../../duration.o \
+	../../allocator.o \
 	$(BACKEND_LDADD_CUSTOM)
 
 test_LDFLAGS = -no-install \
+	@XML2_LIBS@ \
+	@PTHREAD_LIBS@ \
+	@RT_LIBS@ \
 	@CUNIT_LIBS@ \
 	@ENFORCER_DB_LIBS@ \
 	$(BACKEND_LDFLAGS_CUSTOM)

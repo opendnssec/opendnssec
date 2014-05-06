@@ -9,7 +9,7 @@
     { "name": "policy", "type": "DB_TYPE_TEXT" },
     { "name": "signconf_needs_writing", "type": "DB_TYPE_UINT32" },
     { "name": "signconf_path", "type": "DB_TYPE_TEXT" },
-    { "name": "next_change", "type": "DB_TYPE_UINT32" },
+    { "name": "next_change", "type": "DB_TYPE_INT32" },
     { "name": "ttl_end_ds", "type": "DB_TYPE_UINT32" },
     { "name": "ttl_end_dk", "type": "DB_TYPE_UINT32" },
     { "name": "ttl_end_rs", "type": "DB_TYPE_UINT32" },

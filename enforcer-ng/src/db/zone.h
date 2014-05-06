@@ -63,7 +63,7 @@ struct zone {
     char* policy;
     unsigned int signconf_needs_writing;
     char* signconf_path;
-    unsigned int next_change;
+    int next_change;
     unsigned int ttl_end_ds;
     unsigned int ttl_end_dk;
     unsigned int ttl_end_rs;
@@ -166,9 +166,9 @@ const char* zone_signconf_path(const zone_t* zone);
 /**
  * Get the next_change of a zone object. Undefined behavior if `zone` is NULL.
  * \param[in] zone a zone_t pointer.
- * \return an unsigned integer.
+ * \return an integer.
  */
-unsigned int zone_next_change(const zone_t* zone);
+int zone_next_change(const zone_t* zone);
 
 /**
  * Get the ttl_end_ds of a zone object. Undefined behavior if `zone` is NULL.
@@ -304,10 +304,10 @@ int zone_set_signconf_path(zone_t* zone, const char* signconf_path_text);
 /**
  * Set the next_change of a zone object.
  * \param[in] zone a zone_t pointer.
- * \param[in] next_change an unsigned integer.
+ * \param[in] next_change an integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_set_next_change(zone_t* zone, unsigned int next_change);
+int zone_set_next_change(zone_t* zone, int next_change);
 
 /**
  * Set the ttl_end_ds of a zone object.

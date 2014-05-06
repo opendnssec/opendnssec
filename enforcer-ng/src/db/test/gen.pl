@@ -319,7 +319,7 @@ print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, 
 ';
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($field->{foreign}) {
@@ -381,7 +381,7 @@ print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, 
 ';
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($field->{foreign}) {
@@ -464,7 +464,7 @@ print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, 
 ';
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($field->{foreign}) {
@@ -549,7 +549,7 @@ print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, 
 ';
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($field->{foreign}) {
@@ -613,7 +613,7 @@ print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, 
 ';
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($field->{foreign}) {
@@ -688,7 +688,7 @@ print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, 
 ';
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($field->{foreign}) {
@@ -773,7 +773,7 @@ print SOURCE '    CU_ASSERT(!db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, 
 ';
 }
 foreach my $field (@{$object->{fields}}) {
-    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($field->{foreign}) {

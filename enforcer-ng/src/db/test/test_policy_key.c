@@ -201,6 +201,12 @@ static void test_policy_key_set(void) {
     db_value_t policy_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&policy_id, 1));
     CU_ASSERT(!policy_key_set_policy_id(object, &policy_id));
+    CU_ASSERT(!policy_key_set_role(object, POLICY_KEY_ROLE_KSK));
+    CU_ASSERT(!policy_key_set_role_text(object, "KSK"));
+    CU_ASSERT(!policy_key_set_role(object, POLICY_KEY_ROLE_ZSK));
+    CU_ASSERT(!policy_key_set_role_text(object, "ZSK"));
+    CU_ASSERT(!policy_key_set_role(object, POLICY_KEY_ROLE_CSK));
+    CU_ASSERT(!policy_key_set_role_text(object, "CSK"));
     CU_ASSERT(!policy_key_set_algorithm(object, 1));
     CU_ASSERT(!policy_key_set_bits(object, 1));
     CU_ASSERT(!policy_key_set_lifetime(object, 1));
@@ -218,6 +224,9 @@ static void test_policy_key_get(void) {
     CU_ASSERT(!db_value_from_int32(&policy_id, 1));
     CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
     CU_ASSERT(!ret);
+    CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_CSK);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_role_text(object));
+    CU_ASSERT(!strcmp(policy_key_role_text(object), "CSK"));
     CU_ASSERT(policy_key_algorithm(object) == 1);
     CU_ASSERT(policy_key_bits(object) == 1);
     CU_ASSERT(policy_key_lifetime(object) == 1);
@@ -251,6 +260,9 @@ static void test_policy_key_verify(void) {
     CU_ASSERT(!db_value_from_int32(&policy_id, 1));
     CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
     CU_ASSERT(!ret);
+    CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_CSK);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_role_text(object));
+    CU_ASSERT(!strcmp(policy_key_role_text(object), "CSK"));
     CU_ASSERT(policy_key_algorithm(object) == 1);
     CU_ASSERT(policy_key_bits(object) == 1);
     CU_ASSERT(policy_key_lifetime(object) == 1);
@@ -267,6 +279,8 @@ static void test_policy_key_change(void) {
     db_value_t policy_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&policy_id, 2));
     CU_ASSERT(!policy_key_set_policy_id(object, &policy_id));
+    CU_ASSERT(!policy_key_set_role(object, POLICY_KEY_ROLE_KSK));
+    CU_ASSERT(!policy_key_set_role_text(object, "KSK"));
     CU_ASSERT(!policy_key_set_algorithm(object, 2));
     CU_ASSERT(!policy_key_set_bits(object, 2));
     CU_ASSERT(!policy_key_set_lifetime(object, 2));
@@ -292,6 +306,9 @@ static void test_policy_key_verify2(void) {
     CU_ASSERT(!db_value_from_int32(&policy_id, 2));
     CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
     CU_ASSERT(!ret);
+    CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_KSK);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_role_text(object));
+    CU_ASSERT(!strcmp(policy_key_role_text(object), "KSK"));
     CU_ASSERT(policy_key_algorithm(object) == 2);
     CU_ASSERT(policy_key_bits(object) == 2);
     CU_ASSERT(policy_key_lifetime(object) == 2);
