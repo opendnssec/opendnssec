@@ -1,5 +1,4 @@
 .TH "ods\-ksmutil" "1" "February 2010" OpenDNSSEC "OpenDNSSEC ods-ksmutil"
-.\" $Id$
 .SH "NAME"
 .LP
 .B ods\-ksmutil
@@ -90,11 +89,12 @@ instead.
 .B update conf
 .TP
 .B update all
-Update the database with the contents of the respecive configuration
+Update the database with the contents of the respective configuration
 file, or all those files.  The result is comparable to the
 .B setup
 subcommand, except that management information about OpenDNSSEC is
-not deleted.
+not deleted.(Also note that update kasp does not remove any policies from the database, 
+policy purge can be used to remove unused policies).
 .SH "ZONE MANAGEMENT SUBCOMMANDS"
 .LP
 .TP
@@ -183,12 +183,15 @@ can be used to limit the output to keys of a given type.  See the
 .I KEY TYPES and KEY STATES sections below for a specification of possible 
 key types and states.
 .TP
-.B key list \-\-zone name [\-\-verbose]
-.TP
-.B key list \-\-all [\-\-verbose]
-List information about keys in a particular zone, or all zones, respectively.
-The \-\-verbose option is used to list additional information about each
-key.
+.B key list [\-\-zone name] [\-\-verbose] [\-\-keystate|\-\-all|\-e \fIstate\fB|-a] [\-\-keytype \fItype\fB|\-t \fItype\fB]
+List information about keys in all zones, or in a particular zone. By default keys in the GENERATE and DEAD state are not displayed.
+
+The \-\-verbose option is used to list additional information about each key.
+
+The \-\-keystate option can be used to limit the output to keys in a given state. If the --all option is used then keys in all states (including GENERATE and DEAD) are displayed.
+The \-\-keytype option can be used to limit the output to keys of a given type.  See the
+.I KEY TYPES and KEY STATES sections below for a specification of possible 
+key types and states.
 .TP
 .B key purge \-\-zone|\-z \fIname\fB
 .TP

@@ -1,11 +1,11 @@
-<?xml version="1111.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 
 <KASP>
 	<Policy name="default">
 		<Description>default fast test policy</Description>
 		<Signatures>
 			<Resign>PT3M</Resign>
-			<Refresh>PT15M</Refresh>
+			<Refresh>PT15M
 			<Validity>
 				<Default>PT1H</Default>
 				<Denial>PT1H</Denial>
@@ -38,7 +38,7 @@
 			</KSK>
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>PT12H</Lifetime>
+				<Lifetime>PT25H</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</ZSK>
@@ -100,7 +100,7 @@
 			</KSK>
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>PT12H</Lifetime>
+				<Lifetime>PT25H</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</ZSK>

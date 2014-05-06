@@ -1,5 +1,3 @@
-# $Id: Makefile.am 1441 2009-07-30 12:32:04Z jakob $
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBHSM = ${top_builddir}/libhsm/src/libhsm.a

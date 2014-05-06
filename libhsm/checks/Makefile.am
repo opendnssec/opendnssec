@@ -1,5 +1,3 @@
-# $Id$
-
 LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
@@ -25,9 +23,13 @@ SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
 token.db othertoken.db:
 	env $(SOFTHSM_ENV) \
 	softhsm --slot 0 --init-token --label softHSM \
+		--so-pin 12345678 --pin 123456 || \
+	softhsm-util --slot 0 --init-token --label softHSM \
 		--so-pin 12345678 --pin 123456
 	env $(SOFTHSM_ENV) \
 	softhsm --slot 1 --init-token --label xyzzy \
+		--so-pin 12345678 --pin 123456 || \
+	softhsm-util --slot 1 --init-token --label xyzzy \
 		--so-pin 12345678 --pin 123456
 
 check: regress-softhsm

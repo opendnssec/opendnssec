@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_RUBY_LIBRARY],[
 
 	for library in $1;

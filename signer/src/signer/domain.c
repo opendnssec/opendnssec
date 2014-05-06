@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -631,7 +629,7 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
     size_t count = 0;
 
     if (!domain || !rrtype) {
-        return 1;
+        return 0;
     }
     ods_log_assert(domain);
     ods_log_assert(rrtype);
@@ -649,9 +647,8 @@ domain_examine_rrset_is_singleton(domain_type* domain, ldns_rr_type rrtype)
             dname_str, str_name, str_type);
         free((void*)str_name);
         free((void*)str_type);
-        return 0;
     }
-    return 1;
+    return count;
 }
 
 

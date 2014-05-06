@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2008-2009 Nominet UK. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -421,7 +419,6 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     /* Don't have to adjust the queue for shared keys as the prediction has already taken care of that.*/
 
     new_keys = ksks_needed - keys_in_queue;
-    /* fprintf(stderr, "keygen(ksk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, ksks_needed, keys_in_queue); */
 
     /* Check capacity of HSM will not be exceeded */
     if (policy->ksk->sm_capacity != 0 && new_keys >= 0) {
@@ -439,7 +436,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
 		log_msg(config, LOG_INFO,"No new KSKs need to be created.\n");
     }
     else {
-		log_msg(config, LOG_INFO,"%d new KSK(s) (%d bits) need to be created.\n", new_keys, policy->ksk->bits);
+		log_msg(config, LOG_INFO, "%d new KSK(s) (%d bits) need to be created for policy %s: keys_to_generate(%d) = keys_needed(%d) - keys_available(%d).\n", new_keys, policy->ksk->bits, policy->name, new_keys, ksks_needed, keys_in_queue);
 	}
 
     /* Create the required keys */
@@ -507,7 +504,6 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     }
 
     new_keys = zsks_needed - keys_in_queue;
-    /* fprintf(stderr, "keygen(zsk): new_keys(%d) = keys_needed(%d) - keys_in_queue(%d)\n", new_keys, zsks_needed, keys_in_queue); */
 
     /* Check capacity of HSM will not be exceeded */
     if (policy->zsk->sm_capacity != 0 && new_keys >= 0) {
@@ -527,7 +523,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
 		log_msg(config, LOG_INFO, "No new ZSKs need to be created.\n");
     }
     else {
-		log_msg(config, LOG_INFO, "%d new ZSK(s) (%d bits) need to be created.\n", new_keys, policy->zsk->bits);
+		log_msg(config, LOG_INFO, "%d new ZSK(s) (%d bits) need to be created for policy %s: keys_to_generate(%d) = keys_needed(%d) - keys_available(%d).\n", new_keys, policy->zsk->bits, policy->name, new_keys, zsks_needed, keys_in_queue);		
 	}
 
     /* Create the required keys */
@@ -1309,8 +1305,9 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
 
     StrFree(datetime);
     new_keys = keys_needed - (keys_in_queue - keys_pending_retirement);
-
-    /* fprintf(stderr, "comm(%d) %s: new_keys(%d) = keys_needed(%d) - (keys_in_queue(%d) - keys_pending_retirement(%d))\n", key_type, zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement); */
+	
+    /* TODO: Add check that new_keys is more than 0 */
+    /*log_msg(NULL, LOG_DEBUG, "%s key allocation for zone %s: keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", key_type == KSM_TYPE_KSK ? "KSK" : "ZSK", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement); */
 
     /* Allocate keys */
     for (i=0 ; i < new_keys ; i++){
@@ -1319,11 +1316,13 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             status = KsmKeyGetUnallocated(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, zone_id, policy->keys->share_keys, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
-                    log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy ksk policy for zone: %s. keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement);
+					log_msg(NULL, LOG_WARNING, "Tried to allocate %d keys, failed on allocating key number %d", new_keys, i+1);
                     log_msg(NULL, LOG_WARNING, "ods-enforcerd will create some more keys on its next run");
                 }
                 else {
-                    log_msg(NULL, LOG_ERR, "Not enough keys to satisfy ksk policy for zone: %s", zone_name);
+                    log_msg(NULL, LOG_ERR, "Not enough keys to satisfy ksk policy for zone: %s. keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement);
+					log_msg(NULL, LOG_ERR, "Tried to allocate %d keys, failed on allocating key number %d", new_keys, i+1);
                     log_msg(NULL, LOG_ERR, "please use \"ods-ksmutil key generate\" to create some more keys.");
                 }
                 return 2;
@@ -1336,11 +1335,13 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             status = KsmKeyGetUnallocated(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, zone_id, policy->keys->share_keys, &key_pair_id);
             if (status == -1 || key_pair_id == 0) {
                 if (man_key_gen == 0) {
-                    log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s. keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement);
+					log_msg(NULL, LOG_WARNING, "Tried to allocate %d keys, failed on allocating key number %d", new_keys, i+1);
                     log_msg(NULL, LOG_WARNING, "ods-enforcerd will create some more keys on its next run");
                 }
                 else {
-                    log_msg(NULL, LOG_ERR, "Not enough keys to satisfy zsk policy for zone: %s", zone_name);
+                    log_msg(NULL, LOG_WARNING, "Not enough keys to satisfy zsk policy for zone: %s. keys_to_allocate(%d) = keys_needed(%d) - (keys_available(%d) - keys_pending_retirement(%d))\n", zone_name, new_keys, keys_needed, keys_in_queue, keys_pending_retirement);
+					log_msg(NULL, LOG_WARNING, "Tried to allocate %d keys, failed on allocating key number %d", new_keys, i+1);
                     log_msg(NULL, LOG_ERR, "please use \"ods-ksmutil key generate\" to create some more keys.");
                 }
                 return 2;
@@ -1358,9 +1359,10 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             log_msg(NULL, LOG_ERR, "KsmKeyGetUnallocated returned bad key_id %d for zone: %s; exiting...", key_pair_id, zone_name);
             exit(1);
         }
-
     }
-
+	if (new_keys > 0) {
+    	log_msg(NULL, LOG_DEBUG, "%s key allocation for zone %s: %d key(s) allocated\n", key_type == KSM_TYPE_KSK ? "KSK" : "ZSK", zone_name, new_keys);
+	}
     return status;
 }
 

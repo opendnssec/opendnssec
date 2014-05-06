@@ -38,7 +38,7 @@
 			</KSK>
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>PT12H</Lifetime>
+				<Lifetime>PT25H</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</ZSK>
@@ -64,7 +64,7 @@
 	</Policy>
 
 	<Policy name="default2">
-		<Description>default fast test policy</Description>
+		<Description>default fast test policy2</Description>
 		<Signatures>
 			<Resign>PT3M</Resign>
 			<Refresh>PT15M</Refresh>
@@ -100,7 +100,7 @@
 			</KSK>
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>PT12H</Lifetime>
+				<Lifetime>PT25H</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</ZSK>

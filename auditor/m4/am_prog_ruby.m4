@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([AM_PROG_RUBY],[
 	RUBY_PROGS="ruby ruby1.9 ruby19 ruby1.8 ruby18 ruby1.7 ruby1.6"
 	AC_ARG_WITH(ruby,

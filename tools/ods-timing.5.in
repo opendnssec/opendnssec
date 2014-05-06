@@ -1,5 +1,4 @@
 .TH "ods-timing" "5" "February 2010" OpenDNSSEC "OpenDNSSEC timinig"
-.\" $Id$
 .SH "NAME"
 .LP
 .B ods-timing

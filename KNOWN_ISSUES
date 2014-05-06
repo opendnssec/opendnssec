@@ -1,9 +1,14 @@
-$Id$
-
 OpenDNSSEC 1.3.0 - Known Restrictions
 
 The following are the known problems and/or restrictions of release 1.3.0 of
 OpenDNSSEC.
+
+BUGS: 
+-----
+
+OPENDNSSEC-332: Statistics on average sigs/sec not accurate
+OPENDNSSEC-437: Problem with invalid signatures on SOA RRset.
+OPENDNSSEC-104: Incorrect ZSK retire duration calculation.
 
 
 Limitations on Number of Zones

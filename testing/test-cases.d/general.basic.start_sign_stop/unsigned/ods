@@ -4,6 +4,7 @@ ods. 600 IN MX 10 mail.ods.
 ods. 600 IN NS ns1.ods.
 ods. 600 IN NS ns2.ods.
 ods. 600 IN A 192.0.2.1
+ods. 600 IN TXT "this		text	has	tabs"
 mail.ods. 600 IN A 192.0.2.1
 ns1.ods. 600 IN A 192.0.2.1
 ns2.ods. 600 IN A 192.0.2.1
@@ -292,3 +293,8 @@ label34.ods. 3600 IN NS ns5.label34.ods.
 ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
+; Validns doesn't accept this [errata 3441 rfc 5155]
+;delegation.label35.ods. 3600 IN NS ns6.delegation.label35.ods.
+;ns6.delegation.label35.ods. 3600 IN A 192.0.2.1
+;delegation.label35.ods. 3600 IN NS ns7.delegation.label35.ods.
+;ns7.delegation.label35.ods. 3600 IN A 192.0.2.1

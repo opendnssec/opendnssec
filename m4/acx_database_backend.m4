@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_DATABASE_BACKEND],[
 
 	AC_ARG_WITH(database-backend,

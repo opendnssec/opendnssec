@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -745,13 +743,15 @@ void
 worker_sleep(worker_type* worker, time_t timeout)
 {
     ods_log_assert(worker);
-    lock_basic_lock(&worker->worker_lock);
-    worker->worker_locked = LOCKED_WORKER_SLEEP;
-    worker->sleeping = 1;
-    lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
-        timeout);
-    worker->worker_locked = 0;
-    lock_basic_unlock(&worker->worker_lock);
+    if (!worker->need_to_exit) {
+        lock_basic_lock(&worker->worker_lock);
+        worker->worker_locked = LOCKED_WORKER_SLEEP;
+        worker->sleeping = 1;
+        lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
+            timeout);
+        worker->worker_locked = 0;
+        lock_basic_unlock(&worker->worker_lock);
+    }
     return;
 }
 
