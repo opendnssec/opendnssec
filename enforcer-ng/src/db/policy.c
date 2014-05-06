@@ -635,6 +635,175 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
     return DB_OK;
 }
 
+int policy_cmp(const policy_t* policy_a, const policy_t* policy_b) {
+    int ret;
+
+    if (!policy_a && !policy_b) {
+        return 0;
+    }
+    if (!policy_a && policy_b) {
+        return -1;
+    }
+    if (policy_a && !policy_b) {
+        return 1;
+    }
+
+    if (policy_a->name && policy_b->name) {
+        if ((ret = strcmp(policy_a->name, policy_b->name))) {
+            return ret;
+        }
+    }
+    else {
+        if (!policy_a->name && policy_b->name) {
+            return -1;
+        }
+        if (policy_a->name && !policy_b->name) {
+            return -1;
+        }
+    }
+
+    if (policy_a->description && policy_b->description) {
+        if ((ret = strcmp(policy_a->description, policy_b->description))) {
+            return ret;
+        }
+    }
+    else {
+        if (!policy_a->description && policy_b->description) {
+            return -1;
+        }
+        if (policy_a->description && !policy_b->description) {
+            return -1;
+        }
+    }
+
+    if (policy_a->signatures_resign != policy_b->signatures_resign) {
+        return policy_a->signatures_resign < policy_b->signatures_resign ? -1 : 1;
+    }
+
+    if (policy_a->signatures_refresh != policy_b->signatures_refresh) {
+        return policy_a->signatures_refresh < policy_b->signatures_refresh ? -1 : 1;
+    }
+
+    if (policy_a->signatures_jitter != policy_b->signatures_jitter) {
+        return policy_a->signatures_jitter < policy_b->signatures_jitter ? -1 : 1;
+    }
+
+    if (policy_a->signatures_inception_offset != policy_b->signatures_inception_offset) {
+        return policy_a->signatures_inception_offset < policy_b->signatures_inception_offset ? -1 : 1;
+    }
+
+    if (policy_a->signatures_validity_default != policy_b->signatures_validity_default) {
+        return policy_a->signatures_validity_default < policy_b->signatures_validity_default ? -1 : 1;
+    }
+
+    if (policy_a->signatures_validity_denial != policy_b->signatures_validity_denial) {
+        return policy_a->signatures_validity_denial < policy_b->signatures_validity_denial ? -1 : 1;
+    }
+
+    if (policy_a->signatures_max_zone_ttl != policy_b->signatures_max_zone_ttl) {
+        return policy_a->signatures_max_zone_ttl < policy_b->signatures_max_zone_ttl ? -1 : 1;
+    }
+
+    if (policy_a->denial_type != policy_b->denial_type) {
+        return policy_a->denial_type < policy_b->denial_type ? -1 : 1;
+    }
+
+    if (policy_a->denial_optout != policy_b->denial_optout) {
+        return policy_a->denial_optout < policy_b->denial_optout ? -1 : 1;
+    }
+
+    if (policy_a->denial_ttl != policy_b->denial_ttl) {
+        return policy_a->denial_ttl < policy_b->denial_ttl ? -1 : 1;
+    }
+
+    if (policy_a->denial_resalt != policy_b->denial_resalt) {
+        return policy_a->denial_resalt < policy_b->denial_resalt ? -1 : 1;
+    }
+
+    if (policy_a->denial_algorithm != policy_b->denial_algorithm) {
+        return policy_a->denial_algorithm < policy_b->denial_algorithm ? -1 : 1;
+    }
+
+    if (policy_a->denial_iterations != policy_b->denial_iterations) {
+        return policy_a->denial_iterations < policy_b->denial_iterations ? -1 : 1;
+    }
+
+    if (policy_a->denial_salt_length != policy_b->denial_salt_length) {
+        return policy_a->denial_salt_length < policy_b->denial_salt_length ? -1 : 1;
+    }
+
+    if (policy_a->denial_salt && policy_b->denial_salt) {
+        if ((ret = strcmp(policy_a->denial_salt, policy_b->denial_salt))) {
+            return ret;
+        }
+    }
+    else {
+        if (!policy_a->denial_salt && policy_b->denial_salt) {
+            return -1;
+        }
+        if (policy_a->denial_salt && !policy_b->denial_salt) {
+            return -1;
+        }
+    }
+
+    if (policy_a->denial_salt_last_change != policy_b->denial_salt_last_change) {
+        return policy_a->denial_salt_last_change < policy_b->denial_salt_last_change ? -1 : 1;
+    }
+
+    if (policy_a->keys_ttl != policy_b->keys_ttl) {
+        return policy_a->keys_ttl < policy_b->keys_ttl ? -1 : 1;
+    }
+
+    if (policy_a->keys_retire_safety != policy_b->keys_retire_safety) {
+        return policy_a->keys_retire_safety < policy_b->keys_retire_safety ? -1 : 1;
+    }
+
+    if (policy_a->keys_publish_safety != policy_b->keys_publish_safety) {
+        return policy_a->keys_publish_safety < policy_b->keys_publish_safety ? -1 : 1;
+    }
+
+    if (policy_a->keys_shared != policy_b->keys_shared) {
+        return policy_a->keys_shared < policy_b->keys_shared ? -1 : 1;
+    }
+
+    if (policy_a->keys_purge_after != policy_b->keys_purge_after) {
+        return policy_a->keys_purge_after < policy_b->keys_purge_after ? -1 : 1;
+    }
+
+    if (policy_a->zone_propagation_delay != policy_b->zone_propagation_delay) {
+        return policy_a->zone_propagation_delay < policy_b->zone_propagation_delay ? -1 : 1;
+    }
+
+    if (policy_a->zone_soa_ttl != policy_b->zone_soa_ttl) {
+        return policy_a->zone_soa_ttl < policy_b->zone_soa_ttl ? -1 : 1;
+    }
+
+    if (policy_a->zone_soa_minimum != policy_b->zone_soa_minimum) {
+        return policy_a->zone_soa_minimum < policy_b->zone_soa_minimum ? -1 : 1;
+    }
+
+    if (policy_a->zone_soa_serial != policy_b->zone_soa_serial) {
+        return policy_a->zone_soa_serial < policy_b->zone_soa_serial ? -1 : 1;
+    }
+
+    if (policy_a->parent_propagation_delay != policy_b->parent_propagation_delay) {
+        return policy_a->parent_propagation_delay < policy_b->parent_propagation_delay ? -1 : 1;
+    }
+
+    if (policy_a->parent_ds_ttl != policy_b->parent_ds_ttl) {
+        return policy_a->parent_ds_ttl < policy_b->parent_ds_ttl ? -1 : 1;
+    }
+
+    if (policy_a->parent_soa_ttl != policy_b->parent_soa_ttl) {
+        return policy_a->parent_soa_ttl < policy_b->parent_soa_ttl ? -1 : 1;
+    }
+
+    if (policy_a->parent_soa_minimum != policy_b->parent_soa_minimum) {
+        return policy_a->parent_soa_minimum < policy_b->parent_soa_minimum ? -1 : 1;
+    }
+    return 0;
+}
+
 int policy_from_result(policy_t* policy, const db_result_t* result) {
     const db_value_set_t* value_set;
     int denial_type;

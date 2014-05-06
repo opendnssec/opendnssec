@@ -728,6 +728,13 @@ print SOURCE '    db_value_reset(&', $field->{name}, ');
 }
 print SOURCE '}
 
+static void test_', $name, '_cmp(void) {
+    ', $name, '_t* local_object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = ', $name, '_new(connection)));
+    CU_ASSERT(', $name, '_cmp(object, local_object));
+}
+
 ';
 foreach my $field (@{$object->{fields}}) {
     if (!$field->{unique}) {
@@ -856,6 +863,7 @@ print SOURCE '        || !CU_add_test(pSuite, "change object", test_', $name, '_
         || !CU_add_test(pSuite, "update object", test_', $name, '_update)
         || !CU_add_test(pSuite, "reread object by id", test_', $name, '_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_', $name, '_verify2)
+        || !CU_add_test(pSuite, "compare objects", test_', $name, '_cmp)
 ';
 foreach my $field (@{$object->{fields}}) {
     if (!$field->{unique}) {

@@ -243,6 +243,47 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
     return DB_OK;
 }
 
+int key_state_cmp(const key_state_t* key_state_a, const key_state_t* key_state_b) {
+    int ret;
+
+    if (!key_state_a && !key_state_b) {
+        return 0;
+    }
+    if (!key_state_a && key_state_b) {
+        return -1;
+    }
+    if (key_state_a && !key_state_b) {
+        return 1;
+    }
+
+    ret = 0;
+    db_value_cmp(&(key_state_a->key_data_id), &(key_state_b->key_data_id), &ret);
+    if (ret) {
+        return ret;
+    }
+
+    if (key_state_a->type != key_state_b->type) {
+        return key_state_a->type < key_state_b->type ? -1 : 1;
+    }
+
+    if (key_state_a->state != key_state_b->state) {
+        return key_state_a->state < key_state_b->state ? -1 : 1;
+    }
+
+    if (key_state_a->last_change != key_state_b->last_change) {
+        return key_state_a->last_change < key_state_b->last_change ? -1 : 1;
+    }
+
+    if (key_state_a->minimize != key_state_b->minimize) {
+        return key_state_a->minimize < key_state_b->minimize ? -1 : 1;
+    }
+
+    if (key_state_a->ttl != key_state_b->ttl) {
+        return key_state_a->ttl < key_state_b->ttl ? -1 : 1;
+    }
+    return 0;
+}
+
 int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     const db_value_set_t* value_set;
     int type;

@@ -624,6 +624,169 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
     return DB_OK;
 }
 
+int zone_cmp(const zone_t* zone_a, const zone_t* zone_b) {
+    int ret;
+
+    if (!zone_a && !zone_b) {
+        return 0;
+    }
+    if (!zone_a && zone_b) {
+        return -1;
+    }
+    if (zone_a && !zone_b) {
+        return 1;
+    }
+
+    ret = 0;
+    db_value_cmp(&(zone_a->policy_id), &(zone_b->policy_id), &ret);
+    if (ret) {
+        return ret;
+    }
+
+    if (zone_a->name && zone_b->name) {
+        if ((ret = strcmp(zone_a->name, zone_b->name))) {
+            return ret;
+        }
+    }
+    else {
+        if (!zone_a->name && zone_b->name) {
+            return -1;
+        }
+        if (zone_a->name && !zone_b->name) {
+            return -1;
+        }
+    }
+
+    if (zone_a->policy && zone_b->policy) {
+        if ((ret = strcmp(zone_a->policy, zone_b->policy))) {
+            return ret;
+        }
+    }
+    else {
+        if (!zone_a->policy && zone_b->policy) {
+            return -1;
+        }
+        if (zone_a->policy && !zone_b->policy) {
+            return -1;
+        }
+    }
+
+    if (zone_a->signconf_needs_writing != zone_b->signconf_needs_writing) {
+        return zone_a->signconf_needs_writing < zone_b->signconf_needs_writing ? -1 : 1;
+    }
+
+    if (zone_a->signconf_path && zone_b->signconf_path) {
+        if ((ret = strcmp(zone_a->signconf_path, zone_b->signconf_path))) {
+            return ret;
+        }
+    }
+    else {
+        if (!zone_a->signconf_path && zone_b->signconf_path) {
+            return -1;
+        }
+        if (zone_a->signconf_path && !zone_b->signconf_path) {
+            return -1;
+        }
+    }
+
+    if (zone_a->next_change != zone_b->next_change) {
+        return zone_a->next_change < zone_b->next_change ? -1 : 1;
+    }
+
+    if (zone_a->ttl_end_ds != zone_b->ttl_end_ds) {
+        return zone_a->ttl_end_ds < zone_b->ttl_end_ds ? -1 : 1;
+    }
+
+    if (zone_a->ttl_end_dk != zone_b->ttl_end_dk) {
+        return zone_a->ttl_end_dk < zone_b->ttl_end_dk ? -1 : 1;
+    }
+
+    if (zone_a->ttl_end_rs != zone_b->ttl_end_rs) {
+        return zone_a->ttl_end_rs < zone_b->ttl_end_rs ? -1 : 1;
+    }
+
+    if (zone_a->roll_ksk_now != zone_b->roll_ksk_now) {
+        return zone_a->roll_ksk_now < zone_b->roll_ksk_now ? -1 : 1;
+    }
+
+    if (zone_a->roll_zsk_now != zone_b->roll_zsk_now) {
+        return zone_a->roll_zsk_now < zone_b->roll_zsk_now ? -1 : 1;
+    }
+
+    if (zone_a->roll_csk_now != zone_b->roll_csk_now) {
+        return zone_a->roll_csk_now < zone_b->roll_csk_now ? -1 : 1;
+    }
+
+    if (zone_a->input_adapter_type && zone_b->input_adapter_type) {
+        if ((ret = strcmp(zone_a->input_adapter_type, zone_b->input_adapter_type))) {
+            return ret;
+        }
+    }
+    else {
+        if (!zone_a->input_adapter_type && zone_b->input_adapter_type) {
+            return -1;
+        }
+        if (zone_a->input_adapter_type && !zone_b->input_adapter_type) {
+            return -1;
+        }
+    }
+
+    if (zone_a->input_adapter_uri && zone_b->input_adapter_uri) {
+        if ((ret = strcmp(zone_a->input_adapter_uri, zone_b->input_adapter_uri))) {
+            return ret;
+        }
+    }
+    else {
+        if (!zone_a->input_adapter_uri && zone_b->input_adapter_uri) {
+            return -1;
+        }
+        if (zone_a->input_adapter_uri && !zone_b->input_adapter_uri) {
+            return -1;
+        }
+    }
+
+    if (zone_a->output_adapter_type && zone_b->output_adapter_type) {
+        if ((ret = strcmp(zone_a->output_adapter_type, zone_b->output_adapter_type))) {
+            return ret;
+        }
+    }
+    else {
+        if (!zone_a->output_adapter_type && zone_b->output_adapter_type) {
+            return -1;
+        }
+        if (zone_a->output_adapter_type && !zone_b->output_adapter_type) {
+            return -1;
+        }
+    }
+
+    if (zone_a->output_adapter_uri && zone_b->output_adapter_uri) {
+        if ((ret = strcmp(zone_a->output_adapter_uri, zone_b->output_adapter_uri))) {
+            return ret;
+        }
+    }
+    else {
+        if (!zone_a->output_adapter_uri && zone_b->output_adapter_uri) {
+            return -1;
+        }
+        if (zone_a->output_adapter_uri && !zone_b->output_adapter_uri) {
+            return -1;
+        }
+    }
+
+    if (zone_a->next_ksk_roll != zone_b->next_ksk_roll) {
+        return zone_a->next_ksk_roll < zone_b->next_ksk_roll ? -1 : 1;
+    }
+
+    if (zone_a->next_zsk_roll != zone_b->next_zsk_roll) {
+        return zone_a->next_zsk_roll < zone_b->next_zsk_roll ? -1 : 1;
+    }
+
+    if (zone_a->next_csk_roll != zone_b->next_csk_roll) {
+        return zone_a->next_csk_roll < zone_b->next_csk_roll ? -1 : 1;
+    }
+    return 0;
+}
+
 int zone_from_result(zone_t* zone, const db_result_t* result) {
     const db_value_set_t* value_set;
 

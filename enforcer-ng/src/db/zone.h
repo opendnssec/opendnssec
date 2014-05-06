@@ -107,6 +107,16 @@ void zone_reset(zone_t* zone);
 int zone_copy(zone_t* zone, const zone_t* zone_copy);
 
 /**
+ * Compare two zone objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] zone_a a zone_t pointer.
+ * \param[in] zone_b a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_cmp(const zone_t* zone_a, const zone_t* zone_b);
+
+/**
  * Set the content of a zone object based on a database result.
  * \param[in] zone a zone_t pointer.
  * \param[in] result a db_result_t pointer.

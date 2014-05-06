@@ -386,6 +386,13 @@ static void test_hsm_key_verify2(void) {
     db_value_reset(&policy_id);
 }
 
+static void test_hsm_key_cmp(void) {
+    hsm_key_t* local_object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = hsm_key_new(connection)));
+    CU_ASSERT(hsm_key_cmp(object, local_object));
+}
+
 static void test_hsm_key_read_by_locator2(void) {
     CU_ASSERT_FATAL(!hsm_key_get_by_locator(object, "locator 2"));
 }
@@ -452,6 +459,7 @@ static int test_hsm_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "update object", test_hsm_key_update)
         || !CU_add_test(pSuite, "reread object by id", test_hsm_key_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_hsm_key_verify2)
+        || !CU_add_test(pSuite, "compare objects", test_hsm_key_cmp)
         || !CU_add_test(pSuite, "reread object by locator", test_hsm_key_read_by_locator2)
         || !CU_add_test(pSuite, "verify fields after update (locator)", test_hsm_key_verify_locator2)
         || !CU_add_test(pSuite, "delete object", test_hsm_key_delete)

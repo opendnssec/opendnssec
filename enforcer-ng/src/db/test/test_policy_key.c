@@ -321,6 +321,13 @@ static void test_policy_key_verify2(void) {
     db_value_reset(&policy_id);
 }
 
+static void test_policy_key_cmp(void) {
+    policy_key_t* local_object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = policy_key_new(connection)));
+    CU_ASSERT(policy_key_cmp(object, local_object));
+}
+
 static void test_policy_key_delete(void) {
     CU_ASSERT_FATAL(!policy_key_delete(object));
 }
@@ -353,6 +360,7 @@ static int test_policy_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "update object", test_policy_key_update)
         || !CU_add_test(pSuite, "reread object by id", test_policy_key_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_policy_key_verify2)
+        || !CU_add_test(pSuite, "compare objects", test_policy_key_cmp)
         || !CU_add_test(pSuite, "delete object", test_policy_key_delete)
         || !CU_add_test(pSuite, "list objects to verify delete", test_policy_key_list2)
         || !CU_add_test(pSuite, "end test", test_policy_key_end))

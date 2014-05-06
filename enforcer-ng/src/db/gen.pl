@@ -207,6 +207,16 @@ void ', $name, '_reset(', $name, '_t* ', $name, ');
 int ', $name, '_copy(', $name, '_t* ', $name, ', const ', $name, '_t* ', $name, '_copy);
 
 /**
+ * Compare two ', $tname, ' objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] ', $name, '_a a ', $name, '_t pointer.
+ * \param[in] ', $name, '_b a ', $name, '_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_cmp(const ', $name, '_t* ', $name, '_a, const ', $name, '_t* ', $name, '_b);
+
+/**
  * Set the content of a ', $tname, ' object based on a database result.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
  * \param[in] result a db_result_t pointer.
@@ -816,6 +826,60 @@ print SOURCE '    ', $name, '->', $field->{name}, ' = ', $name, '_copy->', $fiel
 ';
 }
 print SOURCE '    return DB_OK;
+}
+
+int ', $name, '_cmp(const ', $name, '_t* ', $name, '_a, const ', $name, '_t* ', $name, '_b) {
+    int ret;
+
+    if (!', $name, '_a && !', $name, '_b) {
+        return 0;
+    }
+    if (!', $name, '_a && ', $name, '_b) {
+        return -1;
+    }
+    if (', $name, '_a && !', $name, '_b) {
+        return 1;
+    }
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
+    if ($field->{foreign}) {
+print SOURCE '
+    ret = 0;
+    db_value_cmp(&(', $name, '_a->', $field->{name}, '), &(', $name, '_b->', $field->{name}, '), &ret);
+    if (ret) {
+        return ret;
+    }
+';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '
+    if (', $name, '_a->', $field->{name}, ' && ', $name, '_b->', $field->{name}, ') {
+        if ((ret = strcmp(', $name, '_a->', $field->{name}, ', ', $name, '_b->', $field->{name}, '))) {
+            return ret;
+        }
+    }
+    else {
+        if (!', $name, '_a->', $field->{name}, ' && ', $name, '_b->', $field->{name}, ') {
+            return -1;
+        }
+        if (', $name, '_a->', $field->{name}, ' && !', $name, '_b->', $field->{name}, ') {
+            return -1;
+        }
+    }
+';
+        next;
+    }
+print SOURCE '
+    if (', $name, '_a->', $field->{name}, ' != ', $name, '_b->', $field->{name}, ') {
+        return ', $name, '_a->', $field->{name}, ' < ', $name, '_b->', $field->{name}, ' ? -1 : 1;
+    }
+';
+}
+print SOURCE '    return 0;
 }
 
 int ', $name, '_from_result(', $name, '_t* ', $name, ', const db_result_t* result) {

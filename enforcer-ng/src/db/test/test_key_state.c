@@ -316,6 +316,13 @@ static void test_key_state_verify2(void) {
     db_value_reset(&key_data_id);
 }
 
+static void test_key_state_cmp(void) {
+    key_state_t* local_object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = key_state_new(connection)));
+    CU_ASSERT(key_state_cmp(object, local_object));
+}
+
 static void test_key_state_delete(void) {
     CU_ASSERT_FATAL(!key_state_delete(object));
 }
@@ -348,6 +355,7 @@ static int test_key_state_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "update object", test_key_state_update)
         || !CU_add_test(pSuite, "reread object by id", test_key_state_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_key_state_verify2)
+        || !CU_add_test(pSuite, "compare objects", test_key_state_cmp)
         || !CU_add_test(pSuite, "delete object", test_key_state_delete)
         || !CU_add_test(pSuite, "list objects to verify delete", test_key_state_list2)
         || !CU_add_test(pSuite, "end test", test_key_state_end))

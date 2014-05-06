@@ -377,6 +377,13 @@ static void test_key_data_verify2(void) {
     db_value_reset(&hsm_key_id);
 }
 
+static void test_key_data_cmp(void) {
+    key_data_t* local_object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = key_data_new(connection)));
+    CU_ASSERT(key_data_cmp(object, local_object));
+}
+
 static void test_key_data_delete(void) {
     CU_ASSERT_FATAL(!key_data_delete(object));
 }
@@ -409,6 +416,7 @@ static int test_key_data_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "update object", test_key_data_update)
         || !CU_add_test(pSuite, "reread object by id", test_key_data_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_key_data_verify2)
+        || !CU_add_test(pSuite, "compare objects", test_key_data_cmp)
         || !CU_add_test(pSuite, "delete object", test_key_data_delete)
         || !CU_add_test(pSuite, "list objects to verify delete", test_key_data_list2)
         || !CU_add_test(pSuite, "end test", test_key_data_end))

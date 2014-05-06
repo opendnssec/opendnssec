@@ -111,6 +111,16 @@ void key_state_reset(key_state_t* key_state);
 int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy);
 
 /**
+ * Compare two key state objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] key_state_a a key_state_t pointer.
+ * \param[in] key_state_b a key_state_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_cmp(const key_state_t* key_state_a, const key_state_t* key_state_b);
+
+/**
  * Set the content of a key state object based on a database result.
  * \param[in] key_state a key_state_t pointer.
  * \param[in] result a db_result_t pointer.

@@ -128,6 +128,16 @@ void key_data_reset(key_data_t* key_data);
 int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy);
 
 /**
+ * Compare two key data objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] key_data_a a key_data_t pointer.
+ * \param[in] key_data_b a key_data_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b);
+
+/**
  * Set the content of a key data object based on a database result.
  * \param[in] key_data a key_data_t pointer.
  * \param[in] result a db_result_t pointer.

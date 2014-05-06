@@ -240,6 +240,13 @@ static void test_database_version_verify2(void) {
     CU_ASSERT(database_version_version(object) == 2);
 }
 
+static void test_database_version_cmp(void) {
+    database_version_t* local_object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = database_version_new(connection)));
+    CU_ASSERT(database_version_cmp(object, local_object));
+}
+
 static void test_database_version_delete(void) {
     CU_ASSERT_FATAL(!database_version_delete(object));
 }
@@ -272,6 +279,7 @@ static int test_database_version_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "update object", test_database_version_update)
         || !CU_add_test(pSuite, "reread object by id", test_database_version_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_database_version_verify2)
+        || !CU_add_test(pSuite, "compare objects", test_database_version_cmp)
         || !CU_add_test(pSuite, "delete object", test_database_version_delete)
         || !CU_add_test(pSuite, "list objects to verify delete", test_database_version_list2)
         || !CU_add_test(pSuite, "end test", test_database_version_end))

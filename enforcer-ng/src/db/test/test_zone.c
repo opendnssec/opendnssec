@@ -410,6 +410,13 @@ static void test_zone_verify2(void) {
     db_value_reset(&policy_id);
 }
 
+static void test_zone_cmp(void) {
+    zone_t* local_object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = zone_new(connection)));
+    CU_ASSERT(zone_cmp(object, local_object));
+}
+
 static void test_zone_read_by_name2(void) {
     CU_ASSERT_FATAL(!zone_get_by_name(object, "name 2"));
 }
@@ -482,6 +489,7 @@ static int test_zone_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "update object", test_zone_update)
         || !CU_add_test(pSuite, "reread object by id", test_zone_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_zone_verify2)
+        || !CU_add_test(pSuite, "compare objects", test_zone_cmp)
         || !CU_add_test(pSuite, "reread object by name", test_zone_read_by_name2)
         || !CU_add_test(pSuite, "verify fields after update (name)", test_zone_verify_name2)
         || !CU_add_test(pSuite, "delete object", test_zone_delete)

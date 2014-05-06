@@ -88,6 +88,16 @@ void database_version_reset(database_version_t* database_version);
 int database_version_copy(database_version_t* database_version, const database_version_t* database_version_copy);
 
 /**
+ * Compare two database version objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] database_version_a a database_version_t pointer.
+ * \param[in] database_version_b a database_version_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int database_version_cmp(const database_version_t* database_version_a, const database_version_t* database_version_b);
+
+/**
  * Set the content of a database version object based on a database result.
  * \param[in] database_version a database_version_t pointer.
  * \param[in] result a db_result_t pointer.

@@ -407,6 +407,91 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
     return DB_OK;
 }
 
+int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b) {
+    int ret;
+
+    if (!key_data_a && !key_data_b) {
+        return 0;
+    }
+    if (!key_data_a && key_data_b) {
+        return -1;
+    }
+    if (key_data_a && !key_data_b) {
+        return 1;
+    }
+
+    ret = 0;
+    db_value_cmp(&(key_data_a->zone_id), &(key_data_b->zone_id), &ret);
+    if (ret) {
+        return ret;
+    }
+
+    ret = 0;
+    db_value_cmp(&(key_data_a->hsm_key_id), &(key_data_b->hsm_key_id), &ret);
+    if (ret) {
+        return ret;
+    }
+
+    if (key_data_a->locator && key_data_b->locator) {
+        if ((ret = strcmp(key_data_a->locator, key_data_b->locator))) {
+            return ret;
+        }
+    }
+    else {
+        if (!key_data_a->locator && key_data_b->locator) {
+            return -1;
+        }
+        if (key_data_a->locator && !key_data_b->locator) {
+            return -1;
+        }
+    }
+
+    if (key_data_a->algorithm != key_data_b->algorithm) {
+        return key_data_a->algorithm < key_data_b->algorithm ? -1 : 1;
+    }
+
+    if (key_data_a->inception != key_data_b->inception) {
+        return key_data_a->inception < key_data_b->inception ? -1 : 1;
+    }
+
+    if (key_data_a->role != key_data_b->role) {
+        return key_data_a->role < key_data_b->role ? -1 : 1;
+    }
+
+    if (key_data_a->introducing != key_data_b->introducing) {
+        return key_data_a->introducing < key_data_b->introducing ? -1 : 1;
+    }
+
+    if (key_data_a->should_revoke != key_data_b->should_revoke) {
+        return key_data_a->should_revoke < key_data_b->should_revoke ? -1 : 1;
+    }
+
+    if (key_data_a->standby != key_data_b->standby) {
+        return key_data_a->standby < key_data_b->standby ? -1 : 1;
+    }
+
+    if (key_data_a->active_zsk != key_data_b->active_zsk) {
+        return key_data_a->active_zsk < key_data_b->active_zsk ? -1 : 1;
+    }
+
+    if (key_data_a->publish != key_data_b->publish) {
+        return key_data_a->publish < key_data_b->publish ? -1 : 1;
+    }
+
+    if (key_data_a->active_ksk != key_data_b->active_ksk) {
+        return key_data_a->active_ksk < key_data_b->active_ksk ? -1 : 1;
+    }
+
+    if (key_data_a->ds_at_parent != key_data_b->ds_at_parent) {
+        return key_data_a->ds_at_parent < key_data_b->ds_at_parent ? -1 : 1;
+    }
+
+    if (key_data_a->keytag != key_data_b->keytag) {
+        return key_data_a->keytag < key_data_b->keytag ? -1 : 1;
+    }
+    return 0;
+}
+
 int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     const db_value_set_t* value_set;
     int role;

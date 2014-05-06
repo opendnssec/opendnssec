@@ -468,6 +468,13 @@ static void test_policy_verify2(void) {
     CU_ASSERT(policy_parent_soa_minimum(object) == 2);
 }
 
+static void test_policy_cmp(void) {
+    policy_t* local_object;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = policy_new(connection)));
+    CU_ASSERT(policy_cmp(object, local_object));
+}
+
 static void test_policy_read_by_name2(void) {
     CU_ASSERT_FATAL(!policy_get_by_name(object, "name 2"));
 }
@@ -547,6 +554,7 @@ static int test_policy_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "update object", test_policy_update)
         || !CU_add_test(pSuite, "reread object by id", test_policy_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_policy_verify2)
+        || !CU_add_test(pSuite, "compare objects", test_policy_cmp)
         || !CU_add_test(pSuite, "reread object by name", test_policy_read_by_name2)
         || !CU_add_test(pSuite, "verify fields after update (name)", test_policy_verify_name2)
         || !CU_add_test(pSuite, "delete object", test_policy_delete)

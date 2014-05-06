@@ -115,6 +115,16 @@ void hsm_key_reset(hsm_key_t* hsm_key);
 int hsm_key_copy(hsm_key_t* hsm_key, const hsm_key_t* hsm_key_copy);
 
 /**
+ * Compare two hsm key objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] hsm_key_a a hsm_key_t pointer.
+ * \param[in] hsm_key_b a hsm_key_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int hsm_key_cmp(const hsm_key_t* hsm_key_a, const hsm_key_t* hsm_key_b);
+
+/**
  * Set the content of a hsm key object based on a database result.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \param[in] result a db_result_t pointer.

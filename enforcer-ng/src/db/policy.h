@@ -132,6 +132,16 @@ void policy_reset(policy_t* policy);
 int policy_copy(policy_t* policy, const policy_t* policy_copy);
 
 /**
+ * Compare two policy objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] policy_a a policy_t pointer.
+ * \param[in] policy_b a policy_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_cmp(const policy_t* policy_a, const policy_t* policy_b);
+
+/**
  * Set the content of a policy object based on a database result.
  * \param[in] policy a policy_t pointer.
  * \param[in] result a db_result_t pointer.

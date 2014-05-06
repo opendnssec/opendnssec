@@ -436,6 +436,111 @@ int hsm_key_copy(hsm_key_t* hsm_key, const hsm_key_t* hsm_key_copy) {
     return DB_OK;
 }
 
+int hsm_key_cmp(const hsm_key_t* hsm_key_a, const hsm_key_t* hsm_key_b) {
+    int ret;
+
+    if (!hsm_key_a && !hsm_key_b) {
+        return 0;
+    }
+    if (!hsm_key_a && hsm_key_b) {
+        return -1;
+    }
+    if (hsm_key_a && !hsm_key_b) {
+        return 1;
+    }
+
+    ret = 0;
+    db_value_cmp(&(hsm_key_a->policy_id), &(hsm_key_b->policy_id), &ret);
+    if (ret) {
+        return ret;
+    }
+
+    if (hsm_key_a->locator && hsm_key_b->locator) {
+        if ((ret = strcmp(hsm_key_a->locator, hsm_key_b->locator))) {
+            return ret;
+        }
+    }
+    else {
+        if (!hsm_key_a->locator && hsm_key_b->locator) {
+            return -1;
+        }
+        if (hsm_key_a->locator && !hsm_key_b->locator) {
+            return -1;
+        }
+    }
+
+    if (hsm_key_a->candidate_for_sharing != hsm_key_b->candidate_for_sharing) {
+        return hsm_key_a->candidate_for_sharing < hsm_key_b->candidate_for_sharing ? -1 : 1;
+    }
+
+    if (hsm_key_a->bits != hsm_key_b->bits) {
+        return hsm_key_a->bits < hsm_key_b->bits ? -1 : 1;
+    }
+
+    if (hsm_key_a->policy && hsm_key_b->policy) {
+        if ((ret = strcmp(hsm_key_a->policy, hsm_key_b->policy))) {
+            return ret;
+        }
+    }
+    else {
+        if (!hsm_key_a->policy && hsm_key_b->policy) {
+            return -1;
+        }
+        if (hsm_key_a->policy && !hsm_key_b->policy) {
+            return -1;
+        }
+    }
+
+    if (hsm_key_a->algorithm != hsm_key_b->algorithm) {
+        return hsm_key_a->algorithm < hsm_key_b->algorithm ? -1 : 1;
+    }
+
+    if (hsm_key_a->role != hsm_key_b->role) {
+        return hsm_key_a->role < hsm_key_b->role ? -1 : 1;
+    }
+
+    if (hsm_key_a->inception != hsm_key_b->inception) {
+        return hsm_key_a->inception < hsm_key_b->inception ? -1 : 1;
+    }
+
+    if (hsm_key_a->is_revoked != hsm_key_b->is_revoked) {
+        return hsm_key_a->is_revoked < hsm_key_b->is_revoked ? -1 : 1;
+    }
+
+    if (hsm_key_a->key_type && hsm_key_b->key_type) {
+        if ((ret = strcmp(hsm_key_a->key_type, hsm_key_b->key_type))) {
+            return ret;
+        }
+    }
+    else {
+        if (!hsm_key_a->key_type && hsm_key_b->key_type) {
+            return -1;
+        }
+        if (hsm_key_a->key_type && !hsm_key_b->key_type) {
+            return -1;
+        }
+    }
+
+    if (hsm_key_a->repository && hsm_key_b->repository) {
+        if ((ret = strcmp(hsm_key_a->repository, hsm_key_b->repository))) {
+            return ret;
+        }
+    }
+    else {
+        if (!hsm_key_a->repository && hsm_key_b->repository) {
+            return -1;
+        }
+        if (hsm_key_a->repository && !hsm_key_b->repository) {
+            return -1;
+        }
+    }
+
+    if (hsm_key_a->backup != hsm_key_b->backup) {
+        return hsm_key_a->backup < hsm_key_b->backup ? -1 : 1;
+    }
+    return 0;
+}
+
 int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
     const db_value_set_t* value_set;
     int role;

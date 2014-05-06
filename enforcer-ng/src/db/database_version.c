@@ -153,6 +153,25 @@ int database_version_copy(database_version_t* database_version, const database_v
     return DB_OK;
 }
 
+int database_version_cmp(const database_version_t* database_version_a, const database_version_t* database_version_b) {
+    int ret;
+
+    if (!database_version_a && !database_version_b) {
+        return 0;
+    }
+    if (!database_version_a && database_version_b) {
+        return -1;
+    }
+    if (database_version_a && !database_version_b) {
+        return 1;
+    }
+
+    if (database_version_a->version != database_version_b->version) {
+        return database_version_a->version < database_version_b->version ? -1 : 1;
+    }
+    return 0;
+}
+
 int database_version_from_result(database_version_t* database_version, const db_result_t* result) {
     const db_value_set_t* value_set;
 
