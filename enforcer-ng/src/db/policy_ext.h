@@ -36,8 +36,23 @@
 extern "C" {
 #endif
 
-int policy_create_from_xmlNode(policy_t* policy, xmlNodePtr policy_node);
-int policy_update_from_xmlNode(policy_t* policy, xmlNodePtr policy_node, int* updated);
+/**
+ * Create a policy object from XML.
+ * \param[in] policy a policy_t object being created.
+ * \param[in] policy_node a xmlNodePtr to the XML for the policy.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_create_from_xml(policy_t* policy, xmlNodePtr policy_node);
+
+/**
+ * Update a policy object from XML.
+ * \param[in] policy a policy_t object being updated.
+ * \param[in] policy_node a xmlNodePtr to the XML for the policy.
+ * \param[out] updated an integer pointer that will be set to non-zero if any
+ * values in the policy was updated.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* updated);
 
 #ifdef __cplusplus
 }

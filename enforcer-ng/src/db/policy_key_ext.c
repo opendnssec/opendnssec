@@ -29,3 +29,16 @@
 
 #include "policy_key.h"
 
+#include "db_error.h"
+#include "shared/duration.h"
+#include "shared/log.h"
+
+#include <string.h>
+
+int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr policy_node) {
+    return DB_OK;
+}
+
+int policy_key_update_from_xml(policy_key_t* policy_key, xmlNodePtr policy_node) {
+    return DB_OK;
+}

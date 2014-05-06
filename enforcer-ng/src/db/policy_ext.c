@@ -46,6 +46,9 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     int update_this = 1;
     int denial_optout = 0;
     int keys_shared = 0;
+    int signatures_max_zone_ttl = 0;
+    int keys_purge = 0;
+    int denial_ttl = 0;
 
     if (!policy) {
         return DB_ERROR_UNKNOWN;
@@ -131,6 +134,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_signatures_resign(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_signatures_resign(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -149,6 +159,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_signatures_refresh(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_signatures_refresh(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -173,6 +190,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_signatures_validity_default(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_signatures_validity_default(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -191,6 +215,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_signatures_validity_denial(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_signatures_validity_denial(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -215,6 +246,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_signatures_jitter(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_signatures_jitter(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -233,6 +271,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_signatures_inception_offset(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_signatures_inception_offset(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -242,6 +287,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     duration_cleanup(duration);
                 }
                 else if (!strcmp((char*)node2->name, "MaxZoneTTL")) {
+                    signatures_max_zone_ttl = 1;
                     if (!(xml_text = xmlNodeGetContent(node2))) {
                         return DB_ERROR_UNKNOWN;
                     }
@@ -251,6 +297,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_signatures_max_zone_ttl(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_signatures_max_zone_ttl(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -273,6 +326,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
 
                 if (!strcmp((char*)node2->name, "NSEC")) {
                     ods_log_deeebug("policy_create_from_xmlNode: denial nsec");
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_denial_type(policy) != POLICY_DENIAL_TYPE_NSEC) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_denial_type(policy, POLICY_DENIAL_TYPE_NSEC)) {
                             return DB_ERROR_UNKNOWN;
@@ -281,6 +341,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                 }
                 else if (!strcmp((char*)node2->name, "NSEC3")) {
                     ods_log_deeebug("policy_create_from_xmlNode: denial nsec3");
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_denial_type(policy) != POLICY_DENIAL_TYPE_NSEC3) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_denial_type(policy, POLICY_DENIAL_TYPE_NSEC3)) {
                             return DB_ERROR_UNKNOWN;
@@ -293,6 +360,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
 
                         if (!strcmp((char*)node3->name, "TTL")) {
+                            denial_ttl = 1;
                             if (!(xml_text = xmlNodeGetContent(node3))) {
                                 return DB_ERROR_UNKNOWN;
                             }
@@ -302,6 +370,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_denial_ttl(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_denial_ttl(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -313,6 +388,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         else if (!strcmp((char*)node3->name, "OptOut")) {
                             denial_optout = 1;
                             ods_log_deeebug("policy_create_from_xmlNode: denial optout");
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (!policy_denial_optout(policy)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_denial_optout(policy, 1)) {
                                     return DB_ERROR_UNKNOWN;
@@ -329,6 +411,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_denial_resalt(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_denial_resalt(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -348,8 +437,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                         return DB_ERROR_UNKNOWN;
                                     }
                                     ods_log_deeebug("policy_create_from_xmlNode: denial algorithm %s", (char*)xml_text);
+                                    if (check_if_updated) {
+                                        update_this = 0;
+                                        if (policy_denial_algorithm(policy) != (unsigned int)atoi((char*)xml_text)) {
+                                            *updated = 1;
+                                            update_this = 1;
+                                        }
+                                    }
                                     if (update_this) {
-                                        if (policy_set_denial_algorithm(policy, atoi((char*)xml_text))) {
+                                        if (policy_set_denial_algorithm(policy, (unsigned int)atoi((char*)xml_text))) {
                                             xmlFree(xml_text);
                                             return DB_ERROR_UNKNOWN;
                                         }
@@ -361,8 +457,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                         return DB_ERROR_UNKNOWN;
                                     }
                                     ods_log_deeebug("policy_create_from_xmlNode: denial iterations %s", (char*)xml_text);
+                                    if (check_if_updated) {
+                                        update_this = 0;
+                                        if (policy_denial_iterations(policy) != (unsigned int)atoi((char*)xml_text)) {
+                                            *updated = 1;
+                                            update_this = 1;
+                                        }
+                                    }
                                     if (update_this) {
-                                        if (policy_set_denial_iterations(policy, atoi((char*)xml_text))) {
+                                        if (policy_set_denial_iterations(policy, (unsigned int)atoi((char*)xml_text))) {
                                             xmlFree(xml_text);
                                             return DB_ERROR_UNKNOWN;
                                         }
@@ -374,8 +477,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                         return DB_ERROR_UNKNOWN;
                                     }
                                     ods_log_deeebug("policy_create_from_xmlNode: denial salt length %s", (char*)xml_text);
+                                    if (check_if_updated) {
+                                        update_this = 0;
+                                        if (policy_denial_salt_length(policy) != (unsigned int)atoi((char*)xml_text)) {
+                                            *updated = 1;
+                                            update_this = 1;
+                                        }
+                                    }
                                     if (update_this) {
-                                        if (policy_set_denial_salt_length(policy, atoi((char*)xml_text))) {
+                                        if (policy_set_denial_salt_length(policy, (unsigned int)atoi((char*)xml_text))) {
                                             xmlFree(xml_text);
                                             return DB_ERROR_UNKNOWN;
                                         }
@@ -416,6 +526,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_keys_ttl(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_keys_ttl(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -434,6 +551,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_keys_retire_safety(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_keys_retire_safety(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -452,6 +576,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_keys_publish_safety(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_keys_publish_safety(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -463,6 +594,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                 else if (!strcmp((char*)node2->name, "ShareKeys")) {
                     keys_shared = 1;
                     ods_log_deeebug("policy_create_from_xmlNode: keys shared keys");
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (!policy_keys_shared(policy)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_keys_shared(policy, 1)) {
                             return DB_ERROR_UNKNOWN;
@@ -470,6 +608,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                 }
                 else if (!strcmp((char*)node2->name, "Purge")) {
+                    keys_purge = 1;
                     if (!(xml_text = xmlNodeGetContent(node2))) {
                         return DB_ERROR_UNKNOWN;
                     }
@@ -479,6 +618,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_keys_purge_after(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_keys_purge_after(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -518,6 +664,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_zone_propagation_delay(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_zone_propagation_delay(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -542,6 +695,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_zone_soa_ttl(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_zone_soa_ttl(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -560,6 +720,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_zone_soa_minimum(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_zone_soa_minimum(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -573,6 +740,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             ods_log_deeebug("policy_create_from_xmlNode: zone soa serial %s", (char*)xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (strcmp(policy_zone_soa_serial_text(policy), (char*)xml_text)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_zone_soa_serial_text(policy, (char*)xml_text)) {
                                     xmlFree(xml_text);
@@ -609,6 +783,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         return DB_ERROR_UNKNOWN;
                     }
                     xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_parent_propagation_delay(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
                     if (update_this) {
                         if (policy_set_parent_propagation_delay(policy, duration2time(duration))) {
                             duration_cleanup(duration);
@@ -633,6 +814,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_parent_soa_ttl(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_parent_soa_ttl(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -651,6 +839,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_parent_soa_minimum(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_parent_soa_minimum(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -681,6 +876,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 return DB_ERROR_UNKNOWN;
                             }
                             xmlFree(xml_text);
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_parent_ds_ttl(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
                             if (update_this) {
                                 if (policy_set_parent_ds_ttl(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
@@ -712,6 +914,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
      */
     if (!denial_optout) {
         ods_log_deeebug("policy_create_from_xmlNode: - denial optout");
+        if (check_if_updated) {
+            update_this = 0;
+            if (policy_denial_optout(policy)) {
+                *updated = 1;
+                update_this = 1;
+            }
+        }
         if (update_this) {
             if (policy_set_denial_optout(policy, 0)) {
                 return DB_ERROR_UNKNOWN;
@@ -720,8 +929,60 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     }
     if (!keys_shared) {
         ods_log_deeebug("policy_create_from_xmlNode: - keys shared keys");
+        if (check_if_updated) {
+            update_this = 0;
+            if (policy_keys_shared(policy)) {
+                *updated = 1;
+                update_this = 1;
+            }
+        }
         if (update_this) {
             if (policy_set_keys_shared(policy, 0)) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+    }
+    if (!signatures_max_zone_ttl) {
+        ods_log_deeebug("policy_create_from_xmlNode: - signatures max zone ttl");
+        if (check_if_updated) {
+            update_this = 0;
+            if (policy_signatures_max_zone_ttl(policy)) {
+                *updated = 1;
+                update_this = 1;
+            }
+        }
+        if (update_this) {
+            if (policy_set_signatures_max_zone_ttl(policy, 0)) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+    }
+    if (!keys_purge) {
+        ods_log_deeebug("policy_create_from_xmlNode: - keys purge");
+        if (check_if_updated) {
+            update_this = 0;
+            if (policy_keys_purge_after(policy)) {
+                *updated = 1;
+                update_this = 1;
+            }
+        }
+        if (update_this) {
+            if (policy_set_keys_purge_after(policy, 0)) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+    }
+    if (!denial_ttl) {
+        ods_log_deeebug("policy_create_from_xmlNode: - denial ttl");
+        if (check_if_updated) {
+            update_this = 0;
+            if (policy_denial_ttl(policy)) {
+                *updated = 1;
+                update_this = 1;
+            }
+        }
+        if (update_this) {
+            if (policy_set_denial_ttl(policy, 0)) {
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -730,7 +991,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     return DB_OK;
 }
 
-int policy_create_from_xmlNode(policy_t* policy, xmlNodePtr policy_node) {
+int policy_create_from_xml(policy_t* policy, xmlNodePtr policy_node) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
     }
@@ -741,7 +1002,7 @@ int policy_create_from_xmlNode(policy_t* policy, xmlNodePtr policy_node) {
     return __xmlNode2policy(policy, policy_node, NULL);
 }
 
-int policy_update_from_xmlNode(policy_t* policy, xmlNodePtr policy_node, int* updated) {
+int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* updated) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
     }

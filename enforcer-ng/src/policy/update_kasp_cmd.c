@@ -33,6 +33,7 @@
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
 #include "db/policy.h"
+#include "db/policy_key.h"
 
 #include "policy/update_kasp_cmd.h"
 
@@ -70,8 +71,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr node;
+    xmlNodePtr node2;
+    xmlNodePtr node3;
     xmlChar* policy_name;
     policy_t* policy;
+    policy_key_t* policy_key;
     int updated;
 
     (void)cmd; (void)n;
@@ -130,36 +134,93 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
                     return 1;
                 }
 
+                /*
+                 * Fetch the policy by name, if we can't find it create a new
+                 * one otherwise update the existing one
+                 */
                 if (policy_get_by_name(policy, (char*)policy_name)) {
-                    if (policy_create_from_xmlNode(policy, node)
+                    if (policy_create_from_xml(policy, node)
                         || policy_create(policy))
                     {
                         client_printf_err(sockfd, "Unable to create policy %s in database\n", (char*)policy_name);
                         policy_free(policy);
                         xmlFree(policy_name);
-                        xmlFreeDoc(doc);
-                        return 1;
+                        continue;
                     }
 
-                    client_printf(sockfd, "Created policy %s\n", (char*)policy_name);
+                    if (policy_get_by_name(policy, (char*)policy_name)) {
+                        client_printf_err(sockfd, "Unable to get policy %s from database after creation\n", (char*)policy_name);
+                        policy_free(policy);
+                        xmlFree(policy_name);
+                        continue;
+                    }
+
+                    /*
+                     * Walk deeper into the XML and create all the Keys we find
+                     */
+                    for (node2 = node->children; node2; node2 = node2->next) {
+                        if (node2->type != XML_ELEMENT_NODE) {
+                            continue;
+                        }
+                        if (strcmp((char*)node2->name, "Keys")) {
+                            continue;
+                        }
+
+                        for (node3 = node2->children; node3; node3 = node3->next) {
+                            if (node3->type != XML_ELEMENT_NODE) {
+                                continue;
+                            }
+                            if (strcmp((char*)node3->name, "KSK")
+                                && strcmp((char*)node3->name, "ZSK")
+                                && strcmp((char*)node3->name, "CSK"))
+                            {
+                                continue;
+                            }
+
+                            /*
+                             * Create the policy key
+                             */
+                            if (!(policy_key = policy_key_new(dbconn))) {
+                                client_printf_err(sockfd, "Memory allocation error\n");
+                                policy_free(policy);
+                                policy_key_free(policy_key);
+                                xmlFree(policy_name);
+                                xmlFreeDoc(doc);
+                                return 1;
+                            }
+                            if (policy_key_create_from_xml(policy_key, node3)
+                                || policy_key_create(policy_key))
+                            {
+                                client_printf_err(sockfd, "Unable to create %s key for policy %s in database\n", (char*)node3->name, (char*)policy_name);
+                                policy_key_free(policy_key);
+                                continue;
+                            }
+                            policy_key_free(policy_key);
+                        }
+                    }
+
+                    client_printf(sockfd, "Created policy %s successfully\n", (char*)policy_name);
                 }
                 else {
-                    if (policy_update_from_xmlNode(policy, node, &updated)) {
+                    /*
+                     * Update the policy, if any data has changed then updated
+                     * will be set to non-zero and if so we update the database
+                     */
+                    if (policy_update_from_xml(policy, node, &updated)) {
                         client_printf_err(sockfd, "Unable to update policy %s from XML\n", (char*)policy_name);
                         policy_free(policy);
                         xmlFree(policy_name);
-                        xmlFreeDoc(doc);
-                        return 1;
+                        continue;
                     }
-
                     if (updated) {
                         if (policy_update(policy)) {
                             client_printf_err(sockfd, "Unable to update policy %s in database\n", (char*)policy_name);
                             policy_free(policy);
                             xmlFree(policy_name);
-                            xmlFreeDoc(doc);
-                            return 1;
+                            continue;
                         }
+
+                        client_printf(sockfd, "Updated policy %s successfully\n", (char*)policy_name);
                     }
                 }
                 policy_free(policy);
