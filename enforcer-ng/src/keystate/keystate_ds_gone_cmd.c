@@ -93,12 +93,13 @@ list_keys_retracted(db_connection_t *dbconn, int sockfd)
 
 static int
 change_keys_retracted_to_unsubmitted(db_connection_t *dbconn, int sockfd,
-	const char *zonename, const char *id, uint16_t keytag)
+	const char *zonename, const char *id, int keytag)
 {
 	key_data_list_t *key_list;
 	const key_data_t *key;
 	key_data_t *rw_key;
 	zone_t *zone;
+	const db_value_t* zoneid;
 	int status = 0, key_match = 0, key_mod = 0;
 	db_clause_list_t* clause_list = NULL;
 	db_clause_t* clause;
@@ -107,13 +108,18 @@ change_keys_retracted_to_unsubmitted(db_connection_t *dbconn, int sockfd,
 		return 10;
 	} else if (!(zone = zone_new(dbconn))) {
 		key_data_list_free(key_list);
-		return 12;
+		return 11;
 	} else if (!(rw_key = key_data_new(dbconn))) {
 		key_data_list_free(key_list);
 		zone_free(zone);
-		return 15;
-	} else if (zone_get_by_name(zone, zonename)){
+		return 12;
+	} else if (zone_get_by_name(zone, zonename) ||
+		(zoneid = zone_id(zone)) == NULL ||
+		key_data_list_get_for_ds(key_list, zoneid,
+		KEY_DATA_DS_AT_PARENT_RETRACTED, id, keytag))
+	{
 		zone_free(zone);
+		key_data_free(rw_key);
 		key_data_list_free(key_list);
 		key_data_free(rw_key);
 		return 13;
@@ -255,7 +261,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	char buf[ODS_SE_MAXLINE];
 	int have_zone, have_id, have_tag, argc, error;
 	const char *zone, *cka_id, *keytag;
-	uint16_t nkeytag = 0;
+	int nkeytag = -1;
 	(void)n;
 	
 	strncpy(buf, cmd, ODS_SE_MAXLINE);
@@ -275,36 +281,24 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
 	if (!have_zone && !have_id && !have_tag) {
 		return list_keys_retracted(dbconn, sockfd);
-	} else if (!have_zone) {
-		ods_log_warning("[%s] expected option --zone <zone> for %s command",
-			module_str, key_ds_gone_funcblock()->cmdname);
-		client_printf(sockfd,"expected --zone <zone> option\n");
+	}
+	if (!(have_zone & (have_id ^ have_tag))) {
+		ods_log_warning("[%s] expected --zone and either --cka_id or "
+			"--keytag option for %s command", module_str,
+			key_ds_gone_funcblock()->cmdname);
+		client_printf(sockfd, "expected --zone and either --cka_id or "
+			"--keytag option.\n");
 		return -1;
-	} else if (!have_id && !have_tag) {
-		ods_log_warning("[%s] expected option --cka_id <cka_id> or "
-			"--keytag <keytag> for %s command",
-			module_str, key_ds_gone_funcblock()->cmdname);
-		client_printf(sockfd,"expected --cka_id <cka_id> or "
-			"--keytag <keytag> option\n");
-		return -1;
-	} else if (have_id && have_tag) {
-		ods_log_warning("[%s] both --cka_id <cka_id> and --keytag <keytag> given, "
-			"please only specify one for %s command",
-			module_str, key_ds_gone_funcblock()->cmdname);
-		client_printf(sockfd,
-			"both --cka_id <cka_id> and --keytag <keytag> given, "
-			"please only specify one\n");
-		return -1;
-	} else if (have_tag) {
-		int kt = atoi(keytag);
-		if (kt <= 0 || kt >= 65536) {
+	}
+	if (have_tag) {
+		nkeytag = atoi(keytag);
+		if (nkeytag < 0 || nkeytag >= 65536) {
 			ods_log_warning("[%s] value \"%s\" for --keytag is invalid",
 				module_str, keytag);
 			client_printf(sockfd, "value \"%s\" for --keytag is invalid\n",
 				keytag);
 			return -1;
 		}
-		nkeytag = (uint16_t )kt;
 	}
 	error = change_keys_retracted_to_unsubmitted(dbconn, sockfd, zone,
 		cka_id, nkeytag);
