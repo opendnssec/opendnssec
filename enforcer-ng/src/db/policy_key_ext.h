@@ -50,14 +50,6 @@ extern "C" {
  */
 int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node);
 
-/**
- * Update a policy key object from XML.
- * \param[in] policy_key a policy_key_t object being updated.
- * \param[in] key_node a xmlNodePtr to the XML for the policy key.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_key_update_from_xml(policy_key_t* policy_key, xmlNodePtr key_node);
-
 #ifdef __cplusplus
 }
 #endif

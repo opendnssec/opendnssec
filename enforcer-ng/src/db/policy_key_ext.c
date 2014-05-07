@@ -298,7 +298,3 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
 
     return DB_OK;
 }
-
-int policy_key_update_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
-    return DB_OK;
-}
