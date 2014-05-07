@@ -100,6 +100,8 @@ change_keys_retracted_to_unsubmitted(db_connection_t *dbconn, int sockfd,
 	key_data_t *rw_key;
 	zone_t *zone;
 	int status = 0, key_match = 0, key_mod = 0;
+	db_clause_list_t* clause_list = NULL;
+	db_clause_t* clause;
 
 	if (!(key_list = key_data_list_new(dbconn))) {
 		return 10;
@@ -113,25 +115,70 @@ change_keys_retracted_to_unsubmitted(db_connection_t *dbconn, int sockfd,
 	} else if (zone_get_by_name(zone, zonename)){
 		zone_free(zone);
 		key_data_list_free(key_list);
+		key_data_free(rw_key);
 		return 13;
-	} else if (!(key_list = zone_get_keys(zone))) {
-		zone_free(zone);
-		key_data_list_free(key_list);
-		return 14;
 	}
 
-	/* We should consider filtering this in the DB. */
+	/*
+	 * Create a new clause list to filter key_data objects.
+	 */
+	if (!(clause_list = db_clause_list_new())) {
+        zone_free(zone);
+        key_data_list_free(key_list);
+        key_data_free(rw_key);
+        return 20;
+	}
+	/*
+	 * Filter on the fetch zone, skip ZSK, only get retracted ds_at_parent
+	 */
+	if (!key_data_zone_id_clause(clause_list, zone_id(zone))
+	    || !(clause = key_data_role_clause(clause_list, KEY_DATA_ROLE_ZSK))
+	    || db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL)
+	    || key_data_ds_at_parent_clause(clause_list, KEY_DATA_DS_AT_PARENT_RETRACTED))
+	{
+        zone_free(zone);
+        key_data_list_free(key_list);
+        key_data_free(rw_key);
+        db_clause_list_free(clause_list);
+        return 20;
+	}
+	/*
+	 * If id is set use it as locator otherwise use keytag, one of them should
+	 * always be set.
+	 */
+	if (id) {
+	    if (!key_data_locator_clause(clause_list, id)) {
+	        zone_free(zone);
+	        key_data_list_free(key_list);
+	        key_data_free(rw_key);
+	        db_clause_list_free(clause_list);
+	        return 21;
+	    }
+	}
+	else {
+        if (!key_data_keytag_clause(clause_list, keytag)) {
+            zone_free(zone);
+            key_data_list_free(key_list);
+            key_data_free(rw_key);
+            db_clause_list_free(clause_list);
+            return 21;
+        }
+	}
+	/*
+	 * Fetch the key data list
+	 */
+	if (key_data_list_get_by_clauses(key_list, clause_list)) {
+        zone_free(zone);
+        key_data_list_free(key_list);
+        key_data_free(rw_key);
+        db_clause_list_free(clause_list);
+        return 22;
+	}
+    db_clause_list_free(clause_list);
+
 	for (key = key_data_list_begin(key_list); key;
 		key = key_data_list_next(key_list))
 	{
-		/* Filter conditions */
-		if (!key_data_is_ksk(key)) continue; /* skip ZSK */
-		if (!key_data_locator(key)) continue; /* placeholder key */
-		if (key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_RETRACTED)
-			continue;
-		if ((id && strcmp(key_data_locator(key), id) != 0) ||
-			key_data_keytag(key) != keytag) continue;
-
 		key_match = 1;
 
 		/* error conditions */
@@ -173,6 +220,7 @@ change_keys_retracted_to_unsubmitted(db_connection_t *dbconn, int sockfd,
 		}
 	}
 
+    key_data_free(rw_key);
 	zone_free(zone);
 	return status;
 }
