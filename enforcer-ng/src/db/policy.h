@@ -505,7 +505,7 @@ int policy_set_denial_resalt(policy_t* policy, unsigned int denial_resalt);
 /**
  * Set the denial_algorithm of a policy object.
  * \param[in] policy a policy_t pointer.
- * \param[in] denial_algorithm an unsigned integer.
+ * \param[in] denial_algorithm an unsigned integer with a maximum value of 255.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_set_denial_algorithm(policy_t* policy, unsigned int denial_algorithm);
@@ -513,7 +513,7 @@ int policy_set_denial_algorithm(policy_t* policy, unsigned int denial_algorithm)
 /**
  * Set the denial_iterations of a policy object.
  * \param[in] policy a policy_t pointer.
- * \param[in] denial_iterations an unsigned integer.
+ * \param[in] denial_iterations an unsigned integer with a maximum value of 65535.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_set_denial_iterations(policy_t* policy, unsigned int denial_iterations);
@@ -521,7 +521,7 @@ int policy_set_denial_iterations(policy_t* policy, unsigned int denial_iteration
 /**
  * Set the denial_salt_length of a policy object.
  * \param[in] policy a policy_t pointer.
- * \param[in] denial_salt_length an unsigned integer.
+ * \param[in] denial_salt_length an unsigned integer with a maximum value of 255.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_set_denial_salt_length(policy_t* policy, unsigned int denial_salt_length);

@@ -349,7 +349,19 @@ int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', const char*
     print HEADER '/**
  * Set the ', $field->{name}, ' of a ', $tname, ' object.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
- * \param[in] ', $field->{name}, ' ', $DB_TYPE_TO_TEXT{$field->{type}}, '.
+ * \param[in] ', $field->{name}, ' ', $DB_TYPE_TO_TEXT{$field->{type}};
+if ($field->{min}) {
+    print HEADER ' with a minimum value of ', $field->{min};
+}
+if ($field->{max}) {
+    if ($field->{min}) {
+        print HEADER ' and a maximum value of ', $field->{max};
+    }
+    else {
+        print HEADER ' with a maximum value of ', $field->{max};
+    }
+}
+print HEADER '.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ');

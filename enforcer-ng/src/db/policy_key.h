@@ -242,7 +242,7 @@ int policy_key_set_role_text(policy_key_t* policy_key, const char* role);
 /**
  * Set the algorithm of a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
- * \param[in] algorithm an unsigned integer.
+ * \param[in] algorithm an unsigned integer with a maximum value of 255.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_key_set_algorithm(policy_key_t* policy_key, unsigned int algorithm);
