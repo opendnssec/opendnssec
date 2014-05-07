@@ -438,6 +438,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
                             if (!policy_key_cmp(policy_key_xml->policy_key, policy_key_db->policy_key)) {
                                 policy_key_xml->processed = 1;
                                 policy_key_db->processed = 1;
+                                break;
                             }
 
                             policy_key_db = policy_key_db->next;
