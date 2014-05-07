@@ -696,6 +696,225 @@ int policy_key_set_minimize(policy_key_t* policy_key, unsigned int minimize) {
     return DB_OK;
 }
 
+db_clause_t* policy_key_policy_id_clause(db_clause_list_t* clause_list, const db_value_t* policy_id) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+    if (!policy_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(policy_id)) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "policyId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_copy(db_clause_get_value(clause), policy_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_role_clause(db_clause_list_t* clause_list, policy_key_role_t role) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "role")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_enum_value(db_clause_get_value(clause), role, policy_key_enum_set_role)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_algorithm_clause(db_clause_list_t* clause_list, unsigned int algorithm) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "algorithm")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), algorithm)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_bits_clause(db_clause_list_t* clause_list, unsigned int bits) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "bits")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), bits)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_lifetime_clause(db_clause_list_t* clause_list, unsigned int lifetime) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "lifetime")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), lifetime)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_repository_clause(db_clause_list_t* clause_list, const char* repository_text) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+    if (!repository_text) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "repository")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_text(db_clause_get_value(clause), repository_text)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_standby_clause(db_clause_list_t* clause_list, unsigned int standby) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "standby")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), standby)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_manual_rollover_clause(db_clause_list_t* clause_list, unsigned int manual_rollover) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "manualRollover")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), manual_rollover)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_rfc5011_clause(db_clause_list_t* clause_list, unsigned int rfc5011) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rfc5011")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), rfc5011)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_key_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "minimize")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), minimize)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
 int policy_key_create(policy_key_t* policy_key) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
@@ -1191,6 +1410,26 @@ int policy_key_list_get(policy_key_list_t* policy_key_list) {
         db_result_list_free(policy_key_list->result_list);
     }
     if (!(policy_key_list->result_list = db_object_read(policy_key_list->dbo, NULL, NULL))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_clause_list_t* clause_list) {
+    if (!policy_key_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!clause_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy_key_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (policy_key_list->result_list) {
+        db_result_list_free(policy_key_list->result_list);
+    }
+    if (!(policy_key_list->result_list = db_object_read(policy_key_list->dbo, NULL, clause_list))) {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;

@@ -566,6 +566,138 @@ int key_state_set_ttl(key_state_t* key_state, unsigned int ttl) {
     return DB_OK;
 }
 
+db_clause_t* key_state_key_data_id_clause(db_clause_list_t* clause_list, const db_value_t* key_data_id) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+    if (!key_data_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(key_data_id)) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "keyDataId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_copy(db_clause_get_value(clause), key_data_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* key_state_type_clause(db_clause_list_t* clause_list, key_state_type_t type) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "type")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_enum_value(db_clause_get_value(clause), type, key_state_enum_set_type)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* key_state_state_clause(db_clause_list_t* clause_list, key_state_state_t state) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "state")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_enum_value(db_clause_get_value(clause), state, key_state_enum_set_state)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* key_state_last_change_clause(db_clause_list_t* clause_list, unsigned int last_change) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "lastChange")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), last_change)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* key_state_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "minimize")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), minimize)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* key_state_ttl_clause(db_clause_list_t* clause_list, unsigned int ttl) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "ttl")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), ttl)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
 int key_state_create(key_state_t* key_state) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
@@ -969,6 +1101,26 @@ int key_state_list_get(key_state_list_t* key_state_list) {
         db_result_list_free(key_state_list->result_list);
     }
     if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, NULL))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list) {
+    if (!key_state_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!clause_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_state_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_state_list->result_list) {
+        db_result_list_free(key_state_list->result_list);
+    }
+    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, clause_list))) {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;

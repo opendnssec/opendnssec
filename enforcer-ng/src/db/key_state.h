@@ -266,6 +266,72 @@ int key_state_set_minimize(key_state_t* key_state, unsigned int minimize);
 int key_state_set_ttl(key_state_t* key_state, unsigned int ttl);
 
 /**
+ * Create a clause for key_data_id of a key state object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] key_data_id a db_value_t pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_state_key_data_id_clause(db_clause_list_t* clause_list, const db_value_t* key_data_id);
+
+/**
+ * Create a clause for type of a key state object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] type a key_state_type_t.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_state_type_clause(db_clause_list_t* clause_list, key_state_type_t type);
+
+/**
+ * Create a clause for state of a key state object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] state a key_state_state_t.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_state_state_clause(db_clause_list_t* clause_list, key_state_state_t state);
+
+/**
+ * Create a clause for last_change of a key state object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] last_change an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_state_last_change_clause(db_clause_list_t* clause_list, unsigned int last_change);
+
+/**
+ * Create a clause for minimize of a key state object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] minimize an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_state_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize);
+
+/**
+ * Create a clause for ttl of a key state object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ttl an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_state_ttl_clause(db_clause_list_t* clause_list, unsigned int ttl);
+
+/**
  * Create a key state object in the database.
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -323,6 +389,14 @@ void key_state_list_free(key_state_list_t* key_state_list);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_state_list_get(key_state_list_t* key_state_list);
+
+/**
+ * Get key state objects from the database by a clause list.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list);
 
 /**
  * Get key state objects from the database by a key_data_id specified in `key_data_id`.

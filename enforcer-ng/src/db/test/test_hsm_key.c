@@ -42,6 +42,7 @@ static db_connection_t* connection = NULL;
 static hsm_key_t* object = NULL;
 static hsm_key_list_t* object_list = NULL;
 static db_value_t id = DB_VALUE_EMPTY;
+static db_clause_list_t* clause_list = NULL;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_hsm_key_init_suite_sqlite(void) {
@@ -189,6 +190,8 @@ static int test_hsm_key_clean_suite(void) {
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
     db_value_reset(&id);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
     return 0;
 }
 
@@ -257,6 +260,93 @@ static void test_hsm_key_get(void) {
 
 static void test_hsm_key_create(void) {
     CU_ASSERT_FATAL(!hsm_key_create(object));
+}
+
+static void test_hsm_key_clauses(void) {
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_policy_id_clause(clause_list, hsm_key_policy_id(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_locator_clause(clause_list, hsm_key_locator(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_candidate_for_sharing_clause(clause_list, hsm_key_candidate_for_sharing(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_bits_clause(clause_list, hsm_key_bits(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_policy_clause(clause_list, hsm_key_policy(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_algorithm_clause(clause_list, hsm_key_algorithm(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_role_clause(clause_list, hsm_key_role(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_inception_clause(clause_list, hsm_key_inception(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_is_revoked_clause(clause_list, hsm_key_is_revoked(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_key_type_clause(clause_list, hsm_key_key_type(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_repository_clause(clause_list, hsm_key_repository(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_backup_clause(clause_list, hsm_key_backup(object)));
+    CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
 }
 
 static void test_hsm_key_list(void) {
@@ -450,6 +540,7 @@ static int test_hsm_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "set fields", test_hsm_key_set)
         || !CU_add_test(pSuite, "get fields", test_hsm_key_get)
         || !CU_add_test(pSuite, "create object", test_hsm_key_create)
+        || !CU_add_test(pSuite, "object clauses", test_hsm_key_clauses)
         || !CU_add_test(pSuite, "list objects", test_hsm_key_list)
         || !CU_add_test(pSuite, "read object by id", test_hsm_key_read)
         || !CU_add_test(pSuite, "verify fields", test_hsm_key_verify)

@@ -42,6 +42,7 @@ static db_connection_t* connection = NULL;
 static policy_key_t* object = NULL;
 static policy_key_list_t* object_list = NULL;
 static db_value_t id = DB_VALUE_EMPTY;
+static db_clause_list_t* clause_list = NULL;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_policy_key_init_suite_sqlite(void) {
@@ -189,6 +190,8 @@ static int test_policy_key_clean_suite(void) {
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
     db_value_reset(&id);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
     return 0;
 }
 
@@ -241,6 +244,79 @@ static void test_policy_key_get(void) {
 
 static void test_policy_key_create(void) {
     CU_ASSERT_FATAL(!policy_key_create(object));
+}
+
+static void test_policy_key_clauses(void) {
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_policy_id_clause(clause_list, policy_key_policy_id(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_role_clause(clause_list, policy_key_role(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_algorithm_clause(clause_list, policy_key_algorithm(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_bits_clause(clause_list, policy_key_bits(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_lifetime_clause(clause_list, policy_key_lifetime(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_repository_clause(clause_list, policy_key_repository(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_standby_clause(clause_list, policy_key_standby(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_manual_rollover_clause(clause_list, policy_key_manual_rollover(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_rfc5011_clause(clause_list, policy_key_rfc5011(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_minimize_clause(clause_list, policy_key_minimize(object)));
+    CU_ASSERT(!policy_key_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
 }
 
 static void test_policy_key_list(void) {
@@ -353,6 +429,7 @@ static int test_policy_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "set fields", test_policy_key_set)
         || !CU_add_test(pSuite, "get fields", test_policy_key_get)
         || !CU_add_test(pSuite, "create object", test_policy_key_create)
+        || !CU_add_test(pSuite, "object clauses", test_policy_key_clauses)
         || !CU_add_test(pSuite, "list objects", test_policy_key_list)
         || !CU_add_test(pSuite, "read object by id", test_policy_key_read)
         || !CU_add_test(pSuite, "verify fields", test_policy_key_verify)

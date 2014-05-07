@@ -360,6 +360,138 @@ int hsm_key_set_backup(hsm_key_t* hsm_key, hsm_key_backup_t backup);
 int hsm_key_set_backup_text(hsm_key_t* hsm_key, const char* backup);
 
 /**
+ * Create a clause for policy_id of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_policy_id_clause(db_clause_list_t* clause_list, const db_value_t* policy_id);
+
+/**
+ * Create a clause for locator of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] locator_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_locator_clause(db_clause_list_t* clause_list, const char* locator_text);
+
+/**
+ * Create a clause for candidate_for_sharing of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] candidate_for_sharing an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_candidate_for_sharing_clause(db_clause_list_t* clause_list, unsigned int candidate_for_sharing);
+
+/**
+ * Create a clause for bits of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] bits an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_bits_clause(db_clause_list_t* clause_list, unsigned int bits);
+
+/**
+ * Create a clause for policy of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] policy_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_policy_clause(db_clause_list_t* clause_list, const char* policy_text);
+
+/**
+ * Create a clause for algorithm of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] algorithm an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_algorithm_clause(db_clause_list_t* clause_list, unsigned int algorithm);
+
+/**
+ * Create a clause for role of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] role a hsm_key_role_t.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_role_clause(db_clause_list_t* clause_list, hsm_key_role_t role);
+
+/**
+ * Create a clause for inception of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] inception an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_inception_clause(db_clause_list_t* clause_list, unsigned int inception);
+
+/**
+ * Create a clause for is_revoked of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] is_revoked an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_is_revoked_clause(db_clause_list_t* clause_list, unsigned int is_revoked);
+
+/**
+ * Create a clause for key_type of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] key_type_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_key_type_clause(db_clause_list_t* clause_list, const char* key_type_text);
+
+/**
+ * Create a clause for repository of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] repository_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_repository_clause(db_clause_list_t* clause_list, const char* repository_text);
+
+/**
+ * Create a clause for backup of a hsm key object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] backup a hsm_key_backup_t.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* hsm_key_backup_clause(db_clause_list_t* clause_list, hsm_key_backup_t backup);
+
+/**
  * Create a hsm key object in the database.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -425,6 +557,14 @@ void hsm_key_list_free(hsm_key_list_t* hsm_key_list);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_list_get(hsm_key_list_t* hsm_key_list);
+
+/**
+ * Get hsm key objects from the database by a clause list.
+ * \param[in] hsm_key_list a hsm_key_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int hsm_key_list_get_by_clauses(hsm_key_list_t* hsm_key_list, const db_clause_list_t* clause_list);
 
 /**
  * Get hsm key objects from the database by a policy_id specified in `policy_id`.

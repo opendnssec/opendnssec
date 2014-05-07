@@ -42,6 +42,7 @@ static db_connection_t* connection = NULL;
 static key_data_t* object = NULL;
 static key_data_list_t* object_list = NULL;
 static db_value_t id = DB_VALUE_EMPTY;
+static db_clause_list_t* clause_list = NULL;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_key_data_init_suite_sqlite(void) {
@@ -189,6 +190,8 @@ static int test_key_data_clean_suite(void) {
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
     db_value_reset(&id);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
     return 0;
 }
 
@@ -269,6 +272,107 @@ static void test_key_data_get(void) {
 
 static void test_key_data_create(void) {
     CU_ASSERT_FATAL(!key_data_create(object));
+}
+
+static void test_key_data_clauses(void) {
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_zone_id_clause(clause_list, key_data_zone_id(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_hsm_key_id_clause(clause_list, key_data_hsm_key_id(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_locator_clause(clause_list, key_data_locator(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_algorithm_clause(clause_list, key_data_algorithm(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_inception_clause(clause_list, key_data_inception(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_role_clause(clause_list, key_data_role(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_introducing_clause(clause_list, key_data_introducing(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_should_revoke_clause(clause_list, key_data_should_revoke(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_standby_clause(clause_list, key_data_standby(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_active_zsk_clause(clause_list, key_data_active_zsk(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_publish_clause(clause_list, key_data_publish(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_active_ksk_clause(clause_list, key_data_active_ksk(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_ds_at_parent_clause(clause_list, key_data_ds_at_parent(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_keytag_clause(clause_list, key_data_keytag(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
 }
 
 static void test_key_data_list(void) {
@@ -409,6 +513,7 @@ static int test_key_data_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "set fields", test_key_data_set)
         || !CU_add_test(pSuite, "get fields", test_key_data_get)
         || !CU_add_test(pSuite, "create object", test_key_data_create)
+        || !CU_add_test(pSuite, "object clauses", test_key_data_clauses)
         || !CU_add_test(pSuite, "list objects", test_key_data_list)
         || !CU_add_test(pSuite, "read object by id", test_key_data_read)
         || !CU_add_test(pSuite, "verify fields", test_key_data_verify)

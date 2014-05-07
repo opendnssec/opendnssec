@@ -222,6 +222,27 @@ int database_version_set_version(database_version_t* database_version, unsigned 
     return DB_OK;
 }
 
+db_clause_t* database_version_version_clause(db_clause_list_t* clause_list, unsigned int version) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "version")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), version)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
 int database_version_create(database_version_t* database_version) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
@@ -505,6 +526,26 @@ int database_version_list_get(database_version_list_t* database_version_list) {
         db_result_list_free(database_version_list->result_list);
     }
     if (!(database_version_list->result_list = db_object_read(database_version_list->dbo, NULL, NULL))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+int database_version_list_get_by_clauses(database_version_list_t* database_version_list, const db_clause_list_t* clause_list) {
+    if (!database_version_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!clause_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!database_version_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (database_version_list->result_list) {
+        db_result_list_free(database_version_list->result_list);
+    }
+    if (!(database_version_list->result_list = db_object_read(database_version_list->dbo, NULL, clause_list))) {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;

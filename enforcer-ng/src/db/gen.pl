@@ -369,6 +369,73 @@ int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, ', ', $DB_TYPE
 ';
 }
 
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+    print HEADER '/**
+ * Create a clause for ', $field->{name}, ' of a ', $tname, ' object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ', $field->{name}, ' a db_value_t pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* ', $name, '_', $field->{name}, '_clause(db_clause_list_t* clause_list, const db_value_t* ', $field->{name}, ');
+
+';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_ENUM') {
+        print HEADER '/**
+ * Create a clause for ', $field->{name}, ' of a ', $tname, ' object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ', $field->{name}, ' a ', $name, '_', $field->{name}, '_t.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* ', $name, '_', $field->{name}, '_clause(db_clause_list_t* clause_list, ', $name, '_', $field->{name}, '_t ', $field->{name}, ');
+
+';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+        print HEADER '/**
+ * Create a clause for ', $field->{name}, ' of a ', $tname, ' object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ', $field->{name}, '_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* ', $name, '_', $field->{name}, '_clause(db_clause_list_t* clause_list, const char* ', $field->{name}, '_text);
+
+';
+        next;
+    }
+
+    print HEADER '/**
+ * Create a clause for ', $field->{name}, ' of a ', $tname, ' object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ', $field->{name}, ' ', $DB_TYPE_TO_TEXT{$field->{type}}, '.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* ', $name, '_', $field->{name}, '_clause(db_clause_list_t* clause_list, ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ');
+
+';
+}
+
 print HEADER '/**
  * Create a ', $tname, ' object in the database.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
@@ -458,6 +525,14 @@ void ', $name, '_list_free(', $name, '_list_t* ', $name, '_list);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list);
+
+/**
+ * Get ', $tname, ' objects from the database by a clause list.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_list_get_by_clauses(', $name, '_list_t* ', $name, '_list, const db_clause_list_t* clause_list);
 
 ';
 foreach my $field (@{$object->{fields}}) {
@@ -1187,6 +1262,122 @@ print SOURCE '
 ';
 }
 
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        next;
+    }
+    if ($field->{foreign}) {
+    print SOURCE 'db_clause_t* ', $name, '_', $field->{name}, '_clause(db_clause_list_t* clause_list, const db_value_t* ', $field->{name}, ') {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+    if (!', $field->{name}, ') {
+        return NULL;
+    }
+    if (db_value_not_empty(', $field->{name}, ')) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_copy(db_clause_get_value(clause), ', $field->{name}, ')
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_ENUM') {
+        print SOURCE 'db_clause_t* ', $name, '_', $field->{name}, '_clause(db_clause_list_t* clause_list, ', $name, '_', $field->{name}, '_t ', $field->{name}, ') {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_enum_value(db_clause_get_value(clause), ', $field->{name}, ', ', $name, '_enum_set_', $field->{name}, ')
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+';
+        next;
+    }
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+        print SOURCE 'db_clause_t* ', $name, '_', $field->{name}, '_clause(db_clause_list_t* clause_list, const char* ', $field->{name}, '_text) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+    if (!', $field->{name}, '_text) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_text(db_clause_get_value(clause), ', $field->{name}, '_text)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+';
+        next;
+    }
+
+    print SOURCE 'db_clause_t* ', $name, '_', $field->{name}, '_clause(db_clause_list_t* clause_list, ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ') {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "', camelize($field->{name}), '")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_', $DB_TYPE_TO_FUNC{$field->{type}}, '(db_clause_get_value(clause), ', $field->{name}, ')
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+';
+}
+
 print SOURCE 'int ', $name, '_create(', $name, '_t* ', $name, ') {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
@@ -1646,6 +1837,26 @@ int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list) {
         db_result_list_free(', $name, '_list->result_list);
     }
     if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, NULL))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+int ', $name, '_list_get_by_clauses(', $name, '_list_t* ', $name, '_list, const db_clause_list_t* clause_list) {
+    if (!', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!clause_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (', $name, '_list->result_list) {
+        db_result_list_free(', $name, '_list->result_list);
+    }
+    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, clause_list))) {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;

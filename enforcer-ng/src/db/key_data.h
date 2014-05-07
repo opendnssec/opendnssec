@@ -410,6 +410,160 @@ int key_data_set_ds_at_parent_text(key_data_t* key_data, const char* ds_at_paren
 int key_data_set_keytag(key_data_t* key_data, unsigned int keytag);
 
 /**
+ * Create a clause for zone_id of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] zone_id a db_value_t pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_zone_id_clause(db_clause_list_t* clause_list, const db_value_t* zone_id);
+
+/**
+ * Create a clause for hsm_key_id of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] hsm_key_id a db_value_t pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_value_t* hsm_key_id);
+
+/**
+ * Create a clause for locator of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] locator_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_locator_clause(db_clause_list_t* clause_list, const char* locator_text);
+
+/**
+ * Create a clause for algorithm of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] algorithm an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_algorithm_clause(db_clause_list_t* clause_list, unsigned int algorithm);
+
+/**
+ * Create a clause for inception of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] inception an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_inception_clause(db_clause_list_t* clause_list, unsigned int inception);
+
+/**
+ * Create a clause for role of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] role a key_data_role_t.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_role_clause(db_clause_list_t* clause_list, key_data_role_t role);
+
+/**
+ * Create a clause for introducing of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] introducing an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_introducing_clause(db_clause_list_t* clause_list, unsigned int introducing);
+
+/**
+ * Create a clause for should_revoke of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] should_revoke an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_should_revoke_clause(db_clause_list_t* clause_list, unsigned int should_revoke);
+
+/**
+ * Create a clause for standby of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] standby an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_standby_clause(db_clause_list_t* clause_list, unsigned int standby);
+
+/**
+ * Create a clause for active_zsk of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] active_zsk an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_active_zsk_clause(db_clause_list_t* clause_list, unsigned int active_zsk);
+
+/**
+ * Create a clause for publish of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] publish an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_publish_clause(db_clause_list_t* clause_list, unsigned int publish);
+
+/**
+ * Create a clause for active_ksk of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] active_ksk an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_active_ksk_clause(db_clause_list_t* clause_list, unsigned int active_ksk);
+
+/**
+ * Create a clause for ds_at_parent of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ds_at_parent a key_data_ds_at_parent_t.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_ds_at_parent_clause(db_clause_list_t* clause_list, key_data_ds_at_parent_t ds_at_parent);
+
+/**
+ * Create a clause for keytag of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] keytag an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_keytag_clause(db_clause_list_t* clause_list, unsigned int keytag);
+
+/**
  * Create a key data object in the database.
  * \param[in] key_data a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -467,6 +621,14 @@ void key_data_list_free(key_data_list_t* key_data_list);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_data_list_get(key_data_list_t* key_data_list);
+
+/**
+ * Get key data objects from the database by a clause list.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause_list_t* clause_list);
 
 /**
  * Get key data objects from the database by a zone_id specified in `zone_id`.

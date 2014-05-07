@@ -129,6 +129,17 @@ unsigned int database_version_version(const database_version_t* database_version
 int database_version_set_version(database_version_t* database_version, unsigned int version);
 
 /**
+ * Create a clause for version of a database version object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] version an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* database_version_version_clause(db_clause_list_t* clause_list, unsigned int version);
+
+/**
  * Create a database version object in the database.
  * \param[in] database_version a database_version_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -186,6 +197,14 @@ void database_version_list_free(database_version_list_t* database_version_list);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int database_version_list_get(database_version_list_t* database_version_list);
+
+/**
+ * Get database version objects from the database by a clause list.
+ * \param[in] database_version_list a database_version_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int database_version_list_get_by_clauses(database_version_list_t* database_version_list, const db_clause_list_t* clause_list);
 
 /**
  * Get the first database version object in a database version object list. This will reset the position of the list.

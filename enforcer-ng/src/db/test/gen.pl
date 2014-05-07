@@ -142,6 +142,7 @@ static db_connection_t* connection = NULL;
 static ', $name, '_t* object = NULL;
 static ', $name, '_list_t* object_list = NULL;
 static db_value_t id = DB_VALUE_EMPTY;
+static db_clause_list_t* clause_list = NULL;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_', $name, '_init_suite_sqlite(void) {
@@ -289,6 +290,8 @@ static int test_', $name, '_clean_suite(void) {
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
     db_value_reset(&id);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
     return 0;
 }
 
@@ -424,6 +427,36 @@ print SOURCE '}
 static void test_', $name, '_create(void) {
     CU_ASSERT_FATAL(!', $name, '_create(object));
 }
+
+static void test_', $name, '_clauses(void) {
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
+
+print SOURCE '
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(', $name, '_', $field->{name}, '_clause(clause_list, ', $name, '_', $field->{name}, '(object)));
+    CU_ASSERT(!', $name, '_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(', $name, '_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+';
+
+    if ($field->{foreign}) {
+    }
+    elsif ($field->{type} eq 'DB_TYPE_ENUM') {
+        foreach my $enum (reverse @{$field->{enum}}) {
+            last;
+        }
+    }
+    elsif ($field->{type} eq 'DB_TYPE_TEXT') {
+    }
+    else {
+    }
+}
+print SOURCE '}
 
 static void test_', $name, '_list(void) {
     const ', $name, '_t* item;
@@ -847,6 +880,7 @@ static int test_', $name, '_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "set fields", test_', $name, '_set)
         || !CU_add_test(pSuite, "get fields", test_', $name, '_get)
         || !CU_add_test(pSuite, "create object", test_', $name, '_create)
+        || !CU_add_test(pSuite, "object clauses", test_', $name, '_clauses)
         || !CU_add_test(pSuite, "list objects", test_', $name, '_list)
         || !CU_add_test(pSuite, "read object by id", test_', $name, '_read)
         || !CU_add_test(pSuite, "verify fields", test_', $name, '_verify)

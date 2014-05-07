@@ -42,6 +42,7 @@ static db_connection_t* connection = NULL;
 static database_version_t* object = NULL;
 static database_version_list_t* object_list = NULL;
 static db_value_t id = DB_VALUE_EMPTY;
+static db_clause_list_t* clause_list = NULL;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_database_version_init_suite_sqlite(void) {
@@ -189,6 +190,8 @@ static int test_database_version_clean_suite(void) {
     db_configuration_list_free(configuration_list);
     configuration_list = NULL;
     db_value_reset(&id);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
     return 0;
 }
 
@@ -207,6 +210,16 @@ static void test_database_version_get(void) {
 
 static void test_database_version_create(void) {
     CU_ASSERT_FATAL(!database_version_create(object));
+}
+
+static void test_database_version_clauses(void) {
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(database_version_version_clause(clause_list, database_version_version(object)));
+    CU_ASSERT(!database_version_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(database_version_list_begin(object_list));
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
 }
 
 static void test_database_version_list(void) {
@@ -272,6 +285,7 @@ static int test_database_version_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "set fields", test_database_version_set)
         || !CU_add_test(pSuite, "get fields", test_database_version_get)
         || !CU_add_test(pSuite, "create object", test_database_version_create)
+        || !CU_add_test(pSuite, "object clauses", test_database_version_clauses)
         || !CU_add_test(pSuite, "list objects", test_database_version_list)
         || !CU_add_test(pSuite, "read object by id", test_database_version_read)
         || !CU_add_test(pSuite, "verify fields", test_database_version_verify)
