@@ -77,6 +77,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     policy_t* policy;
     policy_key_t* policy_key;
     int updated;
+    int successful;
 
     (void)cmd; (void)n;
 
@@ -158,6 +159,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
                     /*
                      * Walk deeper into the XML and create all the Keys we find
                      */
+                    successful = 1;
                     for (node2 = node->children; node2; node2 = node2->next) {
                         if (node2->type != XML_ELEMENT_NODE) {
                             continue;
@@ -188,18 +190,22 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
                                 xmlFreeDoc(doc);
                                 return 1;
                             }
-                            if (policy_key_create_from_xml(policy_key, node3)
+                            if (policy_key_set_policy_id(policy_key, policy_id(policy))
+                                || policy_key_create_from_xml(policy_key, node3)
                                 || policy_key_create(policy_key))
                             {
                                 client_printf_err(sockfd, "Unable to create %s key for policy %s in database\n", (char*)node3->name, (char*)policy_name);
                                 policy_key_free(policy_key);
+                                successful = 0;
                                 continue;
                             }
                             policy_key_free(policy_key);
                         }
                     }
 
-                    client_printf(sockfd, "Created policy %s successfully\n", (char*)policy_name);
+                    if (successful) {
+                        client_printf(sockfd, "Created policy %s successfully\n", (char*)policy_name);
+                    }
                 }
                 else {
                     /*

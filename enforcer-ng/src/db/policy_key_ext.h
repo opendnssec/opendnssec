@@ -36,21 +36,27 @@
 extern "C" {
 #endif
 
+#define POLICY_KEY_MINIMIZE_NONE          0
+#define POLICY_KEY_MINIMIZE_RRSIG         (1<<0)
+#define POLICY_KEY_MINIMIZE_DNSKEY        (1<<1)
+#define POLICY_KEY_MINIMIZE_DS            (1<<2)
+#define POLICY_KEY_MINIMIZE_DS_AND_RRSIG  (POLICY_KEY_MINIMIZE_DS|POLICY_KEY_MINIMIZE_RRSIG)
+
 /**
  * Create a policy key object from XML.
  * \param[in] policy_key a policy_key_t object being created.
- * \param[in] policy_node a xmlNodePtr to the XML for the policy key.
+ * \param[in] key_node a xmlNodePtr to the XML for the policy key.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr policy_node);
+int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node);
 
 /**
  * Update a policy key object from XML.
  * \param[in] policy_key a policy_key_t object being updated.
- * \param[in] policy_node a xmlNodePtr to the XML for the policy key.
+ * \param[in] key_node a xmlNodePtr to the XML for the policy key.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_update_from_xml(policy_key_t* policy_key, xmlNodePtr policy_node);
+int policy_key_update_from_xml(policy_key_t* policy_key, xmlNodePtr key_node);
 
 #ifdef __cplusplus
 }
