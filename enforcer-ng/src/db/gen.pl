@@ -1151,7 +1151,22 @@ print SOURCE 'int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, 
     if (!', $name, ') {
         return DB_ERROR_UNKNOWN;
     }
-
+';
+if ($field->{min}) {
+print SOURCE '
+    if (', $field->{name}, ' < ', $field->{min}, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+';
+}
+if ($field->{max}) {
+print SOURCE '
+    if (', $field->{name}, ' > ', $field->{max}, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+';
+}
+print SOURCE '
     ', $name, '->', $field->{name}, ' = ', $field->{name}, ';
 
     return DB_OK;

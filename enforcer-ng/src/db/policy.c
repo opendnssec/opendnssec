@@ -1362,6 +1362,10 @@ int policy_set_denial_algorithm(policy_t* policy, unsigned int denial_algorithm)
         return DB_ERROR_UNKNOWN;
     }
 
+    if (denial_algorithm > 255) {
+        return DB_ERROR_UNKNOWN;
+    }
+
     policy->denial_algorithm = denial_algorithm;
 
     return DB_OK;
@@ -1372,6 +1376,10 @@ int policy_set_denial_iterations(policy_t* policy, unsigned int denial_iteration
         return DB_ERROR_UNKNOWN;
     }
 
+    if (denial_iterations > 65535) {
+        return DB_ERROR_UNKNOWN;
+    }
+
     policy->denial_iterations = denial_iterations;
 
     return DB_OK;
@@ -1379,6 +1387,10 @@ int policy_set_denial_iterations(policy_t* policy, unsigned int denial_iteration
 
 int policy_set_denial_salt_length(policy_t* policy, unsigned int denial_salt_length) {
     if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (denial_salt_length > 255) {
         return DB_ERROR_UNKNOWN;
     }
 

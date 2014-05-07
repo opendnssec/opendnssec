@@ -605,6 +605,10 @@ int policy_key_set_algorithm(policy_key_t* policy_key, unsigned int algorithm) {
         return DB_ERROR_UNKNOWN;
     }
 
+    if (algorithm > 255) {
+        return DB_ERROR_UNKNOWN;
+    }
+
     policy_key->algorithm = algorithm;
 
     return DB_OK;
