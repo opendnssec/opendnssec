@@ -164,6 +164,9 @@ int db_clause_set_type(db_clause_t* clause, db_clause_type_t type) {
     if (!clause) {
         return DB_ERROR_UNKNOWN;
     }
+    if (type == DB_CLAUSE_UNKNOWN) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     clause->type = type;
     return DB_OK;

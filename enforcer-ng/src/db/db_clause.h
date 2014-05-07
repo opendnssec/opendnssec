@@ -79,6 +79,14 @@ typedef enum {
      */
     DB_CLAUSE_NESTED
 } db_clause_type_t;
+
+#define DB_CLAUSE_EQ DB_CLAUSE_EQUAL
+#define DB_CLAUSE_NE DB_CLAUSE_NOT_EQUAL
+#define DB_CLAUSE_LT DB_CLAUSE_LESS_THEN
+#define DB_CLAUSE_LE DB_CLAUSE_LESS_OR_EQUAL
+#define DB_CLAUSE_GE DB_CLAUSE_GREATER_OR_EQUAL
+#define DB_CLAUSE_GT DB_CLAUSE_GREATER_THEN
+
 /**
  * The operator to do between the previous clause and this one.
  */
@@ -96,12 +104,9 @@ typedef enum {
      */
     DB_CLAUSE_OPERATOR_OR
 } db_clause_operator_t;
-#define DB_CLAUSE_EQ DB_CLAUSE_EQUAL
-#define DB_CLAUSE_NE DB_CLAUSE_NOT_EQUAL
-#define DB_CLAUSE_LT DB_CLAUSE_LESS_THEN
-#define DB_CLAUSE_LE DB_CLAUSE_LESS_OR_EQUAL
-#define DB_CLAUSE_GE DB_CLAUSE_GREATER_OR_EQUAL
-#define DB_CLAUSE_GT DB_CLAUSE_GREATER_THEN
+
+#define DB_CLAUSE_OP_AND DB_CLAUSE_OPERATOR_AND
+#define DB_CLAUSE_OP_OR  DB_CLAUSE_OPERATOR_OR
 
 struct db_clause;
 struct db_clause_list;
