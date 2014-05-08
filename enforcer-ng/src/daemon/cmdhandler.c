@@ -89,6 +89,8 @@
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/rollover_list_cmd.h"
 #include "keystate/keystate_rollover_cmd.h"
+#include "keystate/update_zonelist_cmd.h"
+#include "keystate/zonelist_import_cmd.h"
 #include "hsmkey/hsmkey_gen_cmd.h"
 #include "hsmkey/update_hsmkeys_cmd.h"
 #include "signconf/signconf_cmd.h"
@@ -114,6 +116,7 @@ cmd_funcs_avail(void)
         /* Thoughts has gone into the ordering of this list, it affects 
          * the output of the help command */
         &update_kasp_funcblock,
+        &update_zonelist_funcblock,
 /*
         &update_keyzones_funcblock,
 */        &update_repositorylist_funcblock,
@@ -130,8 +133,8 @@ cmd_funcs_avail(void)
         &zone_del_funcblock,
 
         &zonelist_export_funcblock,
-        &zonelist_import_funcblock,
-
+*/        &zonelist_import_funcblock,
+/*
         &key_list_funcblock,
         &key_import_funcblock,
         &key_export_funcblock,

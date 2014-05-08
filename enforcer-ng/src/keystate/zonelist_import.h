@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
  * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2014 OpenDNSSEC AB (svb)
  * All rights reserved.
@@ -27,45 +26,38 @@
  *
  */
 
-#ifndef __zone_ext_h
-#define __zone_ext_h
+#ifndef _KEYSTATE_ZONELIST_IMPORT_H_
+#define _KEYSTATE_ZONELIST_IMPORT_H_
 
-#include "key_data.h"
-
-#include <libxml/tree.h>
+/**
+ * Indicates a successful policy import.
+ */
+#define ZONELIST_IMPORT_OK 0
+/**
+ * Indicates an error with the arguments provided to zonelist_import().
+ */
+#define ZONELIST_IMPORT_ERR_ARGS 1
+/**
+ * Indicates an error with the zonelist XML like parsing, validating or content.
+ */
+#define ZONELIST_IMPORT_ERR_XML 2
+/**
+ * Indicates an error with the database like reading, updating or creating.
+ */
+#define ZONELIST_IMPORT_ERR_DATABASE 3
+/**
+ * Indicates a memory allocation error or generic internal error.
+ */
+#define ZONELIST_IMPORT_ERR_MEMORY 4
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * Get a list of keys for an enforcer zone object.
- * \param[in] zone an zone_t pointer.
- * \return a key_data_list_t pointer or NULL on error or if there are no keys
- * in the enforcer zone object.
- */
-key_data_list_t* zone_get_keys(const zone_t* zone);
-
-/**
- * Create a zone object from XML.
- * \param[in] zone a zone_t object being created.
- * \param[in] zone_node a xmlNodePtr to the XML for the zone.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_create_from_xml(zone_t* zone, xmlNodePtr zone_node);
-
-/**
- * Update a zone object from XML.
- * \param[in] zone a zone_t object being updated.
- * \param[in] zone_node a xmlNodePtr to the XML for the zone.
- * \param[out] updated an integer pointer that will be set to non-zero if any
- * values in the zone was updated.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_update_from_xml(zone_t* zone, xmlNodePtr zone_node, int* updated);
+int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* _KEYSTATE_ZONELIST_IMPORT_H_ */

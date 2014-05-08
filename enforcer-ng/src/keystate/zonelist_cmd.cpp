@@ -45,14 +45,6 @@
 static const char *module_str = "zonelist_cmd";
 
 static void
-import_usage(int sockfd)
-{
-	client_printf(sockfd,
-		"zonelist import        Sync database with contents of zonelist.xml.\n"
-	);
-}
-
-static void
 export_usage(int sockfd)
 {
 	client_printf(sockfd,
@@ -61,29 +53,9 @@ export_usage(int sockfd)
 }
 
 static int
-import_handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, zonelist_import_funcblock()->cmdname)?1:0;
-}
-
-static int
 export_handles(const char *cmd, ssize_t n)
 {
 	return ods_check_command(cmd, n, zonelist_export_funcblock()->cmdname)?1:0;
-}
-
-static int
-import_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	(void)cmd; (void)n;
-	int error;
-	ods_log_debug("[%s] %s command", module_str, zonelist_import_funcblock()->cmdname);
-	if (!perform_update_keyzones(sockfd, engine->config)) return 1;
-	error = perform_hsmkey_gen(sockfd, engine->config, 0,
-		engine->config->automatic_keygen_duration);
-	flush_enforce_task(engine, 1);
-	return error;
 }
 
 static int
@@ -97,19 +69,9 @@ export_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return error;
 }
 
-static struct cmd_func_block import_funcblock = {
-	"zonelist import", &import_usage, NULL, &import_handles, &import_run
-};
-
 static struct cmd_func_block export_funcblock = {
 	"zonelist export", &export_usage, NULL, &export_handles, &export_run
 };
-
-struct cmd_func_block*
-zonelist_import_funcblock(void)
-{
-	return &import_funcblock;
-}
 
 struct cmd_func_block*
 zonelist_export_funcblock(void)

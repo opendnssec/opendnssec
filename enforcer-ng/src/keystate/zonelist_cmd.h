@@ -34,7 +34,6 @@
 extern "C" {
 #endif
 
-struct cmd_func_block* zonelist_import_funcblock(void);
 struct cmd_func_block* zonelist_export_funcblock(void);
 
 #ifdef __cplusplus
