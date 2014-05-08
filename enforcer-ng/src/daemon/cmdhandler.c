@@ -121,8 +121,8 @@ cmd_funcs_avail(void)
 */
         &policy_list_funcblock,
 /*        &policy_export_funcblock,
-        &policy_import_funcblock,
-        &policy_purge_funcblock,
+*/        &policy_import_funcblock,
+/*        &policy_purge_funcblock,
 */        &resalt_funcblock,
 /*
         &zone_list_funcblock,
