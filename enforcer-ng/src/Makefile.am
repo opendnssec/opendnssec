@@ -91,7 +91,8 @@ ods_enforcerd_SOURCES = \
 	xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \
 	policy/policy_export_cmd.cpp policy/policy_export_cmd.h \
 	policy/policy_export_task.cpp policy/policy_export_task.h \
-	policy/policy_import_cmd.cpp policy/policy_import_cmd.h \
+	policy/policy_import.c policy/policy_import.h \
+	policy/policy_import_cmd.c policy/policy_import_cmd.h \
 	policy/update_kasp_cmd.c policy/update_kasp_cmd.h \
 	policy/policy_list_cmd.c policy/policy_list_cmd.h \
 	policy/policy_purge_cmd.cpp policy/policy_purge_cmd.h\

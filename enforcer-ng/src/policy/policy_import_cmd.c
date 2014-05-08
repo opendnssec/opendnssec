@@ -26,7 +26,6 @@
  *
  */
 
-
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "shared/log.h"
@@ -34,15 +33,15 @@
 #include "daemon/clientpipe.h"
 #include "policy/policy_import.h"
 
-#include "policy/update_kasp_cmd.h"
+#include "policy/policy_import_cmd.h"
 
-static const char *module_str = "update_kasp_cmd";
+static const char *module_str = "policy_import_cmd";
 
 static void database_error_help(int sockfd) {
     client_printf_err(sockfd,
         "\nThe information in the database may have been changed during KASP update"
-        "and caused an update error, try rerunning update kasp. If the problem persists"
-        "please check logs and database setup and after correcting the problem rerun update kasp.\n"
+        "and caused an update error, try rerunning policy import. If the problem persists"
+        "please check logs and database setup and after correcting the problem rerun policy import.\n"
     );
 }
 
@@ -50,7 +49,7 @@ static void
 usage(int sockfd)
 {
     client_printf(sockfd,
-        "update kasp            Import policies from kasp.xml into the enforcer.\n"
+        "policy import          Import policies from kasp.xml into the enforcer.\n"
     );
 }
 
@@ -65,7 +64,7 @@ help(int sockfd)
 static int
 handles(const char *cmd, ssize_t n)
 {
-    return ods_check_command(cmd, n, update_kasp_funcblock()->cmdname) ? 1 : 0;
+    return ods_check_command(cmd, n, policy_import_funcblock()->cmdname) ? 1 : 0;
 }
 
 static int
@@ -87,7 +86,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         return 1;
     }
 
-    ods_log_debug("[%s] %s command", module_str, update_kasp_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, policy_import_funcblock()->cmdname);
 
     switch (policy_import(sockfd, engine, dbconn)) {
     case POLICY_IMPORT_OK:
@@ -116,11 +115,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-    "update kasp", &usage, &help, &handles, &run
+    "policy import", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*
-update_kasp_funcblock(void)
+policy_import_funcblock(void)
 {
     return &funcblock;
 }
