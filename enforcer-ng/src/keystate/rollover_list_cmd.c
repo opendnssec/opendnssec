@@ -29,17 +29,101 @@
 
 #include "config.h"
 
+#include <fcntl.h>
+
+#include "db/zone.h"
+
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
-#include "keystate/rollover_list_task.h"
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
+#include "shared/duration.h"
 
 #include "keystate/rollover_list_cmd.h"
 
 static const char *module_str = "rollover_list_cmd";
+
+/** Time of next transition. Caller responsible for freeing ret
+ * @param zone: zone key belongs to
+ * @param key: key to evaluate
+ * @return: human readable transition time/event */
+static char*
+map_keytime(const zone_t *zone, const key_data_t *key)
+{
+	time_t t;
+	char ct[26];
+	struct tm srtm;
+
+	switch(key_data_ds_at_parent(key)) {
+		case KEY_DATA_DS_AT_PARENT_SUBMIT:
+			return strdup("waiting for ds-submit");
+		case KEY_DATA_DS_AT_PARENT_SUBMITTED:
+			return strdup("waiting for ds-seen");
+		case KEY_DATA_DS_AT_PARENT_RETRACT:
+			return strdup("waiting for ds-retract");
+		case KEY_DATA_DS_AT_PARENT_RETRACTED:
+			return strdup("waiting for ds-gone");
+		default: break;
+	}
+
+	switch (key_data_role(key)) {
+		case KEY_DATA_ROLE_KSK: t = (time_t)zone_next_ksk_roll(zone); break;
+		case KEY_DATA_ROLE_ZSK: t = (time_t)zone_next_zsk_roll(zone); break;
+		case KEY_DATA_ROLE_CSK: t = (time_t)zone_next_csk_roll(zone); break;
+		default: break;
+	}
+	if (!t) return strdup("No roll scheduled");
+	
+	localtime_r(&t, &srtm);
+	strftime(ct, 26, "%Y-%m-%d %H:%M:%S", &srtm);
+	return strdup(ct);
+}
+
+static int 
+perform_rollover_list(int sockfd, const char *listed_zone,
+	db_connection_t *dbconn)
+{
+	zone_list_t *zonelist;
+	key_data_list_t *keylist;
+	const zone_t *zone;
+	const key_data_t *key;
+	const char* fmt = "%-31s %-8s %-30s\n";
+
+	if (!(zonelist = zone_list_new(dbconn))) return 1;
+
+	if (( listed_zone && zone_list_get_by_name(zonelist, listed_zone)) ||
+		(!listed_zone && zone_list_get(zonelist)))
+	{
+		ods_log_error("[%s] error enumerating zones", module_str);
+		client_printf(sockfd, "error enumerating zones\n");
+		zone_list_free(zonelist);
+		return 1;
+	}
+
+	zone = zone_list_begin(zonelist);
+	if (listed_zone && !zone) {
+		ods_log_error("[%s] zone:%s not found", module_str, listed_zone);
+		client_printf(sockfd, "zone:%s not found\n", listed_zone);
+		return 1;
+	}
+	
+	client_printf(sockfd, "Keys:\n");
+	client_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
+	for (; zone; zone = zone_list_next(zonelist)) {
+		keylist = zone_get_keys(zone);
+		for (key = key_data_list_begin(keylist); key;
+			key = key_data_list_next(keylist))
+		{
+			char* tchange = map_keytime(zone, key);
+			client_printf(sockfd, fmt, zone_name(zone),
+				key_data_role_text(key), tchange);
+			free(tchange);
+		}
+	}
+	return 0;
+}
 
 static void
 usage(int sockfd)
@@ -60,20 +144,21 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
+	#define NARGV 8
 	char buf[ODS_SE_MAXLINE];
-	const int NARGV = 8;
 	const char *argv[NARGV];
 	int argc;
 	const char *zone = NULL;
+	(void)engine;
 	
 	ods_log_debug("[%s] %s command", module_str, rollover_list_funcblock()->cmdname);
 	cmd = ods_check_command(cmd, n, rollover_list_funcblock()->cmdname);
 	
-	// Use buf as an intermediate buffer for the command.
+	/* Use buf as an intermediate buffer for the command.*/
 	strncpy(buf, cmd,sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
 	
-	// separate the arguments
+	/* separate the arguments*/
 	argc = ods_str_explode(buf, NARGV, argv);
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
@@ -89,7 +174,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
-	return perform_rollover_list(sockfd, engine->config, zone);
+	return perform_rollover_list(sockfd, zone, dbconn);
 }
 
 static struct cmd_func_block funcblock = {

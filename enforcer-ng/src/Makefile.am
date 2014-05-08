@@ -112,8 +112,7 @@ ods_enforcerd_SOURCES = \
 	keystate/zone_del_task.cpp keystate/zone_del_task.h \
 	keystate/keystate_list_cmd.cpp keystate/keystate_list_cmd.h \
 	keystate/keystate_list_task.cpp keystate/keystate_list_task.h \
-	keystate/rollover_list_cmd.cpp keystate/rollover_list_cmd.h \
-	keystate/rollover_list_task.cpp keystate/rollover_list_task.h \
+	keystate/rollover_list_cmd.c keystate/rollover_list_cmd.h \
 	keystate/keystate_export_cmd.cpp keystate/keystate_export_cmd.h \
 	keystate/keystate_export_task.cpp keystate/keystate_export_task.h \
 	keystate/keystate_ds_submit_cmd.cpp keystate/keystate_ds_submit_cmd.h \

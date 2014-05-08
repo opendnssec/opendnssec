@@ -64,6 +64,13 @@ int zone_create_from_xml(zone_t* zone, xmlNodePtr zone_node);
  */
 int zone_update_from_xml(zone_t* zone, xmlNodePtr zone_node, int* updated);
 
+/**
+ * TODO
+ *
+ */
+int zone_list_get_by_name(zone_list_t* zone_list, const char* name);
+
+
 #ifdef __cplusplus
 }
 #endif

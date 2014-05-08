@@ -453,3 +453,42 @@ int zone_update_from_xml(zone_t* zone, xmlNodePtr zone_node, int* updated) {
 
     return __xmlNode2zone(zone, zone_node, updated);
 }
+
+int zone_list_get_by_name(zone_list_t* zone_list, const char* name) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!zone_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!name) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "name")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_text(db_clause_get_value(clause), name)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone_list->result_list) {
+        db_result_list_free(zone_list->result_list);
+    }
+    if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+    return DB_OK;
+}
