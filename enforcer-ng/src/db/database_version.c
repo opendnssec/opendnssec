@@ -154,8 +154,6 @@ int database_version_copy(database_version_t* database_version, const database_v
 }
 
 int database_version_cmp(const database_version_t* database_version_a, const database_version_t* database_version_b) {
-    int ret;
-
     if (!database_version_a && !database_version_b) {
         return 0;
     }
