@@ -29,26 +29,24 @@
 
 #include "config.h"
 
-#include <fcntl.h>
-
 #include "db/zone.h"
-
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
-#include "shared/duration.h"
 
 #include "keystate/rollover_list_cmd.h"
 
 static const char *module_str = "rollover_list_cmd";
 
-/** Time of next transition. Caller responsible for freeing ret
- * @param zone: zone key belongs to
- * @param key: key to evaluate
- * @return: human readable transition time/event */
+/**
+ * Time of next transition. Caller responsible for freeing ret
+ * \param zone: zone key belongs to
+ * \param key: key to evaluate
+ * \return: human readable transition time/event
+ */
 static char*
 map_keytime(const zone_t *zone, const key_data_t *key)
 {
@@ -81,6 +79,14 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 	return strdup(ct);
 }
 
+/**
+ * List all keys and their rollover time. If listed_zone is set limit
+ * to that zone
+ * \param sockfd client socket
+ * \param listed_zone name of the zone
+ * \param dbconn active database connection
+ * \return 0 ok, 1 fail.
+ */
 static int 
 perform_rollover_list(int sockfd, const char *listed_zone,
 	db_connection_t *dbconn)
@@ -106,6 +112,7 @@ perform_rollover_list(int sockfd, const char *listed_zone,
 	if (listed_zone && !zone) {
 		ods_log_error("[%s] zone:%s not found", module_str, listed_zone);
 		client_printf(sockfd, "zone:%s not found\n", listed_zone);
+		zone_list_free(zonelist);
 		return 1;
 	}
 	
@@ -122,6 +129,7 @@ perform_rollover_list(int sockfd, const char *listed_zone,
 			free(tchange);
 		}
 	}
+	zone_list_free(zonelist);
 	return 0;
 }
 
@@ -167,7 +175,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return -1;
 	}
 	
-    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str, rollover_list_funcblock()->cmdname);
