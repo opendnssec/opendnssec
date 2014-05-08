@@ -26,7 +26,6 @@
  *
  */
 
-
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "shared/log.h"
