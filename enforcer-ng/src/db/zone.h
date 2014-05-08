@@ -61,7 +61,6 @@ struct zone {
     db_value_t rev;
     db_value_t policy_id;
     char* name;
-    char* policy;
     unsigned int signconf_needs_writing;
     char* signconf_path;
     int next_change;
@@ -152,13 +151,6 @@ policy_t* zone_get_policy_id(const zone_t* zone);
  * \return a character pointer or NULL on error or if no name has been set.
  */
 const char* zone_name(const zone_t* zone);
-
-/**
- * Get the policy of a zone object.
- * \param[in] zone a zone_t pointer.
- * \return a character pointer or NULL on error or if no policy has been set.
- */
-const char* zone_policy(const zone_t* zone);
 
 /**
  * Get the signconf_needs_writing of a zone object. Undefined behavior if `zone` is NULL.
@@ -287,14 +279,6 @@ int zone_set_policy_id(zone_t* zone, const db_value_t* policy_id);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int zone_set_name(zone_t* zone, const char* name_text);
-
-/**
- * Set the policy of a zone object.
- * \param[in] zone a zone_t pointer.
- * \param[in] policy_text a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_set_policy(zone_t* zone, const char* policy_text);
 
 /**
  * Set the signconf_needs_writing of a zone object.
@@ -445,17 +429,6 @@ db_clause_t* zone_policy_id_clause(db_clause_list_t* clause_list, const db_value
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* zone_name_clause(db_clause_list_t* clause_list, const char* name_text);
-
-/**
- * Create a clause for policy of a zone object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] policy_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* zone_policy_clause(db_clause_list_t* clause_list, const char* policy_text);
 
 /**
  * Create a clause for signconf_needs_writing of a zone object and add it to a database clause list.

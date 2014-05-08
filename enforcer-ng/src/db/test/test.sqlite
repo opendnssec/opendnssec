@@ -42,7 +42,6 @@ CREATE TABLE zone (
     rev INTEGER NOT NULL DEFAULT 1,
     policyId INTEGER NOT NULL,
     name TEXT NOT NULL,
-    policy TEXT NOT NULL,
     signconfNeedsWriting UNSIGNED INT NOT NULL,
     signconfPath TEXT NOT NULL,
     nextChange INT NOT NULL,

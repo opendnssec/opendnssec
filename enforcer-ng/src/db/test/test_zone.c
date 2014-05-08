@@ -205,7 +205,6 @@ static void test_zone_set(void) {
     CU_ASSERT(!db_value_from_int32(&policy_id, 1));
     CU_ASSERT(!zone_set_policy_id(object, &policy_id));
     CU_ASSERT(!zone_set_name(object, "name 1"));
-    CU_ASSERT(!zone_set_policy(object, "policy 1"));
     CU_ASSERT(!zone_set_signconf_needs_writing(object, 1));
     CU_ASSERT(!zone_set_signconf_path(object, "signconf_path 1"));
     CU_ASSERT(!zone_set_next_change(object, 1));
@@ -233,8 +232,6 @@ static void test_zone_get(void) {
     CU_ASSERT(!ret);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_name(object));
     CU_ASSERT(!strcmp(zone_name(object), "name 1"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_policy(object));
-    CU_ASSERT(!strcmp(zone_policy(object), "policy 1"));
     CU_ASSERT(zone_signconf_needs_writing(object) == 1);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_signconf_path(object));
     CU_ASSERT(!strcmp(zone_signconf_path(object), "signconf_path 1"));
@@ -274,13 +271,6 @@ static void test_zone_clauses(void) {
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_name_clause(clause_list, zone_name(object)));
-    CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(zone_policy_clause(clause_list, zone_policy(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
     db_clause_list_free(clause_list);
@@ -418,8 +408,6 @@ static void test_zone_verify(void) {
     CU_ASSERT(!ret);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_name(object));
     CU_ASSERT(!strcmp(zone_name(object), "name 1"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_policy(object));
-    CU_ASSERT(!strcmp(zone_policy(object), "policy 1"));
     CU_ASSERT(zone_signconf_needs_writing(object) == 1);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_signconf_path(object));
     CU_ASSERT(!strcmp(zone_signconf_path(object), "signconf_path 1"));
@@ -456,8 +444,6 @@ static void test_zone_verify_name(void) {
     CU_ASSERT(!ret);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_name(object));
     CU_ASSERT(!strcmp(zone_name(object), "name 1"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_policy(object));
-    CU_ASSERT(!strcmp(zone_policy(object), "policy 1"));
     CU_ASSERT(zone_signconf_needs_writing(object) == 1);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_signconf_path(object));
     CU_ASSERT(!strcmp(zone_signconf_path(object), "signconf_path 1"));
@@ -487,7 +473,6 @@ static void test_zone_change(void) {
     CU_ASSERT(!db_value_from_int32(&policy_id, 2));
     CU_ASSERT(!zone_set_policy_id(object, &policy_id));
     CU_ASSERT(!zone_set_name(object, "name 2"));
-    CU_ASSERT(!zone_set_policy(object, "policy 2"));
     CU_ASSERT(!zone_set_signconf_needs_writing(object, 2));
     CU_ASSERT(!zone_set_signconf_path(object, "signconf_path 2"));
     CU_ASSERT(!zone_set_next_change(object, 2));
@@ -523,8 +508,6 @@ static void test_zone_verify2(void) {
     CU_ASSERT(!ret);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_name(object));
     CU_ASSERT(!strcmp(zone_name(object), "name 2"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_policy(object));
-    CU_ASSERT(!strcmp(zone_policy(object), "policy 2"));
     CU_ASSERT(zone_signconf_needs_writing(object) == 2);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_signconf_path(object));
     CU_ASSERT(!strcmp(zone_signconf_path(object), "signconf_path 2"));
@@ -568,8 +551,6 @@ static void test_zone_verify_name2(void) {
     CU_ASSERT(!ret);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_name(object));
     CU_ASSERT(!strcmp(zone_name(object), "name 2"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_policy(object));
-    CU_ASSERT(!strcmp(zone_policy(object), "policy 2"));
     CU_ASSERT(zone_signconf_needs_writing(object) == 2);
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_signconf_path(object));
     CU_ASSERT(!strcmp(zone_signconf_path(object), "signconf_path 2"));

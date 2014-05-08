@@ -99,17 +99,6 @@ static db_object_t* __zone_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policy")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        db_object_free(object);
-        return NULL;
-    }
-
-    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "signconfNeedsWriting")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -328,9 +317,6 @@ void zone_free(zone_t* zone) {
         if (zone->name) {
             free(zone->name);
         }
-        if (zone->policy) {
-            free(zone->policy);
-        }
         if (zone->signconf_path) {
             free(zone->signconf_path);
         }
@@ -359,10 +345,6 @@ void zone_reset(zone_t* zone) {
             free(zone->name);
         }
         zone->name = NULL;
-        if (zone->policy) {
-            free(zone->policy);
-        }
-        zone->policy = NULL;
         zone->signconf_needs_writing = 0;
         if (zone->signconf_path) {
             free(zone->signconf_path);
@@ -399,7 +381,6 @@ void zone_reset(zone_t* zone) {
 
 int zone_copy(zone_t* zone, const zone_t* zone_copy) {
     char* name_text = NULL;
-    char* policy_text = NULL;
     char* signconf_path_text = NULL;
     char* input_adapter_type_text = NULL;
     char* input_adapter_uri_text = NULL;
@@ -417,21 +398,10 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
             return DB_ERROR_UNKNOWN;
         }
     }
-    if (zone_copy->policy) {
-        if (!(policy_text = strdup(zone_copy->policy))) {
-            if (name_text) {
-                free(name_text);
-            }
-            return DB_ERROR_UNKNOWN;
-        }
-    }
     if (zone_copy->signconf_path) {
         if (!(signconf_path_text = strdup(zone_copy->signconf_path))) {
             if (name_text) {
                 free(name_text);
-            }
-            if (policy_text) {
-                free(policy_text);
             }
             return DB_ERROR_UNKNOWN;
         }
@@ -440,9 +410,6 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
         if (!(input_adapter_type_text = strdup(zone_copy->input_adapter_type))) {
             if (name_text) {
                 free(name_text);
-            }
-            if (policy_text) {
-                free(policy_text);
             }
             if (signconf_path_text) {
                 free(signconf_path_text);
@@ -454,9 +421,6 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
         if (!(input_adapter_uri_text = strdup(zone_copy->input_adapter_uri))) {
             if (name_text) {
                 free(name_text);
-            }
-            if (policy_text) {
-                free(policy_text);
             }
             if (signconf_path_text) {
                 free(signconf_path_text);
@@ -471,9 +435,6 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
         if (!(output_adapter_type_text = strdup(zone_copy->output_adapter_type))) {
             if (name_text) {
                 free(name_text);
-            }
-            if (policy_text) {
-                free(policy_text);
             }
             if (signconf_path_text) {
                 free(signconf_path_text);
@@ -491,9 +452,6 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
         if (!(output_adapter_uri_text = strdup(zone_copy->output_adapter_uri))) {
             if (name_text) {
                 free(name_text);
-            }
-            if (policy_text) {
-                free(policy_text);
             }
             if (signconf_path_text) {
                 free(signconf_path_text);
@@ -513,9 +471,6 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
     if (db_value_copy(&(zone->id), &(zone_copy->id))) {
         if (name_text) {
             free(name_text);
-        }
-        if (policy_text) {
-            free(policy_text);
         }
         if (signconf_path_text) {
             free(signconf_path_text);
@@ -538,9 +493,6 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
         if (name_text) {
             free(name_text);
         }
-        if (policy_text) {
-            free(policy_text);
-        }
         if (signconf_path_text) {
             free(signconf_path_text);
         }
@@ -561,9 +513,6 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
     if (db_value_copy(&(zone->policy_id), &(zone_copy->policy_id))) {
         if (name_text) {
             free(name_text);
-        }
-        if (policy_text) {
-            free(policy_text);
         }
         if (signconf_path_text) {
             free(signconf_path_text);
@@ -586,10 +535,6 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
         free(zone->name);
     }
     zone->name = name_text;
-    if (zone->policy) {
-        free(zone->policy);
-    }
-    zone->policy = policy_text;
     zone->signconf_needs_writing = zone_copy->signconf_needs_writing;
     if (zone->signconf_path) {
         free(zone->signconf_path);
@@ -653,20 +598,6 @@ int zone_cmp(const zone_t* zone_a, const zone_t* zone_b) {
             return -1;
         }
         if (zone_a->name && !zone_b->name) {
-            return -1;
-        }
-    }
-
-    if (zone_a->policy && zone_b->policy) {
-        if ((ret = strcmp(zone_a->policy, zone_b->policy))) {
-            return ret;
-        }
-    }
-    else {
-        if (!zone_a->policy && zone_b->policy) {
-            return -1;
-        }
-        if (zone_a->policy && !zone_b->policy) {
             return -1;
         }
     }
@@ -804,10 +735,6 @@ int zone_from_result(zone_t* zone, const db_result_t* result) {
         free(zone->name);
     }
     zone->name = NULL;
-    if (zone->policy) {
-        free(zone->policy);
-    }
-    zone->policy = NULL;
     if (zone->signconf_path) {
         free(zone->signconf_path);
     }
@@ -829,28 +756,27 @@ int zone_from_result(zone_t* zone, const db_result_t* result) {
     }
     zone->output_adapter_uri = NULL;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 21
+        || db_value_set_size(value_set) != 20
         || db_value_copy(&(zone->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(zone->rev), db_value_set_at(value_set, 1))
         || db_value_copy(&(zone->policy_id), db_value_set_at(value_set, 2))
         || db_value_to_text(db_value_set_at(value_set, 3), &(zone->name))
-        || db_value_to_text(db_value_set_at(value_set, 4), &(zone->policy))
-        || db_value_to_uint32(db_value_set_at(value_set, 5), &(zone->signconf_needs_writing))
-        || db_value_to_text(db_value_set_at(value_set, 6), &(zone->signconf_path))
-        || db_value_to_int32(db_value_set_at(value_set, 7), &(zone->next_change))
-        || db_value_to_uint32(db_value_set_at(value_set, 8), &(zone->ttl_end_ds))
-        || db_value_to_uint32(db_value_set_at(value_set, 9), &(zone->ttl_end_dk))
-        || db_value_to_uint32(db_value_set_at(value_set, 10), &(zone->ttl_end_rs))
-        || db_value_to_uint32(db_value_set_at(value_set, 11), &(zone->roll_ksk_now))
-        || db_value_to_uint32(db_value_set_at(value_set, 12), &(zone->roll_zsk_now))
-        || db_value_to_uint32(db_value_set_at(value_set, 13), &(zone->roll_csk_now))
-        || db_value_to_text(db_value_set_at(value_set, 14), &(zone->input_adapter_type))
-        || db_value_to_text(db_value_set_at(value_set, 15), &(zone->input_adapter_uri))
-        || db_value_to_text(db_value_set_at(value_set, 16), &(zone->output_adapter_type))
-        || db_value_to_text(db_value_set_at(value_set, 17), &(zone->output_adapter_uri))
-        || db_value_to_uint32(db_value_set_at(value_set, 18), &(zone->next_ksk_roll))
-        || db_value_to_uint32(db_value_set_at(value_set, 19), &(zone->next_zsk_roll))
-        || db_value_to_uint32(db_value_set_at(value_set, 20), &(zone->next_csk_roll)))
+        || db_value_to_uint32(db_value_set_at(value_set, 4), &(zone->signconf_needs_writing))
+        || db_value_to_text(db_value_set_at(value_set, 5), &(zone->signconf_path))
+        || db_value_to_int32(db_value_set_at(value_set, 6), &(zone->next_change))
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(zone->ttl_end_ds))
+        || db_value_to_uint32(db_value_set_at(value_set, 8), &(zone->ttl_end_dk))
+        || db_value_to_uint32(db_value_set_at(value_set, 9), &(zone->ttl_end_rs))
+        || db_value_to_uint32(db_value_set_at(value_set, 10), &(zone->roll_ksk_now))
+        || db_value_to_uint32(db_value_set_at(value_set, 11), &(zone->roll_zsk_now))
+        || db_value_to_uint32(db_value_set_at(value_set, 12), &(zone->roll_csk_now))
+        || db_value_to_text(db_value_set_at(value_set, 13), &(zone->input_adapter_type))
+        || db_value_to_text(db_value_set_at(value_set, 14), &(zone->input_adapter_uri))
+        || db_value_to_text(db_value_set_at(value_set, 15), &(zone->output_adapter_type))
+        || db_value_to_text(db_value_set_at(value_set, 16), &(zone->output_adapter_uri))
+        || db_value_to_uint32(db_value_set_at(value_set, 17), &(zone->next_ksk_roll))
+        || db_value_to_uint32(db_value_set_at(value_set, 18), &(zone->next_zsk_roll))
+        || db_value_to_uint32(db_value_set_at(value_set, 19), &(zone->next_csk_roll)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -904,14 +830,6 @@ const char* zone_name(const zone_t* zone) {
     }
 
     return zone->name;
-}
-
-const char* zone_policy(const zone_t* zone) {
-    if (!zone) {
-        return NULL;
-    }
-
-    return zone->policy;
 }
 
 unsigned int zone_signconf_needs_writing(const zone_t* zone) {
@@ -1079,28 +997,6 @@ int zone_set_name(zone_t* zone, const char* name_text) {
         free(zone->name);
     }
     zone->name = new_name;
-
-    return DB_OK;
-}
-
-int zone_set_policy(zone_t* zone, const char* policy_text) {
-    char* new_policy;
-
-    if (!zone) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!policy_text) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(new_policy = strdup(policy_text))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (zone->policy) {
-        free(zone->policy);
-    }
-    zone->policy = new_policy;
 
     return DB_OK;
 }
@@ -1367,30 +1263,6 @@ db_clause_t* zone_name_clause(db_clause_list_t* clause_list, const char* name_te
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_from_text(db_clause_get_value(clause), name_text)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* zone_policy_clause(db_clause_list_t* clause_list, const char* policy_text) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!policy_text) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "policy")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_text(db_clause_get_value(clause), policy_text)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1775,9 +1647,6 @@ int zone_create(zone_t* zone) {
     if (!zone->name) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!zone->policy) {
-        return DB_ERROR_UNKNOWN;
-    }
     if (!zone->signconf_path) {
         return DB_ERROR_UNKNOWN;
     }
@@ -1811,16 +1680,6 @@ int zone_create(zone_t* zone) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "name")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policy")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -1989,30 +1848,29 @@ int zone_create(zone_t* zone) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(19))) {
+    if (!(value_set = db_value_set_new(18))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
     if (db_value_copy(db_value_set_get(value_set, 0), &(zone->policy_id))
         || db_value_from_text(db_value_set_get(value_set, 1), zone->name)
-        || db_value_from_text(db_value_set_get(value_set, 2), zone->policy)
-        || db_value_from_uint32(db_value_set_get(value_set, 3), zone->signconf_needs_writing)
-        || db_value_from_text(db_value_set_get(value_set, 4), zone->signconf_path)
-        || db_value_from_int32(db_value_set_get(value_set, 5), zone->next_change)
-        || db_value_from_uint32(db_value_set_get(value_set, 6), zone->ttl_end_ds)
-        || db_value_from_uint32(db_value_set_get(value_set, 7), zone->ttl_end_dk)
-        || db_value_from_uint32(db_value_set_get(value_set, 8), zone->ttl_end_rs)
-        || db_value_from_uint32(db_value_set_get(value_set, 9), zone->roll_ksk_now)
-        || db_value_from_uint32(db_value_set_get(value_set, 10), zone->roll_zsk_now)
-        || db_value_from_uint32(db_value_set_get(value_set, 11), zone->roll_csk_now)
-        || db_value_from_text(db_value_set_get(value_set, 12), zone->input_adapter_type)
-        || db_value_from_text(db_value_set_get(value_set, 13), zone->input_adapter_uri)
-        || db_value_from_text(db_value_set_get(value_set, 14), zone->output_adapter_type)
-        || db_value_from_text(db_value_set_get(value_set, 15), zone->output_adapter_uri)
-        || db_value_from_uint32(db_value_set_get(value_set, 16), zone->next_ksk_roll)
-        || db_value_from_uint32(db_value_set_get(value_set, 17), zone->next_zsk_roll)
-        || db_value_from_uint32(db_value_set_get(value_set, 18), zone->next_csk_roll))
+        || db_value_from_uint32(db_value_set_get(value_set, 2), zone->signconf_needs_writing)
+        || db_value_from_text(db_value_set_get(value_set, 3), zone->signconf_path)
+        || db_value_from_int32(db_value_set_get(value_set, 4), zone->next_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), zone->ttl_end_ds)
+        || db_value_from_uint32(db_value_set_get(value_set, 6), zone->ttl_end_dk)
+        || db_value_from_uint32(db_value_set_get(value_set, 7), zone->ttl_end_rs)
+        || db_value_from_uint32(db_value_set_get(value_set, 8), zone->roll_ksk_now)
+        || db_value_from_uint32(db_value_set_get(value_set, 9), zone->roll_zsk_now)
+        || db_value_from_uint32(db_value_set_get(value_set, 10), zone->roll_csk_now)
+        || db_value_from_text(db_value_set_get(value_set, 11), zone->input_adapter_type)
+        || db_value_from_text(db_value_set_get(value_set, 12), zone->input_adapter_uri)
+        || db_value_from_text(db_value_set_get(value_set, 13), zone->output_adapter_type)
+        || db_value_from_text(db_value_set_get(value_set, 14), zone->output_adapter_uri)
+        || db_value_from_uint32(db_value_set_get(value_set, 15), zone->next_ksk_roll)
+        || db_value_from_uint32(db_value_set_get(value_set, 16), zone->next_zsk_roll)
+        || db_value_from_uint32(db_value_set_get(value_set, 17), zone->next_csk_roll))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -2154,9 +2012,6 @@ int zone_update(zone_t* zone) {
     if (!zone->name) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!zone->policy) {
-        return DB_ERROR_UNKNOWN;
-    }
     if (!zone->signconf_path) {
         return DB_ERROR_UNKNOWN;
     }
@@ -2190,16 +2045,6 @@ int zone_update(zone_t* zone) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "name")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policy")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2368,30 +2213,29 @@ int zone_update(zone_t* zone) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(19))) {
+    if (!(value_set = db_value_set_new(18))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
     if (db_value_copy(db_value_set_get(value_set, 0), &(zone->policy_id))
         || db_value_from_text(db_value_set_get(value_set, 1), zone->name)
-        || db_value_from_text(db_value_set_get(value_set, 2), zone->policy)
-        || db_value_from_uint32(db_value_set_get(value_set, 3), zone->signconf_needs_writing)
-        || db_value_from_text(db_value_set_get(value_set, 4), zone->signconf_path)
-        || db_value_from_int32(db_value_set_get(value_set, 5), zone->next_change)
-        || db_value_from_uint32(db_value_set_get(value_set, 6), zone->ttl_end_ds)
-        || db_value_from_uint32(db_value_set_get(value_set, 7), zone->ttl_end_dk)
-        || db_value_from_uint32(db_value_set_get(value_set, 8), zone->ttl_end_rs)
-        || db_value_from_uint32(db_value_set_get(value_set, 9), zone->roll_ksk_now)
-        || db_value_from_uint32(db_value_set_get(value_set, 10), zone->roll_zsk_now)
-        || db_value_from_uint32(db_value_set_get(value_set, 11), zone->roll_csk_now)
-        || db_value_from_text(db_value_set_get(value_set, 12), zone->input_adapter_type)
-        || db_value_from_text(db_value_set_get(value_set, 13), zone->input_adapter_uri)
-        || db_value_from_text(db_value_set_get(value_set, 14), zone->output_adapter_type)
-        || db_value_from_text(db_value_set_get(value_set, 15), zone->output_adapter_uri)
-        || db_value_from_uint32(db_value_set_get(value_set, 16), zone->next_ksk_roll)
-        || db_value_from_uint32(db_value_set_get(value_set, 17), zone->next_zsk_roll)
-        || db_value_from_uint32(db_value_set_get(value_set, 18), zone->next_csk_roll))
+        || db_value_from_uint32(db_value_set_get(value_set, 2), zone->signconf_needs_writing)
+        || db_value_from_text(db_value_set_get(value_set, 3), zone->signconf_path)
+        || db_value_from_int32(db_value_set_get(value_set, 4), zone->next_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), zone->ttl_end_ds)
+        || db_value_from_uint32(db_value_set_get(value_set, 6), zone->ttl_end_dk)
+        || db_value_from_uint32(db_value_set_get(value_set, 7), zone->ttl_end_rs)
+        || db_value_from_uint32(db_value_set_get(value_set, 8), zone->roll_ksk_now)
+        || db_value_from_uint32(db_value_set_get(value_set, 9), zone->roll_zsk_now)
+        || db_value_from_uint32(db_value_set_get(value_set, 10), zone->roll_csk_now)
+        || db_value_from_text(db_value_set_get(value_set, 11), zone->input_adapter_type)
+        || db_value_from_text(db_value_set_get(value_set, 12), zone->input_adapter_uri)
+        || db_value_from_text(db_value_set_get(value_set, 13), zone->output_adapter_type)
+        || db_value_from_text(db_value_set_get(value_set, 14), zone->output_adapter_uri)
+        || db_value_from_uint32(db_value_set_get(value_set, 15), zone->next_ksk_roll)
+        || db_value_from_uint32(db_value_set_get(value_set, 16), zone->next_zsk_roll)
+        || db_value_from_uint32(db_value_set_get(value_set, 17), zone->next_csk_roll))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
