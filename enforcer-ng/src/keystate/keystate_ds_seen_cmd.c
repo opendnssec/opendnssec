@@ -27,14 +27,58 @@
  *
  */
 
-#ifndef _KEYSTATE_DS_SEEN_TASK_H_
-#define _KEYSTATE_DS_SEEN_TASK_H_
+#include "config.h"
 
-#include "daemon/cfg.h"
-#include "scheduler/task.h"
+#include "daemon/engine.h"
+#include "daemon/cmdhandler.h"
+#include "enforcer/enforce_task.h"
+#include "shared/file.h"
+#include "shared/log.h"
+#include "shared/str.h"
+#include "daemon/clientpipe.h"
+#include "db/key_data.h"
+#include "keystate/keystate_ds.h"
 
-void perform_keystate_ds_seen(int sockfd, engineconfig_type *config,
-                              const char *zone, const char *id,
-                              uint16_t keytag);
+#include "keystate/keystate_ds_seen_cmd.h"
 
-#endif
+static void
+usage(int sockfd)
+{
+	client_printf(sockfd,
+		"key ds-seen            Issue a ds-seen to the enforcer for a KSK.\n"
+		"                       (This command with no parameters lists eligible keys.)\n"
+		"      --zone <zone>              (aka -z)  zone.\n"
+		"      --keytag <keytag> | --cka_id <CKA_ID>      (aka -x | -k)\n"
+	);
+}
+
+static int
+handles(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname)?1:0;
+}
+
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
+{
+	int error;
+	error = run_ds_cmd(sockfd, cmd, n, dbconn,
+		KEY_DATA_DS_AT_PARENT_SUBMITTED,
+		KEY_DATA_DS_AT_PARENT_SEEN);
+	if (error == 0) {
+		flush_enforce_task(engine, 0);
+	}
+	return error;
+
+}
+
+static struct cmd_func_block funcblock = {
+	"key ds-seen", &usage, NULL, &handles, &run
+};
+
+struct cmd_func_block*
+key_ds_seen_funcblock(void)
+{
+	return &funcblock;
+}

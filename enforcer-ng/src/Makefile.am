@@ -118,10 +118,10 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_export_task.cpp keystate/keystate_export_task.h \
 	keystate/keystate_ds_submit_cmd.cpp keystate/keystate_ds_submit_cmd.h \
 	keystate/keystate_ds_submit_task.cpp keystate/keystate_ds_submit_task.h \
-	keystate/keystate_ds_seen_cmd.cpp keystate/keystate_ds_seen_cmd.h \
-	keystate/keystate_ds_seen_task.cpp keystate/keystate_ds_seen_task.h \
+	keystate/keystate_ds_seen_cmd.c keystate/keystate_ds_seen_cmd.h \
 	keystate/keystate_ds_retract_cmd.cpp keystate/keystate_ds_retract_cmd.h \
 	keystate/keystate_ds_retract_task.cpp keystate/keystate_ds_retract_task.h \
+	keystate/keystate_ds.c keystate/keystate_ds.h \
 	keystate/keystate_ds_gone_cmd.c keystate/keystate_ds_gone_cmd.h \
 	keystate/update_keyzones_cmd.cpp keystate/update_keyzones_cmd.h \
 	keystate/update_keyzones_task.cpp keystate/update_keyzones_task.h \
