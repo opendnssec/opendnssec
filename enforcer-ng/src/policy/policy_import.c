@@ -81,13 +81,10 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
         return POLICY_IMPORT_ERR_ARGS;
     }
 
-    /* TODO: check file exists, readable, validate
-     *
-     * TODO: check_kasp() need to somehow get the validation errors
     if (check_kasp(engine->config->policy_filename, NULL, 0, 0)) {
+        client_printf_err(sockfd, "Unable to validate the KASP XML, please run ods-kaspcheck for more details!\n");
         return POLICY_IMPORT_ERR_XML;
     }
-     */
 
     if (!(doc = xmlParseFile(engine->config->policy_filename))) {
         client_printf_err(sockfd, "Unable to read/parse KASP XML file %s!\n",
