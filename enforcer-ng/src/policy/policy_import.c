@@ -132,7 +132,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                 if (policy_get_by_name(policy, (char*)policy_name)) {
                     if (policy_create_from_xml(policy, node)) {
                         client_printf_err(sockfd,
-                            "Unable to create policy %s in the database!\n",
+                            "Unable to create policy %s from XML, XML content may be invalid!\n",
                             (char*)policy_name);
                         policy_free(policy);
                         xmlFree(policy_name);
