@@ -96,6 +96,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
         schedule_flush(engine->taskq);
         */
+        return 0;
         break;
 
     case POLICY_IMPORT_ERR_ARGS:
