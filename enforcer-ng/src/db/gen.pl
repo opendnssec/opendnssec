@@ -918,9 +918,19 @@ print SOURCE '    return DB_OK;
 }
 
 int ', $name, '_cmp(const ', $name, '_t* ', $name, '_a, const ', $name, '_t* ', $name, '_b) {
-    int ret;
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
+    if ($field->{foreign} or $field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    int ret;
 
-    if (!', $name, '_a && !', $name, '_b) {
+';
+        last;
+    }
+}
+print SOURCE '    if (!', $name, '_a && !', $name, '_b) {
         return 0;
     }
     if (!', $name, '_a && ', $name, '_b) {
