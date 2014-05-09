@@ -1011,12 +1011,28 @@ int policy_create(policy_t* policy);
 int policy_get_by_id(policy_t* policy, const db_value_t* id);
 
 /**
+ * Get a new policy object from the database by a id specified in `id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return a policy_t pointer or NULL on error or if it does not exist.
+ */
+policy_t* policy_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
+
+/**
  * Get a policy object from the database by a name specified in `name`.
  * \param[in] policy a policy_t pointer.
  * \param[in] name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_get_by_name(policy_t* policy, const char* name);
+
+/**
+ * Get a new policy object from the database by a name specified in `name`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] name a character pointer.
+ * \return a policy_t pointer or NULL on error or if it does not exist.
+ */
+policy_t* policy_new_get_by_name(const db_connection_t* connection, const char* name);
 
 /**
  * Update a policy object in the database.
@@ -1063,12 +1079,27 @@ void policy_list_free(policy_list_t* policy_list);
 int policy_list_get(policy_list_t* policy_list);
 
 /**
+ * Get a new list with all policy objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a policy_list_t pointer or NULL on error.
+ */
+policy_list_t* policy_list_new_get(const db_connection_t* connection);
+
+/**
  * Get policy objects from the database by a clause list.
  * \param[in] policy_list a policy_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_list_get_by_clauses(policy_list_t* policy_list, const db_clause_list_t* clause_list);
+
+/**
+ * Get a new list of policy objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a policy_list_t pointer or NULL on error.
+ */
+policy_list_t* policy_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
  * DEPRECATED (use policy_list_next) Get the first policy object in a policy object list.

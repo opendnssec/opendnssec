@@ -213,11 +213,15 @@ static void test_database_version_create(void) {
 }
 
 static void test_database_version_clauses(void) {
+    database_version_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(database_version_version_clause(clause_list, database_version_version(object)));
     CU_ASSERT(!database_version_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(database_version_list_next(object_list));
+    CU_ASSERT_PTR_NOT_NULL((new_list = database_version_list_new_get_by_clauses(connection, clause_list)));
+    CU_ASSERT_PTR_NOT_NULL(database_version_list_next(new_list));
+    database_version_list_free(new_list);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 }
@@ -225,6 +229,7 @@ static void test_database_version_clauses(void) {
 static void test_database_version_list(void) {
     const database_version_t* item;
     database_version_t* item2;
+    database_version_list_t* new_list;
 
     CU_ASSERT_FATAL(!database_version_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = database_version_list_next(object_list)));
@@ -234,10 +239,18 @@ static void test_database_version_list(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = database_version_list_get_next(object_list)));
     database_version_free(item2);
     CU_PASS("database_version_free");
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = database_version_list_new_get(connection)));
+    CU_ASSERT_PTR_NOT_NULL(database_version_list_next(new_list));
+    database_version_list_free(new_list);
 }
 
 static void test_database_version_read(void) {
+    database_version_t* item;
+
     CU_ASSERT_FATAL(!database_version_get_by_id(object, &id));
+    CU_ASSERT_PTR_NOT_NULL((item = database_version_new_get_by_id(connection, &id)));
+    database_version_free(item);
 }
 
 static void test_database_version_verify(void) {

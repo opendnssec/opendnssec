@@ -369,7 +369,7 @@ const db_value_t* key_state_key_data_id(const key_state_t* key_state) {
 
 key_data_t* key_state_get_key_data(const key_state_t* key_state) {
     key_data_t* key_data_id = NULL;
-    
+
     if (!key_state) {
         return NULL;
     }
@@ -379,7 +379,7 @@ key_data_t* key_state_get_key_data(const key_state_t* key_state) {
     if (db_value_not_empty(&(key_state->key_data_id))) {
         return NULL;
     }
-    
+
     if (!(key_data_id = key_data_new(db_object_connection(key_state->dbo)))) {
         return NULL;
     }
@@ -853,7 +853,7 @@ int key_state_get_by_id(key_state_t* key_state, const db_value_t* id) {
                 db_result_list_free(result_list);
                 return DB_ERROR_UNKNOWN;
             }
-                
+
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -861,6 +861,29 @@ int key_state_get_by_id(key_state_t* key_state, const db_value_t* id) {
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
+}
+
+key_state_t* key_state_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
+    key_state_t* key_state;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!id) {
+        return NULL;
+    }
+    if (db_value_not_empty(id)) {
+        return NULL;
+    }
+
+    if (!(key_state = key_state_new(connection))
+        || key_state_get_by_id(key_state, id))
+    {
+        key_state_free(key_state);
+        return NULL;
+    }
+
+    return key_state;
 }
 
 int key_state_update(key_state_t* key_state) {
@@ -1106,6 +1129,23 @@ int key_state_list_get(key_state_list_t* key_state_list) {
     return DB_OK;
 }
 
+key_state_list_t* key_state_list_new_get(const db_connection_t* connection) {
+    key_state_list_t* key_state_list;
+
+    if (!connection) {
+        return NULL;
+    }
+
+    if (!(key_state_list = key_state_list_new(connection))
+        || key_state_list_get(key_state_list))
+    {
+        key_state_list_free(key_state_list);
+        return NULL;
+    }
+
+    return key_state_list;
+}
+
 int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list) {
     if (!key_state_list) {
         return DB_ERROR_UNKNOWN;
@@ -1124,6 +1164,26 @@ int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_cla
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
+}
+
+key_state_list_t* key_state_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list) {
+    key_state_list_t* key_state_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(key_state_list = key_state_list_new(connection))
+        || key_state_list_get_by_clauses(key_state_list, clause_list))
+    {
+        key_state_list_free(key_state_list);
+        return NULL;
+    }
+
+    return key_state_list;
 }
 
 int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db_value_t* key_data_id) {

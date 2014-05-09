@@ -56,7 +56,7 @@ sub camelize {
     my $string = shift || confess;
     my $camelize = "";
     my @parts = split(/_/o, $string);
-    
+
     $camelize = shift(@parts);
     foreach my $part (@parts) {
         $camelize .= ucfirst($part);
@@ -72,7 +72,7 @@ foreach my $object (@$objects) {
     $tname =~ s/_/ /go;
 
 open(HEADER, '>:encoding(UTF-8)', $name.'.h') or die;
-    
+
     print HEADER '/*
  * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
  * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
@@ -122,14 +122,14 @@ foreach my $field (@{$object->{fields}}) {
     if ($field->{type} ne 'DB_TYPE_ENUM') {
         next;
     }
-    
+
     print HEADER 'typedef enum ', $name, '_', $field->{name}, ' {
     ', uc($name.'_'.$field->{name}), '_INVALID = -1';
 
     foreach my $enum (@{$field->{enum}}) {
         print HEADER ",\n", '    ', uc($name.'_'.$field->{name}), '_', $enum->{name}, ' = ', $enum->{value};
     }
-    
+
     print HEADER '
 } ', $name, '_', $field->{name}, '_t;
 extern const db_enum_t ', $name, '_enum_set_', $field->{name}, '[];
@@ -250,7 +250,7 @@ const db_value_t* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name
 ', $field->{foreign}, '_t* ', $name, '_get_', $field->{name}, '(const ', $name, '_t* ', $name, ');
 
 ';
-            
+
         }
         next;
     }
@@ -454,6 +454,14 @@ print HEADER '/**
  */
 int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', const db_value_t* ', $field->{name}, ');
 
+/**
+ * Get a new ', $tname, ' object from the database by a ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] ', $field->{name}, ' a db_value_t pointer.
+ * \return a ', $name, '_t pointer or NULL on error or if it does not exist.
+ */
+', $name, '_t* ', $name, '_new_get_by_', $field->{name}, '(const db_connection_t* connection, const db_value_t* ', $field->{name}, ');
+
 ';
         next;
     }
@@ -467,6 +475,14 @@ print HEADER '/**
  */
 int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', const ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ');
 
+/**
+ * Get a new ', $tname, ' object from the database by a ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] ', $field->{name}, ' ', $DB_TYPE_TO_TEXT{$field->{type}}, '.
+ * \return a ', $name, '_t pointer or NULL on error or if it does not exist.
+ */
+', $name, '_t* ', $name, '_new_get_by_', $field->{name}, '(const db_connection_t* connection, const ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ');
+
 ';
         next;
         }
@@ -477,6 +493,14 @@ print HEADER '/**
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $name, ', ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ');
+
+/**
+ * Get a new ', $tname, ' object from the database by a ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] ', $field->{name}, ' ', $DB_TYPE_TO_TEXT{$field->{type}}, '.
+ * \return a ', $name, '_t pointer or NULL on error or if it does not exist.
+ */
+', $name, '_t* ', $name, '_new_get_by_', $field->{name}, '(const db_connection_t* connection, ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ');
 
 ';
         next;
@@ -527,12 +551,27 @@ void ', $name, '_list_free(', $name, '_list_t* ', $name, '_list);
 int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list);
 
 /**
+ * Get a new list with all ', $tname, ' objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a ', $name, '_list_t pointer or NULL on error.
+ */
+', $name, '_list_t* ', $name, '_list_new_get(const db_connection_t* connection);
+
+/**
  * Get ', $tname, ' objects from the database by a clause list.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int ', $name, '_list_get_by_clauses(', $name, '_list_t* ', $name, '_list, const db_clause_list_t* clause_list);
+
+/**
+ * Get a new list of ', $tname, ' objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a ', $name, '_list_t pointer or NULL on error.
+ */
+', $name, '_list_t* ', $name, '_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 ';
 foreach my $field (@{$object->{fields}}) {
@@ -544,6 +583,14 @@ print HEADER '/**
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_t* ', $name, '_list, const db_value_t* ', $field->{name}, ');
+
+/**
+ * Get a new list of ', $tname, ' objects from the database by a ', $field->{name}, ' specified in `', $field->{name}, '`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] ', $field->{name}, ' a db_value_t pointer.
+ * \return a ', $name, '_list_t pointer or NULL on error.
+ */
+', $name, '_list_t* ', $name, '_list_new_get_by_', $field->{name}, '(const db_connection_t* connection, const db_value_t* ', $field->{name}, ');
 
 ';
     }
@@ -586,7 +633,7 @@ close(HEADER);
 
 if (!-f $name.'_ext.h') {
 open(HEADER, '>:encoding(UTF-8)', $name.'_ext.h') or die;
-    
+
     print HEADER '/*
  * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
  * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
@@ -779,7 +826,7 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = strdup("', $field->{de
         }
         next;
     }
-    
+
     if (exists $field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = ', $field->{default}, ';
 ';
@@ -848,7 +895,7 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = NULL;
         }
         next;
     }
-    
+
     if (exists $field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = ', $field->{default}, ';
 ';
@@ -1090,7 +1137,7 @@ print SOURCE 'const db_value_t* ', $name, '_', $field->{name}, '(const ', $name,
             $func_name =~ s/_id//o;
 print SOURCE $field->{foreign}, '_t* ', $name, '_get_', $func_name, '(const ', $name, '_t* ', $name, ') {
     ', $field->{foreign}, '_t* ', $field->{name}, ' = NULL;
-    
+
     if (!', $name, ') {
         return NULL;
     }
@@ -1100,7 +1147,7 @@ print SOURCE $field->{foreign}, '_t* ', $name, '_get_', $func_name, '(const ', $
     if (db_value_not_empty(&(', $name, '->', $field->{name}, '))) {
         return NULL;
     }
-    
+
     if (!(', $field->{name}, ' = ', $field->{foreign}, '_new(db_object_connection(', $name, '->dbo)))) {
         return NULL;
     }
@@ -1557,7 +1604,7 @@ print SOURCE 'int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $nam
                 db_result_list_free(result_list);
                 return DB_ERROR_UNKNOWN;
             }
-                
+
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1565,6 +1612,29 @@ print SOURCE 'int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $nam
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
+}
+
+', $name, '_t* ', $name, '_new_get_by_', $field->{name}, '(const db_connection_t* connection, const db_value_t* ', $field->{name}, ') {
+    ', $name, '_t* ', $name, ';
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!', $field->{name}, ') {
+        return NULL;
+    }
+    if (db_value_not_empty(', $field->{name}, ')) {
+        return NULL;
+    }
+
+    if (!(', $name, ' = ', $name, '_new(connection))
+        || ', $name, '_get_by_', $field->{name}, '(', $name, ', ', $field->{name}, '))
+    {
+        ', $name, '_free(', $name, ');
+        return NULL;
+    }
+
+    return ', $name, ';
 }
 
 ';
@@ -1622,7 +1692,7 @@ print SOURCE '
                 db_result_list_free(result_list);
                 return DB_ERROR_UNKNOWN;
             }
-                
+
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1630,6 +1700,38 @@ print SOURCE '
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
+}
+
+';
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE $name, '_t* ', $name, '_new_get_by_', $field->{name}, '(const db_connection_t* connection, const char* ', $field->{name}, ') {
+';
+    }
+    else {
+print SOURCE $name, '_t* ', $name, '_new_get_by_', $field->{name}, '(const db_connection_t* connection, ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ') {
+';
+    }
+print SOURCE '    ', $name, '_t* ', $name, ';
+
+    if (!connection) {
+        return NULL;
+    }
+';
+    if ($field->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '    if (!', $field->{name}, ') {
+        return NULL;
+    }
+';
+    }
+print SOURCE '
+    if (!(', $name, ' = ', $name, '_new(connection))
+        || ', $name, '_get_by_', $field->{name}, '(', $name, ', ', $field->{name}, '))
+    {
+        ', $name, '_free(', $name, ');
+        return NULL;
+    }
+
+    return ', $name, ';
 }
 
 ';
@@ -1864,6 +1966,23 @@ int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list) {
     return DB_OK;
 }
 
+', $name, '_list_t* ', $name, '_list_new_get(const db_connection_t* connection) {
+    ', $name, '_list_t* ', $name, '_list;
+
+    if (!connection) {
+        return NULL;
+    }
+
+    if (!(', $name, '_list = ', $name, '_list_new(connection))
+        || ', $name, '_list_get(', $name, '_list))
+    {
+        ', $name, '_list_free(', $name, '_list);
+        return NULL;
+    }
+
+    return ', $name, '_list;
+}
+
 int ', $name, '_list_get_by_clauses(', $name, '_list_t* ', $name, '_list, const db_clause_list_t* clause_list) {
     if (!', $name, '_list) {
         return DB_ERROR_UNKNOWN;
@@ -1882,6 +2001,26 @@ int ', $name, '_list_get_by_clauses(', $name, '_list_t* ', $name, '_list, const 
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
+}
+
+', $name, '_list_t* ', $name, '_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list) {
+    ', $name, '_list_t* ', $name, '_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(', $name, '_list = ', $name, '_list_new(connection))
+        || ', $name, '_list_get_by_clauses(', $name, '_list, clause_list))
+    {
+        ', $name, '_list_free(', $name, '_list);
+        return NULL;
+    }
+
+    return ', $name, '_list;
 }
 
 ';
@@ -2041,7 +2180,7 @@ close(SOURCE);
 
 
 open(SQLITE, '>:encoding(UTF-8)', 'schema.sqlite') or die;
-    
+
     print SQLITE '-- Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
 -- Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
 -- Copyright (c) 2014 OpenDNSSEC AB (svb)

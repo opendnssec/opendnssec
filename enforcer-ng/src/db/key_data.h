@@ -579,6 +579,14 @@ int key_data_create(key_data_t* key_data);
 int key_data_get_by_id(key_data_t* key_data, const db_value_t* id);
 
 /**
+ * Get a new key data object from the database by a id specified in `id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return a key_data_t pointer or NULL on error or if it does not exist.
+ */
+key_data_t* key_data_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
+
+/**
  * Update a key data object in the database.
  * \param[in] key_data a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -623,12 +631,27 @@ void key_data_list_free(key_data_list_t* key_data_list);
 int key_data_list_get(key_data_list_t* key_data_list);
 
 /**
+ * Get a new list with all key data objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a key_data_list_t pointer or NULL on error.
+ */
+key_data_list_t* key_data_list_new_get(const db_connection_t* connection);
+
+/**
  * Get key data objects from the database by a clause list.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause_list_t* clause_list);
+
+/**
+ * Get a new list of key data objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a key_data_list_t pointer or NULL on error.
+ */
+key_data_list_t* key_data_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
  * Get key data objects from the database by a zone_id specified in `zone_id`.
@@ -639,12 +662,28 @@ int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause
 int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_t* zone_id);
 
 /**
+ * Get a new list of key data objects from the database by a zone_id specified in `zone_id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] zone_id a db_value_t pointer.
+ * \return a key_data_list_t pointer or NULL on error.
+ */
+key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connection, const db_value_t* zone_id);
+
+/**
  * Get key data objects from the database by a hsm_key_id specified in `hsm_key_id`.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \param[in] hsm_key_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_value_t* hsm_key_id);
+
+/**
+ * Get a new list of key data objects from the database by a hsm_key_id specified in `hsm_key_id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] hsm_key_id a db_value_t pointer.
+ * \return a key_data_list_t pointer or NULL on error.
+ */
+key_data_list_t* key_data_list_new_get_by_hsm_key_id(const db_connection_t* connection, const db_value_t* hsm_key_id);
 
 /**
  * DEPRECATED (use key_data_list_next) Get the first key data object in a key data object list.

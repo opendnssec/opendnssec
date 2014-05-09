@@ -507,12 +507,28 @@ int hsm_key_create(hsm_key_t* hsm_key);
 int hsm_key_get_by_id(hsm_key_t* hsm_key, const db_value_t* id);
 
 /**
+ * Get a new hsm key object from the database by a id specified in `id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return a hsm_key_t pointer or NULL on error or if it does not exist.
+ */
+hsm_key_t* hsm_key_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
+
+/**
  * Get a hsm key object from the database by a locator specified in `locator`.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \param[in] locator a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_get_by_locator(hsm_key_t* hsm_key, const char* locator);
+
+/**
+ * Get a new hsm key object from the database by a locator specified in `locator`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] locator a character pointer.
+ * \return a hsm_key_t pointer or NULL on error or if it does not exist.
+ */
+hsm_key_t* hsm_key_new_get_by_locator(const db_connection_t* connection, const char* locator);
 
 /**
  * Update a hsm key object in the database.
@@ -559,6 +575,13 @@ void hsm_key_list_free(hsm_key_list_t* hsm_key_list);
 int hsm_key_list_get(hsm_key_list_t* hsm_key_list);
 
 /**
+ * Get a new list with all hsm key objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a hsm_key_list_t pointer or NULL on error.
+ */
+hsm_key_list_t* hsm_key_list_new_get(const db_connection_t* connection);
+
+/**
  * Get hsm key objects from the database by a clause list.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
@@ -567,12 +590,28 @@ int hsm_key_list_get(hsm_key_list_t* hsm_key_list);
 int hsm_key_list_get_by_clauses(hsm_key_list_t* hsm_key_list, const db_clause_list_t* clause_list);
 
 /**
+ * Get a new list of hsm key objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a hsm_key_list_t pointer or NULL on error.
+ */
+hsm_key_list_t* hsm_key_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
+
+/**
  * Get hsm key objects from the database by a policy_id specified in `policy_id`.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  * \param[in] policy_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_list_get_by_policy_id(hsm_key_list_t* hsm_key_list, const db_value_t* policy_id);
+
+/**
+ * Get a new list of hsm key objects from the database by a policy_id specified in `policy_id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return a hsm_key_list_t pointer or NULL on error.
+ */
+hsm_key_list_t* hsm_key_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
 
 /**
  * DEPRECATED (use hsm_key_list_next) Get the first hsm key object in a hsm key object list.

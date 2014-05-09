@@ -622,12 +622,28 @@ int zone_create(zone_t* zone);
 int zone_get_by_id(zone_t* zone, const db_value_t* id);
 
 /**
+ * Get a new zone object from the database by a id specified in `id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return a zone_t pointer or NULL on error or if it does not exist.
+ */
+zone_t* zone_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
+
+/**
  * Get a zone object from the database by a name specified in `name`.
  * \param[in] zone a zone_t pointer.
  * \param[in] name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int zone_get_by_name(zone_t* zone, const char* name);
+
+/**
+ * Get a new zone object from the database by a name specified in `name`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] name a character pointer.
+ * \return a zone_t pointer or NULL on error or if it does not exist.
+ */
+zone_t* zone_new_get_by_name(const db_connection_t* connection, const char* name);
 
 /**
  * Update a zone object in the database.
@@ -674,6 +690,13 @@ void zone_list_free(zone_list_t* zone_list);
 int zone_list_get(zone_list_t* zone_list);
 
 /**
+ * Get a new list with all zone objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new_get(const db_connection_t* connection);
+
+/**
  * Get zone objects from the database by a clause list.
  * \param[in] zone_list a zone_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
@@ -682,12 +705,28 @@ int zone_list_get(zone_list_t* zone_list);
 int zone_list_get_by_clauses(zone_list_t* zone_list, const db_clause_list_t* clause_list);
 
 /**
+ * Get a new list of zone objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
+
+/**
  * Get zone objects from the database by a policy_id specified in `policy_id`.
  * \param[in] zone_list a zone_list_t pointer.
  * \param[in] policy_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_id);
+
+/**
+ * Get a new list of zone objects from the database by a policy_id specified in `policy_id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
 
 /**
  * DEPRECATED (use zone_list_next) Get the first zone object in a zone object list.

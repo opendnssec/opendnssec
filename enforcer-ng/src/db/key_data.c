@@ -590,7 +590,7 @@ const db_value_t* key_data_zone_id(const key_data_t* key_data) {
 
 zone_t* key_data_get_zone(const key_data_t* key_data) {
     zone_t* zone_id = NULL;
-    
+
     if (!key_data) {
         return NULL;
     }
@@ -600,7 +600,7 @@ zone_t* key_data_get_zone(const key_data_t* key_data) {
     if (db_value_not_empty(&(key_data->zone_id))) {
         return NULL;
     }
-    
+
     if (!(zone_id = zone_new(db_object_connection(key_data->dbo)))) {
         return NULL;
     }
@@ -622,7 +622,7 @@ const db_value_t* key_data_hsm_key_id(const key_data_t* key_data) {
 
 hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data) {
     hsm_key_t* hsm_key_id = NULL;
-    
+
     if (!key_data) {
         return NULL;
     }
@@ -632,7 +632,7 @@ hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data) {
     if (db_value_not_empty(&(key_data->hsm_key_id))) {
         return NULL;
     }
-    
+
     if (!(hsm_key_id = hsm_key_new(db_object_connection(key_data->dbo)))) {
         return NULL;
     }
@@ -1534,7 +1534,7 @@ int key_data_get_by_id(key_data_t* key_data, const db_value_t* id) {
                 db_result_list_free(result_list);
                 return DB_ERROR_UNKNOWN;
             }
-                
+
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1542,6 +1542,29 @@ int key_data_get_by_id(key_data_t* key_data, const db_value_t* id) {
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
+}
+
+key_data_t* key_data_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
+    key_data_t* key_data;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!id) {
+        return NULL;
+    }
+    if (db_value_not_empty(id)) {
+        return NULL;
+    }
+
+    if (!(key_data = key_data_new(connection))
+        || key_data_get_by_id(key_data, id))
+    {
+        key_data_free(key_data);
+        return NULL;
+    }
+
+    return key_data;
 }
 
 int key_data_update(key_data_t* key_data) {
@@ -1881,6 +1904,23 @@ int key_data_list_get(key_data_list_t* key_data_list) {
     return DB_OK;
 }
 
+key_data_list_t* key_data_list_new_get(const db_connection_t* connection) {
+    key_data_list_t* key_data_list;
+
+    if (!connection) {
+        return NULL;
+    }
+
+    if (!(key_data_list = key_data_list_new(connection))
+        || key_data_list_get(key_data_list))
+    {
+        key_data_list_free(key_data_list);
+        return NULL;
+    }
+
+    return key_data_list;
+}
+
 int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause_list_t* clause_list) {
     if (!key_data_list) {
         return DB_ERROR_UNKNOWN;
@@ -1899,6 +1939,26 @@ int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
+}
+
+key_data_list_t* key_data_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list) {
+    key_data_list_t* key_data_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(key_data_list = key_data_list_new(connection))
+        || key_data_list_get_by_clauses(key_data_list, clause_list))
+    {
+        key_data_list_free(key_data_list);
+        return NULL;
+    }
+
+    return key_data_list;
 }
 
 int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_t* zone_id) {

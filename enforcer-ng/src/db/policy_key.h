@@ -429,6 +429,14 @@ int policy_key_create(policy_key_t* policy_key);
 int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id);
 
 /**
+ * Get a new policy key object from the database by a id specified in `id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return a policy_key_t pointer or NULL on error or if it does not exist.
+ */
+policy_key_t* policy_key_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
+
+/**
  * Update a policy key object in the database.
  * \param[in] policy_key a policy_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -473,6 +481,13 @@ void policy_key_list_free(policy_key_list_t* policy_key_list);
 int policy_key_list_get(policy_key_list_t* policy_key_list);
 
 /**
+ * Get a new list with all policy key objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a policy_key_list_t pointer or NULL on error.
+ */
+policy_key_list_t* policy_key_list_new_get(const db_connection_t* connection);
+
+/**
  * Get policy key objects from the database by a clause list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
@@ -481,12 +496,28 @@ int policy_key_list_get(policy_key_list_t* policy_key_list);
 int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_clause_list_t* clause_list);
 
 /**
+ * Get a new list of policy key objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a policy_key_list_t pointer or NULL on error.
+ */
+policy_key_list_t* policy_key_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
+
+/**
  * Get policy key objects from the database by a policy_id specified in `policy_id`.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \param[in] policy_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const db_value_t* policy_id);
+
+/**
+ * Get a new list of policy key objects from the database by a policy_id specified in `policy_id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return a policy_key_list_t pointer or NULL on error.
+ */
+policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
 
 /**
  * DEPRECATED (use policy_key_list_next) Get the first policy key object in a policy key object list.

@@ -155,6 +155,14 @@ int database_version_create(database_version_t* database_version);
 int database_version_get_by_id(database_version_t* database_version, const db_value_t* id);
 
 /**
+ * Get a new database version object from the database by a id specified in `id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return a database_version_t pointer or NULL on error or if it does not exist.
+ */
+database_version_t* database_version_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
+
+/**
  * Update a database version object in the database.
  * \param[in] database_version a database_version_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -199,12 +207,27 @@ void database_version_list_free(database_version_list_t* database_version_list);
 int database_version_list_get(database_version_list_t* database_version_list);
 
 /**
+ * Get a new list with all database version objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a database_version_list_t pointer or NULL on error.
+ */
+database_version_list_t* database_version_list_new_get(const db_connection_t* connection);
+
+/**
  * Get database version objects from the database by a clause list.
  * \param[in] database_version_list a database_version_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int database_version_list_get_by_clauses(database_version_list_t* database_version_list, const db_clause_list_t* clause_list);
+
+/**
+ * Get a new list of database version objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a database_version_list_t pointer or NULL on error.
+ */
+database_version_list_t* database_version_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
  * DEPRECATED (use database_version_list_next) Get the first database version object in a database version object list.

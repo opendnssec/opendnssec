@@ -336,7 +336,7 @@ int database_version_get_by_id(database_version_t* database_version, const db_va
                 db_result_list_free(result_list);
                 return DB_ERROR_UNKNOWN;
             }
-                
+
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -344,6 +344,29 @@ int database_version_get_by_id(database_version_t* database_version, const db_va
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
+}
+
+database_version_t* database_version_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
+    database_version_t* database_version;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!id) {
+        return NULL;
+    }
+    if (db_value_not_empty(id)) {
+        return NULL;
+    }
+
+    if (!(database_version = database_version_new(connection))
+        || database_version_get_by_id(database_version, id))
+    {
+        database_version_free(database_version);
+        return NULL;
+    }
+
+    return database_version;
 }
 
 int database_version_update(database_version_t* database_version) {
@@ -529,6 +552,23 @@ int database_version_list_get(database_version_list_t* database_version_list) {
     return DB_OK;
 }
 
+database_version_list_t* database_version_list_new_get(const db_connection_t* connection) {
+    database_version_list_t* database_version_list;
+
+    if (!connection) {
+        return NULL;
+    }
+
+    if (!(database_version_list = database_version_list_new(connection))
+        || database_version_list_get(database_version_list))
+    {
+        database_version_list_free(database_version_list);
+        return NULL;
+    }
+
+    return database_version_list;
+}
+
 int database_version_list_get_by_clauses(database_version_list_t* database_version_list, const db_clause_list_t* clause_list) {
     if (!database_version_list) {
         return DB_ERROR_UNKNOWN;
@@ -547,6 +587,26 @@ int database_version_list_get_by_clauses(database_version_list_t* database_versi
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
+}
+
+database_version_list_t* database_version_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list) {
+    database_version_list_t* database_version_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(database_version_list = database_version_list_new(connection))
+        || database_version_list_get_by_clauses(database_version_list, clause_list))
+    {
+        database_version_list_free(database_version_list);
+        return NULL;
+    }
+
+    return database_version_list;
 }
 
 const database_version_t* database_version_list_begin(database_version_list_t* database_version_list) {

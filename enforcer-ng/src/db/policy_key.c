@@ -444,7 +444,7 @@ const db_value_t* policy_key_policy_id(const policy_key_t* policy_key) {
 
 policy_t* policy_key_get_policy(const policy_key_t* policy_key) {
     policy_t* policy_id = NULL;
-    
+
     if (!policy_key) {
         return NULL;
     }
@@ -454,7 +454,7 @@ policy_t* policy_key_get_policy(const policy_key_t* policy_key) {
     if (db_value_not_empty(&(policy_key->policy_id))) {
         return NULL;
     }
-    
+
     if (!(policy_id = policy_new(db_object_connection(policy_key->dbo)))) {
         return NULL;
     }
@@ -1116,7 +1116,7 @@ int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id) {
                 db_result_list_free(result_list);
                 return DB_ERROR_UNKNOWN;
             }
-                
+
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1124,6 +1124,29 @@ int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id) {
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
+}
+
+policy_key_t* policy_key_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
+    policy_key_t* policy_key;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!id) {
+        return NULL;
+    }
+    if (db_value_not_empty(id)) {
+        return NULL;
+    }
+
+    if (!(policy_key = policy_key_new(connection))
+        || policy_key_get_by_id(policy_key, id))
+    {
+        policy_key_free(policy_key);
+        return NULL;
+    }
+
+    return policy_key;
 }
 
 int policy_key_update(policy_key_t* policy_key) {
@@ -1415,6 +1438,23 @@ int policy_key_list_get(policy_key_list_t* policy_key_list) {
     return DB_OK;
 }
 
+policy_key_list_t* policy_key_list_new_get(const db_connection_t* connection) {
+    policy_key_list_t* policy_key_list;
+
+    if (!connection) {
+        return NULL;
+    }
+
+    if (!(policy_key_list = policy_key_list_new(connection))
+        || policy_key_list_get(policy_key_list))
+    {
+        policy_key_list_free(policy_key_list);
+        return NULL;
+    }
+
+    return policy_key_list;
+}
+
 int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_clause_list_t* clause_list) {
     if (!policy_key_list) {
         return DB_ERROR_UNKNOWN;
@@ -1433,6 +1473,26 @@ int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
+}
+
+policy_key_list_t* policy_key_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list) {
+    policy_key_list_t* policy_key_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(policy_key_list = policy_key_list_new(connection))
+        || policy_key_list_get_by_clauses(policy_key_list, clause_list))
+    {
+        policy_key_list_free(policy_key_list);
+        return NULL;
+    }
+
+    return policy_key_list;
 }
 
 int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const db_value_t* policy_id) {

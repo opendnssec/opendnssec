@@ -347,6 +347,14 @@ int key_state_create(key_state_t* key_state);
 int key_state_get_by_id(key_state_t* key_state, const db_value_t* id);
 
 /**
+ * Get a new key state object from the database by a id specified in `id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return a key_state_t pointer or NULL on error or if it does not exist.
+ */
+key_state_t* key_state_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
+
+/**
  * Update a key state object in the database.
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -391,6 +399,13 @@ void key_state_list_free(key_state_list_t* key_state_list);
 int key_state_list_get(key_state_list_t* key_state_list);
 
 /**
+ * Get a new list with all key state objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a key_state_list_t pointer or NULL on error.
+ */
+key_state_list_t* key_state_list_new_get(const db_connection_t* connection);
+
+/**
  * Get key state objects from the database by a clause list.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
@@ -399,12 +414,28 @@ int key_state_list_get(key_state_list_t* key_state_list);
 int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list);
 
 /**
+ * Get a new list of key state objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a key_state_list_t pointer or NULL on error.
+ */
+key_state_list_t* key_state_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
+
+/**
  * Get key state objects from the database by a key_data_id specified in `key_data_id`.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \param[in] key_data_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db_value_t* key_data_id);
+
+/**
+ * Get a new list of key state objects from the database by a key_data_id specified in `key_data_id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] key_data_id a db_value_t pointer.
+ * \return a key_state_list_t pointer or NULL on error.
+ */
+key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* connection, const db_value_t* key_data_id);
 
 /**
  * DEPRECATED (use key_state_list_next) Get the first key state object in a key state object list.

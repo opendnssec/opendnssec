@@ -802,7 +802,7 @@ const db_value_t* zone_policy_id(const zone_t* zone) {
 
 policy_t* zone_get_policy(const zone_t* zone) {
     policy_t* policy_id = NULL;
-    
+
     if (!zone) {
         return NULL;
     }
@@ -812,7 +812,7 @@ policy_t* zone_get_policy(const zone_t* zone) {
     if (db_value_not_empty(&(zone->policy_id))) {
         return NULL;
     }
-    
+
     if (!(policy_id = policy_new(db_object_connection(zone->dbo)))) {
         return NULL;
     }
@@ -1926,7 +1926,7 @@ int zone_get_by_id(zone_t* zone, const db_value_t* id) {
                 db_result_list_free(result_list);
                 return DB_ERROR_UNKNOWN;
             }
-                
+
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1934,6 +1934,29 @@ int zone_get_by_id(zone_t* zone, const db_value_t* id) {
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
+}
+
+zone_t* zone_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
+    zone_t* zone;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!id) {
+        return NULL;
+    }
+    if (db_value_not_empty(id)) {
+        return NULL;
+    }
+
+    if (!(zone = zone_new(connection))
+        || zone_get_by_id(zone, id))
+    {
+        zone_free(zone);
+        return NULL;
+    }
+
+    return zone;
 }
 
 int zone_get_by_name(zone_t* zone, const char* name) {
@@ -1976,7 +1999,7 @@ int zone_get_by_name(zone_t* zone, const char* name) {
                 db_result_list_free(result_list);
                 return DB_ERROR_UNKNOWN;
             }
-                
+
             db_result_list_free(result_list);
             return DB_OK;
         }
@@ -1984,6 +2007,26 @@ int zone_get_by_name(zone_t* zone, const char* name) {
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
+}
+
+zone_t* zone_new_get_by_name(const db_connection_t* connection, const char* name) {
+    zone_t* zone;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!name) {
+        return NULL;
+    }
+
+    if (!(zone = zone_new(connection))
+        || zone_get_by_name(zone, name))
+    {
+        zone_free(zone);
+        return NULL;
+    }
+
+    return zone;
 }
 
 int zone_update(zone_t* zone) {
@@ -2377,6 +2420,23 @@ int zone_list_get(zone_list_t* zone_list) {
     return DB_OK;
 }
 
+zone_list_t* zone_list_new_get(const db_connection_t* connection) {
+    zone_list_t* zone_list;
+
+    if (!connection) {
+        return NULL;
+    }
+
+    if (!(zone_list = zone_list_new(connection))
+        || zone_list_get(zone_list))
+    {
+        zone_list_free(zone_list);
+        return NULL;
+    }
+
+    return zone_list;
+}
+
 int zone_list_get_by_clauses(zone_list_t* zone_list, const db_clause_list_t* clause_list) {
     if (!zone_list) {
         return DB_ERROR_UNKNOWN;
@@ -2395,6 +2455,26 @@ int zone_list_get_by_clauses(zone_list_t* zone_list, const db_clause_list_t* cla
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
+}
+
+zone_list_t* zone_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list) {
+    zone_list_t* zone_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(zone_list = zone_list_new(connection))
+        || zone_list_get_by_clauses(zone_list, clause_list))
+    {
+        zone_list_free(zone_list);
+        return NULL;
+    }
+
+    return zone_list;
 }
 
 int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_id) {
