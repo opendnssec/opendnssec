@@ -1025,12 +1025,12 @@ zone_list_t* policy_get_zones(const policy_t* policy) {
     if (!policy->dbo) {
         return NULL;
     }
-    if (db_value_not_empty(policy->id)) {
+    if (db_value_not_empty(&(policy->id))) {
         return NULL;
     }
 
     if (!(zone_list = zone_list_new(db_object_connection(policy->dbo)))
-        || zone_list_get_by_policy_id(zone_list, policy->id))
+        || zone_list_get_by_policy_id(zone_list, &(policy->id)))
     {
         zone_list_free(zone_list);
         return NULL;
