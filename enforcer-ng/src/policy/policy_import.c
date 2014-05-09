@@ -47,14 +47,20 @@ struct __policy_import_policy_key {
     int processed;
 };
 
-/* TODO: policy delete */
+struct __policy_import_policy;
+struct __policy_import_policy {
+    struct __policy_import_policy* next;
+    char* name;
+    int processed;
+};
+
 int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr node;
     xmlNodePtr node2;
     xmlNodePtr node3;
-    xmlChar* policy_name;
+    xmlChar* name;
     policy_t* policy;
     policy_key_t* policy_key;
     const policy_key_t* policy_key2;
@@ -72,6 +78,10 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     int repository_count = 0;
     struct engineconfig_repository* hsm;
     int i;
+    struct __policy_import_policy* policies = NULL;
+    struct __policy_import_policy* policy2;
+    policy_list_t* policy_list;
+    const policy_t* policy_walk;
 
     if (!engine) {
         return POLICY_IMPORT_ERR_ARGS;
@@ -86,20 +96,66 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
         return POLICY_IMPORT_ERR_ARGS;
     }
 
+    /*
+     * Retrieve all the current policies so they can be marked processed later
+     * and then the unprocessed can be deleted
+     */
+    if (!(policy_list = policy_list_new_get(dbconn))) {
+        client_printf_err(sockfd, "Unable to fetch all the current policies in the database!\n");
+        return POLICY_IMPORT_ERR_DATABASE;
+    }
+    for (policy_walk = policy_list_next(policy_list); policy_walk; policy_walk = policy_list_next(policy_list)) {
+        if (!(policy2 = calloc(1, sizeof(struct __policy_import_policy)))
+            || !(policy2->name = strdup(policy_name(policy_walk))))
+        {
+            client_printf_err(sockfd, "Memory allocation error!\n");
+            policy_list_free(policy_list);
+            if (policy2) {
+                free(policy2);
+            }
+            for (policy2 = policies; policy2; policy2 = policies) {
+                free(policy2->name);
+                policies = policy2->next;
+                free(policy2);
+            }
+            return POLICY_IMPORT_ERR_MEMORY;
+        }
+
+        policy2->next = policies;
+        policies = policy2;
+    }
+    policy_list_free(policy_list);
+
+    /*
+     * Get HSM Repositories
+     */
     if (engine->config->hsm) {
         for (hsm = engine->config->hsm; hsm; hsm = hsm->next, repository_count++)
             ;
         if (!(repositories = calloc(repository_count, sizeof(char*)))) {
+            for (policy2 = policies; policy2; policy2 = policies) {
+                free(policy2->name);
+                policies = policy2->next;
+                free(policy2);
+            }
             return POLICY_IMPORT_ERR_MEMORY;
         }
         for (i = 0, hsm = engine->config->hsm; hsm && i<repository_count; hsm = hsm->next, i++)
             repositories[i] = hsm->name;
     }
 
+    /*
+     * Validate KASP
+     */
     if (check_kasp(engine->config->policy_filename, repositories, repository_count, 0)) {
         client_printf_err(sockfd, "Unable to validate the KASP XML, please run ods-kaspcheck for more details!\n");
         if (repositories) {
             free(repositories);
+        }
+        for (policy2 = policies; policy2; policy2 = policies) {
+            free(policy2->name);
+            policies = policy2->next;
+            free(policy2);
         }
         return POLICY_IMPORT_ERR_XML;
     }
@@ -111,12 +167,22 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     if (!(doc = xmlParseFile(engine->config->policy_filename))) {
         client_printf_err(sockfd, "Unable to read/parse KASP XML file %s!\n",
             engine->config->policy_filename);
+        for (policy2 = policies; policy2; policy2 = policies) {
+            free(policy2->name);
+            policies = policy2->next;
+            free(policy2);
+        }
         return POLICY_IMPORT_ERR_XML;
     }
 
     if (!(root = xmlDocGetRootElement(doc))) {
         client_printf_err(sockfd, "Unable to get the root element in the KASP XML!\n");
         xmlFreeDoc(doc);
+        for (policy2 = policies; policy2; policy2 = policies) {
+            free(policy2->name);
+            policies = policy2->next;
+            free(policy2);
+        }
         return POLICY_IMPORT_ERR_XML;
     }
 
@@ -134,16 +200,26 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     continue;
                 }
 
-                if (!(policy_name = xmlGetProp(node, (const xmlChar*)"name"))) {
+                if (!(name = xmlGetProp(node, (const xmlChar*)"name"))) {
                     client_printf_err(sockfd, "Invalid Policy element in KASP XML!\n");
                     xmlFreeDoc(doc);
+                    for (policy2 = policies; policy2; policy2 = policies) {
+                        free(policy2->name);
+                        policies = policy2->next;
+                        free(policy2);
+                    }
                     return POLICY_IMPORT_ERR_XML;
                 }
 
                 if (!(policy = policy_new(dbconn))) {
                     client_printf_err(sockfd, "Memory allocation error!\n");
-                    xmlFree(policy_name);
+                    xmlFree(name);
                     xmlFreeDoc(doc);
+                    for (policy2 = policies; policy2; policy2 = policies) {
+                        free(policy2->name);
+                        policies = policy2->next;
+                        free(policy2);
+                    }
                     return POLICY_IMPORT_ERR_MEMORY;
                 }
 
@@ -151,13 +227,13 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                  * Fetch the policy by name, if we can't find it create a new
                  * one otherwise update the existing one
                  */
-                if (policy_get_by_name(policy, (char*)policy_name)) {
+                if (policy_get_by_name(policy, (char*)name)) {
                     if (policy_create_from_xml(policy, node)) {
                         client_printf_err(sockfd,
                             "Unable to create policy %s from XML, XML content may be invalid!\n",
-                            (char*)policy_name);
+                            (char*)name);
                         policy_free(policy);
-                        xmlFree(policy_name);
+                        xmlFree(name);
                         xml_error = 1;
                         continue;
                     }
@@ -165,19 +241,19 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     if (policy_create(policy)) {
                         client_printf_err(sockfd,
                             "Unable to create policy %s in the database!\n",
-                            (char*)policy_name);
+                            (char*)name);
                         policy_free(policy);
-                        xmlFree(policy_name);
+                        xmlFree(name);
                         database_error = 1;
                         continue;
                     }
 
-                    if (policy_get_by_name(policy, (char*)policy_name)) {
+                    if (policy_get_by_name(policy, (char*)name)) {
                         client_printf_err(sockfd,
                             "Unable to get policy %s from the database after creation, the policy may be corrupt in the database now!\n",
-                            (char*)policy_name);
+                            (char*)name);
                         policy_free(policy);
-                        xmlFree(policy_name);
+                        xmlFree(name);
                         database_error = 1;
                         continue;
                     }
@@ -212,14 +288,19 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                                 client_printf_err(sockfd, "Memory allocation error!\n");
                                 policy_free(policy);
                                 policy_key_free(policy_key);
-                                xmlFree(policy_name);
+                                xmlFree(name);
                                 xmlFreeDoc(doc);
+                                for (policy2 = policies; policy2; policy2 = policies) {
+                                    free(policy2->name);
+                                    policies = policy2->next;
+                                    free(policy2);
+                                }
                                 return POLICY_IMPORT_ERR_MEMORY;
                             }
                             if (policy_key_create_from_xml(policy_key, node3)) {
                                 client_printf_err(sockfd,
                                     "Unable to create %s key for policy %s from XML!\n",
-                                    (char*)node3->name, (char*)policy_name);
+                                    (char*)node3->name, (char*)name);
                                 policy_key_free(policy_key);
                                 successful = 0;
                                 xml_error = 1;
@@ -230,7 +311,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                             {
                                 client_printf_err(sockfd,
                                     "Unable to create %s key for policy %s in the database, the policy is not complete in the database now!\n",
-                                    (char*)node3->name, (char*)policy_name);
+                                    (char*)node3->name, (char*)name);
                                 policy_key_free(policy_key);
                                 successful = 0;
                                 database_error = 1;
@@ -241,10 +322,23 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     }
 
                     if (successful) {
-                        client_printf(sockfd, "Created policy %s successfully\n", (char*)policy_name);
+                        client_printf(sockfd, "Created policy %s successfully\n", (char*)name);
                     }
                 }
                 else {
+                    /*
+                     * Mark it processed even if update fails so its not deleted
+                     */
+                    for (policy2 = policies; policy2; policy2 = policy2->next) {
+                        if (policy2->processed) {
+                            continue;
+                        }
+                        if (!strcmp(policy2->name, (char*)name)) {
+                            policy2->processed = 1;
+                            break;
+                        }
+                    }
+
                     /*
                      * Fetch all current keys, put them in a list for later
                      * processing
@@ -254,10 +348,10 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     {
                         client_printf_err(sockfd,
                             "Unable to retrieve policy keys for policy %s, unknown database error!\n",
-                            (char*)policy_name);
+                            (char*)name);
                         policy_key_list_free(policy_key_list);
                         policy_free(policy);
-                        xmlFree(policy_name);
+                        xmlFree(name);
                         database_error = 1;
                         continue;
                     }
@@ -275,7 +369,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                             free(policy_key_db);
                             policy_key_list_free(policy_key_list);
                             policy_free(policy);
-                            xmlFree(policy_name);
+                            xmlFree(name);
                             xmlFreeDoc(doc);
                             policy_key_db = policy_keys_db;
                             while (policy_key_db) {
@@ -285,6 +379,11 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                                 }
                                 free(policy_key_db);
                                 policy_key_db = policy_keys_db;
+                            }
+                            for (policy2 = policies; policy2; policy2 = policies) {
+                                free(policy2->name);
+                                policies = policy2->next;
+                                free(policy2);
                             }
                             return POLICY_IMPORT_ERR_MEMORY;
                         }
@@ -303,9 +402,9 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     if (policy_update_from_xml(policy, node, &updated)) {
                         client_printf_err(sockfd,
                             "Unable to update policy %s from XML, XML content may be invalid!\n",
-                            (char*)policy_name);
+                            (char*)name);
                         policy_free(policy);
-                        xmlFree(policy_name);
+                        xmlFree(name);
                         policy_key_db = policy_keys_db;
                         while (policy_key_db) {
                             policy_keys_db = policy_key_db->next;
@@ -352,7 +451,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                                 }
                                 free(policy_key_xml);
                                 policy_free(policy);
-                                xmlFree(policy_name);
+                                xmlFree(name);
                                 xmlFreeDoc(doc);
                                 policy_key_db = policy_keys_db;
                                 while (policy_key_db) {
@@ -372,6 +471,11 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                                     free(policy_key_xml);
                                     policy_key_xml = policy_keys_xml;
                                 }
+                                for (policy2 = policies; policy2; policy2 = policies) {
+                                    free(policy2->name);
+                                    policies = policy2->next;
+                                    free(policy2);
+                                }
                                 return POLICY_IMPORT_ERR_MEMORY;
                             }
 
@@ -380,7 +484,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                             {
                                 client_printf_err(sockfd,
                                     "Unable to create %s key for policy %s from XML, XML content may be invalid!\n",
-                                    (char*)node3->name, (char*)policy_name);
+                                    (char*)node3->name, (char*)name);
                                 successful = 0;
                                 if (policy_key_xml->policy_key) {
                                     policy_key_free(policy_key_xml->policy_key);
@@ -398,9 +502,9 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     if (!successful) {
                         client_printf_err(sockfd,
                             "Unable to update policy %s from XML because of previous policy key error!\n",
-                            (char*)policy_name);
+                            (char*)name);
                         policy_free(policy);
-                        xmlFree(policy_name);
+                        xmlFree(name);
                         policy_key_db = policy_keys_db;
                         while (policy_key_db) {
                             policy_keys_db = policy_key_db->next;
@@ -474,7 +578,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                             client_printf_err(sockfd,
                                 "Unable to create %s key for policy %s in database!\n",
                                 policy_key_role_text(policy_key_xml->policy_key),
-                                (char*)policy_name);
+                                (char*)name);
                             successful = 0;
                             database_error = 1;
                             continue;
@@ -486,9 +590,9 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     if (!successful) {
                         client_printf_err(sockfd,
                             "Unable to update policy %s in the database because of previous policy key creation error, policy is not complete in the database now!\n",
-                            (char*)policy_name);
+                            (char*)name);
                         policy_free(policy);
-                        xmlFree(policy_name);
+                        xmlFree(name);
                         policy_key_db = policy_keys_db;
                         while (policy_key_db) {
                             policy_keys_db = policy_key_db->next;
@@ -528,7 +632,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                             client_printf_err(sockfd,
                                 "Unable to delete %s key for policy %s from database!\n",
                                 policy_key_role_text(policy_key_db->policy_key),
-                                (char*)policy_name);
+                                (char*)name);
                             successful = 0;
                             database_error = 1;
                             continue;
@@ -540,9 +644,9 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     if (!successful) {
                         client_printf_err(sockfd,
                             "Unable to update policy %s in the database because of previous policy key deletion error, policy is invalid in the database now!\n",
-                            (char*)policy_name);
+                            (char*)name);
                         policy_free(policy);
-                        xmlFree(policy_name);
+                        xmlFree(name);
                         policy_key_db = policy_keys_db;
                         while (policy_key_db) {
                             policy_keys_db = policy_key_db->next;
@@ -593,31 +697,93 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                     if (updated) {
                         if (policy_update(policy)) {
                             client_printf_err(sockfd, "Unable to update policy %s in database!\n",
-                                (char*)policy_name);
+                                (char*)name);
                             policy_free(policy);
-                            xmlFree(policy_name);
+                            xmlFree(name);
                             database_error = 1;
                             continue;
                         }
 
                         client_printf(sockfd, "Updated policy %s successfully\n",
-                            (char*)policy_name);
+                            (char*)name);
                     }
                     else if (keys_updated) {
                         client_printf(sockfd, "Updated policy %s successfully\n",
-                            (char*)policy_name);
+                            (char*)name);
                     }
                     else {
                         client_printf(sockfd, "Policy %s already up-to-date\n",
-                            (char*)policy_name);
+                            (char*)name);
                     }
                 }
                 policy_free(policy);
-                xmlFree(policy_name);
+                xmlFree(name);
             }
         }
     }
 
+    /*
+     * Delete policies that has not been processed
+     */
+    for (policy2 = policies; policy2; policy2 = policy2->next) {
+        if (policy2->processed) {
+            continue;
+        }
+
+        if (!(policy = policy_new(dbconn))) {
+            client_printf_err(sockfd, "Memory allocation error!\n");
+            xmlFreeDoc(doc);
+            for (policy2 = policies; policy2; policy2 = policies) {
+                free(policy2->name);
+                policies = policy2->next;
+                free(policy2);
+            }
+            return POLICY_IMPORT_ERR_MEMORY;
+        }
+
+        if (!policy_get_by_name(policy, policy2->name)) {
+            if (!(policy_key_list = policy_key_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
+                client_printf_err(sockfd, "Unable to get policy keys for policy %s from database!\n", policy2->name);
+                policy_free(policy);
+                database_error = 1;
+                continue;
+            }
+            successful = 1;
+            for (policy_key = policy_key_list_get_next(policy_key_list); policy_key; policy_key_free(policy_key), policy_key = policy_key_list_get_next(policy_key_list)) {
+                if (!policy_key_delete(policy_key)) {
+                    client_printf_err(sockfd, "Unable to delete policy key %s in policy %s from database!\n", policy_key_role_text(policy_key), policy2->name);
+                    database_error = 1;
+                    successful = 0;
+                    continue;
+                }
+            }
+            policy_key_list_free(policy_key_list);
+
+            if (!successful) {
+                policy_free(policy);
+                continue;
+            }
+            if (policy_delete(policy)) {
+                client_printf_err(sockfd, "Unable to delete policy %s from database!\n", policy2->name);
+                policy_free(policy);
+                database_error = 1;
+                continue;
+            }
+
+            client_printf(sockfd, "Deleted policy %s successfully\n", policy2->name);
+        }
+        else {
+            client_printf_err(sockfd, "Unable to delete policy %s from database!\n", policy2->name);
+            database_error = 1;
+        }
+        policy_free(policy);
+    }
+
+    for (policy2 = policies; policy2; policy2 = policies) {
+        free(policy2->name);
+        policies = policy2->next;
+        free(policy2);
+    }
     xmlFreeDoc(doc);
     if (database_error) {
         return POLICY_IMPORT_ERR_DATABASE;
