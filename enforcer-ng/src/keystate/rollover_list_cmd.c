@@ -79,6 +79,22 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 	return strdup(ct);
 }
 
+static void print_zone(int sockfd, const char* fmt, const zone_t* zone) {
+    key_data_list_t *keylist;
+    const key_data_t *key;
+
+    keylist = zone_get_keys(zone);
+    for (key = key_data_list_begin(keylist); key;
+        key = key_data_list_next(keylist))
+    {
+        char* tchange = map_keytime(zone, key);
+        client_printf(sockfd, fmt, zone_name(zone),
+            key_data_role_text(key), tchange);
+        free(tchange);
+    }
+    key_data_list_free(keylist);
+}
+
 /**
  * List all keys and their rollover time. If listed_zone is set limit
  * to that zone
@@ -91,45 +107,54 @@ static int
 perform_rollover_list(int sockfd, const char *listed_zone,
 	db_connection_t *dbconn)
 {
-	zone_list_t *zonelist;
-	key_data_list_t *keylist;
-	const zone_t *zone;
-	const key_data_t *key;
-	const char* fmt = "%-31s %-8s %-30s\n";
+	zone_list_t *zonelist = NULL;
+	zone_t *zone = NULL;
+	const zone_t *zone_walk = NULL;
+    const char* fmt = "%-31s %-8s %-30s\n";
 
-	if (!(zonelist = zone_list_new(dbconn))) return 1;
+	if (listed_zone) {
+	    if ((zone = zone_new(dbconn))
+	        && zone_get_by_name(zone, listed_zone))
+	    {
+	        zone_free(zone);
+	        zone = NULL;
+	    }
+	}
+	else {
+	    if ((zonelist = zone_list_new(dbconn))
+	        && zone_list_get(zonelist))
+	    {
+	        zone_list_free(zonelist);
+	        zonelist = NULL;
+	    }
+	}
 
-	if (( listed_zone && zone_list_get_by_name(zonelist, listed_zone)) ||
-		(!listed_zone && zone_list_get(zonelist)))
-	{
+    if (listed_zone && !zone) {
+        ods_log_error("[%s] zone:%s not found", module_str, listed_zone);
+        client_printf(sockfd, "zone:%s not found\n", listed_zone);
+        return 1;
+    }
+
+    if (!zone && !zonelist) {
 		ods_log_error("[%s] error enumerating zones", module_str);
 		client_printf(sockfd, "error enumerating zones\n");
-		zone_list_free(zonelist);
 		return 1;
 	}
 
-	zone = zone_list_begin(zonelist);
-	if (listed_zone && !zone) {
-		ods_log_error("[%s] zone:%s not found", module_str, listed_zone);
-		client_printf(sockfd, "zone:%s not found\n", listed_zone);
-		zone_list_free(zonelist);
-		return 1;
-	}
-	
 	client_printf(sockfd, "Keys:\n");
 	client_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
-	for (; zone; zone = zone_list_next(zonelist)) {
-		keylist = zone_get_keys(zone);
-		for (key = key_data_list_begin(keylist); key;
-			key = key_data_list_next(keylist))
-		{
-			char* tchange = map_keytime(zone, key);
-			client_printf(sockfd, fmt, zone_name(zone),
-				key_data_role_text(key), tchange);
-			free(tchange);
-		}
+	if (zone) {
+	    print_zone(sockfd, fmt, zone);
+	    zone_free(zone);
 	}
-	zone_list_free(zonelist);
+	else {
+	    for (zone_walk = zone_list_begin(zonelist); zone_walk;
+	        zone_walk = zone_list_next(zonelist))
+	    {
+	        print_zone(sockfd, fmt, zone);
+	    }
+	    zone_list_free(zonelist);
+	}
 	return 0;
 }
 
