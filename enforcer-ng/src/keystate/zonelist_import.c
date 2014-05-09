@@ -36,6 +36,7 @@
 
 #include "keystate/zonelist_import.h"
 
+/* TODO: zone delete */
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     xmlDocPtr doc;
     xmlNodePtr root;

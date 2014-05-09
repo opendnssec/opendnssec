@@ -47,6 +47,7 @@ struct __policy_import_policy_key {
     int processed;
 };
 
+/* TODO: policy delete */
 int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     xmlDocPtr doc;
     xmlNodePtr root;
