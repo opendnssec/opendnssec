@@ -67,6 +67,10 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     int keys_updated;
     int database_error = 0;
     int xml_error = 0;
+    char **repositories = NULL;
+    int repository_count = 0;
+    struct engineconfig_repository* hsm;
+    int i;
 
     if (!engine) {
         return POLICY_IMPORT_ERR_ARGS;
@@ -81,9 +85,26 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
         return POLICY_IMPORT_ERR_ARGS;
     }
 
-    if (check_kasp(engine->config->policy_filename, NULL, 0, 0)) {
+    if (engine->config->hsm) {
+        for (hsm = engine->config->hsm; hsm; hsm = hsm->next, repository_count++)
+            ;
+        if (!(repositories = calloc(repository_count, sizeof(char*)))) {
+            return POLICY_IMPORT_ERR_MEMORY;
+        }
+        for (i = 0, hsm = engine->config->hsm; hsm && i<repository_count; hsm = hsm->next, i++)
+            repositories[i] = hsm->name;
+    }
+
+    if (check_kasp(engine->config->policy_filename, repositories, repository_count, 0)) {
         client_printf_err(sockfd, "Unable to validate the KASP XML, please run ods-kaspcheck for more details!\n");
+        if (repositories) {
+            free(repositories);
+        }
         return POLICY_IMPORT_ERR_XML;
+    }
+
+    if (repositories) {
+        free(repositories);
     }
 
     if (!(doc = xmlParseFile(engine->config->policy_filename))) {
