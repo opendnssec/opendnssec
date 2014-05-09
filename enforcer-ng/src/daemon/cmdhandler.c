@@ -71,6 +71,7 @@
 #include "daemon/ctrl_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
+#include "enforcer/update_conf_cmd.h"
 #include "enforcer/enforce_cmd.h"
 #include "policy/update_kasp_cmd.h"
 #include "policy/policy_import_cmd.h"
@@ -115,6 +116,7 @@ cmd_funcs_avail(void)
     static struct cmd_func_block* (*fb[])(void) = {
         /* Thoughts has gone into the ordering of this list, it affects 
          * the output of the help command */
+        &update_conf_funcblock,
         &update_kasp_funcblock,
         &update_zonelist_funcblock,
 /*

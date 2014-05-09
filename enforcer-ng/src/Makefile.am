@@ -143,6 +143,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.h \
 	enforcer/update_repositorylist_cmd.c enforcer/update_repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
+	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
 	protobuf-orm/pb-orm.h \
 	protobuf-orm/pb-orm-common.h \
 	protobuf-orm/pb-orm-connect.cc protobuf-orm/pb-orm-connect.h \
