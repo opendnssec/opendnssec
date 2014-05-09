@@ -2003,6 +2003,29 @@ int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_
     return DB_OK;
 }
 
+key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connection, const db_value_t* zone_id) {
+    key_data_list_t* key_data_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!zone_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(zone_id)) {
+        return NULL;
+    }
+
+    if (!(key_data_list = key_data_list_new(connection))
+        || key_data_list_get_by_zone_id(key_data_list, zone_id))
+    {
+        key_data_list_free(key_data_list);
+        return NULL;
+    }
+
+    return key_data_list;
+}
+
 int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_value_t* hsm_key_id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
@@ -2043,6 +2066,29 @@ int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_val
     }
     db_clause_list_free(clause_list);
     return DB_OK;
+}
+
+key_data_list_t* key_data_list_new_get_by_hsm_key_id(const db_connection_t* connection, const db_value_t* hsm_key_id) {
+    key_data_list_t* key_data_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!hsm_key_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(hsm_key_id)) {
+        return NULL;
+    }
+
+    if (!(key_data_list = key_data_list_new(connection))
+        || key_data_list_get_by_hsm_key_id(key_data_list, hsm_key_id))
+    {
+        key_data_list_free(key_data_list);
+        return NULL;
+    }
+
+    return key_data_list;
 }
 
 const key_data_t* key_data_list_begin(key_data_list_t* key_data_list) {

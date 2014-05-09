@@ -2068,6 +2068,29 @@ print SOURCE 'int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_
     return DB_OK;
 }
 
+', $name, '_list_t* ', $name, '_list_new_get_by_', $field->{name}, '(const db_connection_t* connection, const db_value_t* ', $field->{name}, ') {
+    ', $name, '_list_t* ', $name, '_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!', $field->{name}, ') {
+        return NULL;
+    }
+    if (db_value_not_empty(', $field->{name}, ')) {
+        return NULL;
+    }
+
+    if (!(', $name, '_list = ', $name, '_list_new(connection))
+        || ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list, ', $field->{name}, '))
+    {
+        ', $name, '_list_free(', $name, '_list);
+        return NULL;
+    }
+
+    return ', $name, '_list;
+}
+
 ';
     }
 }

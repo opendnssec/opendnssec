@@ -2021,6 +2021,29 @@ int hsm_key_list_get_by_policy_id(hsm_key_list_t* hsm_key_list, const db_value_t
     return DB_OK;
 }
 
+hsm_key_list_t* hsm_key_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id) {
+    hsm_key_list_t* hsm_key_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!policy_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(policy_id)) {
+        return NULL;
+    }
+
+    if (!(hsm_key_list = hsm_key_list_new(connection))
+        || hsm_key_list_get_by_policy_id(hsm_key_list, policy_id))
+    {
+        hsm_key_list_free(hsm_key_list);
+        return NULL;
+    }
+
+    return hsm_key_list;
+}
+
 const hsm_key_t* hsm_key_list_begin(hsm_key_list_t* hsm_key_list) {
     const db_result_t* result;
 

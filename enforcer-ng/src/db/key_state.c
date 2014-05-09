@@ -1228,6 +1228,29 @@ int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db
     return DB_OK;
 }
 
+key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* connection, const db_value_t* key_data_id) {
+    key_state_list_t* key_state_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!key_data_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(key_data_id)) {
+        return NULL;
+    }
+
+    if (!(key_state_list = key_state_list_new(connection))
+        || key_state_list_get_by_key_data_id(key_state_list, key_data_id))
+    {
+        key_state_list_free(key_state_list);
+        return NULL;
+    }
+
+    return key_state_list;
+}
+
 const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
     const db_result_t* result;
 

@@ -2519,6 +2519,29 @@ int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_
     return DB_OK;
 }
 
+zone_list_t* zone_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id) {
+    zone_list_t* zone_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!policy_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(policy_id)) {
+        return NULL;
+    }
+
+    if (!(zone_list = zone_list_new(connection))
+        || zone_list_get_by_policy_id(zone_list, policy_id))
+    {
+        zone_list_free(zone_list);
+        return NULL;
+    }
+
+    return zone_list;
+}
+
 const zone_t* zone_list_begin(zone_list_t* zone_list) {
     const db_result_t* result;
 

@@ -1537,6 +1537,29 @@ int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const d
     return DB_OK;
 }
 
+policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id) {
+    policy_key_list_t* policy_key_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!policy_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(policy_id)) {
+        return NULL;
+    }
+
+    if (!(policy_key_list = policy_key_list_new(connection))
+        || policy_key_list_get_by_policy_id(policy_key_list, policy_id))
+    {
+        policy_key_list_free(policy_key_list);
+        return NULL;
+    }
+
+    return policy_key_list;
+}
+
 const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list) {
     const db_result_t* result;
 
