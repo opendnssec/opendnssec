@@ -83,14 +83,11 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
      * Retrieve all the current zones so they can be marked processed later and
      * then the unprocessed can be deleted
      */
-    if (!(zone_list = zone_list_new(dbconn))
-        || zone_list_get(zone_list))
-    {
-        zone_list_free(zone_list);
+    if (!(zone_list = zone_list_new_get(dbconn))) {
         client_printf_err(sockfd, "Unable to fetch all the current zones in the database!\n");
         return ZONELIST_IMPORT_ERR_DATABASE;
     }
-    for (zone_walk = zone_list_begin(zone_list); zone_walk; zone_walk = zone_list_next(zone_list)) {
+    for (zone_walk = zone_list_next(zone_list); zone_walk; zone_walk = zone_list_next(zone_list)) {
         if (!(zone2 = calloc(1, sizeof(struct __zonelist_import_zone)))
             || !(zone2->name = strdup(zone_name(zone_walk))))
         {
@@ -304,7 +301,6 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
             for (key_data = key_data_list_get_next(key_data_list); key_data; key_data_free(key_data), key_data = key_data_list_get_next(key_data_list)) {
                 if (!(key_state_list = key_state_list_new_get_by_key_data_id(dbconn, key_data_id(key_data)))) {
                     client_printf_err(sockfd, "Unable to get key states for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
-                    zone_free(zone);
                     database_error = 1;
                     successful = 0;
                     continue;
@@ -313,7 +309,6 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                 for (key_state = key_state_list_get_next(key_state_list); key_state; key_state_free(key_state), key_state = key_state_list_get_next(key_state_list)) {
                     if (!key_state_delete(key_state)) {
                         client_printf_err(sockfd, "Unable to delete key state %s for key data %s of zone %s from database!\n", key_state_type_text(key_state), key_data_role_text(key_data), zone2->name);
-                        zone_free(zone);
                         database_error = 1;
                         successful = 0;
                         continue;
@@ -323,7 +318,6 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
 
                 if (!key_data_delete(key_data)) {
                     client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
-                    zone_free(zone);
                     database_error = 1;
                     successful = 0;
                     continue;
@@ -332,6 +326,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
             key_data_list_free(key_data_list);
 
             if (!successful) {
+                zone_free(zone);
                 continue;
             }
             if (zone_delete(zone)) {
@@ -342,6 +337,10 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
             }
 
             client_printf(sockfd, "Deleted zone %s successfully\n", zone2->name);
+        }
+        else {
+            client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone2->name);
+            database_error = 1;
         }
         zone_free(zone);
     }
