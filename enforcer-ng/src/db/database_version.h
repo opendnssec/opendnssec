@@ -207,7 +207,7 @@ int database_version_list_get(database_version_list_t* database_version_list);
 int database_version_list_get_by_clauses(database_version_list_t* database_version_list, const db_clause_list_t* clause_list);
 
 /**
- * Get the first database version object in a database version object list. This will reset the position of the list.
+ * DEPRECATED (use database_version_list_next) Get the first database version object in a database version object list.
  * \param[in] database_version_list a database_version_list_t pointer.
  * \return a database_version_t pointer or NULL on error or if there are no
  * database version objects in the database version object list.
@@ -216,11 +216,23 @@ const database_version_t* database_version_list_begin(database_version_list_t* d
 
 /**
  * Get the next database version object in a database version object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
  * \param[in] database_version_list a database_version_list_t pointer.
  * \return a database_version_t pointer or NULL on error or if there are no more
  * database version objects in the database version object list.
  */
 const database_version_t* database_version_list_next(database_version_list_t* database_version_list);
+
+/**
+ * Get the next database version object in a database version object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] database_version_list a database_version_list_t pointer.
+ * \return a database_version_t pointer or NULL on error or if there are no more
+ * database version objects in the database version object list.
+ */
+database_version_t* database_version_list_get_next(database_version_list_t* database_version_list);
 
 #ifdef __cplusplus
 }

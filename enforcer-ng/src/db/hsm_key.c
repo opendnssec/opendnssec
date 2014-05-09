@@ -1985,3 +1985,24 @@ const hsm_key_t* hsm_key_list_next(hsm_key_list_t* hsm_key_list) {
     }
     return hsm_key_list->hsm_key;
 }
+
+hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list) {
+    const db_result_t* result;
+    hsm_key_t* hsm_key;
+
+    if (!hsm_key_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(hsm_key_list->result_list))) {
+        return NULL;
+    }
+    if (!(hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+        return NULL;
+    }
+    if (hsm_key_from_result(hsm_key_list->hsm_key, result)) {
+        hsm_key_free(hsm_key);
+        return NULL;
+    }
+    return hsm_key;
+}

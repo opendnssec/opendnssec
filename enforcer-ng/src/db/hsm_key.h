@@ -575,7 +575,7 @@ int hsm_key_list_get_by_clauses(hsm_key_list_t* hsm_key_list, const db_clause_li
 int hsm_key_list_get_by_policy_id(hsm_key_list_t* hsm_key_list, const db_value_t* policy_id);
 
 /**
- * Get the first hsm key object in a hsm key object list. This will reset the position of the list.
+ * DEPRECATED (use hsm_key_list_next) Get the first hsm key object in a hsm key object list.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  * \return a hsm_key_t pointer or NULL on error or if there are no
  * hsm key objects in the hsm key object list.
@@ -584,11 +584,23 @@ const hsm_key_t* hsm_key_list_begin(hsm_key_list_t* hsm_key_list);
 
 /**
  * Get the next hsm key object in a hsm key object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  * \return a hsm_key_t pointer or NULL on error or if there are no more
  * hsm key objects in the hsm key object list.
  */
 const hsm_key_t* hsm_key_list_next(hsm_key_list_t* hsm_key_list);
+
+/**
+ * Get the next hsm key object in a hsm key object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] hsm_key_list a hsm_key_list_t pointer.
+ * \return a hsm_key_t pointer or NULL on error or if there are no more
+ * hsm key objects in the hsm key object list.
+ */
+hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list);
 
 #ifdef __cplusplus
 }

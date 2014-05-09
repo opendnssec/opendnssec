@@ -489,7 +489,7 @@ int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_
 int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const db_value_t* policy_id);
 
 /**
- * Get the first policy key object in a policy key object list. This will reset the position of the list.
+ * DEPRECATED (use policy_key_list_next) Get the first policy key object in a policy key object list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \return a policy_key_t pointer or NULL on error or if there are no
  * policy key objects in the policy key object list.
@@ -498,11 +498,23 @@ const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list);
 
 /**
  * Get the next policy key object in a policy key object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \return a policy_key_t pointer or NULL on error or if there are no more
  * policy key objects in the policy key object list.
  */
 const policy_key_t* policy_key_list_next(policy_key_list_t* policy_key_list);
+
+/**
+ * Get the next policy key object in a policy key object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] policy_key_list a policy_key_list_t pointer.
+ * \return a policy_key_t pointer or NULL on error or if there are no more
+ * policy key objects in the policy key object list.
+ */
+policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list);
 
 #ifdef __cplusplus
 }

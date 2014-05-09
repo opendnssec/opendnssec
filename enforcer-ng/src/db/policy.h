@@ -1071,7 +1071,7 @@ int policy_list_get(policy_list_t* policy_list);
 int policy_list_get_by_clauses(policy_list_t* policy_list, const db_clause_list_t* clause_list);
 
 /**
- * Get the first policy object in a policy object list. This will reset the position of the list.
+ * DEPRECATED (use policy_list_next) Get the first policy object in a policy object list.
  * \param[in] policy_list a policy_list_t pointer.
  * \return a policy_t pointer or NULL on error or if there are no
  * policy objects in the policy object list.
@@ -1080,11 +1080,23 @@ const policy_t* policy_list_begin(policy_list_t* policy_list);
 
 /**
  * Get the next policy object in a policy object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
  * \param[in] policy_list a policy_list_t pointer.
  * \return a policy_t pointer or NULL on error or if there are no more
  * policy objects in the policy object list.
  */
 const policy_t* policy_list_next(policy_list_t* policy_list);
+
+/**
+ * Get the next policy object in a policy object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] policy_list a policy_list_t pointer.
+ * \return a policy_t pointer or NULL on error or if there are no more
+ * policy objects in the policy object list.
+ */
+policy_t* policy_list_get_next(policy_list_t* policy_list);
 
 #ifdef __cplusplus
 }

@@ -407,7 +407,7 @@ int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_cla
 int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db_value_t* key_data_id);
 
 /**
- * Get the first key state object in a key state object list. This will reset the position of the list.
+ * DEPRECATED (use key_state_list_next) Get the first key state object in a key state object list.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return a key_state_t pointer or NULL on error or if there are no
  * key state objects in the key state object list.
@@ -416,11 +416,23 @@ const key_state_t* key_state_list_begin(key_state_list_t* key_state_list);
 
 /**
  * Get the next key state object in a key state object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return a key_state_t pointer or NULL on error or if there are no more
  * key state objects in the key state object list.
  */
 const key_state_t* key_state_list_next(key_state_list_t* key_state_list);
+
+/**
+ * Get the next key state object in a key state object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \return a key_state_t pointer or NULL on error or if there are no more
+ * key state objects in the key state object list.
+ */
+key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
 
 #ifdef __cplusplus
 }

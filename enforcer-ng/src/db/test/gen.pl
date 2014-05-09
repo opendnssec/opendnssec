@@ -439,7 +439,7 @@ print SOURCE '
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(', $name, '_', $field->{name}, '_clause(clause_list, ', $name, '_', $field->{name}, '(object)));
     CU_ASSERT(!', $name, '_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(', $name, '_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(', $name, '_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 ';
@@ -460,9 +460,16 @@ print SOURCE '}
 
 static void test_', $name, '_list(void) {
     const ', $name, '_t* item;
+    ', $name, '_t* item2;
+
     CU_ASSERT_FATAL(!', $name, '_list_get(object_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = ', $name, '_list_begin(object_list)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = ', $name, '_list_next(object_list)));
     CU_ASSERT_FATAL(!db_value_copy(&id, ', $name, '_id(item)));
+
+    CU_ASSERT_FATAL(!', $name, '_list_get(object_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = ', $name, '_list_get_next(object_list)));
+    ', $name, '_free(item2);
+    CU_PASS("', $name, '_free");
 }
 
 static void test_', $name, '_read(void) {
@@ -861,7 +868,7 @@ print SOURCE 'static void test_', $name, '_delete(void) {
 
 static void test_', $name, '_list2(void) {
     CU_ASSERT_FATAL(!', $name, '_list_get(object_list));
-    CU_ASSERT_PTR_NULL(', $name, '_list_begin(object_list));
+    CU_ASSERT_PTR_NULL(', $name, '_list_next(object_list));
 }
 
 static void test_', $name, '_end(void) {

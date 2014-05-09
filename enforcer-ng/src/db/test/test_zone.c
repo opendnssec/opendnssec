@@ -265,135 +265,142 @@ static void test_zone_clauses(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_policy_id_clause(clause_list, zone_policy_id(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_name_clause(clause_list, zone_name(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_signconf_needs_writing_clause(clause_list, zone_signconf_needs_writing(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_signconf_path_clause(clause_list, zone_signconf_path(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_next_change_clause(clause_list, zone_next_change(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_ttl_end_ds_clause(clause_list, zone_ttl_end_ds(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_ttl_end_dk_clause(clause_list, zone_ttl_end_dk(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_ttl_end_rs_clause(clause_list, zone_ttl_end_rs(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_roll_ksk_now_clause(clause_list, zone_roll_ksk_now(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_roll_zsk_now_clause(clause_list, zone_roll_zsk_now(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_roll_csk_now_clause(clause_list, zone_roll_csk_now(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_input_adapter_type_clause(clause_list, zone_input_adapter_type(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_input_adapter_uri_clause(clause_list, zone_input_adapter_uri(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_output_adapter_type_clause(clause_list, zone_output_adapter_type(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_output_adapter_uri_clause(clause_list, zone_output_adapter_uri(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_next_ksk_roll_clause(clause_list, zone_next_ksk_roll(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_next_zsk_roll_clause(clause_list, zone_next_zsk_roll(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(zone_next_csk_roll_clause(clause_list, zone_next_csk_roll(object)));
     CU_ASSERT(!zone_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NOT_NULL(zone_list_next(object_list));
     db_clause_list_free(clause_list);
     clause_list = NULL;
 }
 
 static void test_zone_list(void) {
     const zone_t* item;
+    zone_t* item2;
+
     CU_ASSERT_FATAL(!zone_list_get(object_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = zone_list_begin(object_list)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = zone_list_next(object_list)));
     CU_ASSERT_FATAL(!db_value_copy(&id, zone_id(item)));
+
+    CU_ASSERT_FATAL(!zone_list_get(object_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = zone_list_get_next(object_list)));
+    zone_free(item2);
+    CU_PASS("zone_free");
 }
 
 static void test_zone_read(void) {
@@ -581,7 +588,7 @@ static void test_zone_delete(void) {
 
 static void test_zone_list2(void) {
     CU_ASSERT_FATAL(!zone_list_get(object_list));
-    CU_ASSERT_PTR_NULL(zone_list_begin(object_list));
+    CU_ASSERT_PTR_NULL(zone_list_next(object_list));
 }
 
 static void test_zone_end(void) {

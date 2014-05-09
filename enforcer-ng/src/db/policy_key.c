@@ -1521,3 +1521,24 @@ const policy_key_t* policy_key_list_next(policy_key_list_t* policy_key_list) {
     }
     return policy_key_list->policy_key;
 }
+
+policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list) {
+    const db_result_t* result;
+    policy_key_t* policy_key;
+
+    if (!policy_key_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(policy_key_list->result_list))) {
+        return NULL;
+    }
+    if (!(policy_key = policy_key_new(db_object_connection(policy_key_list->dbo)))) {
+        return NULL;
+    }
+    if (policy_key_from_result(policy_key_list->policy_key, result)) {
+        policy_key_free(policy_key);
+        return NULL;
+    }
+    return policy_key;
+}

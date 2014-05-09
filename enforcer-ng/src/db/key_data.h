@@ -647,7 +647,7 @@ int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_
 int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_value_t* hsm_key_id);
 
 /**
- * Get the first key data object in a key data object list. This will reset the position of the list.
+ * DEPRECATED (use key_data_list_next) Get the first key data object in a key data object list.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return a key_data_t pointer or NULL on error or if there are no
  * key data objects in the key data object list.
@@ -656,11 +656,23 @@ const key_data_t* key_data_list_begin(key_data_list_t* key_data_list);
 
 /**
  * Get the next key data object in a key data object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return a key_data_t pointer or NULL on error or if there are no more
  * key data objects in the key data object list.
  */
 const key_data_t* key_data_list_next(key_data_list_t* key_data_list);
+
+/**
+ * Get the next key data object in a key data object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \return a key_data_t pointer or NULL on error or if there are no more
+ * key data objects in the key data object list.
+ */
+key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
 
 #ifdef __cplusplus
 }

@@ -690,7 +690,7 @@ int zone_list_get_by_clauses(zone_list_t* zone_list, const db_clause_list_t* cla
 int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_id);
 
 /**
- * Get the first zone object in a zone object list. This will reset the position of the list.
+ * DEPRECATED (use zone_list_next) Get the first zone object in a zone object list.
  * \param[in] zone_list a zone_list_t pointer.
  * \return a zone_t pointer or NULL on error or if there are no
  * zone objects in the zone object list.
@@ -699,11 +699,23 @@ const zone_t* zone_list_begin(zone_list_t* zone_list);
 
 /**
  * Get the next zone object in a zone object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
  * \param[in] zone_list a zone_list_t pointer.
  * \return a zone_t pointer or NULL on error or if there are no more
  * zone objects in the zone object list.
  */
 const zone_t* zone_list_next(zone_list_t* zone_list);
+
+/**
+ * Get the next zone object in a zone object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_t pointer or NULL on error or if there are no more
+ * zone objects in the zone object list.
+ */
+zone_t* zone_list_get_next(zone_list_t* zone_list);
 
 #ifdef __cplusplus
 }

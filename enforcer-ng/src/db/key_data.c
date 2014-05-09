@@ -2029,3 +2029,24 @@ const key_data_t* key_data_list_next(key_data_list_t* key_data_list) {
     }
     return key_data_list->key_data;
 }
+
+key_data_t* key_data_list_get_next(key_data_list_t* key_data_list) {
+    const db_result_t* result;
+    key_data_t* key_data;
+
+    if (!key_data_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(key_data_list->result_list))) {
+        return NULL;
+    }
+    if (!(key_data = key_data_new(db_object_connection(key_data_list->dbo)))) {
+        return NULL;
+    }
+    if (key_data_from_result(key_data_list->key_data, result)) {
+        key_data_free(key_data);
+        return NULL;
+    }
+    return key_data;
+}

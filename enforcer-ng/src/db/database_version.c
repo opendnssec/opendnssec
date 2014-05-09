@@ -593,3 +593,24 @@ const database_version_t* database_version_list_next(database_version_list_t* da
     }
     return database_version_list->database_version;
 }
+
+database_version_t* database_version_list_get_next(database_version_list_t* database_version_list) {
+    const db_result_t* result;
+    database_version_t* database_version;
+
+    if (!database_version_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(database_version_list->result_list))) {
+        return NULL;
+    }
+    if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+        return NULL;
+    }
+    if (database_version_from_result(database_version_list->database_version, result)) {
+        database_version_free(database_version);
+        return NULL;
+    }
+    return database_version;
+}

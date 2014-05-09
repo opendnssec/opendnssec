@@ -1212,3 +1212,24 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {
     }
     return key_state_list->key_state;
 }
+
+key_state_t* key_state_list_get_next(key_state_list_t* key_state_list) {
+    const db_result_t* result;
+    key_state_t* key_state;
+
+    if (!key_state_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(key_state_list->result_list))) {
+        return NULL;
+    }
+    if (!(key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+        return NULL;
+    }
+    if (key_state_from_result(key_state_list->key_state, result)) {
+        key_state_free(key_state);
+        return NULL;
+    }
+    return key_state;
+}

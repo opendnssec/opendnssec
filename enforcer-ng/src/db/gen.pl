@@ -549,7 +549,7 @@ int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_t* ', $name, '
     }
 }
 print HEADER '/**
- * Get the first ', $tname, ' object in a ', $tname, ' object list. This will reset the position of the list.
+ * DEPRECATED (use ', $name, '_list_next) Get the first ', $tname, ' object in a ', $tname, ' object list.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \return a ', $name, '_t pointer or NULL on error or if there are no
  * ', $tname, ' objects in the ', $tname, ' object list.
@@ -558,11 +558,23 @@ const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list
 
 /**
  * Get the next ', $tname, ' object in a ', $tname, ' object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \return a ', $name, '_t pointer or NULL on error or if there are no more
  * ', $tname, ' objects in the ', $tname, ' object list.
  */
 const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list);
+
+/**
+ * Get the next ', $tname, ' object in a ', $tname, ' object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return a ', $name, '_t pointer or NULL on error or if there are no more
+ * ', $tname, ' objects in the ', $tname, ' object list.
+ */
+', $name, '_t* ', $name, '_list_get_next(', $name, '_list_t* ', $name, '_list);
 
 #ifdef __cplusplus
 }
@@ -1963,6 +1975,27 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
         return NULL;
     }
     return ', $name, '_list->', $name, ';
+}
+
+', $name, '_t* ', $name, '_list_get_next(', $name, '_list_t* ', $name, '_list) {
+    const db_result_t* result;
+    ', $name, '_t* ', $name, ';
+
+    if (!', $name, '_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(', $name, '_list->result_list))) {
+        return NULL;
+    }
+    if (!(', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
+        return NULL;
+    }
+    if (', $name, '_from_result(', $name, '_list->', $name, ', result)) {
+        ', $name, '_free(', $name, ');
+        return NULL;
+    }
+    return ', $name, ';
 }
 ';
 close(SOURCE);

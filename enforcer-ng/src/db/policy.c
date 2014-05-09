@@ -3322,3 +3322,24 @@ const policy_t* policy_list_next(policy_list_t* policy_list) {
     }
     return policy_list->policy;
 }
+
+policy_t* policy_list_get_next(policy_list_t* policy_list) {
+    const db_result_t* result;
+    policy_t* policy;
+
+    if (!policy_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(policy_list->result_list))) {
+        return NULL;
+    }
+    if (!(policy = policy_new(db_object_connection(policy_list->dbo)))) {
+        return NULL;
+    }
+    if (policy_from_result(policy_list->policy, result)) {
+        policy_free(policy);
+        return NULL;
+    }
+    return policy;
+}

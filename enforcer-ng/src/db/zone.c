@@ -2483,3 +2483,24 @@ const zone_t* zone_list_next(zone_list_t* zone_list) {
     }
     return zone_list->zone;
 }
+
+zone_t* zone_list_get_next(zone_list_t* zone_list) {
+    const db_result_t* result;
+    zone_t* zone;
+
+    if (!zone_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_next(zone_list->result_list))) {
+        return NULL;
+    }
+    if (!(zone = zone_new(db_object_connection(zone_list->dbo)))) {
+        return NULL;
+    }
+    if (zone_from_result(zone_list->zone, result)) {
+        zone_free(zone);
+        return NULL;
+    }
+    return zone;
+}
