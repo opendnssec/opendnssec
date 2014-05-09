@@ -1015,3 +1015,26 @@ int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* update
 
     return __xmlNode2policy(policy, policy_node, updated);
 }
+
+zone_list_t* policy_get_zones(const policy_t* policy) {
+    zone_list_t* zone_list;
+
+    if (!policy) {
+        return NULL;
+    }
+    if (!policy->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(policy->id)) {
+        return NULL;
+    }
+
+    if (!(zone_list = zone_list_new(db_object_connection(policy->dbo)))
+        || zone_list_get_by_policy_id(zone_list, policy->id))
+    {
+        zone_list_free(zone_list);
+        return NULL;
+    }
+
+    return zone_list;
+}

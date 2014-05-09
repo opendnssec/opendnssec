@@ -32,6 +32,8 @@
 
 #include <libxml/tree.h>
 
+#include "zone.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,6 +55,13 @@ int policy_create_from_xml(policy_t* policy, xmlNodePtr policy_node);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* updated);
+
+/**
+ * Get the zones for a policy.
+ * \param[in] policy a policy_t object.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* policy_get_zones(const policy_t* policy);
 
 #ifdef __cplusplus
 }
