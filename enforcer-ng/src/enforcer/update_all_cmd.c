@@ -43,7 +43,8 @@
 
 static const char *module_str = "update_all_cmd";
 
-void usage(int sockfd)
+static void
+usage(int sockfd)
 {
 	client_printf(sockfd,
 		"update all             Perform update kasp, zonelist and repositorylist.\n"
