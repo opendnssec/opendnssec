@@ -85,22 +85,6 @@ int key_data_is_ksk(const key_data_t* key_data);
  */
 int key_data_is_zsk(const key_data_t* key_data);
 
-/**
- * Get key data objects from the database for the ds commands. These
- * are filtered by `zone_id`, `role`, `ds_at_parent`, `locator`
- * (if locator != NULL), and `keytag` (if keytag < 0).
- * 
- * \param[in] key_data_list initialized key data list.
- * \param[in] zone_id id of zone in database.
- * \param[in] ds_at_parent current DS state to filter on.
- * \param[in] locator to filter on, may be NULL to ignore.
- * \param[in] keytag to filter on, may be negative to ignore.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_data_list_get_for_ds(key_data_list_t* key_data_list,
-    const db_value_t* zone_id, key_data_ds_at_parent_t ds_at_parent,
-    const char* locator, int keytag);
-
 #ifdef __cplusplus
 }
 #endif
