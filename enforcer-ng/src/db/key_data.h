@@ -81,7 +81,6 @@ struct key_data {
     db_value_t rev;
     db_value_t zone_id;
     db_value_t hsm_key_id;
-    char* locator;
     unsigned int algorithm;
     unsigned int inception;
     key_data_role_t role;
@@ -182,13 +181,6 @@ const db_value_t* key_data_hsm_key_id(const key_data_t* key_data);
  * \return a hsm_key_t pointer or NULL on error or if no object could be found.
  */
 hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data);
-
-/**
- * Get the locator of a key data object.
- * \param[in] key_data a key_data_t pointer.
- * \return a character pointer or NULL on error or if no locator has been set.
- */
-const char* key_data_locator(const key_data_t* key_data);
 
 /**
  * Get the algorithm of a key data object. Undefined behavior if `key_data` is NULL.
@@ -296,14 +288,6 @@ int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_data_set_hsm_key_id(key_data_t* key_data, const db_value_t* hsm_key_id);
-
-/**
- * Set the locator of a key data object.
- * \param[in] key_data a key_data_t pointer.
- * \param[in] locator_text a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_data_set_locator(key_data_t* key_data, const char* locator_text);
 
 /**
  * Set the algorithm of a key data object.
@@ -430,17 +414,6 @@ db_clause_t* key_data_zone_id_clause(db_clause_list_t* clause_list, const db_val
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_value_t* hsm_key_id);
-
-/**
- * Create a clause for locator of a key data object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] locator_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* key_data_locator_clause(db_clause_list_t* clause_list, const char* locator_text);
 
 /**
  * Create a clause for algorithm of a key data object and add it to a database clause list.

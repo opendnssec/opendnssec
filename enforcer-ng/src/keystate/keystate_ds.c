@@ -37,6 +37,7 @@
 #include "shared/duration.h"
 #include "db/key_data.h"
 #include "db/zone.h"
+#include "db/hsm_key.h"
 
 #include "keystate/keystate_ds_gone_cmd.h"
 
@@ -51,7 +52,8 @@ ds_list_keys(db_connection_t *dbconn, int sockfd,
 
 	key_data_list_t *key_list;
 	const key_data_t *key;
-	zone_t *zone;
+	zone_t *zone = NULL;
+	hsm_key_t* hsmkey = NULL;
     db_clause_list_t* clause_list;
 	db_clause_t* clause;
 
@@ -82,17 +84,15 @@ ds_list_keys(db_connection_t *dbconn, int sockfd,
 	for (key = key_data_list_next(key_list); key;
 		key = key_data_list_next(key_list))
 	{
-	    /* TODO: locator cant be NULL */
-		if (!key_data_locator(key)) continue; /* placeholder key */
-
-		if ((zone = key_data_get_zone(key))) {
-			client_printf(sockfd, fmtl, zone_name(zone),
-				key_data_role_text(key), key_data_keytag(key),
-				key_data_locator(key)
-			);
-			zone_free(zone);
-		}
-		/* TODO: Error if unable to get zone? */
+	    zone = key_data_get_zone(key);
+	    hsmkey = key_data_get_hsm_key(key);
+        client_printf(sockfd, fmtl,
+            (zone ? zone_name(zone) : "NOT_FOUND"),
+            key_data_role_text(key), key_data_keytag(key),
+            (hsmkey ? hsm_key_locator(hsmkey) : "NOT_FOUND")
+        );
+        zone_free(zone);
+        hsm_key_free(hsmkey);
 	}
 	key_data_list_free(key_list);
 	return 0;
@@ -100,7 +100,7 @@ ds_list_keys(db_connection_t *dbconn, int sockfd,
 
 static int
 push_clauses(db_clause_list_t *clause_list, zone_t *zone,
-	key_data_ds_at_parent_t state_from, const char *id, int keytag)
+	key_data_ds_at_parent_t state_from, const hsm_key_t* hsmkey, int keytag)
 {
 	db_clause_t* clause;
 
@@ -112,7 +112,7 @@ push_clauses(db_clause_list_t *clause_list, zone_t *zone,
 	if (!key_data_ds_at_parent_clause(clause_list, state_from))
 		return 1;
 	/* filter in id and or keytag conditionally. */
-	if (id && !key_data_locator_clause(clause_list, id))
+	if (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey)))
 		return 1;
 	if (keytag < 0 || !key_data_keytag_clause(clause_list, keytag))
 	    return 1;
@@ -121,7 +121,7 @@ push_clauses(db_clause_list_t *clause_list, zone_t *zone,
 
 static int
 change_keys_from_to(db_connection_t *dbconn, int sockfd,
-	const char *zonename, const char *id, int keytag,
+	const char *zonename, const hsm_key_t* hsmkey, int keytag,
 	key_data_ds_at_parent_t state_from, key_data_ds_at_parent_t state_to)
 {
 	key_data_list_t *key_list = NULL;
@@ -133,7 +133,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	if (!(key_list = key_data_list_new(dbconn)) ||
 	    !(clause_list = db_clause_list_new()) ||
 		!(zone = zone_new_get_by_name(dbconn, zonename)) ||
-		push_clauses(clause_list, zone, state_from, id, keytag) ||
+		push_clauses(clause_list, zone, state_from, hsmkey, keytag) ||
 		key_data_list_get_by_clauses(key_list, clause_list))
 	{
 		key_data_list_free(key_list);
@@ -224,6 +224,8 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 {
 	const char *zone, *cka_id;
 	int keytag;
+	hsm_key_t* hsmkey = NULL;
+	int ret;
 
 	if (get_args(cmd, n, &zone, &cka_id, &keytag)) {
 		client_printf(sockfd, "Error parsing arguments\n", keytag);
@@ -243,6 +245,14 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 		return -1;
 	}
 	
-	return change_keys_from_to(dbconn, sockfd, zone, cka_id, keytag,
+	if (cka_id) {
+	    if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, cka_id))) {
+	        client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
+	    }
+	}
+
+	ret = change_keys_from_to(dbconn, sockfd, zone, hsmkey, keytag,
 		state_from, state_to);
+	hsm_key_free(hsmkey);
+	return ret;
 }

@@ -69,6 +69,7 @@ regress-db: test
 if USE_SQLITE
 	rm -f test.db
 	sqlite3 test.db < $(srcdir)/test.sqlite
+	sqlite3 test.db < $(srcdir)/../schema.sqlite
 endif
 if USE_COUCHDB
 	curl -X DELETE http://127.0.0.1:5984/opendnssec

@@ -116,17 +116,6 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "locator")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        db_object_free(object);
-        return NULL;
-    }
-
-    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "algorithm")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -292,9 +281,6 @@ void key_data_free(key_data_t* key_data) {
         db_value_reset(&(key_data->rev));
         db_value_reset(&(key_data->zone_id));
         db_value_reset(&(key_data->hsm_key_id));
-        if (key_data->locator) {
-            free(key_data->locator);
-        }
         if (key_data->key_state_ds) {
             key_state_free(key_data->key_state_ds);
         }
@@ -317,10 +303,6 @@ void key_data_reset(key_data_t* key_data) {
         db_value_reset(&(key_data->rev));
         db_value_reset(&(key_data->zone_id));
         db_value_reset(&(key_data->hsm_key_id));
-        if (key_data->locator) {
-            free(key_data->locator);
-        }
-        key_data->locator = NULL;
         key_data->algorithm = 0;
         key_data->inception = 0;
         key_data->role = KEY_DATA_ROLE_INVALID;
@@ -352,7 +334,6 @@ void key_data_reset(key_data_t* key_data) {
 }
 
 int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
-    char* locator_text = NULL;
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
@@ -360,39 +341,18 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (key_data_copy->locator) {
-        if (!(locator_text = strdup(key_data_copy->locator))) {
-            return DB_ERROR_UNKNOWN;
-        }
-    }
     if (db_value_copy(&(key_data->id), &(key_data_copy->id))) {
-        if (locator_text) {
-            free(locator_text);
-        }
         return DB_ERROR_UNKNOWN;
     }
     if (db_value_copy(&(key_data->rev), &(key_data_copy->rev))) {
-        if (locator_text) {
-            free(locator_text);
-        }
         return DB_ERROR_UNKNOWN;
     }
     if (db_value_copy(&(key_data->zone_id), &(key_data_copy->zone_id))) {
-        if (locator_text) {
-            free(locator_text);
-        }
         return DB_ERROR_UNKNOWN;
     }
     if (db_value_copy(&(key_data->hsm_key_id), &(key_data_copy->hsm_key_id))) {
-        if (locator_text) {
-            free(locator_text);
-        }
         return DB_ERROR_UNKNOWN;
     }
-    if (key_data->locator) {
-        free(key_data->locator);
-    }
-    key_data->locator = locator_text;
     key_data->algorithm = key_data_copy->algorithm;
     key_data->inception = key_data_copy->inception;
     key_data->role = key_data_copy->role;
@@ -430,20 +390,6 @@ int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b) {
     db_value_cmp(&(key_data_a->hsm_key_id), &(key_data_b->hsm_key_id), &ret);
     if (ret) {
         return ret;
-    }
-
-    if (key_data_a->locator && key_data_b->locator) {
-        if ((ret = strcmp(key_data_a->locator, key_data_b->locator))) {
-            return ret;
-        }
-    }
-    else {
-        if (!key_data_a->locator && key_data_b->locator) {
-            return -1;
-        }
-        if (key_data_a->locator && !key_data_b->locator) {
-            return -1;
-        }
     }
 
     if (key_data_a->algorithm != key_data_b->algorithm) {
@@ -508,28 +454,23 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     db_value_reset(&(key_data->rev));
     db_value_reset(&(key_data->zone_id));
     db_value_reset(&(key_data->hsm_key_id));
-    if (key_data->locator) {
-        free(key_data->locator);
-    }
-    key_data->locator = NULL;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 16
+        || db_value_set_size(value_set) != 15
         || db_value_copy(&(key_data->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(key_data->rev), db_value_set_at(value_set, 1))
         || db_value_copy(&(key_data->zone_id), db_value_set_at(value_set, 2))
         || db_value_copy(&(key_data->hsm_key_id), db_value_set_at(value_set, 3))
-        || db_value_to_text(db_value_set_at(value_set, 4), &(key_data->locator))
-        || db_value_to_uint32(db_value_set_at(value_set, 5), &(key_data->algorithm))
-        || db_value_to_uint32(db_value_set_at(value_set, 6), &(key_data->inception))
-        || db_value_to_enum_value(db_value_set_at(value_set, 7), &role, key_data_enum_set_role)
-        || db_value_to_uint32(db_value_set_at(value_set, 8), &(key_data->introducing))
-        || db_value_to_uint32(db_value_set_at(value_set, 9), &(key_data->should_revoke))
-        || db_value_to_uint32(db_value_set_at(value_set, 10), &(key_data->standby))
-        || db_value_to_uint32(db_value_set_at(value_set, 11), &(key_data->active_zsk))
-        || db_value_to_uint32(db_value_set_at(value_set, 12), &(key_data->publish))
-        || db_value_to_uint32(db_value_set_at(value_set, 13), &(key_data->active_ksk))
-        || db_value_to_enum_value(db_value_set_at(value_set, 14), &ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_to_uint32(db_value_set_at(value_set, 15), &(key_data->keytag)))
+        || db_value_to_uint32(db_value_set_at(value_set, 4), &(key_data->algorithm))
+        || db_value_to_uint32(db_value_set_at(value_set, 5), &(key_data->inception))
+        || db_value_to_enum_value(db_value_set_at(value_set, 6), &role, key_data_enum_set_role)
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(key_data->introducing))
+        || db_value_to_uint32(db_value_set_at(value_set, 8), &(key_data->should_revoke))
+        || db_value_to_uint32(db_value_set_at(value_set, 9), &(key_data->standby))
+        || db_value_to_uint32(db_value_set_at(value_set, 10), &(key_data->active_zsk))
+        || db_value_to_uint32(db_value_set_at(value_set, 11), &(key_data->publish))
+        || db_value_to_uint32(db_value_set_at(value_set, 12), &(key_data->active_ksk))
+        || db_value_to_enum_value(db_value_set_at(value_set, 13), &ds_at_parent, key_data_enum_set_ds_at_parent)
+        || db_value_to_uint32(db_value_set_at(value_set, 14), &(key_data->keytag)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -642,14 +583,6 @@ hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data) {
     }
 
     return hsm_key_id;
-}
-
-const char* key_data_locator(const key_data_t* key_data) {
-    if (!key_data) {
-        return NULL;
-    }
-
-    return key_data->locator;
 }
 
 unsigned int key_data_algorithm(const key_data_t* key_data) {
@@ -806,28 +739,6 @@ int key_data_set_hsm_key_id(key_data_t* key_data, const db_value_t* hsm_key_id) 
     if (db_value_copy(&(key_data->hsm_key_id), hsm_key_id)) {
         return DB_ERROR_UNKNOWN;
     }
-
-    return DB_OK;
-}
-
-int key_data_set_locator(key_data_t* key_data, const char* locator_text) {
-    char* new_locator;
-
-    if (!key_data) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!locator_text) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(new_locator = strdup(locator_text))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_data->locator) {
-        free(key_data->locator);
-    }
-    key_data->locator = new_locator;
 
     return DB_OK;
 }
@@ -1021,30 +932,6 @@ db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_copy(db_clause_get_value(clause), hsm_key_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_locator_clause(db_clause_list_t* clause_list, const char* locator_text) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!locator_text) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "locator")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_text(db_clause_get_value(clause), locator_text)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1309,9 +1196,6 @@ int key_data_create(key_data_t* key_data) {
     if (db_value_not_empty(&(key_data->hsm_key_id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_data->locator) {
-        return DB_ERROR_UNKNOWN;
-    }
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
@@ -1331,16 +1215,6 @@ int key_data_create(key_data_t* key_data) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "hsmKeyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "locator")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1460,25 +1334,24 @@ int key_data_create(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(14))) {
+    if (!(value_set = db_value_set_new(13))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
     if (db_value_copy(db_value_set_get(value_set, 0), &(key_data->zone_id))
         || db_value_copy(db_value_set_get(value_set, 1), &(key_data->hsm_key_id))
-        || db_value_from_text(db_value_set_get(value_set, 2), key_data->locator)
-        || db_value_from_uint32(db_value_set_get(value_set, 3), key_data->algorithm)
-        || db_value_from_uint32(db_value_set_get(value_set, 4), key_data->inception)
-        || db_value_from_enum_value(db_value_set_get(value_set, 5), key_data->role, key_data_enum_set_role)
-        || db_value_from_uint32(db_value_set_get(value_set, 6), key_data->introducing)
-        || db_value_from_uint32(db_value_set_get(value_set, 7), key_data->should_revoke)
-        || db_value_from_uint32(db_value_set_get(value_set, 8), key_data->standby)
-        || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->active_zsk)
-        || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->publish)
-        || db_value_from_uint32(db_value_set_get(value_set, 11), key_data->active_ksk)
-        || db_value_from_enum_value(db_value_set_get(value_set, 12), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->keytag))
+        || db_value_from_uint32(db_value_set_get(value_set, 2), key_data->algorithm)
+        || db_value_from_uint32(db_value_set_get(value_set, 3), key_data->inception)
+        || db_value_from_enum_value(db_value_set_get(value_set, 4), key_data->role, key_data_enum_set_role)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), key_data->introducing)
+        || db_value_from_uint32(db_value_set_get(value_set, 6), key_data->should_revoke)
+        || db_value_from_uint32(db_value_set_get(value_set, 7), key_data->standby)
+        || db_value_from_uint32(db_value_set_get(value_set, 8), key_data->active_zsk)
+        || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->publish)
+        || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_ksk)
+        || db_value_from_enum_value(db_value_set_get(value_set, 11), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
+        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -1593,9 +1466,6 @@ int key_data_update(key_data_t* key_data) {
     if (db_value_not_empty(&(key_data->hsm_key_id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!key_data->locator) {
-        return DB_ERROR_UNKNOWN;
-    }
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
@@ -1615,16 +1485,6 @@ int key_data_update(key_data_t* key_data) {
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "hsmKeyId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "locator")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1744,25 +1604,24 @@ int key_data_update(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(14))) {
+    if (!(value_set = db_value_set_new(13))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
     if (db_value_copy(db_value_set_get(value_set, 0), &(key_data->zone_id))
         || db_value_copy(db_value_set_get(value_set, 1), &(key_data->hsm_key_id))
-        || db_value_from_text(db_value_set_get(value_set, 2), key_data->locator)
-        || db_value_from_uint32(db_value_set_get(value_set, 3), key_data->algorithm)
-        || db_value_from_uint32(db_value_set_get(value_set, 4), key_data->inception)
-        || db_value_from_enum_value(db_value_set_get(value_set, 5), key_data->role, key_data_enum_set_role)
-        || db_value_from_uint32(db_value_set_get(value_set, 6), key_data->introducing)
-        || db_value_from_uint32(db_value_set_get(value_set, 7), key_data->should_revoke)
-        || db_value_from_uint32(db_value_set_get(value_set, 8), key_data->standby)
-        || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->active_zsk)
-        || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->publish)
-        || db_value_from_uint32(db_value_set_get(value_set, 11), key_data->active_ksk)
-        || db_value_from_enum_value(db_value_set_get(value_set, 12), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->keytag))
+        || db_value_from_uint32(db_value_set_get(value_set, 2), key_data->algorithm)
+        || db_value_from_uint32(db_value_set_get(value_set, 3), key_data->inception)
+        || db_value_from_enum_value(db_value_set_get(value_set, 4), key_data->role, key_data_enum_set_role)
+        || db_value_from_uint32(db_value_set_get(value_set, 5), key_data->introducing)
+        || db_value_from_uint32(db_value_set_get(value_set, 6), key_data->should_revoke)
+        || db_value_from_uint32(db_value_set_get(value_set, 7), key_data->standby)
+        || db_value_from_uint32(db_value_set_get(value_set, 8), key_data->active_zsk)
+        || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->publish)
+        || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_ksk)
+        || db_value_from_enum_value(db_value_set_get(value_set, 11), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
+        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

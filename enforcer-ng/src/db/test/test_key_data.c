@@ -207,7 +207,6 @@ static void test_key_data_set(void) {
     CU_ASSERT(!db_value_from_int32(&hsm_key_id, 1));
     CU_ASSERT(!key_data_set_zone_id(object, &zone_id));
     CU_ASSERT(!key_data_set_hsm_key_id(object, &hsm_key_id));
-    CU_ASSERT(!key_data_set_locator(object, "locator 1"));
     CU_ASSERT(!key_data_set_algorithm(object, 1));
     CU_ASSERT(!key_data_set_inception(object, 1));
     CU_ASSERT(!key_data_set_role(object, KEY_DATA_ROLE_KSK));
@@ -249,8 +248,6 @@ static void test_key_data_get(void) {
     CU_ASSERT(!ret);
     CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
     CU_ASSERT(!ret);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_locator(object));
-    CU_ASSERT(!strcmp(key_data_locator(object), "locator 1"));
     CU_ASSERT(key_data_algorithm(object) == 1);
     CU_ASSERT(key_data_inception(object) == 1);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_CSK);
@@ -289,16 +286,6 @@ static void test_key_data_clauses(void) {
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(key_data_hsm_key_id_clause(clause_list, key_data_hsm_key_id(object)));
-    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(key_data_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_data_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_data_list_next(new_list));
-    key_data_list_free(new_list);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_data_locator_clause(clause_list, key_data_locator(object)));
     CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(key_data_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = key_data_list_new_get_by_clauses(connection, clause_list)));
@@ -455,8 +442,6 @@ static void test_key_data_verify(void) {
     CU_ASSERT(!ret);
     CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
     CU_ASSERT(!ret);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_locator(object));
-    CU_ASSERT(!strcmp(key_data_locator(object), "locator 1"));
     CU_ASSERT(key_data_algorithm(object) == 1);
     CU_ASSERT(key_data_inception(object) == 1);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_CSK);
@@ -483,7 +468,6 @@ static void test_key_data_change(void) {
     CU_ASSERT(!db_value_from_int32(&hsm_key_id, 2));
     CU_ASSERT(!key_data_set_zone_id(object, &zone_id));
     CU_ASSERT(!key_data_set_hsm_key_id(object, &hsm_key_id));
-    CU_ASSERT(!key_data_set_locator(object, "locator 2"));
     CU_ASSERT(!key_data_set_algorithm(object, 2));
     CU_ASSERT(!key_data_set_inception(object, 2));
     CU_ASSERT(!key_data_set_role(object, KEY_DATA_ROLE_KSK));
@@ -519,8 +503,6 @@ static void test_key_data_verify2(void) {
     CU_ASSERT(!ret);
     CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
     CU_ASSERT(!ret);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_locator(object));
-    CU_ASSERT(!strcmp(key_data_locator(object), "locator 2"));
     CU_ASSERT(key_data_algorithm(object) == 2);
     CU_ASSERT(key_data_inception(object) == 2);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_KSK);

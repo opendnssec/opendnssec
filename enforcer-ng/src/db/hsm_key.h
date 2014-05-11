@@ -80,7 +80,6 @@ struct hsm_key {
     char* locator;
     unsigned int candidate_for_sharing;
     unsigned int bits;
-    char* policy;
     unsigned int algorithm;
     hsm_key_role_t role;
     unsigned int inception;
@@ -178,13 +177,6 @@ unsigned int hsm_key_candidate_for_sharing(const hsm_key_t* hsm_key);
 unsigned int hsm_key_bits(const hsm_key_t* hsm_key);
 
 /**
- * Get the policy of a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return a character pointer or NULL on error or if no policy has been set.
- */
-const char* hsm_key_policy(const hsm_key_t* hsm_key);
-
-/**
  * Get the algorithm of a hsm key object. Undefined behavior if `hsm_key` is NULL.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \return an unsigned integer.
@@ -278,14 +270,6 @@ int hsm_key_set_candidate_for_sharing(hsm_key_t* hsm_key, unsigned int candidate
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_set_bits(hsm_key_t* hsm_key, unsigned int bits);
-
-/**
- * Set the policy of a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \param[in] policy_text a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_set_policy(hsm_key_t* hsm_key, const char* policy_text);
 
 /**
  * Set the algorithm of a hsm key object.
@@ -402,17 +386,6 @@ db_clause_t* hsm_key_candidate_for_sharing_clause(db_clause_list_t* clause_list,
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* hsm_key_bits_clause(db_clause_list_t* clause_list, unsigned int bits);
-
-/**
- * Create a clause for policy of a hsm key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] policy_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* hsm_key_policy_clause(db_clause_list_t* clause_list, const char* policy_text);
 
 /**
  * Create a clause for algorithm of a hsm key object and add it to a database clause list.
