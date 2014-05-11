@@ -52,38 +52,49 @@ ds_list_keys(db_connection_t *dbconn, int sockfd,
 	key_data_list_t *key_list;
 	const key_data_t *key;
 	zone_t *zone;
+    db_clause_list_t* clause_list;
+	db_clause_t* clause;
 
-	if (!(key_list = key_data_list_new(dbconn)))
-		return 10;
-	if (key_data_list_get(key_list)) {
-		key_data_list_free(key_list);
-		return 11;
+	if (!(key_list = key_data_list_new(dbconn))
+	    || !(clause_list = db_clause_list_new()))
+	{
+	    key_data_list_free(key_list);
+        return 10;
 	}
-	if (!(zone = zone_new(dbconn))) {
+	if (!(clause = key_data_role_clause(clause_list, KEY_DATA_ROLE_ZSK))
+	    || db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL)
+	    || !(clause = key_data_ds_at_parent_clause(clause_list, state))
+        || db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL))
+	{
+        key_data_list_free(key_list);
+        db_clause_list_free(clause_list);
+        return 11;
+	}
+	if (key_data_list_get_by_clauses(key_list, clause_list)) {
 		key_data_list_free(key_list);
+        db_clause_list_free(clause_list);
 		return 12;
 	}
+    db_clause_list_free(clause_list);
 
 	client_printf(sockfd, fmth, "Zone:", "Key role:", "Keytag:", "Id:");
 
-	/* We should consider filtering this in the DB. */
-	for (key = key_data_list_begin(key_list); key;
+	for (key = key_data_list_next(key_list); key;
 		key = key_data_list_next(key_list))
 	{
-		if (!key_data_is_ksk(key)) continue; /* skip ZSK */
+	    /* TODO: locator cant be NULL */
 		if (!key_data_locator(key)) continue; /* placeholder key */
-		if (key_data_ds_at_parent(key) != state) continue;
 
-		if(!zone_get_by_id(zone, key_data_zone_id(key))) {
+		if ((zone = key_data_get_zone(key))) {
 			client_printf(sockfd, fmtl, zone_name(zone),
 				key_data_role_text(key), key_data_keytag(key),
 				key_data_locator(key)
 			);
-			zone_reset(zone);
+			zone_free(zone);
 		}
+		/* TODO: Error if unable to get zone? */
 	}
 	key_data_list_free(key_list);
-	zone_free(zone);
 	return 0;
 }
 
@@ -98,12 +109,14 @@ push_clauses(db_clause_list_t *clause_list, zone_t *zone,
 	if (!(clause = key_data_role_clause(clause_list, KEY_DATA_ROLE_ZSK)) ||
 			db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL))
 		return 1;
-	if (key_data_ds_at_parent_clause(clause_list, state_from))
+	if (!key_data_ds_at_parent_clause(clause_list, state_from))
 		return 1;
 	/* filter in id and or keytag conditionally. */
 	if (id && !key_data_locator_clause(clause_list, id))
 		return 1;
-	return (keytag >= 0 && !key_data_keytag_clause(clause_list, keytag));
+	if (keytag < 0 || !key_data_keytag_clause(clause_list, keytag))
+	    return 1;
+	return 0;
 }
 
 static int
@@ -112,44 +125,40 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	key_data_ds_at_parent_t state_from, key_data_ds_at_parent_t state_to)
 {
 	key_data_list_t *key_list = NULL;
-	const key_data_t *key;
-	key_data_t *rw_key = NULL;
+	key_data_t *key;
 	zone_t *zone = NULL;
 	int status = 0, key_match = 0, key_mod = 0;
 	db_clause_list_t* clause_list = NULL;
 
-	key_list = key_data_list_new(dbconn);
-	rw_key = key_data_new(dbconn);
-	zone = zone_new(dbconn);
-	clause_list = db_clause_list_new();
-	if (!key_list || !rw_key || !zone || !clause_list ||
-		zone_get_by_name(zone, zonename) ||
+	if (!(key_list = key_data_list_new(dbconn)) ||
+	    !(clause_list = db_clause_list_new()) ||
+		!(zone = zone_new_get_by_name(dbconn, zonename)) ||
 		push_clauses(clause_list, zone, state_from, id, keytag) ||
 		key_data_list_get_by_clauses(key_list, clause_list))
 	{
 		key_data_list_free(key_list);
-		key_data_free(rw_key);
-		zone_free(zone);
 		db_clause_list_free(clause_list);
+        zone_free(zone);
 		ods_log_error("[%s] Error fetching from database", module_str);
 		return 10;
 	}
+    db_clause_list_free(clause_list);
 
-	for (key = key_data_list_begin(key_list); key;
-		key = key_data_list_next(key_list))
+	for (key = key_data_list_get_next(key_list); key;
+		key = key_data_list_get_next(key_list))
 	{
 		key_match++;
-		if (key_data_copy(rw_key, key) ||
-			key_data_set_ds_at_parent(rw_key, state_to) ||
-			key_data_update(rw_key))
+		if (key_data_set_ds_at_parent(key, state_to) ||
+			key_data_update(key))
 		{
+		    key_data_free(key);
 			break;
 		}
 		key_mod++;
-		key_data_reset(rw_key);
+		key_data_free(key);
 	}
+    key_data_list_free(key_list);
 
-			
 	client_printf(sockfd, "%d KSK matches found.\n", key_match);
 	if (!key_match)
 		status = 11;
@@ -159,17 +168,12 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 		status = 12;
 	}
 	client_printf(sockfd, "%d KSKs changed.\n", key_mod);
-	if (key_mod && (zone_set_next_change(zone, 0) || zone_update(zone)))
-	{
+	if (key_mod && (zone_set_next_change(zone, 0) || zone_update(zone))) {
 		ods_log_error("[%s] error updating zone in DB.", module_str);
 		status = 13;
 	}
 
-	key_data_list_free(key_list);
-	key_data_free(rw_key);
-	zone_free(zone);
-	db_clause_list_free(clause_list);
-
+    zone_free(zone);
 	return status;
 }
 
@@ -241,5 +245,4 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	
 	return change_keys_from_to(dbconn, sockfd, zone, cka_id, keytag,
 		state_from, state_to);
-
 }

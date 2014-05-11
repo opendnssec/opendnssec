@@ -70,19 +70,15 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const policy_t *policy;
 	(void)cmd; (void)n; (void)engine;
 
-	if (!(pol_list = policy_list_new(dbconn)))
+	if (!(pol_list = policy_list_new_get(dbconn)))
 		return 1;
-	if (policy_list_get(pol_list)) {
-		policy_list_free(pol_list);
-		return 1;
-	}
 
 	/* May want to keep this for compatibility?
 	 * client_printf(sockfd, "Database set to: %s\nPolicies:\n",
 		engine->config->datastore);*/
 	client_printf(sockfd, fmt, "Policy:", "Description:");
 
-	policy = policy_list_begin(pol_list);
+	policy = policy_list_next(pol_list);
 	while (policy) {
 		client_printf(sockfd, fmt, policy_name(policy),
 			policy_description(policy));

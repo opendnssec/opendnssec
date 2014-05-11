@@ -167,7 +167,7 @@ const db_value_t* key_data_zone_id(const key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a zone_t pointer or NULL on error or if no object could be found.
  */
-zone_t* key_data_get_zone_id(const key_data_t* key_data);
+zone_t* key_data_get_zone(const key_data_t* key_data);
 
 /**
  * Get the hsm_key_id of a key data object.
@@ -181,7 +181,7 @@ const db_value_t* key_data_hsm_key_id(const key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a hsm_key_t pointer or NULL on error or if no object could be found.
  */
-hsm_key_t* key_data_get_hsm_key_id(const key_data_t* key_data);
+hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data);
 
 /**
  * Get the locator of a key data object.
@@ -684,14 +684,6 @@ int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_val
  * \return a key_data_list_t pointer or NULL on error.
  */
 key_data_list_t* key_data_list_new_get_by_hsm_key_id(const db_connection_t* connection, const db_value_t* hsm_key_id);
-
-/**
- * DEPRECATED (use key_data_list_next) Get the first key data object in a key data object list.
- * \param[in] key_data_list a key_data_list_t pointer.
- * \return a key_data_t pointer or NULL on error or if there are no
- * key data objects in the key data object list.
- */
-const key_data_t* key_data_list_begin(key_data_list_t* key_data_list);
 
 /**
  * Get the next key data object in a key data object list.

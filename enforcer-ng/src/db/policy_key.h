@@ -143,7 +143,7 @@ const db_value_t* policy_key_policy_id(const policy_key_t* policy_key);
  * \param[in] policy_key a policy_key_t pointer.
  * \return a policy_t pointer or NULL on error or if no object could be found.
  */
-policy_t* policy_key_get_policy_id(const policy_key_t* policy_key);
+policy_t* policy_key_get_policy(const policy_key_t* policy_key);
 
 /**
  * Get the role of a policy key object.
@@ -518,14 +518,6 @@ int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const d
  * \return a policy_key_list_t pointer or NULL on error.
  */
 policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
-
-/**
- * DEPRECATED (use policy_key_list_next) Get the first policy key object in a policy key object list.
- * \param[in] policy_key_list a policy_key_list_t pointer.
- * \return a policy_key_t pointer or NULL on error or if there are no
- * policy key objects in the policy key object list.
- */
-const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list);
 
 /**
  * Get the next policy key object in a policy key object list.

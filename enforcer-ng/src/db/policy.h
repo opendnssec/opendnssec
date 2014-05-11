@@ -1102,14 +1102,6 @@ int policy_list_get_by_clauses(policy_list_t* policy_list, const db_clause_list_
 policy_list_t* policy_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
- * DEPRECATED (use policy_list_next) Get the first policy object in a policy object list.
- * \param[in] policy_list a policy_list_t pointer.
- * \return a policy_t pointer or NULL on error or if there are no
- * policy objects in the policy object list.
- */
-const policy_t* policy_list_begin(policy_list_t* policy_list);
-
-/**
  * Get the next policy object in a policy object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.

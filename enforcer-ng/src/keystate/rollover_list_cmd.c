@@ -84,7 +84,7 @@ static void print_zone(int sockfd, const char* fmt, const zone_t* zone) {
     const key_data_t *key;
 
     keylist = zone_get_keys(zone);
-    for (key = key_data_list_begin(keylist); key;
+    for (key = key_data_list_next(keylist); key;
         key = key_data_list_next(keylist))
     {
         char* tchange = map_keytime(zone, key);
@@ -148,7 +148,7 @@ perform_rollover_list(int sockfd, const char *listed_zone,
 	    zone_free(zone);
 	}
 	else {
-	    for (zone_walk = zone_list_begin(zonelist); zone_walk;
+	    for (zone_walk = zone_list_next(zonelist); zone_walk;
 	        zone_walk = zone_list_next(zonelist))
 	    {
 	        print_zone(sockfd, fmt, zone);

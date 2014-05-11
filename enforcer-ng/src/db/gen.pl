@@ -242,12 +242,14 @@ const db_value_t* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name
 
 ';
         if ($field->{foreign}) {
+            my $func_name = $field->{name};
+            $func_name =~ s/_id//o;
         print HEADER '/**
  * Get the ', $field->{name}, ' object related to a ', $tname, ' object.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
  * \return a ', $field->{foreign}, '_t pointer or NULL on error or if no object could be found.
  */
-', $field->{foreign}, '_t* ', $name, '_get_', $field->{name}, '(const ', $name, '_t* ', $name, ');
+', $field->{foreign}, '_t* ', $name, '_get_', $func_name, '(const ', $name, '_t* ', $name, ');
 
 ';
 
@@ -596,14 +598,6 @@ int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_t* ', $name, '
     }
 }
 print HEADER '/**
- * DEPRECATED (use ', $name, '_list_next) Get the first ', $tname, ' object in a ', $tname, ' object list.
- * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
- * \return a ', $name, '_t pointer or NULL on error or if there are no
- * ', $tname, ' objects in the ', $tname, ' object list.
- */
-const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list);
-
-/**
  * Get the next ', $tname, ' object in a ', $tname, ' object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.
@@ -1598,7 +1592,7 @@ print SOURCE 'int ', $name, '_get_by_', $field->{name}, '(', $name, '_t* ', $nam
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (', $name, '_from_result(', $name, ', result)) {
                 db_result_list_free(result_list);
@@ -1686,7 +1680,7 @@ print SOURCE '
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (', $name, '_from_result(', $name, ', result)) {
                 db_result_list_free(result_list);
@@ -2094,31 +2088,7 @@ print SOURCE 'int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_
 ';
     }
 }
-print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list) {
-    const db_result_t* result;
-
-    if (!', $name, '_list) {
-        return NULL;
-    }
-    if (!', $name, '_list->result_list) {
-        return NULL;
-    }
-
-    if (!(result = db_result_list_begin(', $name, '_list->result_list))) {
-        return NULL;
-    }
-    if (!', $name, '_list->', $name, ') {
-        if (!(', $name, '_list->', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
-            return NULL;
-        }
-    }
-    if (', $name, '_from_result(', $name, '_list->', $name, ', result)) {
-        return NULL;
-    }
-    return ', $name, '_list->', $name, ';
-}
-
-const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list) {
+print SOURCE 'const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list) {
     const db_result_t* result;
 
     if (!', $name, '_list) {

@@ -1528,7 +1528,7 @@ int key_data_get_by_id(key_data_t* key_data, const db_value_t* id) {
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (key_data_from_result(key_data, result)) {
                 db_result_list_free(result_list);
@@ -2089,30 +2089,6 @@ key_data_list_t* key_data_list_new_get_by_hsm_key_id(const db_connection_t* conn
     }
 
     return key_data_list;
-}
-
-const key_data_t* key_data_list_begin(key_data_list_t* key_data_list) {
-    const db_result_t* result;
-
-    if (!key_data_list) {
-        return NULL;
-    }
-    if (!key_data_list->result_list) {
-        return NULL;
-    }
-
-    if (!(result = db_result_list_begin(key_data_list->result_list))) {
-        return NULL;
-    }
-    if (!key_data_list->key_data) {
-        if (!(key_data_list->key_data = key_data_new(db_object_connection(key_data_list->dbo)))) {
-            return NULL;
-        }
-    }
-    if (key_data_from_result(key_data_list->key_data, result)) {
-        return NULL;
-    }
-    return key_data_list->key_data;
 }
 
 const key_data_t* key_data_list_next(key_data_list_t* key_data_list) {

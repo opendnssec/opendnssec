@@ -230,14 +230,6 @@ int database_version_list_get_by_clauses(database_version_list_t* database_versi
 database_version_list_t* database_version_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
- * DEPRECATED (use database_version_list_next) Get the first database version object in a database version object list.
- * \param[in] database_version_list a database_version_list_t pointer.
- * \return a database_version_t pointer or NULL on error or if there are no
- * database version objects in the database version object list.
- */
-const database_version_t* database_version_list_begin(database_version_list_t* database_version_list);
-
-/**
  * Get the next database version object in a database version object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.

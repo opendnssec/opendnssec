@@ -57,7 +57,7 @@ int key_data_get_key_states(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    key_state = key_state_list_begin(key_state_list);
+    key_state = key_state_list_next(key_state_list);
     while (key_state) {
         if (key_state_type(key_state) == KEY_STATE_TYPE_DS) {
             if (!(key_state_ds = key_state_new(db_object_connection(key_data->dbo)))

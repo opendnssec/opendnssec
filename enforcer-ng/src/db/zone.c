@@ -1920,7 +1920,7 @@ int zone_get_by_id(zone_t* zone, const db_value_t* id) {
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (zone_from_result(zone, result)) {
                 db_result_list_free(result_list);
@@ -1993,7 +1993,7 @@ int zone_get_by_name(zone_t* zone, const char* name) {
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (zone_from_result(zone, result)) {
                 db_result_list_free(result_list);
@@ -2540,30 +2540,6 @@ zone_list_t* zone_list_new_get_by_policy_id(const db_connection_t* connection, c
     }
 
     return zone_list;
-}
-
-const zone_t* zone_list_begin(zone_list_t* zone_list) {
-    const db_result_t* result;
-
-    if (!zone_list) {
-        return NULL;
-    }
-    if (!zone_list->result_list) {
-        return NULL;
-    }
-
-    if (!(result = db_result_list_begin(zone_list->result_list))) {
-        return NULL;
-    }
-    if (!zone_list->zone) {
-        if (!(zone_list->zone = zone_new(db_object_connection(zone_list->dbo)))) {
-            return NULL;
-        }
-    }
-    if (zone_from_result(zone_list->zone, result)) {
-        return NULL;
-    }
-    return zone_list->zone;
 }
 
 const zone_t* zone_list_next(zone_list_t* zone_list) {

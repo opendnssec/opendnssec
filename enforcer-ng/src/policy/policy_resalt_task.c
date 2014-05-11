@@ -100,71 +100,58 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	db_connection_t *dbconn)
 {
 	policy_list_t *pol_list;
-	const policy_t *ro_policy;
-	policy_t *rw_policy;
+	policy_t *policy;
 	time_t schedule_time = TIME_INF, now = time_now(), resalt_time;
 	char salt[255], salthex[511];
 	int saltlength;
+	db_clause_list_t* clause_list;
+	db_clause_t* clause;
 	(void) engine; (void) sockfd;
 
 #ifndef HAVE_ARC4RANDOM
 	srand(now);
 #endif
 
-	if (!(pol_list = policy_list_new(dbconn))) {
-		ods_log_error("[%s] retrying in 60 seconds", module_str);
-		return now + 60;
-	}
-	if (!(rw_policy = policy_new(dbconn))) {
-		policy_list_free(pol_list);
-		ods_log_error("[%s] retrying in 60 seconds", module_str);
-		return now + 60;
-	}
-	if (policy_list_get(pol_list)) {
-		policy_list_free(pol_list);
-		policy_free(rw_policy);
-		ods_log_error("[%s] retrying in 60 seconds", module_str);
-		return now + 60;
-	}
-	
-	for (ro_policy = policy_list_begin(pol_list); ro_policy;
-		ro_policy = policy_list_next(pol_list))
+	if (!(clause_list = db_clause_list_new())
+	    || (!(clause = policy_denial_type_clause(clause_list, POLICY_DENIAL_TYPE_NSEC3)))
+	    || db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL)
+	    || !(pol_list = policy_list_new_get_by_clauses(dbconn, clause_list)))
 	{
-		if (policy_denial_type(ro_policy) != POLICY_DENIAL_TYPE_NSEC3)
-			continue;
-		resalt_time = policy_denial_salt_last_change(ro_policy) +
-			policy_denial_resalt(ro_policy);
+	    db_clause_list_free(clause_list);
+		ods_log_error("[%s] retrying in 60 seconds", module_str);
+		return now + 60;
+	}
+    db_clause_list_free(clause_list);
+	
+	for (policy = policy_list_get_next(pol_list); policy;
+		policy_free(policy), policy = policy_list_get_next(pol_list))
+	{
+		resalt_time = policy_denial_salt_last_change(policy) +
+			policy_denial_resalt(policy);
 		if (now > resalt_time) {
-			saltlength = policy_denial_salt_length(ro_policy);
+			saltlength = policy_denial_salt_length(policy);
 			if (saltlength <= 0 || saltlength > 255) {
 				ods_log_error("[%s] policy %s has an invalid salt length. "
-					"Must be in range [0..255]", module_str, policy_name(ro_policy));
+					"Must be in range [0..255]", module_str, policy_name(policy));
 				continue; /* no need to schedule for this policy */
 			}
 			/* Yes, we need to resalt this policy */
-			if (policy_copy(rw_policy, ro_policy)) {
-				/* if db fails, bail */
-				ods_log_error("[%s] db error", module_str);
-				break;
-			}
 			generate_salt(salt, saltlength);
 			to_hex(salt, saltlength, salthex);
 
-			if(policy_set_denial_salt(rw_policy, salt) ||
-			   policy_set_denial_salt_last_change(rw_policy, now) ||
-			   policy_update(rw_policy))
+			if(policy_set_denial_salt(policy, salt) ||
+			   policy_set_denial_salt_last_change(policy, now) ||
+			   policy_update(policy))
 			{
 				ods_log_error("[%s] db error", module_str);
 				break;
 			}
-			policy_reset(rw_policy);
-			resalt_time = now + policy_denial_resalt(ro_policy);
+			resalt_time = now + policy_denial_resalt(policy);
 		}
 		if (resalt_time < schedule_time || schedule_time == TIME_INF)
 			schedule_time = resalt_time;
 	}
-	policy_list_free(pol_list);
-	policy_free(rw_policy);
+	policy_free(policy);
 	ods_log_debug("[%s] policies have been updated", module_str);
 	return schedule_time;
 }

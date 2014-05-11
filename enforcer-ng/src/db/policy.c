@@ -2668,7 +2668,7 @@ int policy_get_by_id(policy_t* policy, const db_value_t* id) {
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (policy_from_result(policy, result)) {
                 db_result_list_free(result_list);
@@ -2741,7 +2741,7 @@ int policy_get_by_name(policy_t* policy, const char* name) {
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (policy_from_result(policy, result)) {
                 db_result_list_free(result_list);
@@ -3356,30 +3356,6 @@ policy_list_t* policy_list_new_get_by_clauses(const db_connection_t* connection,
     }
 
     return policy_list;
-}
-
-const policy_t* policy_list_begin(policy_list_t* policy_list) {
-    const db_result_t* result;
-
-    if (!policy_list) {
-        return NULL;
-    }
-    if (!policy_list->result_list) {
-        return NULL;
-    }
-
-    if (!(result = db_result_list_begin(policy_list->result_list))) {
-        return NULL;
-    }
-    if (!policy_list->policy) {
-        if (!(policy_list->policy = policy_new(db_object_connection(policy_list->dbo)))) {
-            return NULL;
-        }
-    }
-    if (policy_from_result(policy_list->policy, result)) {
-        return NULL;
-    }
-    return policy_list->policy;
 }
 
 const policy_t* policy_list_next(policy_list_t* policy_list) {

@@ -143,7 +143,7 @@ const db_value_t* zone_policy_id(const zone_t* zone);
  * \param[in] zone a zone_t pointer.
  * \return a policy_t pointer or NULL on error or if no object could be found.
  */
-policy_t* zone_get_policy_id(const zone_t* zone);
+policy_t* zone_get_policy(const zone_t* zone);
 
 /**
  * Get the name of a zone object.
@@ -727,14 +727,6 @@ int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_
  * \return a zone_list_t pointer or NULL on error.
  */
 zone_list_t* zone_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
-
-/**
- * DEPRECATED (use zone_list_next) Get the first zone object in a zone object list.
- * \param[in] zone_list a zone_list_t pointer.
- * \return a zone_t pointer or NULL on error or if there are no
- * zone objects in the zone object list.
- */
-const zone_t* zone_list_begin(zone_list_t* zone_list);
 
 /**
  * Get the next zone object in a zone object list.

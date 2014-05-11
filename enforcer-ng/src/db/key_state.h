@@ -150,7 +150,7 @@ const db_value_t* key_state_key_data_id(const key_state_t* key_state);
  * \param[in] key_state a key_state_t pointer.
  * \return a key_data_t pointer or NULL on error or if no object could be found.
  */
-key_data_t* key_state_get_key_data_id(const key_state_t* key_state);
+key_data_t* key_state_get_key_data(const key_state_t* key_state);
 
 /**
  * Get the type of a key state object.
@@ -436,14 +436,6 @@ int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db
  * \return a key_state_list_t pointer or NULL on error.
  */
 key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* connection, const db_value_t* key_data_id);
-
-/**
- * DEPRECATED (use key_state_list_next) Get the first key state object in a key state object list.
- * \param[in] key_state_list a key_state_list_t pointer.
- * \return a key_state_t pointer or NULL on error or if there are no
- * key state objects in the key state object list.
- */
-const key_state_t* key_state_list_begin(key_state_list_t* key_state_list);
 
 /**
  * Get the next key state object in a key state object list.

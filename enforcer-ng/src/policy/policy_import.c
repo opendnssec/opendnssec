@@ -356,7 +356,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
                         continue;
                     }
 
-                    policy_key2 = policy_key_list_begin(policy_key_list);
+                    policy_key2 = policy_key_list_next(policy_key_list);
                     while (policy_key2) {
                         if (!(policy_key_db = calloc(1, sizeof(struct __policy_import_policy_key)))
                             || !(policy_key_db->policy_key = policy_key_new(dbconn))

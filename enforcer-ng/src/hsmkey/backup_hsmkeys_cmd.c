@@ -51,107 +51,94 @@ enum {
 };
 
 static int
-prepare(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
+hsmkeys_from_to_state(db_connection_t *dbconn, db_clause_list_t* clause_list,
+    hsm_key_backup_t from_state, hsm_key_backup_t to_state)
 {
-	const hsm_key_t *ro_hsmkey;
-	hsm_key_backup_t backup;
-	int keys_marked = 0;
+    hsm_key_list_t* hsmkey_list;
+    hsm_key_t *hsmkey;
+    int keys_marked = 0;
 
-	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
-	while (ro_hsmkey) {
-		backup = hsm_key_backup(ro_hsmkey);
-		if (backup == HSM_KEY_BACKUP_BACKUP_REQUIRED) {
-			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
-				ods_log_error("[%s] database error", module_str);
-				return 1;
-			}
-			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_REQUESTED) ||
-				hsm_key_update(rw_hsmkey))
-			{
-				ods_log_error("[%s] database error", module_str);
-				hsm_key_reset(rw_hsmkey);
-				return 1;
-			}
-			hsm_key_reset(rw_hsmkey);
-		}
-		ro_hsmkey = hsm_key_list_next(hsmkey_list);
-	}
+    if (!hsm_key_backup_clause(clause_list, from_state)
+        || !(hsmkey_list = hsm_key_list_new_get_by_clauses(dbconn, clause_list)))
+    {
+        ods_log_error("[%s] database error", module_str);
+        return -1;
+    }
+
+    for (hsmkey = hsm_key_list_get_next(hsmkey_list); hsmkey;
+        hsm_key_free(hsmkey), hsmkey = hsm_key_list_get_next(hsmkey_list))
+    {
+        if (hsm_key_set_backup(hsmkey, to_state) ||
+            hsm_key_update(hsmkey))
+        {
+            ods_log_error("[%s] database error", module_str);
+            hsm_key_free(hsmkey);
+            hsm_key_list_free(hsmkey_list);
+            return -1;
+        }
+        keys_marked++;
+    }
+    hsm_key_free(hsmkey);
+    hsm_key_list_free(hsmkey_list);
+
+    return keys_marked;
+}
+
+static int
+prepare(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
+{
+    int keys_marked = hsmkeys_from_to_state(dbconn, clause_list,
+        HSM_KEY_BACKUP_BACKUP_REQUIRED, HSM_KEY_BACKUP_BACKUP_REQUESTED);
+    if (keys_marked < 0) {
+        return 1;
+    }
 	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
 	return 0;
 }
 
 static int
-commit(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
+commit(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
 {
-	const hsm_key_t *ro_hsmkey;
-	hsm_key_backup_t backup;
-	int keys_marked = 0;
-
-	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
-	while (ro_hsmkey) {
-		backup = hsm_key_backup(ro_hsmkey);
-		if (backup == HSM_KEY_BACKUP_BACKUP_REQUESTED) {
-			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
-				ods_log_error("[%s] database error", module_str);
-				return 1;
-			}
-			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_DONE) ||
-				hsm_key_update(rw_hsmkey))
-			{
-				ods_log_error("[%s] database error", module_str);
-				hsm_key_reset(rw_hsmkey);
-				return 1;
-			}
-			hsm_key_reset(rw_hsmkey);
-		}
-		ro_hsmkey = hsm_key_list_next(hsmkey_list);
-	}
-	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
-	return 0;
+    int keys_marked = hsmkeys_from_to_state(dbconn, clause_list,
+        HSM_KEY_BACKUP_BACKUP_REQUESTED, HSM_KEY_BACKUP_BACKUP_DONE);
+    if (keys_marked < 0) {
+        return 1;
+    }
+    client_printf(sockfd,"info: keys marked backup done: %d\n", keys_marked);
+    return 0;
 }
 
 static int
-rollback(int sockfd, hsm_key_list_t *hsmkey_list, hsm_key_t *rw_hsmkey)
+rollback(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
 {
-	const hsm_key_t *ro_hsmkey;
-	hsm_key_backup_t backup;
-	int keys_marked = 0;
-
-	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
-	while (ro_hsmkey) {
-		backup = hsm_key_backup(ro_hsmkey);
-		if (backup == HSM_KEY_BACKUP_BACKUP_REQUESTED) {
-			if (hsm_key_copy(rw_hsmkey, ro_hsmkey)) {
-				ods_log_error("[%s] database error", module_str);
-				return 1;
-			}
-			if (hsm_key_set_backup(rw_hsmkey, HSM_KEY_BACKUP_BACKUP_REQUIRED) ||
-				hsm_key_update(rw_hsmkey))
-			{
-				ods_log_error("[%s] database error", module_str);
-				hsm_key_reset(rw_hsmkey);
-				return 1;
-			}
-			hsm_key_reset(rw_hsmkey);
-		}
-		ro_hsmkey = hsm_key_list_next(hsmkey_list);
-	}
-	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
-	return 0;
+    int keys_marked = hsmkeys_from_to_state(dbconn, clause_list,
+        HSM_KEY_BACKUP_BACKUP_REQUESTED, HSM_KEY_BACKUP_BACKUP_REQUIRED);
+    if (keys_marked < 0) {
+        return 1;
+    }
+    client_printf(sockfd,"info: keys unflagged for backup: %d\n", keys_marked);
+    return 0;
 }
 
 static int
-list(int sockfd, hsm_key_list_t *hsmkey_list)
+list(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
 {
-	const hsm_key_t *ro_hsmkey;
-	int keys_marked = 0;
+    hsm_key_list_t* hsmkey_list;
+    const hsm_key_t *hsmkey;
 
-	ro_hsmkey = hsm_key_list_begin(hsmkey_list);
-	while (ro_hsmkey) {
-		/*  TODO  */
-		ro_hsmkey = hsm_key_list_next(hsmkey_list);
-	}
-	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
+    if (!(hsmkey_list = hsm_key_list_new_get_by_clauses(dbconn, clause_list))) {
+        ods_log_error("[%s] database error", module_str);
+        return -1;
+    }
+
+    /* TODO: Header */
+    for (hsmkey = hsm_key_list_next(hsmkey_list); hsmkey;
+        hsmkey = hsm_key_list_next(hsmkey_list))
+    {
+        /* TODO: propper output */
+        client_printf(sockfd, "%s\n", hsm_key_locator(hsmkey));
+    }
+    hsm_key_list_free(hsmkey_list);
 	return 0;
 }
 
@@ -212,49 +199,37 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 {
 	char buf[ODS_SE_MAXLINE];
 	int status;
-	hsm_key_list_t *hsmkey_list;
-	hsm_key_t *rw_hsmkey;
 	const char *repository;
+	db_clause_list_t* clause_list;
 	(void)engine;
 
 	if (!handles(cmd, n)) return -1;
 	repository = get_repo_param(cmd, n, buf, ODS_SE_MAXLINE);
 
 	/* iterate the keys */
-	if (!(hsmkey_list = hsm_key_list_new(dbconn))) {
+	if (!(clause_list = db_clause_list_new())) {
 		ods_log_error("[%s] database error", module_str);
 		return 1;
 	}
-	if (!(rw_hsmkey = hsm_key_new(dbconn))) {
-		hsm_key_list_free(hsmkey_list);
-		ods_log_error("[%s] database error", module_str);
-		return 1;
-	}
-	if (repository)
-		status = hsm_key_list_get_by_repository(hsmkey_list, repository);
-	else
-		status = hsm_key_list_get(hsmkey_list);
-	if (status) {
-		hsm_key_list_free(hsmkey_list);
-		hsm_key_free(rw_hsmkey);
-		ods_log_error("[%s] Could not get key list", module_str);
-		return 1;
+	if (repository && !hsm_key_repository_clause(clause_list, repository)) {
+	    db_clause_list_free(clause_list);
+        ods_log_error("[%s] Could not get key list", module_str);
+        return 1;
 	}
 	
 	/* Find out what we need to do */
 	if (ods_check_command(cmd,n,"backup prepare"))
-		status = prepare(sockfd, hsmkey_list, rw_hsmkey);
+		status = prepare(sockfd, dbconn, clause_list);
 	else if (ods_check_command(cmd,n,"backup commit"))
-		status = commit(sockfd, hsmkey_list, rw_hsmkey);
+		status = commit(sockfd, dbconn, clause_list);
 	else if (ods_check_command(cmd,n,"backup rollback"))
-		status = rollback(sockfd, hsmkey_list, rw_hsmkey);
+		status = rollback(sockfd, dbconn, clause_list);
 	else if (ods_check_command(cmd,n,"backup list"))
-		status = list(sockfd, hsmkey_list);
+		status = list(sockfd, dbconn, clause_list);
 	else
 		status = -1;
 
-	hsm_key_free(rw_hsmkey);
-	hsm_key_list_free(hsmkey_list);
+    db_clause_list_free(clause_list);
 	return status;
 }
 

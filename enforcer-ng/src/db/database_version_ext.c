@@ -34,11 +34,8 @@ int database_version_get_version(db_connection_t* connection) {
     const database_version_t* database_version;
     int ret;
 
-    if (!(database_version_list = database_version_list_new(connection))) {
-        return 0;
-    }
-    if (database_version_list_get(database_version_list)
-        || !(database_version = database_version_list_begin(database_version_list)))
+    if (!(database_version_list = database_version_list_new_get(connection))
+        || !(database_version = database_version_list_next(database_version_list)))
     {
         database_version_list_free(database_version_list);
         return 0;

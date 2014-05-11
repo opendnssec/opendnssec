@@ -154,7 +154,7 @@ const db_value_t* hsm_key_policy_id(const hsm_key_t* hsm_key);
  * \param[in] hsm_key a hsm_key_t pointer.
  * \return a policy_t pointer or NULL on error or if no object could be found.
  */
-policy_t* hsm_key_get_policy_id(const hsm_key_t* hsm_key);
+policy_t* hsm_key_get_policy(const hsm_key_t* hsm_key);
 
 /**
  * Get the locator of a hsm key object.
@@ -612,14 +612,6 @@ int hsm_key_list_get_by_policy_id(hsm_key_list_t* hsm_key_list, const db_value_t
  * \return a hsm_key_list_t pointer or NULL on error.
  */
 hsm_key_list_t* hsm_key_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
-
-/**
- * DEPRECATED (use hsm_key_list_next) Get the first hsm key object in a hsm key object list.
- * \param[in] hsm_key_list a hsm_key_list_t pointer.
- * \return a hsm_key_t pointer or NULL on error or if there are no
- * hsm key objects in the hsm key object list.
- */
-const hsm_key_t* hsm_key_list_begin(hsm_key_list_t* hsm_key_list);
 
 /**
  * Get the next hsm key object in a hsm key object list.

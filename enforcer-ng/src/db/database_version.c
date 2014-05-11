@@ -330,7 +330,7 @@ int database_version_get_by_id(database_version_t* database_version, const db_va
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (database_version_from_result(database_version, result)) {
                 db_result_list_free(result_list);
@@ -607,30 +607,6 @@ database_version_list_t* database_version_list_new_get_by_clauses(const db_conne
     }
 
     return database_version_list;
-}
-
-const database_version_t* database_version_list_begin(database_version_list_t* database_version_list) {
-    const db_result_t* result;
-
-    if (!database_version_list) {
-        return NULL;
-    }
-    if (!database_version_list->result_list) {
-        return NULL;
-    }
-
-    if (!(result = db_result_list_begin(database_version_list->result_list))) {
-        return NULL;
-    }
-    if (!database_version_list->database_version) {
-        if (!(database_version_list->database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
-            return NULL;
-        }
-    }
-    if (database_version_from_result(database_version_list->database_version, result)) {
-        return NULL;
-    }
-    return database_version_list->database_version;
 }
 
 const database_version_t* database_version_list_next(database_version_list_t* database_version_list) {

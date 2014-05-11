@@ -847,7 +847,7 @@ int key_state_get_by_id(key_state_t* key_state, const db_value_t* id) {
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (key_state_from_result(key_state, result)) {
                 db_result_list_free(result_list);
@@ -1249,30 +1249,6 @@ key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* c
     }
 
     return key_state_list;
-}
-
-const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
-    const db_result_t* result;
-
-    if (!key_state_list) {
-        return NULL;
-    }
-    if (!key_state_list->result_list) {
-        return NULL;
-    }
-
-    if (!(result = db_result_list_begin(key_state_list->result_list))) {
-        return NULL;
-    }
-    if (!key_state_list->key_state) {
-        if (!(key_state_list->key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
-            return NULL;
-        }
-    }
-    if (key_state_from_result(key_state_list->key_state, result)) {
-        return NULL;
-    }
-    return key_state_list->key_state;
 }
 
 const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {

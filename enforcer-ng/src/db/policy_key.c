@@ -1110,7 +1110,7 @@ int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id) {
     db_clause_list_free(clause_list);
 
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             if (policy_key_from_result(policy_key, result)) {
                 db_result_list_free(result_list);
@@ -1558,30 +1558,6 @@ policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* c
     }
 
     return policy_key_list;
-}
-
-const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list) {
-    const db_result_t* result;
-
-    if (!policy_key_list) {
-        return NULL;
-    }
-    if (!policy_key_list->result_list) {
-        return NULL;
-    }
-
-    if (!(result = db_result_list_begin(policy_key_list->result_list))) {
-        return NULL;
-    }
-    if (!policy_key_list->policy_key) {
-        if (!(policy_key_list->policy_key = policy_key_new(db_object_connection(policy_key_list->dbo)))) {
-            return NULL;
-        }
-    }
-    if (policy_key_from_result(policy_key_list->policy_key, result)) {
-        return NULL;
-    }
-    return policy_key_list->policy_key;
 }
 
 const policy_key_t* policy_key_list_next(policy_key_list_t* policy_key_list) {
