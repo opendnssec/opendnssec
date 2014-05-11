@@ -36,8 +36,6 @@
 #include <string.h>
 
 key_data_list_t* zone_get_keys(const zone_t* zone) {
-    key_data_list_t* key_data_list;
-
     if (!zone) {
         return NULL;
     }
@@ -48,14 +46,8 @@ key_data_list_t* zone_get_keys(const zone_t* zone) {
         return NULL;
     }
 
-    key_data_list = key_data_list_new(db_object_connection(zone->dbo));
-    if (key_data_list) {
-        if (key_data_list_get_by_zone_id(key_data_list, &(zone->id))) {
-            key_data_list_free(key_data_list);
-            return NULL;
-        }
-    }
-    return key_data_list;
+    return key_data_list_new_get_by_zone_id(db_object_connection(zone->dbo),
+        &(zone->id));
 }
 
 static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {

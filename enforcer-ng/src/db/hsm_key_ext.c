@@ -34,7 +34,6 @@ int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list,
     const char* repository)
 {
     db_clause_list_t* clause_list;
-    db_clause_t* clause;
 
     if (!hsm_key_list) {
         return DB_ERROR_UNKNOWN;
@@ -46,16 +45,9 @@ int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list,
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(clause_list = db_clause_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "repository")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_from_text(db_clause_get_value(clause), repository)
-        || db_clause_list_add(clause_list, clause))
+    if (!(clause_list = db_clause_list_new())
+        || !hsm_key_repository_clause(clause_list, repository))
     {
-        db_clause_free(clause);
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
