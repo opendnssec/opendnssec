@@ -65,9 +65,7 @@ hsmkeys_from_to_state(db_connection_t *dbconn, db_clause_list_t* clause_list,
         return -1;
     }
 
-    for (hsmkey = hsm_key_list_get_next(hsmkey_list); hsmkey;
-        hsm_key_free(hsmkey), hsmkey = hsm_key_list_get_next(hsmkey_list))
-    {
+    while ((hsmkey = hsm_key_list_get_next(hsmkey_list))) {
         if (hsm_key_set_backup(hsmkey, to_state) ||
             hsm_key_update(hsmkey))
         {
@@ -77,6 +75,7 @@ hsmkeys_from_to_state(db_connection_t *dbconn, db_clause_list_t* clause_list,
             return -1;
         }
         keys_marked++;
+        hsm_key_free(hsmkey);
     }
     hsm_key_free(hsmkey);
     hsm_key_list_free(hsmkey_list);
