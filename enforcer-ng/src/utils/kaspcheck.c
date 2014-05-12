@@ -86,6 +86,8 @@ int main (int argc, char *argv[])
 		{"verbose", no_argument,       0, 'v'},
 		{0,0,0,0}
 	};
+	char **policy_names = NULL;
+	int policy_count = 0;
 
 	/* The program name is the last component of the program file name */
 	if ((progname = strrchr(argv[0], '/'))) {	/* EQUALS */
@@ -132,9 +134,15 @@ int main (int argc, char *argv[])
 	status = check_conf(conffile, &kaspfile, &zonelistfile, &repo_list, 
 		&repo_count, verbose);
 	/* 2) Checks on kasp.xml */
-	status += check_kasp(kaspfile, repo_list, repo_count, verbose);
+	status += check_kasp(kaspfile, repo_list, repo_count, verbose,
+	    &policy_names, &policy_count);
 	/* 3) Checks on zonelist.xml */
-	status += check_zonelist(zonelistfile, verbose);
+	status += check_zonelist(zonelistfile, verbose, policy_names, policy_count);
+
+    for (i = 0; i < policy_count; i++) {
+        free(policy_names[i]);
+    }
+    free(policy_names);
 
 	xmlCleanupParser();
 	for (i = 0; i < repo_count; i++) StrFree(repo_list[i]);

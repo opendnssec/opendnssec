@@ -54,7 +54,8 @@
 extern "C" {
 #endif
 
-int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn);
+int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
+    int do_delete);
 
 #ifdef __cplusplus
 }

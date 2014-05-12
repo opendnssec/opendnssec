@@ -47,7 +47,9 @@ struct __zonelist_import_zone {
     int processed;
 };
 
-int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
+int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
+    int do_delete)
+{
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr node;
@@ -112,7 +114,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     /*
      * Validate, parse and walk the XML.
      */
-    if (check_zonelist(engine->config->zonelist_filename, 0)) {
+    if (check_zonelist(engine->config->zonelist_filename, 0, NULL, 0)) {
         client_printf_err(sockfd, "Unable to validate the zonelist XML!\n");
         for (zone2 = zones; zone2; zone2 = zones) {
             free(zone2->name);
@@ -264,85 +266,87 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
         }
     }
 
-    /*
-     * Delete zones that have not been processed
-     */
-    for (zone2 = zones; zone2; zone2 = zone2->next) {
-        if (zone2->processed) {
-            continue;
-        }
-
-        if (!(zone = zone_new(dbconn))) {
-            client_printf_err(sockfd, "Memory allocation error!\n");
-            xmlFreeDoc(doc);
-            for (zone2 = zones; zone2; zone2 = zones) {
-                free(zone2->name);
-                zones = zone2->next;
-                free(zone2);
-            }
-            return ZONELIST_IMPORT_ERR_MEMORY;
-        }
-
+    if (do_delete) {
         /*
-         * Fetch the zone by name, if it exists we try and delete it
+         * Delete zones that have not been processed
          */
-        if (!zone_get_by_name(zone, zone2->name)) {
-            /*
-             * Get key data for the zone and for each key data get the key state
-             * and try to delete all key state then the key data
-             */
-            if (!(key_data_list = key_data_list_new_get_by_zone_id(dbconn, zone_id(zone)))) {
-                client_printf_err(sockfd, "Unable to get key data for zone %s from database!\n", zone2->name);
-                zone_free(zone);
-                database_error = 1;
+        for (zone2 = zones; zone2; zone2 = zone2->next) {
+            if (zone2->processed) {
                 continue;
             }
-            successful = 1;
-            for (key_data = key_data_list_get_next(key_data_list); key_data; key_data_free(key_data), key_data = key_data_list_get_next(key_data_list)) {
-                if (!(key_state_list = key_state_list_new_get_by_key_data_id(dbconn, key_data_id(key_data)))) {
-                    client_printf_err(sockfd, "Unable to get key states for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
+
+            if (!(zone = zone_new(dbconn))) {
+                client_printf_err(sockfd, "Memory allocation error!\n");
+                xmlFreeDoc(doc);
+                for (zone2 = zones; zone2; zone2 = zones) {
+                    free(zone2->name);
+                    zones = zone2->next;
+                    free(zone2);
+                }
+                return ZONELIST_IMPORT_ERR_MEMORY;
+            }
+
+            /*
+             * Fetch the zone by name, if it exists we try and delete it
+             */
+            if (!zone_get_by_name(zone, zone2->name)) {
+                /*
+                 * Get key data for the zone and for each key data get the key state
+                 * and try to delete all key state then the key data
+                 */
+                if (!(key_data_list = key_data_list_new_get_by_zone_id(dbconn, zone_id(zone)))) {
+                    client_printf_err(sockfd, "Unable to get key data for zone %s from database!\n", zone2->name);
+                    zone_free(zone);
                     database_error = 1;
-                    successful = 0;
                     continue;
                 }
+                successful = 1;
+                for (key_data = key_data_list_get_next(key_data_list); key_data; key_data_free(key_data), key_data = key_data_list_get_next(key_data_list)) {
+                    if (!(key_state_list = key_state_list_new_get_by_key_data_id(dbconn, key_data_id(key_data)))) {
+                        client_printf_err(sockfd, "Unable to get key states for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
+                        database_error = 1;
+                        successful = 0;
+                        continue;
+                    }
 
-                for (key_state = key_state_list_get_next(key_state_list); key_state; key_state_free(key_state), key_state = key_state_list_get_next(key_state_list)) {
-                    if (!key_state_delete(key_state)) {
-                        client_printf_err(sockfd, "Unable to delete key state %s for key data %s of zone %s from database!\n", key_state_type_text(key_state), key_data_role_text(key_data), zone2->name);
+                    for (key_state = key_state_list_get_next(key_state_list); key_state; key_state_free(key_state), key_state = key_state_list_get_next(key_state_list)) {
+                        if (!key_state_delete(key_state)) {
+                            client_printf_err(sockfd, "Unable to delete key state %s for key data %s of zone %s from database!\n", key_state_type_text(key_state), key_data_role_text(key_data), zone2->name);
+                            database_error = 1;
+                            successful = 0;
+                            continue;
+                        }
+                    }
+                    key_state_list_free(key_state_list);
+
+                    if (!key_data_delete(key_data)) {
+                        client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
                         database_error = 1;
                         successful = 0;
                         continue;
                     }
                 }
-                key_state_list_free(key_state_list);
+                key_data_list_free(key_data_list);
 
-                if (!key_data_delete(key_data)) {
-                    client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
-                    database_error = 1;
-                    successful = 0;
+                if (!successful) {
+                    zone_free(zone);
                     continue;
                 }
-            }
-            key_data_list_free(key_data_list);
+                if (zone_delete(zone)) {
+                    client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone2->name);
+                    zone_free(zone);
+                    database_error = 1;
+                    continue;
+                }
 
-            if (!successful) {
-                zone_free(zone);
-                continue;
+                client_printf(sockfd, "Deleted zone %s successfully\n", zone2->name);
             }
-            if (zone_delete(zone)) {
+            else {
                 client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone2->name);
-                zone_free(zone);
                 database_error = 1;
-                continue;
             }
-
-            client_printf(sockfd, "Deleted zone %s successfully\n", zone2->name);
+            zone_free(zone);
         }
-        else {
-            client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone2->name);
-            database_error = 1;
-        }
-        zone_free(zone);
     }
 
     for (zone2 = zones; zone2; zone2 = zones) {

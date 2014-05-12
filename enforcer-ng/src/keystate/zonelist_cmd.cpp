@@ -37,7 +37,6 @@
 #include "shared/str.h"
 #include "shared/log.h"
 #include "shared/file.h"
-#include "keystate/update_keyzones_task.h"
 #include "daemon/clientpipe.h"
 
 #include "keystate/zonelist_cmd.h"

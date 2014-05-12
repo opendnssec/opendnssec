@@ -122,8 +122,6 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_ds_retract_task.cpp keystate/keystate_ds_retract_task.h \
 	keystate/keystate_ds.c keystate/keystate_ds.h \
 	keystate/keystate_ds_gone_cmd.c keystate/keystate_ds_gone_cmd.h \
-	keystate/update_keyzones_cmd.cpp keystate/update_keyzones_cmd.h \
-	keystate/update_keyzones_task.cpp keystate/update_keyzones_task.h \
 	keystate/keystate_rollover_cmd.cpp keystate/keystate_rollover_cmd.h \
 	keystate/keystate_rollover_task.cpp keystate/keystate_rollover_task.h \
 	keystate/zonelist_task.h keystate/zonelist_task.cpp \

@@ -80,7 +80,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     ods_log_debug("[%s] %s command", module_str, zonelist_import_funcblock()->cmdname);
 
-    switch (zonelist_import(sockfd, engine, dbconn)) {
+    switch (zonelist_import(sockfd, engine, dbconn, 1)) {
     case ZONELIST_IMPORT_OK:
         /*
         int error;

@@ -59,9 +59,12 @@ extern "C" {
  * \param[in] sockfd a client socket which progress is written to if non-zero.
  * \param[in] engine a engine_type pointer.
  * \param[in] dbconn a db_connection_t pointer.
+ * \param[in] do_delete a interger which will trigger deletion of policies not
+ * in the KASP if non-zero.
  * \return POLICY_IMPORT_ERR_* on error otherwise POLICY_IMPORT_OK.
  */
-int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn);
+int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
+    int do_delete);
 
 #ifdef __cplusplus
 }

@@ -1746,9 +1746,17 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
  * Check the zonelist.xml file
  * Return status (0 == success; 1 == error)
  */
-int check_zonelist(const char *zonelist, int verbose)
+int check_zonelist(const char *zonelist, int verbose, char **policy_names,
+    int policy_count)
 {
-	if (!zonelist || !strncmp(zonelist, "", 1)) {
+    xmlDocPtr doc;
+    xmlXPathContextPtr xpath_ctx;
+    xmlXPathObjectPtr xpath_obj;
+    xmlChar *xexpr;
+    int i, j, found, status = 0;
+    char *policy_name;
+
+    if (!zonelist || !strncmp(zonelist, "", 1)) {
 		dual_log("ERROR: No location for zonelist.xml set");
 		return 1;
 	}
@@ -1759,17 +1767,63 @@ int check_zonelist(const char *zonelist, int verbose)
 	/* Check that the  Zonelist file is well-formed */
 	if (check_rng(zonelist, OPENDNSSEC_SCHEMA_DIR "/zonelist.rng", verbose) != 0)
 		return 1;
-	
-	dual_log("INFO: The XML in %s is valid", zonelist);
-	return 0;
 
+	if (policy_names) {
+        doc = xmlParseFile(zonelist);
+        if (doc == NULL) {
+            return 1;
+        }
+
+        xpath_ctx = xmlXPathNewContext(doc);
+        if(xpath_ctx == NULL) {
+            xmlFreeDoc(doc);
+            return 1;
+        }
+
+        xexpr = (xmlChar *)"//ZoneList/Zone/Policy";
+        xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
+        if(xpath_obj == NULL) {
+            xmlXPathFreeContext(xpath_ctx);
+            xmlFreeDoc(doc);
+            return 1;
+        }
+
+        if (xpath_obj->nodesetval) {
+            for (i = 0; i < xpath_obj->nodesetval->nodeNr; i++) {
+                policy_name = (char*)xmlNodeGetContent(xpath_obj->nodesetval->nodeTab[i]);
+
+                found = 0;
+                if (policy_name) {
+                    for (j = 0; j < policy_count; j++) {
+                        if (!strcmp(policy_name, policy_names[j])) {
+                            found = 1;
+                            break;
+                        }
+                    }
+                }
+                if (!found) {
+                    dual_log("ERROR: Policy %s in zonelist does not exist!", policy_name);
+                    status++;
+                }
+                if (policy_name) free(policy_name);
+            }
+        }
+
+        xmlXPathFreeObject(xpath_obj);
+        xmlXPathFreeContext(xpath_ctx);
+        xmlFreeDoc(doc);
+	}
+
+	if (!status) dual_log("INFO: The XML in %s is valid", zonelist);
+	return status;
 }
 
 /*
  * Check the kasp.xml file
  * Return status (0 == success; 1 == error)
  */
-int check_kasp(const char *kasp, char **repo_list, int repo_count, int verbose)
+int check_kasp(const char *kasp, char **repo_list, int repo_count, int verbose,
+    char ***policy_names_out, int *policy_count_out)
 {
 	int status = 0;
 	int i = 0;
@@ -1863,10 +1917,16 @@ int check_kasp(const char *kasp, char **repo_list, int repo_count, int verbose)
 		 status += check_policy(curNode, policy_names[i], repo_list, repo_count, kasp);
 	}
 
-	for (i = 0; i < policy_count; i++) {
-		free(policy_names[i]);
+	if (!status && policy_names_out && policy_count_out) {
+	    *policy_names_out = policy_names;
+	    *policy_count_out = policy_count;
 	}
-	free(policy_names);
+	else {
+        for (i = 0; i < policy_count; i++) {
+            free(policy_names[i]);
+        }
+        free(policy_names);
+	}
 
 	xmlXPathFreeObject(xpath_obj);
 	xmlXPathFreeContext(xpath_ctx);

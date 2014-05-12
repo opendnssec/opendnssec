@@ -56,7 +56,9 @@ struct __policy_import_policy {
     int processed;
 };
 
-int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
+int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
+    int do_delete)
+{
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr node;
@@ -151,7 +153,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     /*
      * Validate KASP
      */
-    if (check_kasp(engine->config->policy_filename, repositories, repository_count, 0)) {
+    if (check_kasp(engine->config->policy_filename, repositories, repository_count, 0, NULL, NULL)) {
         client_printf_err(sockfd, "Unable to validate the KASP XML, please run ods-kaspcheck for more details!\n");
         if (repositories) {
             free(repositories);
@@ -726,97 +728,99 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
         }
     }
 
-    /*
-     * Delete policies that has not been processed
-     */
-    for (policy2 = policies; policy2; policy2 = policy2->next) {
-        if (policy2->processed) {
-            continue;
-        }
+    if (do_delete) {
+        /*
+         * Delete policies that has not been processed
+         */
+        for (policy2 = policies; policy2; policy2 = policy2->next) {
+            if (policy2->processed) {
+                continue;
+            }
 
-        if (!(policy = policy_new(dbconn))) {
-            client_printf_err(sockfd, "Memory allocation error!\n");
-            xmlFreeDoc(doc);
-            for (policy2 = policies; policy2; policy2 = policies) {
-                free(policy2->name);
-                policies = policy2->next;
-                free(policy2);
+            if (!(policy = policy_new(dbconn))) {
+                client_printf_err(sockfd, "Memory allocation error!\n");
+                xmlFreeDoc(doc);
+                for (policy2 = policies; policy2; policy2 = policies) {
+                    free(policy2->name);
+                    policies = policy2->next;
+                    free(policy2);
+                }
+                return POLICY_IMPORT_ERR_MEMORY;
             }
-            return POLICY_IMPORT_ERR_MEMORY;
-        }
 
-        if (!policy_get_by_name(policy, policy2->name)) {
-            /*
-             * Check if there are still zones or hsm keys using this policy and
-             * abort if there is
-             */
-            if (!(zone_list = zone_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
-                client_printf_err(sockfd, "Unable to check for zones using policy %s from database!\n", policy2->name);
-                policy_free(policy);
-                database_error = 1;
-                continue;
-            }
-            if (zone_list_next(zone_list)) {
-                zone_list_free(zone_list);
-                client_printf_err(sockfd, "Unable to delete policy %s, there are still zones using this policy!\n", policy2->name);
-                policy_free(policy);
-                database_error = 1;
-                continue;
-            }
-            zone_list_free(zone_list);
-            if (!(hsm_key_list = hsm_key_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
-                client_printf_err(sockfd, "Unable to check for hsm keys using policy %s from database!\n", policy2->name);
-                policy_free(policy);
-                database_error = 1;
-                continue;
-            }
-            if (hsm_key_list_next(hsm_key_list)) {
-                hsm_key_list_free(hsm_key_list);
-                client_printf_err(sockfd, "Unable to delete policy %s, there are still hsm keys using this policy!\n", policy2->name);
-                policy_free(policy);
-                database_error = 1;
-                continue;
-            }
-            hsm_key_list_free(hsm_key_list);
-
-            /*
-             * Try and delete all the policy keys for this policy
-             */
-            if (!(policy_key_list = policy_key_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
-                client_printf_err(sockfd, "Unable to get policy keys for policy %s from database!\n", policy2->name);
-                policy_free(policy);
-                database_error = 1;
-                continue;
-            }
-            successful = 1;
-            for (policy_key = policy_key_list_get_next(policy_key_list); policy_key; policy_key_free(policy_key), policy_key = policy_key_list_get_next(policy_key_list)) {
-                if (!policy_key_delete(policy_key)) {
-                    client_printf_err(sockfd, "Unable to delete policy key %s in policy %s from database!\n", policy_key_role_text(policy_key), policy2->name);
+            if (!policy_get_by_name(policy, policy2->name)) {
+                /*
+                 * Check if there are still zones or hsm keys using this policy and
+                 * abort if there is
+                 */
+                if (!(zone_list = zone_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
+                    client_printf_err(sockfd, "Unable to check for zones using policy %s from database!\n", policy2->name);
+                    policy_free(policy);
                     database_error = 1;
-                    successful = 0;
                     continue;
                 }
-            }
-            policy_key_list_free(policy_key_list);
+                if (zone_list_next(zone_list)) {
+                    zone_list_free(zone_list);
+                    client_printf_err(sockfd, "Unable to delete policy %s, there are still zones using this policy!\n", policy2->name);
+                    policy_free(policy);
+                    database_error = 1;
+                    continue;
+                }
+                zone_list_free(zone_list);
+                if (!(hsm_key_list = hsm_key_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
+                    client_printf_err(sockfd, "Unable to check for hsm keys using policy %s from database!\n", policy2->name);
+                    policy_free(policy);
+                    database_error = 1;
+                    continue;
+                }
+                if (hsm_key_list_next(hsm_key_list)) {
+                    hsm_key_list_free(hsm_key_list);
+                    client_printf_err(sockfd, "Unable to delete policy %s, there are still hsm keys using this policy!\n", policy2->name);
+                    policy_free(policy);
+                    database_error = 1;
+                    continue;
+                }
+                hsm_key_list_free(hsm_key_list);
 
-            if (!successful) {
-                policy_free(policy);
-                continue;
+                /*
+                 * Try and delete all the policy keys for this policy
+                 */
+                if (!(policy_key_list = policy_key_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
+                    client_printf_err(sockfd, "Unable to get policy keys for policy %s from database!\n", policy2->name);
+                    policy_free(policy);
+                    database_error = 1;
+                    continue;
+                }
+                successful = 1;
+                for (policy_key = policy_key_list_get_next(policy_key_list); policy_key; policy_key_free(policy_key), policy_key = policy_key_list_get_next(policy_key_list)) {
+                    if (!policy_key_delete(policy_key)) {
+                        client_printf_err(sockfd, "Unable to delete policy key %s in policy %s from database!\n", policy_key_role_text(policy_key), policy2->name);
+                        database_error = 1;
+                        successful = 0;
+                        continue;
+                    }
+                }
+                policy_key_list_free(policy_key_list);
+
+                if (!successful) {
+                    policy_free(policy);
+                    continue;
+                }
+                if (policy_delete(policy)) {
+                    client_printf_err(sockfd, "Unable to delete policy %s from database!\n", policy2->name);
+                    policy_free(policy);
+                    database_error = 1;
+                    continue;
+                }
+
+                client_printf(sockfd, "Deleted policy %s successfully\n", policy2->name);
             }
-            if (policy_delete(policy)) {
+            else {
                 client_printf_err(sockfd, "Unable to delete policy %s from database!\n", policy2->name);
-                policy_free(policy);
                 database_error = 1;
-                continue;
             }
-
-            client_printf(sockfd, "Deleted policy %s successfully\n", policy2->name);
+            policy_free(policy);
         }
-        else {
-            client_printf_err(sockfd, "Unable to delete policy %s from database!\n", policy2->name);
-            database_error = 1;
-        }
-        policy_free(policy);
     }
 
     for (policy2 = policies; policy2; policy2 = policies) {
