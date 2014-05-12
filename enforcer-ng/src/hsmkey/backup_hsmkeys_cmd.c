@@ -77,7 +77,6 @@ hsmkeys_from_to_state(db_connection_t *dbconn, db_clause_list_t* clause_list,
         keys_marked++;
         hsm_key_free(hsmkey);
     }
-    hsm_key_free(hsmkey);
     hsm_key_list_free(hsmkey_list);
 
     return keys_marked;
