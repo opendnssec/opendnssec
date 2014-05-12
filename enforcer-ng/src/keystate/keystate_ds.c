@@ -144,9 +144,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	}
     db_clause_list_free(clause_list);
 
-	for (key = key_data_list_get_next(key_list); key;
-		key = key_data_list_get_next(key_list))
-	{
+	while ((key = key_data_list_get_next(key_list))) {
 		key_match++;
 		if (key_data_set_ds_at_parent(key, state_to) ||
 			key_data_update(key))
