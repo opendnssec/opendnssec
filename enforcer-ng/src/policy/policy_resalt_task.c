@@ -123,9 +123,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	}
     db_clause_list_free(clause_list);
 	
-	for (policy = policy_list_get_next(pol_list); policy;
-		policy_free(policy), policy = policy_list_get_next(pol_list))
-	{
+	while ((policy = policy_list_get_next(pol_list))) {
 		resalt_time = policy_denial_salt_last_change(policy) +
 			policy_denial_resalt(policy);
 		if (now > resalt_time) {
@@ -133,6 +131,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			if (saltlength <= 0 || saltlength > 255) {
 				ods_log_error("[%s] policy %s has an invalid salt length. "
 					"Must be in range [0..255]", module_str, policy_name(policy));
+				policy_free(policy);
 				continue; /* no need to schedule for this policy */
 			}
 			/* Yes, we need to resalt this policy */
@@ -144,12 +143,14 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			   policy_update(policy))
 			{
 				ods_log_error("[%s] db error", module_str);
+				policy_free(policy);
 				break;
 			}
 			resalt_time = now + policy_denial_resalt(policy);
 		}
 		if (resalt_time < schedule_time || schedule_time == TIME_INF)
 			schedule_time = resalt_time;
+		policy_free(policy);
 	}
 	policy_free(policy);
 	ods_log_debug("[%s] policies have been updated", module_str);
