@@ -34,6 +34,8 @@
 #include "db/policy.h"
 #include "db/policy_key.h"
 #include "utils/kc_helper.h"
+#include "db/zone.h"
+#include "db/hsm_key.h"
 
 #include "policy/policy_import.h"
 
@@ -82,6 +84,8 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
     struct __policy_import_policy* policy2;
     policy_list_t* policy_list;
     const policy_t* policy_walk;
+    zone_list_t* zone_list;
+    hsm_key_list_t* hsm_key_list;
 
     if (!engine) {
         return POLICY_IMPORT_ERR_ARGS;
@@ -742,6 +746,42 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn) {
         }
 
         if (!policy_get_by_name(policy, policy2->name)) {
+            /*
+             * Check if there are still zones or hsm keys using this policy and
+             * abort if there is
+             */
+            if (!(zone_list = zone_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
+                client_printf_err(sockfd, "Unable to check for zones using policy %s from database!\n", policy2->name);
+                policy_free(policy);
+                database_error = 1;
+                continue;
+            }
+            if (zone_list_next(zone_list)) {
+                zone_list_free(zone_list);
+                client_printf_err(sockfd, "Unable to delete policy %s, there are still zones using this policy!\n", policy2->name);
+                policy_free(policy);
+                database_error = 1;
+                continue;
+            }
+            zone_list_free(zone_list);
+            if (!(hsm_key_list = hsm_key_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
+                client_printf_err(sockfd, "Unable to check for hsm keys using policy %s from database!\n", policy2->name);
+                policy_free(policy);
+                database_error = 1;
+                continue;
+            }
+            if (hsm_key_list_next(hsm_key_list)) {
+                hsm_key_list_free(hsm_key_list);
+                client_printf_err(sockfd, "Unable to delete policy %s, there are still hsm keys using this policy!\n", policy2->name);
+                policy_free(policy);
+                database_error = 1;
+                continue;
+            }
+            hsm_key_list_free(hsm_key_list);
+
+            /*
+             * Try and delete all the policy keys for this policy
+             */
             if (!(policy_key_list = policy_key_list_new_get_by_policy_id(dbconn, policy_id(policy)))) {
                 client_printf_err(sockfd, "Unable to get policy keys for policy %s from database!\n", policy2->name);
                 policy_free(policy);
