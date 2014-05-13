@@ -54,6 +54,15 @@
 extern "C" {
 #endif
 
+/*
+ * Import zones from the configured zonelist and sync it with the database.
+ * \param[in] sockfd a client socket which progress is written to if non-zero.
+ * \param[in] engine a engine_type pointer.
+ * \param[in] dbconn a db_connection_t pointer.
+ * \param[in] do_delete a interger which will trigger deletion of zones not
+ * in the zonelist if non-zero.
+ * \return ZONELIST_IMPORT_ERR_* on error otherwise ZONELIST_IMPORT_OK.
+ */
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete);
 
