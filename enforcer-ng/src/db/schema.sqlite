@@ -86,7 +86,7 @@ CREATE TABLE hsmKey (
     rev INTEGER NOT NULL DEFAULT 1,
     policyId INTEGER NOT NULL,
     locator TEXT NOT NULL,
-    candidateForSharing UNSIGNED INT NOT NULL,
+    state INT NOT NULL,
     bits UNSIGNED INT NOT NULL,
     algorithm UNSIGNED INT NOT NULL,
     role INT NOT NULL,

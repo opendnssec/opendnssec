@@ -41,6 +41,14 @@ struct hsm_key_list;
 typedef struct hsm_key hsm_key_t;
 typedef struct hsm_key_list hsm_key_list_t;
 
+typedef enum hsm_key_state {
+    HSM_KEY_STATE_INVALID = -1,
+    HSM_KEY_STATE_UNUSED = 1,
+    HSM_KEY_STATE_PRIVATE = 2,
+    HSM_KEY_STATE_SHARED = 3
+} hsm_key_state_t;
+extern const db_enum_t hsm_key_enum_set_state[];
+
 typedef enum hsm_key_role {
     HSM_KEY_ROLE_INVALID = -1,
     HSM_KEY_ROLE_KSK = 1,
@@ -78,7 +86,7 @@ struct hsm_key {
     db_value_t rev;
     db_value_t policy_id;
     char* locator;
-    unsigned int candidate_for_sharing;
+    hsm_key_state_t state;
     unsigned int bits;
     unsigned int algorithm;
     hsm_key_role_t role;
@@ -163,11 +171,18 @@ policy_t* hsm_key_get_policy(const hsm_key_t* hsm_key);
 const char* hsm_key_locator(const hsm_key_t* hsm_key);
 
 /**
- * Get the candidate_for_sharing of a hsm key object. Undefined behavior if `hsm_key` is NULL.
+ * Get the state of a hsm key object.
  * \param[in] hsm_key a hsm_key_t pointer.
- * \return an unsigned integer.
+ * \return a hsm_key_state_t which may be HSM_KEY_STATE_INVALID on error or if no state has been set.
  */
-unsigned int hsm_key_candidate_for_sharing(const hsm_key_t* hsm_key);
+hsm_key_state_t hsm_key_state(const hsm_key_t* hsm_key);
+
+/**
+ * Get the state as text of a hsm key object.
+ * \param[in] hsm_key a hsm_key_t pointer.
+ * \return a character pointer or NULL on error or if no state has been set.
+ */
+const char* hsm_key_state_text(const hsm_key_t* hsm_key);
 
 /**
  * Get the bits of a hsm key object. Undefined behavior if `hsm_key` is NULL.
@@ -256,12 +271,20 @@ int hsm_key_set_policy_id(hsm_key_t* hsm_key, const db_value_t* policy_id);
 int hsm_key_set_locator(hsm_key_t* hsm_key, const char* locator_text);
 
 /**
- * Set the candidate_for_sharing of a hsm key object.
+ * Set the state of a hsm key object.
  * \param[in] hsm_key a hsm_key_t pointer.
- * \param[in] candidate_for_sharing an unsigned integer.
+ * \param[in] state a hsm_key_state_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int hsm_key_set_candidate_for_sharing(hsm_key_t* hsm_key, unsigned int candidate_for_sharing);
+int hsm_key_set_state(hsm_key_t* hsm_key, hsm_key_state_t state);
+
+/**
+ * Set the state of a hsm key object from text.
+ * \param[in] hsm_key a hsm_key_t pointer.
+ * \param[in] state a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int hsm_key_set_state_text(hsm_key_t* hsm_key, const char* state);
 
 /**
  * Set the bits of a hsm key object.
@@ -366,15 +389,15 @@ db_clause_t* hsm_key_policy_id_clause(db_clause_list_t* clause_list, const db_va
 db_clause_t* hsm_key_locator_clause(db_clause_list_t* clause_list, const char* locator_text);
 
 /**
- * Create a clause for candidate_for_sharing of a hsm key object and add it to a database clause list.
+ * Create a clause for state of a hsm key object and add it to a database clause list.
  * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
  * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
  * returned db_clause_t pointer.
  * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] candidate_for_sharing an unsigned integer.
+ * \param[in] state a hsm_key_state_t.
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
-db_clause_t* hsm_key_candidate_for_sharing_clause(db_clause_list_t* clause_list, unsigned int candidate_for_sharing);
+db_clause_t* hsm_key_state_clause(db_clause_list_t* clause_list, hsm_key_state_t state);
 
 /**
  * Create a clause for bits of a hsm key object and add it to a database clause list.

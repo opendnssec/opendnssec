@@ -34,6 +34,13 @@
 
 #include <string.h>
 
+const db_enum_t hsm_key_enum_set_state[] = {
+    { "UNUSED", (hsm_key_state_t)HSM_KEY_STATE_UNUSED },
+    { "PRIVATE", (hsm_key_state_t)HSM_KEY_STATE_PRIVATE },
+    { "SHARED", (hsm_key_state_t)HSM_KEY_STATE_SHARED },
+    { NULL, 0 }
+};
+
 const db_enum_t hsm_key_enum_set_role[] = {
     { "KSK", (hsm_key_role_t)HSM_KEY_ROLE_KSK },
     { "ZSK", (hsm_key_role_t)HSM_KEY_ROLE_ZSK },
@@ -114,8 +121,9 @@ static db_object_t* __hsm_key_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "candidateForSharing")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_set_name(object_field, "state")
+        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_state)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -239,6 +247,7 @@ hsm_key_t* hsm_key_new(const db_connection_t* connection) {
         db_value_reset(&(hsm_key->id));
         db_value_reset(&(hsm_key->rev));
         db_value_reset(&(hsm_key->policy_id));
+        hsm_key->state = HSM_KEY_STATE_UNUSED;
         hsm_key->bits = 2048;
         hsm_key->algorithm = 1;
         hsm_key->role = HSM_KEY_ROLE_ZSK;
@@ -278,7 +287,7 @@ void hsm_key_reset(hsm_key_t* hsm_key) {
             free(hsm_key->locator);
         }
         hsm_key->locator = NULL;
-        hsm_key->candidate_for_sharing = 0;
+        hsm_key->state = HSM_KEY_STATE_UNUSED;
         hsm_key->bits = 2048;
         hsm_key->algorithm = 1;
         hsm_key->role = HSM_KEY_ROLE_ZSK;
@@ -371,7 +380,7 @@ int hsm_key_copy(hsm_key_t* hsm_key, const hsm_key_t* hsm_key_copy) {
         free(hsm_key->locator);
     }
     hsm_key->locator = locator_text;
-    hsm_key->candidate_for_sharing = hsm_key_copy->candidate_for_sharing;
+    hsm_key->state = hsm_key_copy->state;
     hsm_key->bits = hsm_key_copy->bits;
     hsm_key->algorithm = hsm_key_copy->algorithm;
     hsm_key->role = hsm_key_copy->role;
@@ -422,8 +431,8 @@ int hsm_key_cmp(const hsm_key_t* hsm_key_a, const hsm_key_t* hsm_key_b) {
         }
     }
 
-    if (hsm_key_a->candidate_for_sharing != hsm_key_b->candidate_for_sharing) {
-        return hsm_key_a->candidate_for_sharing < hsm_key_b->candidate_for_sharing ? -1 : 1;
+    if (hsm_key_a->state != hsm_key_b->state) {
+        return hsm_key_a->state < hsm_key_b->state ? -1 : 1;
     }
 
     if (hsm_key_a->bits != hsm_key_b->bits) {
@@ -482,6 +491,7 @@ int hsm_key_cmp(const hsm_key_t* hsm_key_a, const hsm_key_t* hsm_key_b) {
 
 int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
     const db_value_set_t* value_set;
+    int state;
     int role;
     int backup;
 
@@ -513,7 +523,7 @@ int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
         || db_value_copy(&(hsm_key->rev), db_value_set_at(value_set, 1))
         || db_value_copy(&(hsm_key->policy_id), db_value_set_at(value_set, 2))
         || db_value_to_text(db_value_set_at(value_set, 3), &(hsm_key->locator))
-        || db_value_to_uint32(db_value_set_at(value_set, 4), &(hsm_key->candidate_for_sharing))
+        || db_value_to_enum_value(db_value_set_at(value_set, 4), &state, hsm_key_enum_set_state)
         || db_value_to_uint32(db_value_set_at(value_set, 5), &(hsm_key->bits))
         || db_value_to_uint32(db_value_set_at(value_set, 6), &(hsm_key->algorithm))
         || db_value_to_enum_value(db_value_set_at(value_set, 7), &role, hsm_key_enum_set_role)
@@ -523,6 +533,19 @@ int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
         || db_value_to_text(db_value_set_at(value_set, 11), &(hsm_key->repository))
         || db_value_to_enum_value(db_value_set_at(value_set, 12), &backup, hsm_key_enum_set_backup))
     {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (state == (hsm_key_state_t)HSM_KEY_STATE_UNUSED) {
+        hsm_key->state = HSM_KEY_STATE_UNUSED;
+    }
+    else if (state == (hsm_key_state_t)HSM_KEY_STATE_PRIVATE) {
+        hsm_key->state = HSM_KEY_STATE_PRIVATE;
+    }
+    else if (state == (hsm_key_state_t)HSM_KEY_STATE_SHARED) {
+        hsm_key->state = HSM_KEY_STATE_SHARED;
+    }
+    else {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -606,12 +629,28 @@ const char* hsm_key_locator(const hsm_key_t* hsm_key) {
     return hsm_key->locator;
 }
 
-unsigned int hsm_key_candidate_for_sharing(const hsm_key_t* hsm_key) {
+hsm_key_state_t hsm_key_state(const hsm_key_t* hsm_key) {
     if (!hsm_key) {
-        return 0;
+        return HSM_KEY_STATE_INVALID;
     }
 
-    return hsm_key->candidate_for_sharing;
+    return hsm_key->state;
+}
+
+const char* hsm_key_state_text(const hsm_key_t* hsm_key) {
+    const db_enum_t* enum_set = hsm_key_enum_set_state;
+
+    if (!hsm_key) {
+        return NULL;
+    }
+
+    while (enum_set->text) {
+        if (enum_set->value == hsm_key->state) {
+            return enum_set->text;
+        }
+        enum_set++;
+    }
+    return NULL;
 }
 
 unsigned int hsm_key_bits(const hsm_key_t* hsm_key) {
@@ -751,14 +790,31 @@ int hsm_key_set_locator(hsm_key_t* hsm_key, const char* locator_text) {
     return DB_OK;
 }
 
-int hsm_key_set_candidate_for_sharing(hsm_key_t* hsm_key, unsigned int candidate_for_sharing) {
+int hsm_key_set_state(hsm_key_t* hsm_key, hsm_key_state_t state) {
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;
     }
 
-    hsm_key->candidate_for_sharing = candidate_for_sharing;
+    hsm_key->state = state;
 
     return DB_OK;
+}
+
+int hsm_key_set_state_text(hsm_key_t* hsm_key, const char* state) {
+    const db_enum_t* enum_set = hsm_key_enum_set_state;
+
+    if (!hsm_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    while (enum_set->text) {
+        if (!strcmp(enum_set->text, state)) {
+            hsm_key->state = enum_set->value;
+            return DB_OK;
+        }
+        enum_set++;
+    }
+    return DB_ERROR_UNKNOWN;
 }
 
 int hsm_key_set_bits(hsm_key_t* hsm_key, unsigned int bits) {
@@ -950,7 +1006,7 @@ db_clause_t* hsm_key_locator_clause(db_clause_list_t* clause_list, const char* l
     return clause;
 }
 
-db_clause_t* hsm_key_candidate_for_sharing_clause(db_clause_list_t* clause_list, unsigned int candidate_for_sharing) {
+db_clause_t* hsm_key_state_clause(db_clause_list_t* clause_list, hsm_key_state_t state) {
     db_clause_t* clause;
 
     if (!clause_list) {
@@ -958,10 +1014,10 @@ db_clause_t* hsm_key_candidate_for_sharing_clause(db_clause_list_t* clause_list,
     }
 
     if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "candidateForSharing")
+        || db_clause_set_field(clause, "state")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), candidate_for_sharing)
+        || db_value_from_enum_value(db_clause_get_value(clause), state, hsm_key_enum_set_state)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1202,8 +1258,9 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "candidateForSharing")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_set_name(object_field, "state")
+        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_state)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1300,7 +1357,7 @@ int hsm_key_create(hsm_key_t* hsm_key) {
 
     if (db_value_copy(db_value_set_get(value_set, 0), &(hsm_key->policy_id))
         || db_value_from_text(db_value_set_get(value_set, 1), hsm_key->locator)
-        || db_value_from_uint32(db_value_set_get(value_set, 2), hsm_key->candidate_for_sharing)
+        || db_value_from_enum_value(db_value_set_get(value_set, 2), hsm_key->state, hsm_key_enum_set_state)
         || db_value_from_uint32(db_value_set_get(value_set, 3), hsm_key->bits)
         || db_value_from_uint32(db_value_set_get(value_set, 4), hsm_key->algorithm)
         || db_value_from_enum_value(db_value_set_get(value_set, 5), hsm_key->role, hsm_key_enum_set_role)
@@ -1526,8 +1583,9 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     }
 
     if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "candidateForSharing")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_set_name(object_field, "state")
+        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
+        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_state)
         || db_object_field_list_add(object_field_list, object_field))
     {
         db_object_field_free(object_field);
@@ -1624,7 +1682,7 @@ int hsm_key_update(hsm_key_t* hsm_key) {
 
     if (db_value_copy(db_value_set_get(value_set, 0), &(hsm_key->policy_id))
         || db_value_from_text(db_value_set_get(value_set, 1), hsm_key->locator)
-        || db_value_from_uint32(db_value_set_get(value_set, 2), hsm_key->candidate_for_sharing)
+        || db_value_from_enum_value(db_value_set_get(value_set, 2), hsm_key->state, hsm_key_enum_set_state)
         || db_value_from_uint32(db_value_set_get(value_set, 3), hsm_key->bits)
         || db_value_from_uint32(db_value_set_get(value_set, 4), hsm_key->algorithm)
         || db_value_from_enum_value(db_value_set_get(value_set, 5), hsm_key->role, hsm_key_enum_set_role)
