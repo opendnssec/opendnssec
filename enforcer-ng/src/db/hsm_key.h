@@ -45,7 +45,8 @@ typedef enum hsm_key_state {
     HSM_KEY_STATE_INVALID = -1,
     HSM_KEY_STATE_UNUSED = 1,
     HSM_KEY_STATE_PRIVATE = 2,
-    HSM_KEY_STATE_SHARED = 3
+    HSM_KEY_STATE_SHARED = 3,
+    HSM_KEY_STATE_DELETE = 4
 } hsm_key_state_t;
 extern const db_enum_t hsm_key_enum_set_state[];
 

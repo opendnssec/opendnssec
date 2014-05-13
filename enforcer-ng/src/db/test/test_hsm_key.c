@@ -211,6 +211,8 @@ static void test_hsm_key_set(void) {
     CU_ASSERT(!hsm_key_set_state_text(object, "PRIVATE"));
     CU_ASSERT(!hsm_key_set_state(object, HSM_KEY_STATE_SHARED));
     CU_ASSERT(!hsm_key_set_state_text(object, "SHARED"));
+    CU_ASSERT(!hsm_key_set_state(object, HSM_KEY_STATE_DELETE));
+    CU_ASSERT(!hsm_key_set_state_text(object, "DELETE"));
     CU_ASSERT(!hsm_key_set_bits(object, 1));
     CU_ASSERT(!hsm_key_set_algorithm(object, 1));
     CU_ASSERT(!hsm_key_set_role(object, HSM_KEY_ROLE_KSK));
@@ -242,9 +244,9 @@ static void test_hsm_key_get(void) {
     CU_ASSERT(!ret);
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
-    CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_SHARED);
+    CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_state_text(object));
-    CU_ASSERT(!strcmp(hsm_key_state_text(object), "SHARED"));
+    CU_ASSERT(!strcmp(hsm_key_state_text(object), "DELETE"));
     CU_ASSERT(hsm_key_bits(object) == 1);
     CU_ASSERT(hsm_key_algorithm(object) == 1);
     CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_CSK);
@@ -415,9 +417,9 @@ static void test_hsm_key_verify(void) {
     CU_ASSERT(!ret);
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
-    CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_SHARED);
+    CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_state_text(object));
-    CU_ASSERT(!strcmp(hsm_key_state_text(object), "SHARED"));
+    CU_ASSERT(!strcmp(hsm_key_state_text(object), "DELETE"));
     CU_ASSERT(hsm_key_bits(object) == 1);
     CU_ASSERT(hsm_key_algorithm(object) == 1);
     CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_CSK);
@@ -447,9 +449,9 @@ static void test_hsm_key_verify_locator(void) {
     CU_ASSERT(!ret);
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
-    CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_SHARED);
+    CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_state_text(object));
-    CU_ASSERT(!strcmp(hsm_key_state_text(object), "SHARED"));
+    CU_ASSERT(!strcmp(hsm_key_state_text(object), "DELETE"));
     CU_ASSERT(hsm_key_bits(object) == 1);
     CU_ASSERT(hsm_key_algorithm(object) == 1);
     CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_CSK);

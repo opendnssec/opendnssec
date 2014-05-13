@@ -38,6 +38,7 @@ const db_enum_t hsm_key_enum_set_state[] = {
     { "UNUSED", (hsm_key_state_t)HSM_KEY_STATE_UNUSED },
     { "PRIVATE", (hsm_key_state_t)HSM_KEY_STATE_PRIVATE },
     { "SHARED", (hsm_key_state_t)HSM_KEY_STATE_SHARED },
+    { "DELETE", (hsm_key_state_t)HSM_KEY_STATE_DELETE },
     { NULL, 0 }
 };
 
@@ -544,6 +545,9 @@ int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
     }
     else if (state == (hsm_key_state_t)HSM_KEY_STATE_SHARED) {
         hsm_key->state = HSM_KEY_STATE_SHARED;
+    }
+    else if (state == (hsm_key_state_t)HSM_KEY_STATE_DELETE) {
+        hsm_key->state = HSM_KEY_STATE_DELETE;
     }
     else {
         return DB_ERROR_UNKNOWN;
