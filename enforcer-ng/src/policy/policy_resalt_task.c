@@ -152,7 +152,6 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			schedule_time = resalt_time;
 		policy_free(policy);
 	}
-	policy_free(policy);
 	ods_log_debug("[%s] policies have been updated", module_str);
 	return schedule_time;
 }
