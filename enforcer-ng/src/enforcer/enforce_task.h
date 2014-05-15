@@ -38,7 +38,7 @@ extern "C" {
 #endif
 
 time_t perform_enforce_lock(int sockfd, engine_type *engine, int bForce,
-                       task_type *task);
+                       task_type *task, db_connection_t *dbconn);
 
 task_type *enforce_task(engine_type *engine, bool all);
 

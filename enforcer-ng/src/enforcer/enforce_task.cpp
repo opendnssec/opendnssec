@@ -56,6 +56,8 @@
 #include "enforcer/enforcerzone.h"
 #include "enforcer/hsmkeyfactory.h"
 
+#include "db/zone.h"
+
 #include "protobuf-orm/pb-orm.h"
 
 static const char *module_str = "enforce_task";
@@ -161,228 +163,146 @@ reschedule_enforce(task_type *task, time_t t_when, const char *z_when)
 
 static time_t
 perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
-	task_type* task)
+	task_type* task, db_connection_t *dbconn)
 {
-	#define LOG_AND_RESCHEDULE(errmsg)\
-		do {\
-			ods_log_error_and_printf(sockfd,module_str,errmsg);\
-			ods_log_error("[%s] retrying in 30 minutes", module_str);\
-			return reschedule_enforce(task,t_now + 30*60, "next zone");\
-		} while (0)
-
-	#define LOG_AND_RESCHEDULE_15SECS(errmsg)\
-		do {\
-			ods_log_error_and_printf(sockfd,module_str,errmsg);\
-			ods_log_error("[%s] retrying in 15 seconds", module_str);\
-			return reschedule_enforce(task,t_now + 15, "next zone");\
-		} while (0)
-	
-	#define LOG_AND_RESCHEDULE_1(errmsg,param)\
-		do {\
-			ods_log_error_and_printf(sockfd,module_str,errmsg,param);\
-			ods_log_error("[%s] retrying in 30 minutes", module_str);\
-			return reschedule_enforce(task,t_now + 30*60, "next zone");\
-		} while (0)
-	
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	
-    time_t t_now = time_now();
-	OrmConnRef conn;
-	if (!ods_orm_connect(sockfd, engine->config, conn)) {
-		ods_log_error("[%s] retrying in 30 minutes", module_str);
-		return reschedule_enforce(task, t_now + 30*60, "next zone");
-	}
-
-	std::auto_ptr< HsmKeyFactoryCallbacks > hsmKeyFactoryCallbacks(
-			new HsmKeyFactoryCallbacks(sockfd,engine));
-    // Hook the key factory up with the database
-    HsmKeyFactoryPB keyfactory(conn,hsmKeyFactoryCallbacks.get());
+	/* loop all zones in need for an update */
+	zone_list_t *zonelist = NULL;
+	zone_t *zone;
+	const zone_t *czone, *firstzone;
+	policy_t *policy;
+	key_data_list_t *keylist;
+	const key_data_t *key;
+    db_clause_list_t* clauselist;
+    db_clause_t* clause;
+    time_t t_next, t_now = time_now();
 
 	// Flags that indicate tasks to be scheduled after zones have been enforced.
-    bool bSignerConfNeedsWriting = false;
-    bool bSubmitToParent = false;
-    bool bRetractFromParent = false;
-	bool zones_need_updating = false;
+    int bSignerConfNeedsWriting = 0;
+    int bSubmitToParent = 0;
+    int bRetractFromParent = 0;
 
-	OrmResultRef rows;
-	::ods::keystate::EnforcerZone enfzone;
 
-	bool ok;
-	if (bForceUpdate)
-		ok = OrmMessageEnum(conn,enfzone.descriptor(),rows);
-	else {
-		const char *where = "next_change IS NULL OR next_change <= %d";
-		ok = OrmMessageEnumWhere(conn,enfzone.descriptor(),rows,where,t_now);
-	}
-	if (!ok)
-		LOG_AND_RESCHEDULE_15SECS("zone enumeration failed");
-
-	// Go through all the zones that need handling and call enforcer
-	// update for the zone when its schedule time is earlier or
-	// identical to time_now.
-
-	bool next=OrmFirst(rows);
-	// I would output a count of the zones here, but according to the documenation
-	// a count is very expensive!
-	if (next) {
-		ods_log_info("[%s] Updating all zones that need require action", module_str);
-		zones_need_updating = true;
-	}
-	while (next) {
-		if (engine->need_to_reload || engine->need_to_exit) break;
-		OrmTransactionRW transaction(conn);
-		if (!transaction.started())
-			LOG_AND_RESCHEDULE_15SECS("transaction not started");
-		for (int cnt = 5; next && cnt; next = OrmNext(rows), cnt--) {
-			OrmContextRef context;
-			if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true, context))
-				LOG_AND_RESCHEDULE_15SECS("retrieving zone from database failed");
-			::ods::kasp::Policy policy;
-			if (!load_kasp_policy(conn, enfzone.policy(), policy)) {
-				/* Policy for this zone not found, don't reschedule */
-				client_printf(sockfd, 
-					"Next update for zone %s NOT scheduled "
-					"because policy %s is missing !\n",
-					enfzone.name().c_str(),
-					enfzone.policy().c_str());
-				enfzone.set_next_change((time_t)-1);
-			} else {
-				EnforcerZonePB enfZone(&enfzone, policy);
-				time_t t_next = update(enfZone, t_now, keyfactory);
-				if (enfZone.signerConfNeedsWriting())
-					bSignerConfNeedsWriting = true;
-
-				bool bSubmitThisZone = false;
-				bool bRetractThisZone = false;
-				KeyDataList &kdl = enfZone.keyDataList();
-				for (int k=0; k<kdl.numKeys(); ++k) {
-					if (kdl.key(k).dsAtParent() == DS_SUBMIT)
-						bSubmitThisZone = true;
-					if (kdl.key(k).dsAtParent() == DS_RETRACT)
-						bRetractThisZone = true;
-				}
-				if (bSubmitThisZone || bRetractThisZone) {
-					for (int k=0; k<kdl.numKeys(); ++k) {
-						if (kdl.key(k).dsAtParent() == DS_SUBMIT)
-							ods_log_warning("[%s] please submit DS "
-								"with keytag %d for zone %s",
-								module_str, kdl.key(k).keytag()&0xFFFF,
-								enfzone.name().c_str());
-						if (kdl.key(k).dsAtParent() == DS_RETRACT)
-							ods_log_warning("[%s] please retract"
-								" DS with keytag %d for zone %s",
-								module_str, kdl.key(k).keytag()&0xFFFF,
-								enfzone.name().c_str());
-					}
-				}
-				bSubmitToParent |= bSubmitThisZone;
-				bRetractFromParent |= bRetractThisZone;
-				
-				if (t_next == -1) {
-					client_printf(sockfd,
-						"Next update for zone %s NOT scheduled "
-						"by enforcer !\n", enfzone.name().c_str());
-				}
-				
-				enfZone.setNextChange(t_next);
-				if (t_next != -1) {
-					// Invalid schedule time then skip the zone.
-					char tbuf[32] = "date/time invalid\n"; // at least 26 bytes
-					ctime_r(&t_next,tbuf); // note that ctime_r inserts a \n
-					client_printf(sockfd,
-							   "Next update for zone %s scheduled at %s",
-							   enfzone.name().c_str(),
-							   tbuf);
-				}
-			}
-			if (!OrmMessageUpdate(context))
-				LOG_AND_RESCHEDULE_15SECS("updating zone in the database failed");
+	if (!bForceUpdate) {
+		clause = zone_next_change_clause(clauselist, t_now);
+		if (db_clause_set_type(clause, DB_CLAUSE_LESS_OR_EQUAL) ||
+			(zonelist = zone_list_new_get_by_clauses(dbconn, clauselist)))
+		{
+			db_clause_list_free(clauselist);
 		}
-		if (!transaction.commit())
-			LOG_AND_RESCHEDULE_15SECS("committing updated zones to the database failed");
+	} else { /* all zones */
+		zonelist = zone_list_new_get(dbconn);
 	}
-	// we no longer need the query result, so release it.
-	rows.release();
-	if (zones_need_updating)
-		ods_log_info("[%s] Completed updating all zones that need required action", module_str);
+	
+	while ((zone = zone_list_get_next(zonelist)) &&
+		!engine->need_to_reload && !engine->need_to_exit)
+	{
+		if (!bForceUpdate && (zone_next_change(zone) == -1)) {
+			zone_free(zone);
+			continue;
+		}
+		if (!(policy = zone_get_policy(zone))) {
+			client_printf(sockfd, 
+				"Next update for zone %s NOT scheduled "
+				"because policy is missing !\n", zone_name(zone));
+			if (zone_set_next_change(zone, -1)) {
+				/*dberr*/
+				zone_free(zone);
+				break;
+			}
+			zone_free(zone);
+			continue;
+		}
 
-    // Delete the call backs and launch key pre-generation when we ran out 
-    // of keys during the enforcement
-    hsmKeyFactoryCallbacks.reset();
+		t_next = update(zone, policy, t_now);
+		bSignerConfNeedsWriting |= zone_signconf_needs_writing(zone);
 
-
-	// when to reschedule next zone for enforcement
-    time_t t_when = t_now + 1 * 365 * 24 * 60 * 60; // now + 1 year
-    // which zone to reschedule next for enforcement
-    std::string z_when("next zone");
-
-	{	OrmTransaction transaction(conn);
-		if (!transaction.started())
-			LOG_AND_RESCHEDULE_15SECS("transaction not started");
+		keylist = zone_get_keys(zone);
+		while ((key = key_data_list_next(keylist))) {
+			if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_SUBMIT) {
+				ods_log_warning("[%s] please submit DS "
+					"with keytag %d for zone %s",
+					module_str, key_data_keytag(key)&0xFFFF, zone_name(zone));
+				bSubmitToParent = 1;
+			} else if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_RETRACT) {
+				ods_log_warning("[%s] please retract DS "
+					"with keytag %d for zone %s",
+					module_str, key_data_keytag(key)&0xFFFF, zone_name(zone));
+				bRetractFromParent = 1;
+			}
+		}
+		key_data_list_free(keylist);
 		
-		{	OrmResultRef rows;
-			::ods::keystate::EnforcerZone enfzone;
-			
-			// Determine the next schedule time.
-			const char *where =
-				"next_change IS NULL OR next_change > 0 ORDER BY next_change";
-			if (!OrmMessageEnumWhere(conn,enfzone.descriptor(),rows,where))
-				LOG_AND_RESCHEDULE_15SECS("zone query failed");
-			
-			if (!OrmFirst(rows))
-				LOG_AND_RESCHEDULE("unable to determine next schedule time");
-			
-			if (!OrmGetMessage(rows, enfzone, false))
-				LOG_AND_RESCHEDULE("unable to retriev zone from database");
-			
-			// t_next can never go negative as next_change is a uint32 and 
-			// time_t is a long (int64) so -1 stored in next_change will 
-			// become maxint in t_next.
-			time_t t_next = enfzone.next_change();
-			
-			// Determine whether this zone is going to be scheduled next.
-			// If the enforcer wants a reschedule earlier than currently
-			// set, then use that.
-			if (t_next < t_when) {
-				t_when = t_next;
-				z_when = enfzone.name().c_str();
+		if (t_next == -1) {
+			client_printf(sockfd,
+				"Next update for zone %s NOT scheduled "
+				"by enforcer !\n", zone_name(zone));
+		} else {
+			/* Invalid schedule time then skip the zone.*/
+			char tbuf[32] = "date/time invalid\n"; // at least 26 bytes
+			ctime_r(&t_next, tbuf); /* note that ctime_r inserts \n */
+			client_printf(sockfd,
+				"Next update for zone %s scheduled at %s",
+				zone_name(zone), tbuf);
+		}
+		zone_set_next_change(zone, t_next);
+		zone_free(zone);
+	}
+	zone_list_free(zonelist);
+	/* crude way to find out when to schedule the next change */
+	zonelist = zone_list_new_get(dbconn);
+	t_next = -1;
+	firstzone = NULL;
+	while ((czone = zone_list_next(zonelist))) {
+		time_t t_update = zone_next_change(czone);
+		if (t_update != -1) { /* -1 = no update ever */
+			if (t_update < t_next || firstzone == NULL) {
+				t_next = t_update;
+				firstzone = czone;
 			}
 		}
 	}
+	if (firstzone) {
+		t_next = reschedule_enforce(task, t_next, zone_name(firstzone));
+	} else {
+		t_next = -1;
+	}
+	zone_list_free(zonelist);
 
-    // Launch signer configuration writer task when one of the 
-    // zones indicated that it needs to be written.
-    if (bSignerConfNeedsWriting) {
-        task_type *signconf =
-            signconf_task(engine->config, "signconf", "signer configurations");
-        schedule_task(sockfd,engine,signconf,"signconf");
-    }
-	else
+	/* Launch signer configuration writer task when one of the 
+	 * zones indicated that it needs to be written.
+	 * TODO: unschedule it first!
+	 */
+	if (bSignerConfNeedsWriting) {
+		task_type *signconf =
+			signconf_task(engine->config, "signconf", "signer configurations");
+		schedule_task(sockfd,engine,signconf,"signconf");
+	} else {
 		ods_log_info("[%s] No changes to any signconf file required", module_str);
+	}
 
-    // Launch ds-submit task when one of the updated key states has the
-    // DS_SUBMIT flag set.
-    if (bSubmitToParent) {
-        task_type *submit =
-            keystate_ds_submit_task(engine->config,
-                                    "ds-submit","KSK keys with submit flag set");
-        schedule_task(sockfd,engine,submit,"ds-submit");
-    }
+	// Launch ds-submit task when one of the updated key states has the
+	// DS_SUBMIT flag set.
+	if (bSubmitToParent) {
+		task_type *submit =
+			keystate_ds_submit_task(engine->config,
+									"ds-submit","KSK keys with submit flag set");
+		schedule_task(sockfd,engine,submit,"ds-submit");
+	}
 
-    // Launch ds-retract task when one of the updated key states has the
-    // DS_RETRACT flag set.
-    if (bRetractFromParent) {
-        task_type *retract =
-            keystate_ds_retract_task(engine->config,
-                                "ds-retract","KSK keys with retract flag set");
-        schedule_task(sockfd,engine,retract,"ds-retract");
-    }
+	// Launch ds-retract task when one of the updated key states has the
+	// DS_RETRACT flag set.
+	if (bRetractFromParent) {
+		task_type *retract =
+			keystate_ds_retract_task(engine->config,
+								"ds-retract","KSK keys with retract flag set");
+		schedule_task(sockfd,engine,retract,"ds-retract");
+	}
 
-    return reschedule_enforce(task,t_when,z_when.c_str());
+    return t_next;
 }
 
 time_t perform_enforce_lock(int sockfd, engine_type *engine,
-	int bForceUpdate, task_type* task)
+	int bForceUpdate, task_type* task, db_connection_t *dbconn)
 {
 	time_t returntime;
 	int locked;
@@ -391,7 +311,8 @@ time_t perform_enforce_lock(int sockfd, engine_type *engine,
 			" No action taken.\n");
 		return 0;
 	}
-	returntime = perform_enforce(sockfd, engine, bForceUpdate, task);
+	returntime = perform_enforce(sockfd, engine, bForceUpdate, task,
+		dbconn);
 	pthread_mutex_unlock(&engine->enforce_lock);
 	return returntime;
 }
@@ -400,7 +321,7 @@ static task_type *
 enforce_task_perform(task_type *task)
 {
 	int return_time = perform_enforce_lock(-1, (engine_type *)task->context, 
-		enforce_all, task);
+		enforce_all, task, task->dbconn);
 	enforce_all = 0; /* global */
 	if (return_time != -1) return task;
 	task_cleanup(task);

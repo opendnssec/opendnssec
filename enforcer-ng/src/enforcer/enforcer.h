@@ -28,6 +28,8 @@
 #define _ENFORCER_ENFORCER_H_
 
 #include "enforcer/enforcerdata.h"
+#include "db/zone.h"
+#include "db/policy.h"
 
 /**
  * Does any required work for a zone and its policy.
@@ -46,7 +48,7 @@
  * @return time_t Time the function wishes to be called again.
  * */
 time_t
-update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory);
+update(zone_t *zone, policy_t *policy, time_t now);
 
 
 #endif

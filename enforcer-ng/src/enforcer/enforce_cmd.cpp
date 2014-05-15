@@ -69,7 +69,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 {
 	(void)cmd; (void)n;
 	ods_log_debug("[%s] %s command", module_str, enforce_funcblock()->cmdname);
-	perform_enforce_lock(sockfd, engine, 1, NULL);
+	perform_enforce_lock(sockfd, engine, 1, NULL, dbconn);
 	return 0;
 }
 

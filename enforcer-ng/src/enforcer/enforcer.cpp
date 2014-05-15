@@ -43,7 +43,6 @@
 #include <ctime>
 #include <iostream>
 
-#include "enforcer/enforcer.h"
 #include "enforcer/enforcerdata.h"
 #include "policy/kasp.pb.h"
 #include "hsmkey/hsmkey.pb.h"
@@ -54,6 +53,12 @@
 
 #include "shared/duration.h"
 #include "shared/log.h"
+
+#include "db/zone.h"
+#include "db/policy.h"
+
+#include "enforcer/enforcer.h"
+
 
 using namespace std;
 using ::ods::kasp::Policy;
@@ -1498,9 +1503,15 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 	return firstPurge;
 }
 
+time_t
+update(zone_t *zone, policy_t *policy, time_t now)
+{
+	return now + 5;
+}
+
 /* see header file */
 time_t 
-update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
+update_old(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 {
 	time_t policy_return_time, zone_return_time, purge_return_time = -1;
 	bool allow_unsigned;
