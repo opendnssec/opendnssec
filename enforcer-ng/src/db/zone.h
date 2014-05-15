@@ -87,6 +87,13 @@ struct zone {
 zone_t* zone_new(const db_connection_t* connection);
 
 /**
+ * Create a new zone object that is a copy of another zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a zone_t pointer or NULL on error.
+ */
+zone_t* zone_new_copy(const zone_t* zone);
+
+/**
  * Delete a zone object, this does not delete it from the database.
  * \param[in] zone a zone_t pointer.
  */
@@ -729,6 +736,27 @@ int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_
 zone_list_t* zone_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
 
 /**
+ * Get the first zone object in a zone object list and reset the
+ * position of the list. This will not work unless zone_list_fetch_all()
+ * has been called.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_t pointer or NULL on error or if there are no
+ * zone objects in the zone object list.
+ */
+const zone_t* zone_list_begin(zone_list_t* zone_list);
+
+/**
+ * Get the first zone object in a zone object list and reset the
+ * position of the list. This will not work unless zone_list_fetch_all()
+ * has been called. The caller will be given ownership of this object and is
+ * responsible for freeing it.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_t pointer or NULL on error or if there are no
+ * zone objects in the zone object list.
+ */
+zone_t* zone_list_get_begin(zone_list_t* zone_list);
+
+/**
  * Get the next zone object in a zone object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.
@@ -747,6 +775,15 @@ const zone_t* zone_list_next(zone_list_t* zone_list);
  * zone objects in the zone object list.
  */
 zone_t* zone_list_get_next(zone_list_t* zone_list);
+
+/**
+ * Make sure that all objects in this zone object list is loaded into memory
+ * so that zone_list_begin()/zone_list_get_begin() can be used to
+ * iterate over the list multiple times.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_result_list_fetch_all(db_result_list_t* result_list);
 
 #ifdef __cplusplus
 }

@@ -189,6 +189,13 @@ print HEADER '};
 ', $name, '_t* ', $name, '_new(const db_connection_t* connection);
 
 /**
+ * Create a new ', $tname, ' object that is a copy of another ', $tname, ' object.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \return a ', $name, '_t pointer or NULL on error.
+ */
+', $name, '_t* ', $name, '_new_copy(const ', $name, '_t* ', $name, ');
+
+/**
  * Delete a ', $tname, ' object, this does not delete it from the database.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
  */
@@ -598,6 +605,27 @@ int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_t* ', $name, '
     }
 }
 print HEADER '/**
+ * Get the first ', $tname, ' object in a ', $tname, ' object list and reset the
+ * position of the list. This will not work unless ', $name, '_list_fetch_all()
+ * has been called.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return a ', $name, '_t pointer or NULL on error or if there are no
+ * ', $tname, ' objects in the ', $tname, ' object list.
+ */
+const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list);
+
+/**
+ * Get the first ', $tname, ' object in a ', $tname, ' object list and reset the
+ * position of the list. This will not work unless ', $name, '_list_fetch_all()
+ * has been called. The caller will be given ownership of this object and is
+ * responsible for freeing it.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return a ', $name, '_t pointer or NULL on error or if there are no
+ * ', $tname, ' objects in the ', $tname, ' object list.
+ */
+', $name, '_t* ', $name, '_list_get_begin(', $name, '_list_t* ', $name, '_list);
+
+/**
  * Get the next ', $tname, ' object in a ', $tname, ' object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.
@@ -616,6 +644,15 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
  * ', $tname, ' objects in the ', $tname, ' object list.
  */
 ', $name, '_t* ', $name, '_list_get_next(', $name, '_list_t* ', $name, '_list);
+
+/**
+ * Make sure that all objects in this ', $tname, ' object list is loaded into memory
+ * so that ', $name, '_list_begin()/', $name, '_list_get_begin() can be used to
+ * iterate over the list multiple times.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_result_list_fetch_all(db_result_list_t* result_list);
 
 #ifdef __cplusplus
 }
@@ -829,6 +866,25 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = ', $field->{default}, 
 print SOURCE '    }
 
     return ', $name, ';
+}
+
+', $name, '_t* ', $name, '_new_copy(const ', $name, '_t* ', $name, ') {
+    ', $name, '_t* new_', $name, ';
+
+    if (!', $name, ') {
+        return NULL;
+    }
+    if (!', $name, '->dbo) {
+        return NULL;
+    }
+
+    if (!(new_', $name, ' = ', $name, '_new(db_object_connection(', $name, '->dbo)))
+        || ', $name, '_copy(new_', $name, ', ', $name, '))
+    {
+        ', $name, '_free(new_', $name, ');
+        return NULL;
+    }
+    return new_', $name, ';
 }
 
 void ', $name, '_free(', $name, '_t* ', $name, ') {
@@ -2088,10 +2144,61 @@ print SOURCE 'int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_
 ';
     }
 }
-print SOURCE 'const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list) {
+print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list) {
     const db_result_t* result;
 
     if (!', $name, '_list) {
+        return NULL;
+    }
+    if (!', $name, '_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(', $name, '_list->result_list))) {
+        return NULL;
+    }
+    if (!', $name, '_list->', $name, ') {
+        if (!(', $name, '_list->', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (', $name, '_from_result(', $name, '_list->', $name, ', result)) {
+        return NULL;
+    }
+    return ', $name, '_list->', $name, ';
+}
+
+', $name, '_t* ', $name, '_list_get_begin(', $name, '_list_t* ', $name, '_list) {
+    const db_result_t* result;
+    ', $name, '_t* ', $name, ';
+
+    if (!', $name, '_list) {
+        return NULL;
+    }
+    if (!', $name, '_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(', $name, '_list->result_list))) {
+        return NULL;
+    }
+    if (!(', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
+        return NULL;
+    }
+    if (', $name, '_from_result(', $name, '_list->', $name, ', result)) {
+        ', $name, '_free(', $name, ');
+        return NULL;
+    }
+    return ', $name, ';
+}
+
+const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list) {
+    const db_result_t* result;
+
+    if (!', $name, '_list) {
+        return NULL;
+    }
+    if (!', $name, '_list->result_list) {
         return NULL;
     }
 
@@ -2116,6 +2223,9 @@ print SOURCE 'const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', 
     if (!', $name, '_list) {
         return NULL;
     }
+    if (!', $name, '_list->result_list) {
+        return NULL;
+    }
 
     if (!(result = db_result_list_next(', $name, '_list->result_list))) {
         return NULL;
@@ -2128,6 +2238,17 @@ print SOURCE 'const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', 
         return NULL;
     }
     return ', $name, ';
+}
+
+int ', $name, '_list_fetch_all(', $name, '_list_t* ', $name, '_list) {
+    if (!', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_fetch_all(', $name, '_list->result_list);
 }
 ';
 close(SOURCE);

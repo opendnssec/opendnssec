@@ -116,6 +116,25 @@ database_version_t* database_version_new(const db_connection_t* connection) {
     return database_version;
 }
 
+database_version_t* database_version_new_copy(const database_version_t* database_version) {
+    database_version_t* new_database_version;
+
+    if (!database_version) {
+        return NULL;
+    }
+    if (!database_version->dbo) {
+        return NULL;
+    }
+
+    if (!(new_database_version = database_version_new(db_object_connection(database_version->dbo)))
+        || database_version_copy(new_database_version, database_version))
+    {
+        database_version_free(new_database_version);
+        return NULL;
+    }
+    return new_database_version;
+}
+
 void database_version_free(database_version_t* database_version) {
     if (database_version) {
         if (database_version->dbo) {
@@ -609,10 +628,61 @@ database_version_list_t* database_version_list_new_get_by_clauses(const db_conne
     return database_version_list;
 }
 
+const database_version_t* database_version_list_begin(database_version_list_t* database_version_list) {
+    const db_result_t* result;
+
+    if (!database_version_list) {
+        return NULL;
+    }
+    if (!database_version_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(database_version_list->result_list))) {
+        return NULL;
+    }
+    if (!database_version_list->database_version) {
+        if (!(database_version_list->database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (database_version_from_result(database_version_list->database_version, result)) {
+        return NULL;
+    }
+    return database_version_list->database_version;
+}
+
+database_version_t* database_version_list_get_begin(database_version_list_t* database_version_list) {
+    const db_result_t* result;
+    database_version_t* database_version;
+
+    if (!database_version_list) {
+        return NULL;
+    }
+    if (!database_version_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(database_version_list->result_list))) {
+        return NULL;
+    }
+    if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+        return NULL;
+    }
+    if (database_version_from_result(database_version_list->database_version, result)) {
+        database_version_free(database_version);
+        return NULL;
+    }
+    return database_version;
+}
+
 const database_version_t* database_version_list_next(database_version_list_t* database_version_list) {
     const db_result_t* result;
 
     if (!database_version_list) {
+        return NULL;
+    }
+    if (!database_version_list->result_list) {
         return NULL;
     }
 
@@ -637,6 +707,9 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
     if (!database_version_list) {
         return NULL;
     }
+    if (!database_version_list->result_list) {
+        return NULL;
+    }
 
     if (!(result = db_result_list_next(database_version_list->result_list))) {
         return NULL;
@@ -649,4 +722,15 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
         return NULL;
     }
     return database_version;
+}
+
+int database_version_list_fetch_all(database_version_list_t* database_version_list) {
+    if (!database_version_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!database_version_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_fetch_all(database_version_list->result_list);
 }

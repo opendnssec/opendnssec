@@ -96,7 +96,8 @@
       { "name": "CSK", "value": 3, "text": "CSK" } ], "default": "ZSK" },
     { "name": "inception", "type": "DB_TYPE_UINT32" },
     { "name": "is_revoked", "type": "DB_TYPE_UINT32" },
-    { "name": "key_type", "type": "DB_TYPE_TEXT" },
+    { "name": "key_type", "type": "DB_TYPE_ENUM", "enum": [
+      { "name": "RSA", "value": 1, "text": "RSA" } ], "default": "RSA" },
     { "name": "repository", "type": "DB_TYPE_TEXT" },
     { "name": "backup", "type": "DB_TYPE_ENUM", "enum": [
       { "name": "NO_BACKUP", "value": 0, "text": "No Backup" },

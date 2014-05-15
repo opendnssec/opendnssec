@@ -92,7 +92,7 @@ CREATE TABLE hsmKey (
     role INT NOT NULL,
     inception UNSIGNED INT NOT NULL,
     isRevoked UNSIGNED INT NOT NULL,
-    keyType TEXT NOT NULL,
+    keyType INT NOT NULL,
     repository TEXT NOT NULL,
     backup INT NOT NULL
 );

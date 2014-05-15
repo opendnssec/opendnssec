@@ -1067,7 +1067,7 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
     }
 
     if (!(result_list = db_result_list_new())
-        || db_result_list_set_next(result_list, db_backend_sqlite_next, statement))
+        || db_result_list_set_next(result_list, db_backend_sqlite_next, statement, 0))
     {
         sqlite3_finalize(statement->statement);
         mm_alloc_delete(&__sqlite_statement_alloc, statement);
@@ -1538,6 +1538,127 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
     return DB_OK;
 }
 
+static int db_backend_sqlite_count(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count) {
+    db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+    const db_join_t* join;
+    char sql[4*1024];
+    char* sqlp;
+    int ret, left, bind;
+    sqlite3_stmt* statement = NULL;
+    int sqlite_count;
+    time_t busy_begin;
+
+    if (!__sqlite3_initialized) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_sqlite) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    left = sizeof(sql);
+    sqlp = sql;
+
+    if ((ret = snprintf(sqlp, left, "SELECT COUNT(*)")) >= left) {
+        return DB_ERROR_UNKNOWN;
+    }
+    sqlp += ret;
+    left -= ret;
+
+    if ((ret = snprintf(sqlp, left, " FROM %s", db_object_table(object))) >= left) {
+        return DB_ERROR_UNKNOWN;
+    }
+    sqlp += ret;
+    left -= ret;
+
+    if (join_list) {
+        join = db_join_list_begin(join_list);
+        while (join) {
+            if ((ret = snprintf(sqlp, left, " INNER JOIN %s ON %s.%s = %s.%s",
+                db_join_to_table(join),
+                db_join_to_table(join),
+                db_join_to_field(join),
+                db_join_from_table(join),
+                db_join_from_field(join))) >= left)
+            {
+                return DB_ERROR_UNKNOWN;
+            }
+            sqlp += ret;
+            left -= ret;
+            join = db_join_next(join);
+        }
+    }
+
+    if (clause_list) {
+        if (db_clause_list_begin(clause_list)) {
+            if ((ret = snprintf(sqlp, left, " WHERE")) >= left) {
+                return DB_ERROR_UNKNOWN;
+            }
+            sqlp += ret;
+            left -= ret;
+        }
+        if (__db_backend_sqlite_build_clause(object, clause_list, &sqlp, &left)) {
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
+    ret = sqlite3_prepare_v2(backend_sqlite->db,
+        sql,
+        sizeof(sql),
+        &statement,
+        NULL);
+    if (ret != SQLITE_OK) {
+        ods_log_info("DB SQL %s", sql);
+        ods_log_info("DB Err %d\n", ret);
+        if (statement) {
+            sqlite3_finalize(statement);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (clause_list) {
+        bind = 1;
+        if (__db_backend_sqlite_bind_clause(statement, clause_list, &bind)) {
+            sqlite3_finalize(statement);
+            return DB_ERROR_UNKNOWN;
+        }
+    }
+
+    ret = sqlite3_step(statement);
+    if (ret == SQLITE_BUSY) {
+        ods_log_deeebug("db_backend_sqlite: Database busy, waiting for it...");
+
+        busy_begin = time(NULL);
+        while (ret == SQLITE_BUSY) {
+            if (time(NULL) > (busy_begin + backend_sqlite->timeout)) {
+                break;
+            }
+            usleep(DB_BACKEND_SQLITE_BUSY_USLEEP);
+            ret = sqlite3_step(statement);
+        }
+    }
+    if (ret != SQLITE_DONE && ret != SQLITE_ROW) {
+        sqlite3_finalize(statement);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    sqlite_count = sqlite3_column_int(statement, 0);
+    ret = sqlite3_errcode(backend_sqlite->db);
+    if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)) {
+        sqlite3_finalize(statement);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    *count = sqlite_count;
+    sqlite3_finalize(statement);
+    return DB_OK;
+}
+
 static void db_backend_sqlite_free(void* data) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
 
@@ -1723,6 +1844,7 @@ db_backend_handle_t* db_backend_sqlite_new_handle(void) {
             || db_backend_handle_set_read(backend_handle, db_backend_sqlite_read)
             || db_backend_handle_set_update(backend_handle, db_backend_sqlite_update)
             || db_backend_handle_set_delete(backend_handle, db_backend_sqlite_delete)
+            || db_backend_handle_set_count(backend_handle, db_backend_sqlite_count)
             || db_backend_handle_set_free(backend_handle, db_backend_sqlite_free)
             || db_backend_handle_set_transaction_begin(backend_handle, db_backend_sqlite_transaction_begin)
             || db_backend_handle_set_transaction_commit(backend_handle, db_backend_sqlite_transaction_commit)

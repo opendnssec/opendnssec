@@ -115,6 +115,13 @@ struct policy {
 policy_t* policy_new(const db_connection_t* connection);
 
 /**
+ * Create a new policy object that is a copy of another policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a policy_t pointer or NULL on error.
+ */
+policy_t* policy_new_copy(const policy_t* policy);
+
+/**
  * Delete a policy object, this does not delete it from the database.
  * \param[in] policy a policy_t pointer.
  */
@@ -1102,6 +1109,27 @@ int policy_list_get_by_clauses(policy_list_t* policy_list, const db_clause_list_
 policy_list_t* policy_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
+ * Get the first policy object in a policy object list and reset the
+ * position of the list. This will not work unless policy_list_fetch_all()
+ * has been called.
+ * \param[in] policy_list a policy_list_t pointer.
+ * \return a policy_t pointer or NULL on error or if there are no
+ * policy objects in the policy object list.
+ */
+const policy_t* policy_list_begin(policy_list_t* policy_list);
+
+/**
+ * Get the first policy object in a policy object list and reset the
+ * position of the list. This will not work unless policy_list_fetch_all()
+ * has been called. The caller will be given ownership of this object and is
+ * responsible for freeing it.
+ * \param[in] policy_list a policy_list_t pointer.
+ * \return a policy_t pointer or NULL on error or if there are no
+ * policy objects in the policy object list.
+ */
+policy_t* policy_list_get_begin(policy_list_t* policy_list);
+
+/**
  * Get the next policy object in a policy object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.
@@ -1120,6 +1148,15 @@ const policy_t* policy_list_next(policy_list_t* policy_list);
  * policy objects in the policy object list.
  */
 policy_t* policy_list_get_next(policy_list_t* policy_list);
+
+/**
+ * Make sure that all objects in this policy object list is loaded into memory
+ * so that policy_list_begin()/policy_list_get_begin() can be used to
+ * iterate over the list multiple times.
+ * \param[in] policy_list a policy_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_result_list_fetch_all(db_result_list_t* result_list);
 
 #ifdef __cplusplus
 }

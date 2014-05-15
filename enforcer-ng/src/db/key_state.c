@@ -193,6 +193,25 @@ key_state_t* key_state_new(const db_connection_t* connection) {
     return key_state;
 }
 
+key_state_t* key_state_new_copy(const key_state_t* key_state) {
+    key_state_t* new_key_state;
+
+    if (!key_state) {
+        return NULL;
+    }
+    if (!key_state->dbo) {
+        return NULL;
+    }
+
+    if (!(new_key_state = key_state_new(db_object_connection(key_state->dbo)))
+        || key_state_copy(new_key_state, key_state))
+    {
+        key_state_free(new_key_state);
+        return NULL;
+    }
+    return new_key_state;
+}
+
 void key_state_free(key_state_t* key_state) {
     if (key_state) {
         if (key_state->dbo) {
@@ -1251,10 +1270,61 @@ key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* c
     return key_state_list;
 }
 
+const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
+    const db_result_t* result;
+
+    if (!key_state_list) {
+        return NULL;
+    }
+    if (!key_state_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(key_state_list->result_list))) {
+        return NULL;
+    }
+    if (!key_state_list->key_state) {
+        if (!(key_state_list->key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (key_state_from_result(key_state_list->key_state, result)) {
+        return NULL;
+    }
+    return key_state_list->key_state;
+}
+
+key_state_t* key_state_list_get_begin(key_state_list_t* key_state_list) {
+    const db_result_t* result;
+    key_state_t* key_state;
+
+    if (!key_state_list) {
+        return NULL;
+    }
+    if (!key_state_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(key_state_list->result_list))) {
+        return NULL;
+    }
+    if (!(key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+        return NULL;
+    }
+    if (key_state_from_result(key_state_list->key_state, result)) {
+        key_state_free(key_state);
+        return NULL;
+    }
+    return key_state;
+}
+
 const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {
     const db_result_t* result;
 
     if (!key_state_list) {
+        return NULL;
+    }
+    if (!key_state_list->result_list) {
         return NULL;
     }
 
@@ -1279,6 +1349,9 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list) {
     if (!key_state_list) {
         return NULL;
     }
+    if (!key_state_list->result_list) {
+        return NULL;
+    }
 
     if (!(result = db_result_list_next(key_state_list->result_list))) {
         return NULL;
@@ -1291,4 +1364,15 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list) {
         return NULL;
     }
     return key_state;
+}
+
+int key_state_list_fetch_all(key_state_list_t* key_state_list) {
+    if (!key_state_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_state_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_fetch_all(key_state_list->result_list);
 }

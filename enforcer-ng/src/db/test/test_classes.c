@@ -281,6 +281,15 @@ int __db_backend_handle_delete(void* data, const db_object_t* _object, const db_
     return 0;
 }
 
+int __db_backend_handle_count(void* data, const db_object_t* _object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count) {
+    CU_ASSERT(data == &fake_pointer);
+    CU_ASSERT((void*)_object == &fake_pointer || (object != NULL && _object == object));
+    CU_ASSERT((void*)join_list == &fake_pointer);
+    CU_ASSERT((void*)clause_list == &fake_pointer);
+    CU_ASSERT((void*)count == &fake_pointer);
+    return 0;
+}
+
 void __db_backend_handle_free(void* data) {
     CU_ASSERT(data == &fake_pointer);
 }
@@ -311,6 +320,7 @@ void test_class_db_backend_handle(void) {
     CU_ASSERT(!db_backend_handle_set_read(backend_handle, __db_backend_handle_read));
     CU_ASSERT(!db_backend_handle_set_update(backend_handle, __db_backend_handle_update));
     CU_ASSERT(!db_backend_handle_set_delete(backend_handle, __db_backend_handle_delete));
+    CU_ASSERT(!db_backend_handle_set_count(backend_handle, __db_backend_handle_count));
     CU_ASSERT(!db_backend_handle_set_free(backend_handle, __db_backend_handle_free));
     CU_ASSERT(!db_backend_handle_set_transaction_begin(backend_handle, __db_backend_handle_transaction_begin));
     CU_ASSERT(!db_backend_handle_set_transaction_commit(backend_handle, __db_backend_handle_transaction_commit));
@@ -328,6 +338,7 @@ void test_class_db_backend_handle(void) {
     CU_ASSERT(db_backend_handle_read(backend_handle, (db_object_t*)&fake_pointer, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer) == (db_result_list_t*)&fake_pointer);
     CU_ASSERT(!db_backend_handle_update(backend_handle, (db_object_t*)&fake_pointer, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
     CU_ASSERT(!db_backend_handle_delete(backend_handle, (db_object_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
+    CU_ASSERT(!db_backend_handle_count(backend_handle, (db_object_t*)&fake_pointer, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer, (size_t*)&fake_pointer));
     CU_ASSERT(!db_backend_handle_transaction_begin(backend_handle));
     CU_ASSERT(!db_backend_handle_transaction_commit(backend_handle));
     CU_ASSERT(!db_backend_handle_transaction_rollback(backend_handle));
@@ -353,6 +364,7 @@ void test_class_db_backend(void) {
     CU_ASSERT(db_backend_read(backend, (db_object_t*)&fake_pointer, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer) == (db_result_list_t*)&fake_pointer);
     CU_ASSERT(!db_backend_update(backend, (db_object_t*)&fake_pointer, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
     CU_ASSERT(!db_backend_delete(backend, (db_object_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
+    CU_ASSERT(!db_backend_count(backend, (db_object_t*)&fake_pointer, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer, (size_t*)&fake_pointer));
     CU_ASSERT(!db_backend_transaction_begin(backend));
     CU_ASSERT(!db_backend_transaction_commit(backend));
     CU_ASSERT(!db_backend_transaction_rollback(backend));
@@ -557,6 +569,7 @@ void test_class_db_connection(void) {
     CU_ASSERT(db_connection_read(connection, (db_object_t*)&fake_pointer, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer) == (db_result_list_t*)&fake_pointer);
     CU_ASSERT(!db_connection_update(connection, (db_object_t*)&fake_pointer, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
     CU_ASSERT(!db_connection_delete(connection, (db_object_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
+    CU_ASSERT(!db_connection_count(connection, (db_object_t*)&fake_pointer, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer, (size_t*)&fake_pointer));
     CU_ASSERT(!db_connection_transaction_begin(connection));
     CU_ASSERT(!db_connection_transaction_commit(connection));
     CU_ASSERT(!db_connection_transaction_rollback(connection));
@@ -677,6 +690,7 @@ void test_class_db_object(void) {
     CU_ASSERT(db_object_read(object, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer) == (db_result_list_t*)&fake_pointer);
     CU_ASSERT(!db_object_update(object, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer));
     CU_ASSERT(!db_object_delete(object, (db_clause_list_t*)&fake_pointer));
+    CU_ASSERT(!db_object_count(object, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer, (size_t*)&fake_pointer));
 
     db_object_free(object);
     object = NULL;
@@ -732,6 +746,7 @@ void test_class_db_result(void) {
     CU_ASSERT(!db_result_not_empty(result2));
 }
 
+static int __db_result_list_next_count = 0;
 db_result_t* __db_result_list_next(void* data, int finish) {
     db_value_set_t* value_set;
     db_result_t* result;
@@ -739,6 +754,10 @@ db_result_t* __db_result_list_next(void* data, int finish) {
     CU_ASSERT_FATAL(data == &fake_pointer);
 
     if (finish) {
+        return NULL;
+    }
+
+    if (__db_result_list_next_count > 2) {
         return NULL;
     }
 
@@ -755,6 +774,8 @@ db_result_t* __db_result_list_next(void* data, int finish) {
     CU_ASSERT(!db_result_set_value_set(result, value_set));
     CU_ASSERT(!db_result_not_empty(result));
 
+    __db_result_list_next_count++;
+
     return result;
 }
 
@@ -769,6 +790,7 @@ void test_class_db_result_list(void) {
     CU_ASSERT_FATAL(!db_result_list_add(result_list, result2));
     result2 = NULL;
 
+    CU_ASSERT(db_result_list_size(result_list) == 2);
     CU_ASSERT(db_result_list_begin(result_list) == local_result);
     CU_ASSERT(db_result_list_next(result_list) == local_result2);
 
@@ -779,8 +801,10 @@ void test_class_db_result_list(void) {
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((result_list = db_result_list_new()));
 
-    CU_ASSERT_FATAL(!db_result_list_set_next(result_list, __db_result_list_next, &fake_pointer));
+    CU_ASSERT_FATAL(!db_result_list_set_next(result_list, __db_result_list_next, &fake_pointer, 2));
 
+    CU_ASSERT(db_result_list_size(result_list) == 2);
+    CU_ASSERT(!db_result_list_fetch_all(result_list));
     CU_ASSERT_PTR_NOT_NULL(db_result_list_begin(result_list));
     CU_ASSERT_PTR_NOT_NULL(db_result_list_next(result_list));
 

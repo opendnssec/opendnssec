@@ -306,6 +306,25 @@ zone_t* zone_new(const db_connection_t* connection) {
     return zone;
 }
 
+zone_t* zone_new_copy(const zone_t* zone) {
+    zone_t* new_zone;
+
+    if (!zone) {
+        return NULL;
+    }
+    if (!zone->dbo) {
+        return NULL;
+    }
+
+    if (!(new_zone = zone_new(db_object_connection(zone->dbo)))
+        || zone_copy(new_zone, zone))
+    {
+        zone_free(new_zone);
+        return NULL;
+    }
+    return new_zone;
+}
+
 void zone_free(zone_t* zone) {
     if (zone) {
         if (zone->dbo) {
@@ -2542,10 +2561,61 @@ zone_list_t* zone_list_new_get_by_policy_id(const db_connection_t* connection, c
     return zone_list;
 }
 
+const zone_t* zone_list_begin(zone_list_t* zone_list) {
+    const db_result_t* result;
+
+    if (!zone_list) {
+        return NULL;
+    }
+    if (!zone_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(zone_list->result_list))) {
+        return NULL;
+    }
+    if (!zone_list->zone) {
+        if (!(zone_list->zone = zone_new(db_object_connection(zone_list->dbo)))) {
+            return NULL;
+        }
+    }
+    if (zone_from_result(zone_list->zone, result)) {
+        return NULL;
+    }
+    return zone_list->zone;
+}
+
+zone_t* zone_list_get_begin(zone_list_t* zone_list) {
+    const db_result_t* result;
+    zone_t* zone;
+
+    if (!zone_list) {
+        return NULL;
+    }
+    if (!zone_list->result_list) {
+        return NULL;
+    }
+
+    if (!(result = db_result_list_begin(zone_list->result_list))) {
+        return NULL;
+    }
+    if (!(zone = zone_new(db_object_connection(zone_list->dbo)))) {
+        return NULL;
+    }
+    if (zone_from_result(zone_list->zone, result)) {
+        zone_free(zone);
+        return NULL;
+    }
+    return zone;
+}
+
 const zone_t* zone_list_next(zone_list_t* zone_list) {
     const db_result_t* result;
 
     if (!zone_list) {
+        return NULL;
+    }
+    if (!zone_list->result_list) {
         return NULL;
     }
 
@@ -2570,6 +2640,9 @@ zone_t* zone_list_get_next(zone_list_t* zone_list) {
     if (!zone_list) {
         return NULL;
     }
+    if (!zone_list->result_list) {
+        return NULL;
+    }
 
     if (!(result = db_result_list_next(zone_list->result_list))) {
         return NULL;
@@ -2582,4 +2655,15 @@ zone_t* zone_list_get_next(zone_list_t* zone_list) {
         return NULL;
     }
     return zone;
+}
+
+int zone_list_fetch_all(zone_list_t* zone_list) {
+    if (!zone_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_fetch_all(zone_list->result_list);
 }

@@ -69,6 +69,13 @@ struct database_version {
 database_version_t* database_version_new(const db_connection_t* connection);
 
 /**
+ * Create a new database version object that is a copy of another database version object.
+ * \param[in] database_version a database_version_t pointer.
+ * \return a database_version_t pointer or NULL on error.
+ */
+database_version_t* database_version_new_copy(const database_version_t* database_version);
+
+/**
  * Delete a database version object, this does not delete it from the database.
  * \param[in] database_version a database_version_t pointer.
  */
@@ -230,6 +237,27 @@ int database_version_list_get_by_clauses(database_version_list_t* database_versi
 database_version_list_t* database_version_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
+ * Get the first database version object in a database version object list and reset the
+ * position of the list. This will not work unless database_version_list_fetch_all()
+ * has been called.
+ * \param[in] database_version_list a database_version_list_t pointer.
+ * \return a database_version_t pointer or NULL on error or if there are no
+ * database version objects in the database version object list.
+ */
+const database_version_t* database_version_list_begin(database_version_list_t* database_version_list);
+
+/**
+ * Get the first database version object in a database version object list and reset the
+ * position of the list. This will not work unless database_version_list_fetch_all()
+ * has been called. The caller will be given ownership of this object and is
+ * responsible for freeing it.
+ * \param[in] database_version_list a database_version_list_t pointer.
+ * \return a database_version_t pointer or NULL on error or if there are no
+ * database version objects in the database version object list.
+ */
+database_version_t* database_version_list_get_begin(database_version_list_t* database_version_list);
+
+/**
  * Get the next database version object in a database version object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.
@@ -248,6 +276,15 @@ const database_version_t* database_version_list_next(database_version_list_t* da
  * database version objects in the database version object list.
  */
 database_version_t* database_version_list_get_next(database_version_list_t* database_version_list);
+
+/**
+ * Make sure that all objects in this database version object list is loaded into memory
+ * so that database_version_list_begin()/database_version_list_get_begin() can be used to
+ * iterate over the list multiple times.
+ * \param[in] database_version_list a database_version_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_result_list_fetch_all(db_result_list_t* result_list);
 
 #ifdef __cplusplus
 }

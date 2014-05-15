@@ -74,6 +74,7 @@ void test_database_operations_delete_object2(void);
 void test_database_operations_create_object3(void);
 void test_database_operations_delete_object3(void);
 void test_database_operations_read_all(void);
+void test_database_operations_count(void);
 
 void test_database_operations_read_object1_2(void);
 void test_database_operations_create_object2_2(void);

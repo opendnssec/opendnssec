@@ -416,3 +416,23 @@ int db_object_delete(const db_object_t* object, const db_clause_list_t* clause_l
 
     return db_connection_delete(object->connection, object, clause_list);
 }
+
+int db_object_count(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count) {
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object->connection) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object->table) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object->primary_key_name) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_connection_count(object->connection, object, join_list, clause_list, count);
+}

@@ -179,6 +179,23 @@ int db_connection_delete(const db_connection_t* connection, const db_object_t* o
     return db_backend_delete(connection->backend, object, clause_list);
 }
 
+int db_connection_count(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count) {
+    if (!connection) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!connection->backend) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_backend_count(connection->backend, object, join_list, clause_list, count);
+}
+
 int db_connection_transaction_begin(const db_connection_t* connection) {
     if (!connection) {
         return DB_ERROR_UNKNOWN;

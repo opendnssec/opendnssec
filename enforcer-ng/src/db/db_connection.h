@@ -146,6 +146,17 @@ int db_connection_update(const db_connection_t* connection, const db_object_t* o
 int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
+ * Count objects from the database. Return the count in `count`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \param[out] count a size_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_connection_count(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
+
+/**
  * Begin a transaction for a database connection.
  * \param[in] connection a db_connection_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

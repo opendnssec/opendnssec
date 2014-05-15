@@ -144,7 +144,7 @@ void db_result_list_free(db_result_list_t* result_list) {
     }
 }
 
-int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data) {
+int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data, size_t size) {
     if (!result_list) {
         return DB_ERROR_UNKNOWN;
     }
@@ -163,6 +163,7 @@ int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t
 
     result_list->next_function = next_function;
     result_list->next_data = next_data;
+    result_list->size = size;
     return 0;
 }
 
@@ -194,6 +195,7 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result) {
         result_list->begin = result;
         result_list->end = result;
     }
+    result_list->size++;
 
     return DB_OK;
 }
@@ -202,16 +204,19 @@ const db_result_t* db_result_list_begin(db_result_list_t* result_list) {
     if (!result_list) {
         return NULL;
     }
-
     if (result_list->next_function) {
+        /*
+         * Can not start over a list that uses next function
+         */
         if (result_list->current) {
-            db_result_free(result_list->current);
+            return NULL;
         }
         result_list->current = result_list->next_function(result_list->next_data, 0);
         return result_list->current;
     }
 
     result_list->current = result_list->begin;
+    result_list->begun = 1;
     return result_list->current;
 }
 
@@ -228,8 +233,51 @@ const db_result_t* db_result_list_next(db_result_list_t* result_list) {
         return result_list->current;
     }
 
-    if (result_list->current) {
+    if (!result_list->begun) {
+        result_list->begun = 1;
+        result_list->current = result_list->begin;
+    }
+    else if (result_list->current) {
         result_list->current = result_list->current->next;
     }
     return result_list->current;
+}
+
+size_t db_result_list_size(const db_result_list_t* result_list) {
+    if (!result_list) {
+        return 0;
+    }
+
+    return result_list->size;
+}
+
+int db_result_list_fetch_all(db_result_list_t* result_list) {
+    db_result_t* result;
+    db_result_list_next_t next_function;
+
+    if (!result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (result_list->next_function) {
+        if (result_list->current) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        next_function = result_list->next_function;
+        result_list->next_function = NULL;
+
+        while ((result = next_function(result_list->next_data, 0))) {
+            if (db_result_list_add(result_list, result)) {
+                next_function(result_list->next_data, 1);
+                result_list->next_data = NULL;
+                db_result_free(result);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        next_function(result_list->next_data, 1);
+        result_list->next_data = NULL;
+    }
+
+    return DB_OK;
 }

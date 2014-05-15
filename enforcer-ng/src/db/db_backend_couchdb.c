@@ -1682,6 +1682,10 @@ static int db_backend_couchdb_delete(void* data, const db_object_t* object, cons
     return DB_OK;
 }
 
+static int db_backend_couchdb_count(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count) {
+    return DB_ERROR_UNKNOWN;
+}
+
 static void db_backend_couchdb_free(void* data) {
     db_backend_couchdb_t* backend_couchdb = (db_backend_couchdb_t*)data;
 
@@ -1753,6 +1757,7 @@ db_backend_handle_t* db_backend_couchdb_new_handle(void) {
             || db_backend_handle_set_read(backend_handle, db_backend_couchdb_read)
             || db_backend_handle_set_update(backend_handle, db_backend_couchdb_update)
             || db_backend_handle_set_delete(backend_handle, db_backend_couchdb_delete)
+            || db_backend_handle_set_count(backend_handle, db_backend_couchdb_count)
             || db_backend_handle_set_free(backend_handle, db_backend_couchdb_free)
             || db_backend_handle_set_transaction_begin(backend_handle, db_backend_couchdb_transaction_begin)
             || db_backend_handle_set_transaction_commit(backend_handle, db_backend_couchdb_transaction_commit)

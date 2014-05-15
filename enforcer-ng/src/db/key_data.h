@@ -110,6 +110,13 @@ struct key_data {
 key_data_t* key_data_new(const db_connection_t* connection);
 
 /**
+ * Create a new key data object that is a copy of another key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a key_data_t pointer or NULL on error.
+ */
+key_data_t* key_data_new_copy(const key_data_t* key_data);
+
+/**
  * Delete a key data object, this does not delete it from the database.
  * \param[in] key_data a key_data_t pointer.
  */
@@ -659,6 +666,27 @@ int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_val
 key_data_list_t* key_data_list_new_get_by_hsm_key_id(const db_connection_t* connection, const db_value_t* hsm_key_id);
 
 /**
+ * Get the first key data object in a key data object list and reset the
+ * position of the list. This will not work unless key_data_list_fetch_all()
+ * has been called.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \return a key_data_t pointer or NULL on error or if there are no
+ * key data objects in the key data object list.
+ */
+const key_data_t* key_data_list_begin(key_data_list_t* key_data_list);
+
+/**
+ * Get the first key data object in a key data object list and reset the
+ * position of the list. This will not work unless key_data_list_fetch_all()
+ * has been called. The caller will be given ownership of this object and is
+ * responsible for freeing it.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \return a key_data_t pointer or NULL on error or if there are no
+ * key data objects in the key data object list.
+ */
+key_data_t* key_data_list_get_begin(key_data_list_t* key_data_list);
+
+/**
  * Get the next key data object in a key data object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.
@@ -677,6 +705,15 @@ const key_data_t* key_data_list_next(key_data_list_t* key_data_list);
  * key data objects in the key data object list.
  */
 key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
+
+/**
+ * Make sure that all objects in this key data object list is loaded into memory
+ * so that key_data_list_begin()/key_data_list_get_begin() can be used to
+ * iterate over the list multiple times.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_result_list_fetch_all(db_result_list_t* result_list);
 
 #ifdef __cplusplus
 }

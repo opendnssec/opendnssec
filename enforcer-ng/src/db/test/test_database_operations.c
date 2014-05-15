@@ -184,7 +184,7 @@ int test_get_by_name(test_t* test, const char* name) {
     ret = 1;
     result_list = db_object_read(test->dbo, NULL, clause_list);
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             test_from_result(test, result);
             ret = 0;
@@ -224,7 +224,7 @@ int test_get_by_id(test_t* test, const db_value_t* id) {
     ret = 1;
     result_list = db_object_read(test->dbo, NULL, clause_list);
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             test_from_result(test, result);
             ret = 0;
@@ -347,6 +347,52 @@ int test_delete(test_t* test) {
     return ret;
 }
 
+size_t test_count_by_name(test_t* test, const char* name) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    size_t ret = 0;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(name);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
+    CU_ASSERT_FATAL(!db_clause_set_field(clause, "name"));
+    CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
+    CU_ASSERT_FATAL(!db_value_from_text(db_clause_get_value(clause), name));
+    CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
+    clause = NULL;
+
+    CU_ASSERT(!db_object_count(test->dbo, NULL, clause_list, &ret));
+
+    db_clause_list_free(clause_list);
+    db_clause_free(clause);
+    return ret;
+}
+
+size_t test_count_by_id(test_t* test, const db_value_t* id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    size_t ret = 0;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(test);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(id);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
+    CU_ASSERT_FATAL(!db_clause_set_field(clause, "id"));
+    CU_ASSERT_FATAL(!db_clause_set_type(clause, DB_CLAUSE_EQUAL));
+    CU_ASSERT_FATAL(!db_value_copy(db_clause_get_value(clause), id));
+    CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
+    clause = NULL;
+
+    CU_ASSERT(!db_object_count(test->dbo, NULL, clause_list, &ret));
+
+    db_clause_list_free(clause_list);
+    db_clause_free(clause);
+    return ret;
+}
+
 test_list_t* test_list_new(const db_connection_t* connection) {
     test_list_t* test_list =
         (test_list_t*)calloc(1, sizeof(test_list_t));
@@ -393,7 +439,7 @@ const test_t* test_list_begin(test_list_t* test_list) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(test_list);
     CU_ASSERT_PTR_NOT_NULL_FATAL(test_list->result_list);
 
-    result = db_result_list_begin(test_list->result_list);
+    result = db_result_list_next(test_list->result_list);
     if (!result) {
         return NULL;
     }
@@ -574,7 +620,7 @@ int test2_get_by_name(test2_t* test2, const char* name) {
     ret = 1;
     result_list = db_object_read(test2->dbo, NULL, clause_list);
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             test2_from_result(test2, result);
             ret = 0;
@@ -614,7 +660,7 @@ int test2_get_by_id(test2_t* test2, const db_value_t* id) {
     ret = 1;
     result_list = db_object_read(test2->dbo, NULL, clause_list);
     if (result_list) {
-        result = db_result_list_begin(result_list);
+        result = db_result_list_next(result_list);
         if (result) {
             test2_from_result(test2, result);
             ret = 0;
@@ -1104,6 +1150,17 @@ void test_database_operations_read_all(void) {
     test_list_free(test_list);
     test_list = NULL;
     CU_PASS("test_list_free");
+}
+
+void test_database_operations_count(void) {
+    CU_ASSERT_PTR_NOT_NULL_FATAL((test = test_new(connection)));
+    CU_ASSERT(test_count_by_name(test, "test") == 1);
+    CU_ASSERT(test_count_by_id(test, &object2_id) == 1);
+    CU_ASSERT(test_count_by_id(test, &object3_id) == 1);
+    CU_ASSERT(test_count_by_name(test, "name 3") == 2);
+    test_free(test);
+    test = NULL;
+    CU_PASS("test_free");
 }
 
 void test_database_operations_read_object1_2(void) {

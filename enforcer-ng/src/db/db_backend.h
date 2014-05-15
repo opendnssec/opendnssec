@@ -137,6 +137,18 @@ typedef int (*db_backend_handle_update_t)(void* data, const db_object_t* object,
 typedef int (*db_backend_handle_delete_t)(void* data, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
+ * Function pointer for counting objects from database backend. The backend
+ * handle specific data is supplied in `data`. Returns the size in `size`.
+ * \param[in] data a void pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \param[out] count a size_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+typedef int (*db_backend_handle_count_t)(void* data, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
+
+/**
  * Function pointer for freeing the backend handle specific data in `data`.
  * \param[in] data a void pointer.
  */
@@ -180,6 +192,7 @@ struct db_backend_handle {
     db_backend_handle_read_t read_function;
     db_backend_handle_update_t update_function;
     db_backend_handle_delete_t delete_function;
+    db_backend_handle_count_t count_function;
     db_backend_handle_free_t free_function;
     db_backend_handle_transaction_begin_t transaction_begin_function;
     db_backend_handle_transaction_commit_t transaction_commit_function;
@@ -273,6 +286,17 @@ int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db
 int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
+ * Count objects from the database. Return the count in `count`.
+ * \param[in] backend_handle a db_backend_handle_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \param[out] count a size_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_backend_handle_count(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
+
+/**
  * Begin a transaction for a database connection.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -363,6 +387,14 @@ int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete_function);
+
+/**
+ * Set the count function of a database backend handle.
+ * \param[in] backend_handle a db_backend_handle_t pointer.
+ * \param[in] count_function a db_backend_handle_count_t.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_backend_handle_set_count(db_backend_handle_t* backend_handle, db_backend_handle_count_t count_function);
 
 /**
  * Set the free function of a database backend handle.
@@ -543,6 +575,17 @@ int db_backend_update(const db_backend_t* backend, const db_object_t* object, co
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_delete(const db_backend_t* backend, const db_object_t* object, const db_clause_list_t* clause_list);
+
+/**
+ * Count objects from the database. Return the count in `count`.
+ * \param[in] backend a db_backend_t pointer.
+ * \param[in] object a db_object_t pointer.
+ * \param[in] join_list a db_join_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \param[out] count a size_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_backend_count(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
 
 /**
  * Begin a transaction for a database connection.

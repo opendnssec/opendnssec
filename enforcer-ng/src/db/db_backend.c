@@ -181,6 +181,23 @@ int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db
     return backend_handle->delete_function((void*)backend_handle->data, object, clause_list);
 }
 
+int db_backend_handle_count(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count) {
+    if (!backend_handle) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_handle->count_function) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return backend_handle->count_function((void*)backend_handle->data, object, join_list, clause_list, count);
+}
+
 int db_backend_handle_transaction_begin(const db_backend_handle_t* backend_handle) {
     if (!backend_handle) {
         return DB_ERROR_UNKNOWN;
@@ -294,6 +311,15 @@ int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend
     return DB_OK;
 }
 
+int db_backend_handle_set_count(db_backend_handle_t* backend_handle, db_backend_handle_count_t count_function) {
+    if (!backend_handle) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    backend_handle->count_function = count_function;
+    return DB_OK;
+}
+
 int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_handle_free_t free_function) {
     if (!backend_handle) {
         return DB_ERROR_UNKNOWN;
@@ -365,6 +391,9 @@ int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
         return DB_ERROR_UNKNOWN;
     }
     if (!backend_handle->update_function) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_handle->count_function) {
         return DB_ERROR_UNKNOWN;
     }
     if (!backend_handle->delete_function) {
@@ -580,6 +609,23 @@ int db_backend_delete(const db_backend_t* backend, const db_object_t* object, co
     }
 
     return db_backend_handle_delete(backend->handle, object, clause_list);
+}
+
+int db_backend_count(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count) {
+    if (!backend) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!object) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend->handle) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_backend_handle_count(backend->handle, object, join_list, clause_list, count);
 }
 
 int db_backend_transaction_begin(const db_backend_t* backend) {

@@ -94,6 +94,13 @@ struct key_state {
 key_state_t* key_state_new(const db_connection_t* connection);
 
 /**
+ * Create a new key state object that is a copy of another key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return a key_state_t pointer or NULL on error.
+ */
+key_state_t* key_state_new_copy(const key_state_t* key_state);
+
+/**
  * Delete a key state object, this does not delete it from the database.
  * \param[in] key_state a key_state_t pointer.
  */
@@ -438,6 +445,27 @@ int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db
 key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* connection, const db_value_t* key_data_id);
 
 /**
+ * Get the first key state object in a key state object list and reset the
+ * position of the list. This will not work unless key_state_list_fetch_all()
+ * has been called.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \return a key_state_t pointer or NULL on error or if there are no
+ * key state objects in the key state object list.
+ */
+const key_state_t* key_state_list_begin(key_state_list_t* key_state_list);
+
+/**
+ * Get the first key state object in a key state object list and reset the
+ * position of the list. This will not work unless key_state_list_fetch_all()
+ * has been called. The caller will be given ownership of this object and is
+ * responsible for freeing it.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \return a key_state_t pointer or NULL on error or if there are no
+ * key state objects in the key state object list.
+ */
+key_state_t* key_state_list_get_begin(key_state_list_t* key_state_list);
+
+/**
  * Get the next key state object in a key state object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.
@@ -456,6 +484,15 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list);
  * key state objects in the key state object list.
  */
 key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
+
+/**
+ * Make sure that all objects in this key state object list is loaded into memory
+ * so that key_state_list_begin()/key_state_list_get_begin() can be used to
+ * iterate over the list multiple times.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_result_list_fetch_all(db_result_list_t* result_list);
 
 #ifdef __cplusplus
 }
