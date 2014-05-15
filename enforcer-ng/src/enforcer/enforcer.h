@@ -27,7 +27,10 @@
 #ifndef _ENFORCER_ENFORCER_H_
 #define _ENFORCER_ENFORCER_H_
 
-#include "enforcer/enforcerdata.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "db/zone.h"
 #include "db/policy.h"
 
@@ -50,5 +53,8 @@
 time_t
 update(zone_t *zone, policy_t *policy, time_t now);
 
-
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* _ENFORCER_ENFORCER_H_ */

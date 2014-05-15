@@ -30,6 +30,10 @@
 #ifndef _KEYSTATE_DS_RETRACT_TASK_H_
 #define _KEYSTATE_DS_RETRACT_TASK_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
@@ -41,5 +45,9 @@ perform_keystate_ds_retract(int sockfd, engineconfig_type *config,
 task_type *
 keystate_ds_retract_task(engineconfig_type *config, const char *what,
                          const char *who);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

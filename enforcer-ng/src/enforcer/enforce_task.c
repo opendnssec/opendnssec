@@ -27,38 +27,26 @@
  *
  */
 
-#include <ctime>
-#include <iostream>
-#include <cassert>
-#include <memory>
-#include <fcntl.h>
-#include <map>
+#include "config.h"
 
-#include "policy/kasp.pb.h"
-#include "keystate/keystate.pb.h"
+#include <pthread.h>
 
-#include "enforcer/enforcerdata.h"
 #include "enforcer/enforcer.h"
 #include "daemon/clientpipe.h"
 #include "daemon/engine.h"
-#include "daemon/orm.h"
-#include "enforcer/enforce_task.h"
 #include "hsmkey/hsmkey_gen_task.h"
 #include "signconf/signconf_task.h"
 #include "keystate/keystate_ds_submit_task.h"
 #include "keystate/keystate_ds_retract_task.h"
 #include "shared/duration.h"
 #include "shared/file.h"
-#include "shared/allocator.h"
+#include "shared/log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-
-#include "enforcer/enforcerzone.h"
-#include "enforcer/hsmkeyfactory.h"
-
 #include "db/zone.h"
+#include "db/db_clause.h"
 
-#include "protobuf-orm/pb-orm.h"
+#include "enforcer/enforce_task.h"
 
 static const char *module_str = "enforce_task";
 
@@ -70,13 +58,12 @@ static const char *module_str = "enforce_task";
 bool enforce_all = 1;
 
 static void 
-schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
+enf_schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
 {
     /* schedule task */
     if (!task) {
         ods_log_crit("[%s] failed to create %s task", module_str, what);
     } else {
-        char buf[ODS_SE_MAXLINE];
         ods_status status = schedule_task(engine->taskq, task);
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] failed to create %s task", module_str, what);
@@ -87,102 +74,38 @@ schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what
     }
 }
 
-class HsmKeyFactoryCallbacks : public HsmKeyFactoryDelegatePB {
-private:
-    int _sockfd;
-    engine_type *_engine;
-    bool _bShouldLaunchKeyGen;
-public:
-    
-    HsmKeyFactoryCallbacks(int sockfd, engine_type *engine)
-    : _sockfd(sockfd),_engine(engine), _bShouldLaunchKeyGen(false)
-    {
-        
-    }
-    
-    ~HsmKeyFactoryCallbacks()
-    {
-        if (_bShouldLaunchKeyGen) {
-			// Keys were given out by the key factory during the last enforce.
-			// We need to schedule the "hsm key gen" task to create additional
-			// keys if needed.
-			schedule_task(_sockfd, _engine,hsmkey_gen_task(_engine->config),
-						  "hsm key gen");
-		}
-    }
-
-    virtual void OnKeyCreated(int bits, const std::string &repository,
-                              const std::string &policy, int algorithm,
-                              KeyRole role)
-    {
-        _bShouldLaunchKeyGen = true;
-    }
-    
-    virtual void OnKeyShortage(int bits, const std::string &repository,
-                               const std::string &policy, int algorithm,
-                               KeyRole role)
-    {
-        _bShouldLaunchKeyGen = true;
-    }
-};
-
-static bool
-load_kasp_policy(OrmConn conn,const std::string &name,
-				 ::ods::kasp::Policy &policy)
-{
-	std::string qname;
-	if (!OrmQuoteStringValue(conn, name, qname))
-		return false;
-	
-	OrmResultRef rows;
-	if (!OrmMessageEnumWhere(conn,policy.descriptor(),rows,
-							 "name=%s",qname.c_str()))
-		return false;
-	
-	if (!OrmFirst(rows))
-		return false;
-	
-	return OrmGetMessage(rows, policy, true);
-}
-
-static time_t 
+static void
 reschedule_enforce(task_type *task, time_t t_when, const char *z_when)
 {
-    if (!task)
-        return -1;
-    
-    ods_log_assert(task->allocator);
-    ods_log_assert(task->who);
-    allocator_deallocate(task->allocator,(void*)task->who);
-    task->who = allocator_strdup(task->allocator, z_when);
-
-    task->when = std::max(t_when, time_now());
-    task->backoff = 0;
-    return task->when;
+	ods_log_assert(task->allocator);
+	ods_log_assert(task->who);
+	allocator_deallocate(task->allocator,(void*)task->who);
+	task->who = allocator_strdup(task->allocator, z_when);
+	task->when = t_when;
+	task->backoff = 0;
 }
 
 static time_t
 perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	task_type* task, db_connection_t *dbconn)
 {
-	/* loop all zones in need for an update */
 	zone_list_t *zonelist = NULL;
 	zone_t *zone;
 	const zone_t *czone, *firstzone;
 	policy_t *policy;
 	key_data_list_t *keylist;
 	const key_data_t *key;
-    db_clause_list_t* clauselist;
-    db_clause_t* clause;
-    time_t t_next, t_now = time_now();
-
-	// Flags that indicate tasks to be scheduled after zones have been enforced.
-    int bSignerConfNeedsWriting = 0;
-    int bSubmitToParent = 0;
-    int bRetractFromParent = 0;
-
+	db_clause_list_t* clauselist;
+	db_clause_t* clause;
+	time_t t_next, t_now = time_now();
+	/* Flags that indicate tasks to be scheduled after zones have been
+	 * enforced. */
+	int bSignerConfNeedsWriting = 0;
+	int bSubmitToParent = 0;
+	int bRetractFromParent = 0;
 
 	if (!bForceUpdate) {
+		clauselist = db_clause_list_new();
 		clause = zone_next_change_clause(clauselist, t_now);
 		if (db_clause_set_type(clause, DB_CLAUSE_LESS_OR_EQUAL) ||
 			(zonelist = zone_list_new_get_by_clauses(dbconn, clauselist)))
@@ -238,7 +161,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 				"by enforcer !\n", zone_name(zone));
 		} else {
 			/* Invalid schedule time then skip the zone.*/
-			char tbuf[32] = "date/time invalid\n"; // at least 26 bytes
+			char tbuf[32] = "date/time invalid\n"; /* at least 26 bytes */
 			ctime_r(&t_next, tbuf); /* note that ctime_r inserts \n */
 			client_printf(sockfd,
 				"Next update for zone %s scheduled at %s",
@@ -261,11 +184,8 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			}
 		}
 	}
-	if (firstzone) {
-		t_next = reschedule_enforce(task, t_next, zone_name(firstzone));
-	} else {
-		t_next = -1;
-	}
+	if (firstzone)
+		reschedule_enforce(task, t_next, zone_name(firstzone));
 	zone_list_free(zonelist);
 
 	/* Launch signer configuration writer task when one of the 
@@ -275,27 +195,27 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	if (bSignerConfNeedsWriting) {
 		task_type *signconf =
 			signconf_task(engine->config, "signconf", "signer configurations");
-		schedule_task(sockfd,engine,signconf,"signconf");
+		enf_schedule_task(sockfd,engine,signconf,"signconf");
 	} else {
 		ods_log_info("[%s] No changes to any signconf file required", module_str);
 	}
 
-	// Launch ds-submit task when one of the updated key states has the
-	// DS_SUBMIT flag set.
+	/* Launch ds-submit task when one of the updated key states has the
+	 * DS_SUBMIT flag set. */
 	if (bSubmitToParent) {
 		task_type *submit =
 			keystate_ds_submit_task(engine->config,
 									"ds-submit","KSK keys with submit flag set");
-		schedule_task(sockfd,engine,submit,"ds-submit");
+		enf_schedule_task(sockfd,engine,submit,"ds-submit");
 	}
 
-	// Launch ds-retract task when one of the updated key states has the
-	// DS_RETRACT flag set.
+	/* Launch ds-retract task when one of the updated key states has the
+	 * DS_RETRACT flag set. */
 	if (bRetractFromParent) {
 		task_type *retract =
 			keystate_ds_retract_task(engine->config,
 								"ds-retract","KSK keys with retract flag set");
-		schedule_task(sockfd,engine,retract,"ds-retract");
+		enf_schedule_task(sockfd,engine,retract,"ds-retract");
 	}
 
     return t_next;
@@ -305,7 +225,6 @@ time_t perform_enforce_lock(int sockfd, engine_type *engine,
 	int bForceUpdate, task_type* task, db_connection_t *dbconn)
 {
 	time_t returntime;
-	int locked;
 	if (pthread_mutex_trylock(&engine->enforce_lock)) {
 		client_printf(sockfd, "An other enforce task is already running."
 			" No action taken.\n");
@@ -331,11 +250,11 @@ enforce_task_perform(task_type *task)
 task_type *
 enforce_task(engine_type *engine, bool all)
 {
+	task_id what_id;
 	const char *what = "enforce";
 	const char *who = "next zone";
 	enforce_all = all;
-	task_id what_id = task_register(what, 
-		module_str, enforce_task_perform);
+	what_id = task_register(what, module_str, enforce_task_perform);
 	return task_create(what_id, time_now(), who, (void*)engine);
 }
 
@@ -343,6 +262,7 @@ int
 flush_enforce_task(engine_type *engine, bool enforce_all)
 {
 	task_id what_id;
+	(void) enforce_all;
 	/* flush (force to run) the enforcer task when it is waiting in the 
 	 task list. */
 	if (!task_id_from_long_name(module_str, &what_id)) {

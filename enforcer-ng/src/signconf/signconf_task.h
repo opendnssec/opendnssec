@@ -30,6 +30,10 @@
 #ifndef _SIGNCONF_SIGNCONF_TASK_H_
 #define _SIGNCONF_SIGNCONF_TASK_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
 
@@ -37,5 +41,9 @@ int perform_signconf(int sockfd, engineconfig_type *config, int bforce);
 
 task_type *signconf_task(engineconfig_type *config, const char *what,
                          const char * who);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -135,7 +135,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/enforcerdata.h \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.cpp enforcer/enforce_cmd.h \
-	enforcer/enforce_task.cpp enforcer/enforce_task.h \
+	enforcer/enforce_task.c enforcer/enforce_task.h \
 	enforcer/enforcer.cpp enforcer/enforcer.h \
 	enforcer/enforcerzone.cpp enforcer/enforcerzone.h \
 	enforcer/hsmkeyfactory.cpp enforcer/hsmkeyfactory.h \
