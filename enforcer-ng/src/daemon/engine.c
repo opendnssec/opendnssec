@@ -84,6 +84,7 @@ engine_alloc(void)
     pthread_mutex_init(&engine->enforce_lock, NULL);
     pthread_cond_init(&engine->signal_cond, NULL);
 
+    engine->dbcfg_list = NULL;
     engine->taskq = schedule_create();
     if (!engine->taskq) {
         free(engine);
@@ -99,6 +100,9 @@ engine_dealloc(engine_type* engine)
     pthread_mutex_destroy(&engine->enforce_lock);
     pthread_mutex_destroy(&engine->signal_lock);
     pthread_cond_destroy(&engine->signal_cond);
+    if (engine->dbcfg_list) {
+        db_configuration_list_free(engine->dbcfg_list);
+    }
     free(engine);
 }
 
@@ -315,6 +319,7 @@ setup_database(engine_type* engine)
     {
         db_configuration_free(dbcfg);
         db_configuration_list_free(engine->dbcfg_list);
+        engine->dbcfg_list = NULL;
         fprintf(stderr, "setup configuration backend failed\n");
         return 1;
     }
@@ -325,6 +330,7 @@ setup_database(engine_type* engine)
     {
         db_configuration_free(dbcfg);
         db_configuration_list_free(engine->dbcfg_list);
+        engine->dbcfg_list = NULL;
         fprintf(stderr, "setup configuration file failed\n");
         return 1;
     }
