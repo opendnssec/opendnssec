@@ -3063,7 +3063,10 @@ hsm_get_key_id(hsm_ctx_t *ctx, const libhsm_key_t *key)
 
     /* this is plain binary data, we need to convert it to hex */
     id_str = malloc(len * 2 + 1);
-    if (!id_str) return NULL;
+    if (!id_str) {
+        free(id);
+        return NULL;
+    }
 
     hsm_hex_unparse(id_str, id, len);
 
