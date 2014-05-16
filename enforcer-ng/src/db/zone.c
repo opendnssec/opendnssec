@@ -2389,6 +2389,20 @@ int zone_delete(zone_t* zone) {
     return ret;
 }
 
+int zone_count(zone_t* zone, db_clause_list_t* clause_list, size_t* count) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_object_count(zone->dbo, NULL, clause_list, count);
+}
+
 /* ZONE LIST */
 
 static mm_alloc_t __zone_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(zone_list_t));

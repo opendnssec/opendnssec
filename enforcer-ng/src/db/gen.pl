@@ -530,6 +530,18 @@ int ', $name, '_update(', $name, '_t* ', $name, ');
 int ', $name, '_delete(', $name, '_t* ', $name, ');
 
 /**
+ * Count the number of ', $tname, ' objects in the database, if a selection of
+ * objects should be counted then it can be limited by a database clause list
+ * otherwise all objects are counted.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
+ * \param[out] count a size_t pointer to where the count should be stored.
+ * should be counted.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_count(', $name, '_t* ', $name, ', db_clause_list_t* clause_list, size_t* count);
+
+/**
  * A list of ', $tname, ' objects.
  */
 struct ', $name, '_list {
@@ -1964,6 +1976,20 @@ print SOURCE '    if (!(clause = db_clause_new())
 print SOURCE '    ret = db_object_delete(', $name, '->dbo, clause_list);
     db_clause_list_free(clause_list);
     return ret;
+}
+
+int ', $name, '_count(', $name, '_t* ', $name, ', db_clause_list_t* clause_list, size_t* count) {
+    if (!', $name, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_object_count(', $name, '->dbo, NULL, clause_list, count);
 }
 
 /* ', uc($tname), ' LIST */

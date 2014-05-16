@@ -667,6 +667,18 @@ int zone_update(zone_t* zone);
 int zone_delete(zone_t* zone);
 
 /**
+ * Count the number of zone objects in the database, if a selection of
+ * objects should be counted then it can be limited by a database clause list
+ * otherwise all objects are counted.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
+ * \param[out] count a size_t pointer to where the count should be stored.
+ * should be counted.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_count(zone_t* zone, db_clause_list_t* clause_list, size_t* count);
+
+/**
  * A list of zone objects.
  */
 struct zone_list {

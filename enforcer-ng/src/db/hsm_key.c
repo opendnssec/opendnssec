@@ -1790,6 +1790,20 @@ int hsm_key_delete(hsm_key_t* hsm_key) {
     return ret;
 }
 
+int hsm_key_count(hsm_key_t* hsm_key, db_clause_list_t* clause_list, size_t* count) {
+    if (!hsm_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!hsm_key->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_object_count(hsm_key->dbo, NULL, clause_list, count);
+}
+
 /* HSM KEY LIST */
 
 static mm_alloc_t __hsm_key_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(hsm_key_list_t));

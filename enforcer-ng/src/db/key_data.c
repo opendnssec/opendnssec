@@ -1732,6 +1732,20 @@ int key_data_delete(key_data_t* key_data) {
     return ret;
 }
 
+int key_data_count(key_data_t* key_data, db_clause_list_t* clause_list, size_t* count) {
+    if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_object_count(key_data->dbo, NULL, clause_list, count);
+}
+
 /* KEY DATA LIST */
 
 static mm_alloc_t __key_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_list_t));

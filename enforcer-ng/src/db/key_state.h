@@ -376,6 +376,18 @@ int key_state_update(key_state_t* key_state);
 int key_state_delete(key_state_t* key_state);
 
 /**
+ * Count the number of key state objects in the database, if a selection of
+ * objects should be counted then it can be limited by a database clause list
+ * otherwise all objects are counted.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
+ * \param[out] count a size_t pointer to where the count should be stored.
+ * should be counted.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_count(key_state_t* key_state, db_clause_list_t* clause_list, size_t* count);
+
+/**
  * A list of key state objects.
  */
 struct key_state_list {

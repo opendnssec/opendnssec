@@ -1098,6 +1098,20 @@ int key_state_delete(key_state_t* key_state) {
     return ret;
 }
 
+int key_state_count(key_state_t* key_state, db_clause_list_t* clause_list, size_t* count) {
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_state->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_object_count(key_state->dbo, NULL, clause_list, count);
+}
+
 /* KEY STATE LIST */
 
 static mm_alloc_t __key_state_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_list_t));

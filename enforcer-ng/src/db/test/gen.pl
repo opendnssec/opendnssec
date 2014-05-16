@@ -450,6 +450,28 @@ print SOURCE '
 }
 print SOURCE '}
 
+static void test_', $name, '_count(void) {
+    size_t count;
+
+    CU_ASSERT(!', $name, '_count(object, NULL, &count));
+    CU_ASSERT(count == 1);
+';
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{type} eq 'DB_TYPE_REVISION') {
+        next;
+    }
+
+print SOURCE '
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(', $name, '_', $field->{name}, '_clause(clause_list, ', $name, '_', $field->{name}, '(object)));
+    CU_ASSERT(!', $name, '_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+';
+}
+print SOURCE '}
+
 static void test_', $name, '_list(void) {
     const ', $name, '_t* item;
     ', $name, '_t* item2;
@@ -889,6 +911,7 @@ static int test_', $name, '_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_', $name, '_get)
         || !CU_add_test(pSuite, "create object", test_', $name, '_create)
         || !CU_add_test(pSuite, "object clauses", test_', $name, '_clauses)
+        || !CU_add_test(pSuite, "object count", test_', $name, '_count)
         || !CU_add_test(pSuite, "list objects", test_', $name, '_list)
         || !CU_add_test(pSuite, "read object by id", test_', $name, '_read)
         || !CU_add_test(pSuite, "verify fields", test_', $name, '_verify)

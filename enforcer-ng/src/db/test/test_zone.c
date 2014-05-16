@@ -444,6 +444,139 @@ static void test_zone_clauses(void) {
     clause_list = NULL;
 }
 
+static void test_zone_count(void) {
+    size_t count;
+
+    CU_ASSERT(!zone_count(object, NULL, &count));
+    CU_ASSERT(count == 1);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_policy_id_clause(clause_list, zone_policy_id(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_name_clause(clause_list, zone_name(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_signconf_needs_writing_clause(clause_list, zone_signconf_needs_writing(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_signconf_path_clause(clause_list, zone_signconf_path(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_next_change_clause(clause_list, zone_next_change(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_ttl_end_ds_clause(clause_list, zone_ttl_end_ds(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_ttl_end_dk_clause(clause_list, zone_ttl_end_dk(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_ttl_end_rs_clause(clause_list, zone_ttl_end_rs(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_roll_ksk_now_clause(clause_list, zone_roll_ksk_now(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_roll_zsk_now_clause(clause_list, zone_roll_zsk_now(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_roll_csk_now_clause(clause_list, zone_roll_csk_now(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_input_adapter_type_clause(clause_list, zone_input_adapter_type(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_input_adapter_uri_clause(clause_list, zone_input_adapter_uri(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_output_adapter_type_clause(clause_list, zone_output_adapter_type(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_output_adapter_uri_clause(clause_list, zone_output_adapter_uri(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_next_ksk_roll_clause(clause_list, zone_next_ksk_roll(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_next_zsk_roll_clause(clause_list, zone_next_zsk_roll(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(zone_next_csk_roll_clause(clause_list, zone_next_csk_roll(object)));
+    CU_ASSERT(!zone_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+}
+
 static void test_zone_list(void) {
     const zone_t* item;
     zone_t* item2;
@@ -672,6 +805,7 @@ static int test_zone_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_zone_get)
         || !CU_add_test(pSuite, "create object", test_zone_create)
         || !CU_add_test(pSuite, "object clauses", test_zone_clauses)
+        || !CU_add_test(pSuite, "object count", test_zone_count)
         || !CU_add_test(pSuite, "list objects", test_zone_list)
         || !CU_add_test(pSuite, "read object by id", test_zone_read)
         || !CU_add_test(pSuite, "verify fields", test_zone_verify)

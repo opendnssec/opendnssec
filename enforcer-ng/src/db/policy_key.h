@@ -458,6 +458,18 @@ int policy_key_update(policy_key_t* policy_key);
 int policy_key_delete(policy_key_t* policy_key);
 
 /**
+ * Count the number of policy key objects in the database, if a selection of
+ * objects should be counted then it can be limited by a database clause list
+ * otherwise all objects are counted.
+ * \param[in] policy_key a policy_key_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
+ * \param[out] count a size_t pointer to where the count should be stored.
+ * should be counted.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_key_count(policy_key_t* policy_key, db_clause_list_t* clause_list, size_t* count);
+
+/**
  * A list of policy key objects.
  */
 struct policy_key_list {

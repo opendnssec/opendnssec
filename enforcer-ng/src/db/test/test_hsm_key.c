@@ -384,6 +384,90 @@ static void test_hsm_key_clauses(void) {
     clause_list = NULL;
 }
 
+static void test_hsm_key_count(void) {
+    size_t count;
+
+    CU_ASSERT(!hsm_key_count(object, NULL, &count));
+    CU_ASSERT(count == 1);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_policy_id_clause(clause_list, hsm_key_policy_id(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_locator_clause(clause_list, hsm_key_locator(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_state_clause(clause_list, hsm_key_state(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_bits_clause(clause_list, hsm_key_bits(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_algorithm_clause(clause_list, hsm_key_algorithm(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_role_clause(clause_list, hsm_key_role(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_inception_clause(clause_list, hsm_key_inception(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_is_revoked_clause(clause_list, hsm_key_is_revoked(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_key_type_clause(clause_list, hsm_key_key_type(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_repository_clause(clause_list, hsm_key_repository(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(hsm_key_backup_clause(clause_list, hsm_key_backup(object)));
+    CU_ASSERT(!hsm_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+}
+
 static void test_hsm_key_list(void) {
     const hsm_key_t* item;
     hsm_key_t* item2;
@@ -597,6 +681,7 @@ static int test_hsm_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_hsm_key_get)
         || !CU_add_test(pSuite, "create object", test_hsm_key_create)
         || !CU_add_test(pSuite, "object clauses", test_hsm_key_clauses)
+        || !CU_add_test(pSuite, "object count", test_hsm_key_count)
         || !CU_add_test(pSuite, "list objects", test_hsm_key_list)
         || !CU_add_test(pSuite, "read object by id", test_hsm_key_read)
         || !CU_add_test(pSuite, "verify fields", test_hsm_key_verify)

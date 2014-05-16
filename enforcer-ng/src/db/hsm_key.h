@@ -570,6 +570,18 @@ int hsm_key_update(hsm_key_t* hsm_key);
 int hsm_key_delete(hsm_key_t* hsm_key);
 
 /**
+ * Count the number of hsm key objects in the database, if a selection of
+ * objects should be counted then it can be limited by a database clause list
+ * otherwise all objects are counted.
+ * \param[in] hsm_key a hsm_key_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
+ * \param[out] count a size_t pointer to where the count should be stored.
+ * should be counted.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int hsm_key_count(hsm_key_t* hsm_key, db_clause_list_t* clause_list, size_t* count);
+
+/**
  * A list of hsm key objects.
  */
 struct hsm_key_list {

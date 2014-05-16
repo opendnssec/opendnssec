@@ -314,6 +314,55 @@ static void test_key_state_clauses(void) {
     clause_list = NULL;
 }
 
+static void test_key_state_count(void) {
+    size_t count;
+
+    CU_ASSERT(!key_state_count(object, NULL, &count));
+    CU_ASSERT(count == 1);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_state_key_data_id_clause(clause_list, key_state_key_data_id(object)));
+    CU_ASSERT(!key_state_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_state_type_clause(clause_list, key_state_type(object)));
+    CU_ASSERT(!key_state_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_state_state_clause(clause_list, key_state_state(object)));
+    CU_ASSERT(!key_state_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_state_last_change_clause(clause_list, key_state_last_change(object)));
+    CU_ASSERT(!key_state_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_state_minimize_clause(clause_list, key_state_minimize(object)));
+    CU_ASSERT(!key_state_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_state_ttl_clause(clause_list, key_state_ttl(object)));
+    CU_ASSERT(!key_state_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+}
+
 static void test_key_state_list(void) {
     const key_state_t* item;
     key_state_t* item2;
@@ -432,6 +481,7 @@ static int test_key_state_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_key_state_get)
         || !CU_add_test(pSuite, "create object", test_key_state_create)
         || !CU_add_test(pSuite, "object clauses", test_key_state_clauses)
+        || !CU_add_test(pSuite, "object count", test_key_state_count)
         || !CU_add_test(pSuite, "list objects", test_key_state_list)
         || !CU_add_test(pSuite, "read object by id", test_key_state_read)
         || !CU_add_test(pSuite, "verify fields", test_key_state_verify)

@@ -184,6 +184,18 @@ int database_version_update(database_version_t* database_version);
 int database_version_delete(database_version_t* database_version);
 
 /**
+ * Count the number of database version objects in the database, if a selection of
+ * objects should be counted then it can be limited by a database clause list
+ * otherwise all objects are counted.
+ * \param[in] database_version a database_version_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
+ * \param[out] count a size_t pointer to where the count should be stored.
+ * should be counted.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int database_version_count(database_version_t* database_version, db_clause_list_t* clause_list, size_t* count);
+
+/**
  * A list of database version objects.
  */
 struct database_version_list {

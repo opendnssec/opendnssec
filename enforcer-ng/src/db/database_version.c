@@ -521,6 +521,20 @@ int database_version_delete(database_version_t* database_version) {
     return ret;
 }
 
+int database_version_count(database_version_t* database_version, db_clause_list_t* clause_list, size_t* count) {
+    if (!database_version) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!database_version->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_object_count(database_version->dbo, NULL, clause_list, count);
+}
+
 /* DATABASE VERSION LIST */
 
 static mm_alloc_t __database_version_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(database_version_list_t));

@@ -3270,6 +3270,20 @@ int policy_delete(policy_t* policy) {
     return ret;
 }
 
+int policy_count(policy_t* policy, db_clause_list_t* clause_list, size_t* count) {
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!count) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_object_count(policy->dbo, NULL, clause_list, count);
+}
+
 /* POLICY LIST */
 
 static mm_alloc_t __policy_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_list_t));

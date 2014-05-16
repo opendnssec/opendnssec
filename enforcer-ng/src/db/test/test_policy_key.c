@@ -350,6 +350,83 @@ static void test_policy_key_clauses(void) {
     clause_list = NULL;
 }
 
+static void test_policy_key_count(void) {
+    size_t count;
+
+    CU_ASSERT(!policy_key_count(object, NULL, &count));
+    CU_ASSERT(count == 1);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_policy_id_clause(clause_list, policy_key_policy_id(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_role_clause(clause_list, policy_key_role(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_algorithm_clause(clause_list, policy_key_algorithm(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_bits_clause(clause_list, policy_key_bits(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_lifetime_clause(clause_list, policy_key_lifetime(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_repository_clause(clause_list, policy_key_repository(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_standby_clause(clause_list, policy_key_standby(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_manual_rollover_clause(clause_list, policy_key_manual_rollover(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_rfc5011_clause(clause_list, policy_key_rfc5011(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_key_minimize_clause(clause_list, policy_key_minimize(object)));
+    CU_ASSERT(!policy_key_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+}
+
 static void test_policy_key_list(void) {
     const policy_key_t* item;
     policy_key_t* item2;
@@ -477,6 +554,7 @@ static int test_policy_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_policy_key_get)
         || !CU_add_test(pSuite, "create object", test_policy_key_create)
         || !CU_add_test(pSuite, "object clauses", test_policy_key_clauses)
+        || !CU_add_test(pSuite, "object count", test_policy_key_count)
         || !CU_add_test(pSuite, "list objects", test_policy_key_list)
         || !CU_add_test(pSuite, "read object by id", test_policy_key_read)
         || !CU_add_test(pSuite, "verify fields", test_policy_key_verify)

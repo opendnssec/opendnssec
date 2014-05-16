@@ -226,6 +226,20 @@ static void test_database_version_clauses(void) {
     clause_list = NULL;
 }
 
+static void test_database_version_count(void) {
+    size_t count;
+
+    CU_ASSERT(!database_version_count(object, NULL, &count));
+    CU_ASSERT(count == 1);
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(database_version_version_clause(clause_list, database_version_version(object)));
+    CU_ASSERT(!database_version_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+}
+
 static void test_database_version_list(void) {
     const database_version_t* item;
     database_version_t* item2;
@@ -306,6 +320,7 @@ static int test_database_version_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_database_version_get)
         || !CU_add_test(pSuite, "create object", test_database_version_create)
         || !CU_add_test(pSuite, "object clauses", test_database_version_clauses)
+        || !CU_add_test(pSuite, "object count", test_database_version_count)
         || !CU_add_test(pSuite, "list objects", test_database_version_list)
         || !CU_add_test(pSuite, "read object by id", test_database_version_read)
         || !CU_add_test(pSuite, "verify fields", test_database_version_verify)
