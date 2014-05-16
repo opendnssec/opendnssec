@@ -284,7 +284,7 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
  * \param[in] database_version_list a database_version_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_fetch_all(db_result_list_t* result_list);
+int database_version_list_fetch_all(database_version_list_t* database_version_list);
 
 #ifdef __cplusplus
 }

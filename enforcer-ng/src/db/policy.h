@@ -1156,7 +1156,7 @@ policy_t* policy_list_get_next(policy_list_t* policy_list);
  * \param[in] policy_list a policy_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_fetch_all(db_result_list_t* result_list);
+int policy_list_fetch_all(policy_list_t* policy_list);
 
 #ifdef __cplusplus
 }

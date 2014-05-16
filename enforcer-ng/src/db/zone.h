@@ -783,7 +783,7 @@ zone_t* zone_list_get_next(zone_list_t* zone_list);
  * \param[in] zone_list a zone_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_fetch_all(db_result_list_t* result_list);
+int zone_list_fetch_all(zone_list_t* zone_list);
 
 #ifdef __cplusplus
 }

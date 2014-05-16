@@ -713,7 +713,7 @@ key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_fetch_all(db_result_list_t* result_list);
+int key_data_list_fetch_all(key_data_list_t* key_data_list);
 
 #ifdef __cplusplus
 }

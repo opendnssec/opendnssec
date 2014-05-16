@@ -652,7 +652,7 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_fetch_all(db_result_list_t* result_list);
+int ', $name, '_list_fetch_all(', $name, '_list_t* ', $name, '_list);
 
 #ifdef __cplusplus
 }

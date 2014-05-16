@@ -686,7 +686,7 @@ hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list);
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_fetch_all(db_result_list_t* result_list);
+int hsm_key_list_fetch_all(hsm_key_list_t* hsm_key_list);
 
 #ifdef __cplusplus
 }

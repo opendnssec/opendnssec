@@ -492,7 +492,7 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_fetch_all(db_result_list_t* result_list);
+int key_state_list_fetch_all(key_state_list_t* key_state_list);
 
 #ifdef __cplusplus
 }
