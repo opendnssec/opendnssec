@@ -37,6 +37,22 @@
 extern "C" {
 #endif
 
+/**
+ * Schedule a task to generate keys for a specific policy key.
+ * \param[in] engine an engine_type.
+ * \prama[in] policy_key_orig a policy_key_t pointer to the policy key we will
+ * generate keys for.
+ * \return non-zero on error.
+ */
+int hsm_key_factory_schedule_generate(engine_type* engine,
+    const policy_key_t* policy_key_orig);
+
+/**
+ * Schedule a task to generate keys for all policies and policy keys we
+ * currently have.
+ * \param[in] engine an engine_type.
+ * \return non-zero on error.
+ */
 int hsm_key_factory_schedule_generate_all(engine_type* engine);
 
 /**
@@ -53,9 +69,6 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine);
 hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
     const db_connection_t* connection, const policy_key_t* policy_key,
     hsm_key_state_t hsm_key_state);
-
-void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key);
-void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* connection);
 
 #ifdef __cplusplus
 }

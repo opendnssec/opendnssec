@@ -36,6 +36,7 @@
 #include "utils/kc_helper.h"
 #include "db/zone.h"
 #include "db/hsm_key.h"
+#include "hsmkey/hsm_key_factory.h"
 
 #include "policy/policy_import.h"
 
@@ -88,6 +89,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     const policy_t* policy_walk;
     zone_list_t* zone_list;
     hsm_key_list_t* hsm_key_list;
+    int any_update = 0;
 
     if (!engine) {
         return POLICY_IMPORT_ERR_ARGS;
@@ -329,6 +331,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
                     if (successful) {
                         client_printf(sockfd, "Created policy %s successfully\n", (char*)name);
+                        any_update = 1;
                     }
                 }
                 else {
@@ -712,10 +715,12 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
                         client_printf(sockfd, "Updated policy %s successfully\n",
                             (char*)name);
+                        any_update = 1;
                     }
                     else if (keys_updated) {
                         client_printf(sockfd, "Updated policy %s successfully\n",
                             (char*)name);
+                        any_update = 1;
                     }
                     else {
                         client_printf(sockfd, "Policy %s already up-to-date\n",
@@ -821,6 +826,10 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
             }
             policy_free(policy);
         }
+    }
+
+    if (any_update) {
+        hsm_key_factory_schedule_generate_all(engine);
     }
 
     for (policy2 = policies; policy2; policy2 = policies) {

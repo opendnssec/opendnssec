@@ -35,6 +35,7 @@
 #include "db/key_data.h"
 #include "db/key_state.h"
 #include "utils/kc_helper.h"
+#include "hsmkey/hsm_key_factory.h"
 
 #include "keystate/zonelist_import.h"
 
@@ -67,6 +68,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     key_data_t* key_data;
     key_state_list_t* key_state_list;
     key_state_t* key_state;
+    int any_update = 0;
 
     if (!engine) {
         return ZONELIST_IMPORT_ERR_ARGS;
@@ -205,6 +207,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
                     client_printf(sockfd, "Zone %s created successfully\n",
                         (char*)name);
+                    any_update = 1;
                 }
                 else {
                     /*
@@ -254,6 +257,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
                         client_printf(sockfd, "Updated zone %s successfully\n",
                             (char*)name);
+                        any_update = 1;
                     }
                     else {
                         client_printf(sockfd, "Zone %s already up-to-date\n",
@@ -347,6 +351,10 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
             }
             zone_free(zone);
         }
+    }
+
+    if (any_update) {
+        hsm_key_factory_schedule_generate_all(engine);
     }
 
     for (zone2 = zones; zone2; zone2 = zones) {
