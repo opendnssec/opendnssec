@@ -29,42 +29,33 @@
 #ifndef _HSM_KEY_FACTORY_H_
 #define _HSM_KEY_FACTORY_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-struct hsm_key_factory;
-struct hsm_key_factory_key;
-typedef struct hsm_key_factory hsm_key_factory_t;
-typedef struct hsm_key_factory_key hsm_key_factory_key_t;
-
-#ifdef __cplusplus
-}
-#endif
-
 #include "db/hsm_key.h"
-#include "db/db_configuration.h"
-#include "db/db_connection.h"
+#include "db/policy_key.h"
+#include "daemon/engine.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct hsm_key_factory {
-    db_connection_t* connection;
-    hsm_key_factory_key_t* hsm_keys;
-};
+int hsm_key_factory_schedule_generate_all(engine_type* engine);
 
-struct hsm_key_factory_key {
-    hsm_key_factory_key_t* next;
-    hsm_key_t* hsm_key;
-};
+/**
+ * Allocate a private or shared HSM key for the policy key provided. This will
+ * also schedule a task for generating more keys if needed.
+ * \param[in] engine an engine_type.
+ * \param[in] connection a database connection.
+ * \param[in] policy_key a policy key.
+ * \param[in] hsm_key_state indicate if its a private or shared key that should
+ * be fetched (HSM_KEY_STATE_PRIVATE | HSM_KEY_STATE_SHARED).
+ * \return an allocated HSM key or NULL on error or if there are no unused keys
+ * available for allocation right now.
+ */
+hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
+    const db_connection_t* connection, const policy_key_t* policy_key,
+    hsm_key_state_t hsm_key_state);
 
-hsm_key_factory_t* hsm_key_factory_new(const db_configuration_list_t* configuration_list);
-void hsm_key_factory_free(hsm_key_factory_t* hsm_key_factory);
-
-hsm_key_factory_key_t* hsm_key_factory_key_new();
-void hsm_key_factory_key_free(hsm_key_factory_key_t* hsm_key_factory_key);
+void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key);
+void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* connection);
 
 #ifdef __cplusplus
 }

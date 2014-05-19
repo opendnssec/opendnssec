@@ -30,95 +30,384 @@
 
 #include "mm.h"
 #include "db/hsm_key.h"
+#include "db/policy.h"
+#include "shared/log.h"
+#include "scheduler/schedule.h"
+#include "scheduler/task.h"
+#include "shared/duration.h"
+#include "libhsm.h"
 
-#include <stdlib.h>
+#include <math.h>
 
-/* HSM KEY FACTORY */
+struct __hsm_key_factory_task {
+    policy_key_t* policy_key;
+    engine_type* engine;
+};
 
-hsm_key_factory_t* hsm_key_factory_new(const db_configuration_list_t* configuration_list) {
-    hsm_key_factory_t* hsm_key_factory =
-        (hsm_key_factory_t*)calloc(1, sizeof(hsm_key_factory_t));
+static task_type* hsm_key_factory_generate_task(task_type *task) {
+    struct __hsm_key_factory_task* task2;
+
+    if (!task) {
+        return NULL;
+    }
+    task2 = (struct __hsm_key_factory_task*)task->context;
+    if (!task2
+        || !(task2->engine)
+        || !(task2->policy_key))
+    {
+        task_cleanup(task);
+        if (task2) {
+            free(task2);
+        }
+        return NULL;
+    }
+
+    ods_log_debug("[hsm_key_factory_generate_keys] generate for policy key");
+    hsm_key_factory_generate(task2->engine, task->dbconn, task2->policy_key);
+    ods_log_debug("[hsm_key_factory_generate_keys] generate for policy key done");
+    policy_key_free(task2->policy_key);
+    task_cleanup(task);
+    free(task2);
+    return NULL;
+}
+
+static task_type* hsm_key_factory_generate_all_task(task_type *task) {
+    struct __hsm_key_factory_task* task2;
+
+    if (!task) {
+        return NULL;
+    }
+    task2 = (struct __hsm_key_factory_task*)task->context;
+    if (!task->dbconn
+        || !task2
+        || !task2->engine)
+    {
+        task_cleanup(task);
+        if (task2) {
+            free(task2);
+        }
+        return NULL;
+    }
+
+    ods_log_debug("[hsm_key_factory_generate_keys] generate for all policies");
+    hsm_key_factory_generate_all(task2->engine, task->dbconn);
+    ods_log_debug("[hsm_key_factory_generate_keys] generate for all policies done");
+    task_cleanup(task);
+    free(task2);
+    return NULL;
+}
+
+static void hsm_key_factory_schedule_generate(engine_type* engine,
+    const policy_key_t* policy_key_orig)
+{
+    task_id what_id;
+    policy_key_t* policy_key;
+    task_type* task = NULL;
+    struct __hsm_key_factory_task* task2 = NULL;
+
+    if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
+        return;
+    }
+    if (!(policy_key = policy_key_new_copy(policy_key_orig))) {
+        free(task2);
+        return;
+    }
+
+    task2->engine = engine;
+    task2->policy_key = policy_key;
+
+    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_task);
+    if (what_id == TASK_NONE
+        || !(task = task_create(what_id, time_now(), "policy_key", task2))
+        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
+    {
+        free(task2);
+        policy_key_free(policy_key);
+        task_cleanup(task);
+    }
+}
+
+int hsm_key_factory_schedule_generate_all(engine_type* engine) {
+    task_id what_id;
+    task_type* task = NULL;
+    struct __hsm_key_factory_task* task2 = NULL;
+
+    if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
+        return 1;
+    }
+
+    task2->engine = engine;
+
+    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_all_task);
+    if (what_id == TASK_NONE
+        || !(task = task_create(what_id, time_now(), "all policies", task2))
+        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
+    {
+        free(task2);
+        task_cleanup(task);
+        return 1;
+    }
+    return 0;
+}
+
+hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
+    const db_connection_t* connection, const policy_key_t* policy_key,
+    hsm_key_state_t hsm_key_state)
+{
+    db_clause_list_t* clause_list;
     hsm_key_list_t* hsm_key_list;
     hsm_key_t* hsm_key;
-    db_clause_list_t* clause_list;
-    hsm_key_factory_key_t* hsm_key_factory_key;
 
-    if (hsm_key_factory) {
-        /*
-         * Create a database connection
-         */
-        if (!(hsm_key_factory->connection = db_connection_new())
-            || db_connection_set_configuration_list(hsm_key_factory->connection, configuration_list)
-            || db_connection_setup(hsm_key_factory->connection))
-        {
-            hsm_key_factory_free(hsm_key_factory);
-            return NULL;
-        }
+    if (!connection) {
+        return NULL;
+    }
+    if (!policy_key) {
+        return NULL;
+    }
+    if (hsm_key_state != HSM_KEY_STATE_PRIVATE
+        && hsm_key_state != HSM_KEY_STATE_SHARED)
+    {
+        return NULL;
+    }
 
-        /*
-         * Get all hsm keys that are in UNUSED state and store them in hsm_keys
-         */
-        if (!(clause_list = db_clause_list_new())
-            || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_UNUSED)
-            || !(hsm_key_list = hsm_key_list_new_get_by_clauses(hsm_key_factory->connection, clause_list)))
-        {
-            db_clause_list_free(clause_list);
-            hsm_key_factory_free(hsm_key_factory);
-            return NULL;
-        }
+    ods_log_debug("[hsm_key_factory] get %s key", (hsm_key_state == HSM_KEY_STATE_PRIVATE ? "private" : "shared"));
+
+    /*
+     * Get a list of unused HSM keys matching our requirments
+     */
+    if (!(clause_list = db_clause_list_new())
+        || !hsm_key_policy_id_clause(clause_list, policy_key_policy_id(policy_key))
+        || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_UNUSED)
+        || !hsm_key_bits_clause(clause_list, policy_key_bits(policy_key))
+        || !hsm_key_algorithm_clause(clause_list, policy_key_algorithm(policy_key))
+        || !hsm_key_role_clause(clause_list, policy_key_role(policy_key))
+        || !hsm_key_is_revoked_clause(clause_list, 0)
+        || !hsm_key_key_type_clause(clause_list, HSM_KEY_KEY_TYPE_RSA)
+        || !hsm_key_repository_clause(clause_list, policy_key_repository(policy_key))
+        || !(hsm_key_list = hsm_key_list_new_get_by_clauses(connection, clause_list)))
+    {
+        ods_log_debug("[hsm_key_factory] unable to list keys, database or memory allocation error");
         db_clause_list_free(clause_list);
+        return NULL;
+    }
+    db_clause_list_free(clause_list);
 
-        while ((hsm_key = hsm_key_list_get_next(hsm_key_list))) {
-            if (!(hsm_key_factory_key = hsm_key_factory_key_new())) {
-                hsm_key_free(hsm_key);
-                hsm_key_list_free(hsm_key_list);
-                hsm_key_factory_free(hsm_key_factory);
-                return NULL;
-            }
-
-            hsm_key_factory_key->hsm_key = hsm_key;
-            hsm_key_factory_key->next = hsm_key_factory->hsm_keys;
-            hsm_key_factory->hsm_keys = hsm_key_factory_key;
-        }
+    /*
+     * If there are no keys returned in the list we schedule generation and
+     * return NULL
+     */
+    if (!(hsm_key = hsm_key_list_get_next(hsm_key_list))) {
+        ods_log_debug("[hsm_key_factory] no keys available");
+        hsm_key_factory_schedule_generate(engine, policy_key);
         hsm_key_list_free(hsm_key_list);
+        return NULL;
+    }
+    hsm_key_list_free(hsm_key_list);
+
+    /*
+     * Update the state of the returned HSM key
+     */
+    if (hsm_key_set_state(hsm_key, hsm_key_state)
+        || hsm_key_update(hsm_key))
+    {
+        ods_log_debug("[hsm_key_factory] unable to update fetch key");
+        hsm_key_free(hsm_key);
+        return NULL;
     }
 
-    return hsm_key_factory;
+    /*
+     * Schedule generation because we used up a key and return the HSM key
+     */
+    ods_log_debug("[hsm_key_factory] key allocated");
+    hsm_key_factory_schedule_generate(engine, policy_key);
+    return hsm_key;
 }
 
-void hsm_key_factory_free(hsm_key_factory_t* hsm_key_factory) {
-    hsm_key_factory_key_t* hsm_key_factory_key;
+void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key) {
+    db_clause_list_t* clause_list;
+    hsm_key_t* hsm_key = NULL;
+    size_t num_keys;
+    zone_t* zone = NULL;
+    size_t num_zones;
+    size_t generate_keys;
+    libhsm_key_t *key = NULL;
+    hsm_ctx_t *hsm_ctx;
+    char* key_id;
+    struct engineconfig_repository* hsm;
 
-    if (hsm_key_factory) {
-        if (hsm_key_factory->connection) {
-            db_connection_free(hsm_key_factory->connection);
-        }
-        if (hsm_key_factory->hsm_keys) {
-            while ((hsm_key_factory_key = hsm_key_factory->hsm_keys)) {
-                hsm_key_factory->hsm_keys = hsm_key_factory_key->next;
-                hsm_key_factory_key_free(hsm_key_factory_key);
+    if (!engine) {
+        return;
+    }
+    if (!policy_key) {
+        return;
+    }
+
+    ods_log_debug("[hsm_key_factory_generate] repository %s role %s", policy_key_repository(policy_key), policy_key_role_text(policy_key));
+
+    /*
+     * Get a count of unused keys that match our policy key to determine how
+     * many keys we need to make if any
+     */
+    if (!(clause_list = db_clause_list_new())
+        || !(hsm_key = hsm_key_new(connection))
+        || !hsm_key_policy_id_clause(clause_list, policy_key_policy_id(policy_key))
+        || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_UNUSED)
+        || !hsm_key_bits_clause(clause_list, policy_key_bits(policy_key))
+        || !hsm_key_algorithm_clause(clause_list, policy_key_algorithm(policy_key))
+        || !hsm_key_role_clause(clause_list, policy_key_role(policy_key))
+        || !hsm_key_is_revoked_clause(clause_list, 0)
+        || !hsm_key_key_type_clause(clause_list, HSM_KEY_KEY_TYPE_RSA)
+        || !hsm_key_repository_clause(clause_list, policy_key_repository(policy_key))
+        || hsm_key_count(hsm_key, clause_list, &num_keys))
+    {
+        ods_log_debug("[hsm_key_factory_generate] unable to count unused keys, database or memory allocation error");
+        hsm_key_free(hsm_key);
+        db_clause_list_free(clause_list);
+        return;
+    }
+    db_clause_list_free(clause_list);
+    hsm_key_free(hsm_key);
+
+    /*
+     * Get the count of zones we have for the policy
+     */
+    if (!(clause_list = db_clause_list_new())
+        || !(zone = zone_new(connection))
+        || !zone_policy_id_clause(clause_list, policy_key_policy_id(policy_key))
+        || zone_count(zone, clause_list, &num_zones))
+    {
+        ods_log_debug("[hsm_key_factory_generate] unable to count zones for policy, database or memory allocation error");
+        zone_free(zone);
+        db_clause_list_free(clause_list);
+        return;
+    }
+    zone_free(zone);
+    db_clause_list_free(clause_list);
+
+    /*
+     * Calculate the number of keys we need to generate now but exit if we do
+     * not have to generate any keys
+     */
+    generate_keys = (size_t)ceil((double)(engine->config->automatic_keygen_duration)
+        / (double)policy_key_lifetime(policy_key)) * num_zones;
+    if (num_keys >= generate_keys) {
+        return;
+    }
+    generate_keys -= num_keys;
+
+    /*
+     * Create a HSM context and check that the repository exists
+     */
+    if (!(hsm_ctx = hsm_create_context())) {
+        return;
+    }
+    if (!hsm_token_attached(hsm_ctx, policy_key_repository(policy_key))) {
+        hsm_print_error(hsm_ctx);
+        hsm_destroy_context(hsm_ctx);
+        return;
+    }
+
+    ods_log_debug("[hsm_key_factory_generate] generating %d keys", generate_keys);
+
+    /*
+     * Generate a HSM keys
+     */
+    while (--generate_keys) {
+        /*
+         * Find the HSM repository to get the backup configuration
+         */
+        hsm = engine->config->hsm;
+        while (hsm) {
+            if (!strcmp(hsm->name, policy_key_repository(policy_key))) {
+                break;
             }
+            hsm = hsm->next;
         }
-        free(hsm_key_factory);
+        if (!hsm) {
+            ods_log_error("[hsm_key_factory_generate] unable to find repository %s needed for key generation", policy_key_repository(policy_key));
+            hsm_destroy_context(hsm_ctx);
+            return;
+        }
+
+        if ((key = hsm_generate_rsa_key(hsm_ctx, policy_key_repository(policy_key), policy_key_bits(policy_key)))) {
+            /*
+             * The key ID is the locator and we check first that we can get it
+             */
+            if (!(key_id = hsm_get_key_id(hsm_ctx, key))) {
+                ods_log_error("[hsm_key_factory_generate] unable to get the ID of the key generated");
+                libhsm_key_free(key);
+                hsm_destroy_context(hsm_ctx);
+                return;
+            }
+
+            /*
+             * Create the HSM key (database object)
+             */
+            if (!(hsm_key = hsm_key_new(connection))
+                || hsm_key_set_algorithm(hsm_key, policy_key_algorithm(policy_key))
+                || hsm_key_set_backup(hsm_key, (hsm->require_backup ? HSM_KEY_BACKUP_BACKUP_REQUIRED : HSM_KEY_BACKUP_NO_BACKUP))
+                || hsm_key_set_bits(hsm_key, policy_key_bits(policy_key))
+                || hsm_key_set_inception(hsm_key, time_now())
+                || hsm_key_set_key_type(hsm_key, HSM_KEY_KEY_TYPE_RSA)
+                || hsm_key_set_locator(hsm_key, key_id)
+                || hsm_key_set_policy_id(hsm_key, policy_key_policy_id(policy_key))
+                || hsm_key_set_repository(hsm_key, policy_key_repository(policy_key))
+                || hsm_key_set_role(hsm_key, policy_key_role(policy_key))
+                || hsm_key_set_state(hsm_key, HSM_KEY_STATE_UNUSED)
+                || hsm_key_create(hsm_key))
+            {
+                ods_log_error("[hsm_key_factory_generate] hsm key creation failed, database or memory error");
+                hsm_key_free(hsm_key);
+                free(key_id);
+                libhsm_key_free(key);
+                hsm_destroy_context(hsm_ctx);
+                return;
+            }
+
+            ods_log_debug("[hsm_key_factory_generate] generated key %s successfully", key_id);
+
+            hsm_key_free(hsm_key);
+            free(key_id);
+            libhsm_key_free(key);
+        }
+        else {
+            ods_log_error("[hsm_key_factory_generate] key generation failed");
+            hsm_destroy_context(hsm_ctx);
+            return;
+        }
     }
+    hsm_destroy_context(hsm_ctx);
 }
 
-/* HSM KEY FACTORY KEY */
+void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* connection) {
+    policy_list_t* policy_list;
+    const policy_t* policy;
+    policy_key_list_t* policy_key_list;
+    const policy_key_t* policy_key;
 
-static mm_alloc_t __hsm_key_factory_key_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(hsm_key_factory_key_t));
-
-hsm_key_factory_key_t* hsm_key_factory_key_new() {
-    hsm_key_factory_key_t* hsm_key_factory_key =
-        (hsm_key_factory_key_t*)mm_alloc_new0(&__hsm_key_factory_key_alloc);
-
-    return hsm_key_factory_key;
-}
-
-void hsm_key_factory_key_free(hsm_key_factory_key_t* hsm_key_factory_key) {
-    if (hsm_key_factory_key) {
-        if (hsm_key_factory_key->hsm_key) {
-            hsm_key_free(hsm_key_factory_key->hsm_key);
-        }
-        mm_alloc_delete(&__hsm_key_factory_key_alloc, hsm_key_factory_key);
+    if (!engine) {
+        return;
     }
+    if (!connection) {
+        return;
+    }
+
+    /*
+     * Get all the policies and for each get all the policy keys and generate
+     * new keys for them if needed
+     */
+    if (!(policy_list = policy_list_new_get(connection))) {
+        return;
+    }
+    while ((policy = policy_list_next(policy_list))) {
+        if (!(policy_key_list = policy_key_list_new_get_by_policy_id(connection, policy_id(policy)))) {
+            continue;
+        }
+
+        while ((policy_key = policy_key_list_next(policy_key_list))) {
+            hsm_key_factory_generate(engine, connection, policy_key);
+        }
+        policy_key_list_free(policy_key_list);
+    }
+    policy_list_free(policy_list);
 }

@@ -34,6 +34,7 @@
 #include "policy/policy_resalt_task.h"
 #include "shared/status.h"
 #include "shared/log.h"
+#include "hsmkey/hsm_key_factory.h"
 
 #include "enforcer/autostart_cmd.h"
 
@@ -48,6 +49,7 @@ autostart(engine_type* engine)
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 
+	hsm_key_factory_schedule_generate_all(engine);
 	status = schedule_task(engine->taskq, policy_resalt_task(engine));
 	if (status != ODS_STATUS_OK)
 		ods_log_crit("[%s] failed to create resalt task", module_str);
