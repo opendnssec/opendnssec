@@ -206,7 +206,7 @@ hsm_shm_open()
     }
 
     /* Check the size of the memory segment */
-    if (buf.shm_segsz != shmsize) {
+    if ((size_t)buf.shm_segsz != shmsize) {
         hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_shm_open()",
                             "Bad memory size, please read Getting Help/Troubleshooting on OpenDNSSEC Wiki about this.");
         return -1;
