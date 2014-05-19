@@ -481,6 +481,7 @@ engine_teardown(engine_type* engine)
             worker_cleanup(engine->workers[i]);
         }
         free(engine->workers);
+        engine->workers = NULL;
     }
     cmdhandler_cleanup(engine->cmdhandler);
     engine->cmdhandler = NULL;
