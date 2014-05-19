@@ -91,9 +91,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     switch (policy_import(sockfd, engine, dbconn, 1)) {
     case POLICY_IMPORT_OK:
         /*
-        error = perform_hsmkey_gen(sockfd, engine->config, 0 / * automatic * /,
-            engine->config->automatic_keygen_duration);
-
         schedule_flush(engine->taskq);
         */
         return 0;

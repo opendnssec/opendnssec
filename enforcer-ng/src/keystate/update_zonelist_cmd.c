@@ -83,12 +83,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     switch (zonelist_import(sockfd, engine, dbconn, 1)) {
     case ZONELIST_IMPORT_OK:
         /*
-        int error;
-        if (!perform_update_keyzones(sockfd,engine->config)) return 1;
-        error = perform_hsmkey_gen(sockfd, engine->config, 0,
-            engine->config->automatic_keygen_duration);
         flush_enforce_task(engine, 1);
-        return error;
         */
         return 0;
         break;
