@@ -35,9 +35,10 @@
 #include <libhsm.h>
 #include <libhsmdns.h>
 
-#ifndef PTHREAD_THREADS_MAX
-#define PTHREAD_THREADS_MAX 2048
+#ifdef PTHREAD_THREADS_MAX
+#undef PTHREAD_THREADS_MAX
 #endif
+#define PTHREAD_THREADS_MAX 2048
 
 /* Algorithm identifier and name */
 ldns_algorithm  algorithm = LDNS_RSASHA1;
