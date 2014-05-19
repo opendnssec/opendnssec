@@ -329,6 +329,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                         successful = 0;
                         continue;
                     }
+                    hsm_key_factory_release_key(key_data_hsm_key_id(key_data), dbconn);
                 }
                 key_data_list_free(key_data_list);
 

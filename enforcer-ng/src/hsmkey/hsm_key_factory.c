@@ -31,6 +31,7 @@
 #include "mm.h"
 #include "db/hsm_key.h"
 #include "db/policy.h"
+#include "db/zone.h"
 #include "shared/log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
@@ -43,190 +44,6 @@ struct __hsm_key_factory_task {
     policy_key_t* policy_key;
     engine_type* engine;
 };
-
-static void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key);
-static void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* connection);
-
-static task_type* hsm_key_factory_generate_task(task_type *task) {
-    struct __hsm_key_factory_task* task2;
-
-    if (!task) {
-        return NULL;
-    }
-    task2 = (struct __hsm_key_factory_task*)task->context;
-    if (!task2
-        || !(task2->engine)
-        || !(task2->policy_key))
-    {
-        task_cleanup(task);
-        if (task2) {
-            free(task2);
-        }
-        return NULL;
-    }
-
-    ods_log_debug("[hsm_key_factory_generate_task] generate for policy key");
-    hsm_key_factory_generate(task2->engine, task->dbconn, task2->policy_key);
-    ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
-    policy_key_free(task2->policy_key);
-    task_cleanup(task);
-    free(task2);
-    return NULL;
-}
-
-static task_type* hsm_key_factory_generate_all_task(task_type *task) {
-    struct __hsm_key_factory_task* task2;
-
-    if (!task) {
-        return NULL;
-    }
-    task2 = (struct __hsm_key_factory_task*)task->context;
-    if (!task->dbconn
-        || !task2
-        || !task2->engine)
-    {
-        task_cleanup(task);
-        if (task2) {
-            free(task2);
-        }
-        return NULL;
-    }
-
-    ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies");
-    hsm_key_factory_generate_all(task2->engine, task->dbconn);
-    ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies done");
-    task_cleanup(task);
-    free(task2);
-    return NULL;
-}
-
-int hsm_key_factory_schedule_generate(engine_type* engine,
-    const policy_key_t* policy_key_orig)
-{
-    task_id what_id;
-    policy_key_t* policy_key;
-    task_type* task = NULL;
-    struct __hsm_key_factory_task* task2 = NULL;
-
-    if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
-        return 1;
-    }
-    if (!(policy_key = policy_key_new_copy(policy_key_orig))) {
-        free(task2);
-        return 1;
-    }
-
-    task2->engine = engine;
-    task2->policy_key = policy_key;
-
-    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_task);
-    if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "policy_key", task2))
-        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
-    {
-        free(task2);
-        policy_key_free(policy_key);
-        task_cleanup(task);
-        return 1;
-    }
-    return 0;
-}
-
-int hsm_key_factory_schedule_generate_all(engine_type* engine) {
-    task_id what_id;
-    task_type* task = NULL;
-    struct __hsm_key_factory_task* task2 = NULL;
-
-    if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
-        return 1;
-    }
-
-    task2->engine = engine;
-
-    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_all_task);
-    if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "all policies", task2))
-        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
-    {
-        free(task2);
-        task_cleanup(task);
-        return 1;
-    }
-    return 0;
-}
-
-hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
-    const db_connection_t* connection, const policy_key_t* policy_key,
-    hsm_key_state_t hsm_key_state)
-{
-    db_clause_list_t* clause_list;
-    hsm_key_list_t* hsm_key_list;
-    hsm_key_t* hsm_key;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!policy_key) {
-        return NULL;
-    }
-    if (hsm_key_state != HSM_KEY_STATE_PRIVATE
-        && hsm_key_state != HSM_KEY_STATE_SHARED)
-    {
-        return NULL;
-    }
-
-    ods_log_debug("[hsm_key_factory_get_key] get %s key", (hsm_key_state == HSM_KEY_STATE_PRIVATE ? "private" : "shared"));
-
-    /*
-     * Get a list of unused HSM keys matching our requirments
-     */
-    if (!(clause_list = db_clause_list_new())
-        || !hsm_key_policy_id_clause(clause_list, policy_key_policy_id(policy_key))
-        || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_UNUSED)
-        || !hsm_key_bits_clause(clause_list, policy_key_bits(policy_key))
-        || !hsm_key_algorithm_clause(clause_list, policy_key_algorithm(policy_key))
-        || !hsm_key_role_clause(clause_list, policy_key_role(policy_key))
-        || !hsm_key_is_revoked_clause(clause_list, 0)
-        || !hsm_key_key_type_clause(clause_list, HSM_KEY_KEY_TYPE_RSA)
-        || !hsm_key_repository_clause(clause_list, policy_key_repository(policy_key))
-        || !(hsm_key_list = hsm_key_list_new_get_by_clauses(connection, clause_list)))
-    {
-        ods_log_error("[hsm_key_factory_get_key] unable to list keys, database or memory allocation error");
-        db_clause_list_free(clause_list);
-        return NULL;
-    }
-    db_clause_list_free(clause_list);
-
-    /*
-     * If there are no keys returned in the list we schedule generation and
-     * return NULL
-     */
-    if (!(hsm_key = hsm_key_list_get_next(hsm_key_list))) {
-        ods_log_warning("[hsm_key_factory_get_key] no keys available");
-        hsm_key_factory_schedule_generate(engine, policy_key);
-        hsm_key_list_free(hsm_key_list);
-        return NULL;
-    }
-    hsm_key_list_free(hsm_key_list);
-
-    /*
-     * Update the state of the returned HSM key
-     */
-    if (hsm_key_set_state(hsm_key, hsm_key_state)
-        || hsm_key_update(hsm_key))
-    {
-        ods_log_debug("[hsm_key_factory_get_key] unable to update fetch key");
-        hsm_key_free(hsm_key);
-        return NULL;
-    }
-
-    /*
-     * Schedule generation because we used up a key and return the HSM key
-     */
-    ods_log_debug("[hsm_key_factory_get_key] key allocated");
-    hsm_key_factory_schedule_generate(engine, policy_key);
-    return hsm_key;
-}
 
 static void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key) {
     db_clause_list_t* clause_list;
@@ -434,4 +251,228 @@ static void hsm_key_factory_generate_all(engine_type* engine, const db_connectio
         policy_key_list_free(policy_key_list);
     }
     policy_list_free(policy_list);
+}
+
+static task_type* hsm_key_factory_generate_task(task_type *task) {
+    struct __hsm_key_factory_task* task2;
+
+    if (!task) {
+        return NULL;
+    }
+    task2 = (struct __hsm_key_factory_task*)task->context;
+    if (!task2
+        || !(task2->engine)
+        || !(task2->policy_key))
+    {
+        task_cleanup(task);
+        if (task2) {
+            free(task2);
+        }
+        return NULL;
+    }
+
+    ods_log_debug("[hsm_key_factory_generate_task] generate for policy key");
+    hsm_key_factory_generate(task2->engine, task->dbconn, task2->policy_key);
+    ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
+    policy_key_free(task2->policy_key);
+    task_cleanup(task);
+    free(task2);
+    return NULL;
+}
+
+static task_type* hsm_key_factory_generate_all_task(task_type *task) {
+    struct __hsm_key_factory_task* task2;
+
+    if (!task) {
+        return NULL;
+    }
+    task2 = (struct __hsm_key_factory_task*)task->context;
+    if (!task->dbconn
+        || !task2
+        || !task2->engine)
+    {
+        task_cleanup(task);
+        if (task2) {
+            free(task2);
+        }
+        return NULL;
+    }
+
+    ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies");
+    hsm_key_factory_generate_all(task2->engine, task->dbconn);
+    ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies done");
+    task_cleanup(task);
+    free(task2);
+    return NULL;
+}
+
+int hsm_key_factory_schedule_generate(engine_type* engine,
+    const policy_key_t* policy_key_orig)
+{
+    task_id what_id;
+    policy_key_t* policy_key;
+    task_type* task = NULL;
+    struct __hsm_key_factory_task* task2 = NULL;
+
+    if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
+        return 1;
+    }
+    if (!(policy_key = policy_key_new_copy(policy_key_orig))) {
+        free(task2);
+        return 1;
+    }
+
+    task2->engine = engine;
+    task2->policy_key = policy_key;
+
+    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_task);
+    if (what_id == TASK_NONE
+        || !(task = task_create(what_id, time_now(), "policy_key", task2))
+        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
+    {
+        free(task2);
+        policy_key_free(policy_key);
+        task_cleanup(task);
+        return 1;
+    }
+    return 0;
+}
+
+int hsm_key_factory_schedule_generate_all(engine_type* engine) {
+    task_id what_id;
+    task_type* task = NULL;
+    struct __hsm_key_factory_task* task2 = NULL;
+
+    if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
+        return 1;
+    }
+
+    task2->engine = engine;
+
+    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_all_task);
+    if (what_id == TASK_NONE
+        || !(task = task_create(what_id, time_now(), "all policies", task2))
+        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
+    {
+        free(task2);
+        task_cleanup(task);
+        return 1;
+    }
+    return 0;
+}
+
+hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
+    const db_connection_t* connection, const policy_key_t* policy_key,
+    hsm_key_state_t hsm_key_state)
+{
+    db_clause_list_t* clause_list;
+    hsm_key_list_t* hsm_key_list;
+    hsm_key_t* hsm_key;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!policy_key) {
+        return NULL;
+    }
+    if (hsm_key_state != HSM_KEY_STATE_PRIVATE
+        && hsm_key_state != HSM_KEY_STATE_SHARED)
+    {
+        return NULL;
+    }
+
+    ods_log_debug("[hsm_key_factory_get_key] get %s key", (hsm_key_state == HSM_KEY_STATE_PRIVATE ? "private" : "shared"));
+
+    /*
+     * Get a list of unused HSM keys matching our requirments
+     */
+    if (!(clause_list = db_clause_list_new())
+        || !hsm_key_policy_id_clause(clause_list, policy_key_policy_id(policy_key))
+        || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_UNUSED)
+        || !hsm_key_bits_clause(clause_list, policy_key_bits(policy_key))
+        || !hsm_key_algorithm_clause(clause_list, policy_key_algorithm(policy_key))
+        || !hsm_key_role_clause(clause_list, policy_key_role(policy_key))
+        || !hsm_key_is_revoked_clause(clause_list, 0)
+        || !hsm_key_key_type_clause(clause_list, HSM_KEY_KEY_TYPE_RSA)
+        || !hsm_key_repository_clause(clause_list, policy_key_repository(policy_key))
+        || !(hsm_key_list = hsm_key_list_new_get_by_clauses(connection, clause_list)))
+    {
+        ods_log_error("[hsm_key_factory_get_key] unable to list keys, database or memory allocation error");
+        db_clause_list_free(clause_list);
+        return NULL;
+    }
+    db_clause_list_free(clause_list);
+
+    /*
+     * If there are no keys returned in the list we schedule generation and
+     * return NULL
+     */
+    if (!(hsm_key = hsm_key_list_get_next(hsm_key_list))) {
+        ods_log_warning("[hsm_key_factory_get_key] no keys available");
+        hsm_key_factory_schedule_generate(engine, policy_key);
+        hsm_key_list_free(hsm_key_list);
+        return NULL;
+    }
+    hsm_key_list_free(hsm_key_list);
+
+    /*
+     * Update the state of the returned HSM key
+     */
+    if (hsm_key_set_state(hsm_key, hsm_key_state)
+        || hsm_key_update(hsm_key))
+    {
+        ods_log_debug("[hsm_key_factory_get_key] unable to update fetched key");
+        hsm_key_free(hsm_key);
+        return NULL;
+    }
+
+    /*
+     * Schedule generation because we used up a key and return the HSM key
+     */
+    ods_log_debug("[hsm_key_factory_get_key] key allocated");
+    hsm_key_factory_schedule_generate(engine, policy_key);
+    return hsm_key;
+}
+
+int hsm_key_factory_release_key(const db_value_t* hsm_key_id, const db_connection_t* connection) {
+    hsm_key_t* hsm_key;
+    db_clause_list_t* clause_list = NULL;
+    key_data_t* key_data = NULL;
+    size_t count;
+
+    if (!hsm_key_id) {
+        return 1;
+    }
+
+    if (!(hsm_key = hsm_key_new(connection))
+        || !(clause_list = db_clause_list_new())
+        || !(key_data = key_data_new(connection))
+        || key_data_hsm_key_id_clause(clause_list, hsm_key_id)
+        || key_data_count(key_data, clause_list, &count))
+    {
+        ods_log_debug("[hsm_key_factory_release_key] unable to check usage of hsm_key, database or memory allocation error");
+        key_data_free(key_data);
+        db_clause_list_free(clause_list);
+        hsm_key_free(hsm_key);
+        return 1;
+    }
+    key_data_free(key_data);
+    db_clause_list_free(clause_list);
+
+    if (count > 0) {
+        hsm_key_free(hsm_key);
+        return 0;
+    }
+
+    if (hsm_key_get_by_id(hsm_key, hsm_key_id)
+        || hsm_key_set_state(hsm_key, HSM_KEY_STATE_DELETE)
+        || hsm_key_update(hsm_key))
+    {
+        ods_log_debug("[hsm_key_factory_release_key] unable to change hsm_key state to DELETE");
+        hsm_key_free(hsm_key);
+        return 1;
+    }
+
+    hsm_key_free(hsm_key);
+    return 0;
 }
