@@ -31,7 +31,7 @@
 #include "mm.h"
 #include "db/hsm_key.h"
 #include "db/policy.h"
-#include "db/zone.h"
+#include "db/key_data.h"
 #include "shared/log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
