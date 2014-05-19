@@ -57,6 +57,33 @@ struct __policy_import_policy {
     int processed;
 };
 
+static void __policy_import_cleanup(struct __policy_import_policy_key** policy_keys_db, struct __policy_import_policy_key** policy_keys_xml, struct __policy_import_policy** policies) {
+    struct __policy_import_policy_key* policy_key_db;
+    struct __policy_import_policy_key* policy_key_xml;
+    struct __policy_import_policy* policy2;
+
+    for (policy_key_db = *policy_keys_db; policy_key_db; policy_key_db = *policy_keys_db) {
+        *policy_keys_db = policy_key_db->next;
+        if (policy_key_db->policy_key) {
+            policy_key_free(policy_key_db->policy_key);
+        }
+        free(policy_key_db);
+    }
+    for (policy_key_xml = *policy_keys_xml; policy_key_xml; policy_key_xml = *policy_keys_xml) {
+        *policy_keys_xml = policy_key_xml->next;
+        if (policy_key_xml->policy_key) {
+            policy_key_free(policy_key_xml->policy_key);
+        }
+        free(policy_key_xml);
+        policy_key_xml = *policy_keys_xml;
+    }
+    for (policy2 = *policies; policy2; policy2 = *policies) {
+        *policies = policy2->next;
+        free(policy2->name);
+        free(policy2);
+    }
+}
+
 int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete)
 {
@@ -141,11 +168,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         for (hsm = engine->config->hsm; hsm; hsm = hsm->next, repository_count++)
             ;
         if (!(repositories = calloc(repository_count, sizeof(char*)))) {
-            for (policy2 = policies; policy2; policy2 = policies) {
-                free(policy2->name);
-                policies = policy2->next;
-                free(policy2);
-            }
+            __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
             return POLICY_IMPORT_ERR_MEMORY;
         }
         for (i = 0, hsm = engine->config->hsm; hsm && i<repository_count; hsm = hsm->next, i++)
@@ -160,11 +183,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         if (repositories) {
             free(repositories);
         }
-        for (policy2 = policies; policy2; policy2 = policies) {
-            free(policy2->name);
-            policies = policy2->next;
-            free(policy2);
-        }
+        __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
         return POLICY_IMPORT_ERR_XML;
     }
 
@@ -175,22 +194,14 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     if (!(doc = xmlParseFile(engine->config->policy_filename))) {
         client_printf_err(sockfd, "Unable to read/parse KASP XML file %s!\n",
             engine->config->policy_filename);
-        for (policy2 = policies; policy2; policy2 = policies) {
-            free(policy2->name);
-            policies = policy2->next;
-            free(policy2);
-        }
+        __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
         return POLICY_IMPORT_ERR_XML;
     }
 
     if (!(root = xmlDocGetRootElement(doc))) {
         client_printf_err(sockfd, "Unable to get the root element in the KASP XML!\n");
         xmlFreeDoc(doc);
-        for (policy2 = policies; policy2; policy2 = policies) {
-            free(policy2->name);
-            policies = policy2->next;
-            free(policy2);
-        }
+        __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
         return POLICY_IMPORT_ERR_XML;
     }
 
@@ -211,11 +222,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                 if (!(name = xmlGetProp(node, (const xmlChar*)"name"))) {
                     client_printf_err(sockfd, "Invalid Policy element in KASP XML!\n");
                     xmlFreeDoc(doc);
-                    for (policy2 = policies; policy2; policy2 = policies) {
-                        free(policy2->name);
-                        policies = policy2->next;
-                        free(policy2);
-                    }
+                    __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
                     return POLICY_IMPORT_ERR_XML;
                 }
 
@@ -223,11 +230,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     client_printf_err(sockfd, "Memory allocation error!\n");
                     xmlFree(name);
                     xmlFreeDoc(doc);
-                    for (policy2 = policies; policy2; policy2 = policies) {
-                        free(policy2->name);
-                        policies = policy2->next;
-                        free(policy2);
-                    }
+                    __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
                     return POLICY_IMPORT_ERR_MEMORY;
                 }
 
@@ -298,11 +301,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                                 policy_key_free(policy_key);
                                 xmlFree(name);
                                 xmlFreeDoc(doc);
-                                for (policy2 = policies; policy2; policy2 = policies) {
-                                    free(policy2->name);
-                                    policies = policy2->next;
-                                    free(policy2);
-                                }
+                                __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
                                 return POLICY_IMPORT_ERR_MEMORY;
                             }
                             if (policy_key_create_from_xml(policy_key, node3)) {
@@ -365,6 +364,17 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                         continue;
                     }
 
+                    /*
+                     * Clear the list if its been used before
+                     */
+                    for (policy_key_db = policy_keys_db; policy_key_db; policy_key_db = policy_keys_db) {
+                        policy_keys_db = policy_key_db->next;
+                        if (policy_key_db->policy_key) {
+                            policy_key_free(policy_key_db->policy_key);
+                        }
+                        free(policy_key_db);
+                    }
+
                     policy_key2 = policy_key_list_next(policy_key_list);
                     while (policy_key2) {
                         if (!(policy_key_db = calloc(1, sizeof(struct __policy_import_policy_key)))
@@ -380,20 +390,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                             policy_free(policy);
                             xmlFree(name);
                             xmlFreeDoc(doc);
-                            policy_key_db = policy_keys_db;
-                            while (policy_key_db) {
-                                policy_keys_db = policy_key_db->next;
-                                if (policy_key_db->policy_key) {
-                                    policy_key_free(policy_key_db->policy_key);
-                                }
-                                free(policy_key_db);
-                                policy_key_db = policy_keys_db;
-                            }
-                            for (policy2 = policies; policy2; policy2 = policies) {
-                                free(policy2->name);
-                                policies = policy2->next;
-                                free(policy2);
-                            }
+                            __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
                             return POLICY_IMPORT_ERR_MEMORY;
                         }
 
@@ -414,15 +411,6 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                             (char*)name);
                         policy_free(policy);
                         xmlFree(name);
-                        policy_key_db = policy_keys_db;
-                        while (policy_key_db) {
-                            policy_keys_db = policy_key_db->next;
-                            if (policy_key_db->policy_key) {
-                                policy_key_free(policy_key_db->policy_key);
-                            }
-                            free(policy_key_db);
-                            policy_key_db = policy_keys_db;
-                        }
                         xml_error = 1;
                         continue;
                     }
@@ -431,6 +419,19 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                      * Walk deeper into the XML and create objects for all the
                      * keys we find but do not update the database yet
                      */
+
+                    /*
+                     * Clear the list if its been used before
+                     */
+                    for (policy_key_xml = policy_keys_xml; policy_key_xml; policy_key_xml = policy_keys_xml) {
+                        policy_keys_xml = policy_key_xml->next;
+                        if (policy_key_xml->policy_key) {
+                            policy_key_free(policy_key_xml->policy_key);
+                        }
+                        free(policy_key_xml);
+                        policy_key_xml = policy_keys_xml;
+                    }
+
                     successful = 1;
                     for (node2 = node->children; node2; node2 = node2->next) {
                         if (node2->type != XML_ELEMENT_NODE) {
@@ -462,29 +463,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                                 policy_free(policy);
                                 xmlFree(name);
                                 xmlFreeDoc(doc);
-                                policy_key_db = policy_keys_db;
-                                while (policy_key_db) {
-                                    policy_keys_db = policy_key_db->next;
-                                    if (policy_key_db->policy_key) {
-                                        policy_key_free(policy_key_db->policy_key);
-                                    }
-                                    free(policy_key_db);
-                                    policy_key_db = policy_keys_db;
-                                }
-                                policy_key_xml = policy_keys_xml;
-                                while (policy_key_xml) {
-                                    policy_keys_xml = policy_key_xml->next;
-                                    if (policy_key_xml->policy_key) {
-                                        policy_key_free(policy_key_xml->policy_key);
-                                    }
-                                    free(policy_key_xml);
-                                    policy_key_xml = policy_keys_xml;
-                                }
-                                for (policy2 = policies; policy2; policy2 = policies) {
-                                    free(policy2->name);
-                                    policies = policy2->next;
-                                    free(policy2);
-                                }
+                                __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
                                 return POLICY_IMPORT_ERR_MEMORY;
                             }
 
@@ -514,24 +493,6 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                             (char*)name);
                         policy_free(policy);
                         xmlFree(name);
-                        policy_key_db = policy_keys_db;
-                        while (policy_key_db) {
-                            policy_keys_db = policy_key_db->next;
-                            if (policy_key_db->policy_key) {
-                                policy_key_free(policy_key_db->policy_key);
-                            }
-                            free(policy_key_db);
-                            policy_key_db = policy_keys_db;
-                        }
-                        policy_key_xml = policy_keys_xml;
-                        while (policy_key_xml) {
-                            policy_keys_xml = policy_key_xml->next;
-                            if (policy_key_xml->policy_key) {
-                                policy_key_free(policy_key_xml->policy_key);
-                            }
-                            free(policy_key_xml);
-                            policy_key_xml = policy_keys_xml;
-                        }
                         xml_error = 1;
                         continue;
                     }
@@ -602,24 +563,6 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                             (char*)name);
                         policy_free(policy);
                         xmlFree(name);
-                        policy_key_db = policy_keys_db;
-                        while (policy_key_db) {
-                            policy_keys_db = policy_key_db->next;
-                            if (policy_key_db->policy_key) {
-                                policy_key_free(policy_key_db->policy_key);
-                            }
-                            free(policy_key_db);
-                            policy_key_db = policy_keys_db;
-                        }
-                        policy_key_xml = policy_keys_xml;
-                        while (policy_key_xml) {
-                            policy_keys_xml = policy_key_xml->next;
-                            if (policy_key_xml->policy_key) {
-                                policy_key_free(policy_key_xml->policy_key);
-                            }
-                            free(policy_key_xml);
-                            policy_key_xml = policy_keys_xml;
-                        }
                         database_error = 1;
                         continue;
                     }
@@ -656,48 +599,8 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                             (char*)name);
                         policy_free(policy);
                         xmlFree(name);
-                        policy_key_db = policy_keys_db;
-                        while (policy_key_db) {
-                            policy_keys_db = policy_key_db->next;
-                            if (policy_key_db->policy_key) {
-                                policy_key_free(policy_key_db->policy_key);
-                            }
-                            free(policy_key_db);
-                            policy_key_db = policy_keys_db;
-                        }
-                        policy_key_xml = policy_keys_xml;
-                        while (policy_key_xml) {
-                            policy_keys_xml = policy_key_xml->next;
-                            if (policy_key_xml->policy_key) {
-                                policy_key_free(policy_key_xml->policy_key);
-                            }
-                            free(policy_key_xml);
-                            policy_key_xml = policy_keys_xml;
-                        }
                         database_error = 1;
                         continue;
-                    }
-
-                    /*
-                     * Cleanup the lists
-                     */
-                    policy_key_db = policy_keys_db;
-                    while (policy_key_db) {
-                        policy_keys_db = policy_key_db->next;
-                        if (policy_key_db->policy_key) {
-                            policy_key_free(policy_key_db->policy_key);
-                        }
-                        free(policy_key_db);
-                        policy_key_db = policy_keys_db;
-                    }
-                    policy_key_xml = policy_keys_xml;
-                    while (policy_key_xml) {
-                        policy_keys_xml = policy_key_xml->next;
-                        if (policy_key_xml->policy_key) {
-                            policy_key_free(policy_key_xml->policy_key);
-                        }
-                        free(policy_key_xml);
-                        policy_key_xml = policy_keys_xml;
                     }
 
                     /*
@@ -832,11 +735,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         hsm_key_factory_schedule_generate_all(engine);
     }
 
-    for (policy2 = policies; policy2; policy2 = policies) {
-        free(policy2->name);
-        policies = policy2->next;
-        free(policy2);
-    }
+    __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
     xmlFreeDoc(doc);
     if (database_error) {
         return POLICY_IMPORT_ERR_DATABASE;
