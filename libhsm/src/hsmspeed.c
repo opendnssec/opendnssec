@@ -35,7 +35,9 @@
 #include <libhsm.h>
 #include <libhsmdns.h>
 
+#ifndef PTHREAD_THREADS_MAX
 #define PTHREAD_THREADS_MAX 2048
+#endif
 
 /* Algorithm identifier and name */
 ldns_algorithm  algorithm = LDNS_RSASHA1;
@@ -117,6 +119,7 @@ sign (void *arg)
     fprintf(stderr, "Signer thread #%d done.\n", sign_arg->id);
 
     pthread_exit(NULL);
+    return NULL;
 }
 
 
