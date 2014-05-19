@@ -186,7 +186,7 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
         || !hsm_key_repository_clause(clause_list, policy_key_repository(policy_key))
         || !(hsm_key_list = hsm_key_list_new_get_by_clauses(connection, clause_list)))
     {
-        ods_log_debug("[hsm_key_factory] unable to list keys, database or memory allocation error");
+        ods_log_error("[hsm_key_factory] unable to list keys, database or memory allocation error");
         db_clause_list_free(clause_list);
         return NULL;
     }
@@ -197,7 +197,7 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
      * return NULL
      */
     if (!(hsm_key = hsm_key_list_get_next(hsm_key_list))) {
-        ods_log_debug("[hsm_key_factory] no keys available");
+        ods_log_warning("[hsm_key_factory] no keys available");
         hsm_key_factory_schedule_generate(engine, policy_key);
         hsm_key_list_free(hsm_key_list);
         return NULL;
@@ -234,6 +234,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     hsm_ctx_t *hsm_ctx;
     char* key_id;
     struct engineconfig_repository* hsm;
+    char* hsm_err;
 
     if (!engine) {
         return;
@@ -260,7 +261,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         || !hsm_key_repository_clause(clause_list, policy_key_repository(policy_key))
         || hsm_key_count(hsm_key, clause_list, &num_keys))
     {
-        ods_log_debug("[hsm_key_factory_generate] unable to count unused keys, database or memory allocation error");
+        ods_log_error("[hsm_key_factory_generate] unable to count unused keys, database or memory allocation error");
         hsm_key_free(hsm_key);
         db_clause_list_free(clause_list);
         return;
@@ -276,7 +277,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         || !zone_policy_id_clause(clause_list, policy_key_policy_id(policy_key))
         || zone_count(zone, clause_list, &num_zones))
     {
-        ods_log_debug("[hsm_key_factory_generate] unable to count zones for policy, database or memory allocation error");
+        ods_log_error("[hsm_key_factory_generate] unable to count zones for policy, database or memory allocation error");
         zone_free(zone);
         db_clause_list_free(clause_list);
         return;
@@ -302,7 +303,13 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         return;
     }
     if (!hsm_token_attached(hsm_ctx, policy_key_repository(policy_key))) {
-        hsm_print_error(hsm_ctx);
+        if ((hsm_err = hsm_get_error(hsm_ctx))) {
+            ods_log_error("[hsm_key_factory_generate] unable to check for repository %s, HSM error: %s", policy_key_repository(policy_key), hsm_err);
+            free(hsm_err);
+        }
+        else {
+            ods_log_error("[hsm_key_factory_generate] unable to find repository %s in HSM");
+        }
         hsm_destroy_context(hsm_ctx);
         return;
     }
@@ -312,7 +319,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     /*
      * Generate a HSM keys
      */
-    while (--generate_keys) {
+    while (generate_keys--) {
         /*
          * Find the HSM repository to get the backup configuration
          */
@@ -334,7 +341,13 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
              * The key ID is the locator and we check first that we can get it
              */
             if (!(key_id = hsm_get_key_id(hsm_ctx, key))) {
-                ods_log_error("[hsm_key_factory_generate] unable to get the ID of the key generated");
+                if ((hsm_err = hsm_get_error(hsm_ctx))) {
+                    ods_log_error("[hsm_key_factory_generate] unable to get the ID of the key generated, HSM error: %s", hsm_err);
+                    free(hsm_err);
+                }
+                else {
+                    ods_log_error("[hsm_key_factory_generate] unable to get the ID of the key generated");
+                }
                 libhsm_key_free(key);
                 hsm_destroy_context(hsm_ctx);
                 return;
@@ -371,7 +384,13 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
             libhsm_key_free(key);
         }
         else {
-            ods_log_error("[hsm_key_factory_generate] key generation failed");
+            if ((hsm_err = hsm_get_error(hsm_ctx))) {
+                ods_log_error("[hsm_key_factory_generate] key generation failed, HSM error: %s", hsm_err);
+                free(hsm_err);
+            }
+            else {
+                ods_log_error("[hsm_key_factory_generate] key generation failed");
+            }
             hsm_destroy_context(hsm_ctx);
             return;
         }
