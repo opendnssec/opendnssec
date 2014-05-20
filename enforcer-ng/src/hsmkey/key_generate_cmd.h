@@ -1,7 +1,6 @@
 /*
- * Copyright (c) 2011 Surfnet 
- * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
- * Copyright (c) 2011 OpenDNSSEC AB (svb)
+ * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,15 +26,9 @@
  *
  */
 
-#ifndef _HSMKEY_GEN_TASK_H_
-#define _HSMKEY_GEN_TASK_H_
+#ifndef HSMKEY_KEY_GENERATE_CMD_H_
+#define HSMKEY_KEY_GENERATE_CMD_H_
 
-#include "daemon/cfg.h"
-#include "scheduler/task.h"
+struct cmd_func_block* key_generate_funcblock(void);
 
-int perform_hsmkey_gen(int sockfd, engineconfig_type *config, int bManual,
-						time_t duration);
-
-task_type *hsmkey_gen_task(engineconfig_type *config);
-
-#endif
+#endif /* HSMKEY_KEY_GENERATE_CMD_H_ */

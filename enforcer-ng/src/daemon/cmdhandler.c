@@ -95,6 +95,7 @@
 #include "hsmkey/update_hsmkeys_cmd.h"
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
+#include "hsmkey/key_generate_cmd.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -140,8 +141,8 @@ cmd_funcs_avail(void)
 */        &key_ds_seen_funcblock,
 /*        &key_ds_retract_funcblock,
 */        &key_ds_gone_funcblock,
-/*        &key_gen_funcblock,
-
+        &key_generate_funcblock,
+/*
         &key_rollover_funcblock,
 */        &rollover_list_funcblock,
         

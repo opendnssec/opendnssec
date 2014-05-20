@@ -33,6 +33,8 @@
 #include "db/policy_key.h"
 #include "daemon/engine.h"
 
+#include <time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,18 +44,34 @@ extern "C" {
  * \param[in] engine an engine_type.
  * \prama[in] policy_key_orig a policy_key_t pointer to the policy key we will
  * generate keys for.
+ * \param[in] duration a time_t specifying the duration to generate keys from,
+ * if its zero then the duration from conf.xml is taken.
  * \return non-zero on error.
  */
 int hsm_key_factory_schedule_generate(engine_type* engine,
-    const policy_key_t* policy_key_orig);
+    const policy_key_t* policy_key_orig, time_t duration);
+
+/**
+ * Schedule a task to generate keys for a specific policy.
+ * \param[in] engine an engine_type.
+ * \prama[in] policy_orig a policy_t pointer to the policy we will generate keys
+ * for.
+ * \param[in] duration a time_t specifying the duration to generate keys from,
+ * if its zero then the duration from conf.xml is taken.
+ * \return non-zero on error.
+ */
+int hsm_key_factory_schedule_generate_policy(engine_type* engine,
+    const policy_t* policy_orig, time_t duration);
 
 /**
  * Schedule a task to generate keys for all policies and policy keys we
  * currently have.
  * \param[in] engine an engine_type.
+ * \param[in] duration a time_t specifying the duration to generate keys from,
+ * if its zero then the duration from conf.xml is taken.
  * \return non-zero on error.
  */
-int hsm_key_factory_schedule_generate_all(engine_type* engine);
+int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration);
 
 /**
  * Allocate a private or shared HSM key for the policy key provided. This will
