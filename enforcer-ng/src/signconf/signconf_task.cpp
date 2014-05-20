@@ -288,15 +288,13 @@ perform_signconf(int sockfd, engineconfig_type *config, int bforce)
 							   should we call it here or after we have written all of the files?
 							   have timeout if call is blocking */
 							char signer_command[512];
-							strcpy(signer_command, SIGNER_CLI_UPDATE);
-							strcat(signer_command, " ");
-							strcat(signer_command, zone.name().c_str());
-							if (system(signer_command) != 0)
-							{
-								ods_log_error("[%s] Could not call signer engine", module_str);
-								ods_log_info("[%s] Will continue: call 'ods-signer update' to manually update zones", module_str);
-								signer_flag = 0;
-							}
+							if (snprintf(signer_command, 512, "%s %s", SIGNER_CLI_UPDATE, zone.name().c_str()) >= 512
+							    || system(signer_command) != 0)
+                            {
+                                ods_log_error("[%s] Could not call signer engine", module_str);
+                                ods_log_info("[%s] Will continue: call 'ods-signer update' to manually update zones", module_str);
+                                signer_flag = 0;
+                            }
 						}
 					}
 				}

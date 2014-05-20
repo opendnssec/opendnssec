@@ -80,7 +80,7 @@ ods_str_join(allocator_type* allocator, int argc, char *argv[], char cjoin)
 
 		options_size = 0;
 		for (c = 0; c < argc; ++c) {
-			(void)strcpy(&buf[options_size], argv[c]);
+		    memcpy(&buf[options_size], argv[c], strlen(argv[c]));
 			options_size += strlen(argv[c])+1;
 			buf[options_size-1] = cjoin; /* put join character instead of 0 */
 		}

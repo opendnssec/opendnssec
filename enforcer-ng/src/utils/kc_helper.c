@@ -1346,7 +1346,7 @@ void StrAppend(char** str1, const char* str2)
 			/* Allocate space for combined string and concatenate */
 
 			*str1 = MemRealloc(*str1, (len1 + len2 + 1) * sizeof(char));
-			strcat(*str1, str2);
+			memcpy(*str1, str2, len2);
 		}
 		else {
 
@@ -1472,7 +1472,6 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
 	xmlXPathObjectPtr xpath_obj;
 	xmlNode *curNode;
 	xmlChar *xexpr;
-	char* temp_char = NULL;
     char* signer_dir = NULL;
     int signer_dir_default = 0;
     char* enforcer_dir = NULL;
@@ -1598,9 +1597,7 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
 
 			return -1;
 		}
-		temp_char = (char*) xmlXPathCastToString(xpath_obj);
-		StrAppend(kasp, temp_char);
-		StrFree(temp_char);
+		*kasp = (char*) xmlXPathCastToString(xpath_obj);
 		xmlXPathFreeObject(xpath_obj);
 	}
 	
@@ -1621,9 +1618,7 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
 
 			return -1;
 		}
-		temp_char = (char*) xmlXPathCastToString(xpath_obj);
-		StrAppend(zonelist, temp_char);
-		StrFree(temp_char);
+		*zonelist = (char*) xmlXPathCastToString(xpath_obj);
 		xmlXPathFreeObject(xpath_obj);
 	}
 
