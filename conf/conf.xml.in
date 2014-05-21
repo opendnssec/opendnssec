@@ -67,7 +67,7 @@
 -->
 
 		<PidFile>@OPENDNSSEC_SIGNER_PIDFILE@</PidFile>
-		<CommandhandlerFile>@OPENDNSSEC_SIGNER_SOCKET@</CommandhandlerFile>
+		<SocketFile>@OPENDNSSEC_SIGNER_SOCKET@</SocketFile>
 		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
 <!--

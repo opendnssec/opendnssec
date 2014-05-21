@@ -109,7 +109,7 @@ start = element Configuration {
 
 		# Location to store commandhandler socket
 		# DEFAULT: $(localstatedir)/run/opendnssec/engine.sock
-		element CommandhandlerFile { xsd:string }?,
+		element SocketFile { xsd:string }?,
 
 		# Location to store intermediate zone information
 		# DEFAULT: $(localstatedir)/opendnssec/tmp
