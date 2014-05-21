@@ -103,6 +103,14 @@ start = element Configuration {
 		# User & group to drop privs to
 		privs?,
 
+		# Location to store pidfile
+		# DEFAULT: $(localstatedir)/run/opendnssec/signerd.pid
+		element PidFile { xsd:string }?,
+
+		# Location to store commandhandler socket
+		# DEFAULT: $(localstatedir)/run/opendnssec/engine.sock
+		element CommandhandlerFile { xsd:string }?,
+
 		# Location to store intermediate zone information
 		# DEFAULT: $(localstatedir)/opendnssec/tmp
 		element WorkingDirectory { xsd:string }?,
