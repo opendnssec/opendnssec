@@ -215,6 +215,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         }
     }
 
+    /* TODO: Update internal zones.xml */
+
     zone_free(zone);
     free(buf);
     return 0;

@@ -242,6 +242,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     }
     client_printf(sockfd, "Zonelist updated successfully!\n");
 
+    /* TODO: Update internal zones.xml */
+
     zone_free(zone);
     return 0;
 }

@@ -82,6 +82,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     switch (zonelist_import(sockfd, engine, dbconn, 1)) {
     case ZONELIST_IMPORT_OK:
+        /* TODO: Update internal zones.xml */
         /*
         flush_enforce_task(engine, 1);
         */
