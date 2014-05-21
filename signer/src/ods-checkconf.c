@@ -130,7 +130,7 @@ main(int argc, char* argv[])
     str = parse_conf_string(cfgfile, argv[0], 0);
     if (str) {
         fprintf(stdout, "%s", str);
-        free(str);
+        free((void*)str);
     }
     fprintf(stdout, "\n");
     return 0;
