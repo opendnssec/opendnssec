@@ -105,6 +105,7 @@ ods_signer_SOURCES=		ods-signer.c \
 
 ods_signer_LDADD=		$(LIBHSM)
 ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@
+ods_signer_LDADD+=		$(LIBCOMPAT)
 
 ods_checkconf_SOURCES=		ods-checkconf.c \
 				adapter/adapi.c adapter/adapi.h \
@@ -149,4 +150,5 @@ ods_checkconf_SOURCES=		ods-checkconf.c \
 
 ods_checkconf_LDADD=		$(LIBHSM)
 ods_checkconf_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@
+ods_checkconf_LDADD+=		$(LIBCOMPAT)
 
