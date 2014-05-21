@@ -721,7 +721,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     continue;
                 }
 
-                ods_log_info("[policy_import] policy %s deleted", (char*)name);
+                ods_log_info("[policy_import] policy %s deleted", policy2->name);
                 client_printf(sockfd, "Deleted policy %s successfully\n", policy2->name);
             }
             else {

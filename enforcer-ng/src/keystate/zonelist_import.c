@@ -345,7 +345,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     continue;
                 }
 
-                ods_log_info("[zonelist_import] zone %s deleted", (char*)name);
+                ods_log_info("[zonelist_import] zone %s deleted", zone2->name);
                 client_printf(sockfd, "Deleted zone %s successfully\n", zone2->name);
             }
             else {
