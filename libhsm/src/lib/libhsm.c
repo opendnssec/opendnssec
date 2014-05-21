@@ -3165,6 +3165,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
         != LDNS_STATUS_OK) {
         ldns_buffer_free(sign_buf);
         /* ERROR */
+        ldns_rr_free(signature);
         return NULL;
     }
 
@@ -3177,6 +3178,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     if (ldns_rr_list2buffer_wire(sign_buf, rrset)
         != LDNS_STATUS_OK) {
         ldns_buffer_free(sign_buf);
+        ldns_rr_free(signature);
         return NULL;
     }
 
@@ -3185,6 +3187,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     ldns_buffer_free(sign_buf);
     if (!b64_rdf) {
         /* signing went wrong */
+        ldns_rr_free(signature);
         return NULL;
     }
 
