@@ -33,7 +33,6 @@
 #include "daemon/engine.h"
 #include "keystate/zonelist_task.h"
 #include "enforcer/enforce_task.h"
-#include "hsmkey/hsmkey_gen_task.h"
 #include "shared/str.h"
 #include "shared/log.h"
 #include "shared/file.h"

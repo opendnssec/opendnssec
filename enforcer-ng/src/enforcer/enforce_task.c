@@ -34,7 +34,6 @@
 #include "enforcer/enforcer.h"
 #include "daemon/clientpipe.h"
 #include "daemon/engine.h"
-#include "hsmkey/hsmkey_gen_task.h"
 #include "signconf/signconf_task.h"
 #include "keystate/keystate_ds_submit_task.h"
 #include "keystate/keystate_ds_retract_task.h"

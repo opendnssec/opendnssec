@@ -91,7 +91,6 @@
 #include "keystate/keystate_rollover_cmd.h"
 #include "keystate/update_zonelist_cmd.h"
 #include "keystate/zonelist_import_cmd.h"
-#include "hsmkey/hsmkey_gen_cmd.h"
 #include "hsmkey/update_hsmkeys_cmd.h"
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
