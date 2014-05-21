@@ -78,9 +78,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     duration_type* duration = NULL;
     int all = 0;
     policy_t* policy;
-    (void)cmd; (void)n; (void)dbconn;
 
     ods_log_debug("[%s] %s command", module_str, key_generate_funcblock()->cmdname);
+    cmd = ods_check_command(cmd, n, key_generate_funcblock()->cmdname);
 
     if (!(buf = strdup(cmd))) {
         client_printf_err(sockfd, "memory error\n");
@@ -97,6 +97,12 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     ods_find_arg_and_param(&argc, argv, "duration", "d", &duration_text);
     ods_find_arg_and_param(&argc, argv, "policy", "p", &policy_name);
     all = ods_find_arg(&argc, argv, "all", "a") > -1 ? 1 : 0;
+
+    if (argc) {
+        client_printf_err(sockfd, "unknown arguments\n");
+        free(buf);
+        return -1;
+    }
 
     if (duration_text) {
         if (!(duration = duration_create_from_string(duration_text))
