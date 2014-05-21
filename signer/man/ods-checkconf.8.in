@@ -1,0 +1,40 @@
+.TH "ods-checkconf" "8" "May 2014" "OpenDNSSEC" "OpenDNSSEC ods-checkconf"
+.SH "NAME"
+.B ods\-checkconf
+\- OpenDNSSEC check configuration
+.LP
+.SH "SYNOPSIS"
+.B ods\-checkconf 
+.RB [ \-c
+.IR FILE ]
+.RB [ \-h ]
+.RB [ \-V ] expr
+.LP
+.SH "DESCRIPTION"
+ods\-checkconf is part of the OpenDNSSEC software. With this tool, you can extract
+the value of a configuration option by giving the appropriate expression. For more
+information, go to
+.B http://www.opendnssec.org
+and visit the Documentation page.
+.LP
+.SH "OPTIONS"
+.LP
+.TP
+.B \-c\fI FILE
+Read configuration from file, instead of using the default.
+.TP
+.B \-h
+Show this help.
+.TP
+.B \-V
+Show version and exit.
+.LP
+.SH "SEE ALSO"
+.LP
+ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), 
+ods\-signerd(8), ods\-timing(5), opendnssec(7),
+.B http://www.opendnssec.org/
+.SH "AUTHORS"
+.LP
+.B ods\-checkconf was written by NLnet Labs as part of the OpenDNSSEC project.

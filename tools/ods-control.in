@@ -33,9 +33,9 @@ enforcer_pid_file=`${bindir}/ods-checkconf -c ${configfile} //Configuration/Enfo
 signer_pid_file=`${bindir}/ods-checkconf -c ${configfile} //Configuration/Signer/PidFile`
 signer_socket_file=`${bindir}/ods-checkconf -c ${configfile} //Configuration/Signer/SocketFile`
 
-if [ "$enforcer_pid_file" = "" ] && enforcer_pid_file="@OPENDNSSEC_ENFORCER_PIDFILE@"
-if [ "$signer_pid_file" = "" ] && signer_pid_file="@OPENDNSSEC_SIGNER_PIDFILE@"
-if [ "$signer_socket_file" = "" ] && signer_socket_file="@OPENDNSSEC_SIGNER_SOCKET@"
+[ "$enforcer_pid_file" = "" ] && enforcer_pid_file="@OPENDNSSEC_ENFORCER_PIDFILE@"
+[ "$signer_pid_file" = "" ] && signer_pid_file="@OPENDNSSEC_SIGNER_PIDFILE@"
+[ "$signer_socket_file" = "" ] && signer_socket_file="@OPENDNSSEC_SIGNER_SOCKET@"
 
 
 case "$1" in
@@ -56,7 +56,7 @@ case "$1" in
 	'start')
 		echo "Starting signer engine..."
 		"$sbindir/ods-signer" start
-		
+
 		RETVAL=$?
 		if [ $RETVAL = 0 ]; then
 			i=0
