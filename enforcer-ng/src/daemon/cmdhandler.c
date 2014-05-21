@@ -123,12 +123,12 @@ cmd_funcs_avail(void)
 */        &policy_import_funcblock,
 /*        &policy_purge_funcblock,
 */        &resalt_funcblock,
-/*
+
         &zone_list_funcblock,
         &zone_add_funcblock,
         &zone_del_funcblock,
 
-        &zonelist_export_funcblock,
+/*        &zonelist_export_funcblock,
 */        &zonelist_import_funcblock,
 /*
         &key_list_funcblock,
