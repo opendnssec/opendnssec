@@ -78,7 +78,7 @@ notify_set_timer(notify_type* notify, time_t t)
 #ifdef HAVE_ARC4RANDOM_UNIFORM
         t = notify_time(notify) + base +
             arc4random_uniform(extra-base);
-#elif HAVE_ARC4RANDOM_UNIFORM
+#elif HAVE_ARC4RANDOM
         t = notify_time(notify) + base +
             arc4random()%(extra-base);
 #else
