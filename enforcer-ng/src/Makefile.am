@@ -100,8 +100,6 @@ ods_enforcerd_SOURCES = \
 	policy/policy_resalt_cmd.c policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.c policy/policy_resalt_task.h \
 	hsmkey/backup_hsmkeys_cmd.c hsmkey/backup_hsmkeys_cmd.h \
-	hsmkey/update_hsmkeys_cmd.cpp hsmkey/update_hsmkeys_cmd.h \
-	hsmkey/update_hsmkeys_task.cpp hsmkey/update_hsmkeys_task.h \
 	hsmkey/hsm_key_factory.c hsmkey/hsm_key_factory.h \
 	hsmkey/key_generate_cmd.c hsmkey/key_generate_cmd.h \
 	keystate/zone_list_cmd.cpp keystate/zone_list_cmd.h \

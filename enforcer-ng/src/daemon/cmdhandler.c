@@ -91,7 +91,6 @@
 #include "keystate/keystate_rollover_cmd.h"
 #include "keystate/update_zonelist_cmd.h"
 #include "keystate/zonelist_import_cmd.h"
-#include "hsmkey/update_hsmkeys_cmd.h"
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
 #include "hsmkey/key_generate_cmd.h"
@@ -134,7 +133,6 @@ cmd_funcs_avail(void)
 */        &zonelist_import_funcblock,
 /*
         &key_list_funcblock,
-        &key_import_funcblock,
         &key_export_funcblock,
         &key_ds_submit_funcblock,
 */        &key_ds_seen_funcblock,
