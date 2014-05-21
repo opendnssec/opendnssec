@@ -2211,7 +2211,7 @@ print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ',
     if (!(', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
         return NULL;
     }
-    if (', $name, '_from_result(', $name, '_list->', $name, ', result)) {
+    if (', $name, '_from_result(', $name, ', result)) {
         ', $name, '_free(', $name, ');
         return NULL;
     }
@@ -2259,7 +2259,7 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
     if (!(', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
         return NULL;
     }
-    if (', $name, '_from_result(', $name, '_list->', $name, ', result)) {
+    if (', $name, '_from_result(', $name, ', result)) {
         ', $name, '_free(', $name, ');
         return NULL;
     }

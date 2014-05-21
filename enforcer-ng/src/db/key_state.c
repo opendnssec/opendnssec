@@ -1325,7 +1325,7 @@ key_state_t* key_state_list_get_begin(key_state_list_t* key_state_list) {
     if (!(key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
         return NULL;
     }
-    if (key_state_from_result(key_state_list->key_state, result)) {
+    if (key_state_from_result(key_state, result)) {
         key_state_free(key_state);
         return NULL;
     }
@@ -1373,7 +1373,7 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list) {
     if (!(key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
         return NULL;
     }
-    if (key_state_from_result(key_state_list->key_state, result)) {
+    if (key_state_from_result(key_state, result)) {
         key_state_free(key_state);
         return NULL;
     }

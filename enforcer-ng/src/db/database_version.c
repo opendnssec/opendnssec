@@ -683,7 +683,7 @@ database_version_t* database_version_list_get_begin(database_version_list_t* dat
     if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
         return NULL;
     }
-    if (database_version_from_result(database_version_list->database_version, result)) {
+    if (database_version_from_result(database_version, result)) {
         database_version_free(database_version);
         return NULL;
     }
@@ -731,7 +731,7 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
     if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
         return NULL;
     }
-    if (database_version_from_result(database_version_list->database_version, result)) {
+    if (database_version_from_result(database_version, result)) {
         database_version_free(database_version);
         return NULL;
     }

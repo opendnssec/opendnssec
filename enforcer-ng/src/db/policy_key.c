@@ -1634,7 +1634,7 @@ policy_key_t* policy_key_list_get_begin(policy_key_list_t* policy_key_list) {
     if (!(policy_key = policy_key_new(db_object_connection(policy_key_list->dbo)))) {
         return NULL;
     }
-    if (policy_key_from_result(policy_key_list->policy_key, result)) {
+    if (policy_key_from_result(policy_key, result)) {
         policy_key_free(policy_key);
         return NULL;
     }
@@ -1682,7 +1682,7 @@ policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list) {
     if (!(policy_key = policy_key_new(db_object_connection(policy_key_list->dbo)))) {
         return NULL;
     }
-    if (policy_key_from_result(policy_key_list->policy_key, result)) {
+    if (policy_key_from_result(policy_key, result)) {
         policy_key_free(policy_key);
         return NULL;
     }

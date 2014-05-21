@@ -2616,7 +2616,7 @@ zone_t* zone_list_get_begin(zone_list_t* zone_list) {
     if (!(zone = zone_new(db_object_connection(zone_list->dbo)))) {
         return NULL;
     }
-    if (zone_from_result(zone_list->zone, result)) {
+    if (zone_from_result(zone, result)) {
         zone_free(zone);
         return NULL;
     }
@@ -2664,7 +2664,7 @@ zone_t* zone_list_get_next(zone_list_t* zone_list) {
     if (!(zone = zone_new(db_object_connection(zone_list->dbo)))) {
         return NULL;
     }
-    if (zone_from_result(zone_list->zone, result)) {
+    if (zone_from_result(zone, result)) {
         zone_free(zone);
         return NULL;
     }

@@ -2024,7 +2024,7 @@ key_data_t* key_data_list_get_begin(key_data_list_t* key_data_list) {
     if (!(key_data = key_data_new(db_object_connection(key_data_list->dbo)))) {
         return NULL;
     }
-    if (key_data_from_result(key_data_list->key_data, result)) {
+    if (key_data_from_result(key_data, result)) {
         key_data_free(key_data);
         return NULL;
     }
@@ -2072,7 +2072,7 @@ key_data_t* key_data_list_get_next(key_data_list_t* key_data_list) {
     if (!(key_data = key_data_new(db_object_connection(key_data_list->dbo)))) {
         return NULL;
     }
-    if (key_data_from_result(key_data_list->key_data, result)) {
+    if (key_data_from_result(key_data, result)) {
         key_data_free(key_data);
         return NULL;
     }

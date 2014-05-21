@@ -3432,7 +3432,7 @@ policy_t* policy_list_get_begin(policy_list_t* policy_list) {
     if (!(policy = policy_new(db_object_connection(policy_list->dbo)))) {
         return NULL;
     }
-    if (policy_from_result(policy_list->policy, result)) {
+    if (policy_from_result(policy, result)) {
         policy_free(policy);
         return NULL;
     }
@@ -3480,7 +3480,7 @@ policy_t* policy_list_get_next(policy_list_t* policy_list) {
     if (!(policy = policy_new(db_object_connection(policy_list->dbo)))) {
         return NULL;
     }
-    if (policy_from_result(policy_list->policy, result)) {
+    if (policy_from_result(policy, result)) {
         policy_free(policy);
         return NULL;
     }

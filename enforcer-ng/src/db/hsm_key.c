@@ -2017,7 +2017,7 @@ hsm_key_t* hsm_key_list_get_begin(hsm_key_list_t* hsm_key_list) {
     if (!(hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
         return NULL;
     }
-    if (hsm_key_from_result(hsm_key_list->hsm_key, result)) {
+    if (hsm_key_from_result(hsm_key, result)) {
         hsm_key_free(hsm_key);
         return NULL;
     }
@@ -2065,7 +2065,7 @@ hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list) {
     if (!(hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
         return NULL;
     }
-    if (hsm_key_from_result(hsm_key_list->hsm_key, result)) {
+    if (hsm_key_from_result(hsm_key, result)) {
         hsm_key_free(hsm_key);
         return NULL;
     }
