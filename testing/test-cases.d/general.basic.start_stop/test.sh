@@ -7,6 +7,12 @@ ods_reset_env &&
 ods_start_ods-control &&
 ods_stop_ods-control &&
 
+ods_reset_env &&
+ods_setup_conf conf.xml conf2.xml
+
+ods_start_ods-control &&
+ods_stop_ods-control &&
+
 return 0
 
 ods_kill
