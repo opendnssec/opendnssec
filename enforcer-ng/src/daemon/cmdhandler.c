@@ -76,7 +76,6 @@
 #include "policy/update_kasp_cmd.h"
 #include "policy/policy_import_cmd.h"
 #include "policy/policy_export_cmd.h"
-#include "policy/policy_purge_cmd.h"
 #include "keystate/zone_list_cmd.h"
 #include "keystate/zone_del_cmd.h"
 #include "keystate/zone_add_cmd.h"

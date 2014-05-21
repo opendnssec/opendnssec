@@ -95,8 +95,6 @@ ods_enforcerd_SOURCES = \
 	policy/policy_import_cmd.c policy/policy_import_cmd.h \
 	policy/update_kasp_cmd.c policy/update_kasp_cmd.h \
 	policy/policy_list_cmd.c policy/policy_list_cmd.h \
-	policy/policy_purge_cmd.cpp policy/policy_purge_cmd.h\
-	policy/policy_purge_task.cpp policy/policy_purge_task.h\
 	policy/policy_resalt_cmd.c policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.c policy/policy_resalt_task.h \
 	hsmkey/backup_hsmkeys_cmd.c hsmkey/backup_hsmkeys_cmd.h \
