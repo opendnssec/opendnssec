@@ -30,9 +30,12 @@
  */
 
 #include "config.h"
+#include "daemon/cfg.h"
+#include "parser/confparser.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "shared/status.h"
 
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
@@ -261,11 +264,10 @@ interface_run(FILE* fp, int sockfd, char* cmd)
  *
  */
 static int
-interface_start(char* cmd)
+interface_start(char* cmd, const char* servsock_filename)
 {
     int sockfd, ret, flags;
     struct sockaddr_un servaddr;
-    const char* servsock_filename = ODS_SE_SOCKFILE;
 
     ods_log_init(NULL, 0, 0);
 
@@ -340,8 +342,12 @@ main(int argc, char* argv[])
     int c;
     int options_size = 0;
     const char* options[5];
+    const char* cfgfile = ODS_SE_CFGFILE;
+    engineconfig_type* config = NULL;
+    ods_status status;
     char* cmd = NULL;
     int ret = 0;
+
     allocator_type* clialloc = allocator_create(malloc, free);
     if (!clialloc) {
         fprintf(stderr,"error, malloc failed for client\n");
@@ -374,6 +380,17 @@ main(int argc, char* argv[])
         cmd[options_size-1] = '\n';
     }
 
+    /* parse conf */
+    config = engine_config(clialloc, cfgfile, 0);
+    status = engine_config_check(config);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] cfgfile %s has errors", cli_str, cfgfile);
+        engine_config_cleanup(config);
+        allocator_deallocate(clialloc, (void*) cmd);
+        allocator_cleanup(clialloc);
+        return 1;
+    }
+
     /* main stuff */
     if (cmd && ods_strcmp(cmd, "-h\n") == 0) {
         usage(stdout);
@@ -382,10 +399,11 @@ main(int argc, char* argv[])
         usage(stdout);
         ret = 1;
     } else {
-        ret = interface_start(cmd);
+        ret = interface_start(cmd, config->clisock_filename);
     }
 
     /* done */
+    engine_config_cleanup(config);
     allocator_deallocate(clialloc, (void*) cmd);
     allocator_cleanup(clialloc);
     return ret;
