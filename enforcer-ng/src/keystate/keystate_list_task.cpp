@@ -30,13 +30,13 @@
 #include "keystate/keystate_list_task.h"
 #include "shared/file.h"
 #include "shared/duration.h"
+#include "shared/log.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 
 #include "keystate/keystate.pb.h"
 #include "xmlext-pb/xmlext-rd.h"
-#include "enforcer/hsmkeyfactory.h"
 #include "daemon/clientpipe.h"
 
 #include "protobuf-orm/pb-orm.h"
@@ -202,6 +202,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 		"Date of next transition:", "Size:", "Algorithm:", "CKA_ID:", 
 		"Repository:", "KeyTag:");
 
+	/*
     HsmKeyFactoryPB keyfactory(conn, NULL);
 	HsmKey *hsmkey;
 
@@ -229,6 +230,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 			free(tchange);
 		}
 	}
+	*/
 	return 0;
 }
 
