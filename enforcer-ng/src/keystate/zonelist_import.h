@@ -29,6 +29,9 @@
 #ifndef _KEYSTATE_ZONELIST_IMPORT_H_
 #define _KEYSTATE_ZONELIST_IMPORT_H_
 
+#include "daemon/engine.h"
+#include "db/db_connection.h"
+
 /**
  * Indicates a successful policy import.
  */

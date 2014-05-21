@@ -26,10 +26,7 @@
  *
  */
 
-#include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
 #include "shared/log.h"
-#include "shared/str.h"
 #include "daemon/clientpipe.h"
 #include "db/policy.h"
 #include "db/policy_key.h"
@@ -329,6 +326,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     }
 
                     if (successful) {
+                        ods_log_info("[policy_import] policy %s created", (char*)name);
                         client_printf(sockfd, "Created policy %s successfully\n", (char*)name);
                         any_update = 1;
                     }
@@ -616,11 +614,13 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                             continue;
                         }
 
+                        ods_log_info("[policy_import] policy %s updated", (char*)name);
                         client_printf(sockfd, "Updated policy %s successfully\n",
                             (char*)name);
                         any_update = 1;
                     }
                     else if (keys_updated) {
+                        ods_log_info("[policy_import] policy %s updated", (char*)name);
                         client_printf(sockfd, "Updated policy %s successfully\n",
                             (char*)name);
                         any_update = 1;
@@ -721,6 +721,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     continue;
                 }
 
+                ods_log_info("[policy_import] policy %s deleted", (char*)name);
                 client_printf(sockfd, "Deleted policy %s successfully\n", policy2->name);
             }
             else {

@@ -26,10 +26,7 @@
  *
  */
 
-#include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
 #include "shared/log.h"
-#include "shared/str.h"
 #include "daemon/clientpipe.h"
 #include "db/zone.h"
 #include "db/key_data.h"
@@ -40,6 +37,8 @@
 #include "keystate/zonelist_import.h"
 
 #include <string.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
 
 struct __zonelist_import_zone;
 struct __zonelist_import_zone {
@@ -205,6 +204,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                         continue;
                     }
 
+                    ods_log_info("[zonelist_import] zone %s created", (char*)name);
                     client_printf(sockfd, "Zone %s created successfully\n",
                         (char*)name);
                     any_update = 1;
@@ -255,6 +255,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                             continue;
                         }
 
+                        ods_log_info("[zonelist_import] zone %s updated", (char*)name);
                         client_printf(sockfd, "Updated zone %s successfully\n",
                             (char*)name);
                         any_update = 1;
@@ -344,6 +345,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     continue;
                 }
 
+                ods_log_info("[zonelist_import] zone %s deleted", (char*)name);
                 client_printf(sockfd, "Deleted zone %s successfully\n", zone2->name);
             }
             else {

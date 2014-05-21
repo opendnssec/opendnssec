@@ -29,6 +29,9 @@
 #ifndef _POLICY_POLICY_IMPORT_H_
 #define _POLICY_POLICY_IMPORT_H_
 
+#include "daemon/engine.h"
+#include "db/db_connection.h"
+
 /**
  * Indicates a successful policy import.
  */
