@@ -79,7 +79,6 @@
 #include "keystate/zone_list_cmd.h"
 #include "keystate/zone_del_cmd.h"
 #include "keystate/zone_add_cmd.h"
-#include "keystate/zonelist_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
 #include "keystate/keystate_ds_seen_cmd.h"
 #include "keystate/keystate_ds_retract_cmd.h"
@@ -90,6 +89,7 @@
 #include "keystate/keystate_rollover_cmd.h"
 #include "keystate/update_zonelist_cmd.h"
 #include "keystate/zonelist_import_cmd.h"
+#include "keystate/zonelist_export_cmd.h"
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
 #include "hsmkey/key_generate_cmd.h"
@@ -128,8 +128,8 @@ cmd_funcs_avail(void)
         &zone_add_funcblock,
         &zone_del_funcblock,
 
-/*        &zonelist_export_funcblock,
-*/        &zonelist_import_funcblock,
+        &zonelist_export_funcblock,
+        &zonelist_import_funcblock,
 /*
         &key_list_funcblock,
         &key_export_funcblock,

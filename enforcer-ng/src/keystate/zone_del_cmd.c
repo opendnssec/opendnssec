@@ -36,6 +36,8 @@
 #include "daemon/clientpipe.h"
 #include "db/zone.h"
 #include "hsmkey/hsm_key_factory.h"
+#include "keystate/zonelist_update.h"
+#include "keystate/zonelist_export.h"
 
 #include "keystate/zone_del_cmd.h"
 
@@ -176,9 +178,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             free(buf);
             return 1;
         }
-        client_printf(sockfd, "Deleted successfully\n");
         for (zone = zone_list_get_next(zone_list); zone; zone_free(zone), zone = zone_list_get_next(zone_list)) {
-            client_printf(sockfd, "Deleted zone %s successfully\n", zone_name(zone));
             if (!delete_key_data(zone, dbconn, sockfd)) {
                 continue;
             }
@@ -191,6 +191,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             client_printf(sockfd, "Deleted zone %s successfully\n", zone_name(zone));
         }
         zone_list_free(zone_list);
+        client_printf(sockfd, "All zones deleted successfully\n");
     }
     else {
         client_printf_err(sockfd, "expected either --zone <zone> or --all\n");
@@ -199,7 +200,19 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     }
 
     if (write_xml) {
-        /* TODO: write zone object to XML */
+        if (zone) {
+            if (zonelist_update_delete(engine->config->zonelist_filename, zone) != ZONELIST_UPDATE_OK) {
+                client_printf_err(sockfd, "Zonelist update failed!\n");
+                zone_free(zone);
+                return 1;
+            }
+            client_printf(sockfd, "Zonelist updated successfully!\n");
+        }
+        else {
+            if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1) != ZONELIST_EXPORT_OK) {
+                return 1;
+            }
+        }
     }
 
     zone_free(zone);

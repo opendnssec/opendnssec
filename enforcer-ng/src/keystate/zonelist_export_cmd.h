@@ -26,51 +26,17 @@
  *
  */
 
-#ifndef _KEYSTATE_ZONELIST_IMPORT_H_
-#define _KEYSTATE_ZONELIST_IMPORT_H_
-
-#include "daemon/engine.h"
-#include "db/db_connection.h"
-
-/**
- * Indicates a successful zonelist import.
- */
-#define ZONELIST_IMPORT_OK 0
-/**
- * Indicates an error with the arguments provided to zonelist_import().
- */
-#define ZONELIST_IMPORT_ERR_ARGS 1
-/**
- * Indicates an error with the zonelist XML like parsing, validating or content.
- */
-#define ZONELIST_IMPORT_ERR_XML 2
-/**
- * Indicates an error with the database like reading, updating or creating.
- */
-#define ZONELIST_IMPORT_ERR_DATABASE 3
-/**
- * Indicates a memory allocation error or generic internal error.
- */
-#define ZONELIST_IMPORT_ERR_MEMORY 4
+#ifndef _KEYSTATE_ZONELIST_EXPORT_CMD_H_
+#define _KEYSTATE_ZONELIST_EXPORT_CMD_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*
- * Import zones from the configured zonelist and sync it with the database.
- * \param[in] sockfd a client socket which progress is written to if non-zero.
- * \param[in] engine a engine_type pointer.
- * \param[in] dbconn a db_connection_t pointer.
- * \param[in] do_delete a interger which will trigger deletion of zones not
- * in the zonelist if non-zero.
- * \return ZONELIST_IMPORT_ERR_* on error otherwise ZONELIST_IMPORT_OK.
- */
-int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
-    int do_delete);
+struct cmd_func_block* zonelist_export_funcblock(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _KEYSTATE_ZONELIST_IMPORT_H_ */
+#endif /* _KEYSTATE_ZONELIST_EXPORT_CMD_H_ */

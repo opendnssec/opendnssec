@@ -34,6 +34,7 @@
 #include "daemon/clientpipe.h"
 #include "db/policy.h"
 #include "db/zone.h"
+#include "keystate/zonelist_update.h"
 
 #include "keystate/zone_add_cmd.h"
 
@@ -232,9 +233,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     policy_free(policy);
     free(buf);
 
-    if (write_xml) {
-        /* TODO: write zone object to XML */
+    if (write_xml
+        && zonelist_update_add(engine->config->zonelist_filename, zone) != ZONELIST_UPDATE_OK)
+    {
+        client_printf_err(sockfd, "Zonelist update failed!\n");
+        zone_free(zone);
+        return 1;
     }
+    client_printf(sockfd, "Zonelist updated successfully!\n");
 
     zone_free(zone);
     return 0;

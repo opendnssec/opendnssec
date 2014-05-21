@@ -1,7 +1,6 @@
 /*
- * Copyright (c) 2011 Surfnet 
- * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
- * Copyright (c) 2011 OpenDNSSEC AB (svb)
+ * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,52 +26,45 @@
  *
  */
 
-#include "config.h"
+#ifndef _KEYSTATE_ZONELIST_UPDATE_H_
+#define _KEYSTATE_ZONELIST_UPDATE_H_
 
-#include "daemon/cmdhandler.h"
-#include "daemon/engine.h"
-#include "keystate/zonelist_task.h"
-#include "enforcer/enforce_task.h"
-#include "shared/str.h"
-#include "shared/log.h"
-#include "shared/file.h"
-#include "daemon/clientpipe.h"
+#include "db/zone.h"
 
-#include "keystate/zonelist_cmd.h"
+/**
+ * Indicates a successful zonelist update.
+ */
+#define ZONELIST_UPDATE_OK 0
+/**
+ * Indicates an error with the arguments provided to zonelist_update().
+ */
+#define ZONELIST_UPDATE_ERR_ARGS 1
+/**
+ * Indicates an error with the zonelist XML like parsing, validating or content.
+ */
+#define ZONELIST_UPDATE_ERR_XML 2
+/**
+ * Indicates an error with the database like reading, updating or creating.
+ */
+#define ZONELIST_UPDATE_ERR_DATABASE 3
+/**
+ * Indicates a memory allocation error or generic internal error.
+ */
+#define ZONELIST_UPDATE_ERR_MEMORY 4
+/**
+ * Indicates an error when handing files.
+ */
+#define ZONELIST_UPDATE_ERR_FILE 5
 
-static const char *module_str = "zonelist_cmd";
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-static void
-export_usage(int sockfd)
-{
-	client_printf(sockfd,
-		"zonelist export        Export zones from database in zonelist.xml format.\n"
-	);
+int zonelist_update_add(const char* filename, const zone_t* zone);
+int zonelist_update_delete(const char* filename, const zone_t* zone);
+
+#ifdef __cplusplus
 }
+#endif
 
-static int
-export_handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, zonelist_export_funcblock()->cmdname)?1:0;
-}
-
-static int
-export_run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	(void)cmd; (void)n;
-	int error;
-	ods_log_debug("[%s] %s command", module_str, zonelist_export_funcblock()->cmdname);
-	error = !perform_zonelist_export_to_fd(sockfd, engine->config);
-	return error;
-}
-
-static struct cmd_func_block export_funcblock = {
-	"zonelist export", &export_usage, NULL, &export_handles, &export_run
-};
-
-struct cmd_func_block*
-zonelist_export_funcblock(void)
-{
-	return &export_funcblock;
-}
+#endif /* _KEYSTATE_ZONELIST_UPDATE_H_ */

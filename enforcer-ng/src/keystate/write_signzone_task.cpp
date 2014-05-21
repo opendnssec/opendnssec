@@ -43,7 +43,6 @@
 #include "daemon/orm.h"
 #include "keystate/keystate.pb.h"
 #include "keystate/write_signzone_task.h"
-#include "keystate/zonelist_task.h"
 
 static const char *module_str = "write_signzone_task";
 
@@ -98,8 +97,8 @@ dump_zones_file(::ods::keystate::ZoneListDocument &zonelistDoc, engineconfig_typ
 
     std::string zones_file;
 	get_zones_file_name(zones_file, config);
-	return write_zonelist_file_to_disk(zonelistDoc, zones_file, sockfd);
-
+/*	return write_zonelist_file_to_disk(zonelistDoc, zones_file, sockfd);*/
+return false;
 }
 
 int
@@ -109,12 +108,12 @@ perform_write_zones_file(int sockfd, engineconfig_type *config)
     //write signzone file
     std::string signzone_file;
 	get_zones_file_name(signzone_file, config);
-
+/*
 	if (!perform_zonelist_export_to_file(signzone_file,config)) {
     	ods_log_error_and_printf(sockfd, module_str, 
             	"failed to write %s", signzone_file.c_str());
 	}
-
+*/
 	ods_log_debug("[%s] Exported internal zone list ", module_str);
     return 1;
 }
