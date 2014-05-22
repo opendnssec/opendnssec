@@ -30,11 +30,15 @@
  */
 
 #include "config.h"
+#include "daemon/cfg.h"
+#include "parser/confparser.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "shared/status.h"
 
 #include <errno.h>
+#include <getopt.h>
 #include <fcntl.h> /* fcntl() */
 #include <stdio.h> /* fprintf() */
 #include <string.h> /* strerror(), strncmp(), strlen(), strcpy(), strncat() */
@@ -62,11 +66,28 @@ usage(FILE* out)
     fprintf(out, "Usage: %s [<cmd>]\n", "ods-signer");
     fprintf(out, "Simple command line interface to control the signer "
                  "engine daemon.\nIf no cmd is given, the tool is going "
-                 "to interactive mode.\n");
+                 "to interactive mode.\n\n");
+    fprintf(out, "Supported options:\n");
+    fprintf(out, " -c | --config <cfgfile> Read configuration from file.\n");
+    fprintf(out, " -h | --help             Show this help and exit.\n");
+    fprintf(out, " -v | --verbose          Increase verbosity.\n");
+    fprintf(out, " -V | --version          Show version and exit.\n");
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
                  "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
         PACKAGE_VERSION, PACKAGE_BUGREPORT);
+}
+
+
+/**
+ * Prints version.
+ *
+ */
+static void
+version(FILE* out)
+{
+    fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+    exit(0);
 }
 
 
@@ -261,13 +282,14 @@ interface_run(FILE* fp, int sockfd, char* cmd)
  *
  */
 static int
-interface_start(char* cmd)
+interface_start(char* cmd, engineconfig_type* config)
 {
     int sockfd, ret, flags;
     struct sockaddr_un servaddr;
-    const char* servsock_filename = ODS_SE_SOCKFILE;
+    const char* servsock_filename = config->clisock_filename;
 
-    ods_log_init(NULL, 0, 0);
+    /* client ignores syslog facility or log filename */
+    ods_log_init(NULL, 0, config->verbosity);
 
     /* new socket */
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -338,54 +360,93 @@ int
 main(int argc, char* argv[])
 {
     int c;
+    int options_index = 0;
     int options_size = 0;
     const char* options[5];
+    int cmdline_verbosity = 0;
+    const char* cfgfile = ODS_SE_CFGFILE;
+    static struct option long_options[] = {
+        {"config", required_argument, 0, 'c'},
+        {"help", no_argument, 0, 'h'},
+        {"verbose", no_argument, 0, 'v'},
+        {"version", no_argument, 0, 'V'},
+        { 0, 0, 0, 0}
+    };
+    engineconfig_type* config = NULL;
+    ods_status status;
     char* cmd = NULL;
     int ret = 0;
+
     allocator_type* clialloc = allocator_create(malloc, free);
     if (!clialloc) {
         fprintf(stderr,"error, malloc failed for client\n");
         exit(1);
     }
-
-    if (argc > 5) {
-        fprintf(stderr,"error, too many arguments (%d)\n", argc);
-        exit(1);
-    }
-
-    /* command line options */
-    for (c = 0; c < argc; c++) {
-        options[c] = argv[c];
-        if (c > 0) {
-            options_size += strlen(argv[c]) + 1;
+    /* parse the commandline */
+    while ((c=getopt_long(argc, argv, "c:hvV",
+        long_options, &options_index)) != -1) {
+        switch (c) {
+            case 'c':
+                cfgfile = optarg;
+                break;
+            case 'h':
+                usage(stdout);
+                exit(0);
+                break;
+            case 'v':
+                cmdline_verbosity++;
+                break;
+            case 'V':
+                version(stdout);
+                exit(0);
+                break;
+            default:
+                usage(stderr);
+                exit(2);
+                break;
         }
     }
-    if (argc > 1) {
+    argc -= optind;
+    argv += optind;
+
+    /* command line options */
+    if (argc > 0) {
+        for (c = 0; c < argc; c++) {
+            if (c < 5) {
+                options[c] = argv[c];
+                options_size += strlen(argv[c]) + 1;
+            }
+        }
+
         cmd = (char*) allocator_alloc(clialloc, (options_size+2)*sizeof(char));
         if (!cmd) {
             fprintf(stderr, "memory allocation failed\n");
             exit(1);
         }
         (void)strncpy(cmd, "", 1);
-        for (c = 1; c < argc; c++) {
+        for (c = 0; c < argc; c++) {
             (void)strncat(cmd, options[c], strlen(options[c]));
             (void)strncat(cmd, " ", 1);
         }
         cmd[options_size-1] = '\n';
     }
 
-    /* main stuff */
-    if (cmd && ods_strcmp(cmd, "-h\n") == 0) {
-        usage(stdout);
-        ret = 1;
-    } else if (cmd && ods_strcmp(cmd, "--help\n") == 0) {
-        usage(stdout);
-        ret = 1;
-    } else {
-        ret = interface_start(cmd);
+    /* parse conf */
+    config = engine_config(clialloc, cfgfile, cmdline_verbosity);
+    status = engine_config_check(config);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] cfgfile %s has errors", cli_str, cfgfile);
+        engine_config_cleanup(config);
+        allocator_deallocate(clialloc, (void*) cmd);
+        allocator_cleanup(clialloc);
+        return 1;
     }
 
+    /* main stuff */
+    ret = interface_start(cmd, config);
+
     /* done */
+    engine_config_cleanup(config);
     allocator_deallocate(clialloc, (void*) cmd);
     allocator_cleanup(clialloc);
     return ret;

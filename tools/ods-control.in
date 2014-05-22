@@ -26,11 +26,16 @@
 #
 
 progname="ods-control"
+configfile="@OPENDNSSEC_CONFIG_FILE@"
 bindir="@OPENDNSSEC_BIN_DIR@"
 sbindir="@OPENDNSSEC_SBIN_DIR@"
-enforcer_pid_file="@OPENDNSSEC_ENFORCER_PIDFILE@"
-signer_pid_file="@OPENDNSSEC_SIGNER_PIDFILE@"
-signer_socket_file="@OPENDNSSEC_SIGNER_SOCKET@"
+enforcer_pid_file=`${bindir}/ods-getconf -c "${configfile}" //Configuration/Enforcer/PidFile`
+signer_pid_file=`${bindir}/ods-getconf -c "${configfile}" //Configuration/Signer/PidFile`
+signer_socket_file=`${bindir}/ods-getconf -c "${configfile}" //Configuration/Signer/SocketFile`
+
+[ "$enforcer_pid_file" = "" ] && enforcer_pid_file="@OPENDNSSEC_ENFORCER_PIDFILE@"
+[ "$signer_pid_file" = "" ] && signer_pid_file="@OPENDNSSEC_SIGNER_PIDFILE@"
+[ "$signer_socket_file" = "" ] && signer_socket_file="@OPENDNSSEC_SIGNER_SOCKET@"
 
 
 case "$1" in
@@ -51,7 +56,7 @@ case "$1" in
 	'start')
 		echo "Starting signer engine..."
 		"$sbindir/ods-signer" start
-		
+
 		RETVAL=$?
 		if [ $RETVAL = 0 ]; then
 			i=0
