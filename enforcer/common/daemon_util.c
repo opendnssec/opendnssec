@@ -634,6 +634,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
                 break;
             case 'P':
                 config->pidfile = optarg;
+                config->pidfile_set = 1;
                 break;
             case 'u':
                 break; /* disable this feature */
@@ -1114,17 +1115,11 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
 
     if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
         /* tag present */
-        config->pidfile = (char *)xmlXPathCastToString(xpathObj);
-        if (verbose) {
-            log_msg(config, LOG_INFO, "Pidfile set to: %s", config->pidfile);
-        }
-
-    } else {
-        /* tag _not_ present, use default */
-        logFacilityName = StrStrdup( (char *)DEFAULT_LOG_FACILITY_STRING );
-        config->log_user = DEFAULT_LOG_FACILITY;
-        if (verbose) {
-            log_msg(config, LOG_INFO, "Using default log user: %s", logFacilityName);
+        if (!config->pidfile_set) {
+            config->pidfile = (char *)xmlXPathCastToString(xpathObj);
+            if (verbose) {
+                log_msg(config, LOG_INFO, "Pidfile set to: %s", config->pidfile);
+            }
         }
     }
 

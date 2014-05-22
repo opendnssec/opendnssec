@@ -116,6 +116,7 @@ main(int argc, char *argv[]){
     config.once = false;
 
     config.pidfile = NULL;
+    config.pidfile_set = 0;
     config.program = NULL;
     config.host = NULL;
     config.port = NULL;

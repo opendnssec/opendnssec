@@ -112,9 +112,10 @@ typedef struct
     int manualKeyGeneration;
     int rolloverNotify;
     char* DSSubmitCmd;
-	char* policy;
+    char* policy;
 
     int log_user; /* log facility (or default of LOG_DAEMON) */
+    int pidfile_set;
 
 } DAEMONCONFIG;
 
