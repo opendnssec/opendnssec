@@ -125,6 +125,7 @@ ods_enforcerd_SOURCES = \
 	keystate/zonelist_update.c keystate/zonelist_update.h \
 	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
 	signconf/signconf_task.cpp signconf/signconf_task.h \
+	signconf/signconf.c signconf/signconf.h \
 	enforcer/enforcerdata.h \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.cpp enforcer/enforce_cmd.h \
