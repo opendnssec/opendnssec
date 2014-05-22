@@ -331,6 +331,7 @@ int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, con
     key_data_list_free(key_data_list);
 
     /* TODO: write and verify XML */
+    xmlFreeDoc(doc);
 
     return SIGNCONF_EXPORT_OK;
 }
