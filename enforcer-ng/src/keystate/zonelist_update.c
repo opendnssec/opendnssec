@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static int zonelist_update(int add, int sockfd, const char* filename, const zone_t* zone) {
+static int zonelist_update(int add, int sockfd, const char* filename, const zone_t* zone, int comment) {
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr node;
@@ -60,23 +60,70 @@ static int zonelist_update(int add, int sockfd, const char* filename, const zone
         return ZONELIST_UPDATE_ERR_ARGS;
     }
 
-    /*
-     * Validate, parse and walk the XML.
-     */
-    if (check_zonelist(filename, 0, NULL, 0)) {
-        client_printf_err(sockfd, "Unable to read XML, validation error!\n");
-        return ZONELIST_UPDATE_ERR_XML;
-    }
+    if (!access(filename, F_OK)) {
+        if (access(filename, R_OK|W_OK)) {
+            client_printf_err(sockfd, "Read and/or write access to file denied!\n");
+            return ZONELIST_UPDATE_ERR_FILE;
+        }
 
-    if (!(doc = xmlParseFile(filename))) {
-        client_printf_err(sockfd, "Unable to read XML, parse error!\n");
-        return ZONELIST_UPDATE_ERR_XML;
-    }
+        /*
+         * Validate, parse and walk the XML.
+         */
+        if (check_zonelist(filename, 0, NULL, 0)) {
+            client_printf_err(sockfd, "Unable to read XML, validation error!\n");
+            return ZONELIST_UPDATE_ERR_XML;
+        }
 
-    if (!(root = xmlDocGetRootElement(doc))) {
-        client_printf_err(sockfd, "Unable to get root XML element!\n");
-        xmlFreeDoc(doc);
-        return ZONELIST_UPDATE_ERR_XML;
+        if (!(doc = xmlParseFile(filename))) {
+            client_printf_err(sockfd, "Unable to read XML, parse error!\n");
+            return ZONELIST_UPDATE_ERR_XML;
+        }
+
+        if (!(root = xmlDocGetRootElement(doc))) {
+            client_printf_err(sockfd, "Unable to get root XML element!\n");
+            xmlFreeDoc(doc);
+            return ZONELIST_UPDATE_ERR_XML;
+        }
+    }
+    else {
+        if (!(doc = xmlNewDoc((xmlChar*)"1.0"))
+            || !(root = xmlNewNode(NULL, (xmlChar*)"ZoneList")))
+        {
+            client_printf_err(sockfd, "Unable to create XML elements, memory allocation error!\n");
+            if (doc) {
+                xmlFreeDoc(doc);
+            }
+            return ZONELIST_UPDATE_ERR_MEMORY;
+        }
+
+        if (comment) {
+            node = xmlNewComment((xmlChar*)
+                "\n\n"
+                "********* Important changes to zonelist.xml in 2.0 ***************\n"
+                "\n"
+                "In 2.0, the zonelist.xml file is no longer automatically updated when zones\n"
+                "are added or deleted  via the command line by using the 'ods-enforcer zone add'\n"
+                "command. However, in 2.0 it is possible to force an update of the zonelist.xml\n"
+                "file by using the new 'xml' flag. This is in contrast to the behaviour in 1.4\n"
+                "where zonelist.xml was always updated, unless the 'no-xml' flag was used. \n"
+                "\n");
+            xmlNodeAddContent(node, (xmlChar*)
+                "As a result in 2.0 the contents of the enforcer database should be considered\n"
+                "the 'master' for the list of currently configured zones, not the zonelist.xml\n"
+                "file as the file can easily become out of sync with the database.\n"
+                "\n");
+            xmlNodeAddContent(node, (xmlChar*)
+                "The contents of the database can be listed using:\n"
+                "  ods-enforcer zone list\n"
+                "and exported using the command\n"
+                "  ods-enforcer zonelist export\n"
+                "The contents of the database can still be updated in bulk from the zonelist.xml\n"
+                "file by using the command:\n"
+                "  ods-enforcer zonelist import    (or ods-enforcer update zonelist)\n\n"
+            );
+            xmlAddChild(root, node);
+        }
+        xmlDocSetRootElement(doc, root);
     }
 
     for (; root; root = root->next) {
@@ -177,10 +224,10 @@ static int zonelist_update(int add, int sockfd, const char* filename, const zone
     return ZONELIST_UPDATE_OK;
 }
 
-int zonelist_update_add(int sockfd, const char* filename, const zone_t* zone) {
-    return zonelist_update(1, sockfd, filename, zone);
+int zonelist_update_add(int sockfd, const char* filename, const zone_t* zone, int comment) {
+    return zonelist_update(1, sockfd, filename, zone, comment);
 }
 
-int zonelist_update_delete(int sockfd, const char* filename, const zone_t* zone) {
-    return zonelist_update(0, sockfd, filename, zone);
+int zonelist_update_delete(int sockfd, const char* filename, const zone_t* zone, int comment) {
+    return zonelist_update(0, sockfd, filename, zone, comment);
 }

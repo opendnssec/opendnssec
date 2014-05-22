@@ -62,6 +62,11 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
         return ZONELIST_EXPORT_ERR_ARGS;
     }
 
+    if (access(filename, W_OK)) {
+        client_printf_err(sockfd, "Write access to file denied!\n");
+        return ZONELIST_EXPORT_ERR_FILE;
+    }
+
     if (!(doc = xmlNewDoc((xmlChar*)"1.0"))
         || !(root = xmlNewNode(NULL, (xmlChar*)"ZoneList")))
     {

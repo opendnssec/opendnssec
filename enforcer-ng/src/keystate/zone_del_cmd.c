@@ -206,7 +206,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     if (write_xml) {
         if (zone) {
-            if (zonelist_update_delete(sockfd, engine->config->zonelist_filename, zone) != ZONELIST_UPDATE_OK) {
+            if (zonelist_update_delete(sockfd, engine->config->zonelist_filename, zone, 1) != ZONELIST_UPDATE_OK) {
                 ods_log_error("[%s] zonelist %s updated failed", engine->config->zonelist_filename);
                 client_printf_err(sockfd, "Zonelist %s update failed!\n", engine->config->zonelist_filename);
                 ret = 1;
@@ -231,7 +231,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     if (zone) {
         if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
-            || zonelist_update_delete(sockfd, path, zone) != ZONELIST_UPDATE_OK)
+            || zonelist_update_delete(sockfd, path, zone, 0) != ZONELIST_UPDATE_OK)
         {
             ods_log_error("[%s] internal zonelist update failed", module_str);
             client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", path);
