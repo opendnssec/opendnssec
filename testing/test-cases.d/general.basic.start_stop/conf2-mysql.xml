@@ -18,7 +18,7 @@
 	</Common>
 	<Enforcer>
 		<PidFile>@INSTALL_ROOT@/var/run/opendnssec/test-enforcerd.pid</PidFile>
-		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
+		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
 		<Interval>PT3600S</Interval>
 	</Enforcer>
 	<Signer>
