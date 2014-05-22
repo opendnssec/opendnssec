@@ -100,6 +100,14 @@ char* duration2string(duration_type* duration);
 time_t duration2time(duration_type* duration);
 
 /**
+ * Set the duration based on a time_t.
+ * \param[in] duration a duration_type pointer.
+ * \param[in] time a time_t with the time to set.
+ * \return non-zero on error, otherwise success.
+ */
+int duration_set_time(duration_type* duration, time_t time);
+
+/**
  * Return a random time.
  * \param[in] mod modulo
  * \return time_t random time

@@ -353,6 +353,31 @@ duration2time(duration_type* duration)
 }
 
 /**
+ * Set the duration based on a time_t.
+ */
+int duration_set_time(duration_type* duration, time_t time) {
+    if (!duration) {
+        return 1;
+    }
+
+    duration->years = time / (86400*365);
+    time -= duration->years * 86400*365;
+    duration->months = time / (86400*31);
+    time -= duration->months * 86400*31;
+    duration->weeks = time / (86400*7);
+    time -= duration->weeks * 86400*7;
+    duration->days = time / 86400;
+    time -= duration->days * 86400;
+    duration->hours = time / 3600;
+    time -= duration->hours * 3600;
+    duration->minutes = time / 60;
+    time -= duration->minutes * 60;
+    duration->seconds = time;
+
+    return 0;
+}
+
+/**
  * Return the shortest time.
  *
  */
