@@ -271,7 +271,7 @@ AC_CONFIG_FILES([
 	signer/Makefile
 	signer/src/Makefile
 	signer/man/Makefile
-	signer/man/ods-checkconf.8
+	signer/man/ods-getconf.8
 	signer/man/ods-signer.8
 	signer/man/ods-signerd.8
 	tools/Makefile

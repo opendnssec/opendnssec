@@ -1,4 +1,4 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-man8_MANS = ods-signer.8 ods-signerd.8 ods-checkconf.8
+man8_MANS = ods-signer.8 ods-signerd.8 ods-getconf.8
 

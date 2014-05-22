@@ -25,7 +25,7 @@
  */
 
 /**
- * OpenDNSSEC check configuration.
+ * OpenDNSSEC get configuration values.
  *
  */
 
@@ -56,7 +56,7 @@
 static void
 usage(FILE* out)
 {
-    fprintf(out, "Usage: %s [<expr>]\n", "ods-checkconf");
+    fprintf(out, "Usage: %s [<expr>]\n", "ods-getconf");
     fprintf(out, "Simple command line tool to get the value of a "
                  "configuration option.\n\n");
     fprintf(out, "Supported options:\n");

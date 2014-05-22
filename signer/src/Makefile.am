@@ -14,7 +14,7 @@ AM_CPPFLAGS = \
 signerdir =     @libdir@/opendnssec/signer
 
 sbin_PROGRAMS = ods-signerd ods-signer
-bin_PROGRAMS = ods-checkconf
+bin_PROGRAMS = ods-getconf
 # man8_MANS =     man/ods-signer.8 man/ods-signerd.8
 
 ods_signerd_SOURCES=		ods-signerd.c \
@@ -107,7 +107,7 @@ ods_signer_LDADD=		$(LIBHSM)
 ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@
 ods_signer_LDADD+=		$(LIBCOMPAT)
 
-ods_checkconf_SOURCES=		ods-checkconf.c \
+ods_getconf_SOURCES=		ods-getconf.c \
 				adapter/adapi.c adapter/adapi.h \
 				adapter/adapter.c adapter/adapter.h \
 				adapter/adfile.c adapter/adfile.h \
@@ -148,7 +148,7 @@ ods_checkconf_SOURCES=		ods-checkconf.c \
 				tools/toolutil.c tools/toolutil.h \
 				tools/zone_fetcher.c tools/zone_fetcher.h
 
-ods_checkconf_LDADD=		$(LIBHSM)
-ods_checkconf_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@
-ods_checkconf_LDADD+=		$(LIBCOMPAT)
+ods_getconf_LDADD=		$(LIBHSM)
+ods_getconf_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@
+ods_getconf_LDADD+=		$(LIBCOMPAT)
 
