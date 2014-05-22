@@ -251,6 +251,7 @@ main(int argc, char *argv[]){
     MsgRundown();
     if (config.host) free(config.host);
     if (config.port) free(config.port);
+    if (config.pidfile && !config.pidfile_set) free(config.pidfile);
     free(config.user);
     free(config.password);
     free(config.schema);
