@@ -47,7 +47,7 @@
 		</Privileges>
 -->
 
-		<PidFile>@OPENDNSSEC_ENFORCER_PIDFILE@</PidFile>
+		<!-- <PidFile>@OPENDNSSEC_ENFORCER_PIDFILE@</PidFile> -->
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
@@ -67,13 +67,11 @@
 		</Privileges>
 -->
 
-		<PidFile>@OPENDNSSEC_SIGNER_PIDFILE@</PidFile>
-		<SocketFile>@OPENDNSSEC_SIGNER_SOCKET@</SocketFile>
+		<!-- <PidFile>@OPENDNSSEC_SIGNER_PIDFILE@</PidFile> -->
+		<!-- <SocketFile>@OPENDNSSEC_SIGNER_SOCKET@</SocketFile> -->
 		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/tmp</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
-<!--
-		<SignerThreads>4</SignerThreads>
--->
+		<!-- <SignerThreads>4</SignerThreads> -->
 
 		<!-- the <NotifyCommmand> will expand the following variables:
 
