@@ -131,6 +131,7 @@ db_type_t
 TODO
 ====
 - Maybe remove clause for update/delete and set object id in db_object_t
-- Extend db value. Add const backend meta data list. Use in clause for update and delete.
+- Re-evaluate db backend meta data.
 - Extend object with db value for id and use that in update/delete if no clause list is given.
 - Create templates for setting objects by foreign key.
+- Generate basic object cache for database objects.
