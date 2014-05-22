@@ -92,6 +92,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     int write_xml;
     policy_t* policy;
     zone_t* zone;
+    int ret = 0;
     (void)engine;
 
 	ods_log_debug("[%s] %s command", module_str, zone_add_funcblock()->cmdname);
@@ -228,24 +229,36 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         free(buf);
         return 1;
     }
-    ods_log_info("[zone_add_cmd] zone %s added [policy: %s]", zone_name, (policy_name ? policy_name : "default"));
-    client_printf(sockfd, "Zone added successfully\n");
+    ods_log_info("[%s] zone %s added [policy: %s]", module_str, zone_name, (policy_name ? policy_name : "default"));
+    client_printf(sockfd, "Zone %s added successfully\n", zone_name);
     policy_free(policy);
     free(buf);
 
-    if (write_xml
-        && zonelist_update_add(engine->config->zonelist_filename, zone) != ZONELIST_UPDATE_OK)
-    {
-        client_printf_err(sockfd, "Zonelist update failed!\n");
-        zone_free(zone);
-        return 1;
+    if (write_xml) {
+        if (zonelist_update_add(sockfd, engine->config->zonelist_filename, zone) != ZONELIST_UPDATE_OK) {
+            ods_log_error("[%s] zonelist %s updated failed", module_str, engine->config->zonelist_filename);
+            client_printf_err(sockfd, "Zonelist %s update failed!\n", engine->config->zonelist_filename);
+            ret = 1;
+        }
+        else {
+            ods_log_info("[%s] zonelist %s updated successfully", module_str, engine->config->zonelist_filename);
+            client_printf(sockfd, "Zonelist %s updated successfully\n", engine->config->zonelist_filename);
+        }
     }
-    client_printf(sockfd, "Zonelist updated successfully!\n");
 
-    /* TODO: Update internal zones.xml */
+    if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+        || zonelist_update_add(sockfd, path, zone) != ZONELIST_UPDATE_OK)
+    {
+        ods_log_error("[%s] internal zonelist update failed", module_str);
+        client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", path);
+        ret = 1;
+    }
+    else {
+        ods_log_info("[%s] internal zonelist updated successfully", module_str);
+    }
 
     zone_free(zone);
-    return 0;
+    return ret;
 }
 
 static struct cmd_func_block funcblock = {

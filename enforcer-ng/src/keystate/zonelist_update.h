@@ -60,8 +60,23 @@
 extern "C" {
 #endif
 
-int zonelist_update_add(const char* filename, const zone_t* zone);
-int zonelist_update_delete(const char* filename, const zone_t* zone);
+/**
+ * Update a zonelist and add the supplied zone to it.
+ * \param[in] sockfd socket fd.
+ * \param[in] filename the zonelist filename to write to.
+ * \param[in] zone a zone_t pointer to the zone to add.
+ * \return ZONELIST_UPDATE_ERR_* on error otherwise ZONELIST_UPDATE_OK.
+ */
+int zonelist_update_add(int sockfd, const char* filename, const zone_t* zone);
+
+/**
+ * Update a zonelist and remove the supplied zone from it.
+ * \param[in] sockfd socket fd.
+ * \param[in] filename the zonelist filename to write to.
+ * \param[in] zone a zone_t pointer to the zone to remove.
+ * \return ZONELIST_UPDATE_ERR_* on error otherwise ZONELIST_UPDATE_OK.
+ */
+int zonelist_update_delete(int sockfd, const char* filename, const zone_t* zone);
 
 #ifdef __cplusplus
 }

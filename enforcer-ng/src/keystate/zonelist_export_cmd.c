@@ -80,27 +80,18 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     ods_log_debug("[%s] %s command", module_str, zonelist_export_funcblock()->cmdname);
 
-    switch (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1)) {
-    case ZONELIST_EXPORT_OK:
-        /*
-        flush_enforce_task(engine, 1);
-        */
-        return 0;
-        break;
-
-    case ZONELIST_EXPORT_ERR_ARGS:
-    case ZONELIST_EXPORT_ERR_XML:
-    case ZONELIST_EXPORT_ERR_MEMORY:
-        break;
-
-    case ZONELIST_EXPORT_ERR_DATABASE:
-        break;
-
-    default:
-        break;
+    if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1) != ZONELIST_EXPORT_OK) {
+        ods_log_error("[%s] zonelist exported to %s failed", module_str, engine->config->zonelist_filename);
+        client_printf_err(sockfd, "Exported zonelist to %s failed!\n", engine->config->zonelist_filename);
+        return 1;
     }
 
-    return 1;
+    ods_log_info("[%s] zonelist exported to %s successfully", module_str, engine->config->zonelist_filename);
+    client_printf(sockfd, "Exported zonelist to %s successfully\n", engine->config->zonelist_filename);
+    /*
+    flush_enforce_task(engine, 1);
+    */
+    return 0;
 }
 
 static struct cmd_func_block funcblock = {

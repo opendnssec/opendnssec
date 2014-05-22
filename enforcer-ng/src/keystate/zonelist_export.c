@@ -185,7 +185,5 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
         return ZONELIST_EXPORT_ERR_FILE;
     }
 
-    ods_log_info("[zonelist_export] zonelist exported to %s successfully", filename);
-    client_printf(sockfd, "Exported zonelist to %s successfully\n", filename);
     return ZONELIST_EXPORT_OK;
 }

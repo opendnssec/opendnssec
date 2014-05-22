@@ -32,8 +32,11 @@
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
 #include "keystate/zonelist_import.h"
+#include "keystate/zonelist_export.h"
 
 #include "keystate/update_zonelist_cmd.h"
+
+#include <limits.h>
 
 static const char *module_str = "update_zonelist_cmd";
 
@@ -63,6 +66,8 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     db_connection_t *dbconn)
 {
+    char path[PATH_MAX];
+    int ret;
     (void)cmd; (void)n;
 
     if (!engine) {
@@ -80,28 +85,30 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     ods_log_debug("[%s] %s command", module_str, update_zonelist_funcblock()->cmdname);
 
-    switch (zonelist_import(sockfd, engine, dbconn, 1)) {
-    case ZONELIST_IMPORT_OK:
-        /* TODO: Update internal zones.xml */
-        /*
-        flush_enforce_task(engine, 1);
-        */
+    ret = zonelist_import(sockfd, engine, dbconn, 1);
+    if (ret == ZONELIST_IMPORT_NO_CHANGE) {
         return 0;
-        break;
-
-    case ZONELIST_IMPORT_ERR_ARGS:
-    case ZONELIST_IMPORT_ERR_XML:
-    case ZONELIST_IMPORT_ERR_MEMORY:
-        break;
-
-    case ZONELIST_IMPORT_ERR_DATABASE:
-        break;
-
-    default:
-        break;
+    }
+    if (ret != ZONELIST_IMPORT_OK) {
+        return 1;
     }
 
-    return 1;
+    if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+        || zonelist_export(sockfd, dbconn, path, 0) != ZONELIST_EXPORT_OK)
+    {
+        ods_log_error("[%s] internal zonelist export failed", module_str);
+        client_printf_err(sockfd, "Unable to export the internal zonelist %s, updates will not reach the Signer!\n", path);
+        return 1;
+    }
+    else {
+        ods_log_info("[%s] internal zonelist exported successfully", module_str);
+    }
+
+    /*
+    flush_enforce_task(engine, 1);
+    */
+
+    return 0;
 }
 
 static struct cmd_func_block funcblock = {

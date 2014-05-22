@@ -30,6 +30,7 @@
 #include "shared/str.h"
 #include "utils/kc_helper.h"
 #include "db/policy.h"
+#include "daemon/clientpipe.h"
 
 #include "keystate/zonelist_update.h"
 
@@ -40,7 +41,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static int zonelist_update(int add, const char* filename, const zone_t* zone) {
+static int zonelist_update(int add, int sockfd, const char* filename, const zone_t* zone) {
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr node;
@@ -63,14 +64,17 @@ static int zonelist_update(int add, const char* filename, const zone_t* zone) {
      * Validate, parse and walk the XML.
      */
     if (check_zonelist(filename, 0, NULL, 0)) {
+        client_printf_err(sockfd, "Unable to read XML, validation error!\n");
         return ZONELIST_UPDATE_ERR_XML;
     }
 
     if (!(doc = xmlParseFile(filename))) {
+        client_printf_err(sockfd, "Unable to read XML, parse error!\n");
         return ZONELIST_UPDATE_ERR_XML;
     }
 
     if (!(root = xmlDocGetRootElement(doc))) {
+        client_printf_err(sockfd, "Unable to get root XML element!\n");
         xmlFreeDoc(doc);
         return ZONELIST_UPDATE_ERR_XML;
     }
@@ -90,6 +94,7 @@ static int zonelist_update(int add, const char* filename, const zone_t* zone) {
                 }
 
                 if (!(name = xmlGetProp(node, (const xmlChar*)"name"))) {
+                    client_printf_err(sockfd, "Unable to XML property, memory allocation error!\n");
                     xmlFreeDoc(doc);
                     return ZONELIST_UPDATE_ERR_XML;
                 }
@@ -108,6 +113,7 @@ static int zonelist_update(int add, const char* filename, const zone_t* zone) {
             }
 
             if (add && found) {
+                client_printf_err(sockfd, "Unable to update XML, entry already exists!\n");
                 xmlFreeDoc(doc);
                 return ZONELIST_UPDATE_ERR_XML;
             }
@@ -131,6 +137,7 @@ static int zonelist_update(int add, const char* filename, const zone_t* zone) {
                 || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_output_adapter_uri(zone)))
                 || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_output_adapter_type(zone)))
             {
+                client_printf_err(sockfd, "Unable to create new XML element, memory allocation or internal error!\n");
                 policy_free(policy);
                 xmlFreeDoc(doc);
                 return ZONELIST_UPDATE_ERR_XML;
@@ -142,34 +149,38 @@ static int zonelist_update(int add, const char* filename, const zone_t* zone) {
     }
 
     if (snprintf(path, sizeof(path), "%s.update", filename) >= (int)sizeof(path)) {
+        client_printf_err(sockfd, "Unable to write updated XML, path to long!\n");
         xmlFreeDoc(doc);
         return ZONELIST_UPDATE_ERR_MEMORY;
     }
     unlink(path);
     if (xmlSaveFormatFileEnc(path, doc, "UTF-8", 1) == -1) {
+        client_printf_err(sockfd, "Unable to write updated XML, unknown error!\n");
+        unlink(path);
         xmlFreeDoc(doc);
         return ZONELIST_UPDATE_ERR_FILE;
     }
     xmlFreeDoc(doc);
 
     if (check_zonelist(path, 0, NULL, 0)) {
+        client_printf_err(sockfd, "Validating updated XML failed!\n");
         unlink(path);
         return ZONELIST_UPDATE_ERR_XML;
     }
 
     if (rename(path, filename)) {
+        client_printf_err(sockfd, "Unable to write updated XML, rename failed!\n");
         unlink(path);
         return ZONELIST_UPDATE_ERR_FILE;
     }
 
-    ods_log_info("[zonelist_export] zonelist %s updated successfully", filename);
     return ZONELIST_UPDATE_OK;
 }
 
-int zonelist_update_add(const char* filename, const zone_t* zone) {
-    return zonelist_update(1, filename, zone);
+int zonelist_update_add(int sockfd, const char* filename, const zone_t* zone) {
+    return zonelist_update(1, sockfd, filename, zone);
 }
 
-int zonelist_update_delete(const char* filename, const zone_t* zone) {
-    return zonelist_update(0, filename, zone);
+int zonelist_update_delete(int sockfd, const char* filename, const zone_t* zone) {
+    return zonelist_update(0, sockfd, filename, zone);
 }

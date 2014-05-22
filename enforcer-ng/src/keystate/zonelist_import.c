@@ -372,5 +372,8 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     if (xml_error) {
         return ZONELIST_IMPORT_ERR_XML;
     }
+    if (!any_update) {
+        return ZONELIST_IMPORT_NO_CHANGE;
+    }
     return ZONELIST_IMPORT_OK;
 }

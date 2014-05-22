@@ -52,6 +52,10 @@
  * Indicates a memory allocation error or generic internal error.
  */
 #define ZONELIST_IMPORT_ERR_MEMORY 4
+/**
+ * Indicates that the operation was successful but no changes where made.
+ */
+#define ZONELIST_IMPORT_NO_CHANGE 5
 
 #ifdef __cplusplus
 extern "C" {
