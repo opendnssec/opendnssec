@@ -28,6 +28,8 @@
  * ksm_policy.c - Manipulation of Policy Information
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -598,7 +600,11 @@ int KsmPolicyUpdateSalt(KSM_POLICY* policy)
                 exit(1);
             }
 
-#ifdef HAVE_ARC4RANDOM
+#ifdef HAVE_ARC4RANDOM_UNIFORM
+            for (i = 0; i < 2*(policy->denial->saltlength); i++) {
+                salt[i] = hex_chars[arc4random_uniform(strlen(hex_chars))];
+            }
+#elif HAVE_ARC4RANDOM
             for (i = 0; i < 2*(policy->denial->saltlength); i++) {
                 salt[i] = hex_chars[arc4random()%strlen(hex_chars)];
             }

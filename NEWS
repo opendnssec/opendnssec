@@ -2,7 +2,8 @@ OpenDNSSEC 1.4.6
 
 * Signer Engine: Print secondary server address when logging notify reply
   errors.
-
+* Build: Fixed various OpenBSD compatibility issues found by Patrik Lundin
+  <patrik.lundin.swe () gmail.com>.
 
 Bugfixes:
 * OPENDNSSEC-617: Signer Engine: Fix DNS Input Adapter to not reject zone

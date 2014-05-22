@@ -414,8 +414,16 @@ xfrd_set_timer(xfrd_type* xfrd, time_t t)
     if(t > xfrd_time(xfrd) + 10) {
         time_t extra = t - xfrd_time(xfrd);
         time_t base = extra*9/10;
+#ifdef HAVE_ARC4RANDOM_UNIFORM
+        t = xfrd_time(xfrd) + base +
+            arc4random_uniform(extra-base);
+#elif HAVE_ARC4RANDOM
+        t = xfrd_time(xfrd) + base +
+            arc4random()%(extra-base);
+#else
         t = xfrd_time(xfrd) + base +
             random()%(extra-base);
+#endif
     }
     xfrd->handler.timeout = &xfrd->timeout;
     xfrd->timeout.tv_sec = t;
