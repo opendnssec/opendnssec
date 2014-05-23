@@ -27,23 +27,59 @@
  *
  */
 
-#ifndef _SIGNCONF_SIGNCONF_TASK_H_
-#define _SIGNCONF_SIGNCONF_TASK_H_
+#include "config.h"
 
-#include "daemon/cfg.h"
-#include "scheduler/task.h"
-#include "db/db_connection.h"
+#include "daemon/cmdhandler.h"
+#include "daemon/engine.h"
+#include "signconf/signconf_task.h"
+#include "shared/file.h"
+#include "shared/log.h"
+#include "shared/str.h"
+#include "daemon/clientpipe.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "signconf/signconf_cmd.h"
 
-int perform_signconf(int sockfd, const db_connection_t* dbconn, int force);
+static const char *module_str = "signconf_cmd";
 
-task_type* signconf_task(const db_connection_t* dbconn, const char* what, const char* who);
-
-#ifdef __cplusplus
+static void
+usage(int sockfd)
+{
+	client_printf(sockfd,
+		"signconf               Force write of signer configuration files for all zones.\n"
+	);
 }
-#endif
 
-#endif
+static void
+help(int sockfd)
+{
+    client_printf(sockfd,
+        "Force write of signer configuration files for all zones.\n"
+    );
+}
+
+static int
+handles(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, signconf_funcblock()->cmdname) ? 1 : 0;
+}
+
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
+{
+    (void)engine; (void)cmd; (void)n;
+
+	ods_log_debug("[%s] %s command", module_str, signconf_funcblock()->cmdname);
+
+	return perform_signconf(sockfd, dbconn, 1);
+}
+
+static struct cmd_func_block funcblock = {
+	"signconf", &usage, &help, &handles, &run
+};
+
+struct cmd_func_block*
+signconf_funcblock(void)
+{
+	return &funcblock;
+}

@@ -123,8 +123,8 @@ ods_enforcerd_SOURCES = \
 	keystate/zonelist_export.c keystate/zonelist_export.h \
 	keystate/zonelist_export_cmd.c keystate/zonelist_export_cmd.h \
 	keystate/zonelist_update.c keystate/zonelist_update.h \
-	signconf/signconf_cmd.cpp signconf/signconf_cmd.h \
-	signconf/signconf_task.cpp signconf/signconf_task.h \
+	signconf/signconf_cmd.c signconf/signconf_cmd.h \
+	signconf/signconf_task.c signconf/signconf_task.h \
 	signconf/signconf.c signconf/signconf.h \
 	enforcer/enforcerdata.h \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \

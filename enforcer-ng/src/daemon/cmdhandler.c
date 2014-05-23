@@ -145,8 +145,8 @@ cmd_funcs_avail(void)
         &backup_funcblock,
 /*
         &enforce_funcblock,
-        &signconf_funcblock,
-*/
+*/        &signconf_funcblock,
+
 
         &queue_funcblock,
 #ifdef ENFORCER_TIMESHIFT

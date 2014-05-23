@@ -27,49 +27,49 @@
  *
  */
 
-#include "config.h"
-
-#include "daemon/cmdhandler.h"
-#include "daemon/engine.h"
-#include "signconf/signconf_task.h"
-#include "shared/file.h"
+#include "signconf/signconf.h"
+#include "shared/duration.h"
 #include "shared/log.h"
-#include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "shared/file.h"
 
-#include "signconf/signconf_cmd.h"
+#include "signconf/signconf_task.h"
 
 static const char *module_str = "signconf_cmd";
 
-static void
-usage(int sockfd)
-{
-	client_printf(sockfd,
-		"signconf               Force write of signer configuration files for all zones.\n"
-	);
+int perform_signconf(int sockfd, const db_connection_t* dbconn, int force) {
+    int ret;
+    char cmd[SYSTEM_MAXLEN];
+
+    ods_log_info("[%s] performing signconf for all zones", module_str);
+    ret = signconf_export_all(sockfd, dbconn, force);
+    if (ret == SIGNCONF_EXPORT_NO_CHANGE) {
+        ods_log_info("[%s] signconf done, no change", module_str);
+        return 0;
+    }
+    if (ret != SIGNCONF_EXPORT_OK) {
+        ods_log_error("[%s] signconf failed", module_str);
+        return 1;
+    }
+
+    ods_log_info("[%s] signconf done, notifying signer", module_str);
+    /* TODO: do this better, connect directly or use execve() */
+    if (snprintf(cmd, sizeof(cmd), "%s --all", SIGNER_CLI_UPDATE) >= (int)sizeof(cmd)
+        || system(cmd))
+    {
+        ods_log_error("[%s] unable to notify signer of signconf changes!", module_str);
+        return 1;
+    }
+
+	return 0;
 }
 
-static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, signconf_funcblock()->cmdname)?1:0;
+static task_type* signconf_task_perform(task_type* task) {
+    perform_signconf(-1, task->dbconn, 0);
+    task_cleanup(task);
+    return NULL;
 }
 
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	ods_log_debug("[%s] %s command", module_str, signconf_funcblock()->cmdname);
-
-	return perform_signconf(sockfd, engine->config, 1);
-}
-
-static struct cmd_func_block funcblock = {
-	"signconf", &usage, NULL, &handles, &run
-};
-
-struct cmd_func_block*
-signconf_funcblock(void)
-{
-	return &funcblock;
+task_type* signconf_task(const db_connection_t* dbconn, const char* what, const char* who) {
+    task_id what_id = task_register(what, "signconf_task_perform", signconf_task_perform);
+	return task_create(what_id, time_now(), who, (void*)dbconn);
 }
