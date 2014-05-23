@@ -142,11 +142,12 @@ int signconf_export_policy(int sockfd, const db_connection_t* connection, const 
     return SIGNCONF_EXPORT_NO_CHANGE;
 }
 
-static int __free(void *p) {
-    if (!p) {
+static int __free(char **p) {
+    if (!p || !*p) {
         return 1;
     }
-    free(p);
+    free(*p);
+    *p = NULL;
     return 0;
 }
 
@@ -212,40 +213,40 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
         || duration_set_time(duration, policy_signatures_resign(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Resign", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
         || !(error = 3)
         || duration_set_time(duration, policy_signatures_refresh(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Refresh", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
         || !(error = 4)
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Validity", NULL))
         || !(error = 5)
         || duration_set_time(duration, policy_signatures_validity_default(policy))
         || !(duration_text = duration2string(duration))
         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Default", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
         || !(error = 6)
         || duration_set_time(duration, policy_signatures_validity_denial(policy))
         || !(duration_text = duration2string(duration))
         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Denial", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
         || !(error = 7)
         || duration_set_time(duration, policy_signatures_jitter(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Jitter", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
         || !(error = 8)
         || duration_set_time(duration, policy_signatures_inception_offset(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"InceptionOffset", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
         || !(error = 9)
         || (policy_signatures_max_zone_ttl(policy)
             && (duration_set_time(duration, policy_signatures_max_zone_ttl(policy))
                 || !(duration_text = duration2string(duration))
                 || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"MaxZoneTTL", (xmlChar*)duration_text))
-                || __free(duration_text)))
+                || __free(&duration_text)))
 
         || !(error = 10)
         || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Denial", NULL))
@@ -260,7 +261,7 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
                     && (duration_set_time(duration, policy_denial_ttl(policy))
                         || !(duration_text = duration2string(duration))
                         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"TTL", (xmlChar*)duration_text))
-                        || __free(duration_text)))
+                        || __free(&duration_text)))
                 || !(error = 14)
                 || (policy_denial_optout(policy)
                     && !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"OptOut", NULL)))
@@ -281,7 +282,7 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
         || duration_set_time(duration, policy_keys_ttl(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(keys, NULL, (xmlChar*)"TTL", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
 
         || !(error = 21)
         || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"SOA", NULL))
@@ -289,21 +290,23 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
         || duration_set_time(duration, policy_zone_soa_ttl(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"TTL", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
         || !(error = 23)
         || duration_set_time(duration, policy_zone_soa_minimum(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Minimum", (xmlChar*)duration_text))
-        || __free(duration_text)
+        || __free(&duration_text)
         || !(error = 24)
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Serial", (xmlChar*)policy_zone_soa_serial_text(policy)))
         )
     {
         ods_log_error("[signconf_export] Unable to create XML elements for zone %s! [%d]", zone_name(zone), error);
         if (sockfd > -1) client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone_name(zone));
+        __free(&duration_text);
         xmlFreeDoc(doc);
         return SIGNCONF_EXPORT_ERR_XML;
     }
+    __free(&duration_text);
 
     if (!(key_data_list = zone_get_keys(zone))) {
         ods_log_error("[signconf_export] Unable to get keys for zone %s!", zone_name(zone));
