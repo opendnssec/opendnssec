@@ -63,8 +63,39 @@
  */
 #define SIGNCONF_EXPORT_NO_CHANGE 6
 
-int signconf_export_all(int sockfd, engine_type* engine, db_connection_t* connection, int force);
-int signconf_export_policy(int sockfd, engine_type* engine, db_connection_t* connection, const policy_t* policy, int force);
-int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, const zone_t* zone, int force);
+/**
+ * Export the signconf XML for all zones.
+ * \param[in] sockfd a socket fd.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] force if non-zero it will force the export for all zones even if
+ * there are no updates for the zones.
+ * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
+ * SIGNCONF_EXPORT_NO_CHANGE.
+ */
+int signconf_export_all(int sockfd, const db_connection_t* connection, int force);
+
+/**
+ * Export the signconf XML for all zones that uses a specified policy.
+ * \param[in] sockfd a socket fd.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] policy a policy_t pointer.
+ * \param[in] force if non-zero it will force the export for all zones even if
+ * there are no updates for the zones.
+ * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
+ * SIGNCONF_EXPORT_NO_CHANGE.
+ */
+int signconf_export_policy(int sockfd, const db_connection_t* connection, const policy_t* policy, int force);
+
+/**
+ * Export the signconf XML for the given zone that uses the given policy.
+ * \param[in] sockfd a socket fd.
+ * \param[in] policy a policy_t pointer.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] force if non-zero it will force the export for all zones even if
+ * there are no updates for the zones.
+ * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
+ * SIGNCONF_EXPORT_NO_CHANGE.
+ */
+int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int force);
 
 #endif /* SIGNCONF_SIGNCONF_H_ */

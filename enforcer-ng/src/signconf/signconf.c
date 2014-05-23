@@ -41,7 +41,7 @@
 #include <limits.h>
 #include <unistd.h>
 
-int signconf_export_all(int sockfd, engine_type* engine, db_connection_t* connection, int force) {
+int signconf_export_all(int sockfd, const db_connection_t* connection, int force) {
     zone_list_t* zone_list;
     const zone_t* zone;
     int ret;
@@ -49,9 +49,6 @@ int signconf_export_all(int sockfd, engine_type* engine, db_connection_t* connec
     int cmp;
     int change = 0;
 
-    if (!engine) {
-        return SIGNCONF_EXPORT_ERR_ARGS;
-    }
     if (!connection) {
         return SIGNCONF_EXPORT_ERR_ARGS;
     }
@@ -87,7 +84,7 @@ int signconf_export_all(int sockfd, engine_type* engine, db_connection_t* connec
             }
         }
 
-        ret = signconf_export(sockfd, engine, policy, zone, force);
+        ret = signconf_export(sockfd, policy, zone, force);
         if (ret == SIGNCONF_EXPORT_OK) {
             change = 1;
         }
@@ -104,15 +101,12 @@ int signconf_export_all(int sockfd, engine_type* engine, db_connection_t* connec
     return SIGNCONF_EXPORT_NO_CHANGE;
 }
 
-int signconf_export_policy(int sockfd, engine_type* engine, db_connection_t* connection, const policy_t* policy, int force) {
+int signconf_export_policy(int sockfd, const db_connection_t* connection, const policy_t* policy, int force) {
     zone_list_t* zone_list;
     const zone_t* zone;
     int ret;
     int change = 0;
 
-    if (!engine) {
-        return SIGNCONF_EXPORT_ERR_ARGS;
-    }
     if (!connection) {
         return SIGNCONF_EXPORT_ERR_ARGS;
     }
@@ -131,7 +125,7 @@ int signconf_export_policy(int sockfd, engine_type* engine, db_connection_t* con
     }
 
     for (zone = zone_list_next(zone_list); zone; zone = zone_list_next(zone_list)) {
-        ret = signconf_export(sockfd, engine, policy, zone, force);
+        ret = signconf_export(sockfd, policy, zone, force);
         if (ret == SIGNCONF_EXPORT_OK) {
             change = 1;
         }
@@ -156,7 +150,7 @@ static int __free(void *p) {
     return 0;
 }
 
-int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, const zone_t* zone, int force) {
+int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int force) {
     char path[PATH_MAX];
     xmlDocPtr doc;
     xmlNodePtr root;
@@ -172,10 +166,8 @@ int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, con
     key_data_list_t* key_data_list;
     const key_data_t* key_data;
     hsm_key_t* hsm_key;
+    int error;
 
-    if (!engine) {
-        return SIGNCONF_EXPORT_ERR_ARGS;
-    }
     if (!policy) {
         return SIGNCONF_EXPORT_ERR_ARGS;
     }
@@ -188,12 +180,14 @@ int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, con
     }
 
     if (snprintf(path, sizeof(path), "%s.new", zone_signconf_path(zone)) >= (int)sizeof(path)) {
-        client_printf_err(sockfd, "Unable to write updated XML, path to long!\n");
+        ods_log_error("[signconf_export] Unable to write updated XML for zone %s, path to long!", zone_name(zone));
+        if (sockfd > -1) client_printf_err(sockfd, "Unable to write updated XML for zone %s, path to long!\n", zone_name(zone));
         return SIGNCONF_EXPORT_ERR_MEMORY;
     }
 
     if (!(duration = duration_create())) {
-        client_printf_err(sockfd, "Memory allocation error!\n");
+        ods_log_error("[signconf_export] Unable to process signconf for zone %s, memory allocation error!", zone_name(zone));
+        if (sockfd > -1) client_printf_err(sockfd, "Unable to process signconf for zone %s, memory allocation error!\n", zone_name(zone));
         return SIGNCONF_EXPORT_ERR_MEMORY;
     }
 
@@ -201,7 +195,8 @@ int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, con
         || !(root = xmlNewNode(NULL, (xmlChar*)"SignerConfiguration"))
         || !(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL)))
     {
-        client_printf_err(sockfd, "Unable to create XML elements, memory allocation error!\n");
+        ods_log_error("[signconf_export] Unable to create XML elements for zone %s, memory allocation error!", zone_name(zone));
+        if (sockfd > -1) client_printf_err(sockfd, "Unable to create XML elements for zone %s, memory allocation error!\n", zone_name(zone));
         if (doc) {
             xmlFreeDoc(doc);
         }
@@ -211,109 +206,145 @@ int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, con
 
     xmlDocSetRootElement(doc, root);
 
+    error = 1;
     if (!(node2 = xmlNewChild(node, NULL, (xmlChar*)"Signatures", NULL))
-        || !(duration_set_time(duration, policy_signatures_resign(policy)))
+        || !(error = 2)
+        || duration_set_time(duration, policy_signatures_resign(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Resign", (xmlChar*)duration_text))
         || __free(duration_text)
-        || !(duration_set_time(duration, policy_signatures_refresh(policy)))
+        || !(error = 3)
+        || duration_set_time(duration, policy_signatures_refresh(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Refresh", (xmlChar*)duration_text))
         || __free(duration_text)
+        || !(error = 4)
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Validity", NULL))
-        || !(duration_set_time(duration, policy_signatures_validity_default(policy)))
+        || !(error = 5)
+        || duration_set_time(duration, policy_signatures_validity_default(policy))
         || !(duration_text = duration2string(duration))
         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Default", (xmlChar*)duration_text))
         || __free(duration_text)
-        || !(duration_set_time(duration, policy_signatures_validity_denial(policy)))
+        || !(error = 6)
+        || duration_set_time(duration, policy_signatures_validity_denial(policy))
         || !(duration_text = duration2string(duration))
         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Denial", (xmlChar*)duration_text))
         || __free(duration_text)
-        || !(duration_set_time(duration, policy_signatures_jitter(policy)))
+        || !(error = 7)
+        || duration_set_time(duration, policy_signatures_jitter(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Jitter", (xmlChar*)duration_text))
         || __free(duration_text)
-        || !(duration_set_time(duration, policy_signatures_inception_offset(policy)))
+        || !(error = 8)
+        || duration_set_time(duration, policy_signatures_inception_offset(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"InceptionOffset", (xmlChar*)duration_text))
         || __free(duration_text)
+        || !(error = 9)
         || (policy_signatures_max_zone_ttl(policy)
-            && (!(duration_set_time(duration, policy_signatures_max_zone_ttl(policy)))
+            && (duration_set_time(duration, policy_signatures_max_zone_ttl(policy))
                 || !(duration_text = duration2string(duration))
                 || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"MaxZoneTTL", (xmlChar*)duration_text))
                 || __free(duration_text)))
 
+        || !(error = 10)
         || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Denial", NULL))
+        || !(error = 11)
         || (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC
             && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"NSEC", NULL)))
+        || !(error = 12)
         || (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3
             && (!(node3 = xmlNewChild(node2, NULL, (xmlChar*)"NSEC3", NULL))
+                || !(error = 13)
                 || (policy_denial_ttl(policy)
-                    && (!(duration_set_time(duration, policy_denial_ttl(policy)))
+                    && (duration_set_time(duration, policy_denial_ttl(policy))
                         || !(duration_text = duration2string(duration))
                         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"TTL", (xmlChar*)duration_text))
                         || __free(duration_text)))
+                || !(error = 14)
                 || (policy_denial_optout(policy)
                     && !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"OptOut", NULL)))
+                || !(error = 15)
                 || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Hash", NULL))
+                || !(error = 16)
                 || snprintf(text, sizeof(text), "%u", policy_denial_algorithm(policy)) >= (int)sizeof(text)
                 || !(node5 = xmlNewChild(node4, NULL, (xmlChar*)"Algorithm", (xmlChar*)text))
+                || !(error = 17)
                 || snprintf(text, sizeof(text), "%u", policy_denial_iterations(policy)) >= (int)sizeof(text)
                 || !(node5 = xmlNewChild(node4, NULL, (xmlChar*)"Iterations", (xmlChar*)text))
+                || !(error = 18)
                 || !(node5 = xmlNewChild(node4, NULL, (xmlChar*)"Salt", (xmlChar*)policy_denial_salt(policy)))))
 
+        || !(error = 19)
         || !(keys = xmlNewChild(node, NULL, (xmlChar*)"Keys", NULL))
-        || !(duration_set_time(duration, policy_keys_ttl(policy)))
+        || !(error = 20)
+        || duration_set_time(duration, policy_keys_ttl(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(keys, NULL, (xmlChar*)"TTL", (xmlChar*)duration_text))
         || __free(duration_text)
 
+        || !(error = 21)
         || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"SOA", NULL))
-        || !(duration_set_time(duration, policy_zone_soa_ttl(policy)))
+        || !(error = 22)
+        || duration_set_time(duration, policy_zone_soa_ttl(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"TTL", (xmlChar*)duration_text))
         || __free(duration_text)
-        || !(duration_set_time(duration, policy_zone_soa_minimum(policy)))
+        || !(error = 23)
+        || duration_set_time(duration, policy_zone_soa_minimum(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Minimum", (xmlChar*)duration_text))
         || __free(duration_text)
+        || !(error = 24)
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Serial", (xmlChar*)policy_zone_soa_serial_text(policy)))
         )
     {
-        client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone_name(zone));
+        ods_log_error("[signconf_export] Unable to create XML elements for zone %s! [%d]", zone_name(zone), error);
+        if (sockfd > -1) client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone_name(zone));
         xmlFreeDoc(doc);
         return SIGNCONF_EXPORT_ERR_XML;
     }
 
     if (!(key_data_list = zone_get_keys(zone))) {
-        client_printf_err(sockfd, "Unable to get keys for zone %s!\n", zone_name(zone));
+        ods_log_error("[signconf_export] Unable to get keys for zone %s!", zone_name(zone));
+        if (sockfd > -1) client_printf_err(sockfd, "Unable to get keys for zone %s!\n", zone_name(zone));
         xmlFreeDoc(doc);
         return SIGNCONF_EXPORT_ERR_DATABASE;
     }
 
     for (key_data = key_data_list_next(key_data_list); key_data; key_data = key_data_list_next(key_data_list)) {
         if (!(hsm_key = key_data_get_hsm_key(key_data))) {
-            client_printf_err(sockfd, "Unable to get HSM key from database!\n");
+            ods_log_error("[signconf_export] Unable to get HSM key from database for zone %s!", zone_name(zone));
+            if (sockfd > -1) client_printf_err(sockfd, "Unable to get HSM key from database for zone %s!\n", zone_name(zone));
             key_data_list_free(key_data_list);
             xmlFreeDoc(doc);
             return SIGNCONF_EXPORT_ERR_DATABASE;
         }
+        error = 100;
         if (!(node2 = xmlNewChild(keys, NULL, (xmlChar*)"Key", NULL))
+            || !(error = 101)
             || (key_data_role(key_data) == KEY_DATA_ROLE_ZSK
                 && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Flags", (xmlChar*)"256")))
+            || !(error = 102)
             || (key_data_role(key_data) != KEY_DATA_ROLE_ZSK
                 && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Flags", (xmlChar*)"257")))
+            || !(error = 103)
             || snprintf(text, sizeof(text), "%u", key_data_algorithm(key_data)) >= (int)sizeof(text)
+            || !(error = 104)
             || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Algorithm", (xmlChar*)text))
+            || !(error = 105)
             || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Locator",(xmlChar*)hsm_key_locator(hsm_key)))
+            || !(error = 106)
             || (key_data_active_ksk(key_data)
                 && (key_data_role(key_data) == KEY_DATA_ROLE_KSK
                     || key_data_role(key_data) == KEY_DATA_ROLE_CSK)
                 && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"KSK", NULL)))
+            || !(error = 107)
             || (key_data_active_zsk(key_data)
                 && (key_data_role(key_data) == KEY_DATA_ROLE_ZSK
                     || key_data_role(key_data) == KEY_DATA_ROLE_CSK)
                 && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"ZSK", NULL)))
+            || !(error = 108)
             || (key_data_publish(key_data)
                 && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Publish", NULL)))
             /* TODO:
@@ -321,7 +352,8 @@ int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, con
              */
             )
         {
-            client_printf_err(sockfd, "Unable to create key XML elements for zone %s!\n", zone_name(zone));
+            ods_log_error("[signconf_export] Unable to create key XML elements for zone %s! [%d]", zone_name(zone), error);
+            if (sockfd > -1) client_printf_err(sockfd, "Unable to create key XML elements for zone %s!\n", zone_name(zone));
             hsm_key_free(hsm_key);
             key_data_list_free(key_data_list);
             xmlFreeDoc(doc);
@@ -333,20 +365,23 @@ int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, con
 
     unlink(path);
     if (xmlSaveFormatFileEnc(path, doc, "UTF-8", 1) == -1) {
-        client_printf_err(sockfd, "Unable to write signconf, LibXML error!\n");
+        ods_log_error("[signconf_export] Unable to write signconf for zone %s, LibXML error!", zone_name(zone));
+        if (sockfd > -1) client_printf_err(sockfd, "Unable to write signconf for zone %s, LibXML error!\n", zone_name(zone));
         xmlFreeDoc(doc);
         return SIGNCONF_EXPORT_ERR_FILE;
     }
     xmlFreeDoc(doc);
 
     if (check_rng(path, OPENDNSSEC_SCHEMA_DIR "/signconf.rng", 0)) {
-        client_printf_err(sockfd, "Unable to validate the exported signconf XML!\n");
+        ods_log_error("[signconf_export] Unable to validate the exported signconf XML for zone %s!", zone_name(zone));
+        if (sockfd > -1) client_printf_err(sockfd, "Unable to validate the exported signconf XML for zone %s!\n", zone_name(zone));
         unlink(path);
         return SIGNCONF_EXPORT_ERR_XML;
     }
 
     if (rename(path, zone_signconf_path(zone))) {
-        client_printf_err(sockfd, "Unable to write signconf, rename failed!\n");
+        ods_log_error("[signconf_export] Unable to write signconf for zone %s, rename failed!", zone_name(zone));
+        if (sockfd > -1) client_printf_err(sockfd, "Unable to write signconf for zone %s, rename failed!\n", zone_name(zone));
         unlink(path);
         return SIGNCONF_EXPORT_ERR_FILE;
     }
