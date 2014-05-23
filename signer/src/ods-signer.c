@@ -70,7 +70,6 @@ usage(FILE* out)
     fprintf(out, "Supported options:\n");
     fprintf(out, " -c | --config <cfgfile> Read configuration from file.\n");
     fprintf(out, " -h | --help             Show this help and exit.\n");
-    fprintf(out, " -v | --verbose          Increase verbosity.\n");
     fprintf(out, " -V | --version          Show version and exit.\n");
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
                  "details.\n");
@@ -360,71 +359,69 @@ int
 main(int argc, char* argv[])
 {
     int c;
-    int options_index = 0;
     int options_size = 0;
-    const char* options[5];
-    int cmdline_verbosity = 0;
+    int options_count = 0;
+    const char* options[10];
     const char* cfgfile = ODS_SE_CFGFILE;
-    static struct option long_options[] = {
-        {"config", required_argument, 0, 'c'},
-        {"help", no_argument, 0, 'h'},
-        {"verbose", no_argument, 0, 'v'},
-        {"version", no_argument, 0, 'V'},
-        { 0, 0, 0, 0}
-    };
+    int cfgfile_expected = 0;
     engineconfig_type* config = NULL;
+    allocator_type* clialloc = NULL;
     ods_status status;
     char* cmd = NULL;
     int ret = 0;
 
-    allocator_type* clialloc = allocator_create(malloc, free);
+    /* command line options */
+    if (argc > 10) {
+        fprintf(stderr,"error, too many arguments (%d)\n", argc);
+        exit(1);
+    }
+    for (c = 1; c < argc; c++) {
+        /* leave out --options */
+        if (cfgfile_expected) {
+            cfgfile = argv[c];
+            cfgfile_expected = 0;
+        } else if (!ods_strcmp(argv[c], "-h")) {
+            usage(stdout);
+            exit(0);
+        } else if (!ods_strcmp(argv[c], "--help")) {
+            usage(stdout);
+            exit(0);
+        } else if (!ods_strcmp(argv[c], "-V")) {
+            version(stdout);
+            exit(0);
+        } else if (!ods_strcmp(argv[c], "--version")) {
+            version(stdout);
+            exit(0);
+        } else if (!ods_strcmp(argv[c], "-c")) {
+            cfgfile_expected = 1;
+        } else if (!ods_strcmp(argv[c], "--cfgfile")) {
+            cfgfile_expected = 1;
+        } else {
+            options[options_count] = argv[c];
+            options_size += strlen(argv[c]) + 1;
+            options_count++;
+        }
+    }
+    if (cfgfile_expected) {
+        fprintf(stderr,"error, missing config file\n");
+        exit(1);
+    }
+
+    clialloc = allocator_create(malloc, free);
     if (!clialloc) {
         fprintf(stderr,"error, malloc failed for client\n");
         exit(1);
     }
-    /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "c:hvV",
-        long_options, &options_index)) != -1) {
-        switch (c) {
-            case 'c':
-                cfgfile = optarg;
-                break;
-            case 'h':
-                usage(stdout);
-                exit(0);
-                break;
-            case 'v':
-                cmdline_verbosity++;
-                break;
-            case 'V':
-                version(stdout);
-                exit(0);
-                break;
-            default:
-                usage(stderr);
-                exit(2);
-                break;
-        }
-    }
-    argc -= optind;
-    argv += optind;
 
-    /* command line options */
-    if (argc > 0) {
-        for (c = 0; c < argc; c++) {
-            if (c < 5) {
-                options[c] = argv[c];
-                options_size += strlen(argv[c]) + 1;
-            }
-        }
-
+    /* create signer command */
+    if (options_count) {
         cmd = (char*) allocator_alloc(clialloc, (options_size+2)*sizeof(char));
         if (!cmd) {
-            fprintf(stderr, "memory allocation failed\n");
+            fprintf(stderr, "error, memory allocation failed\n");
             exit(1);
         }
         (void)strncpy(cmd, "", 1);
-        for (c = 0; c < argc; c++) {
+        for (c = 0; c < options_count; c++) {
             (void)strncat(cmd, options[c], strlen(options[c]));
             (void)strncat(cmd, " ", 1);
         }
@@ -432,12 +429,12 @@ main(int argc, char* argv[])
     }
 
     /* parse conf */
-    config = engine_config(clialloc, cfgfile, cmdline_verbosity);
+    config = engine_config(clialloc, cfgfile, 0);
     status = engine_config_check(config);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] cfgfile %s has errors", cli_str, cfgfile);
         engine_config_cleanup(config);
-        allocator_deallocate(clialloc, (void*) cmd);
+        if (cmd) allocator_deallocate(clialloc, (void*) cmd);
         allocator_cleanup(clialloc);
         return 1;
     }
@@ -447,7 +444,7 @@ main(int argc, char* argv[])
 
     /* done */
     engine_config_cleanup(config);
-    allocator_deallocate(clialloc, (void*) cmd);
+    if (cmd) allocator_deallocate(clialloc, (void*) cmd);
     allocator_cleanup(clialloc);
     return ret;
 }
