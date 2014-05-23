@@ -8,6 +8,11 @@ OpenDNSSEC 1.4.6
 Bugfixes:
 * OPENDNSSEC-617: Signer Engine: Fix DNS Input Adapter to not reject zone
   the first time due to RFC 1982 serial arethmetic.
+* simple-dnskey-mailer.sh: Fix syntax error. (by Patrik Lundin
+  https://github.com/eest)
+* OPENDNSSEC-619: memory leak when signer failed, solved it by add
+  ldns_rr_free(signature) in libhsm.c
+* libhsm: Fixed a few other memory leaks.
 
 
 OpenDNSSEC 1.4.5 - 2014-04-11
