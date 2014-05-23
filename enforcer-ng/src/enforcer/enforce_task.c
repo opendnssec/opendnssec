@@ -193,7 +193,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	 */
 	if (bSignerConfNeedsWriting) {
 		task_type *signconf =
-			signconf_task(engine->config, "signconf", "signer configurations");
+			signconf_task(dbconn, "signconf", "signer configurations");
 		enf_schedule_task(sockfd,engine,signconf,"signconf");
 	} else {
 		ods_log_info("[%s] No changes to any signconf file required", module_str);
