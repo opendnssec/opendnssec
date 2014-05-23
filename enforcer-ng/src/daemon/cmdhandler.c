@@ -119,8 +119,8 @@ cmd_funcs_avail(void)
         &update_repositorylist_funcblock,
         &update_all_funcblock,
         &policy_list_funcblock,
-/*        &policy_export_funcblock,
-*/        &policy_import_funcblock,
+        &policy_export_funcblock,
+        &policy_import_funcblock,
 /*        &policy_purge_funcblock,
 */        &resalt_funcblock,
 
