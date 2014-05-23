@@ -68,7 +68,8 @@ extern "C" {
  * \param[in] dbconn a db_connection_t pointer.
  * \param[in] do_delete a interger which will trigger deletion of zones not
  * in the zonelist if non-zero.
- * \return ZONELIST_IMPORT_ERR_* on error otherwise ZONELIST_IMPORT_OK.
+ * \return ZONELIST_IMPORT_ERR_* on error otherwise ZONELIST_IMPORT_OK or
+ * ZONELIST_IMPORT_NO_CHANGE.
  */
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete);
