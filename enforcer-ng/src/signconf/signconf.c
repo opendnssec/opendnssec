@@ -32,6 +32,7 @@
 #include "shared/duration.h"
 #include "db/key_data.h"
 #include "db/hsm_key.h"
+#include "utils/kc_helper.h"
 
 #include "signconf/signconf.h"
 
@@ -330,8 +331,25 @@ int signconf_export(int sockfd, engine_type* engine, const policy_t* policy, con
     }
     key_data_list_free(key_data_list);
 
-    /* TODO: write and verify XML */
+    unlink(path);
+    if (xmlSaveFormatFileEnc(path, doc, "UTF-8", 1) == -1) {
+        client_printf_err(sockfd, "Unable to write signconf, LibXML error!\n");
+        xmlFreeDoc(doc);
+        return SIGNCONF_EXPORT_ERR_FILE;
+    }
     xmlFreeDoc(doc);
+
+    if (check_rng(path, OPENDNSSEC_SCHEMA_DIR "/signconf.rng", 0)) {
+        client_printf_err(sockfd, "Unable to validate the exported signconf XML!\n");
+        unlink(path);
+        return SIGNCONF_EXPORT_ERR_XML;
+    }
+
+    if (rename(path, zone_signconf_path(zone))) {
+        client_printf_err(sockfd, "Unable to write signconf, rename failed!\n");
+        unlink(path);
+        return SIGNCONF_EXPORT_ERR_FILE;
+    }
 
     return SIGNCONF_EXPORT_OK;
 }
