@@ -1030,3 +1030,18 @@ zone_list_t* policy_get_zones(const policy_t* policy) {
     return zone_list_new_get_by_policy_id(db_object_connection(policy->dbo),
         &(policy->id));
 }
+
+policy_key_list_t* policy_get_policy_keys(const policy_t* policy) {
+    if (!policy) {
+        return NULL;
+    }
+    if (!policy->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(policy->id))) {
+        return NULL;
+    }
+
+    return policy_key_list_new_get_by_policy_id(db_object_connection(policy->dbo),
+        &(policy->id));
+}
