@@ -30,6 +30,8 @@
 #ifndef __hsm_key_ext_h
 #define __hsm_key_ext_h
 
+#include "policy_key.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,6 +43,12 @@ extern "C" {
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list, const char* repository);
+
+/**
+ * Get all HSM keys for policy/algorithm/bits/repository.
+ * NULL on failure
+ */
+hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey);
 
 #ifdef __cplusplus
 }

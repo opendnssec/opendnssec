@@ -63,3 +63,47 @@ int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list,
     db_clause_list_free(clause_list);
     return DB_OK;
 }
+
+hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey)
+{
+    hsm_key_list_t* hkey_list = NULL;
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!pkey || !pkey->dbo || !(clause_list = db_clause_list_new()))
+        return NULL;
+    
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "policyId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), policy_key_id(pkey))
+        || db_clause_list_add(clause_list, clause)
+
+        || !(clause = db_clause_new())
+        || db_clause_set_field(clause, "algorithm")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_uint32(db_clause_get_value(clause), policy_key_algorithm(pkey))
+        || db_clause_list_add(clause_list, clause)
+
+        || !(clause = db_clause_new())
+        || db_clause_set_field(clause, "bits")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_uint32(db_clause_get_value(clause), policy_key_bits(pkey))
+        || db_clause_list_add(clause_list, clause)
+
+        || !(clause = db_clause_new())
+        || db_clause_set_field(clause, "repository")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_text(db_clause_get_value(clause), policy_key_repository(pkey))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return NULL;
+    }
+
+    hkey_list = hsm_key_list_new_get_by_clauses(
+        db_object_connection(pkey->dbo), clause_list);
+    db_clause_list_free(clause_list);
+    return hkey_list;
+}

@@ -135,7 +135,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			continue;
 		}
 
-		t_next = update(zone, policy, t_now);
+		t_next = update(dbconn, zone, policy, t_now);
 		bSignerConfNeedsWriting |= zone_signconf_needs_writing(zone);
 
 		keylist = zone_get_keys(zone);

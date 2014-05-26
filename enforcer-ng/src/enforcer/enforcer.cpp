@@ -56,6 +56,9 @@
 
 #include "db/zone.h"
 #include "db/policy.h"
+#include "db/policy_key.h"
+#include "db/hsm_key.h"
+#include "db/key_data.h"
 
 #include "enforcer/enforcer.h"
 
@@ -989,30 +992,66 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
  * also, check if it isn't in zone already. Also length, algorithm
  * must match and it must be a first generation key.
  * */
-bool 
-getLastReusableKey(EnforcerZone &zone,
-	const Policy *policy, const KeyRole role,
-	int bits, const string &repository, int algorithm, 
-	const time_t now, HsmKey **ppKey,
-	HsmKeyFactory &keyfactory, int lifetime)
+//~ bool 
+//~ getLastReusableKey(EnforcerZone &zone,
+	//~ const Policy *policy, const KeyRole role,
+	//~ int bits, const string &repository, int algorithm, 
+	//~ const time_t now, HsmKey **ppKey,
+	//~ HsmKeyFactory &keyfactory, int lifetime)
+//~ {
+	//~ const char *scmd = "getLastReusableKey";
+	//~ 
+	//~ if (!keyfactory.UseSharedKey(bits, repository, policy->name(), 
+		//~ algorithm, role, zone.name(), ppKey))
+		//~ return false;
+	//~ 
+	//~ /** UseSharedKey() promised us a match, we'd better crash. */
+	//~ if (*ppKey == NULL)
+		//~ ods_fatal_exit("[%s] %s Keyfactory promised key but did not give it",
+			//~ module_str, scmd);
+	//~ 
+	//~ /** Key must (still) be in use */
+	//~ if (now < (*ppKey)->inception() + lifetime) return true;
+	//~ 
+	//~ /** Clean up, was set by default by UseSharedKey(), unset */
+	//~ (*ppKey)->setUsedByZone(zone.name(), false);
+	//~ return false;
+//~ }
+
+static const hsm_key_t*
+getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
-	const char *scmd = "getLastReusableKey";
+	const key_data_t *key;
+	const hsm_key_t *hkey, *hkey_young = NULL;
+
+	/** get keys for this policy/bits/algo/repo
+	 * We still need to filter on role and not-in-use by zone */
+	hsm_key_list_t* hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
 	
-	if (!keyfactory.UseSharedKey(bits, repository, policy->name(), 
-		algorithm, role, zone.name(), ppKey))
-		return false;
-	
-	/** UseSharedKey() promised us a match, we'd better crash. */
-	if (*ppKey == NULL)
-		ods_fatal_exit("[%s] %s Keyfactory promised key but did not give it",
-			module_str, scmd);
-	
-	/** Key must (still) be in use */
-	if (now < (*ppKey)->inception() + lifetime) return true;
-	
-	/** Clean up, was set by default by UseSharedKey(), unset */
-	(*ppKey)->setUsedByZone(zone.name(), false);
-	return false;
+	for (hkey = hsm_key_list_begin(hsmkeylist); hkey;
+		hsm_key_list_next(hsmkeylist))
+	{
+		int match = 0;
+		/** only match if the hkey has at least the role(s) of pkey */
+		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0)
+			continue;
+		/** Now find out if hsmkey is in used by zone */
+		for (key = key_data_list_begin(key_list); key; key_data_list_next(key_list)) {
+			int cmp = 0;
+			if (!db_value_cmp(key_data_hsm_key_id(key), hsm_key_id(hkey),
+				&cmp) && cmp == 0)
+			{
+				/** we have match, so this hsm_key is no good */
+				match = 1;
+				break;
+			}
+		}
+		if (match) continue;
+		/** This key matches, is it newer? */
+		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey))
+			hkey_young = hkey;
+	}
+	return hkey_young;
 }
 
 /**
@@ -1096,69 +1135,64 @@ keyProperties(const KeyList &policyKeys, const int index, const KeyRole role,
  * Test for the existence of key-configuration in the policy for
  * which key could be generated.
  * 
- * @param keyfactory
- * @param policyKeys
- * @param key
- * @return bool True if a matching policy exists
+ * @param policykeylist  (make sure it is rewindable by fetch all)
+ * @param key Key to be tested
+ * @return 1 if a matching policy exists, 0 otherwise
  * */
-bool
-existsPolicyForKey(HsmKeyFactory &keyfactory, const KeyList &policyKeys, 
-	KeyData &key)
+int
+existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
 {
 	const char *scmd = "existsPolicyForKey";
-	/** 1: fetch hsmkey */
-	HsmKey *hsmkey;
-	if (!keyfactory.GetHsmKeyByLocator(key.locator(), &hsmkey)) {
+	const policy_key *pkey;
+	hsm_key_t *hkey;
+
+	if (!(hkey = key_data_get_hsm_key(key))) {
 		/** This key is not associated with actual key material! 
 		 * This is a bug or database corruption.
 		 * Crashing here is an option but we just return false so the 
 		 * key will be thrown away in a graceful manner.*/
 		ods_log_verbose("[%s] %s no hsmkey!", module_str, scmd);
-		return false;
+		return 0;
 	}
-	
-	/** 2: loop over all configs for this role */
-	for (int i = 0; i < numberOfKeyConfigs(policyKeys, key.role()); i++)
-	{
-		int p_bits, p_alg, p_life, p_rolltype;
-		string p_rep;
-		bool p_man;
-		keyProperties(policyKeys, i, key.role(), &p_bits, &p_alg, 
-			&p_life, p_rep, &p_man, &p_rolltype); 
-		if (p_bits == hsmkey->bits() && p_alg == key.algorithm() &&
-			p_rep.compare(hsmkey->repository()) == 0 )
-			return true;
+	pkey = policy_key_list_begin(policykeylist);
+	while (pkey) {
+		if (hsm_key_repository(hkey) && policy_key_repository(pkey) &&
+			strcmp(hsm_key_repository(hkey), policy_key_repository(pkey)) == 0 &&
+			hsm_key_algorithm(hkey) == policy_key_algorithm(pkey) &&
+			hsm_key_bits(hkey) == policy_key_bits(pkey))
+		{
+			return 1;
+		}
+		pkey = policy_key_list_next(policykeylist);
 	}
 	ods_log_verbose("[%s] %s not found such config", module_str, scmd);
-	return false;
+	return 0;
 }
 
-bool
-youngestKeyForConfig(HsmKeyFactory &keyfactory, const KeyList &policyKeys, 
-	const KeyRole role, const int index, 
-	KeyDataList &key_list, KeyData **key)
+static const key_data_t*
+youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
 {
-	int p_bits, p_alg, p_life, p_rolltype;
-	string p_rep;
-	bool p_man;
+	const key_data_t *key = NULL, *youngest = NULL;
+	const hsm_key_t *hsmkey;
 	
-	/** fetch characteristics of config */
-	keyProperties(policyKeys, index, role, &p_bits, &p_alg, &p_life,
-		p_rep, &p_man, &p_rolltype); 
+	/** must match: role, bits, algo, repo */
 	
-	*key = NULL;
-	for (int j = 0; j < key_list.numKeys(); j++) {
-		KeyData &k = key_list.key(j);
-		HsmKey *hsmkey;
-		/** if we have a match, remember youngest */
-		if (keyfactory.GetHsmKeyByLocator(k.locator(), &hsmkey) &&
-			k.role() == role &&
-			p_bits == hsmkey->bits() && p_alg == k.algorithm() &&
-			p_rep.compare(hsmkey->repository()) == 0  &&
-			(!(*key) || k.inception() > (*key)->inception()) )
-			*key = &k;
+	for (key = key_data_list_begin(key_list); key;
+		key_data_list_next(key_list))
+	{
+		if ((int)policy_key_role(pkey) != (int)key_data_role(key) ||
+			policy_key_algorithm(pkey) != key_data_algorithm(key) ||
+			(hsmkey = key_data_get_hsm_key(key)) == NULL ||
+			policy_key_bits(pkey) != hsm_key_bits(hsmkey) ||
+			policy_key_algorithm(pkey) != hsm_key_algorithm(hsmkey))
+		{
+			continue;
+		}
+		/** This key matches, is it newer? */
+		if (!youngest || key_data_inception(youngest) > key_data_inception(key))
+			youngest = key;
 	}
-	return (*key) != NULL;
+	return youngest;
 }
 
 /**
@@ -1169,33 +1203,41 @@ youngestKeyForConfig(HsmKeyFactory &keyfactory, const KeyList &policyKeys,
  * \param[in] Algorithm
  * \return existence of such a key.
  */
-bool
-keyForAlgorithm(KeyDataList &key_list, const KeyRole role, const int algorithm)
+static int
+key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
 {
-	for (int j = 0; j < key_list.numKeys(); j++) {
-		KeyData &k = key_list.key(j);
-		if (k.role() == role && algorithm == k.algorithm() )
-			return true;
+	const key_data_t *key;
+	for (key = key_data_list_begin(key_list); key;
+		key_data_list_next(key_list))
+	{
+		if (policy_key_algorithm(pkey) == key_data_algorithm(key) &&
+			(int)policy_key_role(pkey) == (int)key_data_role(key))
+		{
+			return 1;
+		}
 	}
-	return false;
+	return 0;
 }
 
-void 
-setnextroll(EnforcerZone &zone, KeyRole role, time_t t, int clr)
+/* 0 == ok, otherwise dberr. */
+static int 
+setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 {
-	if (!clr) {
-		time_t p;
-		switch(role) {
-			case KSK: p = zone.nextKskRoll(); break;
-			case ZSK: p = zone.nextZskRoll(); break;
-			case CSK: p = zone.nextCskRoll(); break;
-		}
-		if (p && p < t) return; /* need no update */
-	}
-	switch(role) {
-		case KSK: zone.setNextKskRoll(t); break;
-		case ZSK: zone.setNextZskRoll(t); break;
-		case CSK: zone.setNextCskRoll(t); break;
+	switch(policy_key_role(pkey)) {
+		case POLICY_KEY_ROLE_KSK:
+			if (zone_next_ksk_roll(zone) > t)
+				return zone_set_next_ksk_roll(zone, (unsigned int)t);
+			return 0;
+		case POLICY_KEY_ROLE_ZSK:
+			if (zone_next_zsk_roll(zone) > t)
+				return zone_set_next_zsk_roll(zone, (unsigned int)t);
+			return 0 ;
+		case POLICY_KEY_ROLE_CSK:
+			if (zone_next_csk_roll(zone) > t)
+				return zone_set_next_csk_roll(zone, (unsigned int)t);
+			return 0;
+		default:
+			return 1;
 	}
 }
 
@@ -1234,224 +1276,274 @@ keytag(const char *loc, int alg, int ksk, bool *succes)
 	return tag;
 }
 
+static int
+enforce_roll(const zone_t *zone, const policy_key_t *pkey)
+{
+	switch(policy_key_role(pkey)) {
+		case POLICY_KEY_ROLE_KSK:
+			return zone_roll_ksk_now(zone);
+		case POLICY_KEY_ROLE_ZSK:
+			return zone_roll_zsk_now(zone);
+		case POLICY_KEY_ROLE_CSK:
+			return zone_roll_csk_now(zone);
+		default:
+			return 0;
+	}
+}
+
 /**
  * See what needs to be done for the policy 
  * 
+ * @param policy
  * @param zone
  * @param now
- * @param keyfactory
- * @param key_list
  * @param[out] allow_unsigned, true when no keys are configured.
  * @return time_t
  * */
 time_t 
-updatePolicy(EnforcerZone &zone, const time_t now, 
-	HsmKeyFactory &keyfactory, KeyDataList &key_list, bool &allow_unsigned)
+updatePolicy(db_connection_t *dbconn, policy_t *policy, zone_t *zone, const time_t now, 
+	int *allow_unsigned)
 {
 	time_t return_at = -1;
-	const Policy *policy = zone.policy();
-	KeyList policyKeys = policy->keys();
-	const string policyName = policy->name();
+	key_data_list_t *keylist;
+	policy_key_list_t *policykeylist;
+	const key_data_t *key;
+	key_data_t *mutkey;
+	const policy_key_t *pkey;
+	const hsm_key_t *newhsmkey;
 	const char *scmd = "updatePolicy";
 
 	ods_log_verbose("[%s] %s policyName: %s", module_str, scmd, 
-		policyName.c_str());
+		policy_name(policy));
 
-	/** Decommision all keys without any matching config */
-	for (int j = 0; j < key_list.numKeys(); j++) {
-		KeyData &key = key_list.key(j);
-		if (!existsPolicyForKey(keyfactory, policyKeys, key))
-			key.setIntroducing(false);
+	/** Fetch all configured keys in KASP */
+	policykeylist = policy_key_list_new(dbconn);
+	if (policy_key_list_get_by_policy_id(policykeylist, policy_id(policy)) ||
+		policy_key_list_fetch_all(policykeylist))
+	{
+		/*TODO log err*/
+		policy_key_list_free(policykeylist);
+		return now + 60;
 	}
 
+	/**  */
+	mutkey = NULL;
+	keylist = zone_get_keys(zone);
+	(void)key_data_list_fetch_all(keylist);
+	while ((key = key_data_list_next(keylist))) {
+		if (!existsPolicyForKey(policykeylist, key)) {
+			if (key_data_copy(mutkey, key) ||
+				key_data_set_introducing(mutkey, 0) ||
+				key_data_update(mutkey))
+			{
+				/*TODO  log err */
+			}
+			key_data_free(mutkey);
+			mutkey = NULL;
+		}
+	}
+
+	/* reset the next_roll's (whch are for display only */
+	(void)zone_set_next_ksk_roll(zone, 0);
+	(void)zone_set_next_csk_roll(zone, 0);
+	(void)zone_set_next_zsk_roll(zone, 0);
+
 	/** If no keys are configured an unsigned zone is okay. */
-	allow_unsigned = (0 == (numberOfKeyConfigs(policyKeys, ZSK) + 
-							numberOfKeyConfigs(policyKeys, KSK) + 
-							numberOfKeyConfigs(policyKeys, CSK) ));
+	pkey = policy_key_list_begin(policykeylist);
+	*allow_unsigned = pkey?1:0;
 
-	/** Visit every type of key-configuration, not pretty but we can't
-	 * loop over enums. Include MAX in enum? */
-	for ( int role = 1; role < 4; role++ ) {
-		setnextroll(zone, (KeyRole)role, 0, 1);
-		/** NOTE: we are not looping over keys, but configurations */
-		for ( int i = 0; i < numberOfKeyConfigs( policyKeys, (KeyRole)role ); i++ ) {
-			string repository;
-			int bits, algorithm, lifetime, p_rolltype;
-			bool manual_rollover;
+	for (; pkey; pkey = policy_key_list_next(policykeylist)) {
+		int force_roll = enforce_roll(zone, pkey);
+		if (policy_key_manual_rollover(pkey)) {
+			/** If no similar key available, roll. */
+			force_roll |= !key_for_conf(keylist, pkey);
+			/** No reason to roll at all */
+			if (!force_roll) continue;
+		}
 
-			/** select key properties of key i in KeyRole role */
-			keyProperties(policyKeys, i, (KeyRole)role, &bits, 
-				&algorithm, &lifetime, repository, &manual_rollover, 
-				&p_rolltype);
-
-			bool forceRoll = false;
-			switch((KeyRole)role) {
-				case KSK: forceRoll = zone.rollKskNow(); break;
-				case ZSK: forceRoll = zone.rollZskNow(); break;
-				case CSK: forceRoll = zone.rollCskNow(); break;
-				default:
-					/** Programming error, report a bug! */
-					ods_fatal_exit("[%s] %s Unknow Role: (%d)",
-					module_str, scmd, role);
-			}
-			/** Should we do a manual rollover *now*? */
-			if (manual_rollover) {
-				/** If no similar key available, roll. */
-				forceRoll |= !keyForAlgorithm(key_list, (KeyRole)role, 
-					algorithm);
-				/** No reason to roll at all */
-				if (!forceRoll) {
-					setnextroll(zone, (KeyRole)role, 0, 0);
-					continue;
-				}
-			}
-			/** Try an automatic roll */
-			if (!forceRoll) {
-				/** Is there a predecessor key? */
-				KeyData *key;
-				if (youngestKeyForConfig(keyfactory, policyKeys, 
-					(KeyRole)role, i, key_list, &key) && 
-					key->inception() + lifetime > now)
-				{
-					/** yes, but no need to roll at this time. Schedule 
-					 * for later */
-					minTime( addtime(key->inception(), lifetime), return_at );
-					setnextroll(zone, (KeyRole)role, addtime(key->inception(), lifetime), 0);
-					continue;
-				}
-				/** No, or key is expired, we need a new one. */
-			}
-			/** time for a new key */
-			ods_log_verbose("[%s] %s New key needed for role %d", 
-				module_str, scmd, role);
-			HsmKey *newkey_hsmkey;
-			bool got_key;
-
-			/** Sanity check. This would produce silly output and give
-			 * the signer lots of useless work */
-			if (role&KSK && policy->parent().ttlds() + policy->keys().ttl() >= lifetime) {
-				ods_log_crit("[%s] %s For policy %s KSK key lifetime of %d is unreasonably short "
-					"with respect to sum of parent TTL (%d) and key TTL (%d). Will not insert key!",
-					module_str, scmd, policyName.c_str(), lifetime, policy->parent().ttlds(), policy->keys().ttl());
-				setnextroll(zone, (KeyRole)role, now, 0);
+		if (!force_roll) {
+			/** As we are not forced to roll see it the youngest key
+			 * need to be replaced. */
+			const key_data_t *youngest = youngestKeyForConfig(keylist, pkey);
+			if (youngest && key_data_inception(youngest) +
+				policy_key_lifetime(pkey) > now)
+			{
+				/** No need to roll at this time. Schedule for later */
+				time_t t_ret = addtime(key_data_inception(key),
+					policy_key_lifetime(pkey));
+				minTime(t_ret, return_at);
+				setnextroll(zone, pkey, t_ret);
 				continue;
 			}
-			
-			if (role&ZSK && policy->signatures().max_zone_ttl() + policy->keys().ttl() >= lifetime) {
-				ods_log_crit("[%s] %s For policy %s ZSK key lifetime of %d is unreasonably short "
-					"with respect to sum of MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
-					module_str, scmd, policyName.c_str(), lifetime, zone.max_zone_ttl(), policy->keys().ttl());
-				setnextroll(zone, (KeyRole)role, now, 0);
-				continue;
-			}			
+		}
+		
+		/** time for a new key */
+		ods_log_verbose("[%s] %s New key needed for role %d", 
+			module_str, scmd, policy_key_role(pkey));
 
-			if ( policyKeys.zones_share_keys() ) {
-				/** Try to get an existing key or ask for new shared */
-				got_key = getLastReusableKey( zone, policy, 
-					(KeyRole)role, bits, repository, algorithm, now, 
-					&newkey_hsmkey, keyfactory, lifetime);
-				if (got_key) {
-					/** Check if this key material isn't already used
-					 * by our zone. Protobuf code checks this as well
-					 * but it is bugged. */
-					for (int j = 0; j < key_list.numKeys(); j++) {
-						KeyData &key = key_list.key(j);
-						if (newkey_hsmkey->locator() == key.locator()) {
-							got_key = false;
-							break;
-						}
-					}
-				} 
-				if (!got_key) {
-					got_key = keyfactory.CreateSharedKey(bits, repository, policyName,
-					algorithm, (KeyRole)role, zone.name(),&newkey_hsmkey );
-				}
-			} else {
-				got_key = keyfactory.CreateNewKey(bits,repository,
-					policyName, algorithm, (KeyRole)role, &newkey_hsmkey );
-			}
-			
-			if ( !got_key ) {
-				/** The factory was not ready, return later */
-				minTime( now + NOKEY_TIMEOUT, return_at);
-				ods_log_warning("[%s] %s No keys available on hsm for policy %s, retry in %d seconds", 
-					module_str, scmd, policyName.c_str(), NOKEY_TIMEOUT);
-				setnextroll(zone, (KeyRole)role, now, 0);
-				continue;
-			}
-			ods_log_verbose("[%s] %s got new key from HSM", module_str, 
-				scmd);
-			
-			/** Make new key from HSM_key and set defaults */
-			KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
-				now, (KeyRole)role, p_rolltype);
-			new_key.setLocator( newkey_hsmkey->locator() );
+		/** Sanity check. This would produce silly output and give
+		 * the signer lots of useless work */
+		if (policy_key_role(pkey)|POLICY_KEY_ROLE_KSK &&
+			policy_parent_ds_ttl(policy) + policy_keys_ttl(policy) >=
+			policy_key_lifetime(pkey))
+		{
+			ods_log_crit("[%s] %s For policy %s KSK key lifetime of %d "
+				"is unreasonably short with respect to sum of parent "
+				"TTL (%d) and key TTL (%d). Will not insert key!",
+				module_str, scmd, policy_name(policy),
+				policy_key_lifetime(pkey), policy_parent_ds_ttl(policy),
+				policy_keys_ttl(policy));
+			setnextroll(zone, pkey, now);
+			continue;
+		}
+		if (policy_key_role(pkey)|POLICY_KEY_ROLE_ZSK &&
+			policy_signatures_max_zone_ttl(policy) + policy_keys_ttl(policy) >=
+			policy_key_lifetime(pkey))
+		{
+			ods_log_crit("[%s] %s For policy %s ZSK key lifetime of %d "
+				"is unreasonably short with respect to sum of "
+				"MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
+				module_str, scmd, policy_name(policy),
+				policy_key_lifetime(pkey), policy_signatures_max_zone_ttl(policy),
+				policy_keys_ttl(policy));
+			setnextroll(zone, pkey, now);
+			continue;
+		}
 
-			/** Get keytag for our new key. On failure continue 
-			 * without */
-			bool success;
-			uint16_t tag = keytag(newkey_hsmkey->locator().c_str(), 
-				algorithm, role&KSK, &success);
-			if (success)
-				new_key.setKeytag(tag);
-			else
-				ods_log_error("[%s] %s error calculating keytag", 
-					module_str, scmd);
+		if ( policy_keys_shared(policy) ) {
+			/** Try to get an existing key or ask for new shared */
+			newhsmkey = getLastReusableKey(keylist, pkey); 
+			//~ if (!got_key) {
+				//~ got_key = keyfactory.CreateSharedKey(bits, repository, policyName,
+				//~ algorithm, (KeyRole)role, zone.name(),&newkey_hsmkey );
+			//~ }
+		} else {
+			//~ got_key = keyfactory.CreateNewKey(bits,repository,
+				//~ policyName, algorithm, (KeyRole)role, &newkey_hsmkey );
+		}
 
-			new_key.setDsAtParent(DS_UNSUBMITTED);
-			struct FutureKey fkey;
-			fkey.key = &new_key;
-			fkey.record = DS; fkey.next_state = (role&KSK?HID:NOCARE);
-			setState(zone, &fkey, now);
-			fkey.record = DK; fkey.next_state = HID;
-			setState(zone, &fkey, now);
-			fkey.record = RD; fkey.next_state = (role&KSK?HID:NOCARE);
-			setState(zone, &fkey, now);
-			fkey.record = RS; fkey.next_state = (role&ZSK?HID:NOCARE);
-			setState(zone, &fkey, now);
-			
-			new_key.setIntroducing(true);
+	}
+	/* TODO commit zone */
 
-			/** New key inserted, come back after its lifetime */
-			minTime( now + lifetime, return_at );
-			setnextroll(zone, (KeyRole)role, addtime(now, lifetime), 0);
+	//~ /** Visit every type of key-configuration, not pretty but we can't
+	 //~ * loop over enums. Include MAX in enum? */
+	//~ for ( int role = 1; role < 4; role++ ) {
+		//~ setnextroll(zone, (KeyRole)role, 0, 1);
+		//~ /** NOTE: we are not looping over keys, but configurations */
+		//~ for ( int i = 0; i < numberOfKeyConfigs( policyKeys, (KeyRole)role ); i++ ) {
 
-			/** Tell similar keys to outroduce, skip new key */
-			for (int j = 0; j < key_list.numKeys(); j++) {
-				KeyData &key = key_list.key(j);
-				HsmKey *key_hsmkey;
-				if (&key == &new_key) continue;
-				/* now check role and algorithm, also skip if already 
-				 * outroducing. */
-				if (!key.introducing() || key.role() != new_key.role() ||
-					key.algorithm() != new_key.algorithm() )
-					continue;
-				/* compare key material */
-				if (!keyfactory.GetHsmKeyByLocator(key.locator(), &key_hsmkey) ||
-					key_hsmkey->bits() != newkey_hsmkey->bits() || 
-					newkey_hsmkey->repository().compare(key_hsmkey->repository()) != 0)
-						continue;
-				/* key and new_key have the same properties, so they are
-				 * generated from the same configuration. */
-				key.setIntroducing(false);
-				ods_log_verbose("[%s] %s decommissioning old key: %s", 
-					module_str, scmd, key.locator().c_str());
-			}
-			
-			/* The user explicitly requested a rollover, request 
-			 * succeeded. We can now stop try to roll manually.  */
-			switch((KeyRole)role) {
-				case KSK: zone.setRollKskNow(false); break;
-				case ZSK: zone.setRollZskNow(false); break;
-				case CSK: zone.setRollCskNow(false); break;
-				default:
-					/** Programming error, report a bug! */
-					ods_fatal_exit("[%s] %s Unknow Role: (%d)",
-					module_str, scmd, role);
-			}
-		} /** loop over keyconfigs */
-	} /** loop over KeyRole */
-	return return_at;
+
+			//~ HsmKey *newkey_hsmkey;
+			//~ bool got_key;
+//~ 
+			//~ if ( policyKeys.zones_share_keys() ) {
+				//~ /** Try to get an existing key or ask for new shared */
+				//~ got_key = getLastReusableKey( zone, policy, 
+					//~ (KeyRole)role, bits, repository, algorithm, now, 
+					//~ &newkey_hsmkey, keyfactory, lifetime);
+				//~ if (got_key) {
+					//~ /** Check if this key material isn't already used
+					 //~ * by our zone. Protobuf code checks this as well
+					 //~ * but it is bugged. */
+					//~ for (int j = 0; j < key_list.numKeys(); j++) {
+						//~ KeyData &key = key_list.key(j);
+						//~ if (newkey_hsmkey->locator() == key.locator()) {
+							//~ got_key = false;
+							//~ break;
+						//~ }
+					//~ }
+				//~ } 
+				//~ if (!got_key) {
+					//~ got_key = keyfactory.CreateSharedKey(bits, repository, policyName,
+					//~ algorithm, (KeyRole)role, zone.name(),&newkey_hsmkey );
+				//~ }
+			//~ } else {
+				//~ got_key = keyfactory.CreateNewKey(bits,repository,
+					//~ policyName, algorithm, (KeyRole)role, &newkey_hsmkey );
+			//~ }
+			//~ 
+			//~ if ( !got_key ) {
+				//~ /** The factory was not ready, return later */
+				//~ minTime( now + NOKEY_TIMEOUT, return_at);
+				//~ ods_log_warning("[%s] %s No keys available on hsm for policy %s, retry in %d seconds", 
+					//~ module_str, scmd, policyName.c_str(), NOKEY_TIMEOUT);
+				//~ setnextroll(zone, (KeyRole)role, now, 0);
+				//~ continue;
+			//~ }
+			//~ ods_log_verbose("[%s] %s got new key from HSM", module_str, 
+				//~ scmd);
+			//~ 
+			//~ /** Make new key from HSM_key and set defaults */
+			//~ KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
+				//~ now, (KeyRole)role, p_rolltype);
+			//~ new_key.setLocator( newkey_hsmkey->locator() );
+//~ 
+			//~ /** Get keytag for our new key. On failure continue 
+			 //~ * without */
+			//~ bool success;
+			//~ uint16_t tag = keytag(newkey_hsmkey->locator().c_str(), 
+				//~ algorithm, role&KSK, &success);
+			//~ if (success)
+				//~ new_key.setKeytag(tag);
+			//~ else
+				//~ ods_log_error("[%s] %s error calculating keytag", 
+					//~ module_str, scmd);
+//~ 
+			//~ new_key.setDsAtParent(DS_UNSUBMITTED);
+			//~ struct FutureKey fkey;
+			//~ fkey.key = &new_key;
+			//~ fkey.record = DS; fkey.next_state = (role&KSK?HID:NOCARE);
+			//~ setState(zone, &fkey, now);
+			//~ fkey.record = DK; fkey.next_state = HID;
+			//~ setState(zone, &fkey, now);
+			//~ fkey.record = RD; fkey.next_state = (role&KSK?HID:NOCARE);
+			//~ setState(zone, &fkey, now);
+			//~ fkey.record = RS; fkey.next_state = (role&ZSK?HID:NOCARE);
+			//~ setState(zone, &fkey, now);
+			//~ 
+			//~ new_key.setIntroducing(true);
+//~ 
+			//~ /** New key inserted, come back after its lifetime */
+			//~ minTime( now + lifetime, return_at );
+			//~ setnextroll(zone, (KeyRole)role, addtime(now, lifetime), 0);
+//~ 
+			//~ /** Tell similar keys to outroduce, skip new key */
+			//~ for (int j = 0; j < key_list.numKeys(); j++) {
+				//~ KeyData &key = key_list.key(j);
+				//~ HsmKey *key_hsmkey;
+				//~ if (&key == &new_key) continue;
+				//~ /* now check role and algorithm, also skip if already 
+				 //~ * outroducing. */
+				//~ if (!key.introducing() || key.role() != new_key.role() ||
+					//~ key.algorithm() != new_key.algorithm() )
+					//~ continue;
+				//~ /* compare key material */
+				//~ if (!keyfactory.GetHsmKeyByLocator(key.locator(), &key_hsmkey) ||
+					//~ key_hsmkey->bits() != newkey_hsmkey->bits() || 
+					//~ newkey_hsmkey->repository().compare(key_hsmkey->repository()) != 0)
+						//~ continue;
+				//~ /* key and new_key have the same properties, so they are
+				 //~ * generated from the same configuration. */
+				//~ key.setIntroducing(false);
+				//~ ods_log_verbose("[%s] %s decommissioning old key: %s", 
+					//~ module_str, scmd, key.locator().c_str());
+			//~ }
+			//~ 
+			//~ /* The user explicitly requested a rollover, request 
+			 //~ * succeeded. We can now stop try to roll manually.  */
+			//~ switch((KeyRole)role) {
+				//~ case KSK: zone.setRollKskNow(false); break;
+				//~ case ZSK: zone.setRollZskNow(false); break;
+				//~ case CSK: zone.setRollCskNow(false); break;
+				//~ default:
+					//~ /** Programming error, report a bug! */
+					//~ ods_fatal_exit("[%s] %s Unknow Role: (%d)",
+					//~ module_str, scmd, role);
+			//~ }
+		//~ } /** loop over keyconfigs */
+	//~ } /** loop over KeyRole */
+	//~ return return_at;
+	return 0;
 }
 
 /**
@@ -1504,8 +1596,15 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 }
 
 time_t
-update(zone_t *zone, policy_t *policy, time_t now)
+update(db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now)
 {
+	int allow_unsigned;
+
+	ods_log_info("[%s] update zone: %s", module_str, zone_name(zone));
+	time_t policy_return_time;
+
+	policy_return_time = updatePolicy(dbconn, policy, zone, now, &allow_unsigned);
+
 	return now + 5;
 }
 
@@ -1521,7 +1620,7 @@ update_old(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 
 	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
 
-	policy_return_time = updatePolicy(zone, now, keyfactory, key_list, allow_unsigned);
+	//~ policy_return_time = updatePolicy(zone, now, keyfactory, key_list, allow_unsigned);
 	if (allow_unsigned)
 		ods_log_info(
 			"[%s] %s No keys configured, zone will become unsigned eventually",
