@@ -105,7 +105,6 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	char salt[255], salthex[511];
 	int saltlength;
 	db_clause_list_t* clause_list;
-	db_clause_t* clause;
 	(void) engine; (void) sockfd;
 
 #ifndef HAVE_ARC4RANDOM
@@ -113,8 +112,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 #endif
 
 	if (!(clause_list = db_clause_list_new())
-	    || (!(clause = policy_denial_type_clause(clause_list, POLICY_DENIAL_TYPE_NSEC3)))
-	    || db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL)
+	    || !policy_denial_type_clause(clause_list, POLICY_DENIAL_TYPE_NSEC3)
 	    || !(pol_list = policy_list_new_get_by_clauses(dbconn, clause_list)))
 	{
 	    db_clause_list_free(clause_list);
@@ -147,6 +145,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 				break;
 			}
 			resalt_time = now + policy_denial_resalt(policy);
+			ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));
 		}
 		if (resalt_time < schedule_time || schedule_time == TIME_INF)
 			schedule_time = resalt_time;
