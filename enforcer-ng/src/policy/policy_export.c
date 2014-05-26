@@ -31,6 +31,7 @@
 #include "daemon/clientpipe.h"
 #include "shared/duration.h"
 #include "db/policy_key.h"
+#include "utils/kc_helper.h"
 
 #include "policy/policy_export.h"
 
@@ -39,6 +40,8 @@
 #include <limits.h>
 #include <unistd.h>
 #include <stdio.h>
+
+#define POLICY_EXPORT_MAX_LENGHT 1000
 
 static int __free(char **p) {
     if (!p || !*p) {
@@ -244,7 +247,7 @@ static int __policy_export(int sockfd, const policy_t* policy, xmlNodePtr root) 
                 || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Algorithm", (xmlChar*)text))
                 || !(error = 102)
                 || snprintf(text, sizeof(text), "%u", policy_key_bits(policy_key)) >= (int)sizeof(text)
-                || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)text)
+                || !xmlNewProp(node3, (xmlChar*)"length", (xmlChar*)text)
                 || !(error = 103)
                 || duration_set_time(duration, policy_key_lifetime(policy_key))
                 || !(duration_text = duration2string(duration))
@@ -285,7 +288,7 @@ static int __policy_export(int sockfd, const policy_t* policy, xmlNodePtr root) 
                 || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Algorithm", (xmlChar*)text))
                 || !(error = 202)
                 || snprintf(text, sizeof(text), "%u", policy_key_bits(policy_key)) >= (int)sizeof(text)
-                || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)text)
+                || !xmlNewProp(node3, (xmlChar*)"length", (xmlChar*)text)
                 || !(error = 203)
                 || duration_set_time(duration, policy_key_lifetime(policy_key))
                 || !(duration_text = duration2string(duration))
@@ -329,7 +332,7 @@ static int __policy_export(int sockfd, const policy_t* policy, xmlNodePtr root) 
                 || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Algorithm", (xmlChar*)text))
                 || !(error = 302)
                 || snprintf(text, sizeof(text), "%u", policy_key_bits(policy_key)) >= (int)sizeof(text)
-                || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)text)
+                || !xmlNewProp(node3, (xmlChar*)"length", (xmlChar*)text)
                 || !(error = 303)
                 || duration_set_time(duration, policy_key_lifetime(policy_key))
                 || !(duration_text = duration2string(duration))
@@ -388,6 +391,10 @@ int policy_export_all(int sockfd, const db_connection_t* connection, const char*
     xmlNodePtr root = NULL;
     int ret;
     char path[PATH_MAX];
+    xmlChar* xml = NULL;
+    char* xml_out;
+    int xml_length = 0;
+    int xml_write;
 
     if (!connection) {
         return POLICY_EXPORT_ERR_ARGS;
@@ -438,9 +445,45 @@ int policy_export_all(int sockfd, const db_connection_t* connection, const char*
     }
     policy_list_free(policy_list);
 
-    /* TODO: Write out policy to file or stdout */
+    if (filename) {
+        unlink(path);
+        if (xmlSaveFormatFileEnc(path, doc, "UTF-8", 1) == -1) {
+            client_printf_err(sockfd, "Unable to write policy, LibXML error!\n");
+            xmlFreeDoc(doc);
+            return POLICY_EXPORT_ERR_FILE;
+        }
+        xmlFreeDoc(doc);
 
-    xmlFreeDoc(doc);
+        if (check_kasp(path, NULL, 0, 0, NULL, NULL)) {
+            client_printf_err(sockfd, "Unable to validate the exported policy XML!\n");
+            unlink(path);
+            return POLICY_EXPORT_ERR_XML;
+        }
+
+        if (rename(path, filename)) {
+            client_printf_err(sockfd, "Unable to write policy, rename failed!\n");
+            unlink(path);
+            return POLICY_EXPORT_ERR_FILE;
+        }
+    }
+    else {
+        xmlDocDumpFormatMemoryEnc(doc, &xml, &xml_length, "UTF-8", 1);
+        xmlFreeDoc(doc);
+        if (xml && xml_length) {
+            for (xml_out = (char*)xml, xml_write = xml_length; xml_write > POLICY_EXPORT_MAX_LENGHT; xml_write -= POLICY_EXPORT_MAX_LENGHT, xml_out += POLICY_EXPORT_MAX_LENGHT) {
+                client_printf(sockfd, "%.*s", POLICY_EXPORT_MAX_LENGHT, xml_out);
+            }
+            if (xml_write) {
+                client_printf(sockfd, "%.*s", xml_write, xml_out);
+            }
+            xmlFree(xml);
+        }
+        else {
+            client_printf_err(sockfd, "Unable to create policy XML, LibXML error!\n");
+            return POLICY_EXPORT_ERR_XML;
+        }
+    }
+
     return POLICY_EXPORT_OK;
 }
 
@@ -449,6 +492,10 @@ int policy_export(int sockfd, const policy_t* policy, const char* filename) {
     xmlNodePtr root = NULL;
     int ret;
     char path[PATH_MAX];
+    xmlChar* xml = NULL;
+    char* xml_out;
+    int xml_length = 0;
+    int xml_write;
 
     if (!policy) {
         return POLICY_EXPORT_ERR_ARGS;
@@ -484,8 +531,44 @@ int policy_export(int sockfd, const policy_t* policy, const char* filename) {
         return ret;
     }
 
-    /* TODO: Write out policy to file or stdout */
+    if (filename) {
+        unlink(path);
+        if (xmlSaveFormatFileEnc(path, doc, "UTF-8", 1) == -1) {
+            client_printf_err(sockfd, "Unable to write policy, LibXML error!\n");
+            xmlFreeDoc(doc);
+            return POLICY_EXPORT_ERR_FILE;
+        }
+        xmlFreeDoc(doc);
 
-    xmlFreeDoc(doc);
+        if (check_kasp(path, NULL, 0, 0, NULL, NULL)) {
+            client_printf_err(sockfd, "Unable to validate the exported policy XML!\n");
+            unlink(path);
+            return POLICY_EXPORT_ERR_XML;
+        }
+
+        if (rename(path, filename)) {
+            client_printf_err(sockfd, "Unable to write policy, rename failed!\n");
+            unlink(path);
+            return POLICY_EXPORT_ERR_FILE;
+        }
+    }
+    else {
+        xmlDocDumpFormatMemoryEnc(doc, &xml, &xml_length, "UTF-8", 1);
+        xmlFreeDoc(doc);
+        if (xml && xml_length) {
+            for (xml_out = (char*)xml, xml_write = xml_length; xml_write > POLICY_EXPORT_MAX_LENGHT; xml_write -= POLICY_EXPORT_MAX_LENGHT, xml_out += POLICY_EXPORT_MAX_LENGHT) {
+                client_printf(sockfd, "%.*s", POLICY_EXPORT_MAX_LENGHT, xml_out);
+            }
+            if (xml_write) {
+                client_printf(sockfd, "%.*s", xml_write, xml_out);
+            }
+            xmlFree(xml);
+        }
+        else {
+            client_printf_err(sockfd, "Unable to create policy XML, LibXML error!\n");
+            return POLICY_EXPORT_ERR_XML;
+        }
+    }
+
     return POLICY_EXPORT_OK;
 }
