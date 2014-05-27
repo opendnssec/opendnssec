@@ -99,7 +99,7 @@ struct FutureKey {
 static inline void
 minTime(const time_t t, time_t* min)
 {
-    assert(min);
+    assert(min); /* TODO: propper error */
 	if ( (t < *min || *min < 0) && t >= 0 ) *min = t;
 }
 
@@ -112,10 +112,11 @@ minTime(const time_t t, time_t* min)
  * \param[in] seconds, seconds to add to base
  * \return sum
  * */
-time_t
+static time_t
 addtime(const time_t t, const int seconds)
 {
 	struct tm *tp = localtime(&t);
+	assert(tp); /* TODO: propper error */
 	tp->tm_sec += seconds;
 	return mktime(tp);
 }
