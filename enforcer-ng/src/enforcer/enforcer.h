@@ -27,12 +27,12 @@
 #ifndef _ENFORCER_ENFORCER_H_
 #define _ENFORCER_ENFORCER_H_
 
+#include "db/zone.h"
+#include "db/policy.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "db/zone.h"
-#include "db/policy.h"
 
 /**
  * Does any required work for a zone and its policy.
