@@ -96,10 +96,11 @@ struct FutureKey {
  * \param t[in], some time to test
  * \param min[in,out], smallest of t and min.
  * */
-inline void 
-minTime(const time_t t, time_t &min)
+static inline void
+minTime(const time_t t, time_t* min)
 {
-	if ( (t < min || min < 0) && t >= 0 ) min = t;
+    assert(min);
+	if ( (t < *min || *min < 0) && t >= 0 ) *min = t;
 }
 
 /**
@@ -908,7 +909,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 
 				/** It is to soon to make this change. Schedule it. */
 				if (returntime_key > now) {
-					minTime(returntime_key, returntime_zone);
+					minTime(returntime_key, &returntime_zone);
 					continue;
 				}
 
@@ -932,7 +933,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 							module_str, scmd, key.locator().c_str());
 						/* Try again in 60 seconds */
 						returntime_key = addtime(now, 60); 
-						minTime(returntime_key, returntime_zone);
+						minTime(returntime_key, &returntime_zone);
 						continue;
 					}
 				}
@@ -1371,7 +1372,7 @@ updatePolicy(db_connection_t *dbconn, policy_t *policy, zone_t *zone, const time
 				/** No need to roll at this time. Schedule for later */
 				time_t t_ret = addtime(key_data_inception(key),
 					policy_key_lifetime(pkey));
-				minTime(t_ret, return_at);
+				minTime(t_ret, &return_at);
 				setnextroll(zone, pkey, t_ret);
 				continue;
 			}
@@ -1585,7 +1586,7 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 					key.locator().c_str());
 				key_list.delKey(i);
 			} else {
-				minTime(keyTime, firstPurge);
+				minTime(keyTime, &firstPurge);
 			}
 			/** It might not be time to purge the key just yet, but we
 			 * can already assume no other key depends on it. */
@@ -1642,7 +1643,7 @@ update_old(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 		k.setActiveZSK(getState(k, RS, NULL) == OMN || getState(k, RS, NULL) == RUM);
 	}
 
-	minTime(policy_return_time, zone_return_time);
-	minTime(purge_return_time,  zone_return_time);
+	minTime(policy_return_time, &zone_return_time);
+	minTime(purge_return_time,  &zone_return_time);
 	return zone_return_time;
 }
