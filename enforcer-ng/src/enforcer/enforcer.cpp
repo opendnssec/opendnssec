@@ -128,10 +128,10 @@ addtime(const time_t t, const int seconds)
  * \param[in] record, specifies which keystate.
  * \return keystate
  * */
-KeyState&
+static KeyState&
 getRecord(KeyData &key, const RECORD record)
 {
-	const char *scmd = "getRecord";
+	static const char *scmd = "getRecord";
 	switch(record) {
 		case DS: return key.keyStateDS();
 		case DK: return key.keyStateDNSKEY();
@@ -151,7 +151,7 @@ getRecord(KeyData &key, const RECORD record)
  * \param[in] record
  * \return state of record.
  * */
-inline STATE
+static inline STATE
 getState(KeyData &key, const RECORD record, 
 	const struct FutureKey *future_key)
 {
@@ -174,10 +174,10 @@ getState(KeyData &key, const RECORD record,
  * \param[in] state, current state of record.
  * \return next state
  * */
-STATE
+static STATE
 getDesiredState(const bool introducing, const STATE state)
 {
-	const char *scmd = "getDesiredState";
+    static const char *scmd = "getDesiredState";
 	if (state > NOCARE || state < HID) 
 		ods_fatal_exit("[%s] %s Key in unknown state (%d), "
 			"Corrupt database? Abort.",  module_str, scmd, (int)state);
@@ -201,7 +201,7 @@ getDesiredState(const bool introducing, const STATE state)
  * 			if any will do.
  * @return True IFF exist such key.
  * */
-bool
+static bool
 match(KeyData &k, const struct FutureKey *future_key,
 	const bool require_same_algorithm, const STATE mask[4])
 {
@@ -235,7 +235,7 @@ match(KeyData &k, const struct FutureKey *future_key,
  * 			if any will do.
  * @return True IFF exist such key.
  * */
-bool
+static bool
 exists(KeyDataList &key_list, const struct FutureKey *future_key,
 	const bool require_same_algorithm, const STATE mask[4])
 {
@@ -250,7 +250,7 @@ exists(KeyDataList &key_list, const struct FutureKey *future_key,
 /** Looks up KeyData from locator string.
  * TODO: find a better approach, can we trick protobuf to cross
  * reference? */
-KeyData *
+static KeyData *
 stringToKeyData(KeyDataList &key_list, const string &locator)
 {
 	for (int i = 0; i < key_list.numKeys(); i++) {
@@ -261,10 +261,10 @@ stringToKeyData(KeyDataList &key_list, const string &locator)
 	return NULL;
 }
 
-bool
+static bool
 isPotentialSuccessor(KeyData &pred_key, const struct FutureKey *future_key, KeyData &succ_key, const RECORD succRelRec)
 {
-	const char *scmd = "isPotentialSuccessor";
+	static const char *scmd = "isPotentialSuccessor";
 	/** must at least have record introducing */
 	if (getState(succ_key, succRelRec, future_key) != RUM) return false;
 	if (pred_key.algorithm() != succ_key.algorithm()) return false;
@@ -287,7 +287,7 @@ isPotentialSuccessor(KeyData &pred_key, const struct FutureKey *future_key, KeyD
 }
 
 /** True if a path from k_succ to k_pred exists */
-bool
+static bool
 successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_succ, 
 		const string &k_pred,
 		struct FutureKey *future_key, const RECORD succRelRec) 
@@ -350,7 +350,7 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
  * 			- Z in same state as Y and
  * 			- Z depends on X */
 /** True if k_succ is a successor of k_pred */
-bool
+static bool
 successor(KeyDataList &key_list, KeyDependencyList &dep_list, 
 		KeyData &k_succ, KeyData &k_pred,
 		struct FutureKey *future_key, const RECORD succRelRec) 
@@ -364,7 +364,7 @@ successor(KeyDataList &key_list, KeyDependencyList &dep_list,
 }
 
 //Seek 
-bool
+static bool
 exists_with_successor(KeyDependencyList &dep_list, 
 	KeyDataList &key_list, struct FutureKey *future_key,
 	const bool require_same_algorithm, const STATE mask_pred[4], 
@@ -400,7 +400,7 @@ exists_with_successor(KeyDependencyList &dep_list,
  * 			if any will do.
  * @return True IFF exist such key.
  * */
-bool
+static bool
 exists_anon(KeyDataList &key_list, const STATE mask[4])
 {
 	for (int i = 0; i < key_list.numKeys(); i++) {
@@ -436,7 +436,7 @@ exists_anon(KeyDataList &key_list, const STATE mask[4])
  * 			otherwise mask must apply.
  * @return True IFF all keys are securely insecure.
  * */
-bool
+static bool
 unsignedOk(KeyDataList &key_list, const struct FutureKey *future_key, 
 	const STATE mask[4], const RECORD mustHID)
 {
@@ -468,7 +468,7 @@ unsignedOk(KeyDataList &key_list, const struct FutureKey *future_key,
  * @param pretend_update, pretend record of key is in state next_state.
  * @return True IFF a introducing DS exists.
  * */
-bool
+static bool
 rule1(KeyDependencyList &dep_list, KeyDataList &key_list, 
 	struct FutureKey *future_key, bool pretend_update)
 {
@@ -492,7 +492,7 @@ rule1(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @param pretend_update, pretend record of key is in state next_state.
  * @return True IFF one of requirements is met.
  * */
-bool
+static bool
 rule2(KeyDependencyList &dep_list, KeyDataList &key_list, 
 	struct FutureKey *future_key, bool pretend_update)
 {
@@ -533,7 +533,7 @@ rule2(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @param pretend_update, pretend record of key is in state next_state.
  * @return True IFF one of requirements is met.
  * */
-bool
+static bool
 rule3(KeyDependencyList &dep_list, KeyDataList &key_list, 
 	struct FutureKey *future_key, bool pretend_update)
 {
@@ -567,7 +567,7 @@ rule3(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @param next_state, desired state of said record.
  * @return True if transition is okay DNSSEC-wise.
  * */
-bool
+static bool
 dnssecApproval(KeyDependencyList &dep_list, KeyDataList &key_list, 
 	struct FutureKey *future_key, bool allow_unsigned)
 {
@@ -594,11 +594,11 @@ dnssecApproval(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @param ttl of record, *may* be different from policy.
  * @return absolute time
  * */
-time_t
+static time_t
 minTransitionTime(EnforcerZone &zone, const RECORD record,
 	const STATE next_state, const time_t lastchange, const int ttl)
 {
-	const char *scmd = "minTransitionTime";
+	static const char *scmd = "minTransitionTime";
 	const Policy *policy = zone.policy();
 
 	/** We may freely move a record to a uncertain state. */
@@ -638,10 +638,10 @@ minTransitionTime(EnforcerZone &zone, const RECORD record,
  * \param[in] next_state 
  * \return True iff policy allows transition of record to state.
  * */
-bool
+static bool
 policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 {
-	const char *scmd = "policyApproval";
+	static const char *scmd = "policyApproval";
 	
 	/** once the record is introduced the policy has no influence. */
 	if (future_key->next_state != RUM) return true;
@@ -694,10 +694,10 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
  * Normally we use the TTL from the policy. However a larger TTL might
  * have been published in the near past causing this record to take 
  * extra time to propagate */
-int
+static int
 getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 {
-	const char *scmd = "getTTL";
+    static const char *scmd = "getTTL";
 	const Policy *policy = zone.policy();
 	
 	time_t endDate;
@@ -736,7 +736,7 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
  * @param state
  * @param now, the current time.
  * */
-void
+static void
 setState(EnforcerZone &zone, const struct FutureKey *future_key, 
 	const time_t now)
 {
@@ -749,10 +749,10 @@ setState(EnforcerZone &zone, const struct FutureKey *future_key,
 
 
 /** Find out if this key can be in a successor relation */
-bool
+static bool
 isSuccessable(const struct FutureKey *future_key)
 {
-	const char *scmd = "isSuccessable";
+    static const char *scmd = "isSuccessable";
 	
 	if (future_key->next_state != UNR) return false;
 	switch(future_key->record) {
@@ -777,11 +777,11 @@ isSuccessable(const struct FutureKey *future_key)
 
 
 
-void
+static void
 markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, 
 	struct FutureKey *future_key)
 {
-	const char *scmd = "markSuccessors";
+    static const char *scmd = "markSuccessors";
 	if (!isSuccessable(future_key)) return;
 	/** Which keys can be potential successors? */
 	for (int i = 0; i < key_list.numKeys(); i++) {
@@ -801,7 +801,7 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @param now, current time
  * @return first absolute time some record *could* be advanced.
  * */
-time_t
+static time_t
 updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 	HsmKeyFactory &keyfactory)
 {
@@ -811,7 +811,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 	KeyDependencyList &dep_list = zone.keyDependencyList();
 	KeyDataList &key_list = zone.keyDataList();
 	const Policy *policy = zone.policy();
-	const char *scmd = "updateZone";
+	static const char *scmd = "updateZone";
 	ods_log_verbose("[%s] %s", module_str, scmd);
 	int ttl;
 	const STATE omnkey[] =  {NOCARE, OMN, NOCARE, NOCARE};
@@ -1001,7 +1001,7 @@ updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 	//~ const time_t now, HsmKey **ppKey,
 	//~ HsmKeyFactory &keyfactory, int lifetime)
 //~ {
-	//~ const char *scmd = "getLastReusableKey";
+	//~ static const char *scmd = "getLastReusableKey";
 	//~ 
 	//~ if (!keyfactory.UseSharedKey(bits, repository, policy->name(), 
 		//~ algorithm, role, zone.name(), ppKey))
@@ -1060,10 +1060,10 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
  * Abstraction to generalize different kind of keys. 
  * return number of keys _in_a_policy_ 
  * */
-int 
+static int
 numberOfKeyConfigs(const KeyList &policyKeys, const KeyRole role)
 {
-	const char *scmd = "numberOfKeyConfigs";
+    static const char *scmd = "numberOfKeyConfigs";
 	switch (role) {
 		case KSK: return policyKeys.ksk_size();
 		case ZSK: return policyKeys.zsk_size();
@@ -1090,12 +1090,12 @@ numberOfKeyConfigs(const KeyList &policyKeys, const KeyRole role)
  * \param[out] repository
  * \param[out] manual
  * */
-void 
+static void
 keyProperties(const KeyList &policyKeys, const int index, const KeyRole role,
 	int *bits, int *algorithm, int *lifetime, string &repository,
 	bool *manual, int *rollover_type)
 {
-	const char *scmd = "keyProperties";
+    static const char *scmd = "keyProperties";
 	
 	/** Programming error, report a bug! */
 	if (index >= numberOfKeyConfigs(policyKeys, role)) 
@@ -1141,10 +1141,10 @@ keyProperties(const KeyList &policyKeys, const int index, const KeyRole role,
  * @param key Key to be tested
  * @return 1 if a matching policy exists, 0 otherwise
  * */
-int
+static int
 existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
 {
-	const char *scmd = "existsPolicyForKey";
+    static const char *scmd = "existsPolicyForKey";
 	const policy_key *pkey;
 	hsm_key_t *hkey;
 
@@ -1302,7 +1302,7 @@ enforce_roll(const zone_t *zone, const policy_key_t *pkey)
  * @param[out] allow_unsigned, true when no keys are configured.
  * @return time_t
  * */
-time_t 
+static time_t
 updatePolicy(db_connection_t *dbconn, policy_t *policy, zone_t *zone, const time_t now, 
 	int *allow_unsigned)
 {
@@ -1313,7 +1313,7 @@ updatePolicy(db_connection_t *dbconn, policy_t *policy, zone_t *zone, const time
 	key_data_t *mutkey;
 	const policy_key_t *pkey;
 	const hsm_key_t *newhsmkey;
-	const char *scmd = "updatePolicy";
+	static const char *scmd = "updatePolicy";
 
 	ods_log_verbose("[%s] %s policyName: %s", module_str, scmd, 
 		policy_name(policy));
@@ -1556,11 +1556,11 @@ updatePolicy(db_connection_t *dbconn, policy_t *policy, zone_t *zone, const time
  * \param[in] purgetime period after which dead keys may be removed
  * \return time_t Next key purgable. 
  * */
-time_t
+static time_t
 removeDeadKeys(KeyDataList &key_list, const time_t now, 
 	const int purgetime, EnforcerZone &zone)
 {
-	const char *scmd = "removeDeadKeys";
+    static const char *scmd = "removeDeadKeys";
 	time_t firstPurge = -1;
 	
 	KeyDependencyList &key_dep = zone.keyDependencyList();
@@ -1618,7 +1618,7 @@ update_old(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 	bool allow_unsigned;
 	KeyDataList &key_list = zone.keyDataList();
 	const Policy *policy = zone.policy();
-	const char *scmd = "update";
+	static const char *scmd = "update";
 
 	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
 
