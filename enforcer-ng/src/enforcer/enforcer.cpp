@@ -1185,10 +1185,18 @@ static const key_data_t*
 youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key = NULL, *youngest = NULL;
-	const hsm_key_t *hsmkey;
+	hsm_key_t *hsmkey = NULL;
+
+	if (!key_list) {
+	    return NULL;
+	}
+	if (!pkey) {
+	    return NULL;
+	}
 	
-	/** must match: role, bits, algo, repo */
-	
+	/*
+	 * Must match: role, bits, algorithm and repository.
+	 */
 	for (key = key_data_list_begin(key_list); key;
 		key_data_list_next(key_list))
 	{
@@ -1196,10 +1204,15 @@ youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
 			policy_key_algorithm(pkey) != key_data_algorithm(key) ||
 			(hsmkey = key_data_get_hsm_key(key)) == NULL ||
 			policy_key_bits(pkey) != hsm_key_bits(hsmkey) ||
-			policy_key_algorithm(pkey) != hsm_key_algorithm(hsmkey))
+			policy_key_algorithm(pkey) != hsm_key_algorithm(hsmkey) ||
+			strcmp(policy_key_repository(pkey), hsm_key_repository(hsmkey)))
 		{
+		    hsm_key_free(hsmkey);
+		    hsmkey = NULL;
 			continue;
 		}
+        hsm_key_free(hsmkey);
+        hsmkey = NULL;
 		/** This key matches, is it newer? */
 		if (!youngest || key_data_inception(youngest) > key_data_inception(key))
 			youngest = key;
