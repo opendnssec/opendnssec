@@ -29,6 +29,7 @@
 
 #include "db/zone.h"
 #include "db/policy.h"
+#include "daemon/engine.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,7 +52,7 @@ extern "C" {
  * @return time_t Time the function wishes to be called again.
  * */
 time_t
-update(db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now);
+update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now);
 
 #ifdef __cplusplus
 }

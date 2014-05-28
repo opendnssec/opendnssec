@@ -47,6 +47,7 @@
 #include "policy/kasp.pb.h"
 #include "hsmkey/hsmkey.pb.h"
 #include "libhsm.h"
+#include "hsmkey/hsm_key_factory.h"
 
 #include <libhsmdns.h>
 #include <ldns/ldns.h>
@@ -1293,6 +1294,21 @@ enforce_roll(const zone_t *zone, const policy_key_t *pkey)
 	}
 }
 
+static int
+set_roll(zone_t *zone, const policy_key_t *pkey, unsigned int roll)
+{
+    switch(policy_key_role(pkey)) {
+        case POLICY_KEY_ROLE_KSK:
+            return zone_set_roll_ksk_now(zone, roll);
+        case POLICY_KEY_ROLE_ZSK:
+            return zone_set_roll_zsk_now(zone, roll);
+        case POLICY_KEY_ROLE_CSK:
+            return zone_set_roll_csk_now(zone, roll);
+        default:
+            return 1;
+    }
+}
+
 /**
  * See what needs to be done for the policy 
  * 
@@ -1303,127 +1319,349 @@ enforce_roll(const zone_t *zone, const policy_key_t *pkey)
  * @return time_t
  * */
 static time_t
-updatePolicy(db_connection_t *dbconn, policy_t *policy, zone_t *zone, const time_t now, 
-	int *allow_unsigned)
+updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
+    zone_t *zone, const time_t now, int *allow_unsigned)
 {
 	time_t return_at = -1;
 	key_data_list_t *keylist;
 	policy_key_list_t *policykeylist;
 	const key_data_t *key;
-	key_data_t *mutkey;
+	key_data_t *mutkey = NULL;
 	const policy_key_t *pkey;
-	const hsm_key_t *newhsmkey;
+	const hsm_key_t *hsmkey;
+    hsm_key_t *newhsmkey = NULL;
 	static const char *scmd = "updatePolicy";
+	int force_roll;
+	const key_data_t *youngest;
+	time_t t_ret;
+	key_data_role_t key_role;
+	bool success;
+	uint16_t tag;
 
-	ods_log_verbose("[%s] %s policyName: %s", module_str, scmd, 
-		policy_name(policy));
+	if (!dbconn) {
+	    /* TODO: log error */
+	    return now + 60;
+	}
+    if (!policy) {
+        /* TODO: log error */
+        return now + 60;
+    }
+    if (!zone) {
+        /* TODO: log error */
+        return now + 60;
+    }
+    if (!allow_unsigned) {
+        /* TODO: log error */
+        return now + 60;
+    }
 
-	/** Fetch all configured keys in KASP */
-	policykeylist = policy_key_list_new(dbconn);
-	if (policy_key_list_get_by_policy_id(policykeylist, policy_id(policy)) ||
-		policy_key_list_fetch_all(policykeylist))
+	ods_log_verbose("[%s] %s policyName: %s", module_str, scmd, policy_name(policy));
+
+	/*
+	 * Get all policy keys (configurations) for the given policy and fetch all
+	 * the policy key database objects so we can iterate over it more then once.
+	 */
+	if (!(policykeylist = policy_get_policy_keys(policy))
+	    || policy_key_list_fetch_all(policykeylist))
 	{
-		/*TODO log err*/
+        /* TODO: log error */
 		policy_key_list_free(policykeylist);
 		return now + 60;
 	}
 
-	/**  */
-	mutkey = NULL;
-	keylist = zone_get_keys(zone);
-	(void)key_data_list_fetch_all(keylist);
-	while ((key = key_data_list_next(keylist))) {
+	/*
+	 * Get all key data objects for the given zone and fetch all the objects
+	 * from the database so we can use the list again later.
+	 */
+	if (!(keylist = zone_get_keys(zone))
+	    || key_data_list_fetch_all(keylist))
+	{
+        /* TODO: log error */
+        policy_key_list_free(policykeylist);
+        return now + 60;
+	}
+
+    /*
+     * Decommission all key data objects without any matching policy key config.
+     */
+	while ((key = key_data_list_get_next(keylist))) {
 		if (!existsPolicyForKey(policykeylist, key)) {
-			if (key_data_copy(mutkey, key) ||
-				key_data_set_introducing(mutkey, 0) ||
-				key_data_update(mutkey))
+			if (!(mutkey = key_data_new_copy(key))
+			    || key_data_set_introducing(mutkey, 0)
+			    || key_data_update(mutkey))
 			{
-				/*TODO  log err */
+				/* TODO: log error */
+			    key_data_free(mutkey);
+			    mutkey = NULL;
+		        key_data_list_free(keylist);
+		        policy_key_list_free(policykeylist);
+		        return now + 60;
 			}
-			key_data_free(mutkey);
-			mutkey = NULL;
+            key_data_free(mutkey);
+            mutkey = NULL;
 		}
 	}
 
-	/* reset the next_roll's (whch are for display only */
-	(void)zone_set_next_ksk_roll(zone, 0);
-	(void)zone_set_next_csk_roll(zone, 0);
-	(void)zone_set_next_zsk_roll(zone, 0);
+	/*
+	 * Reset the next rolls, which are for display only.
+	 */
+	if (zone_set_next_ksk_roll(zone, 0)
+	    || zone_set_next_csk_roll(zone, 0)
+	    || zone_set_next_zsk_roll(zone, 0))
+	{
+        /* TODO: log error */
+	    key_data_list_free(keylist);
+        policy_key_list_free(policykeylist);
+        return now + 60;
+	}
 
-	/** If no keys are configured an unsigned zone is okay. */
-	pkey = policy_key_list_begin(policykeylist);
-	*allow_unsigned = pkey?1:0;
+    pkey = policy_key_list_begin(policykeylist);
+
+    /*
+	 * If no keys are configured an unsigned zone is okay.
+	 */
+	*allow_unsigned = pkey ? 1 : 0;
 
 	for (; pkey; pkey = policy_key_list_next(policykeylist)) {
-		int force_roll = enforce_roll(zone, pkey);
+	    /*
+	     * Check if we should roll, first get the roll state from the zone then
+	     * check if the policy key is set to manual rollover and last check the
+	     * key timings.
+	     */
+		force_roll = enforce_roll(zone, pkey);
 		if (policy_key_manual_rollover(pkey)) {
-			/** If no similar key available, roll. */
-			force_roll |= !key_for_conf(keylist, pkey);
-			/** No reason to roll at all */
-			if (!force_roll) continue;
+		    /*
+		     * If this policy key is set to manual rollover and we do not have
+		     * a key yet (for ex first run) then we should roll anyway.
+		     */
+		    if (!key_for_conf(keylist, pkey)) {
+		        force_roll = 1;
+		    }
+		    else if (!force_roll) {
+		        /*
+		         * Since this is set to manual rollover we do not want it to
+		         * roll unless we have zone state saying that we should roll.
+		         */
+		        continue;
+		    }
 		}
-
 		if (!force_roll) {
-			/** As we are not forced to roll see it the youngest key
-			 * need to be replaced. */
-			const key_data_t *youngest = youngestKeyForConfig(keylist, pkey);
-			if (youngest && key_data_inception(youngest) +
-				policy_key_lifetime(pkey) > now)
+		    /*
+		     * We do not need to roll but we should check if the youngest key
+		     * needs to be replaced. If not we reschedule for later based on the
+		     * youngest key.
+		     * TODO: Describe better why the youngest?!?
+		     */
+			if ((youngest = youngestKeyForConfig(keylist, pkey)) &&
+			    key_data_inception(youngest) + policy_key_lifetime(pkey) > now)
 			{
-				/** No need to roll at this time. Schedule for later */
-				time_t t_ret = addtime(key_data_inception(key),
-					policy_key_lifetime(pkey));
+			    t_ret = addtime(key_data_inception(youngest), policy_key_lifetime(pkey));
 				minTime(t_ret, &return_at);
-				setnextroll(zone, pkey, t_ret);
+				if (setnextroll(zone, pkey, t_ret)) {
+			        /* TODO: log error */
+			        key_data_list_free(keylist);
+			        policy_key_list_free(policykeylist);
+			        return now + 60;
+				}
 				continue;
 			}
 		}
 		
-		/** time for a new key */
-		ods_log_verbose("[%s] %s New key needed for role %d", 
-			module_str, scmd, policy_key_role(pkey));
+		/*
+		 * Time for a new key
+		 */
+		ods_log_verbose("[%s] %s New key needed for role %s",
+			module_str, scmd, policy_key_role_text(pkey));
 
-		/** Sanity check. This would produce silly output and give
-		 * the signer lots of useless work */
-		if (policy_key_role(pkey)|POLICY_KEY_ROLE_KSK &&
+		/*
+		 * Sanity check for unreasonable short key lifetime.
+		 * This would produce silly output and give the signer lots of useless
+		 * work to do otherwise.
+		 */
+		if ((policy_key_role(pkey) == POLICY_KEY_ROLE_KSK ||
+		    policy_key_role(pkey) == POLICY_KEY_ROLE_CSK) &&
 			policy_parent_ds_ttl(policy) + policy_keys_ttl(policy) >=
 			policy_key_lifetime(pkey))
 		{
-			ods_log_crit("[%s] %s For policy %s KSK key lifetime of %d "
+			ods_log_crit("[%s] %s For policy %s %s key lifetime of %d "
 				"is unreasonably short with respect to sum of parent "
 				"TTL (%d) and key TTL (%d). Will not insert key!",
-				module_str, scmd, policy_name(policy),
+				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
 				policy_key_lifetime(pkey), policy_parent_ds_ttl(policy),
 				policy_keys_ttl(policy));
-			setnextroll(zone, pkey, now);
+			if (setnextroll(zone, pkey, now)) {
+                /* TODO: log error */
+                key_data_list_free(keylist);
+                policy_key_list_free(policykeylist);
+                return now + 60;
+			}
 			continue;
 		}
-		if (policy_key_role(pkey)|POLICY_KEY_ROLE_ZSK &&
+		if ((policy_key_role(pkey) == POLICY_KEY_ROLE_ZSK ||
+            policy_key_role(pkey) == POLICY_KEY_ROLE_CSK) &&
 			policy_signatures_max_zone_ttl(policy) + policy_keys_ttl(policy) >=
 			policy_key_lifetime(pkey))
 		{
-			ods_log_crit("[%s] %s For policy %s ZSK key lifetime of %d "
+			ods_log_crit("[%s] %s For policy %s %s key lifetime of %d "
 				"is unreasonably short with respect to sum of "
 				"MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
-				module_str, scmd, policy_name(policy),
+				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
 				policy_key_lifetime(pkey), policy_signatures_max_zone_ttl(policy),
 				policy_keys_ttl(policy));
-			setnextroll(zone, pkey, now);
+            if (setnextroll(zone, pkey, now)) {
+                /* TODO: log error */
+                key_data_list_free(keylist);
+                policy_key_list_free(policykeylist);
+                return now + 60;
+            }
 			continue;
 		}
 
-		if ( policy_keys_shared(policy) ) {
-			/** Try to get an existing key or ask for new shared */
-			newhsmkey = getLastReusableKey(keylist, pkey); 
-			//~ if (!got_key) {
-				//~ got_key = keyfactory.CreateSharedKey(bits, repository, policyName,
-				//~ algorithm, (KeyRole)role, zone.name(),&newkey_hsmkey );
-			//~ }
-		} else {
-			//~ got_key = keyfactory.CreateNewKey(bits,repository,
-				//~ policyName, algorithm, (KeyRole)role, &newkey_hsmkey );
+        /*
+         * Get a new key, either a existing/shared key if the policy is set to
+         * share keys or create a new key.
+         */
+		if (policy_keys_shared(policy)) {
+		    hsmkey = getLastReusableKey(keylist, pkey);
+		    if (!newhsmkey) {
+		        newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
+		        hsmkey = newhsmkey;
+		    }
 		}
+		else {
+		    newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_PRIVATE);
+		    hsmkey = newhsmkey;
+		}
+		if (!hsmkey) {
+		    /*
+		     * Unable to get/create a HSM key at this time, retry later.
+		     */
+            ods_log_warning("[%s] %s No keys available in HSM for policy %s, retry in %d seconds",
+                module_str, scmd, policy_name(policy), NOKEY_TIMEOUT);
+	        minTime(now + NOKEY_TIMEOUT, &return_at);
+	        if (setnextroll(zone, pkey, now)) {
+                /* TODO: log error */
+                key_data_list_free(keylist);
+                policy_key_list_free(policykeylist);
+                return now + 60;
+	        }
+		    continue;
+		}
+        ods_log_verbose("[%s] %s got new key from HSM", module_str, scmd);
 
+        /*
+         * TODO: This will be replaced once roles are global
+         */
+        key_role = KEY_DATA_ROLE_INVALID;
+        switch (policy_key_role(pkey)) {
+        case POLICY_KEY_ROLE_KSK:
+            key_role = KEY_DATA_ROLE_KSK;
+            break;
+
+        case POLICY_KEY_ROLE_ZSK:
+            key_role = KEY_DATA_ROLE_ZSK;
+            break;
+
+        case POLICY_KEY_ROLE_CSK:
+            key_role = KEY_DATA_ROLE_CSK;
+            break;
+
+        default:
+            break;
+        }
+
+        /*
+         * Create a new key data object.
+         */
+        if (!(mutkey = key_data_new(dbconn))
+            || key_data_set_zone_id(mutkey, zone_id(zone))
+            || key_data_set_hsm_key_id(mutkey, hsm_key_id(hsmkey))
+            || key_data_set_algorithm(mutkey, policy_key_algorithm(pkey))
+            || key_data_set_inception(mutkey, now)
+            || key_data_set_role(mutkey, key_role)
+            || key_data_set_introducing(mutkey, 1)
+            || key_data_set_ds_at_parent(mutkey, KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
+        {
+            /* TODO: log error */
+            key_data_free(mutkey);
+            mutkey = NULL;
+            /* TODO: release hsm key? */
+            hsm_key_free(newhsmkey);
+            newhsmkey = NULL;
+            key_data_list_free(keylist);
+            policy_key_list_free(policykeylist);
+            return now + 60;
+        }
+
+        /*
+         * Generate keytag for the new key and set it.
+         */
+        tag = keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
+            ((hsm_key_role(hsmkey) == HSM_KEY_ROLE_KSK
+                || hsm_key_role(hsmkey) == HSM_KEY_ROLE_CSK)
+                ? 1 : 0),
+            &success);
+        if (!success
+            || key_data_set_keytag(mutkey, tag))
+        {
+            /* TODO: log error */
+            key_data_free(mutkey);
+            mutkey = NULL;
+            /* TODO: release hsm key? */
+            hsm_key_free(newhsmkey);
+            newhsmkey = NULL;
+            key_data_list_free(keylist);
+            policy_key_list_free(policykeylist);
+            return now + 60;
+        }
+
+        /*
+         * Create the new key in the database, if successful we set the next
+         * roll after the lifetime of the key.
+         */
+        if (key_data_create(mutkey)) {
+            /* TODO: log error */
+            key_data_free(mutkey);
+            mutkey = NULL;
+            /* TODO: release hsm key? */
+            hsm_key_free(newhsmkey);
+            newhsmkey = NULL;
+            key_data_list_free(keylist);
+            policy_key_list_free(policykeylist);
+            return now + 60;
+        }
+        t_ret = addtime(now, policy_key_lifetime(pkey));
+        minTime(t_ret, &return_at);
+        if (setnextroll(zone, pkey, t_ret)) {
+            /* TODO: log error */
+            key_data_free(mutkey);
+            mutkey = NULL;
+            /* TODO: release hsm key? */
+            hsm_key_free(newhsmkey);
+            newhsmkey = NULL;
+            key_data_list_free(keylist);
+            policy_key_list_free(policykeylist);
+            return now + 60;
+        }
+
+        /* TODO:
+         * Tell similar keys to out-troduce, skip new key.
+         */
+
+        key_data_free(mutkey);
+        mutkey = NULL;
+        hsm_key_free(newhsmkey);
+        newhsmkey = NULL;
+
+        /*
+         * Clear roll now in the zone for this policy key.
+         */
+        if (set_roll(zone, pkey, 0)) {
+            /* TODO: log error */
+            key_data_list_free(keylist);
+            policy_key_list_free(policykeylist);
+            return now + 60;
+        }
 	}
 	/* TODO commit zone */
 
@@ -1598,14 +1836,14 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 }
 
 time_t
-update(db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now)
+update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now)
 {
 	int allow_unsigned;
 
 	ods_log_info("[%s] update zone: %s", module_str, zone_name(zone));
 	time_t policy_return_time;
 
-	policy_return_time = updatePolicy(dbconn, policy, zone, now, &allow_unsigned);
+	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned);
 
 	return now + 5;
 }
