@@ -1305,29 +1305,61 @@ setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
  * return: keytag
  * */
 static uint16_t 
-keytag(const char *loc, int alg, int ksk, bool *succes)
+keytag(const char *loc, int alg, int ksk, bool *success)
 {
 	uint16_t tag;
-	hsm_ctx_t *hsm_ctx = hsm_create_context();
-	hsm_sign_params_t *sign_params = hsm_sign_params_new();
+	hsm_ctx_t *hsm_ctx;
+	hsm_sign_params_t *sign_params;
+	libhsm_key_t *hsmkey;
+	ldns_rr *dnskey_rr;
+
+	if (!loc) {
+	    return 0;
+	}
+	if (!success) {
+	    return 0;
+	}
+
+    *success = false;
+
+    if (!(hsm_ctx = hsm_create_context())) {
+        return 0;
+    }
+    if (!(sign_params = hsm_sign_params_new())) {
+        hsm_destroy_context(hsm_ctx);
+        return 0;
+    }
+
 	/* The owner name is not relevant for the keytag calculation.
 	 * However, a ldns_rdf_clone down the path will trip over it. */
 	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "dummy");
 	sign_params->algorithm = (ldns_algorithm) alg;
 	sign_params->flags = LDNS_KEY_ZONE_KEY;
-	if (ksk) sign_params->flags |= LDNS_KEY_SEP_KEY;
-	*succes = false;
-	libhsm_key_t *hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
-	if (!hsmkey) return 0;
-	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
-	if (!dnskey_rr) return 0;
+	if (ksk)
+	    sign_params->flags |= LDNS_KEY_SEP_KEY;
+
+	hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
+	if (!hsmkey) {
+	    hsm_sign_params_free(sign_params);
+	    hsm_destroy_context(hsm_ctx);
+	    return 0;
+	}
+
+	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
+	if (!dnskey_rr) {
+	    libhsm_key_free(hsmkey);
+	    hsm_sign_params_free(sign_params);
+	    hsm_destroy_context(hsm_ctx);
+	    return 0;
+	}
+
 	tag = ldns_calc_keytag(dnskey_rr);
 
-	hsm_sign_params_free(sign_params);
+    ldns_rr_free(dnskey_rr);
 	libhsm_key_free(hsmkey);
-	ldns_rr_free(dnskey_rr);
+    hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
-	*succes = true;
+	*success = true;
 	return tag;
 }
 
