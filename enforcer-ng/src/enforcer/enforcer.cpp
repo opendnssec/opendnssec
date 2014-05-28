@@ -1138,16 +1138,23 @@ keyProperties(const KeyList &policyKeys, const int index, const KeyRole role,
  * Test for the existence of key-configuration in the policy for
  * which key could be generated.
  * 
- * @param policykeylist  (make sure it is rewindable by fetch all)
- * @param key Key to be tested
- * @return 1 if a matching policy exists, 0 otherwise
- * */
+ * \param[in] policykeylist list of policy keys that must be able to rewind.
+ * \param[in] key key to be tested.
+ * \return 1 if a matching policy exists, 0 otherwise. -1 on error.
+ */
 static int
 existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
 {
     static const char *scmd = "existsPolicyForKey";
 	const policy_key *pkey;
 	hsm_key_t *hkey;
+
+	if (!policykeylist) {
+	    return -1;
+	}
+	if (!key) {
+	    return -1;
+	}
 
 	if (!(hkey = key_data_get_hsm_key(key))) {
 		/** This key is not associated with actual key material! 
@@ -1164,11 +1171,13 @@ existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
 			hsm_key_algorithm(hkey) == policy_key_algorithm(pkey) &&
 			hsm_key_bits(hkey) == policy_key_bits(pkey))
 		{
+		    hsm_key_free(hkey);
 			return 1;
 		}
 		pkey = policy_key_list_next(policykeylist);
 	}
 	ods_log_verbose("[%s] %s not found such config", module_str, scmd);
+    hsm_key_free(hkey);
 	return 0;
 }
 
@@ -1337,6 +1346,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	key_data_role_t key_role;
 	bool success;
 	uint16_t tag;
+	int ret;
 
 	if (!dbconn) {
 	    /* TODO: log error */
@@ -1377,6 +1387,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	    || key_data_list_fetch_all(keylist))
 	{
         /* TODO: log error */
+        key_data_list_free(keylist);
         policy_key_list_free(policykeylist);
         return now + 60;
 	}
@@ -1385,7 +1396,14 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
      * Decommission all key data objects without any matching policy key config.
      */
 	while ((key = key_data_list_get_next(keylist))) {
-		if (!existsPolicyForKey(policykeylist, key)) {
+	    ret = existsPolicyForKey(policykeylist, key);
+	    if (ret < 0) {
+            /* TODO: log error */
+            key_data_list_free(keylist);
+            policy_key_list_free(policykeylist);
+            return now + 60;
+	    }
+		if (!ret) {
 			if (!(mutkey = key_data_new_copy(key))
 			    || key_data_set_introducing(mutkey, 0)
 			    || key_data_update(mutkey))
