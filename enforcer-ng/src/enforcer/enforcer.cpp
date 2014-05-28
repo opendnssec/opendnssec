@@ -1291,6 +1291,13 @@ keytag(const char *loc, int alg, int ksk, bool *succes)
 static int
 enforce_roll(const zone_t *zone, const policy_key_t *pkey)
 {
+    if (!zone) {
+        return 0;
+    }
+    if (!pkey) {
+        return 0;
+    }
+
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
 			return zone_roll_ksk_now(zone);
@@ -1306,6 +1313,13 @@ enforce_roll(const zone_t *zone, const policy_key_t *pkey)
 static int
 set_roll(zone_t *zone, const policy_key_t *pkey, unsigned int roll)
 {
+    if (!zone) {
+        return 0;
+    }
+    if (!pkey) {
+        return 0;
+    }
+
     switch(policy_key_role(pkey)) {
         case POLICY_KEY_ROLE_KSK:
             return zone_set_roll_ksk_now(zone, roll);
