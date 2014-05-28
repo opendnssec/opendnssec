@@ -596,6 +596,9 @@ int policy_key_set_role(policy_key_t* policy_key, policy_key_role_t role) {
     if (!policy_key) {
         return DB_ERROR_UNKNOWN;
     }
+    if (role == POLICY_KEY_ROLE_INVALID) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     policy_key->role = role;
 

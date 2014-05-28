@@ -1323,6 +1323,9 @@ int policy_set_denial_type(policy_t* policy, policy_denial_type_t denial_type) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
     }
+    if (denial_type == POLICY_DENIAL_TYPE_INVALID) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     policy->denial_type = denial_type;
 
@@ -1532,6 +1535,9 @@ int policy_set_zone_soa_minimum(policy_t* policy, unsigned int zone_soa_minimum)
 
 int policy_set_zone_soa_serial(policy_t* policy, policy_zone_soa_serial_t zone_soa_serial) {
     if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (zone_soa_serial == POLICY_ZONE_SOA_SERIAL_INVALID) {
         return DB_ERROR_UNKNOWN;
     }
 

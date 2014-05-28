@@ -1286,6 +1286,9 @@ print SOURCE 'int ', $name, '_set_', $field->{name}, '(', $name, '_t* ', $name, 
     if (!', $name, ') {
         return DB_ERROR_UNKNOWN;
     }
+    if (', $field->{name}, ' == ', uc($name.'_'.$field->{name}), '_INVALID) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     ', $name, '->', $field->{name}, ' = ', $field->{name}, ';
 

@@ -804,6 +804,9 @@ int hsm_key_set_state(hsm_key_t* hsm_key, hsm_key_state_t state) {
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;
     }
+    if (state == HSM_KEY_STATE_INVALID) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     hsm_key->state = state;
 
@@ -849,6 +852,9 @@ int hsm_key_set_algorithm(hsm_key_t* hsm_key, unsigned int algorithm) {
 
 int hsm_key_set_role(hsm_key_t* hsm_key, hsm_key_role_t role) {
     if (!hsm_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (role == HSM_KEY_ROLE_INVALID) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -898,6 +904,9 @@ int hsm_key_set_key_type(hsm_key_t* hsm_key, hsm_key_key_type_t key_type) {
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;
     }
+    if (key_type == HSM_KEY_KEY_TYPE_INVALID) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     hsm_key->key_type = key_type;
 
@@ -945,6 +954,9 @@ int hsm_key_set_repository(hsm_key_t* hsm_key, const char* repository_text) {
 
 int hsm_key_set_backup(hsm_key_t* hsm_key, hsm_key_backup_t backup) {
     if (!hsm_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (backup == HSM_KEY_BACKUP_INVALID) {
         return DB_ERROR_UNKNOWN;
     }
 

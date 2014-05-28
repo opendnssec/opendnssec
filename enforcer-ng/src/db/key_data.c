@@ -786,6 +786,9 @@ int key_data_set_role(key_data_t* key_data, key_data_role_t role) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
+    if (role == KEY_DATA_ROLE_INVALID) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     key_data->role = role;
 
@@ -871,6 +874,9 @@ int key_data_set_active_ksk(key_data_t* key_data, unsigned int active_ksk) {
 
 int key_data_set_ds_at_parent(key_data_t* key_data, key_data_ds_at_parent_t ds_at_parent) {
     if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (ds_at_parent == KEY_DATA_DS_AT_PARENT_INVALID) {
         return DB_ERROR_UNKNOWN;
     }
 

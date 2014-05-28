@@ -505,6 +505,9 @@ int key_state_set_type(key_state_t* key_state, key_state_type_t type) {
     if (!key_state) {
         return DB_ERROR_UNKNOWN;
     }
+    if (type == KEY_STATE_TYPE_INVALID) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     key_state->type = type;
 
@@ -530,6 +533,9 @@ int key_state_set_type_text(key_state_t* key_state, const char* type) {
 
 int key_state_set_state(key_state_t* key_state, key_state_state_t state) {
     if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (state == KEY_STATE_STATE_INVALID) {
         return DB_ERROR_UNKNOWN;
     }
 
