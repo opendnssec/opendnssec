@@ -1219,6 +1219,14 @@ static int
 key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key;
+
+	if (!key_list) {
+	    return 0;
+	}
+	if (!pkey) {
+	    return 0;
+	}
+
 	for (key = key_data_list_begin(key_list); key;
 		key_data_list_next(key_list))
 	{
