@@ -1252,10 +1252,17 @@ key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
 	return 0;
 }
 
-/* 0 == ok, otherwise dberr. */
+/* 0 == ok, otherwise dberr or -1. */
 static int 
 setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 {
+    if (!zone) {
+        return -1;
+    }
+    if (!pkey) {
+        return -1;
+    }
+
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
 			if (zone_next_ksk_roll(zone) > t)
