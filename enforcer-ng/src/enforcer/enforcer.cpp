@@ -1026,23 +1026,35 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key;
 	const hsm_key_t *hkey, *hkey_young = NULL;
+    hsm_key_list_t* hsmkeylist;
+    int match;
+    int cmp;
 
-	/** get keys for this policy/bits/algo/repo
-	 * We still need to filter on role and not-in-use by zone */
-	hsm_key_list_t* hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
+	if (!key_list) {
+	    return NULL;
+	}
+	if (!pkey) {
+	    return NULL;
+	}
+
+	/*
+	 * Get a reusable key for this policy key.
+	 */
+
+	/* TODO: We still need to filter on role and not-in-use by zone */
 	
+	hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
 	for (hkey = hsm_key_list_begin(hsmkeylist); hkey;
 		hsm_key_list_next(hsmkeylist))
 	{
-		int match = 0;
 		/** only match if the hkey has at least the role(s) of pkey */
 		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0)
 			continue;
+
 		/** Now find out if hsmkey is in used by zone */
-		for (key = key_data_list_begin(key_list); key; key_data_list_next(key_list)) {
-			int cmp = 0;
-			if (!db_value_cmp(key_data_hsm_key_id(key), hsm_key_id(hkey),
-				&cmp) && cmp == 0)
+		for (match = 0, key = key_data_list_begin(key_list); key; key_data_list_next(key_list)) {
+			if (!db_value_cmp(key_data_hsm_key_id(key), hsm_key_id(hkey), &cmp)
+			    && cmp == 0)
 			{
 				/** we have match, so this hsm_key is no good */
 				match = 1;
@@ -1050,10 +1062,13 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 			}
 		}
 		if (match) continue;
+
 		/** This key matches, is it newer? */
 		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey))
 			hkey_young = hkey;
 	}
+
+	hsm_key_list_free(hsmkeylist);
 	return hkey_young;
 }
 
