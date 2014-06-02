@@ -324,6 +324,10 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     }
                     key_state_list_free(key_state_list);
 
+                    /*
+                     * TODO: release HSM key?
+                     */
+
                     if (!key_data_delete(key_data)) {
                         client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
                         database_error = 1;
