@@ -802,8 +802,78 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @param now, current time
  * @return first absolute time some record *could* be advanced.
  * */
+static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int allow_unsigned, int *zone_updated) {
+    time_t returntime_zone = -1;
+    unsigned int ttl;
+    key_data_list_t *keylist;
+
+    if (!zone) {
+        return returntime_zone;
+    }
+    if (!zone_updated) {
+        return returntime_zone;
+    }
+
+    /*
+     * Get all key data objects for the given zone and fetch all the objects
+     * from the database so we can use the list again later.
+     */
+    if (!(keylist = zone_get_keys(zone))
+        || key_data_list_fetch_all(keylist))
+    {
+        /* TODO: better log error */
+        ods_log_debug("[%s] error zone_get_keys() || key_data_list_fetch_all()", module_str);
+        key_data_list_free(keylist);
+        return returntime_zone;
+    }
+
+    /*
+     * This code keeps track of TTL changes. If in the past a large TTL is used,
+     * our keys *may* need to transition extra careful to make sure each
+     * resolver picks up the RRset. When this date passes we may start using the
+     * policies TTL.
+     */
+    if (zone_ttl_end_ds(zone) <= now) {
+        if (!zone_set_ttl_end_ds(zone, addtime(now, policy_parent_ds_ttl(policy)))) {
+            *zone_updated = 1;
+        }
+    }
+    if (zone_ttl_end_dk(zone) <= now) {
+        if (0) {
+            /*
+             * If no DNSKEY is currently published we must take negative caching
+             * into account.
+             */
+            ttl = max(policy_keys_ttl(policy),
+                min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)));
+        }
+        else {
+            ttl = policy_keys_ttl(policy);
+        }
+        if (!zone_set_ttl_end_dk(zone, ttl)) {
+            *zone_updated = 1;
+        }
+    }
+    if (zone_ttl_end_rs(zone) <= now) {
+        if (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3) {
+            ttl = max(policy_signatures_max_zone_ttl(policy), policy_denial_ttl(policy));
+        }
+        else {
+            ttl = policy_signatures_max_zone_ttl(policy);
+        }
+        if (!zone_set_ttl_end_rs(zone, addtime(now, max(
+            min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
+                ttl))))
+        {
+            *zone_updated = 1;
+        }
+    }
+
+    return returntime_zone;
+}
+
 static time_t
-updateZone(EnforcerZone &zone, const time_t now, bool allow_unsigned,
+updateZone_old(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 	HsmKeyFactory &keyfactory)
 {
 	time_t returntime_zone = -1;
@@ -1878,11 +1948,35 @@ time_t
 update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated)
 {
 	int allow_unsigned;
-    time_t policy_return_time;
+    time_t policy_return_time, zone_return_time;
+
+    if (!engine) {
+        ods_log_debug("[%s] no engine", module_str);
+        return now + 5;
+    }
+    if (!dbconn) {
+        ods_log_debug("[%s] no dbconn", module_str);
+        return now + 5;
+    }
+    if (!zone) {
+        ods_log_debug("[%s] no zone", module_str);
+        return now + 5;
+    }
+    if (!policy) {
+        ods_log_debug("[%s] no policy", module_str);
+        return now + 5;
+    }
+    if (!zone_updated) {
+        ods_log_debug("[%s] no zone_updated", module_str);
+        return now + 5;
+    }
 
 	ods_log_info("[%s] update zone: %s", module_str, zone_name(zone));
 
 	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
+    if (allow_unsigned)
+        ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually", module_str, zone_name(zone));
+    zone_return_time = updateZone(policy, zone, now, allow_unsigned, zone_updated);
 
 	return now + 5;
 }
@@ -1904,7 +1998,7 @@ update_old(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 		ods_log_info(
 			"[%s] %s No keys configured, zone will become unsigned eventually",
 			module_str, scmd);
-	zone_return_time = updateZone(zone, now, allow_unsigned, keyfactory);
+	zone_return_time = updateZone_old(zone, now, allow_unsigned, keyfactory);
 
 	/** Only purge old keys if the configuration says so. */
 	if (policy->keys().has_purge())
