@@ -187,7 +187,10 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	    /*
 	     * Find out when to schedule the next change.
 	     */
-	    if (zone_next_change(zone) < t_reschedule || !firstzone) {
+	    if (zone_next_change(zone) != -1
+	        && (zone_next_change(zone) < t_reschedule
+	            || !firstzone))
+	    {
 	        t_reschedule = zone_next_change(zone);
 	        if (firstzone) {
 	            zone_free(firstzone);
