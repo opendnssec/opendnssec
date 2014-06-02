@@ -840,7 +840,12 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
         }
     }
     if (zone_ttl_end_dk(zone) <= now) {
-        if (0) {
+        /*
+         * If no DNSKEY is currently published we must take negative caching
+         * into account.
+         */
+        /* TODO: Check for DNSKEY */
+        if (0 /* TODO: If no DNSKEY */) {
             /*
              * If no DNSKEY is currently published we must take negative caching
              * into account.
