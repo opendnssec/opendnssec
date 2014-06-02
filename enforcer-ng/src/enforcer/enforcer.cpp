@@ -1438,6 +1438,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	bool success;
 	uint16_t tag;
 	int ret;
+	int updated = 0;
 
 	if (!dbconn) {
 	    /* TODO: better log error */
@@ -1518,20 +1519,6 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		}
 	}
 
-	/*
-	 * Reset the next rolls, which are for display only.
-	 */
-	if (zone_set_next_ksk_roll(zone, 0)
-	    || zone_set_next_csk_roll(zone, 0)
-	    || zone_set_next_zsk_roll(zone, 0))
-	{
-        /* TODO: better log error */
-        ods_log_debug("[%s] error set all roll 0", module_str);
-	    key_data_list_free(keylist);
-        policy_key_list_free(policykeylist);
-        return now + 60;
-	}
-
     pkey = policy_key_list_begin(policykeylist);
 
     /*
@@ -1581,6 +1568,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			        policy_key_list_free(policykeylist);
 			        return now + 60;
 				}
+				updated = 1;
 				continue;
 			}
 		}
@@ -1614,6 +1602,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                 policy_key_list_free(policykeylist);
                 return now + 60;
 			}
+			updated = 1;
 			continue;
 		}
 		if ((policy_key_role(pkey) == POLICY_KEY_ROLE_ZSK ||
@@ -1634,6 +1623,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                 policy_key_list_free(policykeylist);
                 return now + 60;
             }
+            updated = 1;
 			continue;
 		}
 
@@ -1666,6 +1656,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                 policy_key_list_free(policykeylist);
                 return now + 60;
 	        }
+	        updated = 1;
 		    continue;
 		}
         ods_log_verbose("[%s] %s got new key from HSM", module_str, scmd);
@@ -1760,6 +1751,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
             policy_key_list_free(policykeylist);
             return now + 60;
         }
+        updated = 1;
 
         /*
          * Tell similar keys to out-troduce.
@@ -1809,17 +1801,32 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
         newhsmkey = NULL;
 
         /*
-         * Clear roll now in the zone for this policy key.
+         * Clear roll now (if set) in the zone for this policy key.
          */
-        if (set_roll(zone, pkey, 0)) {
-            /* TODO: better log error */
-            ods_log_debug("[%s] error set_roll()", module_str);
-            key_data_list_free(keylist);
-            policy_key_list_free(policykeylist);
-            return now + 60;
+        if (enforce_roll(zone, pkey)) {
+            if (set_roll(zone, pkey, 0)) {
+                /* TODO: better log error */
+                ods_log_debug("[%s] error set_roll()", module_str);
+                key_data_list_free(keylist);
+                policy_key_list_free(policykeylist);
+                return now + 60;
+            }
+            updated = 1;
         }
 	}
-	/* TODO commit zone */
+
+    key_data_list_free(keylist);
+    policy_key_list_free(policykeylist);
+
+	/*
+	 * Commit the changes to the zone if there where any.
+	 */
+	if (updated) {
+	    if (zone_update(zone)) {
+            ods_log_debug("[%s] error zone_update()", module_str);
+            return now + 60;
+	    }
+	}
 
 	return return_at;
 }
