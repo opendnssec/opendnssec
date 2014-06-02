@@ -806,6 +806,7 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
     time_t returntime_zone = -1;
     unsigned int ttl;
     key_data_list_t *keylist;
+    static const char *scmd = "updateZone";
 
     if (!zone) {
         return returntime_zone;
@@ -822,7 +823,7 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
         || key_data_list_fetch_all(keylist))
     {
         /* TODO: better log error */
-        ods_log_debug("[%s] error zone_get_keys() || key_data_list_fetch_all()", module_str);
+        ods_log_debug("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
         key_data_list_free(keylist);
         return returntime_zone;
     }
@@ -1511,31 +1512,31 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 
 	if (!dbconn) {
 	    /* TODO: better log error */
-	    ods_log_debug("[%s] no dbconn", module_str);
+	    ods_log_debug("[%s] %s: no dbconn", module_str, scmd);
 	    return now + 60;
 	}
     if (!policy) {
         /* TODO: better log error */
-        ods_log_debug("[%s] no policy", module_str);
+        ods_log_debug("[%s] %s: no policy", module_str, scmd);
         return now + 60;
     }
     if (!zone) {
         /* TODO: better log error */
-        ods_log_debug("[%s] no zone", module_str);
+        ods_log_debug("[%s] %s: no zone", module_str, scmd);
         return now + 60;
     }
     if (!allow_unsigned) {
         /* TODO: better log error */
-        ods_log_debug("[%s] no allow_unsigned", module_str);
+        ods_log_debug("[%s] %s: no allow_unsigned", module_str, scmd);
         return now + 60;
     }
     if (!zone_updated) {
         /* TODO: better log error */
-        ods_log_debug("[%s] no zone_updated", module_str);
+        ods_log_debug("[%s] %s: no zone_updated", module_str, scmd);
         return now + 60;
     }
 
-	ods_log_verbose("[%s] %s policyName: %s", module_str, scmd, policy_name(policy));
+	ods_log_verbose("[%s] %s: policyName: %s", module_str, scmd, policy_name(policy));
 
 	/*
 	 * Get all policy keys (configurations) for the given policy and fetch all
@@ -1545,7 +1546,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	    || policy_key_list_fetch_all(policykeylist))
 	{
         /* TODO: better log error */
-        ods_log_debug("[%s] error policy_get_policy_keys() || policy_key_list_fetch_all()", module_str);
+        ods_log_debug("[%s] %s: error policy_get_policy_keys() || policy_key_list_fetch_all()", module_str, scmd);
 		policy_key_list_free(policykeylist);
 		return now + 60;
 	}
@@ -1558,7 +1559,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	    || key_data_list_fetch_all(keylist))
 	{
         /* TODO: better log error */
-        ods_log_debug("[%s] error zone_get_keys() || key_data_list_fetch_all()", module_str);
+        ods_log_debug("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
         key_data_list_free(keylist);
         policy_key_list_free(policykeylist);
         return now + 60;
@@ -1571,7 +1572,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	    ret = existsPolicyForKey(policykeylist, key);
 	    if (ret < 0) {
             /* TODO: better log error */
-	        ods_log_debug("[%s] error existsPolicyForKey() < 0", module_str);
+	        ods_log_debug("[%s] %s: error existsPolicyForKey() < 0", module_str, scmd);
             key_data_list_free(keylist);
             policy_key_list_free(policykeylist);
             return now + 60;
@@ -1582,7 +1583,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			    || key_data_update(mutkey))
 			{
 				/* TODO: better log error */
-	            ods_log_debug("[%s] error update mutkey", module_str);
+	            ods_log_debug("[%s] %s: error update mutkey", module_str, scmd);
 			    key_data_free(mutkey);
 		        key_data_list_free(keylist);
 		        policy_key_list_free(policykeylist);
@@ -1637,7 +1638,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				minTime(t_ret, &return_at);
 				if (setnextroll(zone, pkey, t_ret)) {
 			        /* TODO: log error */
-			        ods_log_debug("[%s] error setnextroll 1", module_str);
+			        ods_log_debug("[%s] %s: error setnextroll 1", module_str, scmd);
 			        key_data_list_free(keylist);
 			        policy_key_list_free(policykeylist);
 			        return now + 60;
@@ -1650,7 +1651,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		/*
 		 * Time for a new key
 		 */
-		ods_log_verbose("[%s] %s New key needed for role %s",
+		ods_log_verbose("[%s] %s: New key needed for role %s",
 			module_str, scmd, policy_key_role_text(pkey));
 
 		/*
@@ -1663,7 +1664,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			policy_parent_ds_ttl(policy) + policy_keys_ttl(policy) >=
 			policy_key_lifetime(pkey))
 		{
-			ods_log_crit("[%s] %s For policy %s %s key lifetime of %d "
+			ods_log_crit("[%s] %s: For policy %s %s key lifetime of %d "
 				"is unreasonably short with respect to sum of parent "
 				"TTL (%d) and key TTL (%d). Will not insert key!",
 				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
@@ -1671,7 +1672,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				policy_keys_ttl(policy));
 			if (setnextroll(zone, pkey, now)) {
                 /* TODO: better log error */
-                ods_log_debug("[%s] error setnextroll 2", module_str);
+                ods_log_debug("[%s] %s: error setnextroll 2", module_str, scmd);
                 key_data_list_free(keylist);
                 policy_key_list_free(policykeylist);
                 return now + 60;
@@ -1684,7 +1685,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			policy_signatures_max_zone_ttl(policy) + policy_keys_ttl(policy) >=
 			policy_key_lifetime(pkey))
 		{
-			ods_log_crit("[%s] %s For policy %s %s key lifetime of %d "
+			ods_log_crit("[%s] %s: For policy %s %s key lifetime of %d "
 				"is unreasonably short with respect to sum of "
 				"MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
 				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
@@ -1692,7 +1693,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				policy_keys_ttl(policy));
             if (setnextroll(zone, pkey, now)) {
                 /* TODO: better log error */
-                ods_log_debug("[%s] error setnextroll 3", module_str);
+                ods_log_debug("[%s] %s: error setnextroll 3", module_str, scmd);
                 key_data_list_free(keylist);
                 policy_key_list_free(policykeylist);
                 return now + 60;
@@ -1720,12 +1721,12 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		    /*
 		     * Unable to get/create a HSM key at this time, retry later.
 		     */
-            ods_log_warning("[%s] %s No keys available in HSM for policy %s, retry in %d seconds",
+            ods_log_warning("[%s] %s: No keys available in HSM for policy %s, retry in %d seconds",
                 module_str, scmd, policy_name(policy), NOKEY_TIMEOUT);
 	        minTime(now + NOKEY_TIMEOUT, &return_at);
 	        if (setnextroll(zone, pkey, now)) {
                 /* TODO: better log error */
-                ods_log_debug("[%s] error setnextroll 4", module_str);
+                ods_log_debug("[%s] %s: error setnextroll 4", module_str, scmd);
                 key_data_list_free(keylist);
                 policy_key_list_free(policykeylist);
                 return now + 60;
@@ -1733,7 +1734,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	        *zone_updated = 1;
 		    continue;
 		}
-        ods_log_verbose("[%s] %s got new key from HSM", module_str, scmd);
+        ods_log_verbose("[%s] %s: got new key from HSM", module_str, scmd);
 
         /*
          * TODO: This will be replaced once roles are global
@@ -1769,7 +1770,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
             || key_data_set_ds_at_parent(mutkey, KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
         {
             /* TODO: better log error */
-            ods_log_debug("[%s] error new key", module_str);
+            ods_log_debug("[%s] %s: error new key", module_str, scmd);
             key_data_free(mutkey);
             /* TODO: release hsm key? */
             hsm_key_free(newhsmkey);
@@ -1790,7 +1791,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
             || key_data_set_keytag(mutkey, tag))
         {
             /* TODO: better log error */
-            ods_log_debug("[%s] error keytag", module_str);
+            ods_log_debug("[%s] %s: error keytag", module_str, scmd);
             key_data_free(mutkey);
             /* TODO: release hsm key? */
             hsm_key_free(newhsmkey);
@@ -1805,7 +1806,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
          */
         if (key_data_create(mutkey)) {
             /* TODO: better log error */
-            ods_log_debug("[%s] error key_data_create()", module_str);
+            ods_log_debug("[%s] %s: error key_data_create()", module_str, scmd);
             key_data_free(mutkey);
             /* TODO: release hsm key? */
             hsm_key_free(newhsmkey);
@@ -1817,7 +1818,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
         minTime(t_ret, &return_at);
         if (setnextroll(zone, pkey, t_ret)) {
             /* TODO: better log error */
-            ods_log_debug("[%s] error setnextroll 5", module_str);
+            ods_log_debug("[%s] %s: error setnextroll 5", module_str, scmd);
             key_data_free(mutkey);
             /* TODO: release hsm key? */
             hsm_key_free(newhsmkey);
@@ -1850,7 +1851,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                     || key_data_update(mutkey2))
                 {
                     /* TODO: better log error */
-                    ods_log_debug("[%s] error update mutkey2", module_str);
+                    ods_log_debug("[%s] %s: error update mutkey2", module_str, scmd);
                     key_data_free(mutkey2);
                     hsm_key_free(hsmkey2);
                     key_data_free(mutkey);
@@ -1860,7 +1861,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                     return now + 60;
                 }
 
-                ods_log_verbose("[%s] %s decommissioning old key: %s", module_str, scmd, hsm_key_locator(hsmkey2));
+                ods_log_verbose("[%s] %s: decommissioning old key: %s", module_str, scmd, hsm_key_locator(hsmkey2));
 
                 key_data_free(mutkey2);
                 mutkey2 = NULL;
@@ -1880,7 +1881,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
         if (enforce_roll(zone, pkey)) {
             if (set_roll(zone, pkey, 0)) {
                 /* TODO: better log error */
-                ods_log_debug("[%s] error set_roll()", module_str);
+                ods_log_debug("[%s] %s: error set_roll()", module_str, scmd);
                 key_data_list_free(keylist);
                 policy_key_list_free(policykeylist);
                 return now + 60;
