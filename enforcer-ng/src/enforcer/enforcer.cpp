@@ -1418,7 +1418,7 @@ set_roll(zone_t *zone, const policy_key_t *pkey, unsigned int roll)
  * */
 static time_t
 updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
-    zone_t *zone, const time_t now, int *allow_unsigned)
+    zone_t *zone, const time_t now, int *allow_unsigned, int *zone_updated)
 {
 	time_t return_at = -1;
 	key_data_list_t *keylist;
@@ -1438,7 +1438,6 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	bool success;
 	uint16_t tag;
 	int ret;
-	int updated = 0;
 
 	if (!dbconn) {
 	    /* TODO: better log error */
@@ -1458,6 +1457,11 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
     if (!allow_unsigned) {
         /* TODO: better log error */
         ods_log_debug("[%s] no allow_unsigned", module_str);
+        return now + 60;
+    }
+    if (!zone_updated) {
+        /* TODO: better log error */
+        ods_log_debug("[%s] no zone_updated", module_str);
         return now + 60;
     }
 
@@ -1568,7 +1572,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			        policy_key_list_free(policykeylist);
 			        return now + 60;
 				}
-				updated = 1;
+				*zone_updated = 1;
 				continue;
 			}
 		}
@@ -1602,7 +1606,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                 policy_key_list_free(policykeylist);
                 return now + 60;
 			}
-			updated = 1;
+			*zone_updated = 1;
 			continue;
 		}
 		if ((policy_key_role(pkey) == POLICY_KEY_ROLE_ZSK ||
@@ -1623,7 +1627,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                 policy_key_list_free(policykeylist);
                 return now + 60;
             }
-            updated = 1;
+            *zone_updated = 1;
 			continue;
 		}
 
@@ -1656,7 +1660,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                 policy_key_list_free(policykeylist);
                 return now + 60;
 	        }
-	        updated = 1;
+	        *zone_updated = 1;
 		    continue;
 		}
         ods_log_verbose("[%s] %s got new key from HSM", module_str, scmd);
@@ -1751,7 +1755,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
             policy_key_list_free(policykeylist);
             return now + 60;
         }
-        updated = 1;
+        *zone_updated = 1;
 
         /*
          * Tell similar keys to out-troduce.
@@ -1811,22 +1815,12 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
                 policy_key_list_free(policykeylist);
                 return now + 60;
             }
-            updated = 1;
+            *zone_updated = 1;
         }
 	}
 
     key_data_list_free(keylist);
     policy_key_list_free(policykeylist);
-
-	/*
-	 * Commit the changes to the zone if there where any.
-	 */
-	if (updated) {
-	    if (zone_update(zone)) {
-            ods_log_debug("[%s] error zone_update()", module_str);
-            return now + 60;
-	    }
-	}
 
 	return return_at;
 }
@@ -1881,14 +1875,14 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 }
 
 time_t
-update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now)
+update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated)
 {
 	int allow_unsigned;
+    time_t policy_return_time;
 
 	ods_log_info("[%s] update zone: %s", module_str, zone_name(zone));
-	time_t policy_return_time;
 
-	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned);
+	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
 
 	return now + 5;
 }

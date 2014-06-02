@@ -102,6 +102,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	int bSignerConfNeedsWriting = 0;
 	int bSubmitToParent = 0;
 	int bRetractFromParent = 0;
+	int zone_updated;
 
 	if (!bForceUpdate) {
 		clauselist = db_clause_list_new();
@@ -126,7 +127,10 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			client_printf(sockfd, 
 				"Next update for zone %s NOT scheduled "
 				"because policy is missing !\n", zone_name(zone));
-			if (zone_set_next_change(zone, -1)) {
+			if (zone_next_change(zone) != -1
+			    && (zone_set_next_change(zone, -1)
+			        || zone_update(zone)))
+			{
 				/*dberr*/
 				zone_free(zone);
 				break;
@@ -135,7 +139,8 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			continue;
 		}
 
-		t_next = update(engine, dbconn, zone, policy, t_now);
+        zone_updated = 0;
+		t_next = update(engine, dbconn, zone, policy, t_now, &zone_updated);
 		bSignerConfNeedsWriting |= zone_signconf_needs_writing(zone);
 
 		keylist = zone_get_keys(zone);
@@ -166,7 +171,19 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 				"Next update for zone %s scheduled at %s",
 				zone_name(zone), tbuf);
 		}
-		zone_set_next_change(zone, t_next);
+		if (zone_next_change(zone) != t_next) {
+		    zone_set_next_change(zone, t_next);
+		    zone_updated = 1;
+		}
+
+		/*
+	     * Commit the changes to the zone if there where any.
+	     */
+	    if (zone_updated) {
+	        if (zone_update(zone)) {
+	            ods_log_debug("[%s] error zone_update(%s)", module_str, zone_name(zone));
+	        }
+	    }
 		zone_free(zone);
 	}
 	zone_list_free(zonelist);
