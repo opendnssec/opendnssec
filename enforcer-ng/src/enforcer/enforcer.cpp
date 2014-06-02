@@ -1425,8 +1425,10 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	policy_key_list_t *policykeylist;
 	const key_data_t *key;
 	key_data_t *mutkey = NULL;
+    key_data_t *mutkey2 = NULL;
 	const policy_key_t *pkey;
 	const hsm_key_t *hsmkey;
+    hsm_key_t *hsmkey2 = NULL;
     hsm_key_t *newhsmkey = NULL;
 	static const char *scmd = "updatePolicy";
 	int force_roll;
@@ -1490,7 +1492,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
     /*
      * Decommission all key data objects without any matching policy key config.
      */
-	while ((key = key_data_list_get_next(keylist))) {
+	while ((key = key_data_list_next(keylist))) {
 	    ret = existsPolicyForKey(policykeylist, key);
 	    if (ret < 0) {
             /* TODO: better log error */
@@ -1507,7 +1509,6 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				/* TODO: better log error */
 	            ods_log_debug("[%s] error update mutkey", module_str);
 			    key_data_free(mutkey);
-			    mutkey = NULL;
 		        key_data_list_free(keylist);
 		        policy_key_list_free(policykeylist);
 		        return now + 60;
@@ -1705,10 +1706,8 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
             /* TODO: better log error */
             ods_log_debug("[%s] error new key", module_str);
             key_data_free(mutkey);
-            mutkey = NULL;
             /* TODO: release hsm key? */
             hsm_key_free(newhsmkey);
-            newhsmkey = NULL;
             key_data_list_free(keylist);
             policy_key_list_free(policykeylist);
             return now + 60;
@@ -1728,10 +1727,8 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
             /* TODO: better log error */
             ods_log_debug("[%s] error keytag", module_str);
             key_data_free(mutkey);
-            mutkey = NULL;
             /* TODO: release hsm key? */
             hsm_key_free(newhsmkey);
-            newhsmkey = NULL;
             key_data_list_free(keylist);
             policy_key_list_free(policykeylist);
             return now + 60;
@@ -1745,10 +1742,8 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
             /* TODO: better log error */
             ods_log_debug("[%s] error key_data_create()", module_str);
             key_data_free(mutkey);
-            mutkey = NULL;
             /* TODO: release hsm key? */
             hsm_key_free(newhsmkey);
-            newhsmkey = NULL;
             key_data_list_free(keylist);
             policy_key_list_free(policykeylist);
             return now + 60;
@@ -1759,18 +1754,54 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
             /* TODO: better log error */
             ods_log_debug("[%s] error setnextroll 5", module_str);
             key_data_free(mutkey);
-            mutkey = NULL;
             /* TODO: release hsm key? */
             hsm_key_free(newhsmkey);
-            newhsmkey = NULL;
             key_data_list_free(keylist);
             policy_key_list_free(policykeylist);
             return now + 60;
         }
 
-        /* TODO:
-         * Tell similar keys to out-troduce, skip new key.
+        /*
+         * Tell similar keys to out-troduce.
+         * Similar keys are those that match role, algorithm, bits and repository
+         * and are introduced.
+         *
+         * IMPORTANT TODO BUG:
+         * Will not work if a policy has 2 or more keys of the same role, algorithm,
+         * bits and repository. Unclear how to fix this since keys are not directly
+         * related to a policy key.
          */
+        for (key = key_data_list_begin(keylist); key; key = key_data_list_next(keylist)) {
+            if (key_data_introducing(key)
+                && key_data_role(key) == key_data_role(mutkey)
+                && key_data_algorithm(key) == key_data_algorithm(mutkey)
+                && (hsmkey2 = key_data_get_hsm_key(key))
+                && hsm_key_bits(hsmkey2) == hsm_key_bits(hsmkey)
+                && !strcmp(hsm_key_repository(hsmkey2), hsm_key_repository(hsmkey)))
+            {
+                if (!(mutkey2 = key_data_new_copy(key))
+                    || key_data_set_introducing(mutkey2, 0)
+                    || key_data_update(mutkey2))
+                {
+                    /* TODO: better log error */
+                    ods_log_debug("[%s] error update mutkey2", module_str);
+                    key_data_free(mutkey2);
+                    hsm_key_free(hsmkey2);
+                    key_data_free(mutkey);
+                    hsm_key_free(newhsmkey);
+                    key_data_list_free(keylist);
+                    policy_key_list_free(policykeylist);
+                    return now + 60;
+                }
+
+                ods_log_verbose("[%s] %s decommissioning old key: %s", module_str, scmd, hsm_key_locator(hsmkey2));
+
+                key_data_free(mutkey2);
+                mutkey2 = NULL;
+            }
+            hsm_key_free(hsmkey2);
+            hsmkey2 = NULL;
+        }
 
         key_data_free(mutkey);
         mutkey = NULL;
@@ -1789,125 +1820,6 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
         }
 	}
 	/* TODO commit zone */
-
-	//~ /** Visit every type of key-configuration, not pretty but we can't
-	 //~ * loop over enums. Include MAX in enum? */
-	//~ for ( int role = 1; role < 4; role++ ) {
-		//~ setnextroll(zone, (KeyRole)role, 0, 1);
-		//~ /** NOTE: we are not looping over keys, but configurations */
-		//~ for ( int i = 0; i < numberOfKeyConfigs( policyKeys, (KeyRole)role ); i++ ) {
-
-
-			//~ HsmKey *newkey_hsmkey;
-			//~ bool got_key;
-//~ 
-			//~ if ( policyKeys.zones_share_keys() ) {
-				//~ /** Try to get an existing key or ask for new shared */
-				//~ got_key = getLastReusableKey( zone, policy, 
-					//~ (KeyRole)role, bits, repository, algorithm, now, 
-					//~ &newkey_hsmkey, keyfactory, lifetime);
-				//~ if (got_key) {
-					//~ /** Check if this key material isn't already used
-					 //~ * by our zone. Protobuf code checks this as well
-					 //~ * but it is bugged. */
-					//~ for (int j = 0; j < key_list.numKeys(); j++) {
-						//~ KeyData &key = key_list.key(j);
-						//~ if (newkey_hsmkey->locator() == key.locator()) {
-							//~ got_key = false;
-							//~ break;
-						//~ }
-					//~ }
-				//~ } 
-				//~ if (!got_key) {
-					//~ got_key = keyfactory.CreateSharedKey(bits, repository, policyName,
-					//~ algorithm, (KeyRole)role, zone.name(),&newkey_hsmkey );
-				//~ }
-			//~ } else {
-				//~ got_key = keyfactory.CreateNewKey(bits,repository,
-					//~ policyName, algorithm, (KeyRole)role, &newkey_hsmkey );
-			//~ }
-			//~ 
-			//~ if ( !got_key ) {
-				//~ /** The factory was not ready, return later */
-				//~ minTime( now + NOKEY_TIMEOUT, return_at);
-				//~ ods_log_warning("[%s] %s No keys available on hsm for policy %s, retry in %d seconds", 
-					//~ module_str, scmd, policyName.c_str(), NOKEY_TIMEOUT);
-				//~ setnextroll(zone, (KeyRole)role, now, 0);
-				//~ continue;
-			//~ }
-			//~ ods_log_verbose("[%s] %s got new key from HSM", module_str, 
-				//~ scmd);
-			//~ 
-			//~ /** Make new key from HSM_key and set defaults */
-			//~ KeyData &new_key = zone.keyDataList().addNewKey( algorithm, 
-				//~ now, (KeyRole)role, p_rolltype);
-			//~ new_key.setLocator( newkey_hsmkey->locator() );
-//~ 
-			//~ /** Get keytag for our new key. On failure continue 
-			 //~ * without */
-			//~ bool success;
-			//~ uint16_t tag = keytag(newkey_hsmkey->locator().c_str(), 
-				//~ algorithm, role&KSK, &success);
-			//~ if (success)
-				//~ new_key.setKeytag(tag);
-			//~ else
-				//~ ods_log_error("[%s] %s error calculating keytag", 
-					//~ module_str, scmd);
-//~ 
-			//~ new_key.setDsAtParent(DS_UNSUBMITTED);
-			//~ struct FutureKey fkey;
-			//~ fkey.key = &new_key;
-			//~ fkey.record = DS; fkey.next_state = (role&KSK?HID:NOCARE);
-			//~ setState(zone, &fkey, now);
-			//~ fkey.record = DK; fkey.next_state = HID;
-			//~ setState(zone, &fkey, now);
-			//~ fkey.record = RD; fkey.next_state = (role&KSK?HID:NOCARE);
-			//~ setState(zone, &fkey, now);
-			//~ fkey.record = RS; fkey.next_state = (role&ZSK?HID:NOCARE);
-			//~ setState(zone, &fkey, now);
-			//~ 
-			//~ new_key.setIntroducing(true);
-//~ 
-			//~ /** New key inserted, come back after its lifetime */
-			//~ minTime( now + lifetime, return_at );
-			//~ setnextroll(zone, (KeyRole)role, addtime(now, lifetime), 0);
-//~ 
-			//~ /** Tell similar keys to outroduce, skip new key */
-			//~ for (int j = 0; j < key_list.numKeys(); j++) {
-				//~ KeyData &key = key_list.key(j);
-				//~ HsmKey *key_hsmkey;
-				//~ if (&key == &new_key) continue;
-				//~ /* now check role and algorithm, also skip if already 
-				 //~ * outroducing. */
-				//~ if (!key.introducing() || key.role() != new_key.role() ||
-					//~ key.algorithm() != new_key.algorithm() )
-					//~ continue;
-				//~ /* compare key material */
-				//~ if (!keyfactory.GetHsmKeyByLocator(key.locator(), &key_hsmkey) ||
-					//~ key_hsmkey->bits() != newkey_hsmkey->bits() || 
-					//~ newkey_hsmkey->repository().compare(key_hsmkey->repository()) != 0)
-						//~ continue;
-				//~ /* key and new_key have the same properties, so they are
-				 //~ * generated from the same configuration. */
-				//~ key.setIntroducing(false);
-				//~ ods_log_verbose("[%s] %s decommissioning old key: %s", 
-					//~ module_str, scmd, key.locator().c_str());
-			//~ }
-			//~ 
-			//~ /* The user explicitly requested a rollover, request 
-			 //~ * succeeded. We can now stop try to roll manually.  */
-			//~ switch((KeyRole)role) {
-				//~ case KSK: zone.setRollKskNow(false); break;
-				//~ case ZSK: zone.setRollZskNow(false); break;
-				//~ case CSK: zone.setRollCskNow(false); break;
-				//~ default:
-					//~ /** Programming error, report a bug! */
-					//~ ods_fatal_exit("[%s] %s Unknow Role: (%d)",
-					//~ module_str, scmd, role);
-			//~ }
-		//~ } /** loop over keyconfigs */
-	//~ } /** loop over KeyRole */
-	//~ return return_at;
 
 	return return_at;
 }
