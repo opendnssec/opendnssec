@@ -37,39 +37,43 @@ extern "C" {
 #endif
 
 /**
- * Get the key states objects for a key data object.
+ * Cache all key states objects for a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_get_key_states(key_data_t* key_data);
+int key_data_cache_key_states(key_data_t* key_data);
 
 /**
- * Get the DS key state object of a key data object.
+ * Get the cached DS key state object of a key data object.
+ * key_data_cache_key_states() must have been called before this.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_get_ds2(key_data_t* key_data);
+const key_state_t* key_data_cached_ds(key_data_t* key_data);
 
 /**
- * Get the RRSIG key state object of a key data object.
+ * Get the cached RRSIG key state object of a key data object.
+ * key_data_cache_key_states() must have been called before this.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_get_rrsig2(key_data_t* key_data);
+const key_state_t* key_data_cached_rrsig(key_data_t* key_data);
 
 /**
- * Get the DNSKEY key state object of a key data object.
+ * Get the cached DNSKEY key state object of a key data object.
+ * key_data_cache_key_states() must have been called before this.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_get_dnskey2(key_data_t* key_data);
+const key_state_t* key_data_cached_dnskey(key_data_t* key_data);
 
 /**
- * Get the RRSIG DNSKEY key state object of a key data object.
+ * Get the cached RRSIG DNSKEY key state object of a key data object.
+ * key_data_cache_key_states() must have been called before this.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_get_rrsigdnskey2(key_data_t* key_data);
+const key_state_t* key_data_cached_rrsigdnskey(key_data_t* key_data);
 
 /**
  * Tests if key has KSK role (includes CSK)

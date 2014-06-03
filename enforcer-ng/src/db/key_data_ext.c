@@ -30,7 +30,7 @@
 #include "key_data.h"
 #include "db_error.h"
 
-int key_data_get_key_states(key_data_t* key_data) {
+int key_data_cache_key_states(key_data_t* key_data) {
     key_state_list_t* key_state_list;
     const key_state_t* key_state;
     key_state_t* key_state_ds = NULL;
@@ -115,14 +115,6 @@ int key_data_get_key_states(key_data_t* key_data) {
     }
     key_state_list_free(key_state_list);
 
-    if (!key_state_ds || !key_state_rrsig || !key_state_dnskey || !key_state_rrsigdnskey) {
-        key_state_free(key_state_ds);
-        key_state_free(key_state_rrsig);
-        key_state_free(key_state_dnskey);
-        key_state_free(key_state_rrsigdnskey);
-        return DB_ERROR_UNKNOWN;
-    }
-
     if (key_data->key_state_ds) {
         key_state_free(key_data->key_state_ds);
     }
@@ -139,10 +131,11 @@ int key_data_get_key_states(key_data_t* key_data) {
         key_state_free(key_data->key_state_rrsigdnskey);
     }
     key_data->key_state_rrsigdnskey = key_state_rrsigdnskey;
+
     return DB_OK;
 }
 
-const key_state_t* key_data_get_ds2(key_data_t* key_data) {
+const key_state_t* key_data_cached_ds(key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
@@ -150,7 +143,7 @@ const key_state_t* key_data_get_ds2(key_data_t* key_data) {
     return key_data->key_state_ds;
 }
 
-const key_state_t* key_data_get_rrsig2(key_data_t* key_data) {
+const key_state_t* key_data_cached_rrsig(key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
@@ -158,7 +151,7 @@ const key_state_t* key_data_get_rrsig2(key_data_t* key_data) {
     return key_data->key_state_rrsig;
 }
 
-const key_state_t* key_data_get_dnskey2(key_data_t* key_data) {
+const key_state_t* key_data_cached_dnskey(key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
@@ -166,7 +159,7 @@ const key_state_t* key_data_get_dnskey2(key_data_t* key_data) {
     return key_data->key_state_dnskey;
 }
 
-const key_state_t* key_data_get_rrsigdnskey2(key_data_t* key_data) {
+const key_state_t* key_data_cached_rrsigdnskey(key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
