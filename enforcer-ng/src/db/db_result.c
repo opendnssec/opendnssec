@@ -266,6 +266,7 @@ int db_result_list_fetch_all(db_result_list_t* result_list) {
 
         next_function = result_list->next_function;
         result_list->next_function = NULL;
+        result_list->size = 0;
 
         while ((result = next_function(result_list->next_data, 0))) {
             if (db_result_list_add(result_list, result)) {
