@@ -191,7 +191,8 @@ const db_result_t* db_result_list_next(db_result_list_t* result_list);
  * \param[in] result_list a db_result_list_t pointer.
  * \return a size_t with the size of the database result list or zero on error
  * , if the database result list is empty or if the backend does not support
- * returning the size.
+ * returning the size. The size can be guaranteed to be returned by first
+ * calling db_result_list_fetch_all().
  */
 size_t db_result_list_size(const db_result_list_t* result_list);
 
