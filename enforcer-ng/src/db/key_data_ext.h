@@ -31,6 +31,7 @@
 #define __key_data_ext_h
 
 #include "key_state.h"
+#include "hsm_key.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,6 +75,21 @@ const key_state_t* key_data_cached_dnskey(key_data_t* key_data);
  * \return a key_state_t pointer.
  */
 const key_state_t* key_data_cached_rrsigdnskey(key_data_t* key_data);
+
+/**
+ * Cache the hsm key object for a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_cache_hsm_key(key_data_t* key_data);
+
+/**
+ * Get the cached hsm key object of a key data object.
+ * key_data_cache_hsm_key() must have been called before this.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a key_state_t pointer.
+ */
+const hsm_key_t* key_data_cached_hsm_key(key_data_t* key_data);
 
 /**
  * Tests if key has KSK role (includes CSK)

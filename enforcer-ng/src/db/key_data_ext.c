@@ -171,6 +171,42 @@ const key_state_t* key_data_cached_rrsigdnskey(key_data_t* key_data) {
     return key_data->key_state_rrsigdnskey;
 }
 
+int key_data_cache_hsm_key(key_data_t* key_data) {
+    hsm_key_t* hsm_key;
+
+    if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->hsm_key_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(hsm_key = hsm_key_new(db_object_connection(key_data->dbo)))
+        || hsm_key_get_by_id(hsm_key, &(key_data->hsm_key_id)))
+    {
+        hsm_key_free(hsm_key);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_data->hsm_key) {
+        hsm_key_free(key_data->hsm_key);
+    }
+    key_data->hsm_key = hsm_key;
+
+    return DB_OK;
+}
+
+const hsm_key_t* key_data_cached_hsm_key(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->hsm_key;
+}
+
 int key_data_is_ksk(const key_data_t* key_data) {
     if (!key_data) {
         return 0;

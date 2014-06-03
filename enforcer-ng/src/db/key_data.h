@@ -100,6 +100,7 @@ struct key_data {
     key_state_t* key_state_rrsig;
     key_state_t* key_state_dnskey;
     key_state_t* key_state_rrsigdnskey;
+    hsm_key_t* hsm_key;
 };
 
 /**

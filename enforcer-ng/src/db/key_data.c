@@ -312,6 +312,9 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->key_state_rrsigdnskey) {
             key_state_free(key_data->key_state_rrsigdnskey);
         }
+        if (key_data->hsm_key) {
+            hsm_key_free(key_data->hsm_key);
+        }
         mm_alloc_delete(&__key_data_alloc, key_data);
     }
 }
@@ -349,6 +352,10 @@ void key_data_reset(key_data_t* key_data) {
             key_state_free(key_data->key_state_rrsigdnskey);
         }
         key_data->key_state_rrsigdnskey = NULL;
+        if (key_data->hsm_key) {
+            hsm_key_free(key_data->hsm_key);
+        }
+        key_data->hsm_key = NULL;
     }
 }
 
