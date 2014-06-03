@@ -362,13 +362,13 @@ void zone_reset(zone_t* zone) {
         db_value_reset(&(zone->policy_id));
         if (zone->name) {
             free(zone->name);
+            zone->name = NULL;
         }
-        zone->name = NULL;
         zone->signconf_needs_writing = 0;
         if (zone->signconf_path) {
             free(zone->signconf_path);
+            zone->signconf_path = NULL;
         }
-        zone->signconf_path = NULL;
         zone->next_change = 0;
         zone->ttl_end_ds = 0;
         zone->ttl_end_dk = 0;
@@ -382,16 +382,16 @@ void zone_reset(zone_t* zone) {
         zone->input_adapter_type = strdup("File");
         if (zone->input_adapter_uri) {
             free(zone->input_adapter_uri);
+            zone->input_adapter_uri = NULL;
         }
-        zone->input_adapter_uri = NULL;
         if (zone->output_adapter_type) {
             free(zone->output_adapter_type);
         }
         zone->output_adapter_type = strdup("File");
         if (zone->output_adapter_uri) {
             free(zone->output_adapter_uri);
+            zone->output_adapter_uri = NULL;
         }
-        zone->output_adapter_uri = NULL;
         zone->next_ksk_roll = 0;
         zone->next_zsk_roll = 0;
         zone->next_csk_roll = 0;

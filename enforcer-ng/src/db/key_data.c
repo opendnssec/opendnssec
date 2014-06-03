@@ -338,24 +338,24 @@ void key_data_reset(key_data_t* key_data) {
         key_data->keytag = 0;
         if (key_data->key_state_ds) {
             key_state_free(key_data->key_state_ds);
+            key_data->key_state_ds = NULL;
         }
-        key_data->key_state_ds = NULL;
         if (key_data->key_state_rrsig) {
             key_state_free(key_data->key_state_rrsig);
+            key_data->key_state_rrsig = NULL;
         }
-        key_data->key_state_rrsig = NULL;
         if (key_data->key_state_dnskey) {
             key_state_free(key_data->key_state_dnskey);
+            key_data->key_state_dnskey = NULL;
         }
-        key_data->key_state_dnskey = NULL;
         if (key_data->key_state_rrsigdnskey) {
             key_state_free(key_data->key_state_rrsigdnskey);
+            key_data->key_state_rrsigdnskey = NULL;
         }
-        key_data->key_state_rrsigdnskey = NULL;
         if (key_data->hsm_key) {
             hsm_key_free(key_data->hsm_key);
+            key_data->hsm_key = NULL;
         }
-        key_data->hsm_key = NULL;
     }
 }
 

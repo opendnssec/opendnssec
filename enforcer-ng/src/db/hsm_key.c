@@ -309,8 +309,8 @@ void hsm_key_reset(hsm_key_t* hsm_key) {
         db_value_reset(&(hsm_key->policy_id));
         if (hsm_key->locator) {
             free(hsm_key->locator);
+            hsm_key->locator = NULL;
         }
-        hsm_key->locator = NULL;
         hsm_key->state = HSM_KEY_STATE_UNUSED;
         hsm_key->bits = 2048;
         hsm_key->algorithm = 1;
@@ -320,8 +320,8 @@ void hsm_key_reset(hsm_key_t* hsm_key) {
         hsm_key->key_type = HSM_KEY_KEY_TYPE_RSA;
         if (hsm_key->repository) {
             free(hsm_key->repository);
+            hsm_key->repository = NULL;
         }
-        hsm_key->repository = NULL;
         hsm_key->backup = HSM_KEY_BACKUP_NO_BACKUP;
     }
 }

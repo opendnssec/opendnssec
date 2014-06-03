@@ -270,8 +270,8 @@ void policy_key_reset(policy_key_t* policy_key) {
         policy_key->lifetime = 0;
         if (policy_key->repository) {
             free(policy_key->repository);
+            policy_key->repository = NULL;
         }
-        policy_key->repository = NULL;
         policy_key->standby = 0;
         policy_key->manual_rollover = 0;
         policy_key->rfc5011 = 0;

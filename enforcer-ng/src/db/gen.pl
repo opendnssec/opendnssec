@@ -945,14 +945,15 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = ', uc($name.'_'.$field
     if ($field->{type} eq 'DB_TYPE_TEXT') {
 print SOURCE '        if (', $name, '->', $field->{name}, ') {
             free(', $name, '->', $field->{name}, ');
+';
+        if (!exists $field->{default}) {
+print SOURCE '            ', $name, '->', $field->{name}, ' = NULL;
+';
         }
+print SOURCE '        }
 ';
         if (exists $field->{default}) {
 print SOURCE '        ', $name, '->', $field->{name}, ' = strdup("', $field->{default}, '");
-';
-        }
-        else {
-print SOURCE '        ', $name, '->', $field->{name}, ' = NULL;
 ';
         }
         next;

@@ -511,12 +511,12 @@ void policy_reset(policy_t* policy) {
         db_value_reset(&(policy->rev));
         if (policy->name) {
             free(policy->name);
+            policy->name = NULL;
         }
-        policy->name = NULL;
         if (policy->description) {
             free(policy->description);
+            policy->description = NULL;
         }
-        policy->description = NULL;
         policy->signatures_resign = 0;
         policy->signatures_refresh = 0;
         policy->signatures_jitter = 0;
