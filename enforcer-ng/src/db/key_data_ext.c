@@ -171,6 +171,38 @@ const key_state_t* key_data_cached_rrsigdnskey(key_data_t* key_data) {
     return key_data->key_state_rrsigdnskey;
 }
 
+key_state_t* key_data_get_cached_ds(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->key_state_ds;
+}
+
+key_state_t* key_data_get_cached_rrsig(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->key_state_rrsig;
+}
+
+key_state_t* key_data_get_cached_dnskey(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->key_state_dnskey;
+}
+
+key_state_t* key_data_get_cached_rrsigdnskey(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->key_state_rrsigdnskey;
+}
+
 int key_data_cache_hsm_key(key_data_t* key_data) {
     hsm_key_t* hsm_key;
 
@@ -200,6 +232,14 @@ int key_data_cache_hsm_key(key_data_t* key_data) {
 }
 
 const hsm_key_t* key_data_cached_hsm_key(key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return key_data->hsm_key;
+}
+
+hsm_key_t* key_data_get_cached_hsm_key(key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
