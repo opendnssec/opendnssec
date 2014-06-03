@@ -700,6 +700,15 @@ hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list);
  */
 int hsm_key_list_fetch_all(hsm_key_list_t* hsm_key_list);
 
+/**
+ * Get the size of a hsm key object list.
+ * \param[in] hsm_key_list a hsm_key_list_t pointer.
+ * \return a size_t with the size of the list or zero on error, if the list is
+ * empty or if the backend does not support returning the size. The size can be
+ * guaranteed to be returned by first calling hsm_key_list_fetch_all().
+ */
+size_t hsm_key_list_size(hsm_key_list_t* hsm_key_list);
+
 #ifdef __cplusplus
 }
 #endif

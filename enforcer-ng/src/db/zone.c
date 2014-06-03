@@ -2681,3 +2681,14 @@ int zone_list_fetch_all(zone_list_t* zone_list) {
 
     return db_result_list_fetch_all(zone_list->result_list);
 }
+
+size_t zone_list_size(zone_list_t* zone_list) {
+    if (!zone_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_size(zone_list->result_list);
+}

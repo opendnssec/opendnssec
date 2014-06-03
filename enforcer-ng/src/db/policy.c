@@ -3503,3 +3503,14 @@ int policy_list_fetch_all(policy_list_t* policy_list) {
 
     return db_result_list_fetch_all(policy_list->result_list);
 }
+
+size_t policy_list_size(policy_list_t* policy_list) {
+    if (!policy_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_size(policy_list->result_list);
+}

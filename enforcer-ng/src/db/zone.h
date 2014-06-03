@@ -797,6 +797,15 @@ zone_t* zone_list_get_next(zone_list_t* zone_list);
  */
 int zone_list_fetch_all(zone_list_t* zone_list);
 
+/**
+ * Get the size of a zone object list.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a size_t with the size of the list or zero on error, if the list is
+ * empty or if the backend does not support returning the size. The size can be
+ * guaranteed to be returned by first calling zone_list_fetch_all().
+ */
+size_t zone_list_size(zone_list_t* zone_list);
+
 #ifdef __cplusplus
 }
 #endif

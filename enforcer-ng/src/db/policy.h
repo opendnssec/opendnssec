@@ -1170,6 +1170,15 @@ policy_t* policy_list_get_next(policy_list_t* policy_list);
  */
 int policy_list_fetch_all(policy_list_t* policy_list);
 
+/**
+ * Get the size of a policy object list.
+ * \param[in] policy_list a policy_list_t pointer.
+ * \return a size_t with the size of the list or zero on error, if the list is
+ * empty or if the backend does not support returning the size. The size can be
+ * guaranteed to be returned by first calling policy_list_fetch_all().
+ */
+size_t policy_list_size(policy_list_t* policy_list);
+
 #ifdef __cplusplus
 }
 #endif

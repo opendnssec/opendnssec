@@ -728,6 +728,15 @@ key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
  */
 int key_data_list_fetch_all(key_data_list_t* key_data_list);
 
+/**
+ * Get the size of a key data object list.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \return a size_t with the size of the list or zero on error, if the list is
+ * empty or if the backend does not support returning the size. The size can be
+ * guaranteed to be returned by first calling key_data_list_fetch_all().
+ */
+size_t key_data_list_size(key_data_list_t* key_data_list);
+
 #ifdef __cplusplus
 }
 #endif

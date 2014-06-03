@@ -2094,3 +2094,14 @@ int hsm_key_list_fetch_all(hsm_key_list_t* hsm_key_list) {
 
     return db_result_list_fetch_all(hsm_key_list->result_list);
 }
+
+size_t hsm_key_list_size(hsm_key_list_t* hsm_key_list) {
+    if (!hsm_key_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!hsm_key_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_size(hsm_key_list->result_list);
+}

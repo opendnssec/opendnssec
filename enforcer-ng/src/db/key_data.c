@@ -2102,3 +2102,14 @@ int key_data_list_fetch_all(key_data_list_t* key_data_list) {
 
     return db_result_list_fetch_all(key_data_list->result_list);
 }
+
+size_t key_data_list_size(key_data_list_t* key_data_list) {
+    if (!key_data_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_size(key_data_list->result_list);
+}

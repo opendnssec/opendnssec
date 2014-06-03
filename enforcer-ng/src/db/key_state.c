@@ -1396,3 +1396,14 @@ int key_state_list_fetch_all(key_state_list_t* key_state_list) {
 
     return db_result_list_fetch_all(key_state_list->result_list);
 }
+
+size_t key_state_list_size(key_state_list_t* key_state_list) {
+    if (!key_state_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_state_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_size(key_state_list->result_list);
+}

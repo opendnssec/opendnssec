@@ -1702,3 +1702,14 @@ int policy_key_list_fetch_all(policy_key_list_t* policy_key_list) {
 
     return db_result_list_fetch_all(policy_key_list->result_list);
 }
+
+size_t policy_key_list_size(policy_key_list_t* policy_key_list) {
+    if (!policy_key_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy_key_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_size(policy_key_list->result_list);
+}

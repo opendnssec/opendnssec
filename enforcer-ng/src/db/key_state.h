@@ -506,6 +506,15 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
  */
 int key_state_list_fetch_all(key_state_list_t* key_state_list);
 
+/**
+ * Get the size of a key state object list.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \return a size_t with the size of the list or zero on error, if the list is
+ * empty or if the backend does not support returning the size. The size can be
+ * guaranteed to be returned by first calling key_state_list_fetch_all().
+ */
+size_t key_state_list_size(key_state_list_t* key_state_list);
+
 #ifdef __cplusplus
 }
 #endif

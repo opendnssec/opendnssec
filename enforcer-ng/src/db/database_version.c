@@ -748,3 +748,14 @@ int database_version_list_fetch_all(database_version_list_t* database_version_li
 
     return db_result_list_fetch_all(database_version_list->result_list);
 }
+
+size_t database_version_list_size(database_version_list_t* database_version_list) {
+    if (!database_version_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!database_version_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_size(database_version_list->result_list);
+}

@@ -666,6 +666,15 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
  */
 int ', $name, '_list_fetch_all(', $name, '_list_t* ', $name, '_list);
 
+/**
+ * Get the size of a ', $tname, ' object list.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return a size_t with the size of the list or zero on error, if the list is
+ * empty or if the backend does not support returning the size. The size can be
+ * guaranteed to be returned by first calling ', $name, '_list_fetch_all().
+ */
+size_t ', $name, '_list_size(', $name, '_list_t* ', $name, '_list);
+
 #ifdef __cplusplus
 }
 #endif
@@ -2279,6 +2288,17 @@ int ', $name, '_list_fetch_all(', $name, '_list_t* ', $name, '_list) {
     }
 
     return db_result_list_fetch_all(', $name, '_list->result_list);
+}
+
+size_t ', $name, '_list_size(', $name, '_list_t* ', $name, '_list) {
+    if (!', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_result_list_size(', $name, '_list->result_list);
 }
 ';
 close(SOURCE);
