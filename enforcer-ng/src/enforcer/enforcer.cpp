@@ -793,6 +793,10 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 	}
 }
 
+static int processKeyState(zone_t* zone, int *zone_updated, key_data_t* key, key_state_t* state, int* change) {
+    return 0;
+}
+
 /**
  * Try to push each key for this zone to a next state. If one changes
  * visit the rest again. Loop stops when no changes can be made without
@@ -811,6 +815,7 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
     static const char *scmd = "updateZone";
     size_t keylist_size, i;
     const key_state_t* state;
+    int change;
 
     if (!policy) {
         return returntime_zone;
@@ -897,10 +902,6 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
             }
         }
         if (keylist_size < i) {
-            /*
-             * If no DNSKEY is currently published we must take negative caching
-             * into account.
-             */
             ttl = max(policy_keys_ttl(policy),
                 min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)));
         }
@@ -925,6 +926,26 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
             *zone_updated = 1;
         }
     }
+
+    /*
+     * Keep looping till there are no state changes and find the earliest update
+     * time to return.
+     */
+    do {
+        change = 0;
+        for (i = 0; i < keylist_size; i++) {
+            ods_log_verbose("[%s] %s: processing key %s", module_str, scmd,
+                hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
+
+            if (processKeyState(zone, zone_updated, keylist[i], key_data_get_cached_ds(keylist[i]), &change)
+                || processKeyState(zone, zone_updated, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change)
+                || processKeyState(zone, zone_updated, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change)
+                || processKeyState(zone, zone_updated, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change))
+            {
+                /* TODO: handle error */
+            }
+        }
+    } while (change);
 
     /*
      * Release the cached objects.
