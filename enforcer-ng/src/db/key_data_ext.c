@@ -60,7 +60,8 @@ int key_data_cache_key_states(key_data_t* key_data) {
     key_state = key_state_list_next(key_state_list);
     while (key_state) {
         if (key_state_type(key_state) == KEY_STATE_TYPE_DS) {
-            if (!(key_state_ds = key_state_new(db_object_connection(key_data->dbo)))
+            if (key_state_ds
+                || !(key_state_ds = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_ds, key_state))
             {
                 key_state_free(key_state_ds);
@@ -74,7 +75,8 @@ int key_data_cache_key_states(key_data_t* key_data) {
         }
 
         if (key_state_type(key_state) == KEY_STATE_TYPE_RRSIG) {
-            if (!(key_state_rrsig = key_state_new(db_object_connection(key_data->dbo)))
+            if (key_state_rrsig
+                || !(key_state_rrsig = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_rrsig, key_state))
             {
                 key_state_free(key_state_ds);
@@ -87,7 +89,8 @@ int key_data_cache_key_states(key_data_t* key_data) {
         }
 
         if (key_state_type(key_state) == KEY_STATE_TYPE_DNSKEY) {
-            if (!(key_state_dnskey = key_state_new(db_object_connection(key_data->dbo)))
+            if (key_state_dnskey
+                || !(key_state_dnskey = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_dnskey, key_state))
             {
                 key_state_free(key_state_ds);
@@ -100,7 +103,8 @@ int key_data_cache_key_states(key_data_t* key_data) {
         }
 
         if (key_state_type(key_state) == KEY_STATE_TYPE_RRSIGDNSKEY) {
-            if (!(key_state_rrsigdnskey = key_state_new(db_object_connection(key_data->dbo)))
+            if (key_state_rrsigdnskey
+                || !(key_state_rrsigdnskey = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_rrsigdnskey, key_state))
             {
                 key_state_free(key_state_ds);
