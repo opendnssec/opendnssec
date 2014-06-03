@@ -805,9 +805,16 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int allow_unsigned, int *zone_updated) {
     time_t returntime_zone = -1;
     unsigned int ttl;
-    key_data_list_t *keylist;
+    key_data_list_t *key_list;
+    const key_data_t* key;
+    key_data_t** keylist = NULL;
     static const char *scmd = "updateZone";
+    size_t keylist_size, i;
+    const key_state_t* state;
 
+    if (!policy) {
+        return returntime_zone;
+    }
     if (!zone) {
         return returntime_zone;
     }
@@ -816,17 +823,55 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
     }
 
     /*
-     * Get all key data objects for the given zone and fetch all the objects
-     * from the database so we can use the list again later.
+     * Get all key data/state/hsm objects for later processing.
      */
-    if (!(keylist = zone_get_keys(zone))
-        || key_data_list_fetch_all(keylist))
+    if (!(key_list = zone_get_keys(zone))
+        || key_data_list_fetch_all(key_list))
     {
         /* TODO: better log error */
         ods_log_debug("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
-        key_data_list_free(keylist);
+        key_data_list_free(key_list);
         return returntime_zone;
     }
+    if (!(keylist_size = key_data_list_size(key_list))) {
+        if ((key = key_data_list_begin(key_list))) {
+            while (key) {
+                keylist_size++;
+                key = key_data_list_next(key_list);
+            }
+        }
+    }
+    if (keylist_size) {
+        if (!(keylist = (key_data_t**)calloc(keylist_size, sizeof(key_data_t*)))) {
+            /* TODO: better log error */
+            ods_log_debug("[%s] %s: error calloc(keylist_size)", module_str, scmd);
+            key_data_list_free(key_list);
+            return returntime_zone;
+        }
+        for (i = 0; i < keylist_size; i++) {
+            if (!i) {
+                keylist[i] = key_data_list_get_begin(key_list);
+            }
+            else {
+                keylist[i] = key_data_list_get_next(key_list);
+            }
+            if (!keylist[i]
+                || key_data_cache_hsm_key(keylist[i])
+                || key_data_cache_key_states(keylist[i]))
+            {
+                ods_log_debug("[%s] %s: error key_data_list cache", module_str, scmd);
+                for (i = 0; i < keylist_size; i++) {
+                    if (keylist[i]) {
+                        key_data_free(keylist[i]);
+                    }
+                }
+                free(keylist);
+                key_data_list_free(key_list);
+                return returntime_zone;
+            }
+        }
+    }
+    key_data_list_free(key_list);
 
     /*
      * This code keeps track of TTL changes. If in the past a large TTL is used,
@@ -844,8 +889,14 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
          * If no DNSKEY is currently published we must take negative caching
          * into account.
          */
-        /* TODO: Check for DNSKEY */
-        if (0 /* TODO: If no DNSKEY */) {
+        for (i = 0; i < keylist_size; i++) {
+            if ((state = key_data_cached_dnskey(keylist[i]))
+                && key_state_state(state) == KEY_STATE_STATE_OMNIPRESENT)
+            {
+                break;
+            }
+        }
+        if (keylist_size < i) {
             /*
              * If no DNSKEY is currently published we must take negative caching
              * into account.
@@ -874,6 +925,16 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
             *zone_updated = 1;
         }
     }
+
+    /*
+     * Release the cached objects.
+     */
+    for (i = 0; i < keylist_size; i++) {
+        if (keylist[i]) {
+            key_data_free(keylist[i]);
+        }
+    }
+    free(keylist);
 
     return returntime_zone;
 }
