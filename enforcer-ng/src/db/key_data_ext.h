@@ -50,7 +50,7 @@ int key_data_cache_key_states(key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_cached_ds(key_data_t* key_data);
+const key_state_t* key_data_cached_ds(const key_data_t* key_data);
 
 /**
  * Get the cached RRSIG key state object of a key data object.
@@ -58,7 +58,7 @@ const key_state_t* key_data_cached_ds(key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_cached_rrsig(key_data_t* key_data);
+const key_state_t* key_data_cached_rrsig(const key_data_t* key_data);
 
 /**
  * Get the cached DNSKEY key state object of a key data object.
@@ -66,7 +66,7 @@ const key_state_t* key_data_cached_rrsig(key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_cached_dnskey(key_data_t* key_data);
+const key_state_t* key_data_cached_dnskey(const key_data_t* key_data);
 
 /**
  * Get the cached RRSIG DNSKEY key state object of a key data object.
@@ -74,7 +74,7 @@ const key_state_t* key_data_cached_dnskey(key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const key_state_t* key_data_cached_rrsigdnskey(key_data_t* key_data);
+const key_state_t* key_data_cached_rrsigdnskey(const key_data_t* key_data);
 
 /**
  * Get the cached DS key state object of a key data object.
@@ -121,7 +121,7 @@ int key_data_cache_hsm_key(key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_t pointer.
  */
-const hsm_key_t* key_data_cached_hsm_key(key_data_t* key_data);
+const hsm_key_t* key_data_cached_hsm_key(const key_data_t* key_data);
 
 /**
  * Get the cached hsm key object of a key data object.

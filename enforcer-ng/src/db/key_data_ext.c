@@ -139,7 +139,7 @@ int key_data_cache_key_states(key_data_t* key_data) {
     return DB_OK;
 }
 
-const key_state_t* key_data_cached_ds(key_data_t* key_data) {
+const key_state_t* key_data_cached_ds(const key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
@@ -147,7 +147,7 @@ const key_state_t* key_data_cached_ds(key_data_t* key_data) {
     return key_data->key_state_ds;
 }
 
-const key_state_t* key_data_cached_rrsig(key_data_t* key_data) {
+const key_state_t* key_data_cached_rrsig(const key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
@@ -155,7 +155,7 @@ const key_state_t* key_data_cached_rrsig(key_data_t* key_data) {
     return key_data->key_state_rrsig;
 }
 
-const key_state_t* key_data_cached_dnskey(key_data_t* key_data) {
+const key_state_t* key_data_cached_dnskey(const key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
@@ -163,7 +163,7 @@ const key_state_t* key_data_cached_dnskey(key_data_t* key_data) {
     return key_data->key_state_dnskey;
 }
 
-const key_state_t* key_data_cached_rrsigdnskey(key_data_t* key_data) {
+const key_state_t* key_data_cached_rrsigdnskey(const key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
@@ -231,7 +231,7 @@ int key_data_cache_hsm_key(key_data_t* key_data) {
     return DB_OK;
 }
 
-const hsm_key_t* key_data_cached_hsm_key(key_data_t* key_data) {
+const hsm_key_t* key_data_cached_hsm_key(const key_data_t* key_data) {
     if (!key_data) {
         return NULL;
     }
