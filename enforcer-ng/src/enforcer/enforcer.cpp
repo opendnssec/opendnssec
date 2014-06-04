@@ -794,6 +794,107 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 }
 
 static int processKeyState(zone_t* zone, int *zone_updated, key_data_t* key, key_state_t* state, int* change) {
+    key_state_state_t desired_state = KEY_STATE_STATE_INVALID;
+    static const char *scmd = "processKeyState";
+
+    /*
+     * Given goal and state, what will be the next state?
+     */
+    if (!key_data_introducing(key)) {
+        /*
+         * We are outroducing this key so we would like to move rumoured and
+         * omnipresent keys to unretentive and unretentive keys to hidden.
+         */
+        switch (key_state_state(state)) {
+        case KEY_STATE_STATE_HIDDEN:
+            desired_state = KEY_STATE_STATE_HIDDEN;
+            break;
+
+        case KEY_STATE_STATE_RUMOURED:
+            desired_state = KEY_STATE_STATE_UNRETENTIVE;
+            break;
+
+        case KEY_STATE_STATE_OMNIPRESENT:
+            desired_state = KEY_STATE_STATE_UNRETENTIVE;
+            break;
+
+        case KEY_STATE_STATE_UNRETENTIVE:
+            desired_state = KEY_STATE_STATE_HIDDEN;
+            break;
+
+        case KEY_STATE_STATE_NA:
+            desired_state = KEY_STATE_STATE_NA;
+            break;
+
+        default:
+            break;
+        }
+    }
+    else {
+        /*
+         * We are introducing this key so we would like to move hidden and
+         * unretentive keys to rumoured and rumoured keys to omnipresent.
+         */
+        switch (key_state_state(state)) {
+        case KEY_STATE_STATE_HIDDEN:
+            desired_state = KEY_STATE_STATE_RUMOURED;
+            break;
+
+        case KEY_STATE_STATE_RUMOURED:
+            desired_state = KEY_STATE_STATE_OMNIPRESENT;
+            break;
+
+        case KEY_STATE_STATE_OMNIPRESENT:
+            desired_state = KEY_STATE_STATE_OMNIPRESENT;
+            break;
+
+        case KEY_STATE_STATE_UNRETENTIVE:
+            desired_state = KEY_STATE_STATE_RUMOURED;
+            break;
+
+        case KEY_STATE_STATE_NA:
+            desired_state = KEY_STATE_STATE_NA;
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    /*
+     * The desired_state is invalid something went wrong and we should return
+     * an error.
+     */
+    if (desired_state == KEY_STATE_STATE_INVALID) {
+        return 1;
+    }
+
+    /*
+     * If there is no change in key state we return.
+     */
+    if (key_state_state(state) == desired_state) {
+        return 0;
+    }
+
+    /*
+     * If the key state is a DS then we need to check if we still are waiting
+     * for user input before we can transition the key.
+     */
+    if (key_state_type(state) == KEY_STATE_TYPE_DS) {
+        if ((desired_state == KEY_STATE_STATE_OMNIPRESENT
+                && key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SEEN)
+            || (desired_state == KEY_STATE_STATE_HIDDEN
+                && key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
+        {
+            return 0;
+        }
+    }
+
+    ods_log_verbose("[%s] %s: May %s in state %s transition to %s?", module_str, scmd,
+        hsm_key_locator(key_data_cached_hsm_key(key)),
+        key_state_state_text(state),
+        key_state_enum_set_state[desired_state]);
+
     return 0;
 }
 
