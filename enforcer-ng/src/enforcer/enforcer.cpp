@@ -537,7 +537,13 @@ rule1_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 }
 static int rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
     static const key_state_state_t mask[2][4] = {
+        /*
+         * This indicates a good key state.
+         */
         { OMNIPRESENT, NA, NA, NA },
+        /*
+         * This indicates that the DS is introducing.
+         */
         { RUMOURED, NA, NA, NA }
     };
 
@@ -601,7 +607,29 @@ rule2_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		unsignedOk(key_list, future_key, mask_unsg, DS);
 }
 static int rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
-    return 1;
+    static const key_state_state_t mask[1][4] = {
+        /*
+         * This indicates a good key state.
+         */
+        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA }
+    };
+
+    if (!keylist) {
+        return -1;
+    }
+    if (!key) {
+        return -1;
+    }
+
+    if (not_exists(keylist, keylist_size, key, 1, mask[0]))
+    {
+        /*
+         * None of the required mask was found, return non-zero to indicate that
+         * the rule has been broken.
+         */
+        return 1;
+    }
+    return 0;
 }
 
 /** 
@@ -636,7 +664,29 @@ rule3_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		unsignedOk(key_list, future_key, mask_unsg, DK);
 }
 static int rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
-    return 1;
+    static const key_state_state_t mask[2][4] = {
+        /*
+         * This indicates a good key state.
+         */
+        { NA, OMNIPRESENT, NA, OMNIPRESENT }
+    };
+
+    if (!keylist) {
+        return -1;
+    }
+    if (!key) {
+        return -1;
+    }
+
+    if (not_exists(keylist, keylist_size, key, 1, mask[0]))
+    {
+        /*
+         * None of the required mask was found, return non-zero to indicate that
+         * the rule has been broken.
+         */
+        return 1;
+    }
+    return 0;
 }
 
 /**
