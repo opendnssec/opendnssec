@@ -793,9 +793,10 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 	}
 }
 
-static int processKeyState(zone_t* zone, int *zone_updated, key_data_t* key, key_state_t* state, int* change) {
+static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist, size_t keylist_size, key_data_t* key, key_state_t* state, int* change) {
     key_state_state_t desired_state = KEY_STATE_STATE_INVALID;
     static const char *scmd = "processKeyState";
+    size_t i;
 
     /*
      * Given goal and state, what will be the next state?
@@ -895,6 +896,141 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t* key, key
         key_state_state_text(state),
         key_state_enum_set_state[desired_state]);
 
+    /*
+     * Check if policy prevents transition if the next state is rumoured.
+     */
+    if (desired_state == KEY_STATE_STATE_RUMOURED) {
+        switch (key_state_type(state)) {
+        case KEY_STATE_TYPE_DS:
+            /*
+             * If we want to minimize the DS transitions make sure the DNSKEY is
+             * fully propagated.
+             */
+            if (key_state_minimize(state)
+                && key_state_state(key_data_cached_dnskey(key)) != KEY_STATE_STATE_OMNIPRESENT)
+            {
+                /*
+                 * DNSKEY is not fully propagated so we will not do any transitions.
+                 */
+                return 0;
+            }
+            break;
+
+        case KEY_STATE_TYPE_DNSKEY:
+            if (!key_state_minimize(state)) {
+                /*
+                 * There are no restrictions for the DNSKEY transition so we can
+                 * just continue.
+                 */
+                break;
+            }
+
+            /*
+             * Check that signatures has been propagated for CSK/ZSK.
+             *
+             * TODO: How is this related to CSK/ZSK, there is no check for key_data_role().
+             */
+            if (key_state_state(key_data_cached_rrsig(key)) != KEY_STATE_STATE_OMNIPRESENT
+                && key_state_state(key_data_cached_rrsig(key)) != KEY_STATE_STATE_NA)
+            {
+                /*
+                 * RRSIG not fully propagated so we will not do any transitions.
+                 */
+                return 0;
+            }
+
+            /*
+             * Check if the DS is introduced and continue if it is.
+             */
+            if (key_state_state(key_data_cached_ds(key)) == KEY_STATE_STATE_OMNIPRESENT
+                || key_state_state(key_data_cached_ds(key)) == KEY_STATE_STATE_NA)
+            {
+                break;
+            }
+
+            /*
+             * We might be doing an algorithm rollover so we check if there are
+             * no other good KSK available and ignore the minimize flag if so.
+             *
+             * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
+             */
+            for (i = 0; i < keylist_size; i++) {
+                if (key == keylist[i]) {
+                    continue;
+                }
+                if (key_data_algorithm(key) != key_data_algorithm(keylist[i])) {
+                    continue;
+                }
+                if (key_state_state(key_data_cached_ds(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT
+                    && key_state_state(key_data_cached_dnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT
+                    && key_state_state(key_data_cached_rrsigdnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT)
+                {
+                    /*
+                     * We found a good key, so we will not do any transition.
+                     */
+                    return 0;
+                }
+            }
+            break;
+
+        case KEY_STATE_TYPE_RRSIGDNSKEY:
+            /*
+             * The only time not to introduce RRSIG DNSKEY is when the DNSKEY is
+             * still hidden.
+             *
+             * TODO: How do we know we are introducing the RRSIG DNSKEY? We might be
+             * outroducing it.
+             */
+            if (key_state_state(key_data_cached_dnskey(key)) == KEY_STATE_STATE_HIDDEN) {
+                return 0;
+            }
+            break;
+
+        case KEY_STATE_TYPE_RRSIG:
+            if (!key_state_minimize(state)) {
+                /*
+                 * There are no restrictions for the RRSIG transition so we can
+                 * just continue.
+                 */
+                break;
+            }
+
+            /*
+             * Check if the DNSKEY is introduced and continue if it is.
+             */
+            if (key_state_state(key_data_cached_dnskey(key)) == KEY_STATE_STATE_OMNIPRESENT) {
+                break;
+            }
+
+            /*
+             * We might be doing an algorithm rollover so we check if there are
+             * no other good ZSK available and ignore the minimize flag if so.
+             *
+             * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
+             */
+            for (i = 0; i < keylist_size; i++) {
+                if (key == keylist[i]) {
+                    continue;
+                }
+                if (key_data_algorithm(key) != key_data_algorithm(keylist[i])) {
+                    continue;
+                }
+                if (key_state_state(key_data_cached_dnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT
+                    && key_state_state(key_data_cached_rrsig(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT)
+                {
+                    /*
+                     * We found a good key, so we will not do any transition.
+                     */
+                    return 0;
+                }
+            }
+            break;
+
+        default:
+            return 1;
+        }
+    }
+
     return 0;
 }
 
@@ -915,7 +1051,6 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
     key_data_t** keylist = NULL;
     static const char *scmd = "updateZone";
     size_t keylist_size, i;
-    const key_state_t* state;
     int change;
 
     if (!policy) {
@@ -996,9 +1131,7 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
          * into account.
          */
         for (i = 0; i < keylist_size; i++) {
-            if ((state = key_data_cached_dnskey(keylist[i]))
-                && key_state_state(state) == KEY_STATE_STATE_OMNIPRESENT)
-            {
+            if (key_state_state(key_data_cached_dnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT) {
                 break;
             }
         }
@@ -1038,10 +1171,10 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
             ods_log_verbose("[%s] %s: processing key %s", module_str, scmd,
                 hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
-            if (processKeyState(zone, zone_updated, keylist[i], key_data_get_cached_ds(keylist[i]), &change)
-                || processKeyState(zone, zone_updated, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change)
-                || processKeyState(zone, zone_updated, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change)
-                || processKeyState(zone, zone_updated, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change))
+            if (processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_ds(keylist[i]), &change)
+                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change)
+                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change)
+                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change))
             {
                 /* TODO: handle error */
             }
