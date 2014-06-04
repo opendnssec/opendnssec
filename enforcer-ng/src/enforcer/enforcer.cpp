@@ -63,6 +63,12 @@
 
 #include "enforcer/enforcer.h"
 
+#define HIDDEN      KEY_STATE_STATE_HIDDEN
+#define RUMOURED    KEY_STATE_STATE_RUMOURED
+#define OMNIPRESENT KEY_STATE_STATE_OMNIPRESENT
+#define UNRETENTIVE KEY_STATE_STATE_UNRETENTIVE
+#define NA          KEY_STATE_STATE_NA
+
 
 using namespace std;
 using ::ods::kasp::Policy;
@@ -237,7 +243,7 @@ match(KeyData &k, const struct FutureKey *future_key,
  * @return True IFF exist such key.
  * */
 static bool
-exists(KeyDataList &key_list, const struct FutureKey *future_key,
+exists_old(KeyDataList &key_list, const struct FutureKey *future_key,
 	const bool require_same_algorithm, const STATE mask[4])
 {
 	for (int i = 0; i < key_list.numKeys(); i++) {
@@ -246,6 +252,54 @@ exists(KeyDataList &key_list, const struct FutureKey *future_key,
 			return true;
 	}
 	return false;
+}
+
+static int not_exists(key_data_t** keylist, size_t keylist_size, key_data_t* key, int same_algorithm, const key_state_state_t mask[4]) {
+    size_t i;
+
+    if (!keylist) {
+        return -1;
+    }
+    if (!key) {
+        return -1;
+    }
+
+    for (i = 0; i < keylist_size; i++) {
+        /*
+         * Skip checking the key we are processing now and if its not the same
+         * algorithm (if same_algorithm is set).
+         */
+        if (key == keylist[i]
+            || (same_algorithm && key_data_algorithm(key) != key_data_algorithm(keylist[i])))
+        {
+            continue;
+        }
+        /*
+         * Check the states against the mask, for each mask that is not NA we
+         * need a match on that key state. If there is no match we continue.
+         */
+        if ((mask[0] != KEY_STATE_STATE_NA
+                && key_state_state(key_data_cached_ds(keylist[i])) != mask[0])
+            || (mask[1] != KEY_STATE_STATE_NA
+                && key_state_state(key_data_cached_dnskey(keylist[i])) != mask[1])
+            || (mask[2] != KEY_STATE_STATE_NA
+                && key_state_state(key_data_cached_rrsigdnskey(keylist[i])) != mask[2])
+            || (mask[3] != KEY_STATE_STATE_NA
+                && key_state_state(key_data_cached_rrsig(keylist[i])) != mask[3]))
+        {
+            continue;
+        }
+
+        /*
+         * We have a match and do not have to continue, return non-error.
+         */
+        return 0;
+    }
+
+    /*
+     * We got no match, return success.
+     */
+    return 1;
 }
 
 /** Looks up KeyData from locator string.
@@ -452,7 +506,7 @@ unsignedOk(KeyDataList &key_list, const struct FutureKey *future_key,
 		if (cmp_msk[mustHID] == HID || cmp_msk[mustHID] == NOCARE)
 			continue;
 		/** Otherwise, we must test mask */
-		if (!exists(key_list, future_key, true, cmp_msk))
+		if (!exists_old(key_list, future_key, true, cmp_msk))
 			return false;
 	}
 	return true;
@@ -470,7 +524,7 @@ unsignedOk(KeyDataList &key_list, const struct FutureKey *future_key,
  * @return True IFF a introducing DS exists.
  * */
 static bool
-rule1(KeyDependencyList &dep_list, KeyDataList &key_list, 
+rule1_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 	struct FutureKey *future_key, bool pretend_update)
 {
 	const STATE mask_triv[] =  {OMN, NOCARE, NOCARE, NOCARE};
@@ -478,8 +532,32 @@ rule1(KeyDependencyList &dep_list, KeyDataList &key_list,
 	
 	future_key->pretend_update = pretend_update;
 	return  
-		exists(key_list, future_key, false, mask_triv) ||
-		exists(key_list, future_key, false, mask_dsin);
+		exists_old(key_list, future_key, false, mask_triv) ||
+		exists_old(key_list, future_key, false, mask_dsin);
+}
+static int rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
+    static const key_state_state_t mask[2][4] = {
+        { OMNIPRESENT, NA, NA, NA },
+        { RUMOURED, NA, NA, NA }
+    };
+
+    if (!keylist) {
+        return -1;
+    }
+    if (!key) {
+        return -1;
+    }
+
+    if (not_exists(keylist, keylist_size, key, 1, mask[0])
+        && not_exists(keylist, keylist_size, key, 1, mask[1]))
+    {
+        /*
+         * None of the required mask was found, return non-zero to indicate that
+         * the rule has been broken.
+         */
+        return 1;
+    }
+    return 0;
 }
 
 /** 
@@ -494,7 +572,7 @@ rule1(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @return True IFF one of requirements is met.
  * */
 static bool
-rule2(KeyDependencyList &dep_list, KeyDataList &key_list, 
+rule2_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 	struct FutureKey *future_key, bool pretend_update)
 {
 	const STATE mask_unsg[] =  {HID, OMN, OMN, NOCARE};
@@ -511,7 +589,7 @@ rule2(KeyDependencyList &dep_list, KeyDataList &key_list,
 	 * performed first. */
 	
 	return
-		exists(key_list, future_key, true, mask_triv) ||
+		exists_old(key_list, future_key, true, mask_triv) ||
 		
 		exists_with_successor(dep_list, key_list, future_key, true, mask_ds_o, mask_ds_i, DS) ||
 
@@ -521,6 +599,9 @@ rule2(KeyDependencyList &dep_list, KeyDataList &key_list,
 		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i2, DK) ||
 		
 		unsignedOk(key_list, future_key, mask_unsg, DS);
+}
+static int rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
+    return 1;
 }
 
 /** 
@@ -535,7 +616,7 @@ rule2(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @return True IFF one of requirements is met.
  * */
 static bool
-rule3(KeyDependencyList &dep_list, KeyDataList &key_list, 
+rule3_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 	struct FutureKey *future_key, bool pretend_update)
 {
 	const STATE mask_triv[] =  {NOCARE, OMN, NOCARE, OMN};
@@ -549,10 +630,13 @@ rule3(KeyDependencyList &dep_list, KeyDataList &key_list,
 	/** for performance the lighter, more-likely-to-be-true test are
 	 * performed first. */
 	return
-		exists(key_list, future_key, true, mask_triv) ||
+		exists_old(key_list, future_key, true, mask_triv) ||
 		exists_with_successor(dep_list, key_list, future_key, true, mask_keyo, mask_keyi, DK) ||
 		exists_with_successor(dep_list, key_list, future_key, true, mask_sigo, mask_sigi, RS) ||
 		unsignedOk(key_list, future_key, mask_unsg, DK);
+}
+static int rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
+    return 1;
 }
 
 /**
@@ -574,12 +658,12 @@ dnssecApproval(KeyDependencyList &dep_list, KeyDataList &key_list,
 {
 	return 
 		(allow_unsigned ||
-		 !rule1(dep_list, key_list, future_key, false) ||
-		  rule1(dep_list, key_list, future_key, true ) ) &&
-		(!rule2(dep_list, key_list, future_key, false) ||
-		  rule2(dep_list, key_list, future_key, true ) ) &&
-		(!rule3(dep_list, key_list, future_key, false) ||
-		  rule3(dep_list, key_list, future_key, true ) );
+		 !rule1_old(dep_list, key_list, future_key, false) ||
+		  rule1_old(dep_list, key_list, future_key, true ) ) &&
+		(!rule2_old(dep_list, key_list, future_key, false) ||
+		  rule2_old(dep_list, key_list, future_key, true ) ) &&
+		(!rule3_old(dep_list, key_list, future_key, false) ||
+		  rule3_old(dep_list, key_list, future_key, true ) );
 }
 
 /**
@@ -670,7 +754,7 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 				return true;
 			/** 4) Except, we might be doing algorithm rollover.
 			 * if no other good KSK available, ignore minimize flag*/
-			return !exists(key_list, future_key, true, mask_dnskey);
+			return !exists_old(key_list, future_key, true, mask_dnskey);
 		case RD:
 			/** The only time not to introduce RRSIG DNSKEY is when the
 			 * DNSKEY is still hidden. */
@@ -682,7 +766,7 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 			if (getState(*future_key->key, DK, NULL) == OMN) return true;
 			/** 3) Except, we might be doing algorithm rollover
 			 * if no other good ZSK available, ignore minimize flag */
-			return !exists(key_list, future_key, true, mask_sig);
+			return !exists_old(key_list, future_key, true, mask_sig);
 		default: 
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
 				"fault of programmer. Abort.",
@@ -793,10 +877,12 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 	}
 }
 
-static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist, size_t keylist_size, key_data_t* key, key_state_t* state, int* change) {
+static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist, size_t keylist_size, key_data_t* key, key_state_t* state, int* change, int allow_unsigned) {
     key_state_state_t desired_state = KEY_STATE_STATE_INVALID;
     static const char *scmd = "processKeyState";
     size_t i;
+    static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
+    static const key_state_state_t rrsig_algorithm_rollover[4] = { NA, OMNIPRESENT, NA, OMNIPRESENT };
 
     /*
      * Given goal and state, what will be the next state?
@@ -954,22 +1040,11 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
              *
              * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
              */
-            for (i = 0; i < keylist_size; i++) {
-                if (key == keylist[i]) {
-                    continue;
-                }
-                if (key_data_algorithm(key) != key_data_algorithm(keylist[i])) {
-                    continue;
-                }
-                if (key_state_state(key_data_cached_ds(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT
-                    && key_state_state(key_data_cached_dnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT
-                    && key_state_state(key_data_cached_rrsigdnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT)
-                {
-                    /*
-                     * We found a good key, so we will not do any transition.
-                     */
-                    return 0;
-                }
+            if (!not_exists(keylist, keylist_size, key, 1, dnskey_algorithm_rollover)) {
+                /*
+                 * We found a good key, so we will not do any transition.
+                 */
+                return 0;
             }
             break;
 
@@ -1008,26 +1083,33 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
              *
              * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
              */
-            for (i = 0; i < keylist_size; i++) {
-                if (key == keylist[i]) {
-                    continue;
-                }
-                if (key_data_algorithm(key) != key_data_algorithm(keylist[i])) {
-                    continue;
-                }
-                if (key_state_state(key_data_cached_dnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT
-                    && key_state_state(key_data_cached_rrsig(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT)
-                {
-                    /*
-                     * We found a good key, so we will not do any transition.
-                     */
-                    return 0;
-                }
+            if (!not_exists(keylist, keylist_size, key, 1, rrsig_algorithm_rollover)) {
+                /*
+                 * We found a good key, so we will not do any transition.
+                 */
+                return 0;
             }
             break;
 
         default:
             return 1;
+        }
+    }
+
+    /*
+     * Check if DNSSEC state will be invalid by the transition unless we are
+     * allowing the zone to be unsigned.
+     */
+    if (!allow_unsigned) {
+        /*
+         * Process all DNSSEC rules, if anyone returns non-zero it means that
+         * its rule has been broken and we can not transition.
+         */
+        if (rule1(keylist, keylist_size, key)
+            || rule2(keylist, keylist_size, key)
+            || rule3(keylist, keylist_size, key))
+        {
+            return 0;
         }
     }
 
@@ -1171,10 +1253,10 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
             ods_log_verbose("[%s] %s: processing key %s", module_str, scmd,
                 hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
-            if (processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_ds(keylist[i]), &change)
-                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change)
-                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change)
-                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change))
+            if (processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_ds(keylist[i]), &change, allow_unsigned)
+                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change, allow_unsigned)
+                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change, allow_unsigned)
+                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change, allow_unsigned))
             {
                 /* TODO: handle error */
             }
