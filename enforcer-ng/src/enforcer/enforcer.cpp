@@ -1147,20 +1147,20 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
     }
 
     /*
-     * Check if DNSSEC state will be invalid by the transition unless we are
-     * allowing the zone to be unsigned.
+     * Check if DNSSEC state will be invalid by the transition.
+     *
+     * Process all DNSSEC rules, if anyone returns non-zero it means that
+     * its rule has been broken and we can not transition.
+     *
+     * rule1 - If signed, check valid DS state
+     * rule2 - TODO
+     * rule3 - TODO
      */
-    if (!allow_unsigned) {
-        /*
-         * Process all DNSSEC rules, if anyone returns non-zero it means that
-         * its rule has been broken and we can not transition.
-         */
-        if (rule1(keylist, keylist_size, key)
-            || rule2(keylist, keylist_size, key)
-            || rule3(keylist, keylist_size, key))
-        {
-            return 0;
-        }
+    if ((!allow_unsigned && rule1(keylist, keylist_size, key))
+        || rule2(keylist, keylist_size, key)
+        || rule3(keylist, keylist_size, key))
+    {
+        return 0;
     }
 
     return 0;
