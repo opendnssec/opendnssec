@@ -119,6 +119,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
 
+    stdineof = 0;
     FD_ZERO(&rset);
     for(;;) {
         /* prepare */
@@ -374,11 +375,6 @@ main(int argc, char* argv[])
     char* cmd = NULL;
     int ret = 0;
 
-    clialloc = allocator_create(malloc, free);
-    if (!clialloc) {
-        fprintf(stderr,"error, malloc failed for client\n");
-        exit(1);
-    }
     /* command line options */
     if (argc > 10) {
         fprintf(stderr,"error, too many arguments (%d)\n", argc);
@@ -428,7 +424,7 @@ main(int argc, char* argv[])
             exit(1);
         }
         (void)strncpy(cmd, "", 1);
-        for (c = 1; c < options_count; c++) {
+        for (c = 0; c < options_count; c++) {
             (void)strncat(cmd, options[c], strlen(options[c]));
             (void)strncat(cmd, " ", 1);
         }
@@ -440,7 +436,6 @@ main(int argc, char* argv[])
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] cfgfile %s has errors", cli_str, cfgfile);
         engine_config_cleanup(config);
-        allocator_deallocate(clialloc, (void*) cmd);
         if (cmd) allocator_deallocate(clialloc, (void*) cmd);
         allocator_cleanup(clialloc);
         return 1;
@@ -449,7 +444,7 @@ main(int argc, char* argv[])
     ret = interface_start(cmd, config);
     /* done */
     engine_config_cleanup(config);
-    allocator_deallocate(clialloc, (void*) cmd);
+    if (cmd) allocator_deallocate(clialloc, (void*) cmd);
     allocator_cleanup(clialloc);
     return ret;
 }
