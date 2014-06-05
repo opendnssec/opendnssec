@@ -1,3 +1,6 @@
+5 June 2014: Matthijs
+- OPENDNSSEC-621: configure pidfile and socketfile in conf.xml.
+
 28 April 2014: Matthijs
 - Show secondary address in NOTIFY error logs.
 - Fix locks bug (thanks Yuri).

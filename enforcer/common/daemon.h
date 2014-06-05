@@ -113,9 +113,10 @@ typedef struct
     int rolloverNotify;
     char* DSSubmitCmd;
     int DSSubCKA_ID;
-	char* policy;
+    char* policy;
 
     int log_user; /* log facility (or default of LOG_DAEMON) */
+    int pidfile_set;
 
 } DAEMONCONFIG;
 

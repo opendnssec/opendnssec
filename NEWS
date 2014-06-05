@@ -4,6 +4,10 @@ OpenDNSSEC 1.4.6
   errors.
 * Build: Fixed various OpenBSD compatibility issues found by Patrik Lundin
   <patrik.lundin.swe () gmail.com>.
+* OPENDNSSEC-621: conf.xml: New options: <PidFile> for both enforcer and
+  signer, and <SocketFile> for the signer.
+* New tool: ods-getconf: to retrieve a configuration value from conf.xml
+  given an expression.
 
 Bugfixes:
 * OPENDNSSEC-617: Signer Engine: Fix DNS Input Adapter to not reject zone
