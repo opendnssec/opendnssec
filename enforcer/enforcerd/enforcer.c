@@ -68,7 +68,7 @@ server_init(DAEMONCONFIG *config)
 
     /* set the default pidfile if nothing was provided on the command line*/
     if (config->pidfile == NULL) {
-        config->pidfile = OPENDNSSEC_ENFORCER_PIDFILE;
+        config->pidfile = StrStrdup( (char *)OPENDNSSEC_ENFORCER_PIDFILE);
     }
 
     return 0;
