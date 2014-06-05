@@ -1,5 +1,6 @@
 5 June 2014: Matthijs
-- OPENDNSSEC-621: configure pidfile and socketfile in conf.xml.
+- OPENDNSSEC-621: Configure pidfile and socketfile in conf.xml.
+- OPENDNSSEC-630: Handle root zone differently in working directory.
 
 28 April 2014: Matthijs
 - Show secondary address in NOTIFY error logs.
