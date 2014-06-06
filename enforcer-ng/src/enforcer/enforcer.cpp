@@ -167,6 +167,7 @@ getState(KeyData &key, const RECORD record,
 	else
 		return (STATE)getRecord(key, record).state();
 }
+
 /**
  * Given goal and state, what will be the next state?
  * 
@@ -252,7 +253,10 @@ exists_old(KeyDataList &key_list, const struct FutureKey *future_key,
 	return false;
 }
 
-static int not_exists(key_data_t** keylist, size_t keylist_size, key_data_t* key, int same_algorithm, const key_state_state_t mask[4]) {
+static int
+not_exists(key_data_t** keylist, size_t keylist_size, key_data_t* key,
+	int same_algorithm, const key_state_state_t mask[4])
+{
 	size_t i;
 
 	if (!keylist) {
@@ -533,7 +537,9 @@ rule1_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		exists_old(key_list, future_key, false, mask_triv) ||
 		exists_old(key_list, future_key, false, mask_dsin);
 }
-static int rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
+static int
+rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key)
+{
 	static const key_state_state_t mask[2][4] = {
 		/*
 		 * This indicates a good key state.
@@ -604,7 +610,9 @@ rule2_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		
 		unsignedOk(key_list, future_key, mask_unsg, DS);
 }
-static int rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
+static int
+rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key)
+{
 	static const key_state_state_t mask[1][4] = {
 		/*
 		 * This indicates a good key state.
@@ -661,7 +669,9 @@ rule3_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		exists_with_successor(dep_list, key_list, future_key, true, mask_sigo, mask_sigi, RS) ||
 		unsignedOk(key_list, future_key, mask_unsg, DK);
 }
-static int rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
+static int
+rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key)
+{
 	static const key_state_state_t mask[2][4] = {
 		/*
 		 * This indicates a good key state.
@@ -880,7 +890,6 @@ setState(EnforcerZone &zone, const struct FutureKey *future_key,
 	zone.setSignerConfNeedsWriting(true);
 }
 
-
 /** Find out if this key can be in a successor relation */
 static bool
 isSuccessable(const struct FutureKey *future_key)
@@ -908,8 +917,6 @@ isSuccessable(const struct FutureKey *future_key)
 	return true;
 }
 
-
-
 static void
 markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, 
 	struct FutureKey *future_key)
@@ -925,7 +932,11 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 	}
 }
 
-static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist, size_t keylist_size, key_data_t* key, key_state_t* state, int* change, int allow_unsigned) {
+static int
+processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
+	size_t keylist_size, key_data_t* key, key_state_t* state,
+	int* change, int allow_unsigned)
+{
 	key_state_state_t desired_state = KEY_STATE_STATE_INVALID;
 	static const char *scmd = "processKeyState";
 	size_t i;
@@ -1173,7 +1184,10 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
  * @param now, current time
  * @return first absolute time some record *could* be advanced.
  * */
-static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int allow_unsigned, int *zone_updated) {
+static time_t
+updateZone(policy_t* policy, zone_t* zone, const time_t now,
+	int allow_unsigned, int *zone_updated)
+{
 	time_t returntime_zone = -1;
 	unsigned int ttl;
 	key_data_list_t *key_list;
