@@ -32,8 +32,8 @@ test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 grep 'ods\..*600.*IN.*TXT.*"this		text	has	tabs"' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 # Validate the output
-log_this validate-zone-root validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/root" &&
-log_grep validate-zone-root stdout 'validation errors:   0' &&
+# log_this validate-zone-root validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/root" &&
+# log_grep validate-zone-root stdout 'validation errors:   0' &&
 log_this validate-zone-ods validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 log_grep validate-zone-ods stdout 'validation errors:   0' &&
 ods_stop_ods-control &&
