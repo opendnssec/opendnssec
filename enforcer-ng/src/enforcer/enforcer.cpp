@@ -277,13 +277,13 @@ static int not_exists(key_data_t** keylist, size_t keylist_size, key_data_t* key
 		 * Check the states against the mask, for each mask that is not NA we
 		 * need a match on that key state. If there is no match we continue.
 		 */
-		if ((mask[0] != KEY_STATE_STATE_NA
+		if ((mask[0] != NA
 				&& key_state_state(key_data_cached_ds(keylist[i])) != mask[0])
-			|| (mask[1] != KEY_STATE_STATE_NA
+			|| (mask[1] != NA
 				&& key_state_state(key_data_cached_dnskey(keylist[i])) != mask[1])
-			|| (mask[2] != KEY_STATE_STATE_NA
+			|| (mask[2] != NA
 				&& key_state_state(key_data_cached_rrsigdnskey(keylist[i])) != mask[2])
-			|| (mask[3] != KEY_STATE_STATE_NA
+			|| (mask[3] != NA
 				&& key_state_state(key_data_cached_rrsig(keylist[i])) != mask[3]))
 		{
 			continue;
@@ -942,24 +942,24 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 		 * omnipresent keys to unretentive and unretentive keys to hidden.
 		 */
 		switch (key_state_state(state)) {
-		case KEY_STATE_STATE_HIDDEN:
-			desired_state = KEY_STATE_STATE_HIDDEN;
+		case HIDDEN:
+			desired_state = HIDDEN;
 			break;
 
-		case KEY_STATE_STATE_RUMOURED:
-			desired_state = KEY_STATE_STATE_UNRETENTIVE;
+		case RUMOURED:
+			desired_state = UNRETENTIVE;
 			break;
 
-		case KEY_STATE_STATE_OMNIPRESENT:
-			desired_state = KEY_STATE_STATE_UNRETENTIVE;
+		case OMNIPRESENT:
+			desired_state = UNRETENTIVE;
 			break;
 
-		case KEY_STATE_STATE_UNRETENTIVE:
-			desired_state = KEY_STATE_STATE_HIDDEN;
+		case UNRETENTIVE:
+			desired_state = HIDDEN;
 			break;
 
-		case KEY_STATE_STATE_NA:
-			desired_state = KEY_STATE_STATE_NA;
+		case NA:
+			desired_state = NA;
 			break;
 
 		default:
@@ -972,24 +972,24 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 		 * unretentive keys to rumoured and rumoured keys to omnipresent.
 		 */
 		switch (key_state_state(state)) {
-		case KEY_STATE_STATE_HIDDEN:
-			desired_state = KEY_STATE_STATE_RUMOURED;
+		case HIDDEN:
+			desired_state = RUMOURED;
 			break;
 
-		case KEY_STATE_STATE_RUMOURED:
-			desired_state = KEY_STATE_STATE_OMNIPRESENT;
+		case RUMOURED:
+			desired_state = OMNIPRESENT;
 			break;
 
-		case KEY_STATE_STATE_OMNIPRESENT:
-			desired_state = KEY_STATE_STATE_OMNIPRESENT;
+		case OMNIPRESENT:
+			desired_state = OMNIPRESENT;
 			break;
 
-		case KEY_STATE_STATE_UNRETENTIVE:
-			desired_state = KEY_STATE_STATE_RUMOURED;
+		case UNRETENTIVE:
+			desired_state = RUMOURED;
 			break;
 
-		case KEY_STATE_STATE_NA:
-			desired_state = KEY_STATE_STATE_NA;
+		case NA:
+			desired_state = NA;
 			break;
 
 		default:
@@ -1017,9 +1017,9 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 	 * for user input before we can transition the key.
 	 */
 	if (key_state_type(state) == KEY_STATE_TYPE_DS) {
-		if ((desired_state == KEY_STATE_STATE_OMNIPRESENT
+		if ((desired_state == OMNIPRESENT
 				&& key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SEEN)
-			|| (desired_state == KEY_STATE_STATE_HIDDEN
+			|| (desired_state == HIDDEN
 				&& key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
 		{
 			return 0;
@@ -1034,7 +1034,7 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 	/*
 	 * Check if policy prevents transition if the next state is rumoured.
 	 */
-	if (desired_state == KEY_STATE_STATE_RUMOURED) {
+	if (desired_state == RUMOURED) {
 		switch (key_state_type(state)) {
 		case KEY_STATE_TYPE_DS:
 			/*
@@ -1042,7 +1042,7 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 			 * fully propagated.
 			 */
 			if (key_state_minimize(state)
-				&& key_state_state(key_data_cached_dnskey(key)) != KEY_STATE_STATE_OMNIPRESENT)
+				&& key_state_state(key_data_cached_dnskey(key)) != OMNIPRESENT)
 			{
 				/*
 				 * DNSKEY is not fully propagated so we will not do any transitions.
@@ -1065,8 +1065,8 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 			 *
 			 * TODO: How is this related to CSK/ZSK, there is no check for key_data_role().
 			 */
-			if (key_state_state(key_data_cached_rrsig(key)) != KEY_STATE_STATE_OMNIPRESENT
-				&& key_state_state(key_data_cached_rrsig(key)) != KEY_STATE_STATE_NA)
+			if (key_state_state(key_data_cached_rrsig(key)) != OMNIPRESENT
+				&& key_state_state(key_data_cached_rrsig(key)) != NA)
 			{
 				/*
 				 * RRSIG not fully propagated so we will not do any transitions.
@@ -1077,8 +1077,8 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 			/*
 			 * Check if the DS is introduced and continue if it is.
 			 */
-			if (key_state_state(key_data_cached_ds(key)) == KEY_STATE_STATE_OMNIPRESENT
-				|| key_state_state(key_data_cached_ds(key)) == KEY_STATE_STATE_NA)
+			if (key_state_state(key_data_cached_ds(key)) == OMNIPRESENT
+				|| key_state_state(key_data_cached_ds(key)) == NA)
 			{
 				break;
 			}
@@ -1105,7 +1105,7 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 			 * TODO: How do we know we are introducing the RRSIG DNSKEY? We might be
 			 * outroducing it.
 			 */
-			if (key_state_state(key_data_cached_dnskey(key)) == KEY_STATE_STATE_HIDDEN) {
+			if (key_state_state(key_data_cached_dnskey(key)) == HIDDEN) {
 				return 0;
 			}
 			break;
@@ -1122,7 +1122,7 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
 			/*
 			 * Check if the DNSKEY is introduced and continue if it is.
 			 */
-			if (key_state_state(key_data_cached_dnskey(key)) == KEY_STATE_STATE_OMNIPRESENT) {
+			if (key_state_state(key_data_cached_dnskey(key)) == OMNIPRESENT) {
 				break;
 			}
 
@@ -1262,7 +1262,7 @@ static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int a
 		 * into account.
 		 */
 		for (i = 0; i < keylist_size; i++) {
-			if (key_state_state(key_data_cached_dnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT) {
+			if (key_state_state(key_data_cached_dnskey(keylist[i])) == OMNIPRESENT) {
 				break;
 			}
 		}
