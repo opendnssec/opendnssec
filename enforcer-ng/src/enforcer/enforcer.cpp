@@ -68,7 +68,6 @@
 #define UNRETENTIVE KEY_STATE_STATE_UNRETENTIVE
 #define NA          KEY_STATE_STATE_NA
 
-
 using namespace std;
 using ::ods::kasp::Policy;
 using ::ods::kasp::KeyList;
@@ -105,7 +104,7 @@ struct FutureKey {
 static inline void
 minTime(const time_t t, time_t* min)
 {
-	assert(min); /* TODO: propper error */
+	assert(min); /* TODO: proper error */
 	if ( (t < *min || *min < 0) && t >= 0 ) *min = t;
 }
 
@@ -122,7 +121,7 @@ static time_t
 addtime(const time_t t, const int seconds)
 {
 	struct tm *tp = localtime(&t);
-	assert(tp); /* TODO: propper error */
+	if (!tp) return -1; /* bad, but mktime also returns -1 on error */
 	tp->tm_sec += seconds;
 	return mktime(tp);
 }
