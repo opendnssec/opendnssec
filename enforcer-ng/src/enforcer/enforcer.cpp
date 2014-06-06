@@ -25,7 +25,6 @@
  */
 
 /* 
- * 
  * @section DESCRIPTION
  * 
  * This module controls the order and time for keys to be introduced,
@@ -38,7 +37,7 @@
  * should not be called sooner. Calling sooner is not harmful in any
  * way but also not effective. Calling later does not do any harm as 
  * well, however rollovers may be delayed.
- * */
+ */
 
 #include <ctime>
 #include <iostream>
@@ -106,7 +105,7 @@ struct FutureKey {
 static inline void
 minTime(const time_t t, time_t* min)
 {
-    assert(min); /* TODO: propper error */
+	assert(min); /* TODO: propper error */
 	if ( (t < *min || *min < 0) && t >= 0 ) *min = t;
 }
 
@@ -184,7 +183,7 @@ getState(KeyData &key, const RECORD record,
 static STATE
 getDesiredState(const bool introducing, const STATE state)
 {
-    static const char *scmd = "getDesiredState";
+	static const char *scmd = "getDesiredState";
 	if (state > NOCARE || state < HID) 
 		ods_fatal_exit("[%s] %s Key in unknown state (%d), "
 			"Corrupt database? Abort.",  module_str, scmd, (int)state);
@@ -255,51 +254,51 @@ exists_old(KeyDataList &key_list, const struct FutureKey *future_key,
 }
 
 static int not_exists(key_data_t** keylist, size_t keylist_size, key_data_t* key, int same_algorithm, const key_state_state_t mask[4]) {
-    size_t i;
+	size_t i;
 
-    if (!keylist) {
-        return -1;
-    }
-    if (!key) {
-        return -1;
-    }
+	if (!keylist) {
+		return -1;
+	}
+	if (!key) {
+		return -1;
+	}
 
-    for (i = 0; i < keylist_size; i++) {
-        /*
-         * Skip checking the key we are processing now and if its not the same
-         * algorithm (if same_algorithm is set).
-         */
-        if (key == keylist[i]
-            || (same_algorithm && key_data_algorithm(key) != key_data_algorithm(keylist[i])))
-        {
-            continue;
-        }
-        /*
-         * Check the states against the mask, for each mask that is not NA we
-         * need a match on that key state. If there is no match we continue.
-         */
-        if ((mask[0] != KEY_STATE_STATE_NA
-                && key_state_state(key_data_cached_ds(keylist[i])) != mask[0])
-            || (mask[1] != KEY_STATE_STATE_NA
-                && key_state_state(key_data_cached_dnskey(keylist[i])) != mask[1])
-            || (mask[2] != KEY_STATE_STATE_NA
-                && key_state_state(key_data_cached_rrsigdnskey(keylist[i])) != mask[2])
-            || (mask[3] != KEY_STATE_STATE_NA
-                && key_state_state(key_data_cached_rrsig(keylist[i])) != mask[3]))
-        {
-            continue;
-        }
+	for (i = 0; i < keylist_size; i++) {
+		/*
+		 * Skip checking the key we are processing now and if its not the same
+		 * algorithm (if same_algorithm is set).
+		 */
+		if (key == keylist[i]
+			|| (same_algorithm && key_data_algorithm(key) != key_data_algorithm(keylist[i])))
+		{
+			continue;
+		}
+		/*
+		 * Check the states against the mask, for each mask that is not NA we
+		 * need a match on that key state. If there is no match we continue.
+		 */
+		if ((mask[0] != KEY_STATE_STATE_NA
+				&& key_state_state(key_data_cached_ds(keylist[i])) != mask[0])
+			|| (mask[1] != KEY_STATE_STATE_NA
+				&& key_state_state(key_data_cached_dnskey(keylist[i])) != mask[1])
+			|| (mask[2] != KEY_STATE_STATE_NA
+				&& key_state_state(key_data_cached_rrsigdnskey(keylist[i])) != mask[2])
+			|| (mask[3] != KEY_STATE_STATE_NA
+				&& key_state_state(key_data_cached_rrsig(keylist[i])) != mask[3]))
+		{
+			continue;
+		}
 
-        /*
-         * We have a match and do not have to continue, return non-error.
-         */
-        return 0;
-    }
+		/*
+		 * We have a match and do not have to continue, return non-error.
+		 */
+		return 0;
+	}
 
-    /*
-     * We got no match, return success.
-     */
-    return 1;
+	/*
+	 * We got no match, return success.
+	 */
+	return 1;
 }
 
 /** Looks up KeyData from locator string.
@@ -536,34 +535,34 @@ rule1_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		exists_old(key_list, future_key, false, mask_dsin);
 }
 static int rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
-    static const key_state_state_t mask[2][4] = {
-        /*
-         * This indicates a good key state.
-         */
-        { OMNIPRESENT, NA, NA, NA },
-        /*
-         * This indicates that the DS is introducing.
-         */
-        { RUMOURED, NA, NA, NA }
-    };
+	static const key_state_state_t mask[2][4] = {
+		/*
+		 * This indicates a good key state.
+		 */
+		{ OMNIPRESENT, NA, NA, NA },
+		/*
+		 * This indicates that the DS is introducing.
+		 */
+		{ RUMOURED, NA, NA, NA }
+	};
 
-    if (!keylist) {
-        return -1;
-    }
-    if (!key) {
-        return -1;
-    }
+	if (!keylist) {
+		return -1;
+	}
+	if (!key) {
+		return -1;
+	}
 
-    if (not_exists(keylist, keylist_size, key, 1, mask[0])
-        && not_exists(keylist, keylist_size, key, 1, mask[1]))
-    {
-        /*
-         * None of the required mask was found, return non-zero to indicate that
-         * the rule has been broken.
-         */
-        return 1;
-    }
-    return 0;
+	if (not_exists(keylist, keylist_size, key, 1, mask[0])
+		&& not_exists(keylist, keylist_size, key, 1, mask[1]))
+	{
+		/*
+		 * None of the required mask was found, return non-zero to indicate that
+		 * the rule has been broken.
+		 */
+		return 1;
+	}
+	return 0;
 }
 
 /** 
@@ -607,29 +606,29 @@ rule2_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		unsignedOk(key_list, future_key, mask_unsg, DS);
 }
 static int rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
-    static const key_state_state_t mask[1][4] = {
-        /*
-         * This indicates a good key state.
-         */
-        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA }
-    };
+	static const key_state_state_t mask[1][4] = {
+		/*
+		 * This indicates a good key state.
+		 */
+		{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA }
+	};
 
-    if (!keylist) {
-        return -1;
-    }
-    if (!key) {
-        return -1;
-    }
+	if (!keylist) {
+		return -1;
+	}
+	if (!key) {
+		return -1;
+	}
 
-    if (not_exists(keylist, keylist_size, key, 1, mask[0]))
-    {
-        /*
-         * None of the required mask was found, return non-zero to indicate that
-         * the rule has been broken.
-         */
-        return 1;
-    }
-    return 0;
+	if (not_exists(keylist, keylist_size, key, 1, mask[0]))
+	{
+		/*
+		 * None of the required mask was found, return non-zero to indicate that
+		 * the rule has been broken.
+		 */
+		return 1;
+	}
+	return 0;
 }
 
 /** 
@@ -664,29 +663,29 @@ rule3_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		unsignedOk(key_list, future_key, mask_unsg, DK);
 }
 static int rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key) {
-    static const key_state_state_t mask[2][4] = {
-        /*
-         * This indicates a good key state.
-         */
-        { NA, OMNIPRESENT, NA, OMNIPRESENT }
-    };
+	static const key_state_state_t mask[2][4] = {
+		/*
+		 * This indicates a good key state.
+		 */
+		{ NA, OMNIPRESENT, NA, OMNIPRESENT }
+	};
 
-    if (!keylist) {
-        return -1;
-    }
-    if (!key) {
-        return -1;
-    }
+	if (!keylist) {
+		return -1;
+	}
+	if (!key) {
+		return -1;
+	}
 
-    if (not_exists(keylist, keylist_size, key, 1, mask[0]))
-    {
-        /*
-         * None of the required mask was found, return non-zero to indicate that
-         * the rule has been broken.
-         */
-        return 1;
-    }
-    return 0;
+	if (not_exists(keylist, keylist_size, key, 1, mask[0]))
+	{
+		/*
+		 * None of the required mask was found, return non-zero to indicate that
+		 * the rule has been broken.
+		 */
+		return 1;
+	}
+	return 0;
 }
 
 /**
@@ -832,7 +831,7 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 static int
 getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 {
-    static const char *scmd = "getTTL";
+	static const char *scmd = "getTTL";
 	const Policy *policy = zone.policy();
 	
 	time_t endDate;
@@ -887,7 +886,7 @@ setState(EnforcerZone &zone, const struct FutureKey *future_key,
 static bool
 isSuccessable(const struct FutureKey *future_key)
 {
-    static const char *scmd = "isSuccessable";
+	static const char *scmd = "isSuccessable";
 	
 	if (future_key->next_state != UNR) return false;
 	switch(future_key->record) {
@@ -916,7 +915,7 @@ static void
 markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, 
 	struct FutureKey *future_key)
 {
-    static const char *scmd = "markSuccessors";
+	static const char *scmd = "markSuccessors";
 	if (!isSuccessable(future_key)) return;
 	/** Which keys can be potential successors? */
 	for (int i = 0; i < key_list.numKeys(); i++) {
@@ -928,242 +927,242 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 }
 
 static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist, size_t keylist_size, key_data_t* key, key_state_t* state, int* change, int allow_unsigned) {
-    key_state_state_t desired_state = KEY_STATE_STATE_INVALID;
-    static const char *scmd = "processKeyState";
-    size_t i;
-    static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
-    static const key_state_state_t rrsig_algorithm_rollover[4] = { NA, OMNIPRESENT, NA, OMNIPRESENT };
+	key_state_state_t desired_state = KEY_STATE_STATE_INVALID;
+	static const char *scmd = "processKeyState";
+	size_t i;
+	static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
+	static const key_state_state_t rrsig_algorithm_rollover[4] = { NA, OMNIPRESENT, NA, OMNIPRESENT };
 
-    /*
-     * Given goal and state, what will be the next state?
-     */
-    if (!key_data_introducing(key)) {
-        /*
-         * We are outroducing this key so we would like to move rumoured and
-         * omnipresent keys to unretentive and unretentive keys to hidden.
-         */
-        switch (key_state_state(state)) {
-        case KEY_STATE_STATE_HIDDEN:
-            desired_state = KEY_STATE_STATE_HIDDEN;
-            break;
+	/*
+	 * Given goal and state, what will be the next state?
+	 */
+	if (!key_data_introducing(key)) {
+		/*
+		 * We are outroducing this key so we would like to move rumoured and
+		 * omnipresent keys to unretentive and unretentive keys to hidden.
+		 */
+		switch (key_state_state(state)) {
+		case KEY_STATE_STATE_HIDDEN:
+			desired_state = KEY_STATE_STATE_HIDDEN;
+			break;
 
-        case KEY_STATE_STATE_RUMOURED:
-            desired_state = KEY_STATE_STATE_UNRETENTIVE;
-            break;
+		case KEY_STATE_STATE_RUMOURED:
+			desired_state = KEY_STATE_STATE_UNRETENTIVE;
+			break;
 
-        case KEY_STATE_STATE_OMNIPRESENT:
-            desired_state = KEY_STATE_STATE_UNRETENTIVE;
-            break;
+		case KEY_STATE_STATE_OMNIPRESENT:
+			desired_state = KEY_STATE_STATE_UNRETENTIVE;
+			break;
 
-        case KEY_STATE_STATE_UNRETENTIVE:
-            desired_state = KEY_STATE_STATE_HIDDEN;
-            break;
+		case KEY_STATE_STATE_UNRETENTIVE:
+			desired_state = KEY_STATE_STATE_HIDDEN;
+			break;
 
-        case KEY_STATE_STATE_NA:
-            desired_state = KEY_STATE_STATE_NA;
-            break;
+		case KEY_STATE_STATE_NA:
+			desired_state = KEY_STATE_STATE_NA;
+			break;
 
-        default:
-            break;
-        }
-    }
-    else {
-        /*
-         * We are introducing this key so we would like to move hidden and
-         * unretentive keys to rumoured and rumoured keys to omnipresent.
-         */
-        switch (key_state_state(state)) {
-        case KEY_STATE_STATE_HIDDEN:
-            desired_state = KEY_STATE_STATE_RUMOURED;
-            break;
+		default:
+			break;
+		}
+	}
+	else {
+		/*
+		 * We are introducing this key so we would like to move hidden and
+		 * unretentive keys to rumoured and rumoured keys to omnipresent.
+		 */
+		switch (key_state_state(state)) {
+		case KEY_STATE_STATE_HIDDEN:
+			desired_state = KEY_STATE_STATE_RUMOURED;
+			break;
 
-        case KEY_STATE_STATE_RUMOURED:
-            desired_state = KEY_STATE_STATE_OMNIPRESENT;
-            break;
+		case KEY_STATE_STATE_RUMOURED:
+			desired_state = KEY_STATE_STATE_OMNIPRESENT;
+			break;
 
-        case KEY_STATE_STATE_OMNIPRESENT:
-            desired_state = KEY_STATE_STATE_OMNIPRESENT;
-            break;
+		case KEY_STATE_STATE_OMNIPRESENT:
+			desired_state = KEY_STATE_STATE_OMNIPRESENT;
+			break;
 
-        case KEY_STATE_STATE_UNRETENTIVE:
-            desired_state = KEY_STATE_STATE_RUMOURED;
-            break;
+		case KEY_STATE_STATE_UNRETENTIVE:
+			desired_state = KEY_STATE_STATE_RUMOURED;
+			break;
 
-        case KEY_STATE_STATE_NA:
-            desired_state = KEY_STATE_STATE_NA;
-            break;
+		case KEY_STATE_STATE_NA:
+			desired_state = KEY_STATE_STATE_NA;
+			break;
 
-        default:
-            break;
-        }
-    }
+		default:
+			break;
+		}
+	}
 
-    /*
-     * The desired_state is invalid something went wrong and we should return
-     * an error.
-     */
-    if (desired_state == KEY_STATE_STATE_INVALID) {
-        return 1;
-    }
+	/*
+	 * The desired_state is invalid something went wrong and we should return
+	 * an error.
+	 */
+	if (desired_state == KEY_STATE_STATE_INVALID) {
+		return 1;
+	}
 
-    /*
-     * If there is no change in key state we return.
-     */
-    if (key_state_state(state) == desired_state) {
-        return 0;
-    }
+	/*
+	 * If there is no change in key state we return.
+	 */
+	if (key_state_state(state) == desired_state) {
+		return 0;
+	}
 
-    /*
-     * If the key state is a DS then we need to check if we still are waiting
-     * for user input before we can transition the key.
-     */
-    if (key_state_type(state) == KEY_STATE_TYPE_DS) {
-        if ((desired_state == KEY_STATE_STATE_OMNIPRESENT
-                && key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SEEN)
-            || (desired_state == KEY_STATE_STATE_HIDDEN
-                && key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
-        {
-            return 0;
-        }
-    }
+	/*
+	 * If the key state is a DS then we need to check if we still are waiting
+	 * for user input before we can transition the key.
+	 */
+	if (key_state_type(state) == KEY_STATE_TYPE_DS) {
+		if ((desired_state == KEY_STATE_STATE_OMNIPRESENT
+				&& key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SEEN)
+			|| (desired_state == KEY_STATE_STATE_HIDDEN
+				&& key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
+		{
+			return 0;
+		}
+	}
 
-    ods_log_verbose("[%s] %s: May %s in state %s transition to %s?", module_str, scmd,
-        hsm_key_locator(key_data_cached_hsm_key(key)),
-        key_state_state_text(state),
-        key_state_enum_set_state[desired_state]);
+	ods_log_verbose("[%s] %s: May %s in state %s transition to %s?", module_str, scmd,
+		hsm_key_locator(key_data_cached_hsm_key(key)),
+		key_state_state_text(state),
+		key_state_enum_set_state[desired_state]);
 
-    /*
-     * Check if policy prevents transition if the next state is rumoured.
-     */
-    if (desired_state == KEY_STATE_STATE_RUMOURED) {
-        switch (key_state_type(state)) {
-        case KEY_STATE_TYPE_DS:
-            /*
-             * If we want to minimize the DS transitions make sure the DNSKEY is
-             * fully propagated.
-             */
-            if (key_state_minimize(state)
-                && key_state_state(key_data_cached_dnskey(key)) != KEY_STATE_STATE_OMNIPRESENT)
-            {
-                /*
-                 * DNSKEY is not fully propagated so we will not do any transitions.
-                 */
-                return 0;
-            }
-            break;
+	/*
+	 * Check if policy prevents transition if the next state is rumoured.
+	 */
+	if (desired_state == KEY_STATE_STATE_RUMOURED) {
+		switch (key_state_type(state)) {
+		case KEY_STATE_TYPE_DS:
+			/*
+			 * If we want to minimize the DS transitions make sure the DNSKEY is
+			 * fully propagated.
+			 */
+			if (key_state_minimize(state)
+				&& key_state_state(key_data_cached_dnskey(key)) != KEY_STATE_STATE_OMNIPRESENT)
+			{
+				/*
+				 * DNSKEY is not fully propagated so we will not do any transitions.
+				 */
+				return 0;
+			}
+			break;
 
-        case KEY_STATE_TYPE_DNSKEY:
-            if (!key_state_minimize(state)) {
-                /*
-                 * There are no restrictions for the DNSKEY transition so we can
-                 * just continue.
-                 */
-                break;
-            }
+		case KEY_STATE_TYPE_DNSKEY:
+			if (!key_state_minimize(state)) {
+				/*
+				 * There are no restrictions for the DNSKEY transition so we can
+				 * just continue.
+				 */
+				break;
+			}
 
-            /*
-             * Check that signatures has been propagated for CSK/ZSK.
-             *
-             * TODO: How is this related to CSK/ZSK, there is no check for key_data_role().
-             */
-            if (key_state_state(key_data_cached_rrsig(key)) != KEY_STATE_STATE_OMNIPRESENT
-                && key_state_state(key_data_cached_rrsig(key)) != KEY_STATE_STATE_NA)
-            {
-                /*
-                 * RRSIG not fully propagated so we will not do any transitions.
-                 */
-                return 0;
-            }
+			/*
+			 * Check that signatures has been propagated for CSK/ZSK.
+			 *
+			 * TODO: How is this related to CSK/ZSK, there is no check for key_data_role().
+			 */
+			if (key_state_state(key_data_cached_rrsig(key)) != KEY_STATE_STATE_OMNIPRESENT
+				&& key_state_state(key_data_cached_rrsig(key)) != KEY_STATE_STATE_NA)
+			{
+				/*
+				 * RRSIG not fully propagated so we will not do any transitions.
+				 */
+				return 0;
+			}
 
-            /*
-             * Check if the DS is introduced and continue if it is.
-             */
-            if (key_state_state(key_data_cached_ds(key)) == KEY_STATE_STATE_OMNIPRESENT
-                || key_state_state(key_data_cached_ds(key)) == KEY_STATE_STATE_NA)
-            {
-                break;
-            }
+			/*
+			 * Check if the DS is introduced and continue if it is.
+			 */
+			if (key_state_state(key_data_cached_ds(key)) == KEY_STATE_STATE_OMNIPRESENT
+				|| key_state_state(key_data_cached_ds(key)) == KEY_STATE_STATE_NA)
+			{
+				break;
+			}
 
-            /*
-             * We might be doing an algorithm rollover so we check if there are
-             * no other good KSK available and ignore the minimize flag if so.
-             *
-             * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
-             */
-            if (!not_exists(keylist, keylist_size, key, 1, dnskey_algorithm_rollover)) {
-                /*
-                 * We found a good key, so we will not do any transition.
-                 */
-                return 0;
-            }
-            break;
+			/*
+			 * We might be doing an algorithm rollover so we check if there are
+			 * no other good KSK available and ignore the minimize flag if so.
+			 *
+			 * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
+			 */
+			if (!not_exists(keylist, keylist_size, key, 1, dnskey_algorithm_rollover)) {
+				/*
+				 * We found a good key, so we will not do any transition.
+				 */
+				return 0;
+			}
+			break;
 
-        case KEY_STATE_TYPE_RRSIGDNSKEY:
-            /*
-             * The only time not to introduce RRSIG DNSKEY is when the DNSKEY is
-             * still hidden.
-             *
-             * TODO: How do we know we are introducing the RRSIG DNSKEY? We might be
-             * outroducing it.
-             */
-            if (key_state_state(key_data_cached_dnskey(key)) == KEY_STATE_STATE_HIDDEN) {
-                return 0;
-            }
-            break;
+		case KEY_STATE_TYPE_RRSIGDNSKEY:
+			/*
+			 * The only time not to introduce RRSIG DNSKEY is when the DNSKEY is
+			 * still hidden.
+			 *
+			 * TODO: How do we know we are introducing the RRSIG DNSKEY? We might be
+			 * outroducing it.
+			 */
+			if (key_state_state(key_data_cached_dnskey(key)) == KEY_STATE_STATE_HIDDEN) {
+				return 0;
+			}
+			break;
 
-        case KEY_STATE_TYPE_RRSIG:
-            if (!key_state_minimize(state)) {
-                /*
-                 * There are no restrictions for the RRSIG transition so we can
-                 * just continue.
-                 */
-                break;
-            }
+		case KEY_STATE_TYPE_RRSIG:
+			if (!key_state_minimize(state)) {
+				/*
+				 * There are no restrictions for the RRSIG transition so we can
+				 * just continue.
+				 */
+				break;
+			}
 
-            /*
-             * Check if the DNSKEY is introduced and continue if it is.
-             */
-            if (key_state_state(key_data_cached_dnskey(key)) == KEY_STATE_STATE_OMNIPRESENT) {
-                break;
-            }
+			/*
+			 * Check if the DNSKEY is introduced and continue if it is.
+			 */
+			if (key_state_state(key_data_cached_dnskey(key)) == KEY_STATE_STATE_OMNIPRESENT) {
+				break;
+			}
 
-            /*
-             * We might be doing an algorithm rollover so we check if there are
-             * no other good ZSK available and ignore the minimize flag if so.
-             *
-             * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
-             */
-            if (!not_exists(keylist, keylist_size, key, 1, rrsig_algorithm_rollover)) {
-                /*
-                 * We found a good key, so we will not do any transition.
-                 */
-                return 0;
-            }
-            break;
+			/*
+			 * We might be doing an algorithm rollover so we check if there are
+			 * no other good ZSK available and ignore the minimize flag if so.
+			 *
+			 * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
+			 */
+			if (!not_exists(keylist, keylist_size, key, 1, rrsig_algorithm_rollover)) {
+				/*
+				 * We found a good key, so we will not do any transition.
+				 */
+				return 0;
+			}
+			break;
 
-        default:
-            return 1;
-        }
-    }
+		default:
+			return 1;
+		}
+	}
 
-    /*
-     * Check if DNSSEC state will be invalid by the transition.
-     *
-     * Process all DNSSEC rules, if anyone returns non-zero it means that
-     * its rule has been broken and we can not transition.
-     *
-     * rule1 - If signed, check valid DS state
-     * rule2 - TODO
-     * rule3 - TODO
-     */
-    if ((!allow_unsigned && rule1(keylist, keylist_size, key))
-        || rule2(keylist, keylist_size, key)
-        || rule3(keylist, keylist_size, key))
-    {
-        return 0;
-    }
+	/*
+	 * Check if DNSSEC state will be invalid by the transition.
+	 *
+	 * Process all DNSSEC rules, if anyone returns non-zero it means that
+	 * its rule has been broken and we can not transition.
+	 *
+	 * rule1 - If signed, check valid DS state
+	 * rule2 - TODO
+	 * rule3 - TODO
+	 */
+	if ((!allow_unsigned && rule1(keylist, keylist_size, key))
+		|| rule2(keylist, keylist_size, key)
+		|| rule3(keylist, keylist_size, key))
+	{
+		return 0;
+	}
 
-    return 0;
+	return 0;
 }
 
 /**
@@ -1176,154 +1175,154 @@ static int processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist
  * @return first absolute time some record *could* be advanced.
  * */
 static time_t updateZone(policy_t* policy, zone_t* zone, const time_t now, int allow_unsigned, int *zone_updated) {
-    time_t returntime_zone = -1;
-    unsigned int ttl;
-    key_data_list_t *key_list;
-    const key_data_t* key;
-    key_data_t** keylist = NULL;
-    static const char *scmd = "updateZone";
-    size_t keylist_size, i;
-    int change;
+	time_t returntime_zone = -1;
+	unsigned int ttl;
+	key_data_list_t *key_list;
+	const key_data_t* key;
+	key_data_t** keylist = NULL;
+	static const char *scmd = "updateZone";
+	size_t keylist_size, i;
+	int change;
 
-    if (!policy) {
-        return returntime_zone;
-    }
-    if (!zone) {
-        return returntime_zone;
-    }
-    if (!zone_updated) {
-        return returntime_zone;
-    }
+	if (!policy) {
+		return returntime_zone;
+	}
+	if (!zone) {
+		return returntime_zone;
+	}
+	if (!zone_updated) {
+		return returntime_zone;
+	}
 
-    /*
-     * Get all key data/state/hsm objects for later processing.
-     */
-    if (!(key_list = zone_get_keys(zone))
-        || key_data_list_fetch_all(key_list))
-    {
-        /* TODO: better log error */
-        ods_log_debug("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
-        key_data_list_free(key_list);
-        return returntime_zone;
-    }
-    if (!(keylist_size = key_data_list_size(key_list))) {
-        if ((key = key_data_list_begin(key_list))) {
-            while (key) {
-                keylist_size++;
-                key = key_data_list_next(key_list);
-            }
-        }
-    }
-    if (keylist_size) {
-        if (!(keylist = (key_data_t**)calloc(keylist_size, sizeof(key_data_t*)))) {
-            /* TODO: better log error */
-            ods_log_debug("[%s] %s: error calloc(keylist_size)", module_str, scmd);
-            key_data_list_free(key_list);
-            return returntime_zone;
-        }
-        for (i = 0; i < keylist_size; i++) {
-            if (!i) {
-                keylist[i] = key_data_list_get_begin(key_list);
-            }
-            else {
-                keylist[i] = key_data_list_get_next(key_list);
-            }
-            if (!keylist[i]
-                || key_data_cache_hsm_key(keylist[i])
-                || key_data_cache_key_states(keylist[i]))
-            {
-                ods_log_debug("[%s] %s: error key_data_list cache", module_str, scmd);
-                for (i = 0; i < keylist_size; i++) {
-                    if (keylist[i]) {
-                        key_data_free(keylist[i]);
-                    }
-                }
-                free(keylist);
-                key_data_list_free(key_list);
-                return returntime_zone;
-            }
-        }
-    }
-    key_data_list_free(key_list);
+	/*
+	 * Get all key data/state/hsm objects for later processing.
+	 */
+	if (!(key_list = zone_get_keys(zone))
+		|| key_data_list_fetch_all(key_list))
+	{
+		/* TODO: better log error */
+		ods_log_debug("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
+		key_data_list_free(key_list);
+		return returntime_zone;
+	}
+	if (!(keylist_size = key_data_list_size(key_list))) {
+		if ((key = key_data_list_begin(key_list))) {
+			while (key) {
+				keylist_size++;
+				key = key_data_list_next(key_list);
+			}
+		}
+	}
+	if (keylist_size) {
+		if (!(keylist = (key_data_t**)calloc(keylist_size, sizeof(key_data_t*)))) {
+			/* TODO: better log error */
+			ods_log_debug("[%s] %s: error calloc(keylist_size)", module_str, scmd);
+			key_data_list_free(key_list);
+			return returntime_zone;
+		}
+		for (i = 0; i < keylist_size; i++) {
+			if (!i) {
+				keylist[i] = key_data_list_get_begin(key_list);
+			}
+			else {
+				keylist[i] = key_data_list_get_next(key_list);
+			}
+			if (!keylist[i]
+				|| key_data_cache_hsm_key(keylist[i])
+				|| key_data_cache_key_states(keylist[i]))
+			{
+				ods_log_debug("[%s] %s: error key_data_list cache", module_str, scmd);
+				for (i = 0; i < keylist_size; i++) {
+					if (keylist[i]) {
+						key_data_free(keylist[i]);
+					}
+				}
+				free(keylist);
+				key_data_list_free(key_list);
+				return returntime_zone;
+			}
+		}
+	}
+	key_data_list_free(key_list);
 
-    /*
-     * This code keeps track of TTL changes. If in the past a large TTL is used,
-     * our keys *may* need to transition extra careful to make sure each
-     * resolver picks up the RRset. When this date passes we may start using the
-     * policies TTL.
-     */
-    if (zone_ttl_end_ds(zone) <= now) {
-        if (!zone_set_ttl_end_ds(zone, addtime(now, policy_parent_ds_ttl(policy)))) {
-            *zone_updated = 1;
-        }
-    }
-    if (zone_ttl_end_dk(zone) <= now) {
-        /*
-         * If no DNSKEY is currently published we must take negative caching
-         * into account.
-         */
-        for (i = 0; i < keylist_size; i++) {
-            if (key_state_state(key_data_cached_dnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT) {
-                break;
-            }
-        }
-        if (keylist_size < i) {
-            ttl = max(policy_keys_ttl(policy),
-                min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)));
-        }
-        else {
-            ttl = policy_keys_ttl(policy);
-        }
-        if (!zone_set_ttl_end_dk(zone, ttl)) {
-            *zone_updated = 1;
-        }
-    }
-    if (zone_ttl_end_rs(zone) <= now) {
-        if (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3) {
-            ttl = max(policy_signatures_max_zone_ttl(policy), policy_denial_ttl(policy));
-        }
-        else {
-            ttl = policy_signatures_max_zone_ttl(policy);
-        }
-        if (!zone_set_ttl_end_rs(zone, addtime(now, max(
-            min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
-                ttl))))
-        {
-            *zone_updated = 1;
-        }
-    }
+	/*
+	 * This code keeps track of TTL changes. If in the past a large TTL is used,
+	 * our keys *may* need to transition extra careful to make sure each
+	 * resolver picks up the RRset. When this date passes we may start using the
+	 * policies TTL.
+	 */
+	if (zone_ttl_end_ds(zone) <= now) {
+		if (!zone_set_ttl_end_ds(zone, addtime(now, policy_parent_ds_ttl(policy)))) {
+			*zone_updated = 1;
+		}
+	}
+	if (zone_ttl_end_dk(zone) <= now) {
+		/*
+		 * If no DNSKEY is currently published we must take negative caching
+		 * into account.
+		 */
+		for (i = 0; i < keylist_size; i++) {
+			if (key_state_state(key_data_cached_dnskey(keylist[i])) == KEY_STATE_STATE_OMNIPRESENT) {
+				break;
+			}
+		}
+		if (keylist_size < i) {
+			ttl = max(policy_keys_ttl(policy),
+				min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)));
+		}
+		else {
+			ttl = policy_keys_ttl(policy);
+		}
+		if (!zone_set_ttl_end_dk(zone, ttl)) {
+			*zone_updated = 1;
+		}
+	}
+	if (zone_ttl_end_rs(zone) <= now) {
+		if (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3) {
+			ttl = max(policy_signatures_max_zone_ttl(policy), policy_denial_ttl(policy));
+		}
+		else {
+			ttl = policy_signatures_max_zone_ttl(policy);
+		}
+		if (!zone_set_ttl_end_rs(zone, addtime(now, max(
+			min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
+				ttl))))
+		{
+			*zone_updated = 1;
+		}
+	}
 
-    /*
-     * Keep looping till there are no state changes and find the earliest update
-     * time to return.
-     */
-    do {
-        change = 0;
-        for (i = 0; i < keylist_size; i++) {
-            ods_log_verbose("[%s] %s: processing key %s", module_str, scmd,
-                hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
+	/*
+	 * Keep looping till there are no state changes and find the earliest update
+	 * time to return.
+	 */
+	do {
+		change = 0;
+		for (i = 0; i < keylist_size; i++) {
+			ods_log_verbose("[%s] %s: processing key %s", module_str, scmd,
+				hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
-            if (processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_ds(keylist[i]), &change, allow_unsigned)
-                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change, allow_unsigned)
-                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change, allow_unsigned)
-                || processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change, allow_unsigned))
-            {
-                /* TODO: handle error */
-            }
-        }
-    } while (change);
+			if (processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_ds(keylist[i]), &change, allow_unsigned)
+				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change, allow_unsigned)
+				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change, allow_unsigned)
+				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change, allow_unsigned))
+			{
+				/* TODO: handle error */
+			}
+		}
+	} while (change);
 
-    /*
-     * Release the cached objects.
-     */
-    for (i = 0; i < keylist_size; i++) {
-        if (keylist[i]) {
-            key_data_free(keylist[i]);
-        }
-    }
-    free(keylist);
+	/*
+	 * Release the cached objects.
+	 */
+	for (i = 0; i < keylist_size; i++) {
+		if (keylist[i]) {
+			key_data_free(keylist[i]);
+		}
+	}
+	free(keylist);
 
-    return returntime_zone;
+	return returntime_zone;
 }
 
 static time_t
@@ -1550,15 +1549,15 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key;
 	const hsm_key_t *hkey, *hkey_young = NULL;
-    hsm_key_list_t* hsmkeylist;
-    int match;
-    int cmp;
+	hsm_key_list_t* hsmkeylist;
+	int match;
+	int cmp;
 
 	if (!key_list) {
-	    return NULL;
+		return NULL;
 	}
 	if (!pkey) {
-	    return NULL;
+		return NULL;
 	}
 
 	/*
@@ -1578,7 +1577,7 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 		/** Now find out if hsmkey is in used by zone */
 		for (match = 0, key = key_data_list_begin(key_list); key; key_data_list_next(key_list)) {
 			if (!db_value_cmp(key_data_hsm_key_id(key), hsm_key_id(hkey), &cmp)
-			    && cmp == 0)
+				&& cmp == 0)
 			{
 				/** we have match, so this hsm_key is no good */
 				match = 1;
@@ -1603,7 +1602,7 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 static int
 numberOfKeyConfigs(const KeyList &policyKeys, const KeyRole role)
 {
-    static const char *scmd = "numberOfKeyConfigs";
+	static const char *scmd = "numberOfKeyConfigs";
 	switch (role) {
 		case KSK: return policyKeys.ksk_size();
 		case ZSK: return policyKeys.zsk_size();
@@ -1635,7 +1634,7 @@ keyProperties(const KeyList &policyKeys, const int index, const KeyRole role,
 	int *bits, int *algorithm, int *lifetime, string &repository,
 	bool *manual, int *rollover_type)
 {
-    static const char *scmd = "keyProperties";
+	static const char *scmd = "keyProperties";
 	
 	/** Programming error, report a bug! */
 	if (index >= numberOfKeyConfigs(policyKeys, role)) 
@@ -1684,15 +1683,15 @@ keyProperties(const KeyList &policyKeys, const int index, const KeyRole role,
 static int
 existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
 {
-    static const char *scmd = "existsPolicyForKey";
+	static const char *scmd = "existsPolicyForKey";
 	const policy_key *pkey;
 	hsm_key_t *hkey;
 
 	if (!policykeylist) {
-	    return -1;
+		return -1;
 	}
 	if (!key) {
-	    return -1;
+		return -1;
 	}
 
 	if (!(hkey = key_data_get_hsm_key(key))) {
@@ -1710,13 +1709,13 @@ existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
 			hsm_key_algorithm(hkey) == policy_key_algorithm(pkey) &&
 			hsm_key_bits(hkey) == policy_key_bits(pkey))
 		{
-		    hsm_key_free(hkey);
+			hsm_key_free(hkey);
 			return 1;
 		}
 		pkey = policy_key_list_next(policykeylist);
 	}
 	ods_log_verbose("[%s] %s not found such config", module_str, scmd);
-    hsm_key_free(hkey);
+	hsm_key_free(hkey);
 	return 0;
 }
 
@@ -1727,10 +1726,10 @@ youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
 	hsm_key_t *hsmkey = NULL;
 
 	if (!key_list) {
-	    return NULL;
+		return NULL;
 	}
 	if (!pkey) {
-	    return NULL;
+		return NULL;
 	}
 	
 	/*
@@ -1746,12 +1745,12 @@ youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
 			policy_key_algorithm(pkey) != hsm_key_algorithm(hsmkey) ||
 			strcmp(policy_key_repository(pkey), hsm_key_repository(hsmkey)))
 		{
-		    hsm_key_free(hsmkey);
-		    hsmkey = NULL;
+			hsm_key_free(hsmkey);
+			hsmkey = NULL;
 			continue;
 		}
-        hsm_key_free(hsmkey);
-        hsmkey = NULL;
+		hsm_key_free(hsmkey);
+		hsmkey = NULL;
 		/** This key matches, is it newer? */
 		if (!youngest || key_data_inception(youngest) > key_data_inception(key))
 			youngest = key;
@@ -1773,10 +1772,10 @@ key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
 	const key_data_t *key;
 
 	if (!key_list) {
-	    return 0;
+		return 0;
 	}
 	if (!pkey) {
-	    return 0;
+		return 0;
 	}
 
 	for (key = key_data_list_begin(key_list); key;
@@ -1795,12 +1794,12 @@ key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
 static int 
 setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 {
-    if (!zone) {
-        return -1;
-    }
-    if (!pkey) {
-        return -1;
-    }
+	if (!zone) {
+		return -1;
+	}
+	if (!pkey) {
+		return -1;
+	}
 
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
@@ -1838,21 +1837,21 @@ keytag(const char *loc, int alg, int ksk, bool *success)
 	ldns_rr *dnskey_rr;
 
 	if (!loc) {
-	    return 0;
+		return 0;
 	}
 	if (!success) {
-	    return 0;
+		return 0;
 	}
 
-    *success = false;
+	*success = false;
 
-    if (!(hsm_ctx = hsm_create_context())) {
-        return 0;
-    }
-    if (!(sign_params = hsm_sign_params_new())) {
-        hsm_destroy_context(hsm_ctx);
-        return 0;
-    }
+	if (!(hsm_ctx = hsm_create_context())) {
+		return 0;
+	}
+	if (!(sign_params = hsm_sign_params_new())) {
+		hsm_destroy_context(hsm_ctx);
+		return 0;
+	}
 
 	/* The owner name is not relevant for the keytag calculation.
 	 * However, a ldns_rdf_clone down the path will trip over it. */
@@ -1860,28 +1859,28 @@ keytag(const char *loc, int alg, int ksk, bool *success)
 	sign_params->algorithm = (ldns_algorithm) alg;
 	sign_params->flags = LDNS_KEY_ZONE_KEY;
 	if (ksk)
-	    sign_params->flags |= LDNS_KEY_SEP_KEY;
+		sign_params->flags |= LDNS_KEY_SEP_KEY;
 
 	hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
 	if (!hsmkey) {
-	    hsm_sign_params_free(sign_params);
-	    hsm_destroy_context(hsm_ctx);
-	    return 0;
+		hsm_sign_params_free(sign_params);
+		hsm_destroy_context(hsm_ctx);
+		return 0;
 	}
 
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
 	if (!dnskey_rr) {
-	    libhsm_key_free(hsmkey);
-	    hsm_sign_params_free(sign_params);
-	    hsm_destroy_context(hsm_ctx);
-	    return 0;
+		libhsm_key_free(hsmkey);
+		hsm_sign_params_free(sign_params);
+		hsm_destroy_context(hsm_ctx);
+		return 0;
 	}
 
 	tag = ldns_calc_keytag(dnskey_rr);
 
-    ldns_rr_free(dnskey_rr);
+	ldns_rr_free(dnskey_rr);
 	libhsm_key_free(hsmkey);
-    hsm_sign_params_free(sign_params);
+	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	*success = true;
 	return tag;
@@ -1890,12 +1889,12 @@ keytag(const char *loc, int alg, int ksk, bool *success)
 static int
 enforce_roll(const zone_t *zone, const policy_key_t *pkey)
 {
-    if (!zone) {
-        return 0;
-    }
-    if (!pkey) {
-        return 0;
-    }
+	if (!zone) {
+		return 0;
+	}
+	if (!pkey) {
+		return 0;
+	}
 
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
@@ -1912,23 +1911,23 @@ enforce_roll(const zone_t *zone, const policy_key_t *pkey)
 static int
 set_roll(zone_t *zone, const policy_key_t *pkey, unsigned int roll)
 {
-    if (!zone) {
-        return 0;
-    }
-    if (!pkey) {
-        return 0;
-    }
+	if (!zone) {
+		return 0;
+	}
+	if (!pkey) {
+		return 0;
+	}
 
-    switch(policy_key_role(pkey)) {
-        case POLICY_KEY_ROLE_KSK:
-            return zone_set_roll_ksk_now(zone, roll);
-        case POLICY_KEY_ROLE_ZSK:
-            return zone_set_roll_zsk_now(zone, roll);
-        case POLICY_KEY_ROLE_CSK:
-            return zone_set_roll_csk_now(zone, roll);
-        default:
-            return 1;
-    }
+	switch(policy_key_role(pkey)) {
+		case POLICY_KEY_ROLE_KSK:
+			return zone_set_roll_ksk_now(zone, roll);
+		case POLICY_KEY_ROLE_ZSK:
+			return zone_set_roll_zsk_now(zone, roll);
+		case POLICY_KEY_ROLE_CSK:
+			return zone_set_roll_csk_now(zone, roll);
+		default:
+			return 1;
+	}
 }
 
 /**
@@ -1942,18 +1941,18 @@ set_roll(zone_t *zone, const policy_key_t *pkey, unsigned int roll)
  * */
 static time_t
 updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
-    zone_t *zone, const time_t now, int *allow_unsigned, int *zone_updated)
+	zone_t *zone, const time_t now, int *allow_unsigned, int *zone_updated)
 {
 	time_t return_at = -1;
 	key_data_list_t *keylist;
 	policy_key_list_t *policykeylist;
 	const key_data_t *key;
 	key_data_t *mutkey = NULL;
-    key_data_t *mutkey2 = NULL;
+	key_data_t *mutkey2 = NULL;
 	const policy_key_t *pkey;
 	const hsm_key_t *hsmkey;
-    hsm_key_t *hsmkey2 = NULL;
-    hsm_key_t *newhsmkey = NULL;
+	hsm_key_t *hsmkey2 = NULL;
+	hsm_key_t *newhsmkey = NULL;
 	static const char *scmd = "updatePolicy";
 	int force_roll;
 	const key_data_t *youngest;
@@ -1964,30 +1963,30 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	int ret;
 
 	if (!dbconn) {
-	    /* TODO: better log error */
-	    ods_log_debug("[%s] %s: no dbconn", module_str, scmd);
-	    return now + 60;
+		/* TODO: better log error */
+		ods_log_debug("[%s] %s: no dbconn", module_str, scmd);
+		return now + 60;
 	}
-    if (!policy) {
-        /* TODO: better log error */
-        ods_log_debug("[%s] %s: no policy", module_str, scmd);
-        return now + 60;
-    }
-    if (!zone) {
-        /* TODO: better log error */
-        ods_log_debug("[%s] %s: no zone", module_str, scmd);
-        return now + 60;
-    }
-    if (!allow_unsigned) {
-        /* TODO: better log error */
-        ods_log_debug("[%s] %s: no allow_unsigned", module_str, scmd);
-        return now + 60;
-    }
-    if (!zone_updated) {
-        /* TODO: better log error */
-        ods_log_debug("[%s] %s: no zone_updated", module_str, scmd);
-        return now + 60;
-    }
+	if (!policy) {
+		/* TODO: better log error */
+		ods_log_debug("[%s] %s: no policy", module_str, scmd);
+		return now + 60;
+	}
+	if (!zone) {
+		/* TODO: better log error */
+		ods_log_debug("[%s] %s: no zone", module_str, scmd);
+		return now + 60;
+	}
+	if (!allow_unsigned) {
+		/* TODO: better log error */
+		ods_log_debug("[%s] %s: no allow_unsigned", module_str, scmd);
+		return now + 60;
+	}
+	if (!zone_updated) {
+		/* TODO: better log error */
+		ods_log_debug("[%s] %s: no zone_updated", module_str, scmd);
+		return now + 60;
+	}
 
 	ods_log_verbose("[%s] %s: policyName: %s", module_str, scmd, policy_name(policy));
 
@@ -1996,10 +1995,10 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	 * the policy key database objects so we can iterate over it more then once.
 	 */
 	if (!(policykeylist = policy_get_policy_keys(policy))
-	    || policy_key_list_fetch_all(policykeylist))
+		|| policy_key_list_fetch_all(policykeylist))
 	{
-        /* TODO: better log error */
-        ods_log_debug("[%s] %s: error policy_get_policy_keys() || policy_key_list_fetch_all()", module_str, scmd);
+		/* TODO: better log error */
+		ods_log_debug("[%s] %s: error policy_get_policy_keys() || policy_key_list_fetch_all()", module_str, scmd);
 		policy_key_list_free(policykeylist);
 		return now + 60;
 	}
@@ -2009,92 +2008,92 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	 * from the database so we can use the list again later.
 	 */
 	if (!(keylist = zone_get_keys(zone))
-	    || key_data_list_fetch_all(keylist))
+		|| key_data_list_fetch_all(keylist))
 	{
-        /* TODO: better log error */
-        ods_log_debug("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
-        key_data_list_free(keylist);
-        policy_key_list_free(policykeylist);
-        return now + 60;
+		/* TODO: better log error */
+		ods_log_debug("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
+		key_data_list_free(keylist);
+		policy_key_list_free(policykeylist);
+		return now + 60;
 	}
 
-    /*
-     * Decommission all key data objects without any matching policy key config.
-     */
+	/*
+	 * Decommission all key data objects without any matching policy key config.
+	 */
 	while ((key = key_data_list_next(keylist))) {
-	    ret = existsPolicyForKey(policykeylist, key);
-	    if (ret < 0) {
-            /* TODO: better log error */
-	        ods_log_debug("[%s] %s: error existsPolicyForKey() < 0", module_str, scmd);
-            key_data_list_free(keylist);
-            policy_key_list_free(policykeylist);
-            return now + 60;
-	    }
+		ret = existsPolicyForKey(policykeylist, key);
+		if (ret < 0) {
+			/* TODO: better log error */
+			ods_log_debug("[%s] %s: error existsPolicyForKey() < 0", module_str, scmd);
+			key_data_list_free(keylist);
+			policy_key_list_free(policykeylist);
+			return now + 60;
+		}
 		if (!ret) {
 			if (!(mutkey = key_data_new_copy(key))
-			    || key_data_set_introducing(mutkey, 0)
-			    || key_data_update(mutkey))
+				|| key_data_set_introducing(mutkey, 0)
+				|| key_data_update(mutkey))
 			{
 				/* TODO: better log error */
-	            ods_log_debug("[%s] %s: error update mutkey", module_str, scmd);
-			    key_data_free(mutkey);
-		        key_data_list_free(keylist);
-		        policy_key_list_free(policykeylist);
-		        return now + 60;
+				ods_log_debug("[%s] %s: error update mutkey", module_str, scmd);
+				key_data_free(mutkey);
+				key_data_list_free(keylist);
+				policy_key_list_free(policykeylist);
+				return now + 60;
 			}
-            key_data_free(mutkey);
-            mutkey = NULL;
+			key_data_free(mutkey);
+			mutkey = NULL;
 		}
 	}
 
-    pkey = policy_key_list_begin(policykeylist);
+	pkey = policy_key_list_begin(policykeylist);
 
-    /*
+	/*
 	 * If no keys are configured an unsigned zone is okay.
 	 */
 	*allow_unsigned = pkey ? 1 : 0;
 
 	for (; pkey; pkey = policy_key_list_next(policykeylist)) {
-	    /*
-	     * Check if we should roll, first get the roll state from the zone then
-	     * check if the policy key is set to manual rollover and last check the
-	     * key timings.
-	     */
+		/*
+		 * Check if we should roll, first get the roll state from the zone then
+		 * check if the policy key is set to manual rollover and last check the
+		 * key timings.
+		 */
 		force_roll = enforce_roll(zone, pkey);
 		if (policy_key_manual_rollover(pkey)) {
-		    /*
-		     * If this policy key is set to manual rollover and we do not have
-		     * a key yet (for ex first run) then we should roll anyway.
-		     */
-		    if (!key_for_conf(keylist, pkey)) {
-		        force_roll = 1;
-		    }
-		    else if (!force_roll) {
-		        /*
-		         * Since this is set to manual rollover we do not want it to
-		         * roll unless we have zone state saying that we should roll.
-		         */
-		        continue;
-		    }
+			/*
+			 * If this policy key is set to manual rollover and we do not have
+			 * a key yet (for ex first run) then we should roll anyway.
+			 */
+			if (!key_for_conf(keylist, pkey)) {
+				force_roll = 1;
+			}
+			else if (!force_roll) {
+				/*
+				 * Since this is set to manual rollover we do not want it to
+				 * roll unless we have zone state saying that we should roll.
+				 */
+				continue;
+			}
 		}
 		if (!force_roll) {
-		    /*
-		     * We do not need to roll but we should check if the youngest key
-		     * needs to be replaced. If not we reschedule for later based on the
-		     * youngest key.
-		     * TODO: Describe better why the youngest?!?
-		     */
+			/*
+			 * We do not need to roll but we should check if the youngest key
+			 * needs to be replaced. If not we reschedule for later based on the
+			 * youngest key.
+			 * TODO: Describe better why the youngest?!?
+			 */
 			if ((youngest = youngestKeyForConfig(keylist, pkey)) &&
-			    key_data_inception(youngest) + policy_key_lifetime(pkey) > now)
+				key_data_inception(youngest) + policy_key_lifetime(pkey) > now)
 			{
-			    t_ret = addtime(key_data_inception(youngest), policy_key_lifetime(pkey));
+				t_ret = addtime(key_data_inception(youngest), policy_key_lifetime(pkey));
 				minTime(t_ret, &return_at);
 				if (setnextroll(zone, pkey, t_ret)) {
-			        /* TODO: log error */
-			        ods_log_debug("[%s] %s: error setnextroll 1", module_str, scmd);
-			        key_data_list_free(keylist);
-			        policy_key_list_free(policykeylist);
-			        return now + 60;
+					/* TODO: log error */
+					ods_log_debug("[%s] %s: error setnextroll 1", module_str, scmd);
+					key_data_list_free(keylist);
+					policy_key_list_free(policykeylist);
+					return now + 60;
 				}
 				*zone_updated = 1;
 				continue;
@@ -2113,7 +2112,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		 * work to do otherwise.
 		 */
 		if ((policy_key_role(pkey) == POLICY_KEY_ROLE_KSK ||
-		    policy_key_role(pkey) == POLICY_KEY_ROLE_CSK) &&
+			policy_key_role(pkey) == POLICY_KEY_ROLE_CSK) &&
 			policy_parent_ds_ttl(policy) + policy_keys_ttl(policy) >=
 			policy_key_lifetime(pkey))
 		{
@@ -2124,17 +2123,17 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				policy_key_lifetime(pkey), policy_parent_ds_ttl(policy),
 				policy_keys_ttl(policy));
 			if (setnextroll(zone, pkey, now)) {
-                /* TODO: better log error */
-                ods_log_debug("[%s] %s: error setnextroll 2", module_str, scmd);
-                key_data_list_free(keylist);
-                policy_key_list_free(policykeylist);
-                return now + 60;
+				/* TODO: better log error */
+				ods_log_debug("[%s] %s: error setnextroll 2", module_str, scmd);
+				key_data_list_free(keylist);
+				policy_key_list_free(policykeylist);
+				return now + 60;
 			}
 			*zone_updated = 1;
 			continue;
 		}
 		if ((policy_key_role(pkey) == POLICY_KEY_ROLE_ZSK ||
-            policy_key_role(pkey) == POLICY_KEY_ROLE_CSK) &&
+			policy_key_role(pkey) == POLICY_KEY_ROLE_CSK) &&
 			policy_signatures_max_zone_ttl(policy) + policy_keys_ttl(policy) >=
 			policy_key_lifetime(pkey))
 		{
@@ -2144,207 +2143,207 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
 				policy_key_lifetime(pkey), policy_signatures_max_zone_ttl(policy),
 				policy_keys_ttl(policy));
-            if (setnextroll(zone, pkey, now)) {
-                /* TODO: better log error */
-                ods_log_debug("[%s] %s: error setnextroll 3", module_str, scmd);
-                key_data_list_free(keylist);
-                policy_key_list_free(policykeylist);
-                return now + 60;
-            }
-            *zone_updated = 1;
+			if (setnextroll(zone, pkey, now)) {
+				/* TODO: better log error */
+				ods_log_debug("[%s] %s: error setnextroll 3", module_str, scmd);
+				key_data_list_free(keylist);
+				policy_key_list_free(policykeylist);
+				return now + 60;
+			}
+			*zone_updated = 1;
 			continue;
 		}
 
-        /*
-         * Get a new key, either a existing/shared key if the policy is set to
-         * share keys or create a new key.
-         */
+		/*
+		 * Get a new key, either a existing/shared key if the policy is set to
+		 * share keys or create a new key.
+		 */
 		if (policy_keys_shared(policy)) {
-		    hsmkey = getLastReusableKey(keylist, pkey);
-		    if (!newhsmkey) {
-		        newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
-		        hsmkey = newhsmkey;
-		    }
+			hsmkey = getLastReusableKey(keylist, pkey);
+			if (!newhsmkey) {
+				newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
+				hsmkey = newhsmkey;
+			}
 		}
 		else {
-		    newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_PRIVATE);
-		    hsmkey = newhsmkey;
+			newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_PRIVATE);
+			hsmkey = newhsmkey;
 		}
 		if (!hsmkey) {
-		    /*
-		     * Unable to get/create a HSM key at this time, retry later.
-		     */
-            ods_log_warning("[%s] %s: No keys available in HSM for policy %s, retry in %d seconds",
-                module_str, scmd, policy_name(policy), NOKEY_TIMEOUT);
-	        minTime(now + NOKEY_TIMEOUT, &return_at);
-	        if (setnextroll(zone, pkey, now)) {
-                /* TODO: better log error */
-                ods_log_debug("[%s] %s: error setnextroll 4", module_str, scmd);
-                key_data_list_free(keylist);
-                policy_key_list_free(policykeylist);
-                return now + 60;
-	        }
-	        *zone_updated = 1;
-		    continue;
+			/*
+			 * Unable to get/create a HSM key at this time, retry later.
+			 */
+			ods_log_warning("[%s] %s: No keys available in HSM for policy %s, retry in %d seconds",
+				module_str, scmd, policy_name(policy), NOKEY_TIMEOUT);
+			minTime(now + NOKEY_TIMEOUT, &return_at);
+			if (setnextroll(zone, pkey, now)) {
+				/* TODO: better log error */
+				ods_log_debug("[%s] %s: error setnextroll 4", module_str, scmd);
+				key_data_list_free(keylist);
+				policy_key_list_free(policykeylist);
+				return now + 60;
+			}
+			*zone_updated = 1;
+			continue;
 		}
-        ods_log_verbose("[%s] %s: got new key from HSM", module_str, scmd);
+		ods_log_verbose("[%s] %s: got new key from HSM", module_str, scmd);
 
-        /*
-         * TODO: This will be replaced once roles are global
-         */
-        key_role = KEY_DATA_ROLE_INVALID;
-        switch (policy_key_role(pkey)) {
-        case POLICY_KEY_ROLE_KSK:
-            key_role = KEY_DATA_ROLE_KSK;
-            break;
+		/*
+		 * TODO: This will be replaced once roles are global
+		 */
+		key_role = KEY_DATA_ROLE_INVALID;
+		switch (policy_key_role(pkey)) {
+		case POLICY_KEY_ROLE_KSK:
+			key_role = KEY_DATA_ROLE_KSK;
+			break;
 
-        case POLICY_KEY_ROLE_ZSK:
-            key_role = KEY_DATA_ROLE_ZSK;
-            break;
+		case POLICY_KEY_ROLE_ZSK:
+			key_role = KEY_DATA_ROLE_ZSK;
+			break;
 
-        case POLICY_KEY_ROLE_CSK:
-            key_role = KEY_DATA_ROLE_CSK;
-            break;
+		case POLICY_KEY_ROLE_CSK:
+			key_role = KEY_DATA_ROLE_CSK;
+			break;
 
-        default:
-            break;
-        }
+		default:
+			break;
+		}
 
-        /*
-         * Create a new key data object.
-         */
-        if (!(mutkey = key_data_new(dbconn))
-            || key_data_set_zone_id(mutkey, zone_id(zone))
-            || key_data_set_hsm_key_id(mutkey, hsm_key_id(hsmkey))
-            || key_data_set_algorithm(mutkey, policy_key_algorithm(pkey))
-            || key_data_set_inception(mutkey, now)
-            || key_data_set_role(mutkey, key_role)
-            || key_data_set_introducing(mutkey, 1)
-            || key_data_set_ds_at_parent(mutkey, KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
-        {
-            /* TODO: better log error */
-            ods_log_debug("[%s] %s: error new key", module_str, scmd);
-            key_data_free(mutkey);
-            /* TODO: release hsm key? */
-            hsm_key_free(newhsmkey);
-            key_data_list_free(keylist);
-            policy_key_list_free(policykeylist);
-            return now + 60;
-        }
+		/*
+		 * Create a new key data object.
+		 */
+		if (!(mutkey = key_data_new(dbconn))
+			|| key_data_set_zone_id(mutkey, zone_id(zone))
+			|| key_data_set_hsm_key_id(mutkey, hsm_key_id(hsmkey))
+			|| key_data_set_algorithm(mutkey, policy_key_algorithm(pkey))
+			|| key_data_set_inception(mutkey, now)
+			|| key_data_set_role(mutkey, key_role)
+			|| key_data_set_introducing(mutkey, 1)
+			|| key_data_set_ds_at_parent(mutkey, KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
+		{
+			/* TODO: better log error */
+			ods_log_debug("[%s] %s: error new key", module_str, scmd);
+			key_data_free(mutkey);
+			/* TODO: release hsm key? */
+			hsm_key_free(newhsmkey);
+			key_data_list_free(keylist);
+			policy_key_list_free(policykeylist);
+			return now + 60;
+		}
 
-        /*
-         * Generate keytag for the new key and set it.
-         */
-        tag = keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
-            ((hsm_key_role(hsmkey) == HSM_KEY_ROLE_KSK
-                || hsm_key_role(hsmkey) == HSM_KEY_ROLE_CSK)
-                ? 1 : 0),
-            &success);
-        if (!success
-            || key_data_set_keytag(mutkey, tag))
-        {
-            /* TODO: better log error */
-            ods_log_debug("[%s] %s: error keytag", module_str, scmd);
-            key_data_free(mutkey);
-            /* TODO: release hsm key? */
-            hsm_key_free(newhsmkey);
-            key_data_list_free(keylist);
-            policy_key_list_free(policykeylist);
-            return now + 60;
-        }
+		/*
+		 * Generate keytag for the new key and set it.
+		 */
+		tag = keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
+			((hsm_key_role(hsmkey) == HSM_KEY_ROLE_KSK
+				|| hsm_key_role(hsmkey) == HSM_KEY_ROLE_CSK)
+				? 1 : 0),
+			&success);
+		if (!success
+			|| key_data_set_keytag(mutkey, tag))
+		{
+			/* TODO: better log error */
+			ods_log_debug("[%s] %s: error keytag", module_str, scmd);
+			key_data_free(mutkey);
+			/* TODO: release hsm key? */
+			hsm_key_free(newhsmkey);
+			key_data_list_free(keylist);
+			policy_key_list_free(policykeylist);
+			return now + 60;
+		}
 
-        /*
-         * Create the new key in the database, if successful we set the next
-         * roll after the lifetime of the key.
-         */
-        if (key_data_create(mutkey)) {
-            /* TODO: better log error */
-            ods_log_debug("[%s] %s: error key_data_create()", module_str, scmd);
-            key_data_free(mutkey);
-            /* TODO: release hsm key? */
-            hsm_key_free(newhsmkey);
-            key_data_list_free(keylist);
-            policy_key_list_free(policykeylist);
-            return now + 60;
-        }
-        t_ret = addtime(now, policy_key_lifetime(pkey));
-        minTime(t_ret, &return_at);
-        if (setnextroll(zone, pkey, t_ret)) {
-            /* TODO: better log error */
-            ods_log_debug("[%s] %s: error setnextroll 5", module_str, scmd);
-            key_data_free(mutkey);
-            /* TODO: release hsm key? */
-            hsm_key_free(newhsmkey);
-            key_data_list_free(keylist);
-            policy_key_list_free(policykeylist);
-            return now + 60;
-        }
-        *zone_updated = 1;
+		/*
+		 * Create the new key in the database, if successful we set the next
+		 * roll after the lifetime of the key.
+		 */
+		if (key_data_create(mutkey)) {
+			/* TODO: better log error */
+			ods_log_debug("[%s] %s: error key_data_create()", module_str, scmd);
+			key_data_free(mutkey);
+			/* TODO: release hsm key? */
+			hsm_key_free(newhsmkey);
+			key_data_list_free(keylist);
+			policy_key_list_free(policykeylist);
+			return now + 60;
+		}
+		t_ret = addtime(now, policy_key_lifetime(pkey));
+		minTime(t_ret, &return_at);
+		if (setnextroll(zone, pkey, t_ret)) {
+			/* TODO: better log error */
+			ods_log_debug("[%s] %s: error setnextroll 5", module_str, scmd);
+			key_data_free(mutkey);
+			/* TODO: release hsm key? */
+			hsm_key_free(newhsmkey);
+			key_data_list_free(keylist);
+			policy_key_list_free(policykeylist);
+			return now + 60;
+		}
+		*zone_updated = 1;
 
-        /*
-         * Tell similar keys to out-troduce.
-         * Similar keys are those that match role, algorithm, bits and repository
-         * and are introduced.
-         *
-         * IMPORTANT TODO BUG:
-         * Will not work if a policy has 2 or more keys of the same role, algorithm,
-         * bits and repository. Unclear how to fix this since keys are not directly
-         * related to a policy key.
-         */
-        for (key = key_data_list_begin(keylist); key; key = key_data_list_next(keylist)) {
-            if (key_data_introducing(key)
-                && key_data_role(key) == key_data_role(mutkey)
-                && key_data_algorithm(key) == key_data_algorithm(mutkey)
-                && (hsmkey2 = key_data_get_hsm_key(key))
-                && hsm_key_bits(hsmkey2) == hsm_key_bits(hsmkey)
-                && !strcmp(hsm_key_repository(hsmkey2), hsm_key_repository(hsmkey)))
-            {
-                if (!(mutkey2 = key_data_new_copy(key))
-                    || key_data_set_introducing(mutkey2, 0)
-                    || key_data_update(mutkey2))
-                {
-                    /* TODO: better log error */
-                    ods_log_debug("[%s] %s: error update mutkey2", module_str, scmd);
-                    key_data_free(mutkey2);
-                    hsm_key_free(hsmkey2);
-                    key_data_free(mutkey);
-                    hsm_key_free(newhsmkey);
-                    key_data_list_free(keylist);
-                    policy_key_list_free(policykeylist);
-                    return now + 60;
-                }
+		/*
+		 * Tell similar keys to out-troduce.
+		 * Similar keys are those that match role, algorithm, bits and repository
+		 * and are introduced.
+		 *
+		 * IMPORTANT TODO BUG:
+		 * Will not work if a policy has 2 or more keys of the same role, algorithm,
+		 * bits and repository. Unclear how to fix this since keys are not directly
+		 * related to a policy key.
+		 */
+		for (key = key_data_list_begin(keylist); key; key = key_data_list_next(keylist)) {
+			if (key_data_introducing(key)
+				&& key_data_role(key) == key_data_role(mutkey)
+				&& key_data_algorithm(key) == key_data_algorithm(mutkey)
+				&& (hsmkey2 = key_data_get_hsm_key(key))
+				&& hsm_key_bits(hsmkey2) == hsm_key_bits(hsmkey)
+				&& !strcmp(hsm_key_repository(hsmkey2), hsm_key_repository(hsmkey)))
+			{
+				if (!(mutkey2 = key_data_new_copy(key))
+					|| key_data_set_introducing(mutkey2, 0)
+					|| key_data_update(mutkey2))
+				{
+					/* TODO: better log error */
+					ods_log_debug("[%s] %s: error update mutkey2", module_str, scmd);
+					key_data_free(mutkey2);
+					hsm_key_free(hsmkey2);
+					key_data_free(mutkey);
+					hsm_key_free(newhsmkey);
+					key_data_list_free(keylist);
+					policy_key_list_free(policykeylist);
+					return now + 60;
+				}
 
-                ods_log_verbose("[%s] %s: decommissioning old key: %s", module_str, scmd, hsm_key_locator(hsmkey2));
+				ods_log_verbose("[%s] %s: decommissioning old key: %s", module_str, scmd, hsm_key_locator(hsmkey2));
 
-                key_data_free(mutkey2);
-                mutkey2 = NULL;
-            }
-            hsm_key_free(hsmkey2);
-            hsmkey2 = NULL;
-        }
+				key_data_free(mutkey2);
+				mutkey2 = NULL;
+			}
+			hsm_key_free(hsmkey2);
+			hsmkey2 = NULL;
+		}
 
-        key_data_free(mutkey);
-        mutkey = NULL;
-        hsm_key_free(newhsmkey);
-        newhsmkey = NULL;
+		key_data_free(mutkey);
+		mutkey = NULL;
+		hsm_key_free(newhsmkey);
+		newhsmkey = NULL;
 
-        /*
-         * Clear roll now (if set) in the zone for this policy key.
-         */
-        if (enforce_roll(zone, pkey)) {
-            if (set_roll(zone, pkey, 0)) {
-                /* TODO: better log error */
-                ods_log_debug("[%s] %s: error set_roll()", module_str, scmd);
-                key_data_list_free(keylist);
-                policy_key_list_free(policykeylist);
-                return now + 60;
-            }
-            *zone_updated = 1;
-        }
+		/*
+		 * Clear roll now (if set) in the zone for this policy key.
+		 */
+		if (enforce_roll(zone, pkey)) {
+			if (set_roll(zone, pkey, 0)) {
+				/* TODO: better log error */
+				ods_log_debug("[%s] %s: error set_roll()", module_str, scmd);
+				key_data_list_free(keylist);
+				policy_key_list_free(policykeylist);
+				return now + 60;
+			}
+			*zone_updated = 1;
+		}
 	}
 
-    key_data_list_free(keylist);
-    policy_key_list_free(policykeylist);
+	key_data_list_free(keylist);
+	policy_key_list_free(policykeylist);
 
 	return return_at;
 }
@@ -2361,7 +2360,7 @@ static time_t
 removeDeadKeys(KeyDataList &key_list, const time_t now, 
 	const int purgetime, EnforcerZone &zone)
 {
-    static const char *scmd = "removeDeadKeys";
+	static const char *scmd = "removeDeadKeys";
 	time_t firstPurge = -1;
 	
 	KeyDependencyList &key_dep = zone.keyDependencyList();
@@ -2402,35 +2401,35 @@ time_t
 update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated)
 {
 	int allow_unsigned;
-    time_t policy_return_time, zone_return_time;
+	time_t policy_return_time, zone_return_time;
 
-    if (!engine) {
-        ods_log_debug("[%s] no engine", module_str);
-        return now + 5;
-    }
-    if (!dbconn) {
-        ods_log_debug("[%s] no dbconn", module_str);
-        return now + 5;
-    }
-    if (!zone) {
-        ods_log_debug("[%s] no zone", module_str);
-        return now + 5;
-    }
-    if (!policy) {
-        ods_log_debug("[%s] no policy", module_str);
-        return now + 5;
-    }
-    if (!zone_updated) {
-        ods_log_debug("[%s] no zone_updated", module_str);
-        return now + 5;
-    }
+	if (!engine) {
+		ods_log_debug("[%s] no engine", module_str);
+		return now + 5;
+	}
+	if (!dbconn) {
+		ods_log_debug("[%s] no dbconn", module_str);
+		return now + 5;
+	}
+	if (!zone) {
+		ods_log_debug("[%s] no zone", module_str);
+		return now + 5;
+	}
+	if (!policy) {
+		ods_log_debug("[%s] no policy", module_str);
+		return now + 5;
+	}
+	if (!zone_updated) {
+		ods_log_debug("[%s] no zone_updated", module_str);
+		return now + 5;
+	}
 
 	ods_log_info("[%s] update zone: %s", module_str, zone_name(zone));
 
 	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
-    if (allow_unsigned)
-        ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually", module_str, zone_name(zone));
-    zone_return_time = updateZone(policy, zone, now, allow_unsigned, zone_updated);
+	if (allow_unsigned)
+		ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually", module_str, zone_name(zone));
+	zone_return_time = updateZone(policy, zone, now, allow_unsigned, zone_updated);
 
 	return now + 5;
 }
