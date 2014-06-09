@@ -558,8 +558,8 @@ rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key)
 		return -1;
 	}
 
-	if (not_exists(keylist, keylist_size, key, 1, mask[0])
-		&& not_exists(keylist, keylist_size, key, 1, mask[1]))
+	if (not_exists(keylist, keylist_size, key, 0, mask[0])
+		&& not_exists(keylist, keylist_size, key, 0, mask[1]))
 	{
 		/*
 		 * None of the required mask was found, return non-zero to indicate that
