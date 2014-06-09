@@ -135,7 +135,7 @@ ods_build_path(const char* file, const char* suffix, int dir, int no_slash)
             f = file;
         }
 
-        len_file = strlen(file);
+        len_file = strlen(f);
         if (suffix) {
             len_suffix = strlen(suffix);
         }
@@ -151,7 +151,7 @@ ods_build_path(const char* file, const char* suffix, int dir, int no_slash)
                 return NULL;
             }
 
-            strncpy(openf, file, len_file);
+            strncpy(openf, f, len_file);
             openf[len_file] = '\0';
             if (no_slash) {
                 size_t i = 0;
