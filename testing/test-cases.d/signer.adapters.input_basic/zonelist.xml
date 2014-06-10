@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <ZoneList>
-	<Zone name="root">
+	<Zone name=".">
 		<Policy>default</Policy>
 		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/root.xml</SignerConfiguration>
 		<Adapters>
