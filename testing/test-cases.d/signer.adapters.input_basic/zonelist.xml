@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <ZoneList>
+	<Zone name="root">
+		<Policy>default</Policy>
+		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/root.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+			</Input>
+			<Output>
+				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/root</Adapter>
+			</Output>
+		</Adapters>
+	</Zone>
 	<Zone name="ods">
 		<Policy>default</Policy>
 		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods.xml</SignerConfiguration>
