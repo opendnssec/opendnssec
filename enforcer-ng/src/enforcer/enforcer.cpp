@@ -373,6 +373,9 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 		//fromKey() is candidate now, must be in same state as k_pred
 		KeyData *fromKey = stringToKeyData(key_list, dep.fromKey());
 		//TODO, make fine grained. depending on record
+		/*
+		 * The RRSIGDNSKEY is not compared because TODO .
+		 */
 		if (getState(*prKey, DS, future_key) != getState(*fromKey, DS, future_key)) continue;
 		if (getState(*prKey, DK, future_key) != getState(*fromKey, DK, future_key)) continue;
 		if (getState(*prKey, RS, future_key) != getState(*fromKey, RS, future_key)) continue;
@@ -388,6 +391,9 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 		for (int i = 0; i < key_list.numKeys(); i++) {
 			if (key_list.key(i).locator().compare(k_pred) == 0) continue; 
 			if (isPotentialSuccessor(key_list.key(i), future_key, k_succ, succRelRec)) {
+		        /*
+		         * The RRSIGDNSKEY is not compared because TODO .
+		         */
 				if (getState(*prKey, DS, future_key) != getState(key_list.key(i), DS, NULL)) continue;
 				if (getState(*prKey, DK, future_key) != getState(key_list.key(i), DK, NULL)) continue;
 				if (getState(*prKey, RS, future_key) != getState(key_list.key(i), RS, NULL)) continue;
