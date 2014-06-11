@@ -410,3 +410,34 @@ ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
 SECTION AUTHORITY
 SECTION ADDITIONAL
 ENTRY_END
+
+
+ENTRY_BEGIN
+MATCH opcode
+MATCH qtype
+MATCH qname
+MATCH TCP
+REPLY QUERY
+REPLY NOERROR
+REPLY QR AA
+ADJUST copy_id
+SECTION QUESTION
+. IN AXFR
+SECTION ANSWER
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2014060500 20 5 3600 3600
+zone.	172800	IN	NS	demand.beta.aridns.net.au.
+zone.	172800	IN	NS	demand.alpha.aridns.net.au.
+zone.	172800	IN	NS	demand.delta.aridns.net.au.
+zone.	172800	IN	NS	demand.gamma.aridns.net.au.
+zw.	172800	IN	NS	ns1.telone.co.zw.
+zw.	172800	IN	NS	ns2.gip.net.
+zw.	172800	IN	NS	ns2.telone.co.zw.
+zw.	172800	IN	NS	ns-zw.ripe.net.
+zw.	172800	IN	NS	news-tokyo.gip.net.
+ns1.telone.co.zw.	172800	IN	A	194.133.122.47
+ns2.telone.co.zw.	172800	IN	A	194.133.122.42
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2014060500 20 5 3600 3600
+
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
