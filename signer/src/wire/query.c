@@ -343,12 +343,12 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
         if (q->zone->xfrd->serial_notify_acquired) {
             if (!util_serial_gt(q->zone->xfrd->serial_notify,
                 q->zone->xfrd->serial_disk)) {
-                ods_log_debug("[%s] ignore notify: already got zone %s serial "
+                ods_log_info("[%s] ignore notify: already got zone %s serial "
                     "%u on disk", query_str, q->zone->name,
                     q->zone->xfrd->serial_notify);
                 q->zone->xfrd->serial_notify_acquired = 0;
             } else {
-                ods_log_debug("[%s] ignore notify: zone %s transfer in process",
+                ods_log_info("[%s] ignore notify: zone %s transfer in process",
                     query_str, q->zone->name);
                 /* update values */
                 q->zone->xfrd->serial_notify = serial;

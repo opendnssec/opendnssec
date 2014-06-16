@@ -1,3 +1,6 @@
+16 June 2014: Matthijs
+- OPENDNSSEC-628: Log ignored notifies at LOG_INFO level.
+
 5 June 2014: Matthijs
 - OPENDNSSEC-621: Configure pidfile and socketfile in conf.xml.
 - OPENDNSSEC-630: Handle root zone differently in working directory.
