@@ -34,6 +34,6 @@
 #include "scheduler/task.h"
 
 int perform_keystate_list(int sockfd, engineconfig_type *config,
-	bool bverbose, bool bdebug);
+	bool bverbose, bool bdebug, bool bparsable);
 
 #endif
