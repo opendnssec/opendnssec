@@ -360,11 +360,12 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
         q->zone->xfrd->serial_notify = serial;
         q->zone->xfrd->serial_notify_acquired = time_now();
         lock_basic_unlock(&q->zone->xfrd->serial_lock);
-        /* forward notify to xfrd */
-        xfrd_set_timer_now(q->zone->xfrd);
-        dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
-            buffer_remaining(q->buffer));
     }
+
+    /* forward notify to xfrd */
+    xfrd_set_timer_now(q->zone->xfrd);
+    dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
+        buffer_remaining(q->buffer));
 
 send_notify_ok:
     /* send notify ok */
