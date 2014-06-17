@@ -253,8 +253,14 @@ exists_old(KeyDataList &key_list, const struct FutureKey *future_key,
 	return false;
 }
 
+/**
+ * Test if a key exist with certain states.
+ *
+ * \return A positive value if a key exists, zero if a key does not exists and
+ * a negative value if an error occurred.
+ */
 static int
-not_exists(key_data_t** keylist, size_t keylist_size, key_data_t* key,
+exists(key_data_t** keylist, size_t keylist_size, key_data_t* key,
 	int same_algorithm, const key_state_state_t mask[4])
 {
 	size_t i;
@@ -293,15 +299,15 @@ not_exists(key_data_t** keylist, size_t keylist_size, key_data_t* key,
 		}
 
 		/*
-		 * We have a match and do not have to continue, return non-error.
+		 * We have a match and do not have to continue, return positive value.
 		 */
-		return 0;
+		return 1;
 	}
 
 	/*
-	 * We got no match, return success.
+	 * We got no match, return zero.
 	 */
-	return 1;
+	return 0;
 }
 
 /** Looks up KeyData from locator string.
@@ -543,8 +549,15 @@ rule1_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		exists_old(key_list, future_key, false, mask_triv) ||
 		exists_old(key_list, future_key, false, mask_dsin);
 }
+/**
+ * Checks for existence of DS.
+ *
+ * \return A positive value if the rule applies, zero if the rule does not
+ * apply and a negative value if an error occurred.
+ */
 static int
-rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key)
+rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key,
+    key_state_t* state, key_state_state_t desired_state)
 {
 	static const key_state_state_t mask[2][4] = {
 		/*
@@ -564,13 +577,12 @@ rule1(key_data_t** keylist, size_t keylist_size, key_data_t* key)
 		return -1;
 	}
 
-	if (not_exists(keylist, keylist_size, key, 0, mask[0])
-		&& not_exists(keylist, keylist_size, key, 0, mask[1]))
+	/*
+	 * Return positive value if any of the masks are found.
+	 */
+	if (exists(keylist, keylist_size, key, 0, mask[0]) > 0
+		|| exists(keylist, keylist_size, key, 0, mask[1]) > 0)
 	{
-		/*
-		 * None of the required mask was found, return non-zero to indicate that
-		 * the rule has been broken.
-		 */
 		return 1;
 	}
 	return 0;
@@ -616,8 +628,15 @@ rule2_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		
 		unsignedOk(key_list, future_key, mask_unsg, DS);
 }
+/**
+ * Checks for a valid DNSKEY situation.
+ *
+ * \return A positive value if the rule applies, zero if the rule does not
+ * apply and a negative value if an error occurred.
+ */
 static int
-rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key)
+rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key,
+    key_state_t* state, key_state_state_t desired_state)
 {
 	static const key_state_state_t mask[1][4] = {
 		/*
@@ -633,12 +652,11 @@ rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key)
 		return -1;
 	}
 
-	if (not_exists(keylist, keylist_size, key, 1, mask[0]))
+    /*
+     * Return positive value if any of the masks are found.
+     */
+	if (exists(keylist, keylist_size, key, 1, mask[0]) > 0)
 	{
-		/*
-		 * None of the required mask was found, return non-zero to indicate that
-		 * the rule has been broken.
-		 */
 		return 1;
 	}
 	return 0;
@@ -675,8 +693,15 @@ rule3_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		exists_with_successor(dep_list, key_list, future_key, true, mask_sigo, mask_sigi, RS) ||
 		unsignedOk(key_list, future_key, mask_unsg, DK);
 }
+/**
+ * Checks for a valid signature situation.
+ *
+ * \return A positive value if the rule applies, zero if the rule does not
+ * apply and a negative value if an error occurred.
+ */
 static int
-rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key)
+rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key,
+    key_state_t* state, key_state_state_t desired_state)
 {
 	static const key_state_state_t mask[2][4] = {
 		/*
@@ -692,12 +717,11 @@ rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key)
 		return -1;
 	}
 
-	if (not_exists(keylist, keylist_size, key, 1, mask[0]))
+    /*
+     * Return positive value if any of the masks are found.
+     */
+	if (exists(keylist, keylist_size, key, 1, mask[0]) > 0)
 	{
-		/*
-		 * None of the required mask was found, return non-zero to indicate that
-		 * the rule has been broken.
-		 */
 		return 1;
 	}
 	return 0;
@@ -1105,7 +1129,7 @@ processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
 			 *
 			 * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
 			 */
-			if (!not_exists(keylist, keylist_size, key, 1, dnskey_algorithm_rollover)) {
+			if (exists(keylist, keylist_size, key, 1, dnskey_algorithm_rollover) > 0) {
 				/*
 				 * We found a good key, so we will not do any transition.
 				 */
@@ -1148,7 +1172,7 @@ processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
 			 *
 			 * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
 			 */
-			if (!not_exists(keylist, keylist_size, key, 1, rrsig_algorithm_rollover)) {
+			if (exists(keylist, keylist_size, key, 1, rrsig_algorithm_rollover) > 0) {
 				/*
 				 * We found a good key, so we will not do any transition.
 				 */
@@ -1162,21 +1186,37 @@ processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
 	}
 
 	/*
-	 * Check if DNSSEC state will be invalid by the transition.
+	 * Check if DNSSEC state will be invalid by the transition by checking that
+	 * all 3 DNSSEC rules apply. Rule 1 only applies if we are not allowing an
+	 * unsigned state.
 	 *
-	 * Process all DNSSEC rules, if anyone returns non-zero it means that
-	 * its rule has been broken and we can not transition.
+	 * A rule is first checked against the current state of the key_state and if
+	 * the current state is not valid an transition is allowed for that rule in
+	 * order to try and move out of an invalid DNSSEC state.
 	 *
-	 * rule1 - If signed, check valid DS state
-	 * rule2 - TODO
-	 * rule3 - TODO
+	 * Next the rule is checked against the desired state and if that state is a
+	 * valid DNSSEC state then the transition is allowed.
+	 *
+	 * rule1 - Handles DS states
+	 * rule2 - Handles DNSKEY states.
+	 * rule3 - Handles signatures.
 	 */
-	if ((!allow_unsigned && rule1(keylist, keylist_size, key))
-		|| rule2(keylist, keylist_size, key)
-		|| rule3(keylist, keylist_size, key))
-	{
-		return 0;
-	}
+    if ((allow_unsigned
+            || !rule1(keylist, keylist_size, key, state, KEY_STATE_STATE_INVALID)
+            || rule1(keylist, keylist_size, key, state, desired_state) > 0)
+        && (!rule2(keylist, keylist_size, key, state, KEY_STATE_STATE_INVALID)
+            || rule2(keylist, keylist_size, key, state, desired_state) > 0)
+        && (!rule3(keylist, keylist_size, key, state, KEY_STATE_STATE_INVALID)
+            || rule3(keylist, keylist_size, key, state, desired_state) > 0))
+    {
+        /*
+         * All rules apply, we allow transition.
+         */
+        /*
+         * TODO: do the transition
+         */
+        return 0;
+    }
 
 	return 0;
 }
