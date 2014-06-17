@@ -81,6 +81,117 @@ static void __policy_import_cleanup(struct __policy_import_policy_key** policy_k
     }
 }
 
+static int check_duplicated_policy_keys(db_connection_t *dbconn, xmlNodePtr node) {
+    xmlNodePtr node2;
+    xmlNodePtr node3;
+    xmlNodePtr* keys;
+    size_t count = 0, i, j, found;
+    policy_key_t *A, *B = NULL;
+
+    /*
+     * Count the keys in the XML
+     */
+    for (node2 = node->children; node2; node2 = node2->next) {
+        if (node2->type != XML_ELEMENT_NODE) {
+            continue;
+        }
+        if (strcmp((char*)node2->name, "Keys")) {
+            continue;
+        }
+
+        for (node3 = node2->children; node3; node3 = node3->next) {
+            if (node3->type != XML_ELEMENT_NODE) {
+                continue;
+            }
+            if (strcmp((char*)node3->name, "KSK")
+                && strcmp((char*)node3->name, "ZSK")
+                && strcmp((char*)node3->name, "CSK"))
+            {
+                continue;
+            }
+        }
+
+        count++;
+    }
+
+    if (!count) {
+        return 0;
+    }
+
+    /*
+     * Allocate an array of nodes and put all keys in it
+     */
+    if (!(keys = (xmlNodePtr*)calloc(count, sizeof(xmlNodePtr)))) {
+        return -1;
+    }
+    for (i = 0, node2 = node->children; node2; node2 = node2->next) {
+        if (node2->type != XML_ELEMENT_NODE) {
+            continue;
+        }
+        if (strcmp((char*)node2->name, "Keys")) {
+            continue;
+        }
+
+        for (node3 = node2->children; node3; node3 = node3->next) {
+            if (node3->type != XML_ELEMENT_NODE) {
+                continue;
+            }
+            if (strcmp((char*)node3->name, "KSK")
+                && strcmp((char*)node3->name, "ZSK")
+                && strcmp((char*)node3->name, "CSK"))
+            {
+                continue;
+            }
+
+            if (i >= count) {
+                free(keys);
+                return -1;
+            }
+
+            keys[i] = node3;
+            i++;
+        }
+    }
+
+    /*
+     * Walk the array and check for duplicated keys
+     *
+     * TODO: this could be optimized by creating all the policy_key objects
+     * before checking them.
+     */
+    if (!(A = policy_key_new(dbconn))
+        || !(B = policy_key_new(dbconn)))
+    {
+        policy_key_free(A);
+        policy_key_free(B);
+        free(keys);
+        return -1;
+    }
+    for (found = 0, i = 0; i < count && !found; i++) {
+        policy_key_reset(A);
+        if (policy_key_create_from_xml(A, keys[i])) {
+            found = -1;
+            break;
+        }
+        for (j = i + 1; j < count && !found; j++) {
+            policy_key_reset(B);
+            if (policy_key_create_from_xml(B, keys[j])) {
+                found = -1;
+                break;
+            }
+            if (!policy_key_cmp(A, B)) {
+                found = 1;
+                break;
+            }
+        }
+    }
+
+    policy_key_free(A);
+    policy_key_free(B);
+    free(keys);
+    return found;
+}
+
 int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete)
 {
@@ -202,6 +313,45 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         return POLICY_IMPORT_ERR_XML;
     }
 
+    /*
+     * Check for duplicated policy keys
+     */
+    for (; root; root = root->next) {
+        if (root->type != XML_ELEMENT_NODE) {
+            continue;
+        }
+
+        if (!strcmp((char*)root->name, "KASP")) {
+            for (node = root->children; node; node = node->next) {
+                if (node->type != XML_ELEMENT_NODE) {
+                    continue;
+                }
+                if (strcmp((char*)node->name, "Policy")) {
+                    continue;
+                }
+
+                if (!(name = xmlGetProp(node, (const xmlChar*)"name"))) {
+                    client_printf_err(sockfd, "Invalid Policy element in KASP XML!\n");
+                    xmlFreeDoc(doc);
+                    __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
+                    return POLICY_IMPORT_ERR_XML;
+                }
+
+                if (check_duplicated_policy_keys(dbconn, node)) {
+                    client_printf_err(sockfd, "Duplicated Policy Key elements in KASP XML is not allowed!\n");
+                    xmlFree(name);
+                    xmlFreeDoc(doc);
+                    __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
+                    return POLICY_IMPORT_ERR_XML;
+                }
+                xmlFree(name);
+            }
+        }
+    }
+
+    /*
+     * Process XML
+     */
     for (; root; root = root->next) {
         if (root->type != XML_ELEMENT_NODE) {
             continue;
