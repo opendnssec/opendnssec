@@ -434,7 +434,7 @@ successor(KeyDataList &key_list, KeyDependencyList &dep_list,
 
 //Seek 
 static bool
-exists_with_successor(KeyDependencyList &dep_list, 
+exists_with_successor_old(KeyDependencyList &dep_list,
 	KeyDataList &key_list, struct FutureKey *future_key,
 	const bool require_same_algorithm, const STATE mask_pred[4], 
 	const STATE mask_succ[4], const RECORD succRelRec)
@@ -457,6 +457,19 @@ exists_with_successor(KeyDependencyList &dep_list,
 		}
 	}
 	return false;
+}
+/**
+ * TODO
+ *
+ * \return A positive value if a key exists, zero if a key does not exists and
+ * a negative value if an error occurred.
+ */
+static int
+exists_with_successor(key_data_t** keylist, size_t keylist_size, key_data_t* key,
+    int same_algorithm, const key_state_state_t predecessor_mask[4],
+    const key_state_state_t successor_mask[4], key_state_type_t type)
+{
+    return 0;
 }
 
 
@@ -619,12 +632,12 @@ rule2_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 	return
 		exists_old(key_list, future_key, true, mask_triv) ||
 		
-		exists_with_successor(dep_list, key_list, future_key, true, mask_ds_o, mask_ds_i, DS) ||
+		exists_with_successor_old(dep_list, key_list, future_key, true, mask_ds_o, mask_ds_i, DS) ||
 
-		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o1, mask_k_i1, DK) ||
-		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o1, mask_k_i2, DK) ||
-		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i1, DK) ||
-		exists_with_successor(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i2, DK) ||
+		exists_with_successor_old(dep_list, key_list, future_key, true, mask_k_o1, mask_k_i1, DK) ||
+		exists_with_successor_old(dep_list, key_list, future_key, true, mask_k_o1, mask_k_i2, DK) ||
+		exists_with_successor_old(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i1, DK) ||
+		exists_with_successor_old(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i2, DK) ||
 		
 		unsignedOk(key_list, future_key, mask_unsg, DS);
 }
@@ -638,11 +651,33 @@ static int
 rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key,
     key_state_t* state, key_state_state_t desired_state)
 {
-	static const key_state_state_t mask[1][4] = {
+	static const key_state_state_t mask[8][4] = {
 		/*
 		 * This indicates a good key state.
 		 */
-		{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA }
+		{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },
+        /*
+         * This indicates an introducing DS state.
+         */
+        { RUMOURED, OMNIPRESENT, OMNIPRESENT, NA },
+        /*
+         * This indicates an outroducing DS state.
+         */
+        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },
+        /*
+         * These indicates an introducing DNSKEY state.
+         */
+        { OMNIPRESENT, RUMOURED, RUMOURED, NA },
+        { OMNIPRESENT, OMNIPRESENT, RUMOURED, NA },
+        /*
+         * These indicates an outroducing DNSKEY state.
+         */
+        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },
+        { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
+	    /*
+	     * This indicates an unsigned state.
+	     */
+        { HIDDEN, OMNIPRESENT, OMNIPRESENT, NA }
 	};
 
 	if (!keylist) {
@@ -655,7 +690,12 @@ rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key,
     /*
      * Return positive value if any of the masks are found.
      */
-	if (exists(keylist, keylist_size, key, 1, mask[0]) > 0)
+	if (exists(keylist, keylist_size, key, 1, mask[0]) > 0
+	    || exists_with_successor(keylist, keylist_size, key, 1, mask[2], mask[1], KEY_STATE_TYPE_DS) > 0
+        || exists_with_successor(keylist, keylist_size, key, 1, mask[5], mask[3], KEY_STATE_TYPE_DNSKEY) > 0
+        || exists_with_successor(keylist, keylist_size, key, 1, mask[5], mask[4], KEY_STATE_TYPE_DNSKEY) > 0
+        || exists_with_successor(keylist, keylist_size, key, 1, mask[6], mask[3], KEY_STATE_TYPE_DNSKEY) > 0
+        || exists_with_successor(keylist, keylist_size, key, 1, mask[6], mask[4], KEY_STATE_TYPE_DNSKEY) > 0)
 	{
 		return 1;
 	}
@@ -689,8 +729,8 @@ rule3_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 	 * performed first. */
 	return
 		exists_old(key_list, future_key, true, mask_triv) ||
-		exists_with_successor(dep_list, key_list, future_key, true, mask_keyo, mask_keyi, DK) ||
-		exists_with_successor(dep_list, key_list, future_key, true, mask_sigo, mask_sigi, RS) ||
+		exists_with_successor_old(dep_list, key_list, future_key, true, mask_keyo, mask_keyi, DK) ||
+		exists_with_successor_old(dep_list, key_list, future_key, true, mask_sigo, mask_sigi, RS) ||
 		unsignedOk(key_list, future_key, mask_unsg, DK);
 }
 /**
