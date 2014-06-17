@@ -238,6 +238,17 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
         return NULL;
     }
 
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "predecessorId")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
     if (db_object_set_object_field_list(object, object_field_list)) {
         db_object_field_list_free(object_field_list);
         db_object_free(object);
@@ -267,6 +278,7 @@ key_data_t* key_data_new(const db_connection_t* connection) {
         key_data->role = KEY_DATA_ROLE_INVALID;
         key_data->introducing = 1;
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_UNSUBMITTED;
+        db_value_reset(&(key_data->predecessor_id));
     }
 
     return key_data;
@@ -315,6 +327,7 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->hsm_key) {
             hsm_key_free(key_data->hsm_key);
         }
+        db_value_reset(&(key_data->predecessor_id));
         mm_alloc_delete(&__key_data_alloc, key_data);
     }
 }
@@ -356,6 +369,7 @@ void key_data_reset(key_data_t* key_data) {
             hsm_key_free(key_data->hsm_key);
             key_data->hsm_key = NULL;
         }
+        db_value_reset(&(key_data->predecessor_id));
     }
 }
 
@@ -390,6 +404,9 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
     key_data->active_ksk = key_data_copy->active_ksk;
     key_data->ds_at_parent = key_data_copy->ds_at_parent;
     key_data->keytag = key_data_copy->keytag;
+    if (db_value_copy(&(key_data->predecessor_id), &(key_data_copy->predecessor_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -461,6 +478,12 @@ int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b) {
     if (key_data_a->keytag != key_data_b->keytag) {
         return key_data_a->keytag < key_data_b->keytag ? -1 : 1;
     }
+
+    ret = 0;
+    db_value_cmp(&(key_data_a->predecessor_id), &(key_data_b->predecessor_id), &ret);
+    if (ret) {
+        return ret;
+    }
     return 0;
 }
 
@@ -480,8 +503,9 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     db_value_reset(&(key_data->rev));
     db_value_reset(&(key_data->zone_id));
     db_value_reset(&(key_data->hsm_key_id));
+    db_value_reset(&(key_data->predecessor_id));
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 15
+        || db_value_set_size(value_set) != 16
         || db_value_copy(&(key_data->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(key_data->rev), db_value_set_at(value_set, 1))
         || db_value_copy(&(key_data->zone_id), db_value_set_at(value_set, 2))
@@ -496,7 +520,8 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 11), &(key_data->publish))
         || db_value_to_uint32(db_value_set_at(value_set, 12), &(key_data->active_ksk))
         || db_value_to_enum_value(db_value_set_at(value_set, 13), &ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_to_uint32(db_value_set_at(value_set, 14), &(key_data->keytag)))
+        || db_value_to_uint32(db_value_set_at(value_set, 14), &(key_data->keytag))
+        || db_value_copy(&(key_data->predecessor_id), db_value_set_at(value_set, 15)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -731,6 +756,38 @@ unsigned int key_data_keytag(const key_data_t* key_data) {
     return key_data->keytag;
 }
 
+const db_value_t* key_data_predecessor_id(const key_data_t* key_data) {
+    if (!key_data) {
+        return NULL;
+    }
+
+    return &(key_data->predecessor_id);
+}
+
+key_data_t* key_data_get_predecessor(const key_data_t* key_data) {
+    key_data_t* predecessor_id = NULL;
+
+    if (!key_data) {
+        return NULL;
+    }
+    if (!key_data->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(key_data->predecessor_id))) {
+        return NULL;
+    }
+
+    if (!(predecessor_id = key_data_new(db_object_connection(key_data->dbo)))) {
+        return NULL;
+    }
+    if (key_data_get_by_id(predecessor_id, &(key_data->predecessor_id))) {
+        key_data_free(predecessor_id);
+        return NULL;
+    }
+
+    return predecessor_id;
+}
+
 int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
@@ -915,6 +972,25 @@ int key_data_set_keytag(key_data_t* key_data, unsigned int keytag) {
     }
 
     key_data->keytag = keytag;
+
+    return DB_OK;
+}
+
+int key_data_set_predecessor_id(key_data_t* key_data, const db_value_t* predecessor_id) {
+    if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!predecessor_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(predecessor_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    db_value_reset(&(key_data->predecessor_id));
+    if (db_value_copy(&(key_data->predecessor_id), predecessor_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
 
     return DB_OK;
 }
@@ -1204,6 +1280,33 @@ db_clause_t* key_data_keytag_clause(db_clause_list_t* clause_list, unsigned int 
     return clause;
 }
 
+db_clause_t* key_data_predecessor_id_clause(db_clause_list_t* clause_list, const db_value_t* predecessor_id) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+    if (!predecessor_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(predecessor_id)) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "predecessorId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_copy(db_clause_get_value(clause), predecessor_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
 int key_data_create(key_data_t* key_data) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
@@ -1226,6 +1329,9 @@ int key_data_create(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
     if (db_value_not_empty(&(key_data->hsm_key_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(&(key_data->predecessor_id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content more */
@@ -1366,7 +1472,17 @@ int key_data_create(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(13))) {
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "predecessorId")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(value_set = db_value_set_new(14))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1383,7 +1499,8 @@ int key_data_create(key_data_t* key_data) {
         || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->publish)
         || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 11), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag))
+        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag)
+        || db_value_copy(db_value_set_get(value_set, 13), &(key_data->predecessor_id)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -1498,6 +1615,9 @@ int key_data_update(key_data_t* key_data) {
     if (db_value_not_empty(&(key_data->hsm_key_id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(key_data->predecessor_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
@@ -1636,7 +1756,17 @@ int key_data_update(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(13))) {
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "predecessorId")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(value_set = db_value_set_new(14))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1653,7 +1783,8 @@ int key_data_update(key_data_t* key_data) {
         || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->publish)
         || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 11), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag))
+        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag)
+        || db_value_copy(db_value_set_get(value_set, 13), &(key_data->predecessor_id)))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -1988,6 +2119,71 @@ key_data_list_t* key_data_list_new_get_by_hsm_key_id(const db_connection_t* conn
 
     if (!(key_data_list = key_data_list_new(connection))
         || key_data_list_get_by_hsm_key_id(key_data_list, hsm_key_id))
+    {
+        key_data_list_free(key_data_list);
+        return NULL;
+    }
+
+    return key_data_list;
+}
+
+int key_data_list_get_by_predecessor_id(key_data_list_t* key_data_list, const db_value_t* predecessor_id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!key_data_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!predecessor_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(predecessor_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "predecessorId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), predecessor_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_data_list->result_list) {
+        db_result_list_free(key_data_list->result_list);
+    }
+    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+    return DB_OK;
+}
+
+key_data_list_t* key_data_list_new_get_by_predecessor_id(const db_connection_t* connection, const db_value_t* predecessor_id) {
+    key_data_list_t* key_data_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!predecessor_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(predecessor_id)) {
+        return NULL;
+    }
+
+    if (!(key_data_list = key_data_list_new(connection))
+        || key_data_list_get_by_predecessor_id(key_data_list, predecessor_id))
     {
         key_data_list_free(key_data_list);
         return NULL;

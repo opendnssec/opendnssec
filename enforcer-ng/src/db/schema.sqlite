@@ -64,10 +64,12 @@ CREATE TABLE keyData (
     publish UNSIGNED INT NOT NULL,
     activeKsk UNSIGNED INT NOT NULL,
     dsAtParent INT NOT NULL,
-    keytag UNSIGNED INT NOT NULL
+    keytag UNSIGNED INT NOT NULL,
+    predecessorId INTEGER NOT NULL
 );
 CREATE INDEX keyDataZoneId ON keyData ( zoneId );
 CREATE INDEX keyDataHsmKeyId ON keyData ( hsmKeyId );
+CREATE INDEX keyDataPredecessorId ON keyData ( predecessorId );
 
 CREATE TABLE keyState (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
