@@ -143,7 +143,8 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy);
  * or be greater than B.
  * \param[in] key_data_a a key_data_t pointer.
  * \param[in] key_data_b a key_data_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * \return less than, equal to, or greater than zero if A is found, respectively,
+ * to be less than, to match, or be greater than B.
  */
 int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b);
 

@@ -119,7 +119,8 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy);
  * or be greater than B.
  * \param[in] zone_a a zone_t pointer.
  * \param[in] zone_b a zone_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * \return less than, equal to, or greater than zero if A is found, respectively,
+ * to be less than, to match, or be greater than B.
  */
 int zone_cmp(const zone_t* zone_a, const zone_t* zone_b);
 

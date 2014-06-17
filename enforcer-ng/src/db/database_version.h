@@ -101,7 +101,8 @@ int database_version_copy(database_version_t* database_version, const database_v
  * or be greater than B.
  * \param[in] database_version_a a database_version_t pointer.
  * \param[in] database_version_b a database_version_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * \return less than, equal to, or greater than zero if A is found, respectively,
+ * to be less than, to match, or be greater than B.
  */
 int database_version_cmp(const database_version_t* database_version_a, const database_version_t* database_version_b);
 

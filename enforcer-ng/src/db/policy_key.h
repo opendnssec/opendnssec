@@ -119,7 +119,8 @@ int policy_key_copy(policy_key_t* policy_key, const policy_key_t* policy_key_cop
  * or be greater than B.
  * \param[in] policy_key_a a policy_key_t pointer.
  * \param[in] policy_key_b a policy_key_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * \return less than, equal to, or greater than zero if A is found, respectively,
+ * to be less than, to match, or be greater than B.
  */
 int policy_key_cmp(const policy_key_t* policy_key_a, const policy_key_t* policy_key_b);
 

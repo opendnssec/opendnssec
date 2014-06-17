@@ -221,7 +221,8 @@ int ', $name, '_copy(', $name, '_t* ', $name, ', const ', $name, '_t* ', $name, 
  * or be greater than B.
  * \param[in] ', $name, '_a a ', $name, '_t pointer.
  * \param[in] ', $name, '_b a ', $name, '_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * \return less than, equal to, or greater than zero if A is found, respectively,
+ * to be less than, to match, or be greater than B.
  */
 int ', $name, '_cmp(const ', $name, '_t* ', $name, '_a, const ', $name, '_t* ', $name, '_b);
 

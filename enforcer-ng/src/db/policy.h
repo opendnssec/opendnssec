@@ -147,7 +147,8 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy);
  * or be greater than B.
  * \param[in] policy_a a policy_t pointer.
  * \param[in] policy_b a policy_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * \return less than, equal to, or greater than zero if A is found, respectively,
+ * to be less than, to match, or be greater than B.
  */
 int policy_cmp(const policy_t* policy_a, const policy_t* policy_b);
 
