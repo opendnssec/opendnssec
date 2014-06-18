@@ -189,11 +189,15 @@ xfrd_recover(xfrd_type* xfrd)
     const char* soa_mname = NULL;
     const char* soa_rname = NULL;
 
-    if (zone && zone->name) {
+    if (zone && zone->name && zone->db &&
+        zone->db->is_initialized && zone->db->have_serial) {
+        ods_log_info("[%s] recover xfrd.state file zone %s", xfrd_str,
+                zone->name);
+
         file = ods_build_path(zone->name, ".xfrd-state", 0, 1);
         if (file) {
-            ods_log_debug("[%s] recover state file zone %s", xfrd_str,
-                zone->name);
+            ods_log_debug("[%s] recover xfrd.state file %s zone %s", xfrd_str,
+                file, zone->name);
             fd = ods_fopen(file, NULL, "r");
             if (fd) {
                 if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V3)) {
@@ -299,6 +303,9 @@ xfrd_recover_error:
             }
             free(file);
         }
+    } else {
+        ods_log_info("[%s] did not recover xfrd.state file zone %s", xfrd_str,
+                zone->name);
     }
     return;
 }
