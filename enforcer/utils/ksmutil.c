@@ -1031,7 +1031,37 @@ cmd_addzone ()
         return(1);
     }
 
-    /*
+	/* check that zonelist.xml.backup is writable */
+	StrAppend(&backup_filename, zonelist_filename);
+	StrAppend(&backup_filename, ".backup");
+    if (xml_flag == 1) {
+		if (access(backup_filename, F_OK) == 0){
+			if (access(backup_filename, W_OK)){
+				printf("ERROR: The backup file %s can not be written.\n",backup_filename);
+				StrFree(zonelist_filename);
+				StrFree(sig_conf_name);
+				StrFree(input_name);
+				StrFree(output_name);
+				StrFree(input_type);
+				StrFree(output_type);
+				StrFree(backup_filename);
+				return(1);
+			}
+		}else{
+			if (access(OPENDNSSEC_CONFIG_DIR, W_OK)){
+				printf("ERROR: The backup file %s can not be written.\n",backup_filename);
+				StrFree(zonelist_filename);
+				StrFree(sig_conf_name);
+				StrFree(input_name);
+				StrFree(output_name);
+				StrFree(input_type);
+				StrFree(output_type);
+				StrFree(backup_filename);
+				return(1);
+			}
+		}
+	}
+	/*
      * Push this new zonelist into the database
      */
 
@@ -1046,6 +1076,7 @@ cmd_addzone ()
         StrFree(output_name);
         StrFree(input_type);
         StrFree(output_type);
+		StrFree(backup_filename);
         return(1);
     } 
 
@@ -1061,6 +1092,7 @@ cmd_addzone ()
         StrFree(output_name);
         StrFree(input_type);
         StrFree(output_type);
+		StrFree(backup_filename);
         return(1);
     }
     status = KsmImportZone(o_zone, policy_id, 1, &new_zone, sig_conf_name, input_name, output_name, input_type, output_type);
@@ -1079,6 +1111,7 @@ cmd_addzone ()
         StrFree(output_name);
         StrFree(input_type);
         StrFree(output_type);
+		StrFree(backup_filename);
         return(1);
     }
 
@@ -1094,6 +1127,7 @@ cmd_addzone ()
         StrFree(output_name);
         StrFree(input_type);
         StrFree(output_type);
+		StrFree(backup_filename);
         return(1);
     }
     status = KsmParameter(result, &data);
@@ -1106,6 +1140,7 @@ cmd_addzone ()
         StrFree(output_name);
         StrFree(input_type);
         StrFree(output_type);
+		StrFree(backup_filename);
         return(1);
     }
     KsmParameterEnd(result);
@@ -1125,6 +1160,7 @@ cmd_addzone ()
                 StrFree(output_name);
 				StrFree(input_type);
 				StrFree(output_type);
+				StrFree(backup_filename);
                 return(1);
             }
         }
@@ -1148,17 +1184,18 @@ cmd_addzone ()
         StrFree(output_type);
 
         if (doc == NULL) {
+            printf("Error: Couldn't add our new node in memory\n");
             StrFree(zonelist_filename);
+			StrFree(backup_filename);
             return(1);
         }
 
         /* Backup the current zonelist */
-        StrAppend(&backup_filename, zonelist_filename);
-        StrAppend(&backup_filename, ".backup");
         status = backup_file(zonelist_filename, backup_filename);
-        StrFree(backup_filename);
         if (status != 0) {
+            printf("Error: Backup %s FAILED, please backup %s manually and run \"ods-ksmutil zonelist export\" to update zonelist.xml\n", backup_filename, backup_filename);
             StrFree(zonelist_filename);
+			StrFree(backup_filename);
             return(status);
         }
 
@@ -1168,7 +1205,8 @@ cmd_addzone ()
         xmlFreeDoc(doc);
 
         if (status == -1) {
-            printf("couldn't save zonelist\n");
+            printf("Error: couldn't save zonelist, please run \"ods-ksmutil zonelist export\" to update zonelist.xml\n");
+			StrFree(backup_filename);
             return(1);
         }
     }
@@ -1182,6 +1220,7 @@ cmd_addzone ()
         printf("Imported zone: %s\n", o_zone);
     }
 
+    StrFree(backup_filename);
 	StrFree(sig_conf_name);
 	StrFree(input_name);
 	StrFree(output_name);

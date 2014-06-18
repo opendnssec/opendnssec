@@ -10,6 +10,10 @@ OpenDNSSEC 1.4.6
   given an expression.
 
 Bugfixes:
+* OPENDNSSEC-469: ods-ksmutil: 'zone add' command when zonelist.xml.backup
+  can't be written zone is still added to database, solved it by checking the
+  zonelist.xml.backup is writable before adding zones, and add error message
+  when add zone failed.
 * OPENDNSSEC-617: Signer Engine: Fix DNS Input Adapter to not reject zone
   the first time due to RFC 1982 serial arethmetic.
 * simple-dnskey-mailer.sh: Fix syntax error. (by Patrik Lundin
