@@ -621,10 +621,10 @@ backup_read_ixfr(FILE* in, void* zone)
         ods_log_assert(first_soa);
         lock_basic_lock(&z->ixfr->ixfr_lock);
         if (del_mode) {
-            ods_log_debug("[%s] -IXFR: %s", backup_str, ldns_rr2str(rr));
+            ods_log_deeebug("[%s] -IXFR: %s", backup_str, ldns_rr2str(rr));
             ixfr_del_rr(z->ixfr, rr);
         } else {
-            ods_log_debug("[%s] +IXFR: %s", backup_str, ldns_rr2str(rr));
+            ods_log_deeebug("[%s] +IXFR: %s", backup_str, ldns_rr2str(rr));
             ixfr_add_rr(z->ixfr, rr);
         }
         lock_basic_unlock(&z->ixfr->ixfr_lock);
