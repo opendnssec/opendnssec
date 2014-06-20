@@ -136,7 +136,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	task = schedule_get_first_task(engine->taskq);
 
 	if (task) {
-		if (!task->flush) {
+		if (!task->flush || attach) {
 			/*Use the parameter vaule, or if not given use the time of the first task*/
 			if (!time_leap)
 				time_leap = task->when;
