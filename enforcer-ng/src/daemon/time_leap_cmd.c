@@ -48,6 +48,8 @@ usage(int sockfd)
 		"time leap              Simulate progression of time by leaping to the time of\n"
 		"                       the earliest scheduled task.\n"
 		"    --time <time>      -t for short, leap to this exact time.\n"
+		"    --attach           -a for short. Perform 1 task and stay "
+			"attached, use only when workerthreads=0.\n"
 	);
 }
 
@@ -85,7 +87,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	struct tm tm;
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
-	int argc;
+	int argc, attach;
 	(void)n;
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
@@ -110,6 +112,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			return -1;
 		}
 	}
+	attach = ods_find_arg(&argc,argv,"attach","a") != -1;
 
 	ods_log_assert(engine);
 	if (!engine->taskq || !engine->taskq->tasks) {
@@ -165,6 +168,15 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		 tasks need to be executed */
 		client_printf(sockfd, "Waking up workers\n");
 		engine_wakeup_workers(engine);
+		if (attach) {
+			task = schedule_pop_task(engine->taskq);
+			if (task) {
+				task = task_perform(task);
+				ods_log_debug("[timeleap] finished working");
+				if (task)
+					(void) lock_and_schedule_task(engine->taskq, task, 1);
+			}
+		}
 	}
 	return !bShouldLeap;
 }
