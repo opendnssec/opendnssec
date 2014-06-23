@@ -32,6 +32,7 @@
 #include "test_hsm_key.h"
 #include "test_key_data.h"
 #include "test_key_state.h"
+#include "test_key_dependency.h"
 #include "test_policy.h"
 #include "test_policy_key.h"
 #include "test_database_version.h"
@@ -165,6 +166,7 @@ int main(void) {
     test_hsm_key_add_suite();
     test_key_data_add_suite();
     test_key_state_add_suite();
+    test_key_dependency_add_suite();
     test_policy_add_suite();
     test_policy_key_add_suite();
     test_database_version_add_suite();

@@ -170,6 +170,7 @@ ods_enforcerd_SOURCES = \
 	db/zone.c db/zone_ext.c db/zone_ext.h db/zone.h db/zone_struct_ext.h \
 	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h db/key_data_struct_ext.h \
 	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h db/key_state_struct_ext.h \
+	db/key_dependency.c db/key_dependency_ext.c db/key_dependency_ext.h db/key_dependency.h db/key_dependency_struct_ext.h \
 	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h db/policy_struct_ext.h \
 	db/policy_key.c db/policy_key_ext.c db/policy_key_ext.h db/policy_key.h db/policy_key_struct_ext.h \
 	db/hsm_key.c db/hsm_key_ext.c db/hsm_key_ext.h db/hsm_key.h db/hsm_key_struct_ext.h \

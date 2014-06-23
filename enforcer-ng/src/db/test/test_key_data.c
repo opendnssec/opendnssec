@@ -203,10 +203,8 @@ static void test_key_data_new(void) {
 static void test_key_data_set(void) {
     db_value_t zone_id = DB_VALUE_EMPTY;
     db_value_t hsm_key_id = DB_VALUE_EMPTY;
-    db_value_t predecessor_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&zone_id, 1));
     CU_ASSERT(!db_value_from_int32(&hsm_key_id, 1));
-    CU_ASSERT(!db_value_from_int32(&predecessor_id, 1));
     CU_ASSERT(!key_data_set_zone_id(object, &zone_id));
     CU_ASSERT(!key_data_set_hsm_key_id(object, &hsm_key_id));
     CU_ASSERT(!key_data_set_algorithm(object, 1));
@@ -236,20 +234,16 @@ static void test_key_data_set(void) {
     CU_ASSERT(!key_data_set_ds_at_parent(object, KEY_DATA_DS_AT_PARENT_RETRACTED));
     CU_ASSERT(!key_data_set_ds_at_parent_text(object, "retracted"));
     CU_ASSERT(!key_data_set_keytag(object, 1));
-    CU_ASSERT(!key_data_set_predecessor_id(object, &predecessor_id));
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
-    db_value_reset(&predecessor_id);
 }
 
 static void test_key_data_get(void) {
     int ret;
     db_value_t zone_id = DB_VALUE_EMPTY;
     db_value_t hsm_key_id = DB_VALUE_EMPTY;
-    db_value_t predecessor_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&zone_id, 1));
     CU_ASSERT(!db_value_from_int32(&hsm_key_id, 1));
-    CU_ASSERT(!db_value_from_int32(&predecessor_id, 1));
     CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
@@ -269,11 +263,8 @@ static void test_key_data_get(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "retracted"));
     CU_ASSERT(key_data_keytag(object) == 1);
-    CU_ASSERT(!db_value_cmp(key_data_predecessor_id(object), &predecessor_id, &ret));
-    CU_ASSERT(!ret);
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
-    db_value_reset(&predecessor_id);
 }
 
 static void test_key_data_create(void) {
@@ -412,16 +403,6 @@ static void test_key_data_clauses(void) {
     key_data_list_free(new_list);
     db_clause_list_free(clause_list);
     clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_data_predecessor_id_clause(clause_list, key_data_predecessor_id(object)));
-    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(key_data_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_data_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_data_list_next(new_list));
-    key_data_list_free(new_list);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
 }
 
 static void test_key_data_count(void) {
@@ -520,13 +501,6 @@ static void test_key_data_count(void) {
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_data_predecessor_id_clause(clause_list, key_data_predecessor_id(object)));
-    CU_ASSERT(!key_data_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
 }
 
 static void test_key_data_list(void) {
@@ -560,10 +534,8 @@ static void test_key_data_verify(void) {
     int ret;
     db_value_t zone_id = DB_VALUE_EMPTY;
     db_value_t hsm_key_id = DB_VALUE_EMPTY;
-    db_value_t predecessor_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&zone_id, 1));
     CU_ASSERT(!db_value_from_int32(&hsm_key_id, 1));
-    CU_ASSERT(!db_value_from_int32(&predecessor_id, 1));
     CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
@@ -583,20 +555,15 @@ static void test_key_data_verify(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "retracted"));
     CU_ASSERT(key_data_keytag(object) == 1);
-    CU_ASSERT(!db_value_cmp(key_data_predecessor_id(object), &predecessor_id, &ret));
-    CU_ASSERT(!ret);
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
-    db_value_reset(&predecessor_id);
 }
 
 static void test_key_data_change(void) {
     db_value_t zone_id = DB_VALUE_EMPTY;
     db_value_t hsm_key_id = DB_VALUE_EMPTY;
-    db_value_t predecessor_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&zone_id, 2));
     CU_ASSERT(!db_value_from_int32(&hsm_key_id, 2));
-    CU_ASSERT(!db_value_from_int32(&predecessor_id, 2));
     CU_ASSERT(!key_data_set_zone_id(object, &zone_id));
     CU_ASSERT(!key_data_set_hsm_key_id(object, &hsm_key_id));
     CU_ASSERT(!key_data_set_algorithm(object, 2));
@@ -612,10 +579,8 @@ static void test_key_data_change(void) {
     CU_ASSERT(!key_data_set_ds_at_parent(object, KEY_DATA_DS_AT_PARENT_UNSUBMITTED));
     CU_ASSERT(!key_data_set_ds_at_parent_text(object, "unsubmitted"));
     CU_ASSERT(!key_data_set_keytag(object, 2));
-    CU_ASSERT(!key_data_set_predecessor_id(object, &predecessor_id));
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
-    db_value_reset(&predecessor_id);
 }
 
 static void test_key_data_update(void) {
@@ -630,10 +595,8 @@ static void test_key_data_verify2(void) {
     int ret;
     db_value_t zone_id = DB_VALUE_EMPTY;
     db_value_t hsm_key_id = DB_VALUE_EMPTY;
-    db_value_t predecessor_id = DB_VALUE_EMPTY;
     CU_ASSERT(!db_value_from_int32(&zone_id, 2));
     CU_ASSERT(!db_value_from_int32(&hsm_key_id, 2));
-    CU_ASSERT(!db_value_from_int32(&predecessor_id, 2));
     CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
@@ -653,11 +616,8 @@ static void test_key_data_verify2(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "unsubmitted"));
     CU_ASSERT(key_data_keytag(object) == 2);
-    CU_ASSERT(!db_value_cmp(key_data_predecessor_id(object), &predecessor_id, &ret));
-    CU_ASSERT(!ret);
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
-    db_value_reset(&predecessor_id);
 }
 
 static void test_key_data_cmp(void) {

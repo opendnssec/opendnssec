@@ -18,6 +18,7 @@ test_SOURCES = \
 	test_hsm_key.c test_hsm_key.h \
 	test_key_data.c test_key_data.h \
 	test_key_state.c test_key_state.h \
+	test_key_dependency.c test_key_dependency.h \
 	test_policy.c test_policy.h \
 	test_policy_key.c test_policy_key.h \
 	test_database_version.c test_database_version.h \
@@ -47,6 +48,7 @@ test_LDADD = \
 	../../hsm_key.o ../../hsm_key_ext.o \
 	../../key_data.o ../../key_data_ext.o \
 	../../key_state.o ../../key_state_ext.o \
+	../../key_dependency.o ../../key_dependency_ext.o \
 	../../policy.o ../../policy_ext.o \
 	../../policy_key.o ../../policy_key_ext.o \
 	../../database_version.o ../../database_version_ext.o \
