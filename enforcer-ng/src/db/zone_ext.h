@@ -31,6 +31,7 @@
 #define __zone_ext_h
 
 #include "key_data.h"
+#include "key_dependency.h"
 
 #include <libxml/tree.h>
 
@@ -41,10 +42,16 @@ extern "C" {
 /**
  * Get a list of keys for an enforcer zone object.
  * \param[in] zone an zone_t pointer.
- * \return a key_data_list_t pointer or NULL on error or if there are no keys
- * in the enforcer zone object.
+ * \return a key_data_list_t pointer or NULL on error.
  */
 key_data_list_t* zone_get_keys(const zone_t* zone);
+
+/**
+ * Get a list of key dependencies for an enforcer zone object.
+ * \param[in] zone an zone_t pointer.
+ * \return a key_dependency_list_t pointer or NULL on error.
+ */
+key_dependency_list_t* zone_get_key_dependencies(const zone_t* zone);
 
 /**
  * Create a zone object from XML.

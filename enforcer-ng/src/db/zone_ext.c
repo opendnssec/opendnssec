@@ -50,6 +50,21 @@ key_data_list_t* zone_get_keys(const zone_t* zone) {
         &(zone->id));
 }
 
+key_dependency_list_t* zone_get_key_dependencies(const zone_t* zone) {
+    if (!zone) {
+        return NULL;
+    }
+    if (!zone->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(zone->id))) {
+        return NULL;
+    }
+
+    return key_dependency_list_new_get_by_zone_id(db_object_connection(zone->dbo),
+        &(zone->id));
+}
+
 static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
     xmlNodePtr node;
     xmlNodePtr node2;
