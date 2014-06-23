@@ -59,6 +59,7 @@
 #include "db/policy_key.h"
 #include "db/hsm_key.h"
 #include "db/key_data.h"
+#include "db/key_dependency.h"
 
 #include "enforcer/enforcer.h"
 
@@ -208,7 +209,7 @@ getDesiredState(const bool introducing, const STATE state)
  * @return True IFF exist such key.
  * */
 static bool
-match(KeyData &k, const struct FutureKey *future_key,
+match_old(KeyData &k, const struct FutureKey *future_key,
 	const bool require_same_algorithm, const STATE mask[4])
 {
 	if (require_same_algorithm && 
@@ -223,6 +224,35 @@ match(KeyData &k, const struct FutureKey *future_key,
 		if (mask[r] != getState(k, r, future_key)) return false;
 	}
 	return true;
+}
+/**
+ * Test if a key matches specific states.
+ *
+ * \return A positive value if the key match, zero if a key does not match and
+ * a negative value if an error occurred.
+ */
+static int
+match(key_data_t* key, const key_state_state_t mask[4]) {
+    if (!key) {
+        return -1;
+    }
+
+    /*
+     * Check the states against the mask, for each mask that is not NA we
+     * need a match on that key state.
+     */
+    if ((mask[0] != NA
+            && key_state_state(key_data_cached_ds(key)) != mask[0])
+        || (mask[1] != NA
+            && key_state_state(key_data_cached_dnskey(key)) != mask[1])
+        || (mask[2] != NA
+            && key_state_state(key_data_cached_rrsigdnskey(key)) != mask[2])
+        || (mask[3] != NA
+            && key_state_state(key_data_cached_rrsig(key)) != mask[3]))
+    {
+        return 0;
+    }
+    return 1;
 }
 
 /**
@@ -247,7 +277,7 @@ exists_old(KeyDataList &key_list, const struct FutureKey *future_key,
 {
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k = key_list.key(i);
-		if (match(k, future_key, require_same_algorithm, mask))
+		if (match_old(k, future_key, require_same_algorithm, mask))
 			return true;
 	}
 	return false;
@@ -283,18 +313,9 @@ exists(key_data_t** keylist, size_t keylist_size, key_data_t* key,
 			continue;
 		}
 		/*
-		 * Check the states against the mask, for each mask that is not NA we
-		 * need a match on that key state. If there is no match we continue.
+		 * Check the states against the mask. If there is no match we continue.
 		 */
-		if ((mask[0] != NA
-				&& key_state_state(key_data_cached_ds(keylist[i])) != mask[0])
-			|| (mask[1] != NA
-				&& key_state_state(key_data_cached_dnskey(keylist[i])) != mask[1])
-			|| (mask[2] != NA
-				&& key_state_state(key_data_cached_rrsigdnskey(keylist[i])) != mask[2])
-			|| (mask[3] != NA
-				&& key_state_state(key_data_cached_rrsig(keylist[i])) != mask[3]))
-		{
+		if (match(keylist[i], mask) < 1) {
 			continue;
 		}
 
@@ -325,9 +346,9 @@ stringToKeyData(KeyDataList &key_list, const string &locator)
 }
 
 static bool
-isPotentialSuccessor(KeyData &pred_key, const struct FutureKey *future_key, KeyData &succ_key, const RECORD succRelRec)
+isPotentialSuccessor_old(KeyData &pred_key, const struct FutureKey *future_key, KeyData &succ_key, const RECORD succRelRec)
 {
-	static const char *scmd = "isPotentialSuccessor";
+	static const char *scmd = "isPotentialSuccessor_old";
 	/** must at least have record introducing */
 	if (getState(succ_key, succRelRec, future_key) != RUM) return false;
 	if (pred_key.algorithm() != succ_key.algorithm()) return false;
@@ -348,6 +369,14 @@ isPotentialSuccessor(KeyData &pred_key, const struct FutureKey *future_key, KeyD
 				module_str, scmd, (int)future_key->record);
 	}
 }
+static int
+isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
+    key_data_t* key, key_state_type_t type)
+{
+    /* TODO */
+
+    return -1;
+}
 
 /** True if a path from k_succ to k_pred exists */
 static bool
@@ -367,7 +396,7 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 	/** trivial case where there is a direct relation in the future */
 	if (future_key->pretend_update && 
 		future_key->key->locator().compare(k_pred) == 0 && 
-		isPotentialSuccessor(*future_key->key, future_key, k_succ, succRelRec))
+		isPotentialSuccessor_old(*future_key->key, future_key, k_succ, succRelRec))
 		return true;
 	KeyData *prKey = stringToKeyData(key_list, k_pred);
 	/** There is no direct relation. Check for indirect where X depends
@@ -396,7 +425,7 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
 	if (future_key->pretend_update) {
 		for (int i = 0; i < key_list.numKeys(); i++) {
 			if (key_list.key(i).locator().compare(k_pred) == 0) continue; 
-			if (isPotentialSuccessor(key_list.key(i), future_key, k_succ, succRelRec)) {
+			if (isPotentialSuccessor_old(key_list.key(i), future_key, k_succ, succRelRec)) {
 		        /*
 		         * The RRSIGDNSKEY is not compared because TODO .
 		         */
@@ -420,7 +449,7 @@ successor_rec(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_suc
  * 			- Z depends on X */
 /** True if k_succ is a successor of k_pred */
 static bool
-successor(KeyDataList &key_list, KeyDependencyList &dep_list, 
+successor_old(KeyDataList &key_list, KeyDependencyList &dep_list,
 		KeyData &k_succ, KeyData &k_pred,
 		struct FutureKey *future_key, const RECORD succRelRec) 
 {
@@ -430,6 +459,98 @@ successor(KeyDataList &key_list, KeyDependencyList &dep_list,
 			return false;
 	return successor_rec(key_list, dep_list, k_succ, k_pred.locator(), 
 		future_key, succRelRec);
+}
+static int
+successor(key_data_t** keylist, size_t keylist_size, key_data_t* successor_key,
+    key_data_t* predecessor_key, key_data_t* key, key_state_type_t type,
+    key_dependency_list_t* deplist)
+{
+    size_t i;
+    int cmp;
+    const key_dependency_t* dep;
+
+    if (!keylist) {
+        return -1;
+    }
+    if (!successor_key) {
+        return -1;
+    }
+    if (!predecessor_key) {
+        return -1;
+    }
+    if (!key) {
+        return -1;
+    }
+    if (!deplist) {
+        return -1;
+    }
+
+    /*
+     * Nothing may depend on our predecessor.
+     */
+    for (dep = key_dependency_list_begin(deplist); dep; dep = key_dependency_list_next(deplist)) {
+        if (db_value_cmp(key_data_id(predecessor_key), key_dependency_to_key_data_id(dep), &cmp)) {
+            return -1;
+        }
+        if (!cmp) {
+            return 0;
+        }
+    }
+
+    /*
+     * Check the trivial case where the predecessor key is already a predecessor
+     * for the successor key.
+     */
+    for (dep = key_dependency_list_begin(deplist); dep; dep = key_dependency_list_next(deplist)) {
+        switch (key_dependency_type(dep)) {
+        case KEY_DEPENDENCY_TYPE_DS:
+            if (type != KEY_STATE_TYPE_DS) {
+                continue;
+            }
+            break;
+
+        case KEY_DEPENDENCY_TYPE_RRSIG:
+            if (type != KEY_STATE_TYPE_RRSIG) {
+                continue;
+            }
+            break;
+
+        case KEY_DEPENDENCY_TYPE_DNSKEY:
+            if (type != KEY_STATE_TYPE_DNSKEY) {
+                continue;
+            }
+            break;
+
+        case KEY_DEPENDENCY_TYPE_RRSIGDNSKEY:
+            if (type != KEY_STATE_TYPE_RRSIGDNSKEY) {
+                continue;
+            }
+            break;
+
+        default:
+            continue;
+        }
+
+        if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep), &cmp)) {
+            return -1;
+        }
+        if (cmp) {
+            continue;
+        }
+
+        if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
+            return -1;
+        }
+        if (cmp) {
+            continue;
+        }
+
+        return 1;
+    }
+
+    /* TODO */
+
+    return 0;
 }
 
 //Seek 
@@ -443,16 +564,16 @@ exists_with_successor_old(KeyDependencyList &dep_list,
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &k_succ = key_list.key(i);
 		/** Do we have a key matching mask_succ? */
-		if (!match(k_succ, future_key, 
+		if (!match_old(k_succ, future_key,
 				require_same_algorithm, mask_succ)) {
 			continue;
 		}
 		for (int j = 0; j < key_list.numKeys(); j++) {
 			KeyData &k_pred = key_list.key(j);
 			/** Do we have a key matching mask_pred? */
-			if (!match(k_pred, future_key, require_same_algorithm, mask_pred))
+			if (!match_old(k_pred, future_key, require_same_algorithm, mask_pred))
 				continue;
-			if (successor(key_list, dep_list, k_succ, k_pred, future_key, succRelRec))
+			if (successor_old(key_list, dep_list, k_succ, k_pred, future_key, succRelRec))
 				return true;
 		}
 	}
@@ -467,8 +588,40 @@ exists_with_successor_old(KeyDependencyList &dep_list,
 static int
 exists_with_successor(key_data_t** keylist, size_t keylist_size, key_data_t* key,
     int same_algorithm, const key_state_state_t predecessor_mask[4],
-    const key_state_state_t successor_mask[4], key_state_type_t type)
+    const key_state_state_t successor_mask[4], key_state_type_t type,
+    key_dependency_list_t* deplist)
 {
+    size_t i, j;
+
+    if (!keylist) {
+        return -1;
+    }
+    if (!key) {
+        return -1;
+    }
+
+    /*
+     * Walk the list of keys, for each key that matches the successor mask we
+     * walk the list again and check that key against the keys that match the
+     * predecessor mask if has a valid successor/predecessor relationship.
+     */
+    for (i = 0; i < keylist_size; i++) {
+        if (match(keylist[i], successor_mask) < 1) {
+            continue;
+        }
+
+        for (j = 0; j < keylist_size; j++) {
+            if (j == i
+                || match(keylist[j], predecessor_mask) < 1)
+            {
+                continue;
+            }
+
+            if (successor(keylist, keylist_size, keylist[i], keylist[j], key, type, deplist) > 0) {
+                return 1;
+            }
+        }
+    }
     return 0;
 }
 
@@ -649,7 +802,8 @@ rule2_old(KeyDependencyList &dep_list, KeyDataList &key_list,
  */
 static int
 rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key,
-    key_state_t* state, key_state_state_t desired_state)
+    key_state_t* state, key_state_state_t desired_state,
+    key_dependency_list_t* deplist)
 {
 	static const key_state_state_t mask[8][4] = {
 		/*
@@ -691,11 +845,11 @@ rule2(key_data_t** keylist, size_t keylist_size, key_data_t* key,
      * Return positive value if any of the masks are found.
      */
 	if (exists(keylist, keylist_size, key, 1, mask[0]) > 0
-	    || exists_with_successor(keylist, keylist_size, key, 1, mask[2], mask[1], KEY_STATE_TYPE_DS) > 0
-        || exists_with_successor(keylist, keylist_size, key, 1, mask[5], mask[3], KEY_STATE_TYPE_DNSKEY) > 0
-        || exists_with_successor(keylist, keylist_size, key, 1, mask[5], mask[4], KEY_STATE_TYPE_DNSKEY) > 0
-        || exists_with_successor(keylist, keylist_size, key, 1, mask[6], mask[3], KEY_STATE_TYPE_DNSKEY) > 0
-        || exists_with_successor(keylist, keylist_size, key, 1, mask[6], mask[4], KEY_STATE_TYPE_DNSKEY) > 0)
+	    || exists_with_successor(keylist, keylist_size, key, 1, mask[2], mask[1], KEY_STATE_TYPE_DS, deplist) > 0
+        || exists_with_successor(keylist, keylist_size, key, 1, mask[5], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
+        || exists_with_successor(keylist, keylist_size, key, 1, mask[5], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
+        || exists_with_successor(keylist, keylist_size, key, 1, mask[6], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
+        || exists_with_successor(keylist, keylist_size, key, 1, mask[6], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0)
 	{
 		return 1;
 	}
@@ -741,7 +895,8 @@ rule3_old(KeyDependencyList &dep_list, KeyDataList &key_list,
  */
 static int
 rule3(key_data_t** keylist, size_t keylist_size, key_data_t* key,
-    key_state_t* state, key_state_state_t desired_state)
+    key_state_t* state, key_state_state_t desired_state,
+    key_dependency_list_t* deplist)
 {
 	static const key_state_state_t mask[2][4] = {
 		/*
@@ -997,7 +1152,7 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &key_i = key_list.key(i);
 		//TODO: do this for any record type?
-		if (isPotentialSuccessor(*future_key->key, future_key, key_i, future_key->record)) 
+		if (isPotentialSuccessor_old(*future_key->key, future_key, key_i, future_key->record))
 			dep_list.addNewDependency(future_key->key, &key_i, future_key->record);
 	}
 }
@@ -1005,13 +1160,35 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 static int
 processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
 	size_t keylist_size, key_data_t* key, key_state_t* state,
-	int* change, int allow_unsigned)
+	int* change, int allow_unsigned, key_dependency_list_t* deplist)
 {
 	key_state_state_t desired_state = KEY_STATE_STATE_INVALID;
 	static const char *scmd = "processKeyState";
 	size_t i;
 	static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
 	static const key_state_state_t rrsig_algorithm_rollover[4] = { NA, OMNIPRESENT, NA, OMNIPRESENT };
+
+	if (!zone) {
+	    return -1;
+	}
+	if (!zone_updated) {
+        return -1;
+	}
+	if (!keylist) {
+        return -1;
+	}
+	if (!key) {
+        return -1;
+	}
+	if (!state) {
+        return -1;
+	}
+	if (!change) {
+        return -1;
+	}
+	if (!deplist) {
+        return -1;
+	}
 
 	/*
 	 * Given goal and state, what will be the next state?
@@ -1244,10 +1421,10 @@ processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
     if ((allow_unsigned
             || !rule1(keylist, keylist_size, key, state, KEY_STATE_STATE_INVALID)
             || rule1(keylist, keylist_size, key, state, desired_state) > 0)
-        && (!rule2(keylist, keylist_size, key, state, KEY_STATE_STATE_INVALID)
-            || rule2(keylist, keylist_size, key, state, desired_state) > 0)
-        && (!rule3(keylist, keylist_size, key, state, KEY_STATE_STATE_INVALID)
-            || rule3(keylist, keylist_size, key, state, desired_state) > 0))
+        && (!rule2(keylist, keylist_size, key, state, KEY_STATE_STATE_INVALID, deplist)
+            || rule2(keylist, keylist_size, key, state, desired_state, deplist) > 0)
+        && (!rule3(keylist, keylist_size, key, state, KEY_STATE_STATE_INVALID, deplist)
+            || rule3(keylist, keylist_size, key, state, desired_state, deplist) > 0))
     {
         /*
          * All rules apply, we allow transition.
@@ -1282,6 +1459,7 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 	static const char *scmd = "updateZone";
 	size_t keylist_size, i;
 	int change;
+	key_dependency_list_t *deplist;
 
 	if (!policy) {
 		return returntime_zone;
@@ -1296,12 +1474,21 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 	/*
 	 * Get all key data/state/hsm objects for later processing.
 	 */
+	if (!(deplist = zone_get_key_dependencies(zone))
+	    || key_dependency_list_fetch_all(deplist))
+	{
+        /* TODO: better log error */
+        ods_log_debug("[%s] %s: error zone_get_key_dependencies() || key_dependency_list_fetch_all()", module_str, scmd);
+        key_dependency_list_free(deplist);
+        return returntime_zone;
+	}
 	if (!(key_list = zone_get_keys(zone))
 		|| key_data_list_fetch_all(key_list))
 	{
 		/* TODO: better log error */
 		ods_log_debug("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
 		key_data_list_free(key_list);
+        key_dependency_list_free(deplist);
 		return returntime_zone;
 	}
 	if (!(keylist_size = key_data_list_size(key_list))) {
@@ -1317,6 +1504,7 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 			/* TODO: better log error */
 			ods_log_debug("[%s] %s: error calloc(keylist_size)", module_str, scmd);
 			key_data_list_free(key_list);
+	        key_dependency_list_free(deplist);
 			return returntime_zone;
 		}
 		for (i = 0; i < keylist_size; i++) {
@@ -1338,6 +1526,7 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 				}
 				free(keylist);
 				key_data_list_free(key_list);
+		        key_dependency_list_free(deplist);
 				return returntime_zone;
 			}
 		}
@@ -1401,10 +1590,10 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 			ods_log_verbose("[%s] %s: processing key %s", module_str, scmd,
 				hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
-			if (processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_ds(keylist[i]), &change, allow_unsigned)
-				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change, allow_unsigned)
-				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change, allow_unsigned)
-				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change, allow_unsigned))
+			if (processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_ds(keylist[i]), &change, allow_unsigned, deplist)
+				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change, allow_unsigned, deplist)
+				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change, allow_unsigned, deplist)
+				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change, allow_unsigned, deplist))
 			{
 				/* TODO: handle error */
 			}
@@ -1420,6 +1609,7 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 		}
 	}
 	free(keylist);
+    key_dependency_list_free(deplist);
 
 	return returntime_zone;
 }
