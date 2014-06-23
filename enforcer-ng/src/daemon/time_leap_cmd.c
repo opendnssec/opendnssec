@@ -171,10 +171,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		if (attach) {
 			task = schedule_pop_task(engine->taskq);
 			if (task) {
-				client_printf(sockfd, "working on %s", task->who);
+				client_printf(sockfd, "working on %s\n", task->who);
 				task = task_perform(task);
 				if (task)
-					client_printf(sockfd, "rescheduling %s", task->who);
+					client_printf(sockfd, "rescheduling %s\n", task->who);
 					(void) lock_and_schedule_task(engine->taskq, task, 1);
 			}
 		}
