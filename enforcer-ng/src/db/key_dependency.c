@@ -85,6 +85,17 @@ static db_object_t* __key_dependency_new_object(const db_connection_t* connectio
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "zoneId")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "fromKeyDataId")
         || db_object_field_set_type(object_field, DB_TYPE_ANY)
         || db_object_field_list_add(object_field_list, object_field))
@@ -142,6 +153,7 @@ key_dependency_t* key_dependency_new(const db_connection_t* connection) {
         }
         db_value_reset(&(key_dependency->id));
         db_value_reset(&(key_dependency->rev));
+        db_value_reset(&(key_dependency->zone_id));
         db_value_reset(&(key_dependency->from_key_data_id));
         db_value_reset(&(key_dependency->to_key_data_id));
         key_dependency->type = KEY_DEPENDENCY_TYPE_INVALID;
@@ -176,6 +188,7 @@ void key_dependency_free(key_dependency_t* key_dependency) {
         }
         db_value_reset(&(key_dependency->id));
         db_value_reset(&(key_dependency->rev));
+        db_value_reset(&(key_dependency->zone_id));
         db_value_reset(&(key_dependency->from_key_data_id));
         db_value_reset(&(key_dependency->to_key_data_id));
         mm_alloc_delete(&__key_dependency_alloc, key_dependency);
@@ -186,6 +199,7 @@ void key_dependency_reset(key_dependency_t* key_dependency) {
     if (key_dependency) {
         db_value_reset(&(key_dependency->id));
         db_value_reset(&(key_dependency->rev));
+        db_value_reset(&(key_dependency->zone_id));
         db_value_reset(&(key_dependency->from_key_data_id));
         db_value_reset(&(key_dependency->to_key_data_id));
         key_dependency->type = KEY_DEPENDENCY_TYPE_INVALID;
@@ -204,6 +218,9 @@ int key_dependency_copy(key_dependency_t* key_dependency, const key_dependency_t
         return DB_ERROR_UNKNOWN;
     }
     if (db_value_copy(&(key_dependency->rev), &(key_dependency_copy->rev))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_copy(&(key_dependency->zone_id), &(key_dependency_copy->zone_id))) {
         return DB_ERROR_UNKNOWN;
     }
     if (db_value_copy(&(key_dependency->from_key_data_id), &(key_dependency_copy->from_key_data_id))) {
@@ -227,6 +244,12 @@ int key_dependency_cmp(const key_dependency_t* key_dependency_a, const key_depen
     }
     if (key_dependency_a && !key_dependency_b) {
         return 1;
+    }
+
+    ret = 0;
+    db_value_cmp(&(key_dependency_a->zone_id), &(key_dependency_b->zone_id), &ret);
+    if (ret) {
+        return ret;
     }
 
     ret = 0;
@@ -260,15 +283,17 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
 
     db_value_reset(&(key_dependency->id));
     db_value_reset(&(key_dependency->rev));
+    db_value_reset(&(key_dependency->zone_id));
     db_value_reset(&(key_dependency->from_key_data_id));
     db_value_reset(&(key_dependency->to_key_data_id));
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 5
+        || db_value_set_size(value_set) != 6
         || db_value_copy(&(key_dependency->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(key_dependency->rev), db_value_set_at(value_set, 1))
-        || db_value_copy(&(key_dependency->from_key_data_id), db_value_set_at(value_set, 2))
-        || db_value_copy(&(key_dependency->to_key_data_id), db_value_set_at(value_set, 3))
-        || db_value_to_enum_value(db_value_set_at(value_set, 4), &type, key_dependency_enum_set_type))
+        || db_value_copy(&(key_dependency->zone_id), db_value_set_at(value_set, 2))
+        || db_value_copy(&(key_dependency->from_key_data_id), db_value_set_at(value_set, 3))
+        || db_value_copy(&(key_dependency->to_key_data_id), db_value_set_at(value_set, 4))
+        || db_value_to_enum_value(db_value_set_at(value_set, 5), &type, key_dependency_enum_set_type))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -298,6 +323,38 @@ const db_value_t* key_dependency_id(const key_dependency_t* key_dependency) {
     }
 
     return &(key_dependency->id);
+}
+
+const db_value_t* key_dependency_zone_id(const key_dependency_t* key_dependency) {
+    if (!key_dependency) {
+        return NULL;
+    }
+
+    return &(key_dependency->zone_id);
+}
+
+zone_t* key_dependency_get_zone(const key_dependency_t* key_dependency) {
+    zone_t* zone_id = NULL;
+
+    if (!key_dependency) {
+        return NULL;
+    }
+    if (!key_dependency->dbo) {
+        return NULL;
+    }
+    if (db_value_not_empty(&(key_dependency->zone_id))) {
+        return NULL;
+    }
+
+    if (!(zone_id = zone_new(db_object_connection(key_dependency->dbo)))) {
+        return NULL;
+    }
+    if (zone_get_by_id(zone_id, &(key_dependency->zone_id))) {
+        zone_free(zone_id);
+        return NULL;
+    }
+
+    return zone_id;
 }
 
 const db_value_t* key_dependency_from_key_data_id(const key_dependency_t* key_dependency) {
@@ -388,6 +445,25 @@ const char* key_dependency_type_text(const key_dependency_t* key_dependency) {
     return NULL;
 }
 
+int key_dependency_set_zone_id(key_dependency_t* key_dependency, const db_value_t* zone_id) {
+    if (!key_dependency) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(zone_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    db_value_reset(&(key_dependency->zone_id));
+    if (db_value_copy(&(key_dependency->zone_id), zone_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
+}
+
 int key_dependency_set_from_key_data_id(key_dependency_t* key_dependency, const db_value_t* from_key_data_id) {
     if (!key_dependency) {
         return DB_ERROR_UNKNOWN;
@@ -454,6 +530,33 @@ int key_dependency_set_type_text(key_dependency_t* key_dependency, const char* t
         enum_set++;
     }
     return DB_ERROR_UNKNOWN;
+}
+
+db_clause_t* key_dependency_zone_id_clause(db_clause_list_t* clause_list, const db_value_t* zone_id) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+    if (!zone_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(zone_id)) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "zoneId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_copy(db_clause_get_value(clause), zone_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
 }
 
 db_clause_t* key_dependency_from_key_data_id_clause(db_clause_list_t* clause_list, const db_value_t* from_key_data_id) {
@@ -549,6 +652,9 @@ int key_dependency_create(key_dependency_t* key_dependency) {
     if (!db_value_not_empty(&(key_dependency->rev))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(key_dependency->zone_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_not_empty(&(key_dependency->from_key_data_id))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -558,6 +664,16 @@ int key_dependency_create(key_dependency_t* key_dependency) {
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "zoneId")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
@@ -592,14 +708,15 @@ int key_dependency_create(key_dependency_t* key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(3))) {
+    if (!(value_set = db_value_set_new(4))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_copy(db_value_set_get(value_set, 0), &(key_dependency->from_key_data_id))
-        || db_value_copy(db_value_set_get(value_set, 1), &(key_dependency->to_key_data_id))
-        || db_value_from_enum_value(db_value_set_get(value_set, 2), key_dependency->type, key_dependency_enum_set_type))
+    if (db_value_copy(db_value_set_get(value_set, 0), &(key_dependency->zone_id))
+        || db_value_copy(db_value_set_get(value_set, 1), &(key_dependency->from_key_data_id))
+        || db_value_copy(db_value_set_get(value_set, 2), &(key_dependency->to_key_data_id))
+        || db_value_from_enum_value(db_value_set_get(value_set, 3), key_dependency->type, key_dependency_enum_set_type))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -708,6 +825,9 @@ int key_dependency_update(key_dependency_t* key_dependency) {
     if (db_value_not_empty(&(key_dependency->rev))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (db_value_not_empty(&(key_dependency->zone_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_not_empty(&(key_dependency->from_key_data_id))) {
         return DB_ERROR_UNKNOWN;
     }
@@ -717,6 +837,16 @@ int key_dependency_update(key_dependency_t* key_dependency) {
     /* TODO: validate content more */
 
     if (!(object_field_list = db_object_field_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "zoneId")
+        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
@@ -751,14 +881,15 @@ int key_dependency_update(key_dependency_t* key_dependency) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(3))) {
+    if (!(value_set = db_value_set_new(4))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (db_value_copy(db_value_set_get(value_set, 0), &(key_dependency->from_key_data_id))
-        || db_value_copy(db_value_set_get(value_set, 1), &(key_dependency->to_key_data_id))
-        || db_value_from_enum_value(db_value_set_get(value_set, 2), key_dependency->type, key_dependency_enum_set_type))
+    if (db_value_copy(db_value_set_get(value_set, 0), &(key_dependency->zone_id))
+        || db_value_copy(db_value_set_get(value_set, 1), &(key_dependency->from_key_data_id))
+        || db_value_copy(db_value_set_get(value_set, 2), &(key_dependency->to_key_data_id))
+        || db_value_from_enum_value(db_value_set_get(value_set, 3), key_dependency->type, key_dependency_enum_set_type))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -963,6 +1094,71 @@ key_dependency_list_t* key_dependency_list_new_get_by_clauses(const db_connectio
 
     if (!(key_dependency_list = key_dependency_list_new(connection))
         || key_dependency_list_get_by_clauses(key_dependency_list, clause_list))
+    {
+        key_dependency_list_free(key_dependency_list);
+        return NULL;
+    }
+
+    return key_dependency_list;
+}
+
+int key_dependency_list_get_by_zone_id(key_dependency_list_t* key_dependency_list, const db_value_t* zone_id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+
+    if (!key_dependency_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_dependency_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(zone_id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "zoneId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), zone_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_dependency_list->result_list) {
+        db_result_list_free(key_dependency_list->result_list);
+    }
+    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+    return DB_OK;
+}
+
+key_dependency_list_t* key_dependency_list_new_get_by_zone_id(const db_connection_t* connection, const db_value_t* zone_id) {
+    key_dependency_list_t* key_dependency_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!zone_id) {
+        return NULL;
+    }
+    if (db_value_not_empty(zone_id)) {
+        return NULL;
+    }
+
+    if (!(key_dependency_list = key_dependency_list_new(connection))
+        || key_dependency_list_get_by_zone_id(key_dependency_list, zone_id))
     {
         key_dependency_list_free(key_dependency_list);
         return NULL;

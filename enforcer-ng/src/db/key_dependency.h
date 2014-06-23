@@ -55,6 +55,7 @@ extern const db_enum_t key_dependency_enum_set_type[];
 #endif
 
 #include "key_dependency_ext.h"
+#include "zone.h"
 #include "key_data.h"
 
 #ifdef __cplusplus
@@ -68,6 +69,7 @@ struct key_dependency {
     db_object_t* dbo;
     db_value_t id;
     db_value_t rev;
+    db_value_t zone_id;
     db_value_t from_key_data_id;
     db_value_t to_key_data_id;
     key_dependency_type_t type;
@@ -134,6 +136,20 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
 const db_value_t* key_dependency_id(const key_dependency_t* key_dependency);
 
 /**
+ * Get the zone_id of a key dependency object.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* key_dependency_zone_id(const key_dependency_t* key_dependency);
+
+/**
+ * Get the zone_id object related to a key dependency object.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \return a zone_t pointer or NULL on error or if no object could be found.
+ */
+zone_t* key_dependency_get_zone(const key_dependency_t* key_dependency);
+
+/**
  * Get the from_key_data_id of a key dependency object.
  * \param[in] key_dependency a key_dependency_t pointer.
  * \return a db_value_t pointer or NULL on error.
@@ -176,6 +192,14 @@ key_dependency_type_t key_dependency_type(const key_dependency_t* key_dependency
 const char* key_dependency_type_text(const key_dependency_t* key_dependency);
 
 /**
+ * Set the zone_id of a key dependency object. If this fails the original value may have been lost.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \param[in] zone_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_set_zone_id(key_dependency_t* key_dependency, const db_value_t* zone_id);
+
+/**
  * Set the from_key_data_id of a key dependency object. If this fails the original value may have been lost.
  * \param[in] key_dependency a key_dependency_t pointer.
  * \param[in] from_key_data_id a db_value_t pointer.
@@ -206,6 +230,17 @@ int key_dependency_set_type(key_dependency_t* key_dependency, key_dependency_typ
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_dependency_set_type_text(key_dependency_t* key_dependency, const char* type);
+
+/**
+ * Create a clause for zone_id of a key dependency object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] zone_id a db_value_t pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_dependency_zone_id_clause(db_clause_list_t* clause_list, const db_value_t* zone_id);
 
 /**
  * Create a clause for from_key_data_id of a key dependency object and add it to a database clause list.
@@ -341,6 +376,22 @@ int key_dependency_list_get_by_clauses(key_dependency_list_t* key_dependency_lis
  * \return a key_dependency_list_t pointer or NULL on error.
  */
 key_dependency_list_t* key_dependency_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
+
+/**
+ * Get key dependency objects from the database by a zone_id specified in `zone_id`.
+ * \param[in] key_dependency_list a key_dependency_list_t pointer.
+ * \param[in] zone_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_list_get_by_zone_id(key_dependency_list_t* key_dependency_list, const db_value_t* zone_id);
+
+/**
+ * Get a new list of key dependency objects from the database by a zone_id specified in `zone_id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] zone_id a db_value_t pointer.
+ * \return a key_dependency_list_t pointer or NULL on error.
+ */
+key_dependency_list_t* key_dependency_list_new_get_by_zone_id(const db_connection_t* connection, const db_value_t* zone_id);
 
 /**
  * Get key dependency objects from the database by a from_key_data_id specified in `from_key_data_id`.

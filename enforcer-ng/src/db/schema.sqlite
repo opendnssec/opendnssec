@@ -84,10 +84,12 @@ CREATE INDEX keyStateKeyDataId ON keyState ( keyDataId );
 CREATE TABLE keyDependency (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     rev INTEGER NOT NULL DEFAULT 1,
+    zoneId INTEGER NOT NULL,
     fromKeyDataId INTEGER NOT NULL,
     toKeyDataId INTEGER NOT NULL,
     type INT NOT NULL
 );
+CREATE INDEX keyDependencyZoneId ON keyDependency ( zoneId );
 CREATE INDEX keyDependencyFromKeyDataId ON keyDependency ( fromKeyDataId );
 CREATE INDEX keyDependencyToKeyDataId ON keyDependency ( toKeyDataId );
 

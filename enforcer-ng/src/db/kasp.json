@@ -81,6 +81,7 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "rev", "type": "DB_TYPE_REVISION" },
+    { "name": "zone_id", "type": "DB_TYPE_ANY", "foreign": "zone" },
     { "name": "from_key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data" },
     { "name": "to_key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data" },
     { "name": "type", "type": "DB_TYPE_ENUM", "enum": [
