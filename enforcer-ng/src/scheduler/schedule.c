@@ -371,15 +371,16 @@ schedule_print(FILE* out, schedule_type* schedule)
  *
  */
 static void
-task_delfunc(ldns_rbnode_t* elem)
+task_delfunc(ldns_rbnode_t* elem, int del_payload)
 {
     task_type* task;
 
     if (elem && elem != LDNS_RBTREE_NULL) {
         task = (task_type*) elem->data;
-        task_delfunc(elem->left);
-        task_delfunc(elem->right);
-        task_cleanup(task);
+        task_delfunc(elem->left, del_payload);
+        task_delfunc(elem->right, del_payload);
+        if (del_payload)
+            task_cleanup(task);
         free((void*)elem);
     }
     return;
@@ -401,8 +402,8 @@ schedule_cleanup(schedule_type* schedule)
     }
     ods_log_debug("[%s] cleanup schedule", schedule_str);
     if (schedule->tasks) {
-        task_delfunc(schedule->tasks->root);
-        task_delfunc(schedule->tasks_by_name->root);
+        task_delfunc(schedule->tasks->root, 1);
+        task_delfunc(schedule->tasks_by_name->root, 0);
         ldns_rbtree_free(schedule->tasks);
         ldns_rbtree_free(schedule->tasks_by_name);
         schedule->tasks = NULL;
