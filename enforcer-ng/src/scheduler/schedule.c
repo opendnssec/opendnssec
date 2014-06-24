@@ -249,7 +249,8 @@ unschedule_task(schedule_type* schedule, task_type* task)
     del_node_name = ldns_rbtree_delete(schedule->tasks_by_name, (const void*) task);
     if (del_node_name) {
         del_node = ldns_rbtree_delete(schedule->tasks, del_node_name->data);
-        del_task = (task_type*) del_node->data; /* nodes share task */
+        if (del_node)
+            del_task = (task_type*) del_node->data; /* nodes share task */
         free(del_node);
         free(del_node_name);
     } else {
