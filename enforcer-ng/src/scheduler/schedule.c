@@ -67,6 +67,7 @@ schedule_create(allocator_type* allocator)
     schedule->allocator = allocator;
     schedule->loading = 0;
     schedule->tasks = ldns_rbtree_create(task_compare);
+    schedule->tasks_by_name = ldns_rbtree_create(task_compare_name);
     lock_basic_init(&schedule->schedule_lock);
     return schedule;
 }
@@ -133,7 +134,7 @@ schedule_lookup_task(schedule_type* schedule, task_type* task)
     ods_log_assert(schedule);
     ods_log_assert(schedule->tasks);
 
-    node = ldns_rbtree_search(schedule->tasks, task);
+    node = ldns_rbtree_search(schedule->tasks_by_name, task);
     if (node && node != LDNS_RBTREE_NULL) {
         lookup = (task_type*) node->data;
     }
@@ -171,6 +172,17 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
         ods_log_error("[%s] unable to schedule task [%s] for %s: "
             " already present", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
+        return ODS_STATUS_ERR;
+    }
+    new_node = task2node(task);
+    /* First insert by name, it will detect duplicates better. */
+    ins_node = ldns_rbtree_insert(schedule->tasks_by_name, new_node);
+    if (!ins_node) {
+        ods_log_error("[%s] unable to schedule task [%s] for %s: "
+            " insert failed", schedule_str, task_what2str(task->what),
+            task_who2str(task->who));
+        (void) ldns_rbtree_delete(schedule->tasks, new_node);
+        free(new_node);
         return ODS_STATUS_ERR;
     }
     new_node = task2node(task);
@@ -214,7 +226,7 @@ lock_and_schedule_task(schedule_type* schedule, task_type* task,
 task_type*
 unschedule_task(schedule_type* schedule, task_type* task)
 {
-    ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t *del_node, *del_node_name;
     task_type* del_task = NULL;
 
     if (!task) {
@@ -232,10 +244,14 @@ unschedule_task(schedule_type* schedule, task_type* task)
 
     ods_log_debug("[%s] unschedule task [%s] for %s",
         schedule_str, task_what2str(task->what), task_who2str(task->who));
-    del_node = ldns_rbtree_delete(schedule->tasks, (const void*) task);
-    if (del_node) {
-        del_task = (task_type*) del_node->data;
-        free((void*)del_node);
+    /* First look up task by name, then use result to find it by name
+     * and time */
+    del_node_name = ldns_rbtree_delete(schedule->tasks_by_name, (const void*) task);
+    if (del_node_name) {
+        del_node = ldns_rbtree_delete(schedule->tasks, del_node_name->data);
+        del_task = (task_type*) del_node->data; /* nodes share task */
+        free(del_node);
+        free(del_node_name);
     } else {
         ods_log_warning("[%s] unable to unschedule task [%s] for %s: not "
             "scheduled", schedule_str, task_what2str(task->what),
@@ -386,8 +402,11 @@ schedule_cleanup(schedule_type* schedule)
     ods_log_debug("[%s] cleanup schedule", schedule_str);
     if (schedule->tasks) {
         task_delfunc(schedule->tasks->root);
+        task_delfunc(schedule->tasks_by_name->root);
         ldns_rbtree_free(schedule->tasks);
+        ldns_rbtree_free(schedule->tasks_by_name);
         schedule->tasks = NULL;
+        schedule->tasks_by_name = NULL;
     }
 
     allocator = schedule->allocator;

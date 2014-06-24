@@ -104,6 +104,6 @@ autostart(engine_type* engine)
 		 * enforce. Not fatal but disturbs test. */
 		resalt_task->when += 3;
 	}
-	schedule_task(engine, enforce_task(engine, 1), "enforce");
 	schedule_task(engine, resalt_task, "resalt");
+	schedule_task(engine, enforce_task(engine, 1), "enforce");
 }
