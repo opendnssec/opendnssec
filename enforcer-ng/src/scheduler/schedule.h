@@ -50,6 +50,7 @@ extern "C" {
 typedef struct schedule_struct schedule_type;
 struct schedule_struct {
     ldns_rbtree_t* tasks;
+    ldns_rbtree_t* tasks_by_name;
     pthread_cond_t schedule_cond;
     pthread_mutex_t schedule_lock;
 };
