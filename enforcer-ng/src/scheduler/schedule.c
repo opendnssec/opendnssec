@@ -191,6 +191,7 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
         ods_log_error("[%s] unable to schedule task [%s] for %s: "
             " insert failed", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
+        (void) ldns_rbtree_delete(schedule->tasks_by_name, new_node);
         free((void*)new_node);
         return ODS_STATUS_ERR;
     }
