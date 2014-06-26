@@ -109,9 +109,8 @@ static int check_duplicated_policy_keys(db_connection_t *dbconn, xmlNodePtr node
             {
                 continue;
             }
+            count++;
         }
-
-        count++;
     }
 
     if (!count) {
