@@ -111,6 +111,7 @@ static int check_duplicated_policy_keys(db_connection_t *dbconn, xmlNodePtr node
             }
             count++;
         }
+        break; /* Look no further, there is only one 'Keys' section */
     }
 
     if (!count) {
