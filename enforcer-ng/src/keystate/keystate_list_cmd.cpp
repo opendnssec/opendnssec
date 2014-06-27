@@ -211,7 +211,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config,
 	}
 
 	/*
-    HsmKeyFactoryPB keyfactory(conn, NULL);
+	HsmKeyFactoryPB keyfactory(conn, NULL);
 	HsmKey *hsmkey;
 
 	for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
@@ -317,8 +317,8 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config,
 				}
 			}
 		}
-    }
-    return 0;
+	}
+	return 0;
 }
 
 int 
@@ -354,37 +354,37 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-    char buf[ODS_SE_MAXLINE];
-    const int NARGV = 8;
-    const char *argv[NARGV];
-    int argc;
+	char buf[ODS_SE_MAXLINE];
+	const int NARGV = 8;
+	const char *argv[NARGV];
+	int argc;
 
-    ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
-    
-    cmd = ods_check_command(cmd, n, key_list_funcblock()->cmdname);
-    // Use buf as an intermediate buffer for the command.
-    strncpy(buf, cmd, sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-    
-    // separate the arguments
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc > NARGV) {
-        ods_log_warning("[%s] too many arguments for %s command",
-                        module_str,key_list_funcblock()->cmdname);
-        client_printf(sockfd,"too many arguments\n");
-        return -1;
-    }
-    
-    bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
-    bool bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
-    bool bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
-    if (argc) {
-        ods_log_warning("[%s] unknown arguments for %s command",
-                        module_str,key_list_funcblock()->cmdname);
-        client_printf(sockfd,"unknown arguments\n");
-        return -1;
-    }
-    return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug, bParsable);
+	ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
+	
+	cmd = ods_check_command(cmd, n, key_list_funcblock()->cmdname);
+	// Use buf as an intermediate buffer for the command.
+	strncpy(buf, cmd, sizeof(buf));
+	buf[sizeof(buf)-1] = '\0';
+	
+	// separate the arguments
+	argc = ods_str_explode(buf, NARGV, argv);
+	if (argc > NARGV) {
+		ods_log_warning("[%s] too many arguments for %s command",
+						module_str,key_list_funcblock()->cmdname);
+		client_printf(sockfd,"too many arguments\n");
+		return -1;
+	}
+	
+	bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
+	bool bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
+	bool bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
+	if (argc) {
+		ods_log_warning("[%s] unknown arguments for %s command",
+						module_str,key_list_funcblock()->cmdname);
+		client_printf(sockfd,"unknown arguments\n");
+		return -1;
+	}
+	return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug, bParsable);
 }
 
 static struct cmd_func_block funcblock = {
