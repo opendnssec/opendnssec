@@ -49,6 +49,7 @@ usage(int sockfd)
 		"key list               List the keys in the enforcer database.\n"
 		"      [--verbose]                (aka -v)  also show additional key parameters.\n"
 		"      [--debug]                  (aka -d)  print information about the keystate.\n"
+		"      [--parsable]               (aka -p)  output machine parsable list\n"
 	);
 }
 
@@ -85,13 +86,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     
     bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
     bool bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
+    bool bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
                         module_str,key_list_funcblock()->cmdname);
         client_printf(sockfd,"unknown arguments\n");
         return -1;
     }
-    return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug);
+    return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug, bParsable);
 }
 
 static struct cmd_func_block funcblock = {

@@ -178,7 +178,8 @@ perform_keystate_list_compat(int sockfd, engineconfig_type* config)
 }
 
 static int
-perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
+perform_keystate_list_verbose(int sockfd, engineconfig_type *config,
+	bool parsable)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	OrmConnRef conn;
@@ -186,6 +187,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 	OrmResultRef rows;
 	const char* fmthdr = "%-31s %-8s %-9s %-24s %-5s %-10s %-32s %-11s %s\n";
 	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n";
+	const char* pfmt   = "%s;%s;%s;%s;%d;%d;%s;%s;%d\n";
 
 	if (!ods_orm_connect(sockfd, config, conn))
 		return 1;
@@ -196,11 +198,13 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 		client_printf(sockfd, "error enumerating zones\n");
 		return 1;
 	}
-	
-	client_printf(sockfd, "Keys:\n");
-	client_printf(sockfd, fmthdr, "Zone:", "Keytype:", "State:", 
-		"Date of next transition:", "Size:", "Algorithm:", "CKA_ID:", 
-		"Repository:", "KeyTag:");
+
+	if (!parsable) {
+		client_printf(sockfd, "Keys:\n");
+		client_printf(sockfd, fmthdr, "Zone:", "Keytype:", "State:", 
+			"Date of next transition:", "Size:", "Algorithm:", "CKA_ID:", 
+			"Repository:", "KeyTag:");
+	}
 
 	/*
     HsmKeyFactoryPB keyfactory(conn, NULL);
@@ -219,7 +223,7 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 			const char* state = map_keystate(key);
 			char* tchange = map_keytime(zone, key);
 			keyfactory.GetHsmKeyByLocator(key.locator(), &hsmkey);
-			client_printf(sockfd, fmt, zone.name().c_str(),
+			client_printf(sockfd, parsable?pfmt:fmt, zone.name().c_str(),
 				keyrole.c_str(), state, tchange,
 				hsmkey->bits(),
 				key.algorithm(),
@@ -235,9 +239,13 @@ perform_keystate_list_verbose(int sockfd, engineconfig_type *config)
 }
 
 static int
-perform_keystate_list_debug(int sockfd, engineconfig_type *config)
+perform_keystate_list_debug(int sockfd, engineconfig_type *config,
+	bool parsable)
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+	const char *fmt  = "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n";
+	const char *pfmt = "%s;%s;%s;%s;%s;%s;%d;%d;%s\n";
 
 	OrmConnRef conn;
 	if (!ods_orm_connect(sockfd, config, conn))
@@ -259,7 +267,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 				return 1;
 			}
 			
-			client_printf(sockfd,
+			if (!parsable) client_printf(sockfd,
 					   "Database set to: %s\n"
 					   "Keys:\n"
 					   "Zone:                           "
@@ -291,7 +299,7 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 					std::string rrsigdnskey_rrstate = rrstate_Name(key.rrsigdnskey().state());
 					std::string rrsig_rrstate = rrstate_Name(key.rrsig().state());
 					client_printf(sockfd, 
-							   "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
+							   parsable?pfmt:fmt,
 							   zone.name().c_str(),
 							   keyrole.c_str(),
 							   ds_rrstate.c_str(),
@@ -311,12 +319,12 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config)
 
 int 
 perform_keystate_list(int sockfd, engineconfig_type *config, 
-	bool bverbose, bool bdebug)
+	bool bverbose, bool bdebug, bool bparsable)
 {
 	if (bdebug)
-		return perform_keystate_list_debug(sockfd, config);
+		return perform_keystate_list_debug(sockfd, config, bparsable);
 	else if (bverbose)
-		return perform_keystate_list_verbose(sockfd, config);
+		return perform_keystate_list_verbose(sockfd, config, bparsable);
 	else
 		return perform_keystate_list_compat(sockfd, config);
 }
