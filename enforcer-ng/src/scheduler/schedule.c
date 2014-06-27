@@ -150,9 +150,8 @@ pop_first_task(schedule_type* schedule)
     if (!node) return NULL;
     delnode = ldns_rbtree_delete(schedule->tasks, node->data);
     if (!delnode) return NULL;
-    free(delnode);
     delnode = ldns_rbtree_delete(schedule->tasks_by_name, node->data);
-    free(node);
+    free(node); /* node and delnode should be the same */
     if (!delnode) return NULL;
     task = (task_type*) delnode->data;
     set_alarm(schedule);
