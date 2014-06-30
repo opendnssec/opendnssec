@@ -23,13 +23,13 @@ syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 ## Check signed zone file [when we decide on auditor tool]
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
-ods-signer verbosity 5 &&
+ods-signer verbosity 4 &&
 
 ## Fake notify
 ldns-notify -p 15354 -s 1001 -r 2 -z ods 127.0.0.1 &&
 
 ## Request IXFR/UDP
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods sending udp query id=.* qtype=IXFR to 127\.0\.0\.1' &&
+syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request udp/ixfr=1000 to 127\.0\.0\.1' &&
 syslog_waitfor 10 'ods-signerd: .*\[xfrd\] bad packet: zone ods received error code NOTIMPL from 127\.0\.0\.1' &&
 
 ## Request AXFR/TCP
