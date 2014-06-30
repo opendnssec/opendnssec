@@ -90,7 +90,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			if (fb->help) {
 				fb->help(sockfd);
 			} else {
-				client_printf(sockfd, "No help available for %s\n", cmd);
+				client_printf(sockfd, "No help available for '%s'\n",
+					cmd+5);
 				return 1;
 			}
 		} else {
