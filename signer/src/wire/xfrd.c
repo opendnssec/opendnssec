@@ -770,7 +770,11 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
         return;
     }
     lock_basic_lock(&xfrd->rw_lock);
-    fd = ods_fopen(xfrfile, NULL, "a");
+    if (xfrd->msg_seq_nr == 0 && !xfrd->msg_is_ixfr) {
+        fd = ods_fopen(xfrfile, NULL, "w");
+    } else {
+        fd = ods_fopen(xfrfile, NULL, "a");
+    }
     free((void*) xfrfile);
     if (!fd) {
         ods_log_crit("[%s] unable to dump packet zone %s: ods_fopen() failed "
@@ -1204,7 +1208,8 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
     ods_log_assert(zone);
     ods_log_assert(zone->name);
     res = xfrd_parse_packet(xfrd, buffer);
-    ods_log_debug("[%s] zone %s xfr packet parsed (res %d)", xfrd_str, zone->name, res);
+    ods_log_debug("[%s] zone %s xfr packet parsed (res %d)", xfrd_str,
+        zone->name, res);
 
     switch (res) {
         case XFRD_PKT_MORE:
@@ -1244,14 +1249,14 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
     /* next time */
     lock_basic_lock(&xfrd->serial_lock);
 
-    ods_log_info("[%s] zone %s notify acquired %u, serial on disk %u, "
-        "notify serial %u", xfrd_str, zone->name,
+    ods_log_info("[%s] zone %s transfer done [notify acquired %u, serial on "
+        "disk %u, notify serial %u]", xfrd_str, zone->name,
         xfrd->serial_notify_acquired, xfrd->serial_disk,
         xfrd->serial_notify);
 
     if (xfrd->serial_notify_acquired &&
         !util_serial_gt(xfrd->serial_notify, xfrd->serial_disk)) {
-        ods_log_debug("[%s] zone %s reset notify acquired", xfrd_str,
+        ods_log_verbose("[%s] zone %s reset notify acquired", xfrd_str,
             zone->name);
         xfrd->serial_notify_acquired = 0;
     }
@@ -1264,7 +1269,7 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
     }
     lock_basic_unlock(&xfrd->serial_lock);
     /* try to get an even newer serial */
-    ods_log_info("[%s] zone %s get newer serial", xfrd_str, zone->name);
+    ods_log_info("[%s] zone %s try get newer serial", xfrd_str, zone->name);
     return XFRD_PKT_BAD;
 }
 
@@ -1528,14 +1533,14 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
             break;
         case XFRD_PKT_XFR:
         case XFRD_PKT_NEWLEASE:
-            ods_log_debug("[%s] tcp read %s: release connection", xfrd_str,
+            ods_log_verbose("[%s] tcp read %s: release connection", xfrd_str,
                 XFRD_PKT_XFR?"xfr":"newlease");
             xfrd_tcp_release(xfrd, set);
             ods_log_assert(xfrd->round_num == -1);
             break;
         case XFRD_PKT_NOTIMPL:
             xfrd->master->ixfr_disabled = time_now();
-            ods_log_debug("[%s] disable ixfr requests for %s from now (%u)",
+            ods_log_verbose("[%s] disable ixfr requests for %s from now (%u)",
                 xfrd_str, xfrd->master->address, xfrd->master->ixfr_disabled);
             /* break; */
         case XFRD_PKT_BAD:
@@ -1773,7 +1778,7 @@ xfrd_udp_read(xfrd_type* xfrd)
     res = xfrd_handle_packet(xfrd, xfrhandler->packet);
     switch (res) {
         case XFRD_PKT_TC:
-            ods_log_debug("[%s] truncation from %s",
+            ods_log_verbose("[%s] truncation from %s",
                 xfrd_str, xfrd->master->address);
             xfrd_udp_release(xfrd);
             xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_TCP_TIMEOUT);
@@ -1781,7 +1786,7 @@ xfrd_udp_read(xfrd_type* xfrd)
             break;
         case XFRD_PKT_XFR:
         case XFRD_PKT_NEWLEASE:
-            ods_log_debug("[%s] xfr/newlease from %s",
+            ods_log_verbose("[%s] xfr/newlease from %s",
                 xfrd_str, xfrd->master->address);
             /* nothing more to do */
             ods_log_assert(xfrd->round_num == -1);
@@ -1789,7 +1794,7 @@ xfrd_udp_read(xfrd_type* xfrd)
             break;
         case XFRD_PKT_NOTIMPL:
             xfrd->master->ixfr_disabled = time_now();
-            ods_log_debug("[%s] disable ixfr requests for %s from now (%u)",
+            ods_log_verbose("[%s] disable ixfr requests for %s from now (%u)",
                 xfrd_str, xfrd->master->address, xfrd->master->ixfr_disabled);
             /* break; */
         case XFRD_PKT_BAD:
@@ -1921,16 +1926,21 @@ xfrd_make_request(xfrd_type* xfrd)
         xfrd->master->ixfr_disabled = 0;
     }
     /* perform xfr request */
-    ods_log_debug("[%s] zone %s make request round %d master %s:%u",
-        xfrd_str, zone->name, xfrd->round_num, xfrd->master->address,
-	xfrd->master->port);
     if (xfrd->serial_xfr_acquired && !xfrd->master->ixfr_disabled) {
         xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_UDP_TIMEOUT);
+
+        ods_log_verbose("[%s] zone %s make request [udp round %d master %s:%u]",
+            xfrd_str, zone->name, xfrd->round_num, xfrd->master->address,
+	    xfrd->master->port);
         xfrd_udp_obtain(xfrd);
     } else if (!xfrd->serial_xfr_acquired || xfrd->master->ixfr_disabled) {
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
         ods_log_assert(xfrhandler);
         xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_TCP_TIMEOUT);
+
+        ods_log_verbose("[%s] zone %s make request [tcp round %d master %s:%u]",
+            xfrd_str, zone->name, xfrd->round_num, xfrd->master->address,
+	    xfrd->master->port);
         xfrd_tcp_obtain(xfrd, xfrhandler->tcp_set);
     }
     return;

@@ -285,7 +285,7 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     }
     ods_log_assert(e->dnshandler);
     ods_log_assert(q->zone->name);
-    ods_log_debug("[%s] incoming notify for zone %s", query_str,
+    ods_log_verbose("[%s] incoming notify for zone %s", query_str,
         q->zone->name);
     if (buffer_pkt_rcode(q->buffer) != LDNS_RCODE_NOERROR ||
         buffer_pkt_qr(q->buffer) ||
@@ -309,11 +309,11 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     dnsin = (dnsin_type*) q->zone->adinbound->config;
     if (!acl_find(dnsin->allow_notify, &q->addr, q->tsig_rr)) {
         if (addr2ip(q->addr, address, sizeof(address))) {
-            ods_log_info("[%s] unauthorized notify for zone %s from client %s: "
+            ods_log_info("[%s] unauthorized notify for zone %s from %s: "
                 "no acl matches", query_str, q->zone->name, address);
         } else {
             ods_log_info("[%s] unauthorized notify for zone %s from unknown "
-                "client: no acl matches", query_str, q->zone->name);
+                "source: no acl matches", query_str, q->zone->name);
         }
         return query_notauth(q);
     }
@@ -323,8 +323,15 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     count = buffer_pkt_qdcount(q->buffer);
     for (rrcount = 0; rrcount < count; rrcount++) {
         if (!buffer_skip_rr(q->buffer, 1)) {
-            ods_log_error("[%s] dropped packet: zone %s received bad notify "
-                "(bad question section)", query_str, q->zone->name);
+            if (addr2ip(q->addr, address, sizeof(address))) {
+                ods_log_info("[%s] dropped packet: zone %s received bad "
+                    "notify from %s (bad question section)", query_str,
+                    q->zone->name, address);
+            } else {
+                ods_log_info("[%s] dropped packet: zone %s received bad "
+                    "notify from unknown source (bad question section)",
+                    query_str, q->zone->name);
+            }
             return QUERY_DISCARDED;
         }
     }
@@ -335,21 +342,41 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     if (count) {
         if (!buffer_skip_dname(q->buffer) ||
             !query_parse_soa(q->buffer, &serial)) {
-            ods_log_error("[%s] dropped packet: zone %s received bad notify "
-                "(bad soa in answer section)", query_str, q->zone->name);
+            if (addr2ip(q->addr, address, sizeof(address))) {
+                ods_log_info("[%s] dropped packet: zone %s received bad "
+                    "notify from %s (bad soa in answer section)", query_str,
+                    q->zone->name, address);
+            } else {
+                ods_log_info("[%s] dropped packet: zone %s received bad "
+                    "notify from unknown source (bad soa in answer section)",
+                    query_str, q->zone->name);
+            }
             return QUERY_DISCARDED;
         }
         lock_basic_lock(&q->zone->xfrd->serial_lock);
         if (q->zone->xfrd->serial_notify_acquired) {
             if (!util_serial_gt(q->zone->xfrd->serial_notify,
                 q->zone->xfrd->serial_disk)) {
-                ods_log_info("[%s] ignore notify: already got zone %s serial "
-                    "%u on disk", query_str, q->zone->name,
-                    q->zone->xfrd->serial_notify);
+
+                if (addr2ip(q->addr, address, sizeof(address))) {
+                    ods_log_info("[%s] ignore notify from %s: already got "
+                        "zone %s serial %u on disk", query_str, address,
+                        q->zone->name, q->zone->xfrd->serial_notify);
+                } else {
+                    ods_log_info("[%s] ignore notify: already got zone %s "
+                        "serial %u on disk", query_str, q->zone->name,
+                        q->zone->xfrd->serial_notify);
+                }
                 q->zone->xfrd->serial_notify_acquired = 0;
             } else {
-                ods_log_info("[%s] ignore notify: zone %s transfer in process",
-                    query_str, q->zone->name);
+                if (addr2ip(q->addr, address, sizeof(address))) {
+                    ods_log_info("[%s] ignore notify from %s: zone %s "
+                        "transfer in progress", query_str, address,
+                        q->zone->name);
+                } else {
+                    ods_log_info("[%s] ignore notify: zone %s transfer in "
+                        "progress", query_str, q->zone->name);
+                }
                 /* update values */
                 q->zone->xfrd->serial_notify = serial;
                 q->zone->xfrd->serial_notify_acquired = time_now();
@@ -363,6 +390,8 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     }
 
     /* forward notify to xfrd */
+    ods_log_verbose("[%s] forward notify for zone %s from client %s: "
+        "no acl matches", query_str, q->zone->name, address);
     xfrd_set_timer_now(q->zone->xfrd);
     dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
         buffer_remaining(q->buffer));
