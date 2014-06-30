@@ -191,12 +191,9 @@ xfrd_recover(xfrd_type* xfrd)
 
     if (zone && zone->name && zone->db &&
         zone->db->is_initialized && zone->db->have_serial) {
-        ods_log_info("[%s] recover xfrd.state file zone %s", xfrd_str,
-                zone->name);
-
         file = ods_build_path(zone->name, ".xfrd-state", 0, 1);
         if (file) {
-            ods_log_debug("[%s] recover xfrd.state file %s zone %s", xfrd_str,
+            ods_log_verbose("[%s] recover xfrd.state file %s zone %s", xfrd_str,
                 file, zone->name);
             fd = ods_fopen(file, NULL, "r");
             if (fd) {
@@ -304,7 +301,7 @@ xfrd_recover_error:
             free(file);
         }
     } else {
-        ods_log_info("[%s] did not recover xfrd.state file zone %s", xfrd_str,
+        ods_log_verbose("[%s] did not recover xfrd.state file zone %s", xfrd_str,
                 zone->name);
     }
     return;
