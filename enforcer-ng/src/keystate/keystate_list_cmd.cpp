@@ -321,18 +321,6 @@ perform_keystate_list_debug(int sockfd, engineconfig_type *config,
 	return 0;
 }
 
-int 
-perform_keystate_list(int sockfd, engineconfig_type *config, 
-	bool bverbose, bool bdebug, bool bparsable)
-{
-	if (bdebug)
-		return perform_keystate_list_debug(sockfd, config, bparsable);
-	else if (bverbose)
-		return perform_keystate_list_verbose(sockfd, config, bparsable);
-	else
-		return perform_keystate_list_compat(sockfd, config);
-}
-
 static void
 usage(int sockfd)
 {
@@ -362,11 +350,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
 	
 	cmd = ods_check_command(cmd, n, key_list_funcblock()->cmdname);
-	// Use buf as an intermediate buffer for the command.
+	/* Use buf as an intermediate buffer for the command. */
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
 	
-	// separate the arguments
+	/* separate the arguments */
 	argc = ods_str_explode(buf, NARGV, argv);
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
@@ -375,16 +363,22 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return -1;
 	}
 	
-	bool bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
-	bool bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
-	bool bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
+	int bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
+	int bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
+	int bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str,key_list_funcblock()->cmdname);
 		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
-	return perform_keystate_list(sockfd, engine->config, bVerbose, bDebug, bParsable);
+
+	if (bDebug)
+		return perform_keystate_list_debug(sockfd, engine->config, bParsable);
+	else if (bVerbose)
+		return perform_keystate_list_verbose(sockfd, engine->config, bParsable);
+	else
+		return perform_keystate_list_compat(sockfd, engine->config);
 }
 
 static struct cmd_func_block funcblock = {
