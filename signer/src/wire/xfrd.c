@@ -770,11 +770,7 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
         return;
     }
     lock_basic_lock(&xfrd->rw_lock);
-    if (xfrd->msg_seq_nr == 0 && !xfrd->msg_is_ixfr) {
-        fd = ods_fopen(xfrfile, NULL, "w");
-    } else {
-        fd = ods_fopen(xfrfile, NULL, "a");
-    }
+    fd = ods_fopen(xfrfile, NULL, "a");
     free((void*) xfrfile);
     if (!fd) {
         ods_log_crit("[%s] unable to dump packet zone %s: ods_fopen() failed "
