@@ -162,7 +162,7 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
     xmlNodePtr node5;
     xmlNodePtr keys;
     duration_type* duration;
-    char* duration_text;
+    char* duration_text = NULL;
     char text[1024];
     key_data_list_t* key_data_list;
     const key_data_t* key_data;
