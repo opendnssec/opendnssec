@@ -351,6 +351,7 @@ xfrd_create(void* xfrhandler, void* zone)
     xfrd->serial_xfr_acquired = 0;
     xfrd->serial_disk_acquired = 0;
     xfrd->serial_notify_acquired = 0;
+    xfrd->serial_retransfer = 0;
     lock_basic_unlock(&xfrd->serial_lock);
     xfrd->query_id = 0;
     xfrd->msg_seq_nr = 0;
@@ -1105,7 +1106,8 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
         }
         /* check serial */
         lock_basic_lock(&xfrd->serial_lock);
-        if (xfrd->serial_disk_acquired && xfrd->serial_disk == serial) {
+        if (!xfrd->serial_retransfer &&
+            xfrd->serial_disk_acquired && xfrd->serial_disk == serial) {
             ods_log_info("[%s] zone %s got update indicating current "
                 "serial %u from %s", xfrd_str, zone->name, serial,
                  xfrd->master->address);
@@ -1128,7 +1130,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
                 return XFRD_PKT_BAD;
             }
         }
-        if (xfrd->serial_disk_acquired &&
+        if (!xfrd->serial_retransfer && xfrd->serial_disk_acquired &&
             !util_serial_gt(serial, xfrd->serial_disk)) {
             ods_log_info("[%s] zone %s ignoring old serial %u from %s "
                 "(have %u)", xfrd_str, zone->name, serial,
@@ -1138,7 +1140,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
         }
 
         xfrd->msg_new_serial = serial;
-        if (xfrd->serial_disk_acquired) {
+        if (!xfrd->serial_retransfer && xfrd->serial_disk_acquired) {
             xfrd->msg_old_serial = xfrd->serial_disk;
         } else {
             xfrd->msg_old_serial = 0;

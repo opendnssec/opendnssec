@@ -110,6 +110,7 @@ struct xfrd_struct
     time_t serial_xfr_acquired;
     time_t serial_notify_acquired;
     time_t serial_disk_acquired;
+    uint8_t serial_retransfer;
     soa_type soa;
 
     /* timeout and event handling */
