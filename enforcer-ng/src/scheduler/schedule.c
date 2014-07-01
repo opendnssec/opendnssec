@@ -111,8 +111,10 @@ static ldns_rbnode_t*
 task2node(task_type* task)
 {
     ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
-    node->key = task;
-    node->data = task;
+    if (node) {
+        node->key = task;
+        node->data = task;
+    }
     return node;
 }
 
@@ -174,27 +176,32 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
             task_who2str(task->who));
         return ODS_STATUS_ERR;
     }
-    new_node = task2node(task);
+    if (!(new_node = task2node(task))) return ODS_STATUS_ERR;
     /* First insert by name, it will detect duplicates better. */
     ins_node = ldns_rbtree_insert(schedule->tasks_by_name, new_node);
     if (!ins_node) {
         ods_log_error("[%s] unable to schedule task [%s] for %s: "
             " insert failed", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
-        (void) ldns_rbtree_delete(schedule->tasks, new_node);
+        /* The reason for the insert to fail is a duplicate.
+         * So *try* to remove from other tree */
+        free(ldns_rbtree_delete(schedule->tasks, new_node));
         free(new_node);
         return ODS_STATUS_ERR;
     }
-    new_node = task2node(task);
+    /* new_node is now owned by the tree, make a new one.*/
+    if (!(new_node = task2node(task))) return ODS_STATUS_ERR;
     ins_node = ldns_rbtree_insert(schedule->tasks, new_node);
     if (!ins_node) {
         ods_log_error("[%s] unable to schedule task [%s] for %s: "
             " insert failed", schedule_str, task_what2str(task->what),
             task_who2str(task->who));
-        (void) ldns_rbtree_delete(schedule->tasks_by_name, new_node);
-        free((void*)new_node);
+        /* The reason for the insert to fail is a duplicate.
+         * DON'T delete from other tree. (hypothetical case)*/
+        free(new_node);
         return ODS_STATUS_ERR;
     }
+    /* ins_node is owned by the tree, don't free it. */
     if (log) {
         task_log(task);
     }
