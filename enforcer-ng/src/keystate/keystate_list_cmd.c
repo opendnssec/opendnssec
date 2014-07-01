@@ -82,7 +82,7 @@ keystate(int p, int c, int introducing, int dsseen)
 }
 
 static int
-zskstate(const key_data *key)
+zskstate(const key_data_t *key)
 {
 	return keystate(key_state_state(key->key_state_dnskey),
 		key_state_state(key->key_state_rrsig),
@@ -90,7 +90,7 @@ zskstate(const key_data *key)
 }
 
 static int
-kskstate(const key_data *key)
+kskstate(const key_data_t *key)
 {
 	return keystate(key_state_state(key->key_state_ds),
 		key_state_state(key->key_state_dnskey),
@@ -103,7 +103,7 @@ kskstate(const key_data *key)
  * @return: state as string
  **/
 static const char*
-map_keystate(const key_data *key)
+map_keystate(const key_data_t *key)
 {
 	int z,k;
 	switch(key_data_role(key)) {
@@ -116,8 +116,9 @@ map_keystate(const key_data *key)
 			z = zskstate(key);
 			if (k != z) return statenames[KS_MIX];
 			return statenames[k];
+		default:
+			return statenames[KS_UNK];
 	}
-	statenames[KS_UNK];
 }
 
 /** Time of next transition. Caller responsible for freeing ret
@@ -125,8 +126,12 @@ map_keystate(const key_data *key)
  * @param key: key to evaluate
  * @return: human readable transition time/event */
 static char*
-map_keytime(const zone_t *zone, const key_data *key)
+map_keytime(const zone_t *zone, const key_data_t *key)
 {
+	char ct[26];
+	struct tm srtm;
+	time_t t;
+
 	switch(key_data_ds_at_parent(key)) {
 		case KEY_DATA_DS_AT_PARENT_SUBMIT:
 			return strdup("waiting for ds-submit");
@@ -136,21 +141,20 @@ map_keytime(const zone_t *zone, const key_data *key)
 			return strdup("waiting for ds-retract");
 		case KEY_DATA_DS_AT_PARENT_RETRACTED:
 			return strdup("waiting for ds-gone");
+		default:
+			break;
 	}
 	if (zone_next_change(zone) < 0)
 		return strdup("-");
 
-	char ct[26];
-	struct tm srtm;
-	time_t t = (time_t)zone_next_change(zone);
+	t = (time_t)zone_next_change(zone);
 	localtime_r(&t, &srtm);
 	strftime(ct, 26, "%Y-%m-%d %H:%M:%S", &srtm);
 	return strdup(ct);
 }
 
 static int
-perform_keystate_list_compat(int sockfd, db_connection_t *dbconn,
-	engineconfig_type* config)
+perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 {
 	const char* fmt = "%-31s %-8s %-9s %s\n";
 	key_data_list_t* key_list;
@@ -183,7 +187,7 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn,
 
 static int
 perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
-	engineconfig_type *config, bool parsable)
+	bool parsable)
 {
 	const char* fmthdr = "%-31s %-8s %-9s %-24s %-5s %-10s %-32s %-11s %s\n";
 	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n";
@@ -227,7 +231,7 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 
 static int
 perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
-	engineconfig_type *config, bool parsable)
+	bool parsable)
 {
 	const char *fmt  = "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n";
 	const char *pfmt = "%s;%s;%s;%s;%s;%s;%d;%d;%s\n";
@@ -241,11 +245,10 @@ perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
 	}
 
 	if (!parsable) {
-		client_printf(sockfd, "Database set to: %s\n"
+		client_printf(sockfd,
 			"Keys:\nZone:                           Key role:     "
 			"DS:          DNSKEY:      RRSIGDNSKEY: RRSIG:       "
-			"Pub: Act: Id:\n"
-			,config->datastore);
+			"Pub: Act: Id:\n");
 	}
 
 	while ((key = key_data_list_next(key_list))) {
@@ -287,9 +290,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
 	char buf[ODS_SE_MAXLINE];
-	const int NARGV = 8;
+	#define NARGV 8
 	const char *argv[NARGV];
-	int argc;
+	int argc, bVerbose, bDebug, bParsable;
+	(void)engine;
 
 	ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
 
@@ -307,9 +311,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return -1;
 	}
 
-	int bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
-	int bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
-	int bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
+	bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
+	bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
+	bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str,key_list_funcblock()->cmdname);
@@ -318,14 +322,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	}
 
 	if (bDebug)
-		return perform_keystate_list_debug(sockfd, dbconn,
-			engine->config, bParsable);
+		return perform_keystate_list_debug(sockfd, dbconn, bParsable);
 	else if (bVerbose)
-		return perform_keystate_list_verbose(sockfd, dbconn,
-			engine->config, bParsable);
+		return perform_keystate_list_verbose(sockfd, dbconn, bParsable);
 	else
-		return perform_keystate_list_compat(sockfd, dbconn,
-			engine->config);
+		return perform_keystate_list_compat(sockfd, dbconn);
 }
 
 static struct cmd_func_block funcblock = {
