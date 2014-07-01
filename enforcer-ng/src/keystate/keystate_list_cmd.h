@@ -30,14 +30,6 @@
 #ifndef _KEYSTATE_LIST_CMD_H_
 #define _KEYSTATE_LIST_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* key_list_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _KEYSTATE_LIST_CMD_H_ */
