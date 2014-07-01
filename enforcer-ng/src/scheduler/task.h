@@ -131,6 +131,15 @@ void task_cleanup(task_type* task);
 int task_compare(const void* a, const void* b);
 
 /**
+ * Compare tasks by name.
+ * \param[in] a one task
+ * \param[in] b another task
+ * \return int -1, 0 or 1
+ *
+ */
+int task_compare_name(const void* a, const void* b);
+
+/**
  * Convert task to string.
  * \param[in] task task
  * \param[out] buffer to store string-based task in

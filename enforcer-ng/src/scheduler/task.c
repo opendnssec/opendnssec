@@ -285,19 +285,26 @@ task_compare(const void* a, const void* b)
     ods_log_assert(x);
     ods_log_assert(y);
 
-    if (!ldns_dname_compare((const void*) x->dname, (const void*) y->dname)) {
-        /* if dname is the same, consider the same task */
-        return 0;
-    }
-
-    /* order task on time, what to do, dname */
+    /* order task on time, dname */
     if (x->when != y->when) {
         return (int) x->when - y->when;
     }
-    if (x->what != y->what) {
-        return (int) x->what - y->what;
-    }
-    return ldns_dname_compare((const void*) x->dname, (const void*) y->dname);
+    return ldns_dname_compare((const void*) x->dname,
+        (const void*) y->dname);
+}
+
+/**
+ * Compare tasks by name
+ */
+int
+task_compare_name(const void* a, const void* b)
+{
+    task_type* x = (task_type*)a;
+    task_type* y = (task_type*)b;
+    ods_log_assert(x);
+    ods_log_assert(y);
+    return ldns_dname_compare((const void*) x->dname,
+        (const void*) y->dname);
 }
 
 
