@@ -291,6 +291,7 @@ interface_start(char* cmd, engineconfig_type* config)
     int sockfd, ret, flags;
     struct sockaddr_un servaddr;
     const char* servsock_filename = config->clisock_filename;
+    char start_cmd[256];
 
     /* client ignores syslog facility or log filename */
     ods_log_init(NULL, 0, config->verbosity);
@@ -314,7 +315,9 @@ interface_start(char* cmd, engineconfig_type* config)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            return system(ODS_SE_ENGINE);
+            (void) snprintf(start_cmd, "%s -c %s", ODS_SE_ENGINE,
+                config->cfg_filename);
+            return system(start_cmd);
         }
 
         if (cmd && ods_strcmp(cmd, "running\n") == 0) {
