@@ -438,8 +438,8 @@ schedule_task(schedule_type* schedule, task_type* task)
             ods_log_error("[%s] unable to schedule task [%s] for %s: "
                 " already present", schedule_str, task_what2str(task->what),
                 task_who2str(task->who));
-            ins_node = ldns_rbtree_delete(schedule->tasks_by_name, node);
-            free(ins_node);
+            free(ldns_rbtree_delete(schedule->tasks_by_name, node));
+            free(node);
             status = ODS_STATUS_ERR;
         } else {
             set_alarm(schedule);
