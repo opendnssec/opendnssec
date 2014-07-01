@@ -61,7 +61,7 @@ static int __policy_export(int sockfd, const policy_t* policy, xmlNodePtr root) 
     xmlNodePtr keys;
     int error;
     duration_type* duration;
-    char* duration_text;
+    char* duration_text = NULL;
     char text[1024];
     policy_key_list_t* policy_key_list;
     const policy_key_t* policy_key;
