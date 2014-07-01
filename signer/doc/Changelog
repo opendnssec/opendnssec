@@ -1,3 +1,6 @@
+1 July 2014: Matthijs
+- Fix ods-signer -c conf.xml start (used default conf.xml before)
+
 16 June 2014: Matthijs
 - OPENDNSSEC-628: Log ignored notifies at LOG_INFO level.
 
