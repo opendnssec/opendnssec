@@ -405,8 +405,8 @@ schedule_pop_task(schedule_type* schedule)
 ods_status
 schedule_task(schedule_type* schedule, task_type* task)
 {
-    ldns_rbnode_t *node, *ins_node;
-    ods_status status = ODS_STATUS_OK;
+    ldns_rbnode_t *node1, *node2;
+    ods_status status;
 
     if (!task) {
         ods_log_error("[%s] unable to schedule task: no task", schedule_str);
@@ -423,27 +423,34 @@ schedule_task(schedule_type* schedule, task_type* task)
         task_what2str(task->what), task_who2str(task->who));
 
     pthread_mutex_lock(&schedule->schedule_lock);
-        node = task2node(task);
-        /* First insert by name, it will detect duplicates better. */
-        ins_node = ldns_rbtree_insert(schedule->tasks_by_name, node);
-        if (!ins_node) {
-            ods_log_error("[%s] unable to schedule task [%s] for %s: "
-                " insert failed", schedule_str, task_what2str(task->what),
-                task_who2str(task->who));
-            free(node);
-            return ODS_STATUS_ERR;
-        }
-        node = task2node(task); /* we need a new one */
-        if (!node || ldns_rbtree_insert(schedule->tasks, node) == NULL) {
-            ods_log_error("[%s] unable to schedule task [%s] for %s: "
-                " already present", schedule_str, task_what2str(task->what),
-                task_who2str(task->who));
-            free(ldns_rbtree_delete(schedule->tasks_by_name, node));
-            free(node);
-            status = ODS_STATUS_ERR;
-        } else {
-            set_alarm(schedule);
-        }
+        status = ODS_STATUS_ERR;
+        if ((node1 = task2node(task))) {
+            if (ldns_rbtree_insert(schedule->tasks_by_name, node1)) {
+                if ((node2 = task2node(task))) {
+                    if(ldns_rbtree_insert(schedule->tasks, node2)) {
+                        /* success inserting in two trees */
+                        set_alarm(schedule);
+                        status = ODS_STATUS_OK;
+                    } else { /* insert in tasks tree failed */
+                        ods_log_error("[%s] unable to schedule task [%s] for %s: "
+                            " already present", schedule_str, task_what2str(task->what),
+                            task_who2str(task->who));
+                        /* this will free node1 */
+                        free(ldns_rbtree_delete(schedule->tasks_by_name, node2));
+                        free(node2);
+                    }
+                } else { /* could not alloc node2 */
+                    /* this will free node1 */
+                    free(ldns_rbtree_delete(schedule->tasks_by_name, node1));
+                }
+
+            } else {/* insert in name tree failed */
+                ods_log_error("[%s] unable to schedule task [%s] for %s: "
+                    " already present", schedule_str, task_what2str(task->what),
+                    task_who2str(task->who));
+                free(node1);
+            }
+        } /* else {failure) */
     pthread_mutex_unlock(&schedule->schedule_lock);
     return status;
 }
