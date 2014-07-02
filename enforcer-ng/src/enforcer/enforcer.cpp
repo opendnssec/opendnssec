@@ -142,7 +142,7 @@ addtime(const time_t t, const int seconds)
  * \return keystate
  * */
 static KeyState&
-getRecord(KeyData &key, const RECORD record)
+getRecord_old(KeyData &key, const RECORD record)
 {
 	static const char *scmd = "getRecord";
 	switch(record) {
@@ -156,44 +156,11 @@ getRecord(KeyData &key, const RECORD record)
 				module_str, scmd, (int)record);
 	}
 }
-
-/**
- * Return state of a record.
- * 
- * \param[in] key
- * \param[in] record
- * \return state of record.
- * */
-static inline STATE
-getState_old(KeyData &key, const RECORD record,
-	const struct FutureKey *future_key)
-{
-	if (future_key && future_key->pretend_update 
-		&& &key == future_key->key 
-		&& record == future_key->record)
-		return future_key->next_state;
-	else
-		return (STATE)getRecord(key, record).state();
-}
 static inline key_state_state_t
-getState(key_data_t* key, key_state_type_t type, struct future_key *future_key) {
-    int cmp;
-
+getRecord(key_data_t* key, key_state_type_t type)
+{
     if (!key) {
         return KEY_STATE_STATE_INVALID;
-    }
-
-    if (future_key
-        && future_key->pretend_update
-        && future_key->type == type
-        && future_key->key)
-    {
-        if (db_value_cmp(key_data_id(key), key_data_id(future_key->key), &cmp)) {
-            return KEY_STATE_STATE_INVALID;
-        }
-        if (!cmp) {
-            return future_key->next_state;
-        }
     }
 
     switch (type) {
@@ -217,6 +184,49 @@ getState(key_data_t* key, key_state_type_t type, struct future_key *future_key) 
 }
 
 /**
+ * Return state of a record.
+ * 
+ * \param[in] key
+ * \param[in] record
+ * \return state of record.
+ * */
+static inline STATE
+getState_old(KeyData &key, const RECORD record,
+	const struct FutureKey *future_key)
+{
+	if (future_key && future_key->pretend_update 
+		&& &key == future_key->key 
+		&& record == future_key->record)
+		return future_key->next_state;
+	else
+		return (STATE)getRecord_old(key, record).state();
+}
+static inline key_state_state_t
+getState(key_data_t* key, key_state_type_t type, struct future_key *future_key)
+{
+    int cmp;
+
+    if (!key) {
+        return KEY_STATE_STATE_INVALID;
+    }
+
+    if (future_key
+        && future_key->pretend_update
+        && future_key->type == type
+        && future_key->key)
+    {
+        if (db_value_cmp(key_data_id(key), key_data_id(future_key->key), &cmp)) {
+            return KEY_STATE_STATE_INVALID;
+        }
+        if (!cmp) {
+            return future_key->next_state;
+        }
+    }
+
+    return getRecord(key, type);
+}
+
+/**
  * Given goal and state, what will be the next state?
  * 
  * This is an implementation of our state diagram. State indicates
@@ -229,7 +239,7 @@ getState(key_data_t* key, key_state_type_t type, struct future_key *future_key) 
  * \return next state
  * */
 static STATE
-getDesiredState(const bool introducing, const STATE state)
+getDesiredState_old(const bool introducing, const STATE state)
 {
 	static const char *scmd = "getDesiredState";
 	if (state > NOCARE || state < HID) 
@@ -237,6 +247,73 @@ getDesiredState(const bool introducing, const STATE state)
 			"Corrupt database? Abort.",  module_str, scmd, (int)state);
 	const STATE jmp[2][5] = {{HID, UNR, UNR, HID, NOCARE}, {RUM, OMN, OMN, RUM, NOCARE}};
 	return jmp[introducing][(int)state];
+}
+static key_state_state_t
+getDesiredState(int introducing, key_state_state_t state)
+{
+    /*
+     * Given goal and state, what will be the next state?
+     */
+    if (!introducing) {
+        /*
+         * We are outroducing this key so we would like to move rumoured and
+         * omnipresent keys to unretentive and unretentive keys to hidden.
+         */
+        switch (state) {
+        case HIDDEN:
+            break;
+
+        case RUMOURED:
+            state = UNRETENTIVE;
+            break;
+
+        case OMNIPRESENT:
+            state = UNRETENTIVE;
+            break;
+
+        case UNRETENTIVE:
+            state = HIDDEN;
+            break;
+
+        case NA:
+            break;
+
+        default:
+            state = KEY_STATE_STATE_INVALID;
+            break;
+        }
+    }
+    else {
+        /*
+         * We are introducing this key so we would like to move hidden and
+         * unretentive keys to rumoured and rumoured keys to omnipresent.
+         */
+        switch (state) {
+        case HIDDEN:
+            state = RUMOURED;
+            break;
+
+        case RUMOURED:
+            state = OMNIPRESENT;
+            break;
+
+        case OMNIPRESENT:
+            break;
+
+        case UNRETENTIVE:
+            state = RUMOURED;
+            break;
+
+        case NA:
+            break;
+
+        default:
+            state = KEY_STATE_STATE_INVALID;
+            break;
+        }
+    }
+
+    return state;
 }
 
 /**
@@ -1428,7 +1505,7 @@ static void
 setState(EnforcerZone &zone, const struct FutureKey *future_key, 
 	const time_t now)
 {
-	KeyState &ks = getRecord(*future_key->key, future_key->record);
+	KeyState &ks = getRecord_old(*future_key->key, future_key->record);
 	ks.setState(future_key->next_state);
 	ks.setLastChange(now);
 	ks.setTtl(getZoneTTL(zone, future_key->record, now));
@@ -1482,7 +1559,7 @@ processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
 	size_t keylist_size, key_data_t* key, key_state_t* state,
 	int* change, int allow_unsigned, key_dependency_list_t* deplist)
 {
-	key_state_state_t desired_state = KEY_STATE_STATE_INVALID;
+	key_state_state_t desired_state;
 	static const char *scmd = "processKeyState";
 	size_t i;
 	static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
@@ -1512,74 +1589,10 @@ processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
 	}
 
 	/*
-	 * Given goal and state, what will be the next state?
-	 */
-	if (!key_data_introducing(key)) {
-		/*
-		 * We are outroducing this key so we would like to move rumoured and
-		 * omnipresent keys to unretentive and unretentive keys to hidden.
-		 */
-		switch (key_state_state(state)) {
-		case HIDDEN:
-			desired_state = HIDDEN;
-			break;
-
-		case RUMOURED:
-			desired_state = UNRETENTIVE;
-			break;
-
-		case OMNIPRESENT:
-			desired_state = UNRETENTIVE;
-			break;
-
-		case UNRETENTIVE:
-			desired_state = HIDDEN;
-			break;
-
-		case NA:
-			desired_state = NA;
-			break;
-
-		default:
-			break;
-		}
-	}
-	else {
-		/*
-		 * We are introducing this key so we would like to move hidden and
-		 * unretentive keys to rumoured and rumoured keys to omnipresent.
-		 */
-		switch (key_state_state(state)) {
-		case HIDDEN:
-			desired_state = RUMOURED;
-			break;
-
-		case RUMOURED:
-			desired_state = OMNIPRESENT;
-			break;
-
-		case OMNIPRESENT:
-			desired_state = OMNIPRESENT;
-			break;
-
-		case UNRETENTIVE:
-			desired_state = RUMOURED;
-			break;
-
-		case NA:
-			desired_state = NA;
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	/*
 	 * The desired_state is invalid something went wrong and we should return
 	 * an error.
 	 */
-	if (desired_state == KEY_STATE_STATE_INVALID) {
+	if ((desired_state = getDesiredState(key_data_introducing(key), key_state_state(state))) == KEY_STATE_STATE_INVALID) {
 		return 1;
 	}
 
@@ -1999,7 +2012,7 @@ updateZone_old(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 			
 			for (RECORD record = REC_MIN; record < REC_MAX; ++record) {
 				STATE state = getState_old(key, record, NULL);
-				STATE next_state = getDesiredState(key.introducing(), state);
+				STATE next_state = getDesiredState_old(key.introducing(), state);
 				
 				future_key.record = record;
 				future_key.next_state = next_state;
@@ -2029,7 +2042,7 @@ updateZone_old(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 					module_str, scmd);
 				
 				time_t returntime_key = minTransitionTime(zone, record, 
-					next_state, getRecord(key, record).lastChange(), 
+					next_state, getRecord_old(key, record).lastChange(),
 					getZoneTTL(zone, record, now));
 
 				/** If this is an RRSIG and the DNSKEY is omnipresent
@@ -2991,7 +3004,7 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 				keyPurgable = false;
 				break;
 			}
-			time_t recordTime = getRecord(key, r).lastChange();
+			time_t recordTime = getRecord_old(key, r).lastChange();
 			if (recordTime > keyTime) keyTime = recordTime;
 		}
 		if (keyTime != -1) keyTime = addtime(keyTime, purgetime);
