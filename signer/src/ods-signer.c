@@ -315,9 +315,9 @@ interface_start(char* cmd, engineconfig_type* config)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            if ((strlen(ODS_SE_ENGINE) + strlen(config->cfg_filename) + 5)
-                < 256) {
-                (void) snprintf(start_cmd, "%s -c %s", ODS_SE_ENGINE,
+            size_t len = strlen(ODS_SE_ENGINE) + strlen(config->cfg_filename) + 5;
+            if (len < 256) {
+                (void) snprintf(start_cmd, len, "%s -c %s", ODS_SE_ENGINE,
                     config->cfg_filename);
                 close(sockfd);
                 return system(start_cmd);
