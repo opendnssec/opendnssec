@@ -168,19 +168,20 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
 	char buf[ODS_SE_MAXLINE];
-	const int NARGV = 8;
+	#define NARGV 8
 	const char *argv[NARGV];
-	int argc, error;
+	int argc, error, nkeytype;
+	const char *zone = NULL, *keytype = NULL;
 
 	ods_log_debug("[%s] %s command", module_str, key_rollover_funcblock()->cmdname);
 
 	cmd = ods_check_command(cmd, n, key_rollover_funcblock()->cmdname);
 
-	// Use buf as an intermediate buffer for the command.
+	/* Use buf as an intermediate buffer for the command. */
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
 
-	// separate the arguments
+	/* separate the arguments */
 	argc = ods_str_explode(buf, NARGV, argv);
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
@@ -189,43 +190,39 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return -1;
 	}
 
-	const char *zone = NULL;
-	const char *keytype = NULL;
 	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
 	(void)ods_find_arg_and_param(&argc,argv,"keytype","t",&keytype);
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
-						module_str, key_rollover_funcblock()->cmdname);
+			module_str, key_rollover_funcblock()->cmdname);
 		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 	if (!zone) {
 		ods_log_warning("[%s] expected option --zone <zone> for %s command",
-						module_str, key_rollover_funcblock()->cmdname);
+			module_str, key_rollover_funcblock()->cmdname);
 		client_printf(sockfd,"expected --zone <zone> option\n");
 		return -1;
 	}
 
-	int nkeytype = 0;
 	if (keytype) {
-		std::string kt(keytype);
-		int (*fp)(int) = toupper;
-		std::transform(kt.begin(),kt.end(),kt.begin(),fp);
-		if (kt == "KSK") {
-			nkeytype = (int)::ods::keystate::KSK;
-		} else if (kt == "ZSK") {
-			nkeytype = (int)::ods::keystate::ZSK;
-		} else if (kt == "CSK") {
-			nkeytype = (int)::ods::keystate::CSK;
+		if (strupr(keytype) == "KSK") {
+			nkeytype = KEY_DATA_ROLE_KSK;
+		} else if (strupr(keytype) == "ZSK") {
+			nkeytype = KEY_DATA_ROLE_ZSK;
+		} else if (strupr(keytype) == "CSK") {
+			nkeytype = KEY_DATA_ROLE_CSK;
 		} else {
 			ods_log_warning("[%s] given keytype \"%s\" invalid",
-							module_str,keytype);
-			client_printf(sockfd,"given keytype \"%s\" invalid\n",keytype);
+				module_str,keytype);
+			client_printf(sockfd, "given keytype \"%s\" invalid\n",
+				keytype);
 			return 1;
 		}
 	}
 
-	error = perform_keystate_rollover(sockfd,engine->config,zone,nkeytype);
+	error = perform_keystate_rollover(sockfd, engine->config, zone,
+		nkeytype);
 	flush_enforce_task(engine, 0);
 	return error;
 }
