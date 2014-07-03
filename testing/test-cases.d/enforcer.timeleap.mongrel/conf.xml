@@ -20,7 +20,7 @@
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 		<AutomaticKeyGenerationPeriod>PT360000S</AutomaticKeyGenerationPeriod>
-		<WorkerThreads>0</WorkerThreads>
+		<WorkerThreads>1</WorkerThreads>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
