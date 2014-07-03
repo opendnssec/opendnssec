@@ -1333,7 +1333,7 @@ rule3(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
  * @return True if transition is okay DNSSEC-wise.
  * */
 static bool
-dnssecApproval(KeyDependencyList &dep_list, KeyDataList &key_list, 
+dnssecApproval_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 	struct FutureKey *future_key, bool allow_unsigned)
 {
 	return 
@@ -1344,6 +1344,53 @@ dnssecApproval(KeyDependencyList &dep_list, KeyDataList &key_list,
 		  rule2_old(dep_list, key_list, future_key, true ) ) &&
 		(!rule3_old(dep_list, key_list, future_key, false) ||
 		  rule3_old(dep_list, key_list, future_key, true ) );
+}
+static int
+dnssecApproval(key_data_t** keylist, size_t keylist_size,
+    struct future_key* future_key, int allow_unsigned,
+    key_dependency_list_t* deplist)
+{
+    if (!keylist) {
+        return -1;
+    }
+    if (!future_key) {
+        return -1;
+    }
+    if (!deplist) {
+        return -1;
+    }
+
+    /*
+     * Check if DNSSEC state will be invalid by the transition by checking that
+     * all 3 DNSSEC rules apply. Rule 1 only applies if we are not allowing an
+     * unsigned state.
+     *
+     * A rule is first checked against the current state of the key_state and if
+     * the current state is not valid an transition is allowed for that rule in
+     * order to try and move out of an invalid DNSSEC state.
+     *
+     * Next the rule is checked against the desired state and if that state is a
+     * valid DNSSEC state then the transition is allowed.
+     *
+     * rule1 - Handles DS states
+     * rule2 - Handles DNSKEY states.
+     * rule3 - Handles signatures.
+     */
+    if ((allow_unsigned
+            || !rule1(keylist, keylist_size, future_key, 0)
+            || rule1(keylist, keylist_size, future_key, 1) > 0)
+        && (!rule2(keylist, keylist_size, future_key, 0, deplist)
+            || rule2(keylist, keylist_size, future_key, 1, deplist) > 0)
+        && (!rule3(keylist, keylist_size, future_key, 0, deplist)
+            || rule3(keylist, keylist_size, future_key, 1, deplist) > 0))
+    {
+        /*
+         * All rules apply, we allow transition.
+         */
+        return 1;
+    }
+
+    return 0;
 }
 
 /**
@@ -1404,9 +1451,9 @@ minTransitionTime(EnforcerZone &zone, const RECORD record,
  * \return True iff policy allows transition of record to state.
  * */
 static bool
-policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
+policyApproval_old(KeyDataList &key_list, struct FutureKey *future_key)
 {
-	static const char *scmd = "policyApproval";
+	static const char *scmd = "policyApproval_old";
 	
 	/** once the record is introduced the policy has no influence. */
 	if (future_key->next_state != RUM) return true;
@@ -1447,11 +1494,149 @@ policyApproval(KeyDataList &key_list, struct FutureKey *future_key)
 			/** 3) Except, we might be doing algorithm rollover
 			 * if no other good ZSK available, ignore minimize flag */
 			return !exists_old(key_list, future_key, true, mask_sig);
-		default: 
+		default:
 			ods_fatal_exit("[%s] %s Unknown record type (%d), "
 				"fault of programmer. Abort.",
 				module_str, scmd, (int)future_key->record);
 	}
+}
+static int
+policyApproval(key_data_t** keylist, size_t keylist_size,
+    struct future_key* future_key)
+{
+    static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
+    static const key_state_state_t rrsig_algorithm_rollover[4] = { NA, OMNIPRESENT, NA, OMNIPRESENT };
+
+    if (!keylist) {
+        return -1;
+    }
+    if (!future_key) {
+        return -1;
+    }
+    if (!future_key->key) {
+        return -1;
+    }
+
+    /*
+     * Once the record is introduced the policy has no influence.
+     */
+    if (future_key->next_state != RUMOURED) {
+        return 1;
+    }
+
+    /*
+     * Check if policy prevents transition if the next state is rumoured.
+     */
+    switch (future_key->type) {
+    case KEY_STATE_TYPE_DS:
+        /*
+         * If we want to minimize the DS transitions make sure the DNSKEY is
+         * fully propagated.
+         */
+        if (key_state_minimize(key_data_cached_ds(future_key->key))
+            && key_state_state(key_data_cached_dnskey(future_key->key)) != OMNIPRESENT)
+        {
+            /*
+             * DNSKEY is not fully propagated so we will not do any transitions.
+             */
+            return 0;
+        }
+        break;
+
+    case KEY_STATE_TYPE_DNSKEY:
+        if (!key_state_minimize(key_data_cached_dnskey(future_key->key))) {
+            /*
+             * There are no restrictions for the DNSKEY transition so we can
+             * just continue.
+             */
+            break;
+        }
+
+        /*
+         * Check that signatures has been propagated for CSK/ZSK.
+         *
+         * TODO: How is this related to CSK/ZSK, there is no check for key_data_role().
+         */
+        if (key_state_state(key_data_cached_rrsig(future_key->key)) != OMNIPRESENT
+            && key_state_state(key_data_cached_rrsig(future_key->key)) != NA)
+        {
+            /*
+             * RRSIG not fully propagated so we will not do any transitions.
+             */
+            return 0;
+        }
+
+        /*
+         * Check if the DS is introduced and continue if it is.
+         */
+        if (key_state_state(key_data_cached_ds(future_key->key)) == OMNIPRESENT
+            || key_state_state(key_data_cached_ds(future_key->key)) == NA)
+        {
+            break;
+        }
+
+        /*
+         * We might be doing an algorithm rollover so we check if there are
+         * no other good KSK available and ignore the minimize flag if so.
+         *
+         * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
+         */
+        if (exists(keylist, keylist_size, future_key, 1, dnskey_algorithm_rollover) > 0) {
+            /*
+             * We found a good key, so we will not do any transition.
+             */
+            return 0;
+        }
+        break;
+
+    case KEY_STATE_TYPE_RRSIGDNSKEY:
+        /*
+         * The only time not to introduce RRSIG DNSKEY is when the DNSKEY is
+         * still hidden.
+         *
+         * TODO: How do we know we are introducing the RRSIG DNSKEY? We might be
+         * outroducing it.
+         */
+        if (key_state_state(key_data_cached_dnskey(future_key->key)) == HIDDEN) {
+            return 0;
+        }
+        break;
+
+    case KEY_STATE_TYPE_RRSIG:
+        if (!key_state_minimize(key_data_cached_rrsig(future_key->key))) {
+            /*
+             * There are no restrictions for the RRSIG transition so we can
+             * just continue.
+             */
+            break;
+        }
+
+        /*
+         * Check if the DNSKEY is introduced and continue if it is.
+         */
+        if (key_state_state(key_data_cached_dnskey(future_key->key)) == OMNIPRESENT) {
+            break;
+        }
+
+        /*
+         * We might be doing an algorithm rollover so we check if there are
+         * no other good ZSK available and ignore the minimize flag if so.
+         *
+         * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
+         */
+        if (exists(keylist, keylist_size, future_key, 1, rrsig_algorithm_rollover) > 0) {
+            /*
+             * We found a good key, so we will not do any transition.
+             */
+            return 0;
+        }
+        break;
+
+    default:
+        return 0;
+    }
+
+    return 1;
 }
 
 /** given the zone, what TTL should be used for record?
@@ -1554,228 +1739,6 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 	}
 }
 
-static int
-processKeyState(zone_t* zone, int *zone_updated, key_data_t** keylist,
-	size_t keylist_size, key_data_t* key, key_state_t* state,
-	int* change, int allow_unsigned, key_dependency_list_t* deplist)
-{
-	key_state_state_t desired_state;
-	static const char *scmd = "processKeyState";
-	size_t i;
-	static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
-	static const key_state_state_t rrsig_algorithm_rollover[4] = { NA, OMNIPRESENT, NA, OMNIPRESENT };
-	struct future_key future_key;
-
-	if (!zone) {
-	    return -1;
-	}
-	if (!zone_updated) {
-        return -1;
-	}
-	if (!keylist) {
-        return -1;
-	}
-	if (!key) {
-        return -1;
-	}
-	if (!state) {
-        return -1;
-	}
-	if (!change) {
-        return -1;
-	}
-	if (!deplist) {
-        return -1;
-	}
-
-	/*
-	 * The desired_state is invalid something went wrong and we should return
-	 * an error.
-	 */
-	if ((desired_state = getDesiredState(key_data_introducing(key), key_state_state(state))) == KEY_STATE_STATE_INVALID) {
-		return 1;
-	}
-
-	/*
-	 * If there is no change in key state we return.
-	 */
-	if (key_state_state(state) == desired_state) {
-		return 0;
-	}
-
-	/*
-	 * If the key state is a DS then we need to check if we still are waiting
-	 * for user input before we can transition the key.
-	 */
-	if (key_state_type(state) == KEY_STATE_TYPE_DS) {
-		if ((desired_state == OMNIPRESENT
-				&& key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SEEN)
-			|| (desired_state == HIDDEN
-				&& key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
-		{
-			return 0;
-		}
-	}
-
-	ods_log_verbose("[%s] %s: May %s in state %s transition to %s?", module_str, scmd,
-		hsm_key_locator(key_data_cached_hsm_key(key)),
-		key_state_state_text(state),
-		key_state_enum_set_state[desired_state]);
-
-    future_key.key = key;
-    future_key.type = key_state_type(state);
-    future_key.next_state = desired_state;
-
-	/*
-	 * Check if policy prevents transition if the next state is rumoured.
-	 */
-	if (desired_state == RUMOURED) {
-		switch (key_state_type(state)) {
-		case KEY_STATE_TYPE_DS:
-			/*
-			 * If we want to minimize the DS transitions make sure the DNSKEY is
-			 * fully propagated.
-			 */
-			if (key_state_minimize(state)
-				&& key_state_state(key_data_cached_dnskey(key)) != OMNIPRESENT)
-			{
-				/*
-				 * DNSKEY is not fully propagated so we will not do any transitions.
-				 */
-				return 0;
-			}
-			break;
-
-		case KEY_STATE_TYPE_DNSKEY:
-			if (!key_state_minimize(state)) {
-				/*
-				 * There are no restrictions for the DNSKEY transition so we can
-				 * just continue.
-				 */
-				break;
-			}
-
-			/*
-			 * Check that signatures has been propagated for CSK/ZSK.
-			 *
-			 * TODO: How is this related to CSK/ZSK, there is no check for key_data_role().
-			 */
-			if (key_state_state(key_data_cached_rrsig(key)) != OMNIPRESENT
-				&& key_state_state(key_data_cached_rrsig(key)) != NA)
-			{
-				/*
-				 * RRSIG not fully propagated so we will not do any transitions.
-				 */
-				return 0;
-			}
-
-			/*
-			 * Check if the DS is introduced and continue if it is.
-			 */
-			if (key_state_state(key_data_cached_ds(key)) == OMNIPRESENT
-				|| key_state_state(key_data_cached_ds(key)) == NA)
-			{
-				break;
-			}
-
-			/*
-			 * We might be doing an algorithm rollover so we check if there are
-			 * no other good KSK available and ignore the minimize flag if so.
-			 *
-			 * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
-			 */
-			if (exists(keylist, keylist_size, &future_key, 1, dnskey_algorithm_rollover) > 0) {
-				/*
-				 * We found a good key, so we will not do any transition.
-				 */
-				return 0;
-			}
-			break;
-
-		case KEY_STATE_TYPE_RRSIGDNSKEY:
-			/*
-			 * The only time not to introduce RRSIG DNSKEY is when the DNSKEY is
-			 * still hidden.
-			 *
-			 * TODO: How do we know we are introducing the RRSIG DNSKEY? We might be
-			 * outroducing it.
-			 */
-			if (key_state_state(key_data_cached_dnskey(key)) == HIDDEN) {
-				return 0;
-			}
-			break;
-
-		case KEY_STATE_TYPE_RRSIG:
-			if (!key_state_minimize(state)) {
-				/*
-				 * There are no restrictions for the RRSIG transition so we can
-				 * just continue.
-				 */
-				break;
-			}
-
-			/*
-			 * Check if the DNSKEY is introduced and continue if it is.
-			 */
-			if (key_state_state(key_data_cached_dnskey(key)) == OMNIPRESENT) {
-				break;
-			}
-
-			/*
-			 * We might be doing an algorithm rollover so we check if there are
-			 * no other good ZSK available and ignore the minimize flag if so.
-			 *
-			 * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
-			 */
-			if (exists(keylist, keylist_size, &future_key, 1, rrsig_algorithm_rollover) > 0) {
-				/*
-				 * We found a good key, so we will not do any transition.
-				 */
-				return 0;
-			}
-			break;
-
-		default:
-			return 1;
-		}
-	}
-
-	/*
-	 * Check if DNSSEC state will be invalid by the transition by checking that
-	 * all 3 DNSSEC rules apply. Rule 1 only applies if we are not allowing an
-	 * unsigned state.
-	 *
-	 * A rule is first checked against the current state of the key_state and if
-	 * the current state is not valid an transition is allowed for that rule in
-	 * order to try and move out of an invalid DNSSEC state.
-	 *
-	 * Next the rule is checked against the desired state and if that state is a
-	 * valid DNSSEC state then the transition is allowed.
-	 *
-	 * rule1 - Handles DS states
-	 * rule2 - Handles DNSKEY states.
-	 * rule3 - Handles signatures.
-	 */
-    if ((allow_unsigned
-            || !rule1(keylist, keylist_size, &future_key, 0)
-            || rule1(keylist, keylist_size, &future_key, 1) > 0)
-        && (!rule2(keylist, keylist_size, &future_key, 0, deplist)
-            || rule2(keylist, keylist_size, &future_key, 1, deplist) > 0)
-        && (!rule3(keylist, keylist_size, &future_key, 0, deplist)
-            || rule3(keylist, keylist_size, &future_key, 1, deplist) > 0))
-    {
-        /*
-         * All rules apply, we allow transition.
-         */
-        /*
-         * TODO: do the transition
-         */
-        return 0;
-    }
-
-	return 0;
-}
-
 /**
  * Try to push each key for this zone to a next state. If one changes
  * visit the rest again. Loop stops when no changes can be made without
@@ -1796,8 +1759,17 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 	key_data_t** keylist = NULL;
 	static const char *scmd = "updateZone";
 	size_t keylist_size, i;
-	int change;
+	int change, j;
 	key_dependency_list_t *deplist;
+	static const key_state_type_t type[] = {
+	    KEY_STATE_TYPE_DS,
+	    KEY_STATE_TYPE_DNSKEY,
+	    KEY_STATE_TYPE_RRSIGDNSKEY,
+	    KEY_STATE_TYPE_RRSIG
+	};
+    struct future_key future_key;
+    key_state_state_t desired_state;
+    key_state_state_t state;
 
 	if (!policy) {
 		return returntime_zone;
@@ -1928,12 +1900,62 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 			ods_log_verbose("[%s] %s: processing key %s", module_str, scmd,
 				hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
-			if (processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_ds(keylist[i]), &change, allow_unsigned, deplist)
-				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_dnskey(keylist[i]), &change, allow_unsigned, deplist)
-				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsigdnskey(keylist[i]), &change, allow_unsigned, deplist)
-				|| processKeyState(zone, zone_updated, keylist, keylist_size, keylist[i], key_data_get_cached_rrsig(keylist[i]), &change, allow_unsigned, deplist))
-			{
-				/* TODO: handle error */
+			for (j = 0; j < sizeof(type); j++) {
+                /*
+                 * If the state or desired_state is invalid something went wrong
+                 * and we should return.
+                 */
+			    if ((state = getState(keylist[i], type[j], NULL)) == KEY_STATE_STATE_INVALID
+			        || (desired_state = getDesiredState(key_data_introducing(keylist[i]), state)) == KEY_STATE_STATE_INVALID)
+			    {
+			        return returntime_zone;
+			    }
+
+			    /*
+			     * If there is no change in key state we continue.
+			     */
+			    if (state == desired_state) {
+			        continue;
+			    }
+
+			    /*
+			     * If the key state is a DS then we need to check if we still
+			     * are waiting for user input before we can transition the key.
+			     */
+			    if (type[j] == KEY_STATE_TYPE_DS) {
+			        if ((desired_state == OMNIPRESENT
+			                && key_data_ds_at_parent(keylist[i]) != KEY_DATA_DS_AT_PARENT_SEEN)
+			            || (desired_state == HIDDEN
+			                && key_data_ds_at_parent(keylist[i]) != KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
+			        {
+			            continue;
+			        }
+			    }
+
+			    ods_log_verbose("[%s] %s: May %s in state %s transition to %s?", module_str, scmd,
+			        hsm_key_locator(key_data_cached_hsm_key(key)),
+			        key_state_enum_set_state[state],
+			        key_state_enum_set_state[desired_state]);
+
+                future_key.key = keylist[i];
+                future_key.type = type[j];
+                future_key.next_state = desired_state;
+
+                /*
+                 * Check if policy prevents transition.
+                 */
+                if (policyApproval(keylist, keylist_size, &future_key) < 1) {
+                    continue;
+                }
+                ods_log_verbose("[%s] %s Policy says we can (1/3)", module_str, scmd);
+
+                /*
+                 * Check if DNSSEC state prevents transition.
+                 */
+                if (dnssecApproval(keylist, keylist_size, &future_key, allow_unsigned, deplist) < 1) {
+                    continue;
+                }
+                ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", module_str, scmd);
 			}
 		}
 	} while (change);
@@ -2031,12 +2053,12 @@ updateZone_old(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 					STATENAMES[(int)next_state]);
 				
 				/** Policy prevents transition */
-				if (!policyApproval(key_list, &future_key)) continue;
+				if (!policyApproval_old(key_list, &future_key)) continue;
 				ods_log_verbose("[%s] %s Policy says we can (1/3)", 
 					module_str, scmd);
 				
 				/** Would be invalid DNSSEC state */
-				if (!dnssecApproval(dep_list, key_list, &future_key, allow_unsigned))
+				if (!dnssecApproval_old(dep_list, key_list, &future_key, allow_unsigned))
 					continue;
 				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
 					module_str, scmd);
