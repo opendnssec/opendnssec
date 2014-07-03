@@ -957,6 +957,7 @@ cmd_addzone ()
         StrAppend(&input_type, o_in_type);
     } else {
 	      printf("Error: Unrecognised in-type %s; should be one of DNS or File\n",o_in_type);
+	      StrFree(sig_conf_name);
 	      return(1);
     }
 
@@ -984,6 +985,9 @@ cmd_addzone ()
 		StrAppend(&output_type, o_out_type);
 	} else {
 		printf("Error: Unrecognised out-type %s; should be one of DNS or File\n",o_out_type);
+        StrFree(sig_conf_name);
+        StrFree(input_type);
+        StrFree(input_name);
 		return(1);
 	}
 
@@ -1210,6 +1214,14 @@ cmd_addzone ()
             return(1);
         }
     }
+    else {
+        StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
+        StrFree(input_type);
+        StrFree(output_type);
+    }
 
     /* TODO - KICK THE ENFORCER? */
     /* <matthijs> TODO - ods-signer update? */
@@ -1221,9 +1233,6 @@ cmd_addzone ()
     }
 
     StrFree(backup_filename);
-	StrFree(sig_conf_name);
-	StrFree(input_name);
-	StrFree(output_name);
 
     return 0;
 }
