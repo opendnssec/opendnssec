@@ -101,6 +101,7 @@ struct policy {
     unsigned int zone_soa_ttl;
     unsigned int zone_soa_minimum;
     policy_zone_soa_serial_t zone_soa_serial;
+    unsigned int parent_registration_delay;
     unsigned int parent_propagation_delay;
     unsigned int parent_ds_ttl;
     unsigned int parent_soa_ttl;
@@ -371,6 +372,13 @@ policy_zone_soa_serial_t policy_zone_soa_serial(const policy_t* policy);
 const char* policy_zone_soa_serial_text(const policy_t* policy);
 
 /**
+ * Get the parent_registration_delay of a policy object. Undefined behavior if `policy` is NULL.
+ * \param[in] policy a policy_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int policy_parent_registration_delay(const policy_t* policy);
+
+/**
  * Get the parent_propagation_delay of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
@@ -629,6 +637,14 @@ int policy_set_zone_soa_serial(policy_t* policy, policy_zone_soa_serial_t zone_s
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_set_zone_soa_serial_text(policy_t* policy, const char* zone_soa_serial);
+
+/**
+ * Set the parent_registration_delay of a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \param[in] parent_registration_delay an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_set_parent_registration_delay(policy_t* policy, unsigned int parent_registration_delay);
 
 /**
  * Set the parent_propagation_delay of a policy object.
@@ -958,6 +974,17 @@ db_clause_t* policy_zone_soa_minimum_clause(db_clause_list_t* clause_list, unsig
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* policy_zone_soa_serial_clause(db_clause_list_t* clause_list, policy_zone_soa_serial_t zone_soa_serial);
+
+/**
+ * Create a clause for parent_registration_delay of a policy object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] parent_registration_delay an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* policy_parent_registration_delay_clause(db_clause_list_t* clause_list, unsigned int parent_registration_delay);
 
 /**
  * Create a clause for parent_propagation_delay of a policy object and add it to a database clause list.

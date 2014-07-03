@@ -238,6 +238,7 @@ static void test_policy_set(void) {
     CU_ASSERT(!policy_set_zone_soa_serial_text(object, "unixtime"));
     CU_ASSERT(!policy_set_zone_soa_serial(object, POLICY_ZONE_SOA_SERIAL_KEEP));
     CU_ASSERT(!policy_set_zone_soa_serial_text(object, "keep"));
+    CU_ASSERT(!policy_set_parent_registration_delay(object, 1));
     CU_ASSERT(!policy_set_parent_propagation_delay(object, 1));
     CU_ASSERT(!policy_set_parent_ds_ttl(object, 1));
     CU_ASSERT(!policy_set_parent_soa_ttl(object, 1));
@@ -279,6 +280,7 @@ static void test_policy_get(void) {
     CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_KEEP);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "keep"));
+    CU_ASSERT(policy_parent_registration_delay(object) == 1);
     CU_ASSERT(policy_parent_propagation_delay(object) == 1);
     CU_ASSERT(policy_parent_ds_ttl(object) == 1);
     CU_ASSERT(policy_parent_soa_ttl(object) == 1);
@@ -563,6 +565,16 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_parent_registration_delay_clause(clause_list, policy_parent_registration_delay(object)));
+    CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
+    CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
+    CU_ASSERT_PTR_NOT_NULL(policy_list_next(new_list));
+    policy_list_free(new_list);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(policy_parent_propagation_delay_clause(clause_list, policy_parent_propagation_delay(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
@@ -799,6 +811,13 @@ static void test_policy_count(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(policy_parent_registration_delay_clause(clause_list, policy_parent_registration_delay(object)));
+    CU_ASSERT(!policy_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(policy_parent_propagation_delay_clause(clause_list, policy_parent_propagation_delay(object)));
     CU_ASSERT(!policy_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
@@ -889,6 +908,7 @@ static void test_policy_verify(void) {
     CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_KEEP);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "keep"));
+    CU_ASSERT(policy_parent_registration_delay(object) == 1);
     CU_ASSERT(policy_parent_propagation_delay(object) == 1);
     CU_ASSERT(policy_parent_ds_ttl(object) == 1);
     CU_ASSERT(policy_parent_soa_ttl(object) == 1);
@@ -934,6 +954,7 @@ static void test_policy_verify_name(void) {
     CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_KEEP);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "keep"));
+    CU_ASSERT(policy_parent_registration_delay(object) == 1);
     CU_ASSERT(policy_parent_propagation_delay(object) == 1);
     CU_ASSERT(policy_parent_ds_ttl(object) == 1);
     CU_ASSERT(policy_parent_soa_ttl(object) == 1);
@@ -970,6 +991,7 @@ static void test_policy_change(void) {
     CU_ASSERT(!policy_set_zone_soa_minimum(object, 2));
     CU_ASSERT(!policy_set_zone_soa_serial(object, POLICY_ZONE_SOA_SERIAL_COUNTER));
     CU_ASSERT(!policy_set_zone_soa_serial_text(object, "counter"));
+    CU_ASSERT(!policy_set_parent_registration_delay(object, 2));
     CU_ASSERT(!policy_set_parent_propagation_delay(object, 2));
     CU_ASSERT(!policy_set_parent_ds_ttl(object, 2));
     CU_ASSERT(!policy_set_parent_soa_ttl(object, 2));
@@ -1019,6 +1041,7 @@ static void test_policy_verify2(void) {
     CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_COUNTER);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "counter"));
+    CU_ASSERT(policy_parent_registration_delay(object) == 2);
     CU_ASSERT(policy_parent_propagation_delay(object) == 2);
     CU_ASSERT(policy_parent_ds_ttl(object) == 2);
     CU_ASSERT(policy_parent_soa_ttl(object) == 2);
@@ -1071,6 +1094,7 @@ static void test_policy_verify_name2(void) {
     CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_COUNTER);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "counter"));
+    CU_ASSERT(policy_parent_registration_delay(object) == 2);
     CU_ASSERT(policy_parent_propagation_delay(object) == 2);
     CU_ASSERT(policy_parent_ds_ttl(object) == 2);
     CU_ASSERT(policy_parent_soa_ttl(object) == 2);

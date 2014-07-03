@@ -141,6 +141,7 @@ CREATE TABLE policy (
     zoneSoaTtl UNSIGNED INT NOT NULL,
     zoneSoaMinimum UNSIGNED INT NOT NULL,
     zoneSoaSerial INT NOT NULL,
+    parentRegistrationDelay UNSIGNED INT NOT NULL,
     parentPropagationDelay UNSIGNED INT NOT NULL,
     parentDsTtl UNSIGNED INT NOT NULL,
     parentSoaTtl UNSIGNED INT NOT NULL,

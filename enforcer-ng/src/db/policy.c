@@ -390,6 +390,17 @@ static db_object_t* __policy_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "parentRegistrationDelay")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "parentPropagationDelay")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -545,6 +556,7 @@ void policy_reset(policy_t* policy) {
         policy->zone_soa_ttl = 0;
         policy->zone_soa_minimum = 0;
         policy->zone_soa_serial = POLICY_ZONE_SOA_SERIAL_INVALID;
+        policy->parent_registration_delay = 0;
         policy->parent_propagation_delay = 0;
         policy->parent_ds_ttl = 0;
         policy->parent_soa_ttl = 0;
@@ -647,6 +659,7 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
     policy->zone_soa_ttl = policy_copy->zone_soa_ttl;
     policy->zone_soa_minimum = policy_copy->zone_soa_minimum;
     policy->zone_soa_serial = policy_copy->zone_soa_serial;
+    policy->parent_registration_delay = policy_copy->parent_registration_delay;
     policy->parent_propagation_delay = policy_copy->parent_propagation_delay;
     policy->parent_ds_ttl = policy_copy->parent_ds_ttl;
     policy->parent_soa_ttl = policy_copy->parent_soa_ttl;
@@ -805,6 +818,10 @@ int policy_cmp(const policy_t* policy_a, const policy_t* policy_b) {
         return policy_a->zone_soa_serial < policy_b->zone_soa_serial ? -1 : 1;
     }
 
+    if (policy_a->parent_registration_delay != policy_b->parent_registration_delay) {
+        return policy_a->parent_registration_delay < policy_b->parent_registration_delay ? -1 : 1;
+    }
+
     if (policy_a->parent_propagation_delay != policy_b->parent_propagation_delay) {
         return policy_a->parent_propagation_delay < policy_b->parent_propagation_delay ? -1 : 1;
     }
@@ -850,7 +867,7 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
     }
     policy->denial_salt = NULL;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 33
+        || db_value_set_size(value_set) != 34
         || db_value_copy(&(policy->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(policy->rev), db_value_set_at(value_set, 1))
         || db_value_to_text(db_value_set_at(value_set, 2), &(policy->name))
@@ -880,10 +897,11 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 26), &(policy->zone_soa_ttl))
         || db_value_to_uint32(db_value_set_at(value_set, 27), &(policy->zone_soa_minimum))
         || db_value_to_enum_value(db_value_set_at(value_set, 28), &zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_to_uint32(db_value_set_at(value_set, 29), &(policy->parent_propagation_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_ds_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_soa_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_soa_minimum)))
+        || db_value_to_uint32(db_value_set_at(value_set, 29), &(policy->parent_registration_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_propagation_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_ds_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_soa_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 33), &(policy->parent_soa_minimum)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -1171,6 +1189,14 @@ const char* policy_zone_soa_serial_text(const policy_t* policy) {
         enum_set++;
     }
     return NULL;
+}
+
+unsigned int policy_parent_registration_delay(const policy_t* policy) {
+    if (!policy) {
+        return 0;
+    }
+
+    return policy->parent_registration_delay;
 }
 
 unsigned int policy_parent_propagation_delay(const policy_t* policy) {
@@ -1561,6 +1587,16 @@ int policy_set_zone_soa_serial_text(policy_t* policy, const char* zone_soa_seria
         enum_set++;
     }
     return DB_ERROR_UNKNOWN;
+}
+
+int policy_set_parent_registration_delay(policy_t* policy, unsigned int parent_registration_delay) {
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    policy->parent_registration_delay = parent_registration_delay;
+
+    return DB_OK;
 }
 
 int policy_set_parent_propagation_delay(policy_t* policy, unsigned int parent_propagation_delay) {
@@ -2179,6 +2215,27 @@ db_clause_t* policy_zone_soa_serial_clause(db_clause_list_t* clause_list, policy
     return clause;
 }
 
+db_clause_t* policy_parent_registration_delay_clause(db_clause_list_t* clause_list, unsigned int parent_registration_delay) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "parentRegistrationDelay")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), parent_registration_delay)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
 db_clause_t* policy_parent_propagation_delay_clause(db_clause_list_t* clause_list, unsigned int parent_propagation_delay) {
     db_clause_t* clause;
 
@@ -2569,6 +2626,16 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "parentRegistrationDelay")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "parentPropagationDelay")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -2608,7 +2675,7 @@ int policy_create(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(31))) {
+    if (!(value_set = db_value_set_new(32))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -2640,10 +2707,11 @@ int policy_create(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_soa_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_minimum)
         || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_ds_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_minimum))
+        || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_registration_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_ds_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_minimum))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -3110,6 +3178,16 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "parentRegistrationDelay")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "parentPropagationDelay")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -3149,7 +3227,7 @@ int policy_update(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(31))) {
+    if (!(value_set = db_value_set_new(32))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -3181,10 +3259,11 @@ int policy_update(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_soa_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_minimum)
         || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_ds_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_minimum))
+        || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_registration_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_ds_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_minimum))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

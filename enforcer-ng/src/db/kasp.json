@@ -160,6 +160,7 @@
       { "name": "DATECOUNTER", "value": 1, "text": "datecounter" },
       { "name": "UNIXTIME", "value": 2, "text": "unixtime" },
       { "name": "KEEP", "value": 3, "text": "keep" } ] },
+    { "name": "parent_registration_delay", "type": "DB_TYPE_UINT32" },
     { "name": "parent_propagation_delay", "type": "DB_TYPE_UINT32" },
     { "name": "parent_ds_ttl", "type": "DB_TYPE_UINT32" },
     { "name": "parent_soa_ttl", "type": "DB_TYPE_UINT32" },
