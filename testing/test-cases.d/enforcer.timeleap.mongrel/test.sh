@@ -6,6 +6,10 @@ KEEP_LOG_ON_SUCCESS=0
 WRITE_GOLD=0
 RANGE=`seq 1 200`
 
+if [ -n "$HAVE_MYSQL" ]; then
+        ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 rm -rf base && mkdir base &&
 
