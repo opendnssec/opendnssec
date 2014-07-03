@@ -773,7 +773,32 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     continue;
                 }
 
-                if (!strcmp((char*)node2->name, "PropagationDelay")) {
+                if (!strcmp((char*)node2->name, "RegistrationDelay")) {
+                    if (!(xml_text = xmlNodeGetContent(node2))) {
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    ods_log_deeebug("[policy_*_from_xml] parent registration delay %s", (char*)xml_text);
+                    if (!(duration = duration_create_from_string((char*)xml_text))) {
+                        xmlFree(xml_text);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    xmlFree(xml_text);
+                    if (check_if_updated) {
+                        update_this = 0;
+                        if (policy_parent_registration_delay(policy) != duration2time(duration)) {
+                            *updated = 1;
+                            update_this = 1;
+                        }
+                    }
+                    if (update_this) {
+                        if (policy_set_parent_registration_delay(policy, duration2time(duration))) {
+                            duration_cleanup(duration);
+                            return DB_ERROR_UNKNOWN;
+                        }
+                    }
+                    duration_cleanup(duration);
+                }
+                else if (!strcmp((char*)node2->name, "PropagationDelay")) {
                     if (!(xml_text = xmlNodeGetContent(node2))) {
                         return DB_ERROR_UNKNOWN;
                     }
