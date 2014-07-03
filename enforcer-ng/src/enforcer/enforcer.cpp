@@ -156,31 +156,31 @@ getRecord_old(KeyData &key, const RECORD record)
 				module_str, scmd, (int)record);
 	}
 }
-static inline key_state_state_t
+static inline const key_state_t*
 getRecord(key_data_t* key, key_state_type_t type)
 {
     if (!key) {
-        return KEY_STATE_STATE_INVALID;
+        return NULL;
     }
 
     switch (type) {
     case KEY_STATE_TYPE_DS:
-        return key_state_state(key_data_cached_ds(key));
+        return key_data_cached_ds(key);
 
     case KEY_STATE_TYPE_DNSKEY:
-        return key_state_state(key_data_cached_dnskey(key));
+        return key_data_cached_dnskey(key);
 
     case KEY_STATE_TYPE_RRSIG:
-        return key_state_state(key_data_cached_rrsig(key));
+        return key_data_cached_rrsig(key);
 
     case KEY_STATE_TYPE_RRSIGDNSKEY:
-        return key_state_state(key_data_cached_rrsigdnskey(key));
+        return key_data_cached_rrsigdnskey(key);
 
     default:
         break;
     }
 
-    return KEY_STATE_STATE_INVALID;
+    return NULL;
 }
 
 /**
@@ -223,7 +223,7 @@ getState(key_data_t* key, key_state_type_t type, struct future_key *future_key)
         }
     }
 
-    return getRecord(key, type);
+    return key_state_state(getRecord(key, type));
 }
 
 /**
@@ -1407,10 +1407,10 @@ dnssecApproval(key_data_t** keylist, size_t keylist_size,
  * @return absolute time
  * */
 static time_t
-minTransitionTime(EnforcerZone &zone, const RECORD record,
+minTransitionTime_old(EnforcerZone &zone, const RECORD record,
 	const STATE next_state, const time_t lastchange, const int ttl)
 {
-	static const char *scmd = "minTransitionTime";
+	static const char *scmd = "minTransitionTime_old";
 	const Policy *policy = zone.policy();
 
 	/** We may freely move a record to a uncertain state. */
@@ -1437,6 +1437,43 @@ minTransitionTime(EnforcerZone &zone, const RECORD record,
 				"fault of programmer. Abort.",
 				module_str, scmd, (int)record);
 	}
+}
+static time_t
+minTransitionTime(policy_t* policy, key_state_type_t type,
+    key_state_state_t next_state, const time_t lastchange, const int ttl)
+{
+    if (!policy) {
+        return -1;
+    }
+
+    /*
+     * We may freely move a record to a uncertain state.
+     */
+    if (next_state == RUMOURED || next_state == UNRETENTIVE) {
+        return lastchange;
+    }
+
+    switch (type) {
+    case KEY_STATE_TYPE_DS:
+        return addtime(lastchange, ttl + policy_parent_registration_delay(policy)
+            + policy_parent_propagation_delay(policy));
+
+    /* TODO: 5011 will create special case here */
+    case KEY_STATE_TYPE_DNSKEY: /* intentional fall-through */
+    case KEY_STATE_TYPE_RRSIGDNSKEY:
+        return addtime(lastchange, ttl + policy_zone_propagation_delay(policy)
+            + ( next_state == OMNIPRESENT
+                ? policy_keys_publish_safety(policy)
+                : policy_keys_retire_safety(policy) ));
+
+    case KEY_STATE_TYPE_RRSIG:
+        return addtime(lastchange, ttl + policy_zone_propagation_delay(policy));
+
+    default:
+        break;
+    }
+
+    return -1;
 }
 
 /**
@@ -1645,7 +1682,7 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
  * have been published in the near past causing this record to take 
  * extra time to propagate */
 static int
-getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
+getZoneTTL_old(EnforcerZone &zone, const RECORD record, const time_t now)
 {
 	static const char *scmd = "getTTL";
 	const Policy *policy = zone.policy();
@@ -1676,6 +1713,48 @@ getZoneTTL(EnforcerZone &zone, const RECORD record, const time_t now)
 	}
 	return max((int)difftime(endDate, now), recordTTL);
 }
+static int
+getZoneTTL(policy_t* policy, zone_t* zone, key_state_type_t type,
+    const time_t now)
+{
+    time_t end_date;
+    int ttl;
+
+    if (!policy) {
+        return -1;
+    }
+    if (!zone) {
+        return -1;
+    }
+
+    switch (type) {
+    case KEY_STATE_TYPE_DS:
+        end_date = zone_ttl_end_ds(zone);
+        ttl = policy_parent_ds_ttl(policy);
+        break;
+
+    case KEY_STATE_TYPE_DNSKEY: /* Intentional fall-through */
+    case KEY_STATE_TYPE_RRSIGDNSKEY:
+        end_date = zone_ttl_end_dk(zone);
+        ttl = policy_keys_ttl(policy);
+        break;
+
+    case KEY_STATE_TYPE_RRSIG:
+        end_date = zone_ttl_end_rs(zone);
+        ttl = max(min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
+            ( policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3
+                ? ( policy_denial_ttl(policy) > policy_signatures_max_zone_ttl(policy)
+                    ? policy_denial_ttl(policy)
+                    : policy_signatures_max_zone_ttl(policy) )
+                : policy_signatures_max_zone_ttl(policy) ));
+        break;
+
+    default:
+        return -1;
+    }
+
+    return max((int)difftime(end_date, now), ttl);
+}
 
 /**
  * Update the state of a record. Save the time of this change for
@@ -1693,7 +1772,7 @@ setState(EnforcerZone &zone, const struct FutureKey *future_key,
 	KeyState &ks = getRecord_old(*future_key->key, future_key->record);
 	ks.setState(future_key->next_state);
 	ks.setLastChange(now);
-	ks.setTtl(getZoneTTL(zone, future_key->record, now));
+	ks.setTtl(getZoneTTL_old(zone, future_key->record, now));
 	zone.setSignerConfNeedsWriting(true);
 }
 
@@ -1768,8 +1847,9 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 	    KEY_STATE_TYPE_RRSIG
 	};
     struct future_key future_key;
-    key_state_state_t desired_state;
+    key_state_state_t next_state;
     key_state_state_t state;
+    time_t returntime_key;
 
 	if (!policy) {
 		return returntime_zone;
@@ -1906,7 +1986,7 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
                  * and we should return.
                  */
 			    if ((state = getState(keylist[i], type[j], NULL)) == KEY_STATE_STATE_INVALID
-			        || (desired_state = getDesiredState(key_data_introducing(keylist[i]), state)) == KEY_STATE_STATE_INVALID)
+			        || (next_state = getDesiredState(key_data_introducing(keylist[i]), state)) == KEY_STATE_STATE_INVALID)
 			    {
 			        return returntime_zone;
 			    }
@@ -1914,7 +1994,7 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 			    /*
 			     * If there is no change in key state we continue.
 			     */
-			    if (state == desired_state) {
+			    if (state == next_state) {
 			        continue;
 			    }
 
@@ -1923,9 +2003,9 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 			     * are waiting for user input before we can transition the key.
 			     */
 			    if (type[j] == KEY_STATE_TYPE_DS) {
-			        if ((desired_state == OMNIPRESENT
+			        if ((next_state == OMNIPRESENT
 			                && key_data_ds_at_parent(keylist[i]) != KEY_DATA_DS_AT_PARENT_SEEN)
-			            || (desired_state == HIDDEN
+			            || (next_state == HIDDEN
 			                && key_data_ds_at_parent(keylist[i]) != KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
 			        {
 			            continue;
@@ -1933,13 +2013,13 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
 			    }
 
 			    ods_log_verbose("[%s] %s: May %s in state %s transition to %s?", module_str, scmd,
-			        hsm_key_locator(key_data_cached_hsm_key(key)),
+			        hsm_key_locator(key_data_cached_hsm_key(keylist[i])),
 			        key_state_enum_set_state[state],
-			        key_state_enum_set_state[desired_state]);
+			        key_state_enum_set_state[next_state]);
 
                 future_key.key = keylist[i];
                 future_key.type = type[j];
-                future_key.next_state = desired_state;
+                future_key.next_state = next_state;
 
                 /*
                  * Check if policy prevents transition.
@@ -1956,6 +2036,57 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
                     continue;
                 }
                 ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", module_str, scmd);
+
+                returntime_key = minTransitionTime(policy, type[j], next_state,
+                    key_state_last_change(getRecord(keylist[i], type[j])),
+                    getZoneTTL(policy, zone, type[j], now));
+
+                /*
+                 * If this is an RRSIG and the DNSKEY is omnipresent and next
+                 * state is a certain state, wait an additional signature
+                 * lifetime to allow for 'smooth rollover'.
+                 */
+                if (type[j] == KEY_STATE_TYPE_RRSIG
+                    && key_state_state(key_data_cached_dnskey(keylist[i])) == OMNIPRESENT
+                    && (next_state == OMNIPRESENT || next_state == HIDDEN))
+                {
+                    returntime_key = addtime(returntime_key,
+                        policy_signatures_jitter(policy)
+                        + max(policy_signatures_validity_default(policy),
+                            policy_signatures_validity_denial(policy))
+                        + policy_signatures_resign(policy)
+                        - policy_signatures_refresh(policy));
+                }
+
+                /*
+                 * It is to soon to make this change. Schedule it.
+                 */
+                if (returntime_key > now) {
+                    minTime(returntime_key, &returntime_zone);
+                    continue;
+                }
+
+                ods_log_verbose("[%s] %s Timing says we can (3/3) now: %d key: %d",
+                    module_str, scmd, now, returntime_key);
+
+                /*
+                 * A record can only reach Omnipresent if properly backed up.
+                 */
+                if (next_state == OMNIPRESENT) {
+                    if (hsm_key_backup(key_data_cached_hsm_key(keylist[i])) == HSM_KEY_BACKUP_BACKUP_REQUIRED
+                        || hsm_key_backup(key_data_cached_hsm_key(keylist[i])) == HSM_KEY_BACKUP_BACKUP_REQUESTED)
+                    {
+                        ods_log_crit("[%s] %s Ready for transition but key material not backed up yet (%s)",
+                            module_str, scmd, hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
+
+                        /*
+                         * Try again in 60 seconds
+                         */
+                        returntime_key = addtime(now, 60);
+                        minTime(returntime_key, &returntime_zone);
+                        continue;
+                    }
+                }
 			}
 		}
 	} while (change);
@@ -2063,9 +2194,9 @@ updateZone_old(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
 					module_str, scmd);
 				
-				time_t returntime_key = minTransitionTime(zone, record, 
+				time_t returntime_key = minTransitionTime_old(zone, record,
 					next_state, getRecord_old(key, record).lastChange(),
-					getZoneTTL(zone, record, now));
+					getZoneTTL_old(zone, record, now));
 
 				/** If this is an RRSIG and the DNSKEY is omnipresent
 				 * and next state is a certain state, wait an additional 
