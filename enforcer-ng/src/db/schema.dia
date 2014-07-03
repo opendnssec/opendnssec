@@ -68,7 +68,7 @@
         <dia:point val="-3,-4"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="-3,-4;10.235,23.5"/>
+        <dia:rectangle val="-3,-4;10.235,24.3"/>
       </dia:attribute>
       <dia:attribute name="meta">
         <dia:composite type="dict"/>
@@ -80,7 +80,7 @@
         <dia:real val="13.234999999999999"/>
       </dia:attribute>
       <dia:attribute name="elem_height">
-        <dia:real val="27.500000000000014"/>
+        <dia:real val="28.300000000000015"/>
       </dia:attribute>
       <dia:attribute name="text_colour">
         <dia:color val="#000000"/>
@@ -697,6 +697,26 @@
           </dia:attribute>
           <dia:attribute name="type">
             <dia:string>#enum#</dia:string>
+          </dia:attribute>
+          <dia:attribute name="comment">
+            <dia:string>##</dia:string>
+          </dia:attribute>
+          <dia:attribute name="primary_key">
+            <dia:boolean val="false"/>
+          </dia:attribute>
+          <dia:attribute name="nullable">
+            <dia:boolean val="false"/>
+          </dia:attribute>
+          <dia:attribute name="unique">
+            <dia:boolean val="false"/>
+          </dia:attribute>
+        </dia:composite>
+        <dia:composite type="table_attribute">
+          <dia:attribute name="name">
+            <dia:string>#parent_registration_delay#</dia:string>
+          </dia:attribute>
+          <dia:attribute name="type">
+            <dia:string>#uint#</dia:string>
           </dia:attribute>
           <dia:attribute name="comment">
             <dia:string>##</dia:string>
