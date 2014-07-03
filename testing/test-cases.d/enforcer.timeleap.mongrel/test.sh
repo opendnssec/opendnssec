@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -x
+
 # Change this line to return 1 even on success if you want to leave
 # the output files around for inspection
 KEEP_LOG_ON_SUCCESS=0
