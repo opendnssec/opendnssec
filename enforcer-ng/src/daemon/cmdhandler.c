@@ -470,7 +470,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     ods_log_assert(cmdhandler->engine);
     ods_log_debug("[%s] start", module_str);
 
-    pthread_detach(cmdhandler->thread_id);
+
     FD_ZERO(&rset);
     while (cmdhandler->need_to_exit == 0) {
         clilen = sizeof(cliaddr);
@@ -594,5 +594,5 @@ cmdhandler_stop(struct engine_struct* engine)
         ods_log_error("[engine] command handler self pipe trick failed, "
             "unclean shutdown");
     }
-    return;
+    (void) pthread_join(engine->cmdhandler->thread_id, NULL);
 }
