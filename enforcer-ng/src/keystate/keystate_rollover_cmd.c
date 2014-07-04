@@ -35,12 +35,8 @@
 #include "enforcer/enforce_task.h"
 #include "daemon/clientpipe.h"
 #include "db/zone.h"
-
 #include "shared/log.h"
 #include "shared/file.h"
-#include "shared/duration.h"
-#include "libhsm.h"
-#include "libhsmdns.h"
 
 #include "keystate/keystate_rollover_cmd.h"
 
