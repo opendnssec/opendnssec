@@ -1131,6 +1131,12 @@ cmd_addzone ()
             return(1);
         }
     }
+    else {
+        StrFree(zonelist_filename);
+        StrFree(sig_conf_name);
+        StrFree(input_name);
+        StrFree(output_name);
+    }
 
     /* TODO - KICK THE ENFORCER? */
     /* <matthijs> TODO - ods-signer update? */
@@ -1142,9 +1148,6 @@ cmd_addzone ()
     }
 
     StrFree(backup_filename);
-    StrFree(sig_conf_name);
-    StrFree(input_name);
-    StrFree(output_name);
 
     return 0;
 }
