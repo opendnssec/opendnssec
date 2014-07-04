@@ -8,6 +8,10 @@ OpenDNSSEC 1.3.18
   given an expression.
 
 Bugfixes:
+* OPENDNSSEC-632: ods-ksmutil: 'zone add' command when zonelist.xml.backup
+  can't be written zone is still added to database, solved it by checking the
+  zonelist.xml.backup is writable before adding zones, and add error message
+  when add zone failed.
 * OPENDNSSEC-624: memory leak when signer failed, solved it by add
   ldns_rr_free(signature) in libhsm.c
 * simple-dnskey-mailer.sh: Fix syntax error. (by Patrik Lundin
