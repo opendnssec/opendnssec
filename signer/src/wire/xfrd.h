@@ -124,6 +124,7 @@ struct xfrd_struct
     uint32_t msg_new_serial;
     size_t msg_rr_count;
     uint8_t msg_is_ixfr;
+    uint8_t msg_do_retransfer;
     tsig_rr_type* tsig_rr;
 
     xfrd_type* tcp_waiting_next;
