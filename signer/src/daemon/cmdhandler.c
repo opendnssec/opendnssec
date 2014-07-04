@@ -102,6 +102,7 @@ cmdhandler_handle_cmd_help(int sockfd)
                                     "configurations.\n"
         "update [--all]              Update zone list and all signer "
                                     "configurations.\n"
+        "retransfer <zone>           Retransfer the zone from the master.\n"
         "start                       Start the engine.\n"
         "running                     Check if the engine is running.\n"
         "reload                      Reload the engine.\n"
@@ -245,6 +246,48 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             engine_wakeup_workers(engine);
         }
     }
+    return;
+}
+
+
+/**
+ * Handle the 'retransfer' command.
+ *
+ */
+static void
+cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
+{
+    engine_type* engine = NULL;
+    char buf[ODS_SE_MAXLINE];
+    ods_status status = ODS_STATUS_OK;
+    zone_type* zone = NULL;
+    ods_status zl_changed = ODS_STATUS_OK;
+    ods_log_assert(tbd);
+    ods_log_assert(cmdc);
+    ods_log_assert(cmdc->engine);
+    engine = (engine_type*) cmdc->engine;
+    ods_log_assert(engine->taskq);
+    /* look up zone */
+    lock_basic_lock(&engine->zonelist->zl_lock);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
+        LDNS_RR_CLASS_IN);
+    /* If this zone is just added, don't retransfer (it might not have a
+     * task yet) */
+    if (zone && zone->zl_status == ZONE_ZL_ADDED) {
+        zone = NULL;
+    }
+    lock_basic_unlock(&engine->zonelist->zl_lock);
+
+    if (!zone) {
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
+            tbd);
+        ods_writen(sockfd, buf, strlen(buf));
+        return;
+    }
+    zone->xfrd->serial_retransfer = 1;
+    (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s being retransferred.\n", tbd);
+    ods_writen(sockfd, buf, strlen(buf));
+    ods_log_verbose("[%s] zone %s retransfer set", cmdh_str, tbd);
     return;
 }
 
@@ -766,6 +809,16 @@ again:
                 cmdhandler_handle_cmd_unknown(sockfd, buf);
             } else {
                 cmdhandler_handle_cmd_verbosity(sockfd, cmdc, atoi(&buf[10]));
+            }
+        } else if (n >= 10 && strncmp(buf, "retransfer", n) == 0) {
+            ods_log_debug("[%s] retransfer zone command", cmdh_str);
+            if (buf[10] == '\0') {
+                cmdhandler_handle_cmd_error(sockfd, "retransfer command needs "
+                    "an argument (a zone name)");
+            } else if (buf[10] != ' ') {
+                cmdhandler_handle_cmd_unknown(sockfd, buf);
+            } else {
+                cmdhandler_handle_cmd_retransfer(sockfd, cmdc, &buf[11]);
             }
         } else if (n > 0) {
             ods_log_debug("[%s] unknown command", cmdh_str);

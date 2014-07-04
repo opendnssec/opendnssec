@@ -1,3 +1,6 @@
+4 July 2014: Matthijs
+- Introduce ods-signer retransfer <zone>
+
 1 July 2014: Matthijs
 - Fix ods-signer -c conf.xml start (used default conf.xml before)
 
