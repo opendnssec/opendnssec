@@ -578,5 +578,6 @@ cmdhandler_stop(struct engine_struct* engine)
         ods_log_error("[engine] command handler self pipe trick failed, "
             "unclean shutdown");
     }
-    return;
+    sleep(2); /* workaround to give threads enough time to close
+                will be properly fixed in dbx branch */
 }
