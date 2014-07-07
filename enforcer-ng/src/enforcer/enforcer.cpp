@@ -1778,9 +1778,9 @@ setState(EnforcerZone &zone, const struct FutureKey *future_key,
 
 /** Find out if this key can be in a successor relation */
 static bool
-isSuccessable(const struct FutureKey *future_key)
+isSuccessable_old(const struct FutureKey *future_key)
 {
-	static const char *scmd = "isSuccessable";
+	static const char *scmd = "isSuccessable_old";
 	
 	if (future_key->next_state != UNR) return false;
 	switch(future_key->record) {
@@ -1802,13 +1802,49 @@ isSuccessable(const struct FutureKey *future_key)
 	}
 	return true;
 }
+static int
+isSuccessable(struct future_key* future_key)
+{
+    if (!future_key) {
+        return -1;
+    }
+
+    if (future_key->next_state == UNRETENTIVE) {
+        return 0;
+    }
+
+    switch (future_key->type) {
+    case KEY_STATE_TYPE_DS:
+    case KEY_STATE_TYPE_RRSIG:
+        if (key_state_state(key_data_cached_dnskey(future_key->key)) != OMNIPRESENT) {
+            return 0;
+        }
+        break;
+
+    case KEY_STATE_TYPE_RRSIGDNSKEY:
+        return 0;
+
+    case KEY_STATE_TYPE_DNSKEY:
+        if (key_state_state(key_data_cached_ds(future_key->key)) != OMNIPRESENT
+            && key_state_state(key_data_cached_rrsig(future_key->key)) != OMNIPRESENT)
+        {
+            return 0;
+        }
+        break;
+
+    default:
+        return -1;
+    }
+
+    return 1;
+}
 
 static void
-markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list, 
+markSuccessors_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 	struct FutureKey *future_key)
 {
-	static const char *scmd = "markSuccessors";
-	if (!isSuccessable(future_key)) return;
+	static const char *scmd = "markSuccessors_old";
+	if (!isSuccessable_old(future_key)) return;
 	/** Which keys can be potential successors? */
 	for (int i = 0; i < key_list.numKeys(); i++) {
 		KeyData &key_i = key_list.key(i);
@@ -1816,6 +1852,68 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
 		if (isPotentialSuccessor_old(*future_key->key, future_key, key_i, future_key->record))
 			dep_list.addNewDependency(future_key->key, &key_i, future_key->record);
 	}
+}
+static int
+markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
+    size_t keylist_size, struct future_key *future_key,
+    key_dependency_list_t* deplist)
+{
+    size_t i;
+    key_dependency_t* key_dependency;
+    key_dependency_type_t key_dependency_type;
+
+    if (!keylist) {
+        return -1;
+    }
+    if (!future_key) {
+        return -1;
+    }
+    if (!deplist) {
+        return -1;
+    }
+
+    if (isSuccessable(future_key) < 1) {
+        return 0;
+    }
+
+    for (i = 0; i < keylist_size; i++) {
+        if (isPotentialSuccessor(keylist[i], future_key->key, future_key, future_key->type) > 0) {
+            switch (future_key->type) {
+            case KEY_STATE_TYPE_DS:
+                key_dependency_type = KEY_DEPENDENCY_TYPE_DS;
+                break;
+
+            case KEY_STATE_TYPE_DNSKEY:
+                key_dependency_type = KEY_DEPENDENCY_TYPE_DNSKEY;
+                break;
+
+            case KEY_STATE_TYPE_RRSIGDNSKEY:
+                key_dependency_type = KEY_DEPENDENCY_TYPE_RRSIGDNSKEY;
+                break;
+
+            case KEY_STATE_TYPE_RRSIG:
+                key_dependency_type = KEY_DEPENDENCY_TYPE_RRSIG;
+                break;
+
+            default:
+                return -1;
+            }
+
+            if (!(key_dependency = key_dependency_new(dbconn))
+                || key_dependency_set_from_key_data_id(key_dependency, key_data_id(future_key->key))
+                || key_dependency_set_to_key_data_id(key_dependency, key_data_id(keylist[i]))
+                || key_dependency_set_type(key_dependency, key_dependency_type)
+                || key_dependency_create(key_dependency))
+            {
+                /* TODO: Error */
+                key_dependency_free(key_dependency);
+                return -1;
+            }
+            key_dependency_free(key_dependency);
+        }
+    }
+
+    return 1;
 }
 
 /**
@@ -1828,8 +1926,8 @@ markSuccessors(KeyDependencyList &dep_list, KeyDataList &key_list,
  * @return first absolute time some record *could* be advanced.
  * */
 static time_t
-updateZone(policy_t* policy, zone_t* zone, const time_t now,
-	int allow_unsigned, int *zone_updated)
+updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
+    const time_t now, int allow_unsigned, int *zone_updated)
 {
 	time_t returntime_zone = -1;
 	unsigned int ttl;
@@ -1850,6 +1948,7 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
     key_state_state_t next_state;
     key_state_state_t state;
     time_t returntime_key;
+    key_state_t* key_state;
 
 	if (!policy) {
 		return returntime_zone;
@@ -2087,6 +2186,101 @@ updateZone(policy_t* policy, zone_t* zone, const time_t now,
                         continue;
                     }
                 }
+
+                /*
+                 * If we are handling a DS we depend on the user or
+                 * some other external process. We must communicate
+                 * through the DSSeen and -submit flags.
+                 */
+                if (type[j] == KEY_STATE_TYPE_DS) {
+                    /*
+                     * Ask the user to submit the DS to the parent.
+                     */
+                    if (next_state == RUMOURED) {
+                        switch (key_data_ds_at_parent(keylist[i])) {
+                        case KEY_DATA_DS_AT_PARENT_SEEN:
+                        case KEY_DATA_DS_AT_PARENT_SUBMIT:
+                        case KEY_DATA_DS_AT_PARENT_SUBMITTED:
+                            break;
+
+                        case DS_RETRACT:
+                            /*
+                             * Hypothetical case where we reintroduce keys.
+                             */
+                            key_data_set_ds_at_parent(keylist[i], KEY_DATA_DS_AT_PARENT_SUBMITTED);
+                            break;
+
+                        default:
+                            key_data_set_ds_at_parent(keylist[i], KEY_DATA_DS_AT_PARENT_SUBMIT);
+                        }
+                    }
+                    /*
+                     * Ask the user to remove the DS from the parent.
+                     */
+                    else if (next_state == UNRETENTIVE) {
+                        switch(key_data_ds_at_parent(keylist[i])) {
+                        case KEY_DATA_DS_AT_PARENT_SUBMIT:
+                            /*
+                             * Never submitted.
+                             * NOTE: not safe if we support reintroduction of keys.
+                             */
+                            key_data_set_ds_at_parent(keylist[i], KEY_DATA_DS_AT_PARENT_UNSUBMITTED);
+                            break;
+
+                        case KEY_DATA_DS_AT_PARENT_UNSUBMITTED:
+                        case KEY_DATA_DS_AT_PARENT_RETRACTED:
+                        case KEY_DATA_DS_AT_PARENT_RETRACT:
+                            break;
+
+                        default:
+                            key_data_set_ds_at_parent(keylist[i], KEY_DATA_DS_AT_PARENT_RETRACT);
+                        }
+                    }
+                }
+
+                /*
+                 * We've passed all tests! Make the transition.
+                 */
+                key_state = NULL;
+
+                switch (future_key.type) {
+                case KEY_STATE_TYPE_DS:
+                    key_state = key_data_get_cached_ds(future_key.key);
+
+                case KEY_STATE_TYPE_DNSKEY:
+                    key_state = key_data_get_cached_dnskey(future_key.key);
+
+                case KEY_STATE_TYPE_RRSIG:
+                    key_state = key_data_get_cached_rrsig(future_key.key);
+
+                case KEY_STATE_TYPE_RRSIGDNSKEY:
+                    key_state = key_data_get_cached_rrsigdnskey(future_key.key);
+
+                default:
+                    break;
+                }
+
+                if (key_state_set_state(key_state, future_key.next_state)
+                    || key_state_set_last_change(key_state, now)
+                    || key_state_set_ttl(key_state, getZoneTTL(policy, zone, future_key.type, now))
+                    || key_state_update(key_state))
+                {
+                    /* TODO: Error */
+                    continue;
+                }
+
+                if (zone_set_signconf_needs_writing(zone, 1)) {
+                    /* TODO: Error */
+                    break;
+                }
+
+                // markSuccessors_old(dep_list, key_list, &future_key);
+                if (markSuccessors(dbconn, keylist, keylist_size, &future_key, deplist) < 1) {
+                    /* TODO: Error */
+                    break;
+                }
+
+                change = true;
 			}
 		}
 	} while (change);
@@ -2284,7 +2478,7 @@ updateZone_old(EnforcerZone &zone, const time_t now, bool allow_unsigned,
 
 				/** We've passed all tests! Make the transition */
 				setState(zone, &future_key, now);
-				markSuccessors(dep_list, key_list, &future_key);
+				markSuccessors_old(dep_list, key_list, &future_key);
 				change = true;
 			}
 		}
@@ -3209,7 +3403,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
 	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
 	if (allow_unsigned)
 		ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually", module_str, zone_name(zone));
-	zone_return_time = updateZone(policy, zone, now, allow_unsigned, zone_updated);
+	zone_return_time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated);
 
 	return now + 5;
 }
