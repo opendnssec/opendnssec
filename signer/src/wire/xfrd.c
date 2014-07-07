@@ -1929,7 +1929,7 @@ xfrd_make_request(xfrd_type* xfrd)
     }
     /* perform xfr request */
     if (xfrd->serial_xfr_acquired && !xfrd->master->ixfr_disabled &&
-        !xfrd->serial_restransfer) {
+        !xfrd->serial_retransfer) {
         xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_UDP_TIMEOUT);
 
         ods_log_verbose("[%s] zone %s make request [udp round %d master %s:%u]",
@@ -1937,7 +1937,7 @@ xfrd_make_request(xfrd_type* xfrd)
 	    xfrd->master->port);
         xfrd_udp_obtain(xfrd);
     } else if (!xfrd->serial_xfr_acquired || xfrd->master->ixfr_disabled ||
-        xfrd->serial_restransfer) {
+        xfrd->serial_retransfer) {
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
         ods_log_assert(xfrhandler);
         if (xfrd->serial_retransfer) {
