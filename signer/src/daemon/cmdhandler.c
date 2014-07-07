@@ -810,7 +810,7 @@ again:
             } else {
                 cmdhandler_handle_cmd_verbosity(sockfd, cmdc, atoi(&buf[10]));
             }
-        } else if (n >= 10 && strncmp(buf, "retransfer", n) == 0) {
+        } else if (n >= 10 && strncmp(buf, "retransfer", 10) == 0) {
             ods_log_debug("[%s] retransfer zone command", cmdh_str);
             if (buf[10] == '\0') {
                 cmdhandler_handle_cmd_error(sockfd, "retransfer command needs "
