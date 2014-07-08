@@ -21,7 +21,7 @@ ods_reset_env &&
 ods_ldns_testns 15353 ods.datafile &&
 
 ## Start OpenDNSSEC
-ods_start_ods-control && 
+ods_start_ods-control &&
 
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
@@ -30,14 +30,11 @@ syslog_waitfor 60 'ods-signerd: .*\[STATS\] \.' &&
 ## Check signed zone file [when we decide on auditor tool]
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/root" &&
-# Validate the output on redhat
-case "$DISTRIBUTION" in
-        redhat )
-                log_this validate-zone-ods validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-                log_grep validate-zone-ods stdout 'validation errors:   0'
-                ;;
-esac &&
+## Validate the output on redhat
+log_this validate-zone-ods validns -s -p all "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+log_grep validate-zone-ods stdout 'validation errors:   0' &&
 
+## Bump verbosity (for grepping important syslog lines)
 ods-signer verbosity 5 &&
 
 ## Fake notify
@@ -50,9 +47,21 @@ syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods received too short udp reply
 ## Request IXFR/TCP
 syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request tcp/ixfr=1000 to 127\.0\.0\.1' &&
 syslog_waitfor 10 'ods-signerd: .*\[xfrd\] reschedule task for zone ods: disk serial=1001 acquired=.*, memory serial=1000 acquired=.*' &&
+syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods' &&
+
+## Tune down verbosity
+ods-signer verbosity 4 &&
+
+## Retransfer
+log_this ods-signer-retransfer ods-signer retransfer ods &&
+syslog_waitfor_count 60 3 'ods-signerd: .*\[STATS\] ods' &&
+
+## We should now have label34 back again and no more label35 to label40
+grep 'label34' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+! grep 'label35' "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 ## Stop
-ods_stop_ods-control && 
+ods_stop_ods-control &&
 ods_ldns_testns_kill &&
 return 0
 
