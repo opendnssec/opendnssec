@@ -283,7 +283,6 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
         return;
     }
     zone->xfrd->serial_retransfer = 1;
-    xfrd_set_timer_now(zone->xfrd);
     dnshandler_fwd_notify(engine->dnshandler,
         (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
     (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s being retransferred.\n", tbd);
