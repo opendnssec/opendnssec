@@ -1475,7 +1475,8 @@ xfrd_tcp_xfr(xfrd_type* xfrd, tcp_set_type* set)
     /* start AXFR or IXFR for the zone */
     tcp = set->tcp_conn[xfrd->tcp_conn];
 
-    if (xfrd->serial_xfr_acquired <= 0 || xfrd->master->ixfr_disabled) {
+    if (xfrd->msg_do_retransfer || xfrd->serial_xfr_acquired <= 0 ||
+        xfrd->master->ixfr_disabled) {
         ods_log_info("[%s] zone %s request axfr to %s", xfrd_str,
             zone->name, xfrd->master->address);
         buffer_pkt_query(tcp->packet, zone->apex, LDNS_RR_TYPE_AXFR,
