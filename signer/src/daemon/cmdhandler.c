@@ -259,9 +259,7 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
 {
     engine_type* engine = NULL;
     char buf[ODS_SE_MAXLINE];
-    ods_status status = ODS_STATUS_OK;
     zone_type* zone = NULL;
-    ods_status zl_changed = ODS_STATUS_OK;
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
@@ -285,9 +283,12 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
         return;
     }
     zone->xfrd->serial_retransfer = 1;
+    xfrd_set_timer_now(zone->xfrd);
+    dnshandler_fwd_notify(engine->dnshandler,
+        (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
     (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s being retransferred.\n", tbd);
     ods_writen(sockfd, buf, strlen(buf));
-    ods_log_verbose("[%s] zone %s retransfer set", cmdh_str, tbd);
+    ods_log_verbose("[%s] zone %s being retransferred", cmdh_str, tbd);
     return;
 }
 

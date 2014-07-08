@@ -705,14 +705,13 @@ xfrd_commit_packet(xfrd_type* xfrd)
             "(%s)", xfrd_str, zone->name, strerror(errno));
         return;
     }
-    /* reset retransfer */
-    xfrd->msg_do_retransfer = 0;
     /* update soa serial management */
     xfrd->serial_disk = xfrd->msg_new_serial;
     xfrd->serial_disk_acquired = xfrd_time(xfrd);
     xfrd->soa.serial = xfrd->serial_disk;
-    if (util_serial_gt(xfrd->serial_disk, xfrd->serial_xfr) &&
-            xfrd->serial_disk_acquired > xfrd->serial_xfr_acquired) {
+    if (xfrd->msg_do_retransfer ||
+            (util_serial_gt(xfrd->serial_disk, xfrd->serial_xfr) &&
+             xfrd->serial_disk_acquired > xfrd->serial_xfr_acquired)) {
         /* reschedule task */
         int ret = 0;
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
@@ -732,6 +731,9 @@ xfrd_commit_packet(xfrd_type* xfrd)
             engine_wakeup_workers(engine);
         }
     }
+    /* reset retransfer */
+    xfrd->msg_do_retransfer = 0;
+
     lock_basic_unlock(&xfrd->serial_lock);
     lock_basic_unlock(&xfrd->rw_lock);
     lock_basic_unlock(&zone->zone_lock);
