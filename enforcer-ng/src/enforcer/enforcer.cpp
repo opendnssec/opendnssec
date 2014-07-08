@@ -1927,17 +1927,14 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
  * */
 static time_t
 updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
-    const time_t now, int allow_unsigned, int *zone_updated)
+    const time_t now, int allow_unsigned, int *zone_updated,
+    key_data_t** keylist, size_t keylist_size, key_dependency_list_t *deplist)
 {
 	time_t returntime_zone = -1;
 	unsigned int ttl;
-	key_data_list_t *key_list;
-	const key_data_t* key;
-	key_data_t** keylist = NULL;
 	static const char *scmd = "updateZone";
-	size_t keylist_size, i;
+	size_t i;
 	int change, j;
-	key_dependency_list_t *deplist;
 	static const key_state_type_t type[] = {
 	    KEY_STATE_TYPE_DS,
 	    KEY_STATE_TYPE_DNSKEY,
@@ -1971,68 +1968,16 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
         ods_log_error("[%s] %s: no zone_updated", module_str, scmd);
 		return returntime_zone;
 	}
-
-	/*
-	 * Get all key data/state/hsm objects for later processing.
-	 */
-	if (!(deplist = zone_get_key_dependencies(zone))
-	    || key_dependency_list_fetch_all(deplist))
-	{
+    if (!keylist) {
         /* TODO: better log error */
-        ods_log_error("[%s] %s: error zone_get_key_dependencies() || key_dependency_list_fetch_all()", module_str, scmd);
-        key_dependency_list_free(deplist);
+        ods_log_error("[%s] %s: no keylist", module_str, scmd);
         return returntime_zone;
-	}
-	if (!(key_list = zone_get_keys(zone))
-		|| key_data_list_fetch_all(key_list))
-	{
-		/* TODO: better log error */
-		ods_log_error("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
-		key_data_list_free(key_list);
-        key_dependency_list_free(deplist);
-		return returntime_zone;
-	}
-	if (!(keylist_size = key_data_list_size(key_list))) {
-		if ((key = key_data_list_begin(key_list))) {
-			while (key) {
-				keylist_size++;
-				key = key_data_list_next(key_list);
-			}
-		}
-	}
-	if (keylist_size) {
-		if (!(keylist = (key_data_t**)calloc(keylist_size, sizeof(key_data_t*)))) {
-			/* TODO: better log error */
-			ods_log_error("[%s] %s: error calloc(keylist_size)", module_str, scmd);
-			key_data_list_free(key_list);
-	        key_dependency_list_free(deplist);
-			return returntime_zone;
-		}
-		for (i = 0; i < keylist_size; i++) {
-			if (!i) {
-				keylist[i] = key_data_list_get_begin(key_list);
-			}
-			else {
-				keylist[i] = key_data_list_get_next(key_list);
-			}
-			if (!keylist[i]
-				|| key_data_cache_hsm_key(keylist[i])
-				|| key_data_cache_key_states(keylist[i]))
-			{
-				ods_log_error("[%s] %s: error key_data_list cache", module_str, scmd);
-				for (i = 0; i < keylist_size; i++) {
-					if (keylist[i]) {
-						key_data_free(keylist[i]);
-					}
-				}
-				free(keylist);
-				key_data_list_free(key_list);
-		        key_dependency_list_free(deplist);
-				return returntime_zone;
-			}
-		}
-	}
-	key_data_list_free(key_list);
+    }
+    if (!deplist) {
+        /* TODO: better log error */
+        ods_log_error("[%s] %s: no deplist", module_str, scmd);
+        return returntime_zone;
+    }
 
 	/*
 	 * The process variable will indicate if we are processing, if something
@@ -2354,17 +2299,6 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 			}
 		}
 	} while (process && change);
-
-	/*
-	 * Release the cached objects.
-	 */
-	for (i = 0; i < keylist_size; i++) {
-		if (keylist[i]) {
-			key_data_free(keylist[i]);
-		}
-	}
-	free(keylist);
-    key_dependency_list_free(deplist);
 
 	return returntime_zone;
 }
@@ -3401,10 +3335,10 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
  * \return time_t Next key purgable. 
  * */
 static time_t
-removeDeadKeys(KeyDataList &key_list, const time_t now, 
+removeDeadKeys_old(KeyDataList &key_list, const time_t now,
 	const int purgetime, EnforcerZone &zone)
 {
-	static const char *scmd = "removeDeadKeys";
+	static const char *scmd = "removeDeadKeys_old";
 	time_t firstPurge = -1;
 	
 	KeyDependencyList &key_dep = zone.keyDependencyList();
@@ -3440,42 +3374,312 @@ removeDeadKeys(KeyDataList &key_list, const time_t now,
 	}
 	return firstPurge;
 }
+static time_t
+removeDeadKeys(key_data_t** keylist, size_t keylist_size,
+    key_dependency_list_t *deplist, const time_t now, const int purgetime)
+{
+    static const char *scmd = "removeDeadKeys_old";
+    time_t first_purge = -1, key_time;
+    size_t i;
+    int key_purgable, j;
+    const key_state_t* state;
+
+    if (!keylist) {
+        /* TODO: better log error */
+        ods_log_error("[%s] %s: no keylist", module_str, scmd);
+        return first_purge;
+    }
+    if (!deplist) {
+        /* TODO: better log error */
+        ods_log_error("[%s] %s: no deplist", module_str, scmd);
+        return first_purge;
+    }
+
+    for (i = 0; i < keylist_size; i++) {
+        if (key_data_introducing(keylist[i])) {
+            continue;
+        }
+
+        key_time = -1;
+        key_purgable = 1;
+
+        state = key_data_cached_ds(keylist[i]);
+        if (key_state_state(state) != NA) {
+            if (key_state_state(state) != HIDDEN) {
+                key_purgable = 0;
+            }
+            else if (key_state_last_change(state) > key_time) {
+                key_time = key_state_last_change(state);
+            }
+        }
+
+        state = key_data_cached_dnskey(keylist[i]);
+        if (key_state_state(state) != NA) {
+            if (key_state_state(state) != HIDDEN) {
+                key_purgable = 0;
+            }
+            else if (key_state_last_change(state) > key_time) {
+                key_time = key_state_last_change(state);
+            }
+        }
+
+        state = key_data_cached_rrsigdnskey(keylist[i]);
+        if (key_state_state(state) != NA) {
+            if (key_state_state(state) != HIDDEN) {
+                key_purgable = 0;
+            }
+            else if (key_state_last_change(state) > key_time) {
+                key_time = key_state_last_change(state);
+            }
+        }
+
+        state = key_data_cached_rrsig(keylist[i]);
+        if (key_state_state(state) != NA) {
+            if (key_state_state(state) != HIDDEN) {
+                key_purgable = 0;
+            }
+            else if (key_state_last_change(state) > key_time) {
+                key_time = key_state_last_change(state);
+            }
+        }
+
+        if (key_time != -1) {
+            key_time = addtime(key_time, purgetime);
+        }
+
+        if (key_purgable) {
+            /*
+             * It might not be time to purge the key just yet, but we can
+             * already assume no other key depends on it.
+             *
+             * TODO: How can we assume that?
+             */
+
+            /*
+             * TODO: Delete key dependency.
+             */
+
+            if (now >= key_time) {
+                ods_log_info("[%s] %s deleting key: %s", module_str, scmd,
+                    hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
+
+                /*
+                 * TODO: Delete key data, key states, release hsm key.
+                 */
+            } else {
+                minTime(key_time, &first_purge);
+            }
+        }
+    }
+
+    return first_purge;
+}
 
 time_t
 update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated)
 {
 	int allow_unsigned;
-	time_t policy_return_time, zone_return_time;
+    time_t return_time, time;
+    key_data_list_t *key_list;
+    const key_data_t* key;
+    key_data_t** keylist = NULL;
+    size_t keylist_size, i;
+    key_dependency_list_t *deplist;
+    static const char *scmd = "update";
+    int key_data_updated;
 
 	if (!engine) {
 		ods_log_error("[%s] no engine", module_str);
-		return now + 5;
+		return now + 60;
 	}
 	if (!dbconn) {
 		ods_log_error("[%s] no dbconn", module_str);
-		return now + 5;
+		return now + 60;
 	}
 	if (!zone) {
 		ods_log_error("[%s] no zone", module_str);
-		return now + 5;
+		return now + 60;
 	}
 	if (!policy) {
 		ods_log_error("[%s] no policy", module_str);
-		return now + 5;
+		return now + 60;
 	}
 	if (!zone_updated) {
 		ods_log_error("[%s] no zone_updated", module_str);
-		return now + 5;
+		return now + 60;
 	}
 
 	ods_log_info("[%s] update zone: %s", module_str, zone_name(zone));
 
-	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
-	if (allow_unsigned)
-		ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually", module_str, zone_name(zone));
-	zone_return_time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated);
+	/*
+	 * Update policy.
+	 */
+	time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
+	minTime(time, &return_time);
 
-	return now + 5;
+	if (allow_unsigned) {
+		ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually",
+		    module_str, zone_name(zone));
+	}
+
+    /*
+     * Get all key data/state/hsm objects for later processing.
+     */
+    if (!(deplist = zone_get_key_dependencies(zone))
+        || key_dependency_list_fetch_all(deplist))
+    {
+        /* TODO: better log error */
+        ods_log_error("[%s] %s: error zone_get_key_dependencies() || key_dependency_list_fetch_all()", module_str, scmd);
+        key_dependency_list_free(deplist);
+        return now + 60;
+    }
+    if (!(key_list = zone_get_keys(zone))
+        || key_data_list_fetch_all(key_list))
+    {
+        /* TODO: better log error */
+        ods_log_error("[%s] %s: error zone_get_keys() || key_data_list_fetch_all()", module_str, scmd);
+        key_data_list_free(key_list);
+        key_dependency_list_free(deplist);
+        return now + 60;
+    }
+    if (!(keylist_size = key_data_list_size(key_list))) {
+        if ((key = key_data_list_begin(key_list))) {
+            while (key) {
+                keylist_size++;
+                key = key_data_list_next(key_list);
+            }
+        }
+    }
+    if (keylist_size) {
+        if (!(keylist = (key_data_t**)calloc(keylist_size, sizeof(key_data_t*)))) {
+            /* TODO: better log error */
+            ods_log_error("[%s] %s: error calloc(keylist_size)", module_str, scmd);
+            key_data_list_free(key_list);
+            key_dependency_list_free(deplist);
+            return now + 60;
+        }
+        for (i = 0; i < keylist_size; i++) {
+            if (!i) {
+                keylist[i] = key_data_list_get_begin(key_list);
+            }
+            else {
+                keylist[i] = key_data_list_get_next(key_list);
+            }
+            if (!keylist[i]
+                || key_data_cache_hsm_key(keylist[i])
+                || key_data_cache_key_states(keylist[i]))
+            {
+                ods_log_error("[%s] %s: error key_data_list cache", module_str, scmd);
+                for (i = 0; i < keylist_size; i++) {
+                    if (keylist[i]) {
+                        key_data_free(keylist[i]);
+                    }
+                }
+                free(keylist);
+                key_data_list_free(key_list);
+                key_dependency_list_free(deplist);
+                return now + 60;
+            }
+        }
+    }
+    key_data_list_free(key_list);
+
+    /*
+     * Update zone.
+     */
+	time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated,
+	    keylist, keylist_size, deplist);
+	minTime(time, &return_time);
+
+    /*
+     * Only purge old keys if the policy says so.
+     */
+	if (policy_keys_purge_after(policy)) {
+	    time = removeDeadKeys(keylist, keylist_size, deplist, now,
+	        policy_keys_purge_after(policy));
+	    minTime(time, &return_time);
+	}
+
+    /*
+     * Always set these flags. Normally this needs to be done _only_ when the
+     * Signer config needs writing. However a previous Signer config might not
+     * be available, we have no way of telling. :(
+     */
+	for (i = 0; i < keylist_size; i++) {
+	    key_data_updated = 0;
+
+	    /*
+	     * TODO: description
+	     */
+	    if (key_state_state(key_data_cached_dnskey(keylist[i])) == OMNIPRESENT
+	        || key_state_state(key_data_cached_dnskey(keylist[i])) == RUMOURED)
+	    {
+	        if (!key_data_publish(keylist[i])) {
+	            if (key_data_set_publish(keylist[i], 1)) {
+	                ods_log_error("[%s] %s: key_data_set_publish() failed",
+	                    module_str, scmd);
+	                break;
+	            }
+
+	            key_data_updated = 1;
+	        }
+	    }
+
+        /*
+         * TODO: description
+         */
+        if (key_state_state(key_data_cached_rrsigdnskey(keylist[i])) == OMNIPRESENT
+            || key_state_state(key_data_cached_rrsigdnskey(keylist[i])) == RUMOURED)
+        {
+            if (!key_data_active_ksk(keylist[i])) {
+                if (key_data_set_active_ksk(keylist[i], 1)) {
+                    ods_log_error("[%s] %s: key_data_set_active_ksk() failed",
+                        module_str, scmd);
+                    break;
+                }
+
+                key_data_updated = 1;
+            }
+        }
+
+        /*
+         * TODO: description
+         */
+        if (key_state_state(key_data_cached_rrsig(keylist[i])) == OMNIPRESENT
+            || key_state_state(key_data_cached_rrsig(keylist[i])) == RUMOURED)
+        {
+            if (!key_data_active_zsk(keylist[i])) {
+                if (key_data_set_active_zsk(keylist[i], 1)) {
+                    ods_log_error("[%s] %s: key_data_set_active_zsk() failed",
+                        module_str, scmd);
+                    break;
+                }
+
+                key_data_updated = 1;
+            }
+        }
+
+        if (key_data_updated) {
+            if (key_data_update(keylist[i])) {
+                ods_log_error("[%s] %s: key_data_update() failed",
+                    module_str, scmd);
+                break;
+            }
+        }
+	}
+
+    /*
+     * Release cached objects.
+     */
+    for (i = 0; i < keylist_size; i++) {
+        if (keylist[i]) {
+            key_data_free(keylist[i]);
+        }
+    }
+    free(keylist);
+    key_dependency_list_free(deplist);
+
+    return return_time;
 }
 
 /* see header file */
@@ -3499,7 +3703,7 @@ update_old(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
 
 	/** Only purge old keys if the configuration says so. */
 	if (policy->keys().has_purge())
-		purge_return_time = removeDeadKeys(key_list, now, policy->keys().purge(), zone);
+		purge_return_time = removeDeadKeys_old(key_list, now, policy->keys().purge(), zone);
 
 	/** Always set these flags. Normally this needs to be done _only_
 	 * when signerConfNeedsWriting() is set. However a previous
