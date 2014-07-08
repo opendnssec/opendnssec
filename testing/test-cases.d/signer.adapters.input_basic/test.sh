@@ -49,9 +49,6 @@ syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request tcp/ixfr=1000 to 127
 syslog_waitfor 10 'ods-signerd: .*\[xfrd\] reschedule task for zone ods: disk serial=1001 acquired=.*, memory serial=1000 acquired=.*' &&
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods' &&
 
-## Tune down verbosity
-ods-signer verbosity 4 &&
-
 ## Retransfer
 log_this ods-signer-retransfer ods-signer retransfer ods &&
 syslog_waitfor_count 60 3 'ods-signerd: .*\[STATS\] ods' &&

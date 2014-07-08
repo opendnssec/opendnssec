@@ -356,7 +356,7 @@ begin_pkt:
             result = adapi_add_rr(zone, rr, 0);
         }
         if (result == ODS_STATUS_UNCHANGED) {
-            ods_log_debug("[%s] skipping RR at line %i (%s): %s",
+            ods_log_deeebug("[%s] skipping RR at line %i (%s): %s",
                 adapter_str, l, del_mode?"not found":"duplicate", line);
             ldns_rr_free(rr);
             rr = NULL;
