@@ -988,7 +988,7 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
                      /* got IXFR but need AXFR */
                      return ODS_STATUS_REQAXFR;
                  }
-                 if (!xfrd->do_retransfer && serial != xfrd->serial_disk) {
+                 if (!xfrd->msg_do_retransfer && serial != xfrd->serial_disk) {
                      lock_basic_unlock(&xfrd->serial_lock);
                      /* bad start serial in IXFR */
                      return ODS_STATUS_INSERIAL;
