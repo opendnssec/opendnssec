@@ -272,6 +272,7 @@ tools_output(zone_type* zone, engine_type* engine)
         lock_basic_unlock(&zone->stats->stats_lock);
     }
     if (engine->dnshandler) {
+        ods_log_verbose("[%s] forward a notify", tools_str);
         dnshandler_fwd_notify(engine->dnshandler, (uint8_t*) ODS_SE_NOTIFY_CMD,
             strlen(ODS_SE_NOTIFY_CMD));
     }
