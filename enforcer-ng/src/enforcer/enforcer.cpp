@@ -60,6 +60,7 @@
 #include "db/hsm_key.h"
 #include "db/key_data.h"
 #include "db/key_dependency.h"
+#include "db/db_error.h"
 
 #include "enforcer/enforcer.h"
 
@@ -564,12 +565,13 @@ isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
 
     case KEY_STATE_TYPE_DNSKEY:
         /*
-         * TODO
+         * Either both DS's should be omnipresent or both signatures, for the
+         * keys to be in a potential relationship for the DNSKEY.
          */
-        if (getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT
-            && (getState(successor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT
-                || getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT)
-            && getState(successor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT)
+        if ((getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT
+                && getState(successor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT)
+            || (getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT
+                && getState(successor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT))
         {
             return 1;
         }
@@ -799,6 +801,9 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
             return -1;
         }
 
+        /*
+         * The RRSIGDNSKEY is not compared because TODO .
+         */
         if (getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) != getState(from_key, KEY_STATE_TYPE_DS, future_key)
             || getState(predecessor_key, KEY_STATE_TYPE_DNSKEY, future_key) != getState(from_key, KEY_STATE_TYPE_DNSKEY, future_key)
             || getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) != getState(from_key, KEY_STATE_TYPE_RRSIG, future_key))
@@ -826,6 +831,9 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
             }
 
             if (isPotentialSuccessor(successor_key, keylist[i], future_key, type) > 0) {
+                /*
+                 * The RRSIGDNSKEY is not compared because TODO .
+                 */
                 if (getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) != getState(keylist[i], KEY_STATE_TYPE_DS, future_key)
                     || getState(predecessor_key, KEY_STATE_TYPE_DNSKEY, future_key) != getState(keylist[i], KEY_STATE_TYPE_DNSKEY, future_key)
                     || getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) != getState(keylist[i], KEY_STATE_TYPE_RRSIG, future_key))
@@ -1261,7 +1269,7 @@ rule2(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[5], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[6], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[6], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-        || unsignedOk(keylist, keylist_size, future_key, mask[7], KEY_STATE_TYPE_DS))
+        || unsignedOk(keylist, keylist_size, future_key, mask[7], KEY_STATE_TYPE_DS) > 0)
 	{
 		return 1;
 	}
@@ -1354,7 +1362,7 @@ rule3(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
 	if (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[4], mask[3], KEY_STATE_TYPE_RRSIG, deplist) > 0
-        || unsignedOk(keylist, keylist_size, future_key, mask[5], KEY_STATE_TYPE_DNSKEY))
+        || unsignedOk(keylist, keylist_size, future_key, mask[5], KEY_STATE_TYPE_DNSKEY) > 0)
 	{
 		return 1;
 	}
@@ -1387,6 +1395,12 @@ dnssecApproval_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 		(!rule3_old(dep_list, key_list, future_key, false) ||
 		  rule3_old(dep_list, key_list, future_key, true ) );
 }
+/**
+ * Checks if transition to next_state maintains validity of zone.
+ *
+ * \return A positive value if the transition is allowed, zero if it is not and
+ * a negative value if an error occurred.
+ */
 static int
 dnssecApproval(key_data_t** keylist, size_t keylist_size,
     struct future_key* future_key, int allow_unsigned,
@@ -1480,6 +1494,14 @@ minTransitionTime_old(EnforcerZone &zone, const RECORD record,
 				module_str, scmd, (int)record);
 	}
 }
+/**
+ * At what time may this transition take place?
+ *
+ * Given a record, its next state, and its last change time when may
+ * apply the transition? This is largely policy related.
+ *
+ * return a time_t with the absolute time or -1 on error.
+ */
 static time_t
 minTransitionTime(policy_t* policy, key_state_type_t type,
     key_state_state_t next_state, const time_t lastchange, const int ttl)
@@ -1497,19 +1519,22 @@ minTransitionTime(policy_t* policy, key_state_type_t type,
 
     switch (type) {
     case KEY_STATE_TYPE_DS:
-        return addtime(lastchange, ttl + policy_parent_registration_delay(policy)
+        return addtime(lastchange, ttl
+            + policy_parent_registration_delay(policy)
             + policy_parent_propagation_delay(policy));
 
     /* TODO: 5011 will create special case here */
     case KEY_STATE_TYPE_DNSKEY: /* intentional fall-through */
     case KEY_STATE_TYPE_RRSIGDNSKEY:
-        return addtime(lastchange, ttl + policy_zone_propagation_delay(policy)
+        return addtime(lastchange, ttl
+            + policy_zone_propagation_delay(policy)
             + ( next_state == OMNIPRESENT
                 ? policy_keys_publish_safety(policy)
                 : policy_keys_retire_safety(policy) ));
 
     case KEY_STATE_TYPE_RRSIG:
-        return addtime(lastchange, ttl + policy_zone_propagation_delay(policy));
+        return addtime(lastchange, ttl
+            + policy_zone_propagation_delay(policy));
 
     default:
         break;
@@ -1579,6 +1604,15 @@ policyApproval_old(KeyDataList &key_list, struct FutureKey *future_key)
 				module_str, scmd, (int)future_key->record);
 	}
 }
+/**
+ * Make sure records are introduced in correct order.
+ *
+ * Make sure records are introduced in correct order. Only look at the
+ * policy, timing and validity is done in another function.
+ *
+ * \return A positive value if the transition is allowed, zero if it is not and
+ * a negative value if an error occurred.
+ */
 static int
 policyApproval(key_data_t** keylist, size_t keylist_size,
     struct future_key* future_key)
@@ -1755,6 +1789,15 @@ getZoneTTL_old(EnforcerZone &zone, const RECORD record, const time_t now)
 	}
 	return max((int)difftime(endDate, now), recordTTL);
 }
+/**
+ * Given the zone, what TTL should be used for record?
+ *
+ * Normally we use the TTL from the policy. However a larger TTL might
+ * have been published in the near past causing this record to take
+ * extra time to propagate
+ *
+ * \return The TTL that should be used for the record or -1 on error.
+ */
 static int
 getZoneTTL(policy_t* policy, zone_t* zone, key_state_type_t type,
     const time_t now)
@@ -1844,6 +1887,12 @@ isSuccessable_old(const struct FutureKey *future_key)
 	}
 	return true;
 }
+/**
+ * Find out if this key can be in a successor relationship
+ *
+ * \return A positive value if the key is in a successor relationship, zero if
+ * it is not and a negative value if an error occurred.
+ */
 static int
 isSuccessable(struct future_key* future_key)
 {
@@ -1895,6 +1944,12 @@ markSuccessors_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 			dep_list.addNewDependency(future_key->key, &key_i, future_key->record);
 	}
 }
+/**
+ * Establish relationships between keys in keylist and the future_key.
+ *
+ * \return A positive value if keys where successfully marked, zero if the
+ * future_key can not be a successor and a negative value if an error occurred.
+ */
 static int
 markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
     size_t keylist_size, struct future_key *future_key,
@@ -2810,7 +2865,12 @@ key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
 	return 0;
 }
 
-/* 0 == ok, otherwise dberr or -1. */
+/**
+ * Set the next roll time in the zone for the specified policy key.
+ *
+ * \return Zero on success, a positive value on database error and a negative
+ * value on generic errors.
+ */
 static int 
 setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 {
@@ -2824,15 +2884,15 @@ setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
 			if (zone_next_ksk_roll(zone) > t)
-				return zone_set_next_ksk_roll(zone, (unsigned int)t);
+				return zone_set_next_ksk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
 			return 0;
 		case POLICY_KEY_ROLE_ZSK:
 			if (zone_next_zsk_roll(zone) > t)
-				return zone_set_next_zsk_roll(zone, (unsigned int)t);
+				return zone_set_next_zsk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
 			return 0 ;
 		case POLICY_KEY_ROLE_CSK:
 			if (zone_next_csk_roll(zone) > t)
-				return zone_set_next_csk_roll(zone, (unsigned int)t);
+				return zone_set_next_csk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
 			return 0;
 		default:
 			return 1;
