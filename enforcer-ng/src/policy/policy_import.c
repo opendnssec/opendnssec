@@ -196,6 +196,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete)
 {
     xmlDocPtr doc;
+    xmlNodePtr real_root;
     xmlNodePtr root;
     xmlNodePtr node;
     xmlNodePtr node2;
@@ -306,7 +307,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         return POLICY_IMPORT_ERR_XML;
     }
 
-    if (!(root = xmlDocGetRootElement(doc))) {
+    if (!(real_root = xmlDocGetRootElement(doc))) {
         client_printf_err(sockfd, "Unable to get the root element in the KASP XML!\n");
         xmlFreeDoc(doc);
         __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
@@ -316,7 +317,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     /*
      * Check for duplicated policy keys
      */
-    for (; root; root = root->next) {
+    for (root = real_root; root; root = root->next) {
         if (root->type != XML_ELEMENT_NODE) {
             continue;
         }
@@ -352,7 +353,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     /*
      * Process XML
      */
-    for (; root; root = root->next) {
+    for (root = real_root; root; root = root->next) {
         if (root->type != XML_ELEMENT_NODE) {
             continue;
         }
