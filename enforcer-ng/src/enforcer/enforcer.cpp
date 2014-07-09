@@ -156,6 +156,12 @@ getRecord_old(KeyData &key, const RECORD record)
 				module_str, scmd, (int)record);
 	}
 }
+/**
+ * Retrieve the key_state object from one of the records of a key.
+ *
+ * \return a key_state_t pointer or NULL on error or if the type specified is
+ * invalid.
+ */
 static inline const key_state_t*
 getRecord(key_data_t* key, key_state_type_t type)
 {
@@ -201,6 +207,11 @@ getState_old(KeyData &key, const RECORD record,
 	else
 		return (STATE)getRecord_old(key, record).state();
 }
+/**
+ * Return state of a record.
+ *
+ * \return a key_state_state_t which will be KEY_STATE_STATE_INVALID on error.
+ */
 static inline key_state_state_t
 getState(key_data_t* key, key_state_type_t type, struct future_key *future_key)
 {
@@ -248,6 +259,17 @@ getDesiredState_old(const bool introducing, const STATE state)
 	const STATE jmp[2][5] = {{HID, UNR, UNR, HID, NOCARE}, {RUM, OMN, OMN, RUM, NOCARE}};
 	return jmp[introducing][(int)state];
 }
+/**
+ * Given goal and state, what will be the next state?
+ *
+ * This is an implementation of our state diagram. State indicates
+ * our current node and goal helps decide which edge to choose.
+ * Input state and return state me be the same: the record is said
+ * to be stable.
+ *
+ * \return a key_state_state_t for the next state which will be
+ * KEY_STATE_STATE_INVALID on error.
+ */
 static key_state_state_t
 getDesiredState(int introducing, key_state_state_t state)
 {
@@ -445,16 +467,12 @@ exists(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
 
 	for (i = 0; i < keylist_size; i++) {
 		/*
-		 * Check the states against the mask. If there is no match we continue.
+		 * Check the states against the mask. If we have a match we return a
+		 * positive value.
 		 */
-		if (match(keylist[i], future_key, same_algorithm, mask) < 1) {
-			continue;
+		if (match(keylist[i], future_key, same_algorithm, mask) > 0) {
+	        return 1;
 		}
-
-		/*
-		 * We have a match and do not have to continue, return positive value.
-		 */
-		return 1;
 	}
 
 	/*
@@ -501,6 +519,12 @@ isPotentialSuccessor_old(KeyData &pred_key, const struct FutureKey *future_key, 
 				module_str, scmd, (int)future_key->record);
 	}
 }
+/**
+ * Test if a key is a potential successor.
+ *
+ * \return A positive value if a key is a potential successor, zero if a key
+ * is not and a negative value if an error occurred.
+ */
 static int
 isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
     struct future_key *future_key, key_state_type_t type)
@@ -542,10 +566,10 @@ isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
         /*
          * TODO
          */
-        if ((getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT
-                && getState(successor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT)
-            || (getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT
-                && getState(successor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT))
+        if (getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT
+            && (getState(successor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT
+                || getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT)
+            && getState(successor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT)
         {
             return 1;
         }
@@ -626,6 +650,12 @@ successor_rec_old(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k
 	}
 	return false;
 }
+/**
+ * Test if a key record is a successor.
+ *
+ * \return A positive value if a key record is a successor, zero if a key is not
+ * and a negative value if an error occurred.
+ */
 static int
 successor_rec(key_data_t** keylist, size_t keylist_size,
     key_data_t* successor_key, key_data_t* predecessor_key,
@@ -832,6 +862,12 @@ successor_old(KeyDataList &key_list, KeyDependencyList &dep_list,
 	return successor_rec_old(key_list, dep_list, k_succ, k_pred.locator(),
 		future_key, succRelRec);
 }
+/**
+ * Test if a key is a successor.
+ *
+ * \return A positive value if a key is a successor, zero if a key is not and a
+ * negative value if an error occurred.
+ */
 static int
 successor(key_data_t** keylist, size_t keylist_size, key_data_t* successor_key,
     key_data_t* predecessor_key, struct future_key *future_key,
@@ -1013,6 +1049,12 @@ unsignedOk_old(KeyDataList &key_list, const struct FutureKey *future_key,
 	}
 	return true;
 }
+/**
+ * Test if keys are in a good unsigned state.
+ *
+ * \return A positive value if keys are in a good unsigned state, zero if keys
+ * are not and a negative value if an error occurred.
+ */
 static int
 unsignedOk(key_data_t** keylist, size_t keylist_size,
     struct future_key *future_key,
