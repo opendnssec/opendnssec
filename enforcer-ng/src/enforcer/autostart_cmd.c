@@ -54,6 +54,7 @@ autostart(engine_type* engine)
 	if (status != ODS_STATUS_OK)
 		ods_log_crit("[%s] failed to create resalt task", module_str);
 	
-	/* disable enforce task for now
-	 * schedule_task_l(engine, enforce_task(engine, 1), "enforce"); */
+	status = schedule_task(engine->taskq, enforce_task(engine, 1));
+    if (status != ODS_STATUS_OK)
+        ods_fatal_exit("[%s] failed to create enforce task", module_str);
 }

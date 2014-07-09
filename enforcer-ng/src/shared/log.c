@@ -39,6 +39,7 @@
 #include <stdio.h> /* fflush, fprintf(), vsnprintf() */
 #include <stdlib.h> /* exit() */
 #include <string.h> /* strlen() */
+#include <pthread.h>
 
 #ifdef HAVE_SYSLOG_H
 #include <strings.h> /* strncasecmp() */
@@ -235,9 +236,9 @@ ods_log_vmsg(int priority, const char* t, const char* s, va_list args)
 #ifdef HAVE_SYSLOG_H
     if (logging_to_syslog) {
 #ifdef HAVE_SYSLOG_R
-        syslog_r(priority, &sdata, "%s", message);
+        syslog_r(priority, &sdata, "%ld: %s", pthread_self(), message);
 #else
-        syslog(priority, "%s", message);
+        syslog(priority, "%ld: %s", pthread_self(), message);
 #endif
         return;
     }
