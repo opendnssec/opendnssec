@@ -3365,10 +3365,11 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		 * Similar keys are those that match role, algorithm, bits and repository
 		 * and are introduced.
 		 *
-		 * IMPORTANT TODO BUG:
+		 * NOTE:
 		 * Will not work if a policy has 2 or more keys of the same role, algorithm,
 		 * bits and repository. Unclear how to fix this since keys are not directly
 		 * related to a policy key.
+		 * We currently do not allow two policy keys with the same attributes.
 		 */
 		for (key = key_data_list_begin(keylist); key; key = key_data_list_next(keylist)) {
 			if (key_data_introducing(key)
