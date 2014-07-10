@@ -3648,7 +3648,7 @@ time_t
 update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated)
 {
 	int allow_unsigned;
-    time_t return_time, time;
+    time_t policy_return_time, zone_return_time, purge_return_time = -1, return_time;
     key_data_list_t *key_list;
     const key_data_t* key;
     key_data_t** keylist = NULL;
@@ -3683,8 +3683,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
 	/*
 	 * Update policy.
 	 */
-	time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
-	minTime(time, &return_time);
+	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
 
 	if (allow_unsigned) {
 		ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually",
@@ -3756,17 +3755,15 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     /*
      * Update zone.
      */
-	time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated,
+    zone_return_time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated,
 	    keylist, keylist_size, deplist);
-	minTime(time, &return_time);
 
     /*
      * Only purge old keys if the policy says so.
      */
 	if (policy_keys_purge_after(policy)) {
-	    time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
+	    purge_return_time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
 	        policy_keys_purge_after(policy));
-	    minTime(time, &return_time);
 	}
 
     /*
@@ -3848,6 +3845,9 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     free(keylist);
     key_dependency_list_free(deplist);
 
+    return_time = zone_return_time;
+    minTime(policy_return_time, &return_time);
+    minTime(purge_return_time, &return_time);
     return return_time;
 }
 
