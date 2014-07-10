@@ -755,7 +755,7 @@ again:
             cmdhandler_handle_cmd_zones(sockfd, cmdc);
         } else if (n >= 4 && strncmp(buf, "sign", 4) == 0) {
             ods_log_debug("[%s] sign zone command", cmdh_str);
-            if (buf[4] == '\0') {
+            if (n == 4 || buf[4] == '\0') {
                 /* NOTE: wouldn't it be nice that we default to --all? */
                 cmdhandler_handle_cmd_error(sockfd, "sign command needs "
                     "an argument (either '--all' or a zone name)");
@@ -766,7 +766,7 @@ again:
             }
         } else if (n >= 5 && strncmp(buf, "clear", 5) == 0) {
             ods_log_debug("[%s] clear zone command", cmdh_str);
-            if (buf[5] == '\0') {
+            if (n == 5 || buf[5] == '\0') {
                 cmdhandler_handle_cmd_error(sockfd, "clear command needs "
                     "a zone name");
             } else if (buf[5] != ' ') {
@@ -782,7 +782,7 @@ again:
             cmdhandler_handle_cmd_flush(sockfd, cmdc);
         } else if (n >= 6 && strncmp(buf, "update", 6) == 0) {
             ods_log_debug("[%s] update command", cmdh_str);
-            if (buf[6] == '\0') {
+            if (n == 6 || buf[6] == '\0') {
                 cmdhandler_handle_cmd_update(sockfd, cmdc, "--all");
             } else if (buf[6] != ' ') {
                 cmdhandler_handle_cmd_unknown(sockfd, buf);
@@ -804,7 +804,7 @@ again:
             cmdhandler_handle_cmd_running(sockfd);
         } else if (n >= 9 && strncmp(buf, "verbosity", 9) == 0) {
             ods_log_debug("[%s] verbosity command", cmdh_str);
-            if (buf[9] == '\0') {
+            if (n == 9 || buf[9] == '\0') {
                 cmdhandler_handle_cmd_error(sockfd, "verbosity command "
                     "an argument (verbosity level)");
             } else if (buf[9] != ' ') {
@@ -814,7 +814,7 @@ again:
             }
         } else if (n >= 10 && strncmp(buf, "retransfer", 10) == 0) {
             ods_log_debug("[%s] retransfer zone command", cmdh_str);
-            if (buf[10] == '\0') {
+            if (n == 10 || buf[10] == '\0') {
                 cmdhandler_handle_cmd_error(sockfd, "retransfer command needs "
                     "an argument (a zone name)");
             } else if (buf[10] != ' ') {
