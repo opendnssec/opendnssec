@@ -1,3 +1,12 @@
+8 July 2014: Matthijs
+- Implement and test retransfer behavior
+
+4 July 2014: Matthijs
+- Introduce ods-signer retransfer <zone>
+
+1 July 2014: Matthijs
+- Fix ods-signer -c conf.xml start (used default conf.xml before)
+
 16 June 2014: Matthijs
 - OPENDNSSEC-628: Log ignored notifies at LOG_INFO level.
 

@@ -390,8 +390,13 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     }
 
     /* forward notify to xfrd */
-    ods_log_verbose("[%s] forward notify for zone %s from client %s: "
-        "no acl matches", query_str, q->zone->name, address);
+    if (addr2ip(q->addr, address, sizeof(address))) {
+        ods_log_verbose("[%s] forward notify for zone %s from client %s",
+            query_str, q->zone->name, address);
+    } else {
+        ods_log_verbose("[%s] forward notify for zone %s", query_str,
+            q->zone->name);
+    }
     xfrd_set_timer_now(q->zone->xfrd);
     dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
         buffer_remaining(q->buffer));

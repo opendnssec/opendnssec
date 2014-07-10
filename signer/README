@@ -84,20 +84,21 @@ commands:
 $ ods-signer
 cmd> help
  Commands:
-zones           show the currently known zones
-sign <zone>     schedule zone for immediate (re-)signing
-sign --all      schedule all zones for immediate (re-)signing.
-clear <zone>    delete the internal storage of this zone.
-                All signatures will be regenerated on the next re-sign.
-queue           show the current task queue.
-flush           execute all scheduled tasks immediately.
-update <zone>   update this zone signer configurations.
-update [--all]  update zone list and all signer configurations.
-start           start the engine.
-reload          reload the engine.
-running		test if the engine is running.
-stop            stop the engine.
-verbosity <nr>  set verbosity.
+zones             show the currently known zones.
+sign <zone>       schedule zone for immediate (re-)signing.
+sign --all        schedule all zones for immediate (re-)signing.
+clear <zone>      delete the internal storage of this zone.
+                  All signatures will be regenerated on the next re-sign.
+queue             show the current task queue.
+flush             execute all scheduled tasks immediately.
+update <zone>     update this zone signer configurations.
+update [--all]    update zone list and all signer configurations.
+retransfer <zone> retransfer zone from the master server.
+start             start the engine.
+reload            reload the engine.
+running	          test if the engine is running.
+stop              stop the engine.
+verbosity <nr>    set verbosity.
 
 cmd> quit
 

@@ -351,6 +351,7 @@ xfrd_create(void* xfrhandler, void* zone)
     xfrd->serial_xfr_acquired = 0;
     xfrd->serial_disk_acquired = 0;
     xfrd->serial_notify_acquired = 0;
+    xfrd->serial_retransfer = 0;
     lock_basic_unlock(&xfrd->serial_lock);
     xfrd->query_id = 0;
     xfrd->msg_seq_nr = 0;
@@ -358,6 +359,7 @@ xfrd_create(void* xfrhandler, void* zone)
     xfrd->msg_old_serial = 0;
     xfrd->msg_new_serial = 0;
     xfrd->msg_is_ixfr = 0;
+    xfrd->msg_do_retransfer = 0;
     xfrd->udp_waiting = 0;
     xfrd->udp_waiting_next = NULL;
     xfrd->tcp_waiting = 0;
@@ -676,6 +678,7 @@ xfrd_commit_packet(xfrd_type* xfrd)
     zone_type* zone = NULL;
     char* xfrfile = NULL;
     FILE* fd = NULL;
+    time_t serial_disk_acq = 0;
     ods_log_assert(xfrd);
     zone = (zone_type*) xfrd->zone;
     xfrfile = ods_build_path(zone->name, ".xfrd", 0, 1);
@@ -705,10 +708,16 @@ xfrd_commit_packet(xfrd_type* xfrd)
     }
     /* update soa serial management */
     xfrd->serial_disk = xfrd->msg_new_serial;
+    serial_disk_acq = xfrd->serial_disk_acquired;
     xfrd->serial_disk_acquired = xfrd_time(xfrd);
+    /* ensure newer time */
+    if (xfrd->serial_disk_acquired == serial_disk_acq) {
+        xfrd->serial_disk_acquired++;
+    }
     xfrd->soa.serial = xfrd->serial_disk;
-    if (util_serial_gt(xfrd->serial_disk, xfrd->serial_xfr) &&
-            xfrd->serial_disk_acquired > xfrd->serial_xfr_acquired) {
+    if (xfrd->msg_do_retransfer ||
+            (util_serial_gt(xfrd->serial_disk, xfrd->serial_xfr) &&
+             xfrd->serial_disk_acquired > xfrd->serial_xfr_acquired)) {
         /* reschedule task */
         int ret = 0;
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
@@ -728,6 +737,9 @@ xfrd_commit_packet(xfrd_type* xfrd)
             engine_wakeup_workers(engine);
         }
     }
+    /* reset retransfer */
+    xfrd->msg_do_retransfer = 0;
+
     lock_basic_unlock(&xfrd->serial_lock);
     lock_basic_unlock(&xfrd->rw_lock);
     lock_basic_unlock(&zone->zone_lock);
@@ -767,7 +779,11 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
         return;
     }
     lock_basic_lock(&xfrd->rw_lock);
-    fd = ods_fopen(xfrfile, NULL, "a");
+    if (xfrd->msg_do_retransfer && !xfrd->msg_seq_nr && !xfrd->msg_is_ixfr) {
+        fd = ods_fopen(xfrfile, NULL, "w");
+    } else {
+        fd = ods_fopen(xfrfile, NULL, "a");
+    }
     free((void*) xfrfile);
     if (!fd) {
         ods_log_crit("[%s] unable to dump packet zone %s: ods_fopen() failed "
@@ -980,7 +996,7 @@ xfrd_parse_rrs(xfrd_type* xfrd, buffer_type* buffer, uint16_t count,
                      /* got IXFR but need AXFR */
                      return ODS_STATUS_REQAXFR;
                  }
-                 if (serial != xfrd->serial_disk) {
+                 if (!xfrd->msg_do_retransfer && serial != xfrd->serial_disk) {
                      lock_basic_unlock(&xfrd->serial_lock);
                      /* bad start serial in IXFR */
                      return ODS_STATUS_INSERIAL;
@@ -1105,7 +1121,8 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
         }
         /* check serial */
         lock_basic_lock(&xfrd->serial_lock);
-        if (xfrd->serial_disk_acquired && xfrd->serial_disk == serial) {
+        if (!xfrd->msg_do_retransfer &&
+            xfrd->serial_disk_acquired && xfrd->serial_disk == serial) {
             ods_log_info("[%s] zone %s got update indicating current "
                 "serial %u from %s", xfrd_str, zone->name, serial,
                  xfrd->master->address);
@@ -1128,7 +1145,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
                 return XFRD_PKT_BAD;
             }
         }
-        if (xfrd->serial_disk_acquired &&
+        if (!xfrd->msg_do_retransfer && xfrd->serial_disk_acquired &&
             !util_serial_gt(serial, xfrd->serial_disk)) {
             ods_log_info("[%s] zone %s ignoring old serial %u from %s "
                 "(have %u)", xfrd_str, zone->name, serial,
@@ -1138,7 +1155,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
         }
 
         xfrd->msg_new_serial = serial;
-        if (xfrd->serial_disk_acquired) {
+        if (!xfrd->msg_do_retransfer && xfrd->serial_disk_acquired) {
             xfrd->msg_old_serial = xfrd->serial_disk;
         } else {
             xfrd->msg_old_serial = 0;
@@ -1464,7 +1481,8 @@ xfrd_tcp_xfr(xfrd_type* xfrd, tcp_set_type* set)
     /* start AXFR or IXFR for the zone */
     tcp = set->tcp_conn[xfrd->tcp_conn];
 
-    if (xfrd->serial_xfr_acquired <= 0 || xfrd->master->ixfr_disabled) {
+    if (xfrd->msg_do_retransfer || xfrd->serial_xfr_acquired <= 0 ||
+        xfrd->master->ixfr_disabled) {
         ods_log_info("[%s] zone %s request axfr to %s", xfrd_str,
             zone->name, xfrd->master->address);
         buffer_pkt_query(tcp->packet, zone->apex, LDNS_RR_TYPE_AXFR,
@@ -1919,16 +1937,22 @@ xfrd_make_request(xfrd_type* xfrd)
         xfrd->master->ixfr_disabled = 0;
     }
     /* perform xfr request */
-    if (xfrd->serial_xfr_acquired && !xfrd->master->ixfr_disabled) {
+    if (xfrd->serial_xfr_acquired && !xfrd->master->ixfr_disabled &&
+        !xfrd->serial_retransfer) {
         xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_UDP_TIMEOUT);
 
         ods_log_verbose("[%s] zone %s make request [udp round %d master %s:%u]",
             xfrd_str, zone->name, xfrd->round_num, xfrd->master->address,
 	    xfrd->master->port);
         xfrd_udp_obtain(xfrd);
-    } else if (!xfrd->serial_xfr_acquired || xfrd->master->ixfr_disabled) {
+    } else if (!xfrd->serial_xfr_acquired || xfrd->master->ixfr_disabled ||
+        xfrd->serial_retransfer) {
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
         ods_log_assert(xfrhandler);
+        if (xfrd->serial_retransfer) {
+            xfrd->msg_do_retransfer = 1;
+            xfrd->serial_retransfer = 0;
+        }
         xfrd_set_timer(xfrd, xfrd_time(xfrd) + XFRD_TCP_TIMEOUT);
 
         ods_log_verbose("[%s] zone %s make request [tcp round %d master %s:%u]",
