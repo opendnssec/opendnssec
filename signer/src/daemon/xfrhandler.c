@@ -197,7 +197,7 @@ xfrhandler_handle_dns(netio_type* ATTR_UNUSED(netio),
     xfrhandler = (xfrhandler_type*) handler->user_data;
     ods_log_assert(event_types & NETIO_EVENT_READ);
     received = read(xfrhandler->dnshandler.fd, &buf, MAX_PACKET_SIZE);
-    ods_log_verbose("[%s] read forwarded dns packet: %d bytes received",
+    ods_log_debug("[%s] read forwarded dns packet: %d bytes received",
         xfrh_str, (int) received);
     if (received == -1) {
         ods_log_error("[%s] unable to forward dns packet: %s", xfrh_str,

@@ -284,7 +284,7 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
     }
     zone->xfrd->serial_retransfer = 1;
     xfrd_set_timer_now(zone->xfrd);
-    ods_log_verbose("[%s] forward a notify", cmdh_str);
+    ods_log_debug("[%s] forward a notify", cmdh_str);
     dnshandler_fwd_notify(engine->dnshandler,
         (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
     (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s being retransferred.\n", tbd);
