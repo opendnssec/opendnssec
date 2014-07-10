@@ -40,6 +40,8 @@
 #include <limits.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 #define POLICY_EXPORT_MAX_LENGHT 1000
 
@@ -400,6 +402,7 @@ int policy_export_all(int sockfd, const db_connection_t* connection, const char*
     char* xml_out;
     int xml_length = 0;
     int xml_write;
+    char* dirname, *dirlast;
 
     if (!connection) {
         return POLICY_EXPORT_ERR_ARGS;
@@ -407,8 +410,23 @@ int policy_export_all(int sockfd, const db_connection_t* connection, const char*
 
     if (filename) {
         if (access(filename, W_OK)) {
-            client_printf_err(sockfd, "Write access to file denied!\n");
-            return POLICY_EXPORT_ERR_FILE;
+            if (errno == ENOENT) {
+                if ((dirname = strdup(filename))) {
+                    if ((dirlast = strrchr(dirname, '/'))) {
+                        *dirlast = 0;
+                        if (access(dirname, W_OK)) {
+                            client_printf_err(sockfd, "Write access to directory denied: %s\n", strerror(errno));
+                            free(dirname);
+                            return POLICY_EXPORT_ERR_FILE;
+                        }
+                    }
+                    free(dirname);
+                }
+            }
+            else {
+                client_printf_err(sockfd, "Write access to file denied!\n");
+                return POLICY_EXPORT_ERR_FILE;
+            }
         }
 
         if (snprintf(path, sizeof(path), "%s.new", filename) >= (int)sizeof(path)) {
@@ -501,6 +519,7 @@ int policy_export(int sockfd, const policy_t* policy, const char* filename) {
     char* xml_out;
     int xml_length = 0;
     int xml_write;
+    char* dirname, *dirlast;
 
     if (!policy) {
         return POLICY_EXPORT_ERR_ARGS;
@@ -508,8 +527,23 @@ int policy_export(int sockfd, const policy_t* policy, const char* filename) {
 
     if (filename) {
         if (access(filename, W_OK)) {
-            client_printf_err(sockfd, "Write access to file denied!\n");
-            return POLICY_EXPORT_ERR_FILE;
+            if (errno == ENOENT) {
+                if ((dirname = strdup(filename))) {
+                    if ((dirlast = strrchr(dirname, '/'))) {
+                        *dirlast = 0;
+                        if (access(dirname, W_OK)) {
+                            client_printf_err(sockfd, "Write access to directory denied: %s\n", strerror(errno));
+                            free(dirname);
+                            return POLICY_EXPORT_ERR_FILE;
+                        }
+                    }
+                    free(dirname);
+                }
+            }
+            else {
+                client_printf_err(sockfd, "Write access to file denied!\n");
+                return POLICY_EXPORT_ERR_FILE;
+            }
         }
 
         if (snprintf(path, sizeof(path), "%s.new", filename) >= (int)sizeof(path)) {

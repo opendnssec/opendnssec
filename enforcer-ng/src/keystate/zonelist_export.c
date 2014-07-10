@@ -41,6 +41,8 @@
 #include <limits.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 int zonelist_export(int sockfd, db_connection_t* connection, const char* filename, int comment) {
     xmlDocPtr doc;
@@ -54,6 +56,7 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
     policy_t* policy = NULL;
     int cmp;
     char path[PATH_MAX];
+    char* dirname, *dirlast;
 
     if (!connection) {
         return ZONELIST_EXPORT_ERR_ARGS;
@@ -63,8 +66,23 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
     }
 
     if (access(filename, W_OK)) {
-        client_printf_err(sockfd, "Write access to file denied!\n");
-        return ZONELIST_EXPORT_ERR_FILE;
+        if (errno == ENOENT) {
+            if ((dirname = strdup(filename))) {
+                if ((dirlast = strrchr(dirname, '/'))) {
+                    *dirlast = 0;
+                    if (access(dirname, W_OK)) {
+                        client_printf_err(sockfd, "Write access to directory denied: %s\n", strerror(errno));
+                        free(dirname);
+                        return ZONELIST_EXPORT_ERR_FILE;
+                    }
+                }
+                free(dirname);
+            }
+        }
+        else {
+            client_printf_err(sockfd, "Write access to file denied: %s\n", strerror(errno));
+            return ZONELIST_EXPORT_ERR_FILE;
+        }
     }
 
     if (!(doc = xmlNewDoc((xmlChar*)"1.0"))
