@@ -752,6 +752,8 @@ addns_read(void* zone)
         }
         /* do a transaction for DNSKEY and NSEC3PARAM */
         adapi_trans_diff(z, 0);
+        ods_log_verbose("[%s] no new xfr ready for zone %s", adapter_str,
+            z->name);
         return ODS_STATUS_UNCHANGED;
     }
     /* copy zone transfers */

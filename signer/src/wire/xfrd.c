@@ -678,6 +678,7 @@ xfrd_commit_packet(xfrd_type* xfrd)
     zone_type* zone = NULL;
     char* xfrfile = NULL;
     FILE* fd = NULL;
+    time_t serial_disk_acq = 0;
     ods_log_assert(xfrd);
     zone = (zone_type*) xfrd->zone;
     xfrfile = ods_build_path(zone->name, ".xfrd", 0, 1);
@@ -707,7 +708,12 @@ xfrd_commit_packet(xfrd_type* xfrd)
     }
     /* update soa serial management */
     xfrd->serial_disk = xfrd->msg_new_serial;
+    serial_disk_acq = xfrd->serial_disk_acquired;
     xfrd->serial_disk_acquired = xfrd_time(xfrd);
+    /* ensure newer time */
+    if (xfrd->serial_disk_acquired == serial_disk_acq) {
+        xfrd->serial_disk_acquired++;
+    }
     xfrd->soa.serial = xfrd->serial_disk;
     if (xfrd->msg_do_retransfer ||
             (util_serial_gt(xfrd->serial_disk, xfrd->serial_xfr) &&
