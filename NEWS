@@ -1,4 +1,4 @@
-OpenDNSSEC 1.4.6
+OpenDNSSEC 1.4.6rc1 - 2014-07-11
 
 * Signer Engine: Print secondary server address when logging notify reply
   errors.
