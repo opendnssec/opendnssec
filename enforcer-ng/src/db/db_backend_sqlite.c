@@ -93,14 +93,17 @@ static int __db_backend_sqlite_busy_handler(void *data, int retry) {
     int rc;
     (void)retry;
 
+    usleep(250000);
+    return 1;
+
     if (!backend_sqlite) {
         return 0;
     }
 
-    ods_log_deeebug("db_backend_sqlite: Database busy, waiting...");
+    ods_log_deeebug("db_backend_sqlite_busy_handler: Database busy, waiting...");
 
     if (pthread_mutex_lock(&__sqlite_mutex)) {
-        ods_log_error("db_backend_sqlite: Mutex error");
+        ods_log_error("db_backend_sqlite_busy_handler: Mutex error");
         return 0;
     }
     if (clock_gettime(CLOCK_REALTIME, &busy_ts)) {
@@ -116,12 +119,12 @@ static int __db_backend_sqlite_busy_handler(void *data, int retry) {
         return 0;
     }
     else if (rc) {
-        ods_log_error("db_backend_sqlite: pthread_cond_timedwait() error %d", rc);
+        ods_log_error("db_backend_sqlite_busy_handler: pthread_cond_timedwait() error %d", rc);
         pthread_mutex_unlock(&__sqlite_mutex);
         return 0;
     }
 
-    ods_log_deeebug("db_backend_sqlite: Woke up, checking database...");
+    ods_log_deeebug("db_backend_sqlite_busy_handler: Woke up, checking database...");
     pthread_mutex_unlock(&__sqlite_mutex);
     return 1;
 }
@@ -155,8 +158,8 @@ static inline int __db_backend_sqlite_prepare(const db_backend_sqlite_t* backend
         statement,
         NULL);
     if (ret != SQLITE_OK) {
-        ods_log_info("DB SQL %s", sql);
-        ods_log_info("DB Err %d\n", ret);
+        ods_log_info("DB prepare SQL %s", sql);
+        ods_log_info("DB prepare Err %d\n", ret);
         if (*statement) {
             sqlite3_finalize(*statement);
         }
@@ -170,14 +173,63 @@ static inline int __db_backend_sqlite_prepare(const db_backend_sqlite_t* backend
 /**
  * SQLite step function.
  */
-static inline int __db_backend_sqlite_step(sqlite3_stmt* statement) {
-    int ret;
+static inline int __db_backend_sqlite_step(const db_backend_sqlite_t* backend_sqlite, sqlite3_stmt* statement) {
+    struct timespec busy_ts;
+    int rc, ret, been_busy = 0;
 
+    if (!backend_sqlite) {
+        return SQLITE_INTERNAL;
+    }
     if (!statement) {
         return SQLITE_INTERNAL;
     }
 
     ret = sqlite3_step(statement);
+    while (ret == SQLITE_BUSY) {
+        usleep(250000);
+        ret = sqlite3_step(statement);
+    }
+    return ret;
+
+    if (ret == SQLITE_BUSY) {
+        ods_log_deeebug("db_backend_sqlite_step: Database busy, waiting...");
+        pthread_cond_signal(&__sqlite_cond);
+        been_busy = 1;
+    }
+    while (ret == SQLITE_BUSY) {
+        if (pthread_mutex_lock(&__sqlite_mutex)) {
+            ods_log_error("db_backend_sqlite_step: Mutex error");
+            return ret;
+        }
+        if (clock_gettime(CLOCK_REALTIME, &busy_ts)) {
+            pthread_mutex_unlock(&__sqlite_mutex);
+            return ret;
+        }
+
+        busy_ts.tv_sec += backend_sqlite->timeout;
+
+        rc = pthread_cond_timedwait(&__sqlite_cond, &__sqlite_mutex, &busy_ts);
+        if (rc == ETIMEDOUT) {
+            pthread_mutex_unlock(&__sqlite_mutex);
+            return ret;
+        }
+        else if (rc) {
+            ods_log_error("db_backend_sqlite_step: pthread_cond_timedwait() error %d", rc);
+            pthread_mutex_unlock(&__sqlite_mutex);
+            return ret;
+        }
+
+        ods_log_deeebug("db_backend_sqlite_step: Woke up, checking database...");
+        ret = sqlite3_step(statement);
+        if (ret == SQLITE_BUSY) {
+            pthread_cond_signal(&__sqlite_cond);
+            ods_log_deeebug("db_backend_sqlite_step: Did not get lock, signal others...");
+        }
+        pthread_mutex_unlock(&__sqlite_mutex);
+    }
+    if (been_busy) {
+        ods_log_deeebug("db_backend_sqlite_step: Got lock or failed/timed out");
+    }
 
     return ret;
 }
@@ -618,7 +670,7 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
         return NULL;
     }
 
-    if (__db_backend_sqlite_step(statement->statement) != SQLITE_ROW) {
+    if (__db_backend_sqlite_step(statement->backend_sqlite, statement->statement) != SQLITE_ROW) {
         return NULL;
     }
 
@@ -1033,7 +1085,7 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
     /*
      * Execute the SQL.
      */
-    if (__db_backend_sqlite_step(statement) != SQLITE_DONE) {
+    if (__db_backend_sqlite_step(backend_sqlite, statement) != SQLITE_DONE) {
         __db_backend_sqlite_finalize(statement);
         return DB_ERROR_UNKNOWN;
     }
@@ -1453,7 +1505,7 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
     /*
      * Execute the SQL.
      */
-    if (__db_backend_sqlite_step(statement) != SQLITE_DONE) {
+    if (__db_backend_sqlite_step(backend_sqlite, statement) != SQLITE_DONE) {
         __db_backend_sqlite_finalize(statement);
         return DB_ERROR_UNKNOWN;
     }
@@ -1560,7 +1612,7 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
         }
     }
 
-    if (__db_backend_sqlite_step(statement) != SQLITE_DONE) {
+    if (__db_backend_sqlite_step(backend_sqlite, statement) != SQLITE_DONE) {
         __db_backend_sqlite_finalize(statement);
         return DB_ERROR_UNKNOWN;
     }
@@ -1659,7 +1711,7 @@ static int db_backend_sqlite_count(void* data, const db_object_t* object, const 
         }
     }
 
-    ret = __db_backend_sqlite_step(statement);
+    ret = __db_backend_sqlite_step(backend_sqlite, statement);
     if (ret != SQLITE_DONE && ret != SQLITE_ROW) {
         __db_backend_sqlite_finalize(statement);
         return DB_ERROR_UNKNOWN;
@@ -1707,7 +1759,7 @@ static int db_backend_sqlite_transaction_begin(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_sqlite_step(statement) != SQLITE_DONE) {
+    if (__db_backend_sqlite_step(backend_sqlite, statement) != SQLITE_DONE) {
         __db_backend_sqlite_finalize(statement);
         return DB_ERROR_UNKNOWN;
     }
@@ -1736,7 +1788,7 @@ static int db_backend_sqlite_transaction_commit(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_sqlite_step(statement) != SQLITE_DONE) {
+    if (__db_backend_sqlite_step(backend_sqlite, statement) != SQLITE_DONE) {
         __db_backend_sqlite_finalize(statement);
         return DB_ERROR_UNKNOWN;
     }
@@ -1765,7 +1817,7 @@ static int db_backend_sqlite_transaction_rollback(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_sqlite_step(statement) != SQLITE_DONE) {
+    if (__db_backend_sqlite_step(backend_sqlite, statement) != SQLITE_DONE) {
         __db_backend_sqlite_finalize(statement);
         return DB_ERROR_UNKNOWN;
     }
