@@ -3482,7 +3482,7 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
     size_t keylist_size, key_dependency_list_t *deplist, const time_t now,
     const int purgetime)
 {
-    static const char *scmd = "removeDeadKeys_old";
+    static const char *scmd = "removeDeadKeys";
     time_t first_purge = -1, key_time;
     size_t i, deplist2_size = 0, k;
     int key_purgable, j, cmp;
