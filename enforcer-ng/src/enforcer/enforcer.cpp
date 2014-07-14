@@ -2822,14 +2822,14 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 	
 	hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
 	for (hkey = hsm_key_list_begin(hsmkeylist); hkey;
-		hsm_key_list_next(hsmkeylist))
+		hkey = hsm_key_list_next(hsmkeylist))
 	{
 		/** only match if the hkey has at least the role(s) of pkey */
 		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0)
 			continue;
 
 		/** Now find out if hsmkey is in used by zone */
-		for (match = 0, key = key_data_list_begin(key_list); key; key_data_list_next(key_list)) {
+		for (match = 0, key = key_data_list_begin(key_list); key; key = key_data_list_next(key_list)) {
 			if (!db_value_cmp(key_data_hsm_key_id(key), hsm_key_id(hkey), &cmp)
 				&& cmp == 0)
 			{
@@ -2990,7 +2990,7 @@ youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
 	 * Must match: role, bits, algorithm and repository.
 	 */
 	for (key = key_data_list_begin(key_list); key;
-		key_data_list_next(key_list))
+		key = key_data_list_next(key_list))
 	{
 		if ((int)policy_key_role(pkey) != (int)key_data_role(key) ||
 			policy_key_algorithm(pkey) != key_data_algorithm(key) ||
@@ -3033,7 +3033,7 @@ key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
 	}
 
 	for (key = key_data_list_begin(key_list); key;
-		key_data_list_next(key_list))
+		key = key_data_list_next(key_list))
 	{
 		if (policy_key_algorithm(pkey) == key_data_algorithm(key) &&
 			(int)policy_key_role(pkey) == (int)key_data_role(key))
