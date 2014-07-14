@@ -33,6 +33,7 @@
 #include "db_backend.h"
 
 #define DB_BACKEND_SQLITE_DEFAULT_TIMEOUT 30
+#define DB_BACKEND_SQLITE_DEFAULT_USLEEP 200000
 
 #ifdef __cplusplus
 extern "C" {

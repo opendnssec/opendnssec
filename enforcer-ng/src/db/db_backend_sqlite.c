@@ -68,6 +68,8 @@ typedef struct db_backend_sqlite {
     sqlite3* db;
     int transaction;
     int timeout;
+    int time;
+    long usleep;
 } db_backend_sqlite_t;
 
 static mm_alloc_t __sqlite_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_t));
@@ -93,9 +95,6 @@ static int __db_backend_sqlite_busy_handler(void *data, int retry) {
     int rc;
     (void)retry;
 
-    usleep(250000);
-    return 1;
-
     if (!backend_sqlite) {
         return 0;
     }
@@ -111,10 +110,15 @@ static int __db_backend_sqlite_busy_handler(void *data, int retry) {
         return 0;
     }
 
-    busy_ts.tv_sec += backend_sqlite->timeout;
+    busy_ts.tv_nsec += backend_sqlite->usleep * 1000;
 
     rc = pthread_cond_timedwait(&__sqlite_cond, &__sqlite_mutex, &busy_ts);
     if (rc == ETIMEDOUT) {
+        if (time(NULL) < (backend_sqlite->time + backend_sqlite->timeout)) {
+            ods_log_deeebug("db_backend_sqlite_busy_handler: Woke up, checking database...");
+            pthread_mutex_unlock(&__sqlite_mutex);
+            return 1;
+        }
         pthread_mutex_unlock(&__sqlite_mutex);
         return 0;
     }
@@ -132,7 +136,7 @@ static int __db_backend_sqlite_busy_handler(void *data, int retry) {
 /**
  * SQLite prepare function.
  */
-static inline int __db_backend_sqlite_prepare(const db_backend_sqlite_t* backend_sqlite, sqlite3_stmt** statement, const char* sql, size_t size) {
+static inline int __db_backend_sqlite_prepare(db_backend_sqlite_t* backend_sqlite, sqlite3_stmt** statement, const char* sql, size_t size) {
     int ret;
 
     if (!backend_sqlite) {
@@ -152,6 +156,7 @@ static inline int __db_backend_sqlite_prepare(const db_backend_sqlite_t* backend
     }
 
     ods_log_debug("%s", sql);
+    backend_sqlite->time = time(NULL);
     ret = sqlite3_prepare_v2(backend_sqlite->db,
         sql,
         size,
@@ -173,9 +178,12 @@ static inline int __db_backend_sqlite_prepare(const db_backend_sqlite_t* backend
 /**
  * SQLite step function.
  */
-static inline int __db_backend_sqlite_step(const db_backend_sqlite_t* backend_sqlite, sqlite3_stmt* statement) {
+static inline int __db_backend_sqlite_step(db_backend_sqlite_t* backend_sqlite, sqlite3_stmt* statement) {
+    /*
     struct timespec busy_ts;
     int rc, ret, been_busy = 0;
+    */
+    int ret;
 
     if (!backend_sqlite) {
         return SQLITE_INTERNAL;
@@ -184,17 +192,11 @@ static inline int __db_backend_sqlite_step(const db_backend_sqlite_t* backend_sq
         return SQLITE_INTERNAL;
     }
 
+    backend_sqlite->time = time(NULL);
     ret = sqlite3_step(statement);
-    while (ret == SQLITE_BUSY) {
-        usleep(250000);
-        ret = sqlite3_step(statement);
-    }
-    return ret;
-
+    /*
     if (ret == SQLITE_BUSY) {
         ods_log_deeebug("db_backend_sqlite_step: Database busy, waiting...");
-        pthread_cond_signal(&__sqlite_cond);
-        been_busy = 1;
     }
     while (ret == SQLITE_BUSY) {
         if (pthread_mutex_lock(&__sqlite_mutex)) {
@@ -221,15 +223,12 @@ static inline int __db_backend_sqlite_step(const db_backend_sqlite_t* backend_sq
 
         ods_log_deeebug("db_backend_sqlite_step: Woke up, checking database...");
         ret = sqlite3_step(statement);
-        if (ret == SQLITE_BUSY) {
-            pthread_cond_signal(&__sqlite_cond);
-            ods_log_deeebug("db_backend_sqlite_step: Did not get lock, signal others...");
-        }
         pthread_mutex_unlock(&__sqlite_mutex);
     }
     if (been_busy) {
         ods_log_deeebug("db_backend_sqlite_step: Got lock or failed/timed out");
     }
+    */
 
     return ret;
 }
@@ -243,7 +242,7 @@ static inline int __db_backend_sqlite_finalize(sqlite3_stmt* statement) {
     int ret;
 
     ret = sqlite3_finalize(statement);
-    pthread_cond_signal(&__sqlite_cond);
+    pthread_cond_broadcast(&__sqlite_cond);
 
     return ret;
 }
@@ -286,6 +285,7 @@ static int db_backend_sqlite_connect(void* data, const db_configuration_list_t* 
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_configuration_t* file;
     const db_configuration_t* timeout;
+    const db_configuration_t* usleep;
     int ret;
 
     if (!__sqlite3_initialized) {
@@ -310,6 +310,14 @@ static int db_backend_sqlite_connect(void* data, const db_configuration_list_t* 
         backend_sqlite->timeout = atoi(db_configuration_value(timeout));
         if (backend_sqlite->timeout < 1) {
             backend_sqlite->timeout = DB_BACKEND_SQLITE_DEFAULT_TIMEOUT;
+        }
+    }
+
+    backend_sqlite->usleep = DB_BACKEND_SQLITE_DEFAULT_USLEEP;
+    if ((usleep = db_configuration_list_find(configuration_list, "usleep"))) {
+        backend_sqlite->usleep = atoi(db_configuration_value(usleep));
+        if (backend_sqlite->usleep < 1) {
+            backend_sqlite->usleep = DB_BACKEND_SQLITE_DEFAULT_TIMEOUT;
         }
     }
 
