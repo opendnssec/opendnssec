@@ -111,6 +111,10 @@ static int __db_backend_sqlite_busy_handler(void *data, int retry) {
     }
 
     busy_ts.tv_nsec += backend_sqlite->usleep * 1000;
+    if (busy_ts.tv_nsec > 999999999) {
+        busy_ts.tv_sec += (busy_ts.tv_nsec / 1000000000);
+        busy_ts.tv_nsec -= (busy_ts.tv_nsec / 1000000000) * 1000000000;
+    }
 
     rc = pthread_cond_timedwait(&__sqlite_cond, &__sqlite_mutex, &busy_ts);
     if (rc == ETIMEDOUT) {
