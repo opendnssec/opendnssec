@@ -90,7 +90,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	}
 
 	/* current work */
-	pthread_mutex_lock(&engine->taskq->schedule_lock);
+/*	TODO: pthread_mutex_lock(&engine->taskq->schedule_lock);*/
 		for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
 			task = engine->workers[i]->task;
 			if (task) {
@@ -99,7 +99,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 					task_what2str(task->what), task_who2str(task->who));
 			}
 		}
-	pthread_mutex_unlock(&engine->taskq->schedule_lock);
+/*	TODO: pthread_mutex_unlock(&engine->taskq->schedule_lock);*/
 
 	/* how many tasks */
 	now = time_now();
@@ -110,7 +110,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		strtime?strtime:"(null)\n");
 	
 	/* list tasks */
-	pthread_mutex_lock(&engine->taskq->schedule_lock);
+/*	TODO: pthread_mutex_lock(&engine->taskq->schedule_lock);*/
 		node = ldns_rbtree_first(engine->taskq->tasks);
 		while (node && node != LDNS_RBTREE_NULL) {
 			task = (task_type*) node->data;
@@ -119,7 +119,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			client_printf(sockfd, "%s", buf);
 			node = ldns_rbtree_next(node);
 		}
-	pthread_mutex_unlock(&engine->taskq->schedule_lock);
+/*	TODO: pthread_mutex_unlock(&engine->taskq->schedule_lock);*/
 	return 0;
 }
 
