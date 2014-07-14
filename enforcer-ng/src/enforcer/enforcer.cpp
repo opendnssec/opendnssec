@@ -2043,7 +2043,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
     key_state_state_t state;
     time_t returntime_key;
     key_state_t* key_state;
-    int key_data_updated, process;
+    int key_data_updated, process, key_state_created;
 
     if (!dbconn) {
         /* TODO: better log error */
@@ -2075,6 +2075,8 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
         ods_log_error("[%s] %s: no deplist", module_str, scmd);
         return returntime_zone;
     }
+
+    ods_log_verbose("[%s] %s: processing %s with policyName %s", module_str, scmd, zone_name(zone), policy_name(policy));
 
 	/*
 	 * The process variable will indicate if we are processing, if something
@@ -2150,6 +2152,141 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 		for (i = 0; process && i < keylist_size; i++) {
 			ods_log_verbose("[%s] %s: processing key %s", module_str, scmd,
 				hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
+
+			/*
+			 * Create key states that do not exist.
+			 */
+			key_state_created = 0;
+			if (!key_data_cached_ds(keylist[i])) {
+			    if (!(key_state = key_state_new(dbconn))
+			        || key_state_set_key_data_id(key_state, key_data_id(keylist[i]))
+			        || key_state_set_type(key_state, KEY_STATE_TYPE_DS)
+			        || key_state_set_minimize(key_state, (key_data_minimize(keylist[i]) >> 2) & 1)
+			        || key_state_set_state(key_state, key_data_role(keylist[i]) == KEY_DATA_ROLE_KSK ? HIDDEN : NA)
+                    || key_state_set_last_change(key_state, now)
+                    || key_state_set_ttl(key_state, getZoneTTL(policy, zone, KEY_STATE_TYPE_DS, now))
+                    || key_state_create(key_state))
+                {
+                    ods_log_error("[%s] %s: key state DS creation failed", module_str, scmd);
+                    process = 0;
+                    key_state_free(key_state);
+                    key_state = NULL;
+                    break;
+                }
+			    key_state_created = 1;
+			    key_state_free(key_state);
+                key_state = NULL;
+
+                if (!zone_signconf_needs_writing(zone)) {
+                    if (zone_set_signconf_needs_writing(zone, 1)) {
+                        ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+                        process = 0;
+                        break;
+                    }
+                    else {
+                        *zone_updated = 1;
+                    }
+                }
+			}
+            if (!key_data_cached_dnskey(keylist[i])) {
+                if (!(key_state = key_state_new(dbconn))
+                    || key_state_set_key_data_id(key_state, key_data_id(keylist[i]))
+                    || key_state_set_type(key_state, KEY_STATE_TYPE_DNSKEY)
+                    || key_state_set_minimize(key_state, (key_data_minimize(keylist[i]) >> 1) & 1)
+                    || key_state_set_state(key_state, HIDDEN)
+                    || key_state_set_last_change(key_state, now)
+                    || key_state_set_ttl(key_state, getZoneTTL(policy, zone, KEY_STATE_TYPE_DNSKEY, now))
+                    || key_state_create(key_state))
+                {
+                    ods_log_error("[%s] %s: key state DNSKEY creation failed", module_str, scmd);
+                    process = 0;
+                    key_state_free(key_state);
+                    key_state = NULL;
+                    break;
+                }
+                key_state_created = 1;
+                key_state_free(key_state);
+                key_state = NULL;
+
+                if (!zone_signconf_needs_writing(zone)) {
+                    if (zone_set_signconf_needs_writing(zone, 1)) {
+                        ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+                        process = 0;
+                        break;
+                    }
+                    else {
+                        *zone_updated = 1;
+                    }
+                }
+            }
+            if (!key_data_cached_rrsigdnskey(keylist[i])) {
+                if (!(key_state = key_state_new(dbconn))
+                    || key_state_set_key_data_id(key_state, key_data_id(keylist[i]))
+                    || key_state_set_type(key_state, KEY_STATE_TYPE_RRSIGDNSKEY)
+                    || key_state_set_state(key_state, key_data_role(keylist[i]) == KEY_DATA_ROLE_KSK ? HIDDEN : NA)
+                    || key_state_set_last_change(key_state, now)
+                    || key_state_set_ttl(key_state, getZoneTTL(policy, zone, KEY_STATE_TYPE_RRSIGDNSKEY, now))
+                    || key_state_create(key_state))
+                {
+                    ods_log_error("[%s] %s: key state RRSIGDNSKEY creation failed", module_str, scmd);
+                    process = 0;
+                    key_state_free(key_state);
+                    key_state = NULL;
+                    break;
+                }
+                key_state_created = 1;
+                key_state_free(key_state);
+                key_state = NULL;
+
+                if (!zone_signconf_needs_writing(zone)) {
+                    if (zone_set_signconf_needs_writing(zone, 1)) {
+                        ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+                        process = 0;
+                        break;
+                    }
+                    else {
+                        *zone_updated = 1;
+                    }
+                }
+            }
+            if (!key_data_cached_rrsig(keylist[i])) {
+                if (!(key_state = key_state_new(dbconn))
+                    || key_state_set_key_data_id(key_state, key_data_id(keylist[i]))
+                    || key_state_set_type(key_state, KEY_STATE_TYPE_RRSIG)
+                    || key_state_set_minimize(key_state, key_data_minimize(keylist[i]) & 1)
+                    || key_state_set_state(key_state, key_data_role(keylist[i]) == KEY_DATA_ROLE_ZSK ? HIDDEN : NA)
+                    || key_state_set_last_change(key_state, now)
+                    || key_state_set_ttl(key_state, getZoneTTL(policy, zone, KEY_STATE_TYPE_RRSIG, now))
+                    || key_state_create(key_state))
+                {
+                    ods_log_error("[%s] %s: key state RRSIG creation failed", module_str, scmd);
+                    process = 0;
+                    key_state_free(key_state);
+                    key_state = NULL;
+                    break;
+                }
+                key_state_created = 1;
+                key_state_free(key_state);
+                key_state = NULL;
+
+                if (!zone_signconf_needs_writing(zone)) {
+                    if (zone_set_signconf_needs_writing(zone, 1)) {
+                        ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+                        process = 0;
+                        break;
+                    }
+                    else {
+                        *zone_updated = 1;
+                    }
+                }
+            }
+            if (key_state_created) {
+                if (key_data_cache_key_states(keylist[i])) {
+                    ods_log_error("[%s] %s: Unable to recache key states after creating some", module_str, scmd);
+                    process = 0;
+                    break;
+                }
+            }
 
 			for (j = 0; process && j < sizeof(type); j++) {
                 /*
@@ -3294,6 +3431,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			|| key_data_set_algorithm(mutkey, policy_key_algorithm(pkey))
 			|| key_data_set_inception(mutkey, now)
 			|| key_data_set_role(mutkey, key_role)
+			|| key_data_set_minimize(mutkey, policy_key_minimize(pkey))
 			|| key_data_set_introducing(mutkey, 1)
 			|| key_data_set_ds_at_parent(mutkey, KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
 		{
