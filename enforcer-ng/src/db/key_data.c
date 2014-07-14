@@ -238,6 +238,17 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
         return NULL;
     }
 
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "minimize")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
     if (db_object_set_object_field_list(object, object_field_list)) {
         db_object_field_list_free(object_field_list);
         db_object_free(object);
@@ -356,6 +367,7 @@ void key_data_reset(key_data_t* key_data) {
             hsm_key_free(key_data->hsm_key);
             key_data->hsm_key = NULL;
         }
+        key_data->minimize = 0;
     }
 }
 
@@ -390,6 +402,7 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
     key_data->active_ksk = key_data_copy->active_ksk;
     key_data->ds_at_parent = key_data_copy->ds_at_parent;
     key_data->keytag = key_data_copy->keytag;
+    key_data->minimize = key_data_copy->minimize;
     return DB_OK;
 }
 
@@ -461,6 +474,10 @@ int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b) {
     if (key_data_a->keytag != key_data_b->keytag) {
         return key_data_a->keytag < key_data_b->keytag ? -1 : 1;
     }
+
+    if (key_data_a->minimize != key_data_b->minimize) {
+        return key_data_a->minimize < key_data_b->minimize ? -1 : 1;
+    }
     return 0;
 }
 
@@ -481,7 +498,7 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     db_value_reset(&(key_data->zone_id));
     db_value_reset(&(key_data->hsm_key_id));
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 15
+        || db_value_set_size(value_set) != 16
         || db_value_copy(&(key_data->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(key_data->rev), db_value_set_at(value_set, 1))
         || db_value_copy(&(key_data->zone_id), db_value_set_at(value_set, 2))
@@ -496,7 +513,8 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 11), &(key_data->publish))
         || db_value_to_uint32(db_value_set_at(value_set, 12), &(key_data->active_ksk))
         || db_value_to_enum_value(db_value_set_at(value_set, 13), &ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_to_uint32(db_value_set_at(value_set, 14), &(key_data->keytag)))
+        || db_value_to_uint32(db_value_set_at(value_set, 14), &(key_data->keytag))
+        || db_value_to_uint32(db_value_set_at(value_set, 15), &(key_data->minimize)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -731,6 +749,14 @@ unsigned int key_data_keytag(const key_data_t* key_data) {
     return key_data->keytag;
 }
 
+unsigned int key_data_minimize(const key_data_t* key_data) {
+    if (!key_data) {
+        return 0;
+    }
+
+    return key_data->minimize;
+}
+
 int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
@@ -915,6 +941,16 @@ int key_data_set_keytag(key_data_t* key_data, unsigned int keytag) {
     }
 
     key_data->keytag = keytag;
+
+    return DB_OK;
+}
+
+int key_data_set_minimize(key_data_t* key_data, unsigned int minimize) {
+    if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    key_data->minimize = minimize;
 
     return DB_OK;
 }
@@ -1204,6 +1240,27 @@ db_clause_t* key_data_keytag_clause(db_clause_list_t* clause_list, unsigned int 
     return clause;
 }
 
+db_clause_t* key_data_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "minimize")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), minimize)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
 int key_data_create(key_data_t* key_data) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
@@ -1366,7 +1423,17 @@ int key_data_create(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(13))) {
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "minimize")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(value_set = db_value_set_new(14))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1383,7 +1450,8 @@ int key_data_create(key_data_t* key_data) {
         || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->publish)
         || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 11), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag))
+        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag)
+        || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->minimize))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -1636,7 +1704,17 @@ int key_data_update(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(13))) {
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "minimize")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(value_set = db_value_set_new(14))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1653,7 +1731,8 @@ int key_data_update(key_data_t* key_data) {
         || db_value_from_uint32(db_value_set_get(value_set, 9), key_data->publish)
         || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 11), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
-        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag))
+        || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag)
+        || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->minimize))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

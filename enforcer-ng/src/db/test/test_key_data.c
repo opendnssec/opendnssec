@@ -234,6 +234,7 @@ static void test_key_data_set(void) {
     CU_ASSERT(!key_data_set_ds_at_parent(object, KEY_DATA_DS_AT_PARENT_RETRACTED));
     CU_ASSERT(!key_data_set_ds_at_parent_text(object, "retracted"));
     CU_ASSERT(!key_data_set_keytag(object, 1));
+    CU_ASSERT(!key_data_set_minimize(object, 1));
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
 }
@@ -263,6 +264,7 @@ static void test_key_data_get(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "retracted"));
     CU_ASSERT(key_data_keytag(object) == 1);
+    CU_ASSERT(key_data_minimize(object) == 1);
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
 }
@@ -403,6 +405,16 @@ static void test_key_data_clauses(void) {
     key_data_list_free(new_list);
     db_clause_list_free(clause_list);
     clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_minimize_clause(clause_list, key_data_minimize(object)));
+    CU_ASSERT(!key_data_list_get_by_clauses(object_list, clause_list));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_next(object_list));
+    CU_ASSERT_PTR_NOT_NULL((new_list = key_data_list_new_get_by_clauses(connection, clause_list)));
+    CU_ASSERT_PTR_NOT_NULL(key_data_list_next(new_list));
+    key_data_list_free(new_list);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
 }
 
 static void test_key_data_count(void) {
@@ -501,6 +513,13 @@ static void test_key_data_count(void) {
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
+    CU_ASSERT_PTR_NOT_NULL(key_data_minimize_clause(clause_list, key_data_minimize(object)));
+    CU_ASSERT(!key_data_count(object, clause_list, &count));
+    CU_ASSERT(count == 1);
+    db_clause_list_free(clause_list);
+    clause_list = NULL;
 }
 
 static void test_key_data_list(void) {
@@ -555,6 +574,7 @@ static void test_key_data_verify(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "retracted"));
     CU_ASSERT(key_data_keytag(object) == 1);
+    CU_ASSERT(key_data_minimize(object) == 1);
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
 }
@@ -579,6 +599,7 @@ static void test_key_data_change(void) {
     CU_ASSERT(!key_data_set_ds_at_parent(object, KEY_DATA_DS_AT_PARENT_UNSUBMITTED));
     CU_ASSERT(!key_data_set_ds_at_parent_text(object, "unsubmitted"));
     CU_ASSERT(!key_data_set_keytag(object, 2));
+    CU_ASSERT(!key_data_set_minimize(object, 2));
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
 }
@@ -616,6 +637,7 @@ static void test_key_data_verify2(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_data_ds_at_parent_text(object));
     CU_ASSERT(!strcmp(key_data_ds_at_parent_text(object), "unsubmitted"));
     CU_ASSERT(key_data_keytag(object) == 2);
+    CU_ASSERT(key_data_minimize(object) == 2);
     db_value_reset(&zone_id);
     db_value_reset(&hsm_key_id);
 }

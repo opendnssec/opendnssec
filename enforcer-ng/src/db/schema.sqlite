@@ -64,7 +64,8 @@ CREATE TABLE keyData (
     publish UNSIGNED INT NOT NULL,
     activeKsk UNSIGNED INT NOT NULL,
     dsAtParent INT NOT NULL,
-    keytag UNSIGNED INT NOT NULL
+    keytag UNSIGNED INT NOT NULL,
+    minimize UNSIGNED INT NOT NULL
 );
 CREATE INDEX keyDataZoneId ON keyData ( zoneId );
 CREATE INDEX keyDataHsmKeyId ON keyData ( hsmKeyId );

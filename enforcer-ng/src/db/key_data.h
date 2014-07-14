@@ -92,6 +92,7 @@ struct key_data {
     unsigned int active_ksk;
     key_data_ds_at_parent_t ds_at_parent;
     unsigned int keytag;
+    unsigned int minimize;
 
     /*
      * Cached related non-writable key state objects
@@ -283,6 +284,13 @@ const char* key_data_ds_at_parent_text(const key_data_t* key_data);
 unsigned int key_data_keytag(const key_data_t* key_data);
 
 /**
+ * Get the minimize of a key data object. Undefined behavior if `key_data` is NULL.
+ * \param[in] key_data a key_data_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int key_data_minimize(const key_data_t* key_data);
+
+/**
  * Set the zone_id of a key data object. If this fails the original value may have been lost.
  * \param[in] key_data a key_data_t pointer.
  * \param[in] zone_id a db_value_t pointer.
@@ -401,6 +409,14 @@ int key_data_set_ds_at_parent_text(key_data_t* key_data, const char* ds_at_paren
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_data_set_keytag(key_data_t* key_data, unsigned int keytag);
+
+/**
+ * Set the minimize of a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \param[in] minimize an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_set_minimize(key_data_t* key_data, unsigned int minimize);
 
 /**
  * Create a clause for zone_id of a key data object and add it to a database clause list.
@@ -544,6 +560,17 @@ db_clause_t* key_data_ds_at_parent_clause(db_clause_list_t* clause_list, key_dat
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* key_data_keytag_clause(db_clause_list_t* clause_list, unsigned int keytag);
+
+/**
+ * Create a clause for minimize of a key data object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] minimize an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* key_data_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize);
 
 /**
  * Create a key data object in the database.

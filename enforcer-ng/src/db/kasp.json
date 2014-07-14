@@ -50,7 +50,8 @@
       { "name": "SEEN", "value": 3, "text": "seen" },
       { "name": "RETRACT", "value": 4, "text": "retract" },
       { "name": "RETRACTED", "value": 5, "text": "retracted" } ], "default": "UNSUBMITTED" },
-    { "name": "keytag", "type": "DB_TYPE_UINT32" }
+    { "name": "keytag", "type": "DB_TYPE_UINT32" },
+    { "name": "minimize", "type": "DB_TYPE_UINT32" }
   ]
 },
 {
