@@ -2044,6 +2044,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
     time_t returntime_key;
     key_state_t* key_state;
     int key_data_updated, process, key_state_created;
+    const db_enum_t* state_enum, *next_state_enum, *type_enum;
 
     if (!dbconn) {
         /* TODO: better log error */
@@ -2288,7 +2289,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 }
             }
 
-			for (j = 0; process && j < sizeof(type); j++) {
+			for (j = 0; process && j < (sizeof(type) / sizeof(key_state_state_t)); j++) {
                 /*
                  * If the state or desired_state is invalid something went wrong
                  * and we should return.
@@ -2322,10 +2323,27 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 			        }
 			    }
 
-			    ods_log_verbose("[%s] %s: May %s in state %s transition to %s?", module_str, scmd,
+			    for (type_enum = key_state_enum_set_type; type_enum->text; type_enum++) {
+			        if (type_enum->value == (int)type[j]) {
+			            break;
+			        }
+			    }
+                for (state_enum = key_state_enum_set_state; state_enum->text; state_enum++) {
+                    if (state_enum->value == (int)state) {
+                        break;
+                    }
+                }
+                for (next_state_enum = key_state_enum_set_state; next_state_enum->text; next_state_enum++) {
+                    if (next_state_enum->value == (int)next_state) {
+                        break;
+                    }
+                }
+			    ods_log_verbose("[%s] %s: May %s %s %s in state %s transition to %s?", module_str, scmd,
+			        key_data_role_text(keylist[i]),
 			        hsm_key_locator(key_data_cached_hsm_key(keylist[i])),
-			        key_state_enum_set_state[state],
-			        key_state_enum_set_state[next_state]);
+			        type_enum->text,
+			        state_enum->text,
+			        next_state_enum->text);
 
                 future_key.key = keylist[i];
                 future_key.type = type[j];
@@ -2487,19 +2505,37 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 switch (future_key.type) {
                 case KEY_STATE_TYPE_DS:
                     key_state = key_data_get_cached_ds(future_key.key);
+                    break;
 
                 case KEY_STATE_TYPE_DNSKEY:
                     key_state = key_data_get_cached_dnskey(future_key.key);
+                    break;
 
                 case KEY_STATE_TYPE_RRSIG:
                     key_state = key_data_get_cached_rrsig(future_key.key);
+                    break;
 
                 case KEY_STATE_TYPE_RRSIGDNSKEY:
                     key_state = key_data_get_cached_rrsigdnskey(future_key.key);
+                    break;
 
                 default:
+                    ods_log_error("[%s] %s: future key type error", module_str, scmd);
+                    process = 0;
                     break;
                 }
+
+                for (next_state_enum = key_state_enum_set_state; next_state_enum->text; next_state_enum++) {
+                    if (next_state_enum->value == (int)next_state) {
+                        break;
+                    }
+                }
+                ods_log_verbose("[%s] %s: Transitioning %s %s %s from %s to %s", module_str, scmd,
+                    key_data_role_text(keylist[i]),
+                    hsm_key_locator(key_data_cached_hsm_key(keylist[i])),
+                    key_state_type_text(key_state),
+                    key_state_state_text(key_state),
+                    next_state_enum->text);
 
                 if (key_state_set_state(key_state, future_key.next_state)
                     || key_state_set_last_change(key_state, now)
@@ -2525,6 +2561,12 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 // markSuccessors_old(dep_list, key_list, &future_key);
                 if (markSuccessors(dbconn, keylist, keylist_size, &future_key, deplist) < 0) {
                     ods_log_error("[%s] %s: markSuccessors() error", module_str, scmd);
+                    process = 0;
+                    break;
+                }
+
+                if (key_data_cache_key_states(keylist[i])) {
+                    ods_log_error("[%s] %s: Unable to recache key states after transition", module_str, scmd);
                     process = 0;
                     break;
                 }
