@@ -57,9 +57,9 @@ int key_data_cache_key_states(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    key_state = key_state_list_next(key_state_list);
-    while (key_state) {
-        if (key_state_type(key_state) == KEY_STATE_TYPE_DS) {
+    while ((key_state = key_state_list_next(key_state_list))) {
+        switch (key_state_type(key_state)) {
+        case KEY_STATE_TYPE_DS:
             if (key_state_ds
                 || !(key_state_ds = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_ds, key_state))
@@ -71,10 +71,9 @@ int key_data_cache_key_states(key_data_t* key_data) {
                 key_state_list_free(key_state_list);
                 return DB_ERROR_UNKNOWN;
             }
-            continue;
-        }
+            break;
 
-        if (key_state_type(key_state) == KEY_STATE_TYPE_RRSIG) {
+        case KEY_STATE_TYPE_RRSIG:
             if (key_state_rrsig
                 || !(key_state_rrsig = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_rrsig, key_state))
@@ -86,9 +85,9 @@ int key_data_cache_key_states(key_data_t* key_data) {
                 key_state_list_free(key_state_list);
                 return DB_ERROR_UNKNOWN;
             }
-        }
+            break;
 
-        if (key_state_type(key_state) == KEY_STATE_TYPE_DNSKEY) {
+        case KEY_STATE_TYPE_DNSKEY:
             if (key_state_dnskey
                 || !(key_state_dnskey = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_dnskey, key_state))
@@ -100,9 +99,9 @@ int key_data_cache_key_states(key_data_t* key_data) {
                 key_state_list_free(key_state_list);
                 return DB_ERROR_UNKNOWN;
             }
-        }
+            break;
 
-        if (key_state_type(key_state) == KEY_STATE_TYPE_RRSIGDNSKEY) {
+        case KEY_STATE_TYPE_RRSIGDNSKEY:
             if (key_state_rrsigdnskey
                 || !(key_state_rrsigdnskey = key_state_new(db_object_connection(key_data->dbo)))
                 || key_state_copy(key_state_rrsigdnskey, key_state))
@@ -114,8 +113,12 @@ int key_data_cache_key_states(key_data_t* key_data) {
                 key_state_list_free(key_state_list);
                 return DB_ERROR_UNKNOWN;
             }
+            break;
+
+        default:
+            key_state_list_free(key_state_list);
+            return DB_ERROR_UNKNOWN;
         }
-        key_state = key_state_list_next(key_state_list);
     }
     key_state_list_free(key_state_list);
 
