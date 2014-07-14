@@ -301,6 +301,10 @@ schedule_flush(schedule_type* schedule)
         node = ldns_rbtree_first(schedule->tasks);
         while (node && node != LDNS_RBTREE_NULL) {
             task = (task_type*) node->data;
+            /*
+             * TODO BUG? schedule_flush_type() sets when to zero, this does not.
+             * Whos right and whos wrong?
+             */
             task->flush = 1;
             node = ldns_rbtree_next(node);
         }

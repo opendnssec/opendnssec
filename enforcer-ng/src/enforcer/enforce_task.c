@@ -163,6 +163,8 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			client_printf(sockfd,
 				"Next update for zone %s NOT scheduled "
 				"by enforcer !\n", zone_name(zone));
+			ods_log_debug("Next update for zone %s NOT scheduled "
+                "by enforcer !\n", zone_name(zone));
 		} else {
 			/* Invalid schedule time then skip the zone.*/
 			char tbuf[32] = "date/time invalid\n"; /* at least 26 bytes */
@@ -170,6 +172,8 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			client_printf(sockfd,
 				"Next update for zone %s scheduled at %s",
 				zone_name(zone), tbuf);
+            ods_log_debug("Next update for zone %s scheduled at %s",
+                zone_name(zone), tbuf);
 		}
 		if (zone_next_change(zone) != t_next) {
 		    zone_set_next_change(zone, t_next);
@@ -268,6 +272,22 @@ enforce_task_perform(task_type *task)
 	int return_time = perform_enforce_lock(-1, (engine_type *)task->context, 
 		enforce_all, task, task->dbconn);
 	enforce_all = 0; /* global */
+	if (task->flush && return_time == -1) {
+	    /*
+	     * TODO BUG: If enforce task is flushed and no zones need work then
+	     * return_time will be -1 and the enforce task removed from the queue.
+	     */
+	    return_time = 1;
+	    if (task->when < 1) {
+	        /*
+	         * TODO:
+	         * task->when might hold original when time if schedule_flush() was
+	         * called, if schedule_flush_type() was called it will be zero so we
+	         * set it.
+	         */
+	        task->when = time_now() + 60;
+	    }
+	}
 	if (return_time != -1) return task;
 	task_cleanup(task);
 	return NULL;
