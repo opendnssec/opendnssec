@@ -681,8 +681,7 @@ key_data_list_t* key_data_list_new_get_by_hsm_key_id(const db_connection_t* conn
 
 /**
  * Get the first key data object in a key data object list and reset the
- * position of the list. This will not work unless key_data_list_fetch_all()
- * has been called.
+ * position of the list.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return a key_data_t pointer or NULL on error or if there are no
  * key data objects in the key data object list.
@@ -691,9 +690,8 @@ const key_data_t* key_data_list_begin(key_data_list_t* key_data_list);
 
 /**
  * Get the first key data object in a key data object list and reset the
- * position of the list. This will not work unless key_data_list_fetch_all()
- * has been called. The caller will be given ownership of this object and is
- * responsible for freeing it.
+ * position of the list. The caller will be given ownership of this object and
+ * is responsible for freeing it.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return a key_data_t pointer or NULL on error or if there are no
  * key data objects in the key data object list.
@@ -721,20 +719,10 @@ const key_data_t* key_data_list_next(key_data_list_t* key_data_list);
 key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
 
 /**
- * Make sure that all objects in this key data object list is loaded into memory
- * so that key_data_list_begin()/key_data_list_get_begin() can be used to
- * iterate over the list multiple times.
- * \param[in] key_data_list a key_data_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_data_list_fetch_all(key_data_list_t* key_data_list);
-
-/**
  * Get the size of a key data object list.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size. The size can be
- * guaranteed to be returned by first calling key_data_list_fetch_all().
+ * empty or if the backend does not support returning the size.
  */
 size_t key_data_list_size(key_data_list_t* key_data_list);
 

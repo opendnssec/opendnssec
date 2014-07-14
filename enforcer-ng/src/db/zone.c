@@ -2447,7 +2447,9 @@ int zone_list_get(zone_list_t* zone_list) {
     if (zone_list->result_list) {
         db_result_list_free(zone_list->result_list);
     }
-    if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, NULL))) {
+    if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(zone_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -2484,7 +2486,9 @@ int zone_list_get_by_clauses(zone_list_t* zone_list, const db_clause_list_t* cla
     if (zone_list->result_list) {
         db_result_list_free(zone_list->result_list);
     }
-    if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, clause_list))) {
+    if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(zone_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -2544,7 +2548,9 @@ int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_
     if (zone_list->result_list) {
         db_result_list_free(zone_list->result_list);
     }
-    if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, clause_list))) {
+    if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(zone_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -2669,17 +2675,6 @@ zone_t* zone_list_get_next(zone_list_t* zone_list) {
         return NULL;
     }
     return zone;
-}
-
-int zone_list_fetch_all(zone_list_t* zone_list) {
-    if (!zone_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!zone_list->result_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_result_list_fetch_all(zone_list->result_list);
 }
 
 size_t zone_list_size(zone_list_t* zone_list) {

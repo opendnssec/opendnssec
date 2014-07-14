@@ -804,7 +804,6 @@ void test_class_db_result_list(void) {
     CU_ASSERT_FATAL(!db_result_list_set_next(result_list, __db_result_list_next, &fake_pointer, 2));
 
     CU_ASSERT(db_result_list_size(result_list) == 2);
-    CU_ASSERT(!db_result_list_fetch_all(result_list));
     CU_ASSERT_PTR_NOT_NULL(db_result_list_begin(result_list));
     CU_ASSERT_PTR_NOT_NULL(db_result_list_next(result_list));
 

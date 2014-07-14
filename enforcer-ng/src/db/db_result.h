@@ -171,8 +171,7 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
 
 /**
  * Return the first database result in a database result list and reset the
- * position of the list. This will not work unless db_result_list_fetch_all()
- * has been called.
+ * position of the list.
  * \param[in] result_list a db_result_list_t pointer.
  * \return a db_result_t pointer or NULL on error or if the list is empty.
  */
@@ -191,8 +190,7 @@ const db_result_t* db_result_list_next(db_result_list_t* result_list);
  * \param[in] result_list a db_result_list_t pointer.
  * \return a size_t with the size of the database result list or zero on error
  * , if the database result list is empty or if the backend does not support
- * returning the size. The size can be guaranteed to be returned by first
- * calling db_result_list_fetch_all().
+ * returning the size.
  */
 size_t db_result_list_size(const db_result_list_t* result_list);
 

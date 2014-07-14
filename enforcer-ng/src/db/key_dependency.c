@@ -1039,7 +1039,9 @@ int key_dependency_list_get(key_dependency_list_t* key_dependency_list) {
     if (key_dependency_list->result_list) {
         db_result_list_free(key_dependency_list->result_list);
     }
-    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, NULL))) {
+    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(key_dependency_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -1076,7 +1078,9 @@ int key_dependency_list_get_by_clauses(key_dependency_list_t* key_dependency_lis
     if (key_dependency_list->result_list) {
         db_result_list_free(key_dependency_list->result_list);
     }
-    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))) {
+    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_dependency_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -1136,7 +1140,9 @@ int key_dependency_list_get_by_zone_id(key_dependency_list_t* key_dependency_lis
     if (key_dependency_list->result_list) {
         db_result_list_free(key_dependency_list->result_list);
     }
-    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))) {
+    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_dependency_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1201,7 +1207,9 @@ int key_dependency_list_get_by_from_key_data_id(key_dependency_list_t* key_depen
     if (key_dependency_list->result_list) {
         db_result_list_free(key_dependency_list->result_list);
     }
-    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))) {
+    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_dependency_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1266,7 +1274,9 @@ int key_dependency_list_get_by_to_key_data_id(key_dependency_list_t* key_depende
     if (key_dependency_list->result_list) {
         db_result_list_free(key_dependency_list->result_list);
     }
-    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))) {
+    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_dependency_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1391,17 +1401,6 @@ key_dependency_t* key_dependency_list_get_next(key_dependency_list_t* key_depend
         return NULL;
     }
     return key_dependency;
-}
-
-int key_dependency_list_fetch_all(key_dependency_list_t* key_dependency_list) {
-    if (!key_dependency_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_dependency_list->result_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_result_list_fetch_all(key_dependency_list->result_list);
 }
 
 size_t key_dependency_list_size(key_dependency_list_t* key_dependency_list) {

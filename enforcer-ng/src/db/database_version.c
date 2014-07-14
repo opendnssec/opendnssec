@@ -579,7 +579,9 @@ int database_version_list_get(database_version_list_t* database_version_list) {
     if (database_version_list->result_list) {
         db_result_list_free(database_version_list->result_list);
     }
-    if (!(database_version_list->result_list = db_object_read(database_version_list->dbo, NULL, NULL))) {
+    if (!(database_version_list->result_list = db_object_read(database_version_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(database_version_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -616,7 +618,9 @@ int database_version_list_get_by_clauses(database_version_list_t* database_versi
     if (database_version_list->result_list) {
         db_result_list_free(database_version_list->result_list);
     }
-    if (!(database_version_list->result_list = db_object_read(database_version_list->dbo, NULL, clause_list))) {
+    if (!(database_version_list->result_list = db_object_read(database_version_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(database_version_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -736,17 +740,6 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
         return NULL;
     }
     return database_version;
-}
-
-int database_version_list_fetch_all(database_version_list_t* database_version_list) {
-    if (!database_version_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!database_version_list->result_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_result_list_fetch_all(database_version_list->result_list);
 }
 
 size_t database_version_list_size(database_version_list_t* database_version_list) {

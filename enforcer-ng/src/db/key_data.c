@@ -1803,7 +1803,9 @@ int key_data_list_get(key_data_list_t* key_data_list) {
     if (key_data_list->result_list) {
         db_result_list_free(key_data_list->result_list);
     }
-    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, NULL))) {
+    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(key_data_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -1840,7 +1842,9 @@ int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause
     if (key_data_list->result_list) {
         db_result_list_free(key_data_list->result_list);
     }
-    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))) {
+    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_data_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -1900,7 +1904,9 @@ int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_
     if (key_data_list->result_list) {
         db_result_list_free(key_data_list->result_list);
     }
-    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))) {
+    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_data_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1965,7 +1971,9 @@ int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_val
     if (key_data_list->result_list) {
         db_result_list_free(key_data_list->result_list);
     }
-    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))) {
+    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_data_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -2090,17 +2098,6 @@ key_data_t* key_data_list_get_next(key_data_list_t* key_data_list) {
         return NULL;
     }
     return key_data;
-}
-
-int key_data_list_fetch_all(key_data_list_t* key_data_list) {
-    if (!key_data_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_data_list->result_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_result_list_fetch_all(key_data_list->result_list);
 }
 
 size_t key_data_list_size(key_data_list_t* key_data_list) {

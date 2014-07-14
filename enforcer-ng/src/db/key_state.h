@@ -459,8 +459,7 @@ key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* c
 
 /**
  * Get the first key state object in a key state object list and reset the
- * position of the list. This will not work unless key_state_list_fetch_all()
- * has been called.
+ * position of the list.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return a key_state_t pointer or NULL on error or if there are no
  * key state objects in the key state object list.
@@ -469,9 +468,8 @@ const key_state_t* key_state_list_begin(key_state_list_t* key_state_list);
 
 /**
  * Get the first key state object in a key state object list and reset the
- * position of the list. This will not work unless key_state_list_fetch_all()
- * has been called. The caller will be given ownership of this object and is
- * responsible for freeing it.
+ * position of the list. The caller will be given ownership of this object and
+ * is responsible for freeing it.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return a key_state_t pointer or NULL on error or if there are no
  * key state objects in the key state object list.
@@ -499,20 +497,10 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list);
 key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
 
 /**
- * Make sure that all objects in this key state object list is loaded into memory
- * so that key_state_list_begin()/key_state_list_get_begin() can be used to
- * iterate over the list multiple times.
- * \param[in] key_state_list a key_state_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_state_list_fetch_all(key_state_list_t* key_state_list);
-
-/**
  * Get the size of a key state object list.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size. The size can be
- * guaranteed to be returned by first calling key_state_list_fetch_all().
+ * empty or if the backend does not support returning the size.
  */
 size_t key_state_list_size(key_state_list_t* key_state_list);
 

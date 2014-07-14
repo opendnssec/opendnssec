@@ -1162,7 +1162,9 @@ int key_state_list_get(key_state_list_t* key_state_list) {
     if (key_state_list->result_list) {
         db_result_list_free(key_state_list->result_list);
     }
-    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, NULL))) {
+    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(key_state_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -1199,7 +1201,9 @@ int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_cla
     if (key_state_list->result_list) {
         db_result_list_free(key_state_list->result_list);
     }
-    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, clause_list))) {
+    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_state_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -1259,7 +1263,9 @@ int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db
     if (key_state_list->result_list) {
         db_result_list_free(key_state_list->result_list);
     }
-    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, clause_list))) {
+    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_state_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1384,17 +1390,6 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list) {
         return NULL;
     }
     return key_state;
-}
-
-int key_state_list_fetch_all(key_state_list_t* key_state_list) {
-    if (!key_state_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_state_list->result_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_result_list_fetch_all(key_state_list->result_list);
 }
 
 size_t key_state_list_size(key_state_list_t* key_state_list) {

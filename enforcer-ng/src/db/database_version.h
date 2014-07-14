@@ -251,8 +251,7 @@ database_version_list_t* database_version_list_new_get_by_clauses(const db_conne
 
 /**
  * Get the first database version object in a database version object list and reset the
- * position of the list. This will not work unless database_version_list_fetch_all()
- * has been called.
+ * position of the list.
  * \param[in] database_version_list a database_version_list_t pointer.
  * \return a database_version_t pointer or NULL on error or if there are no
  * database version objects in the database version object list.
@@ -261,9 +260,8 @@ const database_version_t* database_version_list_begin(database_version_list_t* d
 
 /**
  * Get the first database version object in a database version object list and reset the
- * position of the list. This will not work unless database_version_list_fetch_all()
- * has been called. The caller will be given ownership of this object and is
- * responsible for freeing it.
+ * position of the list. The caller will be given ownership of this object and
+ * is responsible for freeing it.
  * \param[in] database_version_list a database_version_list_t pointer.
  * \return a database_version_t pointer or NULL on error or if there are no
  * database version objects in the database version object list.
@@ -291,20 +289,10 @@ const database_version_t* database_version_list_next(database_version_list_t* da
 database_version_t* database_version_list_get_next(database_version_list_t* database_version_list);
 
 /**
- * Make sure that all objects in this database version object list is loaded into memory
- * so that database_version_list_begin()/database_version_list_get_begin() can be used to
- * iterate over the list multiple times.
- * \param[in] database_version_list a database_version_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int database_version_list_fetch_all(database_version_list_t* database_version_list);
-
-/**
  * Get the size of a database version object list.
  * \param[in] database_version_list a database_version_list_t pointer.
  * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size. The size can be
- * guaranteed to be returned by first calling database_version_list_fetch_all().
+ * empty or if the backend does not support returning the size.
  */
 size_t database_version_list_size(database_version_list_t* database_version_list);
 

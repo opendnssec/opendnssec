@@ -541,8 +541,7 @@ policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* c
 
 /**
  * Get the first policy key object in a policy key object list and reset the
- * position of the list. This will not work unless policy_key_list_fetch_all()
- * has been called.
+ * position of the list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \return a policy_key_t pointer or NULL on error or if there are no
  * policy key objects in the policy key object list.
@@ -551,9 +550,8 @@ const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list);
 
 /**
  * Get the first policy key object in a policy key object list and reset the
- * position of the list. This will not work unless policy_key_list_fetch_all()
- * has been called. The caller will be given ownership of this object and is
- * responsible for freeing it.
+ * position of the list. The caller will be given ownership of this object and
+ * is responsible for freeing it.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \return a policy_key_t pointer or NULL on error or if there are no
  * policy key objects in the policy key object list.
@@ -581,20 +579,10 @@ const policy_key_t* policy_key_list_next(policy_key_list_t* policy_key_list);
 policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list);
 
 /**
- * Make sure that all objects in this policy key object list is loaded into memory
- * so that policy_key_list_begin()/policy_key_list_get_begin() can be used to
- * iterate over the list multiple times.
- * \param[in] policy_key_list a policy_key_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_key_list_fetch_all(policy_key_list_t* policy_key_list);
-
-/**
  * Get the size of a policy key object list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size. The size can be
- * guaranteed to be returned by first calling policy_key_list_fetch_all().
+ * empty or if the backend does not support returning the size.
  */
 size_t policy_key_list_size(policy_key_list_t* policy_key_list);
 

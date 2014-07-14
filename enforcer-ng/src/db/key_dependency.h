@@ -427,8 +427,7 @@ key_dependency_list_t* key_dependency_list_new_get_by_to_key_data_id(const db_co
 
 /**
  * Get the first key dependency object in a key dependency object list and reset the
- * position of the list. This will not work unless key_dependency_list_fetch_all()
- * has been called.
+ * position of the list.
  * \param[in] key_dependency_list a key_dependency_list_t pointer.
  * \return a key_dependency_t pointer or NULL on error or if there are no
  * key dependency objects in the key dependency object list.
@@ -437,9 +436,8 @@ const key_dependency_t* key_dependency_list_begin(key_dependency_list_t* key_dep
 
 /**
  * Get the first key dependency object in a key dependency object list and reset the
- * position of the list. This will not work unless key_dependency_list_fetch_all()
- * has been called. The caller will be given ownership of this object and is
- * responsible for freeing it.
+ * position of the list. The caller will be given ownership of this object and
+ * is responsible for freeing it.
  * \param[in] key_dependency_list a key_dependency_list_t pointer.
  * \return a key_dependency_t pointer or NULL on error or if there are no
  * key dependency objects in the key dependency object list.
@@ -467,20 +465,10 @@ const key_dependency_t* key_dependency_list_next(key_dependency_list_t* key_depe
 key_dependency_t* key_dependency_list_get_next(key_dependency_list_t* key_dependency_list);
 
 /**
- * Make sure that all objects in this key dependency object list is loaded into memory
- * so that key_dependency_list_begin()/key_dependency_list_get_begin() can be used to
- * iterate over the list multiple times.
- * \param[in] key_dependency_list a key_dependency_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_dependency_list_fetch_all(key_dependency_list_t* key_dependency_list);
-
-/**
  * Get the size of a key dependency object list.
  * \param[in] key_dependency_list a key_dependency_list_t pointer.
  * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size. The size can be
- * guaranteed to be returned by first calling key_dependency_list_fetch_all().
+ * empty or if the backend does not support returning the size.
  */
 size_t key_dependency_list_size(key_dependency_list_t* key_dependency_list);
 

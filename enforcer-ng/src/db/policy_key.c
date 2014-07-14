@@ -1468,7 +1468,9 @@ int policy_key_list_get(policy_key_list_t* policy_key_list) {
     if (policy_key_list->result_list) {
         db_result_list_free(policy_key_list->result_list);
     }
-    if (!(policy_key_list->result_list = db_object_read(policy_key_list->dbo, NULL, NULL))) {
+    if (!(policy_key_list->result_list = db_object_read(policy_key_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(policy_key_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -1505,7 +1507,9 @@ int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_
     if (policy_key_list->result_list) {
         db_result_list_free(policy_key_list->result_list);
     }
-    if (!(policy_key_list->result_list = db_object_read(policy_key_list->dbo, NULL, clause_list))) {
+    if (!(policy_key_list->result_list = db_object_read(policy_key_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(policy_key_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -1565,7 +1569,9 @@ int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const d
     if (policy_key_list->result_list) {
         db_result_list_free(policy_key_list->result_list);
     }
-    if (!(policy_key_list->result_list = db_object_read(policy_key_list->dbo, NULL, clause_list))) {
+    if (!(policy_key_list->result_list = db_object_read(policy_key_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(policy_key_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1690,17 +1696,6 @@ policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list) {
         return NULL;
     }
     return policy_key;
-}
-
-int policy_key_list_fetch_all(policy_key_list_t* policy_key_list) {
-    if (!policy_key_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!policy_key_list->result_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_result_list_fetch_all(policy_key_list->result_list);
 }
 
 size_t policy_key_list_size(policy_key_list_t* policy_key_list) {

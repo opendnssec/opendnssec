@@ -750,8 +750,7 @@ zone_list_t* zone_list_new_get_by_policy_id(const db_connection_t* connection, c
 
 /**
  * Get the first zone object in a zone object list and reset the
- * position of the list. This will not work unless zone_list_fetch_all()
- * has been called.
+ * position of the list.
  * \param[in] zone_list a zone_list_t pointer.
  * \return a zone_t pointer or NULL on error or if there are no
  * zone objects in the zone object list.
@@ -760,9 +759,8 @@ const zone_t* zone_list_begin(zone_list_t* zone_list);
 
 /**
  * Get the first zone object in a zone object list and reset the
- * position of the list. This will not work unless zone_list_fetch_all()
- * has been called. The caller will be given ownership of this object and is
- * responsible for freeing it.
+ * position of the list. The caller will be given ownership of this object and
+ * is responsible for freeing it.
  * \param[in] zone_list a zone_list_t pointer.
  * \return a zone_t pointer or NULL on error or if there are no
  * zone objects in the zone object list.
@@ -790,20 +788,10 @@ const zone_t* zone_list_next(zone_list_t* zone_list);
 zone_t* zone_list_get_next(zone_list_t* zone_list);
 
 /**
- * Make sure that all objects in this zone object list is loaded into memory
- * so that zone_list_begin()/zone_list_get_begin() can be used to
- * iterate over the list multiple times.
- * \param[in] zone_list a zone_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_list_fetch_all(zone_list_t* zone_list);
-
-/**
  * Get the size of a zone object list.
  * \param[in] zone_list a zone_list_t pointer.
  * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size. The size can be
- * guaranteed to be returned by first calling zone_list_fetch_all().
+ * empty or if the backend does not support returning the size.
  */
 size_t zone_list_size(zone_list_t* zone_list);
 

@@ -619,8 +619,7 @@ int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_t* ', $name, '
 }
 print HEADER '/**
  * Get the first ', $tname, ' object in a ', $tname, ' object list and reset the
- * position of the list. This will not work unless ', $name, '_list_fetch_all()
- * has been called.
+ * position of the list.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \return a ', $name, '_t pointer or NULL on error or if there are no
  * ', $tname, ' objects in the ', $tname, ' object list.
@@ -629,9 +628,8 @@ const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ', $name, '_list
 
 /**
  * Get the first ', $tname, ' object in a ', $tname, ' object list and reset the
- * position of the list. This will not work unless ', $name, '_list_fetch_all()
- * has been called. The caller will be given ownership of this object and is
- * responsible for freeing it.
+ * position of the list. The caller will be given ownership of this object and
+ * is responsible for freeing it.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \return a ', $name, '_t pointer or NULL on error or if there are no
  * ', $tname, ' objects in the ', $tname, ' object list.
@@ -659,20 +657,10 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
 ', $name, '_t* ', $name, '_list_get_next(', $name, '_list_t* ', $name, '_list);
 
 /**
- * Make sure that all objects in this ', $tname, ' object list is loaded into memory
- * so that ', $name, '_list_begin()/', $name, '_list_get_begin() can be used to
- * iterate over the list multiple times.
- * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int ', $name, '_list_fetch_all(', $name, '_list_t* ', $name, '_list);
-
-/**
  * Get the size of a ', $tname, ' object list.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size. The size can be
- * guaranteed to be returned by first calling ', $name, '_list_fetch_all().
+ * empty or if the backend does not support returning the size.
  */
 size_t ', $name, '_list_size(', $name, '_list_t* ', $name, '_list);
 
@@ -2050,7 +2038,9 @@ int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list) {
     if (', $name, '_list->result_list) {
         db_result_list_free(', $name, '_list->result_list);
     }
-    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, NULL))) {
+    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(', $name, '_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -2087,7 +2077,9 @@ int ', $name, '_list_get_by_clauses(', $name, '_list_t* ', $name, '_list, const 
     if (', $name, '_list->result_list) {
         db_result_list_free(', $name, '_list->result_list);
     }
-    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, clause_list))) {
+    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(', $name, '_list->result_list))
+    {
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
@@ -2150,7 +2142,9 @@ print SOURCE 'int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_
     if (', $name, '_list->result_list) {
         db_result_list_free(', $name, '_list->result_list);
     }
-    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, clause_list))) {
+    if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(', $name, '_list->result_list))
+    {
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -2278,17 +2272,6 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
         return NULL;
     }
     return ', $name, ';
-}
-
-int ', $name, '_list_fetch_all(', $name, '_list_t* ', $name, '_list) {
-    if (!', $name, '_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!', $name, '_list->result_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_result_list_fetch_all(', $name, '_list->result_list);
 }
 
 size_t ', $name, '_list_size(', $name, '_list_t* ', $name, '_list) {
