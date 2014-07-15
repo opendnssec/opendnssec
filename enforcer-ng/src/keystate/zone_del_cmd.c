@@ -93,7 +93,7 @@ static int delete_key_data(zone_t* zone, db_connection_t *dbconn, int sockfd) {
         }
 
         for (key_state = key_state_list_get_next(key_state_list); key_state; key_state_free(key_state), key_state = key_state_list_get_next(key_state_list)) {
-            if (!key_state_delete(key_state)) {
+            if (key_state_delete(key_state)) {
                 client_printf_err(sockfd, "Unable to delete key state %s for key data %s of zone %s from database!\n", key_state_type_text(key_state), key_data_role_text(key_data), zone_name(zone));
                 successful = 0;
                 continue;
@@ -101,12 +101,17 @@ static int delete_key_data(zone_t* zone, db_connection_t *dbconn, int sockfd) {
         }
         key_state_list_free(key_state_list);
 
-        if (!key_data_delete(key_data)) {
+        if (key_data_delete(key_data)) {
             client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_name(zone));
             successful = 0;
             continue;
         }
-        hsm_key_factory_release_key(key_data_hsm_key_id(key_data), dbconn);
+
+        if (hsm_key_factory_release_key_id(key_data_hsm_key_id(key_data), dbconn)) {
+            client_printf_err(sockfd, "Unable to release HSM key for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_name(zone));
+            successful = 0;
+            continue;
+        }
     }
     key_data_list_free(key_data_list);
 

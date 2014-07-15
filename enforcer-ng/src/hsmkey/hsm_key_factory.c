@@ -530,7 +530,7 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
     return hsm_key;
 }
 
-int hsm_key_factory_release_key(const db_value_t* hsm_key_id, const db_connection_t* connection) {
+int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id, const db_connection_t* connection) {
     hsm_key_t* hsm_key;
     db_clause_list_t* clause_list = NULL;
     key_data_t* key_data = NULL;
@@ -539,11 +539,14 @@ int hsm_key_factory_release_key(const db_value_t* hsm_key_id, const db_connectio
     if (!hsm_key_id) {
         return 1;
     }
+    if (!connection) {
+        return 1;
+    }
 
     if (!(hsm_key = hsm_key_new(connection))
         || !(clause_list = db_clause_list_new())
         || !(key_data = key_data_new(connection))
-        || key_data_hsm_key_id_clause(clause_list, hsm_key_id)
+        || !key_data_hsm_key_id_clause(clause_list, hsm_key_id)
         || key_data_count(key_data, clause_list, &count))
     {
         ods_log_debug("[hsm_key_factory_release_key] unable to check usage of hsm_key, database or memory allocation error");
@@ -556,18 +559,31 @@ int hsm_key_factory_release_key(const db_value_t* hsm_key_id, const db_connectio
     db_clause_list_free(clause_list);
 
     if (count > 0) {
+        ods_log_debug("[hsm_key_factory_release_key] unable to release hsm_key, in use");
         hsm_key_free(hsm_key);
         return 0;
     }
 
-    if (hsm_key_get_by_id(hsm_key, hsm_key_id)
-        || hsm_key_set_state(hsm_key, HSM_KEY_STATE_DELETE)
+    if (hsm_key_get_by_id(hsm_key, hsm_key_id)) {
+        ods_log_debug("[hsm_key_factory_release_key] unable to fetch hsm_key");
+        hsm_key_free(hsm_key);
+        return 1;
+    }
+
+    if (hsm_key_state(hsm_key) == HSM_KEY_STATE_DELETE) {
+        ods_log_debug("[hsm_key_factory_release_key] hsm_key already DELETE (?)");
+        hsm_key_free(hsm_key);
+        return 0;
+    }
+
+    if (hsm_key_set_state(hsm_key, HSM_KEY_STATE_DELETE)
         || hsm_key_update(hsm_key))
     {
         ods_log_debug("[hsm_key_factory_release_key] unable to change hsm_key state to DELETE");
         hsm_key_free(hsm_key);
         return 1;
     }
+    ods_log_debug("[hsm_key_factory_release_key] key %s marked DELETE", hsm_key_locator(hsm_key));
 
     hsm_key_free(hsm_key);
     return 0;

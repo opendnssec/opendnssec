@@ -93,7 +93,7 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
  * \param[in] hsm_key_id a db_value_t pointer with the hsm_key database id.
  * \return non-zero on error.
  */
-int hsm_key_factory_release_key(const db_value_t* hsm_key_id,
+int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
     const db_connection_t* connection);
 
 #ifdef __cplusplus

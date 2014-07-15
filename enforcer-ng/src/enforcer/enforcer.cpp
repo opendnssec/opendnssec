@@ -3799,7 +3799,7 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
                     || key_state_delete(key_data_get_cached_rrsigdnskey(keylist[i]))
                     || key_state_delete(key_data_get_cached_rrsig(keylist[i]))
                     || key_data_delete(keylist[i])
-                    || hsm_key_factory_release_key(hsm_key_id(key_data_cached_hsm_key(keylist[i])), dbconn))
+                    || hsm_key_factory_release_key_id(hsm_key_id(key_data_cached_hsm_key(keylist[i])), dbconn))
                 {
                     /* TODO: better log error */
                     ods_log_error("[%s] %s: key_state_delete() || key_data_delete() || hsm_key_factory_release_key() failed", module_str, scmd);

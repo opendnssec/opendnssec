@@ -852,7 +852,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                 }
                 successful = 1;
                 for (policy_key = policy_key_list_get_next(policy_key_list); policy_key; policy_key_free(policy_key), policy_key = policy_key_list_get_next(policy_key_list)) {
-                    if (!policy_key_delete(policy_key)) {
+                    if (policy_key_delete(policy_key)) {
                         client_printf_err(sockfd, "Unable to delete policy key %s in policy %s from database!\n", policy_key_role_text(policy_key), policy2->name);
                         database_error = 1;
                         successful = 0;
