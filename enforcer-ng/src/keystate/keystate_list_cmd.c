@@ -82,18 +82,18 @@ keystate(int p, int c, int introducing, int dsseen)
 }
 
 static int
-zskstate(const key_data_t *key)
+zskstate(key_data_t *key)
 {
-	return keystate(key_state_state(key->key_state_dnskey),
-		key_state_state(key->key_state_rrsig),
+	return keystate(key_state_state(key_data_cached_dnskey(key)),
+		key_state_state(key_data_cached_rrsig(key)),
 		key_data_introducing(key), 0);
 }
 
 static int
-kskstate(const key_data_t *key)
+kskstate(key_data_t *key)
 {
-	return keystate(key_state_state(key->key_state_ds),
-		key_state_state(key->key_state_dnskey),
+	return keystate(key_state_state(key_data_cached_ds(key)),
+		key_state_state(key_data_cached_dnskey(key)),
 		key_data_introducing(key),
 		key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_SEEN);
 }
@@ -103,7 +103,7 @@ kskstate(const key_data_t *key)
  * @return: state as string
  **/
 static const char*
-map_keystate(const key_data_t *key)
+map_keystate(key_data_t *key)
 {
 	int z,k;
 	switch(key_data_role(key)) {
@@ -158,7 +158,7 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 {
 	const char* fmt = "%-31s %-8s %-9s %s\n";
 	key_data_list_t* key_list;
-	const key_data_t* key;
+	key_data_t* key;
 	int cmp;
 	zone_t *zone = NULL;
 	char* tchange;
@@ -173,7 +173,7 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 	client_printf(sockfd, fmt, "Zone:", "Keytype:", "State:",
 		"Date of next transition:");
 
-	while ((key = key_data_list_next(key_list))) {
+	while ((key = key_data_list_get_next(key_list))) {
 	    if (zone
 	        && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
 	            || cmp))
@@ -184,6 +184,7 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 	    if (!zone) {
 	        zone = key_data_get_zone(key);
 	    }
+        key_data_cache_key_states(key);
 		tchange = map_keytime(zone, key); /* allocs */
 		client_printf(sockfd,
 			fmt,
@@ -192,6 +193,7 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 			map_keystate(key),
 			tchange);
 		free(tchange);
+		key_data_free(key);
 	}
 	zone_free(zone);
 	key_data_list_free(key_list);
@@ -206,7 +208,7 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n";
 	const char* pfmt   = "%s;%s;%s;%s;%d;%d;%s;%s;%d\n";
 	key_data_list_t* key_list;
-	const key_data_t* key;
+	key_data_t* key;
     zone_t *zone = NULL;
     char* tchange;
     hsm_key_t *hsmkey;
@@ -225,7 +227,7 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 			"Repository:", "KeyTag:");
 	}
 
-	while ((key = key_data_list_next(key_list))) {
+	while ((key = key_data_list_get_next(key_list))) {
         if (zone
             && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
                 || cmp))
@@ -237,6 +239,7 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
             zone = key_data_get_zone(key);
         }
         hsmkey = key_data_get_hsm_key(key);
+        key_data_cache_key_states(key);
 		tchange = map_keytime(zone, key); /* allocs */
 		client_printf(sockfd,
 			parsable?pfmt:fmt,
@@ -251,6 +254,7 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 			key_data_keytag(key));
 		free(tchange);
 		hsm_key_free(hsmkey);
+		key_data_free(key);
 	}
     zone_free(zone);
 	key_data_list_free(key_list);
