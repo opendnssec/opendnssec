@@ -3306,7 +3306,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	/*
 	 * If no keys are configured an unsigned zone is okay.
 	 */
-	*allow_unsigned = pkey ? 1 : 0;
+	*allow_unsigned = pkey ? 0 : 1;
 
 	for (; pkey; pkey = policy_key_list_next(policykeylist)) {
 		/*
@@ -3823,7 +3823,7 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 time_t
 update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated)
 {
-	int allow_unsigned;
+	int allow_unsigned = 0;
     time_t policy_return_time, zone_return_time, purge_return_time = -1, return_time;
     key_data_list_t *key_list;
     const key_data_t* key;
