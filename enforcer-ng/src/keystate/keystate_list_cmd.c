@@ -159,6 +159,9 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 	const char* fmt = "%-31s %-8s %-9s %s\n";
 	key_data_list_t* key_list;
 	const key_data_t* key;
+	int cmp;
+	zone_t *zone = NULL;
+	char* tchange;
 
 	if (!(key_list = key_data_list_new_get(dbconn))) {
 		client_printf_err(sockfd, "Unable to get list of keys, memory "
@@ -171,8 +174,17 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 		"Date of next transition:");
 
 	while ((key = key_data_list_next(key_list))) {
-		zone_t *zone = key_data_get_zone(key);
-		char* tchange = map_keytime(zone, key); /* allocs */
+	    if (zone
+	        && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
+	            || cmp))
+        {
+            zone_free(zone);
+            zone = NULL;
+        }
+	    if (!zone) {
+	        zone = key_data_get_zone(key);
+	    }
+		tchange = map_keytime(zone, key); /* allocs */
 		client_printf(sockfd,
 			fmt,
 			zone_name(zone),
@@ -181,6 +193,7 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 			tchange);
 		free(tchange);
 	}
+	zone_free(zone);
 	key_data_list_free(key_list);
 	return 0;
 }
@@ -194,6 +207,10 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 	const char* pfmt   = "%s;%s;%s;%s;%d;%d;%s;%s;%d\n";
 	key_data_list_t* key_list;
 	const key_data_t* key;
+    zone_t *zone = NULL;
+    char* tchange;
+    hsm_key_t *hsmkey;
+    int cmp;
 
 	if (!(key_list = key_data_list_new_get(dbconn))) {
 		client_printf_err(sockfd, "Unable to get list of keys, memory "
@@ -209,9 +226,18 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 	}
 
 	while ((key = key_data_list_next(key_list))) {
-		zone_t *zone = key_data_get_zone(key);
-		hsm_key_t *hsmkey = key_data_get_hsm_key(key);
-		char* tchange = map_keytime(zone, key); /* allocs */
+        if (zone
+            && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
+                || cmp))
+        {
+            zone_free(zone);
+            zone = NULL;
+        }
+        if (!zone) {
+            zone = key_data_get_zone(key);
+        }
+        hsmkey = key_data_get_hsm_key(key);
+		tchange = map_keytime(zone, key); /* allocs */
 		client_printf(sockfd,
 			parsable?pfmt:fmt,
 			zone_name(zone),
@@ -224,7 +250,9 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 			hsm_key_repository(hsmkey),
 			key_data_keytag(key));
 		free(tchange);
+		hsm_key_free(hsmkey);
 	}
+    zone_free(zone);
 	key_data_list_free(key_list);
 	return 0;
 }
@@ -236,7 +264,10 @@ perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
 	const char *fmt  = "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n";
 	const char *pfmt = "%s;%s;%s;%s;%s;%s;%d;%d;%s\n";
 	key_data_list_t* key_list;
-	const key_data_t* key;
+	key_data_t* key;
+    zone_t *zone = NULL;
+    hsm_key_t *hsmkey;
+    int cmp;
 
 	if (!(key_list = key_data_list_new_get(dbconn))) {
 		client_printf_err(sockfd, "Unable to get list of keys, memory "
@@ -251,18 +282,32 @@ perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
 			"Pub: Act: Id:\n");
 	}
 
-	while ((key = key_data_list_next(key_list))) {
+	while ((key = key_data_list_get_next(key_list))) {
+        if (zone
+            && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
+                || cmp))
+        {
+            zone_free(zone);
+            zone = NULL;
+        }
+        if (!zone) {
+            zone = key_data_get_zone(key);
+        }
+	    key_data_cache_key_states(key);
+        hsmkey = key_data_get_hsm_key(key);
 		client_printf(sockfd,
 			parsable?pfmt:fmt,
-			zone_name(key_data_get_zone(key)),
+			zone_name(zone),
 			key_data_role_text(key),
-			key_state_type_text(key->key_state_ds),
-			key_state_type_text(key->key_state_dnskey),
-			key_state_type_text(key->key_state_rrsigdnskey),
-			key_state_type_text(key->key_state_rrsig),
+			key_state_state_text(key_data_cached_ds(key)),
+			key_state_state_text(key_data_cached_dnskey(key)),
+			key_state_state_text(key_data_cached_rrsigdnskey(key)),
+			key_state_state_text(key_data_cached_rrsig(key)),
 			key_data_publish(key),
 			key_data_active_ksk(key) | key_data_active_zsk(key),
-			hsm_key_locator(key_data_get_hsm_key(key)));
+			hsm_key_locator(hsmkey));
+        hsm_key_free(hsmkey);
+		key_data_free(key);
 	}
 	key_data_list_free(key_list);
 	return 0;
