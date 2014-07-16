@@ -4,7 +4,7 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "rev", "type": "DB_TYPE_REVISION" },
-    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy" },
+    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy", "foreign_name": "id" },
     { "name": "name", "type": "DB_TYPE_TEXT", "unique": 1 },
     { "name": "signconf_needs_writing", "type": "DB_TYPE_UINT32" },
     { "name": "signconf_path", "type": "DB_TYPE_TEXT" },
@@ -29,8 +29,8 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "rev", "type": "DB_TYPE_REVISION" },
-    { "name": "zone_id", "type": "DB_TYPE_ANY", "foreign": "zone" },
-    { "name": "hsm_key_id", "type": "DB_TYPE_ANY", "foreign": "hsm_key" },
+    { "name": "zone_id", "type": "DB_TYPE_ANY", "foreign": "zone", "foreign_name": "id"  },
+    { "name": "hsm_key_id", "type": "DB_TYPE_ANY", "foreign": "hsm_key", "foreign_name": "id" },
     { "name": "algorithm", "type": "DB_TYPE_UINT32" },
     { "name": "inception", "type": "DB_TYPE_UINT32" },
     { "name": "role", "type": "DB_TYPE_ENUM", "enum": [
@@ -59,7 +59,7 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "rev", "type": "DB_TYPE_REVISION" },
-    { "name": "key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data" },
+    { "name": "key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data", "foreign_name": "id" },
     { "name": "type", "type": "DB_TYPE_ENUM", "enum": [
       { "name": "DS", "value": 0, "text": "DS" },
       { "name": "RRSIG", "value": 1, "text": "RRSIG" },
@@ -82,9 +82,9 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "rev", "type": "DB_TYPE_REVISION" },
-    { "name": "zone_id", "type": "DB_TYPE_ANY", "foreign": "zone" },
-    { "name": "from_key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data" },
-    { "name": "to_key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data" },
+    { "name": "zone_id", "type": "DB_TYPE_ANY", "foreign": "zone", "foreign_name": "id" },
+    { "name": "from_key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data", "foreign_name": "id" },
+    { "name": "to_key_data_id", "type": "DB_TYPE_ANY", "foreign": "key_data", "foreign_name": "id" },
     { "name": "type", "type": "DB_TYPE_ENUM", "enum": [
       { "name": "DS", "value": 0, "text": "DS" },
       { "name": "RRSIG", "value": 1, "text": "RRSIG" },
@@ -98,7 +98,7 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "rev", "type": "DB_TYPE_REVISION" },
-    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy" },
+    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy", "foreign_name": "id" },
     { "name": "locator", "type": "DB_TYPE_TEXT", "unique": 1 },
     { "name": "state", "type": "DB_TYPE_ENUM", "enum": [
       { "name": "UNUSED", "value": 1, "text": "UNUSED" },
@@ -173,7 +173,7 @@
   "fields": [
     { "name": "id", "type": "DB_TYPE_PRIMARY_KEY" },
     { "name": "rev", "type": "DB_TYPE_REVISION" },
-    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy" },
+    { "name": "policy_id", "type": "DB_TYPE_ANY", "foreign": "policy", "foreign_name": "id" },
     { "name": "role", "type": "DB_TYPE_ENUM", "enum": [
       { "name": "KSK", "value": 1, "text": "KSK" },
       { "name": "ZSK", "value": 2, "text": "ZSK" },

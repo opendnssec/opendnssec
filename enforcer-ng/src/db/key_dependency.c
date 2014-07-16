@@ -189,8 +189,17 @@ void key_dependency_free(key_dependency_t* key_dependency) {
         db_value_reset(&(key_dependency->id));
         db_value_reset(&(key_dependency->rev));
         db_value_reset(&(key_dependency->zone_id));
+        if (key_dependency->private_zone_id) {
+            zone_free(key_dependency->private_zone_id);
+        }
         db_value_reset(&(key_dependency->from_key_data_id));
+        if (key_dependency->private_from_key_data_id) {
+            key_data_free(key_dependency->private_from_key_data_id);
+        }
         db_value_reset(&(key_dependency->to_key_data_id));
+        if (key_dependency->private_to_key_data_id) {
+            key_data_free(key_dependency->private_to_key_data_id);
+        }
         mm_alloc_delete(&__key_dependency_alloc, key_dependency);
     }
 }
@@ -223,10 +232,37 @@ int key_dependency_copy(key_dependency_t* key_dependency, const key_dependency_t
     if (db_value_copy(&(key_dependency->zone_id), &(key_dependency_copy->zone_id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (key_dependency->private_zone_id) {
+        zone_free(key_dependency->private_zone_id);
+        key_dependency->private_zone_id = NULL;
+    }
+    if (key_dependency_copy->private_zone_id
+        && !(key_dependency->private_zone_id = zone_new_copy(key_dependency_copy->private_zone_id)))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_copy(&(key_dependency->from_key_data_id), &(key_dependency_copy->from_key_data_id))) {
         return DB_ERROR_UNKNOWN;
     }
+    if (key_dependency->private_from_key_data_id) {
+        key_data_free(key_dependency->private_from_key_data_id);
+        key_dependency->private_from_key_data_id = NULL;
+    }
+    if (key_dependency_copy->private_from_key_data_id
+        && !(key_dependency->private_from_key_data_id = key_data_new_copy(key_dependency_copy->private_from_key_data_id)))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
     if (db_value_copy(&(key_dependency->to_key_data_id), &(key_dependency_copy->to_key_data_id))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (key_dependency->private_to_key_data_id) {
+        key_data_free(key_dependency->private_to_key_data_id);
+        key_dependency->private_to_key_data_id = NULL;
+    }
+    if (key_dependency_copy->private_to_key_data_id
+        && !(key_dependency->private_to_key_data_id = key_data_new_copy(key_dependency_copy->private_to_key_data_id)))
+    {
         return DB_ERROR_UNKNOWN;
     }
     key_dependency->type = key_dependency_copy->type;
@@ -333,6 +369,17 @@ const db_value_t* key_dependency_zone_id(const key_dependency_t* key_dependency)
     return &(key_dependency->zone_id);
 }
 
+const zone_t* key_dependency_zone(const key_dependency_t* key_dependency) {
+    if (!key_dependency) {
+        return NULL;
+    }
+
+    if (key_dependency->private_zone_id) {
+        return key_dependency->private_zone_id;
+    }
+    return key_dependency->associated_zone_id;
+}
+
 zone_t* key_dependency_get_zone(const key_dependency_t* key_dependency) {
     zone_t* zone_id = NULL;
 
@@ -349,9 +396,23 @@ zone_t* key_dependency_get_zone(const key_dependency_t* key_dependency) {
     if (!(zone_id = zone_new(db_object_connection(key_dependency->dbo)))) {
         return NULL;
     }
-    if (zone_get_by_id(zone_id, &(key_dependency->zone_id))) {
-        zone_free(zone_id);
-        return NULL;
+    if (key_dependency->private_zone_id) {
+        if (zone_copy(zone_id, key_dependency->private_zone_id)) {
+            zone_free(zone_id);
+            return NULL;
+        }
+    }
+    else if (key_dependency->associated_zone_id) {
+        if (zone_copy(zone_id, key_dependency->associated_zone_id)) {
+            zone_free(zone_id);
+            return NULL;
+        }
+    }
+    else {
+        if (zone_get_by_id(zone_id, &(key_dependency->zone_id))) {
+            zone_free(zone_id);
+            return NULL;
+        }
     }
 
     return zone_id;
@@ -363,6 +424,17 @@ const db_value_t* key_dependency_from_key_data_id(const key_dependency_t* key_de
     }
 
     return &(key_dependency->from_key_data_id);
+}
+
+const key_data_t* key_dependency_from_key_data(const key_dependency_t* key_dependency) {
+    if (!key_dependency) {
+        return NULL;
+    }
+
+    if (key_dependency->private_from_key_data_id) {
+        return key_dependency->private_from_key_data_id;
+    }
+    return key_dependency->associated_from_key_data_id;
 }
 
 key_data_t* key_dependency_get_from_key_data(const key_dependency_t* key_dependency) {
@@ -381,9 +453,23 @@ key_data_t* key_dependency_get_from_key_data(const key_dependency_t* key_depende
     if (!(from_key_data_id = key_data_new(db_object_connection(key_dependency->dbo)))) {
         return NULL;
     }
-    if (key_data_get_by_id(from_key_data_id, &(key_dependency->from_key_data_id))) {
-        key_data_free(from_key_data_id);
-        return NULL;
+    if (key_dependency->private_from_key_data_id) {
+        if (key_data_copy(from_key_data_id, key_dependency->private_from_key_data_id)) {
+            key_data_free(from_key_data_id);
+            return NULL;
+        }
+    }
+    else if (key_dependency->associated_from_key_data_id) {
+        if (key_data_copy(from_key_data_id, key_dependency->associated_from_key_data_id)) {
+            key_data_free(from_key_data_id);
+            return NULL;
+        }
+    }
+    else {
+        if (key_data_get_by_id(from_key_data_id, &(key_dependency->from_key_data_id))) {
+            key_data_free(from_key_data_id);
+            return NULL;
+        }
     }
 
     return from_key_data_id;
@@ -395,6 +481,17 @@ const db_value_t* key_dependency_to_key_data_id(const key_dependency_t* key_depe
     }
 
     return &(key_dependency->to_key_data_id);
+}
+
+const key_data_t* key_dependency_to_key_data(const key_dependency_t* key_dependency) {
+    if (!key_dependency) {
+        return NULL;
+    }
+
+    if (key_dependency->private_to_key_data_id) {
+        return key_dependency->private_to_key_data_id;
+    }
+    return key_dependency->associated_to_key_data_id;
 }
 
 key_data_t* key_dependency_get_to_key_data(const key_dependency_t* key_dependency) {
@@ -413,9 +510,23 @@ key_data_t* key_dependency_get_to_key_data(const key_dependency_t* key_dependenc
     if (!(to_key_data_id = key_data_new(db_object_connection(key_dependency->dbo)))) {
         return NULL;
     }
-    if (key_data_get_by_id(to_key_data_id, &(key_dependency->to_key_data_id))) {
-        key_data_free(to_key_data_id);
-        return NULL;
+    if (key_dependency->private_to_key_data_id) {
+        if (key_data_copy(to_key_data_id, key_dependency->private_to_key_data_id)) {
+            key_data_free(to_key_data_id);
+            return NULL;
+        }
+    }
+    else if (key_dependency->associated_to_key_data_id) {
+        if (key_data_copy(to_key_data_id, key_dependency->associated_to_key_data_id)) {
+            key_data_free(to_key_data_id);
+            return NULL;
+        }
+    }
+    else {
+        if (key_data_get_by_id(to_key_data_id, &(key_dependency->to_key_data_id))) {
+            key_data_free(to_key_data_id);
+            return NULL;
+        }
     }
 
     return to_key_data_id;
@@ -1013,7 +1124,22 @@ key_dependency_list_t* key_dependency_list_new(const db_connection_t* connection
     return key_dependency_list;
 }
 
+void key_dependency_list_object_store(key_dependency_list_t* key_dependency_list) {
+    if (key_dependency_list) {
+        key_dependency_list->object_store = 1;
+    }
+}
+
+void key_dependency_list_associated_fetch(key_dependency_list_t* key_dependency_list) {
+    if (key_dependency_list) {
+        key_dependency_list->object_store = 1;
+        key_dependency_list->associated_fetch = 1;
+    }
+}
+
 void key_dependency_list_free(key_dependency_list_t* key_dependency_list) {
+    size_t i;
+
     if (key_dependency_list) {
         if (key_dependency_list->dbo) {
             db_object_free(key_dependency_list->dbo);
@@ -1024,8 +1150,225 @@ void key_dependency_list_free(key_dependency_list_t* key_dependency_list) {
         if (key_dependency_list->key_dependency) {
             key_dependency_free(key_dependency_list->key_dependency);
         }
+        for (i = 0; i < key_dependency_list->object_list_size; i++) {
+            if (key_dependency_list->object_list[i]) {
+                key_dependency_free(key_dependency_list->object_list[i]);
+            }
+        }
+        if (key_dependency_list->object_list) {
+            free(key_dependency_list->object_list);
+        }
+        if (key_dependency_list->zone_id_list) {
+            zone_list_free(key_dependency_list->zone_id_list);
+        }
+        if (key_dependency_list->from_key_data_id_list) {
+            key_data_list_free(key_dependency_list->from_key_data_id_list);
+        }
+        if (key_dependency_list->to_key_data_id_list) {
+            key_data_list_free(key_dependency_list->to_key_data_id_list);
+        }
         mm_alloc_delete(&__key_dependency_list_alloc, key_dependency_list);
     }
+}
+
+static int key_dependency_list_get_associated(key_dependency_list_t* key_dependency_list) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    const db_clause_t* clause_walk;
+    const key_dependency_t* key_dependency;
+    int cmp;
+    size_t i;
+    const zone_t* zone_zone_id;
+    const key_data_t* key_data_from_key_data_id;
+    const key_data_t* key_data_to_key_data_id;
+
+    if (!key_dependency_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_dependency_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_dependency_list->associated_fetch) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_dependency_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_dependency_list->zone_id_list) {
+        zone_list_free(key_dependency_list->zone_id_list);
+        key_dependency_list->zone_id_list = NULL;
+    }
+    if (key_dependency_list->from_key_data_id_list) {
+        key_data_list_free(key_dependency_list->from_key_data_id_list);
+        key_dependency_list->from_key_data_id_list = NULL;
+    }
+    if (key_dependency_list->to_key_data_id_list) {
+        key_data_list_free(key_dependency_list->to_key_data_id_list);
+        key_dependency_list->to_key_data_id_list = NULL;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    key_dependency = key_dependency_list_begin(key_dependency_list);
+    while (key_dependency) {
+        cmp = 1;
+        clause_walk = db_clause_list_begin(clause_list);
+        while (clause_walk) {
+            if (db_value_cmp(db_clause_value(clause_walk), key_dependency_zone_id(key_dependency), &cmp)) {
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                break;
+            }
+            clause_walk = db_clause_next(clause_walk);
+        }
+        if (cmp) {
+            if (!(clause = db_clause_new())
+                || db_clause_set_field(clause, "id")
+                || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+                || db_value_copy(db_clause_get_value(clause), key_dependency_zone_id(key_dependency))
+                || db_clause_list_add(clause_list, clause))
+            {
+                db_clause_free(clause);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+
+        key_dependency = key_dependency_list_next(key_dependency_list);
+    }
+
+    if (!(key_dependency_list->zone_id_list = zone_list_new_get_by_clauses(db_object_connection(key_dependency_list->dbo), clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    for (i = 0; i < key_dependency_list->object_list_size; i++) {
+        zone_zone_id = zone_list_begin(key_dependency_list->zone_id_list);
+        while (zone_zone_id) {
+            if (db_value_cmp(key_dependency_zone_id(key_dependency_list->object_list[i]), zone_id(zone_zone_id), &cmp)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                key_dependency_list->object_list[i]->associated_zone_id = zone_zone_id;
+            }
+
+            zone_zone_id = zone_list_next(key_dependency_list->zone_id_list);
+        }
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    key_dependency = key_dependency_list_begin(key_dependency_list);
+    while (key_dependency) {
+        cmp = 1;
+        clause_walk = db_clause_list_begin(clause_list);
+        while (clause_walk) {
+            if (db_value_cmp(db_clause_value(clause_walk), key_dependency_from_key_data_id(key_dependency), &cmp)) {
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                break;
+            }
+            clause_walk = db_clause_next(clause_walk);
+        }
+        if (cmp) {
+            if (!(clause = db_clause_new())
+                || db_clause_set_field(clause, "id")
+                || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+                || db_value_copy(db_clause_get_value(clause), key_dependency_from_key_data_id(key_dependency))
+                || db_clause_list_add(clause_list, clause))
+            {
+                db_clause_free(clause);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+
+        key_dependency = key_dependency_list_next(key_dependency_list);
+    }
+
+    if (!(key_dependency_list->from_key_data_id_list = key_data_list_new_get_by_clauses(db_object_connection(key_dependency_list->dbo), clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    for (i = 0; i < key_dependency_list->object_list_size; i++) {
+        key_data_from_key_data_id = key_data_list_begin(key_dependency_list->from_key_data_id_list);
+        while (key_data_from_key_data_id) {
+            if (db_value_cmp(key_dependency_from_key_data_id(key_dependency_list->object_list[i]), key_data_id(key_data_from_key_data_id), &cmp)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                key_dependency_list->object_list[i]->associated_from_key_data_id = key_data_from_key_data_id;
+            }
+
+            key_data_from_key_data_id = key_data_list_next(key_dependency_list->from_key_data_id_list);
+        }
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    key_dependency = key_dependency_list_begin(key_dependency_list);
+    while (key_dependency) {
+        cmp = 1;
+        clause_walk = db_clause_list_begin(clause_list);
+        while (clause_walk) {
+            if (db_value_cmp(db_clause_value(clause_walk), key_dependency_to_key_data_id(key_dependency), &cmp)) {
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                break;
+            }
+            clause_walk = db_clause_next(clause_walk);
+        }
+        if (cmp) {
+            if (!(clause = db_clause_new())
+                || db_clause_set_field(clause, "id")
+                || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+                || db_value_copy(db_clause_get_value(clause), key_dependency_to_key_data_id(key_dependency))
+                || db_clause_list_add(clause_list, clause))
+            {
+                db_clause_free(clause);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+
+        key_dependency = key_dependency_list_next(key_dependency_list);
+    }
+
+    if (!(key_dependency_list->to_key_data_id_list = key_data_list_new_get_by_clauses(db_object_connection(key_dependency_list->dbo), clause_list))) {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    for (i = 0; i < key_dependency_list->object_list_size; i++) {
+        key_data_to_key_data_id = key_data_list_begin(key_dependency_list->to_key_data_id_list);
+        while (key_data_to_key_data_id) {
+            if (db_value_cmp(key_dependency_to_key_data_id(key_dependency_list->object_list[i]), key_data_id(key_data_to_key_data_id), &cmp)) {
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                key_dependency_list->object_list[i]->associated_to_key_data_id = key_data_to_key_data_id;
+            }
+
+            key_data_to_key_data_id = key_data_list_next(key_dependency_list->to_key_data_id_list);
+        }
+    }
+
+    key_dependency_list->object_list_first = 1;
+    return DB_OK;
 }
 
 int key_dependency_list_get(key_dependency_list_t* key_dependency_list) {
@@ -1041,6 +1384,11 @@ int key_dependency_list_get(key_dependency_list_t* key_dependency_list) {
     }
     if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, NULL))
         || db_result_list_fetch_all(key_dependency_list->result_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (key_dependency_list->associated_fetch
+        && key_dependency_list_get_associated(key_dependency_list))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -1080,6 +1428,11 @@ int key_dependency_list_get_by_clauses(key_dependency_list_t* key_dependency_lis
     }
     if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))
         || db_result_list_fetch_all(key_dependency_list->result_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (key_dependency_list->associated_fetch
+        && key_dependency_list_get_associated(key_dependency_list))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -1147,6 +1500,11 @@ int key_dependency_list_get_by_zone_id(key_dependency_list_t* key_dependency_lis
         return DB_ERROR_UNKNOWN;
     }
     db_clause_list_free(clause_list);
+    if (key_dependency_list->associated_fetch
+        && key_dependency_list_get_associated(key_dependency_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -1214,6 +1572,11 @@ int key_dependency_list_get_by_from_key_data_id(key_dependency_list_t* key_depen
         return DB_ERROR_UNKNOWN;
     }
     db_clause_list_free(clause_list);
+    if (key_dependency_list->associated_fetch
+        && key_dependency_list_get_associated(key_dependency_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -1281,6 +1644,11 @@ int key_dependency_list_get_by_to_key_data_id(key_dependency_list_t* key_depende
         return DB_ERROR_UNKNOWN;
     }
     db_clause_list_free(clause_list);
+    if (key_dependency_list->associated_fetch
+        && key_dependency_list_get_associated(key_dependency_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -1317,6 +1685,31 @@ const key_dependency_t* key_dependency_list_begin(key_dependency_list_t* key_dep
         return NULL;
     }
 
+    if (key_dependency_list->object_store) {
+        if (!key_dependency_list->object_list) {
+            if (!db_result_list_size(key_dependency_list->result_list)) {
+                return NULL;
+            }
+            if (!(key_dependency_list->object_list = (key_dependency_t**)calloc(db_result_list_size(key_dependency_list->result_list), sizeof(key_dependency_t**)))) {
+                return NULL;
+            }
+            key_dependency_list->object_list_size = db_result_list_size(key_dependency_list->result_list);
+        }
+        if (!(key_dependency_list->object_list[0])) {
+            if (!(result = db_result_list_begin(key_dependency_list->result_list))) {
+                return NULL;
+            }
+            if (!(key_dependency_list->object_list[0] = key_dependency_new(db_object_connection(key_dependency_list->dbo)))) {
+                return NULL;
+            }
+            if (key_dependency_from_result(key_dependency_list->object_list[0], result)) {
+                return NULL;
+            }
+        }
+        key_dependency_list->object_list_position = 0;
+        return key_dependency_list->object_list[0];
+    }
+
     if (!(result = db_result_list_begin(key_dependency_list->result_list))) {
         return NULL;
     }
@@ -1342,6 +1735,17 @@ key_dependency_t* key_dependency_list_get_begin(key_dependency_list_t* key_depen
         return NULL;
     }
 
+    if (key_dependency_list->object_store) {
+        if (!(key_dependency = key_dependency_new(db_object_connection(key_dependency_list->dbo)))) {
+            return NULL;
+        }
+        if (key_dependency_copy(key_dependency, key_dependency_list_begin(key_dependency_list))) {
+            key_dependency_free(key_dependency);
+            return NULL;
+        }
+        return key_dependency;
+    }
+
     if (!(result = db_result_list_begin(key_dependency_list->result_list))) {
         return NULL;
     }
@@ -1363,6 +1767,41 @@ const key_dependency_t* key_dependency_list_next(key_dependency_list_t* key_depe
     }
     if (!key_dependency_list->result_list) {
         return NULL;
+    }
+
+    if (key_dependency_list->object_store) {
+        if (!key_dependency_list->object_list) {
+            if (!db_result_list_size(key_dependency_list->result_list)) {
+                return NULL;
+            }
+            if (!(key_dependency_list->object_list = (key_dependency_t**)calloc(db_result_list_size(key_dependency_list->result_list), sizeof(key_dependency_t**)))) {
+                return NULL;
+            }
+            key_dependency_list->object_list_size = db_result_list_size(key_dependency_list->result_list);
+            key_dependency_list->object_list_position = 0;
+        }
+        else if (key_dependency_list->object_list_first) {
+            key_dependency_list->object_list_first = 0;
+            key_dependency_list->object_list_position = 0;
+        }
+        else {
+            key_dependency_list->object_list_position++;
+        }
+        if (key_dependency_list->object_list_position >= key_dependency_list->object_list_size) {
+            return NULL;
+        }
+        if (!(key_dependency_list->object_list[key_dependency_list->object_list_position])) {
+            if (!(result = db_result_list_next(key_dependency_list->result_list))) {
+                return NULL;
+            }
+            if (!(key_dependency_list->object_list[key_dependency_list->object_list_position] = key_dependency_new(db_object_connection(key_dependency_list->dbo)))) {
+                return NULL;
+            }
+            if (key_dependency_from_result(key_dependency_list->object_list[key_dependency_list->object_list_position], result)) {
+                return NULL;
+            }
+        }
+        return key_dependency_list->object_list[key_dependency_list->object_list_position];
     }
 
     if (!(result = db_result_list_next(key_dependency_list->result_list))) {
@@ -1388,6 +1827,17 @@ key_dependency_t* key_dependency_list_get_next(key_dependency_list_t* key_depend
     }
     if (!key_dependency_list->result_list) {
         return NULL;
+    }
+
+    if (key_dependency_list->object_store) {
+        if (!(key_dependency = key_dependency_new(db_object_connection(key_dependency_list->dbo)))) {
+            return NULL;
+        }
+        if (key_dependency_copy(key_dependency, key_dependency_list_next(key_dependency_list))) {
+            key_dependency_free(key_dependency);
+            return NULL;
+        }
+        return key_dependency;
     }
 
     if (!(result = db_result_list_next(key_dependency_list->result_list))) {

@@ -3387,7 +3387,22 @@ policy_list_t* policy_list_new(const db_connection_t* connection) {
     return policy_list;
 }
 
+void policy_list_object_store(policy_list_t* policy_list) {
+    if (policy_list) {
+        policy_list->object_store = 1;
+    }
+}
+
+void policy_list_associated_fetch(policy_list_t* policy_list) {
+    if (policy_list) {
+        policy_list->object_store = 1;
+        policy_list->associated_fetch = 1;
+    }
+}
+
 void policy_list_free(policy_list_t* policy_list) {
+    size_t i;
+
     if (policy_list) {
         if (policy_list->dbo) {
             db_object_free(policy_list->dbo);
@@ -3398,8 +3413,21 @@ void policy_list_free(policy_list_t* policy_list) {
         if (policy_list->policy) {
             policy_free(policy_list->policy);
         }
+        for (i = 0; i < policy_list->object_list_size; i++) {
+            if (policy_list->object_list[i]) {
+                policy_free(policy_list->object_list[i]);
+            }
+        }
+        if (policy_list->object_list) {
+            free(policy_list->object_list);
+        }
         mm_alloc_delete(&__policy_list_alloc, policy_list);
     }
+}
+
+static int policy_list_get_associated(policy_list_t* policy_list) {
+    (void)policy_list;
+    return DB_OK;
 }
 
 int policy_list_get(policy_list_t* policy_list) {
@@ -3415,6 +3443,11 @@ int policy_list_get(policy_list_t* policy_list) {
     }
     if (!(policy_list->result_list = db_object_read(policy_list->dbo, NULL, NULL))
         || db_result_list_fetch_all(policy_list->result_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (policy_list->associated_fetch
+        && policy_list_get_associated(policy_list))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -3457,6 +3490,11 @@ int policy_list_get_by_clauses(policy_list_t* policy_list, const db_clause_list_
     {
         return DB_ERROR_UNKNOWN;
     }
+    if (policy_list->associated_fetch
+        && policy_list_get_associated(policy_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
     return DB_OK;
 }
 
@@ -3490,6 +3528,31 @@ const policy_t* policy_list_begin(policy_list_t* policy_list) {
         return NULL;
     }
 
+    if (policy_list->object_store) {
+        if (!policy_list->object_list) {
+            if (!db_result_list_size(policy_list->result_list)) {
+                return NULL;
+            }
+            if (!(policy_list->object_list = (policy_t**)calloc(db_result_list_size(policy_list->result_list), sizeof(policy_t**)))) {
+                return NULL;
+            }
+            policy_list->object_list_size = db_result_list_size(policy_list->result_list);
+        }
+        if (!(policy_list->object_list[0])) {
+            if (!(result = db_result_list_begin(policy_list->result_list))) {
+                return NULL;
+            }
+            if (!(policy_list->object_list[0] = policy_new(db_object_connection(policy_list->dbo)))) {
+                return NULL;
+            }
+            if (policy_from_result(policy_list->object_list[0], result)) {
+                return NULL;
+            }
+        }
+        policy_list->object_list_position = 0;
+        return policy_list->object_list[0];
+    }
+
     if (!(result = db_result_list_begin(policy_list->result_list))) {
         return NULL;
     }
@@ -3515,6 +3578,17 @@ policy_t* policy_list_get_begin(policy_list_t* policy_list) {
         return NULL;
     }
 
+    if (policy_list->object_store) {
+        if (!(policy = policy_new(db_object_connection(policy_list->dbo)))) {
+            return NULL;
+        }
+        if (policy_copy(policy, policy_list_begin(policy_list))) {
+            policy_free(policy);
+            return NULL;
+        }
+        return policy;
+    }
+
     if (!(result = db_result_list_begin(policy_list->result_list))) {
         return NULL;
     }
@@ -3536,6 +3610,41 @@ const policy_t* policy_list_next(policy_list_t* policy_list) {
     }
     if (!policy_list->result_list) {
         return NULL;
+    }
+
+    if (policy_list->object_store) {
+        if (!policy_list->object_list) {
+            if (!db_result_list_size(policy_list->result_list)) {
+                return NULL;
+            }
+            if (!(policy_list->object_list = (policy_t**)calloc(db_result_list_size(policy_list->result_list), sizeof(policy_t**)))) {
+                return NULL;
+            }
+            policy_list->object_list_size = db_result_list_size(policy_list->result_list);
+            policy_list->object_list_position = 0;
+        }
+        else if (policy_list->object_list_first) {
+            policy_list->object_list_first = 0;
+            policy_list->object_list_position = 0;
+        }
+        else {
+            policy_list->object_list_position++;
+        }
+        if (policy_list->object_list_position >= policy_list->object_list_size) {
+            return NULL;
+        }
+        if (!(policy_list->object_list[policy_list->object_list_position])) {
+            if (!(result = db_result_list_next(policy_list->result_list))) {
+                return NULL;
+            }
+            if (!(policy_list->object_list[policy_list->object_list_position] = policy_new(db_object_connection(policy_list->dbo)))) {
+                return NULL;
+            }
+            if (policy_from_result(policy_list->object_list[policy_list->object_list_position], result)) {
+                return NULL;
+            }
+        }
+        return policy_list->object_list[policy_list->object_list_position];
     }
 
     if (!(result = db_result_list_next(policy_list->result_list))) {
@@ -3561,6 +3670,17 @@ policy_t* policy_list_get_next(policy_list_t* policy_list) {
     }
     if (!policy_list->result_list) {
         return NULL;
+    }
+
+    if (policy_list->object_store) {
+        if (!(policy = policy_new(db_object_connection(policy_list->dbo)))) {
+            return NULL;
+        }
+        if (policy_copy(policy, policy_list_next(policy_list))) {
+            policy_free(policy);
+            return NULL;
+        }
+        return policy;
     }
 
     if (!(result = db_result_list_next(policy_list->result_list))) {

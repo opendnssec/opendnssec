@@ -80,7 +80,11 @@ struct key_data {
     db_value_t id;
     db_value_t rev;
     db_value_t zone_id;
+    const zone_t* associated_zone_id;
+    zone_t* private_zone_id;
     db_value_t hsm_key_id;
+    const hsm_key_t* associated_hsm_key_id;
+    hsm_key_t* private_hsm_key_id;
     unsigned int algorithm;
     unsigned int inception;
     key_data_role_t role;
@@ -176,6 +180,14 @@ const db_value_t* key_data_zone_id(const key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a zone_t pointer or NULL on error or if no object could be found.
  */
+const zone_t* key_data_zone(const key_data_t* key_data);
+
+/**
+ * Get the zone_id object related to a key data object.
+ * The caller will be given ownership of this object and is responsible for freeing it.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a zone_t pointer or NULL on error or if no object could be found.
+ */
 zone_t* key_data_get_zone(const key_data_t* key_data);
 
 /**
@@ -187,6 +199,14 @@ const db_value_t* key_data_hsm_key_id(const key_data_t* key_data);
 
 /**
  * Get the hsm_key_id object related to a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a hsm_key_t pointer or NULL on error or if no object could be found.
+ */
+const hsm_key_t* key_data_hsm_key(const key_data_t* key_data);
+
+/**
+ * Get the hsm_key_id object related to a key data object.
+ * The caller will be given ownership of this object and is responsible for freeing it.
  * \param[in] key_data a key_data_t pointer.
  * \return a hsm_key_t pointer or NULL on error or if no object could be found.
  */
@@ -629,6 +649,14 @@ struct key_data_list {
     db_result_list_t* result_list;
     const db_result_t* result;
     key_data_t* key_data;
+    int object_store;
+    key_data_t** object_list;
+    size_t object_list_size;
+    size_t object_list_position;
+    int object_list_first;
+    int associated_fetch;
+    zone_list_t* zone_id_list;
+    hsm_key_list_t* hsm_key_id_list;
 };
 
 /**
@@ -639,7 +667,22 @@ struct key_data_list {
 key_data_list_t* key_data_list_new(const db_connection_t* connection);
 
 /**
- * Delete a key data object list
+ * Specify that objects should be stored within the list as they are fetch,
+ * this is optimal if the list is to be iterated over more then once.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ */
+void key_data_list_object_store(key_data_list_t* key_data_list);
+
+/**
+ * Specify that the list should also fetch associated objects in a more optimal
+ * way then fetching them for each individual object later on. This also forces
+ * the list to store all objects (see key_data_list_object_store()).
+ * \param[in] key_data_list a key_data_list_t pointer.
+ */
+void key_data_list_associated_fetch(key_data_list_t* key_data_list);
+
+/**
+ * Delete a key data object list.
  * \param[in] key_data_list a key_data_list_t pointer.
  */
 void key_data_list_free(key_data_list_t* key_data_list);

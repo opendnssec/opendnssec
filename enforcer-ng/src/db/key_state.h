@@ -79,6 +79,8 @@ struct key_state {
     db_value_t id;
     db_value_t rev;
     db_value_t key_data_id;
+    const key_data_t* associated_key_data_id;
+    key_data_t* private_key_data_id;
     key_state_type_t type;
     key_state_state_t state;
     unsigned int last_change;
@@ -155,6 +157,14 @@ const db_value_t* key_state_key_data_id(const key_state_t* key_state);
 
 /**
  * Get the key_data_id object related to a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return a key_data_t pointer or NULL on error or if no object could be found.
+ */
+const key_data_t* key_state_key_data(const key_state_t* key_state);
+
+/**
+ * Get the key_data_id object related to a key state object.
+ * The caller will be given ownership of this object and is responsible for freeing it.
  * \param[in] key_state a key_state_t pointer.
  * \return a key_data_t pointer or NULL on error or if no object could be found.
  */
@@ -396,6 +406,13 @@ struct key_state_list {
     db_result_list_t* result_list;
     const db_result_t* result;
     key_state_t* key_state;
+    int object_store;
+    key_state_t** object_list;
+    size_t object_list_size;
+    size_t object_list_position;
+    int object_list_first;
+    int associated_fetch;
+    key_data_list_t* key_data_id_list;
 };
 
 /**
@@ -406,7 +423,22 @@ struct key_state_list {
 key_state_list_t* key_state_list_new(const db_connection_t* connection);
 
 /**
- * Delete a key state object list
+ * Specify that objects should be stored within the list as they are fetch,
+ * this is optimal if the list is to be iterated over more then once.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ */
+void key_state_list_object_store(key_state_list_t* key_state_list);
+
+/**
+ * Specify that the list should also fetch associated objects in a more optimal
+ * way then fetching them for each individual object later on. This also forces
+ * the list to store all objects (see key_state_list_object_store()).
+ * \param[in] key_state_list a key_state_list_t pointer.
+ */
+void key_state_list_associated_fetch(key_state_list_t* key_state_list);
+
+/**
+ * Delete a key state object list.
  * \param[in] key_state_list a key_state_list_t pointer.
  */
 void key_state_list_free(key_state_list_t* key_state_list);

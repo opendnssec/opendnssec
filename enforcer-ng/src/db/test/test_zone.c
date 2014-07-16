@@ -585,14 +585,54 @@ static void test_zone_list(void) {
     CU_ASSERT_FATAL(!zone_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = zone_list_next(object_list)));
     CU_ASSERT_FATAL(!db_value_copy(&id, zone_id(item)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = zone_list_begin(object_list)));
 
     CU_ASSERT_FATAL(!zone_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = zone_list_get_next(object_list)));
     zone_free(item2);
     CU_PASS("zone_free");
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = zone_list_get_begin(object_list)));
+    zone_free(item2);
+    CU_PASS("zone_free");
 
     CU_ASSERT_PTR_NOT_NULL((new_list = zone_list_new_get(connection)));
     CU_ASSERT_PTR_NOT_NULL(zone_list_next(new_list));
+    zone_list_free(new_list);
+}
+
+static void test_zone_list_store(void) {
+    zone_t* item;
+    zone_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = zone_list_new(connection)));
+    zone_list_object_store(new_list);
+    CU_ASSERT_FATAL(!zone_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = zone_list_get_begin(new_list)));
+    zone_free(item);
+    CU_PASS("zone_free");
+
+    zone_list_free(new_list);
+}
+
+static void test_zone_list_associated(void) {
+    zone_t* item;
+    zone_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = zone_list_new(connection)));
+    zone_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!zone_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(zone_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = zone_list_get_begin(new_list)));
+    zone_free(item);
+    CU_PASS("zone_free");
+
     zone_list_free(new_list);
 }
 
@@ -807,6 +847,8 @@ static int test_zone_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "object clauses", test_zone_clauses)
         || !CU_add_test(pSuite, "object count", test_zone_count)
         || !CU_add_test(pSuite, "list objects", test_zone_list)
+        || !CU_add_test(pSuite, "list objects (store)", test_zone_list_store)
+        || !CU_add_test(pSuite, "list objects (associated)", test_zone_list_associated)
         || !CU_add_test(pSuite, "read object by id", test_zone_read)
         || !CU_add_test(pSuite, "verify fields", test_zone_verify)
         || !CU_add_test(pSuite, "read object by name", test_zone_read_by_name)

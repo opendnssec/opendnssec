@@ -435,14 +435,54 @@ static void test_policy_key_list(void) {
     CU_ASSERT_FATAL(!policy_key_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = policy_key_list_next(object_list)));
     CU_ASSERT_FATAL(!db_value_copy(&id, policy_key_id(item)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = policy_key_list_begin(object_list)));
 
     CU_ASSERT_FATAL(!policy_key_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = policy_key_list_get_next(object_list)));
     policy_key_free(item2);
     CU_PASS("policy_key_free");
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = policy_key_list_get_begin(object_list)));
+    policy_key_free(item2);
+    CU_PASS("policy_key_free");
 
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_key_list_new_get(connection)));
     CU_ASSERT_PTR_NOT_NULL(policy_key_list_next(new_list));
+    policy_key_list_free(new_list);
+}
+
+static void test_policy_key_list_store(void) {
+    policy_key_t* item;
+    policy_key_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = policy_key_list_new(connection)));
+    policy_key_list_object_store(new_list);
+    CU_ASSERT_FATAL(!policy_key_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = policy_key_list_get_begin(new_list)));
+    policy_key_free(item);
+    CU_PASS("policy_key_free");
+
+    policy_key_list_free(new_list);
+}
+
+static void test_policy_key_list_associated(void) {
+    policy_key_t* item;
+    policy_key_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = policy_key_list_new(connection)));
+    policy_key_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!policy_key_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = policy_key_list_get_begin(new_list)));
+    policy_key_free(item);
+    CU_PASS("policy_key_free");
+
     policy_key_list_free(new_list);
 }
 
@@ -556,6 +596,8 @@ static int test_policy_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "object clauses", test_policy_key_clauses)
         || !CU_add_test(pSuite, "object count", test_policy_key_count)
         || !CU_add_test(pSuite, "list objects", test_policy_key_list)
+        || !CU_add_test(pSuite, "list objects (store)", test_policy_key_list_store)
+        || !CU_add_test(pSuite, "list objects (associated)", test_policy_key_list_associated)
         || !CU_add_test(pSuite, "read object by id", test_policy_key_read)
         || !CU_add_test(pSuite, "verify fields", test_policy_key_verify)
         || !CU_add_test(pSuite, "change object", test_policy_key_change)

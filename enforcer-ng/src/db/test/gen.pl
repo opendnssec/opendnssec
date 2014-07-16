@@ -480,14 +480,54 @@ static void test_', $name, '_list(void) {
     CU_ASSERT_FATAL(!', $name, '_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = ', $name, '_list_next(object_list)));
     CU_ASSERT_FATAL(!db_value_copy(&id, ', $name, '_id(item)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = ', $name, '_list_begin(object_list)));
 
     CU_ASSERT_FATAL(!', $name, '_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = ', $name, '_list_get_next(object_list)));
     ', $name, '_free(item2);
     CU_PASS("', $name, '_free");
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = ', $name, '_list_get_begin(object_list)));
+    ', $name, '_free(item2);
+    CU_PASS("', $name, '_free");
 
     CU_ASSERT_PTR_NOT_NULL((new_list = ', $name, '_list_new_get(connection)));
     CU_ASSERT_PTR_NOT_NULL(', $name, '_list_next(new_list));
+    ', $name, '_list_free(new_list);
+}
+
+static void test_', $name, '_list_store(void) {
+    ', $name, '_t* item;
+    ', $name, '_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = ', $name, '_list_new(connection)));
+    ', $name, '_list_object_store(new_list);
+    CU_ASSERT_FATAL(!', $name, '_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = ', $name, '_list_get_begin(new_list)));
+    ', $name, '_free(item);
+    CU_PASS("', $name, '_free");
+
+    ', $name, '_list_free(new_list);
+}
+
+static void test_', $name, '_list_associated(void) {
+    ', $name, '_t* item;
+    ', $name, '_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = ', $name, '_list_new(connection)));
+    ', $name, '_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!', $name, '_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = ', $name, '_list_get_begin(new_list)));
+    ', $name, '_free(item);
+    CU_PASS("', $name, '_free");
+
     ', $name, '_list_free(new_list);
 }
 
@@ -913,6 +953,8 @@ static int test_', $name, '_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "object clauses", test_', $name, '_clauses)
         || !CU_add_test(pSuite, "object count", test_', $name, '_count)
         || !CU_add_test(pSuite, "list objects", test_', $name, '_list)
+        || !CU_add_test(pSuite, "list objects (store)", test_', $name, '_list_store)
+        || !CU_add_test(pSuite, "list objects (associated)", test_', $name, '_list_associated)
         || !CU_add_test(pSuite, "read object by id", test_', $name, '_read)
         || !CU_add_test(pSuite, "verify fields", test_', $name, '_verify)
 ';

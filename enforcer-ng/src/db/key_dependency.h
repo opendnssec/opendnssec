@@ -70,8 +70,14 @@ struct key_dependency {
     db_value_t id;
     db_value_t rev;
     db_value_t zone_id;
+    const zone_t* associated_zone_id;
+    zone_t* private_zone_id;
     db_value_t from_key_data_id;
+    const key_data_t* associated_from_key_data_id;
+    key_data_t* private_from_key_data_id;
     db_value_t to_key_data_id;
+    const key_data_t* associated_to_key_data_id;
+    key_data_t* private_to_key_data_id;
     key_dependency_type_t type;
 };
 
@@ -147,6 +153,14 @@ const db_value_t* key_dependency_zone_id(const key_dependency_t* key_dependency)
  * \param[in] key_dependency a key_dependency_t pointer.
  * \return a zone_t pointer or NULL on error or if no object could be found.
  */
+const zone_t* key_dependency_zone(const key_dependency_t* key_dependency);
+
+/**
+ * Get the zone_id object related to a key dependency object.
+ * The caller will be given ownership of this object and is responsible for freeing it.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \return a zone_t pointer or NULL on error or if no object could be found.
+ */
 zone_t* key_dependency_get_zone(const key_dependency_t* key_dependency);
 
 /**
@@ -161,6 +175,14 @@ const db_value_t* key_dependency_from_key_data_id(const key_dependency_t* key_de
  * \param[in] key_dependency a key_dependency_t pointer.
  * \return a key_data_t pointer or NULL on error or if no object could be found.
  */
+const key_data_t* key_dependency_from_key_data(const key_dependency_t* key_dependency);
+
+/**
+ * Get the from_key_data_id object related to a key dependency object.
+ * The caller will be given ownership of this object and is responsible for freeing it.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \return a key_data_t pointer or NULL on error or if no object could be found.
+ */
 key_data_t* key_dependency_get_from_key_data(const key_dependency_t* key_dependency);
 
 /**
@@ -172,6 +194,14 @@ const db_value_t* key_dependency_to_key_data_id(const key_dependency_t* key_depe
 
 /**
  * Get the to_key_data_id object related to a key dependency object.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \return a key_data_t pointer or NULL on error or if no object could be found.
+ */
+const key_data_t* key_dependency_to_key_data(const key_dependency_t* key_dependency);
+
+/**
+ * Get the to_key_data_id object related to a key dependency object.
+ * The caller will be given ownership of this object and is responsible for freeing it.
  * \param[in] key_dependency a key_dependency_t pointer.
  * \return a key_data_t pointer or NULL on error or if no object could be found.
  */
@@ -332,6 +362,15 @@ struct key_dependency_list {
     db_result_list_t* result_list;
     const db_result_t* result;
     key_dependency_t* key_dependency;
+    int object_store;
+    key_dependency_t** object_list;
+    size_t object_list_size;
+    size_t object_list_position;
+    int object_list_first;
+    int associated_fetch;
+    zone_list_t* zone_id_list;
+    key_data_list_t* from_key_data_id_list;
+    key_data_list_t* to_key_data_id_list;
 };
 
 /**
@@ -342,7 +381,22 @@ struct key_dependency_list {
 key_dependency_list_t* key_dependency_list_new(const db_connection_t* connection);
 
 /**
- * Delete a key dependency object list
+ * Specify that objects should be stored within the list as they are fetch,
+ * this is optimal if the list is to be iterated over more then once.
+ * \param[in] key_dependency_list a key_dependency_list_t pointer.
+ */
+void key_dependency_list_object_store(key_dependency_list_t* key_dependency_list);
+
+/**
+ * Specify that the list should also fetch associated objects in a more optimal
+ * way then fetching them for each individual object later on. This also forces
+ * the list to store all objects (see key_dependency_list_object_store()).
+ * \param[in] key_dependency_list a key_dependency_list_t pointer.
+ */
+void key_dependency_list_associated_fetch(key_dependency_list_t* key_dependency_list);
+
+/**
+ * Delete a key dependency object list.
  * \param[in] key_dependency_list a key_dependency_list_t pointer.
  */
 void key_dependency_list_free(key_dependency_list_t* key_dependency_list);

@@ -60,6 +60,8 @@ struct zone {
     db_value_t id;
     db_value_t rev;
     db_value_t policy_id;
+    const policy_t* associated_policy_id;
+    policy_t* private_policy_id;
     char* name;
     unsigned int signconf_needs_writing;
     char* signconf_path;
@@ -148,6 +150,14 @@ const db_value_t* zone_policy_id(const zone_t* zone);
 
 /**
  * Get the policy_id object related to a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a policy_t pointer or NULL on error or if no object could be found.
+ */
+const policy_t* zone_policy(const zone_t* zone);
+
+/**
+ * Get the policy_id object related to a zone object.
+ * The caller will be given ownership of this object and is responsible for freeing it.
  * \param[in] zone a zone_t pointer.
  * \return a policy_t pointer or NULL on error or if no object could be found.
  */
@@ -687,6 +697,13 @@ struct zone_list {
     db_result_list_t* result_list;
     const db_result_t* result;
     zone_t* zone;
+    int object_store;
+    zone_t** object_list;
+    size_t object_list_size;
+    size_t object_list_position;
+    int object_list_first;
+    int associated_fetch;
+    policy_list_t* policy_id_list;
 };
 
 /**
@@ -697,7 +714,22 @@ struct zone_list {
 zone_list_t* zone_list_new(const db_connection_t* connection);
 
 /**
- * Delete a zone object list
+ * Specify that objects should be stored within the list as they are fetch,
+ * this is optimal if the list is to be iterated over more then once.
+ * \param[in] zone_list a zone_list_t pointer.
+ */
+void zone_list_object_store(zone_list_t* zone_list);
+
+/**
+ * Specify that the list should also fetch associated objects in a more optimal
+ * way then fetching them for each individual object later on. This also forces
+ * the list to store all objects (see zone_list_object_store()).
+ * \param[in] zone_list a zone_list_t pointer.
+ */
+void zone_list_associated_fetch(zone_list_t* zone_list);
+
+/**
+ * Delete a zone object list.
  * \param[in] zone_list a zone_list_t pointer.
  */
 void zone_list_free(zone_list_t* zone_list);

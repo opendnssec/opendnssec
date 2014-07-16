@@ -204,6 +204,12 @@ struct database_version_list {
     db_result_list_t* result_list;
     const db_result_t* result;
     database_version_t* database_version;
+    int object_store;
+    database_version_t** object_list;
+    size_t object_list_size;
+    size_t object_list_position;
+    int object_list_first;
+    int associated_fetch;
 };
 
 /**
@@ -214,7 +220,22 @@ struct database_version_list {
 database_version_list_t* database_version_list_new(const db_connection_t* connection);
 
 /**
- * Delete a database version object list
+ * Specify that objects should be stored within the list as they are fetch,
+ * this is optimal if the list is to be iterated over more then once.
+ * \param[in] database_version_list a database_version_list_t pointer.
+ */
+void database_version_list_object_store(database_version_list_t* database_version_list);
+
+/**
+ * Specify that the list should also fetch associated objects in a more optimal
+ * way then fetching them for each individual object later on. This also forces
+ * the list to store all objects (see database_version_list_object_store()).
+ * \param[in] database_version_list a database_version_list_t pointer.
+ */
+void database_version_list_associated_fetch(database_version_list_t* database_version_list);
+
+/**
+ * Delete a database version object list.
  * \param[in] database_version_list a database_version_list_t pointer.
  */
 void database_version_list_free(database_version_list_t* database_version_list);

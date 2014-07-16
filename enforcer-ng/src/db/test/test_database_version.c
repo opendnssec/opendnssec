@@ -248,14 +248,54 @@ static void test_database_version_list(void) {
     CU_ASSERT_FATAL(!database_version_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = database_version_list_next(object_list)));
     CU_ASSERT_FATAL(!db_value_copy(&id, database_version_id(item)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = database_version_list_begin(object_list)));
 
     CU_ASSERT_FATAL(!database_version_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = database_version_list_get_next(object_list)));
     database_version_free(item2);
     CU_PASS("database_version_free");
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = database_version_list_get_begin(object_list)));
+    database_version_free(item2);
+    CU_PASS("database_version_free");
 
     CU_ASSERT_PTR_NOT_NULL((new_list = database_version_list_new_get(connection)));
     CU_ASSERT_PTR_NOT_NULL(database_version_list_next(new_list));
+    database_version_list_free(new_list);
+}
+
+static void test_database_version_list_store(void) {
+    database_version_t* item;
+    database_version_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = database_version_list_new(connection)));
+    database_version_list_object_store(new_list);
+    CU_ASSERT_FATAL(!database_version_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(database_version_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(database_version_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = database_version_list_get_begin(new_list)));
+    database_version_free(item);
+    CU_PASS("database_version_free");
+
+    database_version_list_free(new_list);
+}
+
+static void test_database_version_list_associated(void) {
+    database_version_t* item;
+    database_version_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = database_version_list_new(connection)));
+    database_version_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!database_version_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(database_version_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(database_version_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = database_version_list_get_begin(new_list)));
+    database_version_free(item);
+    CU_PASS("database_version_free");
+
     database_version_list_free(new_list);
 }
 
@@ -322,6 +362,8 @@ static int test_database_version_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "object clauses", test_database_version_clauses)
         || !CU_add_test(pSuite, "object count", test_database_version_count)
         || !CU_add_test(pSuite, "list objects", test_database_version_list)
+        || !CU_add_test(pSuite, "list objects (store)", test_database_version_list_store)
+        || !CU_add_test(pSuite, "list objects (associated)", test_database_version_list_associated)
         || !CU_add_test(pSuite, "read object by id", test_database_version_read)
         || !CU_add_test(pSuite, "verify fields", test_database_version_verify)
         || !CU_add_test(pSuite, "change object", test_database_version_change)

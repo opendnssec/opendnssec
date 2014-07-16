@@ -371,14 +371,54 @@ static void test_key_state_list(void) {
     CU_ASSERT_FATAL(!key_state_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_state_list_next(object_list)));
     CU_ASSERT_FATAL(!db_value_copy(&id, key_state_id(item)));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_state_list_begin(object_list)));
 
     CU_ASSERT_FATAL(!key_state_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = key_state_list_get_next(object_list)));
     key_state_free(item2);
     CU_PASS("key_state_free");
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = key_state_list_get_begin(object_list)));
+    key_state_free(item2);
+    CU_PASS("key_state_free");
 
     CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new_get(connection)));
     CU_ASSERT_PTR_NOT_NULL(key_state_list_next(new_list));
+    key_state_list_free(new_list);
+}
+
+static void test_key_state_list_store(void) {
+    key_state_t* item;
+    key_state_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new(connection)));
+    key_state_list_object_store(new_list);
+    CU_ASSERT_FATAL(!key_state_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_state_list_get_begin(new_list)));
+    key_state_free(item);
+    CU_PASS("key_state_free");
+
+    key_state_list_free(new_list);
+}
+
+static void test_key_state_list_associated(void) {
+    key_state_t* item;
+    key_state_list_t* new_list;
+
+    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new(connection)));
+    key_state_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!key_state_list_get(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_list_next(new_list));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_list_begin(new_list));
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_state_list_get_begin(new_list)));
+    key_state_free(item);
+    CU_PASS("key_state_free");
+
     key_state_list_free(new_list);
 }
 
@@ -483,6 +523,8 @@ static int test_key_state_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "object clauses", test_key_state_clauses)
         || !CU_add_test(pSuite, "object count", test_key_state_count)
         || !CU_add_test(pSuite, "list objects", test_key_state_list)
+        || !CU_add_test(pSuite, "list objects (store)", test_key_state_list_store)
+        || !CU_add_test(pSuite, "list objects (associated)", test_key_state_list_associated)
         || !CU_add_test(pSuite, "read object by id", test_key_state_read)
         || !CU_add_test(pSuite, "verify fields", test_key_state_verify)
         || !CU_add_test(pSuite, "change object", test_key_state_change)

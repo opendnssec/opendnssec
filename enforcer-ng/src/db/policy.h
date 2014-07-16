@@ -1103,6 +1103,12 @@ struct policy_list {
     db_result_list_t* result_list;
     const db_result_t* result;
     policy_t* policy;
+    int object_store;
+    policy_t** object_list;
+    size_t object_list_size;
+    size_t object_list_position;
+    int object_list_first;
+    int associated_fetch;
 };
 
 /**
@@ -1113,7 +1119,22 @@ struct policy_list {
 policy_list_t* policy_list_new(const db_connection_t* connection);
 
 /**
- * Delete a policy object list
+ * Specify that objects should be stored within the list as they are fetch,
+ * this is optimal if the list is to be iterated over more then once.
+ * \param[in] policy_list a policy_list_t pointer.
+ */
+void policy_list_object_store(policy_list_t* policy_list);
+
+/**
+ * Specify that the list should also fetch associated objects in a more optimal
+ * way then fetching them for each individual object later on. This also forces
+ * the list to store all objects (see policy_list_object_store()).
+ * \param[in] policy_list a policy_list_t pointer.
+ */
+void policy_list_associated_fetch(policy_list_t* policy_list);
+
+/**
+ * Delete a policy object list.
  * \param[in] policy_list a policy_list_t pointer.
  */
 void policy_list_free(policy_list_t* policy_list);
