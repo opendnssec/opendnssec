@@ -2949,10 +2949,12 @@ existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
 	}
 
 	if (!(hkey = key_data_get_hsm_key(key))) {
-		/** This key is not associated with actual key material! 
+		/*
+		 * This key is not associated with actual key material!
 		 * This is a bug or database corruption.
 		 * Crashing here is an option but we just return false so the 
-		 * key will be thrown away in a graceful manner.*/
+		 * key will be thrown away in a graceful manner.
+		 */
 		ods_log_verbose("[%s] %s no hsmkey!", module_str, scmd);
 		return 0;
 	}
@@ -3480,7 +3482,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error new key", module_str, scmd);
 			key_data_free(mutkey);
-			/* TODO: release hsm key? */
+			if (newhsmkey) {
+			    hsm_key_factory_release_key(newhsmkey, dbconn);
+			}
 			hsm_key_free(newhsmkey);
 			key_data_list_free(keylist);
 			policy_key_list_free(policykeylist);
@@ -3501,7 +3505,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error keytag", module_str, scmd);
 			key_data_free(mutkey);
-			/* TODO: release hsm key? */
+            if (newhsmkey) {
+                hsm_key_factory_release_key(newhsmkey, dbconn);
+            }
 			hsm_key_free(newhsmkey);
 			key_data_list_free(keylist);
 			policy_key_list_free(policykeylist);
@@ -3516,7 +3522,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error key_data_create()", module_str, scmd);
 			key_data_free(mutkey);
-			/* TODO: release hsm key? */
+            if (newhsmkey) {
+                hsm_key_factory_release_key(newhsmkey, dbconn);
+            }
 			hsm_key_free(newhsmkey);
 			key_data_list_free(keylist);
 			policy_key_list_free(policykeylist);
@@ -3527,8 +3535,10 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		if (setnextroll(zone, pkey, t_ret)) {
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error setnextroll 5", module_str, scmd);
+            /*
+             * TODO: What should happen with the key and hsmkey here?
+             */
 			key_data_free(mutkey);
-			/* TODO: release hsm key? */
 			hsm_key_free(newhsmkey);
 			key_data_list_free(keylist);
 			policy_key_list_free(policykeylist);
