@@ -96,6 +96,14 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
 int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
     const db_connection_t* connection);
 
+/**
+ * Release a key, if its not used anyore it will be marked DELETE.
+ * \param[in] hsm_key a hsm_key_t pointer with the hsm_key to release.
+ * \return non-zero on error.
+ */
+int hsm_key_factory_release_key(hsm_key_t* hsm_key,
+    const db_connection_t* connection);
+
 #ifdef __cplusplus
 }
 #endif
