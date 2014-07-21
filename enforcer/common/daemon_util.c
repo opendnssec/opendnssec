@@ -634,6 +634,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
                 break;
             case 'P':
                 config->pidfile = optarg;
+                config->pidfile_set = 1;
                 break;
             case 'u':
                 break; /* disable this feature */
@@ -715,6 +716,7 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
     xmlChar *mk_expr = (unsigned char*) "//Configuration/Enforcer/ManualKeyGeneration";
     xmlChar *rn_expr = (unsigned char*) "//Configuration/Enforcer/RolloverNotification";
     xmlChar *ds_expr = (unsigned char*) "//Configuration/Enforcer/DelegationSignerSubmitCommand";
+    xmlChar *pid_expr = (unsigned char*) "//Configuration/Enforcer/PidFile";
     xmlChar *litexpr = (unsigned char*) "//Configuration/Enforcer/Datastore/SQLite";
     xmlChar *mysql_host = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host";
     xmlChar *mysql_port = (unsigned char*) "//Configuration/Enforcer/Datastore/MySQL/Host/@port";
@@ -1099,6 +1101,25 @@ ReadConfig(DAEMONCONFIG *config, int verbose)
         config->log_user = DEFAULT_LOG_FACILITY;
         if (verbose) {
             log_msg(config, LOG_INFO, "Using default log user: %s", logFacilityName);
+        }
+    }
+
+    /* Evaluate xpath expression for pidfile */
+    xpathObj = xmlXPathEvalExpression(pid_expr, xpathCtx);
+    if(xpathObj == NULL) {
+        log_msg(config, LOG_ERR, "Error: unable to evaluate xpath expression: %s", pid_expr);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return(-1);
+    }
+
+    if (xpathObj->nodesetval != NULL && xpathObj->nodesetval->nodeNr > 0) {
+        /* tag present */
+        if (!config->pidfile_set) {
+            config->pidfile = (char *)xmlXPathCastToString(xpathObj);
+            if (verbose) {
+                log_msg(config, LOG_INFO, "Pidfile set to: %s", config->pidfile);
+            }
         }
     }
 
