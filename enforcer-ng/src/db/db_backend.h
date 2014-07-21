@@ -639,6 +639,13 @@ struct db_backend_meta_data {
 db_backend_meta_data_t* db_backend_meta_data_new(void);
 
 /**
+ * Create a new database backend meta data that is a copy of another.
+ * \param[in] from_backend_meta_data a db_backend_meta_data_t pointer.
+ * \return a db_backend_meta_data_t pointer or NULL on error.
+ */
+db_backend_meta_data_t* db_backend_meta_data_new_copy(const db_backend_meta_data_t* from_backend_meta_data);
+
+/**
  * Delete a database backend meta data.
  * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
  */
@@ -705,6 +712,13 @@ struct db_backend_meta_data_list {
  * \return a db_backend_meta_data_list_t pointer or NULL on error.
  */
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void);
+
+/**
+ * Create a new database backend meta data list that is a copy of another.
+ * \param[in] from_backend_meta_data_list a db_backend_meta_data_list_t pointer.
+ * \return a db_backend_meta_data_list_t pointer or NULL on error.
+ */
+db_backend_meta_data_list_t* db_backend_meta_data_list_new_copy(const db_backend_meta_data_list_t* from_backend_meta_data_list);
 
 /**
  * Delete a database backend meta data list and all database backend meta data

@@ -43,6 +43,24 @@ db_result_t* db_result_new(void) {
     return result;
 }
 
+/* TODO: unit test */
+db_result_t* db_result_new_copy(const db_result_t* from_result) {
+    db_result_t* result;
+
+    if (!from_result) {
+        return NULL;
+    }
+
+    if ((result = db_result_new())) {
+        if (db_result_copy(result, from_result)) {
+            db_result_free(result);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
 void db_result_free(db_result_t* result) {
     if (result) {
         if (result->value_set) {
@@ -53,6 +71,43 @@ void db_result_free(db_result_t* result) {
         }
         mm_alloc_delete(&__result_alloc, result);
     }
+}
+
+/* TODO: unit test */
+int db_result_copy(db_result_t* result, const db_result_t* from_result) {
+    db_value_set_t* value_set = NULL;
+    db_backend_meta_data_list_t* backend_meta_data_list = NULL;
+
+    if (!result) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_result) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (from_result->value_set
+        && !(value_set = db_value_set_new_copy(from_result->value_set)))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (from_result->backend_meta_data_list
+        && !(backend_meta_data_list = db_backend_meta_data_list_new_copy(from_result->backend_meta_data_list)))
+    {
+        db_value_set_free(value_set);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (result->value_set) {
+        db_value_set_free(result->value_set);
+    }
+    result->value_set = value_set;
+    if (result->backend_meta_data_list) {
+        db_backend_meta_data_list_free(result->backend_meta_data_list);
+    }
+    result->backend_meta_data_list = backend_meta_data_list;
+
+    return DB_OK;
 }
 
 const db_value_set_t* db_result_value_set(const db_result_t* result) {
@@ -122,6 +177,25 @@ db_result_list_t* db_result_list_new(void) {
     return result_list;
 }
 
+/* TODO: unit test */
+db_result_list_t* db_result_list_new_copy(const db_result_list_t* from_result_list) {
+    db_result_list_t* result_list;
+
+    if (!from_result_list) {
+        return NULL;
+    }
+
+    result_list = (db_result_list_t*)mm_alloc_new0(&__result_list_alloc);
+    if (result_list) {
+        if (db_result_list_copy(result_list, from_result_list)) {
+            db_result_list_free(result_list);
+            return NULL;
+        }
+    }
+
+    return result_list;
+}
+
 void db_result_list_free(db_result_list_t* result_list) {
     if (result_list) {
         if (result_list->begin) {
@@ -142,6 +216,58 @@ void db_result_list_free(db_result_list_t* result_list) {
         }
         mm_alloc_delete(&__result_list_alloc, result_list);
     }
+}
+
+/* TODO: unit test */
+int db_result_list_copy(db_result_list_t* result_list, const db_result_list_t* from_result_list) {
+    db_result_t* result;
+    db_result_t* result_copy;
+
+    if (!result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /*
+     * TODO: Should we be able to copy into a result list that already contains
+     * data?
+     */
+    if (result_list->begin) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result_list->end) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result_list->current) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result_list->size) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (result_list->next_function) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (from_result_list->next_function) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    result = from_result_list->begin;
+    while (result) {
+        if (!(result_copy = db_result_new_copy(result))
+            || db_result_list_add(result_list, result_copy))
+        {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        if (result == from_result_list->current) {
+            result_list->current = result_copy;
+        }
+
+        result = result->next;
+    }
+
+    return DB_OK;
 }
 
 int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data, size_t size) {

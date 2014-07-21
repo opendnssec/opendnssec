@@ -716,6 +716,25 @@ db_backend_meta_data_t* db_backend_meta_data_new(void) {
     return backend_meta_data;
 }
 
+/* TODO: unit test */
+db_backend_meta_data_t* db_backend_meta_data_new_copy(const db_backend_meta_data_t* from_backend_meta_data) {
+    db_backend_meta_data_t* backend_meta_data;
+
+    if (!from_backend_meta_data) {
+        return NULL;
+    }
+
+    backend_meta_data = (db_backend_meta_data_t*)mm_alloc_new0(&__backend_meta_data_alloc);
+    if (backend_meta_data) {
+        if (db_backend_meta_data_copy(backend_meta_data, from_backend_meta_data)) {
+            db_backend_meta_data_free(backend_meta_data);
+            return NULL;
+        }
+    }
+
+    return backend_meta_data;
+}
+
 void db_backend_meta_data_free(db_backend_meta_data_t* backend_meta_data) {
     if (backend_meta_data) {
         if (backend_meta_data->name) {
@@ -835,6 +854,25 @@ static mm_alloc_t __backend_meta_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void) {
     db_backend_meta_data_list_t* backend_meta_data_list =
         (db_backend_meta_data_list_t*)mm_alloc_new0(&__backend_meta_data_list_alloc);
+
+    return backend_meta_data_list;
+}
+
+/* TODO: unit test */
+db_backend_meta_data_list_t* db_backend_meta_data_list_new_copy(const db_backend_meta_data_list_t* from_backend_meta_data_list) {
+    db_backend_meta_data_list_t* backend_meta_data_list;
+
+    if (!from_backend_meta_data_list) {
+        return NULL;
+    }
+
+    backend_meta_data_list = (db_backend_meta_data_list_t*)mm_alloc_new0(&__backend_meta_data_list_alloc);
+    if (backend_meta_data_list) {
+        if (db_backend_meta_data_list_copy(backend_meta_data_list, from_backend_meta_data_list)) {
+            db_backend_meta_data_list_free(backend_meta_data_list);
+            return NULL;
+        }
+    }
 
     return backend_meta_data_list;
 }

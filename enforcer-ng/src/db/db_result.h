@@ -72,16 +72,31 @@ struct db_result {
 };
 
 /**
- * Create a new database result
+ * Create a new database result.
  * \return a db_result_t pointer or NULL on error.
  */
 db_result_t* db_result_new(void);
+
+/**
+ * Create a new database result that is a copy of another.
+ * \param[in] from_result a db_result_t pointer.
+ * \return a db_result_t pointer or NULL on error.
+ */
+db_result_t* db_result_new_copy(const db_result_t* from_result);
 
 /**
  * Delete a database result and the backend meta data list if set.
  * \param[in] result a db_result_t pointer.
  */
 void db_result_free(db_result_t* result);
+
+/**
+ * Copy the content of another database result.
+ * \param[in] result a db_result_t pointer.
+ * \param[in] from_result a db_result_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_result_copy(db_result_t* result, const db_result_t* from_result);
 
 /**
  * Get the value set of a database result.
@@ -143,10 +158,24 @@ struct db_result_list {
 db_result_list_t* db_result_list_new(void);
 
 /**
+ * Create a new database result list that is a copy of another.
+ * \param[in] from_result_list a db_result_list_t pointer.
+ * \return a db_result_list_t pointer or NULL on error.
+ */
+db_result_list_t* db_result_list_new_copy(const db_result_list_t* from_result_list);
+
+/**
  * Delete a database result list and all database results within the list.
  * \param[in] result_list a db_result_list_t pointer.
  */
 void db_result_list_free(db_result_list_t* result_list);
+
+/**
+ * Copy the content of another database result list.
+ * \param[in] result_list a db_result_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_result_list_copy(db_result_list_t* result_list, const db_result_list_t* from_result_list);
 
 /**
  * Set the function pointer for fetching the next database result for a database

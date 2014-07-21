@@ -78,6 +78,13 @@ struct db_value {
 db_value_t* db_value_new();
 
 /**
+ * Create a new database value that is a copy of another.
+ * \param[in] from_value a db_value_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+db_value_t* db_value_new_copy(const db_value_t* from_value);
+
+/**
  * Delete a database value.
  * \param[in] value a db_value_t pointer.
  */
@@ -289,6 +296,13 @@ struct db_value_set {
  * \return a db_value_set_t pointer or NULL on error.
  */
 db_value_set_t* db_value_set_new(size_t size);
+
+/**
+ * Create a new set of database value that is a copy of another.
+ * \param[in] from_value_set a db_value_set_t pointer.
+ * \return a db_value_set_t pointer or NULL on error.
+ */
+db_value_set_t* db_value_set_new_copy(const db_value_set_t* from_value_set);
 
 /**
  * Delete a database value set and all values within the set.

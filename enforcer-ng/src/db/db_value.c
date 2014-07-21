@@ -49,6 +49,24 @@ db_value_t* db_value_new() {
     return value;
 }
 
+/* TODO: unit test */
+db_value_t* db_value_new_copy(const db_value_t* from_value) {
+    db_value_t* value;
+
+    if (!from_value) {
+        return NULL;
+    }
+
+    if (!(value = (db_value_t*)mm_alloc_new0(&__value_alloc))
+        || db_value_copy(value, from_value))
+    {
+        db_value_free(value);
+        return NULL;
+    }
+
+    return value;
+}
+
 void db_value_free(db_value_t* value) {
     if (value) {
         if (value->text) {
@@ -633,8 +651,9 @@ static mm_alloc_t __128_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) *
 
 db_value_set_t* db_value_set_new(size_t size) {
     db_value_set_t* value_set;
+    size_t i;
 
-    if (size > 128) {
+    if (size == 0 || size > 128) {
         return NULL;
     }
 
@@ -669,6 +688,37 @@ db_value_set_t* db_value_set_new(size_t size) {
             return NULL;
         }
         value_set->size = size;
+        for (i=0; i<value_set->size; i++) {
+            value_set->values[i].type = DB_TYPE_EMPTY;
+        }
+    }
+
+    return value_set;
+}
+
+/* TODO: unit test */
+db_value_set_t* db_value_set_new_copy(const db_value_set_t* from_value_set) {
+    db_value_set_t* value_set;
+    size_t i;
+
+    if (!from_value_set) {
+        return NULL;
+    }
+    if (!from_value_set->values) {
+        return NULL;
+    }
+
+    value_set = db_value_set_new(from_value_set->size);
+    if (value_set) {
+        for (i=0; i<from_value_set->size; i++) {
+            if (db_value_type(&from_value_set->values[i]) == DB_TYPE_EMPTY) {
+                continue;
+            }
+            if (db_value_copy(&value_set->values[i], &from_value_set->values[i])) {
+                db_value_set_free(value_set);
+                return NULL;
+            }
+        }
     }
 
     return value_set;
