@@ -1,4 +1,4 @@
-OpenDNSSEC 1.3.18rc1 - 2014-07-11
+OpenDNSSEC 1.3.18 - 2014-07-21
 
 * OPENDNSSEC-620: conf.xml: New options: <PidFile> for both enforcer
   and signer, and <SocketFile> for the signer.
