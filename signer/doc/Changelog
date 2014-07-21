@@ -1,3 +1,27 @@
+8 July 2014: Matthijs
+- Implement and test retransfer behavior
+
+4 July 2014: Matthijs
+- Introduce ods-signer retransfer <zone>
+
+1 July 2014: Matthijs
+- Fix ods-signer -c conf.xml start (used default conf.xml before)
+
+16 June 2014: Matthijs
+- OPENDNSSEC-628: Log ignored notifies at LOG_INFO level.
+
+5 June 2014: Matthijs
+- OPENDNSSEC-621: Configure pidfile and socketfile in conf.xml.
+- OPENDNSSEC-630: Handle root zone differently in working directory.
+
+28 April 2014: Matthijs
+- Show secondary address in NOTIFY error logs.
+- Fix locks bug (thanks Yuri).
+
+22 April 2014: Matthijs
+- OPENDNSSEC-617: Fix DNS Input Adapter to not reject zone the first time
+  due to serial arethmetic (thanks Paul Wouters).
+
 12 March 2014: Matthijs
 - Update NEWS.
 

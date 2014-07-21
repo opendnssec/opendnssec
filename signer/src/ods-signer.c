@@ -30,11 +30,15 @@
  */
 
 #include "config.h"
+#include "daemon/cfg.h"
+#include "parser/confparser.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
 #include "shared/log.h"
+#include "shared/status.h"
 
 #include <errno.h>
+#include <getopt.h>
 #include <fcntl.h> /* fcntl() */
 #include <stdio.h> /* fprintf() */
 #include <string.h> /* strerror(), strncmp(), strlen(), strcpy(), strncat() */
@@ -62,11 +66,27 @@ usage(FILE* out)
     fprintf(out, "Usage: %s [<cmd>]\n", "ods-signer");
     fprintf(out, "Simple command line interface to control the signer "
                  "engine daemon.\nIf no cmd is given, the tool is going "
-                 "into interactive mode.\n");
+                 "into interactive mode.\n\n");
+    fprintf(out, "Supported options:\n");
+    fprintf(out, " -c | --config <cfgfile> Read configuration from file.\n");
+    fprintf(out, " -h | --help             Show this help and exit.\n");
+    fprintf(out, " -V | --version          Show version and exit.\n");
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
                  "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
         PACKAGE_VERSION, PACKAGE_BUGREPORT);
+}
+
+
+/**
+ * Prints version.
+ *
+ */
+static void
+version(FILE* out)
+{
+    fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+    exit(0);
 }
 
 
@@ -99,6 +119,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
     fd_set rset;
     char buf[ODS_SE_MAXLINE];
 
+    stdineof = 0;
     FD_ZERO(&rset);
     for(;;) {
         /* prepare */
@@ -265,13 +286,15 @@ interface_run(FILE* fp, int sockfd, char* cmd)
  *
  */
 static int
-interface_start(char* cmd)
+interface_start(char* cmd, engineconfig_type* config)
 {
     int sockfd, ret, flags;
     struct sockaddr_un servaddr;
-    const char* servsock_filename = ODS_SE_SOCKFILE;
+    const char* servsock_filename = config->clisock_filename;
+    char start_cmd[256];
 
-    ods_log_init(NULL, 0, 0);
+    /* client ignores syslog facility or log filename */
+    ods_log_init(NULL, 0, config->verbosity);
 
     /* new socket */
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -292,7 +315,17 @@ interface_start(char* cmd)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
-            return system(ODS_SE_ENGINE);
+            size_t len = strlen(ODS_SE_ENGINE) + strlen(config->cfg_filename) + 5;
+            if (len < 256) {
+                (void) snprintf(start_cmd, len, "%s -c %s", ODS_SE_ENGINE,
+                    config->cfg_filename);
+                close(sockfd);
+                return system(start_cmd);
+            } else {
+                fprintf(stderr, "Unable to start engine: cmd too long\n");
+                close(sockfd);
+                return 1;
+            }
         }
 
         if (cmd && ods_strcmp(cmd, "running\n") == 0) {
@@ -343,54 +376,86 @@ main(int argc, char* argv[])
 {
     int c;
     int options_size = 0;
-    const char* options[5];
+    int options_count = 0;
+    const char* options[10];
+    const char* cfgfile = ODS_SE_CFGFILE;
+    int cfgfile_expected = 0;
+    engineconfig_type* config = NULL;
+    allocator_type* clialloc = NULL;
+    ods_status status;
     char* cmd = NULL;
     int ret = 0;
-    allocator_type* clialloc = allocator_create(malloc, free);
+
+    /* command line options */
+    if (argc > 10) {
+        fprintf(stderr,"error, too many arguments (%d)\n", argc);
+        exit(1);
+    }
+    for (c = 1; c < argc; c++) {
+        /* leave out --options */
+        if (cfgfile_expected) {
+            cfgfile = argv[c];
+            cfgfile_expected = 0;
+        } else if (!ods_strcmp(argv[c], "-h")) {
+            usage(stdout);
+            exit(0);
+        } else if (!ods_strcmp(argv[c], "--help")) {
+            usage(stdout);
+            exit(0);
+        } else if (!ods_strcmp(argv[c], "-V")) {
+            version(stdout);
+            exit(0);
+        } else if (!ods_strcmp(argv[c], "--version")) {
+            version(stdout);
+            exit(0);
+        } else if (!ods_strcmp(argv[c], "-c")) {
+            cfgfile_expected = 1;
+        } else if (!ods_strcmp(argv[c], "--cfgfile")) {
+            cfgfile_expected = 1;
+        } else {
+            options[options_count] = argv[c];
+            options_size += strlen(argv[c]) + 1;
+            options_count++;
+        }
+    }
+    if (cfgfile_expected) {
+        fprintf(stderr,"error, missing config file\n");
+        exit(1);
+    }
+    clialloc = allocator_create(malloc, free);
     if (!clialloc) {
         fprintf(stderr,"error, malloc failed for client\n");
         exit(1);
     }
-
-    if (argc > 5) {
-        fprintf(stderr,"error, too many arguments (%d)\n", argc);
-        exit(1);
-    }
-
-    /* command line options */
-    for (c = 0; c < argc; c++) {
-        options[c] = argv[c];
-        if (c > 0) {
-            options_size += strlen(argv[c]) + 1;
-        }
-    }
-    if (argc > 1) {
+    /* create signer command */
+    if (options_count) {
         cmd = (char*) allocator_alloc(clialloc, (options_size+2)*sizeof(char));
         if (!cmd) {
-            fprintf(stderr, "memory allocation failed\n");
+            fprintf(stderr, "error, memory allocation failed\n");
             exit(1);
         }
         (void)strncpy(cmd, "", 1);
-        for (c = 1; c < argc; c++) {
+        for (c = 0; c < options_count; c++) {
             (void)strncat(cmd, options[c], strlen(options[c]));
             (void)strncat(cmd, " ", 1);
         }
         cmd[options_size-1] = '\n';
     }
-
-    /* main stuff */
-    if (cmd && ods_strcmp(cmd, "-h\n") == 0) {
-        usage(stdout);
-        ret = 1;
-    } else if (cmd && ods_strcmp(cmd, "--help\n") == 0) {
-        usage(stdout);
-        ret = 1;
-    } else {
-        ret = interface_start(cmd);
+    /* parse conf */
+    config = engine_config(clialloc, cfgfile, 0);
+    status = engine_config_check(config);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] cfgfile %s has errors", cli_str, cfgfile);
+        engine_config_cleanup(config);
+        if (cmd) allocator_deallocate(clialloc, (void*) cmd);
+        allocator_cleanup(clialloc);
+        return 1;
     }
-
+    /* main stuff */
+    ret = interface_start(cmd, config);
     /* done */
-    allocator_deallocate(clialloc, (void*) cmd);
+    engine_config_cleanup(config);
+    if (cmd) allocator_deallocate(clialloc, (void*) cmd);
     allocator_cleanup(clialloc);
     return ret;
 }

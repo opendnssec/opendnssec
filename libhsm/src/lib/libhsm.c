@@ -2672,7 +2672,10 @@ hsm_get_key_id(hsm_ctx_t *ctx, const hsm_key_t *key)
 
     /* this is plain binary data, we need to convert it to hex */
     id_str = malloc(len * 2 + 1);
-    if (!id_str) return NULL;
+    if (!id_str) {
+        free(id);
+        return NULL;
+    }
 
     hsm_hex_unparse(id_str, id, len);
 
@@ -2769,6 +2772,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
         != LDNS_STATUS_OK) {
         ldns_buffer_free(sign_buf);
         /* ERROR */
+        ldns_rr_free(signature);
         return NULL;
     }
 
@@ -2781,6 +2785,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     if (ldns_rr_list2buffer_wire(sign_buf, rrset)
         != LDNS_STATUS_OK) {
         ldns_buffer_free(sign_buf);
+        ldns_rr_free(signature);
         return NULL;
     }
 
@@ -2789,6 +2794,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     ldns_buffer_free(sign_buf);
     if (!b64_rdf) {
         /* signing went wrong */
+        ldns_rr_free(signature);
         return NULL;
     }
 

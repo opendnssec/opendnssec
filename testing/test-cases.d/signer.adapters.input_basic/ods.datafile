@@ -11,7 +11,7 @@ SECTION QUESTION
 ods. IN AXFR
 SECTION ANSWER
 
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 20 5 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 300 120 3600 3600
 ods. 600 IN MX 10 mail.ods.
 ods. 600 IN NS ns1.ods.
 ods. 600 IN NS ns2.ods.
@@ -274,7 +274,7 @@ label34.ods. 3600 IN NS ns5.label34.ods.
 ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 20 5 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 300 120 3600 3600
 
 SECTION AUTHORITY
 SECTION ADDITIONAL
@@ -293,7 +293,7 @@ ADJUST copy_id
 SECTION QUESTION
 ods. IN IXFR
 SECTION ANSWER
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 300 120 3600 3600
 SECTION AUTHORITY
 SECTION ADDITIONAL
 ENTRY_END
@@ -311,9 +311,9 @@ ADJUST copy_id
 SECTION QUESTION
 ods. IN IXFR
 SECTION ANSWER
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 300 120 3600 3600
 ; remove label34 (1000 -> 1001)
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 20 5 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 300 120 3600 3600
 label34.ods. 3600 IN NS ns1.label34.ods.
 ns1.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns2.label34.ods.
@@ -327,7 +327,7 @@ ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
 ; add label35 - label40 (1000 -> 1001)
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 300 120 3600 3600
 label35.ods. 3600 IN NS ns1.label35.ods.
 ns1.label35.ods. 3600 IN A 192.0.2.1
 label35.ods. 3600 IN NS ns2.label35.ods.
@@ -405,7 +405,38 @@ label40.ods. 3600 IN NS ns5.label40.ods.
 ns5.label40.ods. 3600 IN A 192.0.2.1
 label40.ods. 3600 IN NS ns6.label40.ods.
 ns6.label40.ods. 3600 IN A 192.0.2.1
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 20 5 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 300 120 3600 3600
+
+SECTION AUTHORITY
+SECTION ADDITIONAL
+ENTRY_END
+
+
+ENTRY_BEGIN
+MATCH opcode
+MATCH qtype
+MATCH qname
+MATCH TCP
+REPLY QUERY
+REPLY NOERROR
+REPLY QR AA
+ADJUST copy_id
+SECTION QUESTION
+. IN AXFR
+SECTION ANSWER
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2014060500 300 120 3600 3600
+zone.	172800	IN	NS	demand.beta.aridns.net.au.
+zone.	172800	IN	NS	demand.alpha.aridns.net.au.
+zone.	172800	IN	NS	demand.delta.aridns.net.au.
+zone.	172800	IN	NS	demand.gamma.aridns.net.au.
+zw.	172800	IN	NS	ns1.telone.co.zw.
+zw.	172800	IN	NS	ns2.gip.net.
+zw.	172800	IN	NS	ns2.telone.co.zw.
+zw.	172800	IN	NS	ns-zw.ripe.net.
+zw.	172800	IN	NS	news-tokyo.gip.net.
+ns1.telone.co.zw.	172800	IN	A	194.133.122.47
+ns2.telone.co.zw.	172800	IN	A	194.133.122.42
+.	86400	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2014060500 300 120 3600 3600
 
 SECTION AUTHORITY
 SECTION ADDITIONAL

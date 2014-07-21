@@ -1,3 +1,33 @@
+OpenDNSSEC 1.4.6 - 2014-07-21
+
+* Signer Engine: Print secondary server address when logging notify reply
+  errors.
+* Build: Fixed various OpenBSD compatibility issues found by Patrik Lundin
+  <patrik.lundin.swe () gmail.com>.
+* OPENDNSSEC-621: conf.xml: New options: <PidFile> for both enforcer and
+  signer, and <SocketFile> for the signer.
+* New tool: ods-getconf: to retrieve a configuration value from conf.xml
+  given an expression.
+
+Bugfixes:
+* OPENDNSSEC-469: ods-ksmutil: 'zone add' command when zonelist.xml.backup
+  can't be written zone is still added to database, solved it by checking the
+  zonelist.xml.backup is writable before adding zones, and add error message
+  when add zone failed.
+* OPENDNSSEC-617: Signer Engine: Fix DNS Input Adapter to not reject zone
+  the first time due to RFC 1982 serial arethmetic.
+* OPENDNSSEC-619: memory leak when signer failed, solved it by add
+  ldns_rr_free(signature) in libhsm.c
+* OPENDNSSEC-627: Signer Engine: Unable to update serial after restart
+  when the backup files has been removed.
+* OPENDNSSEC-628: Signer Engine: Ingored notifies log level is changed
+  from debug to info.
+* OPENDNSSEC-630: Signer Engine: Fix inbound zone transfer for root zone.
+* libhsm: Fixed a few other memory leaks.
+* simple-dnskey-mailer.sh: Fix syntax error. (by Patrik Lundin
+  https://github.com/eest)
+
+
 OpenDNSSEC 1.4.5 - 2014-04-11
 
 Bugfixes:

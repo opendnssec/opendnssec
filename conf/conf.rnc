@@ -78,6 +78,10 @@ start = element Configuration {
 		# User & group to drop privs to
 		privs?,
 
+		# Location to store pidfile
+		# DEFAULT: $(localstatedir)/run/opendnssec/enforcerd.pid
+		element PidFile { xsd:string }?,
+
 		# Number of Worker Threads
 		# DEFAULT: 1
 		element WorkerThreads { xsd:positiveInteger }?,
@@ -103,6 +107,14 @@ start = element Configuration {
 	element Signer {
 		# User & group to drop privs to
 		privs?,
+
+		# Location to store pidfile
+		# DEFAULT: $(localstatedir)/run/opendnssec/signerd.pid
+		element PidFile { xsd:string }?,
+
+		# Location to store commandhandler socket
+		# DEFAULT: $(localstatedir)/run/opendnssec/engine.sock
+		element SocketFile { xsd:string }?,
 
 		# Location to store intermediate zone information
 		# DEFAULT: $(localstatedir)/opendnssec/tmp

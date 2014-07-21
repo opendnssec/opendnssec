@@ -885,6 +885,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
     }
     lock_basic_unlock(&engine->zonelist->zl_lock);
     if (engine->dnshandler) {
+        ods_log_debug("[%s] forward notify for all zones", engine_str);
         dnshandler_fwd_notify(engine->dnshandler,
             (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
     } else if (warnings) {

@@ -35,7 +35,7 @@
 #include <libhsm.h>
 #include <libhsmdns.h>
 
-#define PTHREAD_THREADS_MAX 2048
+#define HSMSPEED_THREADS_MAX 2048
 
 /* Algorithm identifier and name */
 ldns_algorithm  algorithm = LDNS_RSASHA1;
@@ -117,6 +117,7 @@ sign (void *arg)
     fprintf(stderr, "Signer thread #%d done.\n", sign_arg->id);
 
     pthread_exit(NULL);
+    return NULL;
 }
 
 
@@ -136,9 +137,9 @@ main (int argc, char *argv[])
     char *config = NULL;
     const char *repository = NULL;
 
-    sign_arg_t sign_arg_array[PTHREAD_THREADS_MAX];
+    sign_arg_t sign_arg_array[HSMSPEED_THREADS_MAX];
 
-    pthread_t      thread_array[PTHREAD_THREADS_MAX];
+    pthread_t      thread_array[HSMSPEED_THREADS_MAX];
     pthread_attr_t thread_attr;
     void          *thread_status;
 
@@ -174,6 +175,11 @@ main (int argc, char *argv[])
     if (!repository) {
         usage();
         exit(1);
+    }
+
+    if (threads > HSMSPEED_THREADS_MAX) {
+        fprintf(stderr, "Number of threads specified over max, force using %d threads!\n", HSMSPEED_THREADS_MAX);
+        threads = HSMSPEED_THREADS_MAX;
     }
 
 #if 0

@@ -32,6 +32,9 @@
 .I update
 .IR <zone>
 |
+.I retransfer
+.IR <zone>
+|
 .I verbosity
 .IR <number>
 |
