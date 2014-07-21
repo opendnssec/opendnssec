@@ -79,6 +79,8 @@ struct zone {
     unsigned int next_ksk_roll;
     unsigned int next_zsk_roll;
     unsigned int next_csk_roll;
+    key_data_list_t* key_data_list;
+    key_dependency_list_t* key_dependency_list;
 };
 
 /**
@@ -147,6 +149,13 @@ const db_value_t* zone_id(const zone_t* zone);
  * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* zone_policy_id(const zone_t* zone);
+
+/**
+ * Cache the policy_id object related to a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_cache_policy(zone_t* zone);
 
 /**
  * Get the policy_id object related to a zone object.
@@ -281,6 +290,20 @@ unsigned int zone_next_zsk_roll(const zone_t* zone);
  * \return an unsigned integer.
  */
 unsigned int zone_next_csk_roll(const zone_t* zone);
+
+/**
+ * Get the key_data objects related to a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a key_data_list_t pointer or NULL on error.
+ */
+key_data_list_t* zone_key_data_list(zone_t* zone);
+
+/**
+ * Get the key_dependency objects related to a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a key_dependency_list_t pointer or NULL on error.
+ */
+key_dependency_list_t* zone_key_dependency_list(zone_t* zone);
 
 /**
  * Set the policy_id of a zone object. If this fails the original value may have been lost.
@@ -714,25 +737,42 @@ struct zone_list {
 zone_list_t* zone_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new zone object list that is a copy of another.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new_copy(const zone_list_t* zone_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] zone_list a zone_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void zone_list_object_store(zone_list_t* zone_list);
+int zone_list_object_store(zone_list_t* zone_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see zone_list_object_store()).
  * \param[in] zone_list a zone_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void zone_list_associated_fetch(zone_list_t* zone_list);
+int zone_list_associated_fetch(zone_list_t* zone_list);
 
 /**
  * Delete a zone object list.
  * \param[in] zone_list a zone_list_t pointer.
  */
 void zone_list_free(zone_list_t* zone_list);
+
+/**
+ * Copy the content of another zone object list.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \param[in] from_zone_list a zone_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_list_copy(zone_list_t* zone_list, const zone_list_t* from_zone_list);
 
 /**
  * Get all zone objects.

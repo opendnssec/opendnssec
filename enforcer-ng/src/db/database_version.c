@@ -553,17 +553,44 @@ database_version_list_t* database_version_list_new(const db_connection_t* connec
     return database_version_list;
 }
 
-void database_version_list_object_store(database_version_list_t* database_version_list) {
-    if (database_version_list) {
-        database_version_list->object_store = 1;
+database_version_list_t* database_version_list_new_copy(const database_version_list_t* from_database_version_list) {
+    database_version_list_t* database_version_list;
+
+    if (!from_database_version_list) {
+        return NULL;
     }
+    if (!from_database_version_list->dbo) {
+        return NULL;
+    }
+
+    if (!(database_version_list = database_version_list_new(db_object_connection(from_database_version_list->dbo)))
+        || database_version_list_copy(database_version_list, from_database_version_list))
+    {
+        database_version_list_free(database_version_list);
+        return NULL;
+    }
+    return database_version_list;
 }
 
-void database_version_list_associated_fetch(database_version_list_t* database_version_list) {
-    if (database_version_list) {
-        database_version_list->object_store = 1;
-        database_version_list->associated_fetch = 1;
+int database_version_list_object_store(database_version_list_t* database_version_list) {
+    if (!database_version_list) {
+        return DB_ERROR_UNKNOWN;
     }
+
+    database_version_list->object_store = 1;
+
+    return DB_OK;
+}
+
+int database_version_list_associated_fetch(database_version_list_t* database_version_list) {
+    if (!database_version_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    database_version_list->object_store = 1;
+    database_version_list->associated_fetch = 1;
+
+    return DB_OK;
 }
 
 void database_version_list_free(database_version_list_t* database_version_list) {
@@ -591,12 +618,69 @@ void database_version_list_free(database_version_list_t* database_version_list) 
     }
 }
 
+int database_version_list_copy(database_version_list_t* database_version_list, const database_version_list_t* from_database_version_list) {
+    size_t i;
+
+    if (!database_version_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_database_version_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (from_database_version_list->object_list && !from_database_version_list->object_list_size) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (database_version_list->result_list) {
+        db_result_list_free(database_version_list->result_list);
+        database_version_list->result_list = NULL;
+    }
+    if (from_database_version_list->result_list
+        && !(database_version_list->result_list = db_result_list_new_copy(from_database_version_list->result_list)))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    database_version_list->object_store = from_database_version_list->object_store;
+    for (i = 0; i < database_version_list->object_list_size; i++) {
+        if (database_version_list->object_list[i]) {
+            database_version_free(database_version_list->object_list[i]);
+        }
+    }
+    database_version_list->object_list_size = 0;
+    if (database_version_list->object_list) {
+        free(database_version_list->object_list);
+        database_version_list->object_list = NULL;
+    }
+    if (from_database_version_list->object_list) {
+        if (!(database_version_list->object_list = (database_version_t**)calloc(from_database_version_list->object_list_size, sizeof(database_version_t*)))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        database_version_list->object_list_size = from_database_version_list->object_list_size;
+        for (i = 0; i < from_database_version_list->object_list_size; i++) {
+            if (!from_database_version_list->object_list[i]) {
+                continue;
+            }
+            if (!(database_version_list->object_list[i] = database_version_new_copy(from_database_version_list->object_list[i]))) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+    }
+    database_version_list->object_list_position = 0;;
+    database_version_list->object_list_first = 1;
+    database_version_list->associated_fetch = from_database_version_list->associated_fetch;
+
+    return DB_OK;
+}
+
 static int database_version_list_get_associated(database_version_list_t* database_version_list) {
     (void)database_version_list;
     return DB_OK;
 }
 
 int database_version_list_get(database_version_list_t* database_version_list) {
+    size_t i;
+
     if (!database_version_list) {
         return DB_ERROR_UNKNOWN;
     }
@@ -606,6 +690,19 @@ int database_version_list_get(database_version_list_t* database_version_list) {
 
     if (database_version_list->result_list) {
         db_result_list_free(database_version_list->result_list);
+    }
+    if (database_version_list->object_list_size) {
+        for (i = 0; i < database_version_list->object_list_size; i++) {
+            if (database_version_list->object_list[i]) {
+                database_version_free(database_version_list->object_list[i]);
+            }
+        }
+        database_version_list->object_list_size = 0;
+        database_version_list->object_list_first = 0;
+    }
+    if (database_version_list->object_list) {
+        free(database_version_list->object_list);
+        database_version_list->object_list = NULL;
     }
     if (!(database_version_list->result_list = db_object_read(database_version_list->dbo, NULL, NULL))
         || db_result_list_fetch_all(database_version_list->result_list))
@@ -638,6 +735,8 @@ database_version_list_t* database_version_list_new_get(const db_connection_t* co
 }
 
 int database_version_list_get_by_clauses(database_version_list_t* database_version_list, const db_clause_list_t* clause_list) {
+    size_t i;
+
     if (!database_version_list) {
         return DB_ERROR_UNKNOWN;
     }
@@ -650,6 +749,19 @@ int database_version_list_get_by_clauses(database_version_list_t* database_versi
 
     if (database_version_list->result_list) {
         db_result_list_free(database_version_list->result_list);
+    }
+    if (database_version_list->object_list_size) {
+        for (i = 0; i < database_version_list->object_list_size; i++) {
+            if (database_version_list->object_list[i]) {
+                database_version_free(database_version_list->object_list[i]);
+            }
+        }
+        database_version_list->object_list_size = 0;
+        database_version_list->object_list_first = 0;
+    }
+    if (database_version_list->object_list) {
+        free(database_version_list->object_list);
+        database_version_list->object_list = NULL;
     }
     if (!(database_version_list->result_list = db_object_read(database_version_list->dbo, NULL, clause_list))
         || db_result_list_fetch_all(database_version_list->result_list))
@@ -690,12 +802,12 @@ const database_version_t* database_version_list_begin(database_version_list_t* d
     if (!database_version_list) {
         return NULL;
     }
-    if (!database_version_list->result_list) {
-        return NULL;
-    }
 
     if (database_version_list->object_store) {
         if (!database_version_list->object_list) {
+            if (!database_version_list->result_list) {
+                return NULL;
+            }
             if (!db_result_list_size(database_version_list->result_list)) {
                 return NULL;
             }
@@ -705,6 +817,9 @@ const database_version_t* database_version_list_begin(database_version_list_t* d
             database_version_list->object_list_size = db_result_list_size(database_version_list->result_list);
         }
         if (!(database_version_list->object_list[0])) {
+            if (!database_version_list->result_list) {
+                return NULL;
+            }
             if (!(result = db_result_list_begin(database_version_list->result_list))) {
                 return NULL;
             }
@@ -717,6 +832,10 @@ const database_version_t* database_version_list_begin(database_version_list_t* d
         }
         database_version_list->object_list_position = 0;
         return database_version_list->object_list[0];
+    }
+
+    if (!database_version_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_begin(database_version_list->result_list))) {
@@ -740,9 +859,6 @@ database_version_t* database_version_list_get_begin(database_version_list_t* dat
     if (!database_version_list) {
         return NULL;
     }
-    if (!database_version_list->result_list) {
-        return NULL;
-    }
 
     if (database_version_list->object_store) {
         if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
@@ -753,6 +869,10 @@ database_version_t* database_version_list_get_begin(database_version_list_t* dat
             return NULL;
         }
         return database_version;
+    }
+
+    if (!database_version_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_begin(database_version_list->result_list))) {
@@ -774,12 +894,12 @@ const database_version_t* database_version_list_next(database_version_list_t* da
     if (!database_version_list) {
         return NULL;
     }
-    if (!database_version_list->result_list) {
-        return NULL;
-    }
 
     if (database_version_list->object_store) {
         if (!database_version_list->object_list) {
+            if (!database_version_list->result_list) {
+                return NULL;
+            }
             if (!db_result_list_size(database_version_list->result_list)) {
                 return NULL;
             }
@@ -800,6 +920,9 @@ const database_version_t* database_version_list_next(database_version_list_t* da
             return NULL;
         }
         if (!(database_version_list->object_list[database_version_list->object_list_position])) {
+            if (!database_version_list->result_list) {
+                return NULL;
+            }
             if (!(result = db_result_list_next(database_version_list->result_list))) {
                 return NULL;
             }
@@ -811,6 +934,10 @@ const database_version_t* database_version_list_next(database_version_list_t* da
             }
         }
         return database_version_list->object_list[database_version_list->object_list_position];
+    }
+
+    if (!database_version_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_next(database_version_list->result_list))) {
@@ -834,9 +961,6 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
     if (!database_version_list) {
         return NULL;
     }
-    if (!database_version_list->result_list) {
-        return NULL;
-    }
 
     if (database_version_list->object_store) {
         if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
@@ -847,6 +971,10 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
             return NULL;
         }
         return database_version;
+    }
+
+    if (!database_version_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_next(database_version_list->result_list))) {
@@ -864,10 +992,17 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
 
 size_t database_version_list_size(database_version_list_t* database_version_list) {
     if (!database_version_list) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
+
+    if (database_version_list->object_store
+        && database_version_list->object_list)
+    {
+        return database_version_list->object_list_size;
+    }
+
     if (!database_version_list->result_list) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return db_result_list_size(database_version_list->result_list);

@@ -605,7 +605,7 @@ static void test_zone_list_store(void) {
     zone_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = zone_list_new(connection)));
-    zone_list_object_store(new_list);
+    CU_ASSERT_FATAL(!zone_list_object_store(new_list));
     CU_ASSERT_FATAL(!zone_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_list_next(new_list));
@@ -623,7 +623,7 @@ static void test_zone_list_associated(void) {
     zone_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = zone_list_new(connection)));
-    zone_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!zone_list_associated_fetch(new_list));
     CU_ASSERT_FATAL(!zone_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_list_next(new_list));

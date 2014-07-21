@@ -181,6 +181,10 @@ foreach my $field (@{$object->{fields}}) {
     print HEADER '    ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $field->{name}, ";\n";
 }
 
+foreach my $associated (@{$object->{association}}) {
+    print HEADER '    ', $associated->{foreign},'_list_t* ', $associated->{foreign}, "_list;\n";
+}
+
 print HEADER '};
 
 /**
@@ -255,6 +259,14 @@ const db_value_t* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name
             my $func_name = $field->{name};
             $func_name =~ s/_id//o;
         print HEADER '/**
+ * Cache the ', $field->{name}, ' object related to a ', $tname, ' object.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_cache_', $func_name, '(', $name, '_t* ', $name, ');
+
+';
+        print HEADER '/**
  * Get the ', $field->{name}, ' object related to a ', $tname, ' object.
  * \param[in] ', $name, ' a ', $name, '_t pointer.
  * \return a ', $field->{foreign}, '_t pointer or NULL on error or if no object could be found.
@@ -310,6 +322,17 @@ const char* ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ');
  * \return ', $DB_TYPE_TO_TEXT{$field->{type}}, '.
  */
 ', $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $name, '_', $field->{name}, '(const ', $name, '_t* ', $name, ');
+
+';
+}
+
+foreach my $associated (@{$object->{association}}) {
+    print HEADER '/**
+ * Get the ', $associated->{foreign}, ' objects related to a ', $tname, ' object.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \return a ', $associated->{foreign}, '_list_t pointer or NULL on error.
+ */
+', $associated->{foreign}, '_list_t* ', $name, '_', $associated->{foreign}, '_list(', $name, '_t* ', $name, ');
 
 ';
 }
@@ -583,25 +606,42 @@ print HEADER '};
 ', $name, '_list_t* ', $name, '_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new ', $tname, ' object list that is a copy of another.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return a ', $name, '_list_t pointer or NULL on error.
+ */
+', $name, '_list_t* ', $name, '_list_new_copy(const ', $name, '_list_t* ', $name, '_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void ', $name, '_list_object_store(', $name, '_list_t* ', $name, '_list);
+int ', $name, '_list_object_store(', $name, '_list_t* ', $name, '_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see ', $name, '_list_object_store()).
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void ', $name, '_list_associated_fetch(', $name, '_list_t* ', $name, '_list);
+int ', $name, '_list_associated_fetch(', $name, '_list_t* ', $name, '_list);
 
 /**
  * Delete a ', $tname, ' object list.
  * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
  */
 void ', $name, '_list_free(', $name, '_list_t* ', $name, '_list);
+
+/**
+ * Copy the content of another ', $tname, ' object list.
+ * \param[in] ', $name, '_list a ', $name, '_list_t pointer.
+ * \param[in] from_', $name, '_list a ', $name, '_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_list_copy(', $name, '_list_t* ', $name, '_list, const ', $name, '_list_t* from_', $name, '_list);
 
 /**
  * Get all ', $tname, ' objects.
@@ -960,6 +1000,12 @@ print SOURCE '        if (', $name, '->', $field->{name}, ') {
 ';
     }
 }
+foreach my $associated (@{$object->{association}}) {
+print SOURCE '        if (', $name, '->', $associated->{foreign}, '_list) {
+            ', $associated->{foreign}, '_list_free(', $name, '->', $associated->{foreign}, '_list);
+        }
+';
+}
 print SOURCE '        mm_alloc_delete(&__', $name, '_alloc, ', $name, ');
     }
 }
@@ -971,6 +1017,14 @@ foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
 print SOURCE '        db_value_reset(&(', $name, '->', $field->{name}, '));
 ';
+        if ($field->{foreign}) {
+print SOURCE '        if (', $name, '->private_', $field->{name}, ') {
+            ', $field->{foreign}, '_free(', $name, '->private_', $field->{name}, ');
+            ', $name, '->private_', $field->{name}, ' = NULL;
+        }
+        ', $name, '->associated_', $field->{name}, ' = NULL;
+';
+        }
         next;
     }
     if ($field->{type} eq 'DB_TYPE_ENUM') {
@@ -1010,16 +1064,29 @@ print SOURCE '        ', $name, '->', $field->{name}, ' = 0;
 ';
     }
 }
+foreach my $associated (@{$object->{association}}) {
+print SOURCE '        if (', $name, '->', $associated->{foreign}, '_list) {
+            ', $associated->{foreign}, '_list_free(', $name, '->', $associated->{foreign}, '_list);
+            ', $name, '->', $associated->{foreign}, '_list = NULL;
+        }
+';
+}
 print SOURCE '    }
 }
 
 int ', $name, '_copy(', $name, '_t* ', $name, ', const ', $name, '_t* ', $name, '_copy) {
 ';
+my $newline = 0;
 foreach my $field (@{$object->{fields}}) {
     if ($field->{type} eq 'DB_TYPE_TEXT') {
 print SOURCE '    char* ', $field->{name}, '_text = NULL;
 ';
+        $newline = 1;
     }
+}
+if ($newline) {
+    print SOURCE '
+';
 }
 print SOURCE '    if (!', $name, ') {
         return DB_ERROR_UNKNOWN;
@@ -1084,8 +1151,50 @@ print SOURCE '        if (', $field2->{name}, '_text) {
 }
 print SOURCE '        return DB_ERROR_UNKNOWN;
     }
+    ', $name, '->associated_', $field->{name}, ' = NULL;
+    if (!', $name, '_copy->private_', $field->{name}, '
+        && ', $name, '_copy->associated_', $field->{name}, '
+        && !(', $name, '->private_', $field->{name}, ' = ', $field->{foreign}, '_new_copy(', $name, '_copy->associated_', $field->{name}, ')))
+    {
+';
+foreach my $field2 (@free) {
+    if ($field2->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '        if (', $field2->{name}, '_text) {
+            free(', $field2->{name}, '_text);
+        }
+';
+    }
+}
+print SOURCE '        return DB_ERROR_UNKNOWN;
+    }
 ';
         }
+        next;
+    }
+}
+foreach my $associated (@{$object->{association}}) {
+print SOURCE '    if (', $name, '->', $associated->{foreign}, '_list) {
+        ', $associated->{foreign}, '_list_free(', $name, '->', $associated->{foreign}, '_list);
+        ', $name, '->', $associated->{foreign}, '_list = NULL;
+    }
+    if (', $name, '_copy->', $associated->{foreign}, '_list
+        && !(', $name, '->', $associated->{foreign}, '_list = ', $associated->{foreign}, '_list_new_copy(', $name, '_copy->', $associated->{foreign}, '_list)))
+    {
+';
+foreach my $field2 (@free) {
+    if ($field2->{type} eq 'DB_TYPE_TEXT') {
+print SOURCE '        if (', $field2->{name}, '_text) {
+            free(', $field2->{name}, '_text);
+        }
+';
+    }
+}
+print SOURCE '        return DB_ERROR_UNKNOWN;
+    }
+';
+}
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY' or $field->{foreign} or $field->{type} eq 'DB_TYPE_REVISION') {
         next;
     }
     if ($field->{type} eq 'DB_TYPE_TEXT') {
@@ -1261,6 +1370,30 @@ print SOURCE 'const db_value_t* ', $name, '_', $field->{name}, '(const ', $name,
         if ($field->{foreign}) {
             my $func_name = $field->{name};
             $func_name =~ s/_id//o;
+print SOURCE 'int ', $name, '_cache_', $func_name, '(', $name, '_t* ', $name, ') {
+    if (!', $name, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (', $name, '->associated_', $field->{name}, '
+        || ', $name, '->private_', $field->{name}, ')
+    {
+        return DB_OK;
+    }
+
+    if (!(', $name, '->private_', $field->{name}, ' = ', $field->{foreign}, '_new(db_object_connection(', $name, '->dbo)))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (', $field->{foreign}, '_get_by_id(', $name, '->private_', $field->{name}, ', &(', $name, '->', $field->{name}, '))) {
+        ', $field->{foreign}, '_free(', $name, '->private_', $field->{name}, ');
+        ', $name, '->private_', $field->{name}, ' = NULL;
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
+}
+
+';
 print SOURCE 'const ', $field->{foreign}, '_t* ', $name, '_', $func_name, '(const ', $name, '_t* ', $name, ') {
     if (!', $name, ') {
         return NULL;
@@ -1362,6 +1495,38 @@ print SOURCE $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $name, '_', $field->{name}
     }
 
     return ', $name, '->', $field->{name}, ';
+}
+
+';
+}
+
+foreach my $associated (@{$object->{association}}) {
+    print SOURCE $associated->{foreign}, '_list_t* ', $name, '_', $associated->{foreign}, '_list(', $name, '_t* ', $name, ') {
+    db_clause_list_t* clause_list;
+
+    if (!', $name, ') {
+        return NULL;
+    }
+    if (!', $name, '->dbo) {
+        return NULL;
+    }
+
+    if (!', $name, '->', $associated->{foreign}, '_list) {
+        if (!(clause_list = db_clause_list_new())
+            || !', $associated->{foreign}, '_', $associated->{foreign_name}, '_clause(clause_list, ', $name, '_', $associated->{name}, '(', $name, '))
+            || !(', $name, '->', $associated->{foreign}, '_list = ', $associated->{foreign}, '_list_new(db_object_connection(', $name, '->dbo)))
+            || ', $associated->{foreign}, '_list_object_store(', $name, '->', $associated->{foreign}, '_list)
+            || ', $associated->{foreign}, '_list_get_by_clauses(', $name, '->', $associated->{foreign}, '_list, clause_list))
+        {
+            ', $associated->{foreign}, '_list_free(', $name, '->', $associated->{foreign}, '_list);
+            ', $name, '->', $associated->{foreign}, '_list = NULL;
+            db_clause_list_free(clause_list);
+            return NULL;
+        }
+        db_clause_list_free(clause_list);
+    }
+
+    return ', $name, '->', $associated->{foreign}, '_list;
 }
 
 ';
@@ -2103,17 +2268,44 @@ static mm_alloc_t __', $name, '_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $na
     return ', $name, '_list;
 }
 
-void ', $name, '_list_object_store(', $name, '_list_t* ', $name, '_list) {
-    if (', $name, '_list) {
-        ', $name, '_list->object_store = 1;
+', $name, '_list_t* ', $name, '_list_new_copy(const ', $name, '_list_t* from_', $name, '_list) {
+    ', $name, '_list_t* ', $name, '_list;
+
+    if (!from_', $name, '_list) {
+        return NULL;
     }
+    if (!from_', $name, '_list->dbo) {
+        return NULL;
+    }
+
+    if (!(', $name, '_list = ', $name, '_list_new(db_object_connection(from_', $name, '_list->dbo)))
+        || ', $name, '_list_copy(', $name, '_list, from_', $name, '_list))
+    {
+        ', $name, '_list_free(', $name, '_list);
+        return NULL;
+    }
+    return ', $name, '_list;
 }
 
-void ', $name, '_list_associated_fetch(', $name, '_list_t* ', $name, '_list) {
-    if (', $name, '_list) {
-        ', $name, '_list->object_store = 1;
-        ', $name, '_list->associated_fetch = 1;
+int ', $name, '_list_object_store(', $name, '_list_t* ', $name, '_list) {
+    if (!', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
     }
+
+    ', $name, '_list->object_store = 1;
+
+    return DB_OK;
+}
+
+int ', $name, '_list_associated_fetch(', $name, '_list_t* ', $name, '_list) {
+    if (!', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ', $name, '_list->object_store = 1;
+    ', $name, '_list->associated_fetch = 1;
+
+    return DB_OK;
 }
 
 void ', $name, '_list_free(', $name, '_list_t* ', $name, '_list) {
@@ -2150,32 +2342,115 @@ print SOURCE '        mm_alloc_delete(&__', $name, '_list_alloc, ', $name, '_lis
     }
 }
 
+int ', $name, '_list_copy(', $name, '_list_t* ', $name, '_list, const ', $name, '_list_t* from_', $name, '_list) {
+    size_t i;
+
+    if (!', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_', $name, '_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (from_', $name, '_list->object_list && !from_', $name, '_list->object_list_size) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (', $name, '_list->result_list) {
+        db_result_list_free(', $name, '_list->result_list);
+        ', $name, '_list->result_list = NULL;
+    }
+    if (from_', $name, '_list->result_list
+        && !(', $name, '_list->result_list = db_result_list_new_copy(from_', $name, '_list->result_list)))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ', $name, '_list->object_store = from_', $name, '_list->object_store;
+    for (i = 0; i < ', $name, '_list->object_list_size; i++) {
+        if (', $name, '_list->object_list[i]) {
+            ', $name, '_free(', $name, '_list->object_list[i]);
+        }
+    }
+    ', $name, '_list->object_list_size = 0;
+    if (', $name, '_list->object_list) {
+        free(', $name, '_list->object_list);
+        ', $name, '_list->object_list = NULL;
+    }
+    if (from_', $name, '_list->object_list) {
+        if (!(', $name, '_list->object_list = (', $name, '_t**)calloc(from_', $name, '_list->object_list_size, sizeof(', $name, '_t*)))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        ', $name, '_list->object_list_size = from_', $name, '_list->object_list_size;
+        for (i = 0; i < from_', $name, '_list->object_list_size; i++) {
+            if (!from_', $name, '_list->object_list[i]) {
+                continue;
+            }
+            if (!(', $name, '_list->object_list[i] = ', $name, '_new_copy(from_', $name, '_list->object_list[i]))) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+    }
+    ', $name, '_list->object_list_position = 0;;
+    ', $name, '_list->object_list_first = 1;
+    ', $name, '_list->associated_fetch = from_', $name, '_list->associated_fetch;
+
 ';
-my $associated = 0;
 foreach my $field (@{$object->{fields}}) {
     if ($field->{foreign}) {
-        $associated = 1;
+        print SOURCE '    if (from_', $name, '_list->', $field->{name}, '_list
+        && !(', $name, '_list->', $field->{name}, '_list = ', $field->{foreign}, '_list_new_copy(from_', $name, '_list->', $field->{name}, '_list)))
+    {
+        return DB_ERROR_UNKNOWN;
     }
+
+';
+    }
+}
+print SOURCE '    return DB_OK;
+}
+
+';
+my $has_associated = 0;
+my $has_associated2 = 0;
+foreach my $field (@{$object->{fields}}) {
+    if ($field->{foreign}) {
+        $has_associated = 1;
+    }
+}
+if (scalar @{$object->{association}}) {
+    $has_associated2 = 1;
 }
 print SOURCE 'static int ', $name, '_list_get_associated(', $name, '_list_t* ', $name, '_list) {
 ';
-if (!$associated) {
+if (!$has_associated && !$has_associated2) {
     print SOURCE '    (void)', $name, '_list;
 ';
 }
-if ($associated) {
-print SOURCE '    db_clause_list_t* clause_list;
-    db_clause_t* clause;
-    const db_clause_t* clause_walk;
-    const ', $name, '_t* ', $name, ';
-    int cmp;
-    size_t i;
+if ($has_associated) {
+print SOURCE '    const db_clause_t* clause_walk;
 ';
 foreach my $field (@{$object->{fields}}) {
     if ($field->{foreign}) {
 print SOURCE '    const ', $field->{foreign}, '_t* ', $field->{foreign}, '_', $field->{name}, ';
 ';
     }
+}
+}
+if ($has_associated2) {
+print SOURCE '    size_t j, count;
+';
+}
+if ($has_associated || $has_associated2) {
+print SOURCE '    int cmp;
+    size_t i;
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    const ', $name, '_t* ', $name, ';
+';
+foreach my $associated (@{$object->{association}}) {
+print SOURCE '    ', $associated->{foreign}, '_list_t* ', $associated->{foreign}, '_list;
+    const ', $associated->{foreign}, '_t* ', $associated->{foreign}, ';
+';
 }
 print SOURCE '
     if (!', $name, '_list) {
@@ -2190,8 +2465,14 @@ print SOURCE '
     if (!', $name, '_list->result_list) {
         return DB_ERROR_UNKNOWN;
     }
-
+    if (', $name, '_list->object_list) {
+        return DB_ERROR_UNKNOWN;
+    }
 ';
+if ($has_associated) {
+    print SOURCE '
+';
+}
 foreach my $field (@{$object->{fields}}) {
     if ($field->{foreign}) {
 print SOURCE '    if (', $name, '_list->', $field->{name}, '_list) {
@@ -2200,6 +2481,14 @@ print SOURCE '    if (', $name, '_list->', $field->{name}, '_list) {
     }
 ';
     }
+}
+if (!$has_associated && $has_associated2) {
+print SOURCE '
+    ', $name, ' = ', $name, '_list_begin(', $name, '_list);
+    while (', $name, ') {
+        ', $name, ' = ', $name, '_list_next(', $name, '_list);
+    }
+';
 }
 foreach my $field (@{$object->{fields}}) {
     if ($field->{foreign}) {
@@ -2225,6 +2514,7 @@ print SOURCE '
             if (!(clause = db_clause_new())
                 || db_clause_set_field(clause, "', camelize($field->{foreign_name}), '")
                 || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+                || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
                 || db_value_copy(db_clause_get_value(clause), ', $name, '_', $field->{name}, '(', $name, '))
                 || db_clause_list_add(clause_list, clause))
             {
@@ -2237,13 +2527,24 @@ print SOURCE '
         ', $name, ' = ', $name, '_list_next(', $name, '_list);
     }
 
-    if (!(', $name, '_list->', $field->{name}, '_list = ', $field->{foreign}, '_list_new_get_by_clauses(db_object_connection(', $name, '_list->dbo), clause_list))) {
+    if (!(', $name, '_list->', $field->{name}, '_list = ', $field->{foreign}, '_list_new(db_object_connection(', $name, '_list->dbo)))
+        || ', $field->{foreign}, '_list_object_store(', $name, '_list->', $field->{name}, '_list)
+        || ', $field->{foreign}, '_list_get_by_clauses(', $name, '_list->', $field->{name}, '_list, clause_list))
+    {
+        if (', $name, '_list->', $field->{name}, '_list) {
+            ', $field->{foreign}, '_list_free(', $name, '_list->', $field->{name}, '_list);
+            ', $name, '_list->', $field->{name}, '_list = NULL;
+        }
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
     db_clause_list_free(clause_list);
 
     for (i = 0; i < ', $name, '_list->object_list_size; i++) {
+        if (!(', $name, '_list->object_list[i])) {
+            return DB_ERROR_UNKNOWN;
+        }
+
         ', $field->{foreign}, '_', $field->{name}, ' = ', $field->{foreign}, '_list_begin(', $name, '_list->', $field->{name}, '_list);
         while (', $field->{foreign}, '_', $field->{name}, ') {
             if (db_value_cmp(', $name, '_', $field->{name}, '(', $name, '_list->object_list[i]), ', $field->{foreign}, '_', $field->{foreign_name}, '(', $field->{foreign}, '_', $field->{name}, '), &cmp)) {
@@ -2259,6 +2560,120 @@ print SOURCE '
 ';
     }
 }
+my $prev_associated;
+foreach my $associated (sort {$a->{foreign_name} cmp $b->{foreign_name}} @{$object->{association}}) {
+    if (!$prev_associated || $prev_associated->{foreign_name} ne $associated->{foreign_name}) {
+if ($prev_associated) {
+print SOURCE '
+    db_clause_list_free(clause_list);
+';
+}
+print SOURCE '
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    ', $name, ' = ', $name, '_list_begin(', $name, '_list);
+    while (', $name, ') {
+        if (!(clause = db_clause_new())
+            || db_clause_set_field(clause, "', camelize($associated->{foreign_name}), '")
+            || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+            || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
+            || db_value_copy(db_clause_get_value(clause), ', $name, '_', $associated->{name}, '(', $name, '))
+            || db_clause_list_add(clause_list, clause))
+        {
+            db_clause_free(clause);
+            db_clause_list_free(clause_list);
+            return DB_ERROR_UNKNOWN;
+        }
+
+        ', $name, ' = ', $name, '_list_next(', $name, '_list);
+    }
+';
+    }
+print SOURCE '
+    if (!(', $associated->{foreign}, '_list = ', $associated->{foreign}, '_list_new(db_object_connection(', $name, '_list->dbo)))
+        || ', $associated->{foreign}, '_list_object_store(', $associated->{foreign}, '_list)
+        || ', $associated->{foreign}, '_list_get_by_clauses(', $associated->{foreign}, '_list, clause_list))
+    {
+        ', $associated->{foreign}, '_list_free(', $associated->{foreign}, '_list);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    for (i = 0; i < ', $name, '_list->object_list_size; i++) {
+        if (!(', $name, '_list->object_list[i])) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        count = 0;
+        ', $associated->{foreign}, ' = ', $associated->{foreign}, '_list_begin(', $associated->{foreign}, '_list);
+        while (', $associated->{foreign}, ') {
+            if (db_value_cmp(', $name, '_', $associated->{name}, '(', $name, '_list->object_list[i]), ', $associated->{foreign}, '_', $associated->{foreign_name}, '(', $associated->{foreign}, '), &cmp)) {
+                ', $associated->{foreign}, '_list_free(', $associated->{foreign}, '_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                count++;
+            }
+            ', $associated->{foreign}, ' = ', $associated->{foreign}, '_list_next(', $associated->{foreign}, '_list);
+        }
+        if (', $name, '_list->object_list[i]->', $associated->{foreign}, '_list) {
+            ', $associated->{foreign}, '_list_free(', $name, '_list->object_list[i]->', $associated->{foreign}, '_list);
+            ', $name, '_list->object_list[i]->', $associated->{foreign}, '_list = NULL;
+        }
+        if (!(', $name, '_list->object_list[i]->', $associated->{foreign}, '_list = ', $associated->{foreign}, '_list_new(db_object_connection(', $name, '_list->dbo)))) {
+            ', $associated->{foreign}, '_list_free(', $associated->{foreign}, '_list);
+            db_clause_list_free(clause_list);
+            return DB_ERROR_UNKNOWN;
+        }
+        if (count) {
+            if (!(', $name, '_list->object_list[i]->', $associated->{foreign}, '_list->object_list = (', $associated->{foreign}, '_t**)calloc(count, sizeof(', $associated->{foreign}, '_t*)))) {
+                ', $associated->{foreign}, '_list_free(', $associated->{foreign}, '_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+
+            j = 0;
+            ', $associated->{foreign}, ' = ', $associated->{foreign}, '_list_begin(', $associated->{foreign}, '_list);
+            while (', $associated->{foreign}, ') {
+                if (j >= count) {
+                    ', $associated->{foreign}, '_list_free(', $associated->{foreign}, '_list);
+                    db_clause_list_free(clause_list);
+                    return DB_ERROR_UNKNOWN;
+                }
+                if (db_value_cmp(', $name, '_', $associated->{name}, '(', $name, '_list->object_list[i]), ', $associated->{foreign}, '_', $associated->{foreign_name}, '(', $associated->{foreign}, '), &cmp)) {
+                    ', $associated->{foreign}, '_list_free(', $associated->{foreign}, '_list);
+                    db_clause_list_free(clause_list);
+                    return DB_ERROR_UNKNOWN;
+                }
+                if (!cmp) {
+                    if (!(', $name, '_list->object_list[i]->', $associated->{foreign}, '_list->object_list[j] = ', $associated->{foreign}, '_new_copy(', $associated->{foreign}, '))) {
+                        ', $associated->{foreign}, '_list_free(', $associated->{foreign}, '_list);
+                        db_clause_list_free(clause_list);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    j++;
+                }
+                ', $associated->{foreign}, ' = ', $associated->{foreign}, '_list_next(', $associated->{foreign}, '_list);
+            }
+            if (j != count) {
+                ', $associated->{foreign}, '_list_free(', $associated->{foreign}, '_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        ', $name, '_list->object_list[i]->', $associated->{foreign}, '_list->object_store = 1;
+        ', $name, '_list->object_list[i]->', $associated->{foreign}, '_list->object_list_size = count;
+        ', $name, '_list->object_list[i]->', $associated->{foreign}, '_list->object_list_first = 1;
+    }
+';
+    $prev_associated = $associated;
+}
+if ($prev_associated) {
+print SOURCE '    db_clause_list_free(clause_list);
+';
+}
 print SOURCE '
     ', $name, '_list->object_list_first = 1;
 ';
@@ -2267,6 +2682,8 @@ print SOURCE '    return DB_OK;
 }
 
 int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list) {
+    size_t i;
+
     if (!', $name, '_list) {
         return DB_ERROR_UNKNOWN;
     }
@@ -2276,6 +2693,19 @@ int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list) {
 
     if (', $name, '_list->result_list) {
         db_result_list_free(', $name, '_list->result_list);
+    }
+    if (', $name, '_list->object_list_size) {
+        for (i = 0; i < ', $name, '_list->object_list_size; i++) {
+            if (', $name, '_list->object_list[i]) {
+                ', $name, '_free(', $name, '_list->object_list[i]);
+            }
+        }
+        ', $name, '_list->object_list_size = 0;
+        ', $name, '_list->object_list_first = 0;
+    }
+    if (', $name, '_list->object_list) {
+        free(', $name, '_list->object_list);
+        ', $name, '_list->object_list = NULL;
     }
     if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, NULL))
         || db_result_list_fetch_all(', $name, '_list->result_list))
@@ -2308,6 +2738,8 @@ int ', $name, '_list_get(', $name, '_list_t* ', $name, '_list) {
 }
 
 int ', $name, '_list_get_by_clauses(', $name, '_list_t* ', $name, '_list, const db_clause_list_t* clause_list) {
+    size_t i;
+
     if (!', $name, '_list) {
         return DB_ERROR_UNKNOWN;
     }
@@ -2320,6 +2752,19 @@ int ', $name, '_list_get_by_clauses(', $name, '_list_t* ', $name, '_list, const 
 
     if (', $name, '_list->result_list) {
         db_result_list_free(', $name, '_list->result_list);
+    }
+    if (', $name, '_list->object_list_size) {
+        for (i = 0; i < ', $name, '_list->object_list_size; i++) {
+            if (', $name, '_list->object_list[i]) {
+                ', $name, '_free(', $name, '_list->object_list[i]);
+            }
+        }
+        ', $name, '_list->object_list_size = 0;
+        ', $name, '_list->object_list_first = 0;
+    }
+    if (', $name, '_list->object_list) {
+        free(', $name, '_list->object_list);
+        ', $name, '_list->object_list = NULL;
     }
     if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, clause_list))
         || db_result_list_fetch_all(', $name, '_list->result_list))
@@ -2360,6 +2805,7 @@ foreach my $field (@{$object->{fields}}) {
 print SOURCE 'int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_t* ', $name, '_list, const db_value_t* ', $field->{name}, ') {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
+    size_t i;
 
     if (!', $name, '_list) {
         return DB_ERROR_UNKNOWN;
@@ -2390,6 +2836,19 @@ print SOURCE 'int ', $name, '_list_get_by_', $field->{name}, '(', $name, '_list_
 
     if (', $name, '_list->result_list) {
         db_result_list_free(', $name, '_list->result_list);
+    }
+    if (', $name, '_list->object_list_size) {
+        for (i = 0; i < ', $name, '_list->object_list_size; i++) {
+            if (', $name, '_list->object_list[i]) {
+                ', $name, '_free(', $name, '_list->object_list[i]);
+            }
+        }
+        ', $name, '_list->object_list_size = 0;
+        ', $name, '_list->object_list_first = 0;
+    }
+    if (', $name, '_list->object_list) {
+        free(', $name, '_list->object_list);
+        ', $name, '_list->object_list = NULL;
     }
     if (!(', $name, '_list->result_list = db_object_read(', $name, '_list->dbo, NULL, clause_list))
         || db_result_list_fetch_all(', $name, '_list->result_list))
@@ -2438,12 +2897,12 @@ print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ',
     if (!', $name, '_list) {
         return NULL;
     }
-    if (!', $name, '_list->result_list) {
-        return NULL;
-    }
 
     if (', $name, '_list->object_store) {
         if (!', $name, '_list->object_list) {
+            if (!', $name, '_list->result_list) {
+                return NULL;
+            }
             if (!db_result_list_size(', $name, '_list->result_list)) {
                 return NULL;
             }
@@ -2453,6 +2912,9 @@ print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ',
             ', $name, '_list->object_list_size = db_result_list_size(', $name, '_list->result_list);
         }
         if (!(', $name, '_list->object_list[0])) {
+            if (!', $name, '_list->result_list) {
+                return NULL;
+            }
             if (!(result = db_result_list_begin(', $name, '_list->result_list))) {
                 return NULL;
             }
@@ -2465,6 +2927,10 @@ print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ',
         }
         ', $name, '_list->object_list_position = 0;
         return ', $name, '_list->object_list[0];
+    }
+
+    if (!', $name, '_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_begin(', $name, '_list->result_list))) {
@@ -2488,9 +2954,6 @@ print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ',
     if (!', $name, '_list) {
         return NULL;
     }
-    if (!', $name, '_list->result_list) {
-        return NULL;
-    }
 
     if (', $name, '_list->object_store) {
         if (!(', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
@@ -2501,6 +2964,10 @@ print SOURCE 'const ', $name, '_t* ', $name, '_list_begin(', $name, '_list_t* ',
             return NULL;
         }
         return ', $name, ';
+    }
+
+    if (!', $name, '_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_begin(', $name, '_list->result_list))) {
@@ -2522,12 +2989,12 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
     if (!', $name, '_list) {
         return NULL;
     }
-    if (!', $name, '_list->result_list) {
-        return NULL;
-    }
 
     if (', $name, '_list->object_store) {
         if (!', $name, '_list->object_list) {
+            if (!', $name, '_list->result_list) {
+                return NULL;
+            }
             if (!db_result_list_size(', $name, '_list->result_list)) {
                 return NULL;
             }
@@ -2548,6 +3015,9 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
             return NULL;
         }
         if (!(', $name, '_list->object_list[', $name, '_list->object_list_position])) {
+            if (!', $name, '_list->result_list) {
+                return NULL;
+            }
             if (!(result = db_result_list_next(', $name, '_list->result_list))) {
                 return NULL;
             }
@@ -2559,6 +3029,10 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
             }
         }
         return ', $name, '_list->object_list[', $name, '_list->object_list_position];
+    }
+
+    if (!', $name, '_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_next(', $name, '_list->result_list))) {
@@ -2582,9 +3056,6 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
     if (!', $name, '_list) {
         return NULL;
     }
-    if (!', $name, '_list->result_list) {
-        return NULL;
-    }
 
     if (', $name, '_list->object_store) {
         if (!(', $name, ' = ', $name, '_new(db_object_connection(', $name, '_list->dbo)))) {
@@ -2595,6 +3066,10 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
             return NULL;
         }
         return ', $name, ';
+    }
+
+    if (!', $name, '_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_next(', $name, '_list->result_list))) {
@@ -2612,10 +3087,17 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
 
 size_t ', $name, '_list_size(', $name, '_list_t* ', $name, '_list) {
     if (!', $name, '_list) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
+
+    if (', $name, '_list->object_store
+        && ', $name, '_list->object_list)
+    {
+        return ', $name, '_list->object_list_size;
+    }
+
     if (!', $name, '_list->result_list) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return db_result_list_size(', $name, '_list->result_list);

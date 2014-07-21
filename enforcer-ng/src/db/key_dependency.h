@@ -149,6 +149,13 @@ const db_value_t* key_dependency_id(const key_dependency_t* key_dependency);
 const db_value_t* key_dependency_zone_id(const key_dependency_t* key_dependency);
 
 /**
+ * Cache the zone_id object related to a key dependency object.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_cache_zone(key_dependency_t* key_dependency);
+
+/**
  * Get the zone_id object related to a key dependency object.
  * \param[in] key_dependency a key_dependency_t pointer.
  * \return a zone_t pointer or NULL on error or if no object could be found.
@@ -171,6 +178,13 @@ zone_t* key_dependency_get_zone(const key_dependency_t* key_dependency);
 const db_value_t* key_dependency_from_key_data_id(const key_dependency_t* key_dependency);
 
 /**
+ * Cache the from_key_data_id object related to a key dependency object.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_cache_from_key_data(key_dependency_t* key_dependency);
+
+/**
  * Get the from_key_data_id object related to a key dependency object.
  * \param[in] key_dependency a key_dependency_t pointer.
  * \return a key_data_t pointer or NULL on error or if no object could be found.
@@ -191,6 +205,13 @@ key_data_t* key_dependency_get_from_key_data(const key_dependency_t* key_depende
  * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* key_dependency_to_key_data_id(const key_dependency_t* key_dependency);
+
+/**
+ * Cache the to_key_data_id object related to a key dependency object.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_cache_to_key_data(key_dependency_t* key_dependency);
 
 /**
  * Get the to_key_data_id object related to a key dependency object.
@@ -381,25 +402,42 @@ struct key_dependency_list {
 key_dependency_list_t* key_dependency_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new key dependency object list that is a copy of another.
+ * \param[in] key_dependency_list a key_dependency_list_t pointer.
+ * \return a key_dependency_list_t pointer or NULL on error.
+ */
+key_dependency_list_t* key_dependency_list_new_copy(const key_dependency_list_t* key_dependency_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] key_dependency_list a key_dependency_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void key_dependency_list_object_store(key_dependency_list_t* key_dependency_list);
+int key_dependency_list_object_store(key_dependency_list_t* key_dependency_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see key_dependency_list_object_store()).
  * \param[in] key_dependency_list a key_dependency_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void key_dependency_list_associated_fetch(key_dependency_list_t* key_dependency_list);
+int key_dependency_list_associated_fetch(key_dependency_list_t* key_dependency_list);
 
 /**
  * Delete a key dependency object list.
  * \param[in] key_dependency_list a key_dependency_list_t pointer.
  */
 void key_dependency_list_free(key_dependency_list_t* key_dependency_list);
+
+/**
+ * Copy the content of another key dependency object list.
+ * \param[in] key_dependency_list a key_dependency_list_t pointer.
+ * \param[in] from_key_dependency_list a key_dependency_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_list_copy(key_dependency_list_t* key_dependency_list, const key_dependency_list_t* from_key_dependency_list);
 
 /**
  * Get all key dependency objects.

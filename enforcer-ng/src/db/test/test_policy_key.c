@@ -455,7 +455,7 @@ static void test_policy_key_list_store(void) {
     policy_key_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_key_list_new(connection)));
-    policy_key_list_object_store(new_list);
+    CU_ASSERT_FATAL(!policy_key_list_object_store(new_list));
     CU_ASSERT_FATAL(!policy_key_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_list_next(new_list));
@@ -473,7 +473,7 @@ static void test_policy_key_list_associated(void) {
     policy_key_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_key_list_new(connection)));
-    policy_key_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!policy_key_list_associated_fetch(new_list));
     CU_ASSERT_FATAL(!policy_key_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_list_next(new_list));

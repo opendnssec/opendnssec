@@ -268,7 +268,7 @@ static void test_database_version_list_store(void) {
     database_version_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = database_version_list_new(connection)));
-    database_version_list_object_store(new_list);
+    CU_ASSERT_FATAL(!database_version_list_object_store(new_list));
     CU_ASSERT_FATAL(!database_version_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(database_version_list_next(new_list));
@@ -286,7 +286,7 @@ static void test_database_version_list_associated(void) {
     database_version_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = database_version_list_new(connection)));
-    database_version_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!database_version_list_associated_fetch(new_list));
     CU_ASSERT_FATAL(!database_version_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(database_version_list_next(new_list));

@@ -97,15 +97,7 @@ struct key_data {
     key_data_ds_at_parent_t ds_at_parent;
     unsigned int keytag;
     unsigned int minimize;
-
-    /*
-     * Cached related non-writable key state objects
-     */
-    key_state_t* key_state_ds;
-    key_state_t* key_state_rrsig;
-    key_state_t* key_state_dnskey;
-    key_state_t* key_state_rrsigdnskey;
-    hsm_key_t* hsm_key;
+    key_state_list_t* key_state_list;
 };
 
 /**
@@ -176,6 +168,13 @@ const db_value_t* key_data_id(const key_data_t* key_data);
 const db_value_t* key_data_zone_id(const key_data_t* key_data);
 
 /**
+ * Cache the zone_id object related to a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_cache_zone(key_data_t* key_data);
+
+/**
  * Get the zone_id object related to a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a zone_t pointer or NULL on error or if no object could be found.
@@ -196,6 +195,13 @@ zone_t* key_data_get_zone(const key_data_t* key_data);
  * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* key_data_hsm_key_id(const key_data_t* key_data);
+
+/**
+ * Cache the hsm_key_id object related to a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_cache_hsm_key(key_data_t* key_data);
 
 /**
  * Get the hsm_key_id object related to a key data object.
@@ -309,6 +315,13 @@ unsigned int key_data_keytag(const key_data_t* key_data);
  * \return an unsigned integer.
  */
 unsigned int key_data_minimize(const key_data_t* key_data);
+
+/**
+ * Get the key_state objects related to a key data object.
+ * \param[in] key_data a key_data_t pointer.
+ * \return a key_state_list_t pointer or NULL on error.
+ */
+key_state_list_t* key_data_key_state_list(key_data_t* key_data);
 
 /**
  * Set the zone_id of a key data object. If this fails the original value may have been lost.
@@ -667,25 +680,42 @@ struct key_data_list {
 key_data_list_t* key_data_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new key data object list that is a copy of another.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \return a key_data_list_t pointer or NULL on error.
+ */
+key_data_list_t* key_data_list_new_copy(const key_data_list_t* key_data_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] key_data_list a key_data_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void key_data_list_object_store(key_data_list_t* key_data_list);
+int key_data_list_object_store(key_data_list_t* key_data_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see key_data_list_object_store()).
  * \param[in] key_data_list a key_data_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void key_data_list_associated_fetch(key_data_list_t* key_data_list);
+int key_data_list_associated_fetch(key_data_list_t* key_data_list);
 
 /**
  * Delete a key data object list.
  * \param[in] key_data_list a key_data_list_t pointer.
  */
 void key_data_list_free(key_data_list_t* key_data_list);
+
+/**
+ * Copy the content of another key data object list.
+ * \param[in] key_data_list a key_data_list_t pointer.
+ * \param[in] from_key_data_list a key_data_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_list_copy(key_data_list_t* key_data_list, const key_data_list_t* from_key_data_list);
 
 /**
  * Get all key data objects.

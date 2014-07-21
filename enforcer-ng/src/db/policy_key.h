@@ -149,6 +149,13 @@ const db_value_t* policy_key_id(const policy_key_t* policy_key);
 const db_value_t* policy_key_policy_id(const policy_key_t* policy_key);
 
 /**
+ * Cache the policy_id object related to a policy key object.
+ * \param[in] policy_key a policy_key_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_key_cache_policy(policy_key_t* policy_key);
+
+/**
  * Get the policy_id object related to a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \return a policy_t pointer or NULL on error or if no object could be found.
@@ -505,25 +512,42 @@ struct policy_key_list {
 policy_key_list_t* policy_key_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new policy key object list that is a copy of another.
+ * \param[in] policy_key_list a policy_key_list_t pointer.
+ * \return a policy_key_list_t pointer or NULL on error.
+ */
+policy_key_list_t* policy_key_list_new_copy(const policy_key_list_t* policy_key_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] policy_key_list a policy_key_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void policy_key_list_object_store(policy_key_list_t* policy_key_list);
+int policy_key_list_object_store(policy_key_list_t* policy_key_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see policy_key_list_object_store()).
  * \param[in] policy_key_list a policy_key_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void policy_key_list_associated_fetch(policy_key_list_t* policy_key_list);
+int policy_key_list_associated_fetch(policy_key_list_t* policy_key_list);
 
 /**
  * Delete a policy key object list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  */
 void policy_key_list_free(policy_key_list_t* policy_key_list);
+
+/**
+ * Copy the content of another policy key object list.
+ * \param[in] policy_key_list a policy_key_list_t pointer.
+ * \param[in] from_policy_key_list a policy_key_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_key_list_copy(policy_key_list_t* policy_key_list, const policy_key_list_t* from_policy_key_list);
 
 /**
  * Get all policy key objects.

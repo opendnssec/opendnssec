@@ -354,6 +354,12 @@ void zone_free(zone_t* zone) {
         if (zone->output_adapter_uri) {
             free(zone->output_adapter_uri);
         }
+        if (zone->key_data_list) {
+            key_data_list_free(zone->key_data_list);
+        }
+        if (zone->key_dependency_list) {
+            key_dependency_list_free(zone->key_dependency_list);
+        }
         mm_alloc_delete(&__zone_alloc, zone);
     }
 }
@@ -363,6 +369,11 @@ void zone_reset(zone_t* zone) {
         db_value_reset(&(zone->id));
         db_value_reset(&(zone->rev));
         db_value_reset(&(zone->policy_id));
+        if (zone->private_policy_id) {
+            policy_free(zone->private_policy_id);
+            zone->private_policy_id = NULL;
+        }
+        zone->associated_policy_id = NULL;
         if (zone->name) {
             free(zone->name);
             zone->name = NULL;
@@ -398,6 +409,14 @@ void zone_reset(zone_t* zone) {
         zone->next_ksk_roll = 0;
         zone->next_zsk_roll = 0;
         zone->next_csk_roll = 0;
+        if (zone->key_data_list) {
+            key_data_list_free(zone->key_data_list);
+            zone->key_data_list = NULL;
+        }
+        if (zone->key_dependency_list) {
+            key_dependency_list_free(zone->key_dependency_list);
+            zone->key_dependency_list = NULL;
+        }
     }
 }
 
@@ -408,6 +427,7 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
     char* input_adapter_uri_text = NULL;
     char* output_adapter_type_text = NULL;
     char* output_adapter_uri_text = NULL;
+
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
@@ -559,6 +579,85 @@ int zone_copy(zone_t* zone, const zone_t* zone_copy) {
     }
     if (zone_copy->private_policy_id
         && !(zone->private_policy_id = policy_new_copy(zone_copy->private_policy_id)))
+    {
+        if (name_text) {
+            free(name_text);
+        }
+        if (signconf_path_text) {
+            free(signconf_path_text);
+        }
+        if (input_adapter_type_text) {
+            free(input_adapter_type_text);
+        }
+        if (input_adapter_uri_text) {
+            free(input_adapter_uri_text);
+        }
+        if (output_adapter_type_text) {
+            free(output_adapter_type_text);
+        }
+        if (output_adapter_uri_text) {
+            free(output_adapter_uri_text);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+    zone->associated_policy_id = NULL;
+    if (!zone_copy->private_policy_id
+        && zone_copy->associated_policy_id
+        && !(zone->private_policy_id = policy_new_copy(zone_copy->associated_policy_id)))
+    {
+        if (name_text) {
+            free(name_text);
+        }
+        if (signconf_path_text) {
+            free(signconf_path_text);
+        }
+        if (input_adapter_type_text) {
+            free(input_adapter_type_text);
+        }
+        if (input_adapter_uri_text) {
+            free(input_adapter_uri_text);
+        }
+        if (output_adapter_type_text) {
+            free(output_adapter_type_text);
+        }
+        if (output_adapter_uri_text) {
+            free(output_adapter_uri_text);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+    if (zone->key_data_list) {
+        key_data_list_free(zone->key_data_list);
+        zone->key_data_list = NULL;
+    }
+    if (zone_copy->key_data_list
+        && !(zone->key_data_list = key_data_list_new_copy(zone_copy->key_data_list)))
+    {
+        if (name_text) {
+            free(name_text);
+        }
+        if (signconf_path_text) {
+            free(signconf_path_text);
+        }
+        if (input_adapter_type_text) {
+            free(input_adapter_type_text);
+        }
+        if (input_adapter_uri_text) {
+            free(input_adapter_uri_text);
+        }
+        if (output_adapter_type_text) {
+            free(output_adapter_type_text);
+        }
+        if (output_adapter_uri_text) {
+            free(output_adapter_uri_text);
+        }
+        return DB_ERROR_UNKNOWN;
+    }
+    if (zone->key_dependency_list) {
+        key_dependency_list_free(zone->key_dependency_list);
+        zone->key_dependency_list = NULL;
+    }
+    if (zone_copy->key_dependency_list
+        && !(zone->key_dependency_list = key_dependency_list_new_copy(zone_copy->key_dependency_list)))
     {
         if (name_text) {
             free(name_text);
@@ -849,6 +948,29 @@ const db_value_t* zone_policy_id(const zone_t* zone) {
     return &(zone->policy_id);
 }
 
+int zone_cache_policy(zone_t* zone) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->associated_policy_id
+        || zone->private_policy_id)
+    {
+        return DB_OK;
+    }
+
+    if (!(zone->private_policy_id = policy_new(db_object_connection(zone->dbo)))) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (policy_get_by_id(zone->private_policy_id, &(zone->policy_id))) {
+        policy_free(zone->private_policy_id);
+        zone->private_policy_id = NULL;
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
+}
+
 const policy_t* zone_policy(const zone_t* zone) {
     if (!zone) {
         return NULL;
@@ -1032,6 +1154,62 @@ unsigned int zone_next_csk_roll(const zone_t* zone) {
     }
 
     return zone->next_csk_roll;
+}
+
+key_data_list_t* zone_key_data_list(zone_t* zone) {
+    db_clause_list_t* clause_list;
+
+    if (!zone) {
+        return NULL;
+    }
+    if (!zone->dbo) {
+        return NULL;
+    }
+
+    if (!zone->key_data_list) {
+        if (!(clause_list = db_clause_list_new())
+            || !key_data_zone_id_clause(clause_list, zone_id(zone))
+            || !(zone->key_data_list = key_data_list_new(db_object_connection(zone->dbo)))
+            || key_data_list_object_store(zone->key_data_list)
+            || key_data_list_get_by_clauses(zone->key_data_list, clause_list))
+        {
+            key_data_list_free(zone->key_data_list);
+            zone->key_data_list = NULL;
+            db_clause_list_free(clause_list);
+            return NULL;
+        }
+        db_clause_list_free(clause_list);
+    }
+
+    return zone->key_data_list;
+}
+
+key_dependency_list_t* zone_key_dependency_list(zone_t* zone) {
+    db_clause_list_t* clause_list;
+
+    if (!zone) {
+        return NULL;
+    }
+    if (!zone->dbo) {
+        return NULL;
+    }
+
+    if (!zone->key_dependency_list) {
+        if (!(clause_list = db_clause_list_new())
+            || !key_dependency_zone_id_clause(clause_list, zone_id(zone))
+            || !(zone->key_dependency_list = key_dependency_list_new(db_object_connection(zone->dbo)))
+            || key_dependency_list_object_store(zone->key_dependency_list)
+            || key_dependency_list_get_by_clauses(zone->key_dependency_list, clause_list))
+        {
+            key_dependency_list_free(zone->key_dependency_list);
+            zone->key_dependency_list = NULL;
+            db_clause_list_free(clause_list);
+            return NULL;
+        }
+        db_clause_list_free(clause_list);
+    }
+
+    return zone->key_dependency_list;
 }
 
 int zone_set_policy_id(zone_t* zone, const db_value_t* policy_id) {
@@ -2476,17 +2654,44 @@ zone_list_t* zone_list_new(const db_connection_t* connection) {
     return zone_list;
 }
 
-void zone_list_object_store(zone_list_t* zone_list) {
-    if (zone_list) {
-        zone_list->object_store = 1;
+zone_list_t* zone_list_new_copy(const zone_list_t* from_zone_list) {
+    zone_list_t* zone_list;
+
+    if (!from_zone_list) {
+        return NULL;
     }
+    if (!from_zone_list->dbo) {
+        return NULL;
+    }
+
+    if (!(zone_list = zone_list_new(db_object_connection(from_zone_list->dbo)))
+        || zone_list_copy(zone_list, from_zone_list))
+    {
+        zone_list_free(zone_list);
+        return NULL;
+    }
+    return zone_list;
 }
 
-void zone_list_associated_fetch(zone_list_t* zone_list) {
-    if (zone_list) {
-        zone_list->object_store = 1;
-        zone_list->associated_fetch = 1;
+int zone_list_object_store(zone_list_t* zone_list) {
+    if (!zone_list) {
+        return DB_ERROR_UNKNOWN;
     }
+
+    zone_list->object_store = 1;
+
+    return DB_OK;
+}
+
+int zone_list_associated_fetch(zone_list_t* zone_list) {
+    if (!zone_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone_list->object_store = 1;
+    zone_list->associated_fetch = 1;
+
+    return DB_OK;
 }
 
 void zone_list_free(zone_list_t* zone_list) {
@@ -2517,14 +2722,80 @@ void zone_list_free(zone_list_t* zone_list) {
     }
 }
 
+int zone_list_copy(zone_list_t* zone_list, const zone_list_t* from_zone_list) {
+    size_t i;
+
+    if (!zone_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_zone_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (from_zone_list->object_list && !from_zone_list->object_list_size) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone_list->result_list) {
+        db_result_list_free(zone_list->result_list);
+        zone_list->result_list = NULL;
+    }
+    if (from_zone_list->result_list
+        && !(zone_list->result_list = db_result_list_new_copy(from_zone_list->result_list)))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone_list->object_store = from_zone_list->object_store;
+    for (i = 0; i < zone_list->object_list_size; i++) {
+        if (zone_list->object_list[i]) {
+            zone_free(zone_list->object_list[i]);
+        }
+    }
+    zone_list->object_list_size = 0;
+    if (zone_list->object_list) {
+        free(zone_list->object_list);
+        zone_list->object_list = NULL;
+    }
+    if (from_zone_list->object_list) {
+        if (!(zone_list->object_list = (zone_t**)calloc(from_zone_list->object_list_size, sizeof(zone_t*)))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        zone_list->object_list_size = from_zone_list->object_list_size;
+        for (i = 0; i < from_zone_list->object_list_size; i++) {
+            if (!from_zone_list->object_list[i]) {
+                continue;
+            }
+            if (!(zone_list->object_list[i] = zone_new_copy(from_zone_list->object_list[i]))) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+    }
+    zone_list->object_list_position = 0;;
+    zone_list->object_list_first = 1;
+    zone_list->associated_fetch = from_zone_list->associated_fetch;
+
+    if (from_zone_list->policy_id_list
+        && !(zone_list->policy_id_list = policy_list_new_copy(from_zone_list->policy_id_list)))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
+}
+
 static int zone_list_get_associated(zone_list_t* zone_list) {
-    db_clause_list_t* clause_list;
-    db_clause_t* clause;
     const db_clause_t* clause_walk;
-    const zone_t* zone;
+    const policy_t* policy_policy_id;
+    size_t j, count;
     int cmp;
     size_t i;
-    const policy_t* policy_policy_id;
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    const zone_t* zone;
+    key_data_list_t* key_data_list;
+    const key_data_t* key_data;
+    key_dependency_list_t* key_dependency_list;
+    const key_dependency_t* key_dependency;
 
     if (!zone_list) {
         return DB_ERROR_UNKNOWN;
@@ -2536,6 +2807,9 @@ static int zone_list_get_associated(zone_list_t* zone_list) {
         return DB_ERROR_UNKNOWN;
     }
     if (!zone_list->result_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (zone_list->object_list) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2565,6 +2839,7 @@ static int zone_list_get_associated(zone_list_t* zone_list) {
             if (!(clause = db_clause_new())
                 || db_clause_set_field(clause, "id")
                 || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+                || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
                 || db_value_copy(db_clause_get_value(clause), zone_policy_id(zone))
                 || db_clause_list_add(clause_list, clause))
             {
@@ -2577,13 +2852,24 @@ static int zone_list_get_associated(zone_list_t* zone_list) {
         zone = zone_list_next(zone_list);
     }
 
-    if (!(zone_list->policy_id_list = policy_list_new_get_by_clauses(db_object_connection(zone_list->dbo), clause_list))) {
+    if (!(zone_list->policy_id_list = policy_list_new(db_object_connection(zone_list->dbo)))
+        || policy_list_object_store(zone_list->policy_id_list)
+        || policy_list_get_by_clauses(zone_list->policy_id_list, clause_list))
+    {
+        if (zone_list->policy_id_list) {
+            policy_list_free(zone_list->policy_id_list);
+            zone_list->policy_id_list = NULL;
+        }
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
     db_clause_list_free(clause_list);
 
     for (i = 0; i < zone_list->object_list_size; i++) {
+        if (!(zone_list->object_list[i])) {
+            return DB_ERROR_UNKNOWN;
+        }
+
         policy_policy_id = policy_list_begin(zone_list->policy_id_list);
         while (policy_policy_id) {
             if (db_value_cmp(zone_policy_id(zone_list->object_list[i]), policy_id(policy_policy_id), &cmp)) {
@@ -2597,11 +2883,188 @@ static int zone_list_get_associated(zone_list_t* zone_list) {
         }
     }
 
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    zone = zone_list_begin(zone_list);
+    while (zone) {
+        if (!(clause = db_clause_new())
+            || db_clause_set_field(clause, "zoneId")
+            || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+            || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_OR)
+            || db_value_copy(db_clause_get_value(clause), zone_id(zone))
+            || db_clause_list_add(clause_list, clause))
+        {
+            db_clause_free(clause);
+            db_clause_list_free(clause_list);
+            return DB_ERROR_UNKNOWN;
+        }
+
+        zone = zone_list_next(zone_list);
+    }
+
+    if (!(key_data_list = key_data_list_new(db_object_connection(zone_list->dbo)))
+        || key_data_list_object_store(key_data_list)
+        || key_data_list_get_by_clauses(key_data_list, clause_list))
+    {
+        key_data_list_free(key_data_list);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    for (i = 0; i < zone_list->object_list_size; i++) {
+        if (!(zone_list->object_list[i])) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        count = 0;
+        key_data = key_data_list_begin(key_data_list);
+        while (key_data) {
+            if (db_value_cmp(zone_id(zone_list->object_list[i]), key_data_zone_id(key_data), &cmp)) {
+                key_data_list_free(key_data_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                count++;
+            }
+            key_data = key_data_list_next(key_data_list);
+        }
+        if (zone_list->object_list[i]->key_data_list) {
+            key_data_list_free(zone_list->object_list[i]->key_data_list);
+            zone_list->object_list[i]->key_data_list = NULL;
+        }
+        if (!(zone_list->object_list[i]->key_data_list = key_data_list_new(db_object_connection(zone_list->dbo)))) {
+            key_data_list_free(key_data_list);
+            db_clause_list_free(clause_list);
+            return DB_ERROR_UNKNOWN;
+        }
+        if (count) {
+            if (!(zone_list->object_list[i]->key_data_list->object_list = (key_data_t**)calloc(count, sizeof(key_data_t*)))) {
+                key_data_list_free(key_data_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+
+            j = 0;
+            key_data = key_data_list_begin(key_data_list);
+            while (key_data) {
+                if (j >= count) {
+                    key_data_list_free(key_data_list);
+                    db_clause_list_free(clause_list);
+                    return DB_ERROR_UNKNOWN;
+                }
+                if (db_value_cmp(zone_id(zone_list->object_list[i]), key_data_zone_id(key_data), &cmp)) {
+                    key_data_list_free(key_data_list);
+                    db_clause_list_free(clause_list);
+                    return DB_ERROR_UNKNOWN;
+                }
+                if (!cmp) {
+                    if (!(zone_list->object_list[i]->key_data_list->object_list[j] = key_data_new_copy(key_data))) {
+                        key_data_list_free(key_data_list);
+                        db_clause_list_free(clause_list);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    j++;
+                }
+                key_data = key_data_list_next(key_data_list);
+            }
+            if (j != count) {
+                key_data_list_free(key_data_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        zone_list->object_list[i]->key_data_list->object_store = 1;
+        zone_list->object_list[i]->key_data_list->object_list_size = count;
+        zone_list->object_list[i]->key_data_list->object_list_first = 1;
+    }
+
+    if (!(key_dependency_list = key_dependency_list_new(db_object_connection(zone_list->dbo)))
+        || key_dependency_list_object_store(key_dependency_list)
+        || key_dependency_list_get_by_clauses(key_dependency_list, clause_list))
+    {
+        key_dependency_list_free(key_dependency_list);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    for (i = 0; i < zone_list->object_list_size; i++) {
+        if (!(zone_list->object_list[i])) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        count = 0;
+        key_dependency = key_dependency_list_begin(key_dependency_list);
+        while (key_dependency) {
+            if (db_value_cmp(zone_id(zone_list->object_list[i]), key_dependency_zone_id(key_dependency), &cmp)) {
+                key_dependency_list_free(key_dependency_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+            if (!cmp) {
+                count++;
+            }
+            key_dependency = key_dependency_list_next(key_dependency_list);
+        }
+        if (zone_list->object_list[i]->key_dependency_list) {
+            key_dependency_list_free(zone_list->object_list[i]->key_dependency_list);
+            zone_list->object_list[i]->key_dependency_list = NULL;
+        }
+        if (!(zone_list->object_list[i]->key_dependency_list = key_dependency_list_new(db_object_connection(zone_list->dbo)))) {
+            key_dependency_list_free(key_dependency_list);
+            db_clause_list_free(clause_list);
+            return DB_ERROR_UNKNOWN;
+        }
+        if (count) {
+            if (!(zone_list->object_list[i]->key_dependency_list->object_list = (key_dependency_t**)calloc(count, sizeof(key_dependency_t*)))) {
+                key_dependency_list_free(key_dependency_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+
+            j = 0;
+            key_dependency = key_dependency_list_begin(key_dependency_list);
+            while (key_dependency) {
+                if (j >= count) {
+                    key_dependency_list_free(key_dependency_list);
+                    db_clause_list_free(clause_list);
+                    return DB_ERROR_UNKNOWN;
+                }
+                if (db_value_cmp(zone_id(zone_list->object_list[i]), key_dependency_zone_id(key_dependency), &cmp)) {
+                    key_dependency_list_free(key_dependency_list);
+                    db_clause_list_free(clause_list);
+                    return DB_ERROR_UNKNOWN;
+                }
+                if (!cmp) {
+                    if (!(zone_list->object_list[i]->key_dependency_list->object_list[j] = key_dependency_new_copy(key_dependency))) {
+                        key_dependency_list_free(key_dependency_list);
+                        db_clause_list_free(clause_list);
+                        return DB_ERROR_UNKNOWN;
+                    }
+                    j++;
+                }
+                key_dependency = key_dependency_list_next(key_dependency_list);
+            }
+            if (j != count) {
+                key_dependency_list_free(key_dependency_list);
+                db_clause_list_free(clause_list);
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        zone_list->object_list[i]->key_dependency_list->object_store = 1;
+        zone_list->object_list[i]->key_dependency_list->object_list_size = count;
+        zone_list->object_list[i]->key_dependency_list->object_list_first = 1;
+    }
+    db_clause_list_free(clause_list);
+
     zone_list->object_list_first = 1;
     return DB_OK;
 }
 
 int zone_list_get(zone_list_t* zone_list) {
+    size_t i;
+
     if (!zone_list) {
         return DB_ERROR_UNKNOWN;
     }
@@ -2611,6 +3074,19 @@ int zone_list_get(zone_list_t* zone_list) {
 
     if (zone_list->result_list) {
         db_result_list_free(zone_list->result_list);
+    }
+    if (zone_list->object_list_size) {
+        for (i = 0; i < zone_list->object_list_size; i++) {
+            if (zone_list->object_list[i]) {
+                zone_free(zone_list->object_list[i]);
+            }
+        }
+        zone_list->object_list_size = 0;
+        zone_list->object_list_first = 0;
+    }
+    if (zone_list->object_list) {
+        free(zone_list->object_list);
+        zone_list->object_list = NULL;
     }
     if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, NULL))
         || db_result_list_fetch_all(zone_list->result_list))
@@ -2643,6 +3119,8 @@ zone_list_t* zone_list_new_get(const db_connection_t* connection) {
 }
 
 int zone_list_get_by_clauses(zone_list_t* zone_list, const db_clause_list_t* clause_list) {
+    size_t i;
+
     if (!zone_list) {
         return DB_ERROR_UNKNOWN;
     }
@@ -2655,6 +3133,19 @@ int zone_list_get_by_clauses(zone_list_t* zone_list, const db_clause_list_t* cla
 
     if (zone_list->result_list) {
         db_result_list_free(zone_list->result_list);
+    }
+    if (zone_list->object_list_size) {
+        for (i = 0; i < zone_list->object_list_size; i++) {
+            if (zone_list->object_list[i]) {
+                zone_free(zone_list->object_list[i]);
+            }
+        }
+        zone_list->object_list_size = 0;
+        zone_list->object_list_first = 0;
+    }
+    if (zone_list->object_list) {
+        free(zone_list->object_list);
+        zone_list->object_list = NULL;
     }
     if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, clause_list))
         || db_result_list_fetch_all(zone_list->result_list))
@@ -2692,6 +3183,7 @@ zone_list_t* zone_list_new_get_by_clauses(const db_connection_t* connection, con
 int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_id) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
+    size_t i;
 
     if (!zone_list) {
         return DB_ERROR_UNKNOWN;
@@ -2722,6 +3214,19 @@ int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_
 
     if (zone_list->result_list) {
         db_result_list_free(zone_list->result_list);
+    }
+    if (zone_list->object_list_size) {
+        for (i = 0; i < zone_list->object_list_size; i++) {
+            if (zone_list->object_list[i]) {
+                zone_free(zone_list->object_list[i]);
+            }
+        }
+        zone_list->object_list_size = 0;
+        zone_list->object_list_first = 0;
+    }
+    if (zone_list->object_list) {
+        free(zone_list->object_list);
+        zone_list->object_list = NULL;
     }
     if (!(zone_list->result_list = db_object_read(zone_list->dbo, NULL, clause_list))
         || db_result_list_fetch_all(zone_list->result_list))
@@ -2767,12 +3272,12 @@ const zone_t* zone_list_begin(zone_list_t* zone_list) {
     if (!zone_list) {
         return NULL;
     }
-    if (!zone_list->result_list) {
-        return NULL;
-    }
 
     if (zone_list->object_store) {
         if (!zone_list->object_list) {
+            if (!zone_list->result_list) {
+                return NULL;
+            }
             if (!db_result_list_size(zone_list->result_list)) {
                 return NULL;
             }
@@ -2782,6 +3287,9 @@ const zone_t* zone_list_begin(zone_list_t* zone_list) {
             zone_list->object_list_size = db_result_list_size(zone_list->result_list);
         }
         if (!(zone_list->object_list[0])) {
+            if (!zone_list->result_list) {
+                return NULL;
+            }
             if (!(result = db_result_list_begin(zone_list->result_list))) {
                 return NULL;
             }
@@ -2794,6 +3302,10 @@ const zone_t* zone_list_begin(zone_list_t* zone_list) {
         }
         zone_list->object_list_position = 0;
         return zone_list->object_list[0];
+    }
+
+    if (!zone_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_begin(zone_list->result_list))) {
@@ -2817,9 +3329,6 @@ zone_t* zone_list_get_begin(zone_list_t* zone_list) {
     if (!zone_list) {
         return NULL;
     }
-    if (!zone_list->result_list) {
-        return NULL;
-    }
 
     if (zone_list->object_store) {
         if (!(zone = zone_new(db_object_connection(zone_list->dbo)))) {
@@ -2830,6 +3339,10 @@ zone_t* zone_list_get_begin(zone_list_t* zone_list) {
             return NULL;
         }
         return zone;
+    }
+
+    if (!zone_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_begin(zone_list->result_list))) {
@@ -2851,12 +3364,12 @@ const zone_t* zone_list_next(zone_list_t* zone_list) {
     if (!zone_list) {
         return NULL;
     }
-    if (!zone_list->result_list) {
-        return NULL;
-    }
 
     if (zone_list->object_store) {
         if (!zone_list->object_list) {
+            if (!zone_list->result_list) {
+                return NULL;
+            }
             if (!db_result_list_size(zone_list->result_list)) {
                 return NULL;
             }
@@ -2877,6 +3390,9 @@ const zone_t* zone_list_next(zone_list_t* zone_list) {
             return NULL;
         }
         if (!(zone_list->object_list[zone_list->object_list_position])) {
+            if (!zone_list->result_list) {
+                return NULL;
+            }
             if (!(result = db_result_list_next(zone_list->result_list))) {
                 return NULL;
             }
@@ -2888,6 +3404,10 @@ const zone_t* zone_list_next(zone_list_t* zone_list) {
             }
         }
         return zone_list->object_list[zone_list->object_list_position];
+    }
+
+    if (!zone_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_next(zone_list->result_list))) {
@@ -2911,9 +3431,6 @@ zone_t* zone_list_get_next(zone_list_t* zone_list) {
     if (!zone_list) {
         return NULL;
     }
-    if (!zone_list->result_list) {
-        return NULL;
-    }
 
     if (zone_list->object_store) {
         if (!(zone = zone_new(db_object_connection(zone_list->dbo)))) {
@@ -2924,6 +3441,10 @@ zone_t* zone_list_get_next(zone_list_t* zone_list) {
             return NULL;
         }
         return zone;
+    }
+
+    if (!zone_list->result_list) {
+        return NULL;
     }
 
     if (!(result = db_result_list_next(zone_list->result_list))) {
@@ -2941,10 +3462,17 @@ zone_t* zone_list_get_next(zone_list_t* zone_list) {
 
 size_t zone_list_size(zone_list_t* zone_list) {
     if (!zone_list) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
+
+    if (zone_list->object_store
+        && zone_list->object_list)
+    {
+        return zone_list->object_list_size;
+    }
+
     if (!zone_list->result_list) {
-        return DB_ERROR_UNKNOWN;
+        return 0;
     }
 
     return db_result_list_size(zone_list->result_list);

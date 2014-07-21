@@ -500,7 +500,7 @@ static void test_', $name, '_list_store(void) {
     ', $name, '_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = ', $name, '_list_new(connection)));
-    ', $name, '_list_object_store(new_list);
+    CU_ASSERT_FATAL(!', $name, '_list_object_store(new_list));
     CU_ASSERT_FATAL(!', $name, '_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_list_next(new_list));
@@ -518,7 +518,7 @@ static void test_', $name, '_list_associated(void) {
     ', $name, '_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = ', $name, '_list_new(connection)));
-    ', $name, '_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!', $name, '_list_associated_fetch(new_list));
     CU_ASSERT_FATAL(!', $name, '_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(', $name, '_list_next(new_list));

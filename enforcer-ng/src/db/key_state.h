@@ -156,6 +156,13 @@ const db_value_t* key_state_id(const key_state_t* key_state);
 const db_value_t* key_state_key_data_id(const key_state_t* key_state);
 
 /**
+ * Cache the key_data_id object related to a key state object.
+ * \param[in] key_state a key_state_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_cache_key_data(key_state_t* key_state);
+
+/**
  * Get the key_data_id object related to a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a key_data_t pointer or NULL on error or if no object could be found.
@@ -423,25 +430,42 @@ struct key_state_list {
 key_state_list_t* key_state_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new key state object list that is a copy of another.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \return a key_state_list_t pointer or NULL on error.
+ */
+key_state_list_t* key_state_list_new_copy(const key_state_list_t* key_state_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] key_state_list a key_state_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void key_state_list_object_store(key_state_list_t* key_state_list);
+int key_state_list_object_store(key_state_list_t* key_state_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see key_state_list_object_store()).
  * \param[in] key_state_list a key_state_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void key_state_list_associated_fetch(key_state_list_t* key_state_list);
+int key_state_list_associated_fetch(key_state_list_t* key_state_list);
 
 /**
  * Delete a key state object list.
  * \param[in] key_state_list a key_state_list_t pointer.
  */
 void key_state_list_free(key_state_list_t* key_state_list);
+
+/**
+ * Copy the content of another key state object list.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \param[in] from_key_state_list a key_state_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_list_copy(key_state_list_t* key_state_list, const key_state_list_t* from_key_state_list);
 
 /**
  * Get all key state objects.

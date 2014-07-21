@@ -48,6 +48,11 @@ key_data_list_t* zone_get_keys(const zone_t* zone) {
 
     return key_data_list_new_get_by_zone_id(db_object_connection(zone->dbo),
         &(zone->id));
+
+    /*
+     * TODO: associated
+    return key_data_list_new_copy(zone_key_data_list(zone));
+     */
 }
 
 key_dependency_list_t* zone_get_key_dependencies(const zone_t* zone) {
@@ -63,6 +68,11 @@ key_dependency_list_t* zone_get_key_dependencies(const zone_t* zone) {
 
     return key_dependency_list_new_get_by_zone_id(db_object_connection(zone->dbo),
         &(zone->id));
+
+    /*
+     * TODO: associated
+    return key_dependency_list_new_copy(zone_key_dependency_list(zone));
+    */
 }
 
 static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {

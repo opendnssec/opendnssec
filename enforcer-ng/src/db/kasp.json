@@ -22,6 +22,10 @@
     { "name": "next_ksk_roll", "type": "DB_TYPE_UINT32" },
     { "name": "next_zsk_roll", "type": "DB_TYPE_UINT32" },
     { "name": "next_csk_roll", "type": "DB_TYPE_UINT32" }
+  ],
+  "association": [
+    { "name": "id", "foreign": "key_data", "foreign_name": "zone_id" },
+    { "name": "id", "foreign": "key_dependency", "foreign_name": "zone_id" }
   ]
 },
 {
@@ -52,6 +56,9 @@
       { "name": "RETRACTED", "value": 5, "text": "retracted" } ], "default": "UNSUBMITTED" },
     { "name": "keytag", "type": "DB_TYPE_UINT32" },
     { "name": "minimize", "type": "DB_TYPE_UINT32" }
+  ],
+  "association": [
+    { "name": "id", "foreign": "key_state", "foreign_name": "key_data_id" }
   ]
 },
 {
@@ -166,6 +173,11 @@
     { "name": "parent_ds_ttl", "type": "DB_TYPE_UINT32" },
     { "name": "parent_soa_ttl", "type": "DB_TYPE_UINT32" },
     { "name": "parent_soa_minimum", "type": "DB_TYPE_UINT32" }
+  ],
+  "association": [
+    { "name": "id", "foreign": "policy_key", "foreign_name": "policy_id" },
+    { "name": "id", "foreign": "zone", "foreign_name": "policy_id" },
+    { "name": "id", "foreign": "hsm_key", "foreign_name": "policy_id" }
   ]
 },
 {

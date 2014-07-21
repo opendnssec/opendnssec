@@ -220,25 +220,42 @@ struct database_version_list {
 database_version_list_t* database_version_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new database version object list that is a copy of another.
+ * \param[in] database_version_list a database_version_list_t pointer.
+ * \return a database_version_list_t pointer or NULL on error.
+ */
+database_version_list_t* database_version_list_new_copy(const database_version_list_t* database_version_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] database_version_list a database_version_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void database_version_list_object_store(database_version_list_t* database_version_list);
+int database_version_list_object_store(database_version_list_t* database_version_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see database_version_list_object_store()).
  * \param[in] database_version_list a database_version_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void database_version_list_associated_fetch(database_version_list_t* database_version_list);
+int database_version_list_associated_fetch(database_version_list_t* database_version_list);
 
 /**
  * Delete a database version object list.
  * \param[in] database_version_list a database_version_list_t pointer.
  */
 void database_version_list_free(database_version_list_t* database_version_list);
+
+/**
+ * Copy the content of another database version object list.
+ * \param[in] database_version_list a database_version_list_t pointer.
+ * \param[in] from_database_version_list a database_version_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int database_version_list_copy(database_version_list_t* database_version_list, const database_version_list_t* from_database_version_list);
 
 /**
  * Get all database version objects.

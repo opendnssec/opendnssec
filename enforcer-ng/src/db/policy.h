@@ -106,6 +106,9 @@ struct policy {
     unsigned int parent_ds_ttl;
     unsigned int parent_soa_ttl;
     unsigned int parent_soa_minimum;
+    policy_key_list_t* policy_key_list;
+    zone_list_t* zone_list;
+    hsm_key_list_t* hsm_key_list;
 };
 
 /**
@@ -405,6 +408,27 @@ unsigned int policy_parent_soa_ttl(const policy_t* policy);
  * \return an unsigned integer.
  */
 unsigned int policy_parent_soa_minimum(const policy_t* policy);
+
+/**
+ * Get the policy_key objects related to a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a policy_key_list_t pointer or NULL on error.
+ */
+policy_key_list_t* policy_policy_key_list(policy_t* policy);
+
+/**
+ * Get the zone objects related to a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* policy_zone_list(policy_t* policy);
+
+/**
+ * Get the hsm_key objects related to a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \return a hsm_key_list_t pointer or NULL on error.
+ */
+hsm_key_list_t* policy_hsm_key_list(policy_t* policy);
 
 /**
  * Set the name of a policy object.
@@ -1119,25 +1143,42 @@ struct policy_list {
 policy_list_t* policy_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new policy object list that is a copy of another.
+ * \param[in] policy_list a policy_list_t pointer.
+ * \return a policy_list_t pointer or NULL on error.
+ */
+policy_list_t* policy_list_new_copy(const policy_list_t* policy_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] policy_list a policy_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void policy_list_object_store(policy_list_t* policy_list);
+int policy_list_object_store(policy_list_t* policy_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see policy_list_object_store()).
  * \param[in] policy_list a policy_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void policy_list_associated_fetch(policy_list_t* policy_list);
+int policy_list_associated_fetch(policy_list_t* policy_list);
 
 /**
  * Delete a policy object list.
  * \param[in] policy_list a policy_list_t pointer.
  */
 void policy_list_free(policy_list_t* policy_list);
+
+/**
+ * Copy the content of another policy object list.
+ * \param[in] policy_list a policy_list_t pointer.
+ * \param[in] from_policy_list a policy_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_list_copy(policy_list_t* policy_list, const policy_list_t* from_policy_list);
 
 /**
  * Get all policy objects.

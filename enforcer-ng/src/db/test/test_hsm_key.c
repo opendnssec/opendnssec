@@ -496,7 +496,7 @@ static void test_hsm_key_list_store(void) {
     hsm_key_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new(connection)));
-    hsm_key_list_object_store(new_list);
+    CU_ASSERT_FATAL(!hsm_key_list_object_store(new_list));
     CU_ASSERT_FATAL(!hsm_key_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_list_next(new_list));
@@ -514,7 +514,7 @@ static void test_hsm_key_list_associated(void) {
     hsm_key_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new(connection)));
-    hsm_key_list_associated_fetch(new_list);
+    CU_ASSERT_FATAL(!hsm_key_list_associated_fetch(new_list));
     CU_ASSERT_FATAL(!hsm_key_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_list_next(new_list));

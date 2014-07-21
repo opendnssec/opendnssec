@@ -174,6 +174,13 @@ const db_value_t* hsm_key_id(const hsm_key_t* hsm_key);
 const db_value_t* hsm_key_policy_id(const hsm_key_t* hsm_key);
 
 /**
+ * Cache the policy_id object related to a hsm key object.
+ * \param[in] hsm_key a hsm_key_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int hsm_key_cache_policy(hsm_key_t* hsm_key);
+
+/**
  * Get the policy_id object related to a hsm key object.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \return a policy_t pointer or NULL on error or if no object could be found.
@@ -617,25 +624,42 @@ struct hsm_key_list {
 hsm_key_list_t* hsm_key_list_new(const db_connection_t* connection);
 
 /**
+ * Create a new hsm key object list that is a copy of another.
+ * \param[in] hsm_key_list a hsm_key_list_t pointer.
+ * \return a hsm_key_list_t pointer or NULL on error.
+ */
+hsm_key_list_t* hsm_key_list_new_copy(const hsm_key_list_t* hsm_key_copy);
+
+/**
  * Specify that objects should be stored within the list as they are fetch,
  * this is optimal if the list is to be iterated over more then once.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void hsm_key_list_object_store(hsm_key_list_t* hsm_key_list);
+int hsm_key_list_object_store(hsm_key_list_t* hsm_key_list);
 
 /**
  * Specify that the list should also fetch associated objects in a more optimal
  * way then fetching them for each individual object later on. This also forces
  * the list to store all objects (see hsm_key_list_object_store()).
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-void hsm_key_list_associated_fetch(hsm_key_list_t* hsm_key_list);
+int hsm_key_list_associated_fetch(hsm_key_list_t* hsm_key_list);
 
 /**
  * Delete a hsm key object list.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  */
 void hsm_key_list_free(hsm_key_list_t* hsm_key_list);
+
+/**
+ * Copy the content of another hsm key object list.
+ * \param[in] hsm_key_list a hsm_key_list_t pointer.
+ * \param[in] from_hsm_key_list a hsm_key_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int hsm_key_list_copy(hsm_key_list_t* hsm_key_list, const hsm_key_list_t* from_hsm_key_list);
 
 /**
  * Get all hsm key objects.
