@@ -107,15 +107,28 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	    if (!(clauselist = db_clause_list_new())
 	        || !(clause = zone_next_change_clause(clauselist, t_now))
 	        || db_clause_set_type(clause, DB_CLAUSE_LESS_OR_EQUAL)
-	        || !(zonelist = zone_list_new_get_by_clauses(dbconn, clauselist)))
+	        || !(zonelist = zone_list_new(dbconn))
+	        /*|| zone_list_associated_fetch(zonelist)*/
+	        || zone_list_get_by_clauses(zonelist, clauselist))
 		{
-	        /* TODO: Log error */
+	        zone_list_free(zonelist);
+	        zonelist = NULL;
 		}
         db_clause_list_free(clauselist);
 	} else { /* all zones */
-	    if (!(zonelist = zone_list_new_get(dbconn))) {
-	        /* TODO: Log error */
+	    if (!(zonelist = zone_list_new(dbconn))
+	        /*|| zone_list_associated_fetch(zonelist)*/
+	        || zone_list_get(zonelist))
+	    {
+            zone_list_free(zonelist);
+            zonelist = NULL;
 	    }
+	}
+	if (!zonelist) {
+	    /* TODO: log error */
+	    ods_log_error("[%s] zonelist NULL", module_str);
+	    /* TODO: backoff? */
+	    return t_reschedule;
 	}
 	
 	for (zone = zone_list_get_next(zonelist);
