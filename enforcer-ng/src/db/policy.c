@@ -1308,7 +1308,6 @@ unsigned int policy_parent_soa_minimum(const policy_t* policy) {
 }
 
 policy_key_list_t* policy_policy_key_list(policy_t* policy) {
-    db_clause_list_t* clause_list;
 
     if (!policy) {
         return NULL;
@@ -1317,26 +1316,47 @@ policy_key_list_t* policy_policy_key_list(policy_t* policy) {
         return NULL;
     }
 
-    if (!policy->policy_key_list) {
-        if (!(clause_list = db_clause_list_new())
-            || !policy_key_policy_id_clause(clause_list, policy_id(policy))
-            || !(policy->policy_key_list = policy_key_list_new(db_object_connection(policy->dbo)))
-            || policy_key_list_object_store(policy->policy_key_list)
-            || policy_key_list_get_by_clauses(policy->policy_key_list, clause_list))
-        {
-            policy_key_list_free(policy->policy_key_list);
-            policy->policy_key_list = NULL;
-            db_clause_list_free(clause_list);
-            return NULL;
-        }
-        db_clause_list_free(clause_list);
+    if (!policy->policy_key_list
+        && policy_retrieve_policy_key_list(policy))
+    {
+        return NULL;
     }
 
     return policy->policy_key_list;
 }
 
-zone_list_t* policy_zone_list(policy_t* policy) {
+int policy_retrieve_policy_key_list(policy_t* policy) {
     db_clause_list_t* clause_list;
+
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (policy->policy_key_list) {
+        policy_key_list_free(policy->policy_key_list);
+        policy->policy_key_list = NULL;
+    }
+
+    if (!(clause_list = db_clause_list_new())
+        || !policy_key_policy_id_clause(clause_list, policy_id(policy))
+        || !(policy->policy_key_list = policy_key_list_new(db_object_connection(policy->dbo)))
+        || policy_key_list_object_store(policy->policy_key_list)
+        || policy_key_list_get_by_clauses(policy->policy_key_list, clause_list))
+    {
+        policy_key_list_free(policy->policy_key_list);
+        policy->policy_key_list = NULL;
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    return DB_OK;
+}
+
+zone_list_t* policy_zone_list(policy_t* policy) {
 
     if (!policy) {
         return NULL;
@@ -1345,26 +1365,47 @@ zone_list_t* policy_zone_list(policy_t* policy) {
         return NULL;
     }
 
-    if (!policy->zone_list) {
-        if (!(clause_list = db_clause_list_new())
-            || !zone_policy_id_clause(clause_list, policy_id(policy))
-            || !(policy->zone_list = zone_list_new(db_object_connection(policy->dbo)))
-            || zone_list_object_store(policy->zone_list)
-            || zone_list_get_by_clauses(policy->zone_list, clause_list))
-        {
-            zone_list_free(policy->zone_list);
-            policy->zone_list = NULL;
-            db_clause_list_free(clause_list);
-            return NULL;
-        }
-        db_clause_list_free(clause_list);
+    if (!policy->zone_list
+        && policy_retrieve_zone_list(policy))
+    {
+        return NULL;
     }
 
     return policy->zone_list;
 }
 
-hsm_key_list_t* policy_hsm_key_list(policy_t* policy) {
+int policy_retrieve_zone_list(policy_t* policy) {
     db_clause_list_t* clause_list;
+
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (policy->zone_list) {
+        zone_list_free(policy->zone_list);
+        policy->zone_list = NULL;
+    }
+
+    if (!(clause_list = db_clause_list_new())
+        || !zone_policy_id_clause(clause_list, policy_id(policy))
+        || !(policy->zone_list = zone_list_new(db_object_connection(policy->dbo)))
+        || zone_list_object_store(policy->zone_list)
+        || zone_list_get_by_clauses(policy->zone_list, clause_list))
+    {
+        zone_list_free(policy->zone_list);
+        policy->zone_list = NULL;
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    return DB_OK;
+}
+
+hsm_key_list_t* policy_hsm_key_list(policy_t* policy) {
 
     if (!policy) {
         return NULL;
@@ -1373,22 +1414,44 @@ hsm_key_list_t* policy_hsm_key_list(policy_t* policy) {
         return NULL;
     }
 
-    if (!policy->hsm_key_list) {
-        if (!(clause_list = db_clause_list_new())
-            || !hsm_key_policy_id_clause(clause_list, policy_id(policy))
-            || !(policy->hsm_key_list = hsm_key_list_new(db_object_connection(policy->dbo)))
-            || hsm_key_list_object_store(policy->hsm_key_list)
-            || hsm_key_list_get_by_clauses(policy->hsm_key_list, clause_list))
-        {
-            hsm_key_list_free(policy->hsm_key_list);
-            policy->hsm_key_list = NULL;
-            db_clause_list_free(clause_list);
-            return NULL;
-        }
-        db_clause_list_free(clause_list);
+    if (!policy->hsm_key_list
+        && policy_retrieve_hsm_key_list(policy))
+    {
+        return NULL;
     }
 
     return policy->hsm_key_list;
+}
+
+int policy_retrieve_hsm_key_list(policy_t* policy) {
+    db_clause_list_t* clause_list;
+
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (policy->hsm_key_list) {
+        hsm_key_list_free(policy->hsm_key_list);
+        policy->hsm_key_list = NULL;
+    }
+
+    if (!(clause_list = db_clause_list_new())
+        || !hsm_key_policy_id_clause(clause_list, policy_id(policy))
+        || !(policy->hsm_key_list = hsm_key_list_new(db_object_connection(policy->dbo)))
+        || hsm_key_list_object_store(policy->hsm_key_list)
+        || hsm_key_list_get_by_clauses(policy->hsm_key_list, clause_list))
+    {
+        hsm_key_list_free(policy->hsm_key_list);
+        policy->hsm_key_list = NULL;
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    return DB_OK;
 }
 
 int policy_set_name(policy_t* policy, const char* name_text) {

@@ -1157,7 +1157,6 @@ unsigned int zone_next_csk_roll(const zone_t* zone) {
 }
 
 key_data_list_t* zone_key_data_list(zone_t* zone) {
-    db_clause_list_t* clause_list;
 
     if (!zone) {
         return NULL;
@@ -1166,26 +1165,47 @@ key_data_list_t* zone_key_data_list(zone_t* zone) {
         return NULL;
     }
 
-    if (!zone->key_data_list) {
-        if (!(clause_list = db_clause_list_new())
-            || !key_data_zone_id_clause(clause_list, zone_id(zone))
-            || !(zone->key_data_list = key_data_list_new(db_object_connection(zone->dbo)))
-            || key_data_list_object_store(zone->key_data_list)
-            || key_data_list_get_by_clauses(zone->key_data_list, clause_list))
-        {
-            key_data_list_free(zone->key_data_list);
-            zone->key_data_list = NULL;
-            db_clause_list_free(clause_list);
-            return NULL;
-        }
-        db_clause_list_free(clause_list);
+    if (!zone->key_data_list
+        && zone_retrieve_key_data_list(zone))
+    {
+        return NULL;
     }
 
     return zone->key_data_list;
 }
 
-key_dependency_list_t* zone_key_dependency_list(zone_t* zone) {
+int zone_retrieve_key_data_list(zone_t* zone) {
     db_clause_list_t* clause_list;
+
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->key_data_list) {
+        key_data_list_free(zone->key_data_list);
+        zone->key_data_list = NULL;
+    }
+
+    if (!(clause_list = db_clause_list_new())
+        || !key_data_zone_id_clause(clause_list, zone_id(zone))
+        || !(zone->key_data_list = key_data_list_new(db_object_connection(zone->dbo)))
+        || key_data_list_object_store(zone->key_data_list)
+        || key_data_list_get_by_clauses(zone->key_data_list, clause_list))
+    {
+        key_data_list_free(zone->key_data_list);
+        zone->key_data_list = NULL;
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    return DB_OK;
+}
+
+key_dependency_list_t* zone_key_dependency_list(zone_t* zone) {
 
     if (!zone) {
         return NULL;
@@ -1194,22 +1214,44 @@ key_dependency_list_t* zone_key_dependency_list(zone_t* zone) {
         return NULL;
     }
 
-    if (!zone->key_dependency_list) {
-        if (!(clause_list = db_clause_list_new())
-            || !key_dependency_zone_id_clause(clause_list, zone_id(zone))
-            || !(zone->key_dependency_list = key_dependency_list_new(db_object_connection(zone->dbo)))
-            || key_dependency_list_object_store(zone->key_dependency_list)
-            || key_dependency_list_get_by_clauses(zone->key_dependency_list, clause_list))
-        {
-            key_dependency_list_free(zone->key_dependency_list);
-            zone->key_dependency_list = NULL;
-            db_clause_list_free(clause_list);
-            return NULL;
-        }
-        db_clause_list_free(clause_list);
+    if (!zone->key_dependency_list
+        && zone_retrieve_key_dependency_list(zone))
+    {
+        return NULL;
     }
 
     return zone->key_dependency_list;
+}
+
+int zone_retrieve_key_dependency_list(zone_t* zone) {
+    db_clause_list_t* clause_list;
+
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!zone->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (zone->key_dependency_list) {
+        key_dependency_list_free(zone->key_dependency_list);
+        zone->key_dependency_list = NULL;
+    }
+
+    if (!(clause_list = db_clause_list_new())
+        || !key_dependency_zone_id_clause(clause_list, zone_id(zone))
+        || !(zone->key_dependency_list = key_dependency_list_new(db_object_connection(zone->dbo)))
+        || key_dependency_list_object_store(zone->key_dependency_list)
+        || key_dependency_list_get_by_clauses(zone->key_dependency_list, clause_list))
+    {
+        key_dependency_list_free(zone->key_dependency_list);
+        zone->key_dependency_list = NULL;
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    return DB_OK;
 }
 
 int zone_set_policy_id(zone_t* zone, const db_value_t* policy_id) {

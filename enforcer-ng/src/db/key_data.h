@@ -324,6 +324,15 @@ unsigned int key_data_minimize(const key_data_t* key_data);
 key_state_list_t* key_data_key_state_list(key_data_t* key_data);
 
 /**
+ * Retrieve key_state objects related to a key data object.
+ * Use key_data_key_state_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] key_data a key_data_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_data_retrieve_key_state_list(key_data_t* key_data);
+
+/**
  * Set the zone_id of a key data object. If this fails the original value may have been lost.
  * \param[in] key_data a key_data_t pointer.
  * \param[in] zone_id a db_value_t pointer.

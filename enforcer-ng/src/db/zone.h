@@ -299,11 +299,29 @@ unsigned int zone_next_csk_roll(const zone_t* zone);
 key_data_list_t* zone_key_data_list(zone_t* zone);
 
 /**
+ * Retrieve key_data objects related to a zone object.
+ * Use zone_key_data_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_retrieve_key_data_list(zone_t* zone);
+
+/**
  * Get the key_dependency objects related to a zone object.
  * \param[in] zone a zone_t pointer.
  * \return a key_dependency_list_t pointer or NULL on error.
  */
 key_dependency_list_t* zone_key_dependency_list(zone_t* zone);
+
+/**
+ * Retrieve key_dependency objects related to a zone object.
+ * Use zone_key_dependency_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_retrieve_key_dependency_list(zone_t* zone);
 
 /**
  * Set the policy_id of a zone object. If this fails the original value may have been lost.

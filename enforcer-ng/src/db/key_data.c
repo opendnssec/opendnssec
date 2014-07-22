@@ -883,7 +883,6 @@ unsigned int key_data_minimize(const key_data_t* key_data) {
 }
 
 key_state_list_t* key_data_key_state_list(key_data_t* key_data) {
-    db_clause_list_t* clause_list;
 
     if (!key_data) {
         return NULL;
@@ -892,22 +891,44 @@ key_state_list_t* key_data_key_state_list(key_data_t* key_data) {
         return NULL;
     }
 
-    if (!key_data->key_state_list) {
-        if (!(clause_list = db_clause_list_new())
-            || !key_state_key_data_id_clause(clause_list, key_data_id(key_data))
-            || !(key_data->key_state_list = key_state_list_new(db_object_connection(key_data->dbo)))
-            || key_state_list_object_store(key_data->key_state_list)
-            || key_state_list_get_by_clauses(key_data->key_state_list, clause_list))
-        {
-            key_state_list_free(key_data->key_state_list);
-            key_data->key_state_list = NULL;
-            db_clause_list_free(clause_list);
-            return NULL;
-        }
-        db_clause_list_free(clause_list);
+    if (!key_data->key_state_list
+        && key_data_retrieve_key_state_list(key_data))
+    {
+        return NULL;
     }
 
     return key_data->key_state_list;
+}
+
+int key_data_retrieve_key_state_list(key_data_t* key_data) {
+    db_clause_list_t* clause_list;
+
+    if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_data->key_state_list) {
+        key_state_list_free(key_data->key_state_list);
+        key_data->key_state_list = NULL;
+    }
+
+    if (!(clause_list = db_clause_list_new())
+        || !key_state_key_data_id_clause(clause_list, key_data_id(key_data))
+        || !(key_data->key_state_list = key_state_list_new(db_object_connection(key_data->dbo)))
+        || key_state_list_object_store(key_data->key_state_list)
+        || key_state_list_get_by_clauses(key_data->key_state_list, clause_list))
+    {
+        key_state_list_free(key_data->key_state_list);
+        key_data->key_state_list = NULL;
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    return DB_OK;
 }
 
 int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id) {

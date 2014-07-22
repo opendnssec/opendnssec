@@ -417,6 +417,15 @@ unsigned int policy_parent_soa_minimum(const policy_t* policy);
 policy_key_list_t* policy_policy_key_list(policy_t* policy);
 
 /**
+ * Retrieve policy_key objects related to a policy object.
+ * Use policy_policy_key_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] policy a policy_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_retrieve_policy_key_list(policy_t* policy);
+
+/**
  * Get the zone objects related to a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a zone_list_t pointer or NULL on error.
@@ -424,11 +433,29 @@ policy_key_list_t* policy_policy_key_list(policy_t* policy);
 zone_list_t* policy_zone_list(policy_t* policy);
 
 /**
+ * Retrieve zone objects related to a policy object.
+ * Use policy_zone_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] policy a policy_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_retrieve_zone_list(policy_t* policy);
+
+/**
  * Get the hsm_key objects related to a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a hsm_key_list_t pointer or NULL on error.
  */
 hsm_key_list_t* policy_hsm_key_list(policy_t* policy);
+
+/**
+ * Retrieve hsm_key objects related to a policy object.
+ * Use policy_hsm_key_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] policy a policy_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_retrieve_hsm_key_list(policy_t* policy);
 
 /**
  * Set the name of a policy object.

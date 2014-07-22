@@ -335,6 +335,16 @@ foreach my $associated (@{$object->{association}}) {
 ', $associated->{foreign}, '_list_t* ', $name, '_', $associated->{foreign}, '_list(', $name, '_t* ', $name, ');
 
 ';
+    print HEADER '/**
+ * Retrieve ', $associated->{foreign}, ' objects related to a ', $tname, ' object.
+ * Use ', $name, '_', $associated->{foreign}, '_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] ', $name, ' a ', $name, '_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int ', $name, '_retrieve_', $associated->{foreign}, '_list(', $name, '_t* ', $name, ');
+
+';
 }
 
 foreach my $field (@{$object->{fields}}) {
@@ -1502,7 +1512,6 @@ print SOURCE $DB_TYPE_TO_C_TYPE{$field->{type}}, ' ', $name, '_', $field->{name}
 
 foreach my $associated (@{$object->{association}}) {
     print SOURCE $associated->{foreign}, '_list_t* ', $name, '_', $associated->{foreign}, '_list(', $name, '_t* ', $name, ') {
-    db_clause_list_t* clause_list;
 
     if (!', $name, ') {
         return NULL;
@@ -1511,22 +1520,44 @@ foreach my $associated (@{$object->{association}}) {
         return NULL;
     }
 
-    if (!', $name, '->', $associated->{foreign}, '_list) {
-        if (!(clause_list = db_clause_list_new())
-            || !', $associated->{foreign}, '_', $associated->{foreign_name}, '_clause(clause_list, ', $name, '_', $associated->{name}, '(', $name, '))
-            || !(', $name, '->', $associated->{foreign}, '_list = ', $associated->{foreign}, '_list_new(db_object_connection(', $name, '->dbo)))
-            || ', $associated->{foreign}, '_list_object_store(', $name, '->', $associated->{foreign}, '_list)
-            || ', $associated->{foreign}, '_list_get_by_clauses(', $name, '->', $associated->{foreign}, '_list, clause_list))
-        {
-            ', $associated->{foreign}, '_list_free(', $name, '->', $associated->{foreign}, '_list);
-            ', $name, '->', $associated->{foreign}, '_list = NULL;
-            db_clause_list_free(clause_list);
-            return NULL;
-        }
-        db_clause_list_free(clause_list);
+    if (!', $name, '->', $associated->{foreign}, '_list
+        && ', $name, '_retrieve_', $associated->{foreign}, '_list(', $name, '))
+    {
+        return NULL;
     }
 
     return ', $name, '->', $associated->{foreign}, '_list;
+}
+
+int ', $name, '_retrieve_', $associated->{foreign}, '_list(', $name, '_t* ', $name, ') {
+    db_clause_list_t* clause_list;
+
+    if (!', $name, ') {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!', $name, '->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (', $name, '->', $associated->{foreign}, '_list) {
+        ', $associated->{foreign}, '_list_free(', $name, '->', $associated->{foreign}, '_list);
+        ', $name, '->', $associated->{foreign}, '_list = NULL;
+    }
+
+    if (!(clause_list = db_clause_list_new())
+        || !', $associated->{foreign}, '_', $associated->{foreign_name}, '_clause(clause_list, ', $name, '_', $associated->{name}, '(', $name, '))
+        || !(', $name, '->', $associated->{foreign}, '_list = ', $associated->{foreign}, '_list_new(db_object_connection(', $name, '->dbo)))
+        || ', $associated->{foreign}, '_list_object_store(', $name, '->', $associated->{foreign}, '_list)
+        || ', $associated->{foreign}, '_list_get_by_clauses(', $name, '->', $associated->{foreign}, '_list, clause_list))
+    {
+        ', $associated->{foreign}, '_list_free(', $name, '->', $associated->{foreign}, '_list);
+        ', $name, '->', $associated->{foreign}, '_list = NULL;
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+
+    return DB_OK;
 }
 
 ';
