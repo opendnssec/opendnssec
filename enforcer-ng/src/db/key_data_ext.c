@@ -31,10 +31,7 @@
 #include "db_error.h"
 
 int key_data_cache_key_states(key_data_t* key_data) {
-    if (!key_data_key_state_list(key_data)) {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
+    return key_data_retrieve_key_state_list(key_data);
 }
 
 static const key_state_t* get_key_state(key_data_t* key_data, key_state_type_t type) {
