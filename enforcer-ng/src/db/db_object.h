@@ -147,6 +147,7 @@ const db_object_field_t* db_object_field_next(const db_object_field_t* object_fi
 struct db_object_field_list {
     db_object_field_t* begin;
     db_object_field_t* end;
+    size_t size;
 };
 
 /**
@@ -176,6 +177,13 @@ int db_object_field_list_add(db_object_field_list_t* object_field_list, db_objec
  * \return a db_object_field_t pointer or NULL on error or if the list is empty.
  */
 const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list);
+
+/**
+ * Return the size of a object field list.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \return a size_t, may be zero on error.
+ */
+size_t db_object_field_list_size(const db_object_field_list_t* object_field_list);
 
 /**
  * A database object.

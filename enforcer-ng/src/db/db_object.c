@@ -191,6 +191,7 @@ int db_object_field_list_add(db_object_field_list_t* object_field_list, db_objec
         object_field_list->begin = object_field;
         object_field_list->end = object_field;
     }
+    object_field_list->size++;
 
     return DB_OK;
 }
@@ -201,6 +202,14 @@ const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t
     }
 
     return object_field_list->begin;
+}
+
+size_t db_object_field_list_size(const db_object_field_list_t* object_field_list) {
+    if (!object_field_list) {
+        return 0;
+    }
+
+    return object_field_list->size;
 }
 
 /* DB OBJECT */
