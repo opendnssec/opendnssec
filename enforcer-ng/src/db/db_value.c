@@ -293,6 +293,50 @@ db_type_t db_value_type(const db_value_t* value) {
     return value->type;
 }
 
+const db_type_int32_t* db_value_int32(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_INT32) {
+        return NULL;
+    }
+
+    return value->int32;
+}
+
+const db_type_uint32_t* db_value_uint32(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_UINT32) {
+        return NULL;
+    }
+
+    return value->uint32;
+}
+
+const db_type_int64_t* db_value_int64(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_INT64) {
+        return NULL;
+    }
+
+    return value->int64;
+}
+
+const db_type_uint64_t* db_value_uint64(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_UINT64) {
+        return NULL;
+    }
+
+    return value->uint64;
+}
+
 const char* db_value_text(const db_value_t* value) {
     if (!value) {
         return NULL;

@@ -123,6 +123,42 @@ int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* resu
 db_type_t db_value_type(const db_value_t* value);
 
 /**
+ * Get a pointer for the 32bit integer in a database value.
+ * \param[in] value a db_value_t pointer.
+ * \return a db_type_int32_t pointer or NULL on error, if empty or not a 32bit
+ * integer value.
+ * TODO: unit test
+ */
+const db_type_int32_t* db_value_int32(const db_value_t* value);
+
+/**
+ * Get a pointer for the unsigned 32bit integer in a database value.
+ * \param[in] value a db_value_t pointer.
+ * \return a db_type_uint32_t pointer or NULL on error, if empty or not an
+ * unsigned 32bit integer value.
+ * TODO: unit test
+ */
+const db_type_uint32_t* db_value_uint32(const db_value_t* value);
+
+/**
+ * Get a pointer for the 64bit integer in a database value.
+ * \param[in] value a db_value_t pointer.
+ * \return a db_type_int64_t pointer or NULL on error, if empty or not a 64bit
+ * integer value.
+ * TODO: unit test
+ */
+const db_type_int64_t* db_value_int64(const db_value_t* value);
+
+/**
+ * Get a pointer for the unsigned 64bit integer in a database value.
+ * \param[in] value a db_value_t pointer.
+ * \return a db_type_uint64_t pointer or NULL on error, if empty or not an
+ * unsigned 64bit integer value.
+ * TODO: unit test
+ */
+const db_type_uint64_t* db_value_uint64(const db_value_t* value);
+
+/**
  * Get a character pointer for the text in a database value.
  * \param[in] value a db_value_t pointer.
  * \return a character pointer or NULL on error, if empty or not a text value.
