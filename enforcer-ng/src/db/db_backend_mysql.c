@@ -492,6 +492,22 @@ static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* stateme
     return ret;
 }
 
+static inline int __db_backend_mysql_execute(db_backend_mysql_statement_t* statement) {
+    if (!statement) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!statement->statement) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (mysql_stmt_execute(statement->statement)) {
+        ods_log_info("DB fetch Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
+}
+
 static int db_backend_mysql_initialize(void* data) {
     db_backend_mysql_t* backend_mysql = (db_backend_mysql_t*)data;
 
@@ -773,7 +789,6 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
  */
 static int __db_backend_mysql_bind_clause(db_backend_mysql_bind_t** bind, const db_clause_list_t* clause_list) {
     const db_clause_t* clause;
-    int ret;
     const db_type_int32_t* int32;
     const db_type_uint32_t* uint32;
     const db_type_int64_t* int64;
@@ -815,7 +830,6 @@ static int __db_backend_mysql_bind_clause(db_backend_mysql_bind_t** bind, const 
                 *bind->bind->length = &(*bind->bind->buffer_length);
                 *bind->bind->is_null = (my_bool*)0;
                 *bind->bind->is_unsigned = 0;
-                *bind_pos++;
                 break;
 
             case DB_TYPE_UINT32:
@@ -905,6 +919,127 @@ static int __db_backend_mysql_bind_clause(db_backend_mysql_bind_t** bind, const 
 
         *bind = *bind->next;
         clause = db_clause_next(clause);
+    }
+    return DB_OK;
+}
+
+static int __db_backend_mysql_bind_value(db_backend_mysql_bind_t* bind, const db_value_t* value) {
+    const db_type_int32_t* int32;
+    const db_type_uint32_t* uint32;
+    const db_type_int64_t* int64;
+    const db_type_uint64_t* uint64;
+    const char* text;
+
+    if (!bind) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    switch (db_value_type(value)) {
+    case DB_TYPE_PRIMARY_KEY:
+    case DB_TYPE_INT32:
+        if (!(int32 = db_value_int32(value))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        bind->bind->buffer_type = MYSQL_TYPE_LONG;
+        bind->bind->buffer = (void*)int32;
+        bind->bind->buffer_length = sizeof(db_type_int32_t);
+        bind->bind->length = &(bind->bind->buffer_length);
+        bind->bind->is_null = (my_bool*)0;
+        bind->bind->is_unsigned = 0;
+        break;
+
+    case DB_TYPE_UINT32:
+        if (!(uint32 = db_value_uint32(value))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        bind->bind->buffer_type = MYSQL_TYPE_LONG;
+        bind->bind->buffer = (void*)uint32;
+        bind->bind->buffer_length = sizeof(db_type_uint32_t);
+        bind->bind->length = &(bind->bind->buffer_length);
+        bind->bind->is_null = (my_bool*)0;
+        bind->bind->is_unsigned = 1;
+        break;
+
+    case DB_TYPE_INT64:
+        if (!(int64 = db_value_int64(value))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        bind->bind->buffer_type = MYSQL_TYPE_LONGLONG;
+        bind->bind->buffer = (void*)int64;
+        bind->bind->buffer_length = sizeof(db_type_int64_t);
+        bind->bind->length = &(bind->bind->buffer_length);
+        bind->bind->is_null = (my_bool*)0;
+        bind->bind->is_unsigned = 0;
+        break;
+
+    case DB_TYPE_UINT64:
+        if (!(uint64 = db_value_uint64(value))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        bind->bind->buffer_type = MYSQL_TYPE_LONGLONG;
+        bind->bind->buffer = (void*)uint64;
+        bind->bind->buffer_length = sizeof(db_type_uint64_t);
+        bind->bind->length = &(bind->bind->buffer_length);
+        bind->bind->is_null = (my_bool*)0;
+        bind->bind->is_unsigned = 1;
+        break;
+
+    case DB_TYPE_TEXT:
+        if (!(text = db_value_text(value))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        bind->bind->buffer_type = MYSQL_TYPE_STRING;
+        bind->bind->buffer = (void*)text;
+        bind->bind->buffer_length = strlen(text);
+        bind->bind->length = &(bind->bind->buffer_length);
+        bind->bind->is_null = (my_bool*)0;
+        bind->bind->is_unsigned = 0;
+        break;
+
+    case DB_TYPE_ENUM:
+        if (db_value_enum_value(value, &(bind->value_enum))) {
+            return DB_ERROR_UNKNOWN;
+        }
+        bind->bind->buffer_type = MYSQL_TYPE_LONG;
+        bind->bind->buffer = (void*)&(bind->value_enum);
+        bind->bind->buffer_length = sizeof(int);
+        bind->bind->length = &(bind->bind->buffer_length);
+        bind->bind->is_null = (my_bool*)0;
+        bind->bind->is_unsigned = 0;
+        break;
+
+    default:
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return DB_OK;
+}
+
+static int __db_backend_mysql_bind_value_set(db_backend_mysql_bind_t** bind, const db_value_set_t* value_set) {
+    const db_value_t* value;
+    size_t i;
+
+    if (!bind) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!*bind) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!value_set) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    for (i = 0; i < db_value_set_size(value_set); i++, *bind = *bind->next) {
+        if (!*bind) {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        if (__db_backend_mysql_bind_value(*bind, db_value_set_at(value_set, i))) {
+            return DB_ERROR_UNKNOWN;
+        }
     }
     return DB_OK;
 }
@@ -1063,18 +1198,12 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
     db_backend_mysql_t* backend_mysql = (db_backend_mysql_t*)data;
     const db_object_field_t* object_field;
     const db_object_field_t* revision_field = NULL;
-    const db_value_t* value;
     char sql[4*1024];
     char* sqlp;
-    int ret, left, bind, first;
-    MYSQL_STMT* statement = NULL;
-    size_t value_pos;
-    int to_int;
-    mysql_int64 to_int64;
-    db_type_int32_t int32;
-    db_type_uint32_t uint32;
-    db_type_int64_t int64;
-    db_type_uint64_t uint64;
+    int ret, left, first;
+    db_backend_mysql_statement_t* statement = NULL;
+    db_backend_mysql_bind_t* bind;
+    db_value_t revision = DB_VALUE_EMPTY;
 
     if (!__mysql_initialized) {
         return DB_ERROR_UNKNOWN;
@@ -1117,7 +1246,7 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
         /*
          * Special case when tables has no fields except maybe a primary key.
          */
-        if ((ret = snprintf(sqlp, left, "INSERT INTO %s DEFAULT VALUES", db_object_table(object))) >= left) {
+        if ((ret = snprintf(sqlp, left, "INSERT INTO %s () VALUES ()", db_object_table(object))) >= left) {
             return DB_ERROR_UNKNOWN;
         }
         sqlp += ret;
@@ -1230,114 +1359,42 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
     /*
      * Prepare the SQL, create a MySQL statement.
      */
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql))) {
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), object)
+        || !statement
+        || !(bind = statement->bind_input))
+    {
+        __db_backend_mysql_finish(statement);
         return DB_ERROR_UNKNOWN;
     }
 
     /*
      * Bind all the values from value_set.
      */
-    bind = 1;
-    for (value_pos = 0; value_pos < db_value_set_size(value_set); value_pos++) {
-        if (!(value = db_value_set_at(value_set, value_pos))) {
-            __db_backend_mysql_finish(statement);
-            return DB_ERROR_UNKNOWN;
-        }
-
-        switch (db_value_type(value)) {
-        case DB_TYPE_INT32:
-            if (db_value_to_int32(value, &int32)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            to_int = int32;
-            ret = mysql_bind_int(statement, bind++, to_int);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_UINT32:
-            if (db_value_to_uint32(value, &uint32)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            to_int = uint32;
-            ret = mysql_bind_int(statement, bind++, to_int);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_INT64:
-            if (db_value_to_int64(value, &int64)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            to_int64 = int64;
-            ret = mysql_bind_int64(statement, bind++, to_int64);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_UINT64:
-            if (db_value_to_uint64(value, &uint64)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            to_int64 = uint64;
-            ret = mysql_bind_int64(statement, bind++, to_int64);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_TEXT:
-            ret = mysql_bind_text(statement, bind++, db_value_text(value), -1, MYSQL_TRANSIENT);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_ENUM:
-            if (db_value_enum_value(value, &to_int)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            ret = mysql_bind_int(statement, bind++, to_int);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        default:
-            __db_backend_mysql_finish(statement);
-            return DB_ERROR_UNKNOWN;
-        }
+    if (__db_backend_mysql_bind_value_set(&bind, value_set)) {
+        __db_backend_mysql_finish(statement);
+        return DB_ERROR_UNKNOWN;
     }
 
     /*
      * Bind the revision field value if we have one.
      */
     if (revision_field) {
-        ret = mysql_bind_int(statement, bind++, 1);
-        if (ret != MYSQL_OK) {
+        if (db_value_from_int64(&revision, 1)
+            || __db_backend_mysql_bind_value(&bind, revision))
+        {
+            db_value_reset(&revision);
             __db_backend_mysql_finish(statement);
             return DB_ERROR_UNKNOWN;
         }
+        db_value_reset(&revision);
     }
 
     /*
      * Execute the SQL.
      */
-    if (__db_backend_mysql_fetch(backend_mysql, statement) != MYSQL_DONE) {
+    if (__db_backend_mysql_execute(statement)
+        || mysql_stmt_affected_rows(statement->statement) != 1)
+    {
         __db_backend_mysql_finish(statement);
         return DB_ERROR_UNKNOWN;
     }
@@ -1352,9 +1409,10 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
     const db_join_t* join;
     char sql[4*1024];
     char* sqlp;
-    int ret, left, first, fields, bind;
+    int ret, left, first;
     db_result_list_t* result_list;
-    db_backend_mysql_statement_t* statement;
+    db_backend_mysql_statement_t* statement = NULL;
+    db_backend_mysql_bind_t* bind;
 
     if (!__mysql_initialized) {
         return NULL;
@@ -1377,7 +1435,6 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
 
     object_field = db_object_field_list_begin(db_object_object_field_list(object));
     first = 1;
-    fields = 0;
     while (object_field) {
         if (first) {
             if ((ret = snprintf(sqlp, left, " %s.%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
@@ -1394,7 +1451,6 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
         left -= ret;
 
         object_field = db_object_field_next(object_field);
-        fields++;
     }
 
     if ((ret = snprintf(sqlp, left, " FROM %s", db_object_table(object))) >= left) {
@@ -1434,34 +1490,29 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
         }
     }
 
-    statement = mm_alloc_new0(&__mysql_statement_alloc);
-    if (!statement) {
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), object)
+        || !statement)
+    {
+        __db_backend_mysql_finish(statement);
         return NULL;
     }
-    statement->backend_mysql = backend_mysql;
-    statement->object = object;
-    statement->fields = fields;
-    statement->statement = NULL;
 
-    if (__db_backend_mysql_prepare(backend_mysql, &(statement->statement), sql, sizeof(sql))) {
-        mm_alloc_delete(&__mysql_statement_alloc, statement);
-        return NULL;
-    }
+    bind = statement->bind_input;
 
     if (clause_list) {
-        bind = 1;
-        if (__db_backend_mysql_bind_clause(statement->statement, clause_list, &bind)) {
-            __db_backend_mysql_finish(statement->statement);
-            mm_alloc_delete(&__mysql_statement_alloc, statement);
+        if (__db_backend_mysql_bind_clause(&bind, clause_list)) {
+            __db_backend_mysql_finish(statement);
             return NULL;
         }
     }
 
+    exec
+
     if (!(result_list = db_result_list_new())
-        || db_result_list_set_next(result_list, db_backend_mysql_next, statement, 0))
+        || db_result_list_set_next(result_list, db_backend_mysql_next, statement, mysql_stmt_affected_rows(statement->statement)))
     {
-        __db_backend_mysql_finish(statement->statement);
-        mm_alloc_delete(&__mysql_statement_alloc, statement);
+        db_result_list_free(result_list);
+        __db_backend_mysql_finish(statement);
         return NULL;
     }
     return result_list;
@@ -1473,19 +1524,13 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
     const db_object_field_t* revision_field = NULL;
     const db_clause_t* clause;
     const db_clause_t* revision_clause = NULL;
-    mysql_int64 revision_number = -1;
-    const db_value_t* value;
+    db_type_int64_t revision_number = -1;
     char sql[4*1024];
     char* sqlp;
-    int ret, left, bind, first;
-    MYSQL_STMT* statement = NULL;
-    size_t value_pos;
-    int to_int;
-    mysql_int64 to_int64;
-    db_type_int32_t int32;
-    db_type_uint32_t uint32;
-    db_type_int64_t int64;
-    db_type_uint64_t uint64;
+    int ret, left, first;
+    db_backend_mysql_statement_t* statement = NULL;
+    db_backend_mysql_bind_t* bind;
+    db_value_t revision = DB_VALUE_EMPTY;
 
     if (!__mysql_initialized) {
         return DB_ERROR_UNKNOWN;
@@ -1640,94 +1685,20 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
     /*
      * Prepare the SQL.
      */
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql))) {
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), object)
+        || !statement)
+    {
+        __db_backend_mysql_finish(statement);
         return DB_ERROR_UNKNOWN;
     }
+
+    bind = statement->bind_input;
 
     /*
      * Bind all the values from value_set.
      */
-    bind = 1;
-    for (value_pos = 0; value_pos < db_value_set_size(value_set); value_pos++) {
-        if (!(value = db_value_set_at(value_set, value_pos))) {
-            __db_backend_mysql_finish(statement);
-            return DB_ERROR_UNKNOWN;
-        }
-
-        switch (db_value_type(value)) {
-        case DB_TYPE_INT32:
-            if (db_value_to_int32(value, &int32)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            to_int = int32;
-            ret = mysql_bind_int(statement, bind++, to_int);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_UINT32:
-            if (db_value_to_uint32(value, &uint32)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            to_int = uint32;
-            ret = mysql_bind_int(statement, bind++, to_int);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_INT64:
-            if (db_value_to_int64(value, &int64)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            to_int64 = int64;
-            ret = mysql_bind_int64(statement, bind++, to_int64);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_UINT64:
-            if (db_value_to_uint64(value, &uint64)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            to_int64 = uint64;
-            ret = mysql_bind_int64(statement, bind++, to_int64);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_TEXT:
-            ret = mysql_bind_text(statement, bind++, db_value_text(value), -1, MYSQL_TRANSIENT);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        case DB_TYPE_ENUM:
-            if (db_value_enum_value(value, &to_int)) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            ret = mysql_bind_int(statement, bind++, to_int);
-            if (ret != MYSQL_OK) {
-                __db_backend_mysql_finish(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            break;
-
-        default:
+    if (value_set) {
+        if (__db_backend_mysql_bind_value_set(&bind, value_set)) {
             __db_backend_mysql_finish(statement);
             return DB_ERROR_UNKNOWN;
         }
@@ -1737,18 +1708,21 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
      * Bind the new revision if we have any.
      */
     if (revision_field) {
-        ret = mysql_bind_int64(statement, bind++, revision_number + 1);
-        if (ret != MYSQL_OK) {
+        if (db_value_from_int64(&revision, revision_number + 1)
+            || __db_backend_mysql_bind_value(&bind, revision))
+        {
+            db_value_reset(&revision);
             __db_backend_mysql_finish(statement);
             return DB_ERROR_UNKNOWN;
         }
+        db_value_reset(&revision);
     }
 
     /*
      * Bind the clauses values.
      */
     if (clause_list) {
-        if (__db_backend_mysql_bind_clause(statement, clause_list, &bind)) {
+        if (__db_backend_mysql_bind_clause(&bind, clause_list)) {
             __db_backend_mysql_finish(statement);
             return DB_ERROR_UNKNOWN;
         }
@@ -1757,22 +1731,23 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
     /*
      * Execute the SQL.
      */
-    if (__db_backend_mysql_fetch(backend_mysql, statement) != MYSQL_DONE) {
+    if (__db_backend_mysql_execute(statement)) {
         __db_backend_mysql_finish(statement);
         return DB_ERROR_UNKNOWN;
     }
-    __db_backend_mysql_finish(statement);
 
     /*
      * If we are using revision we have to have a positive number of changes
      * otherwise its a failure.
      */
     if (revision_field) {
-        if (mysql_changes(backend_mysql->db) < 1) {
+        if (mysql_stmt_affected_rows(statement->statement) < 1) {
+            __db_backend_mysql_finish(statement);
             return DB_ERROR_UNKNOWN;
         }
     }
 
+    __db_backend_mysql_finish(statement);
     return DB_OK;
 }
 
