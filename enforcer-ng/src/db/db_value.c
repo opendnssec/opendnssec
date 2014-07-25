@@ -513,6 +513,9 @@ int db_value_to_enum_text(const db_value_t* value, const char** to_text, const d
     if (!to_text) {
         return DB_ERROR_UNKNOWN;
     }
+    if (*to_text) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (!enum_set) {
         return DB_ERROR_UNKNOWN;
     }
@@ -603,6 +606,9 @@ int db_value_from_text(db_value_t* value, const char* from_text) {
     if (!value) {
         return DB_ERROR_UNKNOWN;
     }
+    if (!from_text) {
+        return DB_ERROR_UNKNOWN;
+    }
     if (value->type != DB_TYPE_EMPTY) {
         return DB_ERROR_UNKNOWN;
     }
@@ -615,8 +621,33 @@ int db_value_from_text(db_value_t* value, const char* from_text) {
     return DB_OK;
 }
 
+int db_value_from_text2(db_value_t* value, const char* from_text, size_t size) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_text) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!size) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (value->type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    value->text = (void*)strndup(from_text, size);
+    if (!value->text) {
+        return DB_ERROR_UNKNOWN;
+    }
+    value->type = DB_TYPE_TEXT;
+    return DB_OK;
+}
+
 int db_value_from_enum_value(db_value_t* value, int enum_value, const db_enum_t* enum_set) {
     if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enum_set) {
         return DB_ERROR_UNKNOWN;
     }
     if (value->type != DB_TYPE_EMPTY) {
@@ -640,6 +671,9 @@ int db_value_from_enum_text(db_value_t* value, const char* enum_text, const db_e
         return DB_ERROR_UNKNOWN;
     }
     if (!enum_text) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!enum_set) {
         return DB_ERROR_UNKNOWN;
     }
     if (value->type != DB_TYPE_EMPTY) {

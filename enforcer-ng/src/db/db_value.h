@@ -287,6 +287,15 @@ int db_value_from_uint64(db_value_t* value, db_type_uint64_t from_uint64);
 int db_value_from_text(db_value_t* value, const char* from_text);
 
 /**
+ * Set the database value to a text value.
+ * \param[in] value a db_value_t pointer.
+ * \param[in] from_text a character pointer.
+ * \param[in] size a size_t.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_value_from_text2(db_value_t* value, const char* from_text, size_t size);
+
+/**
  * Set the database value to an enumeration value based on an integer value.
  * \param[in] value a db_value_t pointer.
  * \param[in] enum_value an integer pointer.

@@ -815,7 +815,7 @@ void test_class_db_result_list(void) {
 
 void test_class_db_value(void) {
     char* text = NULL;
-    const char* enum_text;
+    const char* enum_text = NULL;
     int ret;
     db_type_int32_t int32;
     db_type_uint32_t uint32;
@@ -933,6 +933,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum2"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_not_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
@@ -947,6 +948,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum2"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_cmp(value, value2, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(db_value_set_primary_key(value));
@@ -966,6 +968,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum2"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_not_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
@@ -980,6 +983,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum2"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_cmp(value, value2, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(db_value_set_primary_key(value));
@@ -999,6 +1003,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum3"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_not_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
@@ -1013,6 +1018,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum3"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_cmp(value, value2, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(db_value_set_primary_key(value));
@@ -1032,6 +1038,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum3"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_not_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
@@ -1046,6 +1053,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum3"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_cmp(value, value2, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(db_value_set_primary_key(value));
@@ -1065,6 +1073,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum1"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_not_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
@@ -1079,6 +1088,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum1"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_cmp(value, value2, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(db_value_set_primary_key(value));
@@ -1098,6 +1108,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum1"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_not_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
@@ -1112,6 +1123,7 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_text(value2, &enum_text, enum_set));
     CU_ASSERT_PTR_NOT_NULL_FATAL(enum_text);
     CU_ASSERT(!strcmp(enum_text, "enum1"));
+    enum_text = NULL;
     CU_ASSERT(!db_value_cmp(value, value2, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(db_value_set_primary_key(value));
