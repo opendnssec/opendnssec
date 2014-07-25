@@ -1220,6 +1220,7 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
     if (!(result_list = db_result_list_new())
         || db_result_list_set_next(result_list, db_backend_sqlite_next, statement, 0))
     {
+        db_result_list_free(result_list);
         __db_backend_sqlite_finalize(statement->statement);
         mm_alloc_delete(&__sqlite_statement_alloc, statement);
         return NULL;
