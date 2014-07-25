@@ -301,7 +301,7 @@ const db_type_int32_t* db_value_int32(const db_value_t* value) {
         return NULL;
     }
 
-    return value->int32;
+    return &value->int32;
 }
 
 const db_type_uint32_t* db_value_uint32(const db_value_t* value) {
@@ -312,7 +312,7 @@ const db_type_uint32_t* db_value_uint32(const db_value_t* value) {
         return NULL;
     }
 
-    return value->uint32;
+    return &value->uint32;
 }
 
 const db_type_int64_t* db_value_int64(const db_value_t* value) {
@@ -323,7 +323,7 @@ const db_type_int64_t* db_value_int64(const db_value_t* value) {
         return NULL;
     }
 
-    return value->int64;
+    return &value->int64;
 }
 
 const db_type_uint64_t* db_value_uint64(const db_value_t* value) {
@@ -334,7 +334,7 @@ const db_type_uint64_t* db_value_uint64(const db_value_t* value) {
         return NULL;
     }
 
-    return value->uint64;
+    return &value->uint64;
 }
 
 const char* db_value_text(const db_value_t* value) {
