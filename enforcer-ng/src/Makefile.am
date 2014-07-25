@@ -48,21 +48,29 @@ sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup
 
 nodist_ods_enforcerd_SOURCES = $(BUILT_SOURCES)
 
+BACKEND_SOURCES_CUSTOM =
+BACKEND_LDFLAGS_CUSTOM =
+BACKEND_SCHEMA_CUSTOM =
+
 if USE_SQLITE
-BACKEND_SOURCES_CUSTOM = db/db_backend_sqlite.c db/db_backend_sqlite.h
-BACKEND_SCHEMA_CUSTOM = db/db_schema_sqlite.c db/db_schema_sqlite.h \
+BACKEND_SOURCES_CUSTOM += db/db_backend_sqlite.c db/db_backend_sqlite.h
+BACKEND_SCHEMA_CUSTOM += db/db_schema_sqlite.c db/db_schema_sqlite.h \
 	db/db_data_sqlite.c db/db_data_sqlite.h
 endif
 
 if USE_COUCHDB
-BACKEND_SOURCES_CUSTOM = db/db_backend_couchdb.c db/db_backend_couchdb.h
-BACKEND_SCHEMA_CUSTOM = db/db_schema_couchdb.c db/db_schema_couchdb.h \
+BACKEND_SOURCES_CUSTOM += db/db_backend_couchdb.c db/db_backend_couchdb.h
+BACKEND_SCHEMA_CUSTOM += db/db_schema_couchdb.c db/db_schema_couchdb.h \
 	db/db_data_couchdb.c db/db_data_couchdb.h
 # TODO: This needs depends in configure:
-BACKEND_LDFLAGS_CUSTOM = \
+BACKEND_LDFLAGS_CUSTOM += \
 	`pkg-config --libs libcurl` \
 	`pkg-config --libs jansson`
 endif
+
+BACKEND_SOURCES_CUSTOM += db/db_backend_mysql.c db/db_backend_mysql.h
+BACKEND_LDFLAGS_CUSTOM += \
+	`mysql_config --libs`
 
 ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \
