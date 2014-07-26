@@ -1108,9 +1108,9 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
 
             case MYSQL_TYPE_LONGLONG:
                 if ((bind->bind->is_unsigned
-                        && db_value_from_uint64(db_value_set_get(value_set, value), *((unsigned long long int*)bind->bind->buffer)))
+                        && db_value_from_uint64(db_value_set_get(value_set, value), *((my_ulonglong*)bind->bind->buffer)))
                     || (!bind->bind->is_unsigned
-                        && db_value_from_int64(db_value_set_get(value_set, value), *((long long int*)bind->bind->buffer))))
+                        && db_value_from_int64(db_value_set_get(value_set, value), *((my_ulonglong*)bind->bind->buffer))))
                 {
                     db_result_free(result);
                     return NULL;
@@ -1160,9 +1160,9 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
         case DB_TYPE_UINT64:
             if (bind->bind->buffer_type != MYSQL_TYPE_LONGLONG
                 || (bind->bind->is_unsigned
-                    && db_value_from_uint64(db_value_set_get(value_set, value), *((unsigned long long int*)bind->bind->buffer)))
+                    && db_value_from_uint64(db_value_set_get(value_set, value), *((my_ulonglong*)bind->bind->buffer)))
                 || (!bind->bind->is_unsigned
-                    && db_value_from_int64(db_value_set_get(value_set, value), *((long long int*)bind->bind->buffer))))
+                    && db_value_from_int64(db_value_set_get(value_set, value), *((my_ulonglong*)bind->bind->buffer))))
             {
                 db_result_free(result);
                 return NULL;
