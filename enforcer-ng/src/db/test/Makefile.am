@@ -24,16 +24,23 @@ test_SOURCES = \
 	test_database_version.c test_database_version.h \
 	test_zone.c test_zone.h
 
+BACKEND_LDADD_CUSTOM =
+BACKEND_LDFLAGS_CUSTOM =
+
 if USE_SQLITE
-BACKEND_LDADD_CUSTOM = ../../db_backend_sqlite.o
+BACKEND_LDADD_CUSTOM += ../../db_backend_sqlite.o
 endif
 
 if USE_COUCHDB
-BACKEND_LDADD_CUSTOM = ../../db_backend_couchdb.o
-BACKEND_LDFLAGS_CUSTOM = \
+BACKEND_LDADD_CUSTOM += ../../db_backend_couchdb.o
+BACKEND_LDFLAGS_CUSTOM += \
 	`pkg-config --libs libcurl` \
 	`pkg-config --libs jansson`
 endif
+
+BACKEND_LDADD_CUSTOM += ../../db_backend_mysql.o
+BACKEND_LDFLAGS_CUSTOM += \
+	`mysql_config --libs`
 
 test_LDADD = \
 	../../db_backend.o \
@@ -79,4 +86,7 @@ if USE_COUCHDB
 	curl -X PUT http://127.0.0.1:5984/opendnssec/_design/application -d @$(srcdir)/test.couchdb
 	curl -X PUT http://127.0.0.1:5984/opendnssec/1 -d '{"type":"test","test_name":"test"}'
 endif
+	mysql -u root test < $(srcdir)/test.mysql
+	mysql -u root test < $(srcdir)/../drop.mysql
+	mysql -u root test < $(srcdir)/../schema.mysql
 	./test

@@ -36,6 +36,7 @@
 #if defined(ENFORCER_DATABASE_COUCHDB)
 #include "db_backend_couchdb.h"
 #endif
+#include "db_backend_mysql.h"
 #include "db_error.h"
 
 #include "mm.h"
@@ -696,6 +697,17 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
         return backend;
     }
 #endif
+    if (!strcmp(name, "mysql")) {
+        if (!(backend = db_backend_new())
+            || db_backend_set_name(backend, "mysql")
+            || db_backend_set_handle(backend, db_backend_mysql_new_handle())
+            || db_backend_initialize(backend))
+        {
+            db_backend_free(backend);
+            return NULL;
+        }
+        return backend;
+    }
 
     return backend;
 }

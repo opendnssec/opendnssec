@@ -86,6 +86,7 @@ typedef struct db_backend_mysql_statement {
     db_backend_mysql_bind_t* bind_output;
     db_object_field_list_t* object_field_list;
     int fields;
+    int bound;
 } db_backend_mysql_statement_t;
 
 static mm_alloc_t __mysql_statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_mysql_statement_t));
@@ -118,6 +119,9 @@ static inline void __db_backend_mysql_finish(db_backend_mysql_statement_t* state
     }
     if (statement->mysql_bind_output) {
         free(statement->mysql_bind_output);
+    }
+    if (statement->object_field_list) {
+        db_object_field_list_free(statement->object_field_list);
     }
 
     mm_alloc_delete(&__mysql_statement_alloc, statement);
@@ -190,7 +194,12 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
         && (params = db_object_field_list_size(object_field_list)) > 0
         && (result_metadata = mysql_stmt_result_metadata((*statement)->statement)))
     {
-        /* TODO: copy object field list */
+        if (!((*statement)->object_field_list = db_object_field_list_new_copy(object_field_list))) {
+            mysql_free_result(result_metadata);
+            __db_backend_mysql_finish(*statement);
+            *statement = NULL;
+            return DB_ERROR_UNKNOWN;
+        }
 
         if (!((*statement)->mysql_bind_output = calloc(params, sizeof(MYSQL_BIND)))) {
             mysql_free_result(result_metadata);
@@ -488,6 +497,16 @@ static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* stateme
         return DB_ERROR_UNKNOWN;
     }
 
+    if (!statement->bound) {
+        if (statement->mysql_bind_output
+            && mysql_stmt_bind_result(statement->statement, statement->mysql_bind_output))
+        {
+            ods_log_info("DB bind result Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+            return DB_ERROR_UNKNOWN;
+        }
+        statement->bound = 1;
+    }
+
     ret = mysql_stmt_fetch(statement->statement);
     if (ret == 1) {
         ods_log_info("DB fetch Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
@@ -504,8 +523,15 @@ static inline int __db_backend_mysql_execute(db_backend_mysql_statement_t* state
         return DB_ERROR_UNKNOWN;
     }
 
+    if (statement->mysql_bind_input
+        && mysql_stmt_bind_param(statement->statement, statement->mysql_bind_input))
+    {
+        ods_log_info("DB bind param Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+        return DB_ERROR_UNKNOWN;
+    }
+
     if (mysql_stmt_execute(statement->statement)) {
-        ods_log_info("DB fetch Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+        ods_log_info("DB execute Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
         return DB_ERROR_UNKNOWN;
     }
 
@@ -588,7 +614,7 @@ static int db_backend_mysql_connect(void* data, const db_configuration_list_t* c
 
     if (!(backend_mysql->db = mysql_init(NULL))
         || mysql_options(backend_mysql->db, MYSQL_OPT_CONNECT_TIMEOUT, &backend_mysql->timeout)
-        || mysql_real_connect(backend_mysql->db,
+        || !mysql_real_connect(backend_mysql->db,
             (host ? db_configuration_value(host) : NULL),
             (user ? db_configuration_value(user) : NULL),
             (pass ? db_configuration_value(pass) : NULL),
@@ -1355,7 +1381,7 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
     /*
      * Prepare the SQL, create a MySQL statement.
      */
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), db_object_object_field_list(object))
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), db_object_object_field_list(object))
         || !statement
         || !(bind = statement->bind_input))
     {
@@ -1486,7 +1512,7 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
         }
     }
 
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), db_object_object_field_list(object))
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), db_object_object_field_list(object))
         || !statement)
     {
         __db_backend_mysql_finish(statement);
@@ -1691,7 +1717,7 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
     /*
      * Prepare the SQL.
      */
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), db_object_object_field_list(object))
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), db_object_object_field_list(object))
         || !statement)
     {
         __db_backend_mysql_finish(statement);
@@ -1838,7 +1864,7 @@ static int db_backend_mysql_delete(void* data, const db_object_t* object, const 
         }
     }
 
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), db_object_object_field_list(object))
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), db_object_object_field_list(object))
         || !statement)
     {
         __db_backend_mysql_finish(statement);
@@ -1955,7 +1981,7 @@ static int db_backend_mysql_count(void* data, const db_object_t* object, const d
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), object_field_list)
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), object_field_list)
         || !statement)
     {
         db_object_field_list_free(object_field_list);
@@ -2024,7 +2050,7 @@ static int db_backend_mysql_transaction_begin(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), NULL)) {
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), NULL)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2053,7 +2079,7 @@ static int db_backend_mysql_transaction_commit(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), NULL)) {
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), NULL)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2082,7 +2108,7 @@ static int db_backend_mysql_transaction_rollback(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, sizeof(sql), NULL)) {
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), NULL)) {
         return DB_ERROR_UNKNOWN;
     }
 
