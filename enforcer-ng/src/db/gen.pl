@@ -15,7 +15,7 @@ while (<FILE>) {
 close(FILE);
 
 my %DB_TYPE_TO_C_TYPE = (
-    DB_TYPE_PRIMARY_KEY => 'int',
+    DB_TYPE_PRIMARY_KEY => 'should_not_be_used',
     DB_TYPE_INT32 => 'int',
     DB_TYPE_UINT32 => 'unsigned int',
     DB_TYPE_INT64 => 'long long',
@@ -34,8 +34,19 @@ my %DB_TYPE_TO_SQLITE = (
     DB_TYPE_REVISION => 'INTEGER NOT NULL DEFAULT 1'
 );
 
+my %DB_TYPE_TO_MYSQL = (
+    DB_TYPE_PRIMARY_KEY => 'BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL',
+    DB_TYPE_INT32 => 'INT NOT NULL',
+    DB_TYPE_UINT32 => 'INT UNSIGNED NOT NULL',
+    DB_TYPE_INT64 => 'BIGINT NOT NULL',
+    DB_TYPE_UINT64 => 'BIGINT UNSIGNED NOT NULL',
+    DB_TYPE_TEXT => 'TEXT NOT NULL',
+    DB_TYPE_ENUM => 'INT NOT NULL',
+    DB_TYPE_REVISION => 'INT UNSIGNED NOT NULL DEFAULT 1'
+);
+
 my %DB_TYPE_TO_FUNC = (
-    DB_TYPE_PRIMARY_KEY => 'int32',
+    DB_TYPE_PRIMARY_KEY => 'should_not_be_used',
     DB_TYPE_INT32 => 'int32',
     DB_TYPE_UINT32 => 'uint32',
     DB_TYPE_INT64 => 'int64',
@@ -44,7 +55,7 @@ my %DB_TYPE_TO_FUNC = (
 );
 
 my %DB_TYPE_TO_TEXT = (
-    DB_TYPE_PRIMARY_KEY => 'an integer',
+    DB_TYPE_PRIMARY_KEY => 'a primary key database value',
     DB_TYPE_INT32 => 'an integer',
     DB_TYPE_UINT32 => 'an unsigned integer',
     DB_TYPE_INT64 => 'a long long',
@@ -3445,7 +3456,7 @@ foreach my $field (@{$object->{fields}}) {
         next;
     }
     if ($field->{foreign}) {
-        print MYSQL '    ', camelize($field->{name}), ' INTEGER NOT NULL';
+        print MYSQL '    ', camelize($field->{name}), ' BIGINT UNSIGNED NOT NULL';
         next;
     }
         print MYSQL '    ', camelize($field->{name}), ' ', $DB_TYPE_TO_MYSQL{$field->{type}};

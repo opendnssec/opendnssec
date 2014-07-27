@@ -44,6 +44,10 @@ static policy_key_list_t* object_list = NULL;
 static db_value_t id = DB_VALUE_EMPTY;
 static db_clause_list_t* clause_list = NULL;
 
+static int db_sqlite = 0;
+static int db_couchdb = 0;
+static int db_mysql = 0;
+
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int test_policy_key_init_suite_sqlite(void) {
     if (configuration_list) {
@@ -108,6 +112,10 @@ int test_policy_key_init_suite_sqlite(void) {
         connection = NULL;
         return 1;
     }
+
+    db_sqlite = 1;
+    db_couchdb = 0;
+    db_mysql = 0;
 
     return 0;
 }
@@ -178,9 +186,108 @@ int test_policy_key_init_suite_couchdb(void) {
         return 1;
     }
 
+    db_sqlite = 0;
+    db_couchdb = 1;
+    db_mysql = 0;
+
     return 0;
 }
 #endif
+
+int test_policy_key_init_suite_mysql(void) {
+    if (configuration_list) {
+        return 1;
+    }
+    if (configuration) {
+        return 1;
+    }
+    if (connection) {
+        return 1;
+    }
+
+    /*
+     * Setup the configuration for the connection
+     */
+    if (!(configuration_list = db_configuration_list_new())) {
+        return 1;
+    }
+    if (!(configuration = db_configuration_new())
+        || db_configuration_set_name(configuration, "backend")
+        || db_configuration_set_value(configuration, "mysql")
+        || db_configuration_list_add(configuration_list, configuration))
+    {
+        db_configuration_free(configuration);
+        configuration = NULL;
+        db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration = NULL;
+    if (!(configuration = db_configuration_new())
+        || db_configuration_set_name(configuration, "host")
+        || db_configuration_set_value(configuration, "localhost")
+        || db_configuration_list_add(configuration_list, configuration))
+    {
+        db_configuration_free(configuration);
+        configuration = NULL;
+        db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration = NULL;
+    if (!(configuration = db_configuration_new())
+        || db_configuration_set_name(configuration, "user")
+        || db_configuration_set_value(configuration, "root")
+        || db_configuration_list_add(configuration_list, configuration))
+    {
+        db_configuration_free(configuration);
+        configuration = NULL;
+        db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration = NULL;
+    if (!(configuration = db_configuration_new())
+        || db_configuration_set_name(configuration, "db")
+        || db_configuration_set_value(configuration, "test")
+        || db_configuration_list_add(configuration_list, configuration))
+    {
+        db_configuration_free(configuration);
+        configuration = NULL;
+        db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration = NULL;
+
+    /*
+     * Connect to the database
+     */
+    if (!(connection = db_connection_new())
+        || db_connection_set_configuration_list(connection, configuration_list))
+    {
+        db_connection_free(connection);
+        connection = NULL;
+        db_configuration_list_free(configuration_list);
+        configuration_list = NULL;
+        return 1;
+    }
+    configuration_list = NULL;
+
+    if (db_connection_setup(connection)
+        || db_connection_connect(connection))
+    {
+        db_connection_free(connection);
+        connection = NULL;
+        return 1;
+    }
+
+    db_sqlite = 0;
+    db_couchdb = 0;
+    db_mysql = 1;
+
+    return 0;
+}
 
 static int test_policy_key_clean_suite(void) {
     db_connection_free(connection);
@@ -202,7 +309,15 @@ static void test_policy_key_new(void) {
 
 static void test_policy_key_set(void) {
     db_value_t policy_id = DB_VALUE_EMPTY;
-    CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    if (db_sqlite) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_couchdb) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_mysql) {
+        CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
+    }
     CU_ASSERT(!policy_key_set_policy_id(object, &policy_id));
     CU_ASSERT(!policy_key_set_role(object, POLICY_KEY_ROLE_KSK));
     CU_ASSERT(!policy_key_set_role_text(object, "KSK"));
@@ -224,7 +339,15 @@ static void test_policy_key_set(void) {
 static void test_policy_key_get(void) {
     int ret;
     db_value_t policy_id = DB_VALUE_EMPTY;
-    CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    if (db_sqlite) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_couchdb) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_mysql) {
+        CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
+    }
     CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_CSK);
@@ -497,7 +620,15 @@ static void test_policy_key_read(void) {
 static void test_policy_key_verify(void) {
     int ret;
     db_value_t policy_id = DB_VALUE_EMPTY;
-    CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    if (db_sqlite) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_couchdb) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_mysql) {
+        CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
+    }
     CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_CSK);
@@ -517,7 +648,15 @@ static void test_policy_key_verify(void) {
 
 static void test_policy_key_change(void) {
     db_value_t policy_id = DB_VALUE_EMPTY;
-    CU_ASSERT(!db_value_from_int32(&policy_id, 2));
+    if (db_sqlite) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_couchdb) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_mysql) {
+        CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
+    }
     CU_ASSERT(!policy_key_set_policy_id(object, &policy_id));
     CU_ASSERT(!policy_key_set_role(object, POLICY_KEY_ROLE_KSK));
     CU_ASSERT(!policy_key_set_role_text(object, "KSK"));
@@ -543,7 +682,15 @@ static void test_policy_key_read2(void) {
 static void test_policy_key_verify2(void) {
     int ret;
     db_value_t policy_id = DB_VALUE_EMPTY;
-    CU_ASSERT(!db_value_from_int32(&policy_id, 2));
+    if (db_sqlite) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_couchdb) {
+        CU_ASSERT(!db_value_from_int32(&policy_id, 1));
+    }
+    if (db_mysql) {
+        CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
+    }
     CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_KSK);
@@ -638,5 +785,13 @@ int test_policy_key_add_suite(void) {
         return ret;
     }
 #endif
+    pSuite = CU_add_suite("Test of policy key (MySQL)", test_policy_key_init_suite_mysql, test_policy_key_clean_suite);
+    if (!pSuite) {
+        return CU_get_error();
+    }
+    ret = test_policy_key_add_tests(pSuite);
+    if (ret) {
+        return ret;
+    }
     return 0;
 }

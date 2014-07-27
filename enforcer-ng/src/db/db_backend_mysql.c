@@ -82,8 +82,10 @@ typedef struct db_backend_mysql_statement {
     MYSQL_STMT* statement;
     MYSQL_BIND* mysql_bind_input;
     db_backend_mysql_bind_t* bind_input;
+    db_backend_mysql_bind_t* bind_input_end;
     MYSQL_BIND* mysql_bind_output;
     db_backend_mysql_bind_t* bind_output;
+    db_backend_mysql_bind_t* bind_output_end;
     db_object_field_list_t* object_field_list;
     int fields;
     int bound;
@@ -161,7 +163,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
     {
         if ((*statement)->statement) {
             ods_log_info("DB prepare SQL %s", sql);
-            ods_log_info("DB prepare Err %d: %s\n", mysql_stmt_errno((*statement)->statement), mysql_stmt_error((*statement)->statement));
+            ods_log_info("DB prepare Err %d: %s", mysql_stmt_errno((*statement)->statement), mysql_stmt_error((*statement)->statement));
         }
         __db_backend_mysql_finish(*statement);
         *statement = NULL;
@@ -185,8 +187,13 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
             }
 
             bind->bind = &((*statement)->mysql_bind_input[i]);
-            bind->next = (*statement)->bind_input;
-            (*statement)->bind_input = bind;
+            if (!(*statement)->bind_input) {
+                (*statement)->bind_input = bind;
+            }
+            if ((*statement)->bind_input_end) {
+                (*statement)->bind_input_end->next = bind;
+            }
+            (*statement)->bind_input_end = bind;
         }
     }
 
@@ -469,8 +476,13 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
                 return DB_ERROR_UNKNOWN;
             }
 
-            bind->next = (*statement)->bind_output;
-            (*statement)->bind_output = bind;
+            if (!(*statement)->bind_output) {
+                (*statement)->bind_output = bind;
+            }
+            if ((*statement)->bind_output_end) {
+                (*statement)->bind_output_end->next = bind;
+            }
+            (*statement)->bind_output_end = bind;
             object_field = db_object_field_next(object_field);
         }
         if (object_field) {
@@ -501,7 +513,7 @@ static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* stateme
         if (statement->mysql_bind_output
             && mysql_stmt_bind_result(statement->statement, statement->mysql_bind_output))
         {
-            ods_log_info("DB bind result Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+            ods_log_info("DB bind result Err %d: %s", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
             return DB_ERROR_UNKNOWN;
         }
         statement->bound = 1;
@@ -509,10 +521,40 @@ static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* stateme
 
     ret = mysql_stmt_fetch(statement->statement);
     if (ret == 1) {
-        ods_log_info("DB fetch Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+        ods_log_info("DB fetch Err %d: %s", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+        return DB_ERROR_UNKNOWN;
+    }
+    else if (ret == MYSQL_DATA_TRUNCATED) {
+        int i;
+        db_backend_mysql_bind_t* bind;
+        for (i = 0, bind = statement->bind_output; bind; i++, bind = bind->next) {
+            if (bind->error) {
+                if (statement->mysql_bind_output[i].buffer_type != MYSQL_TYPE_STRING
+                    || bind->length <= statement->mysql_bind_output[i].buffer_length)
+                {
+                    ods_log_info("DB fetch Err data truncated");
+                    return DB_ERROR_UNKNOWN;
+                }
+
+                free(statement->mysql_bind_output[i].buffer);
+                statement->mysql_bind_output[i].buffer = NULL;
+                if (!(statement->mysql_bind_output[i].buffer = calloc(1, bind->length))) {
+                    ods_log_info("DB fetch Err data truncated");
+                    return DB_ERROR_UNKNOWN;
+                }
+                statement->mysql_bind_output[i].buffer_length = bind->length;
+                if (mysql_stmt_fetch_column(statement->statement, statement->mysql_bind_output, i, 0)) {
+                    ods_log_info("DB fetch Err data truncated");
+                    return DB_ERROR_UNKNOWN;
+                }
+            }
+        }
+    }
+    else if (ret) {
+        return DB_ERROR_UNKNOWN;
     }
 
-    return ret;
+    return DB_OK;
 }
 
 static inline int __db_backend_mysql_execute(db_backend_mysql_statement_t* statement) {
@@ -526,12 +568,12 @@ static inline int __db_backend_mysql_execute(db_backend_mysql_statement_t* state
     if (statement->mysql_bind_input
         && mysql_stmt_bind_param(statement->statement, statement->mysql_bind_input))
     {
-        ods_log_info("DB bind param Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+        ods_log_info("DB bind param Err %d: %s", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
         return DB_ERROR_UNKNOWN;
     }
 
     if (mysql_stmt_execute(statement->statement)) {
-        ods_log_info("DB execute Err %d: %s\n", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
+        ods_log_info("DB execute Err %d: %s", mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1123,9 +1165,9 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
             switch (bind->bind->buffer_type) {
             case MYSQL_TYPE_LONG:
                 if ((bind->bind->is_unsigned
-                        && db_value_from_uint32(db_value_set_get(value_set, value), *((unsigned int*)bind->bind->buffer)))
+                        && db_value_from_uint32(db_value_set_get(value_set, value), *((db_type_uint32_t*)bind->bind->buffer)))
                     || (!bind->bind->is_unsigned
-                        && db_value_from_int32(db_value_set_get(value_set, value), *((int*)bind->bind->buffer))))
+                        && db_value_from_int32(db_value_set_get(value_set, value), *((db_type_int32_t*)bind->bind->buffer))))
                 {
                     db_result_free(result);
                     return NULL;
@@ -1134,9 +1176,9 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
 
             case MYSQL_TYPE_LONGLONG:
                 if ((bind->bind->is_unsigned
-                        && db_value_from_uint64(db_value_set_get(value_set, value), *((my_ulonglong*)bind->bind->buffer)))
+                        && db_value_from_uint64(db_value_set_get(value_set, value), *((db_type_uint64_t*)bind->bind->buffer)))
                     || (!bind->bind->is_unsigned
-                        && db_value_from_int64(db_value_set_get(value_set, value), *((my_ulonglong*)bind->bind->buffer))))
+                        && db_value_from_int64(db_value_set_get(value_set, value), *((db_type_int64_t*)bind->bind->buffer))))
                 {
                     db_result_free(result);
                     return NULL;
@@ -1173,9 +1215,9 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
         case DB_TYPE_UINT32:
             if (bind->bind->buffer_type != MYSQL_TYPE_LONG
                 || (bind->bind->is_unsigned
-                    && db_value_from_uint32(db_value_set_get(value_set, value), *((unsigned int*)bind->bind->buffer)))
+                    && db_value_from_uint32(db_value_set_get(value_set, value), *((db_type_uint32_t*)bind->bind->buffer)))
                 || (!bind->bind->is_unsigned
-                    && db_value_from_int32(db_value_set_get(value_set, value), *((int*)bind->bind->buffer))))
+                    && db_value_from_int32(db_value_set_get(value_set, value), *((db_type_int32_t*)bind->bind->buffer))))
             {
                 db_result_free(result);
                 return NULL;
@@ -1186,9 +1228,9 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
         case DB_TYPE_UINT64:
             if (bind->bind->buffer_type != MYSQL_TYPE_LONGLONG
                 || (bind->bind->is_unsigned
-                    && db_value_from_uint64(db_value_set_get(value_set, value), *((my_ulonglong*)bind->bind->buffer)))
+                    && db_value_from_uint64(db_value_set_get(value_set, value), *((db_type_uint64_t*)bind->bind->buffer)))
                 || (!bind->bind->is_unsigned
-                    && db_value_from_int64(db_value_set_get(value_set, value), *((my_ulonglong*)bind->bind->buffer))))
+                    && db_value_from_int64(db_value_set_get(value_set, value), *((db_type_int64_t*)bind->bind->buffer))))
             {
                 db_result_free(result);
                 return NULL;
@@ -1212,6 +1254,7 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
 
         object_field = db_object_field_next(object_field);
         value++;
+        bind = bind->next;
     }
     return result;
 }
