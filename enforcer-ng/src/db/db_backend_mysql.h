@@ -33,6 +33,7 @@
 #include "db_backend.h"
 
 #define DB_BACKEND_MYSQL_DEFAULT_TIMEOUT 30
+#define DB_BACKEND_MYSQL_STRING_MIN_SIZE 64
 #define DB_BACKEND_MYSQL_STRING_MAX_SIZE 4096
 
 #ifdef __cplusplus

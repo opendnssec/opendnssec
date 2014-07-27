@@ -272,16 +272,17 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
                 case MYSQL_TYPE_STRING:
                 case MYSQL_TYPE_VAR_STRING:
                     mysql_bind->buffer_type = MYSQL_TYPE_STRING;
-                    if (field->length < 1
-                        || !(mysql_bind->buffer = calloc(1, field->length)))
-                    {
+                    bind->length = field->length + 1;
+                    if (bind->length < DB_BACKEND_MYSQL_STRING_MIN_SIZE) {
+                        bind->length = DB_BACKEND_MYSQL_STRING_MIN_SIZE;
+                    }
+                    if (!(mysql_bind->buffer = calloc(1, bind->length))) {
                         mysql_free_result(result_metadata);
                         __db_backend_mysql_finish(*statement);
                         *statement = NULL;
                         return DB_ERROR_UNKNOWN;
                     }
-                    mysql_bind->buffer_length = field->length;
-                    bind->length = mysql_bind->buffer_length;
+                    mysql_bind->buffer_length = bind->length;
                     mysql_bind->length = &bind->length;
                     mysql_bind->is_null = (my_bool*)0;
                     mysql_bind->is_unsigned = 0;
@@ -367,16 +368,17 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
 
             case DB_TYPE_TEXT:
                 mysql_bind->buffer_type = MYSQL_TYPE_STRING;
-                if (field->length < 1
-                    || !(mysql_bind->buffer = calloc(1, field->length)))
-                {
+                bind->length = field->length + 1;
+                if (bind->length < DB_BACKEND_MYSQL_STRING_MIN_SIZE) {
+                    bind->length = DB_BACKEND_MYSQL_STRING_MIN_SIZE;
+                }
+                if (!(mysql_bind->buffer = calloc(1, bind->length))) {
                     mysql_free_result(result_metadata);
                     __db_backend_mysql_finish(*statement);
                     *statement = NULL;
                     return DB_ERROR_UNKNOWN;
                 }
-                mysql_bind->buffer_length = field->length;
-                bind->length = mysql_bind->buffer_length;
+                mysql_bind->buffer_length = bind->length;
                 mysql_bind->length = &bind->length;
                 mysql_bind->is_null = (my_bool*)0;
                 mysql_bind->is_unsigned = 0;
@@ -448,16 +450,17 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
                 case MYSQL_TYPE_STRING:
                 case MYSQL_TYPE_VAR_STRING:
                     mysql_bind->buffer_type = MYSQL_TYPE_STRING;
-                    if (field->length < 1
-                        || !(mysql_bind->buffer = calloc(1, field->length)))
-                    {
+                    bind->length = field->length + 1;
+                    if (bind->length < DB_BACKEND_MYSQL_STRING_MIN_SIZE) {
+                        bind->length = DB_BACKEND_MYSQL_STRING_MIN_SIZE;
+                    }
+                    if (!(mysql_bind->buffer = calloc(1, bind->length))) {
                         mysql_free_result(result_metadata);
                         __db_backend_mysql_finish(*statement);
                         *statement = NULL;
                         return DB_ERROR_UNKNOWN;
                     }
-                    mysql_bind->buffer_length = field->length;
-                    bind->length = mysql_bind->buffer_length;
+                    mysql_bind->buffer_length = bind->length;
                     mysql_bind->length = &bind->length;
                     mysql_bind->is_null = (my_bool*)0;
                     mysql_bind->is_unsigned = 0;
@@ -538,12 +541,13 @@ static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* stateme
 
                 free(statement->mysql_bind_output[i].buffer);
                 statement->mysql_bind_output[i].buffer = NULL;
+                bind->length += 1;
                 if (!(statement->mysql_bind_output[i].buffer = calloc(1, bind->length))) {
                     ods_log_info("DB fetch Err data truncated");
                     return DB_ERROR_UNKNOWN;
                 }
                 statement->mysql_bind_output[i].buffer_length = bind->length;
-                if (mysql_stmt_fetch_column(statement->statement, statement->mysql_bind_output, i, 0)) {
+                if (mysql_stmt_fetch_column(statement->statement, &(statement->mysql_bind_output[i]), i, 0)) {
                     ods_log_info("DB fetch Err data truncated");
                     return DB_ERROR_UNKNOWN;
                 }
