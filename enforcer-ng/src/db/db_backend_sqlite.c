@@ -168,7 +168,7 @@ static inline int __db_backend_sqlite_prepare(db_backend_sqlite_t* backend_sqlit
         NULL);
     if (ret != SQLITE_OK) {
         ods_log_info("DB prepare SQL %s", sql);
-        ods_log_info("DB prepare Err %d\n", ret);
+        ods_log_info("DB prepare Err %d", ret);
         if (*statement) {
             sqlite3_finalize(*statement);
         }
@@ -595,7 +595,6 @@ static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_cla
                 to_int64 = int64;
                 ret = sqlite3_bind_int64(statement, (*bind)++, to_int64);
                 if (ret != SQLITE_OK) {
-                    printf("%d\n", ret);
                     return DB_ERROR_UNKNOWN;
                 }
                 break;
