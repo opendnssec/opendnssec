@@ -272,6 +272,10 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
                 case MYSQL_TYPE_STRING:
                 case MYSQL_TYPE_VAR_STRING:
                     mysql_bind->buffer_type = MYSQL_TYPE_STRING;
+                    /*
+                     * field->length does not include ending NULL character so
+                     * we increase it by one.
+                     */
                     bind->length = field->length + 1;
                     if (bind->length < DB_BACKEND_MYSQL_STRING_MIN_SIZE) {
                         bind->length = DB_BACKEND_MYSQL_STRING_MIN_SIZE;
@@ -368,6 +372,10 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
 
             case DB_TYPE_TEXT:
                 mysql_bind->buffer_type = MYSQL_TYPE_STRING;
+                /*
+                 * field->length does not include ending NULL character so
+                 * we increase it by one.
+                 */
                 bind->length = field->length + 1;
                 if (bind->length < DB_BACKEND_MYSQL_STRING_MIN_SIZE) {
                     bind->length = DB_BACKEND_MYSQL_STRING_MIN_SIZE;
@@ -450,6 +458,10 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
                 case MYSQL_TYPE_STRING:
                 case MYSQL_TYPE_VAR_STRING:
                     mysql_bind->buffer_type = MYSQL_TYPE_STRING;
+                    /*
+                     * field->length does not include ending NULL character so
+                     * we increase it by one.
+                     */
                     bind->length = field->length + 1;
                     if (bind->length < DB_BACKEND_MYSQL_STRING_MIN_SIZE) {
                         bind->length = DB_BACKEND_MYSQL_STRING_MIN_SIZE;
@@ -530,6 +542,16 @@ static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* stateme
     else if (ret == MYSQL_DATA_TRUNCATED) {
         int i;
         db_backend_mysql_bind_t* bind;
+
+        /*
+         * Scan through all of the output binds and check where the data was
+         * truncated and reallocate the buffer and try again. MySQL should have
+         * updated bind->length with the required buffer size.
+         *
+         * We can really only retry fetch on string columns, if another type had
+         * a too small buffer its more a programmable error in the prepare
+         * function.
+         */
         for (i = 0, bind = statement->bind_output; bind; i++, bind = bind->next) {
             if (bind->error) {
                 if (statement->mysql_bind_output[i].buffer_type != MYSQL_TYPE_STRING
@@ -541,20 +563,30 @@ static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* stateme
 
                 free(statement->mysql_bind_output[i].buffer);
                 statement->mysql_bind_output[i].buffer = NULL;
-                bind->length += 1;
                 if (!(statement->mysql_bind_output[i].buffer = calloc(1, bind->length))) {
                     ods_log_info("DB fetch Err data truncated");
                     return DB_ERROR_UNKNOWN;
                 }
                 statement->mysql_bind_output[i].buffer_length = bind->length;
-                if (mysql_stmt_fetch_column(statement->statement, &(statement->mysql_bind_output[i]), i, 0)) {
+                bind->error = 0;
+                if (mysql_stmt_fetch_column(statement->statement, &(statement->mysql_bind_output[i]), i, 0)
+                    || bind->error)
+                {
                     ods_log_info("DB fetch Err data truncated");
                     return DB_ERROR_UNKNOWN;
                 }
             }
         }
     }
+    else if (ret == MYSQL_NO_DATA) {
+        /*
+         * Not really an error but we need to indicate that there is no more
+         * data some how.
+         */
+        return DB_ERROR_UNKNOWN;
+    }
     else if (ret) {
+        ods_log_info("DB fetch UNKNOWN %d Err %d: %s", ret, mysql_stmt_errno(statement->statement), mysql_stmt_error(statement->statement));
         return DB_ERROR_UNKNOWN;
     }
 
