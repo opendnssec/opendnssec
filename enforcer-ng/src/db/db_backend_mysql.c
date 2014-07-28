@@ -2091,13 +2091,14 @@ static int db_backend_mysql_count(void* data, const db_object_t* object, const d
     bind = statement->bind_output;
     if (!bind || !bind->bind || !bind->bind->buffer
         || bind->bind->buffer_type != MYSQL_TYPE_LONG
-        || !bind->bind->is_unsigned)
+        || !bind->bind->is_unsigned
+        || bind->length != sizeof(db_type_uint32_t))
     {
         __db_backend_mysql_finish(statement);
         return DB_ERROR_UNKNOWN;
     }
 
-    *count = *((unsigned int*)bind->bind->buffer);
+    *count = *((db_type_uint32_t*)bind->bind->buffer);
     __db_backend_mysql_finish(statement);
 
     return DB_OK;
