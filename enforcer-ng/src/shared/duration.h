@@ -52,7 +52,6 @@ struct duration_struct
     allocator_type* allocator;
     time_t years;
     time_t months;
-    time_t weeks;
     time_t days;
     time_t hours;
     time_t minutes;
