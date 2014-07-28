@@ -111,6 +111,10 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	srand(now);
 #endif
 
+	/*
+	 * TODO: seems to affect NSEC policies also?!?
+	 */
+
 	if (!(clause_list = db_clause_list_new())
 	    || !policy_denial_type_clause(clause_list, POLICY_DENIAL_TYPE_NSEC3)
 	    || !(pol_list = policy_list_new_get_by_clauses(dbconn, clause_list)))
