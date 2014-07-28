@@ -66,7 +66,6 @@ duration_create(void)
     duration->allocator = allocator;
     duration->years = 0;
     duration->months = 0;
-    //~ duration->weeks = 0;
     duration->days = 0;
     duration->hours = 0;
     duration->minutes = 0;
@@ -95,9 +94,6 @@ duration_compare(duration_type* d1, duration_type* d2)
     if (d1->months != d2->months) {
         return d1->months - d2->months;
     }
-    //~ if (d1->weeks != d2->weeks) {
-        //~ return d1->weeks - d2->weeks;
-    //~ }
     if (d1->days != d2->days) {
         return d1->days - d2->days;
     }
@@ -193,7 +189,6 @@ duration_create_from_string(const char* str)
             duration_cleanup(duration);
             return NULL;
         } else {
-            //~ duration->weeks = atoi(str+1);
             duration->days = 7*atoi(str+1);
             str = W;
         }
@@ -241,9 +236,6 @@ duration2string(duration_type* duration)
     if (duration->months > 0) {
         count = count + 1 + digits_in_number(duration->months);
     }
-    //~ if (duration->weeks > 0) {
-        //~ count = count + 1 + digits_in_number(duration->weeks);
-    //~ }
     if (duration->days > 0) {
         count = count + 1 + digits_in_number(duration->days);
     }
@@ -281,13 +273,6 @@ duration2string(duration_type* duration)
         str = strncat(str, num, count+2);
         free((void*) num);
     }
-    //~ if (duration->weeks > 0) {
-        //~ count = digits_in_number(duration->weeks);
-        //~ num = (char*) calloc(count+2, sizeof(char));
-        //~ snprintf(num, count+2, "%uW", (uint32_t) duration->weeks);
-        //~ str = strncat(str, num, count+2);
-        //~ free((void*) num);
-    //~ }
     if (duration->days > 0) {
         count = digits_in_number(duration->days);
         num = (char*) calloc(count+2, sizeof(char));
@@ -338,7 +323,6 @@ duration2time(duration_type* duration)
         period += (duration->minutes)*60;
         period += (duration->hours)*3600;
         period += (duration->days)*86400;
-        //~ period += (duration->weeks)*86400*7;
         period += (duration->months)*86400*31;
         period += (duration->years)*86400*365;
 
@@ -365,8 +349,6 @@ int duration_set_time(duration_type* duration, time_t time) {
     time -= duration->years * 86400*365;
     duration->months = time / (86400*31);
     time -= duration->months * 86400*31;
-    //~ duration->weeks = time / (86400*7);
-    //~ time -= duration->weeks * 86400*7;
     duration->days = time / 86400;
     time -= duration->days * 86400;
     duration->hours = time / 3600;
