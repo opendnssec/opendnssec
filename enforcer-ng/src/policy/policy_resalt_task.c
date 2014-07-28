@@ -136,7 +136,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			generate_salt(salt, saltlength);
 			to_hex(salt, saltlength, salthex);
 
-			if(policy_set_denial_salt(policy, salt) ||
+			if(policy_set_denial_salt(policy, salthex) ||
 			   policy_set_denial_salt_last_change(policy, now) ||
 			   policy_update(policy))
 			{
