@@ -43,17 +43,21 @@ AM_CPPFLAGS = \
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
-sbin_PROGRAMS =	ods-enforcerd ods-enforcer
+sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup
 # man8_MANS =	man/ods-enforcer.8 man/ods-enforcerd.8
 
 nodist_ods_enforcerd_SOURCES = $(BUILT_SOURCES)
 
 if USE_SQLITE
 BACKEND_SOURCES_CUSTOM = db/db_backend_sqlite.c db/db_backend_sqlite.h
+BACKEND_SCHEMA_CUSTOM = db/db_schema_sqlite.c db/db_schema_sqlite.h \
+	db/db_data_sqlite.c db/db_data_sqlite.h
 endif
 
 if USE_COUCHDB
 BACKEND_SOURCES_CUSTOM = db/db_backend_couchdb.c db/db_backend_couchdb.h
+BACKEND_SCHEMA_CUSTOM = db/db_schema_couchdb.c db/db_schema_couchdb.h \
+	db/db_data_couchdb.c db/db_data_couchdb.h
 # TODO: This needs depends in configure:
 BACKEND_LDFLAGS_CUSTOM = \
 	`pkg-config --libs libcurl` \
@@ -204,6 +208,43 @@ ods_enforcer_LDADD = \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@READLINE_LIBS@
+
+ods_enforcer_db_setup_SOURCES = \
+	ods-enforcer-db-setup.c \
+	daemon/cfg.c daemon/cfg.h \
+	parser/confparser.c parser/confparser.h \
+	daemon/clientpipe.c daemon/clientpipe.h \
+	shared/allocator.c shared/allocator.h \
+	shared/duration.c shared/duration.h \
+	shared/file.c shared/file.h \
+	shared/log.c shared/log.h \
+	shared/util.c shared/util.h \
+	shared/str.c shared/str.h \
+	db/db_backend.c db/db_backend.h \
+	db/db_clause.c db/db_clause.h \
+	db/db_configuration.c db/db_configuration.h \
+	db/db_connection.c db/db_connection.h \
+	db/db_object.c db/db_object.h \
+	db/db_result.c db/db_result.h \
+	db/db_type.h \
+	db/db_value.c db/db_value.h \
+	db/db_join.c db/db_join.h \
+	db/db_error.h \
+	$(BACKEND_SOURCES_CUSTOM) \
+	$(BACKEND_SCHEMA_CUSTOM)
+
+ods_enforcer_db_setup_LDADD = \
+	$(LIBMM) \
+	$(LIBHSM) \
+	$(LIBCOMPAT) \
+	@LDNS_LIBS@ \
+	@XML2_LIBS@ \
+	@PTHREAD_LIBS@ \
+	@RT_LIBS@ \
+	@ENFORCER_DB_LIBS@
+
+ods_enforcer_db_setup_LDFLAGS = \
+	$(BACKEND_LDFLAGS_CUSTOM)
 
 %.pb.cc %.pb.h: %.proto
 	$(PROTOC) @PROTOBUF_INCLUDES@ -I$(srcdir)/xmlext-pb -I$(srcdir)/protobuf-orm --cpp_out=`dirname $@` -I=`dirname $<` $<
