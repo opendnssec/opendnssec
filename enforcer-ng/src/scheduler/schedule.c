@@ -313,17 +313,18 @@ schedule_flush(schedule_type* schedule)
     pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
-void
+int
 schedule_flush_type(schedule_type* schedule, task_id id)
 {
     ldns_rbnode_t *node, *prevnode;
+    int nflushed = 0;
     
     ods_log_debug("[%s] flush task", schedule_str);
     if (!schedule || !schedule->tasks) return;
 
     pthread_mutex_lock(&schedule->schedule_lock);
         node = ldns_rbtree_first(schedule->tasks);
-        prevnode = NULL;
+        prevnode = node;
         while (node && node != LDNS_RBTREE_NULL) {
             if (node->data && ((task_type*)node->data)->what == id) {
                 /* Merely setting flush is not enough. We must set it
@@ -342,6 +343,7 @@ schedule_flush_type(schedule_type* schedule, task_id id)
                          * by the other rbtree. */
                         break;
                     }
+                    nflushed++;
                 }
                 /* node pushed to front, prevnode doesn't change. */
             } else {
@@ -349,14 +351,12 @@ schedule_flush_type(schedule_type* schedule, task_id id)
                 prevnode = node;
             }
             
-            if (!prevnode)
-                node = ldns_rbtree_first(schedule->tasks);
-            else
-                node = ldns_rbtree_next(prevnode);
+            node = ldns_rbtree_next(prevnode);
         }
         /* wakeup! work to do! */
         pthread_cond_signal(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
+    return nflushed;
 }
 
 void

@@ -78,8 +78,9 @@ void schedule_flush(schedule_type* schedule);
 /**
  * Flush schedule for a specific type of task.
  * \param[in] schedule schedule to be flushed
+ * \return number of tasks flushed
  */
-void schedule_flush_type(schedule_type* schedule, task_id id);
+int schedule_flush_type(schedule_type* schedule, task_id id);
 
 /**
  * purge schedule. All tasks will be thrashed.

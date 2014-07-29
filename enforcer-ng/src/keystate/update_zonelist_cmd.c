@@ -33,6 +33,8 @@
 #include "daemon/clientpipe.h"
 #include "keystate/zonelist_import.h"
 #include "keystate/zonelist_export.h"
+#include "enforcer/enforce_task.h"
+
 
 #include "keystate/update_zonelist_cmd.h"
 
@@ -104,9 +106,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         ods_log_info("[%s] internal zonelist exported successfully", module_str);
     }
 
-    /*
     flush_enforce_task(engine, 1);
-    */
 
     return 0;
 }

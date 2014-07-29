@@ -26,6 +26,8 @@
  *
  */
 
+#include "config.h"
+
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "shared/file.h"
@@ -35,6 +37,7 @@
 #include "db/policy.h"
 #include "db/zone.h"
 #include "keystate/zonelist_update.h"
+#include "enforcer/enforce_task.h"
 
 #include "keystate/zone_add_cmd.h"
 
@@ -234,6 +237,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     policy_free(policy);
     free(buf);
 
+    /* On successful add flush enforce task */
+    ods_log_debug("[%s] Flushing enforce task", module_str);
+    flush_enforce_task(engine, 0);
+    
     if (write_xml) {
         if (zonelist_update_add(sockfd, engine->config->zonelist_filename, zone, 1) != ZONELIST_UPDATE_OK) {
             ods_log_error("[%s] zonelist %s updated failed", module_str, engine->config->zonelist_filename);

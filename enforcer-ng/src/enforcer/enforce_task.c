@@ -285,22 +285,6 @@ enforce_task_perform(task_type *task)
 	int return_time = perform_enforce_lock(-1, (engine_type *)task->context, 
 		enforce_all, task, task->dbconn);
 	enforce_all = 0; /* global */
-	if (task->flush && return_time == -1) {
-	    /*
-	     * TODO BUG: If enforce task is flushed and no zones need work then
-	     * return_time will be -1 and the enforce task removed from the queue.
-	     */
-	    return_time = 1;
-	    if (task->when < 1) {
-	        /*
-	         * TODO:
-	         * task->when might hold original when time if schedule_flush() was
-	         * called, if schedule_flush_type() was called it will be zero so we
-	         * set it.
-	         */
-	        task->when = time_now() + 60;
-	    }
-	}
 	if (return_time != -1) return task;
 	task_cleanup(task);
 	return NULL;
@@ -320,14 +304,22 @@ enforce_task(engine_type *engine, bool all)
 int
 flush_enforce_task(engine_type *engine, bool enforce_all)
 {
+	int status;
 	task_id what_id;
 	(void) enforce_all;
+	printf("flushing\n");
 	/* flush (force to run) the enforcer task when it is waiting in the 
 	 task list. */
 	if (!task_id_from_long_name(module_str, &what_id)) {
 		/* no such task */
-		return 0;
+		return 1;
 	}
-	schedule_flush_type(engine->taskq, what_id);
+	if (!schedule_flush_type(engine->taskq, what_id)) {
+		status = schedule_task(engine->taskq, enforce_task(engine, 1));
+		if (status != ODS_STATUS_OK) {
+			ods_fatal_exit("[%s] failed to create enforce task", module_str);
+			return 0;
+		}
+	}
 	return 1;
 }
