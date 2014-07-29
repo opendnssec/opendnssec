@@ -95,6 +95,8 @@ static mm_alloc_t __mysql_statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_back
 
 /**
  * MySQL finish function.
+ *
+ * Frees all data related to a db_backend_mysql_statement_t.
  */
 static inline void __db_backend_mysql_finish(db_backend_mysql_statement_t* statement) {
     db_backend_mysql_bind_t* bind;
@@ -134,6 +136,9 @@ static inline void __db_backend_mysql_finish(db_backend_mysql_statement_t* state
 
 /**
  * MySQL prepare function.
+ *
+ * Creates a db_backend_mysql_statement_t based on a SQL string and an object
+ * field list.
  */
 static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, db_backend_mysql_statement_t** statement, const char* sql, size_t size, const db_object_field_list_t* object_field_list) {
     unsigned long i, params;
@@ -307,6 +312,8 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
                 /*
                  * Enum needs to be handled elsewhere since we don't know the
                  * enum_set_t here.
+                 *
+                 * TODO: can something be done here?
                  */
             case DB_TYPE_INT32:
                 mysql_bind->buffer_type = MYSQL_TYPE_LONG;
@@ -499,6 +506,8 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
 
 /**
  * MySQL fetch function.
+ *
+ * Fetch the next row in a db_backend_mysql_statement_t.
  */
 static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* statement) {
     int ret;
@@ -587,6 +596,8 @@ static inline int __db_backend_mysql_fetch(db_backend_mysql_statement_t* stateme
 
 /**
  * MySQL execute function.
+ *
+ * Execute a prepared statement in the db_backend_mysql_statement_t.
  */
 static inline int __db_backend_mysql_execute(db_backend_mysql_statement_t* statement) {
     if (!statement) {
