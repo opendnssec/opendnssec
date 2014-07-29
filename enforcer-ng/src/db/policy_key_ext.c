@@ -281,8 +281,25 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
         }
     }
     if (!rolltype) {
-        ods_log_deeebug("[policy_key_*_from_xml] - minimize");
-        if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_NONE)) {
+        if (policy_key_role(policy_key) == POLICY_KEY_ROLE_KSK) {
+            ods_log_deeebug("[policy_key_*_from_xml] - minimize default KskDoubleSignature");
+            if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_DS)) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        else if (policy_key_role(policy_key) == POLICY_KEY_ROLE_ZSK) {
+            ods_log_deeebug("[policy_key_*_from_xml] - minimize default ZskPrePublication");
+            if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_RRSIG)) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        else if (policy_key_role(policy_key) == POLICY_KEY_ROLE_CSK) {
+            ods_log_deeebug("[policy_key_*_from_xml] - minimize default CskPrePublication");
+            if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_DS_AND_RRSIG)) {
+                return DB_ERROR_UNKNOWN;
+            }
+        }
+        else {
             return DB_ERROR_UNKNOWN;
         }
     }
