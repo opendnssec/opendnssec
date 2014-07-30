@@ -1937,7 +1937,7 @@ isSuccessable(struct future_key* future_key)
         return -1;
     }
 
-    if (future_key->next_state == UNRETENTIVE) {
+    if (future_key->next_state != UNRETENTIVE) {
         return 0;
     }
 
@@ -1990,12 +1990,16 @@ markSuccessors_old(KeyDependencyList &dep_list, KeyDataList &key_list,
 static int
 markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
     size_t keylist_size, struct future_key *future_key,
-    key_dependency_list_t* deplist)
+    key_dependency_list_t* deplist, const zone_t* zone)
 {
+    static const char *scmd = "markSuccessors";
     size_t i;
     key_dependency_t* key_dependency;
     key_dependency_type_t key_dependency_type;
 
+    if (!dbconn) {
+        return -1;
+    }
     if (!keylist) {
         return -1;
     }
@@ -2003,6 +2007,9 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
         return -1;
     }
     if (!deplist) {
+        return -1;
+    }
+    if (!zone) {
         return -1;
     }
 
@@ -2037,9 +2044,13 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
                 || key_dependency_set_from_key_data_id(key_dependency, key_data_id(future_key->key))
                 || key_dependency_set_to_key_data_id(key_dependency, key_data_id(keylist[i]))
                 || key_dependency_set_type(key_dependency, key_dependency_type)
+                || key_dependency_set_zone_id(key_dependency, zone_id(zone))
                 || key_dependency_create(key_dependency))
             {
-                /* TODO: Error */
+                ods_log_error("[%s] %s: unable to create key dependency between %s and %s",
+                    module_str, scmd,
+                    hsm_key_locator(key_data_cached_hsm_key(future_key->key)),
+                    hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
                 key_dependency_free(key_dependency);
                 return -1;
             }
@@ -2598,7 +2609,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 }
 
                 // markSuccessors_old(dep_list, key_list, &future_key);
-                if (markSuccessors(dbconn, keylist, keylist_size, &future_key, deplist) < 0) {
+                if (markSuccessors(dbconn, keylist, keylist_size, &future_key, deplist, zone) < 0) {
                     ods_log_error("[%s] %s: markSuccessors() error", module_str, scmd);
                     process = 0;
                     break;
