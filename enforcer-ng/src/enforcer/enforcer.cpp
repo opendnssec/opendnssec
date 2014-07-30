@@ -662,12 +662,13 @@ static int
 successor_rec(key_data_t** keylist, size_t keylist_size,
     key_data_t* successor_key, key_data_t* predecessor_key,
     struct future_key *future_key,
-    key_state_type_t type, key_dependency_list_t* deplist)
+    key_state_type_t type, key_dependency_list_t* deplist_ext)
 {
     size_t i;
     int cmp;
     const key_dependency_t* dep;
     key_data_t *from_key;
+    key_dependency_list_t* deplist;
 
     if (!keylist) {
         return -1;
@@ -684,7 +685,18 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
     if (!future_key->key) {
         return -1;
     }
-    if (!deplist) {
+    if (!deplist_ext) {
+        return -1;
+    }
+
+    /*
+     * Make a copy of the deplist in order to preserve where we are in the list
+     * if we are calling ourselves later on.
+     *
+     * TODO: This can be optimized with the implementation of *_list_ref_t or
+     * allocating an array as with keylist.
+     */
+    if (!(deplist = key_dependency_list_new_copy(deplist_ext))) {
         return -1;
     }
 
@@ -736,6 +748,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
             continue;
         }
 
+        key_dependency_list_free(deplist);
         return 1;
     }
 
@@ -744,9 +757,11 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
      */
     if (future_key->pretend_update) {
         if (db_value_cmp(key_data_id(future_key->key), key_data_id(predecessor_key), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (!cmp && isPotentialSuccessor(successor_key, predecessor_key, future_key, type) > 0) {
+            key_dependency_list_free(deplist);
             return 1;
         }
     }
@@ -786,6 +801,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -798,6 +814,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
          * error if it does not exist in the keylist.
          */
         if ((from_key = key_dependency_get_from_key_data(dep))) {
+            key_dependency_list_free(deplist);
             return -1;
         }
 
@@ -811,12 +828,14 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
             key_data_free(from_key);
             continue;
         }
-        if (successor_rec(keylist, keylist_size, from_key, predecessor_key, future_key, type, deplist) > 0) {
+        if (successor_rec(keylist, keylist_size, from_key, predecessor_key, future_key, type, deplist_ext) > 0) {
             key_data_free(from_key);
+            key_dependency_list_free(deplist);
             return 1;
         }
         key_data_free(from_key);
     }
+    key_dependency_list_free(deplist);
 
     /*
      * TODO
@@ -840,7 +859,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
                 {
                     continue;
                 }
-                if (successor_rec(keylist, keylist_size, successor_key, keylist[i], future_key, type, deplist) > 0) {
+                if (successor_rec(keylist, keylist_size, successor_key, keylist[i], future_key, type, deplist_ext) > 0) {
                     return 1;
                 }
             }
