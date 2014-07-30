@@ -3324,19 +3324,21 @@ open(SQLITE, '>:encoding(UTF-8)', 'db_schema_sqlite.c') or die;
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+const char* db_schema_sqlite_create[] = {
 ';
-my $count = 0;
 foreach my $object (@$objects) {
     my $name = $object->{name};
     my $tname = $name;
     $tname =~ s/_/ /go;
 
-print SQLITE '
-const char* db_schema_sqlite_create', $count, '[] = {
-';
-
+    my $first = 1;
     my $str = 'CREATE TABLE '.camelize($name).' (';
 foreach my $field (@{$object->{fields}}) {
+    if (!$first) {
+        $str .= ', ';
+    }
+    $first = 0;
     if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
         $str .= ' '.camelize($field->{name}).' '.$DB_TYPE_TO_SQLITE{'DB_TYPE_PRIMARY_KEY'};
         next;
@@ -3353,47 +3355,32 @@ for my $part (@parts) {
     print SQLITE '    "', $part, '",
 ';
 }
-print SQLITE '    0
-};
+print SQLITE '    0,
 ';
-$count++;
 
 foreach my $field (@{$object->{fields}}) {
     my $str = '';
 
     if ($field->{foreign}) {
-$str = 'CREATE INDEX '.camelize($name.'_'.$field->{name}).' ON '.camelize($name),' ( '.camelize($field->{name}).' )';
+$str = 'CREATE INDEX '.camelize($name.'_'.$field->{name}).' ON '.camelize($name).' ( '.camelize($field->{name}).' )';
     }
     if ($field->{unique}) {
-$str = 'CREATE UNIQUE INDEX '.camelize($name.'_'.$field->{name}).' ON '.camelize($name),' ( '.camelize($field->{name}).' )';
+$str = 'CREATE UNIQUE INDEX '.camelize($name.'_'.$field->{name}).' ON '.camelize($name).' ( '.camelize($field->{name}).' )';
     }
     if (!$str) {
         next;
     }
 
-print SQLITE '
-const char* db_schema_sqlite_create', $count, '[] = {
-';
 my @parts = ( $str =~ m/.{1,500}/go );
 for my $part (@parts) {
     print SQLITE '    "', $part, '",
 ';
 }
-print SQLITE '    0
-};
-';
-$count++;
-}
-}
-print SQLITE 'const char** db_schema_sqlite_create[] = {
-';
-my $i = 0;
-while ($i < $count) {
-    print SQLITE '    db_schema_sqlite_create', $i, ',
-';
-    $i++;
-}
 print SQLITE '    0,
+';
+}
+}
+print SQLITE '    0
 };
 
 const char* db_schema_sqlite_drop[] = {
@@ -3401,7 +3388,8 @@ const char* db_schema_sqlite_drop[] = {
 foreach my $object (@$objects) {
     my $name = $object->{name};
 
-print SQLITE '    "DROP TABLE ', camelize($name), '",
+print SQLITE '    "DROP TABLE IF EXISTS ', camelize($name), '",
+    0,
 ';
 }
 print SQLITE '    0

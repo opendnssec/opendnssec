@@ -37,12 +37,17 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#include "daemon/engine.h"
 #include "shared/log.h"
+
 #if defined(ENFORCER_DATABASE_SQLITE3)
+#include <sqlite3.h>
 #include "db/db_schema_sqlite.h"
-#endif
-#if defined(ENFORCER_DATABASE_COUCHDB)
-#include "db/db_schema_couchdb.h"
+#include "db/db_data_sqlite.h"
+static const char** create = db_schema_sqlite_create;
+static const char** drop = db_schema_sqlite_drop;
+static const char** data = db_data_sqlite;
+static sqlite3* db = NULL;
 #endif
 
 #define AUTHOR_NAME "Jerry Lundström"
@@ -69,6 +74,99 @@ static void version(FILE* out) {
     exit(0);
 }
 
+static int connect_db(engineconfig_type* cfg) {
+#if defined(ENFORCER_DATABASE_SQLITE3)
+    if (!cfg->datastore) {
+        return -1;
+    }
+    if (db) {
+        return -1;
+    }
+
+    if (sqlite3_initialize() != SQLITE_OK) {
+        return -1;
+    }
+
+    if (sqlite3_open_v2(cfg->datastore, &db,
+        SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
+        NULL) != SQLITE_OK)
+    {
+        return -1;
+    }
+
+    return 0;
+#else
+    return -1;
+#endif
+}
+
+static int disconnect_db() {
+#if defined(ENFORCER_DATABASE_SQLITE3)
+    if (db) {
+        sqlite3_close(db);
+        db = NULL;
+    }
+
+    sqlite3_shutdown();
+
+    return 0;
+#else
+    return -1;
+#endif
+}
+
+static int db_do(const char *sql, size_t size) {
+#if defined(ENFORCER_DATABASE_SQLITE3)
+    sqlite3_stmt* stmt = NULL;
+
+    if (!db) {
+        return -1;
+    }
+    if (!sql) {
+        return -1;
+    }
+
+    if (sqlite3_prepare_v2(db, sql, size, &stmt, NULL) != SQLITE_OK
+        || sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        if (stmt) {
+            sqlite3_finalize(stmt);
+        }
+        return -1;
+    }
+    sqlite3_finalize(stmt);
+
+    return 0;
+#else
+    return -1;
+#endif
+}
+
+int db_do2(const char** strs) {
+    char sql[4096];
+    char *sqlp;
+    int ret, left, i;
+
+    for (i = 0; strs[i]; i++) {
+        left = sizeof(sql);
+        sqlp = sql;
+
+        for (; strs[i]; i++) {
+            if ((ret = snprintf(sqlp, left, "%s", strs[i])) >= left) {
+                return -1;
+            }
+            sqlp += ret;
+            left -= ret;
+        }
+
+        if (db_do(sql, sizeof(sql) - left)) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     int c, options_index = 0;
     static struct option long_options[] = {
@@ -76,9 +174,12 @@ int main(int argc, char* argv[]) {
         {"version", no_argument, 0, 'V'},
         { 0, 0, 0, 0}
     };
-    
+    int user_certain;
+    engineconfig_type* cfg;
+    const char* cfgfile = ODS_SE_CFGFILE;
+
     ods_log_init(NULL, 0, 0);
-    
+
     while ((c=getopt_long(argc, argv, "hV",
         long_options, &options_index)) != -1) {
         switch (c) {
@@ -93,5 +194,55 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    printf("*WARNING* This will erase all data in the database; are you sure? [y/N] ");
+
+    user_certain = getchar();
+    if (user_certain != 'y' && user_certain != 'Y') {
+        printf("Okay, quitting...\n");
+        return 0;
+    }
+
+    cfg = engine_config(cfgfile, 0, NULL);
+    if (engine_config_check(cfg) != ODS_STATUS_OK) {
+        engine_config_cleanup(cfg);
+        fprintf(stderr, "Error: unable to load configuration!\n");
+        return 1;
+    }
+
+    if (connect_db(cfg)) {
+        engine_config_cleanup(cfg);
+        fprintf(stderr, "Error: unable to connect to database!\n");
+        return 2;
+    }
+
+    /*
+     * Drop existing schema.
+     */
+    if (db_do2(drop)) {
+        fprintf(stderr, "Error: unable to drop existing schema!\n");
+        disconnect_db();
+        return 3;
+    }
+
+    /*
+     * Create new schema.
+     */
+    if (db_do2(create)) {
+        fprintf(stderr, "Error: unable to create schema!\n");
+        disconnect_db();
+        return 4;
+    }
+
+    /*
+     * Insert initial data.
+     */
+    if (db_do2(data)) {
+        fprintf(stderr, "Error: unable to insert initial data!\n");
+        disconnect_db();
+        return 5;
+    }
+
+    engine_config_cleanup(cfg);
+    printf("Database setup successfully.\n");
     return 0;
 }

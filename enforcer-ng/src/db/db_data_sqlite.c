@@ -28,5 +28,6 @@
 
 const char* db_data_sqlite[] = {
     "INSERT INTO databaseVersion ( version ) VALUES ( 1 )",
+    0,
     0
 };

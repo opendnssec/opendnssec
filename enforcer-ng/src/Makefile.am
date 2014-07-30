@@ -220,17 +220,6 @@ ods_enforcer_db_setup_SOURCES = \
 	shared/log.c shared/log.h \
 	shared/util.c shared/util.h \
 	shared/str.c shared/str.h \
-	db/db_backend.c db/db_backend.h \
-	db/db_clause.c db/db_clause.h \
-	db/db_configuration.c db/db_configuration.h \
-	db/db_connection.c db/db_connection.h \
-	db/db_object.c db/db_object.h \
-	db/db_result.c db/db_result.h \
-	db/db_type.h \
-	db/db_value.c db/db_value.h \
-	db/db_join.c db/db_join.h \
-	db/db_error.h \
-	$(BACKEND_SOURCES_CUSTOM) \
 	$(BACKEND_SCHEMA_CUSTOM)
 
 ods_enforcer_db_setup_LDADD = \
