@@ -48,7 +48,11 @@ struct __hsm_key_factory_task {
     time_t duration;
 };
 
-static void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key, time_t duration) {
+/*
+ * TODO: add mutex to protect key generation for not running at the same time.
+ */
+
+void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key, time_t duration) {
     db_clause_list_t* clause_list;
     hsm_key_t* hsm_key = NULL;
     size_t num_keys;
@@ -226,7 +230,7 @@ static void hsm_key_factory_generate(engine_type* engine, const db_connection_t*
     hsm_destroy_context(hsm_ctx);
 }
 
-static void hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t* connection, const policy_t* policy, time_t duration) {
+void hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t* connection, const policy_t* policy, time_t duration) {
     policy_key_list_t* policy_key_list;
     const policy_key_t* policy_key;
 
@@ -254,7 +258,7 @@ static void hsm_key_factory_generate_policy(engine_type* engine, const db_connec
     policy_key_list_free(policy_key_list);
 }
 
-static void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* connection, time_t duration) {
+void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* connection, time_t duration) {
     policy_list_t* policy_list;
     const policy_t* policy;
     policy_key_list_t* policy_key_list;

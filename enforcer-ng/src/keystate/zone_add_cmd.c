@@ -38,6 +38,7 @@
 #include "db/zone.h"
 #include "keystate/zonelist_update.h"
 #include "enforcer/enforce_task.h"
+#include "hsmkey/hsm_key_factory.h"
 
 #include "keystate/zone_add_cmd.h"
 
@@ -237,7 +238,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     policy_free(policy);
     free(buf);
 
-    /* On successful add flush enforce task */
+    /*
+     * On successful generate HSM keys and add/flush enforce task.
+     */
+    hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
     ods_log_debug("[%s] Flushing enforce task", module_str);
     flush_enforce_task(engine, 0);
     

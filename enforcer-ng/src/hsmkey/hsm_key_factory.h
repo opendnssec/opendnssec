@@ -40,6 +40,25 @@ extern "C" {
 #endif
 
 /**
+ * TODO
+ */
+void hsm_key_factory_generate(engine_type* engine,
+    const db_connection_t* connection, const policy_key_t* policy_key,
+    time_t duration);
+
+/**
+ * TODO
+ */
+void hsm_key_factory_generate_policy(engine_type* engine,
+    const db_connection_t* connection, const policy_t* policy, time_t duration);
+
+/**
+ * TODO
+ */
+void hsm_key_factory_generate_all(engine_type* engine,
+    const db_connection_t* connection, time_t duration);
+
+/**
  * Schedule a task to generate keys for a specific policy key.
  * \param[in] engine an engine_type.
  * \prama[in] policy_key_orig a policy_key_t pointer to the policy key we will
