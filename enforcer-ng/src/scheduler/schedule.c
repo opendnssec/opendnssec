@@ -387,7 +387,7 @@ schedule_purge(schedule_type* schedule)
 }
 
 task_type*
-schedule_pop_task(schedule_type* schedule, int blocking)
+schedule_pop_task(schedule_type* schedule)
 {
     time_t now = time_now();
     task_type* task;
@@ -396,13 +396,23 @@ schedule_pop_task(schedule_type* schedule, int blocking)
         task = get_first_task(schedule);
         if (!task || (!task->flush && (task->when == -1 || task->when > now))) {
             /* nothing to do now, sleep and wait for signal */
-            if (blocking)
-                pthread_cond_wait(&schedule->schedule_cond,
-                    &schedule->schedule_lock);
+            pthread_cond_wait(&schedule->schedule_cond,
+                &schedule->schedule_lock);
             task = NULL;
         } else {
             task = pop_first_task(schedule);
         }
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return task;
+}
+
+task_type*
+schedule_pop_first_task(schedule_type* schedule)
+{
+    task_type* task;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        task = pop_first_task(schedule);
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
 }

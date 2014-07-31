@@ -108,7 +108,7 @@ worker_start(worker_type* worker)
 
         /* When no task available this call blocks and waits for event.
          * Then it will return NULL; */
-        worker->task = schedule_pop_task(worker->engine->taskq, 1);
+        worker->task = schedule_pop_task(worker->engine->taskq);
         if (worker->task) {
             ods_log_debug("[worker[%i]] start working", worker->thread_num);
             worker->clock_in = time(NULL);
