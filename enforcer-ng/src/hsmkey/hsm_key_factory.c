@@ -48,9 +48,26 @@ struct __hsm_key_factory_task {
     time_t duration;
 };
 
-/*
- * TODO: add mutex to protect key generation for not running at the same time.
- */
+static pthread_once_t __hsm_key_factory_once = PTHREAD_ONCE_INIT;
+static pthread_mutex_t* __hsm_key_factory_lock = NULL;
+
+static void hsm_key_factory_init(void) {
+    pthread_mutexattr_t attr;
+
+    if (!__hsm_key_factory_lock) {
+        if (!(__hsm_key_factory_lock = calloc(1, sizeof(pthread_mutex_t)))
+            || pthread_mutexattr_init(&attr)
+            || pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE)
+            || pthread_mutex_init(__hsm_key_factory_lock, &attr))
+        {
+            ods_log_error("[hsm_key_factory_init] mutex error");
+            if (__hsm_key_factory_lock) {
+                pthread_mutex_destroy(__hsm_key_factory_lock);
+                __hsm_key_factory_lock = NULL;
+            }
+        }
+    }
+}
 
 void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key, time_t duration) {
     db_clause_list_t* clause_list;
@@ -69,6 +86,18 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         return;
     }
     if (!policy_key) {
+        return;
+    }
+
+    if (!__hsm_key_factory_lock) {
+        pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);
+        if (!__hsm_key_factory_lock) {
+            ods_log_error("[hsm_key_factory_generate] mutex init error");
+            return;
+        }
+    }
+    if (pthread_mutex_lock(__hsm_key_factory_lock)) {
+        ods_log_error("[hsm_key_factory_generate] mutex lock error");
         return;
     }
 
@@ -93,6 +122,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         ods_log_error("[hsm_key_factory_generate] unable to count unused keys, database or memory allocation error");
         hsm_key_free(hsm_key);
         db_clause_list_free(clause_list);
+        pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
     db_clause_list_free(clause_list);
@@ -109,6 +139,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         ods_log_error("[hsm_key_factory_generate] unable to count zones for policy, database or memory allocation error");
         zone_free(zone);
         db_clause_list_free(clause_list);
+        pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
     zone_free(zone);
@@ -119,11 +150,13 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
      * not have to generate any keys
      */
     if (!policy_key_lifetime(policy_key)) {
+        pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
     generate_keys = (size_t)ceil((double)((duration ? duration : engine->config->automatic_keygen_duration))
         / (double)policy_key_lifetime(policy_key)) * num_zones;
     if (num_keys >= generate_keys) {
+        pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
     generate_keys -= num_keys;
@@ -132,6 +165,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
      * Create a HSM context and check that the repository exists
      */
     if (!(hsm_ctx = hsm_create_context())) {
+        pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
     if (!hsm_token_attached(hsm_ctx, policy_key_repository(policy_key))) {
@@ -143,6 +177,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
             ods_log_error("[hsm_key_factory_generate] unable to find repository %s in HSM");
         }
         hsm_destroy_context(hsm_ctx);
+        pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
 
@@ -165,6 +200,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         if (!hsm) {
             ods_log_error("[hsm_key_factory_generate] unable to find repository %s needed for key generation", policy_key_repository(policy_key));
             hsm_destroy_context(hsm_ctx);
+            pthread_mutex_unlock(__hsm_key_factory_lock);
             return;
         }
 
@@ -182,6 +218,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
                 }
                 libhsm_key_free(key);
                 hsm_destroy_context(hsm_ctx);
+                pthread_mutex_unlock(__hsm_key_factory_lock);
                 return;
             }
 
@@ -206,6 +243,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
                 free(key_id);
                 libhsm_key_free(key);
                 hsm_destroy_context(hsm_ctx);
+                pthread_mutex_unlock(__hsm_key_factory_lock);
                 return;
             }
 
@@ -224,10 +262,12 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
                 ods_log_error("[hsm_key_factory_generate] key generation failed");
             }
             hsm_destroy_context(hsm_ctx);
+            pthread_mutex_unlock(__hsm_key_factory_lock);
             return;
         }
     }
     hsm_destroy_context(hsm_ctx);
+    pthread_mutex_unlock(__hsm_key_factory_lock);
 }
 
 void hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t* connection, const policy_t* policy, time_t duration) {
@@ -244,11 +284,24 @@ void hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t*
         return;
     }
 
+    if (!__hsm_key_factory_lock) {
+        pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);
+        if (!__hsm_key_factory_lock) {
+            ods_log_error("[hsm_key_factory_generate_policy] mutex init error");
+            return;
+        }
+    }
+    if (pthread_mutex_lock(__hsm_key_factory_lock)) {
+        ods_log_error("[hsm_key_factory_generate_policy] mutex lock error");
+        return;
+    }
+
     /*
      * Get all policy keys for the specified policy and generate new keys if
      * needed
      */
     if (!(policy_key_list = policy_key_list_new_get_by_policy_id(connection, policy_id(policy)))) {
+        pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
 
@@ -256,6 +309,7 @@ void hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t*
         hsm_key_factory_generate(engine, connection, policy_key, duration);
     }
     policy_key_list_free(policy_key_list);
+    pthread_mutex_unlock(__hsm_key_factory_lock);
 }
 
 void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* connection, time_t duration) {
@@ -271,11 +325,24 @@ void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* co
         return;
     }
 
+    if (!__hsm_key_factory_lock) {
+        pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);
+        if (!__hsm_key_factory_lock) {
+            ods_log_error("[hsm_key_factory_generate_all] mutex init error");
+            return;
+        }
+    }
+    if (pthread_mutex_lock(__hsm_key_factory_lock)) {
+        ods_log_error("[hsm_key_factory_generate_all] mutex lock error");
+        return;
+    }
+
     /*
      * Get all the policies and for each get all the policy keys and generate
      * new keys for them if needed
      */
     if (!(policy_list = policy_list_new_get(connection))) {
+        pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
     while ((policy = policy_list_next(policy_list))) {
@@ -289,6 +356,7 @@ void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* co
         policy_key_list_free(policy_key_list);
     }
     policy_list_free(policy_list);
+    pthread_mutex_unlock(__hsm_key_factory_lock);
 }
 
 static task_type* hsm_key_factory_generate_task(task_type *task) {
