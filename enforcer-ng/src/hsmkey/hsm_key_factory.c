@@ -296,6 +296,8 @@ void hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t*
         return;
     }
 
+    ods_log_debug("[hsm_key_factory_generate_policy] policy %s", policy_name(policy));
+
     /*
      * Get all policy keys for the specified policy and generate new keys if
      * needed
@@ -336,6 +338,8 @@ void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* co
         ods_log_error("[hsm_key_factory_generate_all] mutex lock error");
         return;
     }
+
+    ods_log_debug("[hsm_key_factory_generate_all] generating keys");
 
     /*
      * Get all the policies and for each get all the policy keys and generate
