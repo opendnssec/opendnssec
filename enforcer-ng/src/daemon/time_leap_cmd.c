@@ -88,7 +88,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	struct tm tm;
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
-	int argc, attach;
+	int argc, attach, cont;
 	task_type* task = NULL, *newtask;
 	(void)n; (void)dbconn;
 
@@ -129,7 +129,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		"There are %i tasks scheduled.\nIt is now       %s",
 		(int) schedule_taskcount(engine->taskq),
 		strtime?strtime:"(null)\n");
-	while (1) {
+	cont = 1;
+	while (cont) {
 		time_leap = schedule_time_first(engine->taskq);
 		if (time_leap <= 0) break;
 
@@ -151,6 +152,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		if (!(task = schedule_pop_task(engine->taskq)))
 			break;
 		client_printf(sockfd, "[timeleap] attaching to job %s\n", task_what2str(task->what));
+		if (strcmp(task_what2str(task->what),  "enforce") == 0)
+			cont = 0;
 		task->dbconn = dbconn;
 		newtask = task_perform(task);
 		ods_log_debug("[timeleap] finished working");
@@ -159,8 +162,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			(void) schedule_task(engine->taskq, newtask);
 		}
 		hsm_key_factory_generate_all(engine, dbconn, 0);
-		if (strcmp(task_what2str(task->what),  "enforce") == 0)
-			break;
 	}
 	return 0;
 }
