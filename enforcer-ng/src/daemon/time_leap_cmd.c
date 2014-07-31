@@ -35,6 +35,7 @@
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "daemon/clientpipe.h"
+#include "hsmkey/hsm_key_factory.h"
 
 #include "daemon/time_leap_cmd.h"
 
@@ -155,6 +156,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 					(void) schedule_task(engine->taskq, task);
 			}
 		}
+		hsm_key_factory_generate_all(engine, dbconn, 0);
 		return 0;
 	}
 	return 1;
