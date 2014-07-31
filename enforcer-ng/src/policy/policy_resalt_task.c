@@ -151,7 +151,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			resalt_time = now + policy_denial_resalt(policy);
 			ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));
 		}
-		if (resalt_time < schedule_time || schedule_time == TIME_INF)
+		if ((resalt_time < schedule_time || schedule_time == TIME_INF) && policy_denial_resalt(policy) > 0)
 			schedule_time = resalt_time;
 		policy_free(policy);
 	}

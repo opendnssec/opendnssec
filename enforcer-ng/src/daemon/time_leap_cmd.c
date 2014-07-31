@@ -149,7 +149,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		engine_wakeup_workers(engine);
 		if (!attach)
 			break;
-		if (!(task = schedule_pop_task(engine->taskq)))
+		if (!(task = schedule_pop_task(engine->taskq, 0)))
 			break;
 		client_printf(sockfd, "[timeleap] attaching to job %s\n", task_what2str(task->what));
 		if (strcmp(task_what2str(task->what),  "enforce") == 0)

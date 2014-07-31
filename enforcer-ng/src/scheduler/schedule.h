@@ -106,7 +106,7 @@ ods_status schedule_task(schedule_type* schedule, task_type* task);
  * \return task_type* popped task, or NULL when no task available or
  * no task due
  */
-task_type* schedule_pop_task(schedule_type* schedule);
+task_type* schedule_pop_task(schedule_type* schedule, int blocking);
 
 /**
  * Time of first task in schedule.

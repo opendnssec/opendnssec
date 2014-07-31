@@ -320,7 +320,7 @@ schedule_flush_type(schedule_type* schedule, task_id id)
     int nflushed = 0;
     
     ods_log_debug("[%s] flush task", schedule_str);
-    if (!schedule || !schedule->tasks) return;
+    if (!schedule || !schedule->tasks) return 0;
 
     pthread_mutex_lock(&schedule->schedule_lock);
         node = ldns_rbtree_first(schedule->tasks);
@@ -387,7 +387,7 @@ schedule_purge(schedule_type* schedule)
 }
 
 task_type*
-schedule_pop_task(schedule_type* schedule)
+schedule_pop_task(schedule_type* schedule, int blocking)
 {
     time_t now = time_now();
     task_type* task;
@@ -396,8 +396,9 @@ schedule_pop_task(schedule_type* schedule)
         task = get_first_task(schedule);
         if (!task || (!task->flush && (task->when == -1 || task->when > now))) {
             /* nothing to do now, sleep and wait for signal */
-            pthread_cond_wait(&schedule->schedule_cond,
-                &schedule->schedule_lock);
+            if (blocking)
+                pthread_cond_wait(&schedule->schedule_cond,
+                    &schedule->schedule_lock);
             task = NULL;
         } else {
             task = pop_first_task(schedule);
