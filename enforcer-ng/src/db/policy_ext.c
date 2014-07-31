@@ -40,8 +40,8 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     xmlNodePtr node2;
     xmlNodePtr node3;
     xmlNodePtr node4;
-    xmlChar* xml_text;
-    duration_type* duration;
+    xmlChar* xml_text = NULL;
+    duration_type* duration = NULL;
     int check_if_updated = 0;
     int update_this = 1;
     int denial_optout = 0;
@@ -83,11 +83,16 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     }
     if (update_this) {
         if (policy_set_name(policy, (char*)xml_text)) {
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+            }
             return DB_ERROR_UNKNOWN;
         }
     }
-    xmlFree(xml_text);
+    if (xml_text) {
+        xmlFree(xml_text);
+        xml_text = NULL;
+    }
 
     for (node = policy_node->children; node; node = node->next) {
         if (node->type != XML_ELEMENT_NODE) {
@@ -112,11 +117,16 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
             }
             if (update_this) {
                 if (policy_set_description(policy, (char*)xml_text)) {
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                    }
                     return DB_ERROR_UNKNOWN;
                 }
             }
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+                xml_text = NULL;
+            }
         }
         else if (!strcmp((char*)node->name, "Signatures")) {
             for (node2 = node->children; node2; node2 = node2->next) {
@@ -130,10 +140,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] signature resign %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_signatures_resign(policy) != duration2time(duration)) {
@@ -148,6 +163,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "Refresh")) {
                     if (!(xml_text = xmlNodeGetContent(node2))) {
@@ -155,10 +171,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] signature refresh %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_signatures_refresh(policy) != duration2time(duration)) {
@@ -173,6 +194,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "Validity")) {
                     for (node3 = node2->children; node3; node3 = node3->next) {
@@ -186,10 +208,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] signature validity default %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_signatures_validity_default(policy) != duration2time(duration)) {
@@ -204,6 +231,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else if (!strcmp((char*)node3->name, "Denial")) {
                             if (!(xml_text = xmlNodeGetContent(node3))) {
@@ -211,10 +239,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] signature validity denial %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_signatures_validity_denial(policy) != duration2time(duration)) {
@@ -229,6 +262,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else {
                             ods_log_deeebug("[policy_*_from_xml] unknown %s", (char*)node3->name);
@@ -242,10 +276,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] signature jitter %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_signatures_jitter(policy) != duration2time(duration)) {
@@ -260,6 +299,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "InceptionOffset")) {
                     if (!(xml_text = xmlNodeGetContent(node2))) {
@@ -267,10 +307,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] signature inception offset %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_signatures_inception_offset(policy) != duration2time(duration)) {
@@ -285,6 +330,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "MaxZoneTTL")) {
                     signatures_max_zone_ttl = 1;
@@ -293,10 +339,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] signature max zone ttl %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_signatures_max_zone_ttl(policy) != duration2time(duration)) {
@@ -311,6 +362,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else {
                     ods_log_deeebug("[policy_*_from_xml] unknown %s", (char*)node2->name);
@@ -366,10 +418,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] denial ttl %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_denial_ttl(policy) != duration2time(duration)) {
@@ -384,6 +441,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else if (!strcmp((char*)node3->name, "OptOut")) {
                             denial_optout = 1;
@@ -407,10 +465,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] denial resalt %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_denial_resalt(policy) != duration2time(duration)) {
@@ -425,6 +488,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else if (!strcmp((char*)node3->name, "Hash")) {
                             for (node4 = node3->children; node4; node4 = node4->next) {
@@ -446,11 +510,16 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                     }
                                     if (update_this) {
                                         if (policy_set_denial_algorithm(policy, (unsigned int)atoi((char*)xml_text))) {
-                                            xmlFree(xml_text);
+                                            if (xml_text) {
+                                                xmlFree(xml_text);
+                                            }
                                             return DB_ERROR_UNKNOWN;
                                         }
                                     }
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                        xml_text = NULL;
+                                    }
                                 }
                                 else if (!strcmp((char*)node4->name, "Iterations")) {
                                     if (!(xml_text = xmlNodeGetContent(node4))) {
@@ -466,11 +535,16 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                     }
                                     if (update_this) {
                                         if (policy_set_denial_iterations(policy, (unsigned int)atoi((char*)xml_text))) {
-                                            xmlFree(xml_text);
+                                            if (xml_text) {
+                                                xmlFree(xml_text);
+                                            }
                                             return DB_ERROR_UNKNOWN;
                                         }
                                     }
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                        xml_text = NULL;
+                                    }
                                 }
                                 else if (!strcmp((char*)node4->name, "Salt")) {
                                     if (!(xml_text = xmlGetProp(node4, (xmlChar*)"length"))) {
@@ -486,11 +560,16 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                     }
                                     if (update_this) {
                                         if (policy_set_denial_salt_length(policy, (unsigned int)atoi((char*)xml_text))) {
-                                            xmlFree(xml_text);
+                                            if (xml_text) {
+                                                xmlFree(xml_text);
+                                            }
                                             return DB_ERROR_UNKNOWN;
                                         }
                                     }
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                        xml_text = NULL;
+                                    }
                                 }
                                 else {
                                     ods_log_deeebug("[policy_*_from_xml] unknown %s", (char*)node4->name);
@@ -522,10 +601,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] keys ttl %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_keys_ttl(policy) != duration2time(duration)) {
@@ -540,6 +624,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "RetireSafety")) {
                     if (!(xml_text = xmlNodeGetContent(node2))) {
@@ -547,10 +632,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] keys retire safety %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_keys_retire_safety(policy) != duration2time(duration)) {
@@ -565,6 +655,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "PublishSafety")) {
                     if (!(xml_text = xmlNodeGetContent(node2))) {
@@ -572,10 +663,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] keys publish safety %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_keys_publish_safety(policy) != duration2time(duration)) {
@@ -590,6 +686,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "ShareKeys")) {
                     keys_shared = 1;
@@ -614,10 +711,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] keys purge %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_keys_purge_after(policy) != duration2time(duration)) {
@@ -632,6 +734,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "KSK")) {
                     continue;
@@ -660,10 +763,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] zone propagation delay %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_zone_propagation_delay(policy) != duration2time(duration)) {
@@ -678,6 +786,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "SOA")) {
                     for (node3 = node2->children; node3; node3 = node3->next) {
@@ -691,10 +800,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] zone soa ttl %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_zone_soa_ttl(policy) != duration2time(duration)) {
@@ -709,6 +823,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else if (!strcmp((char*)node3->name, "Minimum")) {
                             if (!(xml_text = xmlNodeGetContent(node3))) {
@@ -716,10 +831,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] zone soa minimum %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_zone_soa_minimum(policy) != duration2time(duration)) {
@@ -734,6 +854,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else if (!strcmp((char*)node3->name, "Serial")) {
                             if (!(xml_text = xmlNodeGetContent(node3))) {
@@ -749,11 +870,16 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             if (update_this) {
                                 if (policy_set_zone_soa_serial_text(policy, (char*)xml_text)) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                         }
                         else {
                             ods_log_deeebug("[policy_*_from_xml] unknown %s", (char*)node3->name);
@@ -779,10 +905,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] parent registration delay %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_parent_registration_delay(policy) != duration2time(duration)) {
@@ -797,6 +928,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "PropagationDelay")) {
                     if (!(xml_text = xmlNodeGetContent(node2))) {
@@ -804,10 +936,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                     }
                     ods_log_deeebug("[policy_*_from_xml] parent propagation delay %s", (char*)xml_text);
                     if (!(duration = duration_create_from_string((char*)xml_text))) {
-                        xmlFree(xml_text);
+                        if (xml_text) {
+                            xmlFree(xml_text);
+                        }
                         return DB_ERROR_UNKNOWN;
                     }
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                        xml_text = NULL;
+                    }
                     if (check_if_updated) {
                         update_this = 0;
                         if (policy_parent_propagation_delay(policy) != duration2time(duration)) {
@@ -822,6 +959,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                         }
                     }
                     duration_cleanup(duration);
+                    duration = NULL;
                 }
                 else if (!strcmp((char*)node2->name, "SOA")) {
                     for (node3 = node2->children; node3; node3 = node3->next) {
@@ -835,10 +973,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] parent soa ttl %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_parent_soa_ttl(policy) != duration2time(duration)) {
@@ -853,6 +996,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else if (!strcmp((char*)node3->name, "Minimum")) {
                             if (!(xml_text = xmlNodeGetContent(node3))) {
@@ -860,10 +1004,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] parent soa minimum %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_parent_soa_minimum(policy) != duration2time(duration)) {
@@ -878,6 +1027,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else {
                             ods_log_deeebug("[policy_*_from_xml] unknown %s", (char*)node3->name);
@@ -897,10 +1047,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             }
                             ods_log_deeebug("[policy_*_from_xml] parent ds ttl %s", (char*)xml_text);
                             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                                xmlFree(xml_text);
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
                                 return DB_ERROR_UNKNOWN;
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                             if (check_if_updated) {
                                 update_this = 0;
                                 if (policy_parent_ds_ttl(policy) != duration2time(duration)) {
@@ -915,6 +1070,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 }
                             }
                             duration_cleanup(duration);
+                            duration = NULL;
                         }
                         else {
                             ods_log_deeebug("[policy_*_from_xml] unknown %s", (char*)node3->name);
@@ -933,6 +1089,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
             return DB_ERROR_UNKNOWN;
         }
     }
+
+    if (xml_text) {
+        xmlFree(xml_text);
+        xml_text = NULL;
+    }
+    duration_cleanup(duration);
+    duration = NULL;
 
     /*
      * If we did not find these XML elements we need to disable them

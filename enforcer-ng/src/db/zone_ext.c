@@ -79,7 +79,7 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
     xmlNodePtr node;
     xmlNodePtr node2;
     xmlNodePtr node3;
-    xmlChar* xml_text;
+    xmlChar* xml_text = NULL;
     int check_if_updated = 0;
     int update_this = 1;
     policy_t* policy = NULL;
@@ -118,11 +118,16 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
     }
     if (update_this) {
         if (zone_set_name(zone, (char*)xml_text)) {
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+            }
             return DB_ERROR_UNKNOWN;
         }
     }
-    xmlFree(xml_text);
+    if (xml_text) {
+        xmlFree(xml_text);
+        xml_text = NULL;
+    }
 
     for (node = zone_node->children; node; node = node->next) {
         if (node->type != XML_ELEMENT_NODE) {
@@ -139,7 +144,9 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                     && policy_get_by_name(policy, (char*)xml_text))
                 {
                     policy_free(policy);
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                    }
                     return DB_ERROR_UNKNOWN;
                 }
             }
@@ -148,7 +155,9 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                     || policy_get_by_name(policy, (char*)xml_text))
                 {
                     policy_free(policy);
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                    }
                     return DB_ERROR_UNKNOWN;
                 }
             }
@@ -157,7 +166,9 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                 update_this = 0;
                 if (db_value_cmp(zone_policy_id(zone), policy_id(policy), &ret)) {
                     policy_free(policy);
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                    }
                     return DB_ERROR_UNKNOWN;
                 }
                 if (ret) {
@@ -168,11 +179,16 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
             if (update_this) {
                 if (zone_set_policy_id(zone, policy_id(policy))) {
                     policy_free(policy);
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                    }
                     return DB_ERROR_UNKNOWN;
                 }
             }
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+                xml_text = NULL;
+            }
         }
         else if (!strcmp((char*)node->name, "SignerConfiguration")) {
             if (!(xml_text = xmlNodeGetContent(node))) {
@@ -193,12 +209,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
             }
             if (update_this) {
                 if (zone_set_signconf_path(zone, (char*)xml_text)) {
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                    }
                     policy_free(policy);
                     return DB_ERROR_UNKNOWN;
                 }
             }
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+                xml_text = NULL;
+            }
         }
         else if (!strcmp((char*)node->name, "Adapters")) {
             for (node2 = node->children; node2; node2 = node2->next) {
@@ -227,12 +248,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             }
                             if (update_this) {
                                 if (zone_set_input_adapter_type(zone, "File")) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     policy_free(policy);
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
 
                             if (!(xml_text = xmlNodeGetContent(node3))) {
                                 policy_free(policy);
@@ -252,12 +278,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             }
                             if (update_this) {
                                 if (zone_set_input_adapter_uri(zone, (char*)xml_text)) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     policy_free(policy);
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                         }
                         else if (!strcmp((char*)node3->name, "Adapter")) {
                             if (!(xml_text = xmlGetProp(node3, (xmlChar*)"type"))) {
@@ -278,12 +309,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             }
                             if (update_this) {
                                 if (zone_set_input_adapter_type(zone, (char*)xml_text)) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     policy_free(policy);
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
 
                             if (!(xml_text = xmlNodeGetContent(node3))) {
                                 policy_free(policy);
@@ -303,12 +339,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             }
                             if (update_this) {
                                 if (zone_set_input_adapter_uri(zone, (char*)xml_text)) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     policy_free(policy);
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                         }
                         else {
                             ods_log_deeebug("[zone_*_from_xml] unknown %s", (char*)node3->name);
@@ -338,12 +379,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             }
                             if (update_this) {
                                 if (zone_set_output_adapter_type(zone, "File")) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     policy_free(policy);
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
 
                             if (!(xml_text = xmlNodeGetContent(node3))) {
                                 policy_free(policy);
@@ -363,12 +409,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             }
                             if (update_this) {
                                 if (zone_set_output_adapter_uri(zone, (char*)xml_text)) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     policy_free(policy);
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                         }
                         else if (!strcmp((char*)node3->name, "Adapter")) {
                             if (!(xml_text = xmlGetProp(node3, (xmlChar*)"type"))) {
@@ -389,12 +440,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             }
                             if (update_this) {
                                 if (zone_set_output_adapter_type(zone, (char*)xml_text)) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     policy_free(policy);
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
 
                             if (!(xml_text = xmlNodeGetContent(node3))) {
                                 policy_free(policy);
@@ -414,12 +470,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             }
                             if (update_this) {
                                 if (zone_set_output_adapter_uri(zone, (char*)xml_text)) {
-                                    xmlFree(xml_text);
+                                    if (xml_text) {
+                                        xmlFree(xml_text);
+                                    }
                                     policy_free(policy);
                                     return DB_ERROR_UNKNOWN;
                                 }
                             }
-                            xmlFree(xml_text);
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
                         }
                         else {
                             ods_log_deeebug("[zone_*_from_xml] unknown %s", (char*)node3->name);
@@ -442,6 +503,10 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
         }
     }
 
+    if (xml_text) {
+        xmlFree(xml_text);
+        xml_text = NULL;
+    }
     policy_free(policy);
     return DB_OK;
 }

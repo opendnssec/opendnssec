@@ -37,8 +37,8 @@
 
 int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
     xmlNodePtr node;
-    xmlChar* xml_text;
-    duration_type* duration;
+    xmlChar* xml_text = NULL;
+    duration_type* duration = NULL;
     int algorithm_length = 0;
     int standby = 0;
     int manual_rollover = 0;
@@ -78,20 +78,30 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
                 algorithm_length = 1;
                 ods_log_deeebug("[policy_key_*_from_xml] algorithm length %s", (char*)xml_text);
                 if (policy_key_set_bits(policy_key, (unsigned int)atoi((char*)xml_text))) {
-                    xmlFree(xml_text);
+                    if (xml_text) {
+                        xmlFree(xml_text);
+                    }
                     return DB_ERROR_UNKNOWN;
                 }
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
             }
             if (!(xml_text = xmlNodeGetContent(node))) {
                 return DB_ERROR_UNKNOWN;
             }
             ods_log_deeebug("[policy_key_*_from_xml] algorithm %s", (char*)xml_text);
             if (policy_key_set_algorithm(policy_key, (unsigned int)atoi((char*)xml_text))) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                }
                 return DB_ERROR_UNKNOWN;
             }
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+                xml_text = NULL;
+            }
         }
         else if (!strcmp((char*)node->name, "Lifetime")) {
             if (!(xml_text = xmlNodeGetContent(node))) {
@@ -99,15 +109,21 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
             }
             ods_log_deeebug("[policy_key_*_from_xml] lifetime %s", (char*)xml_text);
             if (!(duration = duration_create_from_string((char*)xml_text))) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                }
                 return DB_ERROR_UNKNOWN;
             }
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+                xml_text = NULL;
+            }
             if (policy_key_set_lifetime(policy_key, duration2time(duration))) {
                 duration_cleanup(duration);
                 return DB_ERROR_UNKNOWN;
             }
             duration_cleanup(duration);
+            duration = NULL;
         }
         else if (!strcmp((char*)node->name, "Repository")) {
             if (!(xml_text = xmlNodeGetContent(node))) {
@@ -115,10 +131,15 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
             }
             ods_log_deeebug("[policy_key_*_from_xml] repository %s", (char*)xml_text);
             if (policy_key_set_repository(policy_key, (char*)xml_text)) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                }
                 return DB_ERROR_UNKNOWN;
             }
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+                xml_text = NULL;
+            }
         }
         else if (!strcmp((char*)node->name, "Standby")) {
             standby = 1;
@@ -127,10 +148,15 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
             }
             ods_log_deeebug("[policy_key_*_from_xml] standby %s", (char*)xml_text);
             if (policy_key_set_standby(policy_key, (unsigned int)atoi((char*)xml_text))) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                }
                 return DB_ERROR_UNKNOWN;
             }
-            xmlFree(xml_text);
+            if (xml_text) {
+                xmlFree(xml_text);
+                xml_text = NULL;
+            }
         }
         else if (!strcmp((char*)node->name, "ManualRollover")) {
             manual_rollover = 1;
@@ -148,25 +174,36 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
             }
             ods_log_deeebug("[policy_key_*_from_xml] KSK rolltype %s", (char*)xml_text);
             if (!strcmp((char*)xml_text, "KskDoubleRRset")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_NONE)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else if (!strcmp((char*)xml_text, "KskDoubleDS")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_DNSKEY)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else if (!strcmp((char*)xml_text, "KskDoubleSignature")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_DS)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                }
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -179,25 +216,36 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
             }
             ods_log_deeebug("[policy_key_*_from_xml] ZSK rolltype %s", (char*)xml_text);
             if (!strcmp((char*)xml_text, "ZskDoubleSignature")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_NONE)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else if (!strcmp((char*)xml_text, "ZskPrePublication")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_RRSIG)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else if (!strcmp((char*)xml_text, "ZskDoubleRRsig")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_DNSKEY)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                }
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -210,37 +258,54 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
             }
             ods_log_deeebug("[policy_key_*_from_xml] CSK rolltype %s", (char*)xml_text);
             if (!strcmp((char*)xml_text, "CskDoubleRRset")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_NONE)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else if (!strcmp((char*)xml_text, "CskSingleSignature")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_RRSIG)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else if (!strcmp((char*)xml_text, "CskDoubleDS")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_DNSKEY)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else if (!strcmp((char*)xml_text, "CskDoubleSignature")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_DS)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else if (!strcmp((char*)xml_text, "CskPrePublication")) {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                    xml_text = NULL;
+                }
                 if (policy_key_set_minimize(policy_key, POLICY_KEY_MINIMIZE_DS_AND_RRSIG)) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
             else {
-                xmlFree(xml_text);
+                if (xml_text) {
+                    xmlFree(xml_text);
+                }
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -258,6 +323,13 @@ int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node) {
             return DB_ERROR_UNKNOWN;
         }
     }
+
+    if (xml_text) {
+        xmlFree(xml_text);
+        xml_text = NULL;
+    }
+    duration_cleanup(duration);
+    duration = NULL;
 
     /*
      * If we did not find these XML elements we need to disable them
