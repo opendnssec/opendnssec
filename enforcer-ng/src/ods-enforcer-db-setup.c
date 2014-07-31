@@ -88,7 +88,7 @@ static int connect_db(engineconfig_type* cfg) {
     }
 
     if (sqlite3_open_v2(cfg->datastore, &db,
-        SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
+        SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_CREATE,
         NULL) != SQLITE_OK)
     {
         return -1;
