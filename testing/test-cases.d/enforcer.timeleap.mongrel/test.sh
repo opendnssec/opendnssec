@@ -23,8 +23,8 @@ ods_start_enforcer &&
 
 for n in $RANGE
 do
-	ods-enforcer key list -v -p | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}/date time/" > base/$n.verbose &&
-	ods-enforcer key list -d -p | cut -d ";" -f 1-8 > base/$n.debug &&
+	ods-enforcer key list -v -p | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}/date time/" | sort > base/$n.verbose &&
+	ods-enforcer key list -d -p | cut -d ";" -f 1-8 | sort > base/$n.debug &&
 	log_this 02_timeleap 'ods-enforcer time leap --attach' 
 done &&
 
