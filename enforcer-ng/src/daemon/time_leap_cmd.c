@@ -87,7 +87,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	struct tm tm;
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
-	int argc, attach;
+	int argc, attach, cont;
 	(void)n;
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
@@ -119,63 +119,69 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		client_printf(sockfd, "There are no tasks scheduled.\n");
 		return 1;
 	}
+	cont = 1;
+	while (cont) {
+		lock_basic_lock(&engine->taskq->schedule_lock);
+		/* [LOCK] schedule */
+	
+		/* how many tasks */
+		now = time_now();
+		strtime = ctime_r(&now,ctimebuf);
+		client_printf(sockfd, 
+			"There are %i tasks scheduled.\nIt is now       %s",
+			(int) engine->taskq->tasks->count,
+			strtime?strtime:"(null)\n");
+	
+		/* Get first task in schedule, this one also features the earliest wake-up
+		   time of all tasks in the schedule. */
+		task = schedule_get_first_task(engine->taskq);
+	
+		if (task) {
+			if (!task->flush || attach) {
+				/*Use the parameter vaule, or if not given use the time of the first task*/
+				if (!time_leap)
+					time_leap = task->when;
+	
+				set_time_now(time_leap);
+				strtime = ctime_r(&time_leap,ctimebuf);
+				if (strtime)
+					strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
+	
+				client_printf(sockfd,  "Leaping to time %s\n", 
+					strtime?strtime:"(null)");
+				ods_log_info("Time leap: Leaping to time %s\n",
+					 strtime?strtime:"(null)");
 
-	lock_basic_lock(&engine->taskq->schedule_lock);
-	/* [LOCK] schedule */
-
-	/* how many tasks */
-	now = time_now();
-	strtime = ctime_r(&now,ctimebuf);
-	client_printf(sockfd, 
-		"There are %i tasks scheduled.\nIt is now       %s",
-		(int) engine->taskq->tasks->count,
-		strtime?strtime:"(null)\n");
-
-	/* Get first task in schedule, this one also features the earliest wake-up
-	   time of all tasks in the schedule. */
-	task = schedule_get_first_task(engine->taskq);
-
-	if (task) {
-		if (!task->flush || attach) {
-			/*Use the parameter vaule, or if not given use the time of the first task*/
-			if (!time_leap)
-				time_leap = task->when;
-
-			set_time_now(time_leap);
-			strtime = ctime_r(&time_leap,ctimebuf);
-			if (strtime)
-				strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
-
-			client_printf(sockfd,  "Leaping to time %s\n", 
-				strtime?strtime:"(null)");
-			ods_log_info("Time leap: Leaping to time %s\n",
-				 strtime?strtime:"(null)");
-
-			bShouldLeap = 1;
+				if (strcmp(task_what2str(task->what),  "enforce") == 0)
+					cont = 0;
+				bShouldLeap = 1;
+			} else {
+				client_printf(sockfd, 
+					"Already flushing tasks, unable to time leap\n");
+				cont = 0;
+			}
 		} else {
-			client_printf(sockfd, 
-				"Already flushing tasks, unable to time leap\n");
+			client_printf(sockfd, "Task queue is empty, unable to time leap\n");
+			cont = 0;
 		}
-	} else {
-		client_printf(sockfd, "Task queue is empty, unable to time leap\n");
-	}
-
-	/* [UNLOCK] schedule */
-	lock_basic_unlock(&engine->taskq->schedule_lock);
-
-	if (bShouldLeap) {
-		/* Wake up all workers and let them reevaluate wether their
-		 tasks need to be executed */
-		client_printf(sockfd, "Waking up workers\n");
-		engine_wakeup_workers(engine);
-		if (attach) {
-			task = schedule_pop_task(engine->taskq);
-			if (task) {
-				client_printf(sockfd, "working on %s\n", task->who);
-				task = task_perform(task);
-				if (task)
-					client_printf(sockfd, "rescheduling %s\n", task->who);
-					(void) lock_and_schedule_task(engine->taskq, task, 1);
+	
+		/* [UNLOCK] schedule */
+		lock_basic_unlock(&engine->taskq->schedule_lock);
+	
+		if (bShouldLeap) {
+			/* Wake up all workers and let them reevaluate wether their
+			 tasks need to be executed */
+			client_printf(sockfd, "Waking up workers\n");
+			engine_wakeup_workers(engine);
+			if (attach) {
+				task = schedule_pop_task(engine->taskq);
+				if (task) {
+					client_printf(sockfd, "working on %s\n", task->who);
+					task = task_perform(task);
+					if (task)
+						client_printf(sockfd, "rescheduling %s\n", task->who);
+						(void) lock_and_schedule_task(engine->taskq, task, 1);
+				}
 			}
 		}
 	}

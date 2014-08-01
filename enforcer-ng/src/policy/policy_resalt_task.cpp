@@ -189,10 +189,6 @@ policy_resalt_task_perform(task_type *task)
 {
 	task->backoff = 0;
     task->when = perform_policy_resalt(-1,(engine_type *)task->context);
-    if (task->when == TIME_INFINITE) {
-        // The resalt did not work, so we just try it again in 30 minutes.
-        task->when = time_now() + 30*60;
-    }
     return task; // return task, it needs to be rescheduled.
 }
 
