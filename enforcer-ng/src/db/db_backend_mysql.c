@@ -1220,8 +1220,10 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
                 break;
 
             case MYSQL_TYPE_STRING:
-                if (!bind->length
-                    || db_value_from_text2(db_value_set_get(value_set, value), (char*)bind->bind->buffer, bind->length))
+                if ((!bind->length
+                        && db_value_from_text(db_value_set_get(value_set, value), ""))
+                    || (bind->length
+                        && db_value_from_text2(db_value_set_get(value_set, value), (char*)bind->bind->buffer, bind->length)))
                 {
                     db_result_free(result);
                     return NULL;
@@ -1273,8 +1275,10 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
 
         case DB_TYPE_TEXT:
             if (bind->bind->buffer_type != MYSQL_TYPE_STRING
-                || !bind->length
-                || db_value_from_text2(db_value_set_get(value_set, value), (char*)bind->bind->buffer, bind->length))
+                || (!bind->length
+                    && db_value_from_text(db_value_set_get(value_set, value), ""))
+                || (bind->length
+                    && db_value_from_text2(db_value_set_get(value_set, value), (char*)bind->bind->buffer, bind->length)))
             {
                 db_result_free(result);
                 return NULL;
