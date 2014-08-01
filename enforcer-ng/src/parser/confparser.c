@@ -639,6 +639,30 @@ parse_conf_db_port(const char* cfgfile)
     return port;
 }
 
+engineconfig_database_type_t parse_conf_db_type(const char *cfgfile) {
+    const char* str = NULL;
+
+    if ((str = parse_conf_string(
+        cfgfile,
+        "//Configuration/Enforcer/Datastore/MySQL/Host",
+        0)))
+    {
+        free((void*)str);
+        return ENFORCER_DATABASE_TYPE_MYSQL;
+    }
+
+    if ((str = parse_conf_string(
+        cfgfile,
+        "//Configuration/Enforcer/Datastore/SQLite",
+        0)))
+    {
+        free((void*)str);
+        return ENFORCER_DATABASE_TYPE_SQLITE;
+    }
+
+    return ENFORCER_DATABASE_TYPE_NONE;
+}
+
 time_t
 parse_conf_automatic_keygen_period(const char* cfgfile)
 {

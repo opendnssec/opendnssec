@@ -48,6 +48,14 @@ static const char** create = db_schema_sqlite_create;
 static const char** drop = db_schema_sqlite_drop;
 static const char** data = db_data_sqlite;
 static sqlite3* db = NULL;
+#elif defined(ENFORCER_DATABASE_MYSQL)
+#include <mysql/mysql.h>
+#include "db/db_schema_mysql.h"
+#include "db/db_data_mysql.h"
+static const char** create = db_schema_mysql_create;
+static const char** drop = db_schema_mysql_drop;
+static const char** data = db_data_mysql;
+static MYSQL* db = NULL;
 #endif
 
 #define AUTHOR_NAME "Jerry Lundström"
@@ -95,6 +103,36 @@ static int connect_db(engineconfig_type* cfg) {
     }
 
     return 0;
+#elif defined(ENFORCER_DATABASE_MYSQL)
+    if (!cfg->datastore) {
+        return -1;
+    }
+    if (db) {
+        return -1;
+    }
+
+    if (mysql_library_init(0, NULL, NULL)) {
+        return -1;
+    }
+
+    if (!(db = mysql_init(NULL))
+        || !mysql_real_connect(db,
+            cfg->db_host,
+            cfg->db_username,
+            cfg->db_password,
+            cfg->datastore,
+            cfg->db_port,
+            NULL,
+            0))
+    {
+        if (db) {
+            mysql_close(db);
+            db = NULL;
+        }
+        return -1;
+    }
+
+    return 0;
 #else
     return -1;
 #endif
@@ -108,6 +146,15 @@ static int disconnect_db() {
     }
 
     sqlite3_shutdown();
+
+    return 0;
+#elif defined(ENFORCER_DATABASE_MYSQL)
+    if (db) {
+        mysql_close(db);
+        db = NULL;
+    }
+
+    mysql_library_end();
 
     return 0;
 #else
@@ -135,6 +182,19 @@ static int db_do(const char *sql, size_t size) {
         return -1;
     }
     sqlite3_finalize(stmt);
+
+    return 0;
+#elif defined(ENFORCER_DATABASE_MYSQL)
+    if (!db) {
+        return -1;
+    }
+    if (!sql) {
+        return -1;
+    }
+
+    if (mysql_real_query(db, sql, size)) {
+        return -1;
+    }
 
     return 0;
 #else

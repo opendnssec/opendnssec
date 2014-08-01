@@ -68,9 +68,11 @@ BACKEND_LDFLAGS_CUSTOM += \
 	`pkg-config --libs jansson`
 endif
 
+if USE_MYSQL
 BACKEND_SOURCES_CUSTOM += db/db_backend_mysql.c db/db_backend_mysql.h
-BACKEND_LDFLAGS_CUSTOM += \
-	`mysql_config --libs`
+BACKEND_SCHEMA_CUSTOM += db/db_schema_mysql.c db/db_schema_mysql.h \
+	db/db_data_mysql.c db/db_data_mysql.h
+endif
 
 ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \

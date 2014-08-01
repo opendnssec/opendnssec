@@ -312,29 +312,116 @@ setup_database(engine_type* engine)
         fprintf(stderr, "db_configuraiton_list_new failed\n");
         return 1;
     }
-    if (!(dbcfg = db_configuration_new())
-        || db_configuration_set_name(dbcfg, "backend")
-        || db_configuration_set_value(dbcfg, "sqlite")
-        || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-    {
-        db_configuration_free(dbcfg);
-        db_configuration_list_free(engine->dbcfg_list);
-        engine->dbcfg_list = NULL;
-        fprintf(stderr, "setup configuration backend failed\n");
+    if (engine->config->db_type == ENFORCER_DATABASE_TYPE_SQLITE) {
+        if (!(dbcfg = db_configuration_new())
+            || db_configuration_set_name(dbcfg, "backend")
+            || db_configuration_set_value(dbcfg, "sqlite")
+            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+        {
+            db_configuration_free(dbcfg);
+            db_configuration_list_free(engine->dbcfg_list);
+            engine->dbcfg_list = NULL;
+            fprintf(stderr, "setup configuration backend failed\n");
+            return 1;
+        }
+        if (!(dbcfg = db_configuration_new())
+            || db_configuration_set_name(dbcfg, "file")
+            || db_configuration_set_value(dbcfg, engine->config->datastore)
+            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+        {
+            db_configuration_free(dbcfg);
+            db_configuration_list_free(engine->dbcfg_list);
+            engine->dbcfg_list = NULL;
+            fprintf(stderr, "setup configuration file failed\n");
+            return 1;
+        }
+        dbcfg = NULL;
+    }
+    else if (engine->config->db_type == ENFORCER_DATABASE_TYPE_MYSQL) {
+        if (!(dbcfg = db_configuration_new())
+            || db_configuration_set_name(dbcfg, "backend")
+            || db_configuration_set_value(dbcfg, "mysql")
+            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+        {
+            db_configuration_free(dbcfg);
+            db_configuration_list_free(engine->dbcfg_list);
+            engine->dbcfg_list = NULL;
+            fprintf(stderr, "setup configuration backend failed\n");
+            return 1;
+        }
+        if (!(dbcfg = db_configuration_new())
+            || db_configuration_set_name(dbcfg, "host")
+            || db_configuration_set_value(dbcfg, engine->config->db_host)
+            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+        {
+            db_configuration_free(dbcfg);
+            db_configuration_list_free(engine->dbcfg_list);
+            engine->dbcfg_list = NULL;
+            fprintf(stderr, "setup configuration file failed\n");
+            return 1;
+        }
+        dbcfg = NULL;
+        if (engine->config->db_port) {
+            char str[32];
+            if (snprintf(&str[0], sizeof(str), "%d", engine->config->db_port) >= (int)sizeof(str)) {
+                db_configuration_list_free(engine->dbcfg_list);
+                engine->dbcfg_list = NULL;
+                fprintf(stderr, "setup configuration file failed\n");
+                return 1;
+            }
+            if (!(dbcfg = db_configuration_new())
+                || db_configuration_set_name(dbcfg, "port")
+                || db_configuration_set_value(dbcfg, str)
+                || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+            {
+                db_configuration_free(dbcfg);
+                db_configuration_list_free(engine->dbcfg_list);
+                engine->dbcfg_list = NULL;
+                fprintf(stderr, "setup configuration file failed\n");
+                return 1;
+            }
+            dbcfg = NULL;
+        }
+        if (!(dbcfg = db_configuration_new())
+            || db_configuration_set_name(dbcfg, "user")
+            || db_configuration_set_value(dbcfg, engine->config->db_username)
+            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+        {
+            db_configuration_free(dbcfg);
+            db_configuration_list_free(engine->dbcfg_list);
+            engine->dbcfg_list = NULL;
+            fprintf(stderr, "setup configuration file failed\n");
+            return 1;
+        }
+        dbcfg = NULL;
+        if (!(dbcfg = db_configuration_new())
+            || db_configuration_set_name(dbcfg, "pass")
+            || db_configuration_set_value(dbcfg, engine->config->db_password)
+            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+        {
+            db_configuration_free(dbcfg);
+            db_configuration_list_free(engine->dbcfg_list);
+            engine->dbcfg_list = NULL;
+            fprintf(stderr, "setup configuration file failed\n");
+            return 1;
+        }
+        dbcfg = NULL;
+        if (!(dbcfg = db_configuration_new())
+            || db_configuration_set_name(dbcfg, "db")
+            || db_configuration_set_value(dbcfg, engine->config->datastore)
+            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
+        {
+            db_configuration_free(dbcfg);
+            db_configuration_list_free(engine->dbcfg_list);
+            engine->dbcfg_list = NULL;
+            fprintf(stderr, "setup configuration file failed\n");
+            return 1;
+        }
+        dbcfg = NULL;
+    }
+    else {
         return 1;
     }
-    if (!(dbcfg = db_configuration_new())
-        || db_configuration_set_name(dbcfg, "file")
-        || db_configuration_set_value(dbcfg, engine->config->datastore)
-        || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-    {
-        db_configuration_free(dbcfg);
-        db_configuration_list_free(engine->dbcfg_list);
-        engine->dbcfg_list = NULL;
-        fprintf(stderr, "setup configuration file failed\n");
-        return 1;
-    }
-    dbcfg = NULL;
     return 0;
 }
 

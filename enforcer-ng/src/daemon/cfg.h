@@ -48,6 +48,12 @@ struct engineconfig_repository {
 	int require_backup;
 };
 
+typedef enum {
+    ENFORCER_DATABASE_TYPE_NONE,
+    ENFORCER_DATABASE_TYPE_SQLITE,
+    ENFORCER_DATABASE_TYPE_MYSQL
+} engineconfig_database_type_t;
+
 /**
  * Engine configuration.
  *
@@ -79,6 +85,7 @@ struct engineconfig_struct {
 	int db_port; /* Datastore/MySQL/Host/@Port */
 	time_t automatic_keygen_duration;
 	struct engineconfig_repository* hsm;
+	engineconfig_database_type_t db_type;
 };
 
 /**

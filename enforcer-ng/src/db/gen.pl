@@ -3517,3 +3517,153 @@ DROP TABLE IF EXISTS ', camelize($name), ';
 ';
 }
 close(MYSQL);
+
+open(MYSQL, '>:encoding(UTF-8)', 'db_schema_mysql.h') or die;
+
+    print MYSQL '/*
+ * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+ * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS\'\' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef __db_schema_mysql_h
+#define __db_schema_mysql_h
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const char* db_schema_mysql_create[];
+extern const char* db_schema_mysql_drop[];
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+';
+close(MYSQL);
+
+open(MYSQL, '>:encoding(UTF-8)', 'db_schema_mysql.c') or die;
+
+    print MYSQL '/*
+ * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+ * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS\'\' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+const char* db_schema_mysql_create[] = {
+';
+foreach my $object (@$objects) {
+    my $name = $object->{name};
+    my $tname = $name;
+    $tname =~ s/_/ /go;
+
+    my $first = 1;
+    my $str = 'CREATE TABLE '.camelize($name).' (';
+foreach my $field (@{$object->{fields}}) {
+    if (!$first) {
+        $str .= ', ';
+    }
+    $first = 0;
+    if ($field->{type} eq 'DB_TYPE_PRIMARY_KEY') {
+        $str .= ' '.camelize($field->{name}).' '.$DB_TYPE_TO_MYSQL{'DB_TYPE_PRIMARY_KEY'};
+        next;
+    }
+    if ($field->{foreign}) {
+        $str .= ' '.camelize($field->{name}).' BIGINT UNSIGNED NOT NULL';
+        next;
+    }
+        $str .= ' '.camelize($field->{name}).' '.$DB_TYPE_TO_MYSQL{$field->{type}};
+}
+$str .= ')';
+my @parts = ( $str =~ m/.{1,500}/go );
+for my $part (@parts) {
+    print MYSQL '    "', $part, '",
+';
+}
+print MYSQL '    0,
+';
+
+foreach my $field (@{$object->{fields}}) {
+    my $str = '';
+
+    if ($field->{foreign}) {
+$str = 'CREATE INDEX '.camelize($name.'_'.$field->{name}).' ON '.camelize($name).' ( '.camelize($field->{name}).($field->{type} eq 'DB_TYPE_TEXT' ? '(255)' : '').' )';
+    }
+    if ($field->{unique}) {
+$str = 'CREATE UNIQUE INDEX '.camelize($name.'_'.$field->{name}).' ON '.camelize($name).' ( '.camelize($field->{name}).($field->{type} eq 'DB_TYPE_TEXT' ? '(255)' : '').' )';
+    }
+    if (!$str) {
+        next;
+    }
+
+my @parts = ( $str =~ m/.{1,500}/go );
+for my $part (@parts) {
+    print MYSQL '    "', $part, '",
+';
+}
+print MYSQL '    0,
+';
+}
+}
+print MYSQL '    0
+};
+
+const char* db_schema_mysql_drop[] = {
+';
+foreach my $object (@$objects) {
+    my $name = $object->{name};
+
+print MYSQL '    "DROP TABLE IF EXISTS ', camelize($name), '",
+    0,
+';
+}
+print MYSQL '    0
+};
+';
+close(MYSQL);

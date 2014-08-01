@@ -38,9 +38,9 @@ BACKEND_LDFLAGS_CUSTOM += \
 	`pkg-config --libs jansson`
 endif
 
+if USE_MYSQL
 BACKEND_LDADD_CUSTOM += ../../db_backend_mysql.o
-BACKEND_LDFLAGS_CUSTOM += \
-	`mysql_config --libs`
+endif
 
 test_LDADD = \
 	../../db_backend.o \
@@ -86,7 +86,9 @@ if USE_COUCHDB
 	curl -X PUT http://127.0.0.1:5984/opendnssec/_design/application -d @$(srcdir)/test.couchdb
 	curl -X PUT http://127.0.0.1:5984/opendnssec/1 -d '{"type":"test","test_name":"test"}'
 endif
-	mysql -u root test < $(srcdir)/test.mysql
-	mysql -u root test < $(srcdir)/../drop.mysql
-	mysql -u root test < $(srcdir)/../schema.mysql
+if USE_MYSQL
+	mysql -u "@ENFORCER_DB_USERNAME@" "-p@ENFORCER_DB_PASSWORD@" "@ENFORCER_DB_DATABASE@" < $(srcdir)/test.mysql
+	mysql -u "@ENFORCER_DB_USERNAME@" "-p@ENFORCER_DB_PASSWORD@" "@ENFORCER_DB_DATABASE@" < $(srcdir)/../drop.mysql
+	mysql -u "@ENFORCER_DB_USERNAME@" "-p@ENFORCER_DB_PASSWORD@" "@ENFORCER_DB_DATABASE@" < $(srcdir)/../schema.mysql
+endif
 	./test

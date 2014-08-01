@@ -163,6 +163,7 @@ int main(void) {
     }
 #endif
 
+#if defined(ENFORCER_DATABASE_MYSQL)
     pSuite = CU_add_suite("MySQL database operations", init_suite_database_operations_mysql, clean_suite_database_operations);
     if (!pSuite) {
         CU_cleanup_registry();
@@ -196,6 +197,7 @@ int main(void) {
         CU_cleanup_registry();
         return CU_get_error();
     }
+#endif
 
     test_hsm_key_add_suite();
     test_key_data_add_suite();

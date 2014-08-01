@@ -101,6 +101,7 @@ engine_config(const char* cfgfile,
             ecfg->db_username = allocator_strdup(allocator, oldcfg->db_username);
             ecfg->db_password = allocator_strdup(allocator, oldcfg->db_password);
             ecfg->db_port = oldcfg->db_port;
+            ecfg->db_type = oldcfg->db_type;
         } else {
             ecfg->cfg_filename = allocator_strdup(allocator, cfgfile);
             ecfg->clisock_filename = parse_conf_clisock_filename(allocator, cfgfile);
@@ -114,6 +115,7 @@ engine_config(const char* cfgfile,
             ecfg->db_username = parse_conf_db_username(allocator, cfgfile);
             ecfg->db_password = parse_conf_db_password(allocator, cfgfile);
             ecfg->db_port = parse_conf_db_port(cfgfile);
+            ecfg->db_type = parse_conf_db_type(cfgfile);
         }
         /* get values */
         ecfg->policy_filename = parse_conf_policy_filename(allocator,
