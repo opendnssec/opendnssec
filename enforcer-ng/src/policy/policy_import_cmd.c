@@ -32,6 +32,9 @@
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
 #include "policy/policy_import.h"
+#include "policy/policy_resalt_task.h"
+#include "enforcer/enforce_task.h"
+
 
 #include "policy/policy_import_cmd.h"
 
@@ -90,9 +93,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     switch (policy_import(sockfd, engine, dbconn, 1)) {
     case POLICY_IMPORT_OK:
-        /*
-        schedule_flush(engine->taskq);
-        */
+        (void)flush_enforce_task(engine, 0);
+        (void)flush_resalt_task(engine);
         return 0;
         break;
 
