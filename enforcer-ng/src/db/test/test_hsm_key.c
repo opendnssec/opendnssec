@@ -958,6 +958,7 @@ int test_hsm_key_add_suite(void) {
         return ret;
     }
 #endif
+#if defined(ENFORCER_DATABASE_MYSQL)
     pSuite = CU_add_suite("Test of hsm key (MySQL)", test_hsm_key_init_suite_mysql, test_hsm_key_clean_suite);
     if (!pSuite) {
         return CU_get_error();
@@ -966,5 +967,6 @@ int test_hsm_key_add_suite(void) {
     if (ret) {
         return ret;
     }
+#endif
     return 0;
 }

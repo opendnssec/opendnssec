@@ -697,6 +697,7 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
         return backend;
     }
 #endif
+#if defined(ENFORCER_DATABASE_MYSQL)
     if (!strcmp(name, "mysql")) {
         if (!(backend = db_backend_new())
             || db_backend_set_name(backend, "mysql")
@@ -708,6 +709,7 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
         }
         return backend;
     }
+#endif
 
     return backend;
 }

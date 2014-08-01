@@ -711,7 +711,8 @@ static int db_backend_mysql_connect(void* data, const db_configuration_list_t* c
             (db ? db_configuration_value(db) : NULL),
             port,
             NULL,
-            0))
+            0)
+        || mysql_autocommit(backend_mysql->db, 1))
     {
         if (backend_mysql->db) {
             ods_log_error("db_backend_mysql: connect failed %d: %s", mysql_errno(backend_mysql->db), mysql_error(backend_mysql->db));

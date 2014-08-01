@@ -537,6 +537,7 @@ int test_database_version_add_suite(void) {
         return ret;
     }
 #endif
+#if defined(ENFORCER_DATABASE_MYSQL)
     pSuite = CU_add_suite("Test of database version (MySQL)", test_database_version_init_suite_mysql, test_database_version_clean_suite);
     if (!pSuite) {
         return CU_get_error();
@@ -545,5 +546,6 @@ int test_database_version_add_suite(void) {
     if (ret) {
         return ret;
     }
+#endif
     return 0;
 }

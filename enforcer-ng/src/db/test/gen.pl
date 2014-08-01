@@ -1184,6 +1184,7 @@ int test_', $name, '_add_suite(void) {
         return ret;
     }
 #endif
+#if defined(ENFORCER_DATABASE_MYSQL)
     pSuite = CU_add_suite("Test of ', $tname, ' (MySQL)", test_', $name, '_init_suite_mysql, test_', $name, '_clean_suite);
     if (!pSuite) {
         return CU_get_error();
@@ -1192,6 +1193,7 @@ int test_', $name, '_add_suite(void) {
     if (ret) {
         return ret;
     }
+#endif
     return 0;
 }
 ';

@@ -794,6 +794,7 @@ int test_key_dependency_add_suite(void) {
         return ret;
     }
 #endif
+#if defined(ENFORCER_DATABASE_MYSQL)
     pSuite = CU_add_suite("Test of key dependency (MySQL)", test_key_dependency_init_suite_mysql, test_key_dependency_clean_suite);
     if (!pSuite) {
         return CU_get_error();
@@ -802,5 +803,6 @@ int test_key_dependency_add_suite(void) {
     if (ret) {
         return ret;
     }
+#endif
     return 0;
 }
