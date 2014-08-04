@@ -470,7 +470,7 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     engine_stop_workers(engine);
     cmdhandler_stop(engine);
     /* Remove old tasks in queue */
-    while ((task = schedule_pop_task(engine->taskq))) {
+    while ((task = schedule_pop_task(engine->taskq, 1))) {
         ods_log_verbose("popping task \"%s\" from queue", task->who);
     }
     (void) hsm_close();

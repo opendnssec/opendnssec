@@ -319,7 +319,7 @@ schedule_get_first_task(schedule_type* schedule)
  *
  */
 task_type*
-schedule_pop_task(schedule_type* schedule)
+schedule_pop_task(schedule_type* schedule, int ignore_time)
 {
     task_type* pop = NULL;
     time_t now = 0;
@@ -333,7 +333,7 @@ schedule_pop_task(schedule_type* schedule)
 
     now = time_now();
     pop = schedule_get_first_task(schedule);
-    if (pop && (pop->flush || pop->when <= now)) {
+    if (pop && (pop->flush || pop->when <= now || ignore_time)) {
         if (pop->flush) {
             ods_log_debug("[%s] flush task for %s", schedule_str,
                 pop->who?pop->who:"(null)");
@@ -345,7 +345,6 @@ schedule_pop_task(schedule_type* schedule)
     }
     return NULL;
 }
-
 
 /**
  * Print schedule.

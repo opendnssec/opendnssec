@@ -94,7 +94,7 @@ autostart(engine_type* engine)
 	ods_log_debug("[%s] autostart", module_str);
 
 	/* Remove old tasks in queue */
-	while ((task = schedule_pop_task(engine->taskq))) {
+	while ((task = schedule_pop_task(engine->taskq, 1))) {
 		ods_log_verbose("popping task \"%s\" from queue", task->who);
 	}
 	if (!engine->database_ready) return;

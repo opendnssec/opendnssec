@@ -87,7 +87,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	struct tm tm;
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
-	int argc, attach, cont;
+	int argc, attach, cont, time_set = 0;
 	(void)n;
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
@@ -105,6 +105,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			time_leap = mktime_from_utc(&tm);
 			client_printf(sockfd,
 				"Using %s parameter value as time to leap to\n", time);
+			time_set = 1;
 		} else {
 			client_printf(sockfd, 
 				"Time leap: Error - could not convert '%s' to a time. "
@@ -139,7 +140,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		if (task) {
 			if (!task->flush || attach) {
 				/*Use the parameter vaule, or if not given use the time of the first task*/
-				if (!time_leap)
+				if (!time_set)
 					time_leap = task->when;
 	
 				set_time_now(time_leap);
@@ -174,7 +175,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			client_printf(sockfd, "Waking up workers\n");
 			engine_wakeup_workers(engine);
 			if (attach) {
-				task = schedule_pop_task(engine->taskq);
+				task = schedule_pop_task(engine->taskq, 1);
 				if (task) {
 					client_printf(sockfd, "working on %s\n", task->who);
 					task = task_perform(task);

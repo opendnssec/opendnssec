@@ -133,7 +133,7 @@ worker_start(worker_type* worker)
         lock_basic_lock(&worker->engine->taskq->schedule_lock);
         /* [LOCK] schedule */
 
-        worker->task = schedule_pop_task(worker->engine->taskq);
+        worker->task = schedule_pop_task(worker->engine->taskq, 0);
         if (worker->task) {
 
             /* [UNLOCK] schedule */

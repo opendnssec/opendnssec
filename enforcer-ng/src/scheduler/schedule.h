@@ -142,7 +142,7 @@ ods_status reschedule_task(schedule_type* schedule, task_type* task,
  * \return task_type* popped task
  *
  */
-task_type* schedule_pop_task(schedule_type* schedule);
+task_type* schedule_pop_task(schedule_type* schedule, int ignore_time);
 
 /**
  * Get the first scheduled task.
