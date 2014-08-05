@@ -168,6 +168,9 @@ policy_resalt_task_perform(task_type *task)
 	task->backoff = 0;
 	task->when = perform_policy_resalt(-1,(engine_type *)task->context,
 		task->dbconn);
+	if (task->when == -1)
+		task_cleanup(task);
+		return NULL;
 	return task;
 }
 
