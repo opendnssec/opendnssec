@@ -540,6 +540,9 @@ isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
         return -1;
     }
 
+	/* You can't be a successor of yourself */
+	if (!key_data_cmp(successor_key, predecessor_key)) return 0;
+
     /*
      * TODO
      */
