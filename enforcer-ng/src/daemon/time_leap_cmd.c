@@ -132,7 +132,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	cont = 1;
 	while (cont) {
 		time_leap = schedule_time_first(engine->taskq);
-		if (time_leap <= 0) break;
+		if (time_leap < 0) break;
 
 		set_time_now(time_leap);
 		strtime = ctime_r(&time_leap,ctimebuf);
