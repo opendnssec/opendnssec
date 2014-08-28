@@ -2115,6 +2115,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
     key_state_t* key_state;
     int key_data_updated, process, key_state_created;
     const db_enum_t* state_enum, *next_state_enum, *type_enum;
+	key_dependency_list_t *deplisttmp = NULL;
 
     if (!dbconn) {
         /* TODO: better log error */
@@ -2148,6 +2149,8 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
     }
 
     ods_log_verbose("[%s] %s: processing %s with policyName %s", module_str, scmd, zone_name(zone), policy_name(policy));
+
+    deplisttmp = zone_get_key_dependencies(zone);
 
 	/*
 	 * The process variable will indicate if we are processing, if something
@@ -2432,7 +2435,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 /*
                  * Check if DNSSEC state prevents transition.
                  */
-                if (dnssecApproval(keylist, keylist_size, &future_key, allow_unsigned, deplist) < 1) {
+                if (dnssecApproval(keylist, keylist_size, &future_key, allow_unsigned, deplisttmp) < 1) {
                     continue;
                 }
                 ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", module_str, scmd);
@@ -2631,11 +2634,15 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 }
 
                 // markSuccessors_old(dep_list, key_list, &future_key);
-                if (markSuccessors(dbconn, keylist, keylist_size, &future_key, deplist, zone) < 0) {
+                if (markSuccessors(dbconn, keylist, keylist_size, &future_key, deplisttmp, zone) < 0) {
                     ods_log_error("[%s] %s: markSuccessors() error", module_str, scmd);
                     process = 0;
                     break;
                 }
+                /*deps have changed reload*/
+				key_dependency_list_free(deplisttmp);
+                deplisttmp = zone_get_key_dependencies(zone);
+
 
                 if (key_data_cache_key_states(keylist[i])) {
                     ods_log_error("[%s] %s: Unable to recache key states after transition", module_str, scmd);
@@ -2647,7 +2654,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 			}
 		}
 	} while (process && change);
-
+	key_dependency_list_free(deplisttmp);
 	return returntime_zone;
 }
 
