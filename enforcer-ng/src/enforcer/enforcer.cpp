@@ -3737,141 +3737,49 @@ removeDeadKeys_old(KeyDataList &key_list, const time_t now,
 }
 static time_t
 removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
-    size_t keylist_size, key_dependency_list_t *deplist, const time_t now,
-    const int purgetime)
+	size_t keylist_size, key_dependency_list_t *deplist, const time_t now,
+	const int purgetime)
 {
-    static const char *scmd = "removeDeadKeys";
-    time_t first_purge = -1, key_time;
-    size_t i, deplist2_size = 0, k;
-    int key_purgable, j, cmp;
-    const key_state_t* state;
-    key_dependency_t **deplist2 = NULL;
+	static const char *scmd = "removeDeadKeys";
+	time_t first_purge = -1, key_time;
+	size_t i, deplist2_size = 0;
+	int key_purgable, j, cmp;
+	const key_state_t* state;
+	key_dependency_t **deplist2 = NULL;
 
-    if (!keylist) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: no keylist", module_str, scmd);
-        return first_purge;
-    }
-    if (!deplist) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: no deplist", module_str, scmd);
-        return first_purge;
-    }
+	assert(keylist);
+	assert(deplist);
 
-    for (i = 0; i < keylist_size; i++) {
-        if (key_data_introducing(keylist[i])) {
-            continue;
-        }
-
-        key_time = -1;
-        key_purgable = 1;
-
-        state = key_data_cached_ds(keylist[i]);
-        if (key_state_state(state) != NA) {
-            if (key_state_state(state) != HIDDEN) {
-                key_purgable = 0;
-            }
-            else if (key_state_last_change(state) > key_time) {
-                key_time = key_state_last_change(state);
-            }
-        }
-
-        state = key_data_cached_dnskey(keylist[i]);
-        if (key_state_state(state) != NA) {
-            if (key_state_state(state) != HIDDEN) {
-                key_purgable = 0;
-            }
-            else if (key_state_last_change(state) > key_time) {
-                key_time = key_state_last_change(state);
-            }
-        }
-
-        state = key_data_cached_rrsigdnskey(keylist[i]);
-        if (key_state_state(state) != NA) {
-            if (key_state_state(state) != HIDDEN) {
-                key_purgable = 0;
-            }
-            else if (key_state_last_change(state) > key_time) {
-                key_time = key_state_last_change(state);
-            }
-        }
-
-        state = key_data_cached_rrsig(keylist[i]);
-        if (key_state_state(state) != NA) {
-            if (key_state_state(state) != HIDDEN) {
-                key_purgable = 0;
-            }
-            else if (key_state_last_change(state) > key_time) {
-                key_time = key_state_last_change(state);
-            }
-        }
-
-        if (key_time != -1) {
-            key_time = addtime(key_time, purgetime);
-        }
-
+	deplist2_size = key_dependency_list_size(deplist);
+	deplist2 = (key_dependency_t**)calloc(deplist2_size, sizeof(key_dependency_t*));
+	/* deplist might be NULL but is always freeable */
+	(void) key_dependency_list_get_begin(deplist);
+	for (i = 0; i < deplist2_size; i++)
+		deplist2[i] = key_dependency_list_get_next(deplist);
+	
+	for (i = 0; i < keylist_size; i++) {
+		if (key_data_introducing(keylist[i])) continue;
+		key_time = -1;
+		key_purgable = 1;
+		for (j = 0; j<4; j++) {
+			switch(j){
+				case 0: state = key_data_cached_ds(keylist[i]); break;
+				case 1: state = key_data_cached_dnskey(keylist[i]); break;
+				case 2: state = key_data_cached_rrsigdnskey(keylist[i]); break;
+				case 3: state = key_data_cached_rrsig(keylist[i]);
+			}
+			if (key_state_state(state) == NA) continue;
+			if (key_state_state(state) != HIDDEN) {
+				key_purgable = 0;
+				break;
+			}
+			if (key_state_last_change(state) > key_time) {
+				key_time = key_state_last_change(state);
+			}
+		}
+        if (key_time != -1) key_time = addtime(key_time, purgetime);
         if (key_purgable) {
-            /*
-             * It might not be time to purge the key just yet, but we can
-             * already assume no other key depends on it.
-             *
-             * TODO: How can we assume that?
-             */
-            if (!deplist2) {
-                /*
-                 * Create a local list of all key dependencies in order to mark
-                 * them deleted by setting the entry to NULL.
-                 */
-                if ((deplist2_size = key_dependency_list_size(deplist))) {
-                    if (!(deplist2 = (key_dependency_t**)calloc(deplist2_size, sizeof(key_dependency_t*)))) {
-                        /* TODO: better log error */
-                        ods_log_error("[%s] %s: calloc() deplist2 failed", module_str, scmd);
-                        return first_purge;
-                    }
-                    for (k = 0, deplist2[k] = key_dependency_list_get_begin(deplist); k < deplist2_size; k++) {
-                        deplist2[k] = key_dependency_list_get_next(deplist);
-                    }
-                }
-                else {
-                    /*
-                     * Fake set the deplist2, size is zero so it should not be
-                     * used anyway.
-                     */
-                    deplist2 = (key_dependency_t**)1;
-                }
-            }
-            for (k = 0; k < deplist2_size; k++) {
-                if (!deplist2[k]) {
-                    continue;
-                }
-
-                if (db_value_cmp(key_data_id(keylist[i]), key_dependency_from_key_data_id(deplist2[k]), &cmp)) {
-                    /* TODO: better log error */
-                    ods_log_error("[%s] %s: cmp deplist from failed", module_str, scmd);
-                    free(deplist2);
-                    return first_purge;
-                }
-                if (cmp) {
-                    if (db_value_cmp(key_data_id(keylist[i]), key_dependency_to_key_data_id(deplist2[k]), &cmp)) {
-                        /* TODO: better log error */
-                        ods_log_error("[%s] %s: cmp deplist to failed", module_str, scmd);
-                        free(deplist2);
-                        return first_purge;
-                    }
-                    if (cmp) {
-                        continue;
-                    }
-                }
-
-                if (key_dependency_delete(deplist2[k])) {
-                    /* TODO: better log error */
-                    ods_log_error("[%s] %s: key_dependency_delete() failed", module_str, scmd);
-                    free(deplist2);
-                    return first_purge;
-                }
-                deplist2[k] = NULL;
-            }
-
+			/* key is purgable, is it time yet? */
             if (now >= key_time) {
                 ods_log_info("[%s] %s deleting key: %s", module_str, scmd,
                     hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
@@ -3885,21 +3793,32 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
                 {
                     /* TODO: better log error */
                     ods_log_error("[%s] %s: key_state_delete() || key_data_delete() || hsm_key_factory_release_key() failed", module_str, scmd);
-                    if (deplist2_size) {
-                        free(deplist2);
-                    }
-                    return first_purge;
                 }
             } else {
                 minTime(key_time, &first_purge);
             }
+            /* we can clean up dependency because key is purgable */
+
+            for (j = 0; j < deplist2_size; j++) {
+                if (!deplist2[j]) continue;
+                if (db_value_cmp(key_data_id(keylist[i]), key_dependency_from_key_data_id(deplist2[j]), &cmp)) {
+                    /* TODO: better log error */
+                    ods_log_error("[%s] %s: cmp deplist from failed", module_str, scmd);
+                    break;
+                }
+                if(cmp) continue;
+
+                if (key_dependency_delete(deplist2[j])) {
+                    /* TODO: better log error */
+                    ods_log_error("[%s] %s: key_dependency_delete() failed", module_str, scmd);
+                    break;
+                }
+                deplist2[j] = NULL;
+            }
         }
     }
-
-    if (deplist2_size) {
-        free(deplist2);
-    }
-    return first_purge;
+	free(deplist2);
+	return first_purge;
 }
 
 time_t
