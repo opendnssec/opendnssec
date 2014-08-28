@@ -3954,6 +3954,11 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
 	for (i = 0; i < keylist_size; i++) {
 	    key_data_updated = 0;
 
+		/* hack */
+		key_data_set_publish(keylist[i], 0);
+		key_data_set_active_ksk(keylist[i], 0);
+		key_data_set_active_zsk(keylist[i], 0);
+		key_data_updated = 1;
 	    /*
 	     * TODO: description
 	     */
