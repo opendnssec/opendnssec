@@ -3760,8 +3760,8 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 	deplist2_size = key_dependency_list_size(deplist);
 	deplist2 = (key_dependency_t**)calloc(deplist2_size, sizeof(key_dependency_t*));
 	/* deplist might be NULL but is always freeable */
-	(void) key_dependency_list_get_begin(deplist);
-	for (i = 0; i < deplist2_size; i++)
+	deplist2[0] = key_dependency_list_get_begin(deplist);
+	for (i = 1; i < deplist2_size; i++)
 		deplist2[i] = key_dependency_list_get_next(deplist);
 	
 	for (i = 0; i < keylist_size; i++) {
