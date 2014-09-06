@@ -75,6 +75,7 @@
 /*! HSM configuration */
 typedef struct {
     unsigned int use_pubkey;     /*!< Maintain public keys in HSM */
+    unsigned int allow_extract;  /*!< Generate CKA_EXTRACTABLE private keys */
 } hsm_config_t;
 
 /*! Data type to describe an HSM */

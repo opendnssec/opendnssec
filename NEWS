@@ -1,3 +1,8 @@
+* Enforcer: New repository option <AllowExtraction/> allows to generate keys
+  with CKA_EXTRACTABLE attribute set to TRUE so keys can be wrapped
+  and extracted from HSM.
+
+
 OpenDNSSEC 1.4.6 - 2014-07-21
 
 * Signer Engine: Print secondary server address when logging notify reply
