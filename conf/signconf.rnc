@@ -75,7 +75,10 @@ zone = element Zone {
 				element Deactivate { empty }?,
 
 				# Ignore DS and use RFC5011 to maintain chain of trust.
-				element RFC5011 { empty }?
+				element RFC5011 { empty }?,
+
+				# Key must be published with revoke bit set.
+				element Revoke { empty }?
 			}+
 		},
 
