@@ -417,7 +417,7 @@ int DbString(DB_ROW row, int field_index, char** result)
 
 			/* Invalid field, tell the user */
 
-			status = MsgLog(DBS_INVINDEX, field_index, row->result->count);
+			status = MsgLog(DBS_INVINDEX, field_index, row->result->count-1);
 		}
 
 	}
