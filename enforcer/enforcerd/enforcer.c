@@ -1203,6 +1203,10 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     {
         fprintf(file, "\t\t\t\t<Publish />\n");
     }
+    if (key_data->rfc5011)
+    {
+        fprintf(file, "\t\t\t\t<RFC5011 />\n");
+    }
     fprintf(file, "\t\t\t</Key>\n");
     fprintf(file, "\n");
 
