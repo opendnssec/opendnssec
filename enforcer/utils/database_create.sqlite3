@@ -115,6 +115,7 @@ create table dnsseckeys (
   active        varchar(64) null default null,  -- time when the key was made active
   retire        varchar(64) null default null,  -- time when the key retires
   dead          varchar(64) null default null,  -- time when key is slated for removal
+  rfc5011       tinyint          default 0,
 
   foreign key (keypair_id) references keypairs (id)
 );
@@ -153,7 +154,8 @@ select k.id as id, d.state as state, k.generate as generate, d.publish as publis
     d.zone_id as zone_id, k.policy_id as policy_id, 
     k.securitymodule_id as securitymodule_id, k.size as size,
     k.compromisedflag as compromisedflag,
-    k.fixedDate as fixedDate
+    k.fixedDate as fixedDate,
+    d.rfc5011 as rfc5011
 from  keypairs k left outer join dnsseckeys d
 on k.id = d.keypair_id;
 
