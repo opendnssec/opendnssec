@@ -122,10 +122,11 @@ typedef struct {
 
     int     flags;		    /* States which fields are valid */
     int     roll_scheme;	/* Which rollover scheme the key is under */
+    int     rfc5011;	/*  */
 } KSM_KEYDATA;
 
 int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, int alg, const char* generate, DB_ID* id);
-int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, const char* time, const char* retTime, DB_ID* id);
+int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, int rfc5011, const char* time, const char* retTime, DB_ID* id);
 /*int KsmDnssecKeyCreateOnPolicy(int policy_id, int keypair_id, int keytype);*/
 int KsmKeyInitSql(DB_RESULT* result, const char* sql);
 int KsmKeyInit(DB_RESULT* result, DQS_QUERY_CONDITION* condition);
@@ -463,6 +464,9 @@ void KsmPurge(void);
 #define KSM_PAR_KSK_ROLL                0
 #define KSM_PAR_KSK_ROLL_STRING         "rollover_scheme"
 #define KSM_PAR_KSK_ROLL_CAT            "ksk"
+#define KSM_PAR_RFC5011                 0
+#define KSM_PAR_RFC5011_STRING          "rfc5011"
+#define KSM_PAR_RFC5011_CAT             "ksk"
 
 typedef struct {            /* Holds collection of parameters */
     int     clockskew;      /* Clock skew */
@@ -485,6 +489,7 @@ typedef struct {            /* Holds collection of parameters */
     int     zskmanroll;     /* Do we only roll the ZSK manually? */
     int     dsttl;          /* TTL of the DS record */
     int     kskroll;        /* Rollover Scheme for the KSK */
+    int     rfc5011;        /* 5011 enabled? */
 } KSM_PARCOLL;
 
 int KsmCollectionInit(KSM_PARCOLL* data);
@@ -505,6 +510,7 @@ int KsmParameterPubSafety(KSM_PARCOLL* collection);
 int KsmParameterRetSafety(KSM_PARCOLL* collection);
 int KsmParameterInitialPublicationInterval(KSM_PARCOLL* collection);
 int KsmParameterCollection(KSM_PARCOLL* data, int policy_id);
+int KsmParameterRfc5011(KSM_PARCOLL* collection);
 void KsmParameterCollectionCache(int enable);
 
 /* ksm_keyword */

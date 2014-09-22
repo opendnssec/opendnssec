@@ -207,6 +207,16 @@ int KsmParameterRetSafety(KSM_PARCOLL* collection)
     return collection->ret_safety;
 }
 
+int KsmParameterRfc5011(KSM_PARCOLL* collection)
+{
+    /* check the argument */
+    if (collection == NULL) {
+        MsgLog(KSM_INVARG, "NULL collection");
+        return -1;
+    }
+    return collection->rfc5011;
+}
+
 /*
  * Initial publication interval
  *

@@ -357,6 +357,7 @@ int KsmCollectionInit(KSM_PARCOLL* data)
     data->regdelay = KSM_PAR_REGDELAY;
     data->pub_safety = KSM_PAR_PUBSAFETY;
     data->ret_safety = KSM_PAR_RETSAFETY;
+    data->rfc5011 = KSM_PAR_RFC5011;
 
     return(0);
 }
@@ -465,6 +466,9 @@ int KsmParameterCollection(KSM_PARCOLL* data, int policy_id)
     if (status > 0) return status;
 
     status = KsmParameterValue(KSM_PAR_DSTTL_STRING, KSM_PAR_DSTTL_CAT, &(data->dsttl), policy_id, &param_id);
+    if (status > 0) return status;
+
+    status = KsmParameterValue(KSM_PAR_RFC5011_STRING, KSM_PAR_RFC5011_CAT, &(data->rfc5011), policy_id, &param_id);
     if (status > 0) return status;
 
 /* For now we only set our default KSK rollover scheme */

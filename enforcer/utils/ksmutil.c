@@ -3431,7 +3431,7 @@ cmd_import ()
 /*    if (data.value == 1) {
         status = KsmDnssecKeyCreateOnPolicy(policy_id, (int) keypair_id, keytype_id);
     } else {*/
-    status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, state_id, form_time, form_opt_time, &ignore);
+    status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, state_id, rfc5011_flag, form_time, form_opt_time, &ignore);
 
     if (status != 0) {
         printf("Error: couldn't allocate key to zone(s)\n");
@@ -9007,7 +9007,9 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
         }
         if(key_pair_id > 0) {
-            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, KSM_STATE_GENERATE, datetime, NULL, &ignore);
+            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type,
+                KSM_STATE_GENERATE, policy->ksk->rfc5011, datetime,
+                NULL, &ignore);
             /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
         } else {
             /* This shouldn't happen */
