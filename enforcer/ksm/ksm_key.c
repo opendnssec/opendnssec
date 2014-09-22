@@ -164,7 +164,7 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, int 
     DisAppendInt(&sql, keypair_id);
     DisAppendInt(&sql, keytype);
     DisAppendInt(&sql, state);
-    DisAppendInt(&sql, rfc5011);
+    DisAppendInt(&sql, rfc5011 && (keytype==KSM_TYPE_KSK));
     if (state != KSM_STATE_GENERATE) {
         DisAppendString(&sql, time);
     }
