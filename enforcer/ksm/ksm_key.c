@@ -150,7 +150,7 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, int 
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    StrAppend(&columns, "zone_id, keypair_id, keytype, state, rfc5011");
+    StrAppend(&columns, "zone_id, keypair_id, keytype, state, rfc5011, revoke");
     if (state != KSM_STATE_GENERATE) {
         StrAppend(&columns, ", ");
         StrAppend(&columns, KsmKeywordStateValueToName(state));
@@ -165,6 +165,7 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, int 
     DisAppendInt(&sql, keytype);
     DisAppendInt(&sql, state);
     DisAppendInt(&sql, rfc5011 && (keytype==KSM_TYPE_KSK));
+    DisAppendInt(&sql, 0); /* revoke */
     if (state != KSM_STATE_GENERATE) {
         DisAppendString(&sql, time);
     }
@@ -447,6 +448,9 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data)
 
     if (status == 0) {
         status = DbInt(row, DB_KEYDATA_RFC5011, &(data->rfc5011));
+    }
+    if (status == 0) {
+        status = DbInt(row, DB_KEYDATA_REVOKE, &(data->revoke));
     }
 
 	DbFreeRow(row);

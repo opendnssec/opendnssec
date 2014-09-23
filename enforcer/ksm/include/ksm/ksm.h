@@ -468,6 +468,9 @@ void KsmPurge(void);
 #define KSM_PAR_RFC5011                 0
 #define KSM_PAR_RFC5011_STRING          "rfc5011"
 #define KSM_PAR_RFC5011_CAT             "ksk"
+#define KSM_PAR_REVOKE                  0
+#define KSM_PAR_REVOKE_STRING           "revoke"
+#define KSM_PAR_REVOKE_CAT              "ksk"
 
 typedef struct {            /* Holds collection of parameters */
     int     clockskew;      /* Clock skew */
@@ -491,6 +494,7 @@ typedef struct {            /* Holds collection of parameters */
     int     dsttl;          /* TTL of the DS record */
     int     kskroll;        /* Rollover Scheme for the KSK */
     int     rfc5011;        /* 5011 enabled? */
+    int     revoke;         /* Key revoked? */
 } KSM_PARCOLL;
 
 int KsmCollectionInit(KSM_PARCOLL* data);
@@ -512,6 +516,7 @@ int KsmParameterRetSafety(KSM_PARCOLL* collection);
 int KsmParameterInitialPublicationInterval(KSM_PARCOLL* collection);
 int KsmParameterCollection(KSM_PARCOLL* data, int policy_id);
 int KsmParameterRfc5011(KSM_PARCOLL* collection);
+int KsmParameterRevoke(KSM_PARCOLL* collection);
 void KsmParameterCollectionCache(int enable);
 
 /* ksm_keyword */

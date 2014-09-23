@@ -53,7 +53,7 @@ extern "C" {
 
 /* Keydata_view fields */
 
-#define DB_KEYDATA_FIELDS       "id, state, generate, publish, ready, active, retire, dead, keytype, algorithm, location, zone_id, fixedDate, rfc5011"
+#define DB_KEYDATA_FIELDS       "id, state, generate, publish, ready, active, retire, dead, keytype, algorithm, location, zone_id, fixedDate, rfc5011, revoke"
 #define DB_KEYDATA_ID            0
 #define DB_KEYDATA_STATE         1
 #define DB_KEYDATA_GENERATE      2
@@ -68,8 +68,9 @@ extern "C" {
 #define DB_KEYDATA_ZONE_ID      11
 #define DB_KEYDATA_FIXED_DATE   12
 #define DB_KEYDATA_RFC5011      13
+#define DB_KEYDATA_REVOKE       14
 
-#define DB_KEYDATA_NFIELD       14
+#define DB_KEYDATA_NFIELD       15
 
 /* Parameter_view (and list) fields */
 
