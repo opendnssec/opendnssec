@@ -120,9 +120,10 @@ typedef struct {
      * the KEYDATA table.
      */
 
-    int     flags;		    /* States which fields are valid */
-    int     roll_scheme;	/* Which rollover scheme the key is under */
-    int     rfc5011;	/*  */
+    int     flags;	/* States which fields are valid */
+    int     roll_scheme;/* Which rollover scheme the key is under */
+    int     rfc5011;	/* Use 5011 style add/remove for this key */
+    int     revoke;	/* Publish key with the revoke bit */
 } KSM_KEYDATA;
 
 int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, int alg, const char* generate, DB_ID* id);
