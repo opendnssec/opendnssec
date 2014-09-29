@@ -128,7 +128,7 @@ ods_build_path(const char* file, const char* suffix, int dir, int no_slash)
     size_t len_suffix = 0;
     size_t len_total = 0;
     char* openf = NULL;
-    char* f = "root";
+    const char* f = "root";
 
     if (file) {
         if (ods_strcmp(file, ".")) {
