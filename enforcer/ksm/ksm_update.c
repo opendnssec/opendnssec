@@ -162,10 +162,11 @@ void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)
 
     case KSM_STATE_PUBLISH:
         KsmUpdatePublishKeyTime(data, collection, zone_id);
-        break;
+        /* Fall through for 5011 keys, they skip ready state */
+        if (!data->rfc5011) break;
 
     case KSM_STATE_READY:
-        KsmUpdateReadyKeyTime(data);
+        KsmUpdateReadyKeyTime(data, collection, zone_id);
         break;
 
     case KSM_STATE_ACTIVE:
@@ -285,10 +286,11 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zon
      *      Sp      = Publish Safety Margin
      *
      */
-        if (collection->kskroll == KSM_ROLL_DNSKEY) {
+        if (collection->rfc5011) {
+            deltat = Ipc + MAX(collection->kskttl, RFC5011_ADD_HOLDDOWN_TIME);
+        } else if (collection->kskroll == KSM_ROLL_DNSKEY) {
             deltat = Ipc;
-        }
-        else if (collection->kskroll == KSM_ROLL_DS) {
+        } else if (collection->kskroll == KSM_ROLL_DS) {
             deltat = collection->kskttl + collection->kskpropdelay + 
                 collection->pub_safety; /* Ipp */
         }
@@ -298,26 +300,28 @@ void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zon
     }
 
     (void) KsmUpdateKeyTime(data, "PUBLISH", "READY", deltat, zone_id);
-
-    return;
 }
 
-void KsmUpdateReadyKeyTime(KSM_KEYDATA* data)
+/*
+ * Normally keys in the ready state don't automatically move into the
+ * active state. They need to be explicitly activated. However in case
+ * of a 5011 rollover we can skip this step as there is no DS
+ * record involved.
+ */
+void KsmUpdateReadyKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)
 {
-    /*
-     * Keys in the ready state don't automatically move into the active state.
-     * They need to be explicitly activated.
-     */
-
+    (void)collection;
     /* check the argument */
-    if (data == NULL) {
+    if (!data) {
         MsgLog(KSM_INVARG, "NULL data");
-        return;
+    } else if (data->rfc5011) {
+        if (KsmUpdateKeyTime(data, "READY", "ACTIVE", 0, zone_id)) {
+            /* The error has been logged already */
+        }
+    } else {
+        DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'ready' - not updated\n",
+            (int) data->keypair_id);
     }
-    DbgOutput(DBG_M_UPDATE, "Key ID %d in state 'ready' - not updated\n",
-        (int) data->keypair_id);
-
-    return;
 }
 
 void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id)

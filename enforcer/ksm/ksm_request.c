@@ -307,13 +307,15 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
      * been in the zone long enough.
      */
 
-    if (keytype == KSM_TYPE_ZSK ||
-            collection.kskroll == KSM_ROLL_DNSKEY ||
-            first_pass == 1) {
+    if (keytype == KSM_TYPE_KSK && collection.rfc5011) {
+        status = KsmRequestChangeStatePublishActive(keytype, datetime, zone_id, policy_id, NewDS);
+        if (status != 0) return status;
+    }
+    else if (keytype == KSM_TYPE_ZSK ||
+        collection.kskroll == KSM_ROLL_DNSKEY || first_pass == 1)
+    {
         status = KsmRequestChangeStatePublishReady(keytype, datetime, zone_id, policy_id, NewDS);
-        if (status != 0) {
-            return status;
-        }
+        if (status != 0) return status;
     }
 
      /*
@@ -687,6 +689,12 @@ int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zon
 {
     return KsmRequestChangeState(keytype, datetime,
         KSM_STATE_PUBLISH, KSM_STATE_READY, zone_id, policy_id, -1, NewDS);
+}
+
+int KsmRequestChangeStatePublishActive(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS)
+{
+    return KsmRequestChangeState(keytype, datetime,
+        KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id, policy_id, -1, NewDS);
 }
 
 int KsmRequestChangeStateDSPublishDSReady(int keytype, const char* datetime, int zone_id, int policy_id)

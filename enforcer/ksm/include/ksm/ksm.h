@@ -67,6 +67,8 @@ int KsmRundown(void);
 #define KSM_ADAPTER_NAME_LENGTH  512    /* Includes trailing NULL */
 /* ksm_key */
 
+#define RFC5011_ADD_HOLDDOWN_TIME (30*24*3600) /* seconds to prepublish KSK for 5011 */
+
 /* Key time flag states */
 
 #define KEYDATA_M_ID            0x0001
@@ -543,7 +545,7 @@ int KsmUpdate(int policy_id, int zone_id);
 void KsmUpdateKey(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateGenerateKeyTime(KSM_KEYDATA* data);
 void KsmUpdatePublishKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
-void KsmUpdateReadyKeyTime(KSM_KEYDATA* data);
+void KsmUpdateReadyKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateActiveKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone_id);
 void KsmUpdateDeadKeyTime(KSM_KEYDATA* data);
@@ -566,6 +568,7 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
 int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id);
 int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id, int rollover_scheme, int* NewDS);
 int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS);
+int KsmRequestChangeStatePublishActive(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS);
 int KsmRequestChangeStateDSPublishDSReady(int keytype, const char* datetime, int zone_id, int policy_id);
 int KsmRequestChangeState(int keytype, const char* datetime, int src_state,
 	int dst_state, int zone_id, int policy_id, int rollover_scheme, int* NewDS);
