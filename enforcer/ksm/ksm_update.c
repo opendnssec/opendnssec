@@ -417,6 +417,8 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone
          */
         deltat = collection->dsttl + collection->kskpropdelay + 
             collection->ret_safety; /* Ipp */
+        if (data->rfc5011)
+            deltat += RFC5011_REM_HOLDDOWN_TIME;
     }
     else {
         return;

@@ -68,6 +68,7 @@ int KsmRundown(void);
 /* ksm_key */
 
 #define RFC5011_ADD_HOLDDOWN_TIME (30*24*3600) /* seconds to prepublish KSK for 5011 */
+#define RFC5011_REM_HOLDDOWN_TIME (30*24*3600) /* seconds to postpublish KSK for 5011 */
 
 /* Key time flag states */
 
