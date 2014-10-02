@@ -281,7 +281,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
         if (*NewDS == 1) {
             /* Standby Key has become active, retire the old key */
-            status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id);
+            status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id, collection.rfc5011);
             if (status != 0) {
                 StrFree(zone_name);
                 return status;
@@ -449,7 +449,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
             status = KsmRequestChangeStateReadyActive(keytype, datetime, zone_id, policy_id, NewDS);
             if (status != 0) return status;
             /* Step 9-KSK. ... and retire old active keys */
-            status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id);
+            status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id, 1);
             if (status != 0) {
                 StrFree(zone_name);
                 return status;
@@ -480,7 +480,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
                 }
 
                 /* Step 9. ... and retire old active keys */
-                status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id);
+                status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id, 0);
                 if (status != 0) {
                     StrFree(zone_name);
                     return status;
@@ -697,52 +697,52 @@ int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zon
 int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_PUBLISH, KSM_STATE_READY, zone_id, policy_id, -1, NewDS);
+        KSM_STATE_PUBLISH, KSM_STATE_READY, zone_id, policy_id, -1, 0, NewDS);
 }
 
 int KsmRequestChangeStatePublishActive(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id, policy_id, -1, NewDS);
+        KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id, policy_id, -1, 0, NewDS);
 }
 
 int KsmRequestChangeStateReadyActive(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_READY, KSM_STATE_ACTIVE, zone_id, policy_id, -1, NewDS);
+        KSM_STATE_READY, KSM_STATE_ACTIVE, zone_id, policy_id, -1, 0, NewDS);
 }
 
 int KsmRequestChangeStateDSPublishDSReady(int keytype, const char* datetime, int zone_id, int policy_id)
 {
     int* dummy = NULL;
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, zone_id, policy_id, -1, dummy);
+        KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, zone_id, policy_id, -1, 0, dummy);
 }
 
 int KsmRequestChangeStateDSReadyKeyPublish(const char* datetime, int zone_id, int policy_id)
 {
     int* dummy = NULL;
     return KsmRequestChangeState(KSM_TYPE_KSK, datetime,
-        KSM_STATE_DSREADY, KSM_STATE_KEYPUBLISH, zone_id, policy_id, -1, dummy);
+        KSM_STATE_DSREADY, KSM_STATE_KEYPUBLISH, zone_id, policy_id, -1, 0, dummy);
 }
 
 int KsmRequestChangeStateKeyPublishActive(const char* datetime, int zone_id, int policy_id, int* NewDS)
 {
     return KsmRequestChangeState(KSM_TYPE_KSK, datetime,
-        KSM_STATE_KEYPUBLISH, KSM_STATE_ACTIVE, zone_id, policy_id, -1, NewDS);
+        KSM_STATE_KEYPUBLISH, KSM_STATE_ACTIVE, zone_id, policy_id, -1, 0, NewDS);
 }
 
-int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id)
+int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id, int revoke)
 {
     int* dummy = NULL;
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_ACTIVE, KSM_STATE_RETIRE, zone_id, policy_id, -1, dummy);
+        KSM_STATE_ACTIVE, KSM_STATE_RETIRE, zone_id, policy_id, -1, revoke, dummy);
 }
 
 int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id, int rollover_scheme, int* NewDS)
 {
     return KsmRequestChangeState(keytype, datetime,
-        KSM_STATE_RETIRE, KSM_STATE_DEAD, zone_id, policy_id, rollover_scheme, NewDS);
+        KSM_STATE_RETIRE, KSM_STATE_DEAD, zone_id, policy_id, rollover_scheme, 0, NewDS);
 }
 
 
@@ -786,7 +786,7 @@ int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_
 
 int KsmRequestChangeState(int keytype, const char* datetime,
     int src_state, int dst_state, int zone_id, int policy_id,
-    int rollover_scheme, int* NewDS)
+    int rollover_scheme, int revoke, int* NewDS)
 {
     int     where = 0;		/* for the SELECT statement */
     char*   dst_col = NULL; /* Destination column */
@@ -920,6 +920,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 
     sql = DusInit("dnsseckeys");
     DusSetInt(&sql, "STATE", dst_state, set++);
+    if (revoke) DusSetInt(&sql, "REVOKE", 1, set++);
     DusSetString(&sql, dst_col, datetime, set++);
 
     DusConditionKeyword(&sql, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);
