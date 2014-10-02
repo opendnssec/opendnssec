@@ -444,9 +444,17 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
             (void) MsgLog(KME_MAN_ROLL_REQUIRED, (keytype == KSM_TYPE_KSK ? "KSK" : "ZSK"), zone_name);
         }
         else if (keytype == KSM_TYPE_KSK && collection.rfc5011) {
+            /* Step 8-KSK. Make a key active. */
             /* If we do 5011 we will not wait for ksm-util cmd */
             status = KsmRequestChangeStateReadyActive(keytype, datetime, zone_id, policy_id, NewDS);
             if (status != 0) return status;
+            /* Step 9-KSK. ... and retire old active keys */
+            status = KsmRequestChangeStateActiveRetire(keytype, datetime, zone_id, policy_id);
+            if (status != 0) {
+                StrFree(zone_name);
+                return status;
+            }
+            (void) MsgLog(KME_ROLL_ZONE, "KSK", zone_name);
         }
         /* TODO I think that this is no longer true... */
         /* Check where we need this to happen */
