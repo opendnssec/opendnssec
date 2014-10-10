@@ -568,12 +568,13 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 int KsmRequestSetActiveExpectedRetire(int keytype, const char* datetime, int zone_id);
 int KsmRequestChangeStateActiveRetire(int keytype, const char* datetime, int zone_id, int policy_id, int revoke);
 int KsmRequestChangeStateRetireDead(int keytype, const char* datetime, int zone_id, int policy_id, int rollover_scheme, int* NewDS);
-int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS);
+int KsmRequestChangeStatePublishReady(int keytype, const char* datetime, int zone_id, int policy_id, int rfc5011, int* NewDS);
 int KsmRequestChangeStatePublishActive(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS);
 int KsmRequestChangeStateReadyActive(int keytype, const char* datetime, int zone_id, int policy_id, int* NewDS);
 int KsmRequestChangeStateDSPublishDSReady(int keytype, const char* datetime, int zone_id, int policy_id);
 int KsmRequestChangeState(int keytype, const char* datetime, int src_state,
-	int dst_state, int zone_id, int policy_id, int rollover_scheme, int revoke, int* NewDS);
+	int dst_state, int zone_id, int policy_id, int rollover_scheme,
+	int rfc5011, int revoke, int* NewDS);
 int KsmRequestChangeStateGeneratePublish(int keytype, const char* datetime,
 	int count, int zone_id);
 int KsmRequestChangeStateGenerateDSSub(int keytype, const char* datetime,
