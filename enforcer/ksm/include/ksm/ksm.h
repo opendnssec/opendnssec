@@ -362,6 +362,8 @@ void KsmPurge(void);
 #define KSM_TYPE_ZSK                256
 #define KSM_TYPE_ZSK_STRING         "zsk"
 
+#define KSM_FLAG_REVOKE             0x80
+
 #define KSM_STATE_GENERATE          1
 #define KSM_STATE_GENERATE_STRING   "generate"
 #define KSM_STATE_PUBLISH           2

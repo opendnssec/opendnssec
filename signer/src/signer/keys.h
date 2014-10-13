@@ -61,6 +61,8 @@ struct key_struct {
     int publish;
     int ksk;
     int zsk;
+    int rfc5011;
+    int revoke;
 };
 
 /**
@@ -109,11 +111,14 @@ key_type* keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey);
  * \param[in] publish if true, publish key as a DNSKEY
  * \param[in] ksk if true, sign DNSKEY RRset with this key
  * \param[in] zsk if true, sign all but DNSKEY RRset with this key
+ * \param[in] rfc5011 if true, key will use 5011 style revocation
+ * \param[in] revoke if true, key will be published with revoke flag
  * \return key_type* key
  *
  */
 key_type* keylist_push(keylist_type* kl, const char* locator,
-    uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk);
+    uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk,
+    int rfc5011, int revoke);
 
 /**
  * Print key list.

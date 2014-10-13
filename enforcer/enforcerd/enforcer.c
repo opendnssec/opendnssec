@@ -1185,9 +1185,13 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 int commKeyConfig(void* context, KSM_KEYDATA* key_data)
 {
     FILE *file = (FILE *)context;
+    int flags = key_data->keytype;
+
+    if (key_data->revoke)
+        flags |= KSM_FLAG_REVOKE;
 
     fprintf(file, "\t\t\t<Key>\n");
-    fprintf(file, "\t\t\t\t<Flags>%d</Flags>\n", key_data->keytype); 
+    fprintf(file, "\t\t\t\t<Flags>%d</Flags>\n", flags);
     fprintf(file, "\t\t\t\t<Algorithm>%d</Algorithm>\n", key_data->algorithm); 
     fprintf(file, "\t\t\t\t<Locator>%s</Locator>\n", key_data->location);
 
