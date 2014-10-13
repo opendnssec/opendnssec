@@ -117,7 +117,7 @@ keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey)
 key_type*
 keylist_push(keylist_type* kl, const char* locator,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk,
-    int rfc5011, int revoke)
+    int rfc5011)
 {
     key_type* keys_old = NULL;
     signconf_type* sc = NULL;
@@ -146,7 +146,6 @@ keylist_push(keylist_type* kl, const char* locator,
     kl->keys[kl->count -1].ksk = ksk;
     kl->keys[kl->count -1].zsk = zsk;
     kl->keys[kl->count -1].rfc5011 = rfc5011;
-    kl->keys[kl->count -1].revoke = revoke;
     kl->keys[kl->count -1].dnskey = NULL;
     kl->keys[kl->count -1].hsmkey = NULL;
     kl->keys[kl->count -1].params = NULL;
@@ -314,7 +313,6 @@ key_recover2(FILE* fd, keylist_type* kl)
     int ksk = 0;
     int zsk = 0;
     int rfc5011 = 0;
-    int revoke = 0;
 
     ods_log_assert(fd);
 
@@ -331,9 +329,7 @@ key_recover2(FILE* fd, keylist_type* kl)
         !backup_read_check_str(fd, "zsk") ||
         !backup_read_int(fd, &zsk) ||
         !backup_read_check_str(fd, "rfc5011") ||
-        !backup_read_int(fd, &rfc5011) ||
-        !backup_read_check_str(fd, "revoke") ||
-        !backup_read_int(fd, &revoke)) {
+        !backup_read_int(fd, &rfc5011)) {
         if (locator) {
            free((void*)locator);
            locator = NULL;
@@ -342,7 +338,7 @@ key_recover2(FILE* fd, keylist_type* kl)
     }
     /* key ok */
     return keylist_push(kl, locator, algorithm, flags, publish, ksk,
-        zsk, rfc5011, revoke);
+        zsk, rfc5011);
 }
 
 
