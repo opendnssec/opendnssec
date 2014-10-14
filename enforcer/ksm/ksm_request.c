@@ -413,11 +413,12 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
 
             if (first_pass == 1) {
                 /* We have to wait until the KSK is ready before we can
-                 * publish the DS record */
-                if (keytype == KSM_TYPE_KSK) {
-                    /* status = KsmRequestChangeStateN(keytype, datetime, 1,
-                                    KSM_STATE_READY, KSM_STATE_ACTIVE, zone_id);*/
-                } else {
+                 * publish the DS record. OTOH when doing 5011 we are
+                 * done after publishing. */
+                if (keytype == KSM_TYPE_KSK && collection.rfc5011) {
+                    status = KsmRequestChangeStateN(keytype, datetime, 1,
+                        KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
+                } else if (keytype == KSM_TYPE_ZSK) {
                     (void) MsgLog(KME_PROM_PUB, "ZSK");
                     status = KsmRequestChangeStateN(keytype, datetime, 1,
                                     KSM_STATE_PUBLISH, KSM_STATE_ACTIVE, zone_id);
