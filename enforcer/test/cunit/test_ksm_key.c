@@ -168,7 +168,7 @@ static void TestKsmDnssecKeyCreate(void)
 
     /* Now create a row in dnsseckeys for the above */
 
-    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, KSM_STATE_GENERATE, generate, NULL, &dnsseckey_id);
+    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, KSM_STATE_GENERATE, 0, generate, NULL, &dnsseckey_id);
 
 	CU_ASSERT_EQUAL(status, 0);
 
@@ -291,7 +291,7 @@ static void TestKsmKeyGetUnallocated(void)
     CU_ASSERT_EQUAL(status, 0);
     CU_ASSERT_EQUAL(keypair_id, 3); 
 
-    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, KSM_STATE_GENERATE, "now", NULL, &dnsseckey_id);
+    status = KsmDnssecKeyCreate(zone_id, keypair_id, KSM_TYPE_ZSK, KSM_STATE_GENERATE, 0, "now", NULL, &dnsseckey_id);
     CU_ASSERT_EQUAL(status, 0);
 
     status = KsmKeyGetUnallocated(policy_id, sm, bits, algorithm, zone_id, 1, &keypair_id);
