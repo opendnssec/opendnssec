@@ -643,7 +643,7 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
                 config->pidfile_set = 1;
                 break;
             case 'u':
-                break; /* disable this feature */
+#if 0 /* disable this feature */
                 config->username = optarg;
                 /* Parse the username into uid and gid */
                 config->gid = getgid();
@@ -680,7 +680,8 @@ cmdlParse(DAEMONCONFIG* config, int *argc, char **argv)
                         }
                         endpwent();
                     }
-                }   
+                }
+#endif
                 break;
             case 'p':
                 config->policy = optarg;

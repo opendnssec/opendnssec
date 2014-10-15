@@ -760,6 +760,10 @@ addns_read(void* zone)
     xfrfile = ods_build_path(z->name, ".xfrd", 0, 1);
     file = ods_build_path(z->name, ".xfrd.tmp", 0, 1);
     if (!xfrfile || !file) {
+        free(xfrfile);
+        free(file);
+        lock_basic_unlock(&z->xfrd->serial_lock);
+        lock_basic_unlock(&z->xfrd->rw_lock);
         ods_log_error("[%s] unable to build paths to xfrd files", adapter_str);
         return ODS_STATUS_MALLOC_ERR;
     }
@@ -888,6 +892,8 @@ addns_write(void* zone)
     }
     free((void*) axfrfile);
     free((void*) atmpfile);
+    axfrfile = NULL;
+    atmpfile = NULL;
 
     if (z->db->is_initialized) {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);

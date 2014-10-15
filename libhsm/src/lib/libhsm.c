@@ -252,12 +252,11 @@ hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *action)
 static void
 hsm_pkcs11_unload_functions(void *handle)
 {
-    int result;
     if (handle) {
 #if defined(HAVE_LOADLIBRARY)
         /* no idea */
 #elif defined(HAVE_DLOPEN)
-        result = dlclose(handle);
+        (void) dlclose(handle);
 #endif
     }
 }
@@ -990,7 +989,7 @@ hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
                                          &objectCount);
     if (hsm_pkcs11_check_error(ctx, rv, "Find object")) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
-        hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
+        (void)hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
         return 0;
     }
 
@@ -1151,7 +1150,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                                size_t *count,
                                int store)
 {
-    hsm_key_t **keys = NULL;
+    hsm_key_t **keys = NULL, **keys_prev;
     hsm_key_t *key;
     CK_RV rv;
     CK_OBJECT_CLASS key_class = CKO_PRIVATE_KEY;
@@ -1164,7 +1163,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
     CK_ULONG max_object_count = 100;
     CK_ULONG i, j;
     CK_OBJECT_HANDLE object[max_object_count];
-    CK_OBJECT_HANDLE *key_handles = NULL;
+    CK_OBJECT_HANDLE *key_handles = NULL, *key_handles_prev;
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 1);
@@ -1182,13 +1181,18 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
             free(key_handles);
             *count = 0;
             rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
-            hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
+            (void)hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
             return NULL;
         }
 
         total_count += objectCount;
         if (objectCount > 0 && store) {
-            key_handles = realloc(key_handles, total_count * sizeof(CK_OBJECT_HANDLE));
+            key_handles_prev = key_handles;
+            if (!(key_handles = realloc(key_handles_prev, total_count * sizeof(CK_OBJECT_HANDLE)))) {
+                free(key_handles_prev);
+                *count = 0;
+                return NULL;
+            }
             for (i = 0; i < objectCount; i++) {
                 key_handles[j] = object[i];
                 j++;
@@ -1204,7 +1208,13 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
     }
 
     if (store) {
-        keys = realloc(keys, total_count * sizeof(hsm_key_t *));
+        keys_prev = keys;
+        if (!(keys = realloc(keys_prev, total_count * sizeof(hsm_key_t *)))) {
+            free(key_handles);
+            free(keys_prev);
+            *count = 0;
+            return NULL;
+        }
         for (i = 0; i < total_count; i++) {
             key = hsm_key_new_privkey_object_handle(ctx, session,
                                                     key_handles[i]);
@@ -2230,7 +2240,7 @@ hsm_sign_params_free(hsm_sign_params_t *params)
 hsm_key_t **
 hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
 {
-    hsm_key_t **keys = NULL;
+    hsm_key_t **keys = NULL, **keys_prev;
     size_t key_count = 0;
     size_t cur_key_count;
     hsm_key_t **session_keys;
@@ -2243,8 +2253,14 @@ hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
     for (i = 0; i < ctx->session_count; i++) {
         session_keys = hsm_list_keys_session(ctx, ctx->session[i],
                                              &cur_key_count);
-        keys = realloc(keys,
+        keys_prev = keys;
+        keys = realloc(keys_prev,
                        (key_count + cur_key_count) * sizeof(hsm_key_t *));
+        if (!keys) {
+            free(keys_prev);
+            return NULL;
+        }
+        
         for (j = 0; j < cur_key_count; j++) {
             keys[key_count + j] = session_keys[j];
         }
@@ -2325,7 +2341,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
                      const char *repository,
                      unsigned long keysize)
 {
-    hsm_key_t *new_key;
+    hsm_key_t *new_key, *key;
     hsm_session_t *session;
     /* ids we create are 16 bytes of data */
     unsigned char id[16];
@@ -2347,9 +2363,11 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     if (!session) return NULL;
 
     /* check whether this key doesn't happen to exist already */
+    key = NULL;
     do {
+        free(key);
         hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    } while ((key = hsm_find_key_by_id_bin(ctx, id, 16)));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2415,7 +2433,7 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
                      unsigned long keysize)
 {
     CK_RV rv;
-    hsm_key_t *new_key;
+    hsm_key_t *new_key, *key;
     hsm_session_t *session;
     CK_OBJECT_HANDLE domainPar, publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
@@ -2475,9 +2493,11 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
 
     /* check whether this key doesn't happen to exist already */
 
+    key = NULL;
     do {
+        hsm_key_free(key);
         hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    } while ((key = hsm_find_key_by_id_bin(ctx, id, 16)));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2528,7 +2548,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
                      const char *repository)
 {
     CK_RV rv;
-    hsm_key_t *new_key;
+    hsm_key_t *new_key, *key;
     hsm_session_t *session;
     CK_OBJECT_HANDLE publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
@@ -2578,9 +2598,11 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
 
     /* check whether this key doesn't happen to exist already */
 
+    key = NULL;
     do {
+        hsm_key_free(key);
         hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    } while ((key = hsm_find_key_by_id_bin(ctx, id, 16)));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -3188,7 +3210,7 @@ hsm_get_error(hsm_ctx_t *gctx)
         snprintf(message, HSM_ERROR_MSGSIZE,
             "%s: %s",
             ctx->error_action ? ctx->error_action : "unknown()",
-            ctx->error_message ? ctx->error_message : "unknown error");
+            ctx->error_message[0] ? ctx->error_message : "unknown error");
         return message;
     };
 

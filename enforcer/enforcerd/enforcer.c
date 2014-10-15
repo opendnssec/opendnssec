@@ -1934,6 +1934,7 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd, int DS
 			bytes_written = fprintf(fp, "%s", ds_buffer);
 			if (bytes_written < 0) {
 				log_msg(NULL, LOG_ERR, "Failed to write to %s: %s", DSSubmitCmd, strerror(errno));
+				(void)pclose(fp);
 				return -1;
 			}
 
@@ -1970,6 +1971,7 @@ void check_hsm_connection(hsm_ctx_t **ctx, DAEMONCONFIG *config)
 
 		if (*ctx) {
 			hsm_destroy_context(*ctx);
+			*ctx = NULL;
 		}
 
 		result = hsm_close();
