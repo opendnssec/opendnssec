@@ -1029,7 +1029,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
 
     /* If we had no trailing letter then it is an implicit "S"
      * But only if is_time is not set.*/
-    if (temp && !is_time) return 2;
+    if (temp && is_time) return 2;
     temp_interval += temp;
     
     if (is_neg) temp_interval *= -1;
