@@ -1013,7 +1013,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
                 if (!temp) {
                     char *endptr;
                     temp = strtol(ptr, &endptr, 10);
-                    if (temp == LONG_MIN || temp == LONG_MAX) 
+                    if (temp <= INT_MIN || temp >= INT_MAX)
                         return 3;
                     got_temp = 1;
                     ptr = endptr-1;
