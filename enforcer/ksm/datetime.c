@@ -936,20 +936,19 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
 
     if (!text || !interval || !*text) return 4;
     length = strlen(text);
-    if (length <= 2) return 2;
+    if (length < 2) return 2;
 
     if (*ptr == '-') {
         is_neg = 1;
         ptr++;
     }
-    if (*ptr != 'P') return 2;
-    ptr++;
+    if (*ptr == 'P') ptr++;
     
     end = text + length;
     while (ptr < end) {
         switch (*ptr) {
             case 'S':
-                if (!got_temp || !is_time) return 2;
+                if (!got_temp) return 2;
                 temp_interval += temp;
                 temp = 0;
                 got_temp = 0;
@@ -968,28 +967,28 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
                 break;
 
             case 'H':
-                if (!got_temp || !is_time) return 2;
+                if (!got_temp) return 2;
                 temp_interval += 60 * 60 * temp;
                 temp = 0;
                 got_temp = 0;
                 break;
 
             case 'D':
-                if (!got_temp || is_time) return 2;
+                if (!got_temp) return 2;
                 temp_interval += 24 * 60 * 60 * temp;
                 temp = 0;
                 got_temp = 0;
                 break;
 
             case 'W':
-                if (!got_temp || is_time) return 2;
+                if (!got_temp) return 2;
                 temp_interval += 7 * 24 * 60 * 60 * temp;
                 temp = 0;
                 got_temp = 0;
                 break;
 
             case 'Y':
-                if (!got_temp || is_time) return 2;
+                if (!got_temp) return 2;
                 temp_interval += 365 * 24 * 60 * 60 * temp;
                 temp = 0;
                 warning = 1; /* year is an ambiguous period */
@@ -1013,7 +1012,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
                 if (!temp) {
                     char *endptr;
                     temp = strtol(ptr, &endptr, 10);
-                    if (temp == LONG_MIN || temp == LONG_MAX) 
+                    if (temp <= INT_MIN || temp >= INT_MAX)
                         return 3;
                     got_temp = 1;
                     ptr = endptr-1;
@@ -1029,7 +1028,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
 
     /* If we had no trailing letter then it is an implicit "S"
      * But only if is_time is not set.*/
-    if (temp && !is_time) return 2;
+    if (temp && is_time) return 2;
     temp_interval += temp;
     
     if (is_neg) temp_interval *= -1;
