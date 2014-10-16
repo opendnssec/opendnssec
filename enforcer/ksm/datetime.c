@@ -936,7 +936,7 @@ int DtXMLIntervalSeconds(const char* text, int* interval)
 
     if (!text || !interval || !*text) return 4;
     length = strlen(text);
-    if (length <= 2) return 2;
+    if (length < 2) return 2;
 
     if (*ptr == '-') {
         is_neg = 1;
