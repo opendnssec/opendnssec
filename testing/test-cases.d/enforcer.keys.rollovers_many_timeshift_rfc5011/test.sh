@@ -39,70 +39,60 @@ ods_start_enforcer_timeshift &&
 syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
 syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:00" &&
 
-# Check that we have 1 KSK published
+# Check that we have 1 KSK active
 log_this ods-ksmutil-key-list0 ods-ksmutil key list --keytype ksk &&
-log_grep ods-ksmutil-key-list0 stdout 'ods1                            KSK           publish   2010-01-31 12:03:40' &&
-
-
-## Next event is KSK for ods1 -> active (should be 2011-01-31 12:03:40)
-##################  STEP 1: Time =  2010-01-31 12:03:40 ###########################
-export ENFORCER_TIMESHIFT='31-01-2010 12:03:40' &&
-ods_start_enforcer_timeshift &&
-
-# Check that KSK in active
-log_this ods-ksmutil-key-list1 ods-ksmutil key list &&
-log_grep ods-ksmutil-key-list1 stdout 'ods1                            KSK           active    2011-01-31 12:03:40' &&
+log_grep ods-ksmutil-key-list0 stdout 'ods1                            KSK           active    2011-01-01 12:00:00' &&
 
 ## Next event is KSK(n+1) published (should be between 2011-01-31 12:00:00-interval(in conf.xml) and 2011-01-31 12:03:40 )
-##################  STEP 2: Time = 2011-01-31 12:00:00 ###########################
+##################  STEP 1: Time = 2011-01-31 12:00:00 ###########################
 export ENFORCER_TIMESHIFT='31-01-2011 12:00:00' &&
 ods_start_enforcer_timeshift &&
 
 # Check that new KSK published
-log_this ods-ksmutil-key-list2 ods-ksmutil key list &&
-log_grep ods-ksmutil-key-list2 stdout 'ods1                            KSK           active    2011-01-31 12:03:40' &&
-log_grep ods-ksmutil-key-list2 stdout 'ods1                            KSK           publish   2011-03-02 12:03:40' &&
+log_this ods-ksmutil-key-list1 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list1 stdout 'ods1                            KSK           active    2011-01-01 12:00:00' &&
+log_grep ods-ksmutil-key-list1 stdout 'ods1                            KSK           publish   2011-03-02 12:03:40' &&
 
 ## Next event is we set time = 2011-01-31 12:03:40, the KSK will still in active, wait until KSK(n+1) to active)
-##################  STEP 3: Time = 2011-01-31 12:00:00 ###########################
+##################  STEP 2: Time = 2011-01-31 12:00:00 ###########################
 export ENFORCER_TIMESHIFT='31-01-2011 12:03:40' &&
 ods_start_enforcer_timeshift &&
 
 # Check that KSK state not changed 
-log_this ods-ksmutil-key-list3 ods-ksmutil key list &&
-log_grep ods-ksmutil-key-list3 stdout 'ods1                            KSK           active    2011-01-31 12:03:40' &&
-log_grep ods-ksmutil-key-list3 stdout 'ods1                            KSK           publish   2011-03-02 12:03:40' &&
+log_this ods-ksmutil-key-list2 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list2 stdout 'ods1                            KSK           active    2011-01-01 12:00:00' &&
+log_grep ods-ksmutil-key-list2 stdout 'ods1                            KSK           publish   2011-03-02 12:03:40' &&
 
 
 ## Next event is we set time = 2011-03-02 12:03:40, KSK(n+1) change to active KSK(n) change to retire)
-##################  STEP 4: Time = 2011-03-02 12:03:40 ###########################
+##################  STEP 3: Time = 2011-03-02 12:03:40 ###########################
 export ENFORCER_TIMESHIFT='02-03-2011 12:03:40' &&
 ods_start_enforcer_timeshift &&
 
 # Check that new KSK change to active, old KSK change to retire
-log_this ods-ksmutil-key-list4 ods-ksmutil key list &&
-log_grep ods-ksmutil-key-list4 stdout 'ods1                            KSK           retire    2011-04-01 12:08:50' &&
-log_grep ods-ksmutil-key-list4 stdout 'ods1                            KSK           active    2012-03-01 12:03:40' &&
+log_this ods-ksmutil-key-list3 ods-ksmutil key list &&
+log_grep ods-ksmutil-key-list3 stdout 'ods1                            KSK           retire    2011-04-01 12:08:50' &&
+log_grep ods-ksmutil-key-list3 stdout 'ods1                            KSK           active    2012-03-01 12:03:40' &&
 
 ## Next event is old KSK change to dead)
-##################  STEP 5: Time = 2011-04-01 12:08:50 ###########################
+##################  STEP 4: Time = 2011-04-01 12:08:50 ###########################
 export ENFORCER_TIMESHIFT='01-04-2011 12:08:50' &&
 ods_start_enforcer_timeshift &&
 
 # Check that old KSK change to dead
-log_this ods-ksmutil-key-list5 ods-ksmutil key list --all &&
-log_grep ods-ksmutil-key-list5 stdout 'ods1                            KSK           dead      to be deleted' &&
-log_grep ods-ksmutil-key-list5 stdout 'ods1                            KSK           active    2012-03-01 12:03:40' &&
+log_this ods-ksmutil-key-list4 ods-ksmutil key list --all &&
+log_grep ods-ksmutil-key-list4 stdout 'ods1                            KSK           dead      to be deleted' &&
+log_grep ods-ksmutil-key-list4 stdout 'ods1                            KSK           active    2012-03-01 12:03:40' &&
 
 ## Next event is old KSK deleted)
-##################  STEP 6: Time = 2011-04-01 12:08:50 ###########################
+##################  STEP 5: Time = 2011-04-01 12:08:50 ###########################
 export ENFORCER_TIMESHIFT='01-04-2011 15:08:50' &&
 ods_start_enforcer_timeshift &&
 
 # Check that old KSK deleted
-log_this ods-ksmutil-key-list6 ods-ksmutil key list --all &&
-! log_grep ods-ksmutil-key-list6 stdout 'ods1                            KSK           dead      to be deleted' &&
-log_grep ods-ksmutil-key-list6 stdout 'ods1                            KSK           active    2012-03-01 12:03:40' &&
+log_this ods-ksmutil-key-list5 ods-ksmutil key list --all &&
+! log_grep ods-ksmutil-key-list5 stdout 'ods1                            KSK           dead      to be deleted' &&
+log_grep ods-ksmutil-key-list5 stdout 'ods1                            KSK           active    2012-03-01 12:03:40' &&
 
 rm -rf base &&
 
