@@ -178,6 +178,9 @@ key_print(FILE* fd, key_type* key)
     if (key->publish) {
         fprintf(fd, "\t\t\t\t<Publish />\n");
     }
+    if (key->rfc5011) {
+        fprintf(fd, "\t\t\t\t<RFC5011 />\n");
+    }
     fprintf(fd, "\t\t\t</Key>\n");
     fprintf(fd, "\n");
     return;
@@ -195,8 +198,8 @@ key_log(key_type* key, const char* name)
         return;
     }
     ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
-        "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
-        key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
+        "KSK[%i] ZSK[%i] PUBLISH[%i] RFC5011[%i]", key_str, name?name:"(null)", key->locator,
+        key->flags, key->algorithm, key->ksk, key->zsk, key->publish, key->rfc5011);
     return;
 }
 
@@ -287,8 +290,8 @@ key_backup(FILE* fd, key_type* key, const char* version)
         return;
     }
     fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i "
-        "zsk %i\n", key->locator, (unsigned) key->algorithm,
-        (unsigned) key->flags, key->publish, key->ksk, key->zsk);
+        "zsk %i rfc5011 %i\n", key->locator, (unsigned) key->algorithm,
+        (unsigned) key->flags, key->publish, key->ksk, key->zsk, key->rfc5011);
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
         if (key->dnskey) {
             (void)util_rr_print(fd, key->dnskey);
