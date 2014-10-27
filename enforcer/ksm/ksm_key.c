@@ -138,7 +138,7 @@ int KsmKeyPairCreate(int policy_id, const char* HSMKeyID, int smID, int size, in
  *          Status return.  0=> Success, non-zero => error.
 -*/
 
-int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, const char* time, const char* retTime, DB_ID* id)
+int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, int rfc5011, const char* time, const char* retTime, DB_ID* id)
 {
 	unsigned long rowid;			/* ID of last inserted row */
     int         status = 0;         /* Status return */
@@ -150,7 +150,7 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, cons
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    StrAppend(&columns, "zone_id, keypair_id, keytype, state");
+    StrAppend(&columns, "zone_id, keypair_id, keytype, state, rfc5011, revoke");
     if (state != KSM_STATE_GENERATE) {
         StrAppend(&columns, ", ");
         StrAppend(&columns, KsmKeywordStateValueToName(state));
@@ -164,6 +164,8 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, cons
     DisAppendInt(&sql, keypair_id);
     DisAppendInt(&sql, keytype);
     DisAppendInt(&sql, state);
+    DisAppendInt(&sql, rfc5011 && (keytype==KSM_TYPE_KSK));
+    DisAppendInt(&sql, 0); /* revoke */
     if (state != KSM_STATE_GENERATE) {
         DisAppendString(&sql, time);
     }
@@ -444,6 +446,13 @@ int KsmKey(DB_RESULT result, KSM_KEYDATA* data)
         status = DbInt(row, DB_KEYDATA_FIXED_DATE, &(data->fixedDate));
 	}
 
+    if (status == 0) {
+        status = DbInt(row, DB_KEYDATA_RFC5011, &(data->rfc5011));
+    }
+    if (status == 0) {
+        status = DbInt(row, DB_KEYDATA_REVOKE, &(data->revoke));
+    }
+
 	DbFreeRow(row);
 
     return status;
@@ -600,6 +609,8 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
         else if (rollover_scheme == KSM_ROLL_DS) {
             *count = ((interval + coll.pub_safety + coll.kskpropdelay + coll.dsttl)/coll.ksklife) + coll.standbyksks + 1;
         }
+        /* YBS: I don't think 5011 affects the number of keys needed. It
+         * does not affect lifetime, just the time the keys are published.*/
 /*        else if (rollover_scheme == KSM_ROLL_RRSET) {
             temp = MAX((propdelay + kskttl), (kskpropdelay + dsttl));
             if (RFC5011) {

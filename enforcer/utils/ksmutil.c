@@ -125,6 +125,7 @@ static int td_flag = 0;
 static int force_flag = 0;
 static int hsm_flag = 1;
 static int check_repository_flag = 0;
+static int rfc5011_flag = 0;
 
 static int restart_enforcerd(void);
 
@@ -3306,7 +3307,7 @@ cmd_import ()
         db_disconnect(lock_fd);
         return(1);
     }
-        
+
     /* Check the algorithm */
     if (StrIsDigits(o_algo)) {
         /* Accept it as-is; The HSM will tell us if the number is not valid */
@@ -3433,7 +3434,7 @@ cmd_import ()
 /*    if (data.value == 1) {
         status = KsmDnssecKeyCreateOnPolicy(policy_id, (int) keypair_id, keytype_id);
     } else {*/
-    status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, state_id, form_time, form_opt_time, &ignore);
+    status = KsmDnssecKeyCreate(zone_id, (int) keypair_id, keytype_id, state_id, rfc5011_flag, form_time, form_opt_time, &ignore);
 
     if (status != 0) {
         printf("Error: couldn't allocate key to zone(s)\n");
@@ -3826,6 +3827,7 @@ main (int argc, char *argv[])
         {"all",     no_argument,       0, 'a'},
         {"auto-accept", no_argument,   0, 'A'},
         {"bits",    required_argument, 0, 'b'},
+        {"rfc5011", no_argument,       0, '5'},
         {"config",  required_argument, 0, 'c'},
         {"check-repository", no_argument,     0, 'C'},
         {"ds",      no_argument,       0, 'd'},
@@ -3859,7 +3861,7 @@ main (int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((ch = getopt_long(argc, argv, "aAb:Cc:de:fFg:hi:j:k:mMln:o:p:q:r:s:t:vVw:x:y:z:Z:", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "aAb:Cc:de:fFg:hi:j:k:mMln:o:p:q:r:s:t:vVw:x:y:z:Z:5", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'a':
                 all_flag = 1;
@@ -3869,6 +3871,9 @@ main (int argc, char *argv[])
                 break;
             case 'b':
                 o_size = StrStrdup(optarg);
+                break;
+            case '5':
+                rfc5011_flag = 1;
                 break;
             case 'c':
                 config = StrStrdup(optarg);
@@ -8990,7 +8995,9 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
         }
         if(key_pair_id > 0) {
-            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, KSM_STATE_GENERATE, datetime, NULL, &ignore);
+            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type,
+                KSM_STATE_GENERATE, policy->ksk->rfc5011, datetime,
+                NULL, &ignore);
             /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
         } else {
             /* This shouldn't happen */

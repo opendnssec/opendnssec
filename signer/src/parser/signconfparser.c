@@ -60,7 +60,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
     char* locator = NULL;
     char* flags = NULL;
     char* algorithm = NULL;
-    int ksk, zsk, publish, i;
+    int ksk, zsk, publish, i, rfc5011;
 
     if (!cfgfile || !sc) {
         return NULL;
@@ -101,6 +101,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
             ksk = 0;
             zsk = 0;
             publish = 0;
+            rfc5011 = 0;
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
@@ -116,6 +117,8 @@ parse_sc_keys(void* sc, const char* cfgfile)
                     zsk = 1;
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Publish")) {
                     publish = 1;
+                } else if (xmlStrEqual(curNode->name, (const xmlChar *)"RFC5011")) {
+                    rfc5011 = 1;
                 }
                 curNode = curNode->next;
             }
@@ -134,7 +137,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
                 } else {
                     (void) keylist_push(kl, locator,
                         (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
-                        publish, ksk, zsk);
+                        publish, ksk, zsk, rfc5011);
                 }
             } else {
                 ods_log_error("[%s] unable to push key to keylist: <Key> "
