@@ -150,7 +150,7 @@ int KsmDnssecKeyCreate(int zone_id, int keypair_id, int keytype, int state, int 
         return MsgLog(KSM_INVARG, "NULL id");
     }
 
-    StrAppend(&columns, "zone_id, keypair_id, keytype, state, rfc5011, revoke");
+    StrAppend(&columns, "zone_id, keypair_id, keytype, state, rfc5011, revoked");
     if (state != KSM_STATE_GENERATE) {
         StrAppend(&columns, ", ");
         StrAppend(&columns, KsmKeywordStateValueToName(state));

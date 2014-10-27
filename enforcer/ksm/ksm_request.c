@@ -922,7 +922,7 @@ int KsmRequestChangeState(int keytype, const char* datetime,
 
     sql = DusInit("dnsseckeys");
     DusSetInt(&sql, "STATE", dst_state, set++);
-    if (revoke) DusSetInt(&sql, "REVOKE", 1, set++);
+    if (revoke) DusSetInt(&sql, "REVOKED", 1, set++);
     DusSetString(&sql, dst_col, datetime, set++);
 
     DusConditionKeyword(&sql, "KEYPAIR_ID", DQS_COMPARE_IN, insql, 0);

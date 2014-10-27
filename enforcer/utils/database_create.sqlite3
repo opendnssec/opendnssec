@@ -116,7 +116,7 @@ create table dnsseckeys (
   retire        varchar(64) null default null,  -- time when the key retires
   dead          varchar(64) null default null,  -- time when key is slated for removal
   rfc5011       tinyint          default 0,
-  revoke        tinyint          default 0,
+  revoked       tinyint          default 0,
 
   foreign key (keypair_id) references keypairs (id)
 );
@@ -156,7 +156,7 @@ select k.id as id, d.state as state, k.generate as generate, d.publish as publis
     k.securitymodule_id as securitymodule_id, k.size as size,
     k.compromisedflag as compromisedflag,
     k.fixedDate as fixedDate,
-    d.rfc5011 as rfc5011, d.revoke as revoke
+    d.rfc5011 as rfc5011, d.revoked as revoked
 from  keypairs k left outer join dnsseckeys d
 on k.id = d.keypair_id;
 
@@ -215,7 +215,7 @@ insert into parameters (name, description, category_id) select "lifetime", "ksk 
 insert into parameters (name, description, category_id) select "standby", "number of ksks is use at any one time", id from categories where name="ksk";
 insert into parameters (name, description, category_id) select "repository", "default ksk sm (for newly generated keys)", id from categories where name="ksk";
 insert into parameters (name, description, category_id) select "rfc5011", "are we doing rfc5011?", id from categories where name="ksk";
-insert into parameters (name, description, category_id) select "revoke", "key is revoked?", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "revoked", "key is revoked?", id from categories where name="ksk";
 
 insert into parameters (name, description, category_id) select "algorithm", "zsk algorithm", id from categories where name="zsk";
 insert into parameters (name, description, category_id) select "bits", "zsk key size", id from categories where name="zsk";
