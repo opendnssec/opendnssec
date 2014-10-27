@@ -474,7 +474,7 @@ void KsmPurge(void);
 #define KSM_PAR_RFC5011_STRING          "rfc5011"
 #define KSM_PAR_RFC5011_CAT             "ksk"
 #define KSM_PAR_REVOKE                  0
-#define KSM_PAR_REVOKE_STRING           "revoke"
+#define KSM_PAR_REVOKE_STRING           "revoked"
 #define KSM_PAR_REVOKE_CAT              "ksk"
 
 typedef struct {            /* Holds collection of parameters */
