@@ -159,7 +159,7 @@ static STR_KEYWORD_ELEMENT m_roll_keywords[] = {
 static int KsmKeywordNameToValue(STR_KEYWORD_ELEMENT* elements, const char* name)
 {
     int     status = 1;     /* Status return - assume error */
-    int     value;          /* Return value */
+    int     value = 0;          /* Return value */
 
     if (name) {
         status = StrKeywordSearch(name, elements, &value);

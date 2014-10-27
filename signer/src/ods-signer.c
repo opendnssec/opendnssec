@@ -149,11 +149,6 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             continue;
         }
 
-        if (cmd && cmd_written && cmd_response) {
-            /* normal termination */
-            return 0;
-        }
-
         if (FD_ISSET(sockfd, &rset)) {
             /* clear buffer */
             for (i=0; i < ODS_SE_MAXLINE; i++) {

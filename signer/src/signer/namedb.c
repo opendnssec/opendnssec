@@ -966,7 +966,7 @@ namedb_examine(namedb_type* db)
                     return ODS_STATUS_CONFLICT_ERR;
                 }
             } else {
-                log_rrset(domain->dname, rrset->rrtype, "missing SOA RRset",
+                log_rrset(domain->dname, LDNS_RR_TYPE_SOA, "missing SOA RRset",
                     LOG_ERR);
                 return ODS_STATUS_CONFLICT_ERR;
             }

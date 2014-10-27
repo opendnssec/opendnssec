@@ -710,6 +710,8 @@ cmd_setup ()
      */
     status = read_filenames(&zone_list_filename, &kasp_filename);
     if (status != 0) {
+        /* TODO kasp_filename might or might not be set, we don't know!
+         * read_filenames should promise us not to set it on error */
         printf("Failed to read conf.xml\n");
         db_disconnect(lock_fd);
         return(1);
@@ -797,6 +799,7 @@ cmd_update (const char* qualifier)
             strncmp(qualifier, "ALL", 3) == 0) {
         status = read_filenames(&zone_list_filename, &kasp_filename);
         if (status != 0) {
+            /* TODO kasp_filename *could* be leaking */
             printf("Failed to read conf.xml\n");
             db_disconnect(lock_fd);
             return(1);
@@ -8236,16 +8239,11 @@ int MarkDSSeen(int keypair_id, int zone_id, int policy_id, const char *datetime,
         return status;
     }
 
-    /* 3) Commit or Rollback */
-    if (status == 0) { /* It actually can't be anything else */
-        /* Everything worked by the looks of it */
-        DbCommit();
-    } else {
-        /* Whatever happened, it was not good */
-        DbRollback();
-    }
+    /* 3) Commit */
+    /* Everything worked by the looks of it */
+    DbCommit();
 
-    return status;
+    return 0;
 }
 
 /*+
@@ -8349,16 +8347,11 @@ int RetireOldKey(int zone_id, int policy_id, const char *datetime)
         return status;
     }
 
-    /* 2) Commit or Rollback */
-    if (status == 0) { /* It actually can't be anything else */
-        /* Everything worked by the looks of it */
-        DbCommit();
-    } else {
-        /* Whatever happened, it was not good */
-        DbRollback();
-    }
+    /* 2) Commit */
+    /* Everything worked by the looks of it */
+    DbCommit();
 
-    return status;
+    return 0;
 }
 
 /*
@@ -8666,14 +8659,9 @@ int ChangeKeyState(int keytype, const char *cka_id, int zone_id, int policy_id, 
         return status;
     }
 
-    /* 3) Commit or Rollback */
-    if (status == 0) { /* It actually can't be anything else */
-        /* Everything worked by the looks of it */
-        DbCommit();
-    } else {
-        /* Whatever happened, it was not good */
-        DbRollback();
-    }
+    /* 3) Commit */
+    /* It actually can't be anything else */
+    DbCommit();
 
     return status;
 }
@@ -9568,6 +9556,8 @@ int ListDS(int zone_id) {
             StrFree(ds_buffer);
 			DbStringFree(temp_location);
 			DbStringFree(temp_zone);
+            temp_location = NULL;
+            temp_zone = NULL;
 
             hsm_sign_params_free(sign_params);
             hsm_key_free(key);

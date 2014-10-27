@@ -141,9 +141,10 @@ tsig_handler_init(allocator_type* allocator)
 #ifdef HAVE_SSL
     ods_log_debug("[%s] init openssl", tsig_str);
     return tsig_handler_openssl_init(allocator);
-#endif
+#else
     ods_log_debug("[%s] openssl disabled", tsig_str);
     return ODS_STATUS_OK;
+#endif
 }
 
 

@@ -865,6 +865,9 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             lock_basic_lock(&zone->zone_lock);
             zone->task = task;
             lock_basic_unlock(&zone->zone_lock);
+            /* TODO: task is reachable from other threads by means of
+             * zone->task. To fix this we need to nest the locks. But
+             * first investigate any possible deadlocks. */
             lock_basic_lock(&engine->taskq->schedule_lock);
             status = schedule_task(engine->taskq, task, 0);
             lock_basic_unlock(&engine->taskq->schedule_lock);

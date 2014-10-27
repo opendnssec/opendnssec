@@ -302,7 +302,7 @@ xfrd_recover_error:
         }
     } else {
         ods_log_verbose("[%s] did not recover xfrd.state file zone %s", xfrd_str,
-                zone->name);
+            (zone && zone->name)?zone->name:"(null)");
     }
     return;
 }
