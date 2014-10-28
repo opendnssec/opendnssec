@@ -6611,6 +6611,7 @@ int ListKeys(int zone_id)
     char*       temp_hsm = NULL;    /* place to store hsm returned */
     int         temp_alg = 0;       /* place to store algorithm returned */
     int         temp_size = 0;      /* place to store size returned */
+    int         temp_rfc5011 = 0;   /* place to store 5011 switch returned */
 
     bool bool_temp_zone = false;    /* temp_zone was NULL or not */
     int state_id = -1;
@@ -6639,7 +6640,7 @@ int ListKeys(int zone_id)
     }
 	
     /* Select rows */
-    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm, k.size, k.publish from securitymodules s, KEYDATA_VIEW k left join zones z on k.zone_id = z.id where s.id = k.securitymodule_id ");
+    StrAppend(&sql, "select z.name, k.keytype, k.state, k.ready, k.active, k.retire, k.dead, k.location, s.name, k.algorithm, k.size, k.publish, k.rfc5011 from securitymodules s, KEYDATA_VIEW k left join zones z on k.zone_id = z.id where s.id = k.securitymodule_id ");
     if (zone_id != -1) {
         StrAppend(&sql, "and zone_id = ");
         snprintf(stringval, KSM_INT_STR_SIZE, "%d", zone_id);
@@ -6748,6 +6749,7 @@ int ListKeys(int zone_id)
             DbInt(row, 9, &temp_alg);
             DbInt(row, 10, &temp_size);
             DbString(row, 11, &temp_publish);
+            DbInt(row, 12, &temp_rfc5011);
             if (temp_zone == NULL){
                 bool_temp_zone = true;
                 temp_zone = "NOT ALLOCATED";
@@ -6777,7 +6779,11 @@ int ListKeys(int zone_id)
             else if (temp_state == KSM_STATE_PUBLISH) {
                 printf("%-31s %-13s %-9s %-20s", temp_zone, (temp_type == KSM_TYPE_KSK) ? "KSK" : "ZSK", KsmKeywordStateValueToName(temp_state), (temp_ready == NULL) ? "(not scheduled)" : temp_ready);
 				if (verbose_flag) {
-					printf("(ready)    ");
+                    if (!temp_rfc5011) {
+                        printf("(ready)    ");
+                    } else {
+                        printf("(active)   ");
+                    }
 				}
                 done_row = 1;
             }
