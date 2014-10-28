@@ -429,7 +429,7 @@ int KsmRequestKeysByType(int keytype, int rollover, const char* datetime,
                     return status;
                 }
             }
-            else {
+            else if (!collection.rfc5011) {
                 /* Move standby key from DSready to KEYPUBLISH if we can */
                 if (keytype == KSM_TYPE_KSK) {
                     status = KsmRequestChangeStateDSReadyKeyPublish(datetime, zone_id, policy_id);
