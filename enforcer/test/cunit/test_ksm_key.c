@@ -211,6 +211,7 @@ static void TestKsmKeyPredict(void)
     status =  KsmKeyPredict(policy_id, keytype, keys_shared, interval, &count, KSM_ROLL_DEFAULT, 1);
 
     CU_ASSERT_EQUAL(status, 0);
+    printf("\n DEBUG test_ksm_key:214 count %d \n", count);
     CU_ASSERT_EQUAL(count, 7);
 }
 

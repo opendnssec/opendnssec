@@ -573,22 +573,27 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
     int status = 0;   /* Status return */ 
     KSM_PARCOLL coll; /* Parameters collection */ 
 
+    printf("\n DEBUG KsmKeyPredict 0 \n");
+
     /* Check arguments */
     if (count == NULL) {
         return MsgLog(KSM_INVARG, "NULL count");
     }
+    printf("\n DEBUG KsmKeyPredict 1 \n");
 
     /* make sure that we have at least one zone */ 
     if (zone_count == 0) { 
         *count = 0; 
         return status; 
     } 
+    printf("\n DEBUG KsmKeyPredict 2 \n");
 
     /* Check that we have a valid key type */
     if ((keytype != KSM_TYPE_KSK) && (keytype != KSM_TYPE_ZSK)) {
         status = MsgLog(KME_UNKEYTYPE, keytype);
         return status;
     }
+    printf("\n DEBUG KsmKeyPredict 3 \n");
 
     /* Get list of parameters */
     status = KsmParameterCollection(&coll, policy_id);
@@ -596,10 +601,12 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
         *count = -1;
         return status;
     }
+    printf("\n DEBUG KsmKeyPredict 4 \n");
 
     /* We should have the policy now */
     if (keytype == KSM_TYPE_KSK)
-    {
+    {    printf("\n DEBUG KsmKeyPredict 5 \n");
+
         if (coll.ksklife == 0) {
             *count = coll.standbyksks + 1;
         } 
@@ -621,13 +628,15 @@ int KsmKeyPredict(int policy_id, int keytype, int shared_keys, int interval, int
 
     }
     else if (keytype == KSM_TYPE_ZSK)
-    {
+    {    printf("\n DEBUG KsmKeyPredict 6 \n");
+
         if (coll.zsklife == 0) {
             *count = coll.standbyzsks + 1;
         } else {
             *count = ((interval + coll.pub_safety)/coll.zsklife) + coll.standbyzsks + 1;
         }
     } 
+    printf("\n DEBUG KsmKeyPredict 7 \n");
 
     if (shared_keys == KSM_KEYS_NOT_SHARED) { 
         *count *= zone_count;
