@@ -175,17 +175,14 @@ adapter_read(void* zone)
             ods_log_verbose("[%s] read zone %s from file input adapter %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
             return adfile_read(zone);
-            break;
         case ADAPTER_DNS:
             ods_log_verbose("[%s] read zone %s from dns input adapter %s",
                 adapter_str, adzone->name, adzone->adinbound->configstr);
             return addns_read(zone);
-            break;
         default:
             ods_log_error("[%s] unable to read zone %s from adapter: unknown "
                 "adapter", adapter_str, adzone->name);
             return ODS_STATUS_ERR;
-            break;
     }
     /* not reached */
     return ODS_STATUS_ERR;
@@ -214,15 +211,12 @@ adapter_write(void* zone)
                 "adapter %s", adapter_str, adzone->name,
                 adzone->db->intserial, adzone->adoutbound->configstr);
             return adfile_write(zone, adzone->adoutbound->configstr);
-            break;
         case ADAPTER_DNS:
             return addns_write(zone);
-            break;
         default:
             ods_log_error("[%s] unable to write zone %s to adapter: unknown "
                 "adapter", adapter_str, adzone->name);
             return ODS_STATUS_ERR;
-            break;
     }
     /* not reached */
     return ODS_STATUS_ERR;

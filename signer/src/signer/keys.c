@@ -116,7 +116,8 @@ keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey)
  */
 key_type*
 keylist_push(keylist_type* kl, const char* locator,
-    uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk)
+    uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk,
+    int rfc5011)
 {
     key_type* keys_old = NULL;
     signconf_type* sc = NULL;
@@ -144,6 +145,7 @@ keylist_push(keylist_type* kl, const char* locator,
     kl->keys[kl->count -1].publish = publish;
     kl->keys[kl->count -1].ksk = ksk;
     kl->keys[kl->count -1].zsk = zsk;
+    kl->keys[kl->count -1].rfc5011 = rfc5011;
     kl->keys[kl->count -1].dnskey = NULL;
     kl->keys[kl->count -1].hsmkey = NULL;
     kl->keys[kl->count -1].params = NULL;
@@ -176,6 +178,9 @@ key_print(FILE* fd, key_type* key)
     if (key->publish) {
         fprintf(fd, "\t\t\t\t<Publish />\n");
     }
+    if (key->rfc5011) {
+        fprintf(fd, "\t\t\t\t<RFC5011 />\n");
+    }
     fprintf(fd, "\t\t\t</Key>\n");
     fprintf(fd, "\n");
     return;
@@ -193,8 +198,8 @@ key_log(key_type* key, const char* name)
         return;
     }
     ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
-        "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
-        key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
+        "KSK[%i] ZSK[%i] PUBLISH[%i] RFC5011[%i]", key_str, name?name:"(null)", key->locator,
+        key->flags, key->algorithm, key->ksk, key->zsk, key->publish, key->rfc5011);
     return;
 }
 
@@ -285,8 +290,8 @@ key_backup(FILE* fd, key_type* key, const char* version)
         return;
     }
     fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i "
-        "zsk %i\n", key->locator, (unsigned) key->algorithm,
-        (unsigned) key->flags, key->publish, key->ksk, key->zsk);
+        "zsk %i rfc5011 %i\n", key->locator, (unsigned) key->algorithm,
+        (unsigned) key->flags, key->publish, key->ksk, key->zsk, key->rfc5011);
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
         if (key->dnskey) {
             (void)util_rr_print(fd, key->dnskey);
@@ -310,6 +315,7 @@ key_recover2(FILE* fd, keylist_type* kl)
     int publish = 0;
     int ksk = 0;
     int zsk = 0;
+    int rfc5011 = 0;
 
     ods_log_assert(fd);
 
@@ -324,7 +330,9 @@ key_recover2(FILE* fd, keylist_type* kl)
         !backup_read_check_str(fd, "ksk") ||
         !backup_read_int(fd, &ksk) ||
         !backup_read_check_str(fd, "zsk") ||
-        !backup_read_int(fd, &zsk)) {
+        !backup_read_int(fd, &zsk) ||
+        !backup_read_check_str(fd, "rfc5011") ||
+        !backup_read_int(fd, &rfc5011)) {
         if (locator) {
            free((void*)locator);
            locator = NULL;
@@ -332,7 +340,8 @@ key_recover2(FILE* fd, keylist_type* kl)
         return NULL;
     }
     /* key ok */
-    return keylist_push(kl, locator, algorithm, flags, publish, ksk, zsk);
+    return keylist_push(kl, locator, algorithm, flags, publish, ksk,
+        zsk, rfc5011);
 }
 
 

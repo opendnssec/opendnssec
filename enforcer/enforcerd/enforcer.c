@@ -1185,15 +1185,19 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
 int commKeyConfig(void* context, KSM_KEYDATA* key_data)
 {
     FILE *file = (FILE *)context;
+    int flags = key_data->keytype;
+
+    if (key_data->revoke)
+        flags |= KSM_FLAG_REVOKE;
 
     fprintf(file, "\t\t\t<Key>\n");
-    fprintf(file, "\t\t\t\t<Flags>%d</Flags>\n", key_data->keytype); 
+    fprintf(file, "\t\t\t\t<Flags>%d</Flags>\n", flags);
     fprintf(file, "\t\t\t\t<Algorithm>%d</Algorithm>\n", key_data->algorithm); 
     fprintf(file, "\t\t\t\t<Locator>%s</Locator>\n", key_data->location);
 
-    if (key_data->keytype == KSM_TYPE_KSK)
-    {
-        fprintf(file, "\t\t\t\t<KSK />\n");
+    if (key_data->keytype == KSM_TYPE_KSK) {
+        if (!(key_data->rfc5011 && key_data->state == KSM_STATE_PUBLISH))
+            fprintf(file, "\t\t\t\t<KSK />\n");
     }
     if (key_data->keytype == KSM_TYPE_ZSK && key_data->state == KSM_STATE_ACTIVE)
     {
@@ -1202,6 +1206,10 @@ int commKeyConfig(void* context, KSM_KEYDATA* key_data)
     if ((key_data->state > KSM_STATE_GENERATE && key_data->state < KSM_STATE_DEAD) || key_data->state == KSM_STATE_KEYPUBLISH)
     {
         fprintf(file, "\t\t\t\t<Publish />\n");
+    }
+    if (key_data->rfc5011)
+    {
+        fprintf(file, "\t\t\t\t<RFC5011 />\n");
     }
     fprintf(file, "\t\t\t</Key>\n");
     fprintf(file, "\n");
@@ -1351,7 +1359,9 @@ int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t i
             }
         }
         if(key_pair_id > 0) {
-            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type, KSM_STATE_GENERATE, datetime, NULL, &ignore);
+            status = KsmDnssecKeyCreate(zone_id, key_pair_id, key_type,
+                KSM_STATE_GENERATE, policy->ksk->rfc5011, datetime,
+                NULL, &ignore);
             /* fprintf(stderr, "comm(%d) %s: allocated keypair id %d\n", key_type, zone_name, key_pair_id); */
         } else {
             /* This shouldn't happen */
