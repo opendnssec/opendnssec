@@ -281,6 +281,12 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
             tbd);
         ods_writen(sockfd, buf, strlen(buf));
         return;
+    } else if (zone->adinbound->type != ADAPTER_DNS) {
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+            "Error: Zone %s not configured to use DNS input adapter.\n",
+            tbd);
+        ods_writen(sockfd, buf, strlen(buf));
+        return;
     }
     zone->xfrd->serial_retransfer = 1;
     xfrd_set_timer_now(zone->xfrd);
