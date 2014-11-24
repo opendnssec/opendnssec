@@ -1,3 +1,5 @@
+* SUPPORT-147: Signer Engine: Fix a bug where zone updating via XFR got stuck
+  because of incorrect storing SOA to disk (thanks Håvard Eidnes!).
 * Enforcer: New repository option <AllowExtraction/> allows to generate keys
   with CKA_EXTRACTABLE attribute set to TRUE so keys can be wrapped
   and extracted from HSM.

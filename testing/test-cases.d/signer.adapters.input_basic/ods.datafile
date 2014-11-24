@@ -11,7 +11,7 @@ SECTION QUESTION
 ods. IN AXFR
 SECTION ANSWER
 
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 300 120 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 2014102300 300 120 3600 3600
 ods. 600 IN MX 10 mail.ods.
 ods. 600 IN NS ns1.ods.
 ods. 600 IN NS ns2.ods.
@@ -274,7 +274,7 @@ label34.ods. 3600 IN NS ns5.label34.ods.
 ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 300 120 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 2014102300 300 120 3600 3600
 
 SECTION AUTHORITY
 SECTION ADDITIONAL
@@ -293,7 +293,7 @@ ADJUST copy_id
 SECTION QUESTION
 ods. IN IXFR
 SECTION ANSWER
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 300 120 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 2014102301 300 120 3600 3600
 SECTION AUTHORITY
 SECTION ADDITIONAL
 ENTRY_END
@@ -311,9 +311,9 @@ ADJUST copy_id
 SECTION QUESTION
 ods. IN IXFR
 SECTION ANSWER
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 300 120 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 2014102301 300 120 3600 3600
 ; remove label34 (1000 -> 1001)
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1000 300 120 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 2014102300 300 120 3600 3600
 label34.ods. 3600 IN NS ns1.label34.ods.
 ns1.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns2.label34.ods.
@@ -327,7 +327,7 @@ ns5.label34.ods. 3600 IN A 192.0.2.1
 label34.ods. 3600 IN NS ns6.label34.ods.
 ns6.label34.ods. 3600 IN A 192.0.2.1
 ; add label35 - label40 (1000 -> 1001)
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 300 120 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 2014102301 300 120 3600 3600
 label35.ods. 3600 IN NS ns1.label35.ods.
 ns1.label35.ods. 3600 IN A 192.0.2.1
 label35.ods. 3600 IN NS ns2.label35.ods.
@@ -405,7 +405,7 @@ label40.ods. 3600 IN NS ns5.label40.ods.
 ns5.label40.ods. 3600 IN A 192.0.2.1
 label40.ods. 3600 IN NS ns6.label40.ods.
 ns6.label40.ods. 3600 IN A 192.0.2.1
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1001 300 120 3600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. 2014102301 300 120 3600 3600
 
 SECTION AUTHORITY
 SECTION ADDITIONAL
