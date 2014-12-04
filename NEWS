@@ -1,4 +1,4 @@
-OpenDNSSEC 1.4.7rc1 - 2014-11-28
+OpenDNSSEC 1.4.7 - 2014-12-04
 
 Bugfixes:
 * SUPPORT-147: Zone updating via zone transfer can get stuck (Håvard Eidnes)
