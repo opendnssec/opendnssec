@@ -51,7 +51,7 @@ static taskreg_type taskreg[16];
 static int ntaskreg = 0;
 const int NUM_HOW_REG = sizeof(taskreg)/sizeof(taskreg_type);
 
-static bool task_id_from_long_name(const char *long_name, task_id *pwhat)
+bool task_id_from_long_name(const char *long_name, task_id *pwhat)
 {
 	int i;
 	for (i=0; i<ntaskreg; ++i) {
@@ -284,7 +284,6 @@ task_compare(const void* a, const void* b)
 
     ods_log_assert(x);
     ods_log_assert(y);
-
     /* order task on time, dname */
     if (x->when != y->when) {
         return (int) x->when - y->when;
@@ -303,6 +302,7 @@ task_compare_name(const void* a, const void* b)
     task_type* y = (task_type*)b;
     ods_log_assert(x);
     ods_log_assert(y);
+    /* order task on time, dname */
     return ldns_dname_compare((const void*) x->dname,
         (const void*) y->dname);
 }
@@ -419,7 +419,6 @@ task_print(FILE* out, task_type* task)
         fprintf(out, "On %s I will [%s] %s\n", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task->who));
     }
-    return;
 }
 
 

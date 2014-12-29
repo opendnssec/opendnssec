@@ -34,7 +34,6 @@
 
 #include "config.h"
 #include "shared/allocator.h"
-#include "shared/locks.h"
 #include "shared/status.h"
 
 #include <stdio.h>
@@ -48,6 +47,12 @@ struct engineconfig_repository {
 	char* name;
 	int require_backup;
 };
+
+typedef enum {
+    ENFORCER_DATABASE_TYPE_NONE,
+    ENFORCER_DATABASE_TYPE_SQLITE,
+    ENFORCER_DATABASE_TYPE_MYSQL
+} engineconfig_database_type_t;
 
 /**
  * Engine configuration.
@@ -80,6 +85,7 @@ struct engineconfig_struct {
 	int db_port; /* Datastore/MySQL/Host/@Port */
 	time_t automatic_keygen_duration;
 	struct engineconfig_repository* hsm;
+	engineconfig_database_type_t db_type;
 };
 
 /**
@@ -90,8 +96,8 @@ struct engineconfig_struct {
  * \return engineconfig_type* engine configuration
  *
  */
-engineconfig_type* engine_config(allocator_type* allocator,
-    const char* cfgfile, int cmdline_verbosity, engineconfig_type* oldcfg);
+engineconfig_type* engine_config(const char* cfgfile,
+	int cmdline_verbosity, engineconfig_type* oldcfg);
 
 /**
  * Check configuration.

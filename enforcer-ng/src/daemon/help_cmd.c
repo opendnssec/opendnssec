@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
@@ -65,10 +66,12 @@ handles(const char *cmd, ssize_t n)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
 	struct cmd_func_block* fb;
 	(void) engine;
+	(void) dbconn;
 
 	ods_log_debug("[%s] help command", module_str);
 	
@@ -87,7 +90,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			if (fb->help) {
 				fb->help(sockfd);
 			} else {
-				client_printf(sockfd, "No help available for %s\n", cmd);
+				client_printf(sockfd, "No help available for '%s'\n",
+					cmd+5);
 				return 1;
 			}
 		} else {

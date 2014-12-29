@@ -33,6 +33,7 @@
 #include "daemon/engine.h"
 #include "keystate/keystate_export_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
 
@@ -57,7 +58,8 @@ handles(const char *cmd, ssize_t n)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
     char buf[ODS_SE_MAXLINE];
     const int NARGV = 8;

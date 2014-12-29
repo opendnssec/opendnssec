@@ -33,8 +33,7 @@
 #define DAEMON_WORKER_H
 
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "db/db_connection.h"
 
 #include <time.h>
 
@@ -46,9 +45,8 @@ struct engine_struct;
 
 typedef struct worker_struct worker_type;
 struct worker_struct {
-    allocator_type* allocator;
     int thread_num;
-    ods_thread_type thread_id;
+    pthread_t thread_id;
     struct engine_struct* engine;
     task_type* task;
     time_t clock_in;
@@ -58,19 +56,17 @@ struct worker_struct {
     int sleeping;
     int waiting;
     int need_to_exit;
-    cond_basic_type worker_alarm;
-    lock_basic_type worker_lock;
+    db_connection_t* dbconn;
 };
 
 /**
  * Create worker.
- * \param[in] allocator memory allocator
  * \param[in] num thread number
  * \param[in] type type of worker
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(allocator_type* allocator, int num);
+worker_type* worker_create(int num);
 
 /**
  * Start working.
@@ -78,55 +74,6 @@ worker_type* worker_create(allocator_type* allocator, int num);
  *
  */
 void worker_start(worker_type* worker);
-
-/**
- * Put worker to sleep.
- * \param[in] worker put this worker to sleep
- * \param[in] timeout time before alarm clock is going off,
- *            0 means no alarm clock is set.
- *
- */
-void worker_sleep(worker_type* worker, time_t timeout);
-
-/**
- * Put worker to sleep unless the worker has measured up to all appointed jobs.
- * \param[in] worker put this worker to sleep
- * \param[in] timeout time before alarm clock is going off,
- *            0 means no alarm clock is set.
- *
- */
-void worker_sleep_unless(worker_type* worker, time_t timeout);
-
-/**
- * Wake up worker.
- * \param[in] worker wake up this worker
- *
- */
-void worker_wakeup(worker_type* worker);
-
-/**
- * Let worker wait.
- * \param[in] lock lock to use
- * \param[in] condition condition to be met
- *
- */
-void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
-
-/**
- * Notify a worker.
- * \param[in] lock lock to use
- * \param[in] condition condition that has been met
- *
- */
-void worker_notify(lock_basic_type* lock, cond_basic_type* condition);
-
-/**
- * Notify all workers.
- * \param[in] lock lock to use
- * \param[in] condition condition that has been met
- *
- */
-void worker_notify_all(lock_basic_type* lock, cond_basic_type* condition);
 
 /**
  * Clean up worker.

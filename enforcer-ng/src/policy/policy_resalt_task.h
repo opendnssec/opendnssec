@@ -33,8 +33,11 @@
 #include "daemon/engine.h"
 #include "scheduler/task.h"
 
-time_t perform_policy_resalt(int sockfd, engine_type *engine);
+time_t perform_policy_resalt(int sockfd, engine_type *engine,
+	db_connection_t *dbconn);
 
 task_type *policy_resalt_task(engine_type *engine);
+
+int flush_resalt_task(engine_type *engine);
 
 #endif

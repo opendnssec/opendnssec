@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Copyright (c) 2010 .SE (The Internet Infrastructure Foundation).
 # All rights reserved.
@@ -39,4 +39,5 @@
 
 if [ -n "$RECIPIENT" ]; then
 	cat | mail -s "New keys from OpenDNSSEC" $RECIPIENT
+else
 fi

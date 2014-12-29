@@ -41,6 +41,7 @@
 #include <strings.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <pthread.h>
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
@@ -53,13 +54,12 @@
 #include "daemon/clientpipe.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
 #include "shared/file.h"
-#include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
 #include "shared/duration.h"
 #include "shared/str.h"
+#include "db/db_connection.h"
 
 /* commands to handle */
 #include "policy/policy_resalt_cmd.h"
@@ -69,19 +69,16 @@
 #include "daemon/queue_cmd.h"
 #include "daemon/verbosity_cmd.h"
 #include "daemon/ctrl_cmd.h"
-#include "enforcer/setup_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
+#include "enforcer/update_conf_cmd.h"
 #include "enforcer/enforce_cmd.h"
 #include "policy/update_kasp_cmd.h"
 #include "policy/policy_import_cmd.h"
 #include "policy/policy_export_cmd.h"
-#include "policy/policy_purge_cmd.h"
-#include "keystate/update_keyzones_cmd.h"
 #include "keystate/zone_list_cmd.h"
 #include "keystate/zone_del_cmd.h"
 #include "keystate/zone_add_cmd.h"
-#include "keystate/zonelist_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
 #include "keystate/keystate_ds_seen_cmd.h"
 #include "keystate/keystate_ds_retract_cmd.h"
@@ -90,10 +87,12 @@
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/rollover_list_cmd.h"
 #include "keystate/keystate_rollover_cmd.h"
-#include "hsmkey/hsmkey_gen_cmd.h"
-#include "hsmkey/update_hsmkeys_cmd.h"
+#include "keystate/update_zonelist_cmd.h"
+#include "keystate/zonelist_import_cmd.h"
+#include "keystate/zonelist_export_cmd.h"
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
+#include "hsmkey/key_generate_cmd.h"
 
 #include "daemon/cmdhandler.h"
 
@@ -114,17 +113,16 @@ cmd_funcs_avail(void)
     static struct cmd_func_block* (*fb[])(void) = {
         /* Thoughts has gone into the ordering of this list, it affects 
          * the output of the help command */
-        &setup_funcblock,
+        &update_conf_funcblock,
         &update_kasp_funcblock,
-        &update_keyzones_funcblock,
+        &update_zonelist_funcblock,
         &update_repositorylist_funcblock,
         &update_all_funcblock,
-
         &policy_list_funcblock,
         &policy_export_funcblock,
         &policy_import_funcblock,
-        &policy_purge_funcblock,
-        &resalt_funcblock,
+/*        &policy_purge_funcblock,
+*/        &resalt_funcblock,
 
         &zone_list_funcblock,
         &zone_add_funcblock,
@@ -134,21 +132,21 @@ cmd_funcs_avail(void)
         &zonelist_import_funcblock,
 
         &key_list_funcblock,
-        &key_import_funcblock,
-        &key_export_funcblock,
+/*        &key_export_funcblock,
         &key_ds_submit_funcblock,
-        &key_ds_seen_funcblock,
-        &key_ds_retract_funcblock,
-        &key_ds_gone_funcblock,
-        &key_gen_funcblock,
-
+*/        &key_ds_seen_funcblock,
+/*        &key_ds_retract_funcblock,
+*/        &key_ds_gone_funcblock,
+        &key_generate_funcblock,
+/*
         &key_rollover_funcblock,
-        &rollover_list_funcblock,
+*/        &rollover_list_funcblock,
         
         &backup_funcblock,
-
+/*
         &enforce_funcblock,
-        &signconf_funcblock,
+*/        &signconf_funcblock,
+
 
         &queue_funcblock,
 #ifdef ENFORCER_TIMESHIFT
@@ -197,19 +195,21 @@ get_funcblock(const char *cmd, ssize_t n)
  * \return exit code for client, 0 for no errors, -1 for syntax errors
  */
 static int
-cmdhandler_perform_command(int sockfd, engine_type* engine,
-    const char *cmd, ssize_t n)
+cmdhandler_perform_command(cmdhandler_type* cmdc, const char *cmd,
+    ssize_t n)
 {
     time_t tstart = time(NULL);
     struct cmd_func_block* fb;
     int ret;
+    int sockfd = cmdc->client_fd;
 
     ods_log_verbose("received command %s[%i]", cmd, n);
     if (n == 0) return 0;
 
     /* Find function claiming responsibility */
     if ((fb = get_funcblock(cmd, n))) {
-        ret = fb->run(sockfd, engine, cmd, n);
+        ods_log_debug("[%s] %s command", module_str, fb->cmdname);
+        ret = fb->run(sockfd, cmdc->engine, cmd, n, cmdc->dbconn);
         if (ret == -1) {
             /* Syntax error, print usage for cmd */
             client_printf_err(sockfd, "Error parsing arguments\n",
@@ -250,7 +250,7 @@ cmdhandler_perform_command(int sockfd, engine_type* engine,
  */
 static int
 extract_msg(char* buf, int *pos, int buflen, int *exitcode, 
-int sockfd, engine_type* engine)
+cmdhandler_type* cmdc)
 {
     char data[ODS_SE_MAXLINE+1], opc;
     int datalen;
@@ -274,8 +274,7 @@ int sockfd, engine_type* engine)
             ods_str_trim(data);
 
             if (opc == CLIENT_OPC_STDIN) {
-                *exitcode = cmdhandler_perform_command(sockfd,
-                    engine, data, strlen(data));
+                *exitcode = cmdhandler_perform_command(cmdc, data, strlen(data));
                 return 1;
             }
         } else if (datalen+3 > buflen) {
@@ -316,7 +315,7 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
             return;
         }
         bufpos += n;
-        r = extract_msg(buf, &bufpos, ODS_SE_MAXLINE, &exitcode, cmdc->client_fd, cmdc->engine);
+        r = extract_msg(buf, &bufpos, ODS_SE_MAXLINE, &exitcode, cmdc);
         if (r == -1) {
             ods_log_error("[%s] Error receiving message from client.", module_str);
             break;
@@ -335,16 +334,30 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
 static void*
 cmdhandler_accept_client(void* arg)
 {
+    int err;
+    sigset_t sigset;
     cmdhandler_type* cmdc = (cmdhandler_type*) arg;
 
-    ods_thread_blocksigs();
-    ods_thread_detach(cmdc->thread_id);
+    sigfillset(&sigset);
+    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
+        ods_fatal_exit("[%s] pthread_sigmask: %s", module_str, strerror(err));
+
+    pthread_detach(cmdc->thread_id);
 
     ods_log_debug("[%s] accept client %i", module_str, cmdc->client_fd);
+
+    cmdc->dbconn = get_database_connection(cmdc->engine->dbcfg_list);
+    if (!cmdc->dbconn) {
+        client_printf_err(cmdc->client_fd, "Failed to open DB connection.\n");
+        client_exit(cmdc->client_fd, 1);
+        return NULL;
+    }
+    
     cmdhandler_handle_client_conversation(cmdc);
     if (cmdc->client_fd) {
         close(cmdc->client_fd);
     }
+    db_connection_free(cmdc->dbconn);
     free(cmdc);
     count--; /* !not thread safe! */
     return NULL;
@@ -457,12 +470,15 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     ods_log_assert(cmdhandler->engine);
     ods_log_debug("[%s] start", module_str);
 
-    ods_thread_detach(cmdhandler->thread_id);
+
     FD_ZERO(&rset);
     while (cmdhandler->need_to_exit == 0) {
         clilen = sizeof(cliaddr);
         FD_SET(cmdhandler->listen_fd, &rset);
         ret = select(cmdhandler->listen_fd+1, &rset, NULL, NULL, NULL);
+        /* Don't handle new connections when need to exit, this
+         * removes the delay of the self_pipe_trick*/
+        if (cmdhandler->need_to_exit) break;
         if (ret < 0) {
             if (errno != EINTR && errno != EWOULDBLOCK) {
                 ods_log_warning("[%s] select() error: %s", module_str,
@@ -507,7 +523,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdc->listen_addr = cmdhandler->listen_addr;
             cmdc->engine = cmdhandler->engine;
             cmdc->need_to_exit = cmdhandler->need_to_exit;
-            ods_thread_create(&cmdc->thread_id, &cmdhandler_accept_client,
+            pthread_create(&cmdc->thread_id, NULL, &cmdhandler_accept_client,
                 (void*) cmdc);
             count++;
             ods_log_debug("[%s] %i clients in progress...", module_str, count);
@@ -578,6 +594,5 @@ cmdhandler_stop(struct engine_struct* engine)
         ods_log_error("[engine] command handler self pipe trick failed, "
             "unclean shutdown");
     }
-    sleep(2); /* workaround to give threads enough time to close
-                will be properly fixed in dbx branch */
+    (void) pthread_join(engine->cmdhandler->thread_id, NULL);
 }

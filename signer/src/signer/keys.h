@@ -53,7 +53,7 @@
 typedef struct key_struct key_type;
 struct key_struct {
     ldns_rr* dnskey;
-    hsm_key_t* hsmkey;
+    libhsm_key_t* hsmkey;
     hsm_sign_params_t* params;
     const char* locator;
     uint8_t algorithm;

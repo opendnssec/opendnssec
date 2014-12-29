@@ -1197,8 +1197,16 @@ struct ck_c_initialize_args
 #undef CK_DEFINE_FUNCTION
 #define CK_DEFINE_FUNCTION(retval, name) retval CK_SPEC name
 
+#if defined(__cplusplus)
+}
+#endif
+
 /* For NULL.  */
 #include <stddef.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef unsigned char CK_BYTE;
 typedef unsigned char CK_CHAR;

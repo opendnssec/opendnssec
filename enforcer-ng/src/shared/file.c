@@ -251,20 +251,19 @@ ods_writen(int fd, const void* vptr, size_t n)
  * Write to file descriptor with format
  *
  */
+static char* ods_printf_error = "error: vsnprintf buffer too small\n";
 void
 ods_printf(int fd, const char * format, ...)
 {
     char buf[ODS_SE_MAXLINE];
     int ok;
-    size_t nbuf;
 	va_list ap;
 	va_start(ap, format);
 	ok = (vsnprintf(buf, ODS_SE_MAXLINE, format,ap) < ODS_SE_MAXLINE);
 	va_end(ap);
 	if (!ok) {
 		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		nbuf = strlen(strcpy(buf,"error: vsnprintf buffer too small\n"));
-		ods_writen(fd, buf, nbuf);
+		ods_writen(fd, ods_printf_error, sizeof(ods_printf_error));
 	}
 	ods_writen(fd, buf, strlen(buf));
 }

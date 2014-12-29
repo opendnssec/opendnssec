@@ -35,7 +35,7 @@
 #include "libhsm.h"
 #include <libhsmdns.h>
 
-#define PTHREAD_THREADS_MAX 2048
+#define HSMSPEED_THREADS_MAX 2048
 
 /* Algorithm identifier and name */
 ldns_algorithm  algorithm = LDNS_RSASHA1;
@@ -47,7 +47,7 @@ char *progname = NULL;
 typedef struct {
     unsigned int id;
     hsm_ctx_t *ctx;
-    hsm_key_t *key;
+    libhsm_key_t *key;
     unsigned int iterations;
 } sign_arg_t;
 
@@ -64,7 +64,7 @@ void *
 sign (void *arg)
 {
     hsm_ctx_t *ctx = NULL;
-    hsm_key_t *key = NULL;
+    libhsm_key_t *key = NULL;
 
     size_t i;
     unsigned int iterations = 0;
@@ -117,6 +117,7 @@ sign (void *arg)
     fprintf(stderr, "Signer thread #%d done.\n", sign_arg->id);
 
     pthread_exit(NULL);
+    return NULL;
 }
 
 
@@ -126,7 +127,7 @@ main (int argc, char *argv[])
     int result;
 
     hsm_ctx_t *ctx = NULL;
-    hsm_key_t *key = NULL;
+    libhsm_key_t *key = NULL;
     unsigned int keysize = 1024;
     unsigned int iterations = 1;
     unsigned int threads = 1;
@@ -136,9 +137,9 @@ main (int argc, char *argv[])
     char *config = NULL;
     const char *repository = NULL;
 
-    sign_arg_t sign_arg_array[PTHREAD_THREADS_MAX];
+    sign_arg_t sign_arg_array[HSMSPEED_THREADS_MAX];
 
-    pthread_t      thread_array[PTHREAD_THREADS_MAX];
+    pthread_t      thread_array[HSMSPEED_THREADS_MAX];
     pthread_attr_t thread_attr;
     void          *thread_status;
 
@@ -174,6 +175,11 @@ main (int argc, char *argv[])
     if (!repository) {
         usage();
         exit(1);
+    }
+
+    if (threads > HSMSPEED_THREADS_MAX) {
+        fprintf(stderr, "Number of threads specified over max, force using %d threads!\n", HSMSPEED_THREADS_MAX);
+        threads = HSMSPEED_THREADS_MAX;
     }
 
 #if 0

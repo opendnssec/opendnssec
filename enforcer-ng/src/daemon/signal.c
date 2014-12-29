@@ -30,12 +30,15 @@
  */
 
 #include "config.h"
+
+#include <pthread.h>
+#include <signal.h>
+
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "shared/locks.h"
 #include "shared/log.h"
 
-#include <signal.h>
+#include "signal.h"
 
 static engine_type* signal_engine = NULL;
 static const char* signal_str = "signal";
@@ -64,11 +67,9 @@ signal_handler(sig_atomic_t sig)
             ods_log_debug("[%s] SIGHUP received", signal_str);
             if (signal_engine) {
                 signal_engine->need_to_reload = 1;
-                lock_basic_lock(&signal_engine->signal_lock);
-                /* [LOCK] signal */
-                lock_basic_alarm(&signal_engine->signal_cond);
-                /* [UNLOCK] signal */
-                lock_basic_unlock(&signal_engine->signal_lock);
+                pthread_mutex_lock(&signal_engine->signal_lock);
+                    pthread_cond_signal(&signal_engine->signal_cond);
+                pthread_mutex_unlock(&signal_engine->signal_lock);
             }
             break;
         case SIGINT:
@@ -76,11 +77,9 @@ signal_handler(sig_atomic_t sig)
             ods_log_debug("[%s] SIGTERM received", signal_str);
             if (signal_engine) {
                 signal_engine->need_to_exit = 1;
-                lock_basic_lock(&signal_engine->signal_lock);
-                /* [LOCK] signal */
-                lock_basic_alarm(&signal_engine->signal_cond);
-                /* [UNLOCK] signal */
-                lock_basic_unlock(&signal_engine->signal_lock);
+                pthread_mutex_lock(&signal_engine->signal_lock);
+                    pthread_cond_signal(&signal_engine->signal_cond);
+                pthread_mutex_unlock(&signal_engine->signal_lock);
             }
             break;
         default:

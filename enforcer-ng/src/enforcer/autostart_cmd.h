@@ -32,16 +32,6 @@
 
 #include "daemon/engine.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void autostart(engine_type* engine);
-
-int database_ready(engineconfig_type* config);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
