@@ -3039,7 +3039,8 @@ existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
 	}
 	pkey = policy_key_list_begin(policykeylist);
 	while (pkey) {
-		if (hsm_key_repository(hkey) && policy_key_repository(pkey) &&
+		if ((int)policy_key_role(pkey) == (int)key_data_role(key) &&
+			hsm_key_repository(hkey) && policy_key_repository(pkey) &&
 			strcmp(hsm_key_repository(hkey), policy_key_repository(pkey)) == 0 &&
 			hsm_key_algorithm(hkey) == policy_key_algorithm(pkey) &&
 			hsm_key_bits(hkey) == policy_key_bits(pkey))
@@ -3841,6 +3842,8 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     static const char *scmd = "update";
     int key_data_updated;
 
+	printf("now: %d\n", now);
+
 	if (!engine) {
 		ods_log_error("[%s] no engine", module_str);
 		return now + 60;
@@ -3890,6 +3893,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
         key_dependency_list_free(deplist);
         return now + 60;
     }
+    /*WTF DOES THIS CODE DO?*/
     if (!(keylist_size = key_data_list_size(key_list))) {
         if ((key = key_data_list_begin(key_list))) {
             while (key) {
@@ -4030,9 +4034,14 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     free(keylist);
     key_dependency_list_free(deplist);
 
+	printf("zone return: %d\n", zone_return_time);
+	printf("poli return: %d\n", policy_return_time);
+	printf("prge return: %d\n", purge_return_time);
+
     return_time = zone_return_time;
     minTime(policy_return_time, &return_time);
     minTime(purge_return_time, &return_time);
+    printf("tota return: %d\n", return_time);
     return return_time;
 }
 
