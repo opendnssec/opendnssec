@@ -177,12 +177,11 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 
 static int
 get_args(const char *cmd, ssize_t n, const char **zone,
-	const char **cka_id, int *keytag)
+	const char **cka_id, int *keytag, char *buf)
 {
 
 	#define NARGV 16
 	const char *argv[NARGV], *tag;
-	char buf[ODS_SE_MAXLINE];
 	int argc;
 	(void)n;
 
@@ -224,8 +223,9 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	int keytag;
 	hsm_key_t* hsmkey = NULL;
 	int ret;
+	char buf[ODS_SE_MAXLINE];
 
-	if (get_args(cmd, n, &zone, &cka_id, &keytag)) {
+	if (get_args(cmd, n, &zone, &cka_id, &keytag, buf)) {
 		client_printf(sockfd, "Error parsing arguments\n", keytag);
 		return -1;
 	}
