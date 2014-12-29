@@ -301,9 +301,11 @@ ods_setup_env ()
 	done
 	shift $((OPTIND-1))
 
-	ods_start_enforcer &&
+	echo 'y' | log_this ods-enforcer-setup ods-enforcer-db-setup &&
 	echo "ods_setup_env: setting up opendnssec environment" &&
-	echo 'y' | log_this ods-enforcer-setup ods-enforcer setup &&
+	ods_start_enforcer &&
+	log_this ods-enforcer-setup ods-enforcer policy import &&
+	log_this ods-enforcer-setup ods-enforcer zonelist import &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer

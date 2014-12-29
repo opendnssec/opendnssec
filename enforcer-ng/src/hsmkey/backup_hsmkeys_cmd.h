@@ -30,14 +30,6 @@
 #ifndef _HSMKEY_BACKUP_CMD_H_
 #define _HSMKEY_BACKUP_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* backup_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _HSMKEY_BACKUP_CMD_H_ */

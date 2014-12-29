@@ -93,7 +93,7 @@ lhsm_clear_key_cache(key_type* key)
         key->dnskey = NULL;
     }
     if (key->hsmkey) {
-        hsm_key_free(key->hsmkey);
+        libhsm_key_free(key->hsmkey);
         key->hsmkey = NULL;
     }
     if (key->params) {
@@ -142,7 +142,7 @@ lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
         return ODS_STATUS_ASSERT_ERR;
     }
 
-lhsm_key_start:
+llibhsm_key_start:
 
     /* set parameters */
     if (!key_id->params) {
@@ -160,7 +160,7 @@ lhsm_key_start:
             } else if (!retries) {
                 lhsm_clear_key_cache(key_id);
                 retries++;
-                goto lhsm_key_start;
+                goto llibhsm_key_start;
            }
             ods_log_error("[%s] unable to get key: create params for key %s "
                 "failed", hsm_str, key_id->locator?key_id->locator:"(null)");
@@ -179,7 +179,7 @@ lhsm_key_start:
         } else if (!retries) {
             lhsm_clear_key_cache(key_id);
             retries++;
-            goto lhsm_key_start;
+            goto llibhsm_key_start;
         }
         /* could not find key */
         ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
@@ -198,7 +198,7 @@ lhsm_key_start:
         } else if (!retries) {
             lhsm_clear_key_cache(key_id);
             retries++;
-            goto lhsm_key_start;
+            goto llibhsm_key_start;
         }
         ods_log_error("[%s] unable to get key: hsm failed to create dnskey",
             hsm_str);

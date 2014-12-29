@@ -29,6 +29,7 @@
 
 #include "keystate/keystate_export_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
@@ -58,7 +59,7 @@ static const char *module_str = "keystate_export_task";
 static ldns_rr *
 get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 {
-	hsm_key_t *key;
+	libhsm_key_t *key;
 	hsm_sign_params_t *sign_params;
 	
 	/* Code to output the DNSKEY record  (stolen from hsmutil) */
@@ -82,7 +83,7 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	/* Get the DNSKEY record */
 	ldns_rr *dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-	hsm_key_free(key);
+	libhsm_key_free(key);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	

@@ -27,7 +27,13 @@
 #ifndef _ENFORCER_ENFORCER_H_
 #define _ENFORCER_ENFORCER_H_
 
-#include "enforcer/enforcerdata.h"
+#include "db/zone.h"
+#include "db/policy.h"
+#include "daemon/engine.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Does any required work for a zone and its policy.
@@ -46,7 +52,10 @@
  * @return time_t Time the function wishes to be called again.
  * */
 time_t
-update(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory);
+update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated);
 
-
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* _ENFORCER_ENFORCER_H_ */

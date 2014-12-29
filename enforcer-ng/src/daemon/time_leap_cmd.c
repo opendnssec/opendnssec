@@ -30,10 +30,12 @@
 
 #include "shared/file.h"
 #include "shared/duration.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "daemon/clientpipe.h"
+#include "hsmkey/hsm_key_factory.h"
 
 #include "daemon/time_leap_cmd.h"
 
@@ -49,7 +51,7 @@ usage(int sockfd)
 		"                       the earliest scheduled task.\n"
 		"    --time <time>      -t for short, leap to this exact time.\n"
 		"    --attach           -a for short. Perform 1 task and stay "
-			"attached, use only when workerthreads=0.\n"
+				"attached, use only when workerthreads=0.\n"
 	);
 }
 
@@ -74,21 +76,21 @@ handles(const char *cmd, ssize_t n)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
-	int bShouldLeap = 0;
 	char* strtime = NULL;
 	char ctimebuf[32]; /* at least 26 according to docs */
 	char buf[ODS_SE_MAXLINE];
 	time_t now = time_now();
-	task_type* task = NULL;
 	const char *time = NULL;
 	time_t time_leap = 0;
 	struct tm tm;
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
-	int argc, attach, cont, time_set = 0;
-	(void)n;
+	int argc, attach, cont;
+	task_type* task = NULL, *newtask;
+	(void)n; (void)dbconn;
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
 
@@ -105,7 +107,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 			time_leap = mktime_from_utc(&tm);
 			client_printf(sockfd,
 				"Using %s parameter value as time to leap to\n", time);
-			time_set = 1;
 		} else {
 			client_printf(sockfd, 
 				"Time leap: Error - could not convert '%s' to a time. "
@@ -120,73 +121,49 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 		client_printf(sockfd, "There are no tasks scheduled.\n");
 		return 1;
 	}
+
+	/* how many tasks */
+	now = time_now();
+	strtime = ctime_r(&now,ctimebuf);
+	client_printf(sockfd, 
+		"There are %i tasks scheduled.\nIt is now       %s",
+		(int) schedule_taskcount(engine->taskq),
+		strtime?strtime:"(null)\n");
 	cont = 1;
 	while (cont) {
-		lock_basic_lock(&engine->taskq->schedule_lock);
-		/* [LOCK] schedule */
-	
-		/* how many tasks */
-		now = time_now();
-		strtime = ctime_r(&now,ctimebuf);
-		client_printf(sockfd, 
-			"There are %i tasks scheduled.\nIt is now       %s",
-			(int) engine->taskq->tasks->count,
-			strtime?strtime:"(null)\n");
-	
-		/* Get first task in schedule, this one also features the earliest wake-up
-		   time of all tasks in the schedule. */
-		task = schedule_get_first_task(engine->taskq);
-	
-		if (task) {
-			if (!task->flush || attach) {
-				/*Use the parameter vaule, or if not given use the time of the first task*/
-				if (!time_set)
-					time_leap = task->when;
-	
-				set_time_now(time_leap);
-				strtime = ctime_r(&time_leap,ctimebuf);
-				if (strtime)
-					strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
-	
-				client_printf(sockfd,  "Leaping to time %s\n", 
-					strtime?strtime:"(null)");
-				ods_log_info("Time leap: Leaping to time %s\n",
-					 strtime?strtime:"(null)");
+		time_leap = schedule_time_first(engine->taskq);
+		if (time_leap < 0) break;
 
-				if (strcmp(task_what2str(task->what),  "enforce") == 0)
-					cont = 0;
-				bShouldLeap = 1;
-			} else {
-				client_printf(sockfd, 
-					"Already flushing tasks, unable to time leap\n");
-				cont = 0;
-			}
-		} else {
-			client_printf(sockfd, "Task queue is empty, unable to time leap\n");
+		set_time_now(time_leap);
+		strtime = ctime_r(&time_leap,ctimebuf);
+		if (strtime)
+			strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
+
+		client_printf(sockfd,  "Leaping to time %s\n", 
+			strtime?strtime:"(null)");
+		ods_log_info("Time leap: Leaping to time %s\n",
+			 strtime?strtime:"(null)");
+		/* Wake up all workers and let them reevaluate wether their
+		 tasks need to be executed */
+		client_printf(sockfd, "Waking up workers\n");
+		engine_wakeup_workers(engine);
+		if (!attach)
+			break;
+		if (!(task = schedule_pop_first_task(engine->taskq)))
+			break;
+		client_printf(sockfd, "[timeleap] attaching to job %s\n", task_what2str(task->what));
+		if (strcmp(task_what2str(task->what),  "enforce") == 0)
 			cont = 0;
+		task->dbconn = dbconn;
+		newtask = task_perform(task);
+		ods_log_debug("[timeleap] finished working");
+		if (newtask) {
+			newtask->dbconn = NULL;
+			(void) schedule_task(engine->taskq, newtask);
 		}
-	
-		/* [UNLOCK] schedule */
-		lock_basic_unlock(&engine->taskq->schedule_lock);
-	
-		if (bShouldLeap) {
-			/* Wake up all workers and let them reevaluate wether their
-			 tasks need to be executed */
-			client_printf(sockfd, "Waking up workers\n");
-			engine_wakeup_workers(engine);
-			if (attach) {
-				task = schedule_pop_task(engine->taskq, 1);
-				if (task) {
-					client_printf(sockfd, "working on %s\n", task->who);
-					task = task_perform(task);
-					if (task)
-						client_printf(sockfd, "rescheduling %s\n", task->who);
-						(void) lock_and_schedule_task(engine->taskq, task, 1);
-				}
-			}
-		}
+		hsm_key_factory_generate_all(engine, dbconn, 0);
 	}
-	return !bShouldLeap;
+	return 0;
 }
 
 

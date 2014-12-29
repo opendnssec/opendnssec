@@ -37,7 +37,7 @@
 
 
 static int
-hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key, ldns_algorithm alg)
+hsm_test_sign (hsm_ctx_t *ctx, libhsm_key_t *key, ldns_algorithm alg)
 {
     int result;
     ldns_rr_list *rrset;
@@ -123,7 +123,7 @@ hsm_test (const char *repository)
 #endif
 
     hsm_ctx_t *ctx = NULL;
-    hsm_key_t *key = NULL;
+    libhsm_key_t *key = NULL;
     char *id;
     int errors = 0;
     unsigned int i = 0;

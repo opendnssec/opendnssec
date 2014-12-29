@@ -31,6 +31,7 @@
 #include <limits.h>
 
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
@@ -65,7 +66,8 @@ handles(const char *cmd, ssize_t n)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
 {
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
@@ -73,7 +75,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n)
 	int argc;
 	long val;
 	char *endptr, *errorstr;
-	(void)n;
+	(void)n; (void)dbconn;
 
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';

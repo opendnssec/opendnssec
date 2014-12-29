@@ -36,11 +36,9 @@
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/worker.h"
-#include "scheduler/fifoq.h"
-#include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "db/db_configuration.h"
+#include "db/db_connection.h"
 
 #include <signal.h>
 
@@ -56,15 +54,12 @@ extern "C" {
 typedef struct engine_struct engine_type;
 
 struct engine_struct {
-    allocator_type* allocator;
     engineconfig_type* config;
     worker_type** workers;
     schedule_type* taskq;
-    fifoq_type* signq;
     cmdhandler_type* cmdhandler;
     int cmdhandler_done;
     int init_setup_done;
-    int database_ready;
 
     pid_t pid;
     uid_t uid;
@@ -74,10 +69,21 @@ struct engine_struct {
     int need_to_exit;
     int need_to_reload;
 
-    cond_basic_type signal_cond;
-    lock_basic_type signal_lock;
-    lock_basic_type enforce_lock;
+    /* Main thread blocks on this condition when there is nothing to do */
+    pthread_cond_t signal_cond;
+    pthread_mutex_t signal_lock;
+    /* To prevent having 2 enforce tasks running simultaneously. */
+    pthread_mutex_t enforce_lock;
+
+    db_configuration_list_t* dbcfg_list;
 };
+
+/**
+ * Try to open a connection to the database.
+ * \param dbcfg_list, database configuration list
+ * \return connection on success, NULL on failure.
+ */
+db_connection_t* get_database_connection(db_configuration_list_t* dbcfg_list);
 
 /**
  * Setup the engine started by engine_create
@@ -89,6 +95,7 @@ struct engine_struct {
  */
 
 ods_status engine_setup(engine_type* engine);
+
 /**
  * Clean up engine.
  * \param[in] engine engine
@@ -96,8 +103,7 @@ ods_status engine_setup(engine_type* engine);
  */
 void engine_teardown(engine_type* engine);
 
-void
-engine_init(engine_type* engine, int daemonize);
+void engine_init(engine_type* engine, int daemonize);
 
 typedef void (*start_cb_t)(engine_type* engine);
 
@@ -134,14 +140,6 @@ void engine_start_workers(engine_type* engine);
 
 engine_type* engine_alloc(void);
 void engine_dealloc(engine_type* engine);
-
-/**
- * Set all task to immediate execution and wake up all workers.
- * \param[in] sockfd fd to print to user
- * \param[in] engine engine
- *
- */
-void flush_all_tasks(int sockfd, engine_type* engine);
 
 #ifdef __cplusplus
 }

@@ -54,7 +54,8 @@ static const char* ods_status_str[] = {
   /* ODS_STATUS_SETSID_ERR        */ "setsid() failed",
   /* ODS_STATUS_UNCHANGED         */ "Status unchanged",
   /* ODS_STATUS_WRITE_PIDFILE_ERR */ "Unable to write process id to pidfile",
-  /* ODS_STATUS_XML_ERR           */ "XML error"
+  /* ODS_STATUS_XML_ERR           */ "XML error",
+  /* ODS_STATUS_DB_ERR            */ "Database error",
   /* ODS_STATUS_MAX               */ "(Error code unknown)"
 };
 
@@ -65,8 +66,36 @@ static const char* ods_status_str[] = {
 const char *
 ods_status2str(ods_status status)
 {
-    if (status < 0 || status >= ODS_STATUS_MAX)
-        return ods_status_str[ODS_STATUS_MAX];
-    return ods_status_str[status];
+    switch (status) {
+    case ODS_STATUS_OK:
+    case ODS_STATUS_ASSERT_ERR:
+    case ODS_STATUS_CFG_ERR:
+    case ODS_STATUS_CHDIR_ERR:
+    case ODS_STATUS_CHROOT_ERR:
+    case ODS_STATUS_CMDHANDLER_ERR:
+    case ODS_STATUS_CONFLICT_ERR:
+    case ODS_STATUS_ERR:
+    case ODS_STATUS_FOPEN_ERR:
+    case ODS_STATUS_FORK_ERR:
+    case ODS_STATUS_HSM_ERR:
+    case ODS_STATUS_INSECURE:
+    case ODS_STATUS_MALLOC_ERR:
+    case ODS_STATUS_PARSE_ERR:
+    case ODS_STATUS_PRIVDROP_ERR:
+    case ODS_STATUS_RNG_ERR:
+    case ODS_STATUS_SETSID_ERR:
+    case ODS_STATUS_UNCHANGED:
+    case ODS_STATUS_WRITE_PIDFILE_ERR:
+    case ODS_STATUS_XML_ERR:
+    case ODS_STATUS_DB_ERR:
+    case ODS_STATUS_MAX:
+        return ods_status_str[status];
+        break;
+
+    default:
+        break;
+    }
+
+    return ods_status_str[ODS_STATUS_MAX];
 }
 

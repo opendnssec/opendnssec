@@ -34,6 +34,7 @@
 
 #include "config.h"
 #include "shared/allocator.h"
+#include "db/db_connection.h"
 
 #include <ldns/ldns.h>
 
@@ -70,7 +71,8 @@ struct task_struct {
     const char* who;
     ldns_rdf* dname;
     void* context;
-	task_type* (*how)(task_type*task);
+    task_type* (*how)(task_type*task);
+    db_connection_t *dbconn; /* short lived */
 };
 
 typedef task_type* (*how_type)(task_type*task);
@@ -185,6 +187,8 @@ void task_log(task_type* task);
  *
  */
 task_type *task_perform(task_type *task);
+
+bool task_id_from_long_name(const char *long_name, task_id *pwhat);
 
 #ifdef __cplusplus
 }

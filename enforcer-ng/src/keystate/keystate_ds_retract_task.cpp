@@ -29,6 +29,7 @@
 
 #include "keystate/keystate_ds_retract_task.h"
 #include "shared/file.h"
+#include "shared/log.h"
 #include "shared/duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
@@ -66,7 +67,7 @@ retract_dnskey_by_id(int sockfd,
 								 "could not connect to HSM");
 		return false;
 	}
-	hsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
+	libhsm_key_t *key = hsm_find_key_by_id(hsm_ctx, id);
 	
 	if (!key) {
 		ods_log_error_and_printf(sockfd,
@@ -94,7 +95,7 @@ retract_dnskey_by_id(int sockfd,
 	
 	hsm_sign_params_free(sign_params);
 	ldns_rr_free(dnskey_rr);
-	hsm_key_free(key);
+	libhsm_key_free(key);
 	
 	/* Replace tab with white-space */
 	for (int i = 0; dnskey_rr_str[i]; ++i) {

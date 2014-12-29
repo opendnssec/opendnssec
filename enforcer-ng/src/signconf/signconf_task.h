@@ -32,10 +32,18 @@
 
 #include "daemon/cfg.h"
 #include "scheduler/task.h"
+#include "db/db_connection.h"
 
-int perform_signconf(int sockfd, engineconfig_type *config, int bforce);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-task_type *signconf_task(engineconfig_type *config, const char *what,
-                         const char * who);
+int perform_signconf(int sockfd, const db_connection_t* dbconn, int force);
+
+task_type* signconf_task(const db_connection_t* dbconn, const char* what, const char* who);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -57,7 +57,7 @@ int client_handleprompt(int sockfd);
  * \return 0 on failure, 1 on success and answer will be set
  * 
  *  TODO: don't let it fail on partial read. */
-int client_prompt_user(int sockfd, char *question, char *answer);
+int client_prompt_user(int sockfd, const char *question, char *answer);
 
 enum msg_type {
 	CLIENT_OPC_STDOUT = 0, 

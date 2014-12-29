@@ -253,7 +253,9 @@ interface_start(const char* cmd, const char* servsock_filename)
                 printf("\n");
                 break;
             }
-            strcpy(userbuf, icmd_ptr);
+            if (snprintf(userbuf, ODS_SE_MAXLINE, "%s", icmd_ptr) >= ODS_SE_MAXLINE) {
+                break;
+            }
             free(icmd_ptr);
             ods_str_trim(userbuf);
             if (strlen(userbuf) > 0) add_history(userbuf);

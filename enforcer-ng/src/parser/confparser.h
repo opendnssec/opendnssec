@@ -36,6 +36,7 @@
 #include "config.h"
 #include "shared/allocator.h"
 #include "shared/status.h"
+#include "daemon/cfg.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,7 +105,7 @@ const char* parse_conf_db_username(allocator_type* allocator,
 	const char* cfgfile);
 const char* parse_conf_db_password(allocator_type* allocator,
 	const char* cfgfile);
-
+engineconfig_database_type_t parse_conf_db_type(const char *cfgfile);
 
 /**
  * Parse elements from the configuration file.
