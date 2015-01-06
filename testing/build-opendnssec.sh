@@ -14,7 +14,6 @@ case "$DISTRIBUTION" in
 		;;
 	netbsd | \
 	freebsd )
-		append_cflags "-std=c99"
 		;;
 	opensuse )
 		append_ldflags "-lncurses -lpthread"
