@@ -61,45 +61,45 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-    char buf[ODS_SE_MAXLINE];
-    const int NARGV = 8;
-    const char *argv[NARGV];
-    int argc;
-    
-    ods_log_debug("[%s] %s command", module_str, key_export_funcblock()->cmdname);
+	char buf[ODS_SE_MAXLINE];
+	const int NARGV = 8;
+	const char *argv[NARGV];
+	int argc;
+	
+	ods_log_debug("[%s] %s command", module_str, key_export_funcblock()->cmdname);
 	cmd = ods_check_command(cmd, n, key_export_funcblock()->cmdname);
-    
-    // Use buf as an intermediate buffer for the command.
-    strncpy(buf, cmd, sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-    
-    // separate the arguments
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc > NARGV) {
-        ods_log_warning("[%s] too many arguments for %s command",
-                        module_str, key_export_funcblock()->cmdname);
-        client_printf(sockfd,"too many arguments\n");
-        return -1;
-    }
-    
-    const char *zone = NULL;
+	
+	// Use buf as an intermediate buffer for the command.
+	strncpy(buf, cmd, sizeof(buf));
+	buf[sizeof(buf)-1] = '\0';
+	
+	// separate the arguments
+	argc = ods_str_explode(buf, NARGV, argv);
+	if (argc > NARGV) {
+		ods_log_warning("[%s] too many arguments for %s command",
+						module_str, key_export_funcblock()->cmdname);
+		client_printf(sockfd,"too many arguments\n");
+		return -1;
+	}
+	
+	const char *zone = NULL;
 	bool bds = 0;
-    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
 	if (ods_find_arg(&argc,argv,"ds","d") >= 0) bds = 1;
-    if (argc) {
-        ods_log_warning("[%s] unknown arguments for %s command",
-                        module_str, key_export_funcblock()->cmdname);
-        client_printf(sockfd,"unknown arguments\n");
-        return -1;
-    }
-    if (!zone) {
-        ods_log_warning("[%s] expected option --zone <zone> for %s command",
-                        module_str, key_export_funcblock()->cmdname);
-        client_printf(sockfd,"expected --zone <zone> option\n");
-        return -1;
-    }
-    /* perform task immediately */
-    return perform_keystate_export(sockfd,engine->config,zone,bds?1:0);
+	if (argc) {
+		ods_log_warning("[%s] unknown arguments for %s command",
+						module_str, key_export_funcblock()->cmdname);
+		client_printf(sockfd,"unknown arguments\n");
+		return -1;
+	}
+	if (!zone) {
+		ods_log_warning("[%s] expected option --zone <zone> for %s command",
+						module_str, key_export_funcblock()->cmdname);
+		client_printf(sockfd,"expected --zone <zone> option\n");
+		return -1;
+	}
+	/* perform task immediately */
+	return perform_keystate_export(sockfd,engine->config,zone,bds?1:0);
 }
 
 static struct cmd_func_block funcblock = {
