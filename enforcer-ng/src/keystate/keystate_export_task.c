@@ -37,6 +37,7 @@
 #include "libhsm.h"
 #include "libhsmdns.h"
 #include "db/key_data.h"
+#include "db/db_error.h"
 
 #include "keystate/keystate_export_task.h"
 
@@ -85,156 +86,74 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	return dnskey_rr;
 }
 
-/** get DNSKEY record and keytag, should only be called for DNSKEYs
- * @param[out] dnskey, DNSKEY in zonefile format
- * @param id, locator of DNSKEY on HSM
- * @param zone, name of zone key belongs to
- * @param algorithm, alg of DNSKEY
- * @param ttl, ttl DS should get. if 0 DNSKEY_TTL is used.
- * @return keytag on succes, 0 on error 
- * 
- * TODO: KEYTAG could very well be 0 THIS is not the right way to 
- * flag succes! */
-static int 
-print_dnskey_from_id(int sockfd, key_data_t *key, const char *zone)
-{
-
-	ldns_rr *dnskey_rr;
-	const key_state_t *state;
-	int ttl = 0;
-	const hsm_key_t *hsmkey;
-	const char *locator;
-	char *rrstr;
-
-	assert(key);
-	assert(zone);
-
-	hsmkey = key_data_hsm_key(key);
-	locator = hsm_key_locator(hsmkey);
-	key_data_cache_key_states(key);
-
-	state = key_data_cached_dnskey(key);
-	ttl = key_state_ttl(state);
-
-	if (!locator) return 1;
-	dnskey_rr = get_dnskey(locator, zone, key_data_algorithm(key), ttl);
-	if (!dnskey_rr) return 1;
-
-	rrstr = ldns_rr2str(dnskey_rr);
-	ldns_rr_free(dnskey_rr);
-
-	if (!client_printf(sockfd, "%s", rrstr)) {
-		LDNS_FREE(rrstr);
-		return 1;
-	}
-	LDNS_FREE(rrstr);
-	return 0;
-}
-
-/** Print SHA1 and SHA256 DS records, should only be called for DNSKEYs
+/**
+ * Print DNSKEY record or SHA1 and SHA256 DS records, should only be
+ * called for DNSKEYs.
+ *
  * @param sockfd, Where to print to
- * @param id, locator of DNSKEY on HSM
- * @param zone, name of zone key belongs to
- * @param algorithm, alg of DNSKEY
- * @param ttl, ttl DS should get. if 0 DNSKEY_TTL is used.
- * @return 1 on succes 0 on error */
-//~ static int 
-//~ print_ds_from_id(int sockfd, const char *id, const char *zone, 
-	//~ int algorithm, uint32_t ttl)
-//~ {
-	//~ ldns_rr *dnskey_rr = get_dnskey(id, zone, algorithm, ttl);
-	//~ if (!dnskey_rr) return 0;
-	//~ char *rrstr;
-	//~ ldns_rr *ds_sha_rr;
-	//~ 
-	//~ /* DS record (SHA1) */
-	//~ ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
-	//~ rrstr = ldns_rr2str(ds_sha_rr);
-	//~ client_printf(sockfd, ";KSK DS record (SHA1):\n%s", rrstr);
-	//~ LDNS_FREE(rrstr);
-	//~ ldns_rr_free(ds_sha_rr);
-	//~ 
-	//~ /* DS record (SHA256) */
-	//~ ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
-	//~ rrstr = ldns_rr2str(ds_sha_rr);
-	//~ client_printf(sockfd, ";KSK DS record (SHA256):\n%s", rrstr);
-	//~ LDNS_FREE(rrstr);
-	//~ ldns_rr_free(ds_sha_rr);
-//~ 
-	//~ ldns_rr_free(dnskey_rr);
-	//~ return 1;
-//~ }
+ * @param key, Key to be printed. Must not be NULL.
+ * @param zone, name of zone key belongs to. Must not be NULL.
+ * @param bind_style, bool. print DS rather than DNSKEY rr.
+ * @return 1 on succes 0 on error
+ */
 static int 
-print_ds_from_id(int sockfd, key_data_t *key, const char *zone)
+print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
+	int bind_style)
 {
-
 	ldns_rr *dnskey_rr;
 	ldns_rr *ds_sha_rr;
-	const key_state_t *state;
 	int ttl = 0;
-	const hsm_key_t *hsmkey;
 	const char *locator;
 	char *rrstr;
 
 	assert(key);
 	assert(zone);
 
-	hsmkey = key_data_hsm_key(key);
-	locator = hsm_key_locator(hsmkey);
-	key_data_cache_key_states(key);
-
-	state = key_data_cached_dnskey(key);
-	ttl = key_state_ttl(state);
-
+	locator = hsm_key_locator(key_data_hsm_key(key));
 	if (!locator) return 1;
+	/* This fetches the states from the DB, I'm only assuming they get
+	 * cleaned up when 'key' is cleaned(?) */
+	if (key_data_cache_key_states(key) != DB_OK)
+		return 1;
+
+	ttl = key_state_ttl(key_data_cached_dnskey(key));
+
 	dnskey_rr = get_dnskey(locator, zone, key_data_algorithm(key), ttl);
 	if (!dnskey_rr) return 1;
 
-	ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
-	rrstr = ldns_rr2str(ds_sha_rr);
-	ldns_rr_free(dnskey_rr);
-
-	if (!client_printf(sockfd, "%s", rrstr)) {
+	if (bind_style) {
+		ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
+		rrstr = ldns_rr2str(ds_sha_rr);
+		ldns_rr_free(ds_sha_rr);
+		/* TODO log error on failure */
+		(void)client_printf(sockfd, ";KSK DS record (SHA1):\n%s", rrstr);
 		LDNS_FREE(rrstr);
-		return 1;
+
+		ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
+		rrstr = ldns_rr2str(ds_sha_rr);
+		ldns_rr_free(ds_sha_rr);
+		/* TODO log error on failure */
+		(void)client_printf(sockfd, ";KSK DS record (SHA256):\n%s", rrstr);
+		LDNS_FREE(rrstr);
+	} else {
+		rrstr = ldns_rr2str(dnskey_rr);
+		/* TODO log error on failure */
+		(void)client_printf(sockfd, "%s", rrstr);
+		LDNS_FREE(rrstr);
 	}
-	LDNS_FREE(rrstr);
+	
+	ldns_rr_free(dnskey_rr);
 	return 0;
 }
-//~ static bool
-//~ load_kasp_policy(OrmConn conn,const std::string &name,
-				//~ ::ods::kasp::Policy &policy)
-//~ {
-	//~ std::string qname;
-	//~ if (!OrmQuoteStringValue(conn, name, qname))
-		//~ return false;
-	//~ 
-	//~ OrmResultRef rows;
-	//~ if (!OrmMessageEnumWhere(conn,policy.descriptor(),rows,
-							 //~ "name=%s",qname.c_str()))
-		//~ return false;
-	//~ 
-	//~ if (!OrmFirst(rows))
-		//~ return false;
-	//~ 
-	//~ return OrmGetMessage(rows, policy, true);
-//~ }
 
-/**
- * @param bds: bool bind format DS
- * 
- *@return: 1 on failure, 0 success 
- */
 int 
-perform_keystate_export(int sockfd,
-	db_connection_t *dbconn,
-	const char *zonename, int bds)
+perform_keystate_export(int sockfd, db_connection_t *dbconn,
+	const char *zonename, int bind_style)
 {
 	key_data_list_t *key_list = NULL;
 	key_data_t *key;
 	zone_t *zone = NULL;
 	db_clause_list_t* clause_list = NULL;
-
 
 	/* Find all keys related to zonename */
 	if (!(key_list = key_data_list_new(dbconn)) ||
@@ -251,34 +170,27 @@ perform_keystate_export(int sockfd,
 	}
 	db_clause_list_free(clause_list);
 	
-	//TODO FETCH TTL FROM POLICY
-
-	/* loop over all keys */
+	/* Print data for all KSK's in applicable state */
 	while ((key = key_data_list_get_next(key_list))) {
-		/* SKIP anything not KSK */
 		if (!(key_data_role(key) & KEY_DATA_ROLE_KSK)) {
 			key_data_free(key);
 			continue;
 		}
-		if (key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SUBMIT &&
+		if (key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SUBMIT    &&
 			key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SUBMITTED &&
-			key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_RETRACT &&
+			key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_RETRACT   &&
 			key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_RETRACTED)
 		{
 			key_data_free(key);
 			continue;
 		}
 		/* check return code TODO */
-		key_data_cache_hsm_key(key);
-		//STUFF
-		if (!bds) {
-			if (print_dnskey_from_id(sockfd, key, zonename))
+		if (key_data_cache_hsm_key(key) == DB_OK) {
+			if (print_ds_from_id(sockfd, key, zonename, bind_style))
 				ods_log_error("[%s] Error", module_str);
 		} else {
-			if (print_ds_from_id(sockfd, key, zonename))
-				ods_log_error("[%s] Error", module_str);
+			ods_log_error("[%s] Error fetching from database", module_str);
 		}
-
 		key_data_free(key);
 	}
 	key_data_list_free(key_list);
