@@ -132,8 +132,8 @@ cmd_funcs_avail(void)
         &zonelist_import_funcblock,
 
         &key_list_funcblock,
-/*        &key_export_funcblock,
-        &key_ds_submit_funcblock,
+        &key_export_funcblock,
+/*        &key_ds_submit_funcblock,
 */        &key_ds_seen_funcblock,
 /*        &key_ds_retract_funcblock,
 */        &key_ds_gone_funcblock,

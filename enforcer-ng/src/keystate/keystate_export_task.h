@@ -30,9 +30,17 @@
 #ifndef _KEYSTATE_EXPORT_TASK_H_
 #define _KEYSTATE_EXPORT_TASK_H_
 
-#include "daemon/cfg.h"
-
-int perform_keystate_export(int sockfd, engineconfig_type *config,
-                             const char *zone, int bds);
+/**
+ * Print DS or DNSKEY to socket
+ *
+ * @param sockfd, socket to output to
+ * @param dbconn, live database connection
+ * @param zonename, zone of which the DS records should be printed.
+ * @param bind_style, print DS rather than DNSKEY records.
+ * @return 1 on failure, 0 success 
+ */
+int 
+perform_keystate_export(int sockfd, db_connection_t *dbconn,
+	const char *zonename, int bds);
 
 #endif

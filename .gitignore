@@ -46,6 +46,7 @@ enforcer-ng/man/ods-enforcer.8
 enforcer-ng/man/ods-enforcerd.8
 enforcer-ng/src/ods-enforcer
 enforcer-ng/src/ods-enforcerd
+enforcer-ng/src/ods-enforcer-db-setup
 enforcer-ng/src/utils/ods-kaspcheck
 libhsm/checks/conf-aepkeyper.xml
 libhsm/checks/conf-etoken.xml
