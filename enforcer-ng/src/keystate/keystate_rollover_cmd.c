@@ -59,24 +59,24 @@ perform_keystate_rollover(int sockfd, db_connection_t *dbconn,
 			if (zone_set_roll_ksk_now(zone, 1) ||
 				zone_set_roll_zsk_now(zone, 1) ||
 				zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
-			client_printf(sockfd, "rolling all keys for zone %s\n", zone);
+			client_printf(sockfd, "rolling all keys for zone %s\n", zonename);
 			ods_log_info("[%s] Manual rollover initiated for all keys on Zone: %s",
-				module_str, zone);
+				module_str, zonename);
 			break;
 		case KEY_DATA_ROLE_KSK:
 			if (zone_set_roll_ksk_now(zone, 1)) {error = 1; break;};
-			client_printf(sockfd,"rolling KSK for zone %s\n",zone);
-			ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zone);
+			client_printf(sockfd,"rolling KSK for zone %s\n",zonename);
+			ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zonename);
 			break;
 		case KEY_DATA_ROLE_ZSK:
 			if (zone_set_roll_zsk_now(zone, 1)) {error = 1; break;}
-			client_printf(sockfd,"rolling ZSK for zone %s\n",zone);
-			ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zone);
+			client_printf(sockfd,"rolling ZSK for zone %s\n",zonename);
+			ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zonename);
 			break;
 		case KEY_DATA_ROLE_CSK:
 			if (zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
-			client_printf(sockfd,"rolling CSK for zone %s\n",zone);
-			ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zone);
+			client_printf(sockfd,"rolling CSK for zone %s\n",zonename);
+			ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zonename);
 			break;
 		default:
 			ods_log_assert(false && "nkeyrole out of range");
