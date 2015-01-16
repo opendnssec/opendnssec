@@ -32,7 +32,11 @@
 
 #include "daemon/cfg.h"
 
-int perform_keystate_export(int sockfd, engineconfig_type *config,
-                             const char *zone, int bds);
 
+/**
+ *
+ */
+int 
+perform_keystate_export(int sockfd, db_connection_t *dbconn,
+	const char *zonename, int bds);
 #endif

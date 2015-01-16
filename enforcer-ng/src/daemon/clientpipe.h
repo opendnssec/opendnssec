@@ -33,6 +33,7 @@
 extern "C" {
 #endif
 
+/* 1 on succes 0 on fail*/
 int client_printf(int sockfd, const char * format, ...);
 int client_printf_err(int sockfd, const char * format, ...);
 
