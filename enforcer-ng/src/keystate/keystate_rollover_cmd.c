@@ -65,17 +65,17 @@ perform_keystate_rollover(int sockfd, db_connection_t *dbconn,
 			break;
 		case KEY_DATA_ROLE_KSK:
 			if (zone_set_roll_ksk_now(zone, 1)) {error = 1; break;};
-			client_printf(sockfd,"rolling KSK for zone %s\n",zonename);
+			client_printf(sockfd, "rolling KSK for zone %s\n", zonename);
 			ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zonename);
 			break;
 		case KEY_DATA_ROLE_ZSK:
 			if (zone_set_roll_zsk_now(zone, 1)) {error = 1; break;}
-			client_printf(sockfd,"rolling ZSK for zone %s\n",zonename);
+			client_printf(sockfd, "rolling ZSK for zone %s\n", zonename);
 			ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zonename);
 			break;
 		case KEY_DATA_ROLE_CSK:
 			if (zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
-			client_printf(sockfd,"rolling CSK for zone %s\n",zonename);
+			client_printf(sockfd, "rolling CSK for zone %s\n", zonename);
 			ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zonename);
 			break;
 		default:
@@ -100,6 +100,17 @@ usage(int sockfd)
 		"key rollover           Perform a manual key rollover.\n"
 		"      --zone <zone>              (aka -z)  zone.\n"
 		"      [--keytype <keytype>]      (aka -t)  KSK or ZSK (default all).\n"
+	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"Start a key rollover of the desired type *now*. The process is the same\n"
+		"as for the scheduled automated rollovers however it does not wait for\n"
+		"the keys lifetime to expire before rolling. The next rollover is due\n"
+		"after the newest key aged passed its lifetime.\n"
 	);
 }
 
@@ -173,7 +184,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"key rollover", &usage, NULL, &handles, &run
+	"key rollover", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*
