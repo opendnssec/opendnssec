@@ -143,9 +143,9 @@ cmd_funcs_avail(void)
         &rollover_list_funcblock,
         
         &backup_funcblock,
-/*
+
         &enforce_funcblock,
-*/        &signconf_funcblock,
+        &signconf_funcblock,
 
 
         &queue_funcblock,
