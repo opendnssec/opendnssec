@@ -131,13 +131,13 @@ print_dnskey_from_id(int sockfd, key_data_t *key, const char *zone)
 	return 0;
 }
 
-//~ /** Print SHA1 and SHA256 DS records, should only be called for DNSKEYs
- //~ * @param sockfd, Where to print to
- //~ * @param id, locator of DNSKEY on HSM
- //~ * @param zone, name of zone key belongs to
- //~ * @param algorithm, alg of DNSKEY
- //~ * @param ttl, ttl DS should get. if 0 DNSKEY_TTL is used.
- //~ * @return 1 on succes 0 on error */
+/** Print SHA1 and SHA256 DS records, should only be called for DNSKEYs
+ * @param sockfd, Where to print to
+ * @param id, locator of DNSKEY on HSM
+ * @param zone, name of zone key belongs to
+ * @param algorithm, alg of DNSKEY
+ * @param ttl, ttl DS should get. if 0 DNSKEY_TTL is used.
+ * @return 1 on succes 0 on error */
 //~ static int 
 //~ print_ds_from_id(int sockfd, const char *id, const char *zone, 
 	//~ int algorithm, uint32_t ttl)
@@ -164,7 +164,43 @@ print_dnskey_from_id(int sockfd, key_data_t *key, const char *zone)
 	//~ ldns_rr_free(dnskey_rr);
 	//~ return 1;
 //~ }
-//~ 
+static int 
+print_ds_from_id(int sockfd, key_data_t *key, const char *zone)
+{
+
+	ldns_rr *dnskey_rr;
+	ldns_rr *ds_sha_rr;
+	const key_state_t *state;
+	int ttl = 0;
+	const hsm_key_t *hsmkey;
+	const char *locator;
+	char *rrstr;
+
+	assert(key);
+	assert(zone);
+
+	hsmkey = key_data_hsm_key(key);
+	locator = hsm_key_locator(hsmkey);
+	key_data_cache_key_states(key);
+
+	state = key_data_cached_dnskey(key);
+	ttl = key_state_ttl(state);
+
+	if (!locator) return 1;
+	dnskey_rr = get_dnskey(locator, zone, key_data_algorithm(key), ttl);
+	if (!dnskey_rr) return 1;
+
+	ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
+	rrstr = ldns_rr2str(ds_sha_rr);
+	ldns_rr_free(dnskey_rr);
+
+	if (!client_printf(sockfd, "%s", rrstr)) {
+		LDNS_FREE(rrstr);
+		return 1;
+	}
+	LDNS_FREE(rrstr);
+	return 0;
+}
 //~ static bool
 //~ load_kasp_policy(OrmConn conn,const std::string &name,
 				//~ ::ods::kasp::Policy &policy)
@@ -239,12 +275,8 @@ perform_keystate_export(int sockfd,
 			if (print_dnskey_from_id(sockfd, key, zonename))
 				ods_log_error("[%s] Error", module_str);
 		} else {
-			//~ if (!print_ds_from_id(sockfd, key.locator().c_str(), 
-				//~ enfzone.name().c_str(), key.algorithm(), dnskey_ttl))
-			//~ {
-				//~ LOG_AND_RETURN_1("unable to find key with id %s on HSM",
-					//~ key.locator().c_str());
-			//~ }
+			if (print_ds_from_id(sockfd, key, zonename))
+				ods_log_error("[%s] Error", module_str);
 		}
 
 		key_data_free(key);
