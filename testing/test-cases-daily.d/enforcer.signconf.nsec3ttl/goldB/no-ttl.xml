@@ -1,0 +1,66 @@
+<SignerConfiguration>
+	<Zone name="no-ttl">
+		<Signatures>
+			<Resign>PT5356800S</Resign>
+			<Refresh>PT8035200S</Refresh>
+			<Validity>
+				<Default>PT18748800S</Default>
+				<Denial>PT18748800S</Denial>
+			</Validity>
+			<Jitter>PT43200S</Jitter>
+			<InceptionOffset>PT300S</InceptionOffset>
+		</Signatures>
+
+		<Denial>
+			<NSEC3>
+				<TTL>PT3600S</TTL>
+				<OptOut />
+				<Hash>
+					<Algorithm>1</Algorithm>
+					<Iterations>5</Iterations>
+					<Salt>3f404f6a72e466af</Salt>
+				</Hash>
+			</NSEC3>
+		</Denial>
+
+		<Keys>
+			<TTL>PT8035200S</TTL>
+			<Key>
+				<Flags>257</Flags>
+				<Algorithm>7</Algorithm>
+				<Locator>b0b158f5c9e38abb16289ba7a8ec424a</Locator>
+				<KSK />
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>7</Algorithm>
+				<Locator>fbfa084014cf0cd260bd9f25d598272a</Locator>
+				<ZSK />
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>7</Algorithm>
+				<Locator>a71a98fe44fcdb03bd5fad44b39a5359</Locator>
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>7</Algorithm>
+				<Locator>eece5d97a3656e3a3249bce83b844650</Locator>
+				<Publish />
+			</Key>
+
+		</Keys>
+
+		<SOA>
+			<TTL>PT8035200S</TTL>
+			<Minimum>PT1209600S</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+	</Zone>
+</SignerConfiguration>
