@@ -42,9 +42,6 @@
 #include <ctime>
 #include <iostream>
 
-#include "enforcer/enforcerdata.h"
-#include "policy/kasp.pb.h"
-#include "hsmkey/hsmkey.pb.h"
 #include "libhsm.h"
 #include "hsmkey/hsm_key_factory.h"
 
@@ -71,28 +68,19 @@
 #define NA          KEY_STATE_STATE_NA
 
 using namespace std;
-using ::ods::kasp::Policy;
-using ::ods::kasp::KeyList;
+//~ using ::ods::kasp::Policy;
+//~ using ::ods::kasp::KeyList;
 
 static const char *module_str = "enforcer";
 
 /* be careful changing this, might mess up database*/
 enum STATE {HID, RUM, OMN, UNR, NOCARE}; 
 static const char* STATENAMES[] = {"HID", "RUM", "OMN", "UNR"};
-/* trick to loop over our RECORD enum */
-RECORD& operator++(RECORD& r){return r = (r >= REC_MAX?REC_MAX:RECORD(r+1));}
 static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
 /* \careful */
 
 /** When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
-
-struct FutureKey {
-	KeyData *key;
-	RECORD record;
-	STATE next_state;
-	bool pretend_update;
-};
 
 struct future_key {
     key_data_t* key;
@@ -136,28 +124,6 @@ addtime(const time_t t, const int seconds)
 }
 
 /**
- * Retrieve a KeyState structure for one of the records of a key.
- * 
- * \param[in] key, key to get the keystate from.
- * \param[in] record, specifies which keystate.
- * \return keystate
- * */
-static KeyState&
-getRecord_old(KeyData &key, const RECORD record)
-{
-	static const char *scmd = "getRecord";
-	switch(record) {
-		case DS: return key.keyStateDS();
-		case DK: return key.keyStateDNSKEY();
-		case RD: return key.keyStateRRSIGDNSKEY();
-		case RS: return key.keyStateRRSIG();
-		default: 
-			ods_fatal_exit("[%s] %s Unknown record type (%d), "
-				"fault of programmer. Abort.", 
-				module_str, scmd, (int)record);
-	}
-}
-/**
  * Retrieve the key_state object from one of the records of a key.
  *
  * \return a key_state_t pointer or NULL on error or if the type specified is
@@ -192,24 +158,6 @@ getRecord(key_data_t* key, key_state_type_t type)
 
 /**
  * Return state of a record.
- * 
- * \param[in] key
- * \param[in] record
- * \return state of record.
- * */
-static inline STATE
-getState_old(KeyData &key, const RECORD record,
-	const struct FutureKey *future_key)
-{
-	if (future_key && future_key->pretend_update 
-		&& &key == future_key->key 
-		&& record == future_key->record)
-		return future_key->next_state;
-	else
-		return (STATE)getRecord_old(key, record).state();
-}
-/**
- * Return state of a record.
  *
  * \return a key_state_state_t which will be KEY_STATE_STATE_INVALID on error.
  */
@@ -238,28 +186,6 @@ getState(key_data_t* key, key_state_type_t type, struct future_key *future_key)
     return key_state_state(getRecord(key, type));
 }
 
-/**
- * Given goal and state, what will be the next state?
- * 
- * This is an implementation of our state diagram. State indicates
- * our current node and goal helps decide which edge to choose. 
- * Input state and return state me be the same: the record is said
- * to be stable.
- * 
- * \param[in] introducing, movement direction of key.
- * \param[in] state, current state of record.
- * \return next state
- * */
-static STATE
-getDesiredState_old(const bool introducing, const STATE state)
-{
-	static const char *scmd = "getDesiredState";
-	if (state > NOCARE || state < HID) 
-		ods_fatal_exit("[%s] %s Key in unknown state (%d), "
-			"Corrupt database? Abort.",  module_str, scmd, (int)state);
-	const STATE jmp[2][5] = {{HID, UNR, UNR, HID, NOCARE}, {RUM, OMN, OMN, RUM, NOCARE}};
-	return jmp[introducing][(int)state];
-}
 /**
  * Given goal and state, what will be the next state?
  *
@@ -340,39 +266,6 @@ getDesiredState(int introducing, key_state_state_t state)
 }
 
 /**
- * Test a key exist for certain states.
- * 
- * @param k, key to evaluate.
- * @param key, key to compare with
- * @param record, record of said key to compare with
- * @param next_state, desired state of said record. Required if 
- * 			pretend_update is set.
- * @param require_same_algorithm, search for keys with the same
- * 			algorithm as input key, else any algorithm.
- * @param pretend_update, pretend record of key is in state next_state.
- * @param mask, The states to look for in a key. respectively DS, 
- * 			DNSKEY, RRSIG DNSKEY and RRSIG state. NOCARE for a record
- * 			if any will do.
- * @return True IFF exist such key.
- * */
-static bool
-match_old(KeyData &k, const struct FutureKey *future_key,
-	const bool require_same_algorithm, const STATE mask[4])
-{
-	if (require_same_algorithm && 
-		k.algorithm() != future_key->key->algorithm())
-		return false;
-	/** Do we need to substitute a state of this key with 
-	 * next_state? */
-	for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
-		/** Do we need to substitute the state of THIS record? */
-		if (mask[r] == NOCARE) continue;
-		/** no match in this record */
-		if (mask[r] != getState_old(k, r, future_key)) return false;
-	}
-	return true;
-}
-/**
  * Test if a key matches specific states.
  *
  * \return A positive value if the key match, zero if a key does not match and
@@ -418,34 +311,6 @@ match(key_data_t* key, struct future_key *future_key, int same_algorithm,
 
 /**
  * Test if a key exist with certain states.
- * 
- * @param key_list, list to search in.
- * @param key, key to compare with
- * @param record, record of said key to compare with
- * @param next_state, desired state of said record. Required if 
- * 			pretend_update is set.
- * @param require_same_algorithm, search for keys with the same
- * 			algorithm as input key, else any algorithm.
- * @param pretend_update, pretend record of key is in state next_state.
- * @param mask, The states to look for in a key. respectively DS, 
- * 			DNSKEY, RRSIG DNSKEY and RRSIG state. NOCARE for a record
- * 			if any will do.
- * @return True IFF exist such key.
- * */
-static bool
-exists_old(KeyDataList &key_list, const struct FutureKey *future_key,
-	const bool require_same_algorithm, const STATE mask[4])
-{
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &k = key_list.key(i);
-		if (match_old(k, future_key, require_same_algorithm, mask))
-			return true;
-	}
-	return false;
-}
-
-/**
- * Test if a key exist with certain states.
  *
  * \return A positive value if a key exists, zero if a key does not exists and
  * a negative value if an error occurred.
@@ -482,44 +347,6 @@ exists(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
 	return 0;
 }
 
-/** Looks up KeyData from locator string.
- * TODO: find a better approach, can we trick protobuf to cross
- * reference? */
-static KeyData *
-stringToKeyData(KeyDataList &key_list, const string &locator)
-{
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		if (locator.compare(key_list.key(i).locator()) == 0) {
-			return &key_list.key(i);
-		}
-	}
-	return NULL;
-}
-
-static bool
-isPotentialSuccessor_old(KeyData &pred_key, const struct FutureKey *future_key, KeyData &succ_key, const RECORD succRelRec)
-{
-	static const char *scmd = "isPotentialSuccessor_old";
-	/** must at least have record introducing */
-	if (getState_old(succ_key, succRelRec, future_key) != RUM) return false;
-	if (pred_key.algorithm() != succ_key.algorithm()) return false;
-	switch(future_key->record) {
-		case DS: /** intentional fall-through */
-		case RS: 
-			return getState_old(succ_key, DK, future_key) == OMN;
-		case DK: 
-			return  (getState_old(pred_key, DS, future_key) == OMN) &&
-					(getState_old(succ_key, DS, future_key) == OMN) ||
-					(getState_old(pred_key, RS, future_key) == OMN) &&
-					(getState_old(succ_key, RS, future_key) == OMN) ;
-		case RD:
-			return false;
-		default: 
-			ods_fatal_exit("[%s] %s Unknown record type (%d), "
-				"fault of programmer. Abort.",
-				module_str, scmd, (int)future_key->record);
-	}
-}
 /**
  * Test if a key is a potential successor.
  *
@@ -593,68 +420,6 @@ isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
     return 0;
 }
 
-/** True if a path from k_succ to k_pred exists */
-static bool
-successor_rec_old(KeyDataList &key_list, KeyDependencyList &dep_list, KeyData &k_succ,
-		const string &k_pred,
-		struct FutureKey *future_key, const RECORD succRelRec) 
-{
-	/** trivial case where there is a direct relation in the present */
-	for (int i = 0; i < dep_list.numDeps(); i++) {
-		KeyDependency &dep = dep_list.dep(i);
-		if (dep.rrType() == succRelRec &&
-			dep.fromKey().compare( k_pred ) == 0 &&
-			dep_list.dep(i).toKey().compare( k_succ.locator() ) == 0 ) 
-			return true;
-	}
-
-	/** trivial case where there is a direct relation in the future */
-	if (future_key->pretend_update && 
-		future_key->key->locator().compare(k_pred) == 0 && 
-		isPotentialSuccessor_old(*future_key->key, future_key, k_succ, succRelRec))
-		return true;
-	KeyData *prKey = stringToKeyData(key_list, k_pred);
-	/** There is no direct relation. Check for indirect where X depends
-	 * on S and X in same state as P and X successor of P*/
-	for (int i = 0; i < dep_list.numDeps(); i++) {
-		KeyDependency &dep = dep_list.dep(i);
-		if (dep.rrType() != succRelRec ||
-				dep.toKey().compare( k_succ.locator()) != 0) continue;
-		//fromKey() is candidate now, must be in same state as k_pred
-		KeyData *fromKey = stringToKeyData(key_list, dep.fromKey());
-		//TODO, make fine grained. depending on record
-		/*
-		 * The RRSIGDNSKEY is not compared because TODO .
-		 */
-		if (getState_old(*prKey, DS, future_key) != getState_old(*fromKey, DS, future_key)) continue;
-		if (getState_old(*prKey, DK, future_key) != getState_old(*fromKey, DK, future_key)) continue;
-		if (getState_old(*prKey, RS, future_key) != getState_old(*fromKey, RS, future_key)) continue;
-		/** state maches, can be build a chain? */
-		if (successor_rec_old(key_list, dep_list, *fromKey, k_pred, future_key, succRelRec)) {
-			return true;
-		}
-	}
-	/** There is no direct relation. Check for indirect where X depends
-	 * on S and X in same state as P and X successor of P*/
-	 //for all X, is S succ of X?
-	if (future_key->pretend_update) {
-		for (int i = 0; i < key_list.numKeys(); i++) {
-			if (key_list.key(i).locator().compare(k_pred) == 0) continue; 
-			if (isPotentialSuccessor_old(key_list.key(i), future_key, k_succ, succRelRec)) {
-		        /*
-		         * The RRSIGDNSKEY is not compared because TODO .
-		         */
-				if (getState_old(*prKey, DS, future_key) != getState_old(key_list.key(i), DS, NULL)) continue;
-				if (getState_old(*prKey, DK, future_key) != getState_old(key_list.key(i), DK, NULL)) continue;
-				if (getState_old(*prKey, RS, future_key) != getState_old(key_list.key(i), RS, NULL)) continue;
-				if (successor_rec_old(key_list, dep_list, k_succ, key_list.key(i).locator(), future_key, succRelRec)) {
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
 /**
  * Test if a key record is a successor.
  *
@@ -872,26 +637,6 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
     return 0;
 }
 
-
-/** X is a successor of Y if:
- * 		- Exists no Z depending on Y and
- * 		- (Y depends on X or
- * 		- Exist a Z where
- * 			- Z in same state as Y and
- * 			- Z depends on X */
-/** True if k_succ is a successor of k_pred */
-static bool
-successor_old(KeyDataList &key_list, KeyDependencyList &dep_list,
-		KeyData &k_succ, KeyData &k_pred,
-		struct FutureKey *future_key, const RECORD succRelRec)
-{
-	/** Nothing may depend on our predecessor */
-	for (int i = 0; i < dep_list.numDeps(); i++)
-		if ( dep_list.dep(i).toKey().compare( k_pred.locator() ) == 0)
-			return false;
-	return successor_rec_old(key_list, dep_list, k_succ, k_pred.locator(),
-		future_key, succRelRec);
-}
 /**
  * Test if a key is a successor.
  *
@@ -940,32 +685,6 @@ successor(key_data_t** keylist, size_t keylist_size, key_data_t* successor_key,
     return successor_rec(keylist, keylist_size, successor_key, predecessor_key, future_key, type, deplist);
 }
 
-//Seek 
-static bool
-exists_with_successor_old(KeyDependencyList &dep_list,
-	KeyDataList &key_list, struct FutureKey *future_key,
-	const bool require_same_algorithm, const STATE mask_pred[4], 
-	const STATE mask_succ[4], const RECORD succRelRec)
-{
-	//Seek potential successor keys
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &k_succ = key_list.key(i);
-		/** Do we have a key matching mask_succ? */
-		if (!match_old(k_succ, future_key,
-				require_same_algorithm, mask_succ)) {
-			continue;
-		}
-		for (int j = 0; j < key_list.numKeys(); j++) {
-			KeyData &k_pred = key_list.key(j);
-			/** Do we have a key matching mask_pred? */
-			if (!match_old(k_pred, future_key, require_same_algorithm, mask_pred))
-				continue;
-			if (successor_old(key_list, dep_list, k_succ, k_pred, future_key, succRelRec))
-				return true;
-		}
-	}
-	return false;
-}
 /**
  * TODO
  *
@@ -1013,72 +732,6 @@ exists_with_successor(key_data_t** keylist, size_t keylist_size,
     return 0;
 }
 
-
-/**
- * Simpler exists function without another key,record as reference.
- * 
- * @param key_list, list to search in.
- * @param mask, The states to look for in a key. respectively DS, 
- * 			DNSKEY, RRSIG DNSKEY and RRSIG state. NOCARE for a record
- * 			if any will do.
- * @return True IFF exist such key.
- * */
-static bool
-exists_anon(KeyDataList &key_list, const STATE mask[4])
-{
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &k = key_list.key(i);
-		bool match = true;
-		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
-			/** Do we need to substitute the state of THIS record? */
-			if (mask[r] == NOCARE) continue;
-			/** no match in this record, try next key */
-			if (mask[r] != getState_old(k, r, NULL)) {
-				match = false;
-				break;
-			}
-		}
-		if (match) return true;
-	}
-	return false;
-}
-
-/**
- * Test if all keys are in a good unsigned state.
- * 
- * @param key_list, list to search in.
- * @param key, key to compare with
- * @param record, record of said key to compare with
- * @param next_state, desired state of said record. Required if 
- * 			pretend_update is set.
- * @param pretend_update, pretend record of key is in state next_state.
- * @param mask, The states to look for in a key. respectively DS, 
- * 			DNSKEY, RRSIG DNSKEY and RRSIG state. NOCARE for a record
- * 			if any will do.
- * @param mustHID, the record which must be HIDDEN for each key, 
- * 			otherwise mask must apply.
- * @return True IFF all keys are securely insecure.
- * */
-static bool
-unsignedOk_old(KeyDataList &key_list, const struct FutureKey *future_key,
-	const STATE mask[4], const RECORD mustHID)
-{
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &k = key_list.key(i);
-		if (k.algorithm() != future_key->key->algorithm()) continue;
-		
-		STATE cmp_msk[4];
-		for (RECORD r = REC_MIN; r < REC_MAX; ++r)
-			cmp_msk[r] = (r == mustHID)?getState_old(k, r, future_key):mask[r];
-		/** If state is hidden this key is okay. */
-		if (cmp_msk[mustHID] == HID || cmp_msk[mustHID] == NOCARE)
-			continue;
-		/** Otherwise, we must test mask */
-		if (!exists_old(key_list, future_key, true, cmp_msk))
-			return false;
-	}
-	return true;
-}
 /**
  * Test if keys are in a good unsigned state.
  *
@@ -1161,29 +814,6 @@ unsignedOk(key_data_t** keylist, size_t keylist_size,
     return 1;
 }
 
-/** 
- * Checks for existence of DS.
- * 
- * @param key_list, list to search in.
- * @param key, key to compare with
- * @param record, record of said key to compare with
- * @param next_state, desired state of said record. Required if 
- * 			pretend_update is set.
- * @param pretend_update, pretend record of key is in state next_state.
- * @return True IFF a introducing DS exists.
- * */
-static bool
-rule1_old(KeyDependencyList &dep_list, KeyDataList &key_list,
-	struct FutureKey *future_key, bool pretend_update)
-{
-	const STATE mask_triv[] =  {OMN, NOCARE, NOCARE, NOCARE};
-	const STATE mask_dsin[] =  {RUM, NOCARE, NOCARE, NOCARE};
-	
-	future_key->pretend_update = pretend_update;
-	return  
-		exists_old(key_list, future_key, false, mask_triv) ||
-		exists_old(key_list, future_key, false, mask_dsin);
-}
 /**
  * Checks for existence of DS.
  *
@@ -1228,46 +858,6 @@ rule1(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
 	return 0;
 }
 
-/** 
- * Checks for a valid DNSKEY situation.
- * 
- * @param key_list, list to search in.
- * @param key, key to compare with
- * @param record, record of said key to compare with
- * @param next_state, desired state of said record. Required if 
- * 			pretend_update is set.
- * @param pretend_update, pretend record of key is in state next_state.
- * @return True IFF one of requirements is met.
- * */
-static bool
-rule2_old(KeyDependencyList &dep_list, KeyDataList &key_list,
-	struct FutureKey *future_key, bool pretend_update)
-{
-	const STATE mask_unsg[] =  {HID, OMN, OMN, NOCARE};
-	const STATE mask_triv[] =  {OMN, OMN, OMN, NOCARE};
-	const STATE mask_ds_i[] =  {RUM, OMN, OMN, NOCARE};
-	const STATE mask_ds_o[] =  {UNR, OMN, OMN, NOCARE};
-	const STATE mask_k_i1[] =  {OMN, RUM, RUM, NOCARE};
-	const STATE mask_k_i2[] =  {OMN, OMN, RUM, NOCARE};
-	const STATE mask_k_o1[] =  {OMN, UNR, UNR, NOCARE};
-	const STATE mask_k_o2[] =  {OMN, UNR, OMN, NOCARE};
-
-	future_key->pretend_update = pretend_update;
-	/** for performance the lighter, more-likely-to-be-true test are
-	 * performed first. */
-	
-	return
-		exists_old(key_list, future_key, true, mask_triv) ||
-		
-		exists_with_successor_old(dep_list, key_list, future_key, true, mask_ds_o, mask_ds_i, DS) ||
-
-		exists_with_successor_old(dep_list, key_list, future_key, true, mask_k_o1, mask_k_i1, DK) ||
-		exists_with_successor_old(dep_list, key_list, future_key, true, mask_k_o1, mask_k_i2, DK) ||
-		exists_with_successor_old(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i1, DK) ||
-		exists_with_successor_old(dep_list, key_list, future_key, true, mask_k_o2, mask_k_i2, DK) ||
-		
-		unsignedOk_old(key_list, future_key, mask_unsg, DS);
-}
 /**
  * Checks for a valid DNSKEY situation.
  *
@@ -1335,37 +925,6 @@ rule2(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
 	return 0;
 }
 
-/** 
- * Checks for a valid signature situation.
- * 
- * @param key_list, list to search in.
- * @param key, key to compare with
- * @param record, record of said key to compare with
- * @param next_state, desired state of said record. Required if 
- * 			pretend_update is set.
- * @param pretend_update, pretend record of key is in state next_state.
- * @return True IFF one of requirements is met.
- * */
-static bool
-rule3_old(KeyDependencyList &dep_list, KeyDataList &key_list,
-	struct FutureKey *future_key, bool pretend_update)
-{
-	const STATE mask_triv[] =  {NOCARE, OMN, NOCARE, OMN};
-	const STATE mask_keyi[] =  {NOCARE, RUM, NOCARE, OMN};
-	const STATE mask_keyo[] =  {NOCARE, UNR, NOCARE, OMN};
-	const STATE mask_sigi[] =  {NOCARE, OMN, NOCARE, RUM};
-	const STATE mask_sigo[] =  {NOCARE, OMN, NOCARE, UNR};
-	const STATE mask_unsg[] =  {NOCARE, HID, NOCARE, OMN};
-
-	future_key->pretend_update = pretend_update;
-	/** for performance the lighter, more-likely-to-be-true test are
-	 * performed first. */
-	return
-		exists_old(key_list, future_key, true, mask_triv) ||
-		exists_with_successor_old(dep_list, key_list, future_key, true, mask_keyo, mask_keyi, DK) ||
-		exists_with_successor_old(dep_list, key_list, future_key, true, mask_sigo, mask_sigi, RS) ||
-		unsignedOk_old(key_list, future_key, mask_unsg, DK);
-}
 /**
  * Checks for a valid signature situation.
  *
@@ -1429,32 +988,6 @@ rule3(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
 }
 
 /**
- * Checks of transition to next_state maintains validity of zone.
- * 
- * Check all 3 rules. Any of the rules that are true in the current 
- * situation (ideally all) must be true in the desired situation.
- * No decay is allowed.
- * 
- * @param key_list, list to search in.
- * @param key, key to compare with
- * @param record, record of said key to compare with
- * @param next_state, desired state of said record.
- * @return True if transition is okay DNSSEC-wise.
- * */
-static bool
-dnssecApproval_old(KeyDependencyList &dep_list, KeyDataList &key_list,
-	struct FutureKey *future_key, bool allow_unsigned)
-{
-	return 
-		(allow_unsigned ||
-		 !rule1_old(dep_list, key_list, future_key, false) ||
-		  rule1_old(dep_list, key_list, future_key, true ) ) &&
-		(!rule2_old(dep_list, key_list, future_key, false) ||
-		  rule2_old(dep_list, key_list, future_key, true ) ) &&
-		(!rule3_old(dep_list, key_list, future_key, false) ||
-		  rule3_old(dep_list, key_list, future_key, true ) );
-}
-/**
  * Checks if transition to next_state maintains validity of zone.
  *
  * \return A positive value if the transition is allowed, zero if it is not and
@@ -1510,51 +1043,6 @@ dnssecApproval(key_data_t** keylist, size_t keylist_size,
 
 /**
  * At what time may this transition take place?
- * 
- * Given a record, its next state, and its last change time when may 
- * apply the transition? This is largely policy related.
- * 
- * @param zone
- * @param record we are testing
- * @param next_state of record 
- * @param lastchange of record
- * @param ttl of record, *may* be different from policy.
- * @return absolute time
- * */
-static time_t
-minTransitionTime_old(EnforcerZone &zone, const RECORD record,
-	const STATE next_state, const time_t lastchange, const int ttl)
-{
-	static const char *scmd = "minTransitionTime_old";
-	const Policy *policy = zone.policy();
-
-	/** We may freely move a record to a uncertain state. */
-	if (next_state == RUM || next_state == UNR) return lastchange;
-
-	switch(record) {
-		case DS:
-			return addtime(lastchange, ttl
-					+ policy->parent().registrationdelay()
-					+ policy->parent().propagationdelay());
-		/* TODO: 5011 will create special case here */
-		case DK: /** intentional fall-through */
-		case RD:
-			return addtime(lastchange, ttl
-				+ policy->zone().propagationdelay()
-				+ (next_state == OMN
-					? policy->keys().publishsafety()
-					: policy->keys().retiresafety()));
-		case RS:
-			return addtime(lastchange, ttl
-				+ policy->zone().propagationdelay());
-		default: 
-			ods_fatal_exit("[%s] %s Unknown record type (%d), "
-				"fault of programmer. Abort.",
-				module_str, scmd, (int)record);
-	}
-}
-/**
- * At what time may this transition take place?
  *
  * Given a record, its next state, and its last change time when may
  * apply the transition? This is largely policy related.
@@ -1602,67 +1090,6 @@ minTransitionTime(policy_t* policy, key_state_type_t type,
     return -1;
 }
 
-/**
- * Make sure records are introduced in correct order.
- * 
- * Make sure records are introduced in correct order. Only look at the 
- * policy, timing and validity is done in another function.
- * 
- * \param[in] key
- * \param[in] record
- * \param[in] next_state 
- * \return True iff policy allows transition of record to state.
- * */
-static bool
-policyApproval_old(KeyDataList &key_list, struct FutureKey *future_key)
-{
-	static const char *scmd = "policyApproval_old";
-	
-	/** once the record is introduced the policy has no influence. */
-	if (future_key->next_state != RUM) return true;
-	
-	const STATE mask_sig[] =  {NOCARE, OMN, NOCARE, OMN};
-	const STATE mask_dnskey[] =  {OMN, OMN, OMN, NOCARE};
-	
-	switch(future_key->record) {
-		case DS:
-			/** If we want to minimize the DS transitions make sure
-			 * the DNSKEY is fully propagated. */
-			return !future_key->key->keyStateDS().minimize() || 
-				getState_old(*future_key->key, DK, NULL) == OMN;
-		case DK:
-			/** 1) there are no restrictions */
-			if (!future_key->key->keyStateDNSKEY().minimize()) return true;
-			/** 2) If minimize, signatures must ALWAYS be propagated 
-			 * for CSK and ZSK */
-			if (getState_old(*future_key->key, RS, NULL) != OMN &&
-				getState_old(*future_key->key, RS, NULL) != NOCARE)
-				return false;
-			/** 3) wait till DS is introduced */
-			if (getState_old(*future_key->key, DS, NULL) == OMN ||
-				getState_old(*future_key->key, DS, NULL) == NOCARE)
-				return true;
-			/** 4) Except, we might be doing algorithm rollover.
-			 * if no other good KSK available, ignore minimize flag*/
-			return !exists_old(key_list, future_key, true, mask_dnskey);
-		case RD:
-			/** The only time not to introduce RRSIG DNSKEY is when the
-			 * DNSKEY is still hidden. */
-			return getState_old(*future_key->key, DK, NULL) != HID;
-		case RS:
-			/** 1) there are no restrictions */
-			if (!future_key->key->keyStateRRSIG().minimize()) return true;
-			/** 2) wait till DNSKEY is introduced */
-			if (getState_old(*future_key->key, DK, NULL) == OMN) return true;
-			/** 3) Except, we might be doing algorithm rollover
-			 * if no other good ZSK available, ignore minimize flag */
-			return !exists_old(key_list, future_key, true, mask_sig);
-		default:
-			ods_fatal_exit("[%s] %s Unknown record type (%d), "
-				"fault of programmer. Abort.",
-				module_str, scmd, (int)future_key->record);
-	}
-}
 /**
  * Make sure records are introduced in correct order.
  *
@@ -1811,43 +1238,6 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
     return 1;
 }
 
-/** given the zone, what TTL should be used for record?
- * 
- * Normally we use the TTL from the policy. However a larger TTL might
- * have been published in the near past causing this record to take 
- * extra time to propagate */
-static int
-getZoneTTL_old(EnforcerZone &zone, const RECORD record, const time_t now)
-{
-	static const char *scmd = "getTTL";
-	const Policy *policy = zone.policy();
-	
-	time_t endDate;
-	int recordTTL;
-	
-	switch(record) {
-		case DS:
-			endDate = zone.ttlEnddateDs();
-			recordTTL = policy->parent().ttlds();
-			break;
-		case DK: /** intentional fall-through */
-		case RD:
-			endDate = zone.ttlEnddateDk();
-			recordTTL = policy->keys().ttl();
-			break;
-		case RS:
-			endDate = zone.ttlEnddateRs();
-			recordTTL = max(min(policy->zone().ttl(),
-							policy->zone().min()), 
-							zone.max_zone_ttl());
-			break;				  
-		default: 
-			ods_fatal_exit("[%s] %s Unknown record type (%d), "
-				"fault of programmer. Abort.",
-				module_str, scmd, (int)record);
-	}
-	return max((int)difftime(endDate, now), recordTTL);
-}
 /**
  * Given the zone, what TTL should be used for record?
  *
@@ -1901,52 +1291,6 @@ getZoneTTL(policy_t* policy, zone_t* zone, key_state_type_t type,
 }
 
 /**
- * Update the state of a record. Save the time of this change for
- * later use.
- * 
- * @param key
- * @param record
- * @param state
- * @param now, the current time.
- * */
-static void
-setState(EnforcerZone &zone, const struct FutureKey *future_key, 
-	const time_t now)
-{
-	KeyState &ks = getRecord_old(*future_key->key, future_key->record);
-	ks.setState(future_key->next_state);
-	ks.setLastChange(now);
-	ks.setTtl(getZoneTTL_old(zone, future_key->record, now));
-	zone.setSignerConfNeedsWriting(true);
-}
-
-/** Find out if this key can be in a successor relation */
-static bool
-isSuccessable_old(const struct FutureKey *future_key)
-{
-	static const char *scmd = "isSuccessable_old";
-	
-	if (future_key->next_state != UNR) return false;
-	switch(future_key->record) {
-		case DS: /** intentional fall-through */
-		case RS: 
-			if (getState_old(*future_key->key, DK, NULL) != OMN) return false;
-			break;
-		case RD:
-			return false;
-		case DK: 
-			if ((getState_old(*future_key->key, DS, NULL) != OMN) &&
-					(getState_old(*future_key->key, RS, NULL) != OMN))
-				return false;
-			break;
-		default: 
-			ods_fatal_exit("[%s] %s Unknown record type (%d), "
-				"fault of programmer. Abort.",
-				module_str, scmd, (int)future_key->record);
-	}
-	return true;
-}
-/**
  * Find out if this key can be in a successor relationship
  *
  * \return A positive value if the key is in a successor relationship, zero if
@@ -1989,20 +1333,6 @@ isSuccessable(struct future_key* future_key)
     return 1;
 }
 
-static void
-markSuccessors_old(KeyDependencyList &dep_list, KeyDataList &key_list,
-	struct FutureKey *future_key)
-{
-	static const char *scmd = "markSuccessors_old";
-	if (!isSuccessable_old(future_key)) return;
-	/** Which keys can be potential successors? */
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &key_i = key_list.key(i);
-		//TODO: do this for any record type?
-		if (isPotentialSuccessor_old(*future_key->key, future_key, key_i, future_key->record))
-			dep_list.addNewDependency(future_key->key, &key_i, future_key->record);
-	}
-}
 /**
  * Establish relationships between keys in keylist and the future_key.
  *
@@ -2509,7 +1839,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                         case KEY_DATA_DS_AT_PARENT_SUBMITTED:
                             break;
 
-                        case DS_RETRACT:
+                        case KEY_DATA_DS_AT_PARENT_RETRACT:
                             /*
                              * Hypothetical case where we reintroduce keys.
                              */
@@ -2658,225 +1988,6 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 	return returntime_zone;
 }
 
-static time_t
-updateZone_old(EnforcerZone &zone, const time_t now, bool allow_unsigned,
-	HsmKeyFactory &keyfactory)
-{
-	time_t returntime_zone = -1;
-	time_t returntime_key;
-	bool change;
-	KeyDependencyList &dep_list = zone.keyDependencyList();
-	KeyDataList &key_list = zone.keyDataList();
-	const Policy *policy = zone.policy();
-	static const char *scmd = "updateZone";
-	ods_log_verbose("[%s] %s", module_str, scmd);
-	int ttl;
-	const STATE omnkey[] =  {NOCARE, OMN, NOCARE, NOCARE};
-	struct FutureKey future_key;
-
-	/** This code keeps track of TTL changes. If in the past a large
-	 * TTL is used, our keys *may* need to transition extra 
-	 * careful to make sure each resolver picks up the RRset.
-	 * When this date passes we may start using the policies TTL. */
-	if (zone.ttlEnddateDs() <= now)
-		zone.setTtlEnddateDs(addtime(now, policy->parent().ttlds()));
-	if (zone.ttlEnddateDk() <= now) {
-		if (!exists_anon(key_list, omnkey)) {
-			/** If no DNSKEY is currently published we must take
-			 * negative caching into account. */
-			ttl = max(policy->keys().ttl(), min(policy->zone().ttl(), 
-				policy->zone().min()));
-		} else {
-			ttl = policy->keys().ttl();
-		}
-		zone.setTtlEnddateDk(addtime(now, ttl));
-	}
-	if (zone.ttlEnddateRs() <= now)
-		zone.setTtlEnddateRs(addtime(now, 
-				max(min(policy->zone().ttl(), policy->zone().min()), 
-					zone.max_zone_ttl()))); 
-
-	/** Keep looping till there are no state changes.
-	 * Find the earliest update time */
-	do {
-		change = false;
-		for (int i = 0; i < key_list.numKeys(); i++) {
-			KeyData &key = key_list.key(i);
-			ods_log_verbose("[%s] %s processing key %s", module_str, 
-				scmd, key.locator().c_str());
-
-			/** 
-			 * Note: We *could* make a check here to see if
-			 * DS && DK || DK && RS .minimize() == True
-			 * if so, we could do:
-			 *  - nothing (key will probably get stuck, current situation)
-			 *  - fatal exit (because we suspect db corruption)
-			 *  - flip one of the bits, log, continue
-			 **/
-			
-			future_key.key = &key;
-			
-			for (RECORD record = REC_MIN; record < REC_MAX; ++record) {
-				STATE state = getState_old(key, record, NULL);
-				STATE next_state = getDesiredState_old(key.introducing(), state);
-				
-				future_key.record = record;
-				future_key.next_state = next_state;
-				
-				/** record is stable */
-				if (state == next_state) continue;
-				/** This record waits for user input */
-				if (record == DS) {
-					if (next_state == OMN && key.dsAtParent() != DS_SEEN)
-						continue;
-					if (next_state == HID && key.dsAtParent() != DS_UNSUBMITTED)
-						continue;
-				}
-				ods_log_verbose("[%s] %s May %s transition to %s?", 
-					module_str, scmd, RECORDAMES[(int)record], 
-					STATENAMES[(int)next_state]);
-				
-				/** Policy prevents transition */
-				if (!policyApproval_old(key_list, &future_key)) continue;
-				ods_log_verbose("[%s] %s Policy says we can (1/3)", 
-					module_str, scmd);
-				
-				/** Would be invalid DNSSEC state */
-				if (!dnssecApproval_old(dep_list, key_list, &future_key, allow_unsigned))
-					continue;
-				ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", 
-					module_str, scmd);
-				
-				time_t returntime_key = minTransitionTime_old(zone, record,
-					next_state, getRecord_old(key, record).lastChange(),
-					getZoneTTL_old(zone, record, now));
-
-				/** If this is an RRSIG and the DNSKEY is omnipresent
-				 * and next state is a certain state, wait an additional 
-				 * signature lifetime to allow for 'smooth rollover'. */
-				if  (record == RS && getState_old(key, DK, NULL) == OMN &&
-						(next_state == OMN || next_state == HID) ) {
-					/** jitter and valdefault default to 0 */
-					returntime_key = addtime(returntime_key, 
-							policy->signatures().jitter() + 
-							max(policy->signatures().valdefault(), 
-								policy->signatures().valdenial()) +
-							policy->signatures().resign() - 
-							policy->signatures().refresh() );
-				}
-
-				/** It is to soon to make this change. Schedule it. */
-				if (returntime_key > now) {
-					minTime(returntime_key, &returntime_zone);
-					continue;
-				}
-
-				ods_log_verbose("[%s] %s Timing says we can (3/3) now: %d key: %d", 
-					module_str, scmd, now, returntime_key);
-
-				/** A record can only reach Omnipresent if properly backed up */
-				HsmKey *hsmkey;
-				if (next_state == OMN) {
-					if (!keyfactory.GetHsmKeyByLocator(key.locator(), 
-						&hsmkey)) {
-						/* fishy, this key has no key material! */
-						ods_fatal_exit("[%s] %s Key material associated with "
-								"key (%s) not found in database. Abort.",
-								module_str, scmd, key.locator().c_str());
-					} 
-					/* if backup required but not backed up: deny transition */
-					if (hsmkey->requirebackup() && !hsmkey->backedup()) {
-						ods_log_crit("[%s] %s Ready for transition "
-							"but key material not backed up yet (%s)", 
-							module_str, scmd, key.locator().c_str());
-						/* Try again in 60 seconds */
-						returntime_key = addtime(now, 60); 
-						minTime(returntime_key, &returntime_zone);
-						continue;
-					}
-				}
-
-				/** If we are handling a DS we depend on the user or 
-				 * some other external process. We must communicate
-				 * through the DSSeen and -submit flags */
-				if (record == DS) {
-					/** Ask the user to submit the DS to the parent */
-					if (next_state == RUM) {
-						switch(key.dsAtParent()) {
-							case DS_SEEN:
-							case DS_SUBMIT:
-							case DS_SUBMITTED:
-								break;
-							case DS_RETRACT:
-								/** Hypothetical case where we 
-								 * reintroduce keys */
-								key.setDsAtParent(DS_SUBMITTED);
-								break;
-							default:
-								key.setDsAtParent(DS_SUBMIT);
-						}
-					}
-					/** Ask the user to remove the DS from the parent */
-					else if (next_state == UNR) {
-						switch(key.dsAtParent()) {
-							case DS_SUBMIT:
-								/** Never submitted
-								 * NOTE: not safe if we support 
-								 * reintroduction of keys. */
-								key.setDsAtParent(DS_UNSUBMITTED);
-								break;
-							case DS_UNSUBMITTED:
-							case DS_RETRACTED:
-							case DS_RETRACT:
-								break;
-							default:
-								key.setDsAtParent(DS_RETRACT);
-						}
-					}
-				}
-
-				/** We've passed all tests! Make the transition */
-				setState(zone, &future_key, now);
-				markSuccessors_old(dep_list, key_list, &future_key);
-				change = true;
-			}
-		}
-	} while (change);
-	return returntime_zone;
-}
-
-/**
- * Search for youngest key in use by any zone with this policy
- * with at least the roles requested. See if it isn't expired.
- * also, check if it isn't in zone already. Also length, algorithm
- * must match and it must be a first generation key.
- * */
-//~ bool 
-//~ getLastReusableKey(EnforcerZone &zone,
-	//~ const Policy *policy, const KeyRole role,
-	//~ int bits, const string &repository, int algorithm, 
-	//~ const time_t now, HsmKey **ppKey,
-	//~ HsmKeyFactory &keyfactory, int lifetime)
-//~ {
-	//~ static const char *scmd = "getLastReusableKey";
-	//~ 
-	//~ if (!keyfactory.UseSharedKey(bits, repository, policy->name(), 
-		//~ algorithm, role, zone.name(), ppKey))
-		//~ return false;
-	//~ 
-	//~ /** UseSharedKey() promised us a match, we'd better crash. */
-	//~ if (*ppKey == NULL)
-		//~ ods_fatal_exit("[%s] %s Keyfactory promised key but did not give it",
-			//~ module_str, scmd);
-	//~ 
-	//~ /** Key must (still) be in use */
-	//~ if (now < (*ppKey)->inception() + lifetime) return true;
-	//~ 
-	//~ /** Clean up, was set by default by UseSharedKey(), unset */
-	//~ (*ppKey)->setUsedByZone(zone.name(), false);
-	//~ return false;
-//~ }
-
 static const hsm_key_t*
 getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
@@ -2926,83 +2037,6 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 
 	hsm_key_list_free(hsmkeylist);
 	return hkey_young;
-}
-
-/**
- * Abstraction to generalize different kind of keys. 
- * return number of keys _in_a_policy_ 
- * */
-static int
-numberOfKeyConfigs(const KeyList &policyKeys, const KeyRole role)
-{
-	static const char *scmd = "numberOfKeyConfigs";
-	switch (role) {
-		case KSK: return policyKeys.ksk_size();
-		case ZSK: return policyKeys.zsk_size();
-		case CSK: return policyKeys.csk_size();
-		default:
-			ods_fatal_exit("[%s] %s Unknow Role: (%d)", 
-					module_str, scmd, role); /* report a bug! */
-	}
-}
-
-/**
- * Finds the policy parameters of the Nth key with role. 
- * 
- * Abstraction to generalize different kind of keys. 
- * Note: a better solution would be inheritance.
- * 
- * \param[in] policyKeys, Keys structure from Policy
- * \param[in] index, Nth key in policyKeys, see numberOfKeyConfigs() 
- * 					for count
- * \param[in] role, sort of key you are looking for.
- * \param[out] bits
- * \param[out] algorithm
- * \param[out] lifetime
- * \param[out] repository
- * \param[out] manual
- * */
-static void
-keyProperties(const KeyList &policyKeys, const int index, const KeyRole role,
-	int *bits, int *algorithm, int *lifetime, string &repository,
-	bool *manual, int *rollover_type)
-{
-	static const char *scmd = "keyProperties";
-	
-	/** Programming error, report a bug! */
-	if (index >= numberOfKeyConfigs(policyKeys, role)) 
-		ods_fatal_exit("[%s] %s Index out of bounds", module_str, scmd); 
-		
-	switch (role) {
-		case KSK:
-			*bits	   = policyKeys.ksk(index).bits();
-			*algorithm = policyKeys.ksk(index).algorithm();
-			*lifetime  = policyKeys.ksk(index).lifetime();
-			*manual    = policyKeys.ksk(index).manual_rollover();
-			repository.assign(policyKeys.ksk(index).repository());
-			*rollover_type = policyKeys.ksk(index).rollover_type();
-			break;
-		case ZSK:
-			*bits	   = policyKeys.zsk(index).bits();
-			*algorithm = policyKeys.zsk(index).algorithm();
-			*lifetime  = policyKeys.zsk(index).lifetime();
-			*manual    = policyKeys.zsk(index).manual_rollover();
-			repository.assign(policyKeys.zsk(index).repository());
-			*rollover_type = policyKeys.zsk(index).rollover_type();
-			break;
-		case CSK:
-			*bits	   = policyKeys.csk(index).bits();
-			*algorithm = policyKeys.csk(index).algorithm();
-			*lifetime  = policyKeys.csk(index).lifetime();
-			*manual    = policyKeys.csk(index).manual_rollover();
-			repository.assign(policyKeys.csk(index).repository());
-			*rollover_type = policyKeys.csk(index).rollover_type();
-			break;
-		default:
-			/** Programming error, report a bug! */
-			ods_fatal_exit("[%s] %s Unknow Role: (%d)",
-				module_str, scmd, role);
-	}
 }
 
 /**
@@ -3695,54 +2729,6 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	return return_at;
 }
 
-/**
- * Removes all keys from list that are no longer used.
- * 
- * \param[in] key_list list to filter.
- * \param[in] now
- * \param[in] purgetime period after which dead keys may be removed
- * \return time_t Next key purgable. 
- * */
-static time_t
-removeDeadKeys_old(KeyDataList &key_list, const time_t now,
-	const int purgetime, EnforcerZone &zone)
-{
-	static const char *scmd = "removeDeadKeys_old";
-	time_t firstPurge = -1;
-	
-	KeyDependencyList &key_dep = zone.keyDependencyList();
-	
-	for (int i = key_list.numKeys()-1; i >= 0; i--) {
-		KeyData &key = key_list.key(i);
-		if (key.introducing()) continue;
-		
-		time_t keyTime = -1;
-		bool keyPurgable = true;
-		for (RECORD r = REC_MIN; r < REC_MAX; ++r) {
-			if (getState_old(key, r, NULL) == NOCARE) continue;
-			if (getState_old(key, r, NULL) != HID) {
-				keyPurgable = false;
-				break;
-			}
-			time_t recordTime = getRecord_old(key, r).lastChange();
-			if (recordTime > keyTime) keyTime = recordTime;
-		}
-		if (keyTime != -1) keyTime = addtime(keyTime, purgetime);
-		if (keyPurgable) {
-			if (now >= keyTime) {
-				ods_log_info("[%s] %s delete key: %s", module_str, scmd,
-					key.locator().c_str());
-				key_list.delKey(i);
-			} else {
-				minTime(keyTime, &firstPurge);
-			}
-			/** It might not be time to purge the key just yet, but we
-			 * can already assume no other key depends on it. */
-			key_dep.delDependency( &key );
-		}
-	}
-	return firstPurge;
-}
 static time_t
 removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 	size_t keylist_size, key_dependency_list_t *deplist, const time_t now,
@@ -4043,43 +3029,4 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     minTime(purge_return_time, &return_time);
     printf("tota return: %d\n", return_time);
     return return_time;
-}
-
-/* see header file */
-time_t 
-update_old(EnforcerZone &zone, const time_t now, HsmKeyFactory &keyfactory)
-{
-	time_t policy_return_time, zone_return_time, purge_return_time = -1;
-	bool allow_unsigned;
-	KeyDataList &key_list = zone.keyDataList();
-	const Policy *policy = zone.policy();
-	static const char *scmd = "update";
-
-	ods_log_info("[%s] %s Zone: %s", module_str, scmd, zone.name().c_str());
-
-	//~ policy_return_time = updatePolicy(zone, now, keyfactory, key_list, allow_unsigned);
-	if (allow_unsigned)
-		ods_log_info(
-			"[%s] %s No keys configured, zone will become unsigned eventually",
-			module_str, scmd);
-	zone_return_time = updateZone_old(zone, now, allow_unsigned, keyfactory);
-
-	/** Only purge old keys if the configuration says so. */
-	if (policy->keys().has_purge())
-		purge_return_time = removeDeadKeys_old(key_list, now, policy->keys().purge(), zone);
-
-	/** Always set these flags. Normally this needs to be done _only_
-	 * when signerConfNeedsWriting() is set. However a previous
-	 * signerconf might not be available, we have no way of telling. :(
-	 * */
-	for (int i = 0; i < key_list.numKeys(); i++) {
-		KeyData &k = key_list.key(i);
-		k.setPublish(getState_old(k, DK, NULL) == OMN || getState_old(k, DK, NULL) == RUM);
-		k.setActiveKSK(getState_old(k, RD, NULL) == OMN || getState_old(k, RD, NULL) == RUM);
-		k.setActiveZSK(getState_old(k, RS, NULL) == OMN || getState_old(k, RS, NULL) == RUM);
-	}
-
-	minTime(policy_return_time, &zone_return_time);
-	minTime(purge_return_time,  &zone_return_time);
-	return zone_return_time;
 }

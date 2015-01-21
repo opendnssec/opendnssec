@@ -190,7 +190,6 @@ AC_ARG_ENABLE(enforcerng,
 		[enable_enforcerng="yes"])
 if test "x${enable_enforcerng}" = "xyes"; then
 	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
-	ACX_PROTOBUF(2,2,0)
 	ACX_ENFORCER_DATABASE
 	ACX_LIBREADLINE
 fi
