@@ -29,15 +29,7 @@
 #ifndef __db_schema_sqlite_h
 #define __db_schema_sqlite_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern const char* db_schema_sqlite_create[];
 extern const char* db_schema_sqlite_drop[];
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -32,10 +32,6 @@
 
 #include <libxml/tree.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define POLICY_KEY_MINIMIZE_NONE          0
 #define POLICY_KEY_MINIMIZE_RRSIG         (1<<0)
 #define POLICY_KEY_MINIMIZE_DNSKEY        (1<<1)
@@ -49,9 +45,5 @@ extern "C" {
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

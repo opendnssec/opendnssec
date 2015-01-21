@@ -29,14 +29,6 @@
 #ifndef _KEYSTATE_UPDATE_ZONELIST_CMD_H_
 #define _KEYSTATE_UPDATE_ZONELIST_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* update_zonelist_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _KEYSTATE_UPDATE_ZONELIST_CMD_H_ */

@@ -32,10 +32,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * A signed 32bit integer.
  */
@@ -100,9 +96,5 @@ typedef enum {
      */
     DB_TYPE_REVISION
 } db_type_t;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

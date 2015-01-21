@@ -30,20 +30,12 @@
 #ifndef __db_object_h
 #define __db_object_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct db_object;
 struct db_object_field;
 struct db_object_field_list;
 typedef struct db_object db_object_t;
 typedef struct db_object_field db_object_field_t;
 typedef struct db_object_field_list db_object_field_list_t;
-
-#ifdef __cplusplus
-}
-#endif
 
 #include "db_connection.h"
 #include "db_result.h"
@@ -53,10 +45,6 @@ typedef struct db_object_field_list db_object_field_list_t;
 #include "db_value.h"
 #include "db_enum.h"
 #include "db_backend.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A representation of an field/value for a database object.
@@ -369,9 +357,5 @@ int db_object_delete(const db_object_t* object, const db_clause_list_t* clause_l
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_count(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

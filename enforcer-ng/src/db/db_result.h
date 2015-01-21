@@ -30,10 +30,6 @@
 #ifndef __db_result_h
 #define __db_result_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct db_result;
 struct db_result_list;
 typedef struct db_result db_result_t;
@@ -50,16 +46,8 @@ typedef struct db_result_list db_result_list_t;
  */
 typedef db_result_t* (*db_result_list_next_t)(void* data, int finish);
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "db_value.h"
 #include "db_backend.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A container for a database result, the data in the result is represented by
@@ -231,9 +219,5 @@ size_t db_result_list_size(const db_result_list_t* result_list);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_result_list_fetch_all(db_result_list_t* result_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

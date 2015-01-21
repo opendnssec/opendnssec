@@ -30,14 +30,6 @@
 #ifndef _SIGNCONF_SIGNCONF_CMD_H_
 #define _SIGNCONF_SIGNCONF_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* signconf_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _SIGNCONF_SIGNCONF_CMD_H_ */

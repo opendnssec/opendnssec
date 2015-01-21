@@ -30,14 +30,6 @@
 #ifndef __test_zone_h
 #define __test_zone_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int test_zone_add_suite(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

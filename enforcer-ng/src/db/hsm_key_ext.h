@@ -32,10 +32,6 @@
 
 #include "policy_key.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Get hsm key objects from the database by a repository specified in `repository`.
  * \param[in] hsm_key_list initialised but empty hms key list.
@@ -49,9 +45,5 @@ int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list, const char* rep
  * NULL on failure
  */
 hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

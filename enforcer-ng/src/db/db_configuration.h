@@ -30,10 +30,6 @@
 #ifndef __db_configuration_h
 #define __db_configuration_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct db_configuration;
 struct db_configuration_list;
 typedef struct db_configuration db_configuration_t;
@@ -137,9 +133,5 @@ int db_configuration_list_add(db_configuration_list_t* configuration_list, db_co
  * configuration does not exist.
  */
 const db_configuration_t* db_configuration_list_find(const db_configuration_list_t* configuration_list, const char* name);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

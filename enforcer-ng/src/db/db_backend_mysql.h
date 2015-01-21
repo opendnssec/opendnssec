@@ -36,18 +36,10 @@
 #define DB_BACKEND_MYSQL_STRING_MIN_SIZE 64
 #define DB_BACKEND_MYSQL_STRING_MAX_SIZE 4096
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Create a new database backend handle for SQLite.
  * \return a db_backend_handle_t pointer or NULL on error.
  */
 db_backend_handle_t* db_backend_mysql_new_handle(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -40,10 +40,6 @@
 
 #include <ldns/ldns.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Parse keys from the signer configuration file.
  * \param[in] cfgfile the configuration file name.
@@ -107,9 +103,5 @@ const char* parse_sc_soa_serial(allocator_type* allocator,
     const char* cfgfile);
 const char* parse_sc_nsec3_salt(allocator_type* allocator,
     const char* cfgfile);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PARSER_SIGNCONFPARSER_H */

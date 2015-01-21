@@ -40,10 +40,6 @@
 #include "scheduler/task.h"
 #include "shared/status.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Task schedule.
  */
@@ -144,9 +140,5 @@ void schedule_print(FILE* out, schedule_type* schedule);
  * Wake up all threads waiting for tasks. Useful to on program teardown.
  */
 void schedule_release_all(schedule_type* schedule);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* SCHEDULER_SCHEDULE_H */

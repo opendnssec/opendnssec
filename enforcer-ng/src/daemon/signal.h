@@ -36,10 +36,6 @@
 
 #include <signal.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct engine_struct;
 
 /**
@@ -63,9 +59,5 @@ void signal_handler(sig_atomic_t sig);
  *
  */
 sig_atomic_t signal_capture(sig_atomic_t dflsig);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* DAEMON_SIGNAL_H */

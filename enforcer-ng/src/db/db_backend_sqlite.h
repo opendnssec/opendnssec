@@ -35,18 +35,10 @@
 #define DB_BACKEND_SQLITE_DEFAULT_TIMEOUT 30
 #define DB_BACKEND_SQLITE_DEFAULT_USLEEP 200000
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Create a new database backend handle for SQLite.
  * \return a db_backend_handle_t pointer or NULL on error.
  */
 db_backend_handle_t* db_backend_sqlite_new_handle(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
