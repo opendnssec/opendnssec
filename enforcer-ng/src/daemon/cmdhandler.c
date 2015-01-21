@@ -138,14 +138,14 @@ cmd_funcs_avail(void)
 /*        &key_ds_retract_funcblock,
 */        &key_ds_gone_funcblock,
         &key_generate_funcblock,
-/*
+
         &key_rollover_funcblock,
-*/        &rollover_list_funcblock,
+        &rollover_list_funcblock,
         
         &backup_funcblock,
-/*
+
         &enforce_funcblock,
-*/        &signconf_funcblock,
+        &signconf_funcblock,
 
 
         &queue_funcblock,

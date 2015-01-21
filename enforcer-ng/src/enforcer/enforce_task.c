@@ -59,18 +59,18 @@ bool enforce_all = 1;
 static void 
 enf_schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
 {
-    /* schedule task */
-    if (!task) {
-        ods_log_crit("[%s] failed to create %s task", module_str, what);
-    } else {
-        ods_status status = schedule_task(engine->taskq, task);
-        if (status != ODS_STATUS_OK) {
-            ods_log_crit("[%s] failed to create %s task", module_str, what);
-            client_printf(sockfd, "Unable to schedule %s task.\n", what);
-        } else {
-            client_printf(sockfd, "Scheduled %s task.\n", what);
-        }
-    }
+	/* schedule task */
+	if (!task) {
+		ods_log_crit("[%s] failed to create %s task", module_str, what);
+	} else {
+		ods_status status = schedule_task(engine->taskq, task);
+		if (status != ODS_STATUS_OK) {
+			ods_log_crit("[%s] failed to create %s task", module_str, what);
+			client_printf(sockfd, "Unable to schedule %s task.\n", what);
+		} else {
+			client_printf(sockfd, "Scheduled %s task.\n", what);
+		}
+	}
 }
 
 static void
@@ -104,36 +104,36 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	int zone_updated;
 
 	if (!bForceUpdate) {
-	    if (!(clauselist = db_clause_list_new())
-	        || !(clause = zone_next_change_clause(clauselist, t_now))
-	        || db_clause_set_type(clause, DB_CLAUSE_LESS_OR_EQUAL)
-	        || !(zonelist = zone_list_new(dbconn))
-	        /*|| zone_list_associated_fetch(zonelist)*/
-	        || zone_list_get_by_clauses(zonelist, clauselist))
+		if (!(clauselist = db_clause_list_new())
+			|| !(clause = zone_next_change_clause(clauselist, t_now))
+			|| db_clause_set_type(clause, DB_CLAUSE_LESS_OR_EQUAL)
+			|| !(zonelist = zone_list_new(dbconn))
+			/*|| zone_list_associated_fetch(zonelist)*/
+			|| zone_list_get_by_clauses(zonelist, clauselist))
 		{
-	        zone_list_free(zonelist);
-	        zonelist = NULL;
+			zone_list_free(zonelist);
+			zonelist = NULL;
 		}
-        db_clause_list_free(clauselist);
+		db_clause_list_free(clauselist);
 	} else { /* all zones */
-	    if (!(zonelist = zone_list_new(dbconn))
-	        /*|| zone_list_associated_fetch(zonelist)*/
-	        || zone_list_get(zonelist))
-	    {
-            zone_list_free(zonelist);
-            zonelist = NULL;
-	    }
+		if (!(zonelist = zone_list_new(dbconn))
+			/*|| zone_list_associated_fetch(zonelist)*/
+			|| zone_list_get(zonelist))
+		{
+			zone_list_free(zonelist);
+			zonelist = NULL;
+		}
 	}
 	if (!zonelist) {
-	    /* TODO: log error */
-	    ods_log_error("[%s] zonelist NULL", module_str);
-	    /* TODO: backoff? */
-	    return t_reschedule;
+		/* TODO: log error */
+		ods_log_error("[%s] zonelist NULL", module_str);
+		/* TODO: backoff? */
+		return t_reschedule;
 	}
 	
 	for (zone = zone_list_get_next(zonelist);
-	    zone && !engine->need_to_reload && !engine->need_to_exit;
-	    zone_free(zone), zone = zone_list_get_next(zonelist))
+		zone && !engine->need_to_reload && !engine->need_to_exit;
+		zone_free(zone), zone = zone_list_get_next(zonelist))
 	{
 		if (!bForceUpdate && (zone_next_change(zone) == -1)) {
 			continue;
@@ -143,15 +143,15 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 				"Next update for zone %s NOT scheduled "
 				"because policy is missing !\n", zone_name(zone));
 			if (zone_next_change(zone) != -1
-			    && (zone_set_next_change(zone, -1)
-			        || zone_update(zone)))
+				&& (zone_set_next_change(zone, -1)
+					|| zone_update(zone)))
 			{
-	            /* TODO: Log error */
+				/* TODO: Log error */
 			}
-            continue;
+			continue;
 		}
 
-        zone_updated = 0;
+		zone_updated = 0;
 		t_next = update(engine, dbconn, zone, policy, t_now, &zone_updated);
 		policy_free(policy);
 		bSignerConfNeedsWriting |= zone_signconf_needs_writing(zone);
@@ -177,7 +177,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 				"Next update for zone %s NOT scheduled "
 				"by enforcer !\n", zone_name(zone));
 			ods_log_debug("Next update for zone %s NOT scheduled "
-                "by enforcer !\n", zone_name(zone));
+				"by enforcer !\n", zone_name(zone));
 		} else {
 			/* Invalid schedule time then skip the zone.*/
 			char tbuf[32] = "date/time invalid\n"; /* at least 26 bytes */
@@ -185,37 +185,37 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			client_printf(sockfd,
 				"Next update for zone %s scheduled at %s",
 				zone_name(zone), tbuf);
-            ods_log_debug("Next update for zone %s scheduled at %s",
-                zone_name(zone), tbuf);
+			ods_log_debug("Next update for zone %s scheduled at %s",
+				zone_name(zone), tbuf);
 		}
 		if (zone_next_change(zone) != t_next) {
-		    zone_set_next_change(zone, t_next);
-		    zone_updated = 1;
+			zone_set_next_change(zone, t_next);
+			zone_updated = 1;
 		}
 
 		/*
-	     * Commit the changes to the zone if there where any.
-	     */
-	    if (zone_updated) {
-	        if (zone_update(zone)) {
-	            ods_log_debug("[%s] error zone_update(%s)", module_str, zone_name(zone));
-	        }
-	    }
+		 * Commit the changes to the zone if there where any.
+		 */
+		if (zone_updated) {
+			if (zone_update(zone)) {
+				ods_log_debug("[%s] error zone_update(%s)", module_str, zone_name(zone));
+			}
+		}
 
-	    /*
-	     * Find out when to schedule the next change.
-	     */
-	    if (zone_next_change(zone) != -1
-	        && (zone_next_change(zone) < t_reschedule
-	            || !firstzone))
-	    {
-	        t_reschedule = zone_next_change(zone);
-	        if (firstzone) {
-	            zone_free(firstzone);
-	        }
-	        firstzone = zone;
-	        zone = NULL;
-	    }
+		/*
+		 * Find out when to schedule the next change.
+		 */
+		if (zone_next_change(zone) != -1
+			&& (zone_next_change(zone) < t_reschedule
+				|| !firstzone))
+		{
+			t_reschedule = zone_next_change(zone);
+			if (firstzone) {
+				zone_free(firstzone);
+			}
+			firstzone = zone;
+			zone = NULL;
+		}
 	}
 	zone_list_free(zonelist);
 
@@ -252,7 +252,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 
 	/* Launch ds-retract task when one of the updated key states has the
 	 * DS_RETRACT flag set. */
-    /* TODO: convert to new database layer
+	/* TODO: convert to new database layer
 	if (bRetractFromParent) {
 		task_type *retract =
 			keystate_ds_retract_task(engine->config,
@@ -261,7 +261,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	}
 	*/
 
-    return t_reschedule;
+	return t_reschedule;
 }
 
 time_t perform_enforce_lock(int sockfd, engine_type *engine,
