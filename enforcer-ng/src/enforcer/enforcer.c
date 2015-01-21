@@ -39,8 +39,9 @@
  * well, however rollovers may be delayed.
  */
 
-#include <ctime>
-#include <iostream>
+#include "config.h"
+
+#include <time.h>
 
 #include "libhsm.h"
 #include "hsmkey/hsm_key_factory.h"
@@ -50,6 +51,7 @@
 
 #include "shared/duration.h"
 #include "shared/log.h"
+#include "daemon/engine.h"
 
 #include "db/zone.h"
 #include "db/policy.h"
@@ -67,17 +69,7 @@
 #define UNRETENTIVE KEY_STATE_STATE_UNRETENTIVE
 #define NA          KEY_STATE_STATE_NA
 
-using namespace std;
-//~ using ::ods::kasp::Policy;
-//~ using ::ods::kasp::KeyList;
-
 static const char *module_str = "enforcer";
-
-/* be careful changing this, might mess up database*/
-enum STATE {HID, RUM, OMN, UNR, NOCARE}; 
-static const char* STATENAMES[] = {"HID", "RUM", "OMN", "UNR"};
-static const char* RECORDAMES[] = {"DS", "DNSKEY", "RRSIG DNSKEY", "RRSIG"};
-/* \careful */
 
 /** When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
@@ -88,6 +80,9 @@ struct future_key {
     key_state_state_t next_state;
     int pretend_update;
 };
+
+static int max(int a, int b) { return a>b?a:b; }
+static int min(int a, int b) { return a<b?a:b; }
 
 /**
  * Stores the minimum of parm1 and parm2 in parm2.
@@ -1431,7 +1426,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 	unsigned int ttl;
 	static const char *scmd = "updateZone";
 	size_t i;
-	int change, j;
+	unsigned int j, change;
 	static const key_state_type_t type[] = {
 	    KEY_STATE_TYPE_DS,
 	    KEY_STATE_TYPE_DNSKEY,
@@ -1963,7 +1958,6 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                     }
                 }
 
-                // markSuccessors_old(dep_list, key_list, &future_key);
                 if (markSuccessors(dbconn, keylist, keylist_size, &future_key, deplisttmp, zone) < 0) {
                     ods_log_error("[%s] %s: markSuccessors() error", module_str, scmd);
                     process = 0;
@@ -2048,10 +2042,10 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
  * \return 1 if a matching policy exists, 0 otherwise. -1 on error.
  */
 static int
-existsPolicyForKey(policy_key_list *policykeylist, const key_data_t *key)
+existsPolicyForKey(policy_key_list_t *policykeylist, const key_data_t *key)
 {
 	static const char *scmd = "existsPolicyForKey";
-	const policy_key *pkey;
+	const policy_key_t *pkey;
 	hsm_key_t *hkey;
 
 	if (!policykeylist) {
@@ -2737,7 +2731,8 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 	static const char *scmd = "removeDeadKeys";
 	time_t first_purge = -1, key_time;
 	size_t i, deplist2_size = 0;
-	int key_purgable, j, cmp;
+	int key_purgable, cmp;
+	unsigned int j;
 	const key_state_t* state;
 	key_dependency_t **deplist2 = NULL;
 
@@ -2828,7 +2823,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     static const char *scmd = "update";
     int key_data_updated;
 
-	printf("now: %d\n", now);
+	printf("now: %d\n", (int)now);
 
 	if (!engine) {
 		ods_log_error("[%s] no engine", module_str);
@@ -3020,13 +3015,13 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     free(keylist);
     key_dependency_list_free(deplist);
 
-	printf("zone return: %d\n", zone_return_time);
-	printf("poli return: %d\n", policy_return_time);
-	printf("prge return: %d\n", purge_return_time);
+	printf("zone return: %d\n", (int)zone_return_time);
+	printf("poli return: %d\n", (int)policy_return_time);
+	printf("prge return: %d\n", (int)purge_return_time);
 
     return_time = zone_return_time;
     minTime(policy_return_time, &return_time);
     minTime(purge_return_time, &return_time);
-    printf("tota return: %d\n", return_time);
+    printf("tota return: %d\n", (int)return_time);
     return return_time;
 }

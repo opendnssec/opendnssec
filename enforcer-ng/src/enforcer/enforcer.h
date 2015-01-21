@@ -31,10 +31,6 @@
 #include "db/policy.h"
 #include "daemon/engine.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Does any required work for a zone and its policy.
  * 
@@ -53,9 +49,5 @@ extern "C" {
  * */
 time_t
 update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _ENFORCER_ENFORCER_H_ */

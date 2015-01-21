@@ -32,7 +32,7 @@ sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup
 nodist_ods_enforcerd_SOURCES = $(BUILT_SOURCES)
 
 BACKEND_SOURCES_CUSTOM =
-BACKEND_LDFLAGS_CUSTOM =
+BACKEND_LDFLAGS_CUSTOM = -lm
 BACKEND_SCHEMA_CUSTOM =
 
 if USE_SQLITE
@@ -119,7 +119,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.c enforcer/enforce_cmd.h \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
-	enforcer/enforcer.cpp enforcer/enforcer.h \
+	enforcer/enforcer.c enforcer/enforcer.h \
 	enforcer/update_repositorylist_cmd.c enforcer/update_repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
