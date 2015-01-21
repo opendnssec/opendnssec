@@ -13,7 +13,7 @@ LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
 SUBDIRS = utils db/test
 
-AM_CPPFLAGS = \
+AM_CFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
 	-I$(top_srcdir)/mm/src \
