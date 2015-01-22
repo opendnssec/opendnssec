@@ -130,9 +130,16 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		/* TODO: backoff? */
 		return t_reschedule;
 	}
+
+	zone = zone_list_get_next(zonelist);
+	if (!zone) {
+		/* No zones scheduled for update at this time. We must be
+		 * called out of schedule. Make sure we reset the original
+		 * scheduled time */
+		 t_reschedule = task->when;
+	}
 	
-	for (zone = zone_list_get_next(zonelist);
-		zone && !engine->need_to_reload && !engine->need_to_exit;
+	for (; zone && !engine->need_to_reload && !engine->need_to_exit;
 		zone_free(zone), zone = zone_list_get_next(zonelist))
 	{
 		if (!bForceUpdate && (zone_next_change(zone) == -1)) {

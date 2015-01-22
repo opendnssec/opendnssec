@@ -284,6 +284,12 @@ task_compare(const void* a, const void* b)
 
     ods_log_assert(x);
     ods_log_assert(y);
+
+    /* If a task is set to flush, it should go in front. */
+    if (x->flush != y->flush) {
+        return y->flush - x->flush;
+    }
+
     /* order task on time, dname */
     if (x->when != y->when) {
         return (int) x->when - y->when;
