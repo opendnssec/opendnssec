@@ -2,43 +2,26 @@ LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-BUILT_SOURCES = \
-	$(srcdir)/xmlext-pb/xmlext.pb.cc $(srcdir)/xmlext-pb/xmlext.pb.h \
-	$(srcdir)/hsmkey/hsmkey.pb.cc $(srcdir)/hsmkey/hsmkey.pb.h \
-	$(srcdir)/keystate/keystate.pb.cc $(srcdir)/keystate/keystate.pb.h \
-	$(srcdir)/parser/conf.pb.cc $(srcdir)/parser/conf.pb.h \
-	$(srcdir)/policy/kasp.pb.cc $(srcdir)/policy/kasp.pb.h \
-	$(srcdir)/signconf/signconf.pb.cc $(srcdir)/signconf/signconf.pb.h \
-	$(srcdir)/protobuf-orm/orm.pb.cc $(srcdir)/protobuf-orm/orm.pb.h
+BUILT_SOURCES = 
 
-EXTRA_DIST = \
-	$(srcdir)/xmlext-pb/xmlext.proto \
-	$(srcdir)/hsmkey/hsmkey.proto \
-	$(srcdir)/keystate/keystate.proto \
-	$(srcdir)/parser/conf.proto \
-	$(srcdir)/policy/kasp.proto \
-	$(srcdir)/signconf/signconf.proto \
-	$(srcdir)/protobuf-orm/orm.proto
+EXTRA_DIST = 
 
 CLEANFILES = $(BUILT_SOURCES)
 
 LIBMM = ${top_builddir}/mm/src/libmm.a
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
-SUBDIRS = utils protobuf-orm/test db/test
+SUBDIRS = utils db/test
 
-AM_CPPFLAGS = \
+AM_CFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
 	-I$(top_srcdir)/mm/src \
 	-I$(top_builddir)/mm/src \
 	-I$(srcdir)/../../libhsm/src/lib \
 	-I$(builddir)/../../libhsm/src/lib \
-	-I$(srcdir)/xmlext-pb \
-	-I$(srcdir)/protobuf-orm \
 	@XML2_INCLUDES@ \
 	@LDNS_INCLUDES@ \
-	@PROTOBUF_INCLUDES@ \
 	@ENFORCER_DB_INCLUDES@
 
 enforcerdir =	@libdir@/opendnssec/enforcer
@@ -49,7 +32,7 @@ sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup
 nodist_ods_enforcerd_SOURCES = $(BUILT_SOURCES)
 
 BACKEND_SOURCES_CUSTOM =
-BACKEND_LDFLAGS_CUSTOM =
+BACKEND_LDFLAGS_CUSTOM = -lm
 BACKEND_SCHEMA_CUSTOM =
 
 if USE_SQLITE
@@ -82,7 +65,6 @@ ods_enforcerd_SOURCES = \
 	daemon/engine.c daemon/engine.h \
 	daemon/signal.c daemon/signal.h \
 	daemon/worker.c daemon/worker.h \
-	daemon/orm.cpp daemon/orm.h \
 	daemon/help_cmd.c daemon/help_cmd.h \
 	daemon/time_leap_cmd.c daemon/time_leap_cmd.h \
 	daemon/queue_cmd.c daemon/queue_cmd.h \
@@ -100,9 +82,6 @@ ods_enforcerd_SOURCES = \
 	shared/util.c shared/util.h \
 	shared/str.c shared/str.h \
 	shared/backup.c shared/backup.h \
-	shared/protobuf.cpp shared/protobuf.h \
-	xmlext-pb/xmlext-rd.cpp xmlext-pb/xmlext-rd.h \
-	xmlext-pb/xmlext-wr.cpp xmlext-pb/xmlext-wr.h \
 	policy/policy_export_cmd.c policy/policy_export_cmd.h \
 	policy/policy_export.c policy/policy_export.h \
 	policy/policy_import.c policy/policy_import.h \
@@ -121,11 +100,9 @@ ods_enforcerd_SOURCES = \
 	keystate/rollover_list_cmd.c keystate/rollover_list_cmd.h \
 	keystate/keystate_export_cmd.c keystate/keystate_export_cmd.h \
 	keystate/keystate_export_task.c keystate/keystate_export_task.h \
-	keystate/keystate_ds_submit_cmd.cpp keystate/keystate_ds_submit_cmd.h \
-	keystate/keystate_ds_submit_task.cpp keystate/keystate_ds_submit_task.h \
+	keystate/keystate_ds_submit_cmd.c keystate/keystate_ds_submit_cmd.h \
 	keystate/keystate_ds_seen_cmd.c keystate/keystate_ds_seen_cmd.h \
-	keystate/keystate_ds_retract_cmd.cpp keystate/keystate_ds_retract_cmd.h \
-	keystate/keystate_ds_retract_task.cpp keystate/keystate_ds_retract_task.h \
+	keystate/keystate_ds_retract_cmd.c keystate/keystate_ds_retract_cmd.h \
 	keystate/keystate_ds.c keystate/keystate_ds.h \
 	keystate/keystate_ds_gone_cmd.c keystate/keystate_ds_gone_cmd.h \
 	keystate/keystate_rollover_cmd.c keystate/keystate_rollover_cmd.h \
@@ -142,32 +119,10 @@ ods_enforcerd_SOURCES = \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.c enforcer/enforce_cmd.h \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
-	enforcer/enforcer.cpp enforcer/enforcer.h \
+	enforcer/enforcer.c enforcer/enforcer.h \
 	enforcer/update_repositorylist_cmd.c enforcer/update_repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
-	protobuf-orm/pb-orm.h \
-	protobuf-orm/pb-orm-common.h \
-	protobuf-orm/pb-orm-connect.cc protobuf-orm/pb-orm-connect.h \
-	protobuf-orm/pb-orm-context.cc protobuf-orm/pb-orm-context.h \
-	protobuf-orm/pb-orm-create-table.cc protobuf-orm/pb-orm-create-table.h \
-	protobuf-orm/pb-orm-create.cc protobuf-orm/pb-orm-create.h \
-	protobuf-orm/pb-orm-database-helper.cc protobuf-orm/pb-orm-database-helper.h \
-	protobuf-orm/pb-orm-database-sqlite3.cc protobuf-orm/pb-orm-database-sqlite3.h \
-	protobuf-orm/pb-orm-database-mysql.cc protobuf-orm/pb-orm-database-mysql.h \
-	protobuf-orm/pb-orm-database.cc protobuf-orm/pb-orm-database.h \
-	protobuf-orm/pb-orm-datastore.cc protobuf-orm/pb-orm-datastore.h \
-	protobuf-orm/pb-orm-delete.cc protobuf-orm/pb-orm-delete.h \
-	protobuf-orm/pb-orm-drop-table.cc protobuf-orm/pb-orm-drop-table.h \
-	protobuf-orm/pb-orm-enum.cc protobuf-orm/pb-orm-enum.h \
-	protobuf-orm/pb-orm-initialize.cc protobuf-orm/pb-orm-initialize.h \
-	protobuf-orm/pb-orm-log.cc protobuf-orm/pb-orm-log.h \
-	protobuf-orm/pb-orm-read.cc protobuf-orm/pb-orm-read.h \
-	protobuf-orm/pb-orm-shutdown.cc protobuf-orm/pb-orm-shutdown.h \
-	protobuf-orm/pb-orm-str.cc protobuf-orm/pb-orm-str.h \
-	protobuf-orm/pb-orm-transaction.cc protobuf-orm/pb-orm-transaction.h \
-	protobuf-orm/pb-orm-update.cc protobuf-orm/pb-orm-update.h \
-	protobuf-orm/pb-orm-value.cc protobuf-orm/pb-orm-value.h \
 	utils/kc_helper.c utils/kc_helper.h \
 	db/db_backend.c db/db_backend.h \
 	db/db_clause.c db/db_clause.h \
@@ -197,7 +152,6 @@ ods_enforcerd_LDADD = \
 	@XML2_LIBS@ \
 	@PTHREAD_LIBS@ \
 	@RT_LIBS@ \
-	@PROTOBUF_LIBS@ \
 	@ENFORCER_DB_LIBS@
 
 ods_enforcerd_LDFLAGS = \
@@ -242,6 +196,3 @@ ods_enforcer_db_setup_LDADD = \
 
 ods_enforcer_db_setup_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
-
-%.pb.cc %.pb.h: %.proto
-	$(PROTOC) @PROTOBUF_INCLUDES@ -I$(srcdir)/xmlext-pb -I$(srcdir)/protobuf-orm --cpp_out=`dirname $@` -I=`dirname $<` $<

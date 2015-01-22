@@ -32,10 +32,6 @@
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct policy_key;
 struct policy_key_list;
 typedef struct policy_key policy_key_t;
@@ -49,16 +45,8 @@ typedef enum policy_key_role {
 } policy_key_role_t;
 extern const db_enum_t policy_key_enum_set_role[];
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "policy_key_ext.h"
 #include "policy.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A policy key object.
@@ -641,9 +629,5 @@ policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list);
  * empty or if the backend does not support returning the size.
  */
 size_t policy_key_list_size(policy_key_list_t* policy_key_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

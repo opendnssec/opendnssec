@@ -32,10 +32,6 @@
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct key_state;
 struct key_state_list;
 typedef struct key_state key_state_t;
@@ -60,16 +56,8 @@ typedef enum key_state_state {
 } key_state_state_t;
 extern const db_enum_t key_state_enum_set_state[];
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "key_state_ext.h"
 #include "key_data.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A key state object.
@@ -559,9 +547,5 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
  * empty or if the backend does not support returning the size.
  */
 size_t key_state_list_size(key_state_list_t* key_state_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

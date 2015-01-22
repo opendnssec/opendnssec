@@ -32,10 +32,6 @@
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct key_data;
 struct key_data_list;
 typedef struct key_data key_data_t;
@@ -60,17 +56,9 @@ typedef enum key_data_ds_at_parent {
 } key_data_ds_at_parent_t;
 extern const db_enum_t key_data_enum_set_ds_at_parent[];
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "key_data_ext.h"
 #include "zone.h"
 #include "hsm_key.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A key data object.
@@ -834,9 +822,5 @@ key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
  * empty or if the backend does not support returning the size.
  */
 size_t key_data_list_size(key_data_list_t* key_data_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

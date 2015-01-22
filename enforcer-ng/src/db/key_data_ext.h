@@ -33,10 +33,6 @@
 #include "key_state.h"
 #include "hsm_key.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Cache all key states objects for a key data object.
  * \param[in] key_data a key_data_t pointer.
@@ -137,9 +133,5 @@ int key_data_is_ksk(const key_data_t* key_data);
  * \return 1 if zsk, 0 otherwise or error
  */
 int key_data_is_zsk(const key_data_t* key_data);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -28,51 +28,59 @@
  */
 
 #include "config.h"
-#include "protobuf.h"
+
+#include "daemon/cmdhandler.h"
+#include "daemon/engine.h"
+#include "enforcer/enforce_task.h"
 #include "shared/log.h"
-#include "shared/file.h"
-#include <google/protobuf/stubs/common.h>
+#include "shared/str.h"
+#include "daemon/clientpipe.h"
+#include "db/key_data.h"
+#include "keystate/keystate_ds.h"
 
-static const char *module_str = "protobuf";
+#include "keystate/keystate_ds_retract_cmd.h"
 
-static void 
-ods_protobuf_loghandler(::google::protobuf::LogLevel level,
-						const char *filename,
-						int line,
-						const std::string &message)
+static void
+usage(int sockfd)
 {
-	const char * const fmt = "[%s] %s %s:%d] %s";
-	switch (level) {
-		case ::google::protobuf::LOGLEVEL_INFO:
-			ods_log_info(fmt,module_str,"INFO",filename,line,message.c_str());
-			break;
-		case ::google::protobuf::LOGLEVEL_WARNING:
-			ods_log_warning(fmt,module_str,"WARNING",filename,line,message.c_str());
-			break;
-		case ::google::protobuf::LOGLEVEL_ERROR:
-			ods_log_crit(fmt,module_str,"ERROR",filename,line,message.c_str());
-			break;
-		case ::google::protobuf::LOGLEVEL_FATAL:
-			ods_fatal_exit(fmt,module_str,"FATAL",filename,line,message.c_str());
-			break;
-		default:
-			ods_log_assert(false);
-			break;
+	client_printf(sockfd,
+		"key ds-retract          Issue a ds-retract to the enforcer for a KSK.\n"
+		"                       (This command with no parameters lists eligible keys.)\n"
+		"      --zone <zone>              (aka -z)  zone.\n"
+		"      --keytag <keytag> | --cka_id <CKA_ID>      (aka -x | -k)\n"
+/*		"      [--force]                  (aka -f)  force even if there is no configured\n"
+		"                                           DelegationSignerSubmitCommand.\n" */
+	);
+}
+
+static int
+handles(const char *cmd, ssize_t n)
+{
+	return ods_check_command(cmd, n, key_ds_retract_funcblock()->cmdname)?1:0;
+}
+
+static int
+run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+	db_connection_t *dbconn)
+{
+	int error;
+	/* TODO, this changes the state, but sbmt cmd is not exec. */
+	error = run_ds_cmd(sockfd, cmd, n, dbconn,
+		KEY_DATA_DS_AT_PARENT_RETRACT,
+		KEY_DATA_DS_AT_PARENT_RETRACTED);
+	if (error == 0) {
+		flush_enforce_task(engine, 0);
 	}
+	return error;
+
 }
 
-static ::google::protobuf::LogHandler *static_loghandler = NULL;
+static struct cmd_func_block funcblock = {
+	"key ds-retract", &usage, NULL, &handles, &run
+};
 
-void
-ods_protobuf_initialize()
+struct cmd_func_block*
+key_ds_retract_funcblock(void)
 {
-	static_loghandler = ::google::protobuf::SetLogHandler(ods_protobuf_loghandler);
-}
-
-void
-ods_protobuf_shutdown()
-{
-	::google::protobuf::SetLogHandler(static_loghandler);
-	static_loghandler = NULL;
-	google::protobuf::ShutdownProtobufLibrary();
+	return &funcblock;
 }

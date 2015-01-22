@@ -30,10 +30,6 @@
 #ifndef __db_enum_h
 #define __db_enum_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * A enumerate value, represented by a character string and integer.
  * Used for converting database enumerate values from/to text and integer and is
@@ -43,9 +39,5 @@ typedef struct db_enum {
     const char* text;
     int value;
 } db_enum_t;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

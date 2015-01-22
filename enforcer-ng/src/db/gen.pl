@@ -118,10 +118,6 @@ open(HEADER, '>:encoding(UTF-8)', $name.'.h') or die;
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct ', $name, ';
 struct ', $name, '_list;
 typedef struct ', $name, ' ', $name, '_t;
@@ -148,9 +144,7 @@ extern const db_enum_t ', $name, '_enum_set_', $field->{name}, '[];
 ';
 }
 
-print HEADER '#ifdef __cplusplus
-}
-#endif
+print HEADER
 
 #include "', $name, '_ext.h"
 ';
@@ -163,9 +157,6 @@ print HEADER '#include "', $field->{foreign}, '.h"
     }
 }
 print HEADER '
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A ', $tname, ' object.
@@ -763,10 +754,6 @@ const ', $name, '_t* ', $name, '_list_next(', $name, '_list_t* ', $name, '_list)
  */
 size_t ', $name, '_list_size(', $name, '_list_t* ', $name, '_list);
 
-#ifdef __cplusplus
-}
-#endif
-
 #endif
 ';
 close(HEADER);
@@ -805,14 +792,6 @@ open(HEADER, '>:encoding(UTF-8)', $name.'_ext.h') or die;
 
 #ifndef __', $name, '_ext_h
 #define __', $name, '_ext_h
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 ';
@@ -3291,16 +3270,8 @@ open(SQLITE, '>:encoding(UTF-8)', 'db_schema_sqlite.h') or die;
 #ifndef __db_schema_sqlite_h
 #define __db_schema_sqlite_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern const char* db_schema_sqlite_create[];
 extern const char* db_schema_sqlite_drop[];
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 ';
@@ -3551,16 +3522,8 @@ open(MYSQL, '>:encoding(UTF-8)', 'db_schema_mysql.h') or die;
 #ifndef __db_schema_mysql_h
 #define __db_schema_mysql_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern const char* db_schema_mysql_create[];
 extern const char* db_schema_mysql_drop[];
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 ';

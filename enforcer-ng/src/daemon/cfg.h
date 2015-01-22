@@ -39,10 +39,6 @@
 #include <stdio.h>
 #include <time.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct engineconfig_repository {
 	struct engineconfig_repository* next;
 	char* name;
@@ -128,9 +124,5 @@ engine_config_freehsms(struct engineconfig_repository* hsm);
  *
  */
 void engine_config_cleanup(engineconfig_type* config);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* DAEMON_CONFIG_H */

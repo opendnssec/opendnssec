@@ -43,10 +43,6 @@
 
 #include <ldns/ldns.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define SE_SOA_RDATA_SERIAL  2
 #define SE_SOA_RDATA_MINIMUM 6
 
@@ -109,9 +105,5 @@ int util_write_pidfile(const char* pidfile, pid_t pid);
  * \return 1 pidfile does not exist or process not running. 0 otherwise.
  */
 int util_pidfile_avail(const char* pidfile);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* UTIL_UTIL_H */

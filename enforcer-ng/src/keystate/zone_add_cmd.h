@@ -30,14 +30,6 @@
 #ifndef _KEYSTATE_ZONE_ADD_CMD_H_
 #define _KEYSTATE_ZONE_ADD_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* zone_add_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _KEYSTATE_ZONE_ADD_CMD_H_ */

@@ -37,10 +37,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Initialize logging.
  * \param[in] filename logfile, stderr if NULL.
@@ -155,10 +151,6 @@ void ods_fatal_exit(const char *format, ...);
 
 #else
 #define ods_log_assert(x)
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif /* SHARED_LOG_H */

@@ -29,15 +29,7 @@
 #ifndef __db_schema_mysql_h
 #define __db_schema_mysql_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern const char* db_schema_mysql_create[];
 extern const char* db_schema_mysql_drop[];
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
