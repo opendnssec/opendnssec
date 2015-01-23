@@ -86,8 +86,12 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	task = enforce_task(engine, 1);
 
 	t_next = perform_enforce_lock(sockfd, engine, 1, task, dbconn);
-	reschedule_enforce(task, t_next, "next zone");
-	schedule_task(engine->taskq, task);
+	if (t_next == -1) {
+		task_cleanup(task);
+	} else {
+		reschedule_enforce(task, t_next, "next zone");
+		schedule_task(engine->taskq, task);
+	}
 	return 0;
 }
 
