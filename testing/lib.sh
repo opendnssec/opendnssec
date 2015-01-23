@@ -13,6 +13,7 @@ exit ()
 			centos | \
 			sl | \
 			opensuse | \
+			slackware | \
 			suse | \
 			freebsd | \
 			netbsd | \
@@ -408,6 +409,7 @@ find_tail ()
 		redhat | \
 		centos | \
 		sl | \
+		slackware | \
 		opensuse | \
 		suse | \
 		sunos )
@@ -547,6 +549,7 @@ detect_revision ()
 detect_distribution ()
 {
 	DISTRIBUTION="UNKNOWN"
+	DISTRIBUTION=slackware
 
 	if [ -f "/etc/debian_version" ]; then
 		if uname -a 2>/dev/null | $GREP -q -i ubuntu 2>/dev/null; then
@@ -1723,6 +1726,7 @@ syslog_trace ()
 		redhat | \
 		centos | \
 		sl | \
+		slackware | \
 		opensuse | \
 		suse | \
 		freebsd | \

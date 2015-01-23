@@ -12,18 +12,6 @@ ZONELIST_FILE=$INSTALL_ROOT/etc/opendnssec/zonelist.xml
 
 local num_completed_updates
 
-# Cater for the fact that solaris and openbsd use different flags in diff
-# Use -w to ignore whitespace, but on those 2 platforms need -b instead
-# Note, since openbsd can't ignore entire blank lines, we need to get the gold
-# files just right to avoid having to fix this up during the test 
-local ignore_whitespace="-w"
-case "$DISTRIBUTION" in
-	sunos | \
-	openbsd )
-		ignore_whitespace="-b"
-		;;
-esac
-
 # First, fix up the install root in the gold files
 sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.gold > zonelist.xml.gold_local &&
 sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.test > zonelist.xml.test_local && 
@@ -58,40 +46,40 @@ log_grep ods-enforcer-zone_none   stdout "No zones configured in DB." &&
 ##################  TEST:  Zone add success ###########################
 #0. Test all default
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods0 &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods0 into database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required." &&
+syslog_grep '\[zone_add_cmd\] internal zonelist updated successfully' &&
 
 #1. Test existing policy
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods1 --policy Policy1 &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods1" &&
+log_grep ods-enforcer-zone_add   stdout "Zone ods1 added successfully" &&
 
 # Test default input type and file
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods2 --policy Policy1 --input $INSTALL_ROOT/var/opendnssec/unsigned/ods2 &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods2" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods2 added successfully" &&
 
 #2. Test more parameters
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods3 --in-type File --out-type File &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods3" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods3 added successfully" &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods4 --in-type File --out-type File --input $INSTALL_ROOT/var/opendnssec/unsigned/ods4 --output $INSTALL_ROOT/var/opendnssec/signed/ods4 &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods4" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods4 added successfully" &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods5 --in-type File --out-type DNS &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods5" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods5 added successfully" &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods6 --in-type File --out-type DNS --input $INSTALL_ROOT/var/opendnssec/unsigned/ods6 --output $INSTALL_ROOT/etc/opendnssec/addns.xml &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods6" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods6 added successfully" &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods7 --in-type DNS --out-type DNS &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods7" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods7 added successfully" &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods8 --in-type DNS --out-type DNS --input $INSTALL_ROOT/etc/opendnssec/addns.xml --output $INSTALL_ROOT/etc/opendnssec/addns.xml &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods8" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods8 added successfully" &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods9 --in-type DNS --out-type File &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods9" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods9 added successfully" &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods10 --in-type DNS --out-type File --input $INSTALL_ROOT/etc/opendnssec/addns.xml --output $INSTALL_ROOT/var/opendnssec/signed/ods10 &&
-log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods10" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods10 added successfully" &&
 
 log_this ods-enforcer-zone_add_list   ods-enforcer zone list &&
 log_grep ods-enforcer-zone_add_list   stdout "ods0[[:space:]]*default" &&
@@ -110,17 +98,16 @@ log_grep ods-enforcer-zone_add_list   stdout "ods10[[:space:]]*default" &&
 
 # Test re-add of of existing zone
 ! log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods1 --policy Policy1 &&
-log_grep ods-enforcer-zone_add_bad stdout "Failed to Import zone ods1; it already exists" &&
+log_waitfor ods-enforcer-zone_add_bad stderr 900 "Unable to add zone, zone already exists" &&
 
 #3. Test noneexistent policy 
 ! log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods11 --policy NonexistentPolicy &&
-log_grep ods-enforcer-zone_add_bad   stdout "Error, can't find policy : NonexistentPolicy" &&
+log_waitfor ods-enforcer-zone_add_bad   stderr 900 "Unable to find policy NonexistentPolicy needed for adding the zone!" &&
 
 #4. Test bad parameter
 ! log_this ods-enforcer-zone_add_bad   ods-enforcer zone &&
 ##### TO FIX: 
-#log_grep ods-enforcer-zone_add_bad   stderr "usage: ods-enforcer \[-c <config> | --config <config>\] zone" &&
-log_grep ods-enforcer-zone_add_bad stderr "Unknown command zone" &&
+log_waitfor ods-enforcer-zone_add_bad stderr 900 "Unknown command zone" &&
 
 
 ##### TO FIX: TO be implemented in 2.0
@@ -142,17 +129,17 @@ log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods13 --input 
 #cp $ZONELIST_FILE zonelist.xml.gold &&
 
 # Check the zones.xml internal file is written (2.0 new behaviour)
-diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local &&
+diff.sh $ZONES_FILE zonelist.xml.gold_local &&
 echo "zones.xml contents OK" &&
 
 # Check the zonelist.xml is still empty (2.0 default behaviour)
 echo "Checking zonelist contents" && 
-diff $ignore_whitespace  $ZONELIST_FILE zonelist.xml &&
+diff.sh $ZONELIST_FILE zonelist.xml &&
 echo "Zonelist contents OK" && 
 
 # Check the export against a gold
 ods-enforcer zonelist export > zonelist.xml.temp &&
-diff $ignore_whitespace   zonelist.xml.temp zonelist.xml.gold_export_local &&
+diff.sh zonelist.xml.temp zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" && 
 
 # Now add _and_ update the zonelist (2.0 new behaviour)
@@ -164,18 +151,18 @@ log_grep ods-enforcer-zone_add_list_1   stdout "ods14[[:space:]]*default" &&
 
 # Exported zonelist should be different (not checked in detail)....
 echo "Checking zonelist contents again after update of zonelist.xml" && 
-! diff $ignore_whitespace  $ZONELIST_FILE zonelist.xml.gold_local >/dev/null 2>/dev/null &&
+! diff.sh $ZONELIST_FILE zonelist.xml.gold_local &&
 $GREP -q -- "ods14" "$ZONELIST_FILE" &&
 echo "Zonelist contents OK again" &&
 
 # And the zones.xml should be different too
-! diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local >/dev/null 2>/dev/null &&
+! diff.sh $ZONES_FILE zonelist.xml.gold_local &&
 $GREP -q -- "ods14" "$ZONES_FILE" &&
 echo "zones.xml contents OK" &&
 
 # Exported zonelist should be different (not checked in detail)....
 ods-enforcer zonelist export > zonelist.xml.temp1 &&
-! diff $ignore_whitespace   zonelist.xml.temp1 zonelist.xml.gold_export_local >/dev/null 2>/dev/null &&
+! diff.sh zonelist.xml.temp1 zonelist.xml.gold_export_local &&
 $GREP -q -- "ods14" "zonelist.xml.temp1" &&
 echo "Zonelist export contents OK" &&
 
@@ -189,7 +176,7 @@ log_this ods-enforcer-zone_del_list_1   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_1   stdout "ods1[[:space:]]*Policy1" &&
 
 echo "Checking zonelist contents again after delete" && 
-###diff $ignore_whitespace  $ZONELIST_FILE zonelist.xml.gold_local &&
+###diff.sh $ZONELIST_FILE zonelist.xml.gold_local &&
 $GREP -q -- "ods1\"" "$ZONELIST_FILE" &&
 $GREP -q -- "ods14" "$ZONELIST_FILE" &&
 ! $GREP -q -- "ods1\"" "$ZONES_FILE" &&
@@ -219,7 +206,7 @@ log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones configured in DB." &&
 
 echo "Checking no zones in internal zonelist" && 
-diff $ignore_whitespace   $ZONES_FILE zonelist.xml &&
+diff.sh $ZONES_FILE zonelist.xml &&
 echo "Internal Zone file contents empty" &&
 
 ##################  TEST:  Zonelist.xml  import ###########################
@@ -248,9 +235,9 @@ log_grep ods-enforcer-zone_add_list_2   stdout "ods13[[:space:]]*default" &&
 # Check the export gives the same thing  (note - we use a different gold file here as the order
 # in the exported file is not the same as that in the configuration file)
 ods-enforcer zonelist export > zonelist.xml.temp2 &&
-diff $ignore_whitespace   zonelist.xml.temp2 zonelist.xml.gold_export_local &&
+diff.sh zonelist.xml.temp2 zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" &&
-diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local &&
+diff.sh $ZONES_FILE zonelist.xml.gold_local &&
 echo "zones.xml contents OK" &&
 
 # Now do another import with a file that has one extra zone and one zone removed
@@ -278,9 +265,9 @@ log_grep ods-enforcer-zone_add_list_3   stdout "ods13[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_3   stdout "ods14[[:space:]]*default" &&
 
 ods-enforcer zonelist export > zonelist.xml.temp3 &&
-diff $ignore_whitespace   zonelist.xml.temp3 zonelist.xml.gold_export2_local &&
+diff.sh zonelist.xml.temp3 zonelist.xml.gold_export2_local &&
 echo "Zonelist export contents OK" &&
-diff $ignore_whitespace   $ZONES_FILE zonelist.xml.test_local &&
+diff.sh $ZONES_FILE zonelist.xml.test_local &&
 echo "zones.xml contents OK" &&
 
 # #Finally run the signer to check all is well
@@ -309,7 +296,7 @@ log_this ods-enforcer-zonelist-import-empty ods-enforcer zonelist import &&
 log_this ods-enforcer-zonelist-import-empty   ods-enforcer zone list &&
 log_grep ods-enforcer-zonelist-import-empty   stdout "No zones configured in DB." &&
 
-diff $ignore_whitespace   $ZONES_FILE zonelist.xml &&
+diff.sh $ZONES_FILE zonelist.xml &&
 echo "Zonelist export contents OK" &&
 
 ods_stop_enforcer && 

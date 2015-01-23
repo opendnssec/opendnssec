@@ -85,7 +85,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     client_printf(sockfd, "Database set to: %s\n", engine->config->datastore);
     if (!(zone = zone_list_next(zone_list))) {
-        client_printf(sockfd, "No zones in database.\n");
+        client_printf(sockfd, "No zones configured in DB.\n");
         zone_list_free(zone_list);
         return 0;
     }
