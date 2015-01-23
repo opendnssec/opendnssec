@@ -136,7 +136,13 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		/* No zones scheduled for update at this time. We must be
 		 * called out of schedule. Make sure we reset the original
 		 * scheduled time */
-		 t_reschedule = task->when;
+		if (bForceUpdate) {
+			/* we where forced to update so no zone means there are
+			 * no zones at all */
+			t_reschedule = -1;
+		} else {
+			t_reschedule = task->when;
+		}
 	}
 	
 	for (; zone && !engine->need_to_reload && !engine->need_to_exit;
