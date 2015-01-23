@@ -254,25 +254,22 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 
 	/* Launch ds-submit task when one of the updated key states has the
 	 * DS_SUBMIT flag set. */
-	/* TODO: convert to new database layer
 	if (bSubmitToParent) {
 		task_type *submit =
-			keystate_ds_submit_task(engine->config,
-									"ds-submit","KSK keys with submit flag set");
-		enf_schedule_task(sockfd,engine,submit,"ds-submit");
+			keystate_ds_submit_task(engine->config);
+		enf_schedule_task(sockfd, engine, submit, "ds-submit");
 	}
-	*/
+	
 
 	/* Launch ds-retract task when one of the updated key states has the
 	 * DS_RETRACT flag set. */
-	/* TODO: convert to new database layer
-	if (bRetractFromParent) {
+	/*if (bRetractFromParent) {
 		task_type *retract =
 			keystate_ds_retract_task(engine->config,
 								"ds-retract","KSK keys with retract flag set");
 		enf_schedule_task(sockfd,engine,retract,"ds-retract");
-	}
-	*/
+	}*/
+	
 
 	return t_reschedule;
 }

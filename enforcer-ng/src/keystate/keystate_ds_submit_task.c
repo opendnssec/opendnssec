@@ -28,11 +28,8 @@
  */
 #include "config.h"
 
-#include <memory>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/message.h>
 
 #include "daemon/clientpipe.h"
 #include "shared/log.h"
@@ -40,17 +37,14 @@
 #include "shared/duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
-
-#include "keystate/keystate.pb.h"
-#include "policy/kasp.pb.h"
-#include "xmlext-pb/xmlext-rd.h"
-#include "protobuf-orm/pb-orm.h"
-#include "daemon/orm.h"
+#include "scheduler/task.h"
+#include "daemon/engine.h"
 
 #include "keystate/keystate_ds_submit_task.h"
 
 static const char *module_str = "keystate_ds_submit_task";
 
+#if 0
 static uint16_t
 submit_dnskey_by_id(int sockfd,
 					const char *ds_submit_command,
@@ -179,25 +173,6 @@ submit_dnskey_by_id(int sockfd,
 	// Once the new DS records are seen in DNS please issue the ds-seen 
 	// command for zone %s with the following cka_ids %s
 	return keytag;
-}
-
-static bool
-load_kasp_policy(OrmConn conn,const std::string &name,
-				 ::ods::kasp::Policy &policy)
-{
-	std::string qname;
-	if (!OrmQuoteStringValue(conn, name, qname))
-		return false;
-	
-	OrmResultRef rows;
-	if (!OrmMessageEnumWhere(conn,policy.descriptor(),rows,
-							 "name=%s",qname.c_str()))
-		return false;
-	
-	if (!OrmFirst(rows))
-		return false;
-	
-	return OrmGetMessage(rows, policy, true);
 }
 
 /* 1 on success, 0 on fail */
@@ -384,95 +359,30 @@ submit_keys(OrmConn conn,
 	return 1;
 }
 
-static int
-list_keys_submit(OrmConn conn, int sockfd, const char *datastore)
-{
-	#define LOG_AND_RETURN(errmsg)\
-		do{ods_log_error_and_printf(sockfd,module_str,errmsg);return 0;}while(0)
-	
-	// List the keys with submit flags.
-	client_printf(sockfd,
-			   "Database set to: %s\n"
-			   "List of keys eligible to be submitted:\n"
-			   "Zone:                           "
-			   "Key role:     "
-			   "Id:                                      "
-			   "\n"
-			   ,datastore
-			   );
+#endif
 
-	OrmTransaction transaction(conn);
-	if (!transaction.started())
-		LOG_AND_RETURN("transaction not started");
-	
-	{	OrmResultRef rows;
-		::ods::keystate::EnforcerZone enfzone;
-		if (!OrmMessageEnum(conn,enfzone.descriptor(),rows))
-			LOG_AND_RETURN("zone enumeration failed");
-
-		for (bool next=OrmFirst(rows); next; next=OrmNext(rows)) {
-			
-			if (!OrmGetMessage(rows, enfzone, /*zones + keys*/true))
-				LOG_AND_RETURN("retrieving zone from database failed");
-			
-			for (int k=0; k<enfzone.keys_size(); ++k) {
-				const ::ods::keystate::KeyData &key = enfzone.keys(k);
-
-				// Don't suggest ZSKs can be submitted, don't list them.
-				if (key.role() == ::ods::keystate::ZSK)
-					continue;
-				
-				// Only show keys that have the submit flag set.
-				if (key.ds_at_parent()!=::ods::keystate::submit)
-					continue;
-				
-				std::string keyrole = keyrole_Name(key.role());
-				client_printf(sockfd,
-						   "%-31s %-13s %-40s\n",
-						   enfzone.name().c_str(),
-						   keyrole.c_str(),
-						   key.locator().c_str()
-						   );
-			}
-		}
-	}
-	
-	#undef LOG_AND_RETURN
-	return 1;
-}
-
-int 
-perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
-						   const char *zone, const char *id, int bauto,
-						   bool force)
-{
-	GOOGLE_PROTOBUF_VERIFY_VERSION;
-	OrmConnRef conn;
-	if (ods_orm_connect(sockfd, config, conn)) {
-		// Evaluate parameters and submit keys to the parent when instructed to.
-		if (zone || id || bauto)
-			return submit_keys(conn,sockfd,zone,id,config->datastore,
-						config->delegation_signer_submit_command, force);
-		else
-			return list_keys_submit(conn,sockfd,config->datastore);
-	}
-	return 0; /* could not connect */
-}
-
+/* executed headless */
 static task_type * 
 keystate_ds_submit_task_perform(task_type *task)
 {
-	perform_keystate_ds_submit(-1,(engineconfig_type *)task->context,NULL,NULL,
-							   0, false);
+	assert(task);
+	
+	//~ (void)perform_keystate_ds_submit(-1, (engine_type *)task->context,
+		//~ NULL, NULL, 0, 0);
+	//~ submit_keys(-1, sockfd,zone,id,config->datastore,
+					//~ config->delegation_signer_submit_command, force);
 	task_cleanup(task);
 	return NULL;
 }
 
 task_type *
-keystate_ds_submit_task(engineconfig_type *config, const char *what,
-						const char *who)
+keystate_ds_submit_task(engine_type *engine)
 {
-	task_id what_id = task_register(what, "keystate_ds_submit_task_perform",
-									keystate_ds_submit_task_perform);
-	return task_create(what_id, time_now(), who, (void*)config);
+	task_id what_id;
+	const char *what = "ds-submit";
+	const char *who = "KSK keys with submit flag set";
+	
+	what_id = task_register(what, "keystate_ds_submit_task_perform",
+		keystate_ds_submit_task_perform);
+	return task_create(what_id, time_now(), who, engine);
 }

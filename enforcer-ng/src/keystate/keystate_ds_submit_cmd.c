@@ -37,6 +37,7 @@
 #include "daemon/clientpipe.h"
 #include "db/key_data.h"
 #include "keystate/keystate_ds.h"
+#include "keystate/keystate_ds_submit_task.h"
 
 #include "keystate/keystate_ds_submit_cmd.h"
 

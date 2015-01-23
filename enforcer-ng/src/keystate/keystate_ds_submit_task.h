@@ -30,16 +30,7 @@
 #ifndef _KEYSTATE_DS_SUBMIT_TASK_H_
 #define _KEYSTATE_DS_SUBMIT_TASK_H_
 
-#include "daemon/cfg.h"
-#include "scheduler/task.h"
-
-int
-perform_keystate_ds_submit(int sockfd, engineconfig_type *config,
-                           const char *zone, const char *id, int bauto,
-                           bool force);
-
 task_type *
-keystate_ds_submit_task(engineconfig_type *config, const char *what,
-                        const char *who);
+keystate_ds_submit_task(engine_type *engine);
 
 #endif

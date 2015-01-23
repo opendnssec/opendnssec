@@ -101,6 +101,7 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_export_cmd.c keystate/keystate_export_cmd.h \
 	keystate/keystate_export_task.c keystate/keystate_export_task.h \
 	keystate/keystate_ds_submit_cmd.c keystate/keystate_ds_submit_cmd.h \
+	keystate/keystate_ds_submit_task.c keystate/keystate_ds_submit_cmd.h \
 	keystate/keystate_ds_seen_cmd.c keystate/keystate_ds_seen_cmd.h \
 	keystate/keystate_ds_retract_cmd.c keystate/keystate_ds_retract_cmd.h \
 	keystate/keystate_ds.c keystate/keystate_ds.h \

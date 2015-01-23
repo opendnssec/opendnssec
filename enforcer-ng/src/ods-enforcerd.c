@@ -106,9 +106,6 @@ program_setup(int cmdline_verbosity)
 void
 program_teardown()
 {
-    /*ods_orm_shutdown();
-    ods_protobuf_shutdown();*/
-
     ods_log_close();
 
     xmlCleanupParser();
