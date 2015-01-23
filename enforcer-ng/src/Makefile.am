@@ -99,7 +99,6 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_list_cmd.c keystate/keystate_list_cmd.h \
 	keystate/rollover_list_cmd.c keystate/rollover_list_cmd.h \
 	keystate/keystate_export_cmd.c keystate/keystate_export_cmd.h \
-	keystate/keystate_export_task.c keystate/keystate_export_task.h \
 	keystate/keystate_ds_submit_cmd.c keystate/keystate_ds_submit_cmd.h \
 	keystate/keystate_ds_submit_task.c keystate/keystate_ds_submit_cmd.h \
 	keystate/keystate_ds_seen_cmd.c keystate/keystate_ds_seen_cmd.h \
