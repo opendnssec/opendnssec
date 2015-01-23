@@ -36,10 +36,6 @@
 #include "scheduler/schedule.h"
 #include "db/db_connection.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Max number of not accepted connections before starting to drop. */
 #define ODS_SE_MAX_HANDLERS 5
 
@@ -126,9 +122,5 @@ void cmdhandler_get_usage(int sockfd);
  * \return function block or NULL
  */
 struct cmd_func_block* get_funcblock(const char *cmd, ssize_t n);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* DAEMON_CMDHANDLER_H */

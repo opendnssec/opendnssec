@@ -30,14 +30,6 @@
 #ifndef __test_database_version_h
 #define __test_database_version_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int test_database_version_add_suite(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -35,10 +35,6 @@
 #include "zone.h"
 #include "policy_key.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Create a policy object from XML.
  * \param[in] policy a policy_t object being created.
@@ -70,9 +66,5 @@ zone_list_t* policy_get_zones(const policy_t* policy);
  * \return a policy_key_list_t pointer or NULL on error.
  */
 policy_key_list_t* policy_get_policy_keys(const policy_t* policy);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

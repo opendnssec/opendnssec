@@ -30,14 +30,6 @@
 #ifndef _ENFORCER_ENFORCE_CMD_H_
 #define _ENFORCER_ENFORCE_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* enforce_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _ENFORCER_ENFORCE_CMD_H_ */

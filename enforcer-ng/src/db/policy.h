@@ -32,10 +32,6 @@
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct policy;
 struct policy_list;
 typedef struct policy policy_t;
@@ -57,15 +53,7 @@ typedef enum policy_zone_soa_serial {
 } policy_zone_soa_serial_t;
 extern const db_enum_t policy_enum_set_zone_soa_serial[];
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "policy_ext.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A policy object.
@@ -1283,9 +1271,5 @@ policy_t* policy_list_get_next(policy_list_t* policy_list);
  * empty or if the backend does not support returning the size.
  */
 size_t policy_list_size(policy_list_t* policy_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

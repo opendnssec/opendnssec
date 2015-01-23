@@ -56,10 +56,6 @@
  */
 #define ZONELIST_UPDATE_ERR_FILE 5
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Update a zonelist and add the supplied zone to it.
  * \param[in] sockfd socket fd.
@@ -79,9 +75,5 @@ int zonelist_update_add(int sockfd, const char* filename, const zone_t* zone, in
  * \return ZONELIST_UPDATE_ERR_* on error otherwise ZONELIST_UPDATE_OK.
  */
 int zonelist_update_delete(int sockfd, const char* filename, const zone_t* zone, int comment);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _KEYSTATE_ZONELIST_UPDATE_H_ */

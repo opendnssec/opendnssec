@@ -45,10 +45,6 @@
 # include <unistd.h>
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define SYSTEM_MAXLEN 1024
 
 /**
@@ -177,9 +173,5 @@ int ods_file_copy(const char* file1, const char* file2);
  *
  */
 void ods_chown(const char* file, uid_t uid, gid_t gid, int getdir);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* SHARED_FILE_H */

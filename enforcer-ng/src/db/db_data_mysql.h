@@ -29,14 +29,6 @@
 #ifndef __db_data_mysql_h
 #define __db_data_mysql_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern const char* db_data_mysql[];
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

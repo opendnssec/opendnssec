@@ -34,16 +34,8 @@
 #include "scheduler/task.h"
 #include "db/db_connection.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int perform_signconf(int sockfd, const db_connection_t* dbconn, int force);
 
 task_type* signconf_task(const db_connection_t* dbconn, const char* what, const char* who);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

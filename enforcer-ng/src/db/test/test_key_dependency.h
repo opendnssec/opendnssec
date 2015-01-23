@@ -30,14 +30,6 @@
 #ifndef __test_key_dependency_h
 #define __test_key_dependency_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int test_key_dependency_add_suite(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

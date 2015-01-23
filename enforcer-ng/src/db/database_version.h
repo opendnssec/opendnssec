@@ -32,24 +32,12 @@
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct database_version;
 struct database_version_list;
 typedef struct database_version database_version_t;
 typedef struct database_version_list database_version_list_t;
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "database_version_ext.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A database version object.
@@ -333,9 +321,5 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
  * empty or if the backend does not support returning the size.
  */
 size_t database_version_list_size(database_version_list_t* database_version_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

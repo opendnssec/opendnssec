@@ -32,25 +32,13 @@
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct zone;
 struct zone_list;
 typedef struct zone zone_t;
 typedef struct zone_list zone_list_t;
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "zone_ext.h"
 #include "policy.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A zone object.
@@ -884,9 +872,5 @@ zone_t* zone_list_get_next(zone_list_t* zone_list);
  * empty or if the backend does not support returning the size.
  */
 size_t zone_list_size(zone_list_t* zone_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

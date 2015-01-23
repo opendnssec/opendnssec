@@ -30,14 +30,6 @@
 #ifndef _POLICY_UPDATE_KASP_CMD_H_
 #define _POLICY_UPDATE_KASP_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* update_kasp_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _POLICY_UPDATE_KASP_CMD_H_ */

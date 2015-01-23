@@ -38,10 +38,6 @@
 #include "shared/status.h"
 #include "daemon/cfg.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Check config file with rng file.
  * \param[in] cfgfile the configuration file name
@@ -124,8 +120,5 @@ int parse_conf_manual_keygen(const char* cfgfile);
 int parse_conf_db_port(const char *cfgfile);
 time_t parse_conf_automatic_keygen_period(const char* cfgfile);
 struct engineconfig_repository* parse_conf_repositories(const char* cfgfile);
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PARSE_CONFPARSER_H */
