@@ -57,10 +57,6 @@
  */
 #define POLICY_EXPORT_ERR_FILE 5
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Export all policies from the database to XML.
  * \param[in] sockfd a socket.
@@ -78,9 +74,5 @@ int policy_export_all(int sockfd, const db_connection_t* connection, const char*
  * \return POLICY_EXPORT_ERR_* on error otherwise POLICY_EXPORT_OK.
  */
 int policy_export(int sockfd, const policy_t* policy, const char* filename);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _POLICY_POLICY_EXPORT_H_ */

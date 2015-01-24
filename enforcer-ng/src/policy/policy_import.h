@@ -53,10 +53,6 @@
  */
 #define POLICY_IMPORT_ERR_MEMORY 4
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  * Import policies from the configured KASP XML and sync it with the database.
  * \param[in] sockfd a client socket which progress is written to if non-zero.
@@ -68,9 +64,5 @@ extern "C" {
  */
 int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _POLICY_POLICY_IMPORT_H_ */

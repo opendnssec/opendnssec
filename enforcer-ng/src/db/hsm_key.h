@@ -32,10 +32,6 @@
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct hsm_key;
 struct hsm_key_list;
 typedef struct hsm_key hsm_key_t;
@@ -73,16 +69,8 @@ typedef enum hsm_key_backup {
 } hsm_key_backup_t;
 extern const db_enum_t hsm_key_enum_set_backup[];
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "hsm_key_ext.h"
 #include "policy.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A hsm key object.
@@ -753,9 +741,5 @@ hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list);
  * empty or if the backend does not support returning the size.
  */
 size_t hsm_key_list_size(hsm_key_list_t* hsm_key_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

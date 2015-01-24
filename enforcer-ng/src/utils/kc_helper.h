@@ -38,10 +38,6 @@
 
 #define KC_NAME_LENGTH     256
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
 	char *name;
 	char *module;
@@ -87,9 +83,5 @@ void StrTrimR(char *text);
 char* StrTrimL(char* text);
 void* MemCalloc(size_t nmemb, size_t size);
 void* MemRealloc(void *ptr, size_t size);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* KC_HELPER_H */

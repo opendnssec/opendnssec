@@ -57,10 +57,6 @@
  */
 #define ZONELIST_IMPORT_NO_CHANGE 5
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  * Import zones from the configured zonelist and sync it with the database.
  * \param[in] sockfd a client socket which progress is written to if non-zero.
@@ -73,9 +69,5 @@ extern "C" {
  */
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _KEYSTATE_ZONELIST_IMPORT_H_ */

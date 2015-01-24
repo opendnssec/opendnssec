@@ -35,10 +35,6 @@
 
 #include <time.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * TODO
  */
@@ -122,9 +118,5 @@ int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
  */
 int hsm_key_factory_release_key(hsm_key_t* hsm_key,
     const db_connection_t* connection);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _HSM_KEY_FACTORY_H_ */

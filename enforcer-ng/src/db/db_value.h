@@ -30,18 +30,10 @@
 #ifndef __db_value_h
 #define __db_value_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct db_value;
 struct db_value_set;
 typedef struct db_value db_value_t;
 typedef struct db_value_set db_value_set_t;
-
-#ifdef __cplusplus
-}
-#endif
 
 #include "config.h"
 
@@ -49,10 +41,6 @@ typedef struct db_value_set db_value_set_t;
 #include "db_enum.h"
 
 #include <stdlib.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A container for a database value.
@@ -377,9 +365,5 @@ const db_value_t* db_value_set_at(const db_value_set_t* value_set, size_t at);
  * \return a db_value_t pointer or NULL on error.
  */
 db_value_t* db_value_set_get(db_value_set_t* value_set, size_t at);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

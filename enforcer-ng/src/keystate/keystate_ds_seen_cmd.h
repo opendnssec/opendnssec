@@ -32,14 +32,6 @@
 
 #include "daemon/engine.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* key_ds_seen_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _KEYSTATE_DS_SEEN_CMD_H_ */

@@ -35,10 +35,6 @@
 
 #include <libxml/tree.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Get a list of keys for an enforcer zone object.
  * \param[in] zone an zone_t pointer.
@@ -70,9 +66,5 @@ int zone_create_from_xml(zone_t* zone, xmlNodePtr zone_node);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int zone_update_from_xml(zone_t* zone, xmlNodePtr zone_node, int* updated);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

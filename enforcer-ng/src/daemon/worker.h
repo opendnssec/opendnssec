@@ -37,10 +37,6 @@
 
 #include <time.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct engine_struct;
 
 typedef struct worker_struct worker_type;
@@ -81,9 +77,5 @@ void worker_start(worker_type* worker);
  *
  */
 void worker_cleanup(worker_type* worker);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* DAEMON_WORKER_H */

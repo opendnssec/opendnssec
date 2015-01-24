@@ -42,10 +42,6 @@
 
 #include <signal.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Engine stuff.
  *
@@ -140,9 +136,5 @@ void engine_start_workers(engine_type* engine);
 
 engine_type* engine_alloc(void);
 void engine_dealloc(engine_type* engine);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* DAEMON_ENGINE_H */

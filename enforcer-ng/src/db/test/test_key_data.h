@@ -30,14 +30,6 @@
 #ifndef __test_key_data_h
 #define __test_key_data_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int test_key_data_add_suite(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
