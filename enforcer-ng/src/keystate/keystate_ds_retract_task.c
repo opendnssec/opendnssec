@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2014 Stichting NLnet Labs
+ * Copyright (c) 2011 Surfnet 
+ * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2011 OpenDNSSEC AB (svb)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,20 +26,38 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include "config.h"
 
-#ifndef _KEYSTATE_DS_H_
-#define _KEYSTATE_DS_H_
+#include "daemon/clientpipe.h"
+#include "scheduler/task.h"
+#include "daemon/engine.h"
+#include "shared/duration.h"
+#include "keystate/keystate_ds.h"
 
-#include "db/key_data.h"
+#include "keystate/keystate_ds_retract_task.h"
 
-int
-change_keys_from_to(db_connection_t *dbconn, int sockfd,
-	const char *zonename, const hsm_key_t* hsmkey, int keytag,
-	key_data_ds_at_parent_t state_from,
-	key_data_ds_at_parent_t state_to);
+/* static const char *module_str = "keystate_ds_retract_task"; */
 
-int run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
-	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
-	key_data_ds_at_parent_t state_to);
+/* executed headless */
+static task_type * 
+keystate_ds_retract_task_perform(task_type *task)
+{
+	assert(task);
 
-#endif /* _KEYSTATE_DS_H_ */
+	(void)change_keys_from_to(task->dbconn, -1, NULL, NULL, 0,
+		KEY_DATA_DS_AT_PARENT_RETRACT, KEY_DATA_DS_AT_PARENT_RETRACTED);
+	task_cleanup(task);
+	return NULL;
+}
+
+task_type *
+keystate_ds_retract_task(engine_type *engine)
+{
+	task_id what_id;
+	const char *what = "ds-retract";
+	const char *who = "KSK keys with retract flag set";
+	
+	what_id = task_register(what, "keystate_ds_retract_task_perform",
+		keystate_ds_retract_task_perform);
+	return task_create(what_id, time_now(), who, engine);
+}

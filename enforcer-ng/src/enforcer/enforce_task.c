@@ -256,19 +256,18 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	 * DS_SUBMIT flag set. */
 	if (bSubmitToParent) {
 		task_type *submit =
-			keystate_ds_submit_task(engine->config);
+			keystate_ds_submit_task(engine);
 		enf_schedule_task(sockfd, engine, submit, "ds-submit");
 	}
 	
 
 	/* Launch ds-retract task when one of the updated key states has the
 	 * DS_RETRACT flag set. */
-	/*if (bRetractFromParent) {
+	if (bRetractFromParent) {
 		task_type *retract =
-			keystate_ds_retract_task(engine->config,
-								"ds-retract","KSK keys with retract flag set");
-		enf_schedule_task(sockfd,engine,retract,"ds-retract");
-	}*/
+			keystate_ds_retract_task(engine);
+		enf_schedule_task(sockfd, engine, retract, "ds-retract");
+	}
 	
 
 	return t_reschedule;
