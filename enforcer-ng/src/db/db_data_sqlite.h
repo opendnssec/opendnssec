@@ -29,14 +29,6 @@
 #ifndef __db_data_sqlite_h
 #define __db_data_sqlite_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern const char* db_data_sqlite[];
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

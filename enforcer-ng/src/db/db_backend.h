@@ -30,10 +30,6 @@
 #ifndef __db_backend_h
 #define __db_backend_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct db_backend_handle;
 struct db_backend;
 struct db_backend_meta_data;
@@ -43,20 +39,12 @@ typedef struct db_backend db_backend_t;
 typedef struct db_backend_meta_data db_backend_meta_data_t;
 typedef struct db_backend_meta_data_list db_backend_meta_data_list_t;
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "db_configuration.h"
 #include "db_result.h"
 #include "db_object.h"
 #include "db_join.h"
 #include "db_clause.h"
 #include "db_value.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * Function pointer for initializing a database backend. The backend handle
@@ -753,9 +741,5 @@ int db_backend_meta_data_list_add(db_backend_meta_data_list_t* backend_meta_data
  * backend meta data does not exist.
  */
 const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t* backend_meta_data_list, const char* name);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

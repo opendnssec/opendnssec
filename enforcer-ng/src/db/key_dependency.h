@@ -32,10 +32,6 @@
 
 #include "db_object.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct key_dependency;
 struct key_dependency_list;
 typedef struct key_dependency key_dependency_t;
@@ -50,17 +46,9 @@ typedef enum key_dependency_type {
 } key_dependency_type_t;
 extern const db_enum_t key_dependency_enum_set_type[];
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "key_dependency_ext.h"
 #include "zone.h"
 #include "key_data.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A key dependency object.
@@ -563,9 +551,5 @@ key_dependency_t* key_dependency_list_get_next(key_dependency_list_t* key_depend
  * empty or if the backend does not support returning the size.
  */
 size_t key_dependency_list_size(key_dependency_list_t* key_dependency_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

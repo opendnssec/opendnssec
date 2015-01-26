@@ -32,18 +32,10 @@
 
 #include "db_backend.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Create a new database backend handle for CouchDB.
  * \return a db_backend_handle_t pointer or NULL on error.
  */
 db_backend_handle_t* db_backend_couchdb_new_handle(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

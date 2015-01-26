@@ -35,9 +35,7 @@
 #include <libxml/parser.h>
 
 #include "daemon/engine.h"
-#include "shared/protobuf.h"
 #include "shared/log.h"
-#include "daemon/orm.h"
 #include "mm.h"
 
 #include "enforcer/autostart_cmd.h"
@@ -103,10 +101,6 @@ program_setup(int cmdline_verbosity)
     
     /* setup */
     tzset(); /* for portability */
-
-    /* initialize protobuf and protobuf-orm */
-   /* ods_protobuf_initialize();*/
-    ods_orm_initialize();
 }
 
 void

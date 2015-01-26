@@ -32,19 +32,11 @@
 
 #include "db_connection.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Get the database version.
  * \param[in] a db_connection_t pointer.
  * \return an integer with the database version or zero on error.
  */
 int database_version_get_version(db_connection_t* connection);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

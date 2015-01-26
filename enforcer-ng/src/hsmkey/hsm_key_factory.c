@@ -26,7 +26,7 @@
  *
  */
 
-#include "hsmkey/hsm_key_factory.h"
+#include "config.h"
 
 #include "mm.h"
 #include "db/hsm_key.h"
@@ -40,6 +40,9 @@
 #include "libhsm.h"
 
 #include <math.h>
+
+#include "hsmkey/hsm_key_factory.h"
+
 
 struct __hsm_key_factory_task {
     engine_type* engine;

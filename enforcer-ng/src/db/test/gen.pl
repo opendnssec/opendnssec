@@ -64,15 +64,7 @@ open(HEADER, '>:encoding(UTF-8)', 'test_'.$name.'.h') or die;
 #ifndef __test_', $name, '_h
 #define __test_', $name, '_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int test_', $name, '_add_suite(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 ';

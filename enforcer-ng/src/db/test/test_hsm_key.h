@@ -30,14 +30,6 @@
 #ifndef __test_hsm_key_h
 #define __test_hsm_key_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int test_hsm_key_add_suite(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

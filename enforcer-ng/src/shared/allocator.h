@@ -36,10 +36,6 @@
 
 #include <stdlib.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct allocator_struct allocator_type;
 struct allocator_struct {
     void* (*allocator)(size_t);
@@ -105,9 +101,5 @@ void allocator_deallocate(allocator_type* allocator, void* data);
  *
  */
 void allocator_cleanup(allocator_type* allocator);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* SHARED_ALLOCATOR_H */

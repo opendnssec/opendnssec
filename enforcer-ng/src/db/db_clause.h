@@ -30,10 +30,6 @@
 #ifndef __db_clause_h
 #define __db_clause_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * The clause operation to make on the value.
  */
@@ -113,15 +109,7 @@ struct db_clause_list;
 typedef struct db_clause db_clause_t;
 typedef struct db_clause_list db_clause_list_t;
 
-#ifdef __cplusplus
-}
-#endif
-
 #include "db_value.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A database clause, describes the comparison of a database object field and a
@@ -291,9 +279,5 @@ int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause);
  * \return a db_clause_t pointer or NULL on error or if the list is empty.
  */
 const db_clause_t* db_clause_list_begin(const db_clause_list_t* clause_list);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

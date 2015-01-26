@@ -56,10 +56,6 @@
  */
 #define ZONELIST_EXPORT_ERR_FILE 5
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Export the zonelist from the database to an XML file.
  * \param[in] sockfd a socket.
@@ -69,9 +65,5 @@ extern "C" {
  * \return ZONELIST_EXPORT_ERR_* on error otherwise ZONELIST_EXPORT_OK.
  */
 int zonelist_export(int sockfd, db_connection_t* connection, const char* filename, int comment);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _KEYSTATE_ZONELIST_EXPORT_H_ */

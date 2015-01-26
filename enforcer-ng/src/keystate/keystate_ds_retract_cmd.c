@@ -32,53 +32,55 @@
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
-#include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
+#include "db/key_data.h"
+#include "keystate/keystate_ds.h"
 
-#include "enforcer/enforce_cmd.h"
+#include "keystate/keystate_ds_retract_cmd.h"
 
-static const char *module_str = "enforce_cmd";
-
-/**
- * Print help for the 'enforce' command
- *
- */
 static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"enforce                Force the enforcer to run once for every zone.\n"
+		"key ds-retract          Issue a ds-retract to the enforcer for a KSK.\n"
+		"                       (This command with no parameters lists eligible keys.)\n"
+		"      --zone <zone>              (aka -z)  zone.\n"
+		"      --keytag <keytag> | --cka_id <CKA_ID>      (aka -x | -k)\n"
+/*		"      [--force]                  (aka -f)  force even if there is no configured\n"
+		"                                           DelegationSignerSubmitCommand.\n" */
 	);
 }
 
 static int
 handles(const char *cmd, ssize_t n)
 {
-	return ods_check_command(cmd, n, enforce_funcblock()->cmdname)?1:0;
+	return ods_check_command(cmd, n, key_ds_retract_funcblock()->cmdname)?1:0;
 }
 
-/**
- * Handle the 'enforce' command.
- *
- */
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	(void)cmd; (void)n;
-	ods_log_debug("[%s] %s command", module_str, enforce_funcblock()->cmdname);
-	perform_enforce_lock(sockfd, engine, 1, NULL, dbconn);
-	return 0;
+	int error;
+	/* TODO, this changes the state, but sbmt cmd is not exec. */
+	error = run_ds_cmd(sockfd, cmd, n, dbconn,
+		KEY_DATA_DS_AT_PARENT_RETRACT,
+		KEY_DATA_DS_AT_PARENT_RETRACTED);
+	if (error == 0) {
+		flush_enforce_task(engine, 0);
+	}
+	return error;
+
 }
 
 static struct cmd_func_block funcblock = {
-	"enforce", &usage, NULL, &handles, &run
+	"key ds-retract", &usage, NULL, &handles, &run
 };
 
 struct cmd_func_block*
-enforce_funcblock(void)
+key_ds_retract_funcblock(void)
 {
 	return &funcblock;
 }

@@ -35,10 +35,6 @@
 #include "shared/allocator.h"
 #include "shared/status.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct zonelist_struct;
 
 /**
@@ -50,9 +46,5 @@ struct zonelist_struct;
  */
 ods_status parse_zonelist_zones(struct zonelist_struct* zlist,
     const char* zlfile);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PARSER_ZONELISTPARSER_H */

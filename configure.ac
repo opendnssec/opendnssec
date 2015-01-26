@@ -90,7 +90,6 @@ ACX_PTHREAD(
 
 LIBS="$PTHREAD_LIBS $LIBS"
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-CPPFLAGS="$CPPFLAGS $PTHREAD_CFLAGS"
 CC="$PTHREAD_CC"
 
 # checks for library functions
@@ -190,7 +189,6 @@ AC_ARG_ENABLE(enforcerng,
 		[enable_enforcerng="yes"])
 if test "x${enable_enforcerng}" = "xyes"; then
 	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
-	ACX_PROTOBUF(2,2,0)
 	ACX_ENFORCER_DATABASE
 	ACX_LIBREADLINE
 fi
@@ -253,7 +251,6 @@ AC_CONFIG_FILES([
 	enforcer-ng/src/Makefile
 	enforcer-ng/src/utils/Makefile
 	enforcer-ng/man/Makefile
-	enforcer-ng/src/protobuf-orm/test/Makefile
 	enforcer-ng/src/db/test/Makefile
 	enforcer-ng/man/ods-enforcer.8
 	enforcer-ng/man/ods-enforcerd.8

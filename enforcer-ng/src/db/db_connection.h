@@ -30,16 +30,8 @@
 #ifndef __db_connection_h
 #define __db_connection_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct db_connection;
 typedef struct db_connection db_connection_t;
-
-#ifdef __cplusplus
-}
-#endif
 
 #include "db_configuration.h"
 #include "db_backend.h"
@@ -47,10 +39,6 @@ typedef struct db_connection db_connection_t;
 #include "db_object.h"
 #include "db_join.h"
 #include "db_clause.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * A database connection.
@@ -176,9 +164,5 @@ int db_connection_transaction_commit(const db_connection_t* connection);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_transaction_rollback(const db_connection_t* connection);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

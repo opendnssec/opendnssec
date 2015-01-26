@@ -30,14 +30,6 @@
 #ifndef _KEYSTATE_ROLLOVER_CMD_H_
 #define _KEYSTATE_ROLLOVER_CMD_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct cmd_func_block* key_rollover_funcblock(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _KEYSTATE_ROLLOVER_CMD_H_ */

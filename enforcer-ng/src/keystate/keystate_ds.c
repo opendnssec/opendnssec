@@ -54,45 +54,45 @@ ds_list_keys(db_connection_t *dbconn, int sockfd,
 	const key_data_t *key;
 	zone_t *zone = NULL;
 	hsm_key_t* hsmkey = NULL;
-    db_clause_list_t* clause_list;
+	db_clause_list_t* clause_list;
 	db_clause_t* clause;
 
 	if (!(key_list = key_data_list_new(dbconn))
-	    || !(clause_list = db_clause_list_new()))
+		|| !(clause_list = db_clause_list_new()))
 	{
-	    key_data_list_free(key_list);
-        return 10;
+		key_data_list_free(key_list);
+		return 10;
 	}
 	if (!(clause = key_data_role_clause(clause_list, KEY_DATA_ROLE_ZSK))
-	    || db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL)
-	    || !(clause = key_data_ds_at_parent_clause(clause_list, state))
-        || db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL))
+		|| db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL)
+		|| !(clause = key_data_ds_at_parent_clause(clause_list, state))
+		|| db_clause_set_type(clause, DB_CLAUSE_EQUAL))
 	{
-        key_data_list_free(key_list);
-        db_clause_list_free(clause_list);
-        return 11;
+		key_data_list_free(key_list);
+		db_clause_list_free(clause_list);
+		return 11;
 	}
 	if (key_data_list_get_by_clauses(key_list, clause_list)) {
 		key_data_list_free(key_list);
-        db_clause_list_free(clause_list);
+		db_clause_list_free(clause_list);
 		return 12;
 	}
-    db_clause_list_free(clause_list);
+	db_clause_list_free(clause_list);
 
 	client_printf(sockfd, fmth, "Zone:", "Key role:", "Keytag:", "Id:");
 
 	for (key = key_data_list_next(key_list); key;
 		key = key_data_list_next(key_list))
 	{
-	    zone = key_data_get_zone(key);
-	    hsmkey = key_data_get_hsm_key(key);
-        client_printf(sockfd, fmtl,
-            (zone ? zone_name(zone) : "NOT_FOUND"),
-            key_data_role_text(key), key_data_keytag(key),
-            (hsmkey ? hsm_key_locator(hsmkey) : "NOT_FOUND")
-        );
-        zone_free(zone);
-        hsm_key_free(hsmkey);
+		zone = key_data_get_zone(key);
+		hsmkey = key_data_get_hsm_key(key);
+		client_printf(sockfd, fmtl,
+			(zone ? zone_name(zone) : "NOT_FOUND"),
+			key_data_role_text(key), key_data_keytag(key),
+			(hsmkey ? hsm_key_locator(hsmkey) : "NOT_FOUND")
+		);
+		zone_free(zone);
+		hsm_key_free(hsmkey);
 	}
 	key_data_list_free(key_list);
 	return 0;
@@ -112,10 +112,13 @@ push_clauses(db_clause_list_t *clause_list, zone_t *zone,
 	if (!key_data_ds_at_parent_clause(clause_list, state_from))
 		return 1;
 	/* filter in id and or keytag conditionally. */
-	if (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey)))
-		return 1;
-	if (keytag < 0 || !key_data_keytag_clause(clause_list, keytag))
-	    return 1;
+	if (hsmkey) {
+		if (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey)))
+			return 1;
+	} else {
+		if (keytag < 0 || !key_data_keytag_clause(clause_list, keytag))
+			return 1;
+	}
 	return 0;
 }
 
@@ -131,31 +134,31 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	db_clause_list_t* clause_list = NULL;
 
 	if (!(key_list = key_data_list_new(dbconn)) ||
-	    !(clause_list = db_clause_list_new()) ||
+		!(clause_list = db_clause_list_new()) ||
 		!(zone = zone_new_get_by_name(dbconn, zonename)) ||
 		push_clauses(clause_list, zone, state_from, hsmkey, keytag) ||
 		key_data_list_get_by_clauses(key_list, clause_list))
 	{
 		key_data_list_free(key_list);
 		db_clause_list_free(clause_list);
-        zone_free(zone);
+		zone_free(zone);
 		ods_log_error("[%s] Error fetching from database", module_str);
 		return 10;
 	}
-    db_clause_list_free(clause_list);
+	db_clause_list_free(clause_list);
 
 	while ((key = key_data_list_get_next(key_list))) {
 		key_match++;
 		if (key_data_set_ds_at_parent(key, state_to) ||
 			key_data_update(key))
 		{
-		    key_data_free(key);
+			key_data_free(key);
 			break;
 		}
 		key_mod++;
 		key_data_free(key);
 	}
-    key_data_list_free(key_list);
+	key_data_list_free(key_list);
 
 	client_printf(sockfd, "%d KSK matches found.\n", key_match);
 	if (!key_match)
@@ -171,7 +174,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 		status = 13;
 	}
 
-    zone_free(zone);
+	zone_free(zone);
 	return status;
 }
 
@@ -244,9 +247,9 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	}
 	
 	if (cka_id) {
-	    if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, cka_id))) {
-	        client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
-	    }
+		if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, cka_id))) {
+			client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
+		}
 	}
 
 	ret = change_keys_from_to(dbconn, sockfd, zone, hsmkey, keytag,
