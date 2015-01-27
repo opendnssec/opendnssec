@@ -45,7 +45,8 @@ keystate_ds_submit_task_perform(task_type *task)
 	assert(task);
 
 	(void)change_keys_from_to(task->dbconn, -1, NULL, NULL, 0,
-		KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED);
+		KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED,
+		(engine_type*)task->context);
 	task_cleanup(task);
 	return NULL;
 }

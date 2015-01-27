@@ -45,7 +45,8 @@ keystate_ds_retract_task_perform(task_type *task)
 	assert(task);
 
 	(void)change_keys_from_to(task->dbconn, -1, NULL, NULL, 0,
-		KEY_DATA_DS_AT_PARENT_RETRACT, KEY_DATA_DS_AT_PARENT_RETRACTED);
+		KEY_DATA_DS_AT_PARENT_RETRACT, KEY_DATA_DS_AT_PARENT_RETRACTED,
+		(engine_type*)task->context);
 	task_cleanup(task);
 	return NULL;
 }

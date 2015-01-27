@@ -70,7 +70,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	int error;
 	error = run_ds_cmd(sockfd, cmd, n, dbconn,
 		KEY_DATA_DS_AT_PARENT_RETRACTED,
-		KEY_DATA_DS_AT_PARENT_UNSUBMITTED);
+		KEY_DATA_DS_AT_PARENT_UNSUBMITTED, engine);
 	if (error == 0) {
 		flush_enforce_task(engine, 0);
 	}
