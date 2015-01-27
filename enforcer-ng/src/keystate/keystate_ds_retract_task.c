@@ -26,62 +26,39 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
-#include "daemon/engine.h"
-#include "enforcer/enforce_task.h"
-#include "shared/log.h"
-#include "shared/str.h"
 #include "daemon/clientpipe.h"
-#include "db/key_data.h"
+#include "scheduler/task.h"
+#include "daemon/engine.h"
+#include "shared/duration.h"
 #include "keystate/keystate_ds.h"
-#include "keystate/keystate_ds_submit_task.h"
 
-#include "keystate/keystate_ds_submit_cmd.h"
+#include "keystate/keystate_ds_retract_task.h"
 
-static void
-usage(int sockfd)
+/* static const char *module_str = "keystate_ds_retract_task"; */
+
+/* executed headless */
+static task_type * 
+keystate_ds_retract_task_perform(task_type *task)
 {
-	client_printf(sockfd,
-		"key ds-submit          Issue a ds-submit to the enforcer for a KSK.\n"
-		"                       (This command with no parameters lists eligible keys.)\n"
-		"      --zone <zone>              (aka -z)  zone.\n"
-		"      --keytag <keytag> | --cka_id <CKA_ID>      (aka -x | -k)\n"
-/*		"      [--force]                  (aka -f)  force even if there is no configured\n"
-		"                                           DelegationSignerSubmitCommand.\n" */
-	);
+	assert(task);
+
+	(void)change_keys_from_to(task->dbconn, -1, NULL, NULL, 0,
+		KEY_DATA_DS_AT_PARENT_RETRACT, KEY_DATA_DS_AT_PARENT_RETRACTED,
+		(engine_type*)task->context);
+	task_cleanup(task);
+	return NULL;
 }
 
-static int
-handles(const char *cmd, ssize_t n)
+task_type *
+keystate_ds_retract_task(engine_type *engine)
 {
-	return ods_check_command(cmd, n, key_ds_submit_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	int error;
-	/* TODO, this changes the state, but sbmt cmd is not exec. */
-	error = run_ds_cmd(sockfd, cmd, n, dbconn,
-		KEY_DATA_DS_AT_PARENT_SUBMIT,
-		KEY_DATA_DS_AT_PARENT_SUBMITTED, engine);
-	if (error == 0) {
-		flush_enforce_task(engine, 0);
-	}
-	return error;
-
-}
-
-static struct cmd_func_block funcblock = {
-	"key ds-submit", &usage, NULL, &handles, &run
-};
-
-struct cmd_func_block*
-key_ds_submit_funcblock(void)
-{
-	return &funcblock;
+	task_id what_id;
+	const char *what = "ds-retract";
+	const char *who = "KSK keys with retract flag set";
+	
+	what_id = task_register(what, "keystate_ds_retract_task_perform",
+		keystate_ds_retract_task_perform);
+	return task_create(what_id, time_now(), who, engine);
 }
