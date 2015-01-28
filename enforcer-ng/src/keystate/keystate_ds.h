@@ -30,8 +30,14 @@
 
 #include "db/key_data.h"
 
+int
+change_keys_from_to(db_connection_t *dbconn, int sockfd,
+	const char *zonename, const hsm_key_t* hsmkey, int keytag,
+	key_data_ds_at_parent_t state_from,
+	key_data_ds_at_parent_t state_to, engine_type* engine);
+
 int run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
-	key_data_ds_at_parent_t state_to);
+	key_data_ds_at_parent_t state_to, engine_type* engine);
 
 #endif /* _KEYSTATE_DS_H_ */

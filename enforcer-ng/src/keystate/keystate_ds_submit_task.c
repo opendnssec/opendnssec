@@ -26,21 +26,39 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include "config.h"
 
-#ifndef _KEYSTATE_EXPORT_TASK_H_
-#define _KEYSTATE_EXPORT_TASK_H_
+#include "daemon/clientpipe.h"
+#include "scheduler/task.h"
+#include "daemon/engine.h"
+#include "shared/duration.h"
+#include "keystate/keystate_ds.h"
 
-/**
- * Print DS or DNSKEY to socket
- *
- * @param sockfd, socket to output to
- * @param dbconn, live database connection
- * @param zonename, zone of which the DS records should be printed.
- * @param bind_style, print DS rather than DNSKEY records.
- * @return 1 on failure, 0 success 
- */
-int 
-perform_keystate_export(int sockfd, db_connection_t *dbconn,
-	const char *zonename, int bds);
+#include "keystate/keystate_ds_submit_task.h"
 
-#endif
+/* static const char *module_str = "keystate_ds_submit_task"; */
+
+/* executed headless */
+static task_type * 
+keystate_ds_submit_task_perform(task_type *task)
+{
+	assert(task);
+
+	(void)change_keys_from_to(task->dbconn, -1, NULL, NULL, 0,
+		KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED,
+		(engine_type*)task->context);
+	task_cleanup(task);
+	return NULL;
+}
+
+task_type *
+keystate_ds_submit_task(engine_type *engine)
+{
+	task_id what_id;
+	const char *what = "ds-submit";
+	const char *who = "KSK keys with submit flag set";
+	
+	what_id = task_register(what, "keystate_ds_submit_task_perform",
+		keystate_ds_submit_task_perform);
+	return task_create(what_id, time_now(), who, engine);
+}

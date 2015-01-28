@@ -67,7 +67,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	/* TODO, this changes the state, but sbmt cmd is not exec. */
 	error = run_ds_cmd(sockfd, cmd, n, dbconn,
 		KEY_DATA_DS_AT_PARENT_RETRACT,
-		KEY_DATA_DS_AT_PARENT_RETRACTED);
+		KEY_DATA_DS_AT_PARENT_RETRACTED, engine);
 	if (error == 0) {
 		flush_enforce_task(engine, 0);
 	}
