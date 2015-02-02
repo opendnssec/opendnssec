@@ -83,6 +83,7 @@ ods_enforcerd_SOURCES = \
 	shared/str.c shared/str.h \
 	shared/backup.c shared/backup.h \
 	policy/policy_export_cmd.c policy/policy_export_cmd.h \
+	policy/policy_purge_cmd.c policy/policy_purge_cmd.h \
 	policy/policy_export.c policy/policy_export.h \
 	policy/policy_import.c policy/policy_import.h \
 	policy/policy_import_cmd.c policy/policy_import_cmd.h \

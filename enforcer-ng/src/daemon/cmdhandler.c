@@ -76,6 +76,7 @@
 #include "policy/update_kasp_cmd.h"
 #include "policy/policy_import_cmd.h"
 #include "policy/policy_export_cmd.h"
+#include "policy/policy_purge_cmd.h"
 #include "keystate/zone_list_cmd.h"
 #include "keystate/zone_del_cmd.h"
 #include "keystate/zone_add_cmd.h"
@@ -121,8 +122,8 @@ cmd_funcs_avail(void)
         &policy_list_funcblock,
         &policy_export_funcblock,
         &policy_import_funcblock,
-/*        &policy_purge_funcblock,
-*/        &resalt_funcblock,
+        &policy_purge_funcblock,
+        &resalt_funcblock,
 
         &zone_list_funcblock,
         &zone_add_funcblock,
