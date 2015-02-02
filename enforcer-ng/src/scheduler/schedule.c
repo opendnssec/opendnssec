@@ -464,6 +464,7 @@ schedule_task(schedule_type* schedule, task_type* task)
                     " already present", schedule_str, task_what2str(task->what),
                     task_who2str(task->who));
                 free(node1);
+                status = ODS_STATUS_CONFLICT_ERR;
             }
         } /* else {failure) */
     pthread_mutex_unlock(&schedule->schedule_lock);

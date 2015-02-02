@@ -307,7 +307,7 @@ enforce_task(engine_type *engine, bool all)
 	const char *who = "next zone";
 	enforce_all = all;
 	what_id = task_register(what, module_str, enforce_task_perform);
-	return task_create(what_id, time_now(), who, (void*)engine);
+	return task_create(what_id, time_now(), who, what, (void*)engine);
 }
 
 int
