@@ -307,7 +307,7 @@ enforce_task(engine_type *engine, bool all)
 	const char *who = "next zone";
 	enforce_all = all;
 	what_id = task_register(what, module_str, enforce_task_perform);
-	return task_create(what_id, time_now(), who, (void*)engine);
+	return task_create(what_id, time_now(), who, what, (void*)engine);
 }
 
 int
@@ -316,7 +316,7 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 	int status;
 	task_id what_id;
 	(void) enforce_all;
-	printf("flushing\n");
+	printf("flushing\n"); /* TODO output to stdout */
 	/* flush (force to run) the enforcer task when it is waiting in the 
 	 task list. */
 	if (!task_id_from_long_name(module_str, &what_id)) {
@@ -325,7 +325,7 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 	}
 	if (!schedule_flush_type(engine->taskq, what_id)) {
 		status = schedule_task(engine->taskq, enforce_task(engine, 1));
-		if (status != ODS_STATUS_OK) {
+		if (status != ODS_STATUS_OK && status != ODS_STATUS_CONFLICT_ERR) {
 			ods_fatal_exit("[%s] failed to create enforce task", module_str);
 			return 0;
 		}

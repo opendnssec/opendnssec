@@ -42,6 +42,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <pthread.h>
+#include <syslog.h>
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif

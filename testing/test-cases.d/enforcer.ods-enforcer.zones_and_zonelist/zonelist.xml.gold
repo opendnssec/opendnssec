@@ -2,7 +2,7 @@
 <ZoneList>
 	<Zone name="ods0">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods0.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods0</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods0</Adapter>
@@ -14,7 +14,7 @@
 	</Zone>
 	<Zone name="ods1">
 		<Policy>Policy1</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods1.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods1</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods1</Adapter>
@@ -26,7 +26,7 @@
 	</Zone>
 	<Zone name="ods2">
 		<Policy>Policy1</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods2.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods2</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods2</Adapter>
@@ -38,7 +38,7 @@
 	</Zone>
 	<Zone name="ods3">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods3.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods3</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods3</Adapter>
@@ -50,7 +50,7 @@
 	</Zone>
 	<Zone name="ods4">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods4.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods4</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods4</Adapter>
@@ -62,19 +62,19 @@
 	</Zone>
 	<Zone name="ods5">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods5.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods5</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods5</Adapter>
 			</Input>
 			<Output>
-				<Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+        <Adapter type="DNS">@INSTALL_ROOT@/var/opendnssec/signed/ods5</Adapter>
 			</Output>
 		</Adapters>
 	</Zone>
 	<Zone name="ods6">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods6.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods6</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods6</Adapter>
@@ -86,19 +86,19 @@
 	</Zone>
 	<Zone name="ods7">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods7.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods7</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+        <Adapter type="DNS">@INSTALL_ROOT@/var/opendnssec/unsigned/ods7</Adapter>
 			</Input>
 			<Output>
-				<Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+        <Adapter type="DNS">@INSTALL_ROOT@/var/opendnssec/signed/ods7</Adapter>
 			</Output>
 		</Adapters>
 	</Zone>
 	<Zone name="ods8">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods8.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods8</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
@@ -110,10 +110,10 @@
 	</Zone>
 	<Zone name="ods9">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods9.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods9</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+        <Adapter type="DNS">@INSTALL_ROOT@/var/opendnssec/unsigned/ods9</Adapter>
 			</Input>
 			<Output>
 				<Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods9</Adapter>
@@ -122,7 +122,7 @@
 	</Zone>
 	<Zone name="ods10">
 		<Policy>default</Policy>
-		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods10.xml</SignerConfiguration>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods10</SignerConfiguration>
 		<Adapters>
 			<Input>
 				<Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>

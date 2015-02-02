@@ -468,7 +468,7 @@ int hsm_key_factory_schedule_generate(engine_type* engine,
 
     what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_task);
     if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "policy_key", task2))
+        || !(task = task_create(what_id, time_now(), "policy_key", "hsmkeygen", task2))
         || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
     {
         free(task2);
@@ -501,7 +501,7 @@ int hsm_key_factory_schedule_generate_policy(engine_type* engine,
 
     what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation_policy", hsm_key_factory_generate_policy_task);
     if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "policy", task2))
+        || !(task = task_create(what_id, time_now(), "policy", "hsmkeygen", task2))
         || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
     {
         free(task2);
@@ -526,7 +526,7 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration) 
 
     what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_all_task);
     if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "all policies", task2))
+        || !(task = task_create(what_id, time_now(), "all policies", "hsmkeygen", task2))
         || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
     {
         free(task2);

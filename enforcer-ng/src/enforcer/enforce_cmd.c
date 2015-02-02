@@ -90,7 +90,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		task_cleanup(task);
 	} else {
 		reschedule_enforce(task, t_next, "next zone");
-		schedule_task(engine->taskq, task);
+		schedule_task(engine->taskq, task); /* TODO unchecked error */
 	}
 	return 0;
 }
