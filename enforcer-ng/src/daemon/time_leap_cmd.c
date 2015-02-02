@@ -159,7 +159,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		ods_log_debug("[timeleap] finished working");
 		if (newtask) {
 			newtask->dbconn = NULL;
-			(void) schedule_task(engine->taskq, newtask); // TODO unchecked error code
+			(void) schedule_task(engine->taskq, newtask); /* TODO unchecked error code */
 		}
 		hsm_key_factory_generate_all(engine, dbconn, 0);
 	}
