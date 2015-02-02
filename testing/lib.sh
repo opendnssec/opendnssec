@@ -7,13 +7,18 @@ exit ()
 
 	if [ -n "$_SYSLOG_TRACE_PID" ]; then
 		case "$DISTRIBUTION" in
+			slackware)
+				kill -TERM "$_SYSLOG_TRACE_PID" 2>/dev/null &&
+				{
+					unset _SYSLOG_TRACE_PID
+				}
+				;;
 			debian | \
 			ubuntu | \
 			redhat | \
 			centos | \
 			sl | \
 			opensuse | \
-			slackware | \
 			suse | \
 			freebsd | \
 			netbsd | \
@@ -1774,7 +1779,9 @@ syslog_stop ()
 	fi
 
 	if kill -TERM "$_SYSLOG_TRACE_PID" 2>/dev/null; then
-		wait "$_SYSLOG_TRACE_PID" 2>/dev/null
+		( wait "$_SYSLOG_TRACE_PID" )
+		unset _SYSLOG_TRACE_PID
+	else
 		unset _SYSLOG_TRACE_PID
 	fi
 

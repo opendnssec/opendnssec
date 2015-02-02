@@ -79,3 +79,7 @@ common/stamp-h1
 Doxyfile
 compile
 libtool
+**/_log..*
+**/_test.*
+**/_syslog.*
+**/*~

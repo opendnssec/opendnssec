@@ -452,6 +452,7 @@ schedule_task(schedule_type* schedule, task_type* task)
                         /* this will free node1 */
                         free(ldns_rbtree_delete(schedule->tasks_by_name, node2));
                         free(node2);
+                        status = ODS_STATUS_CONFLICT_ERR;
                     }
                 } else { /* could not alloc node2 */
                     /* this will free node1 */
