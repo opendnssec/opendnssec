@@ -421,6 +421,7 @@ schedule_task(schedule_type* schedule, task_type* task)
 {
     ldns_rbnode_t *node1, *node2;
     ods_status status;
+    task_type* task2;
 
     if (!task) {
         ods_log_error("[%s] unable to schedule task: no task", schedule_str);
@@ -459,11 +460,21 @@ schedule_task(schedule_type* schedule, task_type* task)
                 }
 
             } else {/* insert in name tree failed */
-                ods_log_error("[%s] unable to schedule task [%s] for %s: "
-                    " already present", schedule_str, task_what2str(task->what),
-                    task_who2str(task->who));
                 free(node1);
-                status = ODS_STATUS_CONFLICT_ERR;
+                /**
+                 * Task is already in tasks_by_name queue, so we must
+                 * update it in tasks queue
+                 */
+                /* still in lock guaranteed to succeed. */
+                node1 = ldns_rbtree_search(schedule->tasks_by_name, task);
+                /* This copy of 'task' is referenced by both trees */
+                task2 = (task_type*)node1->key;
+                node1 = ldns_rbtree_delete(schedule->tasks, task2);
+                if (task->when < task2->when)
+                    task2->when = task->when;
+                (void) ldns_rbtree_insert(schedule->tasks, node1);
+                /* node1 now owned by tree */
+                node1 = NULL;
             }
         } /* else {failure) */
     pthread_mutex_unlock(&schedule->schedule_lock);
