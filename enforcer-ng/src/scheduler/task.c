@@ -107,7 +107,8 @@ task_id task_register(const char *short_name, const char *long_name, how_type ho
  *
  */
 task_type*
-task_create(task_id what, time_t when, const char* who, void* context)
+task_create(task_id what_id, time_t when, const char* who, const char* what,
+    void* context)
 {
     allocator_type* allocator = NULL;
     task_type* task = NULL;
@@ -133,16 +134,16 @@ task_create(task_id what, time_t when, const char* who, void* context)
         return NULL;
     }
     task->allocator = allocator;
-    task->what = what;
+    task->what = what_id;
     task->interrupt = TASK_NONE;
     task->halted = TASK_NONE;
     task->when = when;
     task->backoff = 0;
     task->who = allocator_strdup(allocator, who);
-    task->dname = ldns_dname_new_frm_str(who);
+    task->dname = ldns_dname_new_frm_str(what);
     task->flush = 0;
     task->context = context;
-    if (!task_id_to_how(what,&task->how))
+    if (!task_id_to_how(what_id, &task->how))
         task->how = NULL; /* Standard task */
     return task;
 }
