@@ -871,8 +871,6 @@ addns_write(void* zone)
     if (z->db->is_initialized) {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
         if (!ixfrfile) {
-            free((void*) axfrfile);
-            free((void*) atmpfile);
             free((void*) itmpfile);
             return ODS_STATUS_MALLOC_ERR;
         }
