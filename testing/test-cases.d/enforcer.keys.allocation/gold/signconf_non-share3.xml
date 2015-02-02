@@ -1,0 +1,44 @@
+<SignerConfiguration>
+	<Zone name="non-share3">
+		<Signatures>
+			<Resign>PT300S</Resign>
+			<Refresh>PT360S</Refresh>
+			<Validity>
+				<Default>PT900S</Default>
+				<Denial>PT900S</Denial>
+			</Validity>
+			<Jitter>PT120S</Jitter>
+			<InceptionOffset>PT60S</InceptionOffset>
+		</Signatures>
+
+		<Denial>
+			<NSEC />
+		</Denial>
+
+		<Keys>
+			<TTL>PT60S</TTL>
+			<Key>
+				<Flags>257</Flags>
+				<Algorithm>5</Algorithm>
+				<Locator>a90054a25c913508d4bee815daa381fc</Locator>
+				<KSK />
+				<Publish />
+			</Key>
+
+			<Key>
+				<Flags>256</Flags>
+				<Algorithm>5</Algorithm>
+				<Locator>8d44d394f9c218f51561e937a9a8ef3b</Locator>
+				<ZSK />
+				<Publish />
+			</Key>
+
+		</Keys>
+
+		<SOA>
+			<TTL>PT0S</TTL>
+			<Minimum>PT0S</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+	</Zone>
+</SignerConfiguration>

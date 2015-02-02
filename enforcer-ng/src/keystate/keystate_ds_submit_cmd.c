@@ -37,6 +37,7 @@
 #include "daemon/clientpipe.h"
 #include "db/key_data.h"
 #include "keystate/keystate_ds.h"
+#include "keystate/keystate_ds_submit_task.h"
 
 #include "keystate/keystate_ds_submit_cmd.h"
 
@@ -67,7 +68,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	/* TODO, this changes the state, but sbmt cmd is not exec. */
 	error = run_ds_cmd(sockfd, cmd, n, dbconn,
 		KEY_DATA_DS_AT_PARENT_SUBMIT,
-		KEY_DATA_DS_AT_PARENT_SUBMITTED);
+		KEY_DATA_DS_AT_PARENT_SUBMITTED, engine);
 	if (error == 0) {
 		flush_enforce_task(engine, 0);
 	}

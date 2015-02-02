@@ -5,13 +5,13 @@
         <Signatures>
             <Resign>PT181S</Resign>
             <Refresh>PT901S</Refresh>
-            <Jitter>PT61S</Jitter>
-            <InceptionOffset>PT60S</InceptionOffset>
-            <MaxZoneTTL>PT86400S</MaxZoneTTL>
             <Validity>
                 <Default>PT3601S</Default>
                 <Denial>PT3601S</Denial>
             </Validity>
+            <Jitter>PT61S</Jitter>
+            <InceptionOffset>PT60S</InceptionOffset>
+            <MaxZoneTTL>PT86400S</MaxZoneTTL>
         </Signatures>
         <Denial>
             <NSEC3>
@@ -67,13 +67,13 @@
         <Signatures>
             <Resign>PT180S</Resign>
             <Refresh>PT900S</Refresh>
-            <Jitter>PT60S</Jitter>
-            <InceptionOffset>PT60S</InceptionOffset>
-            <MaxZoneTTL>PT86400S</MaxZoneTTL>
             <Validity>
                 <Default>PT3600S</Default>
                 <Denial>PT3600S</Denial>
             </Validity>
+            <Jitter>PT60S</Jitter>
+            <InceptionOffset>PT60S</InceptionOffset>
+            <MaxZoneTTL>PT86400S</MaxZoneTTL>
         </Signatures>
         <Denial>
             <NSEC3>
@@ -131,14 +131,13 @@
         <Signatures>
             <Resign>PT180S</Resign>
             <Refresh>PT900S</Refresh>
-
-            <Jitter>PT60S</Jitter>
-            <InceptionOffset>PT60S</InceptionOffset>
-            <MaxZoneTTL>PT86400S</MaxZoneTTL>
             <Validity>
                 <Default>PT3600S</Default>
                 <Denial>PT3600S</Denial>
             </Validity>
+            <Jitter>PT60S</Jitter>
+            <InceptionOffset>PT60S</InceptionOffset>
+            <MaxZoneTTL>PT86400S</MaxZoneTTL>
         </Signatures>
         <Denial>
             <NSEC3>
