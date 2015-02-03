@@ -475,6 +475,7 @@ schedule_task(schedule_type* schedule, task_type* task)
                 (void) ldns_rbtree_insert(schedule->tasks, node1);
                 /* node1 now owned by tree */
                 node1 = NULL;
+                status = ODS_STATUS_OK;
             }
         } /* else {failure) */
     pthread_mutex_unlock(&schedule->schedule_lock);
