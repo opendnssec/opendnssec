@@ -179,18 +179,16 @@ ods_ctime_r(char *buf, size_t nbuf, time_t t)
 #endif
 }
 
-const char *ods_check_command(const char *cmd, int cmdsize, const char *scmd)
+const char* ods_check_command(const char *cmd, int cmdsize,
+    const char *scmd)
 {
     size_t ncmd = strlen(scmd);
-    if (cmdsize < (int)ncmd || strncmp(cmd, scmd, ncmd) != 0) return 0;
-    if (cmd[ncmd] == '\0') {
-        cmd = "";
-    } else if (cmd[ncmd] != ' ') {
+    if (cmdsize < (int)ncmd || strncmp(cmd, scmd, ncmd) != 0 || cmd[ncmd] != ' ')
         return NULL;
-    } else {
-        cmd = &cmd[ncmd+1];
-    }
-    return cmd;
+    else if (cmd[ncmd] == '\0')
+        return &cmd[ncmd];
+    else
+        return &cmd[ncmd+1];
 }
 
 /* -1 not found, otherwise index of arg (param is removed from argv)
