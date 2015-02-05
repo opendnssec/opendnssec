@@ -26,6 +26,8 @@
  *
  */
 
+#include "config.h"
+
 #include "shared/log.h"
 #include "daemon/clientpipe.h"
 #include "db/zone.h"

@@ -26,6 +26,9 @@
  *
  */
 
+#include "config.h"
+#include <limits.h>
+
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "shared/log.h"
@@ -36,8 +39,6 @@
 
 #include "keystate/zonelist_import_cmd.h"
 
-#include <limits.h>
-
 static const char *module_str = "zonelist_import_cmd";
 
 static void
@@ -45,6 +46,7 @@ usage(int sockfd)
 {
     client_printf(sockfd,
         "zonelist import        Import zones from zonelist.xml into enforcer.\n"
+        "      [--remove-missing-zones]   (aka -r)  Remove any zones from database not in zonelist file..\n"
     );
 }
 
@@ -68,28 +70,46 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 {
     char path[PATH_MAX];
     int ret;
-    (void)cmd; (void)n;
+    #define NARGV 8
+    char buf[ODS_SE_MAXLINE];
+    const char *argv[NARGV];
+    int argc;
+    int remove_missing_zones;
 
-    if (!engine) {
-        return 1;
-    }
-    if (!engine->config) {
-        return 1;
-    }
-    if (!engine->config->zonelist_filename) {
-        return 1;
-    }
-    if (!dbconn) {
-        return 1;
-    }
 
     ods_log_debug("[%s] %s command", module_str, zonelist_import_funcblock()->cmdname);
 
-    ret = zonelist_import(sockfd, engine, dbconn, 0);
+    if (!engine || !engine->config ||
+        !engine->config->zonelist_filename || !dbconn)
+    {
+        return 1;
+    }
+
+    cmd = ods_check_command(cmd, n, zonelist_import_funcblock()->cmdname);
+    if (!cmd) return -1;
+    /* Use buf as an intermediate buffer for the command.*/
+    strncpy(buf, cmd, sizeof(buf));
+    buf[sizeof(buf)-1] = '\0';
+    /* separate the arguments*/
+    argc = ods_str_explode(buf, NARGV, argv);
+    if (argc > NARGV) {
+        ods_log_warning("[%s] too many arguments for %s command",
+                        module_str, zonelist_import_funcblock()->cmdname);
+        client_printf(sockfd,"too many arguments\n");
+        return -1;
+    }
+    remove_missing_zones = (ods_find_arg(&argc, argv, "remove-missing-zones", "r") >= 0);
+    if (argc) {
+        ods_log_warning("[%s] unknown arguments for %s command",
+                        module_str, zonelist_import_funcblock()->cmdname);
+        client_printf(sockfd,"unknown arguments\n");
+        return -1;
+    }
+
+    ret = zonelist_import(sockfd, engine, dbconn, remove_missing_zones);
     if (ret == ZONELIST_IMPORT_NO_CHANGE) {
         return 0;
-    }
-    if (ret != ZONELIST_IMPORT_OK) {
+    } else if (ret != ZONELIST_IMPORT_OK) {
         return 1;
     }
 

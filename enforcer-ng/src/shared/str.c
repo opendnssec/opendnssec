@@ -183,10 +183,12 @@ const char* ods_check_command(const char *cmd, int cmdsize,
     const char *scmd)
 {
     size_t ncmd = strlen(scmd);
-    if (cmdsize < (int)ncmd || strncmp(cmd, scmd, ncmd) != 0 || cmd[ncmd] != ' ')
+    if (cmdsize < (int)ncmd || strncmp(cmd, scmd, ncmd) != 0 )
         return NULL;
     else if (cmd[ncmd] == '\0')
         return &cmd[ncmd];
+    else if (cmd[ncmd] != ' ')
+        return NULL;
     else
         return &cmd[ncmd+1];
 }
