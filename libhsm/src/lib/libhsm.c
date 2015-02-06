@@ -680,9 +680,11 @@ hsm_ctx_new()
 {
     hsm_ctx_t *ctx;
     ctx = malloc(sizeof(hsm_ctx_t));
-    memset(ctx->session, 0, HSM_MAX_SESSIONS);
-    ctx->session_count = 0;
-    ctx->error = 0;
+    if (ctx) {
+        memset(ctx->session, 0, HSM_MAX_SESSIONS);
+        ctx->session_count = 0;
+        ctx->error = 0;
+    }
     return ctx;
 }
 

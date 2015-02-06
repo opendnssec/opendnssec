@@ -450,7 +450,7 @@ schedule_task(schedule_type* schedule, task_type* task)
                             " already present", schedule_str, task_what2str(task->what),
                             task_who2str(task->who));
                         /* this will free node1 */
-                        free(ldns_rbtree_delete(schedule->tasks_by_name, node2));
+                        free(ldns_rbtree_delete(schedule->tasks_by_name, node1));
                         free(node2);
                     }
                 } else { /* could not alloc node2 */
