@@ -107,7 +107,8 @@ task_id task_register(const char *short_name, const char *long_name, how_type ho
  *
  */
 task_type*
-task_create(task_id what, time_t when, const char* who, void* context)
+task_create(task_id what_id, time_t when, const char* who, const char* what,
+    void* context)
 {
     allocator_type* allocator = NULL;
     task_type* task = NULL;
@@ -133,120 +134,19 @@ task_create(task_id what, time_t when, const char* who, void* context)
         return NULL;
     }
     task->allocator = allocator;
-    task->what = what;
+    task->what = what_id;
     task->interrupt = TASK_NONE;
     task->halted = TASK_NONE;
     task->when = when;
     task->backoff = 0;
     task->who = allocator_strdup(allocator, who);
-    task->dname = ldns_dname_new_frm_str(who);
+    task->dname = ldns_dname_new_frm_str(what);
     task->flush = 0;
     task->context = context;
-    if (!task_id_to_how(what,&task->how))
+    if (!task_id_to_how(what_id, &task->how))
         task->how = NULL; /* Standard task */
     return task;
 }
-
-
-/**
- * Recover a task from backup.
- *
- */
-task_type*
-task_recover_from_backup(const char* filename, void* context)
-{
-    task_type* task = NULL;
-    FILE* fd = NULL;
-    const char* who = NULL;
-    int what = 0;
-    time_t when = 0;
-    int flush = 0;
-    time_t backoff = 0;
-    const char *long_name = NULL;
-
-    ods_log_assert(context);
-    fd = ods_fopen(filename, NULL, "r");
-    if (fd) {
-        if (!backup_read_check_str(fd, ODS_EN_FILE_MAGIC) ||
-            !backup_read_check_str(fd, ";who:") ||
-            !backup_read_str(fd, &who) ||
-            !backup_read_check_str(fd, ";what:") ||
-            !backup_read_int(fd, &what) ||
-            !backup_read_check_str(fd, ";when:") ||
-            !backup_read_time_t(fd, &when) ||
-            !backup_read_check_str(fd, ";flush:") ||
-            !backup_read_int(fd, &flush) ||
-            !backup_read_check_str(fd, ";backoff:") ||
-            !backup_read_time_t(fd, &backoff) ||
-            !backup_read_check_str(fd, ";how:") ||
-            !backup_read_str(fd, &long_name) ||
-            !backup_read_check_str(fd, ODS_EN_FILE_MAGIC))
-        {
-            ods_log_error("[%s] unable to recover task from file %s: file corrupted",
-                task_str, filename?filename:"(null)");
-            task = NULL;
-        } else {
-            if (!task_id_from_long_name(long_name, (task_id*)&what)) {
-				ods_log_error("[%s] unable to recover perform function for task from how %s file %s: enforcer incompatible",
-							  task_str, long_name?long_name:"(null)", filename?filename:"(null)");
-				task = NULL;
-			} else {
-				task = task_create((task_id) what, when, who, (void*) context);
-				task->flush = flush;
-				task->backoff = backoff;
-			}
-        }
-		free((void*)long_name);
-        free((void*)who);
-        ods_fclose(fd);
-        return task;
-    }
-
-    ods_log_debug("[%s] unable to recover task from file %s: no such file or directory",
-        task_str, filename?filename:"(null)");
-    return NULL;
-}
-
-
-/**
- * Backup task.
- *
- */
-void
-task_backup(task_type* task)
-{
-    char* filename = NULL;
-    FILE* fd = NULL;
-
-    if (!task) {
-        return;
-    }
-
-    if (task->who) {
-        filename = ods_build_path(task->who, ".task", 0);
-        fd = ods_fopen(filename, NULL, "w");
-        free((void*)filename);
-    } else {
-        return;
-    }
-
-    if (fd) {
-        fprintf(fd, "%s\n", ODS_EN_FILE_MAGIC);
-        fprintf(fd, ";who: %s\n", task->who);
-        fprintf(fd, ";what: %i\n", (int) task->what);
-        fprintf(fd, ";when: %u\n", (uint32_t) task->when);
-        fprintf(fd, ";flush: %i\n", task->flush);
-        fprintf(fd, ";backoff: %u\n", (uint32_t) task->backoff);
-        /* TODO: backup the how perform function */
-        fprintf(fd, "%s\n", ODS_EN_FILE_MAGIC);
-        ods_fclose(fd);
-    } else {
-        ods_log_warning("[%s] cannot backup task for context %s: cannot open file "
-        "%s.task for writing", task_str, task->who, task->who);
-    }
-    return;
-}
-
 
 /**
  * Clean up task.

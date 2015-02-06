@@ -60,5 +60,5 @@ keystate_ds_retract_task(engine_type *engine)
 	
 	what_id = task_register(what, "keystate_ds_retract_task_perform",
 		keystate_ds_retract_task_perform);
-	return task_create(what_id, time_now(), who, engine);
+	return task_create(what_id, time_now(), who, what, engine);
 }

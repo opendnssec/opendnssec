@@ -94,23 +94,8 @@ task_id task_register(const char *short_name, const char *long_name,
  * \return task_type* created task
  *
  */
-task_type* task_create(task_id what,time_t when,const char* who,void* context);
-
-/**
- * Recover a task from backup.
- * \param[in] filename where the task backup is stored
- * \param[in] context pointer to context structure
- * \return task_type* created task
- *
- */
-task_type* task_recover_from_backup(const char* filename, void* context);
-
-/**
- * Backup task.
- * \param[in] task task
- *
- */
-void task_backup(task_type* task);
+task_type* task_create(task_id what_id, time_t when, const char* who,
+    const char* what, void* context);
 
 /**
  * Clean up task.
