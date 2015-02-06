@@ -26,17 +26,19 @@
  *
  */
 
+#include "config.h"
+#include <limits.h>
+
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/clientpipe.h"
+#include "enforcer/enforce_task.h"
 #include "keystate/zonelist_import.h"
 #include "keystate/zonelist_export.h"
 
 #include "keystate/zonelist_import_cmd.h"
-
-#include <limits.h>
 
 static const char *module_str = "zonelist_import_cmd";
 
@@ -45,6 +47,10 @@ usage(int sockfd)
 {
     client_printf(sockfd,
         "zonelist import        Import zones from zonelist.xml into enforcer.\n"
+        "      [--remove-missing-zones]   (aka -r)  Remove any zones from database not in zonelist file.\n"
+    /* We require the user to give an absolute path. The daemon
+     * and the client might not have the same working directory. */
+        "      [--file <absolute path>]   (aka -f)  File to import, instead of zonelist file configured in conf.xml.\n"
     );
 }
 
@@ -66,30 +72,46 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     db_connection_t *dbconn)
 {
-    char path[PATH_MAX];
-    int ret;
-    (void)cmd; (void)n;
-
-    if (!engine) {
-        return 1;
-    }
-    if (!engine->config) {
-        return 1;
-    }
-    if (!engine->config->zonelist_filename) {
-        return 1;
-    }
-    if (!dbconn) {
-        return 1;
-    }
+    char path[PATH_MAX], buf[ODS_SE_MAXLINE];
+    int ret, argc, remove_missing_zones;
+    #define NARGV 8
+    const char *argv[NARGV];
+    const char* zonelist_path = NULL;
 
     ods_log_debug("[%s] %s command", module_str, zonelist_import_funcblock()->cmdname);
 
-    ret = zonelist_import(sockfd, engine, dbconn, 1);
+    if (!engine || !engine->config ||
+        !engine->config->zonelist_filename || !dbconn)
+    {
+        return 1;
+    }
+
+    cmd = ods_check_command(cmd, n, zonelist_import_funcblock()->cmdname);
+    if (!cmd) return -1;
+    /* Use buf as an intermediate buffer for the command.*/
+    strncpy(buf, cmd, sizeof(buf));
+    buf[sizeof(buf)-1] = '\0';
+    /* separate the arguments*/
+    argc = ods_str_explode(buf, NARGV, argv);
+    if (argc > NARGV) {
+        ods_log_warning("[%s] too many arguments for %s command",
+                        module_str, zonelist_import_funcblock()->cmdname);
+        client_printf(sockfd,"too many arguments\n");
+        return -1;
+    }
+    remove_missing_zones = (ods_find_arg(&argc, argv, "remove-missing-zones", "r") >= 0);
+    (void)ods_find_arg_and_param(&argc, argv, "file", "f", &zonelist_path);
+    if (argc) {
+        ods_log_warning("[%s] unknown arguments for %s command",
+                        module_str, zonelist_import_funcblock()->cmdname);
+        client_printf(sockfd,"unknown arguments\n");
+        return -1;
+    }
+
+    ret = zonelist_import(sockfd, engine, dbconn, remove_missing_zones, zonelist_path);
     if (ret == ZONELIST_IMPORT_NO_CHANGE) {
         return 0;
-    }
-    if (ret != ZONELIST_IMPORT_OK) {
+    } else if (ret != ZONELIST_IMPORT_OK) {
         return 1;
     }
 
@@ -104,9 +126,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         ods_log_info("[%s] internal zonelist exported successfully", module_str);
     }
 
-    /*
     flush_enforce_task(engine, 1);
-    */
 
     return 0;
 }

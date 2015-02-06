@@ -122,9 +122,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
          * NOTE: Errors are ignored!
          */
         policy_import(sockfd, engine, dbconn, 0);
-        zonelist_import(sockfd, engine, dbconn, 0);
+        zonelist_import(sockfd, engine, dbconn, 0, NULL);
         policy_import(sockfd, engine, dbconn, 1);
-        zonelist_import(sockfd, engine, dbconn, 1);
+        zonelist_import(sockfd, engine, dbconn, 1, NULL);
 
         /*
          * Mark the engine for reload, signal it and start it again

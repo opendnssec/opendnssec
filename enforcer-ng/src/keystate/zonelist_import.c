@@ -26,6 +26,8 @@
  *
  */
 
+#include "config.h"
+
 #include "shared/log.h"
 #include "daemon/clientpipe.h"
 #include "db/zone.h"
@@ -48,7 +50,7 @@ struct __zonelist_import_zone {
 };
 
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
-    int do_delete)
+    int do_delete, const char* zonelist_path)
 {
     xmlDocPtr doc;
     xmlNodePtr root;
@@ -115,7 +117,10 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     /*
      * Validate, parse and walk the XML.
      */
-    if (check_zonelist(engine->config->zonelist_filename, 0, NULL, 0)) {
+    if (!zonelist_path)
+        zonelist_path = engine->config->zonelist_filename;
+     
+    if (check_zonelist(zonelist_path, 0, NULL, 0)) {
         client_printf_err(sockfd, "Unable to validate the zonelist XML!\n");
         for (zone2 = zones; zone2; zone2 = zones) {
             free(zone2->name);
@@ -125,9 +130,9 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         return ZONELIST_IMPORT_ERR_XML;
     }
 
-    if (!(doc = xmlParseFile(engine->config->zonelist_filename))) {
+    if (!(doc = xmlParseFile(zonelist_path))) {
         client_printf_err(sockfd, "Unable to read/parse zonelist XML file %s!\n",
-            engine->config->zonelist_filename);
+            zonelist_path);
         for (zone2 = zones; zone2; zone2 = zones) {
             free(zone2->name);
             zones = zone2->next;
