@@ -63,11 +63,12 @@
  * \param[in] engine a engine_type pointer.
  * \param[in] dbconn a db_connection_t pointer.
  * \param[in] do_delete a interger which will trigger deletion of zones not
+ * \param[in] zonelist_path if set use this zonelist rather then one mentioned in conf.xml
  * in the zonelist if non-zero.
  * \return ZONELIST_IMPORT_ERR_* on error otherwise ZONELIST_IMPORT_OK or
  * ZONELIST_IMPORT_NO_CHANGE.
  */
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
-    int do_delete);
+    int do_delete, const char* zonelist_path);
 
 #endif /* _KEYSTATE_ZONELIST_IMPORT_H_ */
