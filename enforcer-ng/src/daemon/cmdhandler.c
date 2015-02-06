@@ -88,7 +88,6 @@
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/rollover_list_cmd.h"
 #include "keystate/keystate_rollover_cmd.h"
-#include "keystate/update_zonelist_cmd.h"
 #include "keystate/zonelist_import_cmd.h"
 #include "keystate/zonelist_export_cmd.h"
 #include "signconf/signconf_cmd.h"
@@ -116,7 +115,6 @@ cmd_funcs_avail(void)
          * the output of the help command */
         &update_conf_funcblock,
         &update_kasp_funcblock,
-        &update_zonelist_funcblock,
         &update_repositorylist_funcblock,
         &update_all_funcblock,
         &policy_list_funcblock,
