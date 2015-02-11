@@ -2418,6 +2418,16 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	 */
 	*allow_unsigned = pkey ? 0 : 1;
 
+	/* If there are no keys configured set 'signconf_needs_writing'
+	 * every time this function is called */
+	if (!policy_key_list_size(policykeylist)) {
+		if (zone_set_signconf_needs_writing(zone, 1)) {
+			ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+		} else {
+			*zone_updated = 1;
+		}
+	}
+
 	for (; pkey; pkey = policy_key_list_next(policykeylist)) {
 		/*
 		 * Check if we should roll, first get the roll state from the zone then
