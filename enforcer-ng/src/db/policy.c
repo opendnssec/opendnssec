@@ -102,6 +102,17 @@ static db_object_t* __policy_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "passthrough")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "description")
         || db_object_field_set_type(object_field, DB_TYPE_TEXT)
         || db_object_field_list_add(object_field_list, object_field))
@@ -533,6 +544,7 @@ void policy_reset(policy_t* policy) {
             free(policy->name);
             policy->name = NULL;
         }
+        policy->passthrough = 0;
         if (policy->description) {
             free(policy->description);
             policy->description = NULL;
@@ -703,6 +715,7 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
         free(policy->name);
     }
     policy->name = name_text;
+    policy->passthrough = policy_copy->passthrough;
     if (policy->description) {
         free(policy->description);
     }
@@ -768,6 +781,10 @@ int policy_cmp(const policy_t* policy_a, const policy_t* policy_b) {
         if (policy_a->name && !policy_b->name) {
             return -1;
         }
+    }
+
+    if (policy_a->passthrough != policy_b->passthrough) {
+        return policy_a->passthrough < policy_b->passthrough ? -1 : 1;
     }
 
     if (policy_a->description && policy_b->description) {
@@ -943,7 +960,7 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
     }
     policy->denial_salt = NULL;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 34
+        || db_value_set_size(value_set) != 35
         || db_value_copy(&(policy->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(policy->rev), db_value_set_at(value_set, 1))
         || db_value_to_text(db_value_set_at(value_set, 2), &(policy->name))
@@ -977,7 +994,8 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_propagation_delay))
         || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_ds_ttl))
         || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_soa_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 33), &(policy->parent_soa_minimum)))
+        || db_value_to_uint32(db_value_set_at(value_set, 33), &(policy->parent_soa_minimum))
+        || db_value_to_uint32(db_value_set_at(value_set, 34), &(policy->passthrough)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -1025,6 +1043,14 @@ const char* policy_name(const policy_t* policy) {
     }
 
     return policy->name;
+}
+
+unsigned int policy_passthrough(const policy_t* policy) {
+    if (!policy) {
+        return 0;
+    }
+
+    return policy->passthrough;
 }
 
 const char* policy_description(const policy_t* policy) {
@@ -1476,6 +1502,16 @@ int policy_set_name(policy_t* policy, const char* name_text) {
     return DB_OK;
 }
 
+int policy_set_passthrough(policy_t* policy, unsigned int passthrough) {
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    policy->passthrough = passthrough;
+
+    return DB_OK;
+}
+
 int policy_set_description(policy_t* policy, const char* description_text) {
     char* new_description;
 
@@ -1877,6 +1913,27 @@ db_clause_t* policy_name_clause(db_clause_list_t* clause_list, const char* name_
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_from_text(db_clause_get_value(clause), name_text)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        return NULL;
+    }
+
+    return clause;
+}
+
+db_clause_t* policy_passthrough_clause(db_clause_list_t* clause_list, unsigned int passthrough) {
+    db_clause_t* clause;
+
+    if (!clause_list) {
+        return NULL;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "passthrough")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
+        || db_value_from_uint32(db_clause_get_value(clause), passthrough)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);

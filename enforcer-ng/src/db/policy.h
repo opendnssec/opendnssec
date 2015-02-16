@@ -63,6 +63,9 @@ struct policy {
     db_value_t id;
     db_value_t rev;
     char* name;
+    /* if passthrough set, no modifications to the zonefile should
+     * be made. I.e. No signatures added or removed */
+    unsigned int passthrough;
     char* description;
     unsigned int signatures_resign;
     unsigned int signatures_refresh;
@@ -165,6 +168,13 @@ const db_value_t* policy_id(const policy_t* policy);
  * \return a character pointer or NULL on error or if no name has been set.
  */
 const char* policy_name(const policy_t* policy);
+
+/**
+ * Get the passthrough of a policy object. Undefined behavior if `policy` is NULL.
+ * \param[in] policy a policy_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int policy_passthrough(const policy_t* policy);
 
 /**
  * Get the description of a policy object.
@@ -454,6 +464,14 @@ int policy_retrieve_hsm_key_list(policy_t* policy);
 int policy_set_name(policy_t* policy, const char* name_text);
 
 /**
+ * Set the passthrough of a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \param[in] passthrough an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_set_passthrough(policy_t* policy, unsigned int passthrough);
+
+/**
  * Set the description of a policy object.
  * \param[in] policy a policy_t pointer.
  * \param[in] description_text a character pointer.
@@ -727,6 +745,17 @@ int policy_set_parent_soa_minimum(policy_t* policy, unsigned int parent_soa_mini
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* policy_name_clause(db_clause_list_t* clause_list, const char* name_text);
+
+/**
+ * Create a clause for passthrough of a policy object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] passthrough an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* policy_passthrough_clause(db_clause_list_t* clause_list, unsigned int passthrough);
 
 /**
  * Create a clause for description of a policy object and add it to a database clause list.
