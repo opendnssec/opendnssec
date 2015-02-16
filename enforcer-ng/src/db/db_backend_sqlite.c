@@ -168,7 +168,7 @@ static inline int __db_backend_sqlite_prepare(db_backend_sqlite_t* backend_sqlit
         NULL);
     if (ret != SQLITE_OK) {
         ods_log_info("DB prepare SQL %s", sql);
-        ods_log_info("DB prepare Err %d", ret);
+        ods_log_crit("DB prepare Err %d", ret);
         if (*statement) {
             sqlite3_finalize(*statement);
         }
