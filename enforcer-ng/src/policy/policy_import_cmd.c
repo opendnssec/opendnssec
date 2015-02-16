@@ -43,8 +43,8 @@ static const char *module_str = "policy_import_cmd";
 static void database_error_help(int sockfd) {
     client_printf_err(sockfd,
         "\nThe information in the database may have been changed during KASP update"
-        "and caused an update error, try rerunning policy import. If the problem persists"
-        "please check logs and database setup and after correcting the problem rerun policy import.\n"
+        " and caused an update error, try rerunning policy import. If the problem persists"
+        " please check logs and database setup and after correcting the problem rerun policy import.\n"
     );
 }
 
