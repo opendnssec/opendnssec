@@ -209,6 +209,8 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
 
     error = 1;
     if (!xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone_name(zone))
+        || !(error = 26)
+        || (policy_passthrough(policy) && !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Passthrough", NULL)))
         || !(error = 2)
         || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Signatures", NULL))
         || !(error = 3)
