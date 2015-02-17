@@ -49,6 +49,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     int signatures_max_zone_ttl = 0;
     int keys_purge = 0;
     int denial_ttl = 0;
+    unsigned int passthrough = 0;
 
     if (!policy) {
         return DB_ERROR_UNKNOWN;
@@ -127,6 +128,9 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                 xmlFree(xml_text);
                 xml_text = NULL;
             }
+        }
+        else if (!strcmp((char*)node->name, "Passthrough")) {
+            passthrough = 1;
         }
         else if (!strcmp((char*)node->name, "Signatures")) {
             for (node2 = node->children; node2; node2 = node2->next) {
@@ -1173,6 +1177,15 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
             if (policy_set_denial_ttl(policy, 0)) {
                 return DB_ERROR_UNKNOWN;
             }
+        }
+    }
+    /* Check if passtrough has toggled */
+    if (passthrough != policy_passthrough(policy)) {
+        ods_log_deeebug("[policy_*_from_xml] - passthrough set to %d",
+            passthrough);
+        *updated = 1; /* everywhere set outside if. Don't know why. */
+        if (policy_set_passthrough(policy, passthrough)) {
+            return DB_ERROR_UNKNOWN;
         }
     }
 
