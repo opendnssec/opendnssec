@@ -3529,7 +3529,7 @@ int policy_update(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(32))) {
+    if (!(value_set = db_value_set_new(33))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -3565,7 +3565,8 @@ int policy_update(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_propagation_delay)
         || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_ds_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_minimum))
+        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_minimum)
+        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->passthrough))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
