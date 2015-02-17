@@ -1183,7 +1183,8 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     if (passthrough != policy_passthrough(policy)) {
         ods_log_deeebug("[policy_*_from_xml] - passthrough set to %d",
             passthrough);
-        *updated = 1; /* everywhere set outside if. Don't know why. */
+        if (check_if_updated)
+            *updated = 1;
         if (policy_set_passthrough(policy, passthrough)) {
             return DB_ERROR_UNKNOWN;
         }

@@ -111,10 +111,6 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	srand(now);
 #endif
 
-	/*
-	 * TODO: seems to affect NSEC policies also?!?
-	 */
-
 	if (!(clause_list = db_clause_list_new())
 	    || !policy_denial_type_clause(clause_list, POLICY_DENIAL_TYPE_NSEC3)
 	    || !(pol_list = policy_list_new_get_by_clauses(dbconn, clause_list)))
@@ -128,6 +124,8 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	while ((policy = policy_list_get_next(pol_list))) {
 		if (policy_denial_type(policy) != POLICY_DENIAL_TYPE_NSEC3)
 			continue;
+		if (policy_passthrough(policy))
+			continue;
 		resalt_time = policy_denial_salt_last_change(policy) +
 			policy_denial_resalt(policy);
 		if (now > resalt_time) {
@@ -135,7 +133,6 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			if (saltlength <= 0 || saltlength > 255) {
 				ods_log_error("[%s] policy %s has an invalid salt length. "
 					"Must be in range [0..255]", module_str, policy_name(policy));
-				policy_free(policy);
 				continue; /* no need to schedule for this policy */
 			}
 			/* Yes, we need to resalt this policy */
@@ -147,7 +144,6 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			   policy_update(policy))
 			{
 				ods_log_error("[%s] db error", module_str);
-				policy_free(policy);
 				break;
 			}
 			resalt_time = now + policy_denial_resalt(policy);
@@ -155,7 +151,6 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 		}
 		if ((resalt_time < schedule_time || schedule_time == TIME_INF) && policy_denial_resalt(policy) > 0)
 			schedule_time = resalt_time;
-		policy_free(policy);
 	}
 	policy_list_free(pol_list);
 	ods_log_debug("[%s] policies have been updated", module_str);
