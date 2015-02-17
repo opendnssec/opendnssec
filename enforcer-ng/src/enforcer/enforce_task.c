@@ -164,6 +164,15 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			continue;
 		}
 
+		if (policy_passthrough(policy)) {
+			ods_log_info("Passing through zone %s.\n", zone_name(zone));
+			zone_set_signconf_needs_writing(zone, 1);
+			zone_update(zone);
+			bSignerConfNeedsWriting = 1;
+			policy_free(policy);
+			continue;
+		}
+
 		zone_updated = 0;
 		t_next = update(engine, dbconn, zone, policy, t_now, &zone_updated);
 		policy_free(policy);
