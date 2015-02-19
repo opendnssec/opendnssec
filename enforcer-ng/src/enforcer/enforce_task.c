@@ -164,6 +164,15 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			continue;
 		}
 
+		if (policy_passthrough(policy)) {
+			ods_log_info("Passing through zone %s.\n", zone_name(zone));
+			zone_set_signconf_needs_writing(zone, 1);
+			zone_update(zone);
+			bSignerConfNeedsWriting = 1;
+			policy_free(policy);
+			continue;
+		}
+
 		zone_updated = 0;
 		t_next = update(engine, dbconn, zone, policy, t_now, &zone_updated);
 		policy_free(policy);
@@ -305,7 +314,7 @@ enforce_task(engine_type *engine, bool all)
 	task_id what_id;
 	const char *what = "enforce";
 	const char *who = "next zone";
-	enforce_all = all;
+	enforce_all |= all;
 	what_id = task_register(what, module_str, enforce_task_perform);
 	return task_create(what_id, time_now(), who, what, (void*)engine);
 }
@@ -315,8 +324,6 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 {
 	int status;
 	task_id what_id;
-	(void) enforce_all;
-	printf("flushing\n");
 	/* flush (force to run) the enforcer task when it is waiting in the 
 	 task list. */
 	if (!task_id_from_long_name(module_str, &what_id)) {
@@ -324,7 +331,7 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 		return 1;
 	}
 	if (!schedule_flush_type(engine->taskq, what_id)) {
-		status = schedule_task(engine->taskq, enforce_task(engine, 1));
+		status = schedule_task(engine->taskq, enforce_task(engine, enforce_all));
 		if (status != ODS_STATUS_OK) {
 			ods_fatal_exit("[%s] failed to create enforce task", module_str);
 			return 0;

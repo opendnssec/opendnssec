@@ -146,7 +146,8 @@ CREATE TABLE policy (
     parentPropagationDelay INT UNSIGNED NOT NULL,
     parentDsTtl INT UNSIGNED NOT NULL,
     parentSoaTtl INT UNSIGNED NOT NULL,
-    parentSoaMinimum INT UNSIGNED NOT NULL
+    parentSoaMinimum INT UNSIGNED NOT NULL,
+    passthrough UNSIGNED INT NOT NULL
 );
 CREATE UNIQUE INDEX policyName ON policy ( name(255) );
 

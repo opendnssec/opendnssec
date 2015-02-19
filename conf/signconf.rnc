@@ -31,6 +31,9 @@ zone = element Zone {
 		# zone name
 		attribute name { xsd:string }
 
+		# Do not touch contents of zonefile.
+		& element Passthrough { empty }?
+
 		# this section is taken directly from the corresponding KASP policy
 		& element Signatures {
 			element Resign { xsd:duration }
