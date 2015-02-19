@@ -2926,7 +2926,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     /*
      * Only purge old keys if the policy says so.
      */
-	if (policy_keys_purge_after(policy)) {
+	if (policy_keys_purge_after(policy) && keylist) {
 	    purge_return_time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
 	        policy_keys_purge_after(policy));
 	}
