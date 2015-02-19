@@ -345,21 +345,6 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 			break;
 		}
 		key_mod++;
-		if (zone) {
-			if (zone_set_next_change(zone, 0) || zone_update(zone)) {
-				ods_log_error("[%s] error updating zone in DB.", module_str);
-				status = 13;
-			}
-		} else {
-			zone = key_data_get_zone(key);
-			if (zone_set_next_change(zone, 0) || zone_update(zone)) {
-				ods_log_error("[%s] error updating zone in DB.", module_str);
-				status = 15;
-			}
-			zone_free(zone);
-			zone = NULL;
-
-		}
 		key_data_free(key);
 	}
 	key_data_list_free(key_list);
