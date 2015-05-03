@@ -88,7 +88,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     ods_log_debug("[%s] %s command", module_str, update_kasp_funcblock()->cmdname);
 
-    switch (policy_import(sockfd, engine, dbconn, 1)) {
+    switch (policy_import(sockfd, engine, dbconn, 0)) {
     case POLICY_IMPORT_OK:
         /*
         schedule_flush(engine->taskq);
