@@ -19,7 +19,7 @@ log_grep ods-kaspcheck-run-not-there stdout 'ERROR: Configuration file (kaspchec
 log_grep ods-kaspcheck-run-not-there stdout 'ERROR: No location for kasp.xml set' &&
 
 # 3) Test for RNG validation errors: bad form
-! log_this ods-kaspcheck-run-bad-form ods-kaspcheck ods-kaspcheck -c kaspcheck_bad/bad_form_conf.xml -k kaspcheck_bad/bad_form_kasp.xml &&
+! log_this ods-kaspcheck-run-bad-form ods-kaspcheck -c kaspcheck_bad/bad_form_conf.xml -k kaspcheck_bad/bad_form_kasp.xml &&
 # NOTE: the Relax-NG validity error strings are modified from the full output for solaris compatibility
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:15: element InvalidNode: Relax-NG validity error : Did not expect element InvalidNode there" &&
 log_grep ods-kaspcheck-run-bad-form stderr "Did not expect element InvalidNode there" &&
@@ -28,9 +28,10 @@ log_grep ods-kaspcheck-run-bad-form stdout "ERROR: kaspcheck_bad/bad_form_conf.x
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:11: element Capacity: Relax-NG validity error : Error validating datatype positiveInteger" &&
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:11: element Capacity: Relax-NG validity error : Element Capacity failed to validate content" &&
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_conf.xml:11: element Capacity: Relax-NG validity error : Type positiveInteger doesn't allow value '0'" &&
-log_grep ods-kaspcheck-run-bad-form stderr "Error validating datatype positiveInteger" &&
-log_grep ods-kaspcheck-run-bad-form stderr "Element Capacity failed to validate content" &&
-log_grep ods-kaspcheck-run-bad-form stderr "Type positiveInteger doesn't allow value '0'" &&
+#log_grep ods-kaspcheck-run-bad-form stderr "Error validating datatype positiveInteger" &&
+#log_grep ods-kaspcheck-run-bad-form stderr "Element Capacity failed to validate content" &&
+#log_grep ods-kaspcheck-run-bad-form stderr "Type positiveInteger doesn't allow value '0'" &&
+log_grep ods-kaspcheck-run-bad-form stderr "element Capacity: Relax-NG validity error : Element Repository failed to validate content" &&
 # KASP errors
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_kasp.xml:12: element Jitter: Relax-NG validity error : Type duration doesn't allow value 'bad_text'" &&
 #log_grep ods-kaspcheck-run-bad-form stderr "kaspcheck_bad/bad_form_kasp.xml:12: element Jitter: Relax-NG validity error : Error validating datatype duration" &&
@@ -48,14 +49,14 @@ log_grep ods-kaspcheck-run-bad-form stderr "Error validating value" &&
 log_grep ods-kaspcheck-run-bad-form stderr "Element Serial failed to validate content" &&
 
 # 4) Test for RNG validation errors: broken validation
-! log_this ods-kaspcheck-run-bad-val ods-kaspcheck ods-kaspcheck -c kaspcheck_bad/invalid_conf.xml &&
+! log_this ods-kaspcheck-run-bad-val ods-kaspcheck -c kaspcheck_bad/invalid_conf.xml &&
 log_grep ods-kaspcheck-run-bad-val stdout "INFO: The XML in kaspcheck_bad/invalid_conf.xml is valid" &&
 log_grep ods-kaspcheck-run-bad-val stdout "INFO: The XML in kaspcheck_bad/zonelist.xml is valid" &&
-log_grep ods-kaspcheck-run-bad-val stdout "ERROR: WorkingDirectory (kaspcheck_bad/nope/not/here) does not exist" &&
+log_grep ods-kaspcheck-run-bad-val stdout "ERROR: Signer WorkingDirectory (kaspcheck_bad/nope/not/here) does not exist" &&
 log_grep ods-kaspcheck-run-bad-val stdout "INFO: The XML in kaspcheck_bad/invalid_kasp.xml is valid" &&
 
 # 5) Test for bad configuration data
-! log_this ods-kaspcheck-run-bad-config ods-kaspcheck ods-kaspcheck -c kaspcheck_bad/conf.xml &&
+! log_this ods-kaspcheck-run-bad-config ods-kaspcheck -c kaspcheck_bad/conf.xml &&
 log_grep ods-kaspcheck-run-bad-config stdout "INFO: The XML in kaspcheck_bad/conf.xml is valid" &&
 log_grep ods-kaspcheck-run-bad-config stdout "INFO: The XML in kaspcheck_bad/zonelist.xml is valid" &&
 log_grep ods-kaspcheck-run-bad-config stdout "INFO: The XML in kaspcheck_bad/kasp.xml is valid" &&
