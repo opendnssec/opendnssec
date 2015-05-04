@@ -139,8 +139,6 @@ log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods13 --input 
 
 ##################  TEST:  Zonelist.xml  export ###########################
 
-#cp $ZONELIST_FILE zonelist.xml.gold &&
-
 # Check the zones.xml internal file is written (2.0 new behaviour)
 diff $ignore_whitespace   $ZONES_FILE zonelist.xml.gold_local &&
 echo "zones.xml contents OK" &&
@@ -183,8 +181,7 @@ echo "Zonelist export contents OK" &&
 
 # Delete zone successfully 
 log_this ods-enforcer-zone_del_1  ods-enforcer zone delete -z ods1  &&
-log_grep ods-enforcer-zone_del_1   stdout "Deleted zone: ods1 in database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required." &&
-#log_grep ods-enforcer-zone_del_1  stdout "zone.*ods1.*deleted successfully"
+log_grep ods-enforcer-zone_del_1   stdout "Deleted zone ods1 successfully" &&
 log_this ods-enforcer-zone_del_list_1   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_1   stdout "ods1[[:space:]]*Policy1" &&
 
@@ -197,8 +194,7 @@ $GREP -q -- "ods14" "$ZONES_FILE" &&
 echo "Zonelist contents OK again" &&
 
 log_this ods-enforcer-zone_del_2  ods-enforcer zone delete --zone ods2 --xml &&
-log_grep ods-enforcer-zone_del_2   stdout "Deleted zone: ods2 in database and zonelist.xml updated" &&
-#log_grep ods-enforcer-zone_del_1  stdout "zone.*ods1.*deleted successfully"
+log_grep ods-enforcer-zone_del_2   stdout "Deleted zone ods2 successfully" &&
 log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_2   stdout "ods2[[:space:]]*Policy1" &&
 
@@ -208,9 +204,14 @@ log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
 $GREP -q -- "ods14" "$ZONELIST_FILE" &&
 $GREP -q -- "ods14" "$ZONES_FILE" &&
 
+# GIVES OUT TWO MESSAGES
+#    Unable to delete zone, zone ods1 not found!
+# BUT ALSO:
+#    Deleted zone ods2 successfully
+# REMNANT OF EARLIER COMMAND OR REAL BAD?
 # Test deleting a non-existant zone
 ! log_this ods-enforcer-zone_del_2  ods-enforcer zone delete -z ods1  &&
-log_grep ods-enforcer-zone_del_2 stdout  "Couldn't find zone 'ods1'" && 
+log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not found" && 
 
 # Delete all remaining zones 
 echo "y " | log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all  &&
@@ -256,10 +257,10 @@ echo "zones.xml contents OK" &&
 # Now do another import with a file that has one extra zone and one zone removed
 # and some of the data changed
 cp zonelist.xml.test_local "$ZONELIST_FILE" &&
-sleep 5 &&
-num_completed_updates=`syslog_grep_count2 "Completed updating all zones that need required action"` &&
+sleep 20 &&
 log_this ods-enforcer-zonelist-import ods-enforcer zonelist import && 
-syslog_waitfor_count 30 $(( num_completed_updates + 1 )) "Completed updating all zones that need required action" &&
+log_this ods-enforcer-zonelist-enforce ods-enforcer enforce && 
+syslog_waitfor_count 30 2 ".zonelist_import_cmd. internal zonelist exported successfully" &&
 log_this ods-enforcer-zone_add_list_3  ods-enforcer zone list  &&
 ! log_grep ods-enforcer-zone_add_list_3   stdout "ods0[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_3   stdout "ods1[[:space:]]*Policy1" &&
@@ -285,6 +286,9 @@ echo "zones.xml contents OK" &&
 
 # #Finally run the signer to check all is well
 ods_start_signer &&
+log_this ods-enforcer-signconf ods-enforcer signconf && 
+# cp $INSTALL_root/var/opendnssec/signconf
+syslog_waitfor 60 'signconf done, notifying signer' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods1' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods2' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods3' &&
@@ -334,3 +338,15 @@ echo "************ERROR******************"
 echo
 ods_kill
 return 1
+
+# OTHER PROBLEMS:
+# 1:
+# Jan 27 11:16:08 nagini ods-enforcerd: 140127037470464: [/home/berry/workspace/root/local-test/etc/opendnssec/zonelist.xml] zonelist ^P®^E¸q  updated successfully
+# 2:
+# Jan 27 12:42:57 nagini ods-enforcerd: 140365595563776: [zonelist_import_cmd] internal zonelist exported successfully
+#
+# 3:
+# syslog_wait and syslog_grep only work from beginning of logging, not nice
+# some time
+
+

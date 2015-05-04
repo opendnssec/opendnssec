@@ -1,171 +1,194 @@
 <?xml version="1.0"?>
 <ZoneList>
-    <Zone name="ods0">
-        <Policy>default</Policy>
+  <!--
+
+********* Important changes to zonelist.xml in 2.0 ***************
+
+In 2.0, the zonelist.xml file is no longer automatically updated when zones
+are added or deleted  via the command line by using the 'ods-enforcer zone add'
+command. However, in 2.0 it is possible to force an update of the zonelist.xml
+file by using the new 'xml' flag. This is in contrast to the behaviour in 1.4
+where zonelist.xml was always updated, unless the 'no-xml' flag was used. 
+
+As a result in 2.0 the contents of the enforcer database should be considered
+the 'master' for the list of currently configured zones, not the zonelist.xml
+file as the file can easily become out of sync with the database.
+
+The contents of the database can be listed using:
+  ods-enforcer zone list
+and exported using the command
+  ods-enforcer zonelist export
+The contents of the database can still be updated in bulk from the zonelist.xml
+file by using the command:
+  ods-enforcer zonelist import    (or ods-enforcer update zonelist)
+
+-->
+  <Zone name="ods0">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods0.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods0</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods0</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods1">
-        <Policy>Policy1</Policy>
+    <Adapters>
+      <Input>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods0</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods0</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods1">
+    <Policy>Policy1</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods1.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods1</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods1</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods2">
-        <Policy>Policy1</Policy>
+    <Adapters>
+      <Input>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods1</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods1</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods2">
+    <Policy>Policy1</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods2.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods2</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods2</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods3">
-        <Policy>default</Policy>
+    <Adapters>
+      <Input>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods2</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods2</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods3">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods3.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods3</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods3</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods4">
-        <Policy>default</Policy>
+    <Adapters>
+      <Input>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods3</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods3</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods4">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods4.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods4</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods4</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods5">
-        <Policy>default</Policy>
+    <Adapters>
+      <Input>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods4</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods4</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods5">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods5.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods5</Adapter>
-            </Input>
-            <Output>
+    <Adapters>
+      <Input>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods5</Adapter>
+      </Input>
+      <Output>
                 <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods6">
-        <Policy>default</Policy>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods6">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods6.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods6</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods7">
-        <Policy>default</Policy>
+    <Adapters>
+      <Input>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods6</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods7">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods7.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
+    <Adapters>
+      <Input>
                 <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Input>
-            <Output>
+      </Input>
+      <Output>
                 <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods8">
-        <Policy>default</Policy>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods8">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods8.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods9">
-        <Policy>default</Policy>
+    <Adapters>
+      <Input>
+        <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods9">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods9.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
+    <Adapters>
+      <Input>
                 <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods9</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods10">
-        <Policy>default</Policy>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods9</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods10">
+    <Policy>default</Policy>
         <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods10.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods10</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods11">
-        <Policy>default</Policy>
-        <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods11.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods11</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods11</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods12">
-        <Policy>default</Policy>
-        <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods12.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods12</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
-    <Zone name="ods13">
-        <Policy>default</Policy>
-        <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods13.xml</SignerConfiguration>
-        <Adapters>
-            <Input>
-                <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
-            </Input>
-            <Output>
-                <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns1.xml</Adapter>
-            </Output>
-        </Adapters>
-    </Zone>
+    <Adapters>
+      <Input>
+        <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods10</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods11">
+    <Policy>default</Policy>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods11.xml</SignerConfiguration>
+    <Adapters>
+      <Input>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/unsigned/ods11</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods11</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods12">
+    <Policy>default</Policy>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods12.xml</SignerConfiguration>
+    <Adapters>
+      <Input>
+        <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="File">@INSTALL_ROOT@/var/opendnssec/signed/ods12</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
+  <Zone name="ods13">
+    <Policy>default</Policy>
+    <SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/ods13.xml</SignerConfiguration>
+    <Adapters>
+      <Input>
+        <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns.xml</Adapter>
+      </Input>
+      <Output>
+        <Adapter type="DNS">@INSTALL_ROOT@/etc/opendnssec/addns1.xml</Adapter>
+      </Output>
+    </Adapters>
+  </Zone>
 </ZoneList>

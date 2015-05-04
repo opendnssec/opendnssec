@@ -7,6 +7,12 @@ exit ()
 
 	if [ -n "$_SYSLOG_TRACE_PID" ]; then
 		case "$DISTRIBUTION" in
+			slackware)
+				kill -TERM "$_SYSLOG_TRACE_PID" 2>/dev/null &&
+				{
+					unset _SYSLOG_TRACE_PID
+				}
+				;;
 			debian | \
 			ubuntu | \
 			redhat | \
@@ -408,6 +414,7 @@ find_tail ()
 		redhat | \
 		centos | \
 		sl | \
+		slackware | \
 		opensuse | \
 		suse | \
 		sunos )
@@ -564,6 +571,8 @@ detect_distribution ()
 		else
 			DISTRIBUTION="redhat"
 		fi
+    elif [ -f "/etc/slackware-version" ]; then
+	    DISTRIBUTION=slackware
 	elif [ -f "/etc/os-release" ]; then
 		if $GREP -q -i opensuse /etc/os-release 2>/dev/null; then
 			DISTRIBUTION="opensuse"
@@ -1716,6 +1725,9 @@ syslog_trace ()
 	local syslog_file
 
 	case "$DISTRIBUTION" in
+		slackware)
+			syslog_file="/var/log/opendnssec"
+			;;
 		debian | \
 		ubuntu )
 			syslog_file="/var/log/syslog"
@@ -1770,7 +1782,14 @@ syslog_stop ()
 	fi
 
 	if kill -TERM "$_SYSLOG_TRACE_PID" 2>/dev/null; then
-		wait "$_SYSLOG_TRACE_PID" 2>/dev/null
+		# This causes the script to abort with a failure
+		# on some systems while adding it does not make
+		# a whole log affect, since the tracing will stop
+		# anyway and this is only a check if the test script
+		# isn't buggy
+		#    wait "$_SYSLOG_TRACE_PID" 2>/dev/null
+		unset _SYSLOG_TRACE_PID
+	else
 		unset _SYSLOG_TRACE_PID
 	fi
 
