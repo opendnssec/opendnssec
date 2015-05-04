@@ -91,7 +91,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     ods_log_debug("[%s] %s command", module_str, policy_import_funcblock()->cmdname);
 
-    switch (policy_import(sockfd, engine, dbconn, 1)) {
+    switch (policy_import(sockfd, engine, dbconn, 0)) {
     case POLICY_IMPORT_OK:
         (void)flush_enforce_task(engine, 0);
         (void)flush_resalt_task(engine);

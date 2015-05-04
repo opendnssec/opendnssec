@@ -786,6 +786,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
             }
         }
     }
+    perform_signconf (sockfd, dbconn, 1);
 
     if (do_delete) {
         /*
