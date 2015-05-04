@@ -219,7 +219,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         }
     }
     else {
-        if (snprintf(path, sizeof(path), "%s/signconf/%s", OPENDNSSEC_STATE_DIR, zone_name) >= (int)sizeof(path)
+	char signedfile[257] = "";
+	strcat (strcat (signedfile, zone_name), ".xml");
+        if (snprintf(path, sizeof(path), "%s/signconf/%s", OPENDNSSEC_STATE_DIR, signedfile) >= (int)sizeof(path)
             || zone_set_signconf_path(zone, path))
         {
             client_printf_err(sockfd, "Unable to add zone, failed to set signconf!\n");

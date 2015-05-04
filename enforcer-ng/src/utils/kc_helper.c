@@ -437,6 +437,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	char* temp_char = NULL;
 	xmlNode *childNode;
 	xmlNode *childNode2;
+	xmlNode *childNode3;
 	char my_policy[KC_NAME_LENGTH];
 	int resign = 0;
 	int resigns_per_day = 0;
@@ -452,6 +453,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	int publish = 0;
 	int nsec = 0;
 	int resalt = 0;
+	int hash_algo = 0;
 	
 	enum {KSK = 1, ZSK, CSK};
 	struct key {
@@ -532,6 +534,23 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 							temp_char = (char *) xmlNodeGetContent(childNode2);
 							status += check_time_def(temp_char, my_policy, "Denial/NSEC3/Resalt", kasp, &resalt);
 							StrFree(temp_char);
+						} else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Hash")) {
+							childNode3 = childNode2->children;
+							while (childNode3) {								
+								if (xmlStrEqual(childNode3->name, (const xmlChar *)"Algorithm")) {
+									temp_char = (char *) xmlNodeGetContent(childNode3);
+									/* we know temp_char is a number */
+									hash_algo = atoi(temp_char);
+									if (hash_algo != 1) {
+										dual_log("ERROR: NSEC3 Hash algorithm for %s Policy "
+											"in %s is %d but should be 1", policy_name,
+											kasp, hash_algo);
+										status++;
+									}
+									StrFree(temp_char);
+								}
+								childNode3 = childNode3->next;
+							}
 						}
 
 						childNode2 = childNode2->next;
