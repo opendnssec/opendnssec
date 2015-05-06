@@ -277,12 +277,34 @@ ods_reset_env ()
 
 	echo "ods_reset_env: resetting opendnssec environment (no_enforcer_stop=$no_enforcer_stop)"
 
-	ods_softhsm_init_token 0 &&
+	if [ -z "$1" ]; then
+                ods_softhsm_init_token 0 
+        else
+                ods_softhsm_init_token $1 $2 $3 $4 
+        fi &&
+
 	ods_setup_env $no_enforcer_stop &&
 	return 0
 
 	return 1
 }
+
+ods_reset_env_noenforcer ()
+{
+        echo "ods_reset_env: resetting opendnssec environment "
+	
+	if [ -z "$1" ]; then
+        	ods_softhsm_init_token 0 
+	else
+		ods_softhsm_init_token $1 $2 $3 $4 
+	fi &&
+ 
+        echo 'y' | log_this ods-enforcer-setup ods-enforcer-db-setup &&
+        return 0
+
+        return 1
+}
+
 
 ods_setup_env ()
 {

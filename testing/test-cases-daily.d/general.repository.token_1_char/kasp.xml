@@ -31,13 +31,13 @@
 			<Purge>P1D</Purge>
 			<KSK>
 				<Algorithm length="2048">7</Algorithm>
-				<Lifetime>P3D</Lifetime>
+				<Lifetime>P1Y</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</KSK>
 			<ZSK>
 				<Algorithm length="1024">7</Algorithm>
-				<Lifetime>PT12H</Lifetime>
+				<Lifetime>P3M</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</ZSK>

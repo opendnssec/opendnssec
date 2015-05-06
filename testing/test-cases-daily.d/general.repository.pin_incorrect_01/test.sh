@@ -8,7 +8,7 @@ if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-ods_reset_env &&
+ods_reset_env_noenforcer &&
 
 ! log_this ods-hsmutil-purge ods-hsmutil purge SoftHSM  &&
 log_grep ods-hsmutil-purge stderr 'Incorrect PIN for repository SoftHSM' &&

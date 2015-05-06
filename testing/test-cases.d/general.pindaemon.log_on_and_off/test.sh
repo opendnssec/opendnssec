@@ -21,14 +21,15 @@ if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-ods_reset_env &&
+ods_reset_env_noenforcer &&
 
 # Make sure the login fails 
 ! echo "123" | log_this ods-hsmutil-login-fail ods-hsmutil login &&
 log_grep ods-hsmutil-login-fail stderr 'hsm_session_init(): Incorrect PIN for repository SoftHSM' &&
 
 ! log_this_timeout ods-control-enforcer-start 60 ods-control enforcer start &&
-syslog_waitfor 10 'ods-enforcerd: .*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
+#syslog_waitfor 10 'ods-enforcerd: .*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
+syslog_waitfor 10 'ods-enforcerd: .*\[engine\] hsm_session_init(): Incorrect PIN for repository SoftHSM' &&
 
 ! log_this_timeout ods-control-signer-start 60 ods-control signer start &&
 syslog_waitfor 10 'ods-signerd: .*\[hsm\].*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
