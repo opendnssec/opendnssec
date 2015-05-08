@@ -17,7 +17,7 @@ ods_reset_env &&
 ods_setup_conf conf.xml conf.xml &&
 
 ! ods_start_enforcer &&
-syslog_waitfor 10 "ods-enforcerd: .*ERROR: unable to connect to database - Access denied for user 'test'@'localhost'" &&
+syslog_waitfor 10 "ods-enforcerd: .*db_backend_mysql: connect failed 1045: Access denied for user 'test'@'localhost'" &&
 ! pgrep -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null &&
 return 0
 
