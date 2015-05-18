@@ -220,7 +220,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     }
     else {
 	char signedfile[257] = "";
-	strcat (strcat (signedfile, zone_name), ".xml");
+	strncat (strncat (signedfile, zone_name, strlen (zone_name)), ".xml", 4);
         if (snprintf(path, sizeof(path), "%s/signconf/%s", OPENDNSSEC_STATE_DIR, signedfile) >= (int)sizeof(path)
             || zone_set_signconf_path(zone, path))
         {
