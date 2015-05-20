@@ -620,9 +620,9 @@ const char* policy_key_repository(const policy_key_t* policy_key) {
     return policy_key->repository;
 }
 
-unsigned int policy_key_standby(const policy_key_t* policy_key) {
+int policy_key_standby(const policy_key_t* policy_key) {
     if (!policy_key) {
-        return 0;
+        return -1;
     }
 
     return policy_key->standby;
