@@ -74,6 +74,7 @@ static int zonelist_update(int add, int sockfd, const char* filename, const zone
             return ZONELIST_UPDATE_ERR_XML;
         }
 
+	xmlKeepBlanksDefault(0);
         if (!(doc = xmlParseFile(filename))) {
             client_printf_err(sockfd, "Unable to read XML, parse error!\n");
             return ZONELIST_UPDATE_ERR_XML;

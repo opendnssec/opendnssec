@@ -18,8 +18,11 @@ log_this ods-control-start cp -- "kasp_3policies.xml" $KASP_FILE &&
 ods_start_enforcer &&
 
 #update kasp
-log_this ods-enforcer-update-kasp "ods-enforcer update kasp" &&
-log_grep ods-enforcer-update-kasp stdout 'flushing all tasks...' &&
+log_this ods-enforcer-update-kasp "ods-enforcer policy import" &&
+#log_grep ods-enforcer-update-kasp stdout 'flushing all tasks...' &&
+log_grep ods-enforcer-update-kasp stdout 'Updated policy default successfully' &&
+log_grep ods-enforcer-update-kasp stdout 'Updated policy default2 successfully' &&
+log_grep ods-enforcer-update-kasp stdout 'Created policy default3 successfully' &&
 
 #list policy
 log_this ods-enforcer-policy-list_1 "ods-enforcer policy list" &&
@@ -35,10 +38,10 @@ log_grep ods-enforcer-zone-list_1 stdout 'ods[[:space:]].*default' &&
 echo "y" | log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
 log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default2; purging..." &&
 log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default3; purging..." &&
-# Check that the policy is removed from the kasp file
+# Check that the policies are all in the kasp file
 `$GREP -q -- "default" $KASP_FILE` &&
-! `$GREP -q -- "default2" $KASP_FILE` &&
-! `$GREP -q -- "default3" $KASP_FILE` &&
+`$GREP -q -- "default2" $KASP_FILE` &&
+`$GREP -q -- "default3" $KASP_FILE` &&
 
 #list policy
 log_this ods-enforcer-policy-list_2 "ods-enforcer policy list" &&
@@ -49,7 +52,7 @@ log_grep ods-enforcer-policy-list_2 stdout 'default[[:space:]]*default[[:space:]
 # Now re-instate the 3 policy kasp
 log_this ods-control-start cp -- "kasp_3policies.xml" $KASP_FILE &&
 #update kasp
-log_this ods-enforcer-update-kasp "ods-enforcer update kasp" &&
+log_this ods-enforcer-update-kasp "ods-enforcer policy import" &&
 
 #list policy
 log_this ods-enforcer-policy-list_3 "ods-enforcer policy list" &&
@@ -59,7 +62,8 @@ log_grep ods-enforcer-policy-list_3 stdout 'default3[[:space:]]*default[[:space:
 
 #add zone
 log_this ods-enforcer-add-zone "ods-enforcer zone add -z ods1 -p default2" &&
-log_grep ods-enforcer-add-zone stdout 'Imported zone: ods1' &&
+#log_grep ods-enforcer-add-zone stdout 'Imported zone: ods1' &&
+log_grep ods-enforcer-add-zone stdout 'Zone ods1 added successfully' &&
 
 #list zone
 log_this ods-enforcer-zone-list_2 "ods-enforcer zone list" &&
@@ -78,14 +82,14 @@ log_grep ods-enforcer-policy-list_4 stdout 'default2[[:space:]]*default[[:space:
 
 #delete zone ods1
 echo "y" | log_this ods-enforcer-zone-delete "ods-enforcer zone delete -z ods1" &&
-log_grep ods-enforcer-zone-delete stdout "Deleted zone: ods1 in database only" &&
+log_grep ods-enforcer-zone-delete stdout "Deleted zone ods1 successfully" &&
 
 #policy purge
 echo "y " | log_this ods-enforcer-policy-purge_3 "ods-enforcer policy purge" &&
 log_grep ods-enforcer-policy-purge_3 stdout "No zones on policy default2; purging..." &&
 `$GREP -q -- "default" $KASP_FILE` &&
-! `$GREP -q -- "default2" $KASP_FILE` &&
-! `$GREP -q -- "default3" $KASP_FILE` &&
+`$GREP -q -- "default2" $KASP_FILE` &&
+`$GREP -q -- "default3" $KASP_FILE` &&
 
 #list policy
 log_this ods-enforcer-policy-list_5 "ods-enforcer policy list" &&
@@ -95,7 +99,7 @@ log_grep ods-enforcer-policy-list_5 stdout 'default[[:space:]]*default[[:space:]
 
 #set the kasp to default
 log_this ods-set-kasp-default cp -- "kasp.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-log_this ods-set-kasp-default "ods-enforcer update kasp" &&
+log_this ods-set-kasp-default "ods-enforcer policy import" &&
 log_this ods-set-kasp-default "ods-enforcer policy list" &&
 log_grep ods-set-kasp-default stdout 'default[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
 log_grep ods-set-kasp-default stdout 'default2[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&

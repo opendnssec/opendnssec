@@ -58,7 +58,7 @@ purge_policies(int sockfd, db_connection_t *dbconn)
 	while ((policy = policy_list_get_next(policy_list))) {
 		name = policy_name(policy);
 		/*fetch zonelist from db, owned by policy*/
-		if (!policy_retrieve_zone_list(policy)) {
+		if (policy_retrieve_zone_list(policy)) {
 			result = 1;
 			client_printf(sockfd, "Error fetching zones\n");
 			break;
