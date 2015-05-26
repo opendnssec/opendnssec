@@ -62,6 +62,7 @@ signconf_create(void)
     }
     sc->allocator = allocator;
     sc->filename = NULL;
+    sc->passthrough = 0;
     /* Signatures */
     sc->sig_resign_interval = NULL;
     sc->sig_refresh_interval = NULL;
@@ -115,6 +116,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
     fd = ods_fopen(scfile, NULL, "r");
     if (fd) {
         signconf->filename = allocator_strdup(signconf->allocator, scfile);
+        signconf->passthrough = parse_sc_passthrough(scfile);
         signconf->sig_resign_interval = parse_sc_sig_resign_interval(scfile);
         signconf->sig_refresh_interval = parse_sc_sig_refresh_interval(scfile);
         signconf->sig_validity_default = parse_sc_sig_validity_default(scfile);
@@ -329,7 +331,7 @@ signconf_check(signconf_type* sc)
             sc->nsec_type);
         status = ODS_STATUS_CFG_ERR;
     }
-    if (!sc->keys || sc->keys->count == 0) {
+    if ((!sc->keys || sc->keys->count == 0) && !sc->passthrough) {
         ods_log_error("[%s] check failed: no keys found", sc_str);
         status = ODS_STATUS_CFG_ERR;
     }
@@ -513,12 +515,13 @@ signconf_log(signconf_type* sc, const char* name)
         soamin = duration2string(sc->soa_min);
         /* signconf */
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
-            "VALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
+            "%sVALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
             sc_str,
             name?name:"(null)",
             resign?resign:"(null)",
             refresh?refresh:"(null)",
+            sc->passthrough?"PASSTHROUGH ":"",
             validity?validity:"(null)",
             denial?denial:"(null)",
             jitter?jitter:"(null)",

@@ -555,11 +555,13 @@ namedb_add_denial_trigger(namedb_type* db, domain_type* domain)
         zone = (void*) domain->zone;
         ods_log_assert(zone);
         ods_log_assert(zone->signconf);
-        if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
-            namedb_add_nsec_trigger(db, domain);
-        } else {
-            ods_log_assert(zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3);
-            namedb_add_nsec3_trigger(db, domain, zone->signconf->nsec3params);
+        if (!zone->signconf->passthrough) {
+            if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
+                namedb_add_nsec_trigger(db, domain);
+            } else {
+                ods_log_assert(zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3);
+                namedb_add_nsec3_trigger(db, domain, zone->signconf->nsec3params);
+            }
         }
     }
     return;
