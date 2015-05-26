@@ -95,6 +95,13 @@ int parse_sc_nsec3_optout(const char* cfgfile);
 /**
  * Parse elements from the configuration file.
  * \param[in] cfgfile the configuration file name.
+ * \return boolean
+ */
+int parse_sc_passthrough(const char* cfgfile);
+
+/**
+ * Parse elements from the configuration file.
+ * \param[in] cfgfile the configuration file name.
  * \return const char* string
  *
  */

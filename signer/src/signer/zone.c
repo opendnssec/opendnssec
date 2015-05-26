@@ -938,7 +938,8 @@ zone_recover2(zone_type* zone)
             goto recover_error2;
         }
         /* publish nsec3param */
-        status = zone_publish_nsec3param(zone);
+        if (!zone->signconf->passthrough)
+            status = zone_publish_nsec3param(zone);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] corrupted backup file zone %s: unable to "
                 "publish nsec3param (%s)", zone_str, zone->name,

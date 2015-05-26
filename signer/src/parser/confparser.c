@@ -389,6 +389,11 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
     return NULL;
 }
 
+/*
+ *  TODO all parse routines parse the complete file. Yuk!
+ *  TODO make a parse_conf_bool for testing existence of empty elements
+ *      instead of abusing parse_conf_string
+ * */
 
 const char*
 parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)

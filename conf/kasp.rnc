@@ -31,6 +31,9 @@ start = element KASP {
 		# (short) symbolic name for Policy
 		attribute name { xsd:string },
 
+		# Do not touch contents of zonefile.
+		element Passthrough { empty }?,
+
 		# description of policy (free text)
 		element Description { xsd:string },
 

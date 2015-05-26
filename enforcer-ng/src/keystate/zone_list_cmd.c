@@ -33,6 +33,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
+#include "shared/duration.h"
 #include "daemon/clientpipe.h"
 #include "db/zone.h"
 #include "db/policy.h"
@@ -94,15 +95,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:",
         "Signer Configuration:");
     while (zone) {
-        if (zone_next_change(zone) > 0) {
+        if (zone_next_change(zone) >= time_now()) {
             if (!ods_ctime_r(buf, sizeof(buf), zone_next_change(zone))) {
                 nctime = "invalid date/time";
             }
             else {
                 nctime = buf;
             }
-        } else {
+        } else if (zone_next_change(zone) >= 0) {
             nctime = "as soon as possible";
+        } else {
+            nctime = "no changes scheduled";
         }
 
         if (policy) {

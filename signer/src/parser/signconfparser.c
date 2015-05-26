@@ -412,6 +412,19 @@ parse_sc_nsec3_optout(const char* cfgfile)
     return ret;
 }
 
+int
+parse_sc_passthrough(const char* cfgfile)
+{
+    int ret = 0;
+    const char* str = parse_conf_string(cfgfile,
+        "//SignerConfiguration/Zone/Passthrough",
+        0);
+    if (str) {
+        ret = 1;
+        free((void*)str);
+    }
+    return ret;
+}
 
 /**
  * Parse elements from the configuration file.
