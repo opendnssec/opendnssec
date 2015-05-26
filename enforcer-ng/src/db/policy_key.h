@@ -203,9 +203,9 @@ const char* policy_key_repository(const policy_key_t* policy_key);
 /**
  * Get the standby of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
- * \return an unsigned integer.
+ * \return an integer.
  */
-unsigned int policy_key_standby(const policy_key_t* policy_key);
+int policy_key_standby(const policy_key_t* policy_key);
 
 /**
  * Get the manual_rollover of a policy key object. Undefined behavior if `policy_key` is NULL.
