@@ -147,7 +147,7 @@ CREATE TABLE policy (
     parentDsTtl INT UNSIGNED NOT NULL,
     parentSoaTtl INT UNSIGNED NOT NULL,
     parentSoaMinimum INT UNSIGNED NOT NULL,
-    passthrough UNSIGNED INT NOT NULL
+    passthrough INT UNSIGNED NOT NULL
 );
 CREATE UNIQUE INDEX policyName ON policy ( name(255) );
 
