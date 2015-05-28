@@ -34,6 +34,7 @@
 #include "db/zone.h"
 #include "db/hsm_key.h"
 #include "hsmkey/hsm_key_factory.h"
+#include "signconf/signconf_task.h"
 
 #include "policy/policy_import.h"
 
