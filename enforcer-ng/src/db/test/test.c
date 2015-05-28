@@ -127,42 +127,6 @@ int main(void) {
     }
 #endif
 
-#if defined(ENFORCER_DATABASE_COUCHDB)
-    pSuite = CU_add_suite("CouchDB database operations", init_suite_database_operations_couchdb, clean_suite_database_operations);
-    if (!pSuite) {
-        CU_cleanup_registry();
-        return CU_get_error();
-    }
-
-    if (!CU_add_test(pSuite, "test of read object 1", test_database_operations_read_object1)
-        || !CU_add_test(pSuite, "test of create object 2", test_database_operations_create_object2)
-        || !CU_add_test(pSuite, "test of read object 2", test_database_operations_read_object2)
-        || !CU_add_test(pSuite, "test of read object 1 (#2)", test_database_operations_read_object1)
-        || !CU_add_test(pSuite, "test of create object 3", test_database_operations_create_object3)
-        || !CU_add_test(pSuite, "test of update object 2", test_database_operations_update_object2)
-        || !CU_add_test(pSuite, "test of read all", test_database_operations_read_all)
-        || !CU_add_test(pSuite, "test of delete object 3", test_database_operations_delete_object3)
-        || !CU_add_test(pSuite, "test of read object 1 (#3)", test_database_operations_read_object1)
-        || !CU_add_test(pSuite, "test of delete object 2", test_database_operations_delete_object2)
-        || !CU_add_test(pSuite, "test of read object 1 (#4)", test_database_operations_read_object1)
-
-        || !CU_add_test(pSuite, "test of read object 1 (REV)", test_database_operations_read_object1_2)
-        || !CU_add_test(pSuite, "test of create object 2 (REV)", test_database_operations_create_object2_2)
-        || !CU_add_test(pSuite, "test of read object 2 (REV)", test_database_operations_read_object2_2)
-        || !CU_add_test(pSuite, "test of read object 1 (#2) (REV)", test_database_operations_read_object1_2)
-        || !CU_add_test(pSuite, "test of create object 3 (REV)", test_database_operations_create_object3_2)
-        || !CU_add_test(pSuite, "test of update object 2 (REV)", test_database_operations_update_object2_2)
-        || !CU_add_test(pSuite, "test of updates revisions (REV)", test_database_operations_update_objects_revisions)
-        || !CU_add_test(pSuite, "test of delete object 3 (REV)", test_database_operations_delete_object3_2)
-        || !CU_add_test(pSuite, "test of read object 1 (#3) (REV)", test_database_operations_read_object1_2)
-        || !CU_add_test(pSuite, "test of delete object 2 (REV)", test_database_operations_delete_object2_2)
-        || !CU_add_test(pSuite, "test of read object 1 (#4) (REV)", test_database_operations_read_object1_2))
-    {
-        CU_cleanup_registry();
-        return CU_get_error();
-    }
-#endif
-
 #if defined(ENFORCER_DATABASE_MYSQL)
     pSuite = CU_add_suite("MySQL database operations", init_suite_database_operations_mysql, clean_suite_database_operations);
     if (!pSuite) {

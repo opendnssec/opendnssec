@@ -33,9 +33,6 @@
 #if defined(ENFORCER_DATABASE_SQLITE3)
 #include "db_backend_sqlite.h"
 #endif
-#if defined(ENFORCER_DATABASE_COUCHDB)
-#include "db_backend_couchdb.h"
-#endif
 #include "db_backend_mysql.h"
 #include "db_error.h"
 
@@ -676,19 +673,6 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
         if (!(backend = db_backend_new())
             || db_backend_set_name(backend, "sqlite")
             || db_backend_set_handle(backend, db_backend_sqlite_new_handle())
-            || db_backend_initialize(backend))
-        {
-            db_backend_free(backend);
-            return NULL;
-        }
-        return backend;
-    }
-#endif
-#if defined(ENFORCER_DATABASE_COUCHDB)
-    if (!strcmp(name, "couchdb")) {
-        if (!(backend = db_backend_new())
-            || db_backend_set_name(backend, "couchdb")
-            || db_backend_set_handle(backend, db_backend_couchdb_new_handle())
             || db_backend_initialize(backend))
         {
             db_backend_free(backend);

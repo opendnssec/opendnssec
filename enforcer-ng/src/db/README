@@ -60,11 +60,7 @@ Backend Support
 ===============
 
 SQLite     - supported and tested
-MySQL      - wip
-PostgreSQL - wip
-CouchDB    - experimental support
-LDAP       - wip
-MongoDB    - wip
+MySQL      - ???
 
 
 Object Descriptions
