@@ -62,9 +62,6 @@ void test_initialization_connection(void);
 #if defined(ENFORCER_DATABASE_SQLITE3)
 int init_suite_database_operations_sqlite(void);
 #endif
-#if defined(ENFORCER_DATABASE_COUCHDB)
-int init_suite_database_operations_couchdb(void);
-#endif
 int init_suite_database_operations_mysql(void);
 int clean_suite_database_operations(void);
 void test_database_operations_read_object1(void);

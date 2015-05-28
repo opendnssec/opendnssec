@@ -41,16 +41,6 @@ BACKEND_SCHEMA_CUSTOM += db/db_schema_sqlite.c db/db_schema_sqlite.h \
 	db/db_data_sqlite.c db/db_data_sqlite.h
 endif
 
-if USE_COUCHDB
-BACKEND_SOURCES_CUSTOM += db/db_backend_couchdb.c db/db_backend_couchdb.h
-BACKEND_SCHEMA_CUSTOM += db/db_schema_couchdb.c db/db_schema_couchdb.h \
-	db/db_data_couchdb.c db/db_data_couchdb.h
-# TODO: This needs depends in configure:
-BACKEND_LDFLAGS_CUSTOM += \
-	`pkg-config --libs libcurl` \
-	`pkg-config --libs jansson`
-endif
-
 if USE_MYSQL
 BACKEND_SOURCES_CUSTOM += db/db_backend_mysql.c db/db_backend_mysql.h
 BACKEND_SCHEMA_CUSTOM += db/db_schema_mysql.c db/db_schema_mysql.h \
