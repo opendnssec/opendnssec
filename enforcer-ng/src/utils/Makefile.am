@@ -18,15 +18,10 @@ AM_CPPFLAGS = \
 opendnssecdatadir = $(datadir)/opendnssec
 
 bin_PROGRAMS = ods-kaspcheck
-man1_MANS = ods-kaspcheck.1
+dist_man1_MANS = ods-kaspcheck.1
 
 ods_kaspcheck_SOURCES = kaspcheck.c kaspcheck.h \
 						kc_helper.c kc_helper.h
 
 ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
 ods_kaspcheck_LDADD += @XML2_LIBS@
-
-EXTRA_DIST = $(srcdir)/migrate_*.pl
-EXTRA_DIST += $(srcdir)/migrate_adapters_1.*
-EXTRA_DIST += $(srcdir)/convert_database.pl
-EXTRA_DIST += $(srcdir)/migrate_zone_delete.mysql

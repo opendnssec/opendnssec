@@ -78,10 +78,6 @@ void test_initialization_configuration(void) {
     configuration = NULL;
 #endif
 
-#if defined(ENFORCER_DATABASE_COUCHDB)
-    CU_ASSERT_FATAL(0);
-#endif
-
 #if defined(ENFORCER_DATABASE_MYSQL)
     CU_ASSERT_PTR_NOT_NULL_FATAL((configuration = db_configuration_new()));
     CU_ASSERT_FATAL(!db_configuration_set_name(configuration, "backend"));

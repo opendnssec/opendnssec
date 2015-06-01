@@ -119,7 +119,6 @@ static db_value_t id = DB_VALUE_EMPTY;
 static db_clause_list_t* clause_list = NULL;
 
 static int db_sqlite = 0;
-static int db_couchdb = 0;
 static int db_mysql = 0;
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
@@ -188,80 +187,6 @@ int test_', $name, '_init_suite_sqlite(void) {
     }
 
     db_sqlite = 1;
-    db_couchdb = 0;
-    db_mysql = 0;
-
-    return 0;
-}
-#endif
-
-#if defined(ENFORCER_DATABASE_COUCHDB)
-int test_', $name, '_init_suite_couchdb(void) {
-    if (configuration_list) {
-        return 1;
-    }
-    if (configuration) {
-        return 1;
-    }
-    if (connection) {
-        return 1;
-    }
-
-    /*
-     * Setup the configuration for the connection
-     */
-    if (!(configuration_list = db_configuration_list_new())) {
-        return 1;
-    }
-    if (!(configuration = db_configuration_new())
-        || db_configuration_set_name(configuration, "backend")
-        || db_configuration_set_value(configuration, "couchdb")
-        || db_configuration_list_add(configuration_list, configuration))
-    {
-        db_configuration_free(configuration);
-        configuration = NULL;
-        db_configuration_list_free(configuration_list);
-        configuration_list = NULL;
-        return 1;
-    }
-    configuration = NULL;
-    if (!(configuration = db_configuration_new())
-        || db_configuration_set_name(configuration, "url")
-        || db_configuration_set_value(configuration, "http://127.0.0.1:5984/opendnssec")
-        || db_configuration_list_add(configuration_list, configuration))
-    {
-        db_configuration_free(configuration);
-        configuration = NULL;
-        db_configuration_list_free(configuration_list);
-        configuration_list = NULL;
-        return 1;
-    }
-    configuration = NULL;
-
-    /*
-     * Connect to the database
-     */
-    if (!(connection = db_connection_new())
-        || db_connection_set_configuration_list(connection, configuration_list))
-    {
-        db_connection_free(connection);
-        connection = NULL;
-        db_configuration_list_free(configuration_list);
-        configuration_list = NULL;
-        return 1;
-    }
-    configuration_list = NULL;
-
-    if (db_connection_setup(connection)
-        || db_connection_connect(connection))
-    {
-        db_connection_free(connection);
-        connection = NULL;
-        return 1;
-    }
-
-    db_sqlite = 0;
-    db_couchdb = 1;
     db_mysql = 0;
 
     return 0;
@@ -382,7 +307,6 @@ int test_', $name, '_init_suite_mysql(void) {
     }
 
     db_sqlite = 0;
-    db_couchdb = 0;
     db_mysql = 1;
 
     return 0;
@@ -426,9 +350,6 @@ print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $fiel
         next;
     }
 print SOURCE '    if (db_sqlite) {
-        CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
-    }
-    if (db_couchdb) {
         CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
     }
     if (db_mysql) {
@@ -496,9 +417,6 @@ print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $fiel
         next;
     }
 print SOURCE '    if (db_sqlite) {
-        CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
-    }
-    if (db_couchdb) {
         CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
     }
     if (db_mysql) {
@@ -689,9 +607,6 @@ print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $fiel
 print SOURCE '    if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
     }
-    if (db_couchdb) {
-        CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
-    }
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&', $field->{name}, ', 1));
     }
@@ -782,9 +697,6 @@ print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $fiel
 print SOURCE '    if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
     }
-    if (db_couchdb) {
-        CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
-    }
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&', $field->{name}, ', 1));
     }
@@ -852,9 +764,6 @@ print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $fiel
         next;
     }
 print SOURCE '    if (db_sqlite) {
-        CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
-    }
-    if (db_couchdb) {
         CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
     }
     if (db_mysql) {
@@ -935,9 +844,6 @@ print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $fiel
         next;
     }
 print SOURCE '    if (db_sqlite) {
-        CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
-    }
-    if (db_couchdb) {
         CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
     }
     if (db_mysql) {
@@ -1035,9 +941,6 @@ print SOURCE '    CU_ASSERT(!db_value_from_text(&', $field->{name}, ', "', $fiel
         next;
     }
 print SOURCE '    if (db_sqlite) {
-        CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
-    }
-    if (db_couchdb) {
         CU_ASSERT(!db_value_from_int32(&', $field->{name}, ', 1));
     }
     if (db_mysql) {
@@ -1158,16 +1061,6 @@ int test_', $name, '_add_suite(void) {
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
     pSuite = CU_add_suite("Test of ', $tname, ' (SQLite)", test_', $name, '_init_suite_sqlite, test_', $name, '_clean_suite);
-    if (!pSuite) {
-        return CU_get_error();
-    }
-    ret = test_', $name, '_add_tests(pSuite);
-    if (ret) {
-        return ret;
-    }
-#endif
-#if defined(ENFORCER_DATABASE_COUCHDB)
-    pSuite = CU_add_suite("Test of ', $tname, ' (CouchDB)", test_', $name, '_init_suite_couchdb, test_', $name, '_clean_suite);
     if (!pSuite) {
         return CU_get_error();
     }

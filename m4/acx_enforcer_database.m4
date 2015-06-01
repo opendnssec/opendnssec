@@ -53,7 +53,6 @@ AC_DEFUN([ACX_ENFORCER_DATABASE],[
 
 		AC_DEFINE_UNQUOTED(ENFORCER_DATABASE_SQLITE3, 1, [Using SQLite3 for database backend])
 		AM_CONDITIONAL(USE_SQLITE, true)
-		AM_CONDITIONAL(USE_COUCHDB, false)
 		AM_CONDITIONAL(USE_MYSQL, false)
 
 	elif test "x${database_backend}" = "xmysql"; then
@@ -70,7 +69,6 @@ AC_DEFUN([ACX_ENFORCER_DATABASE],[
 
 		AC_DEFINE_UNQUOTED(ENFORCER_DATABASE_MYSQL, 1, [Using MySQL for database backend])
 		AM_CONDITIONAL(USE_SQLITE, false)
-		AM_CONDITIONAL(USE_COUCHDB, false)
 		AM_CONDITIONAL(USE_MYSQL, true)
 
 	else

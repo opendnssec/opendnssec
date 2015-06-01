@@ -41,16 +41,6 @@ BACKEND_SCHEMA_CUSTOM += db/db_schema_sqlite.c db/db_schema_sqlite.h \
 	db/db_data_sqlite.c db/db_data_sqlite.h
 endif
 
-if USE_COUCHDB
-BACKEND_SOURCES_CUSTOM += db/db_backend_couchdb.c db/db_backend_couchdb.h
-BACKEND_SCHEMA_CUSTOM += db/db_schema_couchdb.c db/db_schema_couchdb.h \
-	db/db_data_couchdb.c db/db_data_couchdb.h
-# TODO: This needs depends in configure:
-BACKEND_LDFLAGS_CUSTOM += \
-	`pkg-config --libs libcurl` \
-	`pkg-config --libs jansson`
-endif
-
 if USE_MYSQL
 BACKEND_SOURCES_CUSTOM += db/db_backend_mysql.c db/db_backend_mysql.h
 BACKEND_SCHEMA_CUSTOM += db/db_schema_mysql.c db/db_schema_mysql.h \
@@ -113,10 +103,10 @@ ods_enforcerd_SOURCES = \
 	keystate/zonelist_export.c keystate/zonelist_export.h \
 	keystate/zonelist_export_cmd.c keystate/zonelist_export_cmd.h \
 	keystate/zonelist_update.c keystate/zonelist_update.h \
+	keystate/keystate_ds_submit_task.h \
 	signconf/signconf_cmd.c signconf/signconf_cmd.h \
 	signconf/signconf_task.c signconf/signconf_task.h \
 	signconf/signconf.c signconf/signconf.h \
-	enforcer/enforcerdata.h \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.c enforcer/enforce_cmd.h \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
@@ -135,14 +125,15 @@ ods_enforcerd_SOURCES = \
 	db/db_value.c db/db_value.h \
 	db/db_join.c db/db_join.h \
 	db/db_error.h \
-	db/zone.c db/zone_ext.c db/zone_ext.h db/zone.h db/zone_struct_ext.h \
-	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h db/key_data_struct_ext.h \
-	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h db/key_state_struct_ext.h \
-	db/key_dependency.c db/key_dependency_ext.c db/key_dependency_ext.h db/key_dependency.h db/key_dependency_struct_ext.h \
-	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h db/policy_struct_ext.h \
-	db/policy_key.c db/policy_key_ext.c db/policy_key_ext.h db/policy_key.h db/policy_key_struct_ext.h \
-	db/hsm_key.c db/hsm_key_ext.c db/hsm_key_ext.h db/hsm_key.h db/hsm_key_struct_ext.h \
+	db/zone.c db/zone_ext.c db/zone_ext.h db/zone.h \
+	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h \
+	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h \
+	db/key_dependency.c db/key_dependency_ext.c db/key_dependency_ext.h db/key_dependency.h \
+	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h \
+	db/policy_key.c db/policy_key_ext.c db/policy_key_ext.h db/policy_key.h \
+	db/hsm_key.c db/hsm_key_ext.c db/hsm_key_ext.h db/hsm_key.h \
 	db/database_version.c db/database_version.h db/database_version_ext.c db/database_version_ext.h \
+	db/db_enum.h \
 	$(BACKEND_SOURCES_CUSTOM)
 
 ods_enforcerd_LDADD = \

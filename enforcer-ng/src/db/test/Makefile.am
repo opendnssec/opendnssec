@@ -31,13 +31,6 @@ if USE_SQLITE
 BACKEND_LDADD_CUSTOM += ../../db_backend_sqlite.o
 endif
 
-if USE_COUCHDB
-BACKEND_LDADD_CUSTOM += ../../db_backend_couchdb.o
-BACKEND_LDFLAGS_CUSTOM += \
-	`pkg-config --libs libcurl` \
-	`pkg-config --libs jansson`
-endif
-
 if USE_MYSQL
 BACKEND_LDADD_CUSTOM += ../../db_backend_mysql.o
 endif
@@ -79,12 +72,6 @@ if USE_SQLITE
 	rm -f test.db
 	sqlite3 test.db < $(srcdir)/test.sqlite
 	sqlite3 test.db < $(srcdir)/../schema.sqlite
-endif
-if USE_COUCHDB
-	curl -X DELETE http://127.0.0.1:5984/opendnssec
-	curl -X PUT http://127.0.0.1:5984/opendnssec
-	curl -X PUT http://127.0.0.1:5984/opendnssec/_design/application -d @$(srcdir)/test.couchdb
-	curl -X PUT http://127.0.0.1:5984/opendnssec/1 -d '{"type":"test","test_name":"test"}'
 endif
 if USE_MYSQL
 	mysql -u "@ENFORCER_DB_USERNAME@" "-p@ENFORCER_DB_PASSWORD@" "@ENFORCER_DB_DATABASE@" < $(srcdir)/test.mysql
