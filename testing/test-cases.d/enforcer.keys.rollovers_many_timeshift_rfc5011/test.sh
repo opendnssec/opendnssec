@@ -71,7 +71,7 @@ ods_start_enforcer_timeshift &&
 
 # Check that new KSK change to active, old KSK change to retire
 log_this ods-ksmutil-key-list3 ods-ksmutil key list &&
-log_grep ods-ksmutil-key-list3 stdout 'ods1                            KSK           retire    2011-04-01 12:08:50' &&
+log_grep ods-ksmutil-key-list3 stdout 'ods1                            KSK           revoke    2011-04-01 12:08:50' &&
 log_grep ods-ksmutil-key-list3 stdout 'ods1                            KSK           active    2012-03-01 12:03:40' &&
 
 ## Next event is old KSK change to dead)
