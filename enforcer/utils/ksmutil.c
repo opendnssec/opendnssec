@@ -3069,6 +3069,14 @@ cmd_kskrevoke()
         status = DbExecuteSqlNoResult(DbHandle(), sql2);
         DusFree(sql2);
 
+        if (!status) {
+            sql2 = DusInit("keypairs");
+            DusSetInt(&sql2, "fixedDate", 1, 0);
+            DusConditionInt(&sql2, "id", DQS_COMPARE_EQ, temp_keypair_id, 0);
+            status = DbExecuteSqlNoResult(DbHandle(), sql2);
+            DusFree(sql2);
+        }
+
         /* Report any errors */
         if (status != 0) {
             status = MsgLog(KME_SQLFAIL, DbErrmsg(DbHandle()));
@@ -8674,6 +8682,14 @@ int RevokeOldKey(int zone_id, int policy_id, const char *datetime)
 
     status = DbExecuteSqlNoResult(DbHandle(), sql2);
     DusFree(sql2);
+
+    if (!status) {
+        sql2 = DusInit("keypairs");
+        DusSetInt(&sql2, "fixedDate", 1, 0);
+        DusConditionInt(&sql2, "id", DQS_COMPARE_EQ, id, 0);
+        status = DbExecuteSqlNoResult(DbHandle(), sql2);
+        DusFree(sql2);
+    }
 
     /* Report any errors */
     if (status != 0) {
