@@ -423,7 +423,7 @@ void KsmUpdateRetireKeyTime(KSM_KEYDATA* data, KSM_PARCOLL* collection, int zone
     else {
         return;
     }
-    if (!data->fixedDate) {
+    if (!data->fixedDate || data->dead == NULL) {
         (void) KsmUpdateKeyTime(data, "RETIRE", "DEAD", deltat, zone_id);
     }
     return;
