@@ -3099,6 +3099,11 @@ cmd_kskrevoke()
 
     DbDisconnect(dbhandle);
 
+    if (restart_enforcerd() != 0) {
+        fprintf(stderr, "Could not HUP ods-enforcerd\n");
+    } else {
+        fprintf(stdout, "Performed a HUP ods-enforcerd\n");
+    }
     return status;
 }
 
