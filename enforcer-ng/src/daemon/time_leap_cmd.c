@@ -104,7 +104,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	(void)ods_find_arg_and_param(&argc, argv, "time", "t", &time);
 	if (time) {
 		if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
-			time_leap = mktime_from_utc(&tm);
+			tm.tm_isdst = -1;
+			time_leap = mktime(&tm);
 			client_printf(sockfd,
 				"Using %s parameter value as time to leap to\n", time);
 		} else {
@@ -131,8 +132,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		strtime?strtime:"(null)\n");
 	cont = 1;
 	while (cont) {
-		time_leap = schedule_time_first(engine->taskq);
-		if (time_leap < 0) break;
+		if (! time)
+			time_leap = schedule_time_first(engine->taskq);
+		if (time_leap < 0 || time_leap < now) break;
 
 		set_time_now(time_leap);
 		strtime = ctime_r(&time_leap,ctimebuf);
