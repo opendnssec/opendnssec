@@ -1127,6 +1127,7 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
 
     left = sizeof(sql);
     sqlp = sql;
+    memset(sql, 0, left);
 
     if ((ret = snprintf(sqlp, left, "SELECT")) >= left) {
         return NULL;
