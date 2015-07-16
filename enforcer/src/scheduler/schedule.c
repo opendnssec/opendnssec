@@ -366,20 +366,21 @@ schedule_purge(schedule_type* schedule)
     if (!schedule || !schedule->tasks) return;
 
     pthread_mutex_lock(&schedule->schedule_lock);
+        /* don't attempt to free payload, still referenced by other tree*/
         while ((node = ldns_rbtree_first(schedule->tasks)) !=
             LDNS_RBTREE_NULL)
         {
             node = ldns_rbtree_delete(schedule->tasks, node->data);
             if (node == LDNS_RBTREE_NULL) break; 
-            task_cleanup((task_type*) node->data);
             free(node);
         }
-        /* also clean up name tree, don't attempt to free payload */
+        /* also clean up name tree */
         while ((node = ldns_rbtree_first(schedule->tasks_by_name)) !=
             LDNS_RBTREE_NULL)
         {
             node = ldns_rbtree_delete(schedule->tasks_by_name, node->data);
-            if (node == LDNS_RBTREE_NULL) break; 
+            if (node == LDNS_RBTREE_NULL) break;
+            task_cleanup((task_type*) node->data);
             free(node);
         }
     pthread_mutex_unlock(&schedule->schedule_lock);
