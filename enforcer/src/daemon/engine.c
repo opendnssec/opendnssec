@@ -567,8 +567,10 @@ engine_teardown(engine_type* engine)
         free(engine->workers);
         engine->workers = NULL;
     }
-    cmdhandler_cleanup(engine->cmdhandler);
-    engine->cmdhandler = NULL;
+    if (engine->cmdhandler) {
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
+    }
     desetup_database(engine);
 }
 
