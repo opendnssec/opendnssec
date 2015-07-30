@@ -275,7 +275,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		enf_schedule_task(sockfd, engine, retract, "ds-retract");
 	}
 	
-
+	ods_log_info("[%s] Completed updating all zones that need required action", module_str);
 	return t_reschedule;
 }
 
