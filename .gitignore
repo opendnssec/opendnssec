@@ -83,3 +83,5 @@ libtool
 **/_test.*
 **/_syslog.*
 **/*~
+/build/
+testing/junit.xml
