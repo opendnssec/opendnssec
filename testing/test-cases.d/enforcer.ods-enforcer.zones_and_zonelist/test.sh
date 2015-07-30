@@ -52,7 +52,7 @@ ods_start_enforcer &&
 
 # Now a real but empty zone list
 log_this ods-enforcer-zone_none   ods-enforcer zone list &&
-log_grep ods-enforcer-zone_none   stdout "No zones configured in DB." &&
+log_grep ods-enforcer-zone_none   stdout "No zones in database." &&
 
 
 ##################  TEST:  Zone add success ###########################
