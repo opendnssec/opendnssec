@@ -63,9 +63,10 @@ $GREP -q -- "^test1.test.example.com..*600.*IN.*NS.*ns2.example.com." "$INSTALL_
 
 #OPENDSNSEC-290 - Update the zone by changing a CNAME record to an A record.
 ods_setup_zone test/all.rr.org &&
+num_signedzones=`syslog_grep_count2 'ods-signerd: .*\[STATS\] all.rr.org'` &&
+echo "BERRY COUNT $num_signedzones" &&
 log_this_timeout ods-update-zone 20 ods-signer sign all.rr.org &&
-
-syslog_waitfor_count 60 3 'ods-signerd: .*\[STATS\] all.rr.org' &&
+syslog_waitfor_count 60 `expr $num_signedzones + 1` 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
 #OPENDNSSEC-247 - Update the SOA minimum in the policy and make sure the NSEC TTL changes.
@@ -79,7 +80,7 @@ log_this_timeout ods-update-policy 10 ods-enforcer update kasp &&
 syslog_waitfor 60 'ods-enforcerd: .*\[enforcer\] updateZone: processing all.rr.org with policyName default' &&
 syslog_waitfor 60 'ods-signerd: \[cmdhandler\] zone all.rr.org scheduled for immediate re-sign' &&
 $GREP -q -- "<Minimum>PT10M</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
-syslog_waitfor_count 60 4 'ods-signerd: .*\[STATS\] all.rr.org' &&
+syslog_waitfor_count 60 `expr $num_signedzones + 2` 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 $GREP -q -- "600.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
