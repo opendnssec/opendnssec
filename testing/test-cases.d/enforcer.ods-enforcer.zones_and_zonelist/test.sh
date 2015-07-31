@@ -7,6 +7,9 @@
 
 #TODO: Test that the system starts up with no zonefile and that a message reports this properly
 
+PATH="`dirname $0`":$PATH
+export PATH
+
 ZONES_FILE=$INSTALL_ROOT/var/opendnssec/enforcer/zones.xml
 ZONELIST_FILE=$INSTALL_ROOT/etc/opendnssec/zonelist.xml
 
@@ -310,6 +313,7 @@ ods_stop_signer &&
 # Now import an empty zonelist
 cp zonelist.xml "$ZONELIST_FILE" &&
 log_this ods-enforcer-zonelist-import-empty ods-enforcer zonelist import --remove-missing-zones && 
+sleep 240 &&
 log_this ods-enforcer-zonelist-import-empty   ods-enforcer zone list &&
 log_grep ods-enforcer-zonelist-import-empty   stdout "No zones in database." &&
 
