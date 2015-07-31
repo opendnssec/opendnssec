@@ -101,11 +101,13 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	int bRetractFromParent = 0;
 	int zone_updated;
 
-	if (!(zonelist = zone_list_new(dbconn)) || zone_list_get(zonelist))
-	{
-		zone_list_free(zonelist);
-		zonelist = NULL;
-	}
+		if (!(zonelist = zone_list_new(dbconn))
+			/*|| zone_list_associated_fetch(zonelist)*/
+			|| zone_list_get(zonelist))
+		{
+			zone_list_free(zonelist);
+			zonelist = NULL;
+		}
 	if (!zonelist) {
 		/* TODO: log error */
 		ods_log_error("[%s] zonelist NULL", module_str);
