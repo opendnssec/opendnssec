@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoneList>
+  <!--
+
+********* Important changes to zonelist.xml in 2.0 ***************
+
+In 2.0, the zonelist.xml file is no longer automatically updated when zones
+are added or deleted  via the command line by using the 'ods-enforcer zone add'
+command. However, in 2.0 it is possible to force an update of the zonelist.xml
+file by using the new 'xml' flag. This is in contrast to the behaviour in 1.4
+where zonelist.xml was always updated, unless the 'no-xml' flag was used. 
+
+As a result in 2.0 the contents of the enforcer database should be considered
+the 'master' for the list of currently configured zones, not the zonelist.xml
+file as the file can easily become out of sync with the database.
+
+The contents of the database can be listed using:
+  ods-enforcer zone list
+and exported using the command
+  ods-enforcer zonelist export
+The contents of the database can still be updated in bulk from the zonelist.xml
+file by using the command:
+  ods-enforcer zonelist import    (or ods-enforcer update zonelist)
+
+-->
+</ZoneList>
