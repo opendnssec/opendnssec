@@ -418,20 +418,21 @@ find_tail ()
 		opensuse | \
 		suse | \
 		sunos )
-			tail_follow="stdbuf -oL $tail --follow=name -n 0"
+			tail_follow="$tail --follow=name -n 0"
 			;;
 		freebsd | \
 		netbsd )
-			tail_follow="stdbuf -oL $tail -f -F -n 0"
+			tail_follow="$tail -f -F -n 0"
 			;;
 		openbsd )
-			tail_follow="stdbuf -oL $tail -f -n 0"
+			tail_follow="$tail -f -n 0"
 			;;
 	esac
 
 	if [ -z "$tail_follow" ]; then
 		return 1
 	fi
+	tail_follow="stdbuf -oL $tail_follow"
 
 	export TAIL="$tail"
 	export TAIL_FOLLOW="$tail_follow"
@@ -1757,7 +1758,7 @@ syslog_trace ()
 		exit 1
 	fi
 
-	$TAIL_FOLLOW "$syslog_file" >"_syslog.$BUILD_TAG" 2>/dev/null &
+	$TAIL_FOLLOW "$syslog_file" >"_syslog.$BUILD_TAG" &
 	_SYSLOG_TRACE_PID="$!"
 
 	if [ -z "$_SYSLOG_TRACE_PID" -o ! "$_SYSLOG_TRACE_PID" -gt 0 ] 2>/dev/null; then
