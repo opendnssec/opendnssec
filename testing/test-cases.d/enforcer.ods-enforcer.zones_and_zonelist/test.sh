@@ -53,7 +53,7 @@ syslog_grep '\[zone_add_cmd\] internal zonelist updated successfully' &&
 
 #1. Test existing policy
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods1 --policy Policy1 &&
-log_grep ods-enforcer-zone_add   stdout "Zone ods1 added successfully" &&
+log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods1 added successfully" &&
 
 # Test default input type and file
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods2 --policy Policy1 --input $INSTALL_ROOT/var/opendnssec/unsigned/ods2 &&
