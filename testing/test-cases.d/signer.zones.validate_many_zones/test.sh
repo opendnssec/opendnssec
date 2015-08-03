@@ -27,17 +27,17 @@ ods_start_enforcer &&
 
 ods_start_signer && 
 
-syslog_waitfor 180 'ods-signerd: .*\[STATS\] example.com' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] example.com' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 
-syslog_waitfor 180 'ods-signerd: .*\[STATS\] all.rr.org' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
-syslog_waitfor 180 'ods-signerd: .*\[STATS\] all.rr.binary.org' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] all.rr.binary.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.binary.org" &&
 
 # OPENDNSSEC-231: Make sure we can support reverse classless zones
-syslog_waitfor 180 'ods-signerd: .*\[STATS\] 64/1.0.168.192.IN-ADDR.ARPA' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] 64/1.0.168.192.IN-ADDR.ARPA' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/64-1.0.168.192.in-addr.arpa" &&
 
 # Validate the output on redhat
@@ -80,7 +80,7 @@ log_this_timeout ods-update-policy 10 ods-enforcer update kasp &&
 syslog_waitfor 60 'ods-enforcerd: .*\[enforcer\] updateZone: processing all.rr.org with policyName default' &&
 syslog_waitfor 60 'ods-signerd: \[cmdhandler\] zone all.rr.org scheduled for immediate re-sign' &&
 $GREP -q -- "<Minimum>PT10M</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
-syslog_waitfor_count 180 `expr $num_signedzones + 2` 'ods-signerd: .*\[STATS\] all.rr.org' &&
+syslog_waitfor_count 300 `expr $num_signedzones + 2` 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 $GREP -q -- "600.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
