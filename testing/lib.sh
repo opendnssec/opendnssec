@@ -418,14 +418,14 @@ find_tail ()
 		opensuse | \
 		suse | \
 		sunos )
-			tail_follow="$tail --follow=name -n 0"
+			tail_follow="stdbuf -oL $tail --follow=name -n 0"
 			;;
 		freebsd | \
 		netbsd )
-			tail_follow="$tail -f -F -n 0"
+			tail_follow="stdbuf -oL $tail -f -F -n 0"
 			;;
 		openbsd )
-			tail_follow="$tail -f -n 0"
+			tail_follow="stdbuf -oL $tail -f -n 0"
 			;;
 	esac
 
