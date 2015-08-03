@@ -29,15 +29,15 @@ ods-signer verbosity 5 &&
 ldns-notify -p 15354 -s 1001 -r 2 -z ods 127.0.0.1 &&
 
 ## Request IXFR/UDP
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods sending udp query id=.* qtype=IXFR to 127\.0\.0\.1' &&
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] bad packet: zone ods received error code NOTIMPL from 127\.0\.0\.1' &&
+syslog_waitfor 60 'ods-signerd: .*\[xfrd\] zone ods sending udp query id=.* qtype=IXFR to 127\.0\.0\.1' &&
+syslog_waitfor 60 'ods-signerd: .*\[xfrd\] bad packet: zone ods received error code NOTIMPL from 127\.0\.0\.1' &&
 
 ## Request AXFR/TCP
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request axfr to 127\.0\.0\.1' &&
+syslog_waitfor 60 'ods-signerd: .*\[xfrd\] zone ods request axfr to 127\.0\.0\.1' &&
 
 ## Do a ods-signer sign ("key rollover"), and don't fail reading because of missing xfr.
 ods-signer sign ods &&
-syslog_waitfor 10 'ods-signerd: .*\[worker\[.*\]\] zone ods unsigned data not changed, continue' &&
+syslog_waitfor 60 'ods-signerd: .*\[worker\[.*\]\] zone ods unsigned data not changed, continue' &&
 
 ## Stop
 ods_stop_ods-control && 
