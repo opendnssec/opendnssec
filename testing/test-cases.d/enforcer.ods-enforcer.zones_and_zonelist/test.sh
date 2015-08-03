@@ -211,7 +211,7 @@ log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not f
 # Delete all remaining zones 
 echo "y " | log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all  &&
 # Need a long sleep to make sure all are gone
-sleep 240 &&
+sleep 480 &&
 
 log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones in database." &&
@@ -292,20 +292,20 @@ echo "zones.xml contents OK" &&
 ods_start_signer 10 &&
 log_this ods-enforcer-signconf ods-enforcer signconf && 
 # cp $INSTALL_root/var/opendnssec/signconf
-syslog_waitfor 60 'signconf done, notifying signer' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods1' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods2' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods3' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods4' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods5' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods6' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods7' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods8' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods9' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods10' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods12' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods13' &&
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods14' &&
+syslog_waitfor 300 'signconf done, notifying signer' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods1' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods2' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods3' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods4' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods5' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods6' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods7' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods8' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods9' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods10' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods12' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods13' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods14' &&
 ! syslog_grep 'ods-signerd: .*\[STATS\] ods0' &&
 ! syslog_grep 'ods-signerd: .*\[STATS\] ods11' &&
 
