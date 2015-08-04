@@ -390,6 +390,7 @@ find_tail ()
 	local tail_follow
 	local program
 	local programs="tail"
+	local stdbuf
 
 	case "$DISTRIBUTION" in
 		sunos )
@@ -432,7 +433,16 @@ find_tail ()
 	if [ -z "$tail_follow" ]; then
 		return 1
 	fi
-	tail_follow="stdbuf -oL $tail_follow"
+
+	stdbuf=`which stdbuf 2>/dev/null`
+	if [ -n "$stdbuf" ]; then
+		tail_follow="$stdbuf -oL $tail_follow"
+	else
+		stdbuf=`which unbuffer 2>/dev/null`
+		if [ -n "$stdbuf" ]; then
+			tail_follow="$stdbuf $tail_follow"
+		fi
+	fi
 
 	export TAIL="$tail"
 	export TAIL_FOLLOW="$tail_follow"
