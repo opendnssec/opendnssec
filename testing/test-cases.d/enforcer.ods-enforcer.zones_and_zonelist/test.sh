@@ -208,10 +208,12 @@ $GREP -q -- "ods14" "$ZONES_FILE" &&
 ! log_this ods-enforcer-zone_del_2  ods-enforcer zone delete -z ods1  &&
 log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not found" && 
 
+sleep 30 &&
+
 # Delete all remaining zones 
 echo "y " | log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all  &&
-# Need a long sleep to make sure all are gone
-sleep 480 &&
+# Need a sleep to make sure all are gone
+sleep 60 &&
 
 log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones in database." &&

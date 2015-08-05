@@ -43,7 +43,7 @@ ldns-notify -p 15354 -s 1001 -r 2 -z ods 127.0.0.1 &&
 
 ## Request IXFR/UDP
 syslog_waitfor 60 'ods-signerd: .*\[xfrd\] zone ods sending udp query id=.* qtype=IXFR to 127\.0\.0\.1' &&
-sleep 60 &&
+# sleep 60 &&
 # The next stuff won't work, perhaps because ldns-testns does not always send
 # the same type of packet.  This does not seem resolvable.
 # syslog_grep 'ods-signerd: .*\[xfrd\] zone ods received too short udp reply from 127\.0\.0\.1, retry tcp'
