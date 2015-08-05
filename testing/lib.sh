@@ -1782,7 +1782,7 @@ syslog_trace ()
 		exit 1
 	fi
 
-	echo "syslog_trace: trace started (pid $_SYSLOG_TRACE_PID)"
+	echo "syslog_trace: trace started (pid $_SYSLOG_TRACE_PID) using $TAIL_FOLLOW $syslog_file"
 }
 
 syslog_stop ()
