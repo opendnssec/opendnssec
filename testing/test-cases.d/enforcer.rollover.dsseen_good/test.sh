@@ -34,7 +34,7 @@ sleep 1 &&
 
 
 # We should be ready for a ds-seen on ods
-syslog_grep "ods-enforcerd: .*\[enforce_task\] please submit DS with keytag $KSK_KEY_TAG for zone ods" &&
+syslog_waitfor 60 "ods-enforcerd: .*\[enforce_task\] please submit DS with keytag $KSK_KEY_TAG for zone ods" &&
 
 # Key list should show KSK in ready state
 log_this ods-enforcer-key-list1_1 ods-enforcer key list &&
