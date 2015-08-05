@@ -12,7 +12,7 @@ ods_reset_env &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 ods_start_enforcer &&
-sleep 1 &&
+sleep 60 &&
 log_this ods-enforcer-time-leap ods-enforcer time leap &&
 sleep 1 &&
 
