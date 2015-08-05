@@ -328,7 +328,7 @@ ods_setup_env ()
 	ods_start_enforcer &&
 	log_this ods-enforcer-setup ods-enforcer policy import &&
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
-	log_this ods-enforcer-setup ods-enforcer signconf &&
+	! log_this ods-enforcer-stup ods-enforcer signconf &&
 	sleep 10 &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
