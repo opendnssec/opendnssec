@@ -26,7 +26,7 @@ test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 ods-signer verbosity 5 &&
 
 ## Fake notify
-ldns-notify -p 15354 -s 1001 -r 2 -z ods 127.0.0.1 &&
+log_this ldns-notify ldns-notify -p 15354 -s 1001 -r 2 -z ods 127.0.0.1 &&
 
 ## Request IXFR/UDP
 syslog_waitfor 300 'ods-signerd: .*\[xfrd\] zone ods sending udp query id=.* qtype=IXFR to 127\.0\.0\.1' &&
