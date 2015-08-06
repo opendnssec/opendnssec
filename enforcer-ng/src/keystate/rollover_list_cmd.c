@@ -151,7 +151,7 @@ perform_rollover_list(int sockfd, const char *listed_zone,
 		for (zone_walk = zone_list_next(zonelist); zone_walk;
 			zone_walk = zone_list_next(zonelist))
 		{
-			print_zone(sockfd, fmt, zone);
+			print_zone(sockfd, fmt, zone_walk);
 		}
 		zone_list_free(zonelist);
 	}
