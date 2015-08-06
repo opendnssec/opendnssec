@@ -219,8 +219,7 @@ log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones in database." &&
 
 echo "Checking no zones in internal zonelist" && 
-# FIXME
-# diff.sh $ZONES_FILE zonelist.xml &&
+diff.sh $ZONES_FILE zonelist.xml &&
 echo "Internal Zone file contents empty" &&
 
 ##################  TEST:  Zonelist.xml  import ###########################
