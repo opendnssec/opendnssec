@@ -164,6 +164,9 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
         free((void*)datestamp);
         *new_signconf = signconf;
     } else if (status == ODS_STATUS_UNCHANGED) {
+        /* OPENDNSSEC-686: changes happening within one second will not be
+         * seen
+         */
         (void)time_datestamp(zone->signconf->last_modified,
             "%Y-%m-%d %T", &datestamp);
         ods_log_verbose("[%s] zone %s signconf file %s is unchanged since "
