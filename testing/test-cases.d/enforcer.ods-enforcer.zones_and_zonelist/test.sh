@@ -49,7 +49,7 @@ log_grep ods-enforcer-zone_none   stdout "No zones in database." &&
 ##################  TEST:  Zone add success ###########################
 #0. Test all default
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods0 &&
-syslog_grep '\[zone_add_cmd\] internal zonelist updated successfully' &&
+syslog_waitfor 60 '\[zone_add_cmd\] internal zonelist updated successfully' &&
 
 #1. Test existing policy
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods1 --policy Policy1 &&
