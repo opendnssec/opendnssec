@@ -282,7 +282,8 @@ notify_handle_reply(notify_type* notify)
     ods_log_assert(xfrhandler);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
-    if ((buffer_pkt_opcode(xfrhandler->packet) != LDNS_PACKET_NOTIFY) ||
+    if (xfrhandler->packet->limit < 3 ||
+        (buffer_pkt_opcode(xfrhandler->packet) != LDNS_PACKET_NOTIFY) ||
         (buffer_pkt_qr(xfrhandler->packet) == 0)) {
         ods_log_error("[%s] zone %s received bad notify reply opcode/qr from %s",
             notify_str, zone->name, notify->secondary->address);
