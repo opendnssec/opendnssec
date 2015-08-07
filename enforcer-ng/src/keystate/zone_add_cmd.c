@@ -239,15 +239,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     client_printf(sockfd, "Zone %s added successfully\n", zone_name);
     free(buf);
 
-    /*
-     * On successful generate HSM keys and add/flush enforce task.
-     */
-    hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
-    ods_log_debug("[%s] Flushing enforce task", module_str);
-    flush_enforce_task(engine, 0);
-
-    policy_free(policy);
-
     if (write_xml) {
         if (zonelist_update_add(sockfd, engine->config->zonelist_filename, zone, 1) != ZONELIST_UPDATE_OK) {
             ods_log_error("[%s] zonelist %s updated failed", module_str, engine->config->zonelist_filename);
@@ -271,7 +262,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         ods_log_info("[%s] internal zonelist updated successfully", module_str);
     }
 
+    /*
+     * On successful generate HSM keys and add/flush enforce task.
+     */
+    hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
+    ods_log_debug("[%s] Flushing enforce task", module_str);
+    flush_enforce_task(engine, 0);
+
+    policy_free(policy);
+
     zone_free(zone);
+
     return ret;
 }
 

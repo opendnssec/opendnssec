@@ -43,10 +43,6 @@ log_grep ods-enforcer-zone_add_list   stdout "ods0[[:space:]]*default" &&
 syslog_waitfor 5 "update zone: ods0" &&
 syslog_waitfor 600 'ods-signerd: .*\[STATS\] ods0' &&
 
-# OPENDNSSEC-686 give signer time to consume update and file to become
-# "old" enough
-sleep 10 &&
-
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods1 &&
 #log_grep ods-enforcer-zone_add   stdout "Imported zone:.*ods1 into database only. Use the --xml flag or run \"ods-enforcer zonelist export\" if an update of zonelist.xml is required." &&
 log_grep ods-enforcer-zone_add stdout "Zone ods1 added successfully" &&
