@@ -76,9 +76,9 @@ cp kasp.xml kasp.xml_orig &&
 cp test/kasp.xml kasp.xml &&
 log_this ods-update-policy ods_setup_conf kasp.xml &&
 log_this_timeout ods-update-policy 10 ods-enforcer update kasp &&
-#syslog_waitfor 60 'ods-enforcerd: .*Called signer engine:.*ods-signer update all.rr.org' &&
-syslog_waitfor 60 'ods-enforcerd: .*\[enforcer\] updateZone: processing all.rr.org with policyName default' &&
-syslog_waitfor 60 'ods-signerd: \[cmdhandler\] zone all.rr.org scheduled for immediate re-sign' &&
+#syslog_waitfor 300 'ods-enforcerd: .*Called signer engine:.*ods-signer update all.rr.org' &&
+syslog_waitfor 300 'ods-enforcerd: .*\[enforcer\] updateZone: processing all.rr.org with policyName default' &&
+syslog_waitfor 300 'ods-signerd: \[cmdhandler\] zone all.rr.org scheduled for immediate re-sign' &&
 $GREP -q -- "<Minimum>PT10M</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
 syslog_waitfor_count 300 `expr $num_signedzones + 2` 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
