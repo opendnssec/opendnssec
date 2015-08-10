@@ -52,35 +52,65 @@ log_grep ods-enforcer-zone_none   stdout "No zones in database." &&
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods0 &&
 syslog_waitfor 60 '\[zone_add_cmd\] internal zonelist updated successfully' &&
 
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
+
 #1. Test existing policy
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods1 --policy Policy1 &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods1 added successfully" &&
+
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
 
 # Test default input type and file
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods2 --policy Policy1 --input $INSTALL_ROOT/var/opendnssec/unsigned/ods2 &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods2 added successfully" &&
 
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
+
 #2. Test more parameters
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods3 --in-type File --out-type File &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods3 added successfully" &&
 
+
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods4 --in-type File --out-type File --input $INSTALL_ROOT/var/opendnssec/unsigned/ods4 --output $INSTALL_ROOT/var/opendnssec/signed/ods4 &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods4 added successfully" &&
+
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods5 --in-type File --out-type DNS &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods5 added successfully" &&
 
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
+
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods6 --in-type File --out-type DNS --input $INSTALL_ROOT/var/opendnssec/unsigned/ods6 --output $INSTALL_ROOT/etc/opendnssec/addns.xml &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods6 added successfully" &&
+
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods7 --in-type DNS --out-type DNS &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods7 added successfully" &&
 
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
+
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods8 --in-type DNS --out-type DNS --input $INSTALL_ROOT/etc/opendnssec/addns.xml --output $INSTALL_ROOT/etc/opendnssec/addns.xml &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods8 added successfully" &&
 
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
+
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods9 --in-type DNS --out-type File &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods9 added successfully" &&
+
+#Mysql is slower, which causes out-of-ordering adding of the zones
+sleep 10 &&
 
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods10 --in-type DNS --out-type File --input $INSTALL_ROOT/etc/opendnssec/addns.xml --output $INSTALL_ROOT/var/opendnssec/signed/ods10 &&
 log_waitfor ods-enforcer-zone_add   stdout 900 "Zone ods10 added successfully" &&
@@ -193,6 +223,9 @@ log_this ods-enforcer-zone_del_2  ods-enforcer zone delete --zone ods2 --xml &&
 log_grep ods-enforcer-zone_del_2   stdout "Deleted zone ods2 successfully" &&
 log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_2   stdout "ods2[[:space:]]*Policy1" &&
+
+#Mysql is slower
+sleep 30 &&
 
 # Check it is gone from the zonelist.xml
 ! $GREP -q -- "ods2" "$ZONELIST_FILE" &&

@@ -12,7 +12,7 @@ ods_reset_env &&
 ods_start_enforcer &&
 
 # Add our new zone.
-log_this_timeout ods-enforcer-zone-add 15 ods-enforcer zone add -z ods2 &&
+log_this_timeout ods-enforcer-zone-add 60 ods-enforcer zone add -z ods2 &&
 
 # This zone should not have been picked up by the enforcer yet, so it should be in the list...
 log_this ods-enforcer-zone-list1 ods-enforcer zone list &&
