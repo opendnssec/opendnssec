@@ -26,6 +26,9 @@ ods-signer verbosity 5 &&
 ## Wait for signed zone file
 syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods' &&
 
+# sleep a bit more to ensure the verbosity is really done
+sleep 30 &&
+
 ## Check signed zone file [when we decide on auditor tool]
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
