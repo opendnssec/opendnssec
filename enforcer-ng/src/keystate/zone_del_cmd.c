@@ -212,18 +212,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     if (write_xml) {
         if (zone) {
             if (zonelist_update_delete(sockfd, engine->config->zonelist_filename, zone, 1) != ZONELIST_UPDATE_OK) {
-                ods_log_error("[%s] zonelist %s updated failed", engine->config->zonelist_filename);
+                ods_log_error("[%s] zonelist %s updated failed", module_str, engine->config->zonelist_filename);
                 client_printf_err(sockfd, "Zonelist %s update failed!\n", engine->config->zonelist_filename);
                 ret = 1;
             }
             else {
-                client_printf(sockfd, "BERRY#1\n");
-                client_printf(sockfd, "BERRY#1 %p\n",engine);
-                client_printf(sockfd, "BERRY#2 %p\n",engine->config);
-                client_printf(sockfd, "BERRY#3 %p\n",engine->config_zonelist_filename);
-                client_printf(sockfd, "BERRY#4 %s\n",engine->config_zonelist_filename);
+                ods_log_error("[%s] zonelist %s updated successfully", module_str, engine->config->zonelist_filename);
                 client_printf(sockfd, "Zonelist %s updated successfully\n", engine->config->zonelist_filename);
-                ods_log_error("[%s] zonelist %s updated successfully", engine->config->zonelist_filename);
             }
         }
         else {
