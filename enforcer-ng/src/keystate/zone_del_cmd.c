@@ -217,8 +217,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
                 ret = 1;
             }
             else {
-                ods_log_info("[%s] zonelist %s updated successfully", engine->config->zonelist_filename);
+                client_printf(sockfd, "BERRY#1\n");
+                client_printf(sockfd, "BERRY#1 %p\n",engine);
+                client_printf(sockfd, "BERRY#2 %p\n",engine->config);
+                client_printf(sockfd, "BERRY#3 %p\n",engine->config_zonelist_filename);
+                client_printf(sockfd, "BERRY#4 %s\n",engine->config_zonelist_filename);
                 client_printf(sockfd, "Zonelist %s updated successfully\n", engine->config->zonelist_filename);
+                ods_log_error("[%s] zonelist %s updated successfully", engine->config->zonelist_filename);
             }
         }
         else {
