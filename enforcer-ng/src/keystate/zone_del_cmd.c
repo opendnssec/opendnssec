@@ -217,7 +217,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
                 ret = 1;
             }
             else {
-                ods_log_error("[%s] zonelist %s updated successfully", module_str, engine->config->zonelist_filename);
+                ods_log_info("[%s] zonelist %s updated successfully", module_str, engine->config->zonelist_filename);
                 client_printf(sockfd, "Zonelist %s updated successfully\n", engine->config->zonelist_filename);
             }
         }
