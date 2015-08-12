@@ -72,10 +72,10 @@ privuid(const char* username)
     struct passwd* result;
     long bufsize;
     char* buf;
-    uid_t uid;
+    uid_t uid, olduid;
     int s;
 
-    uid = geteuid();
+    uid = olduid = geteuid();
 
     if (username) {
         bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -115,10 +115,10 @@ privgid(const char *groupname)
     struct group* result;
     long bufsize;
     char* buf;
-    gid_t gid;
+    gid_t gid, oldgid;
     int s;
 
-    gid = getegid();
+    gid = oldgid = getegid();
 
     if (groupname) {
         bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
@@ -157,7 +157,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
 {
     int status;
     uid_t uid, olduid;
-    gid_t gid;
+    gid_t gid, oldgid;
     long ngroups_max;
     gid_t *final_groups;
     int final_group_len = -1;

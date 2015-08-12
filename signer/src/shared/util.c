@@ -30,6 +30,7 @@
  */
 
 #include "config.h"
+
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/util.h"
@@ -369,6 +370,15 @@ util_write_pidfile(const char* pidfile, pid_t pid)
     return 0;
 }
 
+/**
+ * Calculates the size needed to store the result of b64_pton.
+ *
+ */
+size_t
+util_b64_pton_calculate_size(size_t srcsize)
+{
+    return (((((srcsize + 3) / 4) * 3)) + 1);
+}
 
 /**
  * Print an LDNS RR, check status.
@@ -408,13 +418,37 @@ util_rr_print(FILE* fd, const ldns_rr* rr)
     return status;
 }
 
-/**
- * Calculates the size needed to store the result of b64_pton.
- *
- */
-size_t
-util_b64_pton_calculate_size(size_t srcsize)
-{
-    return (((((srcsize + 3) / 4) * 3)) + 1);
-}
 
+/**
+ * Check pidfile
+ * 
+ */
+int
+util_pidfile_avail(const char* pidfile)
+{
+	int fd, available, pid;
+	char pidbuf[32];
+	ssize_t n;
+	
+	if (!pidfile) return 0;
+	if ((fd = open(pidfile, O_RDONLY)) == -1) {
+		return (errno == ENOENT); /* Does not exist*/
+	}
+	n = read(fd, pidbuf, 32);
+	if (n == -1) { /* error */
+		available = 0;
+	} else if (n == 0) { /* EOF */
+		available = 1;
+	} else { /* PID */
+		pidbuf[31] = 0;
+		/* atoi can not fail but we must not pass negative values to
+		 * kill */
+		pid = atoi(pidbuf);
+		if (pid > 0)
+			available = (kill(pid, 0) != 0);
+		else
+			available = 1;
+	}
+	(void) close(fd);
+	return available;
+}

@@ -38,7 +38,6 @@
 
 static const char* allocator_str = "allocator";
 
-
 /**
  * Create allocator.
  *

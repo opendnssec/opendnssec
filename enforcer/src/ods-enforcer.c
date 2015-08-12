@@ -357,7 +357,7 @@ main(int argc, char* argv[])
         { 0, 0, 0, 0}
     };
     
-    ods_log_init(NULL, 0, 0);
+    ods_log_init("", 0 NULL, 0);
     
     /* parse the commandline. The + in the arg string tells getopt
      * to stop parsing when an unknown command is found not starting 

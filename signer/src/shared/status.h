@@ -85,7 +85,9 @@ enum ods_enum_status {
     ODS_STATUS_REQAXFR,
     ODS_STATUS_INSERIAL,
     ODS_STATUS_XFRBADFORM,
-    ODS_STATUS_XFRINCOMPLETE
+    ODS_STATUS_XFRINCOMPLETE,
+
+    ODS_STATUS_DB_ERR
 };
 typedef enum ods_enum_status ods_status;
 

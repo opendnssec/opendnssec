@@ -66,6 +66,7 @@ duration_create(void)
     duration->allocator = allocator;
     duration->years = 0;
     duration->months = 0;
+    duration->weeks = 0;
     duration->days = 0;
     duration->hours = 0;
     duration->minutes = 0;
@@ -93,6 +94,9 @@ duration_compare(duration_type* d1, duration_type* d2)
     }
     if (d1->months != d2->months) {
         return d1->months - d2->months;
+    }
+    if (d1->weeks != d2->weeks) {
+        return d1->weeks - d2->weeks;
     }
     if (d1->days != d2->days) {
         return d1->days - d2->days;
@@ -189,7 +193,7 @@ duration_create_from_string(const char* str)
             duration_cleanup(duration);
             return NULL;
         } else {
-            duration->days = 7*atoi(str+1);
+            duration->weeks = atoi(str+1);
             str = W;
         }
     }
@@ -206,7 +210,9 @@ digits_in_number(time_t duration)
 {
     uint32_t period = (uint32_t) duration;
     size_t count = 0;
-
+    if (!period) {
+        return 1;
+    }
     while (period > 0) {
         count++;
         period /= 10;
@@ -224,7 +230,7 @@ duration2string(duration_type* duration)
 {
     char* str = NULL, *num = NULL;
     size_t count = 2;
-    int T = 0;
+    int T = 0, D = 0;
 
     if (!duration) {
         return NULL;
@@ -232,12 +238,19 @@ duration2string(duration_type* duration)
 
     if (duration->years > 0) {
         count = count + 1 + digits_in_number(duration->years);
+        D = 1;
     }
     if (duration->months > 0) {
         count = count + 1 + digits_in_number(duration->months);
+        D = 1;
+    }
+    if (duration->weeks > 0) {
+        count = count + 1 + digits_in_number(duration->weeks);
+        D = 1;
     }
     if (duration->days > 0) {
         count = count + 1 + digits_in_number(duration->days);
+        D = 1;
     }
     if (duration->hours > 0) {
         count = count + 1 + digits_in_number(duration->hours);
@@ -247,7 +260,8 @@ duration2string(duration_type* duration)
         count = count + 1 + digits_in_number(duration->minutes);
         T = 1;
     }
-    if (duration->seconds > 0) {
+    if (duration->seconds > 0 ||
+        (!D && !duration->hours && !duration->minutes)) {
         count = count + 1 + digits_in_number(duration->seconds);
         T = 1;
     }
@@ -262,23 +276,46 @@ duration2string(duration_type* duration)
     if (duration->years > 0) {
         count = digits_in_number(duration->years);
         num = (char*) calloc(count+2, sizeof(char));
+        if (num) {
         snprintf(num, count+2, "%uY", (uint32_t) duration->years);
         str = strncat(str, num, count+2);
         free((void*) num);
+        } else {
+            goto duration2string_num_calloc_failed;
+        }
     }
     if (duration->months > 0) {
         count = digits_in_number(duration->months);
         num = (char*) calloc(count+2, sizeof(char));
+        if (num) {
         snprintf(num, count+2, "%uM", (uint32_t) duration->months);
         str = strncat(str, num, count+2);
         free((void*) num);
+        } else {
+            goto duration2string_num_calloc_failed;
+        }
+    }
+    if (duration->weeks > 0) {
+        count = digits_in_number(duration->weeks);
+        num = (char*) calloc(count+2, sizeof(char));
+        if (num) {
+            snprintf(num, count+2, "%uW", (uint32_t) duration->weeks);
+            str = strncat(str, num, count+2);
+            free((void*) num);
+        } else {
+            goto duration2string_num_calloc_failed;
+        }
     }
     if (duration->days > 0) {
         count = digits_in_number(duration->days);
         num = (char*) calloc(count+2, sizeof(char));
+        if (num) {
         snprintf(num, count+2, "%uD", (uint32_t) duration->days);
         str = strncat(str, num, count+2);
         free((void*) num);
+        } else {
+            goto duration2string_num_calloc_failed;
+        }
     }
     if (T) {
         str = strncat(str, "T", 1);
@@ -286,25 +323,43 @@ duration2string(duration_type* duration)
     if (duration->hours > 0) {
         count = digits_in_number(duration->hours);
         num = (char*) calloc(count+2, sizeof(char));
+        if (num) {
         snprintf(num, count+2, "%uH", (uint32_t) duration->hours);
         str = strncat(str, num, count+2);
         free((void*) num);
+        } else {
+            goto duration2string_num_calloc_failed;
+        }
     }
     if (duration->minutes > 0) {
         count = digits_in_number(duration->minutes);
         num = (char*) calloc(count+2, sizeof(char));
+        if (num) {
         snprintf(num, count+2, "%uM", (uint32_t) duration->minutes);
         str = strncat(str, num, count+2);
         free((void*) num);
+        } else {
+            goto duration2string_num_calloc_failed;
     }
-    if (duration->seconds > 0) {
+    }
+    if (duration->seconds > 0 ||
+        (!D && !duration->hours && !duration->minutes)) {
         count = digits_in_number(duration->seconds);
         num = (char*) calloc(count+2, sizeof(char));
+        if (num) {
         snprintf(num, count+2, "%uS", (uint32_t) duration->seconds);
         str = strncat(str, num, count+2);
         free((void*) num);
+        } else {
+            goto duration2string_num_calloc_failed;
+        }
     }
     return str;
+
+duration2string_num_calloc_failed:
+    ods_log_error("[%s] cannot create string: malloc error", duration_str);
+    free((void*) str);
+    return NULL;
 }
 
 
@@ -323,6 +378,7 @@ duration2time(duration_type* duration)
         period += (duration->minutes)*60;
         period += (duration->hours)*3600;
         period += (duration->days)*86400;
+        period += (duration->weeks)*86400*7;
         period += (duration->months)*86400*31;
         period += (duration->years)*86400*365;
 
@@ -428,7 +484,8 @@ static time_t
 mktime_from_utc(const struct tm *tm)
 {
     int year = 1900 + tm->tm_year;
-    time_t days = 365 * (year - 1970) + leap_days(1970, year);
+    time_t days = 365 * ((time_t) (year - 1970)) +
+        ((time_t) leap_days(1970, year));
     time_t hours;
     time_t minutes;
     time_t seconds;
@@ -490,10 +547,14 @@ time_t
 time_now(void)
 {
     time_t now;
+
 #ifdef ENFORCER_TIMESHIFT
     const char* env = getenv("ENFORCER_TIMESHIFT");
-    if (env) return timeshift2time(env);
+    if (env) {
+        return timeshift2time(env);
+    }
 #endif /* ENFORCER_TIMESHIFT */
+
     (void) timeshift2time; /* Suppress build warnings */
     now = time(NULL);
     return now > time_now_set ? now : time_now_set;

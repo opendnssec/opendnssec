@@ -101,5 +101,4 @@ void allocator_deallocate(allocator_type* allocator, void* data);
  */
 void allocator_cleanup(allocator_type* allocator);
 
-
 #endif /* SHARED_ALLOCATOR_H */

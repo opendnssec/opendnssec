@@ -113,6 +113,25 @@ void ods_fclose(FILE* fd);
 ssize_t ods_writen(int fd, const void* vptr, size_t n);
 
 /**
+ * Write to file descriptor.
+ * \param[in] fd file descriptor
+ * \param[in] format pointer to C format string
+ * \param[in] ... parameters to be expanded in format string
+ *
+ */
+void ods_printf(int fd, const char * format, ...);
+	
+/**
+ * Combined error logging and writing to file descriptor.
+ * \param[in] fd file descriptor
+ * \param[in] mod module name to report in the error
+ * \param[in] format pointer to C format string
+ * \param[in] ... parameters to be expanded in format string
+ *
+ */
+void ods_log_error_and_printf(int fd, const char *mod, const char *format, ...);
+
+/**
  * Get file status.
  * \param[in] file file name
  * \return time_t last modified

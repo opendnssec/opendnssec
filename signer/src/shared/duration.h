@@ -96,6 +96,14 @@ char* duration2string(duration_type* duration);
 time_t duration2time(duration_type* duration);
 
 /**
+ * Set the duration based on a time_t.
+ * \param[in] duration a duration_type pointer.
+ * \param[in] time a time_t with the time to set.
+ * \return non-zero on error, otherwise success.
+ */
+int duration_set_time(duration_type* duration, time_t time);
+
+/**
  * Return a random time.
  * \param[in] mod modulo
  * \return time_t random time
@@ -138,6 +146,15 @@ void time_itoa(time_t n, char* s);
  *
  */
 uint32_t time_datestamp(time_t tt, const char* format, char** str);
+
+/**
+ * Set the time_now to a new value.
+ * As long as this new value is later than the real now time
+ * the overriden value is returned when time_now is called.
+ * \param[in] now override for time_now
+ *
+ */
+void set_time_now(time_t now);
 
 /**
  * Return the time since Epoch, measured in seconds.

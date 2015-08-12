@@ -271,7 +271,7 @@ interface_start(char* cmd)
     struct sockaddr_un servaddr;
     const char* servsock_filename = ODS_SE_SOCKFILE;
 
-    ods_log_init(NULL, 0, 0);
+    ods_log_init("ods-signer", 0, NULL, 0);
 
     /* new socket */
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);

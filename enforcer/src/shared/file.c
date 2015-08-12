@@ -34,14 +34,21 @@
 #include "shared/log.h"
 #include "daemon/clientpipe.h"
 
+#include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
+#define BUFFER_SIZE (16 * 1024) /* use 16K buffers */
+
 static const char* file_str = "file";
+static unsigned int file_count = 0;
+
 
 /**
  * Convert file mode to readable string.
@@ -54,11 +61,11 @@ ods_file_mode2str(const char* mode)
         return "no mode";
     }
 
-    if (strcmp(mode, "a") == 0) {
+    if (ods_strcmp(mode, "a") == 0) {
         return "appending";
-    } else if (strcmp(mode, "r") == 0) {
+    } else if (ods_strcmp(mode, "r") == 0) {
         return "reading";
-    } else if (strcmp(mode, "w") == 0) {
+    } else if (ods_strcmp(mode, "w") == 0) {
         return "writing";
 	}
     return "unknown mode";
@@ -80,6 +87,10 @@ ods_fgetc(FILE* fd, unsigned int* line_nr)
     c = fgetc(fd);
 	if (c == '\n') {
         (*line_nr)++;
+    }
+    if (c == EOF && errno != 0) {
+        ods_log_crit("[%s] fgetc() failed, enough memory? (%s)",
+            file_str, strerror(errno));
     }
     return c;
 }
@@ -112,7 +123,7 @@ ods_skip_whitespace(FILE* fd, unsigned int* line_nr)
  *
  */
 char*
-ods_build_path(const char* file, const char* suffix, int dir)
+ods_build_path(const char* file, const char* suffix, int dir, int no_slash)
 {
     size_t len_file = 0;
     size_t len_suffix = 0;
@@ -133,10 +144,26 @@ ods_build_path(const char* file, const char* suffix, int dir)
             openf = (char*) malloc(sizeof(char)*(len_total + 1));
             if (!openf) {
                 ods_log_crit("[%s] build path failed: malloc failed", file_str);
+                return NULL;
             }
 
             strncpy(openf, file, len_file);
             openf[len_file] = '\0';
+            if (no_slash) {
+                size_t i = 0;
+                for (i=0; i<len_file; i++) {
+                    switch (openf[i]) {
+                        case '/':
+                        case ' ':
+                        /* more? */
+                            openf[i] = '-';
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
             if (suffix) {
                 strncat(openf, suffix, len_suffix);
             }
@@ -165,7 +192,7 @@ ods_fopen(const char* file, const char* dir, const char* mode)
     char* openf = NULL;
 
     ods_log_assert(mode);
-    ods_log_debug("[%s] open file %s%s file=%s mode=%s", file_str,
+    ods_log_deeebug("[%s] open file %s%s file=%s mode=%s", file_str,
         (dir?"dir=":""), (dir?dir:""), (file?file:"(null)"),
         ods_file_mode2str(mode));
 
@@ -179,6 +206,9 @@ ods_fopen(const char* file, const char* dir, const char* mode)
     if (len_total > 0) {
         openf = (char*) malloc(sizeof(char)*(len_total + 1));
         if (!openf) {
+            ods_log_error("[%s] unable to open file %s%s%s for %s: malloc() "
+                "failed", file_str, (dir?dir:""), (dir?"/":""),
+                (file?file:"(null)"), ods_file_mode2str(mode));
             return NULL;
         }
         if (dir) {
@@ -195,9 +225,12 @@ ods_fopen(const char* file, const char* dir, const char* mode)
         if (len_file) {
             fd = fopen(openf, mode);
             if (!fd) {
-                ods_log_error("[%s] unable to open file %s for %s: %s",
+                ods_log_debug("[%s] unable to open file %s for %s: %s",
                     file_str, openf?openf:"(null)",
                     ods_file_mode2str(mode), strerror(errno));
+            } else {
+                file_count++;
+                ods_log_debug("[%s] openfile %s count %u", file_str, openf?openf:"(null)", file_count);
             }
         }
         free((void*) openf);
@@ -213,6 +246,7 @@ void
 ods_fclose(FILE* fd)
 {
     if (fd) {
+        file_count--;
         fclose(fd);
     }
     return;
@@ -323,20 +357,75 @@ ods_file_lastmodified(const char* file)
     int ret;
     struct stat buf;
     FILE* fd;
-
     ods_log_assert(file);
-
     if ((fd = ods_fopen(file, NULL, "r")) != NULL) {
         ret = stat(file, &buf);
         if (ret == -1) {
-            ods_log_error("[%s] Could not get info for file \'%s\' (%s)", 
-                file_str, file, strerror(errno));
+            ods_log_error("[%s] unable to stat file %s: %s", file_str,
+                file, strerror(errno));
             return 0;
         }
         ods_fclose(fd);
         return buf.st_mtime;
+    } else {
+        ods_log_error("[%s] unable to stat file %s: ods_fopen() failed",
+            file_str, file);
     }
     return 0;
+}
+
+
+/**
+ * Compare strings.
+ *
+ */
+int
+ods_strcmp(const char* s1, const char* s2)
+{
+    if (!s1 && !s2) {
+        return 0;
+    } else if (!s1) {
+        return -1;
+    } else if (!s2) {
+        return -1;
+    } else if (strlen(s1) != strlen(s2)) {
+        if (strncmp(s1, s2, strlen(s1)) == 0) {
+            return strlen(s1) - strlen(s2);
+        }
+    }
+    return strncmp(s1, s2, strlen(s1));
+}
+
+
+/**
+ * Compare a string lowercased
+ *
+ */
+int
+ods_strlowercmp(const char* str1, const char* str2)
+{
+    while (str1 && str2 && *str1 != '\0' && *str2 != '\0') {
+        if (tolower((int)*str1) != tolower((int)*str2)) {
+            if (tolower((int)*str1) < tolower((int)*str2)) {
+                return -1;
+            }
+            return 1;
+        }
+        str1++;
+        str2++;
+    }
+    if (str1 && str2) {
+        if (*str1 == *str2) {
+            return 0;
+        } else if (*str1 == '\0') {
+            return -1;
+        }
+    } else if (!str1 && !str2) {
+        return 0;
+    } else if (!str1 && str2) {
+        return -1;
+    }
+    return 1;
 }
 
 
@@ -401,26 +490,57 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
  * File copy.
  *
  */
-int
-ods_file_copy(const char* file1, const char* file2)
+ods_status
+ods_file_copy(const char* file1, const char* file2, long startpos, int append)
 {
-    char str[SYSTEM_MAXLEN];
-    FILE* fd = NULL;
-
+    char buf[BUFFER_SIZE];
+    int fin = 0;
+    int fout = 0;
+    int read_size = 0;
     if (!file1 || !file2) {
-        return 1;
+        return ODS_STATUS_ASSERT_ERR;
     }
-
-    if ((fd = ods_fopen(file1, NULL, "r")) != NULL) {
-        ods_fclose(fd);
-        snprintf(str, SYSTEM_MAXLEN, "%s %s %s > /dev/null",
-            CP_COMMAND, file1, file2);
-        ods_log_debug("system call: %s", str);
-        return system(str);
+    if ((fin = open(file1, O_RDONLY|O_NONBLOCK)) < 0) {
+        return ODS_STATUS_FOPEN_ERR;
     }
-    /* no such file */
-    return 1;
+    if (append) {
+        fout = open(file2, O_WRONLY|O_APPEND|O_CREAT, 0666);
+    } else {
+        fout = open(file2, O_WRONLY|O_TRUNC|O_CREAT, 0666);
 }
+    if (fout < 0) {
+        close(fin);
+        return ODS_STATUS_FOPEN_ERR;
+    }
+    ods_log_debug("[%s] lseek file %s pos %ld", file_str, file1, startpos);
+    if (lseek(fin, startpos, SEEK_SET) < 0) {
+        return ODS_STATUS_FSEEK_ERR;
+    }
+    while (1) {
+        read_size = read(fin, buf, sizeof(buf));
+        if (read_size == 0) {
+            break;
+        }
+        if (read_size < 0) {
+            ods_log_error("[%s] read file %s error %s", file_str, file1,
+                strerror(errno));
+            close(fin);
+            close(fout);
+            return ODS_STATUS_FREAD_ERR;
+        }
+        if (write(fout, buf, (unsigned int) read_size) < 0) {
+            ods_log_error("[%s] write file %s error %s", file_str, file1,
+                strerror(errno));
+            close(fin);
+            close(fout);
+            return ODS_STATUS_FWRITE_ERR;
+        }
+    }
+    close(fin);
+    close(fout);
+    return ODS_STATUS_OK;
+}
+
 
 /**
  * Get directory part of filename.
@@ -484,6 +604,85 @@ ods_chown(const char* file, uid_t uid, gid_t gid, int getdir)
         free((void*) dir);
     } else {
         ods_log_warning("[%s] use of relative path: %s", file_str, file);
+    }
+    return;
+}
+
+
+/**
+ * Remove leading and trailing whitespace.
+ *
+ */
+void
+ods_str_trim(char* str)
+{
+    int i = strlen(str), nl = 0;
+
+    /* trailing */
+    while (i>0) {
+        --i;
+        if (str[i] == '\n') {
+            nl = 1;
+        }
+        if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n') {
+            str[i] = '\0';
+        } else {
+            break;
+        }
+    }
+    if (nl) {
+        str[++i] = '\n';
+    }
+
+    /* leading */
+    i = 0;
+    while (str[i] == ' ' || str[i] == '\t') {
+        i++;
+    }
+    while (*(str+i) != '\0') {
+        *str = *(str+i);
+        str++;
+    }
+    *str = '\0';
+    return;
+}
+
+
+/**
+ * Add a string to a list of strings. Taken from ods-enforcer.
+ *
+ */
+void
+ods_str_list_add(char*** list, char* str)
+{
+    char** old = NULL;
+    size_t count = 0;
+
+    if (*list) {
+        for (count=0; (*list)[count]; ++count) {
+            ;
+        }
+        old = *list;
+
+        *list = (char**) calloc(sizeof(char*), count+2);
+        if (!*list) {
+            ods_fatal_exit("[%s] fatal ods_str_list_add(): calloc() failed",
+                file_str);
+        }
+        if (old) {
+            memcpy(*list, old, count * sizeof(char*));
+        }
+        free(old);
+        (*list)[count] = str;
+        (*list)[count+1] = NULL;
+    } else {
+        /** List is NULL, allocate new */
+        *list = calloc(sizeof(char*), 2);
+        if (!*list) {
+            ods_fatal_exit("[%s] fatal ods_str_list_add(): calloc() failed",
+                file_str);
+        }
+        (*list)[0] = str;
     }
     return;
 }

@@ -88,8 +88,12 @@ privuid(const char* username)
             return -1;
         }
         /* Lookup the user id in /etc/passwd */
-        s = getpwnam_r(username, &pwd, buf, bufsize, &result);
-        if (s == 0 && result != NULL) {
+        s = getpwnam_r(username, &pwd, buf, bufsize, &result); /* LEAK */
+        if (s) {
+            ods_log_error("[%s] unable to get user id for %s: %s",
+                privdrop_str, username, strerror(s));
+        }
+        if (result != NULL) {
             uid = pwd.pw_uid;
         }
         free((void*) buf);
@@ -127,8 +131,12 @@ privgid(const char *groupname)
             return -1;
         }
         /* Lookup the group id in /etc/group */
-        s = getgrnam_r(groupname, &grp, buf, bufsize, &result);
-        if (s == 0 && result != NULL) {
+        s = getgrnam_r(groupname, &grp, buf, bufsize, &result); /* LEAK */
+        if (s) {
+            ods_log_error("[%s] unable to get group id for %s: %s",
+                privdrop_str, groupname, strerror(s));
+        }
+        if (result != NULL) {
             gid = grp.gr_gid;
         }
         free((void*) buf);
@@ -156,7 +164,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
 
     /* Save effective uid/gid */
     uid = olduid = geteuid();
-    gid = oldgid = getegid();
+    gid = getegid();
 
     /* Check if we're going to drop uid */
     if (username) {

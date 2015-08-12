@@ -37,14 +37,30 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#ifdef HAVE_SYSLOG_H
+#include <strings.h> /* strncasecmp() */
+#include <syslog.h> /* openlog(), closelog(), syslog() */
+#else /* !HAVE_SYSLOG_H */
+#define LOG_EMERG   0 /* ods_fatal_exit */
+#define LOG_ALERT   1 /* ods_log_alert */
+#define LOG_CRIT    2 /* ods_log_crit */
+#define LOG_ERR     3 /* ods_log_error */
+#define LOG_WARNING 4 /* ods_log_warning */
+#define LOG_NOTICE  5 /* ods_log_info */
+#define LOG_INFO    6 /* ods_log_verbose */
+#define LOG_DEBUG   7 /* ods_log_debug */
+#endif /* HAVE_SYSLOG_H */
+#define LOG_DEEEBUG 8 /* ods_log_deeebug */
+
 /**
  * Initialize logging.
- * \param[in] filename logfile, stderr if NULL.
- * \param[in] use_syslog: use syslog(3) and ingore filename
+ * \param[in] program_name identifying name used in logging (normally the running program name)
+ * \param[in] use_syslog: use syslog(3)
+ * \param[in] target_name name of the facilty in case of logging through syslog or otherwise a filename
  * \param[in] verbosity: log level
  *
  */
-void ods_log_init(const char *filename, int use_syslog, int verbosity);
+void ods_log_init(const char *program_name, int use_syslog, const char *target_name, int verbosity);
 
 /**
  * Current verbosity
@@ -65,6 +81,13 @@ void ods_log_close(void);
  *
  */
 int ods_log_get_facility(const char* facility);
+
+/**
+ * Get the log level.
+ * \return int log_level
+ *
+ */
+int ods_log_get_level();
 
 /**
  * Heavy debug loggin.

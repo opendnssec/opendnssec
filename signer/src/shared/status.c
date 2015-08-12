@@ -87,6 +87,8 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_XFRBADFORM, "XFR bad format"},
     { ODS_STATUS_XFRINCOMPLETE, "XFR on disk incomplete (in progress?)"},
 
+    { ODS_STATUS_DB_ERR , "Database error"},
+
     { 0, NULL }
 };
 
@@ -115,6 +117,6 @@ ods_status2str(ods_status status)
     if (lt) {
         return lt->name;
     }
-    return NULL;
+    return "(Error code unknown)";
 }
 

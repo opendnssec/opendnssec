@@ -35,12 +35,13 @@
 #include "shared/log.h"
 #include "shared/util.h"
 
-#include <time.h>
+#include <fcntl.h>
 #include <ldns/ldns.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <signal.h>
-#include <fcntl.h>
+#include <time.h>
+#include <unistd.h>
 
 static const char* util_str = "util";
 
@@ -53,16 +54,25 @@ int
 util_is_dnssec_rr(ldns_rr* rr)
 {
     ldns_rr_type type = 0;
-
     if (!rr) {
         return 0;
     }
-
     type = ldns_rr_get_type(rr);
     return (type == LDNS_RR_TYPE_RRSIG ||
             type == LDNS_RR_TYPE_NSEC ||
             type == LDNS_RR_TYPE_NSEC3 ||
             type == LDNS_RR_TYPE_NSEC3PARAMS);
+}
+
+
+/**
+ * Compare SERIALs.
+ *
+ */
+int
+util_serial_gt(uint32_t serial_new, uint32_t serial_old)
+{
+    return DNS_SERIAL_GT(serial_new, serial_old);
 }
 
 
@@ -75,7 +85,6 @@ util_soa_compare_rdata(ldns_rr* rr1, ldns_rr* rr2)
 {
     size_t i = 0;
     size_t rdata_count = SE_SOA_RDATA_MINIMUM;
-
     for (i = 0; i <= rdata_count; i++) {
         if (i != SE_SOA_RDATA_SERIAL &&
             ldns_rdf_compare(ldns_rr_rdf(rr1, i), ldns_rr_rdf(rr2, i)) != 0) {
@@ -96,11 +105,9 @@ util_soa_compare(ldns_rr* rr1, ldns_rr* rr2)
     size_t rr1_len = 0;
     size_t rr2_len = 0;
     size_t offset = 0;
-
     if (!rr1 || !rr2) {
         return 1;
     }
-
     rr1_len = ldns_rr_uncompressed_size(rr1);
     rr2_len = ldns_rr_uncompressed_size(rr2);
     if (ldns_dname_compare(ldns_rr_owner(rr1), ldns_rr_owner(rr2)) != 0) {
@@ -121,7 +128,6 @@ util_soa_compare(ldns_rr* rr1, ldns_rr* rr2)
         }
         return 1;
     }
-
     return util_soa_compare_rdata(rr1, rr2);
 }
 
@@ -143,12 +149,10 @@ util_dnssec_rrs_compare(ldns_rr* rr1, ldns_rr* rr2, int* cmp)
     if (!rr1 || !rr2) {
         return LDNS_STATUS_ERR;
     }
-
     rr1_len = ldns_rr_uncompressed_size(rr1);
     rr2_len = ldns_rr_uncompressed_size(rr2);
     rr1_buf = ldns_buffer_new(rr1_len);
     rr2_buf = ldns_buffer_new(rr2_len);
-
     /* name, class and type should already be equal */
     status = ldns_rr2buffer_wire_canonical(rr1_buf, rr1, LDNS_SECTION_ANY);
     if (status != LDNS_STATUS_OK) {
@@ -238,6 +242,91 @@ util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
 
 
 /**
+ * Read process id from file.
+ *
+ */
+static pid_t
+util_read_pidfile(const char* file)
+{
+    int fd;
+    pid_t pid;
+    char pidbuf[32];
+    char *t;
+    int l;
+
+    if ((fd = open(file, O_RDONLY)) == -1) {
+        return -1;
+    }
+    if (((l = read(fd, pidbuf, sizeof(pidbuf)))) == -1) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    /* Empty pidfile means no pidfile... */
+    if (l == 0) {
+        errno = ENOENT;
+        return -1;
+    }
+    pid = (pid_t) strtol(pidbuf, &t, 10);
+
+    if (*t && *t != '\n') {
+        return -1;
+    }
+    return pid;
+}
+
+
+/**
+ * Check process id file.
+ *
+ */
+int
+util_check_pidfile(const char* pidfile)
+{
+    pid_t oldpid;
+    struct stat stat_ret;
+    /**
+     * If the file exists then either we didn't shutdown cleanly or
+     * a signer daemon is already running: in either case shutdown.
+     */
+    if (stat(pidfile, &stat_ret) != 0) {
+        if (errno != ENOENT) {
+            ods_log_error("[%s] cannot stat pidfile %s: %s", util_str, pidfile,
+                strerror(errno));
+        } /* else: file does not exist: carry on */
+    } else {
+          if (S_ISREG(stat_ret.st_mode)) {
+            /** The pidfile exists already */
+            if ((oldpid = util_read_pidfile(pidfile)) == -1) {
+                /** Consider stale pidfile */
+                if (errno != ENOENT) {
+                    ods_log_error("[%s] cannot read pidfile %s: %s", util_str,
+                        pidfile, strerror(errno));
+                }
+            } else {
+                if (kill(oldpid, 0) == 0 || errno == EPERM) {
+                    ods_log_crit("[%s] pidfile %s already exists, "
+                        "a process with pid %u is already running. "
+                        "If no ods-signerd process is running, a previous "
+                        "instance didn't shutdown cleanly, please remove this "
+                        "file and try again.", util_str, pidfile, oldpid);
+                    return 0;
+                } else {
+                    /** Consider state pidfile */
+                    ods_log_warning("[%s] pidfile %s already exists, "
+                        "but no process with pid %u is running. "
+                        "A previous instance didn't shutdown cleanly, this "
+                        "pidfile is stale.", util_str, pidfile, oldpid);
+                }
+            }
+        }
+    }
+    /** All good, carry on */
+    return 1;
+}
+
+
+/**
  * Write process id to file.
  *
  */
@@ -250,6 +339,7 @@ util_write_pidfile(const char* pidfile, pid_t pid)
 
     ods_log_assert(pidfile);
     ods_log_assert(pid);
+
     ods_log_debug("[%s] writing pid %lu to pidfile %s", util_str,
         (unsigned long) pid, pidfile);
     snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) pid);
@@ -279,6 +369,55 @@ util_write_pidfile(const char* pidfile, pid_t pid)
     }
     return 0;
 }
+
+/**
+ * Calculates the size needed to store the result of b64_pton.
+ *
+ */
+size_t
+util_b64_pton_calculate_size(size_t srcsize)
+{
+    return (((((srcsize + 3) / 4) * 3)) + 1);
+}
+
+/**
+ * Print an LDNS RR, check status.
+ *
+ */
+ods_status
+util_rr_print(FILE* fd, const ldns_rr* rr)
+{
+    char* result = NULL;
+    ldns_buffer* tmp_buffer = NULL;
+    ods_status status = ODS_STATUS_OK;
+
+    if (!fd || !rr) {
+        return ODS_STATUS_ASSERT_ERR;
+    }
+
+    tmp_buffer = ldns_buffer_new(LDNS_MAX_PACKETLEN);
+    if (!tmp_buffer) {
+            return ODS_STATUS_MALLOC_ERR;
+    }
+    if (ldns_rr2buffer_str_fmt(tmp_buffer, NULL, rr)
+                    == LDNS_STATUS_OK) {
+            /* export and return string, destroy rest */
+            result = ldns_buffer2str(tmp_buffer);
+            if (result) {
+                fprintf(fd, "%s", result);
+                status = ODS_STATUS_OK;
+                LDNS_FREE(result);
+            } else {
+                fprintf(fd, "; Unable to convert rr to string\n");
+                status = ODS_STATUS_FWRITE_ERR;
+            }
+    } else {
+            status = ODS_STATUS_FWRITE_ERR;
+    }
+    ldns_buffer_free(tmp_buffer);
+    return status;
+}
+
 
 /**
  * Check pidfile

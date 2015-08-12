@@ -34,30 +34,76 @@
 
 #include <stdlib.h>
 
-static const char* ods_status_str[] = {
-  /* ODS_STATUS_OK                */ "All OK",
-  /* ODS_STATUS_ASSERT_ERR        */ "Assertion error",
-  /* ODS_STATUS_CFG_ERR           */ "Configuration error",
-  /* ODS_STATUS_CHDIR_ERR         */ "Change directory failed",
-  /* ODS_STATUS_CHROOT_ERR        */ "Change root failed",
-  /* ODS_STATUS_CMDHANDLER_ERR    */ "Command handler error",
-  /* ODS_STATUS_CONFLICT_ERR      */ "Conflict detected",
-  /* ODS_STATUS_ERR               */ "General error",
-  /* ODS_STATUS_FOPEN_ERR         */ "Unable to open file",
-  /* ODS_STATUS_FORK_ERR          */ "fork() failed",
-  /* ODS_STATUS_HSM_ERR           */ "HSM error",
-  /* ODS_STATUS_INSECURE          */ "Insecure",
-  /* ODS_STATUS_MALLOC_ERR        */ "Memory allocation error",
-  /* ODS_STATUS_PARSE_ERR         */ "Parse error",
-  /* ODS_STATUS_PRIVDROP_ERR      */ "Unable to drop privileges",
-  /* ODS_STATUS_RNG_ERR           */ "RelaxNG error",
-  /* ODS_STATUS_SETSID_ERR        */ "setsid() failed",
-  /* ODS_STATUS_UNCHANGED         */ "Status unchanged",
-  /* ODS_STATUS_WRITE_PIDFILE_ERR */ "Unable to write process id to pidfile",
-  /* ODS_STATUS_XML_ERR           */ "XML error",
-  /* ODS_STATUS_DB_ERR            */ "Database error",
-  /* ODS_STATUS_MAX               */ "(Error code unknown)"
+ods_lookup_table ods_status_str[] = {
+    { ODS_STATUS_OK, "All OK" },
+    { ODS_STATUS_EOF, "End of file" },
+    { ODS_STATUS_NOTIMPL, "Not implemented"},
+    { ODS_STATUS_UPTODATE, "Up to date"},
+
+    { ODS_STATUS_ASSERT_ERR, "Assertion error"},
+    { ODS_STATUS_CFG_ERR, "Configuration error"},
+    { ODS_STATUS_CHDIR_ERR, "Change directory failed"},
+    { ODS_STATUS_CHROOT_ERR, "Change root failed"},
+    { ODS_STATUS_CMDHANDLER_ERR, "Command handler error"},
+    { ODS_STATUS_XFRHANDLER_ERR, "XFR handler error"},
+    { ODS_STATUS_CONFLICT_ERR, "Conflict detected"},
+    { ODS_STATUS_ERR, "General error"},
+    { ODS_STATUS_FOPEN_ERR, "Unable to open file"},
+    { ODS_STATUS_FSEEK_ERR, "fseek() failed"},
+    { ODS_STATUS_FORK_ERR, "fork() failed"},
+    { ODS_STATUS_FREAD_ERR, "Unable to read file"},
+    { ODS_STATUS_FWRITE_ERR, "Unable to write file"},
+    { ODS_STATUS_HSM_ERR, "HSM error"},
+    { ODS_STATUS_INSECURE, "Insecure"},
+    { ODS_STATUS_MALLOC_ERR, "Memory allocation error"},
+    { ODS_STATUS_RENAME_ERR, "Unable to rename file"},
+    { ODS_STATUS_UNLINK_ERR, "Unable to unlink file"},
+
+    { ODS_STATUS_SOCK_BIND, "Unable to bind socket"},
+    { ODS_STATUS_SOCK_FCNTL_NONBLOCK, "Unable to set socket to nonblocking"},
+    { ODS_STATUS_SOCK_GETADDRINFO, "Unable to retrieve address information"},
+    { ODS_STATUS_SOCK_LISTEN, "Unable to listen on socket"},
+    { ODS_STATUS_SOCK_SETSOCKOPT_V6ONLY, "Unable to set socket to v6only"},
+    { ODS_STATUS_SOCK_SOCKET_UDP, "Unable to create udp socket"},
+    { ODS_STATUS_SOCK_SOCKET_TCP, "Unable to create tcp socket"},
+
+    { ODS_STATUS_ACL_SUBNET_BAD_RANGE, "Bad subnet range"},
+    { ODS_STATUS_ACL_SUBNET_OUT_RANGE, "Subnet out of range"},
+
+    { ODS_STATUS_PARSE_ERR, "Parse error"},
+    { ODS_STATUS_PRIVDROP_ERR, "Unable to drop privileges"},
+    { ODS_STATUS_RNG_ERR, "RelaxNG error"},
+    { ODS_STATUS_SETSID_ERR, "setsid() failed"},
+    { ODS_STATUS_UNCHANGED, "Status unchanged"},
+    { ODS_STATUS_WRITE_PIDFILE_ERR, "Unable to write process id to pidfile"},
+    { ODS_STATUS_XML_ERR, "XML error"},
+
+    { ODS_STATUS_XFR_NOT_READY, "Incoming zone transfer not ready"},
+    { ODS_STATUS_SKIPDNAME, "Failed to skip domain name"},
+    { ODS_STATUS_BUFAVAIL, "Insufficient space available in buffer"},
+    { ODS_STATUS_PARSESOA, "Failed to parse SOA RR"},
+    { ODS_STATUS_REQAXFR, "Got IXFR, but AXFR required"},
+    { ODS_STATUS_INSERIAL, "Serial mismatch"},
+    { ODS_STATUS_XFRBADFORM, "XFR bad format"},
+    { ODS_STATUS_XFRINCOMPLETE, "XFR on disk incomplete (in progress?)"},
+
+    { ODS_STATUS_DB_ERR , "Database error"},
+
+    { 0, NULL }
 };
+
+ods_lookup_table*
+ods_lookup_by_id(ods_lookup_table *table, int id)
+{
+    while (table->name != NULL) {
+        if (table->id == id) {
+            return table;
+        }
+        table++;
+    }
+    return NULL;
+}
+
 
 /**
  * Look up a descriptive text by each status.
@@ -66,36 +112,11 @@ static const char* ods_status_str[] = {
 const char *
 ods_status2str(ods_status status)
 {
-    switch (status) {
-    case ODS_STATUS_OK:
-    case ODS_STATUS_ASSERT_ERR:
-    case ODS_STATUS_CFG_ERR:
-    case ODS_STATUS_CHDIR_ERR:
-    case ODS_STATUS_CHROOT_ERR:
-    case ODS_STATUS_CMDHANDLER_ERR:
-    case ODS_STATUS_CONFLICT_ERR:
-    case ODS_STATUS_ERR:
-    case ODS_STATUS_FOPEN_ERR:
-    case ODS_STATUS_FORK_ERR:
-    case ODS_STATUS_HSM_ERR:
-    case ODS_STATUS_INSECURE:
-    case ODS_STATUS_MALLOC_ERR:
-    case ODS_STATUS_PARSE_ERR:
-    case ODS_STATUS_PRIVDROP_ERR:
-    case ODS_STATUS_RNG_ERR:
-    case ODS_STATUS_SETSID_ERR:
-    case ODS_STATUS_UNCHANGED:
-    case ODS_STATUS_WRITE_PIDFILE_ERR:
-    case ODS_STATUS_XML_ERR:
-    case ODS_STATUS_DB_ERR:
-    case ODS_STATUS_MAX:
-        return ods_status_str[status];
-        break;
-
-    default:
-        break;
+    ods_lookup_table *lt;
+    lt = ods_lookup_by_id(ods_status_str, status);
+    if (lt) {
+        return lt->name;
     }
-
-    return ods_status_str[ODS_STATUS_MAX];
+    return "(Error code unknown)";
 }
 

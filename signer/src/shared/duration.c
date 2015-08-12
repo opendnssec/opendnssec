@@ -394,6 +394,29 @@ duration2time(duration_type* duration)
 }
 
 /**
+ * Set the duration based on a time_t.
+ */
+int duration_set_time(duration_type* duration, time_t time) {
+    if (!duration) {
+        return 1;
+    }
+
+    duration->years = time / (86400*365);
+    time -= duration->years * 86400*365;
+    duration->months = time / (86400*31);
+    time -= duration->months * 86400*31;
+    duration->days = time / 86400;
+    time -= duration->days * 86400;
+    duration->hours = time / 3600;
+    time -= duration->hours * 3600;
+    duration->minutes = time / 60;
+    time -= duration->minutes * 60;
+    duration->seconds = time;
+
+    return 0;
+}
+
+/**
  * Return the shortest time.
  *
  */
@@ -453,7 +476,6 @@ leap_days(int y1, int y2)
 }
 
 
-#ifdef ENFORCER_TIMESHIFT
 /*
  * Code taken from NSD 3.2.5, which is
  * code adapted from Python 2.4.1 sources (Lib/calendar.py).
@@ -502,8 +524,20 @@ timeshift2time(const char *time)
 	}
         return timeshift;
 }
-#endif
 
+static time_t time_now_set = 0;
+
+/**
+ * Set the time_now to a new value.
+ * As long as this value is later than the reakl time now 
+ * the overriden value is returned.
+ *
+ */
+void
+set_time_now(time_t now)
+{
+    time_now_set = now;
+}
 
 /**
  * Return the time since Epoch, measured in seconds.
@@ -512,16 +546,19 @@ timeshift2time(const char *time)
 time_t
 time_now(void)
 {
+    time_t now;
+
 #ifdef ENFORCER_TIMESHIFT
     const char* env = getenv("ENFORCER_TIMESHIFT");
     if (env) {
         return timeshift2time(env);
-    } else
+    }
 #endif /* ENFORCER_TIMESHIFT */
 
-    return time(NULL);
+    (void) timeshift2time; /* Suppress build warnings */
+    now = time(NULL);
+    return now > time_now_set ? now : time_now_set;
 }
-
 
 /**
  * copycode: This code is based on the EXAMPLE in the strftime manual.
@@ -531,6 +568,7 @@ uint32_t
 time_datestamp(time_t tt, const char* format, char** str)
 {
     time_t t;
+    struct tm datetime;
     struct tm *tmp;
     uint32_t ut = 0;
     char outstr[32];
@@ -541,9 +579,9 @@ time_datestamp(time_t tt, const char* format, char** str)
         t = time_now();
     }
 
-    tmp = localtime(&t);
+    tmp = localtime_r(&t,&datetime);
     if (tmp == NULL) {
-        ods_log_error("[%s] time_datestamp: localtime() failed", duration_str);
+        ods_log_error("[%s] time_datestamp: localtime_r() failed", duration_str);
         return 0;
     }
 

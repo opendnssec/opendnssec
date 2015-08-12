@@ -130,4 +130,16 @@ ods_status util_rr_print(FILE* fd, const ldns_rr* rr);
  */
 size_t util_b64_pton_calculate_size(size_t srcsize);
 
+/**
+ * Check pidfile
+ * 
+ * Try to read PID file to see if an other instance is already running.
+ * If pidfile not found or process is not running exit success. Note:
+ * upon failures reading the file
+ * 
+ * \param pidfile: file to check.
+ * \return 1 pidfile does not exist or process not running. 0 otherwise.
+ */
+int util_pidfile_avail(const char* pidfile);
+
 #endif /* UTIL_UTIL_H */

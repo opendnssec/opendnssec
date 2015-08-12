@@ -33,6 +33,7 @@
 #define SHARED_FILE_H
 
 #include "config.h"
+#include "shared/status.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,10 +79,12 @@ int ods_skip_whitespace(FILE* fd, unsigned int* line_nr);
  * \param[in] file filename without extension
  * \param[in] suffix extension.
  * \param[in] dir directory or not
+ * \param[in] no_slash no forward slashes and such characters allowed
  * \return char* concatenation of file and suffix
  *
  */
-char* ods_build_path(const char* file, const char* suffix, int dir);
+char* ods_build_path(const char* file, const char* suffix, int dir,
+    int no_slash);
 
 /**
  * Open a file.
@@ -137,6 +140,24 @@ void ods_log_error_and_printf(int fd, const char *mod, const char *format, ...);
 time_t ods_file_lastmodified(const char* file);
 
 /**
+ * Compare strings.
+ * \param[in] s1 one string
+ * \param[in] s2 another string
+ * \return -1, 0 or 1
+ *
+ */
+int ods_strcmp(const char* s1, const char* s2);
+
+/**
+ * Compare strings lowercased.
+ * \param[in] s1 one string
+ * \param[in] s2 another string
+ * \return -1, 0 or 1
+ *
+ */
+int ods_strlowercmp(const char* s1, const char* s2);
+
+/**
  * Replace a substring in string.
  * \param[in] str The string
  * \param[in] oldstr old substring
@@ -159,10 +180,13 @@ char* ods_dir_name(const char* file);
  * Copy file.
  * \param[in] file1 from file name
  * \param[in] file2 to file name
- * \return 0 on success, 1 on error
+ * \param[in] startpos starting file position in file1
+ * \param[in] append whether to append or do a regular copy
+ * \return ods_status
  *
  */
-int ods_file_copy(const char* file1, const char* file2);
+ods_status ods_file_copy(const char* file1, const char* file2, long startpos,
+    int append);
 
 /**
  * (Create) and change ownership of directories.
@@ -173,5 +197,21 @@ int ods_file_copy(const char* file1, const char* file2);
  *
  */
 void ods_chown(const char* file, uid_t uid, gid_t gid, int getdir);
+
+
+/**
+ * Remove leading and trailing whitespace.
+ * \param[in] str string to trim
+ *
+ */
+void ods_str_trim(char* str);
+
+/**
+ * Add a string to a list of strings. Taken from ods-enforcer.
+ * \param[out] list string list
+ * \param[in] str string to add
+ *
+ */
+void ods_str_list_add(char*** list, char* str);
 
 #endif /* SHARED_FILE_H */

@@ -43,6 +43,9 @@ static int logging_to_syslog = 0;
 #include <stdio.h> /* fflush, fprintf(), vsnprintf() */
 #include <stdlib.h> /* exit() */
 #include <string.h> /* strlen() */
+#include <pthread.h>
+
+#define LOG_DEEEBUG 8 /* ods_log_deeebug */
 
 static FILE* logfile = NULL;
 static int log_level = LOG_CRIT;
@@ -63,31 +66,34 @@ struct syslog_data sdata = SYSLOG_DATA_INIT;
 #endif
 
 /* TODO:
+   - prepend ods_ in common library ?
    - log_init should have program_name variable
    - wrap special case logging onto generic one
    - check if xml-specific logging functions are still neeeded (enforcer)
    -
 */
 
-#define MY_PACKAGE_TARNAME "ods-signerd"
-
 static const char* log_str = "log";
+static char* log_ident = NULL;
 
 /**
  * Initialize logging.
- *
  */
 void
-ods_log_init(const char *filename, int use_syslog, int verbosity)
+ods_log_init(const char *programname, int use_syslog, const char *targetname, int verbosity)
 {
 #ifdef HAVE_SYSLOG_H
     int facility;
 #endif /* HAVE_SYSLOG_H */
     ods_log_verbose("[%s] switching log to %s verbosity %i (log level %i)",
-        log_str, use_syslog?"syslog":(filename&&filename[0]?filename:"stderr"),
+        log_str, use_syslog?"syslog":(targetname&&targetname[0]?targetname:"stderr"),
         verbosity, verbosity+2);
     if (logfile && logfile != stderr) {
             ods_fclose(logfile);
+    }
+    if(log_ident) {
+        free(log_ident);
+        log_ident = NULL;
 	}
     log_level = verbosity + 2;
 
@@ -101,32 +107,38 @@ ods_log_init(const char *filename, int use_syslog, int verbosity)
         logging_to_syslog = 0;
     }
     if(use_syslog) {
-       facility = ods_log_get_facility(filename);
+       facility = ods_log_get_facility(targetname);
 #ifdef HAVE_OPENLOG_R
-       openlog_r(MY_PACKAGE_TARNAME, LOG_NDELAY, facility, &sdata);
+       openlog_r(programname, LOG_NDELAY, facility, &sdata);
 #else
-       openlog(MY_PACKAGE_TARNAME, LOG_NDELAY, facility);
+       openlog(programname, LOG_NDELAY, facility);
 #endif
+       log_ident = strdup(programname);
        logging_to_syslog = 1;
        return;
     }
 #endif /* HAVE_SYSLOG_H */
 
-    if(filename && filename[0]) {
-        logfile = ods_fopen(filename, NULL, "a");
+    if(targetname && targetname[0]) {
+        logfile = ods_fopen(targetname, NULL, "a");
         if (logfile) {
-            ods_log_debug("[%s] new logfile %s", log_str, filename);
+            ods_log_debug("[%s] new logfile %s", log_str, targetname);
             return;
         }
         logfile = stderr;
         ods_log_warning("[%s] cannot open %s for appending, logging to "
-            "stderr", log_str, filename);
+            "stderr", log_str, targetname);
     } else {
         logfile = stderr;
     }
     return;
 }
 
+int
+ods_log_verbosity(void)
+{
+	return log_level-2;
+}
 
 /**
  * Close logging.
@@ -136,7 +148,7 @@ void
 ods_log_close(void)
 {
     ods_log_debug("[%s] close log", log_str);
-    ods_log_init(NULL, 0, 0);
+    ods_log_init("", 0, NULL, 0);
 }
 
 
@@ -241,7 +253,7 @@ ods_log_vmsg(int priority, const char* t, const char* s, va_list args)
     nowstr[CTIME_LENGTH-2] = '\0'; /* remove trailing linefeed */
 
     fprintf(logfile, "[%s] %s[%i] %s: %s\n", nowstr,
-        MY_PACKAGE_TARNAME, priority, t, message);
+        log_ident, priority, t, message);
     fflush(logfile);
 }
 
@@ -341,6 +353,17 @@ ods_log_error(const char *format, ...)
     va_end(args);
 }
 
+/**
+ * Log error.
+ *
+ */
+void
+ods_log_verror(const char *format, va_list args)
+{
+    if (log_level >= LOG_ERR) {
+        ods_log_vmsg(LOG_ERR, "error  ", format, args);
+    }
+}
 
 /**
  * Log critical.

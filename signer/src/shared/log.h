@@ -54,12 +54,19 @@
 
 /**
  * Initialize logging.
- * \param[in] filename logfile, stderr if NULL.
- * \param[in] use_syslog: use syslog(3) and ingore filename
+ * \param[in] program_name identifying name used in logging (normally the running program name)
+ * \param[in] use_syslog: use syslog(3)
+ * \param[in] target_name name of the facilty in case of logging through syslog or otherwise a filename
  * \param[in] verbosity: log level
  *
  */
-void ods_log_init(const char *filename, int use_syslog, int verbosity);
+void ods_log_init(const char *program_name, int use_syslog, const char *target_name, int verbosity);
+
+/**
+ * Current verbosity
+ * 
+ */
+int ods_log_verbosity(void);
 
 /**
  * Close logging.
@@ -123,6 +130,14 @@ void ods_log_warning(const char *format, ...);
  *
  */
 void ods_log_error(const char *format, ...);
+
+/**
+ * Log errors.
+ * \param[in] format printf-style format string, arguments follow
+ * \param[in] args list of arguments already started with va_start
+ *
+ */
+void ods_log_verror(const char *format, va_list args);
 
 /**
  * Log criticals.
