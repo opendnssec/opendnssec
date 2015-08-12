@@ -35,7 +35,7 @@ T.B.S.
 
 To build and install the enforcer, the following steps are needed:
 
-From the base directory <opendnssec>/enforcer-ng
+From the base directory <opendnssec>/enforcer
 
 autoreconf --install
 ./configure

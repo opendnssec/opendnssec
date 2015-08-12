@@ -181,19 +181,19 @@ AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])
 ACX_DLOPEN
 AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 
-# enforcer-ng
-AC_ARG_ENABLE(enforcerng,
-	AC_HELP_STRING([--disable-enforcerng],
-		[Disable enforcerng build (default enabled)]),
-		[enable_enforcerng="${enableval}"],
-		[enable_enforcerng="yes"])
-if test "x${enable_enforcerng}" = "xyes"; then
+# enforcer
+AC_ARG_ENABLE(enforcer,
+	AC_HELP_STRING([--disable-enforcer],
+		[Disable enforcer build (default enabled)]),
+		[enable_enforcer="${enableval}"],
+		[enable_enforcer="yes"])
+if test "x${enable_enforcer}" = "xyes"; then
 	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
 	ACX_ENFORCER_DATABASE
 	ACX_LIBREADLINE
 fi
 AH_BOTTOM([#include "stdbool-cpp.h"])
-AM_CONDITIONAL([ENABLE_ENFORCERNG], [test "${enable_enforcerng}" = "yes"])
+AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_enforcer}" = "yes"])
 
 # signer
 AC_ARG_ENABLE(signer,
@@ -247,13 +247,13 @@ AC_CONFIG_FILES([
 	conf/kasp.xml
 	conf/signconf.xml
 	conf/zonelist.xml
-	enforcer-ng/Makefile
-	enforcer-ng/src/Makefile
-	enforcer-ng/src/utils/Makefile
-	enforcer-ng/man/Makefile
-	enforcer-ng/src/db/test/Makefile
-	enforcer-ng/man/ods-enforcer.8
-	enforcer-ng/man/ods-enforcerd.8
+	enforcer/Makefile
+	enforcer/src/Makefile
+	enforcer/src/utils/Makefile
+	enforcer/man/Makefile
+	enforcer/src/db/test/Makefile
+	enforcer/man/ods-enforcer.8
+	enforcer/man/ods-enforcerd.8
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/bin/Makefile
