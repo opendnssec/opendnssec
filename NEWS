@@ -1,3 +1,5 @@
+OpenDNSSEC 2.0.0
+
 OpenDNSSEC 2.0.0a4 (EnforcerNG branch) 
 
 * SUPPORT-72: Improve logging when failed to increment serial in case 
