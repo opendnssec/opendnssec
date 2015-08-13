@@ -51,6 +51,7 @@ log_this ods-enforcer-key-list1_2 ods-enforcer key list &&
 log_grep ods-enforcer-key-list1_2 stdout 'ods[[:space:]]*KSK[[:space:]]*active' &&
 log_grep ods-enforcer-key-list1_2 stdout 'ods[[:space:]]*ZSK[[:space:]]*active' &&
 
+ods_stop_enforcer &&
 return 0
 
 echo
