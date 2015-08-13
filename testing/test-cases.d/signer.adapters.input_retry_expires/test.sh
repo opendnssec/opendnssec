@@ -23,7 +23,7 @@ ods_ldns_testns 15353 ods.datafile &&
 ods_start_ods-control && 
 
 ## Wait for signed zone file
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods' &&
 
 ## Check signed zone file [when we decide on auditor tool]
 

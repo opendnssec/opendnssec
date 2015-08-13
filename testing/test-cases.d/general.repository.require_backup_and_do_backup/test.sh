@@ -28,6 +28,11 @@ ods_start_signer &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
+# The signer indicates the zone is signed, however the enforcer
+# manages the key generation.  Hence give the enforcer time to
+# generate the necessary keys.
+sleep 60 &&
+
 log_this ods-hsmutil-list ods-hsmutil list &&
 log_grep ods-hsmutil-list stdout '15 keys found.' &&
 log_grep ods-hsmutil-list stdout 'Repository.*ID.*Type' &&

@@ -393,5 +393,8 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
         return SIGNCONF_EXPORT_ERR_FILE;
     }
 
+    zone_set_signconf_needs_writing(zone, 0);
+    zone_update(zone);
+
     return SIGNCONF_EXPORT_OK;
 }

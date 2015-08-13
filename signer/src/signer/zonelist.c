@@ -360,6 +360,9 @@ zonelist_update(zonelist_type* zl, const char* zlfile)
         return ODS_STATUS_ASSERT_ERR;
     }
     /* is the file updated? */
+    /* OPENDNSSEC-686: changes happening within one second will not be
+     * seen
+     */
     st_mtime = ods_file_lastmodified(zlfile);
     if (st_mtime <= zl->last_modified) {
         (void)time_datestamp(zl->last_modified, "%Y-%m-%d %T", &datestamp);
