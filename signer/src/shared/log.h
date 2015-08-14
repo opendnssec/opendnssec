@@ -88,7 +88,7 @@ int ods_log_get_level();
  *
  */
 void ods_log_deeebug(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
@@ -99,7 +99,7 @@ void ods_log_deeebug(const char *format, ...)
  *
  */
 void ods_log_debug(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
@@ -110,7 +110,7 @@ void ods_log_debug(const char *format, ...)
  *
  */
 void ods_log_verbose(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
@@ -121,7 +121,7 @@ void ods_log_verbose(const char *format, ...)
  *
  */
 void ods_log_info(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
@@ -132,7 +132,7 @@ void ods_log_info(const char *format, ...)
  *
  */
 void ods_log_warning(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
@@ -143,7 +143,7 @@ void ods_log_warning(const char *format, ...)
  *
  */
 void ods_log_error(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
@@ -154,7 +154,7 @@ void ods_log_error(const char *format, ...)
  *
  */
 void ods_log_crit(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
@@ -165,7 +165,7 @@ void ods_log_crit(const char *format, ...)
  *
  */
 void ods_log_alert(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
@@ -176,7 +176,7 @@ void ods_log_alert(const char *format, ...)
  *
  */
 void ods_fatal_exit(const char *format, ...)
-#ifdef HAVE__ATTRIBUTE__
+#ifdef HAVE___ATTRIBUTE__
                     __attribute__ ((format (printf, 1, 2)))
 #endif
                     ;
