@@ -64,6 +64,7 @@ echo "Cleaning up files" &&
 rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
 rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
+ods_stop_enforcer &&
 return 0
 
 # Something went wrong, make sure clean up tmp if nothing else
