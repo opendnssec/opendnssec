@@ -35,9 +35,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "shared/log.h"
-#include "shared/file.h"
-#include "shared/str.h"
+#include "log.h"
+#include "file.h"
+#include "str.h"
 
 #include "clientpipe.h"
 
@@ -229,7 +229,7 @@ client_prompt_user(int sockfd, const char *question, char *answer)
 		ods_log_verbose("[clientpipe] entire message.");
 		strncpy(answer, buf+3, datalen);
 		answer[datalen] = 0;
-		ods_str_trim(answer);
+		ods_str_trim(answer,0);
 	} else {
 		ods_log_info("[clientpipe] unhandled message.");
 	}

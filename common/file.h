@@ -33,7 +33,7 @@
 #define SHARED_FILE_H
 
 #include "config.h"
-#include "shared/status.h"
+#include "status.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -198,13 +198,6 @@ ods_status ods_file_copy(const char* file1, const char* file2, long startpos,
  */
 void ods_chown(const char* file, uid_t uid, gid_t gid, int getdir);
 
-
-/**
- * Remove leading and trailing whitespace.
- * \param[in] str string to trim
- *
- */
-void ods_str_trim(char* str);
 
 /**
  * Add a string to a list of strings. Taken from ods-enforcer.

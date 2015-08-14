@@ -33,7 +33,7 @@
 #define SHARED_HSM_H
 
 #include "config.h"
-#include "shared/status.h"
+#include "status.h"
 #include "signer/keys.h"
 #include "libhsm.h"
 

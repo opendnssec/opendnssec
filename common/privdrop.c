@@ -34,9 +34,9 @@
 #define _GNU_SOURCE /* defines for setres{g|u}id */
 
 #include "config.h"
-#include "shared/log.h"
-#include "shared/privdrop.h"
-#include "shared/status.h"
+#include "log.h"
+#include "privdrop.h"
+#include "status.h"
 
 #include <errno.h>
 #include <pwd.h>

@@ -33,7 +33,7 @@
 #define UTIL_DURATION_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 
 #include <stdint.h>
 #include <time.h>

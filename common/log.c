@@ -30,10 +30,10 @@
  */
 
 #include "config.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "util.h"
 
 #ifdef HAVE_SYSLOG_H
 static int logging_to_syslog = 0;

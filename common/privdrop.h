@@ -35,7 +35,7 @@
 #include <pwd.h>
 #include <grp.h>
 
-#include "shared/status.h"
+#include "status.h"
 
 /**
  * Get the group identifier from a group name.

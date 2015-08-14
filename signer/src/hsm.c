@@ -30,8 +30,8 @@
  */
 
 #include "daemon/engine.h"
-#include "shared/hsm.h"
-#include "shared/log.h"
+#include "hsm.h"
+#include "log.h"
 
 static const char* hsm_str = "hsm";
 

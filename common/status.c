@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "shared/status.h"
+#include "status.h"
 
 #include <stdlib.h>
 

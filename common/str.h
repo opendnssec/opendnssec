@@ -33,7 +33,7 @@
 #define SHARED_STR_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 #include <time.h>
 
 
@@ -85,9 +85,11 @@ char *ods_strcat_delim(int argc, char* argv[], char delim);
 /**
  * Remove leading and trailing whitespace.
  * \param[in] str string to trim
+ * \param[in] keep_newline whether to keep a single trailing newline or not
+ * \return the same reference to the string
  *
  */
-void ods_str_trim(char* str);
+char* ods_str_trim(char* str, int keep_newline);
 
 /**
  * Version of ctime_r that does not feature a trailing '\n' character

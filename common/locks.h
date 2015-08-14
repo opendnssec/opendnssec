@@ -33,7 +33,7 @@
 #define SCHEDULER_LOCKS_H
 
 #include "config.h"
-#include "shared/log.h"
+#include "log.h"
 
 #include <errno.h>
 #include <stdlib.h>

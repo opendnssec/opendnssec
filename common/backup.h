@@ -33,8 +33,8 @@
 #define SHARED_BACKUP_H
 
 #include "config.h"
-#include "shared/duration.h"
-#include "shared/file.h"
+#include "duration.h"
+#include "file.h"
 
 #include <stdio.h> /* size_t */
 

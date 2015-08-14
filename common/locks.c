@@ -30,8 +30,8 @@
  */
 
 #include "config.h"
-#include "shared/locks.h"
-#include "shared/log.h"
+#include "locks.h"
+#include "log.h"
 
 #include <errno.h>
 #include <signal.h> /* sigfillset(), sigprocmask() */

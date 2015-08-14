@@ -31,9 +31,9 @@
 
 #include "config.h"
 
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "file.h"
+#include "log.h"
+#include "util.h"
 
 #include <fcntl.h>
 #include <ldns/ldns.h>

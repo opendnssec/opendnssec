@@ -30,10 +30,10 @@
  */
 
 #include "config.h"
-#include "shared/backup.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
+#include "backup.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
 
 #include <ldns/ldns.h>
 

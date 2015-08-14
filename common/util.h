@@ -33,7 +33,7 @@
 #define UTIL_UTIL_H
 
 #include "config.h"
-#include "shared/status.h"
+#include "status.h"
 
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>

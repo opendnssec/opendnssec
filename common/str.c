@@ -30,8 +30,8 @@
  */
 
 #include "config.h"
-#include "shared/str.h"
-#include "shared/log.h"
+#include "str.h"
+#include "log.h"
 
 #include <errno.h>
 #include <assert.h>
@@ -123,23 +123,30 @@ ods_strcat_delim(int argc, char* argv[], char delim)
 
 /**
  * Remove leading and trailing whitespace.
- *
+ * enforcer used ods_str_trim(s,0)
  */
-void
-ods_str_trim(char *str)
+char *
+ods_str_trim(char *str, int keep_newline)
 {
+    int has_newline = 0;
     char *start, *end;
-    if (!str) return;
-    end = str + strlen(str); /* points at \0 */
+    if (!str) {
+        end = str + strlen(str); /* points at \0 */
     
-    for (start = str; start<end; start++) {
-        if (!isspace(*start)) break;
+        for (start = str; start<end; start++) {
+            if (!isspace(*start)) break;
+        }
+        for (; end > start; end--) {
+            if (*(end-1) == '\n') has_newline = 1;
+            if (!isspace(*(end-1))) break;
+        }
+        memmove(str, start, end-start);
+        if(has_newline && keep_newline) {
+            str[(end++)-start] = '\n';
+        }
+        str[end-start] = '\0';
     }
-    for (; end > start; end--) {
-        if (!isspace(*(end-1))) break;
-    }
-    memmove(str, start, end-start);
-    str[end-start] = 0;
+    return str;
 }
 
 /**

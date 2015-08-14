@@ -30,9 +30,9 @@
  */
 
 #include "config.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "daemon/clientpipe.h"
+#include "file.h"
+#include "log.h"
+#include "clientpipe.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -605,45 +605,6 @@ ods_chown(const char* file, uid_t uid, gid_t gid, int getdir)
     } else {
         ods_log_warning("[%s] use of relative path: %s", file_str, file);
     }
-    return;
-}
-
-
-/**
- * Remove leading and trailing whitespace.
- *
- */
-void
-ods_str_trim(char* str)
-{
-    int i = strlen(str), nl = 0;
-
-    /* trailing */
-    while (i>0) {
-        --i;
-        if (str[i] == '\n') {
-            nl = 1;
-        }
-        if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n') {
-            str[i] = '\0';
-        } else {
-            break;
-        }
-    }
-    if (nl) {
-        str[++i] = '\n';
-    }
-
-    /* leading */
-    i = 0;
-    while (str[i] == ' ' || str[i] == '\t') {
-        i++;
-    }
-    while (*(str+i) != '\0') {
-        *str = *(str+i);
-        str++;
-    }
-    *str = '\0';
     return;
 }
 

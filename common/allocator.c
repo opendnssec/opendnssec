@@ -30,8 +30,8 @@
  */
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/log.h"
+#include "allocator.h"
+#include "log.h"
 
 #include <stdlib.h>
 #include <string.h>
