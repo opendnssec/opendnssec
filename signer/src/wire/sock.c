@@ -31,7 +31,7 @@
 
 #include "config.h"
 #include "daemon/engine.h"
-#include "shared/log.h"
+#include "log.h"
 #include "signer/zone.h"
 #include "wire/axfr.h"
 #include "wire/netio.h"

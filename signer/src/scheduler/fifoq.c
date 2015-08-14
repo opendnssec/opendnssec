@@ -31,7 +31,7 @@
 
 #include "config.h"
 #include "scheduler/fifoq.h"
-#include "shared/log.h"
+#include "log.h"
 
 #include <ldns/ldns.h>
 

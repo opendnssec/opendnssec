@@ -31,7 +31,7 @@
 #include "clientpipe.h"
 #include "scheduler/task.h"
 #include "daemon/engine.h"
-#include "shared/duration.h"
+#include "duration.h"
 #include "keystate/keystate_ds.h"
 
 #include "keystate/keystate_ds_retract_task.h"

@@ -33,10 +33,10 @@
 #include "daemon/worker.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
-#include "shared/duration.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
+#include "duration.h"
 
 #include <time.h> /* time() */
 

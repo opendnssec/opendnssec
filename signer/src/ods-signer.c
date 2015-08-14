@@ -30,9 +30,9 @@
  */
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/log.h"
+#include "allocator.h"
+#include "file.h"
+#include "log.h"
 
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */

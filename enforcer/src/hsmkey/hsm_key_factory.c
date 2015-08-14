@@ -33,10 +33,10 @@
 #include "db/policy.h"
 #include "db/policy_key.h"
 #include "db/key_data.h"
-#include "shared/log.h"
+#include "log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/duration.h"
+#include "duration.h"
 #include "libhsm.h"
 
 #include <math.h>

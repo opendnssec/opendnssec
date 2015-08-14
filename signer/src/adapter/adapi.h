@@ -33,7 +33,7 @@
 #define ADAPTER_ADAPI_H
 
 #include "config.h"
-#include "shared/status.h"
+#include "status.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>

@@ -34,8 +34,8 @@
 
 #include <time.h>
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
 #include "daemon/cfg.h"
 
 /**

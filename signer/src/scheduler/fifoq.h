@@ -34,9 +34,9 @@
 
 #include "config.h"
 #include "daemon/worker.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "locks.h"
+#include "status.h"
 
 #include <stdio.h>
 #include <time.h>

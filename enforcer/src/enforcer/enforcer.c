@@ -49,8 +49,8 @@
 #include <libhsmdns.h>
 #include <ldns/ldns.h>
 
-#include "shared/duration.h"
-#include "shared/log.h"
+#include "duration.h"
+#include "log.h"
 #include "daemon/engine.h"
 
 #include "db/zone.h"

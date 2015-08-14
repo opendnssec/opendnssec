@@ -28,9 +28,9 @@
  */
 
 #include "signconf/signconf.h"
-#include "shared/duration.h"
-#include "shared/log.h"
-#include "shared/file.h"
+#include "duration.h"
+#include "log.h"
+#include "file.h"
 
 #include "signconf/signconf_task.h"
 

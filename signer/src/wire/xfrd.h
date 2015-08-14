@@ -33,9 +33,9 @@
 #define WIRE_XFRD_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "locks.h"
+#include "status.h"
 #include "wire/acl.h"
 #include "wire/buffer.h"
 #include "wire/netio.h"

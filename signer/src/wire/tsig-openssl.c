@@ -32,7 +32,7 @@
 #include "config.h"
 
 #ifdef HAVE_SSL
-#include "shared/log.h"
+#include "log.h"
 #include "wire/tsig.h"
 #include "wire/tsig-openssl.h"
 

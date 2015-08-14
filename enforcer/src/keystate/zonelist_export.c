@@ -28,8 +28,8 @@
 
 #include "config.h"
 
-#include "shared/log.h"
-#include "shared/str.h"
+#include "log.h"
+#include "str.h"
 #include "clientpipe.h"
 #include "db/zone.h"
 #include "utils/kc_helper.h"

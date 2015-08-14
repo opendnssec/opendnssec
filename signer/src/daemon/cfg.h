@@ -33,10 +33,10 @@
 #define DAEMON_CONFIG_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 #include "hsm.h"
-#include "shared/locks.h"
-#include "shared/status.h"
+#include "locks.h"
+#include "status.h"
 #include "wire/listener.h"
 
 #include <stdio.h>

@@ -43,8 +43,8 @@
 
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/duration.h"
-#include "shared/log.h"
+#include "duration.h"
+#include "log.h"
 
 static const char* schedule_str = "scheduler";
 

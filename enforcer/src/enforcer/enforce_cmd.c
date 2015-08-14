@@ -32,9 +32,9 @@
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/str.h"
+#include "file.h"
+#include "log.h"
+#include "str.h"
 #include "clientpipe.h"
 
 #include "enforcer/enforce_cmd.h"

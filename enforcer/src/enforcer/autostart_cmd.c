@@ -32,8 +32,8 @@
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "policy/policy_resalt_task.h"
-#include "shared/status.h"
-#include "shared/log.h"
+#include "status.h"
+#include "log.h"
 #include "hsmkey/hsm_key_factory.h"
 
 #include "enforcer/autostart_cmd.h"

@@ -38,7 +38,7 @@
 #include <getopt.h>
 
 #include "daemon/engine.h"
-#include "shared/log.h"
+#include "log.h"
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
 #include <sqlite3.h>

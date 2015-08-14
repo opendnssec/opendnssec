@@ -31,9 +31,9 @@
 
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
-#include "shared/log.h"
+#include "allocator.h"
+#include "duration.h"
+#include "log.h"
 #include "signer/keys.h"
 
 #include <libxml/parser.h>

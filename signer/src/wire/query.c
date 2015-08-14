@@ -32,8 +32,8 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "daemon/engine.h"
-#include "shared/file.h"
-#include "shared/util.h"
+#include "file.h"
+#include "util.h"
 #include "wire/axfr.h"
 #include "wire/query.h"
 

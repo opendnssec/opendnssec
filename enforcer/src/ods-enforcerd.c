@@ -35,7 +35,7 @@
 #include <libxml/parser.h>
 
 #include "daemon/engine.h"
-#include "shared/log.h"
+#include "log.h"
 #include "mm.h"
 
 #include "enforcer/autostart_cmd.h"

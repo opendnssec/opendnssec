@@ -26,10 +26,10 @@
  *
  */
 
-#include "shared/log.h"
-#include "shared/str.h"
+#include "log.h"
+#include "str.h"
 #include "clientpipe.h"
-#include "shared/duration.h"
+#include "duration.h"
 #include "db/key_data.h"
 #include "db/hsm_key.h"
 #include "utils/kc_helper.h"

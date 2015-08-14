@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "shared/util.h"
+#include "util.h"
 #include "signer/ixfr.h"
 #include "signer/rrset.h"
 #include "signer/zone.h"

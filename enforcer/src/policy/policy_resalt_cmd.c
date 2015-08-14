@@ -31,10 +31,10 @@
 
 #include "daemon/cmdhandler.h"
 #include "policy/policy_resalt_task.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/str.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "str.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 

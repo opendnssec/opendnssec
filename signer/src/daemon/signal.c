@@ -32,8 +32,8 @@
 #include "config.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "shared/locks.h"
-#include "shared/log.h"
+#include "locks.h"
+#include "log.h"
 
 #include <signal.h>
 

@@ -34,7 +34,7 @@
 
 #include "config.h"
 #include "daemon/engine.h"
-#include "shared/status.h"
+#include "status.h"
 #include "signer/zone.h"
 
 /**

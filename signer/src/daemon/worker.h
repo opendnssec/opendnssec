@@ -33,8 +33,8 @@
 #define DAEMON_WORKER_H
 
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "allocator.h"
+#include "locks.h"
 
 #include <time.h>
 

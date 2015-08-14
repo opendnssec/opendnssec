@@ -31,11 +31,11 @@
 
 #include "adapter/adapter.h"
 #include "parser/zonelistparser.h"
-#include "shared/file.h"
-#include "shared/log.h"
+#include "file.h"
+#include "log.h"
 #include "signer/zonelist.h"
 #include "signer/zone.h"
-#include "shared/status.h"
+#include "status.h"
 
 #include <libxml/xpath.h>
 #include <libxml/xmlreader.h>

@@ -26,8 +26,8 @@
  *
  */
 
-#include "shared/log.h"
-#include "shared/str.h"
+#include "log.h"
+#include "str.h"
 #include "utils/kc_helper.h"
 #include "db/policy.h"
 #include "clientpipe.h"

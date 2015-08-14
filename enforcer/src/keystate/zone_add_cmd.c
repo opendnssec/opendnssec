@@ -30,9 +30,9 @@
 
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
-#include "shared/file.h"
-#include "shared/str.h"
-#include "shared/log.h"
+#include "file.h"
+#include "str.h"
+#include "log.h"
 #include "clientpipe.h"
 #include "db/policy.h"
 #include "db/zone.h"

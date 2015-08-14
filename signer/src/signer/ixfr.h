@@ -33,7 +33,7 @@
 #define SIGNER_IXFR_H
 
 #include "config.h"
-#include "shared/locks.h"
+#include "locks.h"
 
 #include <ldns/ldns.h>
 

@@ -30,10 +30,10 @@
  */
 
 #include "parser/confparser.h"
-#include "shared/allocator.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/duration.h"
+#include "allocator.h"
+#include "log.h"
+#include "status.h"
+#include "duration.h"
 #include "daemon/cfg.h"
 
 #include <libxml/xpath.h>

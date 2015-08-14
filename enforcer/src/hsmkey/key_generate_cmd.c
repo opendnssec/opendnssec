@@ -28,12 +28,12 @@
 
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
-#include "shared/log.h"
-#include "shared/str.h"
+#include "log.h"
+#include "str.h"
 #include "clientpipe.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "db/policy.h"
-#include "shared/duration.h"
+#include "duration.h"
 
 #include "hsmkey/key_generate_cmd.h"
 

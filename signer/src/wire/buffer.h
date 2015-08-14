@@ -33,9 +33,9 @@
 #define WIRE_BUFFER_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/log.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "log.h"
+#include "status.h"
 
 #include <ldns/ldns.h>
 #include <stdint.h>

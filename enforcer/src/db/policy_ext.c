@@ -30,8 +30,8 @@
 #include "policy.h"
 
 #include "db_error.h"
-#include "shared/duration.h"
-#include "shared/log.h"
+#include "duration.h"
+#include "log.h"
 
 #include <string.h>
 

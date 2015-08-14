@@ -31,12 +31,12 @@
 
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "shared/str.h"
+#include "str.h"
 #include "enforcer/enforce_task.h"
 #include "clientpipe.h"
 #include "db/zone.h"
-#include "shared/log.h"
-#include "shared/file.h"
+#include "log.h"
+#include "file.h"
 
 #include "keystate/keystate_rollover_cmd.h"
 

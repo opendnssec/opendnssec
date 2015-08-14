@@ -30,10 +30,10 @@
 
 #include <pthread.h>
 
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/str.h"
-#include "shared/duration.h"
+#include "file.h"
+#include "log.h"
+#include "str.h"
+#include "duration.h"
 #include "scheduler/schedule.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"

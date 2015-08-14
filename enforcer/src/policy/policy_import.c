@@ -26,7 +26,7 @@
  *
  */
 
-#include "shared/log.h"
+#include "log.h"
 #include "clientpipe.h"
 #include "db/policy.h"
 #include "db/policy_key.h"

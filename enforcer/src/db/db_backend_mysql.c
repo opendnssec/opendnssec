@@ -31,7 +31,7 @@
 #include "db_error.h"
 
 #include "mm.h"
-#include "shared/log.h"
+#include "log.h"
 
 #include <mysql/mysql.h>
 #include <stdlib.h>

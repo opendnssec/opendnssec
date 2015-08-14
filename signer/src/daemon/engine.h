@@ -40,8 +40,8 @@
 #include "daemon/worker.h"
 #include "scheduler/fifoq.h"
 #include "scheduler/schedule.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "allocator.h"
+#include "locks.h"
 #include "signer/zonelist.h"
 #include "wire/edns.h"
 

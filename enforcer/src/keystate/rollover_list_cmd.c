@@ -32,9 +32,9 @@
 #include "db/zone.h"
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/str.h"
+#include "file.h"
+#include "log.h"
+#include "str.h"
 #include "clientpipe.h"
 
 #include "keystate/rollover_list_cmd.h"

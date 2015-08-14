@@ -32,14 +32,14 @@
 #include <pthread.h>
 
 #include "daemon/cmdhandler.h"
-#include "shared/str.h"
-#include "shared/log.h"
-#include "shared/file.h"
+#include "str.h"
+#include "log.h"
+#include "file.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
-#include "shared/status.h"
+#include "status.h"
 #include "utils/kc_helper.h"
 #include "daemon/engine.h"
 #include "libhsm.h"

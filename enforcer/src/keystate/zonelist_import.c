@@ -28,7 +28,7 @@
 
 #include "config.h"
 
-#include "shared/log.h"
+#include "log.h"
 #include "clientpipe.h"
 #include "db/zone.h"
 #include "db/key_data.h"

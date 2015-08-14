@@ -28,8 +28,8 @@
 
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
-#include "shared/log.h"
-#include "shared/str.h"
+#include "log.h"
+#include "str.h"
 #include "clientpipe.h"
 #include "utils/kc_helper.h"
 

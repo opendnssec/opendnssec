@@ -33,8 +33,8 @@
 #define PARSER_SIGNCONFPARSER_H
 
 #include "parser/confparser.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
+#include "allocator.h"
+#include "duration.h"
 #include "signer/keys.h"
 #include "config.h"
 

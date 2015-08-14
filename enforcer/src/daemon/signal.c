@@ -36,7 +36,7 @@
 
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "shared/log.h"
+#include "log.h"
 
 #include "signal.h"
 

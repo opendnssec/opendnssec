@@ -30,7 +30,7 @@
 #include "zone.h"
 
 #include "db_error.h"
-#include "shared/log.h"
+#include "log.h"
 #include "policy.h"
 
 #include <string.h>

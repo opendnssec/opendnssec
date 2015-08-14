@@ -55,11 +55,11 @@
 #include "clientpipe.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/duration.h"
-#include "shared/str.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
+#include "duration.h"
+#include "str.h"
 #include "db/db_connection.h"
 
 /* commands to handle */

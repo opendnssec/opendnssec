@@ -31,13 +31,13 @@
 
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/str.h"
-#include "shared/locks.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "file.h"
+#include "str.h"
+#include "locks.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
 
 #include <errno.h>
 #include <fcntl.h>

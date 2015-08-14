@@ -33,7 +33,7 @@
 #define WIRE_LISTENER_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 
 #include <arpa/inet.h>
 #include <netdb.h>

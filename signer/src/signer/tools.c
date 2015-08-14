@@ -32,7 +32,7 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "adapter/adapter.h"
-#include "shared/log.h"
+#include "log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
 

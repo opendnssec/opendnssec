@@ -31,7 +31,7 @@
 #include "db_error.h"
 
 #include "mm.h"
-#include "shared/log.h"
+#include "log.h"
 
 #include <stdlib.h>
 #include <sqlite3.h>

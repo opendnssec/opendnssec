@@ -41,10 +41,10 @@
 	#define __BSD_VISIBLE 1
 #endif
 
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/str.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "str.h"
 #include "scheduler/task.h"
 #include "daemon/engine.h"
 #include "db/policy.h"

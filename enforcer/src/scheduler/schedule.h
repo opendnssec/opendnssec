@@ -38,7 +38,7 @@
 #include <ldns/ldns.h>
 
 #include "scheduler/task.h"
-#include "shared/status.h"
+#include "status.h"
 
 /**
  * Task schedule.

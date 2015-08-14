@@ -31,11 +31,11 @@
 
 #include "config.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/backup.h"
+#include "allocator.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "backup.h"
 
 static const char* task_str = "task";
 
