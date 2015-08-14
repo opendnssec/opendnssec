@@ -398,7 +398,7 @@ tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
     klass = (ldns_rr_class) buffer_read_u16(buffer);
     if (type != LDNS_RR_TYPE_TSIG || klass != LDNS_RR_CLASS_ANY) {
         /* not present */
-        ods_log_debug("[%s] parse: not TSIG or not ANY", tsig_str,
+        ods_log_debug("[%s] parse: not TSIG or not ANY but %d:%d", tsig_str,
             klass, type);
         buffer_set_position(buffer, trr->position);
         return 1;

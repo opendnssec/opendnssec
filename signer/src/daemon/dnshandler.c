@@ -255,7 +255,7 @@ dnshandler_fwd_notify(dnshandler_type* dnshandler, uint8_t* pkt, size_t len)
         ods_log_error("[%s] unable to forward notify: send() failed (%s)",
             dnsh_str, strerror(errno));
     } else {
-        ods_log_debug("[%s] forwarded notify: %u bytes sent", dnsh_str, nb);
+        ods_log_debug("[%s] forwarded notify: %ld bytes sent", dnsh_str, (long)nb);
     }
     return;
 }

@@ -185,7 +185,7 @@ duration_create_from_string(const char* str)
     if (W) {
         if (not_weeks) {
             ods_log_error("[%s] cannot create from string: parse error",
-                duration_str, P);
+                duration_str);
             duration_cleanup(duration);
             return NULL;
         } else {

@@ -326,14 +326,14 @@ begin_pkt:
         }
         /* [add to/remove from] the zone */
         if (!is_axfr && del_mode) {
-            ods_log_deeebug("[%s] delete RR #%i at line %i: %s",
-                adapter_str, rr_count, l, line);
+            ods_log_deeebug("[%s] delete RR #%lu at line %i: %s",
+                adapter_str, (unsigned long)rr_count, l, line);
             result = adapi_del_rr(zone, rr, 0);
             ldns_rr_free(rr);
             rr = NULL;
         } else {
-            ods_log_deeebug("[%s] add RR #%i at line %i: %s",
-                adapter_str, rr_count, l, line);
+            ods_log_deeebug("[%s] add RR #%lu at line %i: %s",
+                adapter_str, (unsigned long)rr_count, l, line);
             result = adapi_add_rr(zone, rr, 0);
         }
         if (result == ODS_STATUS_UNCHANGED) {
@@ -767,7 +767,7 @@ addns_read(void* zone)
         /* clean up copy of zone transfer */
         if (unlink((const char*) file) != 0) {
             ods_log_error("[%s] unable to unlink zone transfer copy file %s: "
-                " %s", adapter_str, strerror(errno));
+                " %s", adapter_str, file, strerror(errno));
             /* should be no issue */
         }
     }

@@ -342,8 +342,8 @@ notify_send_udp(notify_type* notify, buffer_type* buffer)
     /* bind it? */
 
     /* send it (udp) */
-    ods_log_deeebug("[%s] send %d bytes over udp to %s", notify_str,
-        buffer_remaining(buffer), notify->secondary->address);
+    ods_log_deeebug("[%s] send %ld bytes over udp to %s", notify_str,
+        (unsigned long)buffer_remaining(buffer), notify->secondary->address);
     nb = sendto(fd, buffer_current(buffer), buffer_remaining(buffer), 0,
         (struct sockaddr*)&to, to_len);
     if (nb == -1) {

@@ -69,7 +69,7 @@ purge_policies(int sockfd, db_connection_t *dbconn)
 			ods_log_info("[%s] No zones on policy %s; purging...", module_str, name);
 			client_printf(sockfd, "No zones on policy %s; purging...\n", name);
 			if (policy_delete(policy)) {
-				ods_log_crit("[%s] Error while purging policy from database", module_str, name);
+				ods_log_crit("[%s] Error while purging policy from database", module_str);
 				client_printf(sockfd, "Error while updating database\n", name);
 				result++;
 			}

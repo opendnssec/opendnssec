@@ -245,10 +245,10 @@ tools_output(zone_type* zone, engine_type* engine)
                     }
                 }
                 if (wpid == -1) {
-                    ods_log_error("[%s] notify nameserver failed: waitpid() ",
+                    ods_log_error("[%s] notify nameserver failed: waitpid() "
                         "failed (%s)", tools_str, strerror(errno));
                 } else if (!WIFEXITED(status)) {
-                    ods_log_error("[%s] notify nameserver failed: notify ",
+                    ods_log_error("[%s] notify nameserver failed: notify "
                         "command did not terminate normally", tools_str);
                 } else {
                     ods_log_verbose("[%s] notify nameserver ok", tools_str);
