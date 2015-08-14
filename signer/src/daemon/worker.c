@@ -253,16 +253,16 @@ worker_check_jobs(worker_type* worker, task_type* task)
     ods_log_assert(task);
     lock_basic_lock(&worker->worker_lock);
     if (worker->jobs_failed) {
-        ods_log_error("[%s[%i]] sign zone %s failed: %u RRsets failed",
+        ods_log_error("[%s[%i]] sign zone %s failed: %lu RRsets failed",
             worker2str(worker->type), worker->thread_num,
-            task_who2str(task), worker->jobs_failed);
+            task_who2str(task), (unsigned long)worker->jobs_failed);
         lock_basic_unlock(&worker->worker_lock);
         return ODS_STATUS_ERR;
     } else if (worker->jobs_completed != worker->jobs_appointed) {
-        ods_log_error("[%s[%i]] sign zone %s failed: processed %u of %u "
+        ods_log_error("[%s[%i]] sign zone %s failed: processed %lu of %lu "
             "RRsets", worker2str(worker->type), worker->thread_num,
-            task_who2str(task), worker->jobs_completed,
-            worker->jobs_appointed);
+            task_who2str(task), (unsigned long)worker->jobs_completed,
+            (unsigned long)worker->jobs_appointed);
         lock_basic_unlock(&worker->worker_lock);
         return ODS_STATUS_ERR;
     } else if (worker->need_to_exit) {
@@ -271,10 +271,10 @@ worker_check_jobs(worker_type* worker, task_type* task)
         lock_basic_unlock(&worker->worker_lock);
         return ODS_STATUS_ERR;
     } else {
-        ods_log_debug("[%s[%i]] sign zone %s ok: %u of %u RRsets "
+        ods_log_debug("[%s[%i]] sign zone %s ok: %lu of %lu RRsets "
             "succeeded", worker2str(worker->type), worker->thread_num,
-            task_who2str(task), worker->jobs_completed,
-            worker->jobs_appointed);
+            task_who2str(task), (unsigned long)worker->jobs_completed,
+            (unsigned long)worker->jobs_appointed);
         ods_log_assert(worker->jobs_appointed == worker->jobs_completed);
     }
     lock_basic_unlock(&worker->worker_lock);
@@ -550,9 +550,9 @@ task_perform_fail:
     if (task->backoff > ODS_SE_MAX_BACKOFF) {
         task->backoff = ODS_SE_MAX_BACKOFF;
     }
-    ods_log_info("[%s[%i]] backoff task %s for zone %s with %u seconds",
+    ods_log_info("[%s[%i]] backoff task %s for zone %s with %lu seconds",
         worker2str(worker->type), worker->thread_num,
-        task_what2str(task->what), task_who2str(task), task->backoff);
+        task_what2str(task->what), task_who2str(task), (long)task->backoff);
     task->when = time_now() + task->backoff;
     return;
 
@@ -803,10 +803,10 @@ worker_sleep_unless(worker_type* worker, time_t timeout)
         worker->sleeping = 1;
         lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
             timeout);
-        ods_log_debug("[%s[%i]] somebody poked me, check completed jobs %u "
-           "appointed, %u completed, %u failed", worker2str(worker->type),
-           worker->thread_num, worker->jobs_appointed, worker->jobs_completed,
-           worker->jobs_failed);
+        ods_log_debug("[%s[%i]] somebody poked me, check completed jobs %lu "
+           "appointed, %lu completed, %lu failed", worker2str(worker->type),
+           worker->thread_num, (long)worker->jobs_appointed, (long)worker->jobs_completed,
+           (long)worker->jobs_failed);
     }
     lock_basic_unlock(&worker->worker_lock);
     return;

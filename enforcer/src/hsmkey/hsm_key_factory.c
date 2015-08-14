@@ -177,14 +177,14 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
             free(hsm_err);
         }
         else {
-            ods_log_error("[hsm_key_factory_generate] unable to find repository %s in HSM");
+            ods_log_error("[hsm_key_factory_generate] unable to find repository %s in HSM", policy_key_repository(policy_key));
         }
         hsm_destroy_context(hsm_ctx);
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
 
-    ods_log_debug("[hsm_key_factory_generate] generating %d keys", generate_keys);
+    ods_log_debug("[hsm_key_factory_generate] generating %lu keys", (unsigned long)generate_keys);
 
     /*
      * Generate a HSM keys
@@ -384,7 +384,7 @@ static task_type* hsm_key_factory_generate_task(task_type *task) {
         return NULL;
     }
 
-    ods_log_debug("[hsm_key_factory_generate_task] generate for policy key [duration: %d]", task2->duration);
+    ods_log_debug("[hsm_key_factory_generate_task] generate for policy key [duration: %lu]", (unsigned long)task2->duration);
     hsm_key_factory_generate(task2->engine, task->dbconn, task2->policy_key, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
     policy_key_free(task2->policy_key);
@@ -411,7 +411,7 @@ static task_type* hsm_key_factory_generate_policy_task(task_type *task) {
         return NULL;
     }
 
-    ods_log_debug("[hsm_key_factory_generate_policy_task] generate for policy [duration: %d]", task2->duration);
+    ods_log_debug("[hsm_key_factory_generate_policy_task] generate for policy [duration: %lu]", (unsigned long) task2->duration);
     hsm_key_factory_generate_policy(task2->engine, task->dbconn, task2->policy, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_policy_task] generate for policy done");
     policy_free(task2->policy);
@@ -438,7 +438,7 @@ static task_type* hsm_key_factory_generate_all_task(task_type *task) {
         return NULL;
     }
 
-    ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies [duration: %d]", task2->duration);
+    ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies [duration: %lu]", (unsigned long)task2->duration);
     hsm_key_factory_generate_all(task2->engine, task->dbconn, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies done");
     task_cleanup(task);

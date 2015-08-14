@@ -697,7 +697,7 @@ again:
         /* what if this number is smaller than the number of bytes requested? */
         buf[n-1] = '\0';
         n--;
-        ods_log_verbose("[%s] received command %s[%i]", cmdh_str, buf, n);
+        ods_log_verbose("[%s] received command %s[%ld]", cmdh_str, buf, (long)n);
         ods_str_trim(buf);
         n = strlen(buf);
 
@@ -770,7 +770,7 @@ again:
             ods_log_debug("[%s] unknown command", cmdh_str);
             cmdhandler_handle_cmd_unknown(sockfd, buf);
         }
-        ods_log_debug("[%s] done handling command %s[%i]", cmdh_str, buf, n);
+        ods_log_debug("[%s] done handling command %s[%ld]", cmdh_str, buf, (long)n);
         (void)snprintf(buf, SE_CMDH_CMDLEN, "\ncmd> ");
         ods_writen(sockfd, buf, strlen(buf));
     }

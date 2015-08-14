@@ -404,20 +404,20 @@ engine_start_drudgers(engine_type* engine)
 static void
 engine_stop_workers(engine_type* engine)
 {
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
     ods_log_debug("[%s] notify workers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
     /* head count */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        ods_log_debug("[%s] join worker %i", engine_str, i+1);
+    for (i=0; i < engine->config->num_worker_threads; i++) {
+        ods_log_debug("[%s] join worker %d", engine_str, i+1);
         ods_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engine = NULL;
     }
@@ -426,19 +426,19 @@ engine_stop_workers(engine_type* engine)
 void
 engine_stop_drudgers(engine_type* engine)
 {
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop drudgers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+    for (i=0; i < engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 1;
     }
     ods_log_debug("[%s] notify drudgers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
     /* head count */
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        ods_log_debug("[%s] join drudger %i", engine_str, i+1);
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        ods_log_debug("[%s] join drudger %d", engine_str, i+1);
         ods_thread_join(engine->drudgers[i]->thread_id);
         engine->drudgers[i]->engine = NULL;
     }
@@ -653,7 +653,7 @@ engine_run(engine_type* engine, int single_run)
                 break;
             default:
                 ods_log_warning("[%s] invalid signal %d captured, "
-                    "keep running", engine_str, signal);
+                    "keep running", engine_str, engine->signal);
                 engine->signal = SIGNAL_RUN;
                 break;
         }

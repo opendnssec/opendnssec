@@ -785,8 +785,8 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
         return NULL;
     }
     if (denial->rrset && denial->rrset->rr_count) {
-        ods_log_error("[%s] unable to delete denial: denial in use [#%u]",
-            db_str, denial->rrset->rr_count);
+        ods_log_error("[%s] unable to delete denial: denial in use [#%lu]",
+            db_str, (unsigned long)denial->rrset->rr_count);
         log_dname(denial->dname, "ERR -DENIAL", LOG_ERR);
         return NULL;
     }

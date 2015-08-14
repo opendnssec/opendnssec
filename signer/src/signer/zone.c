@@ -67,7 +67,7 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone = (zone_type*) allocator_alloc(allocator, sizeof(zone_type));
     if (!zone) {
-        ods_log_error("[%s] unable to create zone %s: allocator_alloc()",
+        ods_log_error("[%s] unable to create zone %s: allocator_alloc()"
             "failed", zone_str, name);
         allocator_cleanup(allocator);
         return NULL;

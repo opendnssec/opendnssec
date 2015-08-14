@@ -203,7 +203,7 @@ cmdhandler_perform_command(cmdhandler_type* cmdc, const char *cmd,
     int ret;
     int sockfd = cmdc->client_fd;
 
-    ods_log_verbose("received command %s[%i]", cmd, n);
+    ods_log_verbose("received command %s[%ld]", cmd, (long)n);
     if (n == 0) return 0;
 
     /* Find function claiming responsibility */
@@ -220,7 +220,7 @@ cmdhandler_perform_command(cmdhandler_type* cmdc, const char *cmd,
             client_printf_err(sockfd, "%s completed in %ld seconds.\n",
                 fb->cmdname, time(NULL) - tstart);
         }
-        ods_log_debug("[%s] done handling command %s[%i]", module_str, cmd, n);
+        ods_log_debug("[%s] done handling command %s[%ld]", module_str, cmd, (long)n);
         return ret;
     }
     /* Unhandled command, print general error */

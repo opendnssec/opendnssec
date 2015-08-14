@@ -94,42 +94,66 @@ int ods_log_get_level();
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_log_deeebug(const char *format, ...);
+void ods_log_deeebug(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log debug.
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_log_debug(const char *format, ...);
+void ods_log_debug(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log verbose.
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_log_verbose(const char *format, ...);
+void ods_log_verbose(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log informational messages.
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_log_info(const char *format, ...);
+void ods_log_info(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log warnings.
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_log_warning(const char *format, ...);
+void ods_log_warning(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log errors.
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_log_error(const char *format, ...);
+void ods_log_error(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log errors.
@@ -144,21 +168,33 @@ void ods_log_verror(const char *format, va_list args);
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_log_crit(const char *format, ...);
+void ods_log_crit(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log alerts.
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_log_alert(const char *format, ...);
+void ods_log_alert(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log critical errors and exit.
  * \param[in] format printf-style format string, arguments follow
  *
  */
-void ods_fatal_exit(const char *format, ...);
+void ods_fatal_exit(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
 
 /**
  * Log assertion.

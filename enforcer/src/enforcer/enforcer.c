@@ -1794,8 +1794,8 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                     continue;
                 }
 
-                ods_log_verbose("[%s] %s Timing says we can (3/3) now: %d key: %d",
-                    module_str, scmd, now, returntime_key);
+                ods_log_verbose("[%s] %s Timing says we can (3/3) now: %lu key: %lu",
+                    module_str, scmd, (unsigned long)now, (unsigned long)returntime_key);
 
                 /*
                  * A record can only reach Omnipresent if properly backed up.
