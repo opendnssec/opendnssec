@@ -388,7 +388,7 @@ get_args(const char *cmd, ssize_t n, const char **zone,
 	if (tag) {
 		*keytag = atoi(tag);
 		if (*keytag < 0 || *keytag >= 65536) {
-			ods_log_warning("[%s] value \"%s\" for --keytag is invalid",
+			ods_log_warning("[%s] value \"%d\" for --keytag is invalid",
 				module_str, *keytag);
 			return 1;
 		}

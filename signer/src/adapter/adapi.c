@@ -304,7 +304,7 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
     /* We only support IN class */
     if (ldns_rr_get_class(rr) != LDNS_RR_CLASS_IN) {
         ods_log_warning("[%s] only class in is supported, changing class "
-            "to in");
+            "to in", adapi_str);
         ldns_rr_set_class(rr, LDNS_RR_CLASS_IN);
     }
     /* RR processing */

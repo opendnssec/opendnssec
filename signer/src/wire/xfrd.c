@@ -493,10 +493,10 @@ xfrd_commit_packet(xfrd_type* xfrd)
         ods_log_assert(xfrhandler);
         ods_log_assert(engine);
         ods_log_debug("[%s] reschedule task for zone %s: disk serial=%u "
-            "acquired=%u, memory serial=%u acquired=%u", xfrd_str,
+            "acquired=%lu, memory serial=%u acquired=%lu", xfrd_str,
             zone->name, xfrd->serial_disk,
-            xfrd->serial_disk_acquired, xfrd->serial_xfr,
-            xfrd->serial_xfr_acquired);
+            (unsigned long)xfrd->serial_disk_acquired, xfrd->serial_xfr,
+            (unsigned long)xfrd->serial_xfr_acquired);
         ret = zone_reschedule_task(zone, engine->taskq, TASK_READ);
         if (ret != ODS_STATUS_OK) {
             ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
@@ -951,8 +951,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
     }
     if (xfrd->tcp_conn == -1 && !done) {
         ods_log_error("[%s] bad packet: zone %s received bad xfr packet "
-            "(xfr over udp incomplete)", xfrd_str, zone->name,
-            xfrd->master->address);
+            "(xfr over udp incomplete)", xfrd_str, zone->name);
         return XFRD_PKT_BAD;
     }
     if (!done) {
@@ -1018,9 +1017,9 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
     /* next time */
     lock_basic_lock(&xfrd->serial_lock);
 
-    ods_log_debug("[%s] zone %s notify acquired %u, serial on disk %u, "
+    ods_log_debug("[%s] zone %s notify acquired %lu, serial on disk %u, "
         "notify serial %u", xfrd_str, zone->name,
-        xfrd->serial_notify_acquired, xfrd->serial_disk,
+        (unsigned long)xfrd->serial_notify_acquired, xfrd->serial_disk,
         xfrd->serial_notify);
 
     if (xfrd->serial_notify_acquired &&
@@ -1309,8 +1308,8 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
             break;
         case XFRD_PKT_NOTIMPL:
             xfrd->master->ixfr_disabled = time_now();
-            ods_log_debug("[%s] disable ixfr requests for %s from now (%u)",
-                xfrd_str, xfrd->master->address, xfrd->master->ixfr_disabled);
+            ods_log_debug("[%s] disable ixfr requests for %s from now (%lu)",
+                xfrd_str, xfrd->master->address, (unsigned long)xfrd->master->ixfr_disabled);
             /* break; */
         case XFRD_PKT_BAD:
         default:
@@ -1394,8 +1393,8 @@ xfrd_udp_send(xfrd_type* xfrd, buffer_type* buffer)
     /* bind it? */
 
     /* send it (udp) */
-    ods_log_deeebug("[%s] send %d bytes over udp to %s", xfrd_str,
-        buffer_remaining(buffer), xfrd->master->address);
+    ods_log_deeebug("[%s] send %lu bytes over udp to %s", xfrd_str,
+        (unsigned long)buffer_remaining(buffer), xfrd->master->address);
     nb = sendto(fd, buffer_current(buffer), buffer_remaining(buffer), 0,
         (struct sockaddr*)&to, to_len);
     if (nb == -1) {
@@ -1563,8 +1562,8 @@ xfrd_udp_read(xfrd_type* xfrd)
             break;
         case XFRD_PKT_NOTIMPL:
             xfrd->master->ixfr_disabled = time_now();
-            ods_log_debug("[%s] disable ixfr requests for %s from now (%u)",
-                xfrd_str, xfrd->master->address, xfrd->master->ixfr_disabled);
+            ods_log_debug("[%s] disable ixfr requests for %s from now (%lu)",
+                xfrd_str, xfrd->master->address, (unsigned long)xfrd->master->ixfr_disabled);
             /* break; */
         case XFRD_PKT_BAD:
         default:
@@ -1689,9 +1688,9 @@ xfrd_make_request(xfrd_type* xfrd)
          xfrd_time(xfrd)) {
         ods_log_verbose("[%s] clear negative caching ixfr disabled for "
             "master %s", xfrd_str, xfrd->master->address);
-        ods_log_debug("[%s] clear negative caching calc: %u + %u <= %u",
-            xfrd_str, xfrd->master->ixfr_disabled, XFRD_NO_IXFR_CACHE,
-            xfrd_time(xfrd));
+        ods_log_debug("[%s] clear negative caching calc: %lu + %lu <= %lu",
+            xfrd_str, (unsigned long) xfrd->master->ixfr_disabled, (unsigned long)XFRD_NO_IXFR_CACHE,
+            (unsigned long) xfrd_time(xfrd));
         xfrd->master->ixfr_disabled = 0;
     }
     /* perform xfr request */

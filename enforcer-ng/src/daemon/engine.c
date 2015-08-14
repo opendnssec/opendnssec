@@ -228,18 +228,18 @@ engine_start_workers(engine_type* engine)
 void
 engine_stop_workers(engine_type* engine)
 {
-    size_t i = 0;
+    int i = 0;
 
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 1;
     }
     engine_wakeup_workers(engine);
     /* head count */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
         pthread_join(engine->workers[i]->thread_id, NULL);
         engine->workers[i]->engine = NULL;
