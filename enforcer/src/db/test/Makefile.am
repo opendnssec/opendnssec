@@ -53,8 +53,8 @@ test_LDADD = \
 	../../policy_key.o ../../policy_key_ext.o \
 	../../database_version.o ../../database_version_ext.o \
 	../../zone.o ../../zone_ext.o \
-	../../duration.o \
-	../../allocator.o \
+	../../../../common/duration.o \
+	../../../../common/allocator.o \
 	$(BACKEND_LDADD_CUSTOM)
 
 test_LDFLAGS = -no-install \
