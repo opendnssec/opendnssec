@@ -33,7 +33,7 @@
 #include "daemon/engine.h"
 #include "shared/str.h"
 #include "enforcer/enforce_task.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "db/zone.h"
 #include "shared/log.h"
 #include "shared/file.h"

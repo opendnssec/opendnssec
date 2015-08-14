@@ -34,7 +34,7 @@
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "hsmkey/hsm_key_factory.h"
 
 #include "daemon/time_leap_cmd.h"

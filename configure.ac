@@ -38,7 +38,6 @@ AX_C___ATTRIBUTE__
 # compiler flags
 CHECK_COMPILER_FLAG(std=c99, [C99FLAG="-std=c99"])
 CHECK_COMPILER_FLAG(xc99, [C99FLAG="-xc99"])
-CHECK_COMPILER_FLAG_NEEDED($C99FLAG, [#include <stdbool.h>], [CFLAGS="$CFLAGS $C99FLAG"])
 CHECK_COMPILER_FLAG_NEEDED(-D__EXTENSIONS__,
 [
 #include "confdefs.h"
@@ -193,7 +192,6 @@ if test "x${enable_enforcer}" = "xyes"; then
 	ACX_ENFORCER_DATABASE
 	ACX_LIBREADLINE
 fi
-AH_BOTTOM([#include "stdbool-cpp.h"])
 AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_enforcer}" = "yes"])
 
 # signer

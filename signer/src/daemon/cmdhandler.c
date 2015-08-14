@@ -33,6 +33,7 @@
 #include "daemon/engine.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
+#include "shared/str.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"
@@ -698,7 +699,7 @@ again:
         buf[n-1] = '\0';
         n--;
         ods_log_verbose("[%s] received command %s[%ld]", cmdh_str, buf, (long)n);
-        ods_str_trim(buf);
+        ods_str_trim(buf,1);
         n = strlen(buf);
 
         if (n == 4 && strncmp(buf, "help", n) == 0) {

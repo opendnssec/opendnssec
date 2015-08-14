@@ -30,7 +30,7 @@
 #include "daemon/cmdhandler.h"
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "policy/policy_import.h"
 #include "policy/policy_resalt_task.h"
 #include "enforcer/enforce_task.h"

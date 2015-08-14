@@ -33,7 +33,7 @@
 #include "daemon/worker.h"
 #include "shared/allocator.h"
 #include "shared/duration.h"
-#include "shared/hsm.h"
+#include "hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"

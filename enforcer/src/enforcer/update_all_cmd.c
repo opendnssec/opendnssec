@@ -37,7 +37,7 @@
 #include "shared/log.h"
 #include "shared/str.h"
 #include "utils/kc_helper.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "policy/policy_import.h"
 #include "keystate/zonelist_import.h"
 

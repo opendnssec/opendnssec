@@ -55,7 +55,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 
 #define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
 #define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
@@ -257,7 +257,7 @@ interface_start(const char* cmd, const char* servsock_filename)
                 break;
             }
             free(icmd_ptr);
-            ods_str_trim(userbuf);
+            ods_str_trim(userbuf,0);
             if (strlen(userbuf) > 0) add_history(userbuf);
 #else        
             fprintf(stdout, "%s", PROMPT);
@@ -271,7 +271,7 @@ interface_start(const char* cmd, const char* servsock_filename)
                 break;
             }
             userbuf[n] = 0;
-            ods_str_trim(userbuf);
+            ods_str_trim(userbuf,0);
 #endif
             if (strlen(userbuf) == 0) continue;
             /* These commands don't go through the pipe */
@@ -357,7 +357,7 @@ main(int argc, char* argv[])
         { 0, 0, 0, 0}
     };
     
-    ods_log_init("", 0 NULL, 0);
+    ods_log_init("", 0, NULL, 0);
     
     /* parse the commandline. The + in the arg string tells getopt
      * to stop parsing when an unknown command is found not starting 

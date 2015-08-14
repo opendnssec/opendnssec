@@ -36,7 +36,7 @@
 #include "shared/log.h"
 #include "shared/file.h"
 #include "daemon/engine.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
 #include "shared/status.h"

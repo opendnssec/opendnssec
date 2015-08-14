@@ -28,7 +28,7 @@
 
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "shared/duration.h"
 #include "db/policy_key.h"
 #include "utils/kc_helper.h"

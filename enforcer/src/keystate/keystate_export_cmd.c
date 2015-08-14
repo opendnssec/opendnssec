@@ -34,7 +34,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "shared/duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"

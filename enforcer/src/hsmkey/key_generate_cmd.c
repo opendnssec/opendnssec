@@ -30,7 +30,7 @@
 #include "daemon/cmdhandler.h"
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "db/policy.h"
 #include "shared/duration.h"

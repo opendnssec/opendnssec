@@ -27,7 +27,7 @@
  */
 
 #include "shared/log.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "db/policy.h"
 #include "db/policy_key.h"
 #include "utils/kc_helper.h"

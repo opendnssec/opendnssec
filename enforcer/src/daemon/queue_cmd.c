@@ -37,8 +37,8 @@
 #include "scheduler/schedule.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "daemon/clientpipe.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
+#include "clientpipe.h"
 
 #include "daemon/queue_cmd.h"
 

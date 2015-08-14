@@ -33,7 +33,7 @@
 #include "shared/str.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 
 #include "daemon/help_cmd.h"
 

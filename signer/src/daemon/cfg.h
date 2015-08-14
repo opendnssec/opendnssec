@@ -34,7 +34,7 @@
 
 #include "config.h"
 #include "shared/allocator.h"
-#include "shared/hsm.h"
+#include "hsm.h"
 #include "shared/locks.h"
 #include "shared/status.h"
 #include "wire/listener.h"

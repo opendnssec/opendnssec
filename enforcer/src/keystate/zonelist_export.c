@@ -30,7 +30,7 @@
 
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "db/zone.h"
 #include "utils/kc_helper.h"
 

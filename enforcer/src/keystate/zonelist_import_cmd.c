@@ -33,7 +33,7 @@
 #include "daemon/cmdhandler.h"
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "enforcer/enforce_task.h"
 #include "keystate/zonelist_import.h"
 #include "keystate/zonelist_export.h"

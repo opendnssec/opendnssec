@@ -51,7 +51,6 @@ ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \
 	daemon/cfg.c daemon/cfg.h \
 	daemon/cmdhandler.c daemon/cmdhandler.h \
-	daemon/clientpipe.c daemon/clientpipe.h \
 	daemon/engine.c daemon/engine.h \
 	daemon/signal.c daemon/signal.h \
 	daemon/worker.c daemon/worker.h \
@@ -63,15 +62,6 @@ ods_enforcerd_SOURCES = \
 	parser/confparser.c parser/confparser.h \
 	scheduler/schedule.c scheduler/schedule.h \
 	scheduler/task.c scheduler/task.h \
-	shared/allocator.c shared/allocator.h \
-	shared/duration.c shared/duration.h \
-	shared/file.c shared/file.h \
-	shared/log.c shared/log.h \
-	shared/privdrop.c shared/privdrop.h \
-	shared/status.c shared/status.h \
-	shared/util.c shared/util.h \
-	shared/str.c shared/str.h \
-	shared/backup.c shared/backup.h \
 	policy/policy_export_cmd.c policy/policy_export_cmd.h \
 	policy/policy_purge_cmd.c policy/policy_purge_cmd.h \
 	policy/policy_export.c policy/policy_export.h \
@@ -150,17 +140,11 @@ ods_enforcerd_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
 
 ods_enforcer_SOURCES = \
-	ods-enforcer.c \
-	daemon/clientpipe.c daemon/clientpipe.h \
-	shared/allocator.c shared/allocator.h \
-	shared/duration.c shared/duration.h \
-	shared/file.c shared/file.h \
-	shared/log.c shared/log.h \
-	shared/util.c shared/util.h \
-	shared/str.c shared/str.h
+	ods-enforcer.c
 
 ods_enforcer_LDADD = \
 	$(LIBHSM) \
+	$(LIBCOMPAT) \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@READLINE_LIBS@
@@ -169,13 +153,6 @@ ods_enforcer_db_setup_SOURCES = \
 	ods-enforcer-db-setup.c \
 	daemon/cfg.c daemon/cfg.h \
 	parser/confparser.c parser/confparser.h \
-	daemon/clientpipe.c daemon/clientpipe.h \
-	shared/allocator.c shared/allocator.h \
-	shared/duration.c shared/duration.h \
-	shared/file.c shared/file.h \
-	shared/log.c shared/log.h \
-	shared/util.c shared/util.h \
-	shared/str.c shared/str.h \
 	$(BACKEND_SCHEMA_CUSTOM)
 
 ods_enforcer_db_setup_LDADD = \

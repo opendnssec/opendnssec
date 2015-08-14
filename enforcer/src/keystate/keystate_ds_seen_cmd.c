@@ -35,7 +35,7 @@
 #include "shared/file.h"
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "db/key_data.h"
 #include "keystate/keystate_ds.h"
 

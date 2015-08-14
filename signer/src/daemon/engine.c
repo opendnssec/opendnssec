@@ -36,7 +36,8 @@
 #include "shared/allocator.h"
 #include "shared/duration.h"
 #include "shared/file.h"
-#include "shared/hsm.h"
+#include "shared/str.h"
+#include "hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/privdrop.h"
@@ -703,7 +704,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
         str2 = ods_replace(cmd, "%zone", zone->name);
     }
     if (str2) {
-        ods_str_trim((char*) str2);
+        ods_str_trim((char*) str2, 1);
         str = str2;
         if (*str) {
             token = NULL;

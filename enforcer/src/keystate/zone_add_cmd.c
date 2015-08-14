@@ -33,7 +33,7 @@
 #include "shared/file.h"
 #include "shared/str.h"
 #include "shared/log.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "db/policy.h"
 #include "db/zone.h"
 #include "keystate/zonelist_update.h"

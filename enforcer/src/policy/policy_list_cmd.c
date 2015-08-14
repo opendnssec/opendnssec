@@ -33,7 +33,7 @@
 #include "shared/log.h"
 #include "shared/str.h"
 #include "daemon/engine.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "db/policy.h"
 
 #include "policy/policy_list_cmd.h"

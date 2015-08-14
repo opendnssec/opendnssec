@@ -32,7 +32,7 @@
 #include "adapter/adapter.h"
 #include "shared/allocator.h"
 #include "shared/file.h"
-#include "shared/hsm.h"
+#include "hsm.h"
 #include "shared/locks.h"
 #include "shared/log.h"
 #include "shared/status.h"

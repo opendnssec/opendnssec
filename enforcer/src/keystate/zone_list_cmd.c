@@ -34,7 +34,7 @@
 #include "shared/log.h"
 #include "shared/str.h"
 #include "shared/duration.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "db/zone.h"
 #include "db/policy.h"
 #include "db/db_value.h"

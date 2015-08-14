@@ -31,7 +31,7 @@
 
 #include "config.h"
 #include "shared/file.h"
-#include "shared/hsm.h"
+#include "hsm.h"
 #include "shared/log.h"
 #include "shared/util.h"
 #include "signer/rrset.h"

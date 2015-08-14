@@ -30,7 +30,7 @@
 #include "shared/str.h"
 #include "utils/kc_helper.h"
 #include "db/policy.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 
 #include "keystate/zonelist_update.h"
 

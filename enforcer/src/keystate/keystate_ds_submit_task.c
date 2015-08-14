@@ -28,7 +28,7 @@
  */
 #include "config.h"
 
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "scheduler/task.h"
 #include "daemon/engine.h"
 #include "shared/duration.h"

@@ -30,7 +30,7 @@
 #include "daemon/cmdhandler.h"
 #include "shared/log.h"
 #include "shared/str.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "keystate/zonelist_export.h"
 
 #include "keystate/zonelist_export_cmd.h"

@@ -32,7 +32,7 @@
 #include <pthread.h>
 
 #include "enforcer/enforcer.h"
-#include "daemon/clientpipe.h"
+#include "clientpipe.h"
 #include "daemon/engine.h"
 #include "signconf/signconf_task.h"
 #include "keystate/keystate_ds_submit_task.h"
@@ -93,6 +93,8 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	policy_t *policy;
 	key_data_list_t *keylist;
 	const key_data_t *key;
+	db_clause_list_t* clauselist;
+	db_clause_t* clause;
 	time_t t_next, t_now = time_now(), t_reschedule = -1;
 	/* Flags that indicate tasks to be scheduled after zones have been
 	 * enforced. */
@@ -101,6 +103,19 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	int bRetractFromParent = 0;
 	int zone_updated;
 
+	if (!bForceUpdate) {
+		if (!(clauselist = db_clause_list_new())
+			|| !(clause = zone_next_change_clause(clauselist, t_now))
+			|| db_clause_set_type(clause, DB_CLAUSE_LESS_OR_EQUAL)
+			|| !(zonelist = zone_list_new(dbconn))
+			/*|| zone_list_associated_fetch(zonelist)*/
+			|| zone_list_get_by_clauses(zonelist, clauselist))
+		{
+			zone_list_free(zonelist);
+			zonelist = NULL;
+		}
+		db_clause_list_free(clauselist);
+	} else { /* all zones */
 		if (!(zonelist = zone_list_new(dbconn))
 			/*|| zone_list_associated_fetch(zonelist)*/
 			|| zone_list_get(zonelist))
@@ -108,6 +123,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			zone_list_free(zonelist);
 			zonelist = NULL;
 		}
+	}
 	if (!zonelist) {
 		/* TODO: log error */
 		ods_log_error("[%s] zonelist NULL", module_str);
@@ -133,19 +149,6 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		zone_free(zone), zone = zone_list_get_next(zonelist))
 	{
 		if (!bForceUpdate && (zone_next_change(zone) == -1)) {
-			continue;
-		} else if (zone_next_change(zone) > t_now) {
-			/* This zone needs no update, however it might be the first
-			 * for future updates */
-			if (zone_next_change(zone) < t_reschedule || !firstzone)
-			{
-				t_reschedule = zone_next_change(zone);
-				if (firstzone) {
-					zone_free(firstzone);
-				}
-				firstzone = zone;
-			}
-			zone = NULL; /* keeps firstzone from being freed. */
 			continue;
 		}
 		if (!(policy = zone_get_policy(zone))) {
