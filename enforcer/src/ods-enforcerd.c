@@ -91,7 +91,7 @@ void
 program_setup(int cmdline_verbosity)
 {
     /* for now just log to stderr */
-    ods_log_init("ods-enforcer", 0, NULL, cmdline_verbosity);
+    ods_log_init("ods-enforcerd", 0, NULL, cmdline_verbosity);
     ods_log_verbose("[%s] starting enforcer", enforcerd_str);
 
     /* initialize */

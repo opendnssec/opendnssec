@@ -991,7 +991,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int ret = 1;
 
     ods_log_assert(cfgfile);
-    ods_log_init("ods-signer", use_syslog, NULL, cmdline_verbosity);
+    ods_log_init("ods-signerd", use_syslog, NULL, cmdline_verbosity);
     ods_log_verbose("[%s] starting signer", engine_str);
 
     /* initialize */
@@ -1022,7 +1022,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         exit(1);
     }
     /* open log */
-    ods_log_init("ods-signer", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
+    ods_log_init("ods-signerd", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
     /* setup */
     tzset(); /* for portability */
     status = engine_setup(engine);

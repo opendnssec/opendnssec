@@ -114,7 +114,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		}
 		ods_log_assert(engine);
 		ods_log_assert(engine->config);
-		ods_log_init("ods-enforcer", engine->config->use_syslog, engine->config->log_filename, val);
+		ods_log_init("ods-enforcerd", engine->config->use_syslog, engine->config->log_filename, val);
 		client_printf(sockfd, "Verbosity level set to %i.\n", val);
 		return 0;
 	} else {

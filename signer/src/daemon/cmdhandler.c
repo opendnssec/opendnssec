@@ -629,7 +629,7 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_type* cmdc, int val)
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
     ods_log_assert(engine->config);
-    ods_log_init("ods-signer", engine->config->use_syslog, engine->config->log_filename, val);
+    ods_log_init("ods-signerd", engine->config->use_syslog, engine->config->log_filename, val);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
     ods_writen(sockfd, buf, strlen(buf));
     return;

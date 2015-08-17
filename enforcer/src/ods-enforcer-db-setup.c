@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
     engineconfig_type* cfg;
     const char* cfgfile = ODS_SE_CFGFILE;
 
-    ods_log_init("ods-enforcer", 0, NULL, 0);
+    ods_log_init("ods-enforcerd", 0, NULL, 0);
 
     while ((c=getopt_long(argc, argv, "hV",
         long_options, &options_index)) != -1) {

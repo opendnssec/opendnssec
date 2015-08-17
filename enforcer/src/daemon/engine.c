@@ -446,7 +446,7 @@ engine_setup(engine_type* engine)
 
     ods_log_debug("[%s] enforcer setup", engine_str);
 
-    ods_log_init("ods-enforcer", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
+    ods_log_init("ods-enforcerd", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
 
     engine->pid = getpid(); /* We need to do this again after fork() */
 

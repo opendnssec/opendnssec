@@ -68,9 +68,9 @@ static const char* cli_str = "client";
  *
  */
 static void
-usage(FILE* out)
+usage(char* argv0, FILE* out)
 {
-    fprintf(out, "Usage: %s [OPTION]... [COMMAND]\n", "ods-enforcer");
+    fprintf(out, "Usage: %s [OPTION]... [COMMAND]\n", argv0);
     fprintf(out, 
 "Simple command line interface to control the enforcer engine \n"
 "daemon. If no command  is given, the tool is going to interactive \n"
@@ -348,6 +348,7 @@ interface_start(const char* cmd, const char* servsock_filename)
 int
 main(int argc, char* argv[])
 {
+    char* argv0;
     char* cmd = NULL, *socketfile = OPENDNSSEC_ENFORCER_SOCKETFILE;
     int error, c, options_index = 0;
     static struct option long_options[] = {
@@ -359,6 +360,11 @@ main(int argc, char* argv[])
     
     ods_log_init("", 0, NULL, 0);
     
+    /* Get the name of the program */
+    if((argv0 = strrchr(argv[0],'/')) == NULL)
+        argv0 = argv[0];
+    else
+        ++argv0;
     /* parse the commandline. The + in the arg string tells getopt
      * to stop parsing when an unknown command is found not starting 
      * with '-'. This is important for us, else switches inside commands
@@ -367,7 +373,7 @@ main(int argc, char* argv[])
         long_options, &options_index)) != -1) {
         switch (c) {
             case 'h':
-                usage(stdout);
+                usage(argv0, stdout);
                 exit(0);
             case 's':
                 socketfile = optarg;
