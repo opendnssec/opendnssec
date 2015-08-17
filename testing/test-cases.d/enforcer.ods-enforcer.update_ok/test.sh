@@ -72,10 +72,10 @@ log_this ods-enforcer-time-leap ods-enforcer time leap &&
 sleep 5 &&
 log_this ods-enforcer-time-leap ods-enforcer time leap &&
 sleep 5 &&
-log_this ods-enforcer-time-leap ods-enforcer time leap &&
-sleep 5 &&
-log_this ods-enforcer-time-leap ods-enforcer time leap &&
-sleep 5 &&
+#log_this ods-enforcer-time-leap ods-enforcer time leap &&
+#sleep 5 &&
+#log_this ods-enforcer-time-leap ods-enforcer time leap &&
+#sleep 5 &&
 
 # Check that we have 2 keys per zone
 log_this ods-enforcer-key-list2 ods-enforcer key list &&
