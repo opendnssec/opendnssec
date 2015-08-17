@@ -15,6 +15,8 @@ ods_start_enforcer &&
 # Add our test zone. We already have the standard one and a "spare" one on a different policy
 log_this_timeout ods-enforcer-zone-add 5 ods-enforcer zone add -z test.delete --policy non-default &&
 
+sleep 60 &&
+
 
 # Check the presence of all signconfs
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
