@@ -79,8 +79,8 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	char* strtime = NULL;
-	char ctimebuf[32]; /* at least 26 according to docs */
+    struct tm strtime_struct;
+	char strtime[64]; /* at least 26 according to docs plus a long integer */
 	char buf[ODS_SE_MAXLINE];
 	time_t now = time_now();
 	const char *time = NULL;
@@ -124,7 +124,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
 	/* how many tasks */
 	now = time_now();
-	strtime = ctime_r(&now,ctimebuf);
+	strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)\n", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, 
 		"There are %i tasks scheduled.\nIt is now       %s",
 		(int) schedule_taskcount(engine->taskq),
@@ -135,9 +135,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		if (time_leap < 0) break;
 
 		set_time_now(time_leap);
-		strtime = ctime_r(&time_leap,ctimebuf);
-		if (strtime)
-			strtime[strlen(strtime)-1] = '\0'; /* strip trailing \n */
+		strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)", localtime_r(&time_leap, &strtime_struct));
 
 		client_printf(sockfd,  "Leaping to time %s\n", 
 			strtime?strtime:"(null)");

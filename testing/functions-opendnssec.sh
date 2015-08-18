@@ -441,6 +441,59 @@ ods_enforcer_start_timeshift ()
 	return 1
 }
 
+ods_enforcer_leap_over ()
+{
+	if [ -z "$1" ]
+	then
+		echo "usage: ods_enforcer_leap_over <minimum leap time> [ <maximum number of leaps> ]" >&2
+		exit 1
+	fi
+	local period=$1
+	local maxleaps=$2
+	local starttime
+	local currenttime
+	local timediff
+	if [ -z "$maxleaps" ]
+	then
+		maxleaps=-1
+	fi
+	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+	sleep 5
+	if [ $maxleaps -gt 0 ]
+	then
+		maxleaps=`expr $maxleaps - 1`
+	fi
+	starttime=`sed < _log..ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	currenttime=`sed < _log..ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	if [ -z "$currenttime" ]
+	then
+		currenttime=$starttime
+	fi
+	if [ $currenttime -lt $starttime ]
+	then
+		currenttime=$starttime
+	fi
+	timediff=`expr $currenttime - $starttime`
+	while [ \( $timediff -lt $period \) -a \( $maxleaps -ne 0 \) ]
+	do
+		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+		sleep 5
+		if [ $maxleaps -gt 0 ]
+		then
+			maxleaps=`expr $maxleaps - 1`
+		fi
+		currenttime=`sed < _log..ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+		timediff=`expr $currenttime - $starttime`
+	done
+	if [ $timediff -lt $period ]
+	then
+		echo "time leap max'ed out"
+		return 1
+	fi
+	return 0
+}
+
+
 ods_ods-control_signer_start ()
 {
 	if [ "$ODS_SIGNER_WAIT_START" -lt 1 ] 2>/dev/null; then

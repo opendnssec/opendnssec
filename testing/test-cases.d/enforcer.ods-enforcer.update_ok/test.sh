@@ -46,36 +46,8 @@ log_grep ods-enforcer-zone-list1 stdout 'ods2[[:space:]].*default' &&
 #log_this ods-enforcer-zone-list2 ods-enforcer zone list &&
 #log_grep ods-enforcer-zone-list2 stdout 'ods2[[:space:]].*default' &&
 
-# There need to be five leaps,
-# - one to add the ods zone (the ods2 zone is added as a consequence of
-# the zone add command)
-# - one to put the ods2 ZSK from generated to publish state)
-# - another one for the ods KSK to publish (since they are not
-# added at the same time they will have separate transitions
-# - one to put to ZSK to active and KSK to ready for ods2
-# - and finally one to to the same for ods zone
-# note that this relies heavily on the internal workings of the
-# enforcer.  If it decides to break up the now combined ZSK and
-# KSK transitions, or do ods and ods2 at the same time, the test
-# is too fragile and will break.
-# It would be much better to leap incrementally (i.e. also do
-# the intermediate steps) to the expected time from the policy the
-# keys are in the right state, regardless of how many times a 
-# leap should take place.
-# And the sleep commands necessary are awfull of course to guard
-# against the asynchronisity of the commands execution.
-
-sleep 5 &&
-log_this ods-enforcer-time-leap ods-enforcer time leap &&
-sleep 5 &&
-log_this ods-enforcer-time-leap ods-enforcer time leap &&
-sleep 5 &&
-log_this ods-enforcer-time-leap ods-enforcer time leap &&
-sleep 5 &&
-#log_this ods-enforcer-time-leap ods-enforcer time leap &&
-#sleep 5 &&
-#log_this ods-enforcer-time-leap ods-enforcer time leap &&
-#sleep 5 &&
+# leap for nearly a month (2505600 is 25 days in second)
+ods_enforcer_leap_over 2505600 &&
 
 # Check that we have 2 keys per zone
 log_this ods-enforcer-key-list2 ods-enforcer key list &&
