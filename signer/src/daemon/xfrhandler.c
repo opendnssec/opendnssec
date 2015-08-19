@@ -32,8 +32,8 @@
 #include "config.h"
 #include "daemon/engine.h"
 #include "daemon/xfrhandler.h"
-#include "shared/duration.h"
-#include "shared/status.h"
+#include "duration.h"
+#include "status.h"
 
 #include <errno.h>
 #include <string.h>

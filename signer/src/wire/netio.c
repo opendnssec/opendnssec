@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "shared/log.h"
+#include "log.h"
 #include "wire/netio.h"
 
 

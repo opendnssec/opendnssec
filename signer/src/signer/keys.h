@@ -32,8 +32,8 @@
 #ifndef SIGNER_KEYS_H
 #define SIGNER_KEYS_H
 
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
 #include "libhsm.h"
 
 #ifdef HAVE_SYS_TYPES_H

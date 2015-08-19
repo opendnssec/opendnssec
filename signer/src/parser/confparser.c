@@ -33,9 +33,9 @@
 #include "compat.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
-#include "shared/allocator.h"
-#include "shared/log.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "log.h"
+#include "status.h"
 #include "wire/acl.h"
 
 #include <libxml/xpath.h>

@@ -29,7 +29,7 @@
  *
  */
 
-#include "shared/log.h"
+#include "log.h"
 #include "signer/stats.h"
 
 /**

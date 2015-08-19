@@ -35,8 +35,8 @@
 #include "config.h"
 #include "adapter/addns.h"
 #include "adapter/adfile.h"
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
 
 #include <stdio.h>
 

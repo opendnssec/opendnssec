@@ -30,10 +30,10 @@
  */
 
 #include "config.h"
-#include "shared/file.h"
-#include "shared/hsm.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "file.h"
+#include "hsm.h"
+#include "log.h"
+#include "util.h"
 #include "signer/rrset.h"
 #include "signer/zone.h"
 

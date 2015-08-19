@@ -39,7 +39,7 @@ log_grep drill stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001
 syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request round 0 master' &&
 syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request round 1 master' &&
 syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request round 2 master' &&
-syslog_waitfor 5 'ods-signerd: .*\[xfrd\] zone ods sets timer timeout retry 5' &&
+syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods sets timer timeout retry 5' &&
 
 ## See if it stops serving zone transfer after the SOA EXPIRE interval
 sleep 35 &&

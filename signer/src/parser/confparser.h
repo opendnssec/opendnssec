@@ -34,9 +34,9 @@
 
 #include "config.h"
 #include "wire/listener.h"
-#include "shared/allocator.h"
-#include "shared/hsm.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "hsm.h"
+#include "status.h"
 
 #define ADMAX 6 /* Maximum number of adapters that can be initialized */
 

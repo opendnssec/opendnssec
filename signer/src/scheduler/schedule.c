@@ -32,8 +32,8 @@
 #include "config.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/duration.h"
-#include "shared/log.h"
+#include "duration.h"
+#include "log.h"
 
 #include <ldns/ldns.h>
 

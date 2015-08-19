@@ -29,9 +29,9 @@
  *
  */
 
-#include "shared/allocator.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "log.h"
+#include "util.h"
 #include "signer/backup.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"

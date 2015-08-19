@@ -30,10 +30,10 @@
  */
 
 #include "adapter/adapter.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
 #include "signer/zone.h"
 
 #include <stdlib.h>
