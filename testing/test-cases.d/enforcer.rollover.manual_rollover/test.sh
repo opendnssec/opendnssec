@@ -23,7 +23,7 @@ ods_reset_env &&
 ods_start_enforcer &&
 sleep 60 &&
 
-log_this temp2 ods-enforcer key list &&
+ods-enforcer key list &&
 # For having ready/active ksk/zsks we need two time leap
 log_this ods-enforcer-time-leap ods-enforcer time leap &&
 sleep 1 &&
@@ -32,6 +32,7 @@ sleep 1 &&
 
 
 # Check that we have 2 keys per zone
+ods-enforcer key list &&
 log_this ods-enforcer-key-list1 ods-enforcer key list &&
 log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*ready' &&
 log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*active' &&
