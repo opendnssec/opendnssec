@@ -463,8 +463,8 @@ ods_enforcer_leap_over ()
 	then
 		maxleaps=`expr $maxleaps - 1`
 	fi
-	starttime=`sed < _log..ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
-	currenttime=`sed < _log..ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	starttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	currenttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 	if [ -z "$currenttime" ]
 	then
 		currenttime=$starttime
@@ -482,7 +482,7 @@ ods_enforcer_leap_over ()
 		then
 			maxleaps=`expr $maxleaps - 1`
 		fi
-		currenttime=`sed < _log..ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+		currenttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 		timediff=`expr $currenttime - $starttime`
 	done
 	if [ $timediff -lt $period ]

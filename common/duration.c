@@ -412,6 +412,8 @@ int duration_set_time(duration_type* duration, time_t time) {
     duration->minutes = time / 60;
     time -= duration->minutes * 60;
     duration->seconds = time;
+    
+    duration->weeks = 0;
 
     return 0;
 }
