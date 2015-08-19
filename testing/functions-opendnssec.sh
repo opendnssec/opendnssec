@@ -518,8 +518,6 @@ ods_enforcer_leap_to ()
 	fi
 	starttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 	nexttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Next task scheduled.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
-echo "BERRY#X"
-log_this ods-enforcer-time-leap ods-enforcer key list
 	if [ -z "$nexttime" ]
 	then
 		nexttime=$starttime
@@ -534,15 +532,12 @@ log_this ods-enforcer-time-leap ods-enforcer key list
 		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
 		sleep 30
 		log_this ods-enforcer-time-leap ods-enforcer queue || return 1
-echo "BERRY#Y"
-log_this ods-enforcer-time-leap ods-enforcer key list
 		if [ $maxleaps -gt 0 ]
 		then
 			maxleaps=`expr $maxleaps - 1`
 		fi
 		nexttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Next task scheduled.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 		timediff=`expr $nexttime - $starttime`
-		echo "BERRY $nexttime $starttime $timediff"
 	done
 	if [ $timediff -lt $period ]
 	then
