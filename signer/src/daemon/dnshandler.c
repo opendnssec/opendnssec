@@ -32,7 +32,7 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "daemon/engine.h"
-#include "shared/status.h"
+#include "status.h"
 #include "wire/buffer.h"
 
 #include <errno.h>

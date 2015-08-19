@@ -47,7 +47,7 @@
 
 
 #include "config.h"
-#include "shared/log.h"
+#include "log.h"
 #include "wire/buffer.h"
 
 #include <string.h>

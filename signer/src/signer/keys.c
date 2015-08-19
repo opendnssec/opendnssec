@@ -29,9 +29,9 @@
  *
  */
 
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "file.h"
+#include "log.h"
+#include "util.h"
 #include "signer/backup.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"

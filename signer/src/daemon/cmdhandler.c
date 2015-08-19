@@ -31,12 +31,13 @@
 
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/locks.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "file.h"
+#include "str.h"
+#include "locks.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -628,8 +629,7 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_type* cmdc, int val)
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
     ods_log_assert(engine->config);
-    ods_log_init(engine->config->log_filename, engine->config->use_syslog,
-        val);
+    ods_log_init("ods-signerd", engine->config->use_syslog, engine->config->log_filename, val);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
     ods_writen(sockfd, buf, strlen(buf));
     return;
@@ -699,7 +699,7 @@ again:
         buf[n-1] = '\0';
         n--;
         ods_log_verbose("[%s] received command %s[%ld]", cmdh_str, buf, (long)n);
-        ods_str_trim(buf);
+        ods_str_trim(buf,1);
         n = strlen(buf);
 
         if (n == 4 && strncmp(buf, "help", n) == 0) {

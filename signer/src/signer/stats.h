@@ -32,7 +32,7 @@
 #ifndef SIGNER_STATS_H
 #define SIGNER_STATS_H
 
-#include "shared/locks.h"
+#include "locks.h"
 
 #include <config.h>
 #include <ctype.h>

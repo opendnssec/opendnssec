@@ -31,8 +31,8 @@
 
 #include "config.h"
 #include "adapter/adutil.h"
-#include "shared/file.h"
-#include "shared/log.h"
+#include "file.h"
+#include "log.h"
 
 #include <ldns/ldns.h>
 

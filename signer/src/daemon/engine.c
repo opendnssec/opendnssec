@@ -33,15 +33,16 @@
 #include "daemon/cfg.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/hsm.h"
-#include "shared/locks.h"
-#include "shared/log.h"
-#include "shared/privdrop.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "duration.h"
+#include "file.h"
+#include "str.h"
+#include "hsm.h"
+#include "locks.h"
+#include "log.h"
+#include "privdrop.h"
+#include "status.h"
+#include "util.h"
 #include "signer/zonelist.h"
 #include "wire/tsig.h"
 #include "libhsm.h"
@@ -703,7 +704,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
         str2 = ods_replace(cmd, "%zone", zone->name);
     }
     if (str2) {
-        ods_str_trim((char*) str2);
+        ods_str_trim((char*) str2, 1);
         str = str2;
         if (*str) {
             token = NULL;
@@ -990,7 +991,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int ret = 1;
 
     ods_log_assert(cfgfile);
-    ods_log_init(NULL, use_syslog, cmdline_verbosity);
+    ods_log_init("ods-signerd", use_syslog, NULL, cmdline_verbosity);
     ods_log_verbose("[%s] starting signer", engine_str);
 
     /* initialize */
@@ -1021,8 +1022,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         exit(1);
     }
     /* open log */
-    ods_log_init(engine->config->log_filename, engine->config->use_syslog,
-       engine->config->verbosity);
+    ods_log_init("ods-signerd", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
     /* setup */
     tzset(); /* for portability */
     status = engine_setup(engine);

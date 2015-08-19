@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "shared/log.h"
+#include "log.h"
 #include "wire/listener.h"
 
 static const char* listener_str = "listener";

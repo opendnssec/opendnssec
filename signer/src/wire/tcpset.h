@@ -33,7 +33,7 @@
 #define WIRE_TCPSET_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 #include "wire/buffer.h"
 #include "wire/xfrd.h"
 

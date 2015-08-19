@@ -22,7 +22,7 @@ command_run_time () {
 	
 }
 
-enforcer-ng_run_time () {
+enforcer_run_time () {
 
 	local TIME_DIFF=`$GREP -- '.*completed in' _log.$BUILD_TAG.$2.stdout | awk '{print $4}'` &&
 	printf "MEASURING: %-20s with %6s zones     RESULT (ENFORCER run time): %6d seconds,  which is  %2d hours  %2d minutes  %2d seconds\n" $1 $NUMBER_OF_ZONES $TIME_DIFF $((TIME_DIFF / (60*60))) $(((TIME_DIFF%(60*60))/60)) $((TIME_DIFF % 60)) >> enforcer-benchmark-times &&
@@ -117,7 +117,7 @@ while ( [ $STATUS -eq 0 ] && [ $NUMBER_OF_ZONES -lt $MAX_ZONES ] ); do
 	sleep 3 &&			
 	log_waitfor ods-enforce-$NUMBER_OF_RUNS stdout 90 "enforce completed in" &&
 	log_this ods-control-enforcer-start echo "Done Enforcing " &&
-	enforcer-ng_run_time "First_run" ods-enforce-$NUMBER_OF_RUNS &&	
+	enforcer_run_time "First_run" ods-enforce-$NUMBER_OF_RUNS &&	
 	NUMBER_OF_RUNS=$((NUMBER_OF_RUNS+1)) &&
 	
 	# And run the enforcer again
@@ -125,7 +125,7 @@ while ( [ $STATUS -eq 0 ] && [ $NUMBER_OF_ZONES -lt $MAX_ZONES ] ); do
 	log_this_timeout ods-enforce-$NUMBER_OF_RUNS $ENFORCER_WAIT ods-enforcer enforce  &&
 	sleep 3 &&	
 	log_waitfor ods-enforce-$NUMBER_OF_RUNS stdout 90 "completed in" &&
-	enforcer-ng_run_time "Second_run" ods-enforce-$NUMBER_OF_RUNS &&
+	enforcer_run_time "Second_run" ods-enforce-$NUMBER_OF_RUNS &&
 	NUMBER_OF_RUNS=$((NUMBER_OF_RUNS+1)) &&	
 
     # Lets list the keys and see how long that takes

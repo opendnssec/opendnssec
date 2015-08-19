@@ -35,7 +35,7 @@
 #define WIRE_EDNS_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 #include "wire/buffer.h"
 
 #include <ldns/ldns.h>

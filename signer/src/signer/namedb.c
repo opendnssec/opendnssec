@@ -30,10 +30,10 @@
  */
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "file.h"
+#include "log.h"
+#include "util.h"
 #include "signer/backup.h"
 #include "signer/namedb.h"
 #include "signer/zone.h"
