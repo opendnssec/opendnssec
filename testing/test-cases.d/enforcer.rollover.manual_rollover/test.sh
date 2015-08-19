@@ -244,7 +244,7 @@ log_grep ods-enforcer-key-list10 stdout 'ods3[[:space:]]*ZSK[[:space:]]*active' 
 #log_grep ods-enforcer-key-list11 stdout 'ods3[[:space:]]*[[:space:]]*      KSK[[:space:]]*ready' &&
 #log_grep ods-enforcer-key-list11 stdout 'ods3[[:space:]]*[[:space:]]*      ZSK[[:space:]]*active' &&
 #log_grep ods-enforcer-key-list11 stdout 'ods3[[:space:]]*[[:space:]]*      ZSK[[:space:]]*publish' &&
-
+ods_stop_enforcer &&
 return 0
 
 echo
