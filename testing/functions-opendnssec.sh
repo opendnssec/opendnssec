@@ -334,7 +334,7 @@ ods_setup_env ()
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer
 	fi &&
-	echo "ods_setup_env: setup env suceeded!" &&
+	echo "ods_setup_env: setup env succeeded!" &&
 	return 0
 
 	echo "ods_setup_env: setup failed!" >&2
@@ -484,6 +484,65 @@ ods_enforcer_leap_over ()
 		fi
 		currenttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 		timediff=`expr $currenttime - $starttime`
+	done
+	if [ $timediff -lt $period ]
+	then
+		echo "time leap max'ed out"
+		return 1
+	fi
+	return 0
+}
+
+ods_enforcer_leap_to ()
+{
+	if [ -z "$1" ]
+	then
+		echo "usage: ods_enforcer_leap_to <maximum leap time> [ <maximum number of leaps> ]" >&2
+		exit 1
+	fi
+	local period=$1
+	local maxleaps=$2
+	local starttime
+	local nexttime
+	local timediff
+	if [ -z "$maxleaps" ]
+	then
+		maxleaps=-1
+	fi
+	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+	sleep 30
+	log_this ods-enforcer-time-leap ods-enforcer queue || return 1
+	if [ $maxleaps -gt 0 ]
+	then
+		maxleaps=`expr $maxleaps - 1`
+	fi
+	starttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	nexttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Next task scheduled.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+echo "BERRY#X"
+log_this ods-enforcer-time-leap ods-enforcer key list
+	if [ -z "$nexttime" ]
+	then
+		nexttime=$starttime
+	fi
+	if [ $nexttime -lt $starttime ]
+	then
+		nexttime=$starttime
+	fi
+	timediff=`expr $nexttime - $starttime`
+	while [ \( $timediff -lt $period \) -a \( $maxleaps -ne 0 \) ]
+	do
+		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+		sleep 30
+		log_this ods-enforcer-time-leap ods-enforcer queue || return 1
+echo "BERRY#Y"
+log_this ods-enforcer-time-leap ods-enforcer key list
+		if [ $maxleaps -gt 0 ]
+		then
+			maxleaps=`expr $maxleaps - 1`
+		fi
+		nexttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Next task scheduled.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+		timediff=`expr $nexttime - $starttime`
+		echo "BERRY $nexttime $starttime $timediff"
 	done
 	if [ $timediff -lt $period ]
 	then

@@ -79,7 +79,7 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-    struct tm strtime_struct;
+	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
 	char buf[ODS_SE_MAXLINE];
 	time_t now = time_now();
@@ -128,8 +128,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)\n", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, 
 		"There are %i tasks scheduled.\nIt is now       %s",
-		(int) schedule_taskcount(engine->taskq),
-		strtime?strtime:"(null)\n");
+		(int) schedule_taskcount(engine->taskq), strtime);
 	cont = 1;
 	while (cont) {
 		if (! time)
@@ -141,8 +140,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
 		client_printf(sockfd,  "Leaping to time %s\n", 
 			strtime?strtime:"(null)");
-		ods_log_info("Time leap: Leaping to time %s\n",
-			 strtime?strtime:"(null)");
+		ods_log_info("Time leap: Leaping to time %s\n", strtime);
 		/* Wake up all workers and let them reevaluate wether their
 		 tasks need to be executed */
 		client_printf(sockfd, "Waking up workers\n");
