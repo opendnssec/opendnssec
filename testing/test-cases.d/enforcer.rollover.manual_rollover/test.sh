@@ -27,6 +27,7 @@ ods-enforcer key list &&
 # For having ready/active ksk/zsks we need two time leap
 log_this ods-enforcer-time-leap ods-enforcer time leap &&
 sleep 1 &&
+ods-enforcer key list &&
 log_this ods-enforcer-time-leap ods-enforcer time leap &&
 sleep 1 &&
 
@@ -109,6 +110,7 @@ log_grep ods-enforcer-key-list4 stdout "ods[[:space:]]*ZSK[[:space:]]*active.*$Z
 
 ##################  STEP 3: Time Leap to next new zsk for ods ###########################
 # The first two time leap are for ods2 and ods3
+ods-enforcer key list &&
 sleep 1 &&
 log_this ods-enforcer-time-leap ods-enforcer time leap &&
 sleep 1 &&
@@ -118,6 +120,7 @@ sleep 1 &&
 
 log_this ods-enforcer-time-leap ods-enforcer time leap &&
 sleep 1 && 
+ods-enforcer key list &&
 
 # Check the next scheduled rollover starts for the ZSK
 log_this ods-enforcer-key-list5 ods-enforcer key list --verbose &&
