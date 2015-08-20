@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include <pthread.h>
+#include <time.h>
 
 #include "file.h"
 #include "log.h"
@@ -72,11 +73,12 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	char* strtime;
-	char ctimebuf[32]; /* at least 26 according to docs */
+	struct tm strtime_struct;
+	char strtime[64]; /* at least 26 according to docs plus a long integer */
 	char buf[ODS_SE_MAXLINE];
 	size_t i = 0, count;
-	time_t now = 0;
+	time_t now;
+	time_t nextFireTime;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
 	task_type* task = NULL;
 	(void)cmd; (void)n; (void)dbconn;
@@ -102,12 +104,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	pthread_mutex_unlock(&engine->taskq->schedule_lock);
 
 	/* how many tasks */
-	now = time_now();
-	strtime = ctime_r(&now,ctimebuf);
 	count = schedule_taskcount(engine->taskq);
-	client_printf(sockfd, "There %s %i %s scheduled.\nIt is now %s",
-		(count==1)?"is":"are", (int) count, (count==1)?"task":"tasks",
-		strtime?strtime:"(null)\n");
+	client_printf(sockfd, "There %s %i %s scheduled.\n",
+		(count==1)?"is":"are", (int) count, (count==1)?"task":"tasks");
+	now = time_now();
+	strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)\n", localtime_r(&now, &strtime_struct));
+	client_printf(sockfd, "It is now %s", strtime?strtime:"(null)\n");
+	nextFireTime = schedule_time_first(engine->taskq);
+	if (nextFireTime > 0) {
+		strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)\n", localtime_r(&nextFireTime, &strtime_struct));
+		client_printf(sockfd, "Next task scheduled %s", strtime);
+	}
 	
 	/* list tasks */
 	pthread_mutex_lock(&engine->taskq->schedule_lock);
