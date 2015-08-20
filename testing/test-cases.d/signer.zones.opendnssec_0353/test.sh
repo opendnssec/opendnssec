@@ -14,6 +14,7 @@ ods_reset_env &&
 
 ## Start OpenDNSSEC
 ods_start_ods-control && 
+sleep 60 &&
 
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 1001*' &&
