@@ -547,6 +547,62 @@ ods_enforcer_leap_to ()
 	return 0
 }
 
+ods_timeleap_search_key ()
+{
+        local zone="$1"
+        local key="$2"
+        local state="$3"
+	local tagcka=".*"
+	local ans=""
+
+	if [ -n "$4" ];then
+		tagcka="$4"
+	fi
+
+        while true; do
+
+                log_this ods-key-list ods-enforcer key list --verbose 
+		ans=`log_grep -o ods-key-list stdout "$zone[[:space:]]*$key[[:space:]]*$state.*$tagcka"`
+
+                if [ -n "$ans" ]; then
+			rm -f  _log.$BUILD_TAG.ods-key-list.stdout
+		        rm -f _log.$BUILD_TAG.ods-key-list.stderr
+                        return 0
+                fi
+                ods-enforcer time leap
+                sleep 10
+        done
+
+}
+
+ods_timeleap_search_nokey ()
+{
+        local zone="$1"
+        local key="$2"
+        local state="$3"
+	local tagcka=".*"
+	local ans=""
+
+	if [ -n "$4" ]; then
+		tagcka="$4"
+	fi
+
+        while true; do
+                log_this ods-nokey-list ods-enforcer key list --verbose
+		ans=`log_grep -o ods-nokey-list stdout "$zone[[:space:]]*$key[[:space:]]*$state.*$tagcka"`
+
+                if [ -z "$ans" ]; then
+			rm -f _log.$BUILD_TAG.ods-nokey-list.stdout
+		        rm -f _log.$BUILD_TAG.ods-nokey-list.stderr
+                        return 0
+                fi
+
+                ods-enforcer time leap
+                sleep 10
+		rm -f _log.$BUILD_TAG.ods-nokey-list.stdout
+        done
+
+}
 
 ods_ods-control_signer_start ()
 {
