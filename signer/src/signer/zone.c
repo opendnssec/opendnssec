@@ -493,6 +493,11 @@ zone_update_serial(zone_type* zone)
         return ODS_STATUS_OK;
     }
     rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
+    if (!rrset || !rrset->rrs || !rrset->rrs[0].rr) {
+        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
+            "find soa rrset", zone_str, zone->name);
+        return ODS_STATUS_ERR;
+    }
     ods_log_assert(rrset);
     ods_log_assert(rrset->rrs);
     ods_log_assert(rrset->rrs[0].rr);
@@ -757,7 +762,7 @@ zone_cleanup(zone_type* zone)
     adapter_cleanup(zone->adoutbound);
     namedb_cleanup(zone->db);
     ixfr_cleanup(zone->ixfr);
-    xfrd_cleanup(zone->xfrd);
+    xfrd_cleanup(zone->xfrd, 1);
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
@@ -1049,6 +1054,8 @@ zone_backup2(zone_type* zone)
     tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
     if (!tmpfile || !filename) {
+        free(tmpfile);
+        free(filename);
         return ODS_STATUS_MALLOC_ERR;
     }
     fd = ods_fopen(tmpfile, NULL, "w");
