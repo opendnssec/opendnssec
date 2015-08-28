@@ -156,8 +156,15 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
+    /* OPENDNSSEC-690: this function is called per-zone, and the policy id differs per zone, thus the
+     * keys generated will never be shared.
+     * Additionally, this used to calculate the number of keys to be generated based upon the
+     * duration, times the number of zones.  Not only is this wrong when using shared keys, but
+     * also for non-shared keys, this function would be called per-zone, with a different id for each
+     * zone.
+     */
     generate_keys = (size_t)ceil((double)((duration ? duration : engine->config->automatic_keygen_duration))
-        / (double)policy_key_lifetime(policy_key)) * num_zones;
+        / (double)policy_key_lifetime(policy_key));
     if (num_keys >= generate_keys) {
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;

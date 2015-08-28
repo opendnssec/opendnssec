@@ -675,8 +675,7 @@ parse_conf_automatic_keygen_period(const char* cfgfile)
 			duration_type* duration = duration_create_from_string(str);
 			if (duration) {
 				time_t duration_period = duration2time(duration);
-				if (duration_period)
-					period = duration_period;
+				period = duration_period;
 				duration_cleanup(duration);
 			}
         }
