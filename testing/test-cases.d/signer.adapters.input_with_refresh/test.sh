@@ -30,7 +30,7 @@ test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 ## See if REFRESH is being done
 ods-signer verbosity 5 &&
-syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request round 0 master' &&
+syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request .*round 0 master' &&
 syslog_waitfor 5 'ods-signerd: .*\[xfrd\] zone ods got update indicating current serial' &&
 syslog_waitfor 5 'ods-signerd: .*\[xfrd\] zone ods sets timer timeout refresh 30' &&
 

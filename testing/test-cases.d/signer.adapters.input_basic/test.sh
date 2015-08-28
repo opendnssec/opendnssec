@@ -53,7 +53,7 @@ syslog_waitfor 60 'ods-signerd: .*\[xfrd\] zone ods sending udp query id=.* qtyp
 syslog_waitfor 60 'ods-signerd: .*\[xfrd\] zone ods received too short udp reply from 127\.0\.0\.1, retry tcp'
 
 ## Request IXFR/TCP
-syslog_waitfor 60 'ods-signerd: .*\[xfrd\] zone ods request ixfr to 127\.0\.0\.1' &&
+syslog_waitfor 60 'ods-signerd: .*\[xfrd\] zone ods request tcp/ixfr=1000 to 127\.0\.0\.1' &&
 syslog_waitfor 60 'ods-signerd: .*\[xfrd\] reschedule task for zone ods: disk serial=1001 acquired=.*, memory serial=1000 acquired=.*' &&
 
 ## Stop
