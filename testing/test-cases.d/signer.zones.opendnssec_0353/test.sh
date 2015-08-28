@@ -41,10 +41,13 @@ ods-signer sign ods &&
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 1003*' &&
 sleep 10 &&
 
-## Check if empty non-terminal NSEC3s are removed
-grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1003 9000 4500 1209600 3600" "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-! grep "pg2pe0nhf68boi8ja5saif5aeckddlbv.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-! grep "j48lenn1anop230egquckffan2n0qbkn.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+# The following section about removal of emptu non-terminal NSEC3s was removed from the test
+# in the 1.4 branch.
+
+### Check if empty non-terminal NSEC3s are removed
+#grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1003 9000 4500 1209600 3600" "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+#! grep "pg2pe0nhf68boi8ja5saif5aeckddlbv.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+#! grep "j48lenn1anop230egquckffan2n0qbkn.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 ## Stop
 ods_stop_ods-control && 
