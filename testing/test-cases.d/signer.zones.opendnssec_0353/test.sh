@@ -20,34 +20,27 @@ sleep 60 &&
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 1001*' &&
 ## ldns-nsec3-hash -a 1 -t 5 on.ods: pg2pe0nhf68boi8ja5saif5aeckddlbv.
 ## ldns-nsec3-hash -a 1 -t 5 ottawa.on.ods: j48lenn1anop230egquckffan2n0qbkn.
+echo "Verify NSEC3s are not present" &&
 grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1001 9000 4500 1209600 3600" "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 ! grep "pg2pe0nhf68boi8ja5saif5aeckddlbv.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 ! grep "j48lenn1anop230egquckffan2n0qbkn.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
-## Update zonefile, add DS
+echo "Update zonefile, add DS and wait for signed zone" &&
 cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
 ods-signer sign ods &&
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 1002*' &&
 sleep 10 &&
 
-## Check if empty non-terminal NSEC3s are added
+echo "Check if required empty non-terminal NSEC3s are present" &&
 grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1002 9000 4500 1209600 3600" "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 grep "pg2pe0nhf68boi8ja5saif5aeckddlbv.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 grep "j48lenn1anop230egquckffan2n0qbkn.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
-## Update zonefile, remove DS again
+echo "Update zonefile, remove DS again and wait for signed zone" &&
 cp -- ./unsigned/ods.3 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
 ods-signer sign ods &&
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 1003*' &&
 sleep 10 &&
-
-# The following section about removal of emptu non-terminal NSEC3s was removed from the test
-# in the 1.4 branch.
-
-### Check if empty non-terminal NSEC3s are removed
-#grep "ods.	3600	IN	SOA	ns1.ods. postmaster.ods. 1003 9000 4500 1209600 3600" "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-#! grep "pg2pe0nhf68boi8ja5saif5aeckddlbv.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-#! grep "j48lenn1anop230egquckffan2n0qbkn.ods." "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 ## Stop
 ods_stop_ods-control && 
