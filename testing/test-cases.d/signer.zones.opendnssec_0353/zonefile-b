@@ -1,5 +1,5 @@
 $ORIGIN ods.
-ods. 600 IN SOA ns1.ods. postmaster.ods. 1002 9000 4500 1209600 3600
+ods. 600 IN SOA ns1.ods. postmaster.ods. SERIAL 9000 4500 1209600 3600
 ods. 600 IN MX 10 mail.ods.
 ods. 600 IN NS ns1.ods.
 ods. 600 IN NS ns2.ods.
@@ -12,5 +12,3 @@ aaa.ottawa.on.ods. IN NS foo.
 problementry.ottawa.on.ods. IN NS foo.
 problementry.ottawa.on.ods. IN DS 33430 8 2 6169884218488e711d4c5ea6c73e2fe6ee3048427a3356a292bfe1374f5daa80
 zzz.ottawa.on.ods. IN NS foo.
-
-
