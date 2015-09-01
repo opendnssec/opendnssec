@@ -376,21 +376,59 @@ static void
 engine_start_workers(engine_type* engine)
 {
     size_t i = 0;
+    pthread_attr_t *attr_ptr = NULL;
+
+#if defined(__OpenBSD__) && defined(HAVE_PTHREAD)
+    /* On i386 OpenBSD we have only 256K stack available. This is not
+     * enough to run worker threads with. */
+    pthread_attr_t attr;
+    size_t stacksize;
+    attr_ptr = &attr;
+    if (pthread_attr_init(attr_ptr)
+        || pthread_attr_getstacksize(attr_ptr, &stacksize)
+        || pthread_attr_setstacksize(attr_ptr, stacksize * 2))
+    {
+        ods_log_warning("[%s] Failed to double stackspace for threads.",
+            engine_str);
+        attr_ptr = NULL;
+    }
+#endif /*__OpenBSD__ && HAVE_PTHREAD*/
+
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start workers", engine_str);
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (void*) engine;
-        ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
-            engine->workers[i]);
+        ods_thread_create_attr(&engine->workers[i]->thread_id, attr_ptr,
+            worker_thread_start, engine->workers[i]);
     }
+    if (attr_ptr)
+        (void) pthread_attr_destroy(attr_ptr);
     return;
 }
 void
 engine_start_drudgers(engine_type* engine)
 {
     size_t i = 0;
+    pthread_attr_t *attr_ptr = NULL;
+
+#if defined(__OpenBSD__) && defined(HAVE_PTHREAD)
+    /* On i386 OpenBSD we have only 256K stack available. This is not
+     * enough to run worker threads with. */
+    pthread_attr_t attr;
+    size_t stacksize;
+    attr_ptr = &attr;
+    if (pthread_attr_init(attr_ptr)
+        || pthread_attr_getstacksize(attr_ptr, &stacksize)
+        || pthread_attr_setstacksize(attr_ptr, stacksize * 2))
+    {
+        ods_log_warning("[%s] Failed to double stackspace for threads.",
+            engine_str);
+        attr_ptr = NULL;
+    }
+#endif /*__OpenBSD__ && HAVE_PTHREAD*/
+
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start drudgers", engine_str);
@@ -400,6 +438,8 @@ engine_start_drudgers(engine_type* engine)
         ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
             engine->drudgers[i]);
     }
+    if (attr_ptr)
+        (void) pthread_attr_destroy(attr_ptr);
     return;
 }
 static void
