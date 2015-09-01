@@ -11,42 +11,49 @@ fi &&
 
 ods_reset_env &&
 
-rm -rf base &&
-mkdir  base &&
-
-# Used only to create a gold while setting up the test
-#rm -rf gold && mkdir gold &&
-
 ##################  SETUP ###########################
 # Start enforcer (Zones already exist and we let it generate keys itself)
 ods_start_enforcer &&
 
 # Make sure all keys are in use
-sleep 90 &&
+sleep 300 &&
 
 # Check that we have 2 keys per zone
+# We don't care about the exact state it is in, as long as it is consistent.
 log_this ods-enforcer-key-list0 ods-enforcer key list &&
-( ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      generate' &&
+( ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      active' ) ||
+  ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      publish' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'non-share2                      KSK      generate' &&
+( ( log_grep ods-enforcer-key-list0 stdout 'non-share2                      KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'non-share2                      ZSK      active' ) ||
+  ( log_grep ods-enforcer-key-list0 stdout 'non-share2                      KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share2                      ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share2                      KSK      publish' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share2                      ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'non-share3                      KSK      generate' &&
+( ( log_grep ods-enforcer-key-list0 stdout 'non-share3                      KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'non-share3                      ZSK      active' ) ||
+  ( log_grep ods-enforcer-key-list0 stdout 'non-share3                      KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share3                      ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share3                      KSK      publish' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share3                      ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'share1                          KSK      generate' &&
+( ( log_grep ods-enforcer-key-list0 stdout 'share1                          KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'share1                          ZSK      active' ) ||
+  ( log_grep ods-enforcer-key-list0 stdout 'share1                          KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'share1                          ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share1                          KSK      publish' &&
     log_grep ods-enforcer-key-list0 stdout 'share1                          ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'share2                          KSK      generate' &&
+( ( log_grep ods-enforcer-key-list0 stdout 'share2                          KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'share2                          ZSK      active' ) ||
+  ( log_grep ods-enforcer-key-list0 stdout 'share2                          KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'share2                          ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share2                          KSK      publish' &&
     log_grep ods-enforcer-key-list0 stdout 'share2                          ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'share3                          KSK      generate' &&
+( ( log_grep ods-enforcer-key-list0 stdout 'share3                          KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'share3                          ZSK      active' ) ||
+  ( log_grep ods-enforcer-key-list0 stdout 'share3                          KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'share3                          ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share3                          KSK      publish' &&
     log_grep ods-enforcer-key-list0 stdout 'share3                          ZSK      ready' ) ) &&
@@ -121,15 +128,7 @@ test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 16 &&
 # test `ods-hsmutil list | grep ^SoftHSM | grep RSA/1024 | wc -l` -lt \
 #      `ods-hsmutil list | grep ^SoftHSM | grep RSA/2048 | wc -l` &&
 
-for zone in non-share1 non-share2 non-share3 share1 share2 share3; do
-	# Used only to create a gold while setting up the test
-	#cp $INSTALL_ROOT/var/opendnssec/signconf/$zone.xml gold/signconf_"$zone".xml        
-	cp $INSTALL_ROOT/var/opendnssec/signconf/$zone.xml base/signconf_"$zone".xml
-done &&
-
-# compare all the signconf files
-log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
-rm -rf base &&
+ods_stop_enforcer &&
 
 return 0
 
