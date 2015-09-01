@@ -124,6 +124,7 @@ print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
 	if (!dnskey_rr) return 1;
 
 	if (bind_style) {
+		ldns_rr_set_ttl(dnskey_rr, key_state_ttl (key_data_cached_ds(key)));
 		ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA1);
 		rrstr = ldns_rr2str(ds_sha_rr);
 		ldns_rr_free(ds_sha_rr);
