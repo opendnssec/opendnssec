@@ -552,15 +552,19 @@ ods_timeleap_search_key ()
         local zone="$1"
         local key="$2"
         local state="$3"
-	local tagcka=".*"
+	local tagcka="$4"
+	local maxleaps="$5"
 	local ans=""
+	
+	if [ -z "$4" ]; then
+		tagcka=".*"
+	fi
 
-	if [ -n "$4" ];then
-		tagcka="$4"
+	if [ -z "$5" ];then
+		maxleaps=20
 	fi
 
         while true; do
-
                 log_this ods-key-list ods-enforcer key list --verbose 
 		ans=`log_grep -o ods-key-list stdout "$zone[[:space:]]*$key[[:space:]]*$state.*$tagcka"`
 
@@ -569,7 +573,14 @@ ods_timeleap_search_key ()
 		        rm -f _log.$BUILD_TAG.ods-key-list.stderr
                         return 0
                 fi
+
+		if [ "$maxleaps" -eq 0 ]; then
+			echo "Key not found !!!!"
+			return 1
+		fi
+
                 ods-enforcer time leap
+		maxleaps=`expr $maxleaps - 1`
                 sleep 10
         done
 
@@ -580,11 +591,16 @@ ods_timeleap_search_nokey ()
         local zone="$1"
         local key="$2"
         local state="$3"
-	local tagcka=".*"
+	local tagcka="$4"
+	local maxleap="$5"
 	local ans=""
 
-	if [ -n "$4" ]; then
-		tagcka="$4"
+	if [ -z "$4" ]; then
+		tagcka=".*"
+	fi
+
+	if [ -z "$5" ]; then
+		maxleaps=20
 	fi
 
         while true; do
@@ -597,7 +613,13 @@ ods_timeleap_search_nokey ()
                         return 0
                 fi
 
+		if [ "$maxleaps" -eq 0 ]; then
+			echo "Key still exists !!! "
+			return 1
+		fi
+
                 ods-enforcer time leap
+		maxleaps=`expr $maxleaps - 1`
                 sleep 10
 		rm -f _log.$BUILD_TAG.ods-nokey-list.stdout
         done
