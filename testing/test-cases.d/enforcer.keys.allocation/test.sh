@@ -16,7 +16,7 @@ ods_reset_env &&
 ods_start_enforcer &&
 
 # Make sure all keys are in use
-sleep 90 &&
+sleep 210 &&
 
 # Check that we have 2 keys per zone
 log_this ods-enforcer-key-list0 ods-enforcer key list &&
