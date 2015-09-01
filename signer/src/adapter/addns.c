@@ -240,10 +240,18 @@ begin_pkt:
                 result = ODS_STATUS_ERR;
                 break;
             }
+
             tmp_serial =
                 ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
             old_serial = adapi_get_serial(zone);
-            if (!util_serial_gt(tmp_serial, old_serial)) {
+
+/**
+ * Do we need to make this check? It is already done by xfrd.
+ * By not doing this check, retransfers will be taken into account.
+ *
+
+            if (!util_serial_gt(tmp_serial, old_serial) &&
+                zone->db->is_initialized) {
                 ods_log_info("[%s] zone %s is already up to date, have "
                     "serial %u, got serial %u", adapter_str, zone->name,
                     old_serial, tmp_serial);
@@ -254,13 +262,16 @@ begin_pkt:
                 while (len >= 0) {
                     len = adutil_readline_frm_file(fd, line, &l, 1);
                     if (len && ods_strcmp(";;ENDPACKET", line) == 0) {
-                        /* end of pkt */
                         startpos = 0;
                         break;
                     }
                 }
                 break;
             }
+
+ *
+ **/
+
             ldns_rr_free(rr);
             rr = NULL;
             result = ODS_STATUS_OK;
@@ -277,6 +288,14 @@ begin_pkt:
             } else {
                 ods_log_verbose("[%s] detected ixfr serial=%u for zone %s",
                     adapter_str, tmp_serial, zone->name);
+
+                if (!util_serial_gt(tmp_serial, old_serial) &&
+                    zone->db->is_initialized) {
+                    ods_log_error("[%s] bad ixfr for zone %s, bad start serial %lu",
+                        adapter_str, zone->name, (unsigned long)tmp_serial);
+                    result = ODS_STATUS_ERR;
+                }
+
                 new_serial = tmp_serial;
                 tmp_serial =
                   ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
@@ -288,8 +307,8 @@ begin_pkt:
                     result = ODS_STATUS_OK;
                     continue;
                 } else {
-                    ods_log_error("[%s] bad xfr for zone %s, bad soa serial",
-                        adapter_str, zone->name);
+                    ods_log_error("[%s] bad ixfr for zone %s, bad soa serial %lu",
+                        adapter_str, zone->name, (unsigned long) tmp_serial);
                     result = ODS_STATUS_ERR;
                     break;
                 }
@@ -733,12 +752,18 @@ addns_read(void* zone)
         }
         /* do a transaction for DNSKEY and NSEC3PARAM */
         adapi_trans_diff(z, 0);
+        ods_log_verbose("[%s] no new xfr ready for zone %s", adapter_str,
+            z->name);
         return ODS_STATUS_UNCHANGED;
     }
     /* copy zone transfers */
     xfrfile = ods_build_path(z->name, ".xfrd", 0, 1);
     file = ods_build_path(z->name, ".xfrd.tmp", 0, 1);
     if (!xfrfile || !file) {
+        free(xfrfile);
+        free(file);
+        lock_basic_unlock(&z->xfrd->serial_lock);
+        lock_basic_unlock(&z->xfrd->rw_lock);
         ods_log_error("[%s] unable to build paths to xfrd files", adapter_str);
         return ODS_STATUS_MALLOC_ERR;
     }
@@ -867,10 +892,14 @@ addns_write(void* zone)
     }
     free((void*) axfrfile);
     free((void*) atmpfile);
+    axfrfile = NULL;
+    atmpfile = NULL;
 
     if (z->db->is_initialized) {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
         if (!ixfrfile) {
+            free((void*) axfrfile);
+            free((void*) atmpfile);
             free((void*) itmpfile);
             return ODS_STATUS_MALLOC_ERR;
         }
