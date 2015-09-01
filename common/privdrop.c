@@ -157,7 +157,7 @@ privdrop(const char *username, const char *groupname, const char *newroot,
 {
     int status;
     uid_t uid, olduid;
-    gid_t gid, oldgid;
+    gid_t gid;
     long ngroups_max;
     gid_t *final_groups;
     int final_group_len = -1;
