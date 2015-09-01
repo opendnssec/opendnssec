@@ -139,7 +139,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)", localtime_r(&time_leap, &strtime_struct));
 
 		client_printf(sockfd,  "Leaping to time %s\n", 
-			strtime?strtime:"(null)");
+			strtime[0]?strtime:"(null)");
 		ods_log_info("Time leap: Leaping to time %s\n", strtime);
 		/* Wake up all workers and let them reevaluate wether their
 		 tasks need to be executed */
