@@ -33,6 +33,7 @@
 #include "allocator.h"
 #include "file.h"
 #include "log.h"
+#include "str.h"
 
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
@@ -251,7 +252,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 strncmp(buf, "quit", 4) == 0) {
                 return 0;
             }
-            ods_str_trim(buf);
+            ods_str_trim(buf, 1);
             n = strlen(buf);
             ods_writen(sockfd, buf, n);
         }
