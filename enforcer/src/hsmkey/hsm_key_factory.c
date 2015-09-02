@@ -169,7 +169,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
-    ods_log_info("[hsm_key_factory_generate] %lu keys needed for %d zones govering %lu seconds, generating %lu keys", generate_keys, num_zones, duration, (unsigned long)generate_keys-num_keys);
+    ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu zones govering %lu seconds, generating %lu keys", generate_keys, num_zones, duration, (unsigned long)generate_keys-num_keys);
     generate_keys -= num_keys;
 
     /*
