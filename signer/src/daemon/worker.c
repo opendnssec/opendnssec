@@ -781,11 +781,13 @@ void
 worker_sleep(worker_type* worker, time_t timeout)
 {
     ods_log_assert(worker);
-    lock_basic_lock(&worker->worker_lock);
-    worker->sleeping = 1;
-    lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
-        timeout);
-    lock_basic_unlock(&worker->worker_lock);
+    if (!worker->need_to_exit) {
+        lock_basic_lock(&worker->worker_lock);
+        worker->sleeping = 1;
+        lock_basic_sleep(&worker->worker_alarm, &worker->worker_lock,
+            timeout);
+        lock_basic_unlock(&worker->worker_lock);
+    }
     return;
 }
 
