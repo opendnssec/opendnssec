@@ -101,6 +101,29 @@ void ods_thr_fork_wait(ods_thread_type thread)
 }
 #else /* defined(HAVE_PTHREAD) */
 
+int
+ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg)
+{
+    int ret;
+    pthread_attr_t attr;
+    size_t stacksize;
+
+    pthread_attr_init(&attr);
+    pthread_attr_getstacksize(&attr, &stacksize);
+
+    if (stacksize < ODS_MINIMUM_STACKSIZE) {
+        pthread_attr_setstacksize(&attr, ODS_MINIMUM_STACKSIZE);
+    }
+
+    ret = pthread_create(thr, &attr, func, arg);
+
+    if ( ret != 0) {
+        ods_log_error("%s at %d could not pthread_create(thr, attr, func, arg): %s",
+        __FILE__, __LINE__, strerror(ret));
+    }
+
+    return ret;
+}
 
 int
 ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
