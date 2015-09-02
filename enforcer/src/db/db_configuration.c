@@ -140,6 +140,11 @@ db_configuration_list_t* db_configuration_list_new(void) {
     return configuration_list;
 }
 
+void db_configuration_list_alloc_nuke()
+{
+    mm_alloc_free(&__configuration_list_alloc);
+}
+
 void db_configuration_list_free(db_configuration_list_t* configuration_list) {
     if (configuration_list) {
         if (configuration_list->begin) {
