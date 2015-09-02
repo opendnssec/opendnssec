@@ -374,7 +374,7 @@ schedule_purge(schedule_type* schedule)
             LDNS_RBTREE_NULL)
         {
             node = ldns_rbtree_delete(schedule->tasks, node->data);
-            if (node == LDNS_RBTREE_NULL) break; 
+            if (node == 0) break;
             free(node);
         }
         /* also clean up name tree */
@@ -382,7 +382,7 @@ schedule_purge(schedule_type* schedule)
             LDNS_RBTREE_NULL)
         {
             node = ldns_rbtree_delete(schedule->tasks_by_name, node->data);
-            if (node == LDNS_RBTREE_NULL) break;
+            if (node == 0) break;
             task_cleanup((task_type*) node->data);
             free(node);
         }
