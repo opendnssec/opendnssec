@@ -31,12 +31,12 @@
             <ShareKeys/>
             <Purge>PT86400S</Purge>
             <KSK>
-                <Algorithm length="1024">7</Algorithm>
+                <Algorithm length="2048">7</Algorithm>
                 <Lifetime>PT345601S</Lifetime>
                 <Repository>SoftHSM</Repository>
             </KSK>
             <ZSK>
-                <Algorithm length="2048">7</Algorithm>
+                <Algorithm length="1024">7</Algorithm>
                 <Lifetime>PT43201S</Lifetime>
                 <Repository>SoftHSM</Repository>
 
