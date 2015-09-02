@@ -174,7 +174,7 @@ policy_resalt_task(engine_type* engine)
 {
 	task_id what_id = task_register("resalt",
 		"policy_resalt_task_perform", policy_resalt_task_perform);
-	return task_create(what_id, time_now(), "policies", "resalt", engine);
+	return task_create(what_id, time_now(), "policies", "resalt", engine, NULL);
 }
 
 int

@@ -68,6 +68,7 @@ struct task_struct {
     ldns_rdf* dname;
     void* context;
     task_type* (*how)(task_type*task);
+    task_type* (*clean_context)(task_type*task);
     db_connection_t *dbconn; /* short lived */
 };
 
@@ -83,7 +84,7 @@ typedef task_type* (*how_type)(task_type*task);
  *
  */
 task_id task_register(const char *short_name, const char *long_name, 
-                      how_type how);
+    how_type how);
 
 /**
  * Create a new task.
@@ -95,7 +96,7 @@ task_id task_register(const char *short_name, const char *long_name,
  *
  */
 task_type* task_create(task_id what_id, time_t when, const char* who,
-    const char* what, void* context);
+    const char* what, void* context, how_type clean_context);
 
 /**
  * Clean up task.

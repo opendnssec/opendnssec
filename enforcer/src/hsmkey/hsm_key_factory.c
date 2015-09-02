@@ -395,7 +395,6 @@ static task_type* hsm_key_factory_generate_task(task_type *task) {
     ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
     policy_key_free(task2->policy_key);
     task_cleanup(task);
-    free(task2);
     return NULL;
 }
 
@@ -422,7 +421,6 @@ static task_type* hsm_key_factory_generate_policy_task(task_type *task) {
     ods_log_debug("[hsm_key_factory_generate_policy_task] generate for policy done");
     policy_free(task2->policy);
     task_cleanup(task);
-    free(task2);
     return NULL;
 }
 
@@ -448,8 +446,14 @@ static task_type* hsm_key_factory_generate_all_task(task_type *task) {
     hsm_key_factory_generate_all(task2->engine, task->dbconn, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies done");
     task_cleanup(task);
-    free(task2);
     return NULL;
+}
+
+static task_type* hsm_key_factory_clean_context(task_type *task)
+{
+    free(task->context);
+    task->context = NULL;
+    return task;
 }
 
 int hsm_key_factory_schedule_generate(engine_type* engine,
@@ -472,12 +476,14 @@ int hsm_key_factory_schedule_generate(engine_type* engine,
     task2->policy_key = policy_key;
     task2->duration = duration;
 
-    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_task);
+    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation",
+        hsm_key_factory_generate_task);
     if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "policy_key", "hsmkeygen", task2))
+        || !(task = task_create(what_id, time_now(), "policy_key",
+            "hsmkeygen", task2, hsm_key_factory_clean_context))
         || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
     {
-        free(task2);
+        if (!task) free(task2);
         policy_key_free(policy_key);
         task_cleanup(task);
         return 1;
@@ -505,12 +511,14 @@ int hsm_key_factory_schedule_generate_policy(engine_type* engine,
     task2->policy = policy;
     task2->duration = duration;
 
-    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation_policy", hsm_key_factory_generate_policy_task);
+    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation_policy",
+        hsm_key_factory_generate_policy_task);
     if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "policy", "hsmkeygen", task2))
+        || !(task = task_create(what_id, time_now(), "policy",
+            "hsmkeygen", task2, hsm_key_factory_clean_context))
         || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
     {
-        free(task2);
+        if (!task) free(task2);
         policy_free(policy);
         task_cleanup(task);
         return 1;
@@ -530,12 +538,14 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration) 
     task2->engine = engine;
     task2->duration = duration;
 
-    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation", hsm_key_factory_generate_all_task);
+    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation",
+        hsm_key_factory_generate_all_task);
     if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "all policies", "hsmkeygen", task2))
+        || !(task = task_create(what_id, time_now(), "all policies",
+            "hsmkeygen", task2, hsm_key_factory_clean_context))
         || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
     {
-        free(task2);
+        if (!task) free(task2);
         task_cleanup(task);
         return 1;
     }
