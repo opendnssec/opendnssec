@@ -435,8 +435,8 @@ engine_start_drudgers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 0;
         engine->drudgers[i]->engine = (void*) engine;
-        ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
-            engine->drudgers[i]);
+        ods_thread_create_attr(&engine->drudgers[i]->thread_id, attr_ptr,
+            worker_thread_start, engine->drudgers[i]);
     }
     if (attr_ptr)
         (void) pthread_attr_destroy(attr_ptr);
