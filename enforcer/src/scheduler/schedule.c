@@ -149,11 +149,14 @@ pop_first_task(schedule_type* schedule)
     node = ldns_rbtree_first(schedule->tasks);
     if (!node) return NULL;
     delnode = ldns_rbtree_delete(schedule->tasks, node->data);
+    /* delnode == node, but we don't free it just yet, data is shared
+     * with tasks_by_name tree */
     if (!delnode) return NULL;
     delnode = ldns_rbtree_delete(schedule->tasks_by_name, node->data);
-    free(node); /* node and delnode should be the same */
+    free(node);
     if (!delnode) return NULL;
     task = (task_type*) delnode->data;
+    free(delnode); /* this delnode != node */
     set_alarm(schedule);
     return task;
 }
