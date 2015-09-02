@@ -73,6 +73,7 @@ int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
 typedef pthread_t ods_thread_type;
 /** Pass where to store tread_t in thr. Use default NULL attributes. */
 #define ods_thread_create(thr, func, arg) LOCKRET(pthread_create(thr, NULL, func, arg))
+#define ods_thread_create_attr(thr, attr, func, arg) LOCKRET(pthread_create(thr, attr, func, arg))
 #define ods_thread_detach(thr) LOCKRET(pthread_detach(thr))
 #define ods_thread_self() pthread_self()
 #define ods_thread_join(thr) LOCKRET(pthread_join(thr, NULL))
@@ -99,6 +100,7 @@ typedef int lock_basic_type;
 
 typedef pid_t ods_thread_type;
 #define ods_thread_create(thr, func, arg) ods_thr_fork_create(thr, func, arg)
+#define ods_thread_create_attr(thr, attr, func, arg) ods_thr_fork_create(thr, func, arg)
 #define ods_thread_detach(thr)      /* nop */
 #define ods_thread_self() getpid()
 #define ods_thread_join(thr) ods_thr_fork_wait(thr)
