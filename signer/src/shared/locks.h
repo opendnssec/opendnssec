@@ -49,6 +49,9 @@
 
 #include <pthread.h>
 
+/** ods-signerd will crash if the thread stacksize is too small */
+#define ODS_MINIMUM_STACKSIZE 524288
+
 /** use pthread mutex for basic lock */
 typedef pthread_mutex_t lock_basic_type;
 /** use pthread cond for basic condition */
@@ -71,12 +74,12 @@ int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
 
 /** thread creation */
 typedef pthread_t ods_thread_type;
-/** Pass where to store tread_t in thr. Use default NULL attributes. */
-#define ods_thread_create(thr, func, arg) LOCKRET(pthread_create(thr, NULL, func, arg))
+/** Pass where to store tread_t in thr. */
 #define ods_thread_detach(thr) LOCKRET(pthread_detach(thr))
 #define ods_thread_self() pthread_self()
 #define ods_thread_join(thr) LOCKRET(pthread_join(thr, NULL))
 #define ods_thread_kill(thr, sig) LOCKRET(pthread_kill(thr, sig))
+int ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg);
 int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
 void ods_thread_blocksigs(void);
 
