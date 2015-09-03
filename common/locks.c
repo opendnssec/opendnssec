@@ -104,18 +104,18 @@ void ods_thr_fork_wait(ods_thread_type thread)
 int
 ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg)
 {
-    int ret;
+    int ret, attr_set;
     pthread_attr_t attr;
     size_t stacksize;
 
-    pthread_attr_init(&attr);
-    pthread_attr_getstacksize(&attr, &stacksize);
+    attr_set = (
+           !pthread_attr_init(&attr)
+        && !pthread_attr_getstacksize(&attr, &stacksize)
+        && stacksize < ODS_MINIMUM_STACKSIZE
+        && !pthread_attr_setstacksize(&attr, ODS_MINIMUM_STACKSIZE)
+    );
 
-    if (stacksize < ODS_MINIMUM_STACKSIZE) {
-        pthread_attr_setstacksize(&attr, ODS_MINIMUM_STACKSIZE);
-    }
-
-    ret = pthread_create(thr, &attr, func, arg);
+    ret = pthread_create(thr, attr_set?&attr:NULL, func, arg);
 
     if ( ret != 0) {
         ods_log_error("%s at %d could not pthread_create(thr, attr, func, arg): %s",
