@@ -116,9 +116,11 @@ ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg)
     );
 
     ret = pthread_create(thr, attr_set?&attr:NULL, func, arg);
+    if (attr_set)
+        (void) pthread_attr_destroy(&attr);
 
     if ( ret != 0) {
-        ods_log_error("%s at %d could not pthread_create(thr, attr, func, arg): %s",
+        ods_log_error("%s at %d could not pthread_create(thr, &attr, func, arg): %s",
         __FILE__, __LINE__, strerror(ret));
     }
 
