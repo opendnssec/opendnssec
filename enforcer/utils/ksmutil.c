@@ -7108,6 +7108,7 @@ int ListKeys(int zone_id)
                     sign_params->flags = LDNS_KEY_ZONE_KEY;
                     if (temp_type == KSM_TYPE_KSK) {
                         sign_params->flags += LDNS_KEY_SEP_KEY;
+                        if (temp_revoked) sign_params->flags |= 1<<7;
                     }
                     dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
                     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
