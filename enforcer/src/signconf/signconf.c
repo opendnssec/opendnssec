@@ -307,10 +307,12 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
         ods_log_error("[signconf_export] Unable to create XML elements for zone %s! [%d]", zone_name(zone), error);
         if (sockfd > -1) client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone_name(zone));
         __free(&duration_text);
+        duration_cleanup(duration);
         xmlFreeDoc(doc);
         return SIGNCONF_EXPORT_ERR_XML;
     }
     __free(&duration_text);
+    duration_cleanup(duration);
 
     if (!(key_data_list = zone_get_keys(zone))) {
         ods_log_error("[signconf_export] Unable to get keys for zone %s!", zone_name(zone));
