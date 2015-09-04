@@ -144,8 +144,8 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 					zone_free(firstzone);
 				}
 				firstzone = zone;
+				zone = NULL; /* keeps firstzone from being freed. */
 			}
-			zone = NULL; /* keeps firstzone from being freed. */
 			continue;
 		}
 		if (!(policy = zone_get_policy(zone))) {
