@@ -344,6 +344,12 @@ db_value_set_t* db_value_set_new_copy(const db_value_set_t* from_value_set);
 void db_value_set_free(db_value_set_t* value_set);
 
 /**
+ * free global allocator. 
+ * db_value_set_free MUST be called for all its contents.
+ */
+void db_value_set_alloc_nuke();
+
+/**
  * Get the size of database value set.
  * \param[in] value_set a db_value_set_t pointer.
  * \return a size_t.

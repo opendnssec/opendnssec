@@ -115,6 +115,12 @@ hsm_key_t* hsm_key_new_copy(const hsm_key_t* hsm_key);
 void hsm_key_free(hsm_key_t* hsm_key);
 
 /**
+ * free global allocator. 
+ * hsm_key_free MUST be called for all its contents.
+ */
+void hsm_key_alloc_nuke();
+
+/**
  * Reset the content of a hsm key object making it as if its new. This does not change anything in the database.
  * \param[in] hsm_key a hsm_key_t pointer.
  */

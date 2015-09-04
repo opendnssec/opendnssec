@@ -35,11 +35,26 @@
 #endif
 #include "db_backend_mysql.h"
 #include "db_error.h"
+#include "database_version.h"
+#include "hsm_key.h"
 
 #include "mm.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+void db_alloc_nuke()
+{
+    db_connection_alloc_nuke();
+    db_configuration_alloc_nuke();
+    db_configuration_list_alloc_nuke();
+    hsm_key_alloc_nuke();
+    database_version_alloc_nuke();
+    database_version_list_alloc_nuke();
+    db_result_alloc_nuke();
+    db_result_list_alloc_nuke();
+    db_value_set_alloc_nuke();
+}
 
 /* DB BACKEND HANDLE */
 

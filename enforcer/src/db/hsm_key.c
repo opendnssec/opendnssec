@@ -305,6 +305,11 @@ void hsm_key_free(hsm_key_t* hsm_key) {
     }
 }
 
+void hsm_key_alloc_nuke()
+{
+    mm_alloc_free(&__hsm_key_alloc);
+}
+
 void hsm_key_reset(hsm_key_t* hsm_key) {
     if (hsm_key) {
         db_value_reset(&(hsm_key->id));

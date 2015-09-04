@@ -100,8 +100,8 @@ engine_dealloc(engine_type* engine)
     pthread_cond_destroy(&engine->signal_cond);
     if (engine->dbcfg_list) {
         db_configuration_list_free(engine->dbcfg_list);
-        db_configuration_list_alloc_nuke();
     }
+    db_alloc_nuke();
     free(engine);
 }
 
