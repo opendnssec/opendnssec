@@ -403,6 +403,7 @@ static task_type* hsm_key_factory_generate_task(task_type *task) {
     hsm_key_factory_generate(task2->engine, task->dbconn, task2->policy_key, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
     policy_key_free(task2->policy_key);
+    task2->policy_key = NULL;
     task_cleanup(task);
     return NULL;
 }
@@ -548,6 +549,7 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration) 
 
     task2->engine = engine;
     task2->duration = duration;
+    task2->policy_key = NULL;
 
     what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation",
         hsm_key_factory_generate_all_task);
