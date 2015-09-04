@@ -460,6 +460,8 @@ static task_type* hsm_key_factory_generate_all_task(task_type *task) {
 
 static task_type* hsm_key_factory_clean_context(task_type *task)
 {
+    struct __hsm_key_factory_task* task2 = task->context;
+    policy_key_free(task2->policy_key);
     free(task->context);
     task->context = NULL;
     return task;
