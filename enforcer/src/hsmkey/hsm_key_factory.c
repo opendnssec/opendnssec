@@ -72,6 +72,15 @@ static void hsm_key_factory_init(void) {
     }
 }
 
+void hsm_key_factory_deinit(void)
+{
+    if (__hsm_key_factory_lock) {
+        (void)pthread_mutex_destroy(__hsm_key_factory_lock);
+        free(__hsm_key_factory_lock);
+        __hsm_key_factory_lock = NULL;
+    }
+}
+
 void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key, time_t duration) {
     db_clause_list_t* clause_list;
     hsm_key_t* hsm_key = NULL;
