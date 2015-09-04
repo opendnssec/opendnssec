@@ -429,7 +429,6 @@ static task_type* hsm_key_factory_generate_policy_task(task_type *task) {
     ods_log_debug("[hsm_key_factory_generate_policy_task] generate for policy [duration: %lu]", (unsigned long) task2->duration);
     hsm_key_factory_generate_policy(task2->engine, task->dbconn, task2->policy, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_policy_task] generate for policy done");
-    policy_free(task2->policy);
     task_cleanup(task);
     return NULL;
 }
@@ -463,6 +462,7 @@ static task_type* hsm_key_factory_clean_context(task_type *task)
 {
     struct __hsm_key_factory_task* task2 = task->context;
     policy_key_free(task2->policy_key);
+    policy_free(task2->policy);
     free(task->context);
     task->context = NULL;
     return task;
