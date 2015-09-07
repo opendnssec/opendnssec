@@ -450,6 +450,7 @@ cmdhandler_create(const char* filename)
 void
 cmdhandler_cleanup(cmdhandler_type* cmdhandler)
 {
+    close(cmdhandler->listen_fd);
     free(cmdhandler);
 }
 

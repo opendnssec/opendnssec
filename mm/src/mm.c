@@ -30,6 +30,7 @@
 
 #include <strings.h>
 #include <unistd.h>
+#include <assert.h>
 
 /* TODO: keep list of blocks, add freeing functionality */
 
@@ -73,6 +74,10 @@ void* mm_alloc_new(mm_alloc_t* alloc) {
         return NULL;
     }
 
+    /* if this is the first object, we will allocate a chunk of
+     * memory for it. Otherwise we use the first block available.
+     * If out of blocks we return NULL.
+     */
     if (!alloc->next) {
         unsigned int i;
         void* block;
@@ -81,6 +86,15 @@ void* mm_alloc_new(mm_alloc_t* alloc) {
             pthread_mutex_unlock(&(alloc->lock));
             return NULL;
         }
+        alloc->begin = block;
+
+        /* This code partitions the memory in blocks of size. Creating
+         * a single linked list starting from next at the end of the
+         * memory chunk. Allocated blocks will be detached from the list
+         * and skipped over. We hold no reference to them. Contents of
+         * the free blocks is interpreted as a pointer to the next
+         * block. 'Free\'ed' blocks will be added to the list at next.
+         */
 
         for (i=0; i<(__mm_alloc_size / alloc->size); i++) {
             *(void**)block = alloc->next;
@@ -95,6 +109,27 @@ void* mm_alloc_new(mm_alloc_t* alloc) {
 
     pthread_mutex_unlock(&(alloc->lock));
     return ptr;
+}
+
+void mm_alloc_free(mm_alloc_t* alloc)
+{
+    assert(alloc);
+
+    /* Check if entire contents are free'ed. Otherwise assert. This is
+     * technically not necessary but we are trying to find memory
+     * issues here. */
+    if (alloc->begin) {
+        unsigned int count = 0;
+        void *ptr = alloc->next;
+        while (ptr) {
+            count++;
+            ptr = *(void**)ptr;
+        }
+        assert((__mm_alloc_size / alloc->size) == count);
+    }
+    free(alloc->begin);
+    (void) pthread_mutex_destroy(&alloc->lock);
+    free(alloc);
 }
 
 void* mm_alloc_new0(mm_alloc_t* alloc) {

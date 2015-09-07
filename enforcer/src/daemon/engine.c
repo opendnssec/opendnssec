@@ -100,6 +100,7 @@ engine_dealloc(engine_type* engine)
     pthread_cond_destroy(&engine->signal_cond);
     if (engine->dbcfg_list) {
         db_configuration_list_free(engine->dbcfg_list);
+        db_configuration_list_alloc_nuke();
     }
     free(engine);
 }
@@ -567,8 +568,10 @@ engine_teardown(engine_type* engine)
         free(engine->workers);
         engine->workers = NULL;
     }
-    cmdhandler_cleanup(engine->cmdhandler);
-    engine->cmdhandler = NULL;
+    if (engine->cmdhandler) {
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
+    }
     desetup_database(engine);
 }
 

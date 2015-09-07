@@ -45,6 +45,7 @@ struct taskreg {
     const char *short_name;
 	const char *long_name;
 	how_type how;
+	how_type clean;
 };
 
 static taskreg_type taskreg[16];
@@ -80,7 +81,8 @@ static bool task_id_to_how(task_id id, how_type *phow)
     return false;
 }
 
-task_id task_register(const char *short_name, const char *long_name, how_type how)
+task_id task_register(const char *short_name, const char *long_name,
+    how_type how)
 {
     int i;
     
@@ -108,7 +110,7 @@ task_id task_register(const char *short_name, const char *long_name, how_type ho
  */
 task_type*
 task_create(task_id what_id, time_t when, const char* who, const char* what,
-    void* context)
+    void* context, how_type clean_context)
 {
     allocator_type* allocator = NULL;
     task_type* task = NULL;
@@ -143,6 +145,7 @@ task_create(task_id what_id, time_t when, const char* who, const char* what,
     task->dname = ldns_dname_new_frm_str(what);
     task->flush = 0;
     task->context = context;
+    task->clean_context = clean_context;
     if (!task_id_to_how(what_id, &task->how))
         task->how = NULL; /* Standard task */
     return task;
@@ -164,6 +167,10 @@ task_cleanup(task_type* task)
     if (task->dname) {
         ldns_rdf_deep_free(task->dname);
         task->dname = NULL;
+    }
+    if (task->clean_context && task->context) {
+        (void)task->clean_context(task);
+        task->context = NULL;
     }
     allocator_deallocate(allocator, (void*) task->who);
     allocator_deallocate(allocator, (void*) task);

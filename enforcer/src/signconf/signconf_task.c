@@ -72,5 +72,5 @@ static task_type* signconf_task_perform(task_type* task) {
 
 task_type* signconf_task(const db_connection_t* dbconn, const char* what, const char* who) {
     task_id what_id = task_register(what, "signconf_task_perform", signconf_task_perform);
-    return task_create(what_id, time_now(), who, what, (void*)dbconn);
+    return task_create(what_id, time_now(), who, what, (void*)dbconn, NULL);
 }
