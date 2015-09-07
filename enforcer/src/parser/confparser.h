@@ -34,7 +34,6 @@
 
 #include <time.h>
 #include "config.h"
-#include "allocator.h"
 #include "status.h"
 #include "daemon/cfg.h"
 
@@ -67,40 +66,24 @@ const char* parse_conf_string(const char* cfgfile, const char* expr,
  */
 
 /** Common */
-const char* parse_conf_policy_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_zonelist_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_zonefetch_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_log_filename(allocator_type* allocator,
-    const char* cfgfile);
+const char* parse_conf_policy_filename(const char* cfgfile);
+const char* parse_conf_zonelist_filename(const char* cfgfile);
+const char* parse_conf_zonefetch_filename(const char* cfgfile);
+const char* parse_conf_log_filename(const char* cfgfile);
 
 /** Enforcer specific */
-const char* parse_conf_pid_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_delegation_signer_submit_command(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_delegation_signer_retract_command(allocator_type* allocator,
-                                                        const char* cfgfile);
-const char* parse_conf_clisock_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_working_dir(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_username(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_group(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_chroot(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_datastore(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_db_host(allocator_type* allocator,
-	const char* cfgfile);
-const char* parse_conf_db_username(allocator_type* allocator,
-	const char* cfgfile);
-const char* parse_conf_db_password(allocator_type* allocator,
-	const char* cfgfile);
+const char* parse_conf_pid_filename(const char* cfgfile);
+const char* parse_conf_delegation_signer_submit_command(const char* cfgfile);
+const char* parse_conf_delegation_signer_retract_command(const char* cfgfile);
+const char* parse_conf_clisock_filename(const char* cfgfile);
+const char* parse_conf_working_dir(const char* cfgfile);
+const char* parse_conf_username(const char* cfgfile);
+const char* parse_conf_group(const char* cfgfile);
+const char* parse_conf_chroot(const char* cfgfile);
+const char* parse_conf_datastore(const char* cfgfile);
+const char* parse_conf_db_host(const char* cfgfile);
+const char* parse_conf_db_username(const char* cfgfile);
+const char* parse_conf_db_password(const char* cfgfile);
 engineconfig_database_type_t parse_conf_db_type(const char *cfgfile);
 
 /**
