@@ -464,6 +464,8 @@ schedule_task(schedule_type* schedule, task_type* task)
                 }
 
             } else {/* insert in name tree failed */
+                /* TODO update task in by_name tree and free old task!
+                 * task is already in but payload differs*/
                 free(node1);
                 /**
                  * Task is already in tasks_by_name queue, so we must
@@ -476,6 +478,13 @@ schedule_task(schedule_type* schedule, task_type* task)
                 node1 = ldns_rbtree_delete(schedule->tasks, task2);
                 if (task->when < task2->when)
                     task2->when = task->when;
+                if (task2->context && task2->clean_context) {
+                    task2->clean_context(task2);
+                }
+                task2->context = task->context;
+                task2->clean_context = task->clean_context;
+                task->context = NULL;
+                task_cleanup(task);
                 (void) ldns_rbtree_insert(schedule->tasks, node1);
                 /* node1 now owned by tree */
                 node1 = NULL;

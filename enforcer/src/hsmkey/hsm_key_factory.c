@@ -460,11 +460,13 @@ static task_type* hsm_key_factory_generate_all_task(task_type *task) {
 
 static task_type* hsm_key_factory_clean_context(task_type *task)
 {
-    struct __hsm_key_factory_task* task2 = task->context;
-    policy_key_free(task2->policy_key);
-    policy_free(task2->policy);
-    free(task->context);
-    task->context = NULL;
+    struct __hsm_key_factory_task* context = task->context;
+    if (context) {
+        policy_key_free(context->policy_key);
+        policy_free(context->policy);
+        free(context);
+        task->context = NULL;
+    }
     return task;
 }
 
@@ -495,8 +497,10 @@ int hsm_key_factory_schedule_generate(engine_type* engine,
             "hsmkeygen", task2, hsm_key_factory_clean_context))
         || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
     {
-        if (!task) free(task2);
-        policy_key_free(policy_key);
+        if (!task) {
+            free(task2);
+            policy_key_free(policy_key);
+        }
         task_cleanup(task);
         return 1;
     }
@@ -530,8 +534,10 @@ int hsm_key_factory_schedule_generate_policy(engine_type* engine,
             "hsmkeygen", task2, hsm_key_factory_clean_context))
         || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
     {
-        if (!task) free(task2);
-        policy_free(policy);
+        if (!task) {
+            free(task2);
+            policy_free(policy);
+        }
         task_cleanup(task);
         return 1;
     }
