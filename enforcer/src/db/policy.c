@@ -536,6 +536,11 @@ void policy_free(policy_t* policy) {
     }
 }
 
+void policy_alloc_nuke()
+{
+    mm_alloc_free(&__policy_alloc);
+}
+
 void policy_reset(policy_t* policy) {
     if (policy) {
         db_value_reset(&(policy->id));
@@ -3753,6 +3758,11 @@ void policy_list_free(policy_list_t* policy_list) {
         }
         mm_alloc_delete(&__policy_list_alloc, policy_list);
     }
+}
+
+void policy_list_alloc_nuke()
+{
+    mm_alloc_free(&__policy_list_alloc);
 }
 
 int policy_list_copy(policy_list_t* policy_list, const policy_list_t* from_policy_list) {

@@ -1992,6 +1992,11 @@ void hsm_key_list_free(hsm_key_list_t* hsm_key_list) {
     }
 }
 
+void hsm_key_list_alloc_nuke()
+{
+    mm_alloc_free(&__hsm_key_list_alloc);
+}
+
 int hsm_key_list_copy(hsm_key_list_t* hsm_key_list, const hsm_key_list_t* from_hsm_key_list) {
     size_t i;
 

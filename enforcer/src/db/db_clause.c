@@ -70,6 +70,11 @@ void db_clause_free(db_clause_t* clause) {
     }
 }
 
+void db_clause_alloc_nuke()
+{
+    mm_alloc_free(&__clause_alloc);
+}
+
 const char* db_clause_table(const db_clause_t* clause) {
     if (!clause) {
         return NULL;
@@ -274,6 +279,11 @@ void db_clause_list_free(db_clause_list_t* clause_list) {
         }
         mm_alloc_delete(&__clause_list_alloc, clause_list);
     }
+}
+
+void db_clause_list_alloc_nuke()
+{
+    mm_alloc_free(&__clause_list_alloc);
 }
 
 int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause) {

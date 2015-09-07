@@ -249,6 +249,8 @@ void database_version_list_free(database_version_list_t* database_version_list);
  */
 void database_version_list_alloc_nuke();
 
+void database_version_list_alloc_nuke();
+
 /**
  * Copy the content of another database version object list.
  * \param[in] database_version_list a database_version_list_t pointer.

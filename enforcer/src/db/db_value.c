@@ -76,6 +76,11 @@ void db_value_free(db_value_t* value) {
     }
 }
 
+void db_value_alloc_nuke()
+{
+    mm_alloc_free(&__value_alloc);
+}
+
 void db_value_reset(db_value_t* value) {
     if (value) {
         value->type = DB_TYPE_EMPTY;

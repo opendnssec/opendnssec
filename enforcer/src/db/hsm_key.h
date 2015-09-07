@@ -648,6 +648,12 @@ int hsm_key_list_associated_fetch(hsm_key_list_t* hsm_key_list);
 void hsm_key_list_free(hsm_key_list_t* hsm_key_list);
 
 /**
+ * free global allocator.
+ * hsm_key_list_free MUST be called for all its contents.
+ */
+void hsm_key_list_alloc_nuke();
+
+/**
  * Copy the content of another hsm key object list.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  * \param[in] from_hsm_key_list a hsm_key_list_t pointer.

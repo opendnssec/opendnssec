@@ -204,6 +204,11 @@ void key_dependency_free(key_dependency_t* key_dependency) {
     }
 }
 
+void key_dependency_alloc_nuke()
+{
+    mm_alloc_free(&__key_dependency_alloc);
+}
+
 void key_dependency_reset(key_dependency_t* key_dependency) {
     if (key_dependency) {
         db_value_reset(&(key_dependency->id));
@@ -1301,6 +1306,11 @@ void key_dependency_list_free(key_dependency_list_t* key_dependency_list) {
         }
         mm_alloc_delete(&__key_dependency_list_alloc, key_dependency_list);
     }
+}
+
+void key_dependency_list_alloc_nuke()
+{
+    mm_alloc_free(&__key_dependency_list_alloc);
 }
 
 int key_dependency_list_copy(key_dependency_list_t* key_dependency_list, const key_dependency_list_t* from_key_dependency_list) {

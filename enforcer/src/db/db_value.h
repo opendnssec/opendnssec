@@ -78,6 +78,8 @@ db_value_t* db_value_new_copy(const db_value_t* from_value);
  */
 void db_value_free(db_value_t* value);
 
+void db_value_alloc_nuke();
+
 /**
  * Reset a database value, releasing all interal resources and marking it empty.
  * \param[in] value a db_value_t pointer.
