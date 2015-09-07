@@ -464,8 +464,6 @@ schedule_task(schedule_type* schedule, task_type* task)
                 }
 
             } else {/* insert in name tree failed */
-                /* TODO update task in by_name tree and free old task!
-                 * task is already in but payload differs*/
                 free(node1);
                 /**
                  * Task is already in tasks_by_name queue, so we must
