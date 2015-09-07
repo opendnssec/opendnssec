@@ -64,7 +64,7 @@ struct task_struct {
     time_t when;
     time_t backoff;
     int flush;
-    const char* who;
+    char* who;
     ldns_rdf* dname;
     void* context;
     task_type* (*how)(task_type*task);
