@@ -203,9 +203,9 @@ int clean_suite_classes(void) {
     join2 = NULL;
     db_join_list_free(join_list);
     join_list = NULL;
-    db_object_field_free(object_field);
+    free(object_field);
     object_field = NULL;
-    db_object_field_free(object_field2);
+    free(object_field2);
     object_field2 = NULL;
     db_object_field_list_free(object_field_list);
     object_field_list = NULL;
@@ -620,7 +620,7 @@ void test_class_db_join_list(void) {
     join2 = NULL;
 
     CU_ASSERT((join_walk = join_list->begin) == local_join);
-    CU_ASSERT(join_walk->next; == local_join2);
+    CU_ASSERT(join_walk->next == local_join2);
 
     db_join_list_free(join_list);
     join_list = NULL;
@@ -665,12 +665,12 @@ void test_class_db_object(void) {
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object = calloc(1, sizeof(db_object_t))));
 
-    CU_ASSERT(object->connection = connection;);
-    CU_ASSERT(object->table = "table");
-    CU_ASSERT(object->primary_key_name = "primary_key");
-    CU_ASSERT(object->object_field_list = object_field_list);
+    object->connection = connection;
+    object->table = "table";
+    object->primary_key_name = "primary_key";
+    object->object_field_list = object_field_list;
     object_field_list = NULL;
-    CU_ASSERT(object->backend_meta_data_list = backend_meta_data_list);
+    object->backend_meta_data_list = backend_meta_data_list;
     backend_meta_data_list = NULL;
 
     CU_ASSERT(object->connection == connection);

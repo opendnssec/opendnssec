@@ -270,7 +270,7 @@ int test_create(test_t* test) {
     }
 
     db_value_set_free(value_set);
-    db_object_field_free(object_field);
+    free(object_field);
     db_object_field_list_free(object_field_list);
     CU_ASSERT(!ret);
     return ret;
@@ -315,7 +315,7 @@ int test_update(test_t* test) {
     db_clause_list_free(clause_list);
     db_clause_free(clause);
     db_value_set_free(value_set);
-    db_object_field_free(object_field);
+    free(object_field);
     db_object_field_list_free(object_field_list);
     CU_ASSERT(!ret);
     return ret;
@@ -707,7 +707,7 @@ int test2_create(test2_t* test2) {
     }
 
     db_value_set_free(value_set);
-    db_object_field_free(object_field);
+    free(object_field);
     db_object_field_list_free(object_field_list);
     CU_ASSERT(!ret);
     return ret;
@@ -759,7 +759,7 @@ int test2_update(test2_t* test2) {
     db_clause_list_free(clause_list);
     db_clause_free(clause);
     db_value_set_free(value_set);
-    db_object_field_free(object_field);
+    free(object_field);
     db_object_field_list_free(object_field_list);
     return ret;
 }
