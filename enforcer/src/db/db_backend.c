@@ -68,8 +68,6 @@ void db_alloc_nuke()
     key_dependency_list_alloc_nuke();
     key_data_alloc_nuke();
     key_data_list_alloc_nuke();
-    db_join_alloc_nuke();
-    db_join_list_alloc_nuke();
     policy_alloc_nuke();
     policy_list_alloc_nuke();
     policy_key_alloc_nuke();

@@ -1165,20 +1165,20 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
     left -= ret;
 
     if (join_list) {
-        join = db_join_list_begin(join_list);
+        join = join_list->begin;
         while (join) {
             if ((ret = snprintf(sqlp, left, " INNER JOIN %s ON %s.%s = %s.%s",
-                db_join_to_table(join),
-                db_join_to_table(join),
-                db_join_to_field(join),
-                db_join_from_table(join),
-                db_join_from_field(join))) >= left)
+                join->to_table,
+                join->to_table,
+                join->to_field,
+                join->from_table,
+                join->from_field)) >= left)
             {
                 return NULL;
             }
             sqlp += ret;
             left -= ret;
-            join = db_join_next(join);
+            join = join->next;;
         }
     }
 
@@ -1686,20 +1686,20 @@ static int db_backend_sqlite_count(void* data, const db_object_t* object, const 
     left -= ret;
 
     if (join_list) {
-        join = db_join_list_begin(join_list);
+        join = join_list->begin;
         while (join) {
             if ((ret = snprintf(sqlp, left, " INNER JOIN %s ON %s.%s = %s.%s",
-                db_join_to_table(join),
-                db_join_to_table(join),
-                db_join_to_field(join),
-                db_join_from_table(join),
-                db_join_from_field(join))) >= left)
+                join->to_table,
+                join->to_table,
+                join->to_field,
+                join->from_table,
+                join->from_field)) >= left)
             {
                 return DB_ERROR_UNKNOWN;
             }
             sqlp += ret;
             left -= ret;
-            join = db_join_next(join);
+            join = join->next;;
         }
     }
 

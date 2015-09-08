@@ -30,221 +30,105 @@
 #include "db_join.h"
 #include "db_error.h"
 
-#include "mm.h"
-
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /* DB JOIN */
 
-static mm_alloc_t __join_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_t));
-
-db_join_t* db_join_new(void) {
-    db_join_t* join =
-        (db_join_t*)mm_alloc_new0(&__join_alloc);
-
-    return join;
-}
-
-void db_join_free(db_join_t* join) {
-    if (join) {
-        if (join->from_table) {
-            free(join->from_table);
-        }
-        if (join->from_field) {
-            free(join->from_field);
-        }
-        if (join->to_table) {
-            free(join->to_table);
-        }
-        if (join->to_field) {
-            free(join->to_field);
-        }
-        mm_alloc_delete(&__join_alloc, join);
-    }
-}
-
-void db_join_alloc_nuke()
+void db_join_free(db_join_t* join)
 {
-    mm_alloc_free(&__join_alloc);
+    if (!join) return;
+    free(join->from_table);
+    free(join->from_field);
+    free(join->to_table);
+    free(join->to_field);
+    free(join);
 }
 
-const char* db_join_from_table(const db_join_t* join) {
-    if (!join) {
-        return NULL;
-    }
+int db_join_set_from_table(db_join_t* join, const char* from_table)
+{
+    char *new_from_table;
 
-    return join->from_table;
-}
+    assert(join);
+    assert(from_table);
 
-const char* db_join_from_field(const db_join_t* join) {
-    if (!join) {
-        return NULL;
-    }
-
-    return join->from_field;
-}
-
-const char* db_join_to_table(const db_join_t* join) {
-    if (!join) {
-        return NULL;
-    }
-
-    return join->to_table;
-}
-
-const char* db_join_to_field(const db_join_t* join) {
-    if (!join) {
-        return NULL;
-    }
-
-    return join->to_field;
-}
-
-int db_join_set_from_table(db_join_t* join, const char* from_table) {
-    char* new_from_table;
-
-    if (!join) {
+    if(!(new_from_table = strdup(from_table)))
         return DB_ERROR_UNKNOWN;
-    }
 
-    if (!(new_from_table = strdup(from_table))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (join->from_table) {
-        free(join->from_table);
-    }
+    free(join->from_table);
     join->from_table = new_from_table;
     return DB_OK;
 }
 
-int db_join_set_from_field(db_join_t* join, const char* from_field) {
-    char* new_from_field;
+int db_join_set_from_field(db_join_t* join, const char* from_field)
+{
+    char *new_from_field;
 
-    if (!join) {
+    assert(join);
+    assert(from_field);
+
+    if(!(new_from_field = strdup(from_field)))
         return DB_ERROR_UNKNOWN;
-    }
 
-    if (!(new_from_field = strdup(from_field))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (join->from_field) {
-        free(join->from_field);
-    }
+    free(join->from_field);
     join->from_field = new_from_field;
     return DB_OK;
 }
 
-int db_join_set_to_table(db_join_t* join, const char* to_table) {
-    char* new_to_table;
+int db_join_set_to_table(db_join_t* join, const char* to_table)
+{
+    char *new_to_table;
 
-    if (!join) {
+    assert(join);
+    assert(to_table);
+
+    if(!(new_to_table = strdup(to_table)))
         return DB_ERROR_UNKNOWN;
-    }
 
-    if (!(new_to_table = strdup(to_table))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (join->to_table) {
-        free(join->to_table);
-    }
+    free(join->to_table);
     join->to_table = new_to_table;
     return DB_OK;
 }
 
-int db_join_set_to_field(db_join_t* join, const char* to_field) {
-    char* new_to_field;
+int db_join_set_to_field(db_join_t* join, const char* to_field)
+{
+    char *new_to_field;
 
-    if (!join) {
+    assert(join);
+    assert(to_field);
+
+    if(!(new_to_field = strdup(to_field)))
         return DB_ERROR_UNKNOWN;
-    }
 
-    if (!(new_to_field = strdup(to_field))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (join->to_field) {
-        free(join->to_field);
-    }
+    free(join->to_field);
     join->to_field = new_to_field;
     return DB_OK;
 }
 
-int db_join_not_empty(const db_join_t* join) {
-    if (!join) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!join->from_table) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!join->from_field) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!join->to_table) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!join->to_field) {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
-const db_join_t* db_join_next(const db_join_t* join) {
-    if (!join) {
-        return NULL;
-    }
-
-    return join->next;
+int db_join_not_empty(const db_join_t* join)
+{
+    return join && join->from_table && join->from_field
+            && join->to_table && join->to_field;
 }
 
 /* DB JOIN LIST */
 
-static mm_alloc_t __join_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_list_t));
-
-db_join_list_t* db_join_list_new(void) {
-    db_join_list_t* join_list =
-        (db_join_list_t*)mm_alloc_new0(&__join_list_alloc);
-
-    return join_list;
-}
-
-void db_join_list_free(db_join_list_t* join_list) {
-    if (join_list) {
-        if (join_list->begin) {
-            db_join_t* this = join_list->begin;
-            db_join_t* next = NULL;
-
-            while (this) {
-                next = this->next;
-                db_join_free(this);
-                this = next;
-            }
-        }
-        mm_alloc_delete(&__join_list_alloc, join_list);
-    }
-}
-
-void db_join_list_alloc_nuke()
+void db_join_list_free(db_join_list_t* join_list)
 {
-    mm_alloc_free(&__join_list_alloc);
+    if (!join_list) return;
+    while (join_list->begin) {
+        db_join_t* next = join_list->begin->next;
+        db_join_free(join_list->begin);
+        join_list->begin = next;
+    }
+    free(join_list);
 }
 
-int db_join_list_add(db_join_list_t* join_list, db_join_t* join) {
-    if (!join_list) {
+int db_join_list_add(db_join_list_t* join_list, db_join_t* join)
+{
+    if (!join_list || !join || db_join_not_empty(join) || join->next)
         return DB_ERROR_UNKNOWN;
-    }
-    if (!join) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_join_not_empty(join)) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (join->next) {
-        return DB_ERROR_UNKNOWN;
-    }
 
     if (join_list->begin) {
         if (!join_list->end) {
@@ -252,19 +136,10 @@ int db_join_list_add(db_join_list_t* join_list, db_join_t* join) {
         }
         join_list->end->next = join;
         join_list->end = join;
-    }
-    else {
+    } else {
         join_list->begin = join;
         join_list->end = join;
     }
 
     return DB_OK;
-}
-
-const db_join_t* db_join_list_begin(const db_join_list_t* join_list) {
-    if (!join_list) {
-        return NULL;
-    }
-
-    return join_list->begin;
 }
