@@ -629,23 +629,18 @@ void test_class_db_join_list(void) {
 }
 
 void test_class_db_object_field(void) {
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT(!db_object_field_set_name(object_field, "field1"));
-    CU_ASSERT(!db_object_field_set_type(object_field, DB_TYPE_INT32));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("field1", DB_TYPE_INT32, NULL)));
     CU_ASSERT(!db_object_field_not_empty(object_field));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_object_field_name(object_field));
-    CU_ASSERT(!strcmp(db_object_field_name(object_field), "field1"));
-    CU_ASSERT(db_object_field_type(object_field) == DB_TYPE_INT32);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(object_field->name);
+    CU_ASSERT(!strcmp(object_field->name, "field1"));
+    CU_ASSERT(object_field->type == DB_TYPE_INT32);
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field2 = db_object_field_new()));
-    CU_ASSERT(!db_object_field_set_name(object_field2, "field2"));
-    CU_ASSERT(!db_object_field_set_type(object_field2, DB_TYPE_ENUM));
-    CU_ASSERT(!db_object_field_set_enum_set(object_field2, (db_enum_t*)&fake_pointer));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field2 = db_object_field_new_init("field2", DB_TYPE_ENUM, (db_enum_t*)&fake_pointer)));
     CU_ASSERT(!db_object_field_not_empty(object_field2));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_object_field_name(object_field2));
-    CU_ASSERT(!strcmp(db_object_field_name(object_field2), "field2"));
-    CU_ASSERT(db_object_field_type(object_field2) == DB_TYPE_ENUM);
-    CU_ASSERT(db_object_field_enum_set(object_field2) == (db_enum_t*)&fake_pointer);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(object_field2->name);
+    CU_ASSERT(!strcmp(object_field2->name, "field2"));
+    CU_ASSERT(object_field2->type == DB_TYPE_ENUM);
+    CU_ASSERT(object_field2->enum_set == (db_enum_t*)&fake_pointer);
 }
 
 void test_class_db_object_field_list(void) {
@@ -653,14 +648,14 @@ void test_class_db_object_field_list(void) {
     db_object_field_t* local_object_field2 = object_field2;
     const db_object_field_t* object_field_walk;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = calloc(1, sizeof(db_object_field_list_t))));
 
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
     object_field = NULL;
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field2));
     object_field2 = NULL;
 
-    CU_ASSERT((object_field_walk = db_object_field_list_begin(object_field_list)) == local_object_field);
+    CU_ASSERT((object_field_walk = object_field_list->begin) == local_object_field);
     CU_ASSERT(db_object_field_next(object_field_walk) == local_object_field2);
 }
 
@@ -668,23 +663,23 @@ void test_class_db_object(void) {
     db_object_field_list_t* local_object_field_list = object_field_list;
     db_backend_meta_data_list_t* local_backend_meta_data_list = backend_meta_data_list;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object = db_object_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object = calloc(1, sizeof(db_object_t))));
 
-    CU_ASSERT(!db_object_set_connection(object, connection));
-    CU_ASSERT(!db_object_set_table(object, "table"));
-    CU_ASSERT(!db_object_set_primary_key_name(object, "primary_key"));
-    CU_ASSERT(!db_object_set_object_field_list(object, object_field_list));
+    CU_ASSERT(object->connection = connection;);
+    CU_ASSERT(object->table = "table");
+    CU_ASSERT(object->primary_key_name = "primary_key");
+    CU_ASSERT(object->object_field_list = object_field_list);
     object_field_list = NULL;
-    CU_ASSERT(!db_object_set_backend_meta_data_list(object, backend_meta_data_list));
+    CU_ASSERT(object->backend_meta_data_list = backend_meta_data_list);
     backend_meta_data_list = NULL;
 
-    CU_ASSERT(db_object_connection(object) == connection);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_object_table(object));
-    CU_ASSERT(!strcmp(db_object_table(object), "table"));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_object_primary_key_name(object));
-    CU_ASSERT(!strcmp(db_object_primary_key_name(object), "primary_key"));
-    CU_ASSERT(db_object_object_field_list(object) == local_object_field_list);
-    CU_ASSERT(db_object_backend_meta_data_list(object) == local_backend_meta_data_list);
+    CU_ASSERT(object->connection == connection);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(object->table);
+    CU_ASSERT(!strcmp(object->table, "table"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(object->primary_key_name);
+    CU_ASSERT(!strcmp(object->primary_key_name, "primary_key"));
+    CU_ASSERT(object->object_field_list == local_object_field_list);
+    CU_ASSERT(object->backend_meta_data_list == local_backend_meta_data_list);
 
     CU_ASSERT(!db_object_create(object, (db_object_field_list_t*)&fake_pointer, (db_value_set_t*)&fake_pointer));
     CU_ASSERT(db_object_read(object, (db_join_list_t*)&fake_pointer, (db_clause_list_t*)&fake_pointer) == (db_result_list_t*)&fake_pointer);

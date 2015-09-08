@@ -55,9 +55,6 @@ void db_alloc_nuke()
     db_result_alloc_nuke();
     db_result_list_alloc_nuke();
     db_value_set_alloc_nuke();
-    db_object_field_alloc_nuke();
-    db_object_field_list_alloc_nuke();
-    db_object_alloc_nuke();
     zone_alloc_nuke();
     zone_list_alloc_nuke();
     db_clause_alloc_nuke();

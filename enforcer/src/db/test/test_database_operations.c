@@ -62,9 +62,9 @@ db_object_t* __test_new_object(const db_connection_t* connection) {
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object = db_object_new()));
 
-    CU_ASSERT_FATAL(!db_object_set_connection(object, connection));
-    CU_ASSERT_FATAL(!db_object_set_table(object, "test"));
-    CU_ASSERT_FATAL(!db_object_set_primary_key_name(object, "id"));
+    CU_ASSERT_FATAL(object->connection = connection;);
+    CU_ASSERT_FATAL(object->table = "test");
+    CU_ASSERT_FATAL(object->primary_key_name = "id");
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
 
@@ -78,7 +78,7 @@ db_object_t* __test_new_object(const db_connection_t* connection) {
     CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
 
-    CU_ASSERT_FATAL(!db_object_set_object_field_list(object, object_field_list));
+    CU_ASSERT_FATAL(object->object_field_list = object_field_list);
 
     return object;
 }
@@ -151,7 +151,7 @@ int test_from_result(test_t* test, const db_result_t* result) {
 
         CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list = db_backend_meta_data_list_new()));
         CU_ASSERT_FATAL(!db_backend_meta_data_list_copy(backend_meta_data_list, db_result_backend_meta_data_list(result)));
-        CU_ASSERT_FATAL(!db_object_set_backend_meta_data_list(test->dbo, backend_meta_data_list));
+        CU_ASSERT_FATAL(object->backend_meta_data_list = backend_meta_data_list);
     }
 
     value_set = db_result_value_set(result);
@@ -444,7 +444,7 @@ const test_t* test_list_begin(test_list_t* test_list) {
         return NULL;
     }
     if (!test_list->test) {
-        CU_ASSERT_PTR_NOT_NULL_FATAL((test_list->test = test_new(db_object_connection(test_list->dbo))));
+        CU_ASSERT_PTR_NOT_NULL_FATAL((test_list->test = test_new(test_list->dbo->connection)));
     }
     if (test_from_result(test_list->test, result)) {
         return NULL;
@@ -462,7 +462,7 @@ const test_t* test_list_next(test_list_t* test_list) {
         return NULL;
     }
     if (!test_list->test) {
-        CU_ASSERT_PTR_NOT_NULL_FATAL((test_list->test = test_new(db_object_connection(test_list->dbo))));
+        CU_ASSERT_PTR_NOT_NULL_FATAL((test_list->test = test_new(test_list->dbo->connection)));
     }
     if (test_from_result(test_list->test, result)) {
         return NULL;
@@ -487,9 +487,9 @@ db_object_t* __test2_new_object(const db_connection_t* connection) {
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object = db_object_new()));
 
-    CU_ASSERT_FATAL(!db_object_set_connection(object, connection));
-    CU_ASSERT_FATAL(!db_object_set_table(object, "test2"));
-    CU_ASSERT_FATAL(!db_object_set_primary_key_name(object, "id"));
+    CU_ASSERT_FATAL(object->connection = connection;);
+    CU_ASSERT_FATAL(object->table = "test2");
+    CU_ASSERT_FATAL(object->primary_key_name = "id");
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
 
@@ -508,7 +508,7 @@ db_object_t* __test2_new_object(const db_connection_t* connection) {
     CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
 
-    CU_ASSERT_FATAL(!db_object_set_object_field_list(object, object_field_list));
+    CU_ASSERT_FATAL(object->object_field_list = object_field_list);
 
     return object;
 }
@@ -586,7 +586,7 @@ int test2_from_result(test2_t* test2, const db_result_t* result) {
 
         CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list = db_backend_meta_data_list_new()));
         CU_ASSERT_FATAL(!db_backend_meta_data_list_copy(backend_meta_data_list, db_result_backend_meta_data_list(result)));
-        CU_ASSERT_FATAL(!db_object_set_backend_meta_data_list(test2->dbo, backend_meta_data_list));
+        CU_ASSERT_FATAL(object->backend_meta_data_list = backend_meta_data_list);
     }
 
     value_set = db_result_value_set(result);

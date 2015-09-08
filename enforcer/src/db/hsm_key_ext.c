@@ -103,7 +103,7 @@ hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey)
     }
 
     hkey_list = hsm_key_list_new_get_by_clauses(
-        db_object_connection(pkey->dbo), clause_list);
+        pkey->dbo->connection, clause_list);
     db_clause_list_free(clause_list);
     return hkey_list;
 }

@@ -39,60 +39,52 @@
  * \param[in] connection a db_connection_t pointer.
  * \return a database_version_t pointer or NULL on error.
  */
-static db_object_t* __database_version_new_object(const db_connection_t* connection) {
+static db_object_t* __database_version_new_object(const db_connection_t* connection)
+{
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
     db_object_t* object;
 
-    if (!(object = db_object_new())
-        || db_object_set_connection(object, connection)
-        || db_object_set_table(object, "databaseVersion")
-        || db_object_set_primary_key_name(object, "id")
-        || !(object_field_list = db_object_field_list_new()))
+    if (!(object = calloc(1, sizeof(db_object_t)))
+        || !(object_field_list = calloc(1, sizeof(db_object_field_list_t))))
     {
         db_object_free(object);
         return NULL;
     }
+    object->connection = connection;
+    object->table = "databaseVersion";
+    object->primary_key_name = "id";
+    object->object_field_list = NULL;
+    object->backend_meta_data_list = NULL;
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "id")
-        || db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY)
+    if (!(object_field = db_object_field_new_init("id", DB_TYPE_PRIMARY_KEY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "rev")
-        || db_object_field_set_type(object_field, DB_TYPE_REVISION)
+    if (!(object_field = db_object_field_new_init("rev", DB_TYPE_REVISION, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "version")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("version", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (db_object_set_object_field_list(object, object_field_list)) {
-        db_object_field_list_free(object_field_list);
-        db_object_free(object);
-        return NULL;
-    }
-
+    object->object_field_list = object_field_list;
     return object;
 }
 
@@ -126,7 +118,7 @@ database_version_t* database_version_new_copy(const database_version_t* database
         return NULL;
     }
 
-    if (!(new_database_version = database_version_new(db_object_connection(database_version->dbo)))
+    if (!(new_database_version = database_version_new(database_version->dbo->connection))
         || database_version_copy(new_database_version, database_version))
     {
         database_version_free(new_database_version);
@@ -285,16 +277,14 @@ int database_version_create(database_version_t* database_version) {
     }
     /* TODO: validate content more */
 
-    if (!(object_field_list = db_object_field_list_new())) {
+    if (!(object_field_list = calloc(1, sizeof(db_object_field_list_t)))) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "version")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("version", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -415,16 +405,14 @@ int database_version_update(database_version_t* database_version) {
     }
     /* TODO: validate content more */
 
-    if (!(object_field_list = db_object_field_list_new())) {
+    if (!(object_field_list = calloc(1, sizeof(db_object_field_list_t)))) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "version")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("version", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -568,7 +556,7 @@ database_version_list_t* database_version_list_new_copy(const database_version_l
         return NULL;
     }
 
-    if (!(database_version_list = database_version_list_new(db_object_connection(from_database_version_list->dbo)))
+    if (!(database_version_list = database_version_list_new(from_database_version_list->dbo->connection))
         || database_version_list_copy(database_version_list, from_database_version_list))
     {
         database_version_list_free(database_version_list);
@@ -833,7 +821,7 @@ const database_version_t* database_version_list_begin(database_version_list_t* d
             if (!(result = db_result_list_begin(database_version_list->result_list))) {
                 return NULL;
             }
-            if (!(database_version_list->object_list[0] = database_version_new(db_object_connection(database_version_list->dbo)))) {
+            if (!(database_version_list->object_list[0] = database_version_new(database_version_list->dbo->connection))) {
                 return NULL;
             }
             if (database_version_from_result(database_version_list->object_list[0], result)) {
@@ -852,7 +840,7 @@ const database_version_t* database_version_list_begin(database_version_list_t* d
         return NULL;
     }
     if (!database_version_list->database_version) {
-        if (!(database_version_list->database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+        if (!(database_version_list->database_version = database_version_new(database_version_list->dbo->connection))) {
             return NULL;
         }
     }
@@ -871,7 +859,7 @@ database_version_t* database_version_list_get_begin(database_version_list_t* dat
     }
 
     if (database_version_list->object_store) {
-        if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+        if (!(database_version = database_version_new(database_version_list->dbo->connection))) {
             return NULL;
         }
         if (database_version_copy(database_version, database_version_list_begin(database_version_list))) {
@@ -888,7 +876,7 @@ database_version_t* database_version_list_get_begin(database_version_list_t* dat
     if (!(result = db_result_list_begin(database_version_list->result_list))) {
         return NULL;
     }
-    if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+    if (!(database_version = database_version_new(database_version_list->dbo->connection))) {
         return NULL;
     }
     if (database_version_from_result(database_version, result)) {
@@ -936,7 +924,7 @@ const database_version_t* database_version_list_next(database_version_list_t* da
             if (!(result = db_result_list_next(database_version_list->result_list))) {
                 return NULL;
             }
-            if (!(database_version_list->object_list[database_version_list->object_list_position] = database_version_new(db_object_connection(database_version_list->dbo)))) {
+            if (!(database_version_list->object_list[database_version_list->object_list_position] = database_version_new(database_version_list->dbo->connection))) {
                 return NULL;
             }
             if (database_version_from_result(database_version_list->object_list[database_version_list->object_list_position], result)) {
@@ -957,7 +945,7 @@ const database_version_t* database_version_list_next(database_version_list_t* da
         return NULL;
     }
     if (!database_version_list->database_version) {
-        if (!(database_version_list->database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+        if (!(database_version_list->database_version = database_version_new(database_version_list->dbo->connection))) {
             return NULL;
         }
     }
@@ -976,7 +964,7 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
     }
 
     if (database_version_list->object_store) {
-        if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+        if (!(database_version = database_version_new(database_version_list->dbo->connection))) {
             return NULL;
         }
         if (database_version_copy(database_version, database_version_list_next(database_version_list))) {
@@ -993,7 +981,7 @@ database_version_t* database_version_list_get_next(database_version_list_t* data
     if (!(result = db_result_list_next(database_version_list->result_list))) {
         return NULL;
     }
-    if (!(database_version = database_version_new(db_object_connection(database_version_list->dbo)))) {
+    if (!(database_version = database_version_new(database_version_list->dbo->connection))) {
         return NULL;
     }
     if (database_version_from_result(database_version, result)) {

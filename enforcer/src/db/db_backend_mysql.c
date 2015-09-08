@@ -216,7 +216,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
      * Create the output binding based on the object field list given.
      */
     if (object_field_list
-        && (params = db_object_field_list_size(object_field_list)) > 0
+        && (params = object_field_list)->size > 0
         && (result_metadata = mysql_stmt_result_metadata((*statement)->statement)))
     {
         if (!((*statement)->object_field_list = db_object_field_list_new_copy(object_field_list))
@@ -230,7 +230,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
 
         (*statement)->fields = params;
         field = mysql_fetch_field(result_metadata);
-        object_field = db_object_field_list_begin(object_field_list);
+        object_field = object_field_list->begin;
         for (i = 0; i < params; i++) {
             if (!field
                 || !object_field
@@ -247,7 +247,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
             mysql_bind->error = &bind->error;
             mysql_bind->length = &bind->length;
 
-            switch (db_object_field_type(object_field)) {
+            switch (object_field->type) {
             case DB_TYPE_PRIMARY_KEY:
                 switch (field->type) {
                 case MYSQL_TYPE_TINY:
@@ -807,7 +807,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
         switch (db_clause_type(clause)) {
         case DB_CLAUSE_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s = ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -816,7 +816,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_NOT_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s != ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -825,7 +825,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_LESS_THEN:
             if ((ret = snprintf(*sqlp, *left, " %s.%s < ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -834,7 +834,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_LESS_OR_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s <= ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -843,7 +843,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_GREATER_OR_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s >= ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -852,7 +852,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_GREATER_THEN:
             if ((ret = snprintf(*sqlp, *left, " %s.%s > ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -861,7 +861,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_IS_NULL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s IS NULL",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -870,7 +870,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_IS_NOT_NULL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s IS NOT NULL",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -1192,7 +1192,7 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
             return NULL;
         }
 
-        switch (db_object_field_type(object_field)) {
+        switch (object_field->type) {
         case DB_TYPE_PRIMARY_KEY:
         case DB_TYPE_ANY:
         case DB_TYPE_REVISION:
@@ -1234,7 +1234,7 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
                 db_result_free(result);
                 return NULL;
             }
-            if (db_object_field_type(object_field) == DB_TYPE_PRIMARY_KEY
+            if (object_field->type == DB_TYPE_PRIMARY_KEY
                 && db_value_set_primary_key(db_value_set_get(value_set, value)))
             {
                 db_result_free(result);
@@ -1327,9 +1327,9 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
     /*
      * Check if the object has a revision field and keep it for later use.
      */
-    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    object_field = object->object_field_list->begin;
     while (object_field) {
-        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+        if (object_field->type == DB_TYPE_REVISION) {
             if (revision_field) {
                 /*
                  * We do not support multiple revision fields.
@@ -1346,18 +1346,18 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
     sqlp = sql;
     memset(sql, 0, left);
 
-    if (!db_object_field_list_begin(object_field_list) && !revision_field) {
+    if (!object_field_list->begin && !revision_field) {
         /*
          * Special case when tables has no fields except maybe a primary key.
          */
-        if ((ret = snprintf(sqlp, left, "INSERT INTO %s () VALUES ()", db_object_table(object))) >= left) {
+        if ((ret = snprintf(sqlp, left, "INSERT INTO %s () VALUES ()", object->table)) >= left) {
             return DB_ERROR_UNKNOWN;
         }
         sqlp += ret;
         left -= ret;
     }
     else {
-        if ((ret = snprintf(sqlp, left, "INSERT INTO %s (", db_object_table(object))) >= left) {
+        if ((ret = snprintf(sqlp, left, "INSERT INTO %s (", object->table)) >= left) {
             return DB_ERROR_UNKNOWN;
         }
         sqlp += ret;
@@ -1366,17 +1366,17 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
         /*
          * Add the fields from the given object_field_list.
          */
-        object_field = db_object_field_list_begin(object_field_list);
+        object_field = object_field_list->begin;
         first = 1;
         while (object_field) {
             if (first) {
-                if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(object_field))) >= left) {
+                if ((ret = snprintf(sqlp, left, " %s", object_field->name)) >= left) {
                     return DB_ERROR_UNKNOWN;
                 }
                 first = 0;
             }
             else {
-                if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(object_field))) >= left) {
+                if ((ret = snprintf(sqlp, left, ", %s", object_field->name)) >= left) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
@@ -1391,13 +1391,13 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
          */
         if (revision_field) {
             if (first) {
-                if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(revision_field))) >= left) {
+                if ((ret = snprintf(sqlp, left, " %s", revision_field->name)) >= left) {
                     return DB_ERROR_UNKNOWN;
                 }
                 first = 0;
             }
             else {
-                if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(revision_field))) >= left) {
+                if ((ret = snprintf(sqlp, left, ", %s", revision_field->name)) >= left) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
@@ -1414,7 +1414,7 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
         /*
          * Mark all the fields for binding from the object_field_list.
          */
-        object_field = db_object_field_list_begin(object_field_list);
+        object_field = object_field_list->begin;
         first = 1;
         while (object_field) {
             if (first) {
@@ -1463,7 +1463,7 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
     /*
      * Prepare the SQL, create a MySQL statement.
      */
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), db_object_object_field_list(object))
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), object->object_field_list)
         || !statement
         || !(bind = statement->bind_input))
     {
@@ -1538,17 +1538,17 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
     sqlp += ret;
     left -= ret;
 
-    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    object_field = object->object_field_list->begin;
     first = 1;
     while (object_field) {
         if (first) {
-            if ((ret = snprintf(sqlp, left, " %s.%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, " %s.%s", object->table, object_field->name)) >= left) {
                 return NULL;
             }
             first = 0;
         }
         else {
-            if ((ret = snprintf(sqlp, left, ", %s.%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, ", %s.%s", object->table, object_field->name)) >= left) {
                 return NULL;
             }
         }
@@ -1558,7 +1558,7 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
         object_field = db_object_field_next(object_field);
     }
 
-    if ((ret = snprintf(sqlp, left, " FROM %s", db_object_table(object))) >= left) {
+    if ((ret = snprintf(sqlp, left, " FROM %s", object->table)) >= left) {
         return NULL;
     }
     sqlp += ret;
@@ -1595,7 +1595,7 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
         }
     }
 
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), db_object_object_field_list(object))
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), object->object_field_list)
         || !statement)
     {
         __db_backend_mysql_finish(statement);
@@ -1666,9 +1666,9 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
     /*
      * Check if the object has a revision field and keep it for later use.
      */
-    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    object_field = object->object_field_list->begin;
     while (object_field) {
-        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+        if (object_field->type == DB_TYPE_REVISION) {
             if (revision_field) {
                 /*
                  * We do not support multiple revision fields.
@@ -1687,7 +1687,7 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
          */
         clause = db_clause_list_begin(clause_list);
         while (clause) {
-            if (!strcmp(db_clause_field(clause), db_object_field_name(revision_field))) {
+            if (!strcmp(db_clause_field(clause), revision_field->name)) {
                 revision_clause = clause;
                 break;
             }
@@ -1734,7 +1734,7 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
     sqlp = sql;
     memset(sql, 0, left);
 
-    if ((ret = snprintf(sqlp, left, "UPDATE %s SET", db_object_table(object))) >= left) {
+    if ((ret = snprintf(sqlp, left, "UPDATE %s SET", object->table)) >= left) {
         return DB_ERROR_UNKNOWN;
     }
     sqlp += ret;
@@ -1743,17 +1743,17 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
     /*
      * Build the update SQL from the object_field_list.
      */
-    object_field = db_object_field_list_begin(object_field_list);
+    object_field = object_field_list->begin;
     first = 1;
     while (object_field) {
         if (first) {
-            if ((ret = snprintf(sqlp, left, " %s = ?", db_object_field_name(object_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, " %s = ?", object_field->name)) >= left) {
                 return DB_ERROR_UNKNOWN;
             }
             first = 0;
         }
         else {
-            if ((ret = snprintf(sqlp, left, ", %s = ?", db_object_field_name(object_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, ", %s = ?", object_field->name)) >= left) {
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -1768,13 +1768,13 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
      */
     if (revision_field) {
         if (first) {
-            if ((ret = snprintf(sqlp, left, " %s = ?", db_object_field_name(revision_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, " %s = ?", revision_field->name)) >= left) {
                 return DB_ERROR_UNKNOWN;
             }
             first = 0;
         }
         else {
-            if ((ret = snprintf(sqlp, left, ", %s = ?", db_object_field_name(revision_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, ", %s = ?", revision_field->name)) >= left) {
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -1801,7 +1801,7 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
     /*
      * Prepare the SQL.
      */
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), db_object_object_field_list(object))
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), object->object_field_list)
         || !statement)
     {
         __db_backend_mysql_finish(statement);
@@ -1895,9 +1895,9 @@ static int db_backend_mysql_delete(void* data, const db_object_t* object, const 
     /*
      * Check if the object has a revision field and keep it for later use.
      */
-    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    object_field = object->object_field_list->begin;
     while (object_field) {
-        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+        if (object_field->type == DB_TYPE_REVISION) {
             if (revision_field) {
                 /*
                  * We do not support multiple revision fields.
@@ -1916,7 +1916,7 @@ static int db_backend_mysql_delete(void* data, const db_object_t* object, const 
          */
         clause = db_clause_list_begin(clause_list);
         while (clause) {
-            if (!strcmp(db_clause_field(clause), db_object_field_name(revision_field))) {
+            if (!strcmp(db_clause_field(clause), revision_field->name)) {
                 break;
             }
             clause = db_clause_next(clause);
@@ -1930,7 +1930,7 @@ static int db_backend_mysql_delete(void* data, const db_object_t* object, const 
     sqlp = sql;
     memset(sql, 0, left);
 
-    if ((ret = snprintf(sqlp, left, "DELETE FROM %s", db_object_table(object))) >= left) {
+    if ((ret = snprintf(sqlp, left, "DELETE FROM %s", object->table)) >= left) {
         return DB_ERROR_UNKNOWN;
     }
     sqlp += ret;
@@ -1949,7 +1949,7 @@ static int db_backend_mysql_delete(void* data, const db_object_t* object, const 
         }
     }
 
-    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), db_object_object_field_list(object))
+    if (__db_backend_mysql_prepare(backend_mysql, &statement, sql, strlen(sql), object->object_field_list)
         || !statement)
     {
         __db_backend_mysql_finish(statement);
@@ -2019,7 +2019,7 @@ static int db_backend_mysql_count(void* data, const db_object_t* object, const d
     sqlp += ret;
     left -= ret;
 
-    if ((ret = snprintf(sqlp, left, " FROM %s", db_object_table(object))) >= left) {
+    if ((ret = snprintf(sqlp, left, " FROM %s", object->table)) >= left) {
         return DB_ERROR_UNKNOWN;
     }
     sqlp += ret;
@@ -2056,13 +2056,11 @@ static int db_backend_mysql_count(void* data, const db_object_t* object, const d
         }
     }
 
-    if (!(object_field_list = db_object_field_list_new())
-        || !(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "countField")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field_list = calloc(1, sizeof(db_object_field_list_t)))
+        || !(object_field = db_object_field_new_init("countField", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }

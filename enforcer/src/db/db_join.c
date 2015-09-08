@@ -108,8 +108,10 @@ int db_join_set_to_field(db_join_t* join, const char* to_field)
 
 int db_join_not_empty(const db_join_t* join)
 {
-    return join && join->from_table && join->from_field
-            && join->to_table && join->to_field;
+    if (join && join->from_table && join->from_field
+            && join->to_table && join->to_field)
+        return DB_OK;
+    return DB_ERROR_UNKNOWN;
 }
 
 /* DB JOIN LIST */
@@ -118,7 +120,7 @@ void db_join_list_free(db_join_list_t* join_list)
 {
     if (!join_list) return;
     while (join_list->begin) {
-        db_join_t* next = join_list->begin->next;
+        db_join_t *next = join_list->begin->next;
         db_join_free(join_list->begin);
         join_list->begin = next;
     }
