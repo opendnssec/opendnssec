@@ -60,25 +60,25 @@ db_object_t* __test_new_object(const db_connection_t* connection) {
     db_object_field_t* object_field;
     db_object_t* object;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object = db_object_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object = malloc(sizeof(db_object_t))));
 
-    CU_ASSERT_FATAL(object->connection = connection;);
-    CU_ASSERT_FATAL(object->table = "test");
-    CU_ASSERT_FATAL(object->primary_key_name = "id");
+    object->connection = connection;
+    object->table = "test";
+    object->primary_key_name = "id";
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "id"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY));
+    object_field->name = "id";
+    object_field->type = DB_TYPE_PRIMARY_KEY;
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    object_field->name = "name";
+    object_field->type = DB_TYPE_TEXT;
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
 
-    CU_ASSERT_FATAL(object->object_field_list = object_field_list);
+    object->object_field_list = object_field_list;
 
     return object;
 }
@@ -151,7 +151,7 @@ int test_from_result(test_t* test, const db_result_t* result) {
 
         CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list = db_backend_meta_data_list_new()));
         CU_ASSERT_FATAL(!db_backend_meta_data_list_copy(backend_meta_data_list, db_result_backend_meta_data_list(result)));
-        CU_ASSERT_FATAL(object->backend_meta_data_list = backend_meta_data_list);
+        CU_ASSERT_FATAL(result->backend_meta_data_list == backend_meta_data_list);
     }
 
     value_set = db_result_value_set(result);
@@ -254,10 +254,10 @@ int test_create(test_t* test) {
     CU_ASSERT_FATAL(db_value_not_empty(test->id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    object_field->name = "name";
+    object_field->type = DB_TYPE_TEXT;
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
     object_field = NULL;
 
@@ -297,10 +297,10 @@ int test_update(test_t* test) {
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
     clause = NULL;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    object_field->name = "name";
+    object_field->type = DB_TYPE_TEXT;
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
     object_field = NULL;
 
@@ -485,30 +485,24 @@ db_object_t* __test2_new_object(const db_connection_t* connection) {
     db_object_field_t* object_field;
     db_object_t* object;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object = db_object_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object = malloc(sizeof(db_object_t))));
 
-    CU_ASSERT_FATAL(object->connection = connection;);
-    CU_ASSERT_FATAL(object->table = "test2");
-    CU_ASSERT_FATAL(object->primary_key_name = "id");
+    object->connection = connection;
+    object->table = "test2";
+    object->primary_key_name = "id";
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "id"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("id", DB_TYPE_PRIMARY_KEY, NULL)));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "rev"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_REVISION));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("rev", DB_TYPE_REVISION, NULL)));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("name", DB_TYPE_TEXT, NULL)));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
 
-    CU_ASSERT_FATAL(object->object_field_list = object_field_list);
+    object->object_field_list = object_field_list;
 
     return object;
 }
@@ -586,7 +580,7 @@ int test2_from_result(test2_t* test2, const db_result_t* result) {
 
         CU_ASSERT_PTR_NOT_NULL_FATAL((backend_meta_data_list = db_backend_meta_data_list_new()));
         CU_ASSERT_FATAL(!db_backend_meta_data_list_copy(backend_meta_data_list, db_result_backend_meta_data_list(result)));
-        CU_ASSERT_FATAL(object->backend_meta_data_list = backend_meta_data_list);
+        CU_ASSERT_FATAL(result->backend_meta_data_list == backend_meta_data_list);
     }
 
     value_set = db_result_value_set(result);
@@ -691,10 +685,8 @@ int test2_create(test2_t* test2) {
     CU_ASSERT_FATAL(db_value_not_empty(test2->rev));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test2->name);
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("name", DB_TYPE_TEXT, NULL)));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
     object_field = NULL;
 
@@ -741,10 +733,8 @@ int test2_update(test2_t* test2) {
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
     clause = NULL;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
-    CU_ASSERT_FATAL(!db_object_field_set_name(object_field, "name"));
-    CU_ASSERT_FATAL(!db_object_field_set_type(object_field, DB_TYPE_TEXT));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("name", DB_TYPE_TEXT, NULL)));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
     object_field = NULL;
 
