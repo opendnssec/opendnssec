@@ -1006,6 +1006,7 @@ zone_recover2(zone_type* zone)
         }
         return ODS_STATUS_OK;
     }
+    free(filename);
     return ODS_STATUS_UNCHANGED;
 
 recover_error2:

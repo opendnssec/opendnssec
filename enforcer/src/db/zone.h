@@ -91,6 +91,8 @@ zone_t* zone_new_copy(const zone_t* zone);
  */
 void zone_free(zone_t* zone);
 
+void zone_alloc_nuke();
+
 /**
  * Reset the content of a zone object making it as if its new. This does not change anything in the database.
  * \param[in] zone a zone_t pointer.
@@ -771,6 +773,8 @@ int zone_list_associated_fetch(zone_list_t* zone_list);
  * \param[in] zone_list a zone_list_t pointer.
  */
 void zone_list_free(zone_list_t* zone_list);
+
+void zone_list_alloc_nuke();
 
 /**
  * Copy the content of another zone object list.

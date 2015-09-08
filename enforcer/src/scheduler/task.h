@@ -57,14 +57,13 @@ typedef enum task_id_enum task_id;
  */
 typedef struct task_struct task_type;
 struct task_struct {
-    allocator_type* allocator;
     task_id what;
     task_id interrupt;
     task_id halted;
     time_t when;
     time_t backoff;
     int flush;
-    const char* who;
+    char* who;
     ldns_rdf* dname;
     void* context;
     task_type* (*how)(task_type*task);

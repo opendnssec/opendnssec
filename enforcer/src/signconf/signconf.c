@@ -45,7 +45,7 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
     zone_list_t* zone_list;
     const zone_t* zone;
     int ret;
-    policy_t* policy = NULL;
+    const policy_t* policy = NULL;
     int cmp;
     int change = 0;
 
@@ -73,12 +73,11 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
             if (db_value_cmp(policy_id(policy), zone_policy_id(zone), &cmp)
                 || cmp)
             {
-                policy_free(policy);
                 policy = NULL;
             }
         }
         if (!policy) {
-            if (!(policy = zone_get_policy(zone))) {
+            if (!(policy = zone_policy(zone))) {
                 zone_list_free(zone_list);
                 return SIGNCONF_EXPORT_ERR_DATABASE;
             }
@@ -307,10 +306,12 @@ int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int 
         ods_log_error("[signconf_export] Unable to create XML elements for zone %s! [%d]", zone_name(zone), error);
         if (sockfd > -1) client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone_name(zone));
         __free(&duration_text);
+        duration_cleanup(duration);
         xmlFreeDoc(doc);
         return SIGNCONF_EXPORT_ERR_XML;
     }
     __free(&duration_text);
+    duration_cleanup(duration);
 
     if (!(key_data_list = zone_get_keys(zone))) {
         ods_log_error("[signconf_export] Unable to get keys for zone %s!", zone_name(zone));

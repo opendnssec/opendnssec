@@ -476,6 +476,13 @@ schedule_task(schedule_type* schedule, task_type* task)
                 node1 = ldns_rbtree_delete(schedule->tasks, task2);
                 if (task->when < task2->when)
                     task2->when = task->when;
+                if (task2->context && task2->clean_context) {
+                    task2->clean_context(task2);
+                }
+                task2->context = task->context;
+                task2->clean_context = task->clean_context;
+                task->context = NULL;
+                task_cleanup(task);
                 (void) ldns_rbtree_insert(schedule->tasks, node1);
                 /* node1 now owned by tree */
                 node1 = NULL;

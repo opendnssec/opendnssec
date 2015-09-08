@@ -129,7 +129,6 @@ void mm_alloc_free(mm_alloc_t* alloc)
     }
     free(alloc->begin);
     (void) pthread_mutex_destroy(&alloc->lock);
-    free(alloc);
 }
 
 void* mm_alloc_new0(mm_alloc_t* alloc) {

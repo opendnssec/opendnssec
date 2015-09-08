@@ -79,6 +79,12 @@ db_result_t* db_result_new_copy(const db_result_t* from_result);
 void db_result_free(db_result_t* result);
 
 /**
+ * free global allocator. 
+ * db_result_free MUST be called for all its contents.
+ */
+void db_result_alloc_nuke();
+
+/**
  * Copy the content of another database result.
  * \param[in] result a db_result_t pointer.
  * \param[in] from_result a db_result_t pointer.
@@ -157,6 +163,12 @@ db_result_list_t* db_result_list_new_copy(const db_result_list_t* from_result_li
  * \param[in] result_list a db_result_list_t pointer.
  */
 void db_result_list_free(db_result_list_t* result_list);
+
+/**
+ * free global allocator. 
+ * db_result_list_free MUST be called for all its contents.
+ */
+void db_result_list_alloc_nuke();
 
 /**
  * Copy the content of another database result list.

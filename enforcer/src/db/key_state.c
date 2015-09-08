@@ -227,6 +227,11 @@ void key_state_free(key_state_t* key_state) {
     }
 }
 
+void key_state_alloc_nuke()
+{
+    mm_alloc_free(&__key_state_alloc);
+}
+
 void key_state_reset(key_state_t* key_state) {
     if (key_state) {
         db_value_reset(&(key_state->id));
@@ -1274,6 +1279,11 @@ void key_state_list_free(key_state_list_t* key_state_list) {
         }
         mm_alloc_delete(&__key_state_list_alloc, key_state_list);
     }
+}
+
+void key_state_list_alloc_nuke()
+{
+    mm_alloc_free(&__key_state_list_alloc);
 }
 
 int key_state_list_copy(key_state_list_t* key_state_list, const key_state_list_t* from_key_state_list) {

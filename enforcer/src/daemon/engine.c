@@ -49,6 +49,7 @@
 #include "db/db_configuration.h"
 #include "db/db_connection.h"
 #include "db/database_version.h"
+#include "hsmkey/hsm_key_factory.h"
 #include "libhsm.h"
 
 #include <errno.h>
@@ -100,8 +101,9 @@ engine_dealloc(engine_type* engine)
     pthread_cond_destroy(&engine->signal_cond);
     if (engine->dbcfg_list) {
         db_configuration_list_free(engine->dbcfg_list);
-        db_configuration_list_alloc_nuke();
     }
+    db_alloc_nuke();
+    hsm_key_factory_deinit();
     free(engine);
 }
 

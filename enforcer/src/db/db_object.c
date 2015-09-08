@@ -73,6 +73,11 @@ void db_object_field_free(db_object_field_t* object_field) {
     }
 }
 
+void db_object_field_alloc_nuke()
+{
+    mm_alloc_free(&__object_field_alloc);
+}
+
 /* TODO: unit test */
 int db_object_field_copy(db_object_field_t* object_field, const db_object_field_t* from_object_field) {
     if (!object_field) {
@@ -221,6 +226,11 @@ void db_object_field_list_free(db_object_field_list_t* object_field_list) {
     }
 }
 
+void db_object_field_list_alloc_nuke()
+{
+    mm_alloc_free(&__object_field_list_alloc);
+}
+
 /* TODO: unit test */
 int db_object_field_list_copy(db_object_field_list_t* object_field_list, const db_object_field_list_t* from_object_field_list) {
     db_object_field_t* object_field;
@@ -327,6 +337,11 @@ void db_object_free(db_object_t* object) {
         }
         mm_alloc_delete(&__object_alloc, object);
     }
+}
+
+void db_object_alloc_nuke()
+{
+    mm_alloc_free(&__object_alloc);
 }
 
 const db_connection_t* db_object_connection(const db_object_t* object) {

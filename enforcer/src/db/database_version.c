@@ -146,6 +146,11 @@ void database_version_free(database_version_t* database_version) {
     }
 }
 
+void database_version_alloc_nuke()
+{
+    mm_alloc_free(&__database_version_alloc);
+}
+
 void database_version_reset(database_version_t* database_version) {
     if (database_version) {
         db_value_reset(&(database_version->id));
@@ -616,6 +621,11 @@ void database_version_list_free(database_version_list_t* database_version_list) 
         }
         mm_alloc_delete(&__database_version_list_alloc, database_version_list);
     }
+}
+
+void database_version_list_alloc_nuke()
+{
+    mm_alloc_free(&__database_version_list_alloc);
 }
 
 int database_version_list_copy(database_version_list_t* database_version_list, const database_version_list_t* from_database_version_list) {
