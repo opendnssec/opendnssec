@@ -149,11 +149,14 @@ pop_first_task(schedule_type* schedule)
     node = ldns_rbtree_first(schedule->tasks);
     if (!node) return NULL;
     delnode = ldns_rbtree_delete(schedule->tasks, node->data);
+    /* delnode == node, but we don't free it just yet, data is shared
+     * with tasks_by_name tree */
     if (!delnode) return NULL;
     delnode = ldns_rbtree_delete(schedule->tasks_by_name, node->data);
-    free(node); /* node and delnode should be the same */
+    free(node);
     if (!delnode) return NULL;
     task = (task_type*) delnode->data;
+    free(delnode); /* this delnode != node */
     set_alarm(schedule);
     return task;
 }
@@ -366,20 +369,21 @@ schedule_purge(schedule_type* schedule)
     if (!schedule || !schedule->tasks) return;
 
     pthread_mutex_lock(&schedule->schedule_lock);
+        /* don't attempt to free payload, still referenced by other tree*/
         while ((node = ldns_rbtree_first(schedule->tasks)) !=
             LDNS_RBTREE_NULL)
         {
             node = ldns_rbtree_delete(schedule->tasks, node->data);
-            if (node == LDNS_RBTREE_NULL) break; 
-            task_cleanup((task_type*) node->data);
+            if (node == 0) break;
             free(node);
         }
-        /* also clean up name tree, don't attempt to free payload */
+        /* also clean up name tree */
         while ((node = ldns_rbtree_first(schedule->tasks_by_name)) !=
             LDNS_RBTREE_NULL)
         {
             node = ldns_rbtree_delete(schedule->tasks_by_name, node->data);
-            if (node == LDNS_RBTREE_NULL) break; 
+            if (node == 0) break;
+            task_cleanup((task_type*) node->data);
             free(node);
         }
     pthread_mutex_unlock(&schedule->schedule_lock);
@@ -472,6 +476,13 @@ schedule_task(schedule_type* schedule, task_type* task)
                 node1 = ldns_rbtree_delete(schedule->tasks, task2);
                 if (task->when < task2->when)
                     task2->when = task->when;
+                if (task2->context && task2->clean_context) {
+                    task2->clean_context(task2);
+                }
+                task2->context = task->context;
+                task2->clean_context = task->clean_context;
+                task->context = NULL;
+                task_cleanup(task);
                 (void) ldns_rbtree_insert(schedule->tasks, node1);
                 /* node1 now owned by tree */
                 node1 = NULL;

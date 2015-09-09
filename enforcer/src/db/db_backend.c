@@ -35,11 +35,48 @@
 #endif
 #include "db_backend_mysql.h"
 #include "db_error.h"
+#include "database_version.h"
+#include "hsm_key.h"
 
 #include "mm.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+void db_alloc_nuke()
+{
+    db_connection_alloc_nuke();
+    db_configuration_alloc_nuke();
+    db_configuration_list_alloc_nuke();
+    hsm_key_alloc_nuke();
+    hsm_key_list_alloc_nuke();
+    database_version_alloc_nuke();
+    database_version_list_alloc_nuke();
+    db_result_alloc_nuke();
+    db_result_list_alloc_nuke();
+    db_value_set_alloc_nuke();
+    db_object_field_alloc_nuke();
+    db_object_field_list_alloc_nuke();
+    db_object_alloc_nuke();
+    zone_alloc_nuke();
+    zone_list_alloc_nuke();
+    db_clause_alloc_nuke();
+    db_clause_list_alloc_nuke();
+    database_version_list_alloc_nuke();
+    db_value_alloc_nuke();
+    key_dependency_alloc_nuke();
+    key_dependency_list_alloc_nuke();
+    key_data_alloc_nuke();
+    key_data_list_alloc_nuke();
+    db_join_alloc_nuke();
+    db_join_list_alloc_nuke();
+    policy_alloc_nuke();
+    policy_list_alloc_nuke();
+    policy_key_alloc_nuke();
+    policy_key_list_alloc_nuke();
+    key_state_alloc_nuke();
+    key_state_list_alloc_nuke();
+}
 
 /* DB BACKEND HANDLE */
 

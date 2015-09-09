@@ -64,6 +64,11 @@ void db_join_free(db_join_t* join) {
     }
 }
 
+void db_join_alloc_nuke()
+{
+    mm_alloc_free(&__join_alloc);
+}
+
 const char* db_join_from_table(const db_join_t* join) {
     if (!join) {
         return NULL;
@@ -220,6 +225,11 @@ void db_join_list_free(db_join_list_t* join_list) {
         }
         mm_alloc_delete(&__join_list_alloc, join_list);
     }
+}
+
+void db_join_list_alloc_nuke()
+{
+    mm_alloc_free(&__join_list_alloc);
 }
 
 int db_join_list_add(db_join_list_t* join_list, db_join_t* join) {

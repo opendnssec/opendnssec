@@ -117,6 +117,7 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	ttl = key_state_ttl(key_data_cached_dnskey(key));
 
 	dnskey_rr = get_dnskey(locator, zone_name(zone), key_data_algorithm(key), ttl);
+	zone_free(zone);
 	if (!dnskey_rr) return 2;
 
 	rrstr = ldns_rr2str(dnskey_rr);

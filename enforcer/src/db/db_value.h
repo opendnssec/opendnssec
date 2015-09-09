@@ -78,6 +78,8 @@ db_value_t* db_value_new_copy(const db_value_t* from_value);
  */
 void db_value_free(db_value_t* value);
 
+void db_value_alloc_nuke();
+
 /**
  * Reset a database value, releasing all interal resources and marking it empty.
  * \param[in] value a db_value_t pointer.
@@ -342,6 +344,12 @@ db_value_set_t* db_value_set_new_copy(const db_value_set_t* from_value_set);
  * \param[in] value_set a db_value_set_t pointer.
  */
 void db_value_set_free(db_value_set_t* value_set);
+
+/**
+ * free global allocator. 
+ * db_value_set_free MUST be called for all its contents.
+ */
+void db_value_set_alloc_nuke();
 
 /**
  * Get the size of database value set.

@@ -364,6 +364,11 @@ void zone_free(zone_t* zone) {
     }
 }
 
+void zone_alloc_nuke()
+{
+    mm_alloc_free(&__zone_alloc);
+}
+
 void zone_reset(zone_t* zone) {
     if (zone) {
         db_value_reset(&(zone->id));
@@ -2762,6 +2767,11 @@ void zone_list_free(zone_list_t* zone_list) {
         }
         mm_alloc_delete(&__zone_list_alloc, zone_list);
     }
+}
+
+void zone_list_alloc_nuke()
+{
+    mm_alloc_free(&__zone_list_alloc);
 }
 
 int zone_list_copy(zone_list_t* zone_list, const zone_list_t* from_zone_list) {

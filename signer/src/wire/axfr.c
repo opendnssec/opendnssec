@@ -108,7 +108,7 @@ soa_request(query_type* q, engine_type* engine)
         expire = q->zone->xfrd->serial_xfr_acquired;
         expire += ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_EXPIRE));
         if (expire < time_now()) {
-            ods_log_warning("[%s] zone %s expired at %u, and it is now %u: "
+            ods_log_warning("[%s] zone %s expired at %ld, and it is now %ld: "
                 "not serving soa", axfr_str, q->zone->name, expire, time_now());
             ldns_rr_free(rr);
             buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
