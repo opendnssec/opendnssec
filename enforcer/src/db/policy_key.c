@@ -262,6 +262,11 @@ void policy_key_free(policy_key_t* policy_key) {
     }
 }
 
+void policy_key_alloc_nuke()
+{
+    mm_alloc_free(&__policy_key_alloc);
+}
+
 void policy_key_reset(policy_key_t* policy_key) {
     if (policy_key) {
         db_value_reset(&(policy_key->id));
@@ -1587,6 +1592,11 @@ void policy_key_list_free(policy_key_list_t* policy_key_list) {
         }
         mm_alloc_delete(&__policy_key_list_alloc, policy_key_list);
     }
+}
+
+void policy_key_list_alloc_nuke()
+{
+    mm_alloc_free(&__policy_key_list_alloc);
 }
 
 int policy_key_list_copy(policy_key_list_t* policy_key_list, const policy_key_list_t* from_policy_key_list) {

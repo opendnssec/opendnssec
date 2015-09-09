@@ -41,6 +41,7 @@
 #include "signer/zone.h"
 #include "wire/tcpset.h"
 #include "wire/xfrd.h"
+#include "signer/backup.h"
 
 #include <unistd.h>
 #include <fcntl.h>

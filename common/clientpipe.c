@@ -71,6 +71,7 @@ static int
 client_msg(int sockfd, char opc, const char *cmd, int count)
 {
 	char ctrl[3];
+	if (sockfd == -1) return 0;
 	header(ctrl, opc, count);
 	if (ods_writen(sockfd, ctrl, 3) == -1)
 		return 0;

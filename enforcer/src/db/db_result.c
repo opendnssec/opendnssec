@@ -73,6 +73,11 @@ void db_result_free(db_result_t* result) {
     }
 }
 
+void db_result_alloc_nuke()
+{
+    mm_alloc_free(&__result_alloc);
+}
+
 /* TODO: unit test */
 int db_result_copy(db_result_t* result, const db_result_t* from_result) {
     db_value_set_t* value_set = NULL;
@@ -216,6 +221,11 @@ void db_result_list_free(db_result_list_t* result_list) {
         }
         mm_alloc_delete(&__result_list_alloc, result_list);
     }
+}
+
+void db_result_list_alloc_nuke()
+{
+    mm_alloc_free(&__result_list_alloc);
 }
 
 /* TODO: unit test */

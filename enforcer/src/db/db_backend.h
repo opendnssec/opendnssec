@@ -47,6 +47,12 @@ typedef struct db_backend_meta_data_list db_backend_meta_data_list_t;
 #include "db_value.h"
 
 /**
+ * Free memory of all allocators. All database objects MUST be freed.
+ * Underlying functions WILL assert if you where sloppy freeing!
+ */
+void db_alloc_nuke();
+
+/**
  * Function pointer for initializing a database backend. The backend handle
  * specific data is supplied in `data`.
  * \param[in] data a void pointer.

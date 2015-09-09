@@ -76,6 +76,11 @@ void db_value_free(db_value_t* value) {
     }
 }
 
+void db_value_alloc_nuke()
+{
+    mm_alloc_free(&__value_alloc);
+}
+
 void db_value_reset(db_value_t* value) {
     if (value) {
         value->type = DB_TYPE_EMPTY;
@@ -837,6 +842,19 @@ void db_value_set_free(db_value_set_t* value_set) {
         }
         mm_alloc_delete(&__value_set_alloc, value_set);
     }
+}
+
+void db_value_set_alloc_nuke()
+{
+    mm_alloc_free(&__value_set_alloc);
+    mm_alloc_free(&__4_value_alloc);
+    mm_alloc_free(&__8_value_alloc);
+    mm_alloc_free(&__12_value_alloc);
+    mm_alloc_free(&__16_value_alloc);
+    mm_alloc_free(&__24_value_alloc);
+    mm_alloc_free(&__32_value_alloc);
+    mm_alloc_free(&__64_value_alloc);
+    mm_alloc_free(&__128_value_alloc);
 }
 
 size_t db_value_set_size(const db_value_set_t* value_set) {

@@ -57,6 +57,12 @@ db_configuration_t* db_configuration_new(void);
 void db_configuration_free(db_configuration_t* configuration);
 
 /**
+ * free global allocator. 
+ * db_configuration_free MUST be called for all its contents.
+ */
+void db_configuration_alloc_nuke();
+
+/**
  * Get the name of a database configuration.
  * \param[in] configuration a db_configuration_t pointer.
  * \return a character pointer or NULL on error or if no database configuration
@@ -115,6 +121,12 @@ db_configuration_list_t* db_configuration_list_new(void);
  * \param[in] configuration_list a db_configuration_list_t pointer.
  */
 void db_configuration_list_free(db_configuration_list_t* configuration_list);
+
+/**
+ * free global allocator. 
+ * db_configuration_list_free MUST be called for all its contents.
+ */
+void db_configuration_list_alloc_nuke();
 
 /**
  * Add a database configuration to a database configuration list, this takes

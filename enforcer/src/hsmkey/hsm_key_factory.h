@@ -35,6 +35,7 @@
 
 #include <time.h>
 
+void hsm_key_factory_deinit(void);
 /**
  * TODO
  */

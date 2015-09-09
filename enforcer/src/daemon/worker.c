@@ -91,7 +91,7 @@ worker_perform_task(worker_type* worker)
      * it is accessable from the task function */
     task->dbconn = worker->dbconn;
     worker->task = task_perform(task);
-    task->dbconn = NULL;
+    if (worker->task) task->dbconn = NULL;
 }
 
 /**

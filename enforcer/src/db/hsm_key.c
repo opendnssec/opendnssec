@@ -305,6 +305,11 @@ void hsm_key_free(hsm_key_t* hsm_key) {
     }
 }
 
+void hsm_key_alloc_nuke()
+{
+    mm_alloc_free(&__hsm_key_alloc);
+}
+
 void hsm_key_reset(hsm_key_t* hsm_key) {
     if (hsm_key) {
         db_value_reset(&(hsm_key->id));
@@ -1985,6 +1990,11 @@ void hsm_key_list_free(hsm_key_list_t* hsm_key_list) {
         }
         mm_alloc_delete(&__hsm_key_list_alloc, hsm_key_list);
     }
+}
+
+void hsm_key_list_alloc_nuke()
+{
+    mm_alloc_free(&__hsm_key_list_alloc);
 }
 
 int hsm_key_list_copy(hsm_key_list_t* hsm_key_list, const hsm_key_list_t* from_hsm_key_list) {

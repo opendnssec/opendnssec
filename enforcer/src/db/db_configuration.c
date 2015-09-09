@@ -58,6 +58,11 @@ void db_configuration_free(db_configuration_t* configuration) {
     }
 }
 
+void db_configuration_alloc_nuke()
+{
+    mm_alloc_free(&__configuration_alloc);
+}
+
 const char* db_configuration_name(const db_configuration_t* configuration) {
     if (!configuration) {
         return NULL;
@@ -138,6 +143,11 @@ db_configuration_list_t* db_configuration_list_new(void) {
         (db_configuration_list_t*)mm_alloc_new0(&__configuration_list_alloc);
 
     return configuration_list;
+}
+
+void db_configuration_list_alloc_nuke()
+{
+    mm_alloc_free(&__configuration_list_alloc);
 }
 
 void db_configuration_list_free(db_configuration_list_t* configuration_list) {
