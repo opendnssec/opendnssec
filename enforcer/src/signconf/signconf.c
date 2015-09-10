@@ -41,6 +41,18 @@
 #include <limits.h>
 #include <unistd.h>
 
+/**
+ * Export the signconf XML for the given zone that uses the given policy.
+ * \param[in] sockfd a socket fd.
+ * \param[in] policy a policy_t pointer.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] force if non-zero it will force the export for all zones even if
+ * there are no updates for the zones.
+ * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
+ * SIGNCONF_EXPORT_NO_CHANGE.
+ */
+static int signconf_export(int sockfd, const policy_t* policy, zone_t* zone, int force);
+
 int signconf_export_all(int sockfd, const db_connection_t* connection, int force) {
     zone_list_t* zone_list;
     const zone_t* zone;
@@ -63,7 +75,7 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
         return SIGNCONF_EXPORT_ERR_MEMORY;
     }
 
-    for (zone = zone_list_next(zone_list); zone; zone = zone_list_next(zone_list)) {
+    for (zone = zone_list_get_next(zone_list); zone; zone = zone_list_get_next(zone_list)) {
         if (policy) {
             /*
              * If we already have a policy object; If policy_id compare fails
@@ -77,7 +89,8 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
             }
         }
         if (!policy) {
-            if (!(policy = zone_policy(zone))) {
+            if (!(policy = zone_get_policy(zone))) {
+                zone_free(zone);
                 zone_list_free(zone_list);
                 return SIGNCONF_EXPORT_ERR_DATABASE;
             }
@@ -88,9 +101,11 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
             change = 1;
         }
         else if (ret != SIGNCONF_EXPORT_NO_CHANGE) {
+            zone_free(zone);
             zone_list_free(zone_list);
             return ret;
         }
+        zone_free(zone);
     }
     zone_list_free(zone_list);
 
@@ -150,7 +165,7 @@ static int __free(char **p) {
     return 0;
 }
 
-int signconf_export(int sockfd, const policy_t* policy, const zone_t* zone, int force) {
+static int signconf_export(int sockfd, const policy_t* policy, zone_t* zone, int force) {
     char path[PATH_MAX];
     xmlDocPtr doc;
     xmlNodePtr root;

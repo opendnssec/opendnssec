@@ -102,7 +102,7 @@ engine_dealloc(engine_type* engine)
     if (engine->dbcfg_list) {
         db_configuration_list_free(engine->dbcfg_list);
     }
-    db_alloc_nuke();
+    /* db_alloc_nuke(); */
     hsm_key_factory_deinit();
     free(engine);
 }
