@@ -2783,10 +2783,10 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
         if (key_purgable) {
 			/* key is purgable, is it time yet? */
             if (now >= key_time) {
-		key_state_t* ks_ds = NULL;
-		key_state_t* ks_dnskey = NULL;
-		key_state_t* ks_rrsigdnskey = NULL;
-		key_state_t* ks_rrsig = NULL;
+		key_state_t* ks_ds;
+		key_state_t* ks_dnskey;
+		key_state_t* ks_rrsigdnskey;
+		key_state_t* ks_rrsig;
                 ods_log_info("[%s] %s deleting key: %s", module_str, scmd,
                     hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
