@@ -24,6 +24,8 @@ ods_reset_env  &&
 
 ods_start_ods-control &&
 
+sleep 20 && ods-enforcer signconf &&
+
 #########################################################################
 # Basic checks of signing test zones
 
