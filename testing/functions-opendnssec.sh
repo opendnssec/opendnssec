@@ -441,6 +441,29 @@ ods_enforcer_start_timeshift ()
 	return 1
 }
 
+ods_enforcer_idle ()
+{
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local timeout=$1
+	if [ -z "$timeout" ]
+	then
+		timeout=600
+	fi
+	sleep 3 ;# unfortunately, things are synchronous and we always have to wait just a bit
+	while true; do
+		ods-enforcer queue 2>&1 | grep -q "There are 0 tasks scheduled." 2>/dev/null >/dev/null
+		if [ $? -eq 0 ] ; then
+			return 0
+		fi
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		sleep 3
+	done
+	return 1
+}
+
 ods_enforcer_leap_over ()
 {
 	if [ -z "$1" ]

@@ -17,10 +17,10 @@ ods_reset_env &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zones already exist and we let it generate keys itself)
-ods_start_enforcer &&
+ods_start_ods-control &&
 
 # Make sure all keys are in use
-sleep 300 &&
+sleep 60 && ods_enforcer_idle &&
 
 # Check that we have 2 keys per zone
 # We don't care about the exact state it is in, as long as it is consistent.
@@ -150,7 +150,7 @@ test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 16 &&
 # test `ods-hsmutil list | grep ^SoftHSM | grep RSA/1024 | wc -l` -lt \
 #      `ods-hsmutil list | grep ^SoftHSM | grep RSA/2048 | wc -l` &&
 
-ods_stop_enforcer &&
+ods_stop_ods-control &&
 
 return 0
 
