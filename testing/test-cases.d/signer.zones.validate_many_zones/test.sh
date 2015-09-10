@@ -5,6 +5,8 @@
 #TEST: Will eventually add validation into this to check the output
 #TEST: For now use it to check any signing bugs with explicit tests
 
+ODS_ENFORCER_WAIT_STOP_LOG=1800
+
 # So we can use validns 0.7 it is installed from source so need to
 # specify this path
 case "$DISTRIBUTION" in
@@ -20,12 +22,10 @@ fi &&
 
 ods_reset_env  &&
 
-ods_start_enforcer && 
+ods_start_ods-control &&
 
 #########################################################################
 # Basic checks of signing test zones
-
-ods_start_signer && 
 
 syslog_waitfor 300 'ods-signerd: .*\[STATS\] example.com' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
