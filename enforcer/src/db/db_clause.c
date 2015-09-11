@@ -63,9 +63,6 @@ void db_clause_free(db_clause_t* clause) {
             free(clause->field);
         }
         db_value_reset(&(clause->value));
-        if (clause->clause_list) {
-            db_clause_list_free(clause->clause_list);
-        }
         mm_alloc_delete(&__clause_alloc, clause);
     }
 }
