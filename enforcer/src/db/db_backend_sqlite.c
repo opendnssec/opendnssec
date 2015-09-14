@@ -429,7 +429,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
         switch (db_clause_type(clause)) {
         case DB_CLAUSE_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s = ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -438,7 +438,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
 
         case DB_CLAUSE_NOT_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s != ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -447,7 +447,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
 
         case DB_CLAUSE_LESS_THEN:
             if ((ret = snprintf(*sqlp, *left, " %s.%s < ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -456,7 +456,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
 
         case DB_CLAUSE_LESS_OR_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s <= ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -465,7 +465,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
 
         case DB_CLAUSE_GREATER_OR_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s >= ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -474,7 +474,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
 
         case DB_CLAUSE_GREATER_THEN:
             if ((ret = snprintf(*sqlp, *left, " %s.%s > ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -483,7 +483,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
 
         case DB_CLAUSE_IS_NULL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s IS NULL",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -492,7 +492,7 @@ static int __db_backend_sqlite_build_clause(const db_object_t* object, const db_
 
         case DB_CLAUSE_IS_NOT_NULL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s IS NOT NULL",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                (db_clause_table(clause) ? db_clause_table(clause) : object->table),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -693,10 +693,10 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
         db_value_set_free(value_set);
         return NULL;
     }
-    object_field = db_object_field_list_begin(db_object_object_field_list(statement->object));
+    object_field = statement->object->object_field_list->begin;
     bind = 0;
     while (object_field) {
-        switch (db_object_field_type(object_field)) {
+        switch (object_field->type) {
         case DB_TYPE_PRIMARY_KEY:
             from_int = sqlite3_column_int(statement->statement, bind);
             int32 = from_int;
@@ -854,9 +854,9 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
     /*
      * Check if the object has a revision field and keep it for later use.
      */
-    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    object_field = object->object_field_list->begin;
     while (object_field) {
-        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+        if (object_field->type == DB_TYPE_REVISION) {
             if (revision_field) {
                 /*
                  * We do not support multiple revision fields.
@@ -873,18 +873,18 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
     sqlp = sql;
     memset(sql, 0, left);
 
-    if (!db_object_field_list_begin(object_field_list) && !revision_field) {
+    if (!object_field_list->begin && !revision_field) {
         /*
          * Special case when tables has no fields except maybe a primary key.
          */
-        if ((ret = snprintf(sqlp, left, "INSERT INTO %s DEFAULT VALUES", db_object_table(object))) >= left) {
+        if ((ret = snprintf(sqlp, left, "INSERT INTO %s DEFAULT VALUES", object->table)) >= left) {
             return DB_ERROR_UNKNOWN;
         }
         sqlp += ret;
         left -= ret;
     }
     else {
-        if ((ret = snprintf(sqlp, left, "INSERT INTO %s (", db_object_table(object))) >= left) {
+        if ((ret = snprintf(sqlp, left, "INSERT INTO %s (", object->table)) >= left) {
             return DB_ERROR_UNKNOWN;
         }
         sqlp += ret;
@@ -893,17 +893,17 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
         /*
          * Add the fields from the given object_field_list.
          */
-        object_field = db_object_field_list_begin(object_field_list);
+        object_field = object_field_list->begin;
         first = 1;
         while (object_field) {
             if (first) {
-                if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(object_field))) >= left) {
+                if ((ret = snprintf(sqlp, left, " %s", object_field->name)) >= left) {
                     return DB_ERROR_UNKNOWN;
                 }
                 first = 0;
             }
             else {
-                if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(object_field))) >= left) {
+                if ((ret = snprintf(sqlp, left, ", %s", object_field->name)) >= left) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
@@ -918,13 +918,13 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
          */
         if (revision_field) {
             if (first) {
-                if ((ret = snprintf(sqlp, left, " %s", db_object_field_name(revision_field))) >= left) {
+                if ((ret = snprintf(sqlp, left, " %s", revision_field->name)) >= left) {
                     return DB_ERROR_UNKNOWN;
                 }
                 first = 0;
             }
             else {
-                if ((ret = snprintf(sqlp, left, ", %s", db_object_field_name(revision_field))) >= left) {
+                if ((ret = snprintf(sqlp, left, ", %s", revision_field->name)) >= left) {
                     return DB_ERROR_UNKNOWN;
                 }
             }
@@ -941,7 +941,7 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
         /*
          * Mark all the fields for binding from the object_field_list.
          */
-        object_field = db_object_field_list_begin(object_field_list);
+        object_field = object_field_list->begin;
         first = 1;
         while (object_field) {
             if (first) {
@@ -1136,18 +1136,18 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
     sqlp += ret;
     left -= ret;
 
-    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    object_field = object->object_field_list->begin;
     first = 1;
     fields = 0;
     while (object_field) {
         if (first) {
-            if ((ret = snprintf(sqlp, left, " %s.%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, " %s.%s", object->table, object_field->name)) >= left) {
                 return NULL;
             }
             first = 0;
         }
         else {
-            if ((ret = snprintf(sqlp, left, ", %s.%s", db_object_table(object), db_object_field_name(object_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, ", %s.%s", object->table, object_field->name)) >= left) {
                 return NULL;
             }
         }
@@ -1158,27 +1158,27 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
         fields++;
     }
 
-    if ((ret = snprintf(sqlp, left, " FROM %s", db_object_table(object))) >= left) {
+    if ((ret = snprintf(sqlp, left, " FROM %s", object->table)) >= left) {
         return NULL;
     }
     sqlp += ret;
     left -= ret;
 
     if (join_list) {
-        join = db_join_list_begin(join_list);
+        join = join_list->begin;
         while (join) {
             if ((ret = snprintf(sqlp, left, " INNER JOIN %s ON %s.%s = %s.%s",
-                db_join_to_table(join),
-                db_join_to_table(join),
-                db_join_to_field(join),
-                db_join_from_table(join),
-                db_join_from_field(join))) >= left)
+                join->to_table,
+                join->to_table,
+                join->to_field,
+                join->from_table,
+                join->from_field)) >= left)
             {
                 return NULL;
             }
             sqlp += ret;
             left -= ret;
-            join = db_join_next(join);
+            join = join->next;;
         }
     }
 
@@ -1268,9 +1268,9 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
     /*
      * Check if the object has a revision field and keep it for later use.
      */
-    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    object_field = object->object_field_list->begin;
     while (object_field) {
-        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+        if (object_field->type == DB_TYPE_REVISION) {
             if (revision_field) {
                 /*
                  * We do not support multiple revision fields.
@@ -1289,7 +1289,7 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
          */
         clause = db_clause_list_begin(clause_list);
         while (clause) {
-            if (!strcmp(db_clause_field(clause), db_object_field_name(revision_field))) {
+            if (!strcmp(db_clause_field(clause), revision_field->name)) {
                 revision_clause = clause;
                 break;
             }
@@ -1336,7 +1336,7 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
     sqlp = sql;
     memset(sql, 0, left);
 
-    if ((ret = snprintf(sqlp, left, "UPDATE %s SET", db_object_table(object))) >= left) {
+    if ((ret = snprintf(sqlp, left, "UPDATE %s SET", object->table)) >= left) {
         return DB_ERROR_UNKNOWN;
     }
     sqlp += ret;
@@ -1345,17 +1345,17 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
     /*
      * Build the update SQL from the object_field_list.
      */
-    object_field = db_object_field_list_begin(object_field_list);
+    object_field = object_field_list->begin;
     first = 1;
     while (object_field) {
         if (first) {
-            if ((ret = snprintf(sqlp, left, " %s = ?", db_object_field_name(object_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, " %s = ?", object_field->name)) >= left) {
                 return DB_ERROR_UNKNOWN;
             }
             first = 0;
         }
         else {
-            if ((ret = snprintf(sqlp, left, ", %s = ?", db_object_field_name(object_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, ", %s = ?", object_field->name)) >= left) {
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -1370,13 +1370,13 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
      */
     if (revision_field) {
         if (first) {
-            if ((ret = snprintf(sqlp, left, " %s = ?", db_object_field_name(revision_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, " %s = ?", revision_field->name)) >= left) {
                 return DB_ERROR_UNKNOWN;
             }
             first = 0;
         }
         else {
-            if ((ret = snprintf(sqlp, left, ", %s = ?", db_object_field_name(revision_field))) >= left) {
+            if ((ret = snprintf(sqlp, left, ", %s = ?", revision_field->name)) >= left) {
                 return DB_ERROR_UNKNOWN;
             }
         }
@@ -1562,9 +1562,9 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
     /*
      * Check if the object has a revision field and keep it for later use.
      */
-    object_field = db_object_field_list_begin(db_object_object_field_list(object));
+    object_field = object->object_field_list->begin;
     while (object_field) {
-        if (db_object_field_type(object_field) == DB_TYPE_REVISION) {
+        if (object_field->type == DB_TYPE_REVISION) {
             if (revision_field) {
                 /*
                  * We do not support multiple revision fields.
@@ -1583,7 +1583,7 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
          */
         clause = db_clause_list_begin(clause_list);
         while (clause) {
-            if (!strcmp(db_clause_field(clause), db_object_field_name(revision_field))) {
+            if (!strcmp(db_clause_field(clause), revision_field->name)) {
                 break;
             }
             clause = db_clause_next(clause);
@@ -1597,7 +1597,7 @@ static int db_backend_sqlite_delete(void* data, const db_object_t* object, const
     sqlp = sql;
     memset(sql, 0, left);
 
-    if ((ret = snprintf(sqlp, left, "DELETE FROM %s", db_object_table(object))) >= left) {
+    if ((ret = snprintf(sqlp, left, "DELETE FROM %s", object->table)) >= left) {
         return DB_ERROR_UNKNOWN;
     }
     sqlp += ret;
@@ -1679,27 +1679,27 @@ static int db_backend_sqlite_count(void* data, const db_object_t* object, const 
     sqlp += ret;
     left -= ret;
 
-    if ((ret = snprintf(sqlp, left, " FROM %s", db_object_table(object))) >= left) {
+    if ((ret = snprintf(sqlp, left, " FROM %s", object->table)) >= left) {
         return DB_ERROR_UNKNOWN;
     }
     sqlp += ret;
     left -= ret;
 
     if (join_list) {
-        join = db_join_list_begin(join_list);
+        join = join_list->begin;
         while (join) {
             if ((ret = snprintf(sqlp, left, " INNER JOIN %s ON %s.%s = %s.%s",
-                db_join_to_table(join),
-                db_join_to_table(join),
-                db_join_to_field(join),
-                db_join_from_table(join),
-                db_join_from_field(join))) >= left)
+                join->to_table,
+                join->to_table,
+                join->to_field,
+                join->from_table,
+                join->from_field)) >= left)
             {
                 return DB_ERROR_UNKNOWN;
             }
             sqlp += ret;
             left -= ret;
-            join = db_join_next(join);
+            join = join->next;;
         }
     }
 

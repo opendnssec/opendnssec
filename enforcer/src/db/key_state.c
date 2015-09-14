@@ -61,112 +61,89 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
     db_object_field_t* object_field;
     db_object_t* object;
 
-    if (!(object = db_object_new())
-        || db_object_set_connection(object, connection)
-        || db_object_set_table(object, "keyState")
-        || db_object_set_primary_key_name(object, "id")
-        || !(object_field_list = db_object_field_list_new()))
+    if (!(object = calloc(1, sizeof(db_object_t)))
+        || !(object_field_list = calloc(1, sizeof(db_object_field_list_t))))
     {
         db_object_free(object);
         return NULL;
     }
+    object->connection = connection;
+    object->table = "keyState";
+    object->primary_key_name = "id";
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "id")
-        || db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY)
+    if (!(object_field = db_object_field_new_init("id", DB_TYPE_PRIMARY_KEY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "rev")
-        || db_object_field_set_type(object_field, DB_TYPE_REVISION)
+    if (!(object_field = db_object_field_new_init("rev", DB_TYPE_REVISION, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keyDataId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+    if (!(object_field = db_object_field_new_init("keyDataId", DB_TYPE_ANY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "type")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, key_state_enum_set_type)
+    if (!(object_field = db_object_field_new_init("type", DB_TYPE_ENUM, key_state_enum_set_type))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "state")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, key_state_enum_set_state)
+    if (!(object_field = db_object_field_new_init("state", DB_TYPE_ENUM, key_state_enum_set_state))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "lastChange")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("lastChange", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "minimize")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("minimize", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("ttl", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (db_object_set_object_field_list(object, object_field_list)) {
-        db_object_field_list_free(object_field_list);
-        db_object_free(object);
-        return NULL;
-    }
-
+    object->object_field_list = object_field_list;
     return object;
 }
 
@@ -203,7 +180,7 @@ key_state_t* key_state_new_copy(const key_state_t* key_state) {
         return NULL;
     }
 
-    if (!(new_key_state = key_state_new(db_object_connection(key_state->dbo)))
+    if (!(new_key_state = key_state_new(key_state->dbo->connection))
         || key_state_copy(new_key_state, key_state))
     {
         key_state_free(new_key_state);
@@ -426,7 +403,7 @@ int key_state_cache_key_data(key_state_t* key_state) {
         return DB_OK;
     }
 
-    if (!(key_state->private_key_data_id = key_data_new(db_object_connection(key_state->dbo)))) {
+    if (!(key_state->private_key_data_id = key_data_new(key_state->dbo->connection))) {
         return DB_ERROR_UNKNOWN;
     }
     if (key_data_get_by_id(key_state->private_key_data_id, &(key_state->key_data_id))) {
@@ -462,7 +439,7 @@ key_data_t* key_state_get_key_data(const key_state_t* key_state) {
         return NULL;
     }
 
-    if (!(key_data_id = key_data_new(db_object_connection(key_state->dbo)))) {
+    if (!(key_data_id = key_data_new(key_state->dbo->connection))) {
         return NULL;
     }
     if (key_state->private_key_data_id) {
@@ -823,68 +800,54 @@ int key_state_create(key_state_t* key_state) {
     }
     /* TODO: validate content more */
 
-    if (!(object_field_list = db_object_field_list_new())) {
+    if (!(object_field_list = calloc(1, sizeof(db_object_field_list_t)))) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keyDataId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+    if (!(object_field = db_object_field_new_init("keyDataId", DB_TYPE_ANY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "type")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, key_state_enum_set_type)
+    if (!(object_field = db_object_field_new_init("type", DB_TYPE_ENUM, key_state_enum_set_type))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "state")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, key_state_enum_set_state)
+    if (!(object_field = db_object_field_new_init("state", DB_TYPE_ENUM, key_state_enum_set_state))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "lastChange")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("lastChange", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "minimize")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("minimize", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("ttl", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1013,68 +976,54 @@ int key_state_update(key_state_t* key_state) {
     }
     /* TODO: validate content more */
 
-    if (!(object_field_list = db_object_field_list_new())) {
+    if (!(object_field_list = calloc(1, sizeof(db_object_field_list_t)))) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keyDataId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+    if (!(object_field = db_object_field_new_init("keyDataId", DB_TYPE_ANY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "type")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, key_state_enum_set_type)
+    if (!(object_field = db_object_field_new_init("type", DB_TYPE_ENUM, key_state_enum_set_type))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "state")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, key_state_enum_set_state)
+    if (!(object_field = db_object_field_new_init("state", DB_TYPE_ENUM, key_state_enum_set_state))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "lastChange")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("lastChange", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "minimize")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("minimize", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "ttl")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("ttl", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1223,7 +1172,7 @@ key_state_list_t* key_state_list_new_copy(const key_state_list_t* from_key_state
         return NULL;
     }
 
-    if (!(key_state_list = key_state_list_new(db_object_connection(from_key_state_list->dbo)))
+    if (!(key_state_list = key_state_list_new(from_key_state_list->dbo->connection))
         || key_state_list_copy(key_state_list, from_key_state_list))
     {
         key_state_list_free(key_state_list);
@@ -1411,7 +1360,7 @@ static int key_state_list_get_associated(key_state_list_t* key_state_list) {
         key_state = key_state_list_next(key_state_list);
     }
 
-    if (!(key_state_list->key_data_id_list = key_data_list_new(db_object_connection(key_state_list->dbo)))
+    if (!(key_state_list->key_data_id_list = key_data_list_new(key_state_list->dbo->connection))
         || key_data_list_object_store(key_state_list->key_data_id_list)
         || key_data_list_get_by_clauses(key_state_list->key_data_id_list, clause_list))
     {
@@ -1677,7 +1626,7 @@ const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
             if (!(result = db_result_list_begin(key_state_list->result_list))) {
                 return NULL;
             }
-            if (!(key_state_list->object_list[0] = key_state_new(db_object_connection(key_state_list->dbo)))) {
+            if (!(key_state_list->object_list[0] = key_state_new(key_state_list->dbo->connection))) {
                 return NULL;
             }
             if (key_state_from_result(key_state_list->object_list[0], result)) {
@@ -1696,7 +1645,7 @@ const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
         return NULL;
     }
     if (!key_state_list->key_state) {
-        if (!(key_state_list->key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+        if (!(key_state_list->key_state = key_state_new(key_state_list->dbo->connection))) {
             return NULL;
         }
     }
@@ -1715,7 +1664,7 @@ key_state_t* key_state_list_get_begin(key_state_list_t* key_state_list) {
     }
 
     if (key_state_list->object_store) {
-        if (!(key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+        if (!(key_state = key_state_new(key_state_list->dbo->connection))) {
             return NULL;
         }
         if (key_state_copy(key_state, key_state_list_begin(key_state_list))) {
@@ -1732,7 +1681,7 @@ key_state_t* key_state_list_get_begin(key_state_list_t* key_state_list) {
     if (!(result = db_result_list_begin(key_state_list->result_list))) {
         return NULL;
     }
-    if (!(key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+    if (!(key_state = key_state_new(key_state_list->dbo->connection))) {
         return NULL;
     }
     if (key_state_from_result(key_state, result)) {
@@ -1780,7 +1729,7 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {
             if (!(result = db_result_list_next(key_state_list->result_list))) {
                 return NULL;
             }
-            if (!(key_state_list->object_list[key_state_list->object_list_position] = key_state_new(db_object_connection(key_state_list->dbo)))) {
+            if (!(key_state_list->object_list[key_state_list->object_list_position] = key_state_new(key_state_list->dbo->connection))) {
                 return NULL;
             }
             if (key_state_from_result(key_state_list->object_list[key_state_list->object_list_position], result)) {
@@ -1798,7 +1747,7 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {
         return NULL;
     }
     if (!key_state_list->key_state) {
-        if (!(key_state_list->key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+        if (!(key_state_list->key_state = key_state_new(key_state_list->dbo->connection))) {
             return NULL;
         }
     }
@@ -1817,7 +1766,7 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list) {
     }
 
     if (key_state_list->object_store) {
-        if (!(key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+        if (!(key_state = key_state_new(key_state_list->dbo->connection))) {
             return NULL;
         }
         if (key_state_copy(key_state, key_state_list_next(key_state_list))) {
@@ -1834,7 +1783,7 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list) {
     if (!(result = db_result_list_next(key_state_list->result_list))) {
         return NULL;
     }
-    if (!(key_state = key_state_new(db_object_connection(key_state_list->dbo)))) {
+    if (!(key_state = key_state_new(key_state_list->dbo->connection))) {
         return NULL;
     }
     if (key_state_from_result(key_state, result)) {

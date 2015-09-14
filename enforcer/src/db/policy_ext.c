@@ -1229,7 +1229,7 @@ zone_list_t* policy_get_zones(const policy_t* policy) {
         return NULL;
     }
 
-    return zone_list_new_get_by_policy_id(db_object_connection(policy->dbo),
+    return zone_list_new_get_by_policy_id(policy->dbo->connection,
         &(policy->id));
 }
 
@@ -1244,6 +1244,6 @@ policy_key_list_t* policy_get_policy_keys(const policy_t* policy) {
         return NULL;
     }
 
-    return policy_key_list_new_get_by_policy_id(db_object_connection(policy->dbo),
+    return policy_key_list_new_get_by_policy_id(policy->dbo->connection,
         &(policy->id));
 }

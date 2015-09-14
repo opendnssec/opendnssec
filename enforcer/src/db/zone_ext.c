@@ -46,7 +46,7 @@ key_data_list_t* zone_get_keys(const zone_t* zone) {
         return NULL;
     }
 
-    return key_data_list_new_get_by_zone_id(db_object_connection(zone->dbo),
+    return key_data_list_new_get_by_zone_id(zone->dbo->connection,
         &(zone->id));
 
     /*
@@ -66,7 +66,7 @@ key_dependency_list_t* zone_get_key_dependencies(const zone_t* zone) {
         return NULL;
     }
 
-    return key_dependency_list_new_get_by_zone_id(db_object_connection(zone->dbo),
+    return key_dependency_list_new_get_by_zone_id(zone->dbo->connection,
         &(zone->id));
 
     /*
@@ -151,7 +151,7 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                 }
             }
             else {
-                if (!(policy = policy_new(db_object_connection(zone->dbo)))
+                if (!(policy = policy_new(zone->dbo->connection))
                     || policy_get_by_name(policy, (char*)xml_text))
                 {
                     policy_free(policy);

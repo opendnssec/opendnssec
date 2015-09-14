@@ -67,174 +67,140 @@ const db_enum_t hsm_key_enum_set_backup[] = {
  * \param[in] connection a db_connection_t pointer.
  * \return a hsm_key_t pointer or NULL on error.
  */
-static db_object_t* __hsm_key_new_object(const db_connection_t* connection) {
+static db_object_t* __hsm_key_new_object(const db_connection_t* connection)
+{
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;
     db_object_t* object;
 
-    if (!(object = db_object_new())
-        || db_object_set_connection(object, connection)
-        || db_object_set_table(object, "hsmKey")
-        || db_object_set_primary_key_name(object, "id")
-        || !(object_field_list = db_object_field_list_new()))
+    if (!(object = calloc(1, sizeof(db_object_t)))
+        || !(object_field_list = calloc(1, sizeof(db_object_field_list_t))))
     {
         db_object_free(object);
         return NULL;
     }
+    object->connection = connection;
+    object->table = "hsmKey";
+    object->primary_key_name = "id";
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "id")
-        || db_object_field_set_type(object_field, DB_TYPE_PRIMARY_KEY)
+    if (!(object_field = db_object_field_new_init("id", DB_TYPE_PRIMARY_KEY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "rev")
-        || db_object_field_set_type(object_field, DB_TYPE_REVISION)
+    if (!(object_field = db_object_field_new_init("rev", DB_TYPE_REVISION, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policyId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+    if (!(object_field = db_object_field_new_init("policyId", DB_TYPE_ANY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "locator")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+    if (!(object_field = db_object_field_new_init("locator", DB_TYPE_TEXT, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "state")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_state)
+    if (!(object_field = db_object_field_new_init("state", DB_TYPE_ENUM, hsm_key_enum_set_state))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "bits")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("bits", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "algorithm")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("algorithm", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "role")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_role)
+    if (!(object_field = db_object_field_new_init("role", DB_TYPE_ENUM, hsm_key_enum_set_role))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "inception")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("inception", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "isRevoked")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("isRevoked", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keyType")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_key_type)
+    if (!(object_field = db_object_field_new_init("keyType", DB_TYPE_ENUM, hsm_key_enum_set_key_type))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "repository")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+    if (!(object_field = db_object_field_new_init("repository", DB_TYPE_TEXT, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "backup")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_backup)
+    if (!(object_field = db_object_field_new_init("backup", DB_TYPE_ENUM, hsm_key_enum_set_backup))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         db_object_free(object);
         return NULL;
     }
 
-    if (db_object_set_object_field_list(object, object_field_list)) {
-        db_object_field_list_free(object_field_list);
-        db_object_free(object);
-        return NULL;
-    }
-
+    object->object_field_list = object_field_list;
     return object;
 }
 
@@ -275,7 +241,7 @@ hsm_key_t* hsm_key_new_copy(const hsm_key_t* hsm_key) {
         return NULL;
     }
 
-    if (!(new_hsm_key = hsm_key_new(db_object_connection(hsm_key->dbo)))
+    if (!(new_hsm_key = hsm_key_new(hsm_key->dbo->connection))
         || hsm_key_copy(new_hsm_key, hsm_key))
     {
         hsm_key_free(new_hsm_key);
@@ -644,7 +610,7 @@ int hsm_key_cache_policy(hsm_key_t* hsm_key) {
         return DB_OK;
     }
 
-    if (!(hsm_key->private_policy_id = policy_new(db_object_connection(hsm_key->dbo)))) {
+    if (!(hsm_key->private_policy_id = policy_new(hsm_key->dbo->connection))) {
         return DB_ERROR_UNKNOWN;
     }
     if (policy_get_by_id(hsm_key->private_policy_id, &(hsm_key->policy_id))) {
@@ -680,7 +646,7 @@ policy_t* hsm_key_get_policy(const hsm_key_t* hsm_key) {
         return NULL;
     }
 
-    if (!(policy_id = policy_new(db_object_connection(hsm_key->dbo)))) {
+    if (!(policy_id = policy_new(hsm_key->dbo->connection))) {
         return NULL;
     }
     if (hsm_key->private_policy_id) {
@@ -1344,120 +1310,94 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     }
     /* TODO: validate content more */
 
-    if (!(object_field_list = db_object_field_list_new())) {
+    if (!(object_field_list = calloc(1, sizeof(db_object_field_list_t)))) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policyId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+    if (!(object_field = db_object_field_new_init("policyId", DB_TYPE_ANY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "locator")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+    if (!(object_field = db_object_field_new_init("locator", DB_TYPE_TEXT, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "state")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_state)
+    if (!(object_field = db_object_field_new_init("state", DB_TYPE_ENUM, hsm_key_enum_set_state))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "bits")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("bits", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "algorithm")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("algorithm", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "role")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_role)
+    if (!(object_field = db_object_field_new_init("role", DB_TYPE_ENUM, hsm_key_enum_set_role))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "inception")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("inception", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "isRevoked")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("isRevoked", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keyType")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_key_type)
+    if (!(object_field = db_object_field_new_init("keyType", DB_TYPE_ENUM, hsm_key_enum_set_key_type))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "repository")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+    if (!(object_field = db_object_field_new_init("repository", DB_TYPE_TEXT, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "backup")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_backup)
+    if (!(object_field = db_object_field_new_init("backup", DB_TYPE_ENUM, hsm_key_enum_set_backup))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1667,120 +1607,94 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     }
     /* TODO: validate content more */
 
-    if (!(object_field_list = db_object_field_list_new())) {
+    if (!(object_field_list = calloc(1, sizeof(db_object_field_list_t)))) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "policyId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
+    if (!(object_field = db_object_field_new_init("policyId", DB_TYPE_ANY, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "locator")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+    if (!(object_field = db_object_field_new_init("locator", DB_TYPE_TEXT, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "state")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_state)
+    if (!(object_field = db_object_field_new_init("state", DB_TYPE_ENUM, hsm_key_enum_set_state))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "bits")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("bits", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "algorithm")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("algorithm", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "role")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_role)
+    if (!(object_field = db_object_field_new_init("role", DB_TYPE_ENUM, hsm_key_enum_set_role))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "inception")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("inception", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "isRevoked")
-        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+    if (!(object_field = db_object_field_new_init("isRevoked", DB_TYPE_UINT32, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "keyType")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_key_type)
+    if (!(object_field = db_object_field_new_init("keyType", DB_TYPE_ENUM, hsm_key_enum_set_key_type))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "repository")
-        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+    if (!(object_field = db_object_field_new_init("repository", DB_TYPE_TEXT, NULL))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "backup")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, hsm_key_enum_set_backup)
+    if (!(object_field = db_object_field_new_init("backup", DB_TYPE_ENUM, hsm_key_enum_set_backup))
         || db_object_field_list_add(object_field_list, object_field))
     {
-        db_object_field_free(object_field);
+        free(object_field);
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1934,7 +1848,7 @@ hsm_key_list_t* hsm_key_list_new_copy(const hsm_key_list_t* from_hsm_key_list) {
         return NULL;
     }
 
-    if (!(hsm_key_list = hsm_key_list_new(db_object_connection(from_hsm_key_list->dbo)))
+    if (!(hsm_key_list = hsm_key_list_new(from_hsm_key_list->dbo->connection))
         || hsm_key_list_copy(hsm_key_list, from_hsm_key_list))
     {
         hsm_key_list_free(hsm_key_list);
@@ -2122,7 +2036,7 @@ static int hsm_key_list_get_associated(hsm_key_list_t* hsm_key_list) {
         hsm_key = hsm_key_list_next(hsm_key_list);
     }
 
-    if (!(hsm_key_list->policy_id_list = policy_list_new(db_object_connection(hsm_key_list->dbo)))
+    if (!(hsm_key_list->policy_id_list = policy_list_new(hsm_key_list->dbo->connection))
         || policy_list_object_store(hsm_key_list->policy_id_list)
         || policy_list_get_by_clauses(hsm_key_list->policy_id_list, clause_list))
     {
@@ -2388,7 +2302,7 @@ const hsm_key_t* hsm_key_list_begin(hsm_key_list_t* hsm_key_list) {
             if (!(result = db_result_list_begin(hsm_key_list->result_list))) {
                 return NULL;
             }
-            if (!(hsm_key_list->object_list[0] = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+            if (!(hsm_key_list->object_list[0] = hsm_key_new(hsm_key_list->dbo->connection))) {
                 return NULL;
             }
             if (hsm_key_from_result(hsm_key_list->object_list[0], result)) {
@@ -2407,7 +2321,7 @@ const hsm_key_t* hsm_key_list_begin(hsm_key_list_t* hsm_key_list) {
         return NULL;
     }
     if (!hsm_key_list->hsm_key) {
-        if (!(hsm_key_list->hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+        if (!(hsm_key_list->hsm_key = hsm_key_new(hsm_key_list->dbo->connection))) {
             return NULL;
         }
     }
@@ -2426,7 +2340,7 @@ hsm_key_t* hsm_key_list_get_begin(hsm_key_list_t* hsm_key_list) {
     }
 
     if (hsm_key_list->object_store) {
-        if (!(hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+        if (!(hsm_key = hsm_key_new(hsm_key_list->dbo->connection))) {
             return NULL;
         }
         if (hsm_key_copy(hsm_key, hsm_key_list_begin(hsm_key_list))) {
@@ -2443,7 +2357,7 @@ hsm_key_t* hsm_key_list_get_begin(hsm_key_list_t* hsm_key_list) {
     if (!(result = db_result_list_begin(hsm_key_list->result_list))) {
         return NULL;
     }
-    if (!(hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+    if (!(hsm_key = hsm_key_new(hsm_key_list->dbo->connection))) {
         return NULL;
     }
     if (hsm_key_from_result(hsm_key, result)) {
@@ -2491,7 +2405,7 @@ const hsm_key_t* hsm_key_list_next(hsm_key_list_t* hsm_key_list) {
             if (!(result = db_result_list_next(hsm_key_list->result_list))) {
                 return NULL;
             }
-            if (!(hsm_key_list->object_list[hsm_key_list->object_list_position] = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+            if (!(hsm_key_list->object_list[hsm_key_list->object_list_position] = hsm_key_new(hsm_key_list->dbo->connection))) {
                 return NULL;
             }
             if (hsm_key_from_result(hsm_key_list->object_list[hsm_key_list->object_list_position], result)) {
@@ -2509,7 +2423,7 @@ const hsm_key_t* hsm_key_list_next(hsm_key_list_t* hsm_key_list) {
         return NULL;
     }
     if (!hsm_key_list->hsm_key) {
-        if (!(hsm_key_list->hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+        if (!(hsm_key_list->hsm_key = hsm_key_new(hsm_key_list->dbo->connection))) {
             return NULL;
         }
     }
@@ -2528,7 +2442,7 @@ hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list) {
     }
 
     if (hsm_key_list->object_store) {
-        if (!(hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+        if (!(hsm_key = hsm_key_new(hsm_key_list->dbo->connection))) {
             return NULL;
         }
         if (hsm_key_copy(hsm_key, hsm_key_list_next(hsm_key_list))) {
@@ -2545,7 +2459,7 @@ hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list) {
     if (!(result = db_result_list_next(hsm_key_list->result_list))) {
         return NULL;
     }
-    if (!(hsm_key = hsm_key_new(db_object_connection(hsm_key_list->dbo)))) {
+    if (!(hsm_key = hsm_key_new(hsm_key_list->dbo->connection))) {
         return NULL;
     }
     if (hsm_key_from_result(hsm_key, result)) {
