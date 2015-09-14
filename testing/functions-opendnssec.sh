@@ -473,6 +473,46 @@ ods_enforcer_idle ()
 	return 1
 }
 
+ods_waitfor_keys ()
+{
+        log_this zones ods-enforcer zone list
+        i=0
+        while read -r line
+        do
+                if [[ $line =~ "/var/opendnssec/signconf" ]]
+                then
+                        zones[i]=`echo $line | awk '{print $1}'`
+                        i=$((i+1))
+                fi
+        done < _log.$BUILD_TAG.zones.stdout
+
+        for zone in "${zones[@]}"
+        do
+                echo $zone
+                timeout=900
+                while [ $timeout -gt 0 ]; do
+                        log_this ods-key-list ods-enforcer key list --verbose
+                        ksk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*KSK"`
+                        zsk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*ZSK"`
+
+                        if [[ -z $ksk ]] || [[ -z $zsk ]]
+                        then
+                                sleep 3
+                                timeout=$((timeout-3))
+                                echo $timeout
+                                if [ $timeout -le 0 ]
+                                then
+                                        echo "Generating keys for $zone needs more than 15 minutes!!!!"
+                                        return 1
+                                fi
+                        else
+                                break
+                        fi
+                done
+        done
+        return 0
+}
+
 ods_enforcer_leap_over ()
 {
 	if [ -z "$1" ]

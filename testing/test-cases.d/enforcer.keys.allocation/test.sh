@@ -23,6 +23,8 @@ ods_start_ods-control &&
 # note that the first enforce is not scheduled immediately, for almost a minut from now
 sleep 60 && ods_enforcer_idle &&
 
+log_this ods-enforcer-waitfor-keys ods_waitfor_keys &&
+
 # Check that we have 2 keys per zone
 # We don't care about the exact state it is in, as long as it is consistent.
 log_this ods-enforcer-key-list0 ods-enforcer key list &&
@@ -160,4 +162,3 @@ echo "************ERROR******************"
 echo
 ods_kill
 return 1
-
