@@ -10,7 +10,7 @@
 
 #OPENDNSSEC-91: Make the keytype flag required when rolling keys
 
-ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
+ODS_ENFORCER_WAIT_STOP_LOG=180
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
@@ -20,8 +20,9 @@ ods_reset_env &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
-ods_start_enforcer &&
-sleep 60 &&
+ods_start_ods-control &&
+
+sleep 10 && ods_enforcer_idle &&
 
 # Time Leap to time that  that we have ready/active ksk/zsk keys
 log_this ods-enforcer-time-leap-1 ods_enforcer_leap_to 7200 &&
@@ -209,7 +210,7 @@ log_grep ods-enforcer-key-list10 stdout 'ods3[[:space:]]*ZSK[[:space:]]*active' 
 #log_grep ods-enforcer-key-list11 stdout 'ods3[[:space:]]*[[:space:]]*      ZSK[[:space:]]*active' &&
 #log_grep ods-enforcer-key-list11 stdout 'ods3[[:space:]]*[[:space:]]*      ZSK[[:space:]]*publish' &&
 
-ods_stop_enforcer &&
+ods_stop_ods-control &&
 
 return 0
 
@@ -218,6 +219,3 @@ echo "************ERROR******************"
 echo
 ods_kill
 return 1
-
-
-
