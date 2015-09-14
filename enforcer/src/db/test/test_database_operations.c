@@ -60,13 +60,13 @@ db_object_t* __test_new_object(const db_connection_t* connection) {
     db_object_field_t* object_field;
     db_object_t* object;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object = malloc(sizeof(db_object_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object = calloc(1, sizeof(db_object_t))));
 
     object->connection = connection;
     object->table = "test";
     object->primary_key_name = "id";
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = calloc(1, sizeof(db_object_field_list_t))));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
     object_field->name = "id";
@@ -254,7 +254,7 @@ int test_create(test_t* test) {
     CU_ASSERT_FATAL(db_value_not_empty(test->id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = calloc(1, sizeof(db_object_field_list_t))));
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
     object_field->name = "name";
     object_field->type = DB_TYPE_TEXT;
@@ -297,7 +297,7 @@ int test_update(test_t* test) {
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
     clause = NULL;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = calloc(1, sizeof(db_object_field_list_t))));
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new()));
     object_field->name = "name";
     object_field->type = DB_TYPE_TEXT;
@@ -485,13 +485,13 @@ db_object_t* __test2_new_object(const db_connection_t* connection) {
     db_object_field_t* object_field;
     db_object_t* object;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object = malloc(sizeof(db_object_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object = calloc(1, sizeof(db_object_t))));
 
     object->connection = connection;
     object->table = "test2";
     object->primary_key_name = "id";
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = calloc(1, sizeof(db_object_field_list_t))));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("id", DB_TYPE_PRIMARY_KEY, NULL)));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
@@ -685,7 +685,7 @@ int test2_create(test2_t* test2) {
     CU_ASSERT_FATAL(db_value_not_empty(test2->rev));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test2->name);
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = calloc(1, sizeof(db_object_field_list_t))));
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("name", DB_TYPE_TEXT, NULL)));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
     object_field = NULL;
@@ -733,7 +733,7 @@ int test2_update(test2_t* test2) {
     CU_ASSERT_FATAL(!db_clause_list_add(clause_list, clause));
     clause = NULL;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = malloc(sizeof(db_object_field_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = calloc(1, sizeof(db_object_field_list_t))));
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field = db_object_field_new_init("name", DB_TYPE_TEXT, NULL)));
     CU_ASSERT_FATAL(!db_object_field_list_add(object_field_list, object_field));
     object_field = NULL;

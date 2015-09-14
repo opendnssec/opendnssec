@@ -576,7 +576,7 @@ void test_class_db_connection(void) {
 }
 
 void test_class_db_join(void) {
-    CU_ASSERT_PTR_NOT_NULL_FATAL((join = malloc(sizeof(db_join_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((join = calloc(1, sizeof(db_join_t))));
     CU_ASSERT(!db_join_set_from_table(join, "from_table1"));
     CU_ASSERT(!db_join_set_from_field(join, "from_field1"));
     CU_ASSERT(!db_join_set_to_table(join, "to_table1"));
@@ -591,7 +591,7 @@ void test_class_db_join(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(join->to_field);
     CU_ASSERT(!strcmp(join->to_field, "to_field1"));
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((join2 = malloc(sizeof(db_join_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((join2 = calloc(1, sizeof(db_join_t))));
     CU_ASSERT(!db_join_set_from_table(join2, "from_table2"));
     CU_ASSERT(!db_join_set_from_field(join2, "from_field2"));
     CU_ASSERT(!db_join_set_to_table(join2, "to_table2"));
@@ -612,7 +612,7 @@ void test_class_db_join_list(void) {
     db_join_t* local_join2 = join2;
     const db_join_t* join_walk;
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((join_list = malloc(sizeof(db_join_list_t))));
+    CU_ASSERT_PTR_NOT_NULL_FATAL((join_list = calloc(1, sizeof(db_join_list_t))));
 
     CU_ASSERT_FATAL(!db_join_list_add(join_list, join));
     join = NULL;
